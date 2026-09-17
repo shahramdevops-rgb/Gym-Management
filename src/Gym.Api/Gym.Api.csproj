@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <PropertyGroup>
+    <!--
+      Identifies this project's user-secrets store (~/AppData/Roaming/Microsoft/UserSecrets/<id>
+      on Windows). The store lives outside the repository, so secrets cannot be committed
+      by accident. Development only: production reads environment variables.
+    -->
+    <UserSecretsId>e20a461a-0a35-47f6-b3e7-1d1e139b241c</UserSecretsId>
+  </PropertyGroup>
+
   <!--
     The composition root: it is the only project allowed to reference Infrastructure,
     because it is the only place that wires implementations to interfaces.
