@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Domain unit tests: no database, no web host. This project references Gym.Domain and
+    nothing else, which is what keeps these tests fast and dependency-free.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Gym.Domain\Gym.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -147,5 +147,6 @@ web/src/
 - Do not use `MapIdentityApi()`: it adds a register endpoint and uses its own token format.
 - Migrations are never applied automatically at app startup in production. Use an EF migration bundle during deployment.
 - Testcontainers needs Docker running, locally and in CI.
+- The .NET 10 SDK no longer runs Microsoft.Testing.Platform tests through VSTest. xunit.v3 hosts its own runner, so test projects set `OutputType=Exe` and `TestingPlatformDotnetTestSupport=true`, `global.json` carries `"test": { "runner": "Microsoft.Testing.Platform" }`, and neither `Microsoft.NET.Test.Sdk` nor `xunit.runner.visualstudio` is referenced. Without the `global.json` opt-in, `dotnet test` fails with "Testing with VSTest target is no longer supported".
 - Font files and scripts are self-hosted in the build, never loaded from a public CDN.
 - Partial unique indexes: `HasIndex(...).IsUnique().HasFilter("checked_out_at IS NULL")`. The filter uses snake_case column names.

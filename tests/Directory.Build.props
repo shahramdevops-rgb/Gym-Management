@@ -1,0 +1,30 @@
+<Project>
+
+  <!--
+    Layered on top of the repository-root Directory.Build.props: MSBuild only imports the
+    nearest one automatically, so the parent is imported explicitly first and these
+    test-only settings are added afterwards.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <!-- xunit.v3 test projects are executables hosting their own Microsoft Testing Platform runner. -->
+    <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <!-- Every test project needs the same runner; declared once instead of per project. -->
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Shouldly" />
+  </ItemGroup>
+
+  <!-- Implicit usings so every test file skips the same two using directives. -->
+  <ItemGroup>
+    <Using Include="Shouldly" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

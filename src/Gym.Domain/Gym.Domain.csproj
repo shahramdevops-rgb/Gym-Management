@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The innermost layer. It has no ProjectReference and no PackageReference, and it must stay
+    that way: entities and domain rules depend on nothing, not even EF Core.
+    tests/Gym.Domain.Tests/Architecture/DomainDependencyTests.cs enforces this.
+  -->
+
+</Project>

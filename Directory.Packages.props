@@ -1,0 +1,24 @@
+<Project>
+
+  <!--
+    Central Package Management: versions live here, .csproj files reference packages by name only.
+    Two projects can therefore never disagree about which version of a package they use.
+    Add a row here when a roadmap task introduces a package from the approved list in
+    docs/ARCHITECTURE.md.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!--
+    xunit.v3 carries its own Microsoft Testing Platform runner, so neither
+    Microsoft.NET.Test.Sdk nor xunit.runner.visualstudio is needed: the .NET 10 SDK has
+    dropped VSTest support for Microsoft.Testing.Platform. See dotnet.config at the repo root.
+  -->
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+  </ItemGroup>
+
+</Project>

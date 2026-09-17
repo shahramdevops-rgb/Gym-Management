@@ -11,9 +11,9 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 
 | Setting | Decide before | Notes |
 |---|---|---|
-| `Gym:TimeZone` | Phase 4 | IANA time zone id. Defines "today" for every business date. |
-| `Gym:Currency` | Phase 4 | Rial or Toman: choose one storage unit and never mix. Amounts are always `decimal`. |
-| `Gym:PhoneDefaultRegion` | Phase 2 | Two-letter region code used to normalize local phone formats. |
+| `Gym:TimeZone` | Phase 4 | Asia/Tehran. Defines "today" for every business date. |
+| `Gym:Currency` | Phase 4 | Toman: choose one storage unit and never mix. Amounts are always `decimal`. |
+| `Gym:PhoneDefaultRegion` | Phase 2 | Two-letter region code used to normalize local phone formats is 09 |
 | Payment methods | Phase 4 | For example Cash, Card, BankTransfer. |
 | `Gym:MaxFreezeDaysPerSubscription` | Phase 4 | Total frozen days allowed per subscription. |
 | `Gym:ClosingTime` | Phase 5 | Local time for the nightly auto-checkout. |
