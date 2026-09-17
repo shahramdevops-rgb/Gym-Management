@@ -15,4 +15,14 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
   </ItemGroup>
 
+  <!--
+    Validation rules belong to the use case, so they are declared here and not in Gym.Api:
+    a command must be valid whoever sends it, including a background job with no HTTP request
+    behind it. Gym.Api only owns the endpoint filter that runs them and shapes the response.
+  -->
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+
 </Project>

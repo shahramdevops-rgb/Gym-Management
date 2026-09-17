@@ -18,14 +18,16 @@ GymManagement/
 │   │   ├── Common/            Entity base, Result, Error
 │   │   └── <Feature>/         e.g. Members/, Subscriptions/, Attendance/
 │   ├── Gym.Application/       Use cases. References Domain only.
-│   │   ├── Common/            IAppDbContext, ICurrentUser, ISmsSender, ValidationFilter
+│   │   ├── Common/            IAppDbContext, ICurrentUser, ISmsSender
 │   │   └── <Feature>/<UseCase>/   Command, Validator, Handler, Response
 │   ├── Gym.Infrastructure/    EF Core, Identity, SMS, Hangfire.
 │   │   ├── Persistence/       AppDbContext, Configurations/, Migrations/, Interceptors/
 │   │   ├── Identity/
 │   │   ├── Sms/
 │   │   └── Jobs/
-│   └── Gym.Api/               Program.cs, Endpoints/, error mapping, auth setup
+│   └── Gym.Api/               Program.cs, Endpoints/, auth setup
+│       ├── Common/            ResultExtensions (error mapping), ProblemDetails contract
+│       └── Filters/           ValidationFilter<T>
 ├── web/                       React frontend
 ├── tests/
 │   ├── Gym.Domain.Tests/
@@ -102,7 +104,29 @@ group.MapPost("/", async (CreateMemberCommand command, CreateMemberHandler handl
 | Conflict | 409 |
 | BusinessRule | 422 |
 
-Unhandled exceptions → 500 ProblemDetails with a trace id and no internal details.
+Every failure is an RFC 9457 ProblemDetails. `Gym.Api/Common/ResultExtensions.ToHttpResult()` is the only
+place that chooses a status code, and `ProblemDetailsFields` names the extension fields the frontend reads:
+
+```jsonc
+// 409 — a Result failure
+{ "title": "Conflict with the current state.", "status": 409,
+  "detail": "Another member already uses that phone number.",   // English, for developers
+  "code": "Members.PhoneAlreadyExists",                          // the contract lib/errors.ts maps
+  "correlationId": "cb34971d8df84af3ac6f02b6bec50926" }          // same value as X-Correlation-Id
+
+// 400 — ValidationFilter<T>. `errors` is keyed by JSON property name; each entry carries a code,
+// not just a sentence, so the frontend can show a Persian message per field.
+{ "title": "Validation failed.", "status": 400, "code": "General.ValidationFailed",
+  "errors": { "phoneNumber": [ { "code": "Members.PhoneTooShort",
+                                 "description": "Phone number is too short." } ] } }
+```
+
+Validators are FluentValidation `AbstractValidator<T>` classes in Application, registered by an assembly scan in
+`AddApplication()`; every rule sets `.WithErrorCode("Feature.Reason")`. `ValidationFilter<T>` itself lives in
+Gym.Api, because `IEndpointFilter` is an ASP.NET Core type and Application must stay host-free.
+
+Unhandled exceptions → 500 ProblemDetails (`GlobalExceptionHandler`) with the correlation id and no internal
+details — no message, no type name, no stack trace.
 `DbUpdateConcurrencyException` and Postgres unique violations (SQLSTATE 23505) are translated to 409 where they are expected.
 
 ### Persistence
@@ -156,4 +180,12 @@ web/src/
 - Serilog sinks in `appsettings*.json` are keyed objects (`"WriteTo": { "Console": {...} }`), not JSON arrays. Configuration files merge by key and arrays merge by index, so an array would make `appsettings.Development.json` able to add a sink only by counting entries in the base file.
 - Serilog sinks default to the machine's culture. This project runs with `InvariantGlobalization=false` so the app can format Persian dates, so every sink passes `formatProvider` explicitly (`System.Globalization.CultureInfo::InvariantCulture` in configuration) — otherwise a machine set to `fa-IR` writes log timestamps in Persian digits and no log query matches them.
 - `HttpResponseFeature.OnStarting` is a no-op on a plain `DefaultHttpContext`, so a middleware test that asserts on a deferred response header passes whether or not the middleware did anything. Tests use `RecordingResponseFeature` and fire the callbacks explicitly.
+- A switch expression over an enum still needs a default arm: C# allows any underlying value, so covering every
+  declared member silences CS8509 but raises CS8524. `ResultExtensions` throws in the default arm and a test walks
+  `Enum.GetValues<ErrorType>()`, because with warnings-as-errors the alternative is an unbuildable file.
+- CA1716 rejects type names that are keywords in another .NET language (`Error` is one in VB). Disabled in
+  `.editorconfig` with a rationale: this is a C# application, not a published library.
+- `AddProblemDetails()` already adds a `traceId` extension holding the whole W3C traceparent. The API adds
+  `correlationId` as well, holding just the trace id — the same string `X-Correlation-Id` returns, which is what a
+  user can actually read off a screen and quote.
 - Partial unique indexes: `HasIndex(...).IsUnique().HasFilter("checked_out_at IS NULL")`. The filter uses snake_case column names.

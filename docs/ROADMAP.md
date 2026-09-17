@@ -52,11 +52,11 @@ Done when: the migration applies and `/health` returns healthy.
 Done when: Scalar opens and request logs appear in Seq.
 
 ### 0.5 Errors and validation
-- [ ] `Result`, `Result<T>`, `Error`, `ErrorType` in Domain/Common
-- [ ] `ToHttpResult()` mapping to ProblemDetails (includes the error `code`)
-- [ ] Global `IExceptionHandler`
-- [ ] FluentValidation and a generic `ValidationFilter<T>` (field errors include error codes)
-- [ ] Unit tests for Result and error mapping
+- [x] `Result`, `Result<T>`, `Error`, `ErrorType` in Domain/Common
+- [x] `ToHttpResult()` mapping to ProblemDetails (includes the error `code`)
+- [x] Global `IExceptionHandler`
+- [x] FluentValidation and a generic `ValidationFilter<T>` (field errors include error codes)
+- [x] Unit tests for Result and error mapping
 
 Done when: an invalid request returns a 400 ProblemDetails with field errors and codes.
 
