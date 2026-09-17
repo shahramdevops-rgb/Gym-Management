@@ -32,6 +32,27 @@
   </ItemGroup>
 
   <!--
+    Structured logging. Serilog.AspNetCore brings the hosting integration and the console
+    sink; Serilog.Sinks.Seq ships events to the Seq container from docker-compose.yml.
+    Both are referenced by Gym.Api alone: the other layers log through Microsoft.Extensions
+    .Logging abstractions and never learn which logger is behind them.
+  -->
+  <ItemGroup Label="Logging">
+    <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Seq" Version="9.1.0" />
+  </ItemGroup>
+
+  <!--
+    Microsoft.AspNetCore.OpenApi produces the OpenAPI document; Scalar renders it. Swashbuckle
+    is no longer shipped by the ASP.NET Core templates in .NET 9+, and Scalar is the
+    replacement UI the templates point at.
+  -->
+  <ItemGroup Label="ApiDocs">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.4" />
+  </ItemGroup>
+
+  <!--
     xunit.v3 carries its own Microsoft Testing Platform runner, so neither
     Microsoft.NET.Test.Sdk nor xunit.runner.visualstudio is needed: the .NET 10 SDK has
     dropped VSTest support for Microsoft.Testing.Platform. The opt-in is the "test" section
