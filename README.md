@@ -110,7 +110,33 @@ dotnet run --project src/Gym.Api      # run the API
 Integration tests start their own Postgres container through Testcontainers, so Docker must
 be running for `dotnet test` (from task 0.6 on).
 
-## Health
+## Running the API
 
-With the API running, <http://localhost:5134/health> reports `Healthy` only when the database
-is reachable too — stop Postgres and it returns `503 Unhealthy`.
+```bash
+dotnet run --project src/Gym.Api      # http://localhost:5134
+```
+
+| Endpoint | What it is |
+|---|---|
+| <http://localhost:5134/health> | `Healthy` only when the database is reachable too — stop Postgres and it returns `503 Unhealthy` |
+| <http://localhost:5134/scalar/v1> | API explorer (Development only) |
+| <http://localhost:5134/openapi/v1.json> | the OpenAPI document the explorer renders, and the input to `npm run gen:api` |
+| <http://localhost:8081> | Seq — structured logs from the running API |
+
+Every response carries an `X-Correlation-Id` header holding the request's W3C trace id. The
+same value is attached to every log event as `CorrelationId`, so pasting it into Seq's filter
+box shows everything that one request did:
+
+```
+CorrelationId = 'cc8367be7ab726497ac6a73977b0aac5'
+```
+
+If the frontend sends a `traceparent` header, its trace id is reused rather than replaced, so
+one id covers both sides of the call.
+
+### Log levels
+
+Levels live in `appsettings.json` (`Serilog` section), not in code, so they can be changed
+without a rebuild. Development adds the Seq sink and turns on EF Core's SQL logging.
+`/health` is logged at `Debug` on purpose — a probe polled every ten seconds is 8,640 events a
+day that say nothing, and Seq stays readable without it.

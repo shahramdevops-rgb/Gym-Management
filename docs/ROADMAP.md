@@ -43,11 +43,11 @@ Done when: `docker compose up -d` shows both containers healthy.
 Done when: the migration applies and `/health` returns healthy.
 
 ### 0.4 API plumbing
-- [ ] `AddApplication()` and `AddInfrastructure()` extension methods
-- [ ] Serilog: console and Seq, request logging, correlation id
-- [ ] OpenAPI document and Scalar UI (Development only)
-- [ ] `TimeProvider.System` registered
-- [ ] CORS policy for the Vite dev server (Development only)
+- [x] `AddApplication()` and `AddInfrastructure()` extension methods
+- [x] Serilog: console and Seq, request logging, correlation id
+- [x] OpenAPI document and Scalar UI (Development only)
+- [x] `TimeProvider.System` registered
+- [x] CORS policy for the Vite dev server (Development only)
 
 Done when: Scalar opens and request logs appear in Seq.
 

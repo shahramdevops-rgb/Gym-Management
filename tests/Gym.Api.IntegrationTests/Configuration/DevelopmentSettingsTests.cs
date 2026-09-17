@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Gym.Api.IntegrationTests.Configuration;
@@ -50,6 +51,56 @@ public sealed class DevelopmentSettingsTests
     }
 
     [Fact]
+    public void SeqSink_WhenRead_TargetsThePortTheEnvironmentTemplatePublishes()
+    {
+        var serverUrl = ReadDevelopmentSeqServerUrl();
+
+        new Uri(serverUrl).Port.ToString(CultureInfo.InvariantCulture).ShouldBe(
+            EnvironmentTemplate["SEQ_INGESTION_PORT"],
+            "Serilog would otherwise post to a port nothing is listening on, and the only "
+            + "symptom would be an empty Seq with no error anywhere.");
+    }
+
+    [Fact]
+    public void SeqSink_WhenRead_TargetsTheLocalContainer()
+    {
+        new Uri(ReadDevelopmentSeqServerUrl()).Host.ShouldBe("localhost");
+    }
+
+    [Fact]
+    public void CorsOrigins_WhenRead_AreConfiguredForTheViteDevServer()
+    {
+        var json = ReadRepositoryFile(Path.Combine("src", "Gym.Api", "appsettings.Development.json"));
+
+        using var document = ParseJson(json);
+
+        var origins = document.RootElement
+            .GetProperty("Cors")
+            .GetProperty("AllowedOrigins")
+            .EnumerateArray()
+            .Select(origin => origin.GetString())
+            .ToArray();
+
+        // AddVitePolicy throws on an empty list, so this asserts the committed file actually
+        // carries a value rather than relying on that exception being noticed at runtime.
+        origins.ShouldNotBeEmpty();
+        origins.ShouldAllBe(origin => origin!.StartsWith("http://localhost", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ProductionSettings_WhenRead_CarryNoSeqSinkAndNoCorsOrigins()
+    {
+        var json = ReadRepositoryFile(Path.Combine("src", "Gym.Api", "appsettings.json"));
+
+        using var document = ParseJson(json);
+
+        // appsettings.json is the production baseline. A Seq URL or a dev-server origin
+        // leaking into it would ship a developer's machine as configuration.
+        json.ShouldNotContain("5341", Case.Sensitive);
+        document.RootElement.TryGetProperty("Cors", out _).ShouldBeFalse();
+    }
+
+    [Fact]
     public void ComposeFile_WhenRead_MountsThePostgresVolumeAboveTheDataDirectory()
     {
         var compose = ReadRepositoryFile("docker-compose.yml");
@@ -65,15 +116,36 @@ public sealed class DevelopmentSettingsTests
     {
         var json = ReadRepositoryFile(Path.Combine("src", "Gym.Api", "appsettings.Development.json"));
 
-        // The same options the JSON configuration provider uses, so a file that ASP.NET Core
-        // accepts is a file this test accepts.
-        using var document = JsonDocument.Parse(
-            json,
-            new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+        using var document = ParseJson(json);
 
         return document.RootElement.GetProperty("ConnectionStrings").GetProperty("Postgres").GetString()
             ?? throw new InvalidOperationException("ConnectionStrings:Postgres is null.");
     }
+
+    private static string ReadDevelopmentSeqServerUrl()
+    {
+        var json = ReadRepositoryFile(Path.Combine("src", "Gym.Api", "appsettings.Development.json"));
+
+        using var document = ParseJson(json);
+
+        return document.RootElement
+            .GetProperty("Serilog")
+            .GetProperty("WriteTo")
+            .GetProperty("Seq")
+            .GetProperty("Args")
+            .GetProperty("serverUrl")
+            .GetString()
+            ?? throw new InvalidOperationException("The Seq sink has no serverUrl.");
+    }
+
+    /// <summary>
+    /// The same options the JSON configuration provider uses, so a file that ASP.NET Core
+    /// accepts is a file these tests accept.
+    /// </summary>
+    private static JsonDocument ParseJson(string json) =>
+        JsonDocument.Parse(
+            json,
+            new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
 
     private static Dictionary<string, string> ParseConnectionString(string connectionString) =>
         connectionString
