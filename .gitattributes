@@ -1,0 +1,20 @@
+# Normalize to LF in the repository and in the working tree, so Windows dev
+# machines and Linux CI agree with .editorconfig (end_of_line = lf).
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF to run.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files: never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary
+*.zip binary
