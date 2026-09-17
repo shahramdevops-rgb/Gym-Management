@@ -33,12 +33,12 @@ Done when: `dotnet build` succeeds with zero warnings.
 Done when: `docker compose up -d` shows both containers healthy.
 
 ### 0.3 Persistence foundation
-- [ ] `IAppDbContext` in Application; `AppDbContext` in Infrastructure
-- [ ] Npgsql and snake_case naming
-- [ ] Base `Entity` (Guid v7 id, CreatedAt/By, UpdatedAt/By)
-- [ ] Interceptor setting audit timestamps (user id stubbed until Phase 1)
-- [ ] Initial migration applied
-- [ ] `/health` endpoint including a database check
+- [x] `IAppDbContext` in Application; `AppDbContext` in Infrastructure
+- [x] Npgsql and snake_case naming
+- [x] Base `Entity` (Guid v7 id, CreatedAt/By, UpdatedAt/By)
+- [x] Interceptor setting audit timestamps (user id stubbed until Phase 1)
+- [x] Initial migration applied
+- [x] `/health` endpoint including a database check
 
 Done when: the migration applies and `/health` returns healthy.
 

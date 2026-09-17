@@ -18,4 +18,13 @@
     <ProjectReference Include="..\Gym.Infrastructure\Gym.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!--
+    Design-time only: the `dotnet ef` commands in CLAUDE.md pass this project as the
+    startup project, so the tooling builds the host here to find AppDbContext.
+    PrivateAssets="all" keeps the scaffolding code out of the published output.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
 </Project>

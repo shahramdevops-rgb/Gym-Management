@@ -1,0 +1,18 @@
+{
+  // Local run configuration. Not used in production: the container sets its own environment.
+  // The EF Core tools also read this file, so `dotnet ef` runs as Development and therefore
+  // sees appsettings.Development.json and user-secrets. Without it, design-time commands
+  // default to Production and fail with "ConnectionStrings:Postgres is not configured".
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Gym.Api": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "https://localhost:7134;http://localhost:5134",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

@@ -5,4 +5,14 @@
     <ProjectReference Include="..\Gym.Domain\Gym.Domain.csproj" />
   </ItemGroup>
 
+  <!--
+    EF Core abstractions only, not a provider: IAppDbContext is declared here in terms of
+    DbSet<T> and SaveChangesAsync, which is the deliberate trade-off for having no repository
+    layer (see docs/ARCHITECTURE.md). Application therefore knows the shape of EF Core but
+    never which database is behind it.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
 </Project>

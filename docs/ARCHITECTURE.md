@@ -47,6 +47,7 @@ Versions are pinned centrally in `Directory.Packages.props`. Ask before adding a
 |---|---|
 | Runtime | .NET 10 SDK (pinned in global.json) |
 | Database | Npgsql.EntityFrameworkCore.PostgreSQL, Microsoft.EntityFrameworkCore.Design |
+| Database (Application layer) | Microsoft.EntityFrameworkCore — abstractions only, because `IAppDbContext` is declared in terms of `DbSet<T>`; no provider ever reaches Application |
 | Naming | EFCore.NamingConventions (snake_case) |
 | Identity | Microsoft.AspNetCore.Identity.EntityFrameworkCore |
 | JWT | Microsoft.AspNetCore.Authentication.JwtBearer |
@@ -149,4 +150,7 @@ web/src/
 - Testcontainers needs Docker running, locally and in CI.
 - The .NET 10 SDK no longer runs Microsoft.Testing.Platform tests through VSTest. xunit.v3 hosts its own runner, so test projects set `OutputType=Exe` and `TestingPlatformDotnetTestSupport=true`, `global.json` carries `"test": { "runner": "Microsoft.Testing.Platform" }`, and neither `Microsoft.NET.Test.Sdk` nor `xunit.runner.visualstudio` is referenced. Without the `global.json` opt-in, `dotnet test` fails with "Testing with VSTest target is no longer supported".
 - Font files and scripts are self-hosted in the build, never loaded from a public CDN.
+- `UseSnakeCaseNamingConvention()` also rewrites EF's own `__EFMigrationsHistory` columns to `migration_id` and `product_version`. The table name keeps its original casing, so querying it by hand needs `SELECT migration_id ... FROM "__EFMigrationsHistory"`.
+- The `dotnet ef` tool is a global tool with its own version; it must be at least as new as the EF Core packages, otherwise design-time commands fail. `dotnet tool update --global dotnet-ef`.
+- `dotnet ef` reads `src/Gym.Api/Properties/launchSettings.json`. Without an `ASPNETCORE_ENVIRONMENT=Development` profile there, design-time commands run as Production and never load `appsettings.Development.json` or user-secrets.
 - Partial unique indexes: `HasIndex(...).IsUnique().HasFilter("checked_out_at IS NULL")`. The filter uses snake_case column names.
