@@ -43,6 +43,12 @@ dotnet_diagnostic.IDE0055.severity = warning
 # member (CS1591). Not worth that trade, so the IDE flags them and the build does not.
 dotnet_diagnostic.IDE0005.severity = suggestion
 
+# CA1716 forbids type names that are keywords in *another* .NET language (Error is a VB
+# statement). This solution is C# only and nothing here is published as a library, so the rule
+# protects a consumer that will never exist — while the names it objects to (Error, and later
+# domain words such as Plan) are the ones the ubiquitous language actually uses.
+dotnet_diagnostic.CA1716.severity = none
+
 # `this.` is never used to qualify members.
 dotnet_style_qualification_for_field = false:warning
 dotnet_style_qualification_for_property = false:warning

@@ -1,3 +1,5 @@
+using FluentValidation;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -9,8 +11,8 @@ namespace Gym.Application;
 /// </summary>
 /// <remarks>
 /// Deliberately thin today: handlers are plain injected classes and the first of them arrives
-/// in Phase 2, with FluentValidation joining in task 0.5. The seam exists now so that adding a
-/// use case later means editing this layer, never the composition root.
+/// in Phase 2. The seam exists now so that adding a use case later means editing this layer,
+/// never the composition root.
 /// </remarks>
 public static class DependencyInjection
 {
@@ -24,6 +26,14 @@ public static class DependencyInjection
         // use TryAdd: each layer declares the dependency it actually has, and whichever runs
         // first wins without the other throwing or silently replacing it.
         services.TryAddSingleton(TimeProvider.System);
+
+        // One scan instead of a registration line per validator: a new
+        // Application/<Feature>/<UseCase>/Validator.cs is picked up by simply existing.
+        // Forgetting a registration line would not fail the build — it would silently disable
+        // validation for that endpoint, which is the worst possible way to find out. Each
+        // validator is registered as IValidator<TCommand>, which is what ValidationFilter<T>
+        // in Gym.Api resolves.
+        services.AddValidatorsFromAssembly(Common.AssemblyReference.Assembly, includeInternalTypes: true);
 
         return services;
     }

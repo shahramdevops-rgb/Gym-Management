@@ -26,6 +26,18 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
 
+  <!--
+    FluentValidation lives in Gym.Application because validators are part of a use case's
+    contract, not of HTTP: the same rules must hold when a command arrives from a background
+    job. The DependencyInjectionExtensions package only adds AddValidatorsFromAssembly on top
+    of Microsoft.Extensions.DependencyInjection.Abstractions, so Application still references
+    no ASP.NET Core assembly (a layer dependency test enforces that).
+  -->
+  <ItemGroup Label="Validation">
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+  </ItemGroup>
+
   <!-- AddDbContextCheck<T>(): the /health endpoint verifies the database, not just the process. -->
   <ItemGroup Label="Diagnostics">
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />

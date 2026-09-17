@@ -21,6 +21,11 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
+    // The error contract: one ProblemDetails shape for every failure, and a handler of last
+    // resort so an escaped exception becomes that same shape instead of an empty 500.
+    builder.Services.AddApiProblemDetails();
+    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
     builder.Services.AddOpenApi();
 
     if (builder.Environment.IsDevelopment())
@@ -33,6 +38,10 @@ try
     // First in the pipeline, so the id is attached to everything that follows, including
     // failures raised by later middleware.
     app.UseMiddleware<CorrelationIdMiddleware>();
+
+    // After the correlation id, so a failed request still returns the id in its header and
+    // its ProblemDetails body; before everything else, so it catches what those throw.
+    app.UseExceptionHandler();
 
     app.UseSerilogRequestLogging(SerilogConfiguration.ConfigureRequestLogging);
 

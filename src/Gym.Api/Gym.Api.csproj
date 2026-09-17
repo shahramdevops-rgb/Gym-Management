@@ -19,6 +19,15 @@
   </ItemGroup>
 
   <!--
+    The mapping tables in ResultExtensions are internal: they are an implementation detail of
+    ToHttpResult, not something an endpoint should call. Tests still need to walk them, and
+    widening them to public to make a test compile would be letting the test dictate the API.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Gym.Api.IntegrationTests" />
+  </ItemGroup>
+
+  <!--
     Design-time only: the `dotnet ef` commands in CLAUDE.md pass this project as the
     startup project, so the tooling builds the host here to find AppDbContext.
     PrivateAssets="all" keeps the scaffolding code out of the published output.
