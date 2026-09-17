@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Use cases. References Domain only; Infrastructure implements the interfaces declared here. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Gym.Domain\Gym.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

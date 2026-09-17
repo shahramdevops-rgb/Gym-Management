@@ -1,0 +1,32 @@
+<Project>
+
+  <!--
+    Settings inherited by every project in the repository.
+    MSBuild walks up from each .csproj and imports the first Directory.Build.props it finds,
+    so anything set here applies solution-wide and cannot drift between projects.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Warnings are errors (see CLAUDE.md): fix them, never suppress them. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- Applies the .editorconfig IDE rules at build time, not only in the editor. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Persian number and date formatting needs the real ICU data, not the invariant culture. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Nothing here is published to NuGet. -->
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

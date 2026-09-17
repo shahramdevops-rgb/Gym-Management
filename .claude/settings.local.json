@@ -5,7 +5,9 @@
       "Bash(git config *)",
       "Bash(git rm *)",
       "Bash(git commit -q -m 'chore: add project documentation, gitignore and gitattributes *)",
-      "Bash(git switch *)"
+      "Bash(git switch *)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet sln *)"
     ]
   }
 }

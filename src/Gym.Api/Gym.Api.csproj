@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The composition root: it is the only project allowed to reference Infrastructure,
+    because it is the only place that wires implementations to interfaces.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Gym.Application\Gym.Application.csproj" />
+    <ProjectReference Include="..\Gym.Infrastructure\Gym.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

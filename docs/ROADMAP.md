@@ -16,12 +16,12 @@ Milestones:
 ## Phase 0 — Foundation
 
 ### 0.1 Repository and solution skeleton
-- [ ] `git init`, `.gitignore` (dotnet and node), `.editorconfig`, `global.json` pinning .NET 10
-- [ ] Solution with Gym.Domain, Gym.Application, Gym.Infrastructure, Gym.Api
-- [ ] Test projects: Gym.Domain.Tests, Gym.Api.IntegrationTests
-- [ ] Project references following the dependency rule
-- [ ] `Directory.Build.props`: nullable enabled, implicit usings, warnings as errors
-- [ ] `Directory.Packages.props`: central package management
+- [x] `git init`, `.gitignore` (dotnet and node), `.editorconfig`, `global.json` pinning .NET 10
+- [x] Solution with Gym.Domain, Gym.Application, Gym.Infrastructure, Gym.Api
+- [x] Test projects: Gym.Domain.Tests, Gym.Api.IntegrationTests
+- [x] Project references following the dependency rule
+- [x] `Directory.Build.props`: nullable enabled, implicit usings, warnings as errors
+- [x] `Directory.Packages.props`: central package management
 
 Done when: `dotnet build` succeeds with zero warnings.
 

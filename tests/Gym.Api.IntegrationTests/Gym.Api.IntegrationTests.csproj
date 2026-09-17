@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Integration tests. Referencing Gym.Api brings the whole assembly graph into the test
+    output, which is what the layer dependency tests need.
+    Testcontainers, Respawn and WebApplicationFactory arrive in task 0.6.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Gym.Api\Gym.Api.csproj" />
+  </ItemGroup>
+
+</Project>

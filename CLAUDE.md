@@ -1,6 +1,6 @@
 # Gym Management System
 
-Internal gym management system for 1 Owner and 2 Staff.
+Internal gym management system for 1 Owner and few Staff.
 No public access, no self-registration, no member logins.
 
 ## Where things are

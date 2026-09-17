@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- EF Core, Identity, SMS, jobs. Implements the interfaces Application declares. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Gym.Application\Gym.Application.csproj" />
+  </ItemGroup>
+
+</Project>
