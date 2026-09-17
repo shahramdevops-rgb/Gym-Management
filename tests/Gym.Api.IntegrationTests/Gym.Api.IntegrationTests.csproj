@@ -9,4 +9,12 @@
     <ProjectReference Include="..\..\src\Gym.Api\Gym.Api.csproj" />
   </ItemGroup>
 
+  <!--
+    FakeTimeProvider drives the audit interceptor's clock. CLAUDE.md forbids DateTime.UtcNow
+    precisely so that tests can pin "now" instead of asserting on a moving target.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
 </Project>

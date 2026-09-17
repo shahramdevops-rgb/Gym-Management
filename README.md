@@ -74,6 +74,30 @@ them when the data volume is empty.
 
 In production nothing here applies: configuration comes from environment variables.
 
+## Database schema
+
+The schema lives in EF Core migrations under `src/Gym.Infrastructure/Persistence/Migrations`.
+The `dotnet ef` tool must be installed once and kept at least as new as the EF Core packages:
+
+```bash
+dotnet tool install --global dotnet-ef   # or: dotnet tool update --global dotnet-ef
+```
+
+```bash
+# apply every migration to the local database
+dotnet ef database update --project src/Gym.Infrastructure --startup-project src/Gym.Api
+
+# add a migration after changing the model
+dotnet ef migrations add <Name> --project src/Gym.Infrastructure --startup-project src/Gym.Api --output-dir Persistence/Migrations
+```
+
+Both commands need Postgres running and the `Postgres:Password` user-secret set. They pick up
+`Development` configuration from `src/Gym.Api/Properties/launchSettings.json`, which is why
+they can see `appsettings.Development.json` and user-secrets at all.
+
+Migrations are never applied automatically at startup in production; task 6.2 runs a migration
+bundle during deployment instead.
+
 ## Build and test
 
 ```bash
@@ -85,3 +109,8 @@ dotnet run --project src/Gym.Api      # run the API
 
 Integration tests start their own Postgres container through Testcontainers, so Docker must
 be running for `dotnet test` (from task 0.6 on).
+
+## Health
+
+With the API running, <http://localhost:5134/health> reports `Healthy` only when the database
+is reachable too — stop Postgres and it returns `503 Unhealthy`.

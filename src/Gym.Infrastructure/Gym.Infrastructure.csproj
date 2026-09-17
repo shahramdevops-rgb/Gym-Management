@@ -5,4 +5,14 @@
     <ProjectReference Include="..\Gym.Application\Gym.Application.csproj" />
   </ItemGroup>
 
+  <!--
+    The only project that names Postgres. EFCore.NamingConventions maps PascalCase CLR names
+    to snake_case database names; the health check package supplies AddDbContextCheck<T>().
+  -->
+  <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
 </Project>
