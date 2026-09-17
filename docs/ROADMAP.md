@@ -26,9 +26,9 @@ Milestones:
 Done when: `dotnet build` succeeds with zero warnings.
 
 ### 0.2 Local infrastructure
-- [ ] `docker-compose.yml`: postgres:18 (named volume, health check) and Seq
-- [ ] Connection string in `appsettings.Development.json` without the password; password in user-secrets
-- [ ] Short README section: how to start local infrastructure
+- [x] `docker-compose.yml`: postgres:18 (named volume, health check) and Seq
+- [x] Connection string in `appsettings.Development.json` without the password; password in user-secrets
+- [x] Short README section: how to start local infrastructure
 
 Done when: `docker compose up -d` shows both containers healthy.
 

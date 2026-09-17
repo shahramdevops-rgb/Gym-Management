@@ -14,7 +14,8 @@
   <!--
     xunit.v3 carries its own Microsoft Testing Platform runner, so neither
     Microsoft.NET.Test.Sdk nor xunit.runner.visualstudio is needed: the .NET 10 SDK has
-    dropped VSTest support for Microsoft.Testing.Platform. See dotnet.config at the repo root.
+    dropped VSTest support for Microsoft.Testing.Platform. The opt-in is the "test" section
+    of global.json at the repo root.
   -->
   <ItemGroup Label="Testing">
     <PackageVersion Include="Shouldly" Version="4.3.0" />
