@@ -60,3 +60,8 @@ secrets.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code
+# Tool permissions granted on this machine — local to each developer, so it is not shared.
+# .claude/settings.json (shared project settings) and .claude/skills/ stay tracked.
+.claude/settings.local.json
