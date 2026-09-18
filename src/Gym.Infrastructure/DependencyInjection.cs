@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Security;
+using Gym.Application.Staff;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Persistence.Interceptors;
@@ -67,6 +68,7 @@ public static class DependencyInjection
                 // front desk. The built-in per-class checks are switched off in favor of
                 // LetterAndDigitPasswordValidator, which checks letter/digit without regard
                 // to case.
+                options.User.AllowedUserNameCharacters = UserNamePolicy.AllowedCharacters;
                 options.Password.RequiredLength = PasswordPolicy.MinimumLength;
                 options.Password.RequireDigit = false;
                 options.Password.RequireLowercase = false;
@@ -78,6 +80,7 @@ public static class DependencyInjection
             .AddPasswordValidator<LetterAndDigitPasswordValidator>();
 
         services.AddScoped<IUserAuthenticator, UserAuthenticator>();
+        services.AddScoped<IStaffAccounts, StaffAccounts>();
 
         // Bound from the section passed in rather than with BindConfiguration, which needs
         // IConfiguration in the container. The section is a live view, so values added to the

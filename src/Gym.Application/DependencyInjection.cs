@@ -5,6 +5,11 @@ using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
 using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
+using Gym.Application.Staff.CreateStaff;
+using Gym.Application.Staff.GetStaff;
+using Gym.Application.Staff.ListStaff;
+using Gym.Application.Staff.ResetStaffPassword;
+using Gym.Application.Staff.SetStaffActive;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -48,6 +53,12 @@ public static class DependencyInjection
         services.AddScoped<LogoutHandler>();
         services.AddScoped<ChangePasswordHandler>();
         services.AddScoped<GetCurrentUserHandler>();
+
+        services.AddScoped<CreateStaffHandler>();
+        services.AddScoped<ListStaffHandler>();
+        services.AddScoped<GetStaffHandler>();
+        services.AddScoped<SetStaffActiveHandler>();
+        services.AddScoped<ResetStaffPasswordHandler>();
 
         return services;
     }

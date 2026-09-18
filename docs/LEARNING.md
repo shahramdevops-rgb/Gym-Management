@@ -203,3 +203,15 @@ Format:
 - **Old tokens don't learn about changes.** After a password change, the old access token still says `must_change_password=true` until it expires. The endpoint returns a fresh session, so the user moves on at once instead of hitting the gate for 15 more minutes.
 - **My notes:**
 
+---
+
+## 1.5 — Staff management API
+
+- **A policy on the group, not on each endpoint.** `MapGroup("/api/staff").RequireAuthorization(Policies.OwnerOnly)` makes "Owner only" a property of the whole URL space. A sixth endpoint added next month is protected without anyone remembering to protect it.
+- **"Not found" as a safety rail.** The staff endpoints only see Staff accounts. Asking them to deactivate the Owner's id answers 404, as if the account weren't there, so the Owner can't lock themselves out through the staff screen.
+- **Idempotent actions.** Deactivating an inactive account succeeds and changes nothing. A double-clicked button or a retried request can't turn into an error, and the result is the same however many times it arrives.
+- **A test that passes for the wrong reason proves nothing.** The first deactivate test checked that refresh fails. But refresh rejects inactive users anyway, so it would have passed without the token revocation. The test now checks the tokens right after deactivation, and a mutation check confirms it fails without the revocation.
+- **One rule, two enforcers.** `UserNamePolicy` and `PasswordPolicy` are read by both the FluentValidation rules (a friendly field error before anything is saved) and Identity's options (a guarantee on every path that stores a user). Neither can drift from the other because neither holds a copy.
+- **Paging from the start.** Even a list of five staff returns `PagedResponse<T>`. Changing a response shape later breaks the frontend. Paging from day one costs almost nothing.
+- **My notes:**
+

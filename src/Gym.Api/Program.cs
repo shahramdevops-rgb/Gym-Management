@@ -89,6 +89,7 @@ try
     app.MapHealthChecks("/health").AllowAnonymous();
 
     app.MapAuthEndpoints();
+    app.MapStaffEndpoints();
 
     app.Run();
 }

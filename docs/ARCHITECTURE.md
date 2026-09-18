@@ -272,4 +272,11 @@ web/src/
 - A use case that saves through both `UserManager` and `IAppDbContext` wraps them in `IAppDbContext.BeginTransactionAsync`;
   both use the same scoped context. Anything that must survive a rollback, like a failed password attempt, happens before
   the transaction starts.
+- Paged lists return `PagedResponse<T>` (`Items`, `Page`, `PageSize`, `TotalCount`) and validate their query with
+  `PagingRules.ValidPage()` / `ValidPageSize()`. Query-string records bind with `[AsParameters]`, and
+  `ValidationFilter<T>` validates them like a body.
+- Endpoints that share a policy put it on the `MapGroup` (`StaffEndpoints`), so a new endpoint in the group cannot be
+  added without it.
+- User names and passwords have one rule each in Application (`UserNamePolicy`, `PasswordPolicy`), used by both the
+  FluentValidation rules (`PasswordRules.ValidNewPassword`) and Identity's options, so the form and the database agree.
 
