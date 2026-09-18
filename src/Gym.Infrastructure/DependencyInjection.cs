@@ -1,6 +1,7 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Security;
 using Gym.Application.Staff;
+using Gym.Infrastructure.Calendar;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Phones;
@@ -87,6 +88,14 @@ public static class DependencyInjection
 
         services.AddScoped<IUserAuthenticator, UserAuthenticator>();
         services.AddScoped<IStaffAccounts, StaffAccounts>();
+
+        // "Today" in the gym's time zone. A misspelled time zone stops the app at startup instead
+        // of silently producing the wrong day.
+        services.AddOptions<GymCalendarOptions>()
+            .Bind(configuration.GetSection(GymCalendarOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<GymCalendarOptions>, GymCalendarOptionsValidator>();
+        services.AddSingleton<IGymCalendar, GymCalendar>();
 
         // Stateless: libphonenumber's metadata is loaded once and shared.
         services.AddOptions<PhoneOptions>().Bind(configuration.GetSection(PhoneOptions.SectionName));

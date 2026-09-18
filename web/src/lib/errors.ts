@@ -75,6 +75,7 @@ export const errorMessages: Record<string, string> = {
   "Members.NotesTooLong": "یادداشت بیش از حد طولانی است.",
   "Members.SearchTooShort": "برای جستجو دست‌کم ۲ حرف وارد کنید.",
   "Members.SearchTooLong": "متن جستجو بیش از حد طولانی است.",
+  "Members.Inactive": "این عضو غیرفعال است.",
   "Members.ChangedConcurrently":
     "این عضو هم‌زمان توسط شخص دیگری ویرایش شد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
@@ -93,6 +94,11 @@ export const errorMessages: Record<string, string> = {
     "این پلن هم‌زمان توسط شخص دیگری ویرایش شد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
   // Subscriptions
+  "Subscriptions.NotFound": "اشتراک پیدا نشد.",
+  "Subscriptions.PlanRequired": "یک پلن انتخاب کنید.",
+  "Subscriptions.NothingToRenew": "این عضو اشتراکی برای تمدید ندارد.",
+  "Subscriptions.ChangedConcurrently":
+    "اشتراک‌های این عضو هم‌زمان توسط شخص دیگری تغییر کرد. دوباره امتحان کنید.",
   "Subscriptions.NotStarted": "اشتراک هنوز شروع نشده است.",
   "Subscriptions.Expired": "اشتراک به پایان رسیده است.",
   "Subscriptions.NoSessionsLeft": "جلسات این اشتراک تمام شده است.",

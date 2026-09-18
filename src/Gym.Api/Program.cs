@@ -92,6 +92,7 @@ try
     app.MapStaffEndpoints();
     app.MapMembersEndpoints();
     app.MapPlansEndpoints();
+    app.MapSubscriptionsEndpoints();
 
     app.Run();
 }

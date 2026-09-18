@@ -1,6 +1,7 @@
 using Gym.Domain.Auth;
 using Gym.Domain.Members;
 using Gym.Domain.Plans;
+using Gym.Domain.Subscriptions;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -35,12 +36,21 @@ public interface IAppDbContext
 
     DbSet<Plan> Plans { get; }
 
+    DbSet<Subscription> Subscriptions { get; }
+
     /// <summary>
     /// Exposed for the rare handler that must recover from a failed save in the same request:
     /// after a <see cref="DbUpdateConcurrencyException"/> the tracked entities hold stale values,
     /// and <c>ChangeTracker.Clear()</c> discards them so fresh rows can be loaded.
     /// </summary>
     ChangeTracker ChangeTracker { get; }
+
+    /// <summary>
+    /// Locks one member's row until the current transaction ends, so use cases that change a
+    /// member's subscriptions run one at a time for that member. The second waits, then reads
+    /// what the first saved. Must be called inside <see cref="BeginTransactionAsync"/>.
+    /// </summary>
+    Task LockMemberAsync(Guid memberId, CancellationToken cancellationToken);
 
     /// <summary>
     /// For a use case whose writes must all happen or none: changing a password saves through
