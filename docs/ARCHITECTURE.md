@@ -249,3 +249,13 @@ web/src/
   client shares one address. A test that needs different settings uses `DatabaseFixture.CreateClient(settings)`,
   which builds a separate host with its own singletons.
 - Identity's `UserManager` methods take no `CancellationToken`. Check the token once before starting the work.
+- The refresh token cookie is `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/api/auth`, written only through
+  `Gym.Api/Common/RefreshTokenCookie`. Clearing a cookie needs the same name and path it was set with. In development
+  the Vite proxy makes the API same-origin, so the browser sends the cookie; `http://localhost` counts as secure.
+- The integration test client does not keep cookies (`HandleCookies = false`): a cookie jar drops `Secure` cookies
+  over the test server's plain HTTP. Tests read `Set-Cookie` and send `Cookie` themselves (`Auth/RefreshCookies.cs`).
+- `IAppDbContext` exposes `ChangeTracker` for one reason: after a `DbUpdateConcurrencyException` the tracked entities
+  hold values that never reached the database, and `ChangeTracker.Clear()` lets the handler load fresh rows in the
+  same request (`RefreshHandler`).
+- Expired and revoked `refresh_tokens` rows are never deleted by the app yet. A cleanup job belongs with Hangfire.
+

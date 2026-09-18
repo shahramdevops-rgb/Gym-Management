@@ -1,6 +1,8 @@
 using FluentValidation;
 
 using Gym.Application.Auth.Login;
+using Gym.Application.Auth.Logout;
+using Gym.Application.Auth.Refresh;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -40,6 +42,8 @@ public static class DependencyInjection
         // Handlers are plain classes resolved by type, one line each (CLAUDE.md: no MediatR).
         // Scoped, because they depend on scoped services such as IAppDbContext.
         services.AddScoped<LoginHandler>();
+        services.AddScoped<RefreshHandler>();
+        services.AddScoped<LogoutHandler>();
 
         return services;
     }

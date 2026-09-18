@@ -176,3 +176,16 @@ Format:
 - **Options bound lazily see the final configuration.** `Bind(configuration.GetSection(...))` reads the section when the options are first used, not at registration. That's why a test host's `UseSetting` can change the rate limit, where a value read in `Program.cs` before `Build()` would be too late (the gotcha from task 0.6).
 - **My notes:**
 
+---
+
+## 1.3 — Refresh tokens and logout
+
+- **Two tokens, two jobs.** The access token is short (15 minutes) and can't be revoked. The refresh token is long (7 days, renewed on use) and *can* be revoked, because every refresh checks it against the database. Short-lived and stateless for every request, long-lived and checked for the rare refresh: each gets the property it's good at.
+- **HttpOnly cookie instead of JavaScript storage.** A token in `localStorage` can be read by any script that ends up on the page. An HttpOnly cookie can't be read by JavaScript at all; the browser just sends it. `SameSite=Strict` stops other sites from making the browser send it, and `Path=/api/auth` keeps it off every other request.
+- **Store a hash, like a password, but a fast one.** The database keeps only SHA-256 of the token, so a leaked backup contains nothing that logs anyone in. Passwords need slow hashes because people choose guessable ones. A 256-bit random value has nothing to guess, so a fast hash is enough and lets each refresh look the token up directly.
+- **Rotation turns theft into a detectable event.** Each token works once. If a used-up token comes back, one of the two holders is a thief, and the server can't tell which, so it revokes the whole family (every token from that login). The thief loses access, and the real user re-enters a password the thief doesn't have. A mutation check proved the reuse test fails without the detection.
+- **Optimistic concurrency with `xmin`.** Two requests can read the same active token at once. Postgres's `xmin` row version makes the second save fail with `DbUpdateConcurrencyException` instead of giving one parent two children. The handler then treats it as reuse, which is the "strict, no grace period" rule. A unique index on `replaced_by_token_id` is a second guard at the database level.
+- **Rules in the entity, orchestration in the handler.** `RefreshToken.Rotate` and `Revoke` hold the rules (only active tokens rotate, a revoked token keeps its first reason) and are unit-tested without a database. `RefreshHandler` decides what to do with the results: look up, detect reuse, reload the user, save.
+- **Say less when you refuse.** Missing, unknown, expired, revoked and reused tokens all return the same `Auth.RefreshTokenInvalid`, and logout always answers 204. Whoever holds a stolen or guessed token learns nothing about which ones are still worth trying.
+- **My notes:**
+

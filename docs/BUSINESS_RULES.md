@@ -42,6 +42,11 @@ Decided values:
 - Deactivated users cannot log in, and all their refresh tokens are revoked immediately.
 - Access token: JWT, 15 minutes, kept in memory by the frontend (never localStorage).
 - Refresh token: random value, stored only as a hash, rotated on every use, sent as an HttpOnly, Secure, SameSite=Strict cookie. Reusing an already-rotated token revokes the whole token family.
+  - A refresh token lives 7 days. Every refresh issues a new one with a fresh 7 days, so a user who opens the app at least weekly stays logged in. There is no fixed maximum per login.
+  - Rotation is strict, with no grace period: presenting a token that was already rotated, including two tabs refreshing at the same moment, counts as reuse and revokes the family. The frontend makes sure only one refresh runs at a time.
+  - Refreshing as an inactive user is rejected (`Auth.UserInactive`) and revokes that token family.
+  - Refresh ignores account lockout: lockout stops password guessing, and a refresh involves no password.
+  - Logout revokes the presented refresh token and always succeeds, with or without a valid token.
 - Login has account lockout after repeated failures and per-IP rate limiting.
   - Lockout: 5 consecutive wrong passwords lock the account for 15 minutes. A successful login resets the count. The Owner can be locked out too.
   - Rate limit: 10 login attempts per minute per IP address. Front-desk staff share one IP, so the limit allows several people to log in at once.

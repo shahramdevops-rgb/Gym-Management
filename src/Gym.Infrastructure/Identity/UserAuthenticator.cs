@@ -70,6 +70,28 @@ public sealed class UserAuthenticator(UserManager<User> userManager) : IUserAuth
             ThrowIfFailed(await userManager.ResetAccessFailedCountAsync(user), "reset the failed login count");
         }
 
+        return await ToAuthenticatedUserAsync(user);
+    }
+
+    public async Task<Result<AuthenticatedUser>> GetActiveUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Refresh tokens reference users with a restricting foreign key and users are never
+        // deleted, so a missing user is a broken invariant, not a login failure.
+        var user = await userManager.FindByIdAsync(userId.ToString())
+            ?? throw new InvalidOperationException($"Refresh token refers to user {userId}, who does not exist.");
+
+        if (!user.IsActive)
+        {
+            return Result.Failure<AuthenticatedUser>(AuthErrors.UserInactive);
+        }
+
+        return await ToAuthenticatedUserAsync(user);
+    }
+
+    private async Task<AuthenticatedUser> ToAuthenticatedUserAsync(User user)
+    {
         var roles = await userManager.GetRolesAsync(user);
 
         return new AuthenticatedUser(user.Id, user.UserName!, user.FullName, [.. roles], user.MustChangePassword);
