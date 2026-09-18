@@ -11,10 +11,8 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 
 | Setting | Decide before | Notes |
 |---|---|---|
-| `Gym:TimeZone` | Phase 4 | Asia/Tehran. Defines "today" for every business date. |
 | `Gym:Currency` | Phase 4 | Toman: choose one storage unit and never mix. Amounts are always `decimal`. |
 | Payment methods | Phase 4 | For example Cash, Card, BankTransfer. |
-| `Gym:MaxFreezeDaysPerSubscription` | Phase 4 | Total frozen days allowed per subscription. |
 | `Gym:ClosingTime` | Phase 5 | Local time for the nightly auto-checkout. |
 | Check-in with an unpaid or partially paid subscription | Phase 5 | Block it, or allow it with a warning? |
 | Cafe orders paid in full at creation (no tabs) | Phase 8 | Suggested: yes. |
@@ -24,6 +22,8 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 Decided values:
 - `Gym:CancelCheckInWindowMinutes` = 30
 - `Gym:PhoneDefaultRegion` = `IR` (Iran: a local `09…` number becomes `+989…`)
+- `Gym:TimeZone` = `Asia/Tehran`. Defines "today" for every business date (decided in task 4.1).
+- `Gym:MaxFreezeDaysPerSubscription` = 30 (decided in task 4.1).
 
 ---
 
@@ -146,9 +146,19 @@ Decided values:
 - Only `Active` subscriptions can be frozen. A frozen subscription cannot be used for check-in.
 - Unfreezing extends `EndDate` by the number of frozen days, and shifts that member's queued subscriptions by the same number of days.
 - Total frozen days cannot exceed `Gym:MaxFreezeDaysPerSubscription`.
+- Details (decided with the developer in task 4.1):
+  - Frozen days = unfreeze date − freeze date. Freezing on the 10th and unfreezing on the 12th is 2 days; freezing and unfreezing on the same day is 0.
+  - A subscription can be frozen several times; the days add up.
+  - Freezing is refused when no freeze days are left (`Subscriptions.FreezeLimitReached`).
+  - A freeze that runs past the remaining allowance still ends normally, but `EndDate` moves only by the days that were left. The Owner is never blocked from unfreezing.
 
 ### Cancel
 - Requires a reason. Payments are not deleted; money is returned only through refunds.
+- Details (decided with the developer in task 4.1):
+  - Any subscription that is not already cancelled can be cancelled, whatever its status (upcoming, active, frozen, exhausted, expired).
+  - The reason is required and at most 500 characters.
+  - Cancelling does not move queued subscriptions earlier.
+  - A cancelled subscription cannot be unfrozen, frozen or used.
 
 ### Payment status (calculated)
 - Net paid = payments − refunds.
