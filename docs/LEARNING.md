@@ -323,3 +323,17 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **`useWatch` instead of `watch`.** `form.watch()` returns a function the React Compiler can't memoize safely. `useWatch` is a proper hook, so the component stays optimizable (the lint rule `react-hooks/incompatible-library`).
 - **Same pattern, second time.** The edit page repeats the member edit page: send back `version`, handle `Plans.ChangedConcurrently`, key the form by `version`. Seeing it twice is how a pattern becomes a habit.
 - **My notes:**
+
+---
+
+## 4.1 — Subscription domain model
+
+- **Snapshot at the sale.** A subscription copies `PlanName`, `Price`, `DurationDays` and `TotalSessions` from the plan when it is sold. Editing or deactivating the plan afterwards changes nothing, like a receipt that keeps the price it was printed with. A test edits the plan after the sale to prove it.
+- **Calculated, never stored.** `GetStatus(today)` works the status out from the dates, the sessions, the freeze and the cancel. A stored status would be wrong the morning after a subscription expires, until some job rewrote it.
+- **Precedence as code.** When two statuses apply at once (frozen *and* past the end date), a fixed order decides: Cancelled, Frozen, Upcoming, Expired, Exhausted, Active. The `if` chain in `GetStatus` is that order. A test per pair pins it, and breaking the order on purpose showed the tests catch it.
+- **"Today" is a parameter.** The entity never reads a clock. It receives a `DateOnly` in the gym's time zone, so a test can place it on any day. The tests use `FakeTimeProvider` to show why the time zone matters: at 20:30 UTC on 30 September it is already 1 October in Tehran (UTC+03:30), so the subscription has expired.
+- **An inclusive end date.** `EndDate = StartDate + DurationDays - 1`. A one-day plan starts and ends on the same day. Off-by-one bugs in dates hide exactly here, so both edges (the end date itself and the day after) are tested.
+- **Errors that say why.** Using a subscription fails with a different code per status (`NotStarted`, `Expired`, `NoSessionsLeft`, `Frozen`, `Cancelled`), because at the front desk each one is a different conversation with the member.
+- **A limit that never traps anyone.** A freeze longer than the remaining allowance still ends. `Unfreeze` just caps the extension at the days left and returns how many days it added, so task 4.3 can move queued subscriptions by exactly that amount.
+- **Bugs throw, users get `Result`.** A blank cancel reason is a user mistake, so it returns an error. Unfreezing on a date before the freeze began can only be a bug in the caller, so it throws.
+- **My notes:**

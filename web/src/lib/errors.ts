@@ -92,6 +92,17 @@ export const errorMessages: Record<string, string> = {
   "Plans.ChangedConcurrently":
     "این پلن هم‌زمان توسط شخص دیگری ویرایش شد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
+  // Subscriptions
+  "Subscriptions.NotStarted": "اشتراک هنوز شروع نشده است.",
+  "Subscriptions.Expired": "اشتراک به پایان رسیده است.",
+  "Subscriptions.NoSessionsLeft": "جلسات این اشتراک تمام شده است.",
+  "Subscriptions.Frozen": "اشتراک فریز شده است.",
+  "Subscriptions.Cancelled": "اشتراک لغو شده است.",
+  "Subscriptions.NotFrozen": "اشتراک فریز نشده است.",
+  "Subscriptions.FreezeLimitReached": "همهٔ روزهای مجاز فریز این اشتراک استفاده شده است.",
+  "Subscriptions.CancelReasonRequired": "دلیل لغو را وارد کنید.",
+  "Subscriptions.CancelReasonTooLong": "دلیل لغو بیش از حد طولانی است.",
+
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",
   "Paging.PageSizeInvalid": "تعداد ردیف‌های هر صفحه نامعتبر است.",

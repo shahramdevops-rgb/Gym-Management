@@ -181,10 +181,10 @@ Done when: staff can find, create, and edit members in the app.
 ## Phase 4 — Subscriptions and Payments
 
 ### 4.1 Subscription domain model
-- [ ] Subscription entity with snapshot fields
-- [ ] `ConsumeSession`, `RestoreSession`, `Freeze`, `Unfreeze`, `Cancel`
-- [ ] Calculated status and remaining sessions
-- [ ] Extensive unit tests with FakeTimeProvider (dates, freeze, unlimited plans, status precedence)
+- [x] Subscription entity with snapshot fields
+- [x] `ConsumeSession`, `RestoreSession`, `Freeze`, `Unfreeze`, `Cancel`
+- [x] Calculated status and remaining sessions
+- [x] Extensive unit tests with FakeTimeProvider (dates, freeze, unlimited plans, status precedence)
 
 ### 4.2 Assign and renew
 - [ ] Assign endpoint (starts today or queued)

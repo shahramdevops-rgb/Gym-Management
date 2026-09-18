@@ -1,11 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Domain unit tests: no database, no web host. This project references Gym.Domain and
-    nothing else, which is what keeps these tests fast and dependency-free.
+    Domain unit tests: no database, no web host. This project references Gym.Domain and no other
+    project, which is what keeps these tests fast and dependency-free.
   -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gym.Domain\Gym.Domain.csproj" />
+  </ItemGroup>
+
+  <!--
+    FakeTimeProvider: the subscription tests derive "today" from a fixed moment in the gym's
+    time zone, so the Tehran midnight boundary is exercised, not just plain dates.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
 </Project>
