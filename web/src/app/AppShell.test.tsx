@@ -13,9 +13,10 @@ describe("AppShell", () => {
     expect(screen.getByRole("heading", { name: "مدیریت باشگاه" })).toBeInTheDocument();
 
     const navigation = screen.getByRole("navigation", { name: "منوی اصلی" });
+    expect(within(navigation).getByRole("link", { name: "جستجو" })).toHaveAttribute("href", "/");
     expect(within(navigation).getByRole("link", { name: "وضعیت سیستم" })).toHaveAttribute(
       "href",
-      "/",
+      "/status",
     );
     expect(await screen.findByText(staffUser.fullName)).toBeInTheDocument();
   });
@@ -25,10 +26,31 @@ describe("AppShell", () => {
 
     renderApp("/", { session: session() });
 
-    expect(screen.getByRole("link", { name: "وضعیت سیستم" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    expect(screen.getByRole("link", { name: "جستجو" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "اعضا" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("AppShell_MemberProfile_KeepsTheMembersLinkActive", () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members/0199a000-0000-7000-8000-0000000000aa": () =>
+        new Response(null, { status: 404 }),
+    });
+
+    renderApp("/members/0199a000-0000-7000-8000-0000000000aa", { session: session() });
+
+    expect(screen.getByRole("link", { name: "اعضا" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "جستجو" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("AppShell_Staff_SeesTheMemberMenuItems", async () => {
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+
+    // Members are front-desk work: both roles (docs/BUSINESS_RULES.md §1, permissions).
+    await screen.findByText(staffUser.fullName);
+    expect(screen.getByRole("link", { name: "اعضا" })).toHaveAttribute("href", "/members");
   });
 
   it("AppShell_NavigationBeforeContent_SoRtlPlacesItOnTheRight", () => {

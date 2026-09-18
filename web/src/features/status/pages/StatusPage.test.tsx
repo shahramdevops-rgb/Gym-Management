@@ -16,7 +16,7 @@ describe("StatusPage", () => {
   it("StatusPage_ServerHealthy_ShowsHealthyBadge", async () => {
     const { fetchMock } = stubHealthResponse(200, "Healthy");
 
-    renderApp("/", { session: session() });
+    renderApp("/status", { session: session() });
 
     expect(await screen.findByText("سالم")).toBeInTheDocument();
     expect(screen.getByText(/آخرین بررسی/)).toBeInTheDocument();
@@ -27,7 +27,7 @@ describe("StatusPage", () => {
     // A 503 with a known body is a health report, not a failed request.
     stubHealthResponse(503, "Unhealthy");
 
-    renderApp("/", { session: session() });
+    renderApp("/status", { session: session() });
 
     expect(await screen.findByText("ناسالم")).toBeInTheDocument();
     expect(screen.queryByText("سرور در دسترس نیست")).not.toBeInTheDocument();
@@ -36,7 +36,7 @@ describe("StatusPage", () => {
   it("StatusPage_ServerUnreachable_ShowsUnreachableBadge", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
-    renderApp("/", { session: session() });
+    renderApp("/status", { session: session() });
 
     expect(
       await screen.findByText("سرور در دسترس نیست", {}, { timeout: 5000 }),
@@ -47,7 +47,7 @@ describe("StatusPage", () => {
     // For example the Vite proxy's own 502 page when the API is not running.
     stubHealthResponse(502, "<html>Bad Gateway</html>");
 
-    renderApp("/", { session: session() });
+    renderApp("/status", { session: session() });
 
     expect(
       await screen.findByText("سرور در دسترس نیست", {}, { timeout: 5000 }),

@@ -91,3 +91,25 @@ export function formatDateTime(value: string | null | undefined): string {
 
   return date === null ? emptyValue : dateTimeFormatter.format(date);
 }
+
+/**
+ * A stored E.164 Iranian mobile (`+989121234567`) the way people write it: `۰۹۱۲ ۱۲۳ ۴۵۶۷`.
+ * Anything else is shown as it is, with Persian digits.
+ *
+ * Show the result inside an element with `dir="ltr"`: in a right-to-left paragraph the three
+ * space-separated groups would otherwise be laid out right to left, as `۴۵۶۷ ۱۲۳ ۰۹۱۲`.
+ */
+export function formatPhone(value: string | null | undefined): string {
+  if (value === null || value === undefined || value === "") {
+    return emptyValue;
+  }
+
+  const iranianMobile = /^\+98(9\d{2})(\d{3})(\d{4})$/.exec(value);
+  if (iranianMobile === null) {
+    return toPersianDigits(value);
+  }
+
+  const [, operator, middle, last] = iranianMobile;
+
+  return toPersianDigits(`0${operator} ${middle} ${last}`);
+}

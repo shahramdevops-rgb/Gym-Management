@@ -192,6 +192,13 @@ web/src/
   errors land under their field; a code can be routed to a field (`Auth.CurrentPasswordIncorrect` → current password).
 - Every API error code has a Persian message in `lib/errors.ts`. `ErrorCatalogTests` (.NET) collects every code the API
   defines by reflection and fails when one is missing there.
+- List state lives in the URL (`/?q=علی&page=2`, `/members?status=inactive`), read with `useSearchParams`, so reload,
+  back and a shared link return to the same results. Typing updates the URL with `replace`; paging and filters push.
+- Search boxes debounce the call (`lib/useDebouncedCallback.ts`) in the change handler, not a value in an effect.
+- Query keys start with the feature (`["members", "list", filter]`, `["members", "detail", id]`). A mutation writes
+  the server's answer into the detail entry and invalidates the lists.
+- A form fed by the server is keyed by the entity's `version`, so fresh data rebuilds it with the new values.
+- Phone numbers and other LTR runs inside RTL text are wrapped in `dir="ltr"`, or their digit groups display reversed.
 
 ## Gotchas
 - `postgres:18` image: mount the volume at `/var/lib/postgresql`, not `/var/lib/postgresql/data`.
@@ -309,7 +316,7 @@ web/src/
 - `[AsParameters]` query records name their OpenAPI parameters after the C# record (`Page`, `PageSize`); the frontend
   uses those names so the generated types check them.
 - shadcn's `CardTitle` is a `div`. A card title that is the page's title gets `role="heading"` and an `aria-level`.
-- Editing tools and shells can turn a `ي` escape into the real character. To keep a `\u` escape in a source file,
+- Editing tools and shells can turn a `\u064A` escape into the real character. To keep a `\u` escape in a source file,
   write it with a script that builds the backslash explicitly (Python `chr(92)`), then check the bytes.
 - Git Bash on Windows can mangle Persian command-line arguments on their way to `curl` (they arrive as `?`). Send
   Persian request bodies from a UTF-8 file with `--data-binary @file`.
@@ -344,3 +351,8 @@ web/src/
   (it produced `ix_members_phone_number1`). A second index on the same column needs `.HasDatabaseName(...)` too.
 - Postgres `timestamptz` keeps microseconds; .NET ticks are 100 ns. A response built from the in-memory entity right
   after a save can carry a digit the stored value lost, so tests compare timestamps with a 1 µs tolerance.
+- Tools can silently turn a `\u064A`-style escape into the character it names, in a heredoc or a script as well as
+  in an editor. A script that must write the escape builds the backslash with `String.fromCharCode(92)`, and the
+  result is checked by code point, since grep and the screen cannot tell ي from ی.
+- React 19 builds `FormData` from a submitted form. In tests, `fireEvent.submit` must target the `<form>`
+  (`getByRole("search")`), not an input inside it, or jsdom throws an unhandled error.
