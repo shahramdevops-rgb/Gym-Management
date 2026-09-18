@@ -117,7 +117,10 @@ public sealed class StaffAccounts(
                 user.Deactivate();
             }
 
-            ThrowIfFailed(await userManager.UpdateAsync(user), "update the account");
+            if (Conflict(await userManager.UpdateAsync(user), "update the account") is { } conflict)
+            {
+                return Result.Failure<StaffResponse>(conflict);
+            }
         }
 
         return ToResponse(user);
@@ -142,15 +145,27 @@ public sealed class StaffAccounts(
             }
         }
 
-        ThrowIfFailed(await userManager.RemovePasswordAsync(user), "remove the old password");
-        ThrowIfFailed(await userManager.AddPasswordAsync(user, temporaryPassword), "set the temporary password");
-
-        // The reset is how a locked-out staff member gets back in, so it clears the lockout.
-        ThrowIfFailed(await userManager.SetLockoutEndDateAsync(user, null), "clear the lockout");
-        ThrowIfFailed(await userManager.ResetAccessFailedCountAsync(user), "reset the failed login count");
-
         user.RequirePasswordChange();
-        ThrowIfFailed(await userManager.UpdateAsync(user), "require a password change");
+
+        // Each step saves on its own; the handler's transaction makes them one change. The first
+        // conflict stops the reset, and the rollback undoes whatever steps already ran.
+        var steps = new Func<Task<IdentityResult>>[]
+        {
+            () => userManager.RemovePasswordAsync(user),
+            () => userManager.AddPasswordAsync(user, temporaryPassword),
+
+            // The reset is how a locked-out staff member gets back in, so it clears the lockout.
+            () => userManager.SetLockoutEndDateAsync(user, null),
+            () => userManager.ResetAccessFailedCountAsync(user),
+        };
+
+        foreach (var step in steps)
+        {
+            if (Conflict(await step(), "reset the password") is { } conflict)
+            {
+                return Result.Failure(conflict);
+            }
+        }
 
         return Result.Success();
     }
@@ -175,6 +190,28 @@ public sealed class StaffAccounts(
 
     private static string Describe(IdentityResult result) =>
         string.Join(" ", result.Errors.Select(error => error.Description));
+
+    /// <summary>
+    /// Identity's concurrency check failed: someone else changed this account between our read
+    /// and our save (the staff member changing their own password at that moment, say). That is
+    /// an expected race with a clear answer, a 409 the Owner can retry, not a 500. Any other
+    /// failure is unexpected and throws.
+    /// </summary>
+    private static Error? Conflict(IdentityResult result, string action)
+    {
+        if (result.Succeeded)
+        {
+            return null;
+        }
+
+        if (result.Errors.Any(error => error.Code == nameof(IdentityErrorDescriber.ConcurrencyFailure)))
+        {
+            return StaffErrors.ChangedConcurrently;
+        }
+
+        ThrowIfFailed(result, action);
+        return null;
+    }
 
     private static void ThrowIfFailed(IdentityResult result, string action)
     {

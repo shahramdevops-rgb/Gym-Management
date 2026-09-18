@@ -47,6 +47,7 @@ export const errorMessages: Record<string, string> = {
 
   // Staff accounts
   "Staff.NotFound": "حساب کارمند پیدا نشد.",
+  "Staff.ChangedConcurrently": "این حساب هم‌زمان تغییر کرد. دوباره امتحان کنید.",
   "Staff.UserNameTaken": "این نام کاربری قبلاً استفاده شده است.",
   "Staff.Rejected": "اطلاعات حساب پذیرفته نشد.",
   "Staff.UserNameRequired": "نام کاربری را وارد کنید.",

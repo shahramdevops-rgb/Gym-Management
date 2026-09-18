@@ -1,5 +1,6 @@
 using Gym.Application.Auth;
 using Gym.Application.Common;
+using Gym.Application.Common.Text;
 using Gym.Domain.Auth;
 using Gym.Domain.Common;
 
@@ -21,7 +22,7 @@ public sealed class ResetStaffPasswordHandler(IStaffAccounts staff, IAppDbContex
 
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
 
-        var result = await staff.ResetPasswordAsync(id, command.TemporaryPassword, cancellationToken);
+        var result = await staff.ResetPasswordAsync(id, Digits.ToEnglish(command.TemporaryPassword), cancellationToken);
         if (result.IsFailure)
         {
             return result;

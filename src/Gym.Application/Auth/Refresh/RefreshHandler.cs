@@ -99,22 +99,42 @@ public sealed partial class RefreshHandler(
     /// Revokes every token in the family that is still unrevoked, through the entity's own
     /// method, so each keeps an accurate record of why it ended.
     /// </summary>
+    /// <remarks>
+    /// Revocation races too: a rotation or another reuse detection can change a family member
+    /// between the read and the save. Each conflict means another request moved the family on,
+    /// so reading it again and retrying makes progress; giving up would leave a family alive
+    /// that was meant to die, and surface as a 500. The bound is a guard against a bug, not a
+    /// limit real traffic reaches.
+    /// </remarks>
     private async Task RevokeFamilyAsync(
         Guid familyId,
         RefreshTokenRevocationReason reason,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var family = await db.RefreshTokens
-            .Where(t => t.FamilyId == familyId && t.RevokedAt == null)
-            .ToListAsync(cancellationToken);
+        const int maxAttempts = 10;
 
-        foreach (var member in family)
+        for (var attempt = 1; ; attempt++)
         {
-            member.Revoke(reason, now);
-        }
+            var family = await db.RefreshTokens
+                .Where(t => t.FamilyId == familyId && t.RevokedAt == null)
+                .ToListAsync(cancellationToken);
 
-        await db.SaveChangesAsync(cancellationToken);
+            foreach (var member in family)
+            {
+                member.Revoke(reason, now);
+            }
+
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < maxAttempts)
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
     }
 
     private static Result<AuthSession> Invalid() => Result.Failure<AuthSession>(AuthErrors.RefreshTokenInvalid);
