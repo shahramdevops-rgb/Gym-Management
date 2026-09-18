@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createBrowserRouter, Navigate, type RouteObject } from "react-router";
 
 import { RequireAuth } from "@/features/auth/components/RequireAuth";
@@ -9,11 +10,19 @@ import { EditMemberPage } from "@/features/members/pages/EditMemberPage";
 import { HomePage } from "@/features/members/pages/HomePage";
 import { MemberProfilePage } from "@/features/members/pages/MemberProfilePage";
 import { MembersPage } from "@/features/members/pages/MembersPage";
+import { CreatePlanPage } from "@/features/plans/pages/CreatePlanPage";
+import { EditPlanPage } from "@/features/plans/pages/EditPlanPage";
+import { PlansPage } from "@/features/plans/pages/PlansPage";
 import { StaffPage } from "@/features/staff/pages/StaffPage";
 import { StatusPage } from "@/features/status/pages/StatusPage";
 
 import { AppShell } from "./AppShell";
 import { paths } from "./paths";
+
+/** A route only the Owner may open. */
+function ownerOnly(path: string, page: ReactNode): RouteObject {
+  return { path, element: <RequireRole role="Owner">{page}</RequireRole> };
+}
 
 /**
  * Route table. Login stands alone; everything else is behind RequireAuth, and pages for one
@@ -35,14 +44,10 @@ export const routes: RouteObject[] = [
           { path: paths.editMember(":id"), element: <EditMemberPage /> },
           { path: paths.status, element: <StatusPage /> },
           { path: paths.changePassword, element: <ChangePasswordPage /> },
-          {
-            path: paths.staff,
-            element: (
-              <RequireRole role="Owner">
-                <StaffPage />
-              </RequireRole>
-            ),
-          },
+          ownerOnly(paths.plans, <PlansPage />),
+          ownerOnly(paths.newPlan, <CreatePlanPage />),
+          ownerOnly(paths.editPlan(":id"), <EditPlanPage />),
+          ownerOnly(paths.staff, <StaffPage />),
         ],
       },
     ],

@@ -198,6 +198,9 @@ web/src/
 - Query keys start with the feature (`["members", "list", filter]`, `["members", "detail", id]`). A mutation writes
   the server's answer into the detail entry and invalidates the lists.
 - A form fed by the server is keyed by the entity's `version`, so fresh data rebuilds it with the new values.
+- Money goes to the API as a decimal string (`"price": "1500000.50"`), never a JS number: the allowed range has more
+  digits than a float holds exactly, and ASP.NET reads a JSON string into `decimal` directly. Number inputs stay text
+  in the form, are validated after digit normalization, and are converted only when sent (`features/plans/schemas.ts`).
 - Phone numbers and other LTR runs inside RTL text are wrapped in `dir="ltr"`, or their digit groups display reversed.
 
 ## Gotchas
