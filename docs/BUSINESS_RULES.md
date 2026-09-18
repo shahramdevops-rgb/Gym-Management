@@ -214,7 +214,10 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
   - Arabic ي (U+064A) and ى (U+0649) → Persian ی (U+06CC)
   - Arabic ك (U+0643) → Persian ک (U+06A9)
   - Persian and Arabic digits → English digits
-  - Trim, collapse repeated spaces, treat zero-width non-joiner (U+200C) as a space for search
+  - Remove harakat (Arabic vowel marks, U+064B to U+0652) and tatweel (U+0640): they are visual only
+  - Zero-width non-joiner (U+200C) → a normal space, because users type half-space and space interchangeably
+  - Remove other zero-width and direction marks (U+200B, U+200D, U+200E, U+200F, U+FEFF)
+  - Trim and collapse repeated spaces
 - Dates are shown in the Jalali calendar. They are stored and exchanged as Gregorian `DateOnly` and UTC timestamps.
 - Reports offer Jalali periods (this Jalali month, this Jalali year) that the frontend converts to Gregorian date ranges.
 - SMS messages are Persian. Unicode SMS parts hold fewer characters than Latin ones, so templates are kept short and the part count is calculated before sending.

@@ -68,14 +68,14 @@ Done when: an invalid request returns a 400 ProblemDetails with field errors and
 Done when: `dotnet test` is green with Docker running.
 
 ### 0.7 Frontend skeleton (Persian, RTL)
-- [ ] Vite + React + TypeScript in `web/`, ESLint, Prettier, Vitest
-- [ ] `<html lang="fa" dir="rtl">`, self-hosted Vazirmatn font
-- [ ] Tailwind CSS and shadcn/ui, Radix `DirectionProvider` set to RTL
-- [ ] React Router and TanStack Query
-- [ ] Generated API types (openapi-typescript) and client (openapi-fetch); npm script to regenerate
-- [ ] Dev proxy `/api` → API
-- [ ] `lib/format.ts`: Persian digits, money, Jalali date display; `lib/normalize.ts`: Persian/Arabic character and digit normalization; unit tests for both
-- [ ] RTL app shell (header, right-side navigation) with a status page calling `/health`
+- [x] Vite + React + TypeScript in `web/`, ESLint, Prettier, Vitest
+- [x] `<html lang="fa" dir="rtl">`, self-hosted Vazirmatn font
+- [x] Tailwind CSS and shadcn/ui, Radix `DirectionProvider` set to RTL
+- [x] React Router and TanStack Query
+- [x] Generated API types (openapi-typescript) and client (openapi-fetch); npm script to regenerate
+- [x] Dev proxy `/api` → API
+- [x] `lib/format.ts`: Persian digits, money, Jalali date display; `lib/normalize.ts`: Persian/Arabic character and digit normalization; unit tests for both
+- [x] RTL app shell (header, right-side navigation) with a status page calling `/health`
 
 Done when: `npm run dev` shows a Persian RTL page reporting the server health, and `npm test` passes.
 
