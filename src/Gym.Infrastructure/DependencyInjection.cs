@@ -1,7 +1,9 @@
 using Gym.Application.Common;
+using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Persistence.Interceptors;
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,6 +47,26 @@ public static class DependencyInjection
         // Application asks for the interface; it resolves to the same scoped instance the
         // framework already tracks, so both views share one change tracker and one transaction.
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+
+        // AddIdentityCore, not AddIdentity: there is no cookie sign-in yet. Task 1.2 adds JWT
+        // bearer auth and can add SignInManager then, if it turns out to need it, instead of
+        // this task carrying services nothing here uses.
+        services.AddIdentityCore<User>(options =>
+            {
+                // BUSINESS_RULES.md §1: at least 8 characters, a letter and a digit, no case
+                // or symbol requirement — passwords are typed on a Persian keyboard at the
+                // front desk. The built-in per-class checks are switched off in favor of
+                // LetterAndDigitPasswordValidator, which checks letter/digit without regard
+                // to case.
+                options.Password.RequiredLength = 8;
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+            })
+            .AddRoles<IdentityRole<Guid>>()
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddPasswordValidator<LetterAndDigitPasswordValidator>();
 
         // Without this, /health would only report that the process is running, and an
         // orchestrator would happily route traffic to an API that cannot reach its database.

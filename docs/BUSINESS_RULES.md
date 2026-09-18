@@ -31,7 +31,12 @@ Decided values:
 
 - Closed system. There is no registration endpoint. Members never log in.
 - Roles: `Owner` and `Staff`.
-- The Owner account is seeded at startup from configuration (`Seed:OwnerUserName`, `Seed:OwnerPassword`). Seeding is idempotent: running it twice creates nothing new. The seeded Owner has `MustChangePassword = true`.
+- The Owner account is seeded at startup from configuration (`Seed:OwnerUserName`, `Seed:OwnerPassword`, optional `Seed:OwnerFullName`). Seeding is idempotent: running it twice creates nothing new.
+  - "The Owner already exists" means any user already holds the Owner role, even if `Seed:OwnerUserName` has since changed. Seeding never modifies that existing Owner, including their password.
+  - If `Seed:OwnerUserName` or `Seed:OwnerPassword` is missing, seeding logs a warning and does nothing — it never queries the database. Startup does not fail.
+  - `Seed:OwnerFullName` defaults to "مدیر" when not configured. The Owner can rename themselves later.
+  - The seeded Owner has `MustChangePassword = true`.
+- Password policy: at least 8 characters, containing at least one letter and one digit. No case (upper/lower) or symbol is required — passwords are typed on a Persian keyboard at the front desk.
 - The Owner creates Staff accounts with a temporary password. Staff have `MustChangePassword = true`.
 - A user with `MustChangePassword = true` may only call change-password and logout.
 - Deactivated users cannot log in, and all their refresh tokens are revoked immediately.

@@ -2,6 +2,7 @@ using Gym.Api.Configuration;
 using Gym.Api.Middleware;
 using Gym.Application;
 using Gym.Infrastructure;
+using Gym.Infrastructure.Identity;
 
 using Scalar.AspNetCore;
 
@@ -34,6 +35,15 @@ try
     }
 
     var app = builder.Build();
+
+    // Idempotent: does nothing once an Owner already exists, and does nothing at all if
+    // Seed:OwnerUserName/OwnerPassword are not configured. See IdentitySeeder for why it
+    // must never query the database on that second path — WebApplicationFactory reaches
+    // this line before the integration test fixture applies migrations.
+    using (var scope = app.Services.CreateScope())
+    {
+        await IdentitySeeder.SeedOwnerAsync(scope.ServiceProvider, app.Configuration);
+    }
 
     // First in the pipeline, so the id is attached to everything that follows, including
     // failures raised by later middleware.

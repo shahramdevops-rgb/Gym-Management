@@ -91,10 +91,10 @@ Done when: CI passes on GitHub.
 ## Phase 1 — Identity, Access and Audit
 
 ### 1.1 Identity and Owner seeding
-- [ ] `User : IdentityUser<Guid>` with `IsActive`, `MustChangePassword`, `FullName`
-- [ ] Roles Owner and Staff
-- [ ] Idempotent Owner seeding from configuration
-- [ ] Tests: seeding twice creates one Owner
+- [x] `User : IdentityUser<Guid>` with `IsActive`, `MustChangePassword`, `FullName`
+- [x] Roles Owner and Staff
+- [x] Idempotent Owner seeding from configuration
+- [x] Tests: seeding twice creates one Owner
 
 ### 1.2 Login and access tokens
 - [ ] Login endpoint with lockout
