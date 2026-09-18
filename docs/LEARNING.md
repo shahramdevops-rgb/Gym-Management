@@ -270,3 +270,16 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **Invisible characters need visible source.** A literal Arabic ي looks exactly like Persian ی, and editing tools quietly turned `ي` escapes into the character itself. Domain code and tests now write them as code points, `(char)0x064A`, which no tool rewrites and every reviewer can read.
 - **My notes:**
 
+
+---
+
+## 2.2 — Member queries and lifecycle
+
+- **Read side vs. write side.** Queries use `AsNoTracking()` and `Select(MemberResponse.Projection)`. The projection is an `Expression`, so EF Core turns it into SQL that reads only those columns and builds no tracked entities. Writes still load the entity and call its methods.
+- **One search box, two searches.** The handler decides from the input: only digits, `+`, spaces and dashes means a phone search, anything else a name search. Both sides are normalized the same way before comparing, so "علي" finds "علی" and `۰۹۱۲…` finds `+98912…`.
+- **Trigram indexes.** A B-tree index can't help `LIKE '%احم%'`, because the match can start anywhere. `pg_trgm` splits text into three-character pieces, and a GIN index over those pieces can find a match in the middle of a name or a phone number.
+- **Escape user input inside patterns.** In `LIKE`, `%` and `_` are wildcards. Without escaping, a search for `%%` would list every member. It's the same idea as SQL injection, one level down.
+- **Stable paging.** Sorting only by name lets two "علی"s swap places between two page requests, so one shows twice and the other never. Adding `Id` as a tie-breaker gives every row a fixed position.
+- **An action that repeats safely.** Deactivating an already inactive member just succeeds. EF Core sees nothing changed, so it writes nothing, not even an audit row. A double-click or a retry after a network error can't do harm.
+- **Where tests found real details.** `timestamptz` keeps microseconds while .NET keeps 100 ns, and the snake-case convention quietly renamed an index. Both are now in the Gotchas in ARCHITECTURE.md.
+- **My notes:**

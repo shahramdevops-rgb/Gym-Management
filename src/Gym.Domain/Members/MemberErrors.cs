@@ -43,6 +43,15 @@ public static class MemberErrors
         "Members.NotesTooLong",
         "Notes are too long.");
 
+    /// <summary>A one-letter search matches almost everyone, so a search needs at least two characters.</summary>
+    public static readonly Error SearchTooShort = Error.Validation(
+        "Members.SearchTooShort",
+        "Search text must be at least 2 characters.");
+
+    public static readonly Error SearchTooLong = Error.Validation(
+        "Members.SearchTooLong",
+        "Search text is too long.");
+
     /// <summary>Two people edited the same member at the same moment; the second save is refused.</summary>
     public static readonly Error ChangedConcurrently = Error.Conflict(
         "Members.ChangedConcurrently",

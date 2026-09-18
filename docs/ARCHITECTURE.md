@@ -137,7 +137,8 @@ details — no message, no type name, no stack trace.
 - Base entity fields `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy` are set by an interceptor, not by handlers.
 - Money: `HasPrecision(18, 2)` (large enough for Rial and Toman amounts).
 - Read queries use `AsNoTracking()` and project straight to response records.
-- Lists are paged (`page`, `pageSize`, max 100).
+- Lists are paged (`page`, `pageSize`, max 100), ordered by a column plus `Id` as a tie-breaker so no row repeats or disappears between pages.
+- "Contains" searches (`LIKE '%…%'`) use a GIN trigram index (`HasMethod("gin").HasOperators("gin_trgm_ops")`). The `pg_trgm` extension ships with Postgres and is enabled in `AppDbContext` with `HasPostgresExtension`. User input is escaped (`%`, `_`, `\`) before it goes into a pattern.
 
 ### Testing
 - Integration tests share one Postgres container per test run; Respawn resets data between tests.
@@ -339,3 +340,7 @@ web/src/
 - Editable entities return their `Version` (`xmin`) and take it back on update. The handler refuses a mismatch
   (someone saved while the form was open), and `xmin` on save covers the moment between read and write.
 
+- `UseSnakeCaseNamingConvention()` overwrites an index name given as the second argument of `HasIndex(…, "name")`
+  (it produced `ix_members_phone_number1`). A second index on the same column needs `.HasDatabaseName(...)` too.
+- Postgres `timestamptz` keeps microseconds; .NET ticks are 100 ns. A response built from the in-memory entity right
+  after a save can carry a digit the stored value lost, so tests compare timestamps with a 1 µs tolerance.

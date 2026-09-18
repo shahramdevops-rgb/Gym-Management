@@ -149,11 +149,11 @@ Done when: you can log in as the seeded Owner in the Persian app, change the pas
 - [x] Tests: the same phone in different formats (including Persian digits) is rejected as a duplicate
 
 ### 2.2 Member queries and lifecycle
-- [ ] Deactivate and reactivate
-- [ ] Get by id
-- [ ] Paged list
-- [ ] Search by partial name and by phone
-- [ ] Tests: searching "علي" finds "علی"; phone search normalizes input
+- [x] Deactivate and reactivate
+- [x] Get by id
+- [x] Paged list
+- [x] Search by partial name and by phone
+- [x] Tests: searching "علي" finds "علی"; phone search normalizes input
 
 ### 2.3 UI: members
 - [ ] Home: search by phone or name

@@ -37,8 +37,19 @@ public sealed class MemberConfiguration : IEntityTypeConfiguration<Member>
             .IsUnique()
             .HasDatabaseName(MemberConstraints.UniquePhone);
 
-        // Name search (task 2.2) reads this column.
-        builder.HasIndex(member => member.NormalizedFullName);
+        // Search is "contains" (LIKE '%…%'). A B-tree index only helps a pattern with a fixed
+        // start; a trigram index splits the text into three-character pieces and can find a
+        // match anywhere. pg_trgm ships with Postgres and is enabled in AppDbContext.
+        builder.HasIndex(member => member.NormalizedFullName)
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
+
+        // A second index on the phone column, beside the unique one: that one answers "is this
+        // exact number taken", this one "which numbers contain these digits".
+        builder.HasIndex(member => member.PhoneNumber, "PhoneNumberTrigram")
+            .HasDatabaseName("ix_members_phone_number_trgm")
+            .HasMethod("gin")
+            .HasOperators("gin_trgm_ops");
 
         builder.Property(member => member.Version).IsRowVersion();
     }
