@@ -19,4 +19,14 @@ public static class AuthErrors
     public static readonly Error UserInactive = Error.Unauthorized(
         "Auth.UserInactive",
         "The account has been deactivated.");
+
+    /// <summary>
+    /// Every refresh failure except an inactive user: missing, unknown, expired, revoked or
+    /// reused. One code for all of them, because a caller who could tell them apart would learn
+    /// which stolen tokens are still worth trying. The frontend's answer is the same for each:
+    /// show the login page.
+    /// </summary>
+    public static readonly Error RefreshTokenInvalid = Error.Unauthorized(
+        "Auth.RefreshTokenInvalid",
+        "The refresh token is missing, expired or revoked.");
 }

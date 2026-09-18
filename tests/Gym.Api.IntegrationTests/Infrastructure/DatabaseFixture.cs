@@ -1,6 +1,7 @@
 using Gym.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -78,8 +79,13 @@ public sealed class DatabaseFixture : IAsyncLifetime
         await _connection.OpenAsync(TestContext.Current.CancellationToken);
     }
 
-    /// <summary>An <see cref="HttpClient"/> that talks to the in-process server.</summary>
-    public HttpClient CreateClient() => Factory.CreateClient();
+    /// <summary>
+    /// An <see cref="HttpClient"/> that talks to the in-process server. It does not keep
+    /// cookies: the refresh cookie is <c>Secure</c> and the test server speaks plain HTTP, so a
+    /// cookie jar would silently drop it. Tests read <c>Set-Cookie</c> and send <c>Cookie</c>
+    /// themselves, which also makes the cookie under test visible in the test.
+    /// </summary>
+    public HttpClient CreateClient() => Factory.CreateClient(ClientOptions);
 
     /// <summary>
     /// A client for a separate host with extra settings, for the rare test that needs different
@@ -98,8 +104,10 @@ public sealed class DatabaseFixture : IAsyncLifetime
                     builder.UseSetting(key, value);
                 }
             })
-            .CreateClient();
+            .CreateClient(ClientOptions);
     }
+
+    private static WebApplicationFactoryClientOptions ClientOptions => new() { HandleCookies = false };
 
     /// <summary>A scope for resolving scoped services such as <see cref="AppDbContext"/>.</summary>
     public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();

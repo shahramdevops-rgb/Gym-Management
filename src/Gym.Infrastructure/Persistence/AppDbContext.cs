@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Domain.Auth;
 using Gym.Infrastructure.Identity;
 
 using Microsoft.AspNetCore.Identity;
@@ -16,6 +17,8 @@ namespace Gym.Infrastructure.Persistence;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<User, IdentityRole<Guid>, Guid>(options), IAppDbContext
 {
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         // Identity's base OnModelCreating registers Users/Roles/UserRoles/etc. and names

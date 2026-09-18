@@ -1,4 +1,7 @@
+using Gym.Domain.Auth;
+
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Gym.Application.Common;
 
@@ -17,11 +20,21 @@ namespace Gym.Application.Common;
 /// </para>
 /// <para>
 /// A <see cref="DbSet{TEntity}"/> property is added here by the task that introduces the
-/// entity, which is why this interface is empty apart from saving today.
+/// entity. The Identity tables are not here: Application reaches users through
+/// <c>IUserAuthenticator</c> instead (ADR 0002).
 /// </para>
 /// </remarks>
 public interface IAppDbContext
 {
+    DbSet<RefreshToken> RefreshTokens { get; }
+
+    /// <summary>
+    /// Exposed for the rare handler that must recover from a failed save in the same request:
+    /// after a <see cref="DbUpdateConcurrencyException"/> the tracked entities hold stale values,
+    /// and <c>ChangeTracker.Clear()</c> discards them so fresh rows can be loaded.
+    /// </summary>
+    ChangeTracker ChangeTracker { get; }
+
     /// <summary>
     /// Commits the tracked changes as one transaction. The audit interceptor runs first, so
     /// callers must not set <c>CreatedAt</c> or <c>UpdatedAt</c> themselves.

@@ -1,20 +1,26 @@
+using Gym.Application.Common;
 using Gym.Application.Common.Security;
+using Gym.Domain.Auth;
 using Gym.Domain.Common;
 
 namespace Gym.Application.Auth.Login;
 
 /// <summary>
-/// Exchanges a user name and password for an access token.
+/// Exchanges a user name and password for an access token and a refresh token.
 /// </summary>
 /// <remarks>
-/// Short on purpose. The password check, lockout and active flag are Identity's territory and
-/// sit behind <see cref="IUserAuthenticator"/>; the token format sits behind
-/// <see cref="IAccessTokenIssuer"/>. What remains here is the use case itself: no token without
-/// a successful authentication.
+/// The password check, lockout and active flag are Identity's territory and sit behind
+/// <see cref="IUserAuthenticator"/>; the token format sits behind <see cref="IAccessTokenIssuer"/>.
+/// What remains here is the use case itself: no tokens without a successful authentication,
+/// and every login starts a new refresh token family.
 /// </remarks>
-public sealed class LoginHandler(IUserAuthenticator authenticator, IAccessTokenIssuer tokenIssuer)
+public sealed class LoginHandler(
+    IUserAuthenticator authenticator,
+    IAccessTokenIssuer tokenIssuer,
+    IAppDbContext db,
+    TimeProvider timeProvider)
 {
-    public async Task<Result<LoginResponse>> Handle(LoginCommand command, CancellationToken cancellationToken)
+    public async Task<Result<AuthSession>> Handle(LoginCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -25,12 +31,16 @@ public sealed class LoginHandler(IUserAuthenticator authenticator, IAccessTokenI
 
         if (authentication.IsFailure)
         {
-            return Result.Failure<LoginResponse>(authentication.Error);
+            return Result.Failure<AuthSession>(authentication.Error);
         }
 
         var user = authentication.Value;
-        var token = tokenIssuer.Issue(user);
 
-        return new LoginResponse(token.Value, token.ExpiresAt, user.MustChangePassword);
+        var refreshSecret = RefreshTokenSecret.Generate();
+        var refreshToken = RefreshToken.Issue(user.Id, RefreshTokenSecret.Hash(refreshSecret), timeProvider.GetUtcNow());
+        db.RefreshTokens.Add(refreshToken);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return AuthSession.Create(user, tokenIssuer.Issue(user), refreshSecret, refreshToken.ExpiresAt);
     }
 }

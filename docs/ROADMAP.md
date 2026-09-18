@@ -103,11 +103,11 @@ Done when: CI passes on GitHub.
 - [x] Tests: wrong password, lockout, inactive user rejected
 
 ### 1.3 Refresh tokens and logout
-- [ ] RefreshToken entity (hash, family, expiry, revoked, replaced by)
-- [ ] Refresh endpoint with rotation and reuse detection
-- [ ] HttpOnly cookie
-- [ ] Logout revokes the token
-- [ ] Tests: rotation works, reused token revokes the family
+- [x] RefreshToken entity (hash, family, expiry, revoked, replaced by)
+- [x] Refresh endpoint with rotation and reuse detection
+- [x] HttpOnly cookie
+- [x] Logout revokes the token
+- [x] Tests: rotation works, reused token revokes the family
 
 ### 1.4 Current user, policies, change password
 - [ ] `ICurrentUser`

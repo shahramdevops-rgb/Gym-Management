@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 
 using Gym.Api.IntegrationTests.Infrastructure;
-using Gym.Application.Auth.Login;
+using Gym.Application.Auth;
 using Gym.Infrastructure.Identity;
 
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -28,7 +28,7 @@ public sealed class LoginEndpointTests(DatabaseFixture fixture) : DatabaseTestBa
         using var response = await client.LoginAsync("owner", TestUsers.Password);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var body = (await response.Content.ReadFromJsonAsync<LoginResponse>(TestContext.Current.CancellationToken))
+        var body = (await response.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken))
             .ShouldNotBeNull();
 
         var token = new JsonWebToken(body.AccessToken);
