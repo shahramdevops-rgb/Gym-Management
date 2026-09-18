@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Common.Text;
 using Gym.Domain.Common;
 
 namespace Gym.Application.Staff.CreateStaff;
@@ -18,7 +19,7 @@ public sealed class CreateStaffHandler(IStaffAccounts staff, IAppDbContext db)
         var created = await staff.CreateAsync(
             command.UserName.Trim(),
             StaffNames.Clean(command.FullName),
-            command.TemporaryPassword,
+            Digits.ToEnglish(command.TemporaryPassword),
             cancellationToken);
 
         if (created.IsSuccess)

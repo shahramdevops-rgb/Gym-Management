@@ -241,3 +241,19 @@ Format:
 - **Verify the Done-when for real, and doubt surprising results.** The live run through the Vite proxy showed a staff name as `??????`. Instead of assuming an app bug or ignoring it, the same request sent from a UTF-8 file came back intact: the Windows shell had mangled the argument. The dev data was repaired, and the gotcha is in `ARCHITECTURE.md`.
 - **My notes:**
 
+---
+
+## Phase 1 review
+
+A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did find races and gaps that the task-by-task tests had missed.
+
+- **"Read, change, save" is a race.** Identity's failed-login counter loads the count, adds one in C#, and saves. Eight parallel wrong passwords all read the same count: one save won, seven answered 500, and lockout counted one attempt instead of eight. The fix lets Postgres do the arithmetic in one `UPDATE ... SET count = count + 1`, on a row it locks. A test fires eight wrong passwords at once, and it failed on the old code with seven 500s.
+- **Concurrency failures are expected, not exceptional.** Two people changing the same account at once is normal, so the answer is a 409 the Owner can retry (or, for token families, a retry loop), never a 500.
+- **The same error message isn't enough; it must take the same time.** An unknown user name returned instantly while a known one ran the slow password hash, so timing leaked which names exist. Unknown names now run a dummy hash.
+- **"Only one refresh at a time" must hold across tabs.** A module-level promise protects one tab. The refresh cookie is shared by every tab, so tabs coordinate with the browser's Web Locks API.
+- **The cookie belongs to the browser, not the tab.** If someone else logs in from another tab, this tab's next refresh would quietly become them. The frontend now compares the token's `sub` and signs out instead.
+- **A 401 isn't always an expired token.** Only `Auth.Unauthenticated` is worth a refresh. A handler's own 401 (locked out, deactivated) came with a valid token, and retrying would only resend the request.
+- **A rule enforced only by the client is a suggestion.** Password digit conversion lived only in the browser, so a Persian-digit seed password could never log in. The API now converts too.
+- **Why a review after the tasks.** Each task tested its own feature. The review looked across them: parallel requests, several tabs, two people at once. That's where these bugs were.
+- **My notes:**
+

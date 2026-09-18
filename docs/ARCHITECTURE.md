@@ -312,4 +312,17 @@ web/src/
   write it with a script that builds the backslash explicitly (Python `chr(92)`), then check the bytes.
 - Git Bash on Windows can mangle Persian command-line arguments on their way to `curl` (they arrive as `?`). Send
   Persian request bodies from a UTF-8 file with `--data-binary @file`.
+- Failed-login counting is one atomic SQL UPDATE (`UserAuthenticator.RecordFailedAttemptAsync`), not Identity's
+  `AccessFailedAsync`, which reads, adds in C# and saves with a concurrency check: parallel wrong passwords all counted
+  once and the rest answered 500. The update leaves `ConcurrencyStamp` alone, and as a bulk update it bypasses the
+  change tracker and the audit interceptor. Code that already holds the tracked `User` sees stale counter values.
+- Identity `UpdateAsync` returns `ConcurrencyFailure` instead of throwing. Staff actions map it to 409
+  `Staff.ChangedConcurrently`; anything else from Identity is unexpected and throws.
+- `RefreshHandler` retries a family revocation after `DbUpdateConcurrencyException` (clearing the tracker each time), so a
+  reuse racing with a rotation still revokes the family and never answers 500.
+- `authFetch` refreshes only on a 401 whose code is `Auth.Unauthenticated` (the token was rejected). Other 401s come from
+  handlers with a valid token; `Auth.UserInactive` signs the tab out. Refresh runs under the Web Lock `gym-refresh`, so
+  tabs sharing the cookie refresh one at a time, and a refresh that returns another user's token signs the tab out.
+- `clearCacheWhenUserChanges` (in `app/queryClient.ts`) empties the TanStack Query cache on every sign-out and whenever
+  the token's `sub` changes, not only on the logout button.
 

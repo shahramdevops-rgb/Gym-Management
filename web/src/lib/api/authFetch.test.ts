@@ -1,7 +1,7 @@
 import { sessionStore } from "@/features/auth/session";
 import { json, mockApi, problem, session } from "@/test/mockApi";
 
-import { authFetch, restoreSession } from "./authFetch";
+import { authFetch, refreshSession, restoreSession } from "./authFetch";
 
 const mePath = "/api/auth/me";
 
@@ -121,6 +121,80 @@ describe("authFetch", () => {
     expect(api.requestsTo("POST", "/api/auth/refresh")).toHaveLength(0);
   });
 });
+
+describe("authFetch after the Phase 1 review", () => {
+  it("AuthFetch_HandlerRefusal401_DoesNotRefresh", async () => {
+    // Locked out while changing the password: the token was fine, so a refresh would only
+    // rotate the cookie and send the password change a second time.
+    const api = mockApi({
+      "POST /api/auth/change-password": () => problem(401, "Auth.LockedOut"),
+      "POST /api/auth/refresh": () => json(200, session()),
+    });
+    sessionStore.signIn(session());
+
+    const response = await authFetch(
+      request("/api/auth/change-password", { method: "POST", body: "{}" }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(api.requestsTo("POST", "/api/auth/refresh")).toHaveLength(0);
+    expect(api.requestsTo("POST", "/api/auth/change-password")).toHaveLength(1);
+  });
+
+  it("AuthFetch_UserDeactivated_SignsOutWithoutRefreshing", async () => {
+    const api = mockApi({
+      [`GET ${mePath}`]: () => problem(401, "Auth.UserInactive"),
+      "POST /api/auth/refresh": () => json(200, session()),
+    });
+    sessionStore.signIn(session());
+
+    await authFetch(request(mePath));
+
+    expect(sessionStore.getState().status).toBe("signedOut");
+    expect(api.requestsTo("POST", "/api/auth/refresh")).toHaveLength(0);
+  });
+
+  it("RefreshSession_CookieNowBelongsToAnotherUser_SignsOutInsteadOfSwitching", async () => {
+    // Another tab logged in as someone else, replacing the shared cookie.
+    mockApi({
+      "POST /api/auth/refresh": () => json(200, session({ accessToken: jwtFor("owner-id") })),
+    });
+    sessionStore.signIn(session({ accessToken: jwtFor("staff-id") }));
+
+    const signedIn = await refreshSession();
+
+    expect(signedIn).toBe(false);
+    expect(sessionStore.getState().status).toBe("signedOut");
+  });
+
+  it("RefreshSession_SameUser_KeepsTheSession", async () => {
+    mockApi({
+      "POST /api/auth/refresh": () => json(200, session({ accessToken: jwtFor("staff-id", 2) })),
+    });
+    sessionStore.signIn(session({ accessToken: jwtFor("staff-id", 1) }));
+
+    expect(await refreshSession()).toBe(true);
+    expect(sessionStore.accessToken()).toBe(jwtFor("staff-id", 2));
+  });
+
+  it("RefreshSession_WebLocksAvailable_RefreshesUnderTheSharedLock", async () => {
+    // Other tabs take the same lock, so two tabs never send the same cookie at once.
+    mockApi({ "POST /api/auth/refresh": () => json(200, session()) });
+    const request = vi.fn((_name: string, callback: () => Promise<boolean>) => callback());
+    vi.stubGlobal("navigator", { ...navigator, locks: { request } });
+    sessionStore.signIn(session());
+
+    await refreshSession();
+
+    expect(request).toHaveBeenCalledWith("gym-refresh", expect.any(Function));
+  });
+});
+
+/** An unsigned JWT-shaped token with a subject, enough for the browser's same-user check. */
+function jwtFor(sub: string, version = 1) {
+  const encode = (value: object) => btoa(JSON.stringify(value)).replace(/=+$/, "");
+  return `${encode({ alg: "none" })}.${encode({ sub, version })}.signature`;
+}
 
 describe("restoreSession", () => {
   it("RestoreSession_ValidCookie_SignsIn", async () => {

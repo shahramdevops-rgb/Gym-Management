@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Security;
+using Gym.Application.Common.Text;
 using Gym.Domain.Auth;
 using Gym.Domain.Common;
 
@@ -36,7 +37,11 @@ public sealed class ChangePasswordHandler(
 
         // Outside the transaction on purpose: a wrong password must still count toward lockout,
         // and rolling back would erase that count.
-        var verified = await users.VerifyPasswordAsync(userId, command.CurrentPassword, cancellationToken);
+        // Persian and English digits are the same keystrokes (BUSINESS_RULES.md §1).
+        var currentPassword = Digits.ToEnglish(command.CurrentPassword);
+        var newPassword = Digits.ToEnglish(command.NewPassword);
+
+        var verified = await users.VerifyPasswordAsync(userId, currentPassword, cancellationToken);
         if (verified.IsFailure)
         {
             return Result.Failure<AuthSession>(verified.Error);
@@ -44,7 +49,7 @@ public sealed class ChangePasswordHandler(
 
         // Checked after the current password, so it reveals nothing to someone who does not
         // know it. Ordinal: passwords are compared exactly, as the hash would compare them.
-        if (string.Equals(command.CurrentPassword, command.NewPassword, StringComparison.Ordinal))
+        if (string.Equals(currentPassword, newPassword, StringComparison.Ordinal))
         {
             return Result.Failure<AuthSession>(AuthErrors.PasswordUnchanged);
         }
@@ -55,7 +60,7 @@ public sealed class ChangePasswordHandler(
         // at all. Committed password with live old sessions would defeat the point of changing it.
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
 
-        var changed = await users.ChangePasswordAsync(userId, command.CurrentPassword, command.NewPassword, cancellationToken);
+        var changed = await users.ChangePasswordAsync(userId, currentPassword, newPassword, cancellationToken);
         if (changed.IsFailure)
         {
             return Result.Failure<AuthSession>(changed.Error);

@@ -12,6 +12,10 @@ public static class StaffErrors
         "Staff.NotFound",
         "No staff account has that id.");
 
+    public static readonly Error ChangedConcurrently = Error.Conflict(
+        "Staff.ChangedConcurrently",
+        "The account was changed by another request at the same moment. Try again.");
+
     public static readonly Error UserNameTaken = Error.Conflict(
         "Staff.UserNameTaken",
         "Another account already uses that user name.");
