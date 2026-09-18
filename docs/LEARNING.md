@@ -337,3 +337,16 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **A limit that never traps anyone.** A freeze longer than the remaining allowance still ends. `Unfreeze` just caps the extension at the days left and returns how many days it added, so task 4.3 can move queued subscriptions by exactly that amount.
 - **Bugs throw, users get `Result`.** A blank cancel reason is a user mistake, so it returns an error. Unfreezing on a date before the freeze began can only be a bug in the caller, so it throws.
 - **My notes:**
+
+---
+
+## 4.2 — Assign and renew
+
+- **A rule the database guarantees.** "A member never has two subscriptions covering the same date" is an **exclusion constraint**: `EXCLUDE USING gist (member_id WITH =, daterange(start_date, end_date, '[]') WITH &&) WHERE (cancelled_at IS NULL)`. A unique index can only compare equal values; an exclusion constraint compares with any operator, here "same member *and* overlapping dates". `btree_gist` lets a GiST index handle the plain `member_id` column. EF Core can't express this, so it's hand-written SQL in the migration.
+- **What the race test found.** Six parallel sales for one member failed with 500. With the constraint deferred, each transaction waited at commit for another's uncommitted row, in a circle: a **deadlock** (40P01). Running the test ten times caught it 2 times out of 10. A race test that passes once proves little.
+- **Take turns, don't fight.** The fix is a row lock: the sale opens a transaction and runs `SELECT … FOR UPDATE` on the member first. A second sale for the same member waits, then reads the first one's subscription and queues after it, so all six succeed. The constraint stays as a safety net. Removing the lock made the test fail 3 out of 3 times, which proves the lock is what fixes it.
+- **Deferred vs immediate.** A deferred constraint is checked at `COMMIT`, and its error arrives from the commit itself, not wrapped in `DbUpdateException` like other save errors. It's now `DEFERRABLE INITIALLY IMMEDIATE`: checked on every write, but task 4.3 can defer it inside its own transaction when unfreezing moves several subscriptions at once.
+- **"Today" has one owner.** `IGymCalendar.Today()` turns `TimeProvider` plus `Gym:TimeZone` into a Tehran date. A misspelled time zone stops the app at startup (`ValidateOnStart`) instead of quietly expiring subscriptions 3.5 hours late.
+- **Shared logic without a framework.** Assign and renew differ only in *which* plan. `SubscriptionSeller` is a plain injected class holding the common part (lock, schedule, create, save), and the two handlers stay small.
+- **The foreign key is the last word.** `ON DELETE RESTRICT` means a member or plan with sales can never be deleted, even by hand. It reports SQLSTATE 23001, not 23503, which the test found.
+- **My notes:**

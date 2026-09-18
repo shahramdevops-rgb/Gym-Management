@@ -53,6 +53,11 @@ public static class MemberErrors
         "Search text is too long.");
 
     /// <summary>Two people edited the same member at the same moment; the second save is refused.</summary>
+    /// <summary>BUSINESS_RULES.md §2: an inactive member cannot receive new subscriptions.</summary>
+    public static readonly Error Inactive = Error.BusinessRule(
+        "Members.Inactive",
+        "The member is inactive.");
+
     public static readonly Error ChangedConcurrently = Error.Conflict(
         "Members.ChangedConcurrently",
         "The member was changed by someone else at the same moment. Reload and try again.");

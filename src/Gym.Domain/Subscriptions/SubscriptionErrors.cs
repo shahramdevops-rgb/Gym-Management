@@ -4,6 +4,27 @@ namespace Gym.Domain.Subscriptions;
 
 public static class SubscriptionErrors
 {
+    public static readonly Error NotFound = Error.NotFound(
+        "Subscriptions.NotFound",
+        "No subscription has that id.");
+
+    public static readonly Error PlanRequired = Error.Validation(
+        "Subscriptions.PlanRequired",
+        "A plan is required.");
+
+    /// <summary>Renew sells the plan of the member's latest subscription; there is none.</summary>
+    public static readonly Error NothingToRenew = Error.BusinessRule(
+        "Subscriptions.NothingToRenew",
+        "The member has no subscription to renew.");
+
+    /// <summary>
+    /// Another sale or change for the same member was saved at the same moment. Trying again
+    /// reads the new state and schedules correctly.
+    /// </summary>
+    public static readonly Error ChangedConcurrently = Error.Conflict(
+        "Subscriptions.ChangedConcurrently",
+        "The member's subscriptions were changed by someone else at the same moment. Try again.");
+
     // One error per status that blocks using a subscription, so the front desk can say why:
     // "starts on …", "expired", "no sessions left", "frozen" and "cancelled" are different
     // conversations with the member.

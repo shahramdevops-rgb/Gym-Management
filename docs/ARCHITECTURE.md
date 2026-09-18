@@ -138,6 +138,12 @@ details — no message, no type name, no stack trace.
 - Money: `HasPrecision(18, 2)` (large enough for Rial and Toman amounts).
 - Read queries use `AsNoTracking()` and project straight to response records.
 - Lists are paged (`page`, `pageSize`, max 100), ordered by a column plus `Id` as a tie-breaker so no row repeats or disappears between pages.
+- "Today" comes from `IGymCalendar.Today()` (`Gym:TimeZone`, validated at startup). Domain methods take that
+  `DateOnly` as a parameter and never read a clock.
+- Use cases that change one member's subscriptions run inside a transaction and call
+  `db.LockMemberAsync(memberId)` (`SELECT … FOR UPDATE` on the member row) before reading them, so concurrent
+  requests for the same member take turns instead of racing. The exclusion constraint
+  `ex_subscriptions_no_overlap` (btree_gist, written by hand in the `AddSubscriptions` migration) is the safety net.
 - "Contains" searches (`LIKE '%…%'`) use a GIN trigram index (`HasMethod("gin").HasOperators("gin_trgm_ops")`). The `pg_trgm` extension ships with Postgres and is enabled in `AppDbContext` with `HasPostgresExtension`. User input is escaped (`%`, `_`, `\`) before it goes into a pattern.
 
 ### Testing
@@ -235,6 +241,12 @@ web/src/
   `ConfigureAppConfiguration` delta is applied, so the app starts with no connection string at all. Pass such
   values as environment variables (`ConnectionStrings__Postgres`) before the factory is constructed — which is
   also how production supplies them.
+- A **deferred** constraint is checked at `COMMIT`, and its error comes from the commit as a bare
+  `PostgresException`, not wrapped in `DbUpdateException`. Deferred by default, the subscription exclusion
+  constraint also made parallel inserts deadlock at commit (40P01), each waiting for the other's row. It is
+  `DEFERRABLE INITIALLY IMMEDIATE`; a transaction that must pass through a moment of overlap runs
+  `SET CONSTRAINTS ex_subscriptions_no_overlap DEFERRED` and handles the error at `CommitAsync`.
+- `ON DELETE RESTRICT` reports SQLSTATE 23001 (`restrict_violation`), not 23503 (`foreign_key_violation`).
 - `Respawner.CreateAsync` throws "No tables found" against a schema whose only table is the ignored
   `__EFMigrationsHistory`. The fixture builds it lazily for that reason. Since task 1.1 there are always
   tables, so this only matters if the model is ever emptied again.

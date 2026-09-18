@@ -20,6 +20,10 @@ using Gym.Application.Staff.GetStaff;
 using Gym.Application.Staff.ListStaff;
 using Gym.Application.Staff.ResetStaffPassword;
 using Gym.Application.Staff.SetStaffActive;
+using Gym.Application.Subscriptions;
+using Gym.Application.Subscriptions.AssignSubscription;
+using Gym.Application.Subscriptions.GetSubscription;
+using Gym.Application.Subscriptions.RenewSubscription;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -75,6 +79,11 @@ public static class DependencyInjection
         services.AddScoped<GetPlanHandler>();
         services.AddScoped<ListPlansHandler>();
         services.AddScoped<SetPlanActiveHandler>();
+
+        services.AddScoped<SubscriptionSeller>();
+        services.AddScoped<AssignSubscriptionHandler>();
+        services.AddScoped<RenewSubscriptionHandler>();
+        services.AddScoped<GetSubscriptionHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

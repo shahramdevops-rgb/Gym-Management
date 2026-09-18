@@ -131,6 +131,13 @@ Decided values:
 - A member never has two subscriptions covering the same date.
   - No current or queued subscription: the new one starts today.
   - Otherwise: the new one is queued and starts the day after the latest existing `EndDate`.
+- Selling (decided with the developer in task 4.2):
+  - **Assign** sells a chosen plan. **Renew** sells the same plan as the member's latest subscription (by `EndDate`, cancelled ones included), at that plan's current name, price and limits, not the old snapshot. A member with no subscription has nothing to renew (`Subscriptions.NothingToRenew`); an inactive plan cannot be renewed (`Plans.Inactive`).
+  - Both follow the same start-date rule, and both are refused for an inactive member (`Members.Inactive`).
+  - A cancelled subscription covers no dates: it neither delays a new sale nor counts as an overlap.
+  - If the latest subscription is `Exhausted` (all sessions used before its `EndDate`), the new one does not wait: the exhausted one ends yesterday and the new one starts today. If the exhausted one started today, it ends today and the new one starts tomorrow, so two subscriptions never cover the same date.
+  - Two sales for the same member at the same moment are handled one after the other: the second waits for the first and is queued after it. Both succeed.
+  - The no-overlap rule is enforced by the database too: a Postgres exclusion constraint on (member, date range) for non-cancelled subscriptions. If a write ever gets past the application's ordering, it is refused with `Subscriptions.ChangedConcurrently` rather than stored.
 - Status is calculated, never stored. First match wins:
   1. `Cancelled`
   2. `Frozen`

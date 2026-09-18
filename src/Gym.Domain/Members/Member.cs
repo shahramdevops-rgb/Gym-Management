@@ -104,6 +104,13 @@ public sealed class Member : Entity
     /// <summary>Reactivating an active member succeeds and changes nothing.</summary>
     public void Reactivate() => IsActive = true;
 
+    /// <summary>
+    /// BUSINESS_RULES.md §2: inactive members cannot receive new subscriptions. Selling asks this
+    /// instead of reading <see cref="IsActive"/>, like <c>Plan.EnsureCanBeSold</c>.
+    /// </summary>
+    public Result EnsureCanReceiveSubscription() =>
+        IsActive ? Result.Success() : Result.Failure(MemberErrors.Inactive);
+
     private static bool IsE164(string value) =>
         value.Length is >= 8 and <= 16 && value[0] == '+' && value.Skip(1).All(char.IsAsciiDigit);
 }

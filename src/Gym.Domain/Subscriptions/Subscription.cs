@@ -225,6 +225,22 @@ public sealed class Subscription : Entity
     }
 
     /// <summary>
+    /// Ends an exhausted subscription early so a new one can start today instead of waiting for
+    /// this one's <see cref="EndDate"/> (decided in task 4.2). It ends yesterday, or today if it
+    /// only started today, so the two never cover the same date.
+    /// </summary>
+    public void CloseExhaustedEarly(DateOnly today)
+    {
+        if (GetStatus(today) != SubscriptionStatus.Exhausted)
+        {
+            throw new InvalidOperationException("Only an exhausted subscription can be closed early.");
+        }
+
+        var yesterday = today.AddDays(-1);
+        EndDate = yesterday < StartDate ? StartDate : yesterday;
+    }
+
+    /// <summary>
     /// Cancels, whatever the status, unless already cancelled (decided in task 4.1). Payments are
     /// untouched: money goes back only through refunds (§4, §5).
     /// </summary>

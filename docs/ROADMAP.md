@@ -187,10 +187,10 @@ Done when: staff can find, create, and edit members in the app.
 - [x] Extensive unit tests with FakeTimeProvider (dates, freeze, unlimited plans, status precedence)
 
 ### 4.2 Assign and renew
-- [ ] Assign endpoint (starts today or queued)
-- [ ] Renew endpoint
-- [ ] `xmin` concurrency token and session check constraint
-- [ ] Tests: renewal before expiry is queued; inactive plan or member rejected
+- [x] Assign endpoint (starts today or queued)
+- [x] Renew endpoint
+- [x] `xmin` concurrency token and session check constraint
+- [x] Tests: renewal before expiry is queued; inactive plan or member rejected
 
 ### 4.3 Freeze, unfreeze, cancel endpoints
 - [ ] Owner-only endpoints

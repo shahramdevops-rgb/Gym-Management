@@ -3,6 +3,7 @@ using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Members;
 using Gym.Domain.Plans;
+using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 
 using Microsoft.AspNetCore.Identity;
@@ -35,13 +36,30 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Plan> Plans => Set<Plan>();
 
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
 
     /// <summary>
+    /// <c>SELECT ... FOR UPDATE</c> on the member's row: held until the transaction ends, so a
+    /// second transaction asking for the same lock waits instead of reading a stale calendar.
+    /// </summary>
+    public Task LockMemberAsync(Guid memberId, CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("A row lock outside a transaction is released at once; begin one first.");
+        }
+
+        return Database.ExecuteSqlAsync($"SELECT 1 FROM members WHERE id = {memberId} FOR UPDATE", cancellationToken);
+    }
+
+    /// <summary>
     /// Translates a Postgres unique violation (SQLSTATE 23505) into Application's
-    /// <see cref="UniqueConstraintException"/>, naming the index, so handlers can answer the
-    /// expected race with a 409 without knowing which database is behind them.
+    /// <see cref="UniqueConstraintException"/>, and an exclusion violation (23P01) into
+    /// <see cref="ExclusionConstraintException"/>, naming the constraint, so handlers can answer
+    /// the expected race with a 409 without knowing which database is behind them.
     /// </summary>
     /// <remarks>
     /// Every async save goes through this overload, including the parameterless one and
@@ -59,6 +77,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             throw new UniqueConstraintException(unique.ConstraintName ?? string.Empty, exception);
         }
+        catch (DbUpdateException exception)
+            when (exception is not ExclusionConstraintException &&
+                  exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ExclusionViolation } exclusion)
+        {
+            throw new ExclusionConstraintException(exclusion.ConstraintName ?? string.Empty, exclusion);
+        }
+        catch (PostgresException exclusion) when (exclusion.SqlState == PostgresErrorCodes.ExclusionViolation)
+        {
+            // A deferred constraint is checked at COMMIT, and the commit's error is not wrapped
+            // in a DbUpdateException. A handler that commits its own transaction (task 4.3)
+            // meets it at CommitAsync instead and must translate it there.
+            throw new ExclusionConstraintException(exclusion.ConstraintName ?? string.Empty, exclusion);
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -72,6 +103,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         // Trigram indexes for "contains" searches (MemberConfiguration). A standard Postgres
         // extension, not a NuGet package; the migration runs CREATE EXTENSION IF NOT EXISTS.
         builder.HasPostgresExtension("pg_trgm");
+
+        // GiST indexes on plain columns such as member_id, needed by the exclusion constraint
+        // that keeps a member's subscriptions from overlapping (migration AddSubscriptions).
+        // Ships with Postgres, like pg_trgm.
+        builder.HasPostgresExtension("btree_gist");
 
         // Picks up every IEntityTypeConfiguration<T> in Gym.Infrastructure, so adding an
         // entity is "add one configuration file" and never "also remember to register it".
