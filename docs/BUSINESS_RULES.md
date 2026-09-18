@@ -39,6 +39,10 @@ Decided values:
 - Password policy: at least 8 characters, containing at least one letter and one digit. No case (upper/lower) or symbol is required — passwords are typed on a Persian keyboard at the front desk.
 - The Owner creates Staff accounts with a temporary password. Staff have `MustChangePassword = true`.
 - A user with `MustChangePassword = true` may only call change-password and logout.
+- Changing a password:
+  - Requires the current password. A wrong current password returns `Auth.CurrentPasswordIncorrect`, counts toward lockout like a failed login, and the endpoint is rate-limited like login.
+  - The new password must follow the password policy and must differ from the current one (`Auth.PasswordUnchanged`).
+  - Success clears `MustChangePassword`, revokes all of the user's refresh tokens (every other browser is logged out), and starts a fresh session for the browser that made the change.
 - Deactivated users cannot log in, and all their refresh tokens are revoked immediately.
 - Access token: JWT, 15 minutes, kept in memory by the frontend (never localStorage).
 - Refresh token: random value, stored only as a hash, rotated on every use, sent as an HttpOnly, Secure, SameSite=Strict cookie. Reusing an already-rotated token revokes the whole token family.

@@ -1,3 +1,4 @@
+using Gym.Api.IntegrationTests.Common;
 using Gym.Infrastructure.Persistence.Interceptors;
 
 using Microsoft.EntityFrameworkCore;
@@ -16,10 +17,55 @@ public sealed class AuditableEntityInterceptorTests
     private static readonly DateTimeOffset Created = new(2026, 3, 21, 9, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset Updated = new(2026, 3, 22, 17, 30, 0, TimeSpan.Zero);
 
+    private static readonly Guid Alice = Guid.CreateVersion7();
+    private static readonly Guid Bob = Guid.CreateVersion7();
+
     private readonly FakeTimeProvider _time = new(Created);
+    private readonly FakeCurrentUser _currentUser = new() { UserId = Alice };
     private readonly AuditableEntityInterceptor _interceptor;
 
-    public AuditableEntityInterceptorTests() => _interceptor = new AuditableEntityInterceptor(_time);
+    public AuditableEntityInterceptorTests() => _interceptor = new AuditableEntityInterceptor(_time, _currentUser);
+
+    [Fact]
+    public async Task SavingChanges_WhenEntityAdded_SetsCreatedByToTheCurrentUser()
+    {
+        using var context = PersistenceTestContext.Create(_interceptor);
+        var entity = new TestEntity();
+        context.Add(entity);
+
+        await SaveAsync(context);
+
+        entity.CreatedBy.ShouldBe(Alice);
+        entity.UpdatedBy.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task SavingChanges_WhenEntityModified_SetsUpdatedByAndKeepsCreatedBy()
+    {
+        using var context = PersistenceTestContext.Create(_interceptor);
+        var entity = await AddAndSaveAsync(context);
+
+        _currentUser.UserId = Bob;
+        entity.DisplayName = "changed";
+        await SaveAsync(context);
+
+        entity.CreatedBy.ShouldBe(Alice, "who created the row never changes.");
+        entity.UpdatedBy.ShouldBe(Bob);
+    }
+
+    [Fact]
+    public async Task SavingChanges_WithNoCurrentUser_LeavesCreatedByNull()
+    {
+        _currentUser.UserId = null;
+        using var context = PersistenceTestContext.Create(_interceptor);
+        var entity = new TestEntity();
+        context.Add(entity);
+
+        await SaveAsync(context);
+
+        // Seeding, background jobs and anonymous requests act on nobody's behalf.
+        entity.CreatedBy.ShouldBeNull();
+    }
 
     [Fact]
     public async Task SavingChanges_WhenEntityAdded_SetsCreatedAtFromTheTimeProvider()

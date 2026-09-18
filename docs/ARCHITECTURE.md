@@ -258,4 +258,18 @@ web/src/
   hold values that never reached the database, and `ChangeTracker.Clear()` lets the handler load fresh rows in the
   same request (`RefreshHandler`).
 - Expired and revoked `refresh_tokens` rows are never deleted by the app yet. A cleanup job belongs with Hangfire.
+- Authorization policies live in `Gym.Api/Authorization/Policies.cs`: `OwnerOnly`, `StaffOrOwner`,
+  `PasswordChangeAllowed`. Every policy except `PasswordChangeAllowed` includes `PasswordChangedRequirement` (the forced
+  password change gate), and so does the fallback. `EndpointAuthorizationTests` fails if an endpoint declares neither a
+  policy nor `AllowAnonymous()`.
+- Authorization failures are ProblemDetails too (`ProblemDetailsAuthorizationResultHandler`): 401 `Auth.Unauthenticated`,
+  403 `Auth.PasswordChangeRequired` when the gate failed, 403 `Auth.Forbidden` otherwise.
+- `ICurrentUser` (Application) is implemented in Gym.Api from the `sub` claim through `IHttpContextAccessor`. It is a
+  singleton so the singleton audit interceptor can use it; the accessor resolves the current request on every call.
+  Code that builds the lower layers without the Api host (tests) must register its own `ICurrentUser`.
+- `AuditableEntityInterceptorTests` drive the interceptor without a database. To test a *modified* entity, start from
+  `AddAndSaveAsync`, which accepts the changes; otherwise the entity is still `Added` and gets insert stamps again.
+- A use case that saves through both `UserManager` and `IAppDbContext` wraps them in `IAppDbContext.BeginTransactionAsync`;
+  both use the same scoped context. Anything that must survive a rollback, like a failed password attempt, happens before
+  the transaction starts.
 

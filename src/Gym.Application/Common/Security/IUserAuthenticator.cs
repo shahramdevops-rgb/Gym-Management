@@ -23,4 +23,22 @@ public interface IUserAuthenticator
     /// (BUSINESS_RULES.md §1); fails only with <c>AuthErrors.UserInactive</c>.
     /// </summary>
     Task<Result<AuthenticatedUser>> GetActiveUserAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Checks a logged-in user's current password before a change. A wrong password counts
+    /// toward lockout exactly like a failed login. Fails with <c>AuthErrors.UserInactive</c>,
+    /// <c>AuthErrors.LockedOut</c> or <c>AuthErrors.CurrentPasswordIncorrect</c>.
+    /// </summary>
+    Task<Result> VerifyPasswordAsync(Guid userId, string password, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Stores the new password and clears <c>MustChangePassword</c> in one save, and returns
+    /// the user as they are now. Fails with <c>AuthErrors.PasswordRejected</c> if Identity
+    /// refuses the new password.
+    /// </summary>
+    Task<Result<AuthenticatedUser>> ChangePasswordAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken);
 }

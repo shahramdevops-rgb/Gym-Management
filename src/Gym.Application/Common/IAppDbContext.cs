@@ -2,6 +2,7 @@ using Gym.Domain.Auth;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Gym.Application.Common;
 
@@ -34,6 +35,13 @@ public interface IAppDbContext
     /// and <c>ChangeTracker.Clear()</c> discards them so fresh rows can be loaded.
     /// </summary>
     ChangeTracker ChangeTracker { get; }
+
+    /// <summary>
+    /// For a use case whose writes must all happen or none: changing a password saves through
+    /// Identity's <c>UserManager</c> and then revokes refresh tokens here. Both use this same
+    /// scoped context, so one transaction covers both saves.
+    /// </summary>
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Commits the tracked changes as one transaction. The audit interceptor runs first, so

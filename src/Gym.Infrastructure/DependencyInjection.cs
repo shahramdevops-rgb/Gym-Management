@@ -67,7 +67,7 @@ public static class DependencyInjection
                 // front desk. The built-in per-class checks are switched off in favor of
                 // LetterAndDigitPasswordValidator, which checks letter/digit without regard
                 // to case.
-                options.Password.RequiredLength = 8;
+                options.Password.RequiredLength = PasswordPolicy.MinimumLength;
                 options.Password.RequireDigit = false;
                 options.Password.RequireLowercase = false;
                 options.Password.RequireUppercase = false;

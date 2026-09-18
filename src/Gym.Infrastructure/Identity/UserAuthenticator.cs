@@ -77,11 +77,7 @@ public sealed class UserAuthenticator(UserManager<User> userManager) : IUserAuth
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Refresh tokens reference users with a restricting foreign key and users are never
-        // deleted, so a missing user is a broken invariant, not a login failure.
-        var user = await userManager.FindByIdAsync(userId.ToString())
-            ?? throw new InvalidOperationException($"Refresh token refers to user {userId}, who does not exist.");
-
+        var user = await FindExistingAsync(userId);
         if (!user.IsActive)
         {
             return Result.Failure<AuthenticatedUser>(AuthErrors.UserInactive);
@@ -89,6 +85,74 @@ public sealed class UserAuthenticator(UserManager<User> userManager) : IUserAuth
 
         return await ToAuthenticatedUserAsync(user);
     }
+
+    public async Task<Result> VerifyPasswordAsync(Guid userId, string password, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // The same order as login, except that the caller is already logged in, so saying
+        // "inactive" before the password check reveals nothing they do not already know.
+        var user = await FindExistingAsync(userId);
+        if (!user.IsActive)
+        {
+            return Result.Failure(AuthErrors.UserInactive);
+        }
+
+        if (await userManager.IsLockedOutAsync(user))
+        {
+            return Result.Failure(AuthErrors.LockedOut);
+        }
+
+        if (!await userManager.CheckPasswordAsync(user, password))
+        {
+            // Counted like a failed login: otherwise a stolen access token would allow
+            // unlimited guessing of the password through this endpoint.
+            ThrowIfFailed(await userManager.AccessFailedAsync(user), "record a failed password check");
+
+            return Result.Failure(
+                await userManager.IsLockedOutAsync(user) ? AuthErrors.LockedOut : AuthErrors.CurrentPasswordIncorrect);
+        }
+
+        if (await userManager.GetAccessFailedCountAsync(user) > 0)
+        {
+            ThrowIfFailed(await userManager.ResetAccessFailedCountAsync(user), "reset the failed login count");
+        }
+
+        return Result.Success();
+    }
+
+    public async Task<Result<AuthenticatedUser>> ChangePasswordAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await FindExistingAsync(userId);
+
+        // Set before the call so that UserManager saves the flag in the same UPDATE as the new
+        // hash and security stamp. If Identity refuses the password, nothing is saved, and the
+        // caller's transaction is rolled back anyway.
+        user.PasswordChanged();
+
+        var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        if (!result.Succeeded)
+        {
+            return Result.Failure<AuthenticatedUser>(AuthErrors.PasswordRejected(
+                string.Join(" ", result.Errors.Select(error => error.Description))));
+        }
+
+        return await ToAuthenticatedUserAsync(user);
+    }
+
+    /// <summary>
+    /// Every caller holds an id from a token this API issued or a row with a restricting
+    /// foreign key, and users are never deleted, so a missing user is a broken invariant.
+    /// </summary>
+    private async Task<User> FindExistingAsync(Guid userId) =>
+        await userManager.FindByIdAsync(userId.ToString())
+        ?? throw new InvalidOperationException($"User {userId} does not exist.");
 
     private async Task<AuthenticatedUser> ToAuthenticatedUserAsync(User user)
     {

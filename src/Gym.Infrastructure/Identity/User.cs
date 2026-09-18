@@ -41,4 +41,10 @@ public sealed class User : IdentityUser<Guid>
     /// change-password and logout (enforced in a later task, not here).
     /// </summary>
     public bool MustChangePassword { get; private set; }
+
+    /// <summary>
+    /// The user chose their own password, so the temporary one no longer needs replacing.
+    /// Called by the change-password flow in the same save as the new password hash.
+    /// </summary>
+    public void PasswordChanged() => MustChangePassword = false;
 }

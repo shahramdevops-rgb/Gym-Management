@@ -1,5 +1,7 @@
 using FluentValidation;
 
+using Gym.Application.Auth.ChangePassword;
+using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
 using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
@@ -44,6 +46,8 @@ public static class DependencyInjection
         services.AddScoped<LoginHandler>();
         services.AddScoped<RefreshHandler>();
         services.AddScoped<LogoutHandler>();
+        services.AddScoped<ChangePasswordHandler>();
+        services.AddScoped<GetCurrentUserHandler>();
 
         return services;
     }
