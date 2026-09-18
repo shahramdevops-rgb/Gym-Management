@@ -80,9 +80,9 @@ Done when: `dotnet test` is green with Docker running.
 Done when: `npm run dev` shows a Persian RTL page reporting the server health, and `npm test` passes.
 
 ### 0.8 CI and first decision record
-- [ ] GitHub Actions: backend restore, build, test; frontend lint, test, build
-- [ ] `docs/adr/0001-modular-monolith-clean-architecture.md`
-- [ ] README skeleton
+- [x] GitHub Actions: backend restore, build, test; frontend lint, test, build
+- [x] `docs/adr/0001-modular-monolith-clean-architecture.md`
+- [x] README skeleton
 
 Done when: CI passes on GitHub.
 

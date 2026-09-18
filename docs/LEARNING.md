@@ -131,3 +131,16 @@ Format:
 - **Normalization is a business rule, not a helper detail.** Treating half-space and space as the same, and stripping harakat and tatweel, decide which members a search finds. That is why these rules were written into BUSINESS_RULES §13 before the code was changed to match.
 - **Generators need checking too.** The shadcn CLI read the wrong tsconfig, wrote into a literal `@/` folder and installed an unrelated npm package called `cn`. Reading `package.json` after running any generator is cheap insurance.
 - **My notes:**
+
+---
+
+## 0.8 — CI and first decision record
+
+- **CI is a clean machine that doesn't trust yours.** Locally, a test can pass because of something only your laptop has: `.env`, user-secrets, a `node_modules` built by an older install. The runner starts from an empty checkout, so anything the repository doesn't contain fails there first. The check that mattered before the first push was what the tests read from disk: `.env.example` (committed) and not `.env` (ignored).
+- **The pipeline encodes the project's rules.** "Warnings are errors" and "every task ends with passing tests" were habits. Now `dotnet build -c Release` with `TreatWarningsAsErrors` and the two test jobs make them a gate on every push. A rule a machine enforces doesn't depend on anyone remembering it.
+- **Build what you ship.** CI builds `Release`, not `Debug`. Some analyzers and trimming behave differently between them, and production runs Release.
+- **Lock files make installs repeatable.** `npm ci` installs exactly what `package-lock.json` records and fails if `package.json` disagrees. `npm install` may quietly pick newer versions. The lock generated on Windows already listed the Linux native bindings (Rolldown, Tailwind oxide, lightningcss), which is why it installs on Ubuntu.
+- **Testcontainers needs no CI setup.** GitHub's Ubuntu runners have Docker, so the integration tests start `postgres:18` exactly as they do locally. There's no service container to declare and no second database definition that could drift.
+- **A gate you have never seen fail proves nothing.** After the first green run, a throwaway branch with a physical `ml-2` class was pushed to confirm the pipeline goes red on the Lint step. The same idea as the mutation check in 0.7, applied to the pipeline.
+- **An ADR records the trade-off, not just the answer.** ADR 0001 lists what the modular monolith costs (more files per use case; module boundaries inside one database are only a convention) next to what it buys. Accepted records are never edited. A changed mind gets a new record that supersedes the old one, so the reasoning at each point stays readable.
+- **My notes:**
