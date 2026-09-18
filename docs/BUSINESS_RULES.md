@@ -13,7 +13,6 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 |---|---|---|
 | `Gym:TimeZone` | Phase 4 | Asia/Tehran. Defines "today" for every business date. |
 | `Gym:Currency` | Phase 4 | Toman: choose one storage unit and never mix. Amounts are always `decimal`. |
-| `Gym:PhoneDefaultRegion` | Phase 2 | Two-letter region code used to normalize local phone formats is 09 |
 | Payment methods | Phase 4 | For example Cash, Card, BankTransfer. |
 | `Gym:MaxFreezeDaysPerSubscription` | Phase 4 | Total frozen days allowed per subscription. |
 | `Gym:ClosingTime` | Phase 5 | Local time for the nightly auto-checkout. |
@@ -24,6 +23,7 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 
 Decided values:
 - `Gym:CancelCheckInWindowMinutes` = 30
+- `Gym:PhoneDefaultRegion` = `IR` (Iran: a local `09…` number becomes `+989…`)
 
 ---
 
@@ -87,6 +87,10 @@ Decided values:
 - Phone numbers are unique across all members, including inactive ones.
 - Members are deactivated, never deleted. Inactive members cannot check in or receive new subscriptions.
 - Phone input accepts Persian (۰-۹), Arabic (٠-٩), and English digits.
+- Only Iranian mobile numbers are accepted. Landlines are rejected (`Members.PhoneNotMobile`): the number receives SMS reminders. Foreign numbers are rejected (`Members.PhoneNotIranian`): the gym has no foreign members, and a visitor can use the gym without being registered as a member.
+- Every member has a phone number (required).
+- Limits: full name at most 200 characters, notes at most 1000.
+- An inactive member's details can still be edited, for example to correct a phone number before reactivating.
 - Names are stored as entered and also in a normalized search column (see section 13).
 - Name search is partial, case-insensitive, and uses the normalized form. Phone search normalizes the input first.
 

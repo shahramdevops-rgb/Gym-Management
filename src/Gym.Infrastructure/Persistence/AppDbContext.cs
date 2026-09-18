@@ -1,12 +1,15 @@
 using Gym.Application.Common;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
+using Gym.Domain.Members;
 using Gym.Infrastructure.Identity;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+
+using Npgsql;
 
 namespace Gym.Infrastructure.Persistence;
 
@@ -27,8 +30,33 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     /// </summary>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    public DbSet<Member> Members => Set<Member>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
+
+    /// <summary>
+    /// Translates a Postgres unique violation (SQLSTATE 23505) into Application's
+    /// <see cref="UniqueConstraintException"/>, naming the index, so handlers can answer the
+    /// expected race with a 409 without knowing which database is behind them.
+    /// </summary>
+    /// <remarks>
+    /// Every async save goes through this overload, including the parameterless one and
+    /// Identity's stores. The synchronous path is not used by this application.
+    /// </remarks>
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (exception is not UniqueConstraintException &&
+                  exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } unique)
+        {
+            throw new UniqueConstraintException(unique.ConstraintName ?? string.Empty, exception);
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

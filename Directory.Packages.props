@@ -56,6 +56,15 @@
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
   </ItemGroup>
 
+  <!--
+    Google's phone number library: parses what people type (local, international, with spaces
+    or dashes) into E.164 and knows which Iranian ranges are mobiles. Gym.Infrastructure only,
+    behind Application's IPhoneNormalizer.
+  -->
+  <ItemGroup Label="Phones">
+    <PackageVersion Include="libphonenumber-csharp" Version="9.0.39" />
+  </ItemGroup>
+
   <!-- AddDbContextCheck<T>(): the /health endpoint verifies the database, not just the process. -->
   <ItemGroup Label="Diagnostics">
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />

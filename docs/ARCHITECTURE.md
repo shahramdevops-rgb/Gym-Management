@@ -325,4 +325,17 @@ web/src/
   tabs sharing the cookie refresh one at a time, and a refresh that returns another user's token signs the tab out.
 - `clearCacheWhenUserChanges` (in `app/queryClient.ts`) empties the TanStack Query cache on every sign-out and whenever
   the token's `sub` changes, not only on the logout button.
+- Persian text rules (§13) live once on the backend, in `Gym.Domain/Common/Text/PersianText` (`Normalize`,
+  `NormalizeDigits`); the frontend's `lib/normalize.ts` mirrors them for input. Special characters in C# are written as
+  numeric code points (`(char)0x064A`), not `\u` escapes: the editing tools turn an escape into the invisible or
+  look-alike character itself. Tests build such inputs from code points too.
+- Phone numbers go through `IPhoneNormalizer` (Infrastructure: `LibPhoneNumberNormalizer`, region `Gym:PhoneDefaultRegion`
+  = `IR`) before saving or searching, and are stored as E.164. A check constraint rejects anything else, so the unique
+  index compares like with like.
+- `AppDbContext.SaveChangesAsync` turns a Postgres unique violation (23505) into Application's `UniqueConstraintException`
+  (a `DbUpdateException` naming the index). Handlers check for duplicates first for a friendly answer, then catch this
+  for the race only the index can decide. Index names a handler reacts to are constants (`MemberConstraints`) shared
+  with the configuration.
+- Editable entities return their `Version` (`xmin`) and take it back on update. The handler refuses a mismatch
+  (someone saved while the form was open), and `xmin` on save covers the moment between read and write.
 

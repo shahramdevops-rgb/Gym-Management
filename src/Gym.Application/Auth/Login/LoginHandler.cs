@@ -1,7 +1,7 @@
-using Gym.Application.Common;
 using Gym.Application.Common.Security;
-using Gym.Application.Common.Text;
+using Gym.Application.Common;
 using Gym.Domain.Auth;
+using Gym.Domain.Common.Text;
 using Gym.Domain.Common;
 
 namespace Gym.Application.Auth.Login;
@@ -27,7 +27,7 @@ public sealed class LoginHandler(
 
         var authentication = await authenticator.AuthenticateAsync(
             command.UserName,
-            Digits.ToEnglish(command.Password),
+            PersianText.NormalizeDigits(command.Password),
             cancellationToken);
 
         if (authentication.IsFailure)

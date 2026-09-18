@@ -16,6 +16,11 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
+  <!-- Phone number parsing and validation (LibPhoneNumberNormalizer). -->
+  <ItemGroup>
+    <PackageReference Include="libphonenumber-csharp" />
+  </ItemGroup>
+
   <!-- Issues the JWT access token (JwtAccessTokenIssuer). Gym.Api validates it. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />

@@ -3,6 +3,7 @@ using Gym.Application.Common.Security;
 using Gym.Application.Staff;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
+using Gym.Infrastructure.Phones;
 using Gym.Infrastructure.Persistence.Interceptors;
 
 using Microsoft.AspNetCore.Identity;
@@ -86,6 +87,10 @@ public static class DependencyInjection
 
         services.AddScoped<IUserAuthenticator, UserAuthenticator>();
         services.AddScoped<IStaffAccounts, StaffAccounts>();
+
+        // Stateless: libphonenumber's metadata is loaded once and shared.
+        services.AddOptions<PhoneOptions>().Bind(configuration.GetSection(PhoneOptions.SectionName));
+        services.AddSingleton<IPhoneNormalizer, LibPhoneNumberNormalizer>();
 
         // Bound from the section passed in rather than with BindConfiguration, which needs
         // IConfiguration in the container. The section is a live view, so values added to the
