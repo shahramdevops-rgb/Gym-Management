@@ -14,4 +14,7 @@ public enum RefreshTokenRevocationReason
 
     /// <summary>The user was deactivated.</summary>
     UserInactive = 4,
+
+    /// <summary>The user changed their password, which logs out every other browser.</summary>
+    PasswordChanged = 5,
 }

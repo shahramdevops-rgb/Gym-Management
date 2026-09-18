@@ -110,12 +110,12 @@ Done when: CI passes on GitHub.
 - [x] Tests: rotation works, reused token revokes the family
 
 ### 1.4 Current user, policies, change password
-- [ ] `ICurrentUser`
-- [ ] Policies `OwnerOnly`, `StaffOrOwner`
-- [ ] Change password endpoint
-- [ ] Forced password change gate
-- [ ] Interceptor fills CreatedBy/UpdatedBy
-- [ ] Tests: user who must change password is blocked from other endpoints
+- [x] `ICurrentUser`
+- [x] Policies `OwnerOnly`, `StaffOrOwner`
+- [x] Change password endpoint
+- [x] Forced password change gate
+- [x] Interceptor fills CreatedBy/UpdatedBy
+- [x] Tests: user who must change password is blocked from other endpoints
 
 ### 1.5 Staff management API
 - [ ] Owner: create staff, deactivate (revokes tokens), reactivate, reset password

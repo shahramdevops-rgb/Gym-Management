@@ -1,7 +1,10 @@
+using Gym.Api.Authorization;
 using Gym.Api.Common;
 using Gym.Api.Configuration;
 using Gym.Api.Filters;
 using Gym.Application.Auth;
+using Gym.Application.Auth.ChangePassword;
+using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
 using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
@@ -51,6 +54,28 @@ public static class AuthEndpoints
             .AllowAnonymous()
             .WithName("Logout")
             .Produces(StatusCodes.Status204NoContent);
+
+        // The one endpoint a user with a temporary password may call besides logout, which is
+        // why it uses PasswordChangeAllowed, the only policy without the gate. Rate-limited like
+        // login because it checks a password too.
+        group.MapPost("/change-password", async (ChangePasswordCommand command, ChangePasswordHandler handler, HttpResponse response, CancellationToken ct) =>
+                ToSessionResult(await handler.Handle(command, ct), response))
+            .AddEndpointFilter<ValidationFilter<ChangePasswordCommand>>()
+            .RequireRateLimiting(RateLimitingConfiguration.LoginPolicy)
+            .RequireAuthorization(Policies.PasswordChangeAllowed)
+            .WithName("ChangePassword")
+            .Produces<AccessTokenResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
+
+        group.MapGet("/me", async (GetCurrentUserHandler handler, CancellationToken ct) =>
+                (await handler.Handle(ct)).ToHttpResult())
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .WithName("GetCurrentUser")
+            .Produces<CurrentUserResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
 
         return app;
     }

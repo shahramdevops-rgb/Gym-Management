@@ -1,3 +1,4 @@
+using Gym.Application.Common;
 using Gym.Domain.Common;
 
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace Gym.Infrastructure.Persistence.Interceptors;
 
 /// <summary>
-/// Fills <see cref="Entity.CreatedAt"/> and <see cref="Entity.UpdatedAt"/> on every save.
+/// Fills the audit fields of every <see cref="Entity"/> on every save: when, and by whom.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -21,12 +22,14 @@ namespace Gym.Infrastructure.Persistence.Interceptors;
 /// benefit.
 /// </para>
 /// <para>
-/// <c>CreatedBy</c> and <c>UpdatedBy</c> are left null until task 1.4 introduces
-/// <c>ICurrentUser</c>. They stay null for rows written by seeding and background jobs,
-/// which act on nobody's behalf.
+/// "By whom" comes from <see cref="ICurrentUser"/>. It is null for rows written by anonymous
+/// requests (login), seeding and background jobs, which act on nobody's behalf.
+/// <see cref="ICurrentUser"/> reads the current request through <c>IHttpContextAccessor</c>,
+/// so this interceptor can stay a singleton and still see each request's own user.
 /// </para>
 /// </remarks>
-public sealed class AuditableEntityInterceptor(TimeProvider timeProvider) : SaveChangesInterceptor
+public sealed class AuditableEntityInterceptor(TimeProvider timeProvider, ICurrentUser currentUser)
+    : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(
         DbContextEventData eventData,
@@ -59,6 +62,7 @@ public sealed class AuditableEntityInterceptor(TimeProvider timeProvider) : Save
         // carries the same instant. GetUtcNow() returns a zero offset, which is what Npgsql
         // requires for timestamptz.
         var now = timeProvider.GetUtcNow();
+        var userId = currentUser.UserId;
 
         foreach (var entry in context.ChangeTracker.Entries<Entity>())
         {
@@ -68,12 +72,14 @@ public sealed class AuditableEntityInterceptor(TimeProvider timeProvider) : Save
                     // Added rows get CreatedAt only: an insert is not an update, so a row
                     // that has never changed must keep a null UpdatedAt.
                     entry.Property(entity => entity.CreatedAt).CurrentValue = now;
+                    entry.Property(entity => entity.CreatedBy).CurrentValue = userId;
                     break;
 
                 case EntityState.Modified:
                     // CreatedAt is deliberately untouched here. Re-stamping it on every save
                     // is the classic version of this bug, and it silently destroys history.
                     entry.Property(entity => entity.UpdatedAt).CurrentValue = now;
+                    entry.Property(entity => entity.UpdatedBy).CurrentValue = userId;
                     break;
 
                 default:

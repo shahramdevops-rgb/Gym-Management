@@ -189,3 +189,17 @@ Format:
 - **Say less when you refuse.** Missing, unknown, expired, revoked and reused tokens all return the same `Auth.RefreshTokenInvalid`, and logout always answers 204. Whoever holds a stolen or guessed token learns nothing about which ones are still worth trying.
 - **My notes:**
 
+---
+
+## 1.4 — Current user, policies, change password
+
+- **Authentication vs. authorization.** Authentication (1.2, 1.3) proves *who* you are. Authorization decides *what you may do*. They fail differently: 401 means "I don't know who you are, log in"; 403 means "I know who you are, and the answer is no." The frontend reacts to each differently, so the difference is worth keeping sharp.
+- **Policies name a permission once.** `OwnerOnly` and `StaffOrOwner` are the permissions table in BUSINESS_RULES.md, written as code. An endpoint says which one it needs, instead of each handler checking roles itself, and a single test checks every combination of role and flag.
+- **A requirement is a reusable rule inside policies.** The forced password change gate is `PasswordChangedRequirement`, added to every policy but one. Because it's a named requirement, the failure result says *which* rule failed, and the API can answer `Auth.PasswordChangeRequired` instead of a vague "forbidden".
+- **Secure by default.** The fallback policy covers endpoints that forget their policy, `EndpointAuthorizationTests` covers endpoints that forget to *decide*, and the gate is part of both. Forgetting something now makes an endpoint closed, never open.
+- **`ICurrentUser` hides HTTP from the inner layers.** Application and Infrastructure ask "who is this?" through an interface. Only Gym.Api knows the answer comes from a JWT claim, so the same handler works from a background job, where the answer is "nobody". The audit interceptor is its first user: `CreatedBy` and `UpdatedBy` now fill themselves.
+- **A singleton can depend on per-request data through an accessor.** `IHttpContextAccessor` returns the current request each time it's asked, so `HttpContextCurrentUser` can be a singleton without capturing one request's user forever. Capturing a scoped value in a singleton is the classic DI bug that leaks one user's data into another's request.
+- **Transactions have edges; choose what goes inside.** Changing a password saves the hash, clears the flag and revokes tokens in one transaction. The failed-attempt count is saved *before* the transaction, on purpose, so a rollback can't erase evidence of password guessing.
+- **Old tokens don't learn about changes.** After a password change, the old access token still says `must_change_password=true` until it expires. The endpoint returns a fresh session, so the user moves on at once instead of hitting the gate for 15 more minutes.
+- **My notes:**
+

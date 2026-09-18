@@ -29,4 +29,24 @@ public static class AuthErrors
     public static readonly Error RefreshTokenInvalid = Error.Unauthorized(
         "Auth.RefreshTokenInvalid",
         "The refresh token is missing, expired or revoked.");
+
+    /// <summary>
+    /// 400, not 401: the caller is logged in, one field of the form is wrong. A 401 would make
+    /// the frontend think the session had ended and send the user to the login page.
+    /// </summary>
+    public static readonly Error CurrentPasswordIncorrect = Error.Validation(
+        "Auth.CurrentPasswordIncorrect",
+        "The current password is incorrect.");
+
+    public static readonly Error PasswordUnchanged = Error.Validation(
+        "Auth.PasswordUnchanged",
+        "The new password must be different from the current one.");
+
+    /// <summary>
+    /// Identity refused the new password. The validator checks the same policy first, so this
+    /// only appears if the two ever disagree.
+    /// </summary>
+    public static Error PasswordRejected(string description) => Error.Validation(
+        "Auth.PasswordRejected",
+        description);
 }

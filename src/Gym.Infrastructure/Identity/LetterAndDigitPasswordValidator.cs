@@ -1,3 +1,5 @@
+using Gym.Application.Common.Security;
+
 using Microsoft.AspNetCore.Identity;
 
 namespace Gym.Infrastructure.Identity;
@@ -15,10 +17,7 @@ public sealed class LetterAndDigitPasswordValidator : IPasswordValidator<User>
 {
     public Task<IdentityResult> ValidateAsync(UserManager<User> manager, User user, string? password)
     {
-        var hasDigit = password?.Any(char.IsDigit) ?? false;
-        var hasLetter = password?.Any(char.IsLetter) ?? false;
-
-        var result = hasDigit && hasLetter
+        var result = PasswordPolicy.HasLetterAndDigit(password)
             ? IdentityResult.Success
             : IdentityResult.Failed(new IdentityError
             {

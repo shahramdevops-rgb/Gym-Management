@@ -28,8 +28,8 @@ public abstract class Entity
     public DateTimeOffset CreatedAt { get; private set; }
 
     /// <summary>
-    /// The user who inserted the row. Null until task 1.4 supplies <c>ICurrentUser</c>, and
-    /// permanently null for rows written by background jobs and seeding, which have no user.
+    /// The user who inserted the row, from <c>ICurrentUser</c>. Null for rows written by
+    /// anonymous requests, background jobs and seeding, which act on nobody's behalf.
     /// </summary>
     public Guid? CreatedBy { get; private set; }
 

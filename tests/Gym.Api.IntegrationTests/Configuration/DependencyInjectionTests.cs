@@ -1,3 +1,4 @@
+using Gym.Api.IntegrationTests.Common;
 using Gym.Application;
 using Gym.Application.Common;
 using Gym.Infrastructure;
@@ -32,6 +33,10 @@ public sealed class DependencyInjectionTests
 
         var services = new ServiceCollection();
         services.AddLogging();
+
+        // Gym.Api supplies ICurrentUser from the HTTP request; these tests build the lower
+        // layers without a host, so they supply their own.
+        services.AddSingleton<ICurrentUser>(new FakeCurrentUser());
         services.AddApplication();
         services.AddInfrastructure(configuration);
 

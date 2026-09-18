@@ -48,6 +48,26 @@ internal static class TestUsers
             TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// A user past their first login, who chose their own password. Set with SQL so tests of
+    /// other features do not depend on the change-password flow.
+    /// </summary>
+    public static async Task<User> CreateWithOwnPasswordAsync(
+        DatabaseFixture fixture,
+        string userName = "staff",
+        string role = Roles.Staff)
+    {
+        var user = await CreateAsync(fixture, userName, role);
+
+        await using var scope = fixture.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await dbContext.Database.ExecuteSqlAsync(
+            $"UPDATE users SET must_change_password = false WHERE id = {user.Id}",
+            TestContext.Current.CancellationToken);
+
+        return user;
+    }
+
     public static async Task<int> GetAccessFailedCountAsync(DatabaseFixture fixture, Guid userId)
     {
         await using var scope = fixture.CreateScope();
