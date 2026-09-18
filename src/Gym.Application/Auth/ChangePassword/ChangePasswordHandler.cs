@@ -3,8 +3,6 @@ using Gym.Application.Common.Security;
 using Gym.Domain.Auth;
 using Gym.Domain.Common;
 
-using Microsoft.EntityFrameworkCore;
-
 namespace Gym.Application.Auth.ChangePassword;
 
 /// <summary>
@@ -63,14 +61,7 @@ public sealed class ChangePasswordHandler(
             return Result.Failure<AuthSession>(changed.Error);
         }
 
-        var activeTokens = await db.RefreshTokens
-            .Where(token => token.UserId == userId && token.RevokedAt == null)
-            .ToListAsync(cancellationToken);
-
-        foreach (var token in activeTokens)
-        {
-            token.Revoke(RefreshTokenRevocationReason.PasswordChanged, now);
-        }
+        await db.RevokeAllForUserAsync(userId, RefreshTokenRevocationReason.PasswordChanged, now, cancellationToken);
 
         var refreshSecret = RefreshTokenSecret.Generate();
         var refreshToken = RefreshToken.Issue(userId, RefreshTokenSecret.Hash(refreshSecret), now);

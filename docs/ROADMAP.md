@@ -118,8 +118,8 @@ Done when: CI passes on GitHub.
 - [x] Tests: user who must change password is blocked from other endpoints
 
 ### 1.5 Staff management API
-- [ ] Owner: create staff, deactivate (revokes tokens), reactivate, reset password
-- [ ] Tests: staff cannot create staff; deactivated staff cannot refresh
+- [x] Owner: create staff, deactivate (revokes tokens), reactivate, reset password
+- [x] Tests: staff cannot create staff; deactivated staff cannot refresh
 
 ### 1.6 Audit log
 - [ ] AuditLog entity and table

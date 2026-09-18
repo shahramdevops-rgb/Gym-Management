@@ -16,13 +16,6 @@ public sealed class ChangePasswordValidator : AbstractValidator<ChangePasswordCo
             .NotEmpty().WithErrorCode("Auth.CurrentPasswordRequired").WithMessage("Current password is required.")
             .MaximumLength(PasswordPolicy.MaximumLength).WithErrorCode("Auth.PasswordTooLong").WithMessage("Password is too long.");
 
-        RuleFor(command => command.NewPassword)
-            .Cascade(CascadeMode.Stop)
-            .NotEmpty().WithErrorCode("Auth.NewPasswordRequired").WithMessage("New password is required.")
-            .MinimumLength(PasswordPolicy.MinimumLength).WithErrorCode("Auth.PasswordTooShort")
-                .WithMessage($"Password must be at least {PasswordPolicy.MinimumLength} characters.")
-            .MaximumLength(PasswordPolicy.MaximumLength).WithErrorCode("Auth.PasswordTooLong").WithMessage("Password is too long.")
-            .Must(PasswordPolicy.HasLetterAndDigit).WithErrorCode("Auth.PasswordRequiresLetterAndDigit")
-                .WithMessage("Password must contain at least one letter and one digit.");
+        RuleFor(command => command.NewPassword).ValidNewPassword("Auth.NewPasswordRequired");
     }
 }

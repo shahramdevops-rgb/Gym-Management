@@ -38,6 +38,12 @@ Decided values:
   - The seeded Owner has `MustChangePassword = true`.
 - Password policy: at least 8 characters, containing at least one letter and one digit. No case (upper/lower) or symbol is required — passwords are typed on a Persian keyboard at the front desk.
 - The Owner creates Staff accounts with a temporary password. Staff have `MustChangePassword = true`.
+- Staff account management (Owner only). *Decided by Claude during task 1.5 while the developer was away; pending review.*
+  - User names: 3 to 50 characters, Latin letters, digits and `- . _ @ +` (Identity's default set), unique ignoring case. Full names: required, at most 200 characters, trimmed with repeated spaces collapsed.
+  - These endpoints manage Staff accounts only. An Owner account id is answered like an unknown id (`Staff.NotFound`), so the Owner cannot deactivate or reset themselves by mistake.
+  - Deactivating revokes all of the user's refresh tokens in the same transaction. Their current access token keeps working until it expires (at most 15 minutes). Deactivating an inactive account, or reactivating an active one, succeeds and changes nothing.
+  - Reactivating does not reset the password; the user logs in with the password they had.
+  - Resetting a password: the Owner types a new temporary password (same policy as any password). It sets `MustChangePassword = true`, clears any lockout, and revokes all of the user's refresh tokens.
 - A user with `MustChangePassword = true` may only call change-password and logout.
 - Changing a password:
   - Requires the current password. A wrong current password returns `Auth.CurrentPasswordIncorrect`, counts toward lockout like a failed login, and the endpoint is rate-limited like login.

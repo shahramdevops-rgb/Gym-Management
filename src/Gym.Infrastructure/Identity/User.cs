@@ -47,4 +47,12 @@ public sealed class User : IdentityUser<Guid>
     /// Called by the change-password flow in the same save as the new password hash.
     /// </summary>
     public void PasswordChanged() => MustChangePassword = false;
+
+    /// <summary>The Owner set a temporary password, which the user must replace at next login.</summary>
+    public void RequirePasswordChange() => MustChangePassword = true;
+
+    /// <summary>Stops the account from logging in or refreshing. Revoking its tokens is the caller's job.</summary>
+    public void Deactivate() => IsActive = false;
+
+    public void Reactivate() => IsActive = true;
 }

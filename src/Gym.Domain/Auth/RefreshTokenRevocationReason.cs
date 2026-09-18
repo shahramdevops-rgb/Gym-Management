@@ -17,4 +17,7 @@ public enum RefreshTokenRevocationReason
 
     /// <summary>The user changed their password, which logs out every other browser.</summary>
     PasswordChanged = 5,
+
+    /// <summary>The Owner reset the user's password.</summary>
+    PasswordReset = 6,
 }
