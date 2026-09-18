@@ -127,12 +127,12 @@ Done when: CI passes on GitHub.
 - [x] Tests: update writes old and new values; password hash never appears
 
 ### 1.7 UI: login and staff
-- [ ] Login page
-- [ ] Access token in memory, silent refresh on 401, logout
-- [ ] Forced change-password screen
-- [ ] Route guards by role; navigation shows only allowed items
-- [ ] Error code → Persian message map (`lib/errors.ts`)
-- [ ] Owner: staff list, create, deactivate, reset password
+- [x] Login page
+- [x] Access token in memory, silent refresh on 401, logout
+- [x] Forced change-password screen
+- [x] Route guards by role; navigation shows only allowed items
+- [x] Error code → Persian message map (`lib/errors.ts`)
+- [x] Owner: staff list, create, deactivate, reset password
 
 Done when: you can log in as the seeded Owner in the Persian app, change the password, and create a staff account.
 

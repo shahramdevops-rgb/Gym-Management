@@ -181,6 +181,16 @@ web/src/
 - Text: normalize Arabic ي and ك to Persian ی and ک on input and before search.
 - Server state lives in TanStack Query. No global state library.
 - The access token is kept in memory only. The refresh token is an HttpOnly cookie handled by the browser.
+- Auth lives in `features/auth/`: `session.ts` holds the access token in a module (read with `useSessionState`),
+  `lib/api/authFetch.ts` adds the bearer token to every `api` call and, on a 401, runs one shared refresh and retries
+  once. `restoreSession()` in `main.tsx` turns the refresh cookie back into a session after a reload.
+- Route guards: `RequireAuth` (signed in; users with a temporary password are sent to change-password) and
+  `RequireRole` (for Owner-only pages). The navigation in `AppShell` lists only items the user's roles allow. The API
+  enforces all of this again; the guards only avoid showing screens that would fail.
+- Forms: React Hook Form with Zod schemas through `lib/forms.ts` (`zodResolver`, `applyServerErrors`). Server field
+  errors land under their field; a code can be routed to a field (`Auth.CurrentPasswordIncorrect` → current password).
+- Every API error code has a Persian message in `lib/errors.ts`. `ErrorCatalogTests` (.NET) collects every code the API
+  defines by reflection and fails when one is missing there.
 
 ## Gotchas
 - `postgres:18` image: mount the volume at `/var/lib/postgresql`, not `/var/lib/postgresql/data`.
@@ -290,4 +300,16 @@ web/src/
   test reset. `AuditLogTests.Reset_BetweenTests_EmptiesTheAuditLogDespiteTheTrigger` guards that.
 - The audit log records keys generated in C#. An entity with a database-generated key makes `AuditLogInterceptor` throw
   instead of recording a placeholder id; give such an entity a client-generated key.
+- `openapi-fetch` is created with `baseUrl: window.location.origin`, not `"/"`: outside a browser (Vitest) the `Request`
+  constructor rejects relative URLs.
+- Frontend tests stub `fetch` with `test/mockApi.ts`, a router keyed by `"METHOD /path"`. Everything above fetch
+  (openapi-fetch, `authFetch`, TanStack Query, React Router) runs for real. `renderApp(url, { session })` starts signed in
+  or out; `test/setup.ts` resets the session store after each test because it lives outside React.
+- `[AsParameters]` query records name their OpenAPI parameters after the C# record (`Page`, `PageSize`); the frontend
+  uses those names so the generated types check them.
+- shadcn's `CardTitle` is a `div`. A card title that is the page's title gets `role="heading"` and an `aria-level`.
+- Editing tools and shells can turn a `ي` escape into the real character. To keep a `\u` escape in a source file,
+  write it with a script that builds the backslash explicitly (Python `chr(92)`), then check the bytes.
+- Git Bash on Windows can mangle Persian command-line arguments on their way to `curl` (they arrive as `?`). Send
+  Persian request bodies from a UTF-8 file with `--data-binary @file`.
 

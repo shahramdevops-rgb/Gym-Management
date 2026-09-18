@@ -37,6 +37,7 @@ Decided values:
   - `Seed:OwnerFullName` defaults to "مدیر" when not configured. The Owner can rename themselves later.
   - The seeded Owner has `MustChangePassword = true`.
 - Password policy: at least 8 characters, containing at least one letter and one digit. No case (upper/lower) or symbol is required — passwords are typed on a Persian keyboard at the front desk.
+  - Persian and Arabic digits in a password are converted to English digits before it is sent, on every password field (login, change, create, reset), so "رمز۱۲۳۴" and "رمز1234" are the same password. Letters are kept exactly as typed. *Decided by Claude during task 1.7 while the developer was away; pending review.*
 - The Owner creates Staff accounts with a temporary password. Staff have `MustChangePassword = true`.
 - Staff account management (Owner only). *Decided by Claude during task 1.5 while the developer was away; pending review.*
   - User names: 3 to 50 characters, Latin letters, digits and `- . _ @ +` (Identity's default set), unique ignoring case. Full names: required, at most 200 characters, trimmed with repeated spaces collapsed.
