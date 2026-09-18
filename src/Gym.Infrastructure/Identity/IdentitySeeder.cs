@@ -1,4 +1,4 @@
-using Gym.Application.Common.Text;
+using Gym.Domain.Common.Text;
 using Gym.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.Identity;
@@ -70,7 +70,7 @@ public static partial class IdentitySeeder
 
         var owner = new User(userName, fullName);
         // A seed password typed with Persian digits must match what the login screen sends.
-        var createResult = await userManager.CreateAsync(owner, Digits.ToEnglish(password));
+        var createResult = await userManager.CreateAsync(owner, PersianText.NormalizeDigits(password));
         if (!createResult.Succeeded)
         {
             // A misconfigured seed password (fails the policy in AddInfrastructure) must not

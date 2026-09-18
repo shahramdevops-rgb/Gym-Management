@@ -257,3 +257,16 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **Why a review after the tasks.** Each task tested its own feature. The review looked across them: parallel requests, several tabs, two people at once. That's where these bugs were.
 - **My notes:**
 
+---
+
+## 2.1 — Member creation and update
+
+- **Canonical form before comparison.** `0912…`, `۰۹۱۲…`, `+98 912…` and `0098-912-…` are one phone number but five strings. A unique index compares strings, so every number is turned into E.164 (`+989121234567`) before it's saved or searched. The index is only as good as the normalization in front of it, which is why a check constraint also refuses anything that isn't E.164.
+- **Use the library that knows the data.** Which Iranian ranges are mobiles, and how every country writes its numbers, is data that changes. libphonenumber (Google's, the one Android uses) carries it, behind `IPhoneNormalizer` so only Infrastructure knows it exists.
+- **Store as entered, search on the normalized form.** `FullName` keeps what the receptionist typed. `NormalizedFullName` (ي→ی, ك→ک, half-space→space, lower case) is what task 2.2's search reads. Only the `Member` entity writes either, and always both, so they can't drift apart.
+- **The first real domain entity.** `Member.Create` and `Update` return `Result` for rule failures (blank name, too long) and throw only for a caller's bug (a phone that wasn't normalized). Ten unit tests run without a database.
+- **Check first, then let the index decide.** The handler asks "does this phone exist?" for a friendly 409. Six parallel creates can all pass that check, so the database's unique index decides, and `AppDbContext` turns its error into `UniqueConstraintException` so the losers get the same 409. A mutation check showed they got 500s without that translation.
+- **Optimistic concurrency across a whole form.** `xmin` alone protects only the milliseconds between a request's read and write. Returning `Version` with the member, and requiring it back on update, protects the minutes a receptionist spends editing: if someone saved in between, the edit is refused instead of silently erasing their change.
+- **Invisible characters need visible source.** A literal Arabic ي looks exactly like Persian ی, and editing tools quietly turned `ي` escapes into the character itself. Domain code and tests now write them as code points, `(char)0x064A`, which no tool rewrites and every reviewer can read.
+- **My notes:**
+

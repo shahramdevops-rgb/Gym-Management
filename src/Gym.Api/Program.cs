@@ -90,6 +90,7 @@ try
 
     app.MapAuthEndpoints();
     app.MapStaffEndpoints();
+    app.MapMembersEndpoints();
 
     app.Run();
 }

@@ -141,12 +141,12 @@ Done when: you can log in as the seeded Owner in the Persian app, change the pas
 ## Phase 2 — Members
 
 ### 2.1 Member creation and update
-- [ ] Member entity and configuration, including `NormalizedFullName` for search
-- [ ] Phone normalization service (libphonenumber, accepts Persian and Arabic digits)
-- [ ] Persian text normalizer (Arabic ي/ك → Persian ی/ک, spaces, zero-width non-joiner)
-- [ ] Unique phone index
-- [ ] Create and update endpoints with validation
-- [ ] Tests: the same phone in different formats (including Persian digits) is rejected as a duplicate
+- [x] Member entity and configuration, including `NormalizedFullName` for search
+- [x] Phone normalization service (libphonenumber, accepts Persian and Arabic digits)
+- [x] Persian text normalizer (Arabic ي/ك → Persian ی/ک, spaces, zero-width non-joiner)
+- [x] Unique phone index
+- [x] Create and update endpoints with validation
+- [x] Tests: the same phone in different formats (including Persian digits) is rejected as a duplicate
 
 ### 2.2 Member queries and lifecycle
 - [ ] Deactivate and reactivate

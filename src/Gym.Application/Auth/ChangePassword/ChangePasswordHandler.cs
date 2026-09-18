@@ -1,7 +1,7 @@
-using Gym.Application.Common;
 using Gym.Application.Common.Security;
-using Gym.Application.Common.Text;
+using Gym.Application.Common;
 using Gym.Domain.Auth;
+using Gym.Domain.Common.Text;
 using Gym.Domain.Common;
 
 namespace Gym.Application.Auth.ChangePassword;
@@ -38,8 +38,8 @@ public sealed class ChangePasswordHandler(
         // Outside the transaction on purpose: a wrong password must still count toward lockout,
         // and rolling back would erase that count.
         // Persian and English digits are the same keystrokes (BUSINESS_RULES.md §1).
-        var currentPassword = Digits.ToEnglish(command.CurrentPassword);
-        var newPassword = Digits.ToEnglish(command.NewPassword);
+        var currentPassword = PersianText.NormalizeDigits(command.CurrentPassword);
+        var newPassword = PersianText.NormalizeDigits(command.NewPassword);
 
         var verified = await users.VerifyPasswordAsync(userId, currentPassword, cancellationToken);
         if (verified.IsFailure)
