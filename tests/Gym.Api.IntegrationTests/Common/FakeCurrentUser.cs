@@ -6,4 +6,6 @@ namespace Gym.Api.IntegrationTests.Common;
 internal sealed class FakeCurrentUser : ICurrentUser
 {
     public Guid? UserId { get; set; }
+
+    public string? IpAddress { get; set; }
 }

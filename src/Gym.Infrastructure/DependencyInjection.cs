@@ -36,8 +36,10 @@ public static class DependencyInjection
         // and the tests can substitute FakeTimeProvider.
         services.TryAddSingleton(TimeProvider.System);
 
-        // Stateless and depends only on a singleton, so one instance serves every context.
+        // Stateless and depend only on singletons (ICurrentUser reads the current request
+        // through an accessor), so one instance of each serves every context.
         services.AddSingleton<AuditableEntityInterceptor>();
+        services.AddSingleton<AuditLogInterceptor>();
 
         services.AddDbContext<AppDbContext>((provider, options) => options
             .UseNpgsql(connectionString)
@@ -45,7 +47,10 @@ public static class DependencyInjection
             // reads like SQL. It also removes the need to quote identifiers by hand in
             // Postgres, which folds unquoted names to lower case.
             .UseSnakeCaseNamingConvention()
-            .AddInterceptors(provider.GetRequiredService<AuditableEntityInterceptor>()));
+            // Order matters: timestamps are stamped first, then the audit log reads the entries.
+            .AddInterceptors(
+                provider.GetRequiredService<AuditableEntityInterceptor>(),
+                provider.GetRequiredService<AuditLogInterceptor>()));
 
         // Application asks for the interface; it resolves to the same scoped instance the
         // framework already tracks, so both views share one change tracker and one transaction.

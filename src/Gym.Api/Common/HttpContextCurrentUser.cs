@@ -29,4 +29,6 @@ public sealed class HttpContextCurrentUser(IHttpContextAccessor accessor) : ICur
                 : null;
         }
     }
+
+    public string? IpAddress => accessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 }

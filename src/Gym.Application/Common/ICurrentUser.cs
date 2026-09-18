@@ -16,4 +16,10 @@ public interface ICurrentUser
     /// the audit fields record for work done on nobody's behalf.
     /// </summary>
     Guid? UserId { get; }
+
+    /// <summary>
+    /// The caller's IP address, for the audit log. Null outside a request. Behind a reverse
+    /// proxy this is the proxy's address until forwarded headers are configured (task 11.2).
+    /// </summary>
+    string? IpAddress { get; }
 }

@@ -122,9 +122,9 @@ Done when: CI passes on GitHub.
 - [x] Tests: staff cannot create staff; deactivated staff cannot refresh
 
 ### 1.6 Audit log
-- [ ] AuditLog entity and table
-- [ ] Audit `SaveChangesInterceptor` with sensitive-field exclusions
-- [ ] Tests: update writes old and new values; password hash never appears
+- [x] AuditLog entity and table
+- [x] Audit `SaveChangesInterceptor` with sensitive-field exclusions
+- [x] Tests: update writes old and new values; password hash never appears
 
 ### 1.7 UI: login and staff
 - [ ] Login page

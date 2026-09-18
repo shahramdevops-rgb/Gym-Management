@@ -279,4 +279,15 @@ web/src/
   added without it.
 - User names and passwords have one rule each in Application (`UserNamePolicy`, `PasswordPolicy`), used by both the
   FluentValidation rules (`PasswordRules.ValidNewPassword`) and Identity's options, so the form and the database agree.
+- Two `SaveChangesInterceptor`s run in order: `AuditableEntityInterceptor` stamps the audit fields, then
+  `AuditLogInterceptor` adds an `AuditLog` row per changed entity in the same save. Sensitive and noisy properties are
+  excluded by name in `AuditLogInterceptor.ExcludedProperties`; a new secret column must use one of those names or be
+  added there.
+- `audit_logs` is append-only through a trigger created with `migrationBuilder.Sql` in the `AddAuditLog` migration. EF
+  has no model API for triggers, so it is not in the snapshot: a later migration will not see it, and dropping or
+  renaming the table must handle the trigger by hand.
+- Respawn empties tables with `TRUNCATE`, which row-level triggers ignore, so the append-only trigger does not break the
+  test reset. `AuditLogTests.Reset_BetweenTests_EmptiesTheAuditLogDespiteTheTrigger` guards that.
+- The audit log records keys generated in C#. An entity with a database-generated key makes `AuditLogInterceptor` throw
+  instead of recording a placeholder id; give such an entity a client-generated key.
 

@@ -217,6 +217,11 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 - Fields: `UserId`, `Action`, `EntityType`, `EntityId`, `OccurredAt` (UTC), `OldValues` and `NewValues` (jsonb, changed properties only), `IpAddress` when available.
 - Never audit password hashes, security stamps, or token hashes.
 - AuditLog is append-only.
+- Details. *Decided by Claude during task 1.6 while the developer was away; pending review.*
+  - Audit rows are written in the same database transaction as the change, so a rolled-back change leaves no audit row.
+  - Also never recorded: concurrency stamps and row versions (they change on every save), and the `CreatedAt`/`CreatedBy`/`UpdatedAt`/`UpdatedBy` fields (the audit row already records who and when). An update whose only changes are such fields writes no row.
+  - Everything else is audited, including refresh tokens: every login and every refresh adds rows. That volume is the price of "every insert, update and delete"; the audit screen (task 11.1) can filter it out.
+  - Append-only is enforced by a database trigger that rejects UPDATE and DELETE.
 
 ---
 
