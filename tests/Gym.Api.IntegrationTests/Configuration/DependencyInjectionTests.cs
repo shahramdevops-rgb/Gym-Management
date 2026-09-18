@@ -1,8 +1,10 @@
 using Gym.Application;
 using Gym.Application.Common;
 using Gym.Infrastructure;
+using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -64,6 +66,16 @@ public sealed class DependencyInjectionTests
         // reading through AppDbContext would silently disagree, and saves would land in
         // different transactions.
         contract.ShouldBeSameAs(concrete);
+    }
+
+    [Fact]
+    public void AddInfrastructure_WhenRegistered_ResolvesTheIdentityManagers()
+    {
+        using var provider = BuildProvider();
+        using var scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<UserManager<User>>().ShouldNotBeNull();
+        scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>().ShouldNotBeNull();
     }
 
     [Fact]

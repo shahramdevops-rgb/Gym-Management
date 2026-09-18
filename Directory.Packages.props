@@ -27,6 +27,15 @@
   </ItemGroup>
 
   <!--
+    ASP.NET Core Identity's EF Core store. Referenced by Gym.Infrastructure alone: Application
+    knows Users only through whatever interfaces later tasks introduce, never through
+    UserManager/RoleManager directly.
+  -->
+  <ItemGroup Label="Identity">
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
+  </ItemGroup>
+
+  <!--
     FluentValidation lives in Gym.Application because validators are part of a use case's
     contract, not of HTTP: the same rules must hold when a command arrives from a background
     job. The DependencyInjectionExtensions package only adds AddValidatorsFromAssembly on top

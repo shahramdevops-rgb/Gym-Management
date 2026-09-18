@@ -215,11 +215,23 @@ web/src/
   values as environment variables (`ConnectionStrings__Postgres`) before the factory is constructed — which is
   also how production supplies them.
 - `Respawner.CreateAsync` throws "No tables found" against a schema whose only table is the ignored
-  `__EFMigrationsHistory`. The fixture therefore builds it lazily and skips the reset while the model has no
-  entities; it starts working by itself once task 1.1 adds the first table.
+  `__EFMigrationsHistory`. The fixture builds it lazily for that reason. Since task 1.1 there are always
+  tables, so this only matters if the model is ever emptied again.
+- Respawn also empties the Identity `roles` table. Tests that need the Owner and Staff roles get them by
+  running `IdentitySeeder.SeedOwnerAsync`, not by assuming they survive from the migration.
 - Respawn deletes rows, not tables, so `__EFMigrationsHistory` must be in `TablesToIgnore` — otherwise the
   next run finds a fully migrated database that believes it has never been migrated.
 - Partial unique indexes: `HasIndex(...).IsUnique().HasFilter("checked_out_at IS NULL")`. The filter uses snake_case column names.
 - The shadcn CLI reads the `@/` alias from the **root** `web/tsconfig.json`, not `tsconfig.app.json`. Without `paths` there, `npx shadcn add` writes into a literal `web/@/` folder and installs an unrelated npm package named `cn`. It also imports Slot from the all-in-one `radix-ui` package; this project uses `@radix-ui/react-slot`, so fix that import after adding a component.
 - `/health` is mapped at the API root, not under `/api`, and is not in the OpenAPI document. The Vite proxy has a separate rule for it and the frontend reads it with plain `fetch`. An unhealthy server answers 503 with the body `Unhealthy`, which is a report, not a failed request.
 - Write invisible and look-alike characters (ZWNJ, Arabic ي/ك) as `\u` escapes in source. ESLint rejects literal ones (`no-irregular-whitespace`), and a ZWJ inside a regex character class trips `no-misleading-character-class` even when escaped, so use an alternation there.
+- `IdentityDbContext.OnModelCreating` names the Identity tables `AspNetUsers`, `AspNetRoles` and so on.
+  `AppDbContext` calls `base.OnModelCreating` first and applies our configurations after it, otherwise
+  `ToTable("users")` is silently overwritten. Identity's own index names (`UserNameIndex`, `RoleNameIndex`,
+  `EmailIndex`) are explicit, so the snake_case convention leaves them as they are.
+- Identity reports failures as an `IdentityResult`, not an exception. Always check `Succeeded`.
+  `UserManager.CreateAsync` and `AddToRoleAsync` each save separately, so wrap them in a transaction when
+  both must happen together.
+- The Owner seeder runs in `Program.cs` after `builder.Build()`, which `WebApplicationFactory` reaches before
+  the test fixture migrates. That is why the seeder checks `Seed:*` configuration before any database
+  call, and why the Testing environment has no `Seed` section.
