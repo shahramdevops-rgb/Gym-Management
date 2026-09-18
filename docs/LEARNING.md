@@ -115,3 +115,19 @@ Format:
 - **A harness has to be testable itself.** If `DatabaseHarnessTests` breaks, every test built on the fixture is suspect, so the migration-applied check and the Respawn-configuration check are worth their weight. The probe table is created *before* its Respawner, because Respawn builds its delete plan from the schema it finds at creation time — asserting on the options object alone would have proved nothing.
 - **Admitting what cannot be tested yet.** The ideal isolation test — test A inserts a member, test B sees an empty table — needs an entity, and the model has none until task 1.1. Writing a reassuring substitute would have been worse than leaving a note to add the real one then.
 - **My notes:**
+
+---
+
+## 0.7 — Frontend skeleton
+
+- **Generated API types are a compile-time contract.** `npm run gen:api` turns the API's OpenAPI document into `schema.d.ts`, and `openapi-fetch` only accepts paths and bodies that exist in it. When a backend field is renamed, `npm run build` fails instead of a screen quietly showing `undefined`. The trade-off is one more step after every endpoint change (regenerate and commit), which is why CLAUDE.md lists it as a command.
+- **A dev proxy means one origin, like production.** The browser only talks to `localhost:5173`, and Vite forwards `/api` and `/health` to the API. Behind Caddy in production it is the same shape, so cookies and relative URLs behave identically in both places and CORS is never something the app relies on.
+- **Server state belongs in TanStack Query, not in `useState`.** `useQuery` owns loading, error, retry, caching and refetching. A component only describes *what* it needs (`["health"]`, `fetchHealth`) and renders the three states. There is no hand-written `useEffect` + `fetch` + flags that could get out of sync.
+- **"Unhealthy" is an answer, not a failure.** `/health` returns 503 with the body `Unhealthy` when the database is down. Treating every non-2xx as an error would show "server unreachable" exactly when the server is reachable and trying to tell you something. The test for this was checked by temporarily adding the tempting `if (!response.ok) throw` and watching it go red.
+- **RTL works in three layers.** `<html dir="rtl">` is set before JavaScript runs, so there is no flash. Radix `DirectionProvider` exists because Radix computes placement and keyboard direction in JavaScript and does not read the `dir` attribute. And logical utilities (`border-e`, `ps-`) are enforced by an ESLint rule: the navigation is on the right because it comes first in a right-to-left row, not because anything says "right".
+- **A business date is a day, not a moment.** `"2026-09-17"` is formatted in UTC so the day it names can never shift. A timestamp is formatted in `Asia/Tehran` so 21:00 UTC shows as 00:30 on the *next* Jalali day. Mixing these two up is the classic off-by-one-day bug.
+- **Honest tests, again.** A "never shifts the day" test for dates passed with both the old and the new code, because Tehran is ahead of UTC and can't show the bug. It was renamed to what it actually checks instead of being kept as reassurance.
+- **Invisible characters belong in escapes.** ZWNJ, Arabic ي and Persian ی look identical or invisible in an editor, so source code and tests write them as `‌`, `ي` and `ی`. ESLint rejects literal ones, and the reviewer can see which code point is meant.
+- **Normalization is a business rule, not a helper detail.** Treating half-space and space as the same, and stripping harakat and tatweel, decide which members a search finds. That is why these rules were written into BUSINESS_RULES §13 before the code was changed to match.
+- **Generators need checking too.** The shadcn CLI read the wrong tsconfig, wrote into a literal `@/` folder and installed an unrelated npm package called `cn`. Reading `package.json` after running any generator is cheap insurance.
+- **My notes:**

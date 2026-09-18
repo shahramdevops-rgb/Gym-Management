@@ -63,6 +63,8 @@ Versions are pinned centrally in `Directory.Packages.props`. Ask before adding a
 
 Frontend: Vite, React, TypeScript, React Router, TanStack Query, React Hook Form, Zod, shadcn/ui, Tailwind CSS, openapi-typescript + openapi-fetch, Recharts, Vitest + Testing Library, date-fns-jalali (Jalali date math), react-multi-date-picker (Persian calendar picker), Vazirmatn font (self-hosted). Playwright for end-to-end tests (Phase 11).
 
+Frontend supporting packages (dependencies of the tools above, approved in task 0.7): `@radix-ui/react-direction` (Radix `DirectionProvider`), `@radix-ui/react-slot`, `class-variance-authority`, `clsx`, `tailwind-merge` and `lucide-react` (shadcn/ui), `@tailwindcss/vite`, `jsdom` and `@testing-library/jest-dom` (Vitest), ESLint with `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `eslint-config-prettier` and `globals`, Prettier, `@types/node` (types for `vite.config.ts`).
+
 Infrastructure: Docker Compose (postgres:18, datalust/seq), GitHub Actions, Caddy.
 
 Built-in features used instead of packages: rate limiting, `TimeProvider`, ProblemDetails, `IExceptionHandler`, `Guid.CreateVersion7()`.
@@ -218,3 +220,6 @@ web/src/
 - Respawn deletes rows, not tables, so `__EFMigrationsHistory` must be in `TablesToIgnore` — otherwise the
   next run finds a fully migrated database that believes it has never been migrated.
 - Partial unique indexes: `HasIndex(...).IsUnique().HasFilter("checked_out_at IS NULL")`. The filter uses snake_case column names.
+- The shadcn CLI reads the `@/` alias from the **root** `web/tsconfig.json`, not `tsconfig.app.json`. Without `paths` there, `npx shadcn add` writes into a literal `web/@/` folder and installs an unrelated npm package named `cn`. It also imports Slot from the all-in-one `radix-ui` package; this project uses `@radix-ui/react-slot`, so fix that import after adding a component.
+- `/health` is mapped at the API root, not under `/api`, and is not in the OpenAPI document. The Vite proxy has a separate rule for it and the frontend reads it with plain `fetch`. An unhealthy server answers 503 with the body `Unhealthy`, which is a report, not a failed request.
+- Write invisible and look-alike characters (ZWNJ, Arabic ي/ك) as `\u` escapes in source. ESLint rejects literal ones (`no-irregular-whitespace`), and a ZWJ inside a regex character class trips `no-misleading-character-class` even when escaped, so use an alternation there.
