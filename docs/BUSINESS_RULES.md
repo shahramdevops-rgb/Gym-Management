@@ -114,6 +114,13 @@ Decided values:
 - Fields: `Name`, `DurationDays` (> 0), `SessionCount` (null means unlimited, otherwise > 0), `Price` (>= 0), `IsActive`.
 - Inactive plans cannot be sold. Existing subscriptions are not affected.
 - Editing a plan never changes existing subscriptions.
+- Details (decided with the developer in task 3.1):
+  - Limits: name at most 100 characters, `DurationDays` 1 to 365, `SessionCount` 1 to 365 (or null for unlimited).
+  - `Price` has at most 2 decimal places. More is refused, never rounded (`Plans.PriceTooManyDecimals`).
+  - Names are unique across all plans, inactive ones included, compared in normalized form (§13), so the same name typed with the Arabic ي is a duplicate (`Plans.NameAlreadyExists`).
+  - Owner and Staff can list and view plans (staff sell subscriptions); only the Owner creates, edits, activates or deactivates them.
+  - The plan list is paged like every list, active plans first, then by name, with an optional active/inactive filter.
+  - Activating an active plan, or deactivating an inactive one, succeeds and changes nothing.
 
 ---
 
