@@ -97,10 +97,10 @@ Done when: CI passes on GitHub.
 - [x] Tests: seeding twice creates one Owner
 
 ### 1.2 Login and access tokens
-- [ ] Login endpoint with lockout
-- [ ] JWT access token (15 minutes)
-- [ ] Rate limiting on login
-- [ ] Tests: wrong password, lockout, inactive user rejected
+- [x] Login endpoint with lockout
+- [x] JWT access token (15 minutes)
+- [x] Rate limiting on login
+- [x] Tests: wrong password, lockout, inactive user rejected
 
 ### 1.3 Refresh tokens and logout
 - [ ] RefreshToken entity (hash, family, expiry, revoked, replaced by)

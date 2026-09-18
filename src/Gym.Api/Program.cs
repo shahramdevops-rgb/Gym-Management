@@ -1,4 +1,5 @@
 using Gym.Api.Configuration;
+using Gym.Api.Endpoints;
 using Gym.Api.Middleware;
 using Gym.Application;
 using Gym.Infrastructure;
@@ -26,6 +27,9 @@ try
     // resort so an escaped exception becomes that same shape instead of an empty 500.
     builder.Services.AddApiProblemDetails();
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+    builder.Services.AddJwtAuthentication();
+    builder.Services.AddApiRateLimiting(builder.Configuration);
 
     builder.Services.AddOpenApi();
 
@@ -58,17 +62,33 @@ try
     // Scalar and a permissive CORS policy are development conveniences. Gating them on the
     // environment makes "do not ship the API explorer" a property of the code rather than a
     // deployment checklist item somebody has to remember.
+    //
+    // CORS runs before authentication, so a browser's preflight request (which never carries a
+    // token) is answered instead of being refused with 401.
     if (app.Environment.IsDevelopment())
     {
         app.UseCors(CorsConfiguration.PolicyName);
+    }
 
-        app.MapOpenApi();
-        app.MapScalarApiReference(options => options.WithTitle("Gym Management API"));
+    // The rate limiter runs before authentication, so a flood of requests is turned away before
+    // any token is checked or any password is hashed.
+    app.UseRateLimiter();
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    if (app.Environment.IsDevelopment())
+    {
+        // Anonymous explicitly: the fallback policy (AddJwtAuthentication) would otherwise
+        // require a token just to read the API documentation.
+        app.MapOpenApi().AllowAnonymous();
+        app.MapScalarApiReference(options => options.WithTitle("Gym Management API")).AllowAnonymous();
     }
 
     // Reports the database, not just the process: see AddDbContextCheck in AddInfrastructure.
     // Anonymous on purpose — this is what a container orchestrator and CI poll.
-    app.MapHealthChecks("/health");
+    app.MapHealthChecks("/health").AllowAnonymous();
+
+    app.MapAuthEndpoints();
 
     app.Run();
 }

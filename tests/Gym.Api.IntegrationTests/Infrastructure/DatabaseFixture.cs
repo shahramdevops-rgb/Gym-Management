@@ -1,5 +1,6 @@
 using Gym.Infrastructure.Persistence;
 
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -79,6 +80,26 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
     /// <summary>An <see cref="HttpClient"/> that talks to the in-process server.</summary>
     public HttpClient CreateClient() => Factory.CreateClient();
+
+    /// <summary>
+    /// A client for a separate host with extra settings, for the rare test that needs different
+    /// configuration (a low rate limit, say). It shares the database but not the services, so
+    /// its singletons, such as the rate limiter's counters, start fresh.
+    /// </summary>
+    public HttpClient CreateClient(IDictionary<string, string?> settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        return Factory
+            .WithWebHostBuilder(builder =>
+            {
+                foreach (var (key, value) in settings)
+                {
+                    builder.UseSetting(key, value);
+                }
+            })
+            .CreateClient();
+    }
 
     /// <summary>A scope for resolving scoped services such as <see cref="AppDbContext"/>.</summary>
     public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();

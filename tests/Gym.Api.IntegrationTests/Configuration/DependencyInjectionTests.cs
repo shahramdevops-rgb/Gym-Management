@@ -7,6 +7,7 @@ using Gym.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Gym.Api.IntegrationTests.Configuration;
 
@@ -104,6 +105,38 @@ public sealed class DependencyInjectionTests
             () => new ServiceCollection().AddInfrastructure(configuration));
 
         exception.Message.ShouldContain("user-secrets");
+    }
+
+    [Fact]
+    public void AddInfrastructure_WithoutSigningKey_FailsJwtOptionsValidation()
+    {
+        // BuildProvider configures no Jwt section at all. ValidateOnStart makes a real host
+        // fail at startup; resolving the options is what triggers that same validation here.
+        using var provider = BuildProvider();
+
+        var exception = Should.Throw<OptionsValidationException>(
+            () => provider.GetRequiredService<IOptions<JwtOptions>>().Value);
+
+        exception.Message.ShouldContain("Jwt:SigningKey");
+    }
+
+    [Fact]
+    public void JwtOptionsValidator_WhenKeyIsShorterThan32Bytes_Fails()
+    {
+        var options = new JwtOptions { Issuer = "gym-api", Audience = "gym-web", SigningKey = new string('k', 31) };
+
+        var result = new JwtOptionsValidator().Validate(name: null, options);
+
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain("user-secrets");
+    }
+
+    [Fact]
+    public void JwtOptionsValidator_WhenComplete_Succeeds()
+    {
+        var options = new JwtOptions { Issuer = "gym-api", Audience = "gym-web", SigningKey = new string('k', 32) };
+
+        new JwtOptionsValidator().Validate(name: null, options).Succeeded.ShouldBeTrue();
     }
 
     [Fact]
