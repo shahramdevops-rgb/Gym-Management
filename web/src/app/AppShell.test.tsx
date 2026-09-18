@@ -86,6 +86,24 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "کارمندان" })).not.toBeInTheDocument();
   });
 
+  it("AppShell_Owner_SeesThePlansMenuItem", async () => {
+    mockApi(signedInHandlers(owner));
+
+    renderApp("/", { session: session() });
+
+    expect(await screen.findByRole("link", { name: "پلن‌ها" })).toHaveAttribute("href", "/plans");
+  });
+
+  it("AppShell_Staff_DoesNotSeeThePlansMenuItem", async () => {
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+
+    // Plan setup is the Owner's job (docs/BUSINESS_RULES.md §3); staff see plans when selling.
+    await screen.findByText(staffUser.fullName);
+    expect(screen.queryByRole("link", { name: "پلن‌ها" })).not.toBeInTheDocument();
+  });
+
   it("AppShell_Logout_RevokesTheSessionAndShowsTheLoginPage", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),

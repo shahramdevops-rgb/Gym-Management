@@ -310,3 +310,16 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **The database repeats the rules.** Check constraints (`BETWEEN 1 AND 365`, `price >= 0`, `session_count IS NULL OR …`) and a unique index on the normalized name. Tests insert bad rows with raw SQL to prove the database refuses them by itself.
 - **Unique in normalized form.** Uniqueness is checked on `NormalizedName`, not `Name`, so "ویژه" typed with an Arabic ي is the same plan. Check first for a friendly 409, and let the unique index settle the race (the parallel-create test).
 - **My notes:**
+
+---
+
+## 3.2 — UI: plans
+
+- **Guards are UX, the API is security.** The three plan routes are wrapped in `RequireRole role="Owner"` (now through a small `ownerOnly()` helper, also used for staff) and the menu item has `role: "Owner"`. A staff user who types `/plans` sees "no access" and no request is sent. The API's `OwnerOnly` group would refuse them anyway.
+- **Big decimals never become JavaScript numbers.** A JS `number` is a 64-bit float and holds about 15–16 exact digits. `Number("9999999999999999.99")` is `10000000000000000`. The form keeps the price as text and sends it as a JSON string (`"price": "1500000.50"`). ASP.NET reads a string straight into `decimal`, and a new integration test proves it (`CreatePlan_PriceAsJsonString_IsStoredExactly`).
+- **Validate what the user typed, convert when sending.** Number fields stay strings in the form. Zod checks them after `normalizeDigits`, so `۳۰` and `30` are equally valid, and they become numbers only in `onSubmit`. Parsing and validating share one function (`parseWholeNumber`, `priceProblem`), so they cannot disagree.
+- **"Unlimited" is an explicit choice.** The API says `sessionCount: null`. The form has a checkbox that disables the count field, instead of an empty box that means "unlimited" if you forget to fill it.
+- **Cross-field validation in Zod.** "A count is required unless unlimited" reads two fields, so it is a `.refine` on the object. Zod skips object refinements while any field has an error. `when: () => true` makes it run anyway, so every error appears on the first submit.
+- **`useWatch` instead of `watch`.** `form.watch()` returns a function the React Compiler can't memoize safely. `useWatch` is a proper hook, so the component stays optimizable (the lint rule `react-hooks/incompatible-library`).
+- **Same pattern, second time.** The edit page repeats the member edit page: send back `version`, handle `Plans.ChangedConcurrently`, key the form by `version`. Seeing it twice is how a pattern becomes a habit.
+- **My notes:**

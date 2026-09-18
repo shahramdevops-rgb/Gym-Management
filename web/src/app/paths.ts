@@ -9,4 +9,7 @@ export const paths = {
   newMember: "/members/new",
   member: (id: string) => `/members/${id}`,
   editMember: (id: string) => `/members/${id}/edit`,
+  plans: "/plans",
+  newPlan: "/plans/new",
+  editPlan: (id: string) => `/plans/${id}/edit`,
 } as const;

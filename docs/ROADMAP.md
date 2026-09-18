@@ -174,7 +174,7 @@ Done when: staff can find, create, and edit members in the app.
 - [x] Tests: staff cannot create plans; inactive plans cannot be sold
 
 ### 3.2 UI: plans
-- [ ] Owner plans screen: list, create, edit, activate/deactivate
+- [x] Owner plans screen: list, create, edit, activate/deactivate
 
 ---
 

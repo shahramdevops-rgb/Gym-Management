@@ -1,4 +1,13 @@
-import { Activity, Contact, KeyRound, LogOut, Search, Users, type LucideIcon } from "lucide-react";
+import {
+  Activity,
+  Contact,
+  KeyRound,
+  LogOut,
+  Search,
+  Tickets,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +28,7 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { to: paths.home, label: "جستجو", icon: Search },
   { to: paths.members, label: "اعضا", icon: Contact },
+  { to: paths.plans, label: "پلن‌ها", icon: Tickets, role: "Owner" },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.status, label: "وضعیت سیستم", icon: Activity },
   { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },

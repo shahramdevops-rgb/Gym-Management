@@ -67,6 +67,23 @@ public sealed class PlanEndpointTests(DatabaseFixture fixture) : DatabaseTestBas
         (await GetAsync(client, owner, plan.Id)).Price.ShouldBe(1_234_567_890.99m);
     }
 
+    /// <summary>
+    /// The web form sends the price as a JSON string: the largest allowed price has more digits
+    /// than a JavaScript number holds exactly, so it never passes through one.
+    /// </summary>
+    [Fact]
+    public async Task CreatePlan_PriceAsJsonString_IsStoredExactly()
+    {
+        var (client, owner, _) = await ClientsAsync();
+
+        using var response = await SendAsync(client, owner, HttpMethod.Post, PlansPath,
+            new { name = "پلن", durationDays = 30, sessionCount = (int?)null, price = "9999999999999999.99" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var plan = (await response.Content.ReadFromJsonAsync<PlanResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        (await StoredAsync(plan.Id)).Price.ShouldBe(9_999_999_999_999_999.99m);
+    }
+
     [Theory]
     [InlineData("   ", 30, null, "0", "name", "Plans.NameRequired")]
     [InlineData("پلن", 0, null, "0", "durationDays", "Plans.DurationInvalid")]
