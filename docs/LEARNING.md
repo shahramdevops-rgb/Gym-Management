@@ -161,3 +161,18 @@ Format:
 - **Prove a database invariant with raw SQL.** `UserManager` checks for duplicate names in C# before inserting, so a test through it proves only the C# check. `UserTableConstraintTests` inserts with plain SQL and expects SQLSTATE 23505 (unique) and 23514 (check). `ck_users_full_name_not_blank` exists because `IsRequired()` stops NULL but not `'   '`.
 - **An ADR for a rule you bend.** `User` can't live in Domain because `IdentityUser<Guid>` is a framework type. ADR 0002 records that and the rejected "two user classes" option, so the next person doesn't have to rediscover the trade-off.
 - **My notes:**
+
+---
+
+## 1.2 — Login and access tokens
+
+- **A JWT is a signed claim, not a session.** The server writes "user X, role Owner, valid until 10:15" and signs it with a secret key. On every request it checks the signature and the expiry, with no database lookup. The price is that a token can't be taken back before it expires, which is why it lives only 15 minutes and task 1.3 adds refresh tokens that *can* be revoked.
+- **Clock skew is a hidden extension of token lifetime.** The bearer handler accepts tokens up to five minutes past `exp` by default, to tolerate clocks on different machines. One machine issues and checks these tokens, so skew is zero. A mutation check proved the expiry test fails with the default.
+- **Lockout and rate limiting guard different things.** Lockout guards one account: after 5 wrong passwords it is locked for 15 minutes, even for the right password. Rate limiting guards the endpoint: 10 attempts per minute per IP, however many accounts are tried. Without it, trying one password against every user name would never trigger a lockout.
+- **The order of checks is a security property.** `UserAuthenticator` checks: unknown user → the same error as a wrong password. Locked → refuse before checking the password. Wrong password → count it. Inactive → only reveal it after the correct password. Each step leaks as little as possible to someone who doesn't know the password.
+- **Interfaces at the layer boundary, again.** `LoginHandler` in Application can't see the Identity `User` (ADR 0002). It depends on `IUserAuthenticator` and `IAccessTokenIssuer`, which Infrastructure implements with `UserManager` and `JsonWebTokenHandler`. The handler is left with the use case itself: no token without a successful authentication.
+- **Fail closed by default.** A fallback authorization policy makes every endpoint require a logged-in user unless it explicitly says `.AllowAnonymous()`. Forgetting a policy now causes a 401 instead of an open endpoint.
+- **Validate configuration at startup.** `JwtOptionsValidator` with `ValidateOnStart()` stops the API when the signing key is missing or too short, with a message that says how to fix it. Otherwise the first sign of trouble would be a failed login in front of a user.
+- **Options bound lazily see the final configuration.** `Bind(configuration.GetSection(...))` reads the section when the options are first used, not at registration. That's why a test host's `UseSetting` can change the rate limit, where a value read in `Program.cs` before `Build()` would be too late (the gotcha from task 0.6).
+- **My notes:**
+

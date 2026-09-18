@@ -1,5 +1,7 @@
 using FluentValidation;
 
+using Gym.Application.Auth.Login;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -34,6 +36,10 @@ public static class DependencyInjection
         // validator is registered as IValidator<TCommand>, which is what ValidationFilter<T>
         // in Gym.Api resolves.
         services.AddValidatorsFromAssembly(Common.AssemblyReference.Assembly, includeInternalTypes: true);
+
+        // Handlers are plain classes resolved by type, one line each (CLAUDE.md: no MediatR).
+        // Scoped, because they depend on scoped services such as IAppDbContext.
+        services.AddScoped<LoginHandler>();
 
         return services;
     }

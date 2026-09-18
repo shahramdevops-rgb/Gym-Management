@@ -235,3 +235,17 @@ web/src/
 - The Owner seeder runs in `Program.cs` after `builder.Build()`, which `WebApplicationFactory` reaches before
   the test fixture migrates. That is why the seeder checks `Seed:*` configuration before any database
   call, and why the Testing environment has no `Seed` section.
+- Every endpoint needs an authenticated user unless it says `.AllowAnonymous()`: `AddJwtAuthentication` sets a
+  fallback authorization policy, so an endpoint that forgets its policy fails closed (401), not open. `/health`,
+  login and the dev-only OpenAPI/Scalar routes are anonymous on purpose.
+- JWT validation uses `ClockSkew = TimeSpan.Zero`. The default five minutes would make a 15-minute token live 20.
+  `MapInboundClaims = false` keeps the claim names `sub` and `role` instead of long XML-namespace URIs.
+- `Jwt:SigningKey` is a secret of at least 32 bytes. Locally: `dotnet user-secrets set "Jwt:SigningKey" "<random>"
+  --project src/Gym.Api`. In production: `Jwt__SigningKey`. The API refuses to start without it.
+- The login rate limit partitions by `RemoteIpAddress`. Behind Caddy that is Caddy's address for every request, so
+  all users would share one bucket. Configure forwarded headers (`UseForwardedHeaders` with Caddy as a known proxy)
+  before deploying; tracked for task 11.2.
+- The integration test host raises the login rate limit (`RateLimiting__Login__PermitLimit`), because every test
+  client shares one address. A test that needs different settings uses `DatabaseFixture.CreateClient(settings)`,
+  which builds a separate host with its own singletons.
+- Identity's `UserManager` methods take no `CancellationToken`. Check the token once before starting the work.

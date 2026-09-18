@@ -36,6 +36,15 @@
   </ItemGroup>
 
   <!--
+    JWT bearer authentication. Gym.Infrastructure references it to issue tokens (it brings
+    Microsoft.IdentityModel.JsonWebTokens with it) and Gym.Api to validate them, so both halves
+    use one library and one version and cannot disagree about the token format.
+  -->
+  <ItemGroup Label="Authentication">
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+  </ItemGroup>
+
+  <!--
     FluentValidation lives in Gym.Application because validators are part of a use case's
     contract, not of HTTP: the same rules must hold when a command arrives from a background
     job. The DependencyInjectionExtensions package only adds AddValidatorsFromAssembly on top

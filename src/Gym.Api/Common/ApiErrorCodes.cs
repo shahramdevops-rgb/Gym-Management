@@ -12,6 +12,9 @@ public static class ApiErrorCodes
     /// <summary>The request failed validation; the <c>errors</c> field says which fields.</summary>
     public const string ValidationFailed = "General.ValidationFailed";
 
+    /// <summary>The rate limiter refused the request (429). <c>Retry-After</c> says when to try again.</summary>
+    public const string TooManyRequests = "General.TooManyRequests";
+
     /// <summary>Something unexpected broke. The body carries no detail beyond the correlation id.</summary>
     public const string Unexpected = "General.Unexpected";
 }

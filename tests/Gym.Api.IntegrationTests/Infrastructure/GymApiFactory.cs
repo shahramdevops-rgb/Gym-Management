@@ -33,12 +33,24 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
     private const string EnvironmentVariable = "ASPNETCORE_ENVIRONMENT";
     private const string TestingEnvironment = "Testing";
 
+    // A test-only key: it signs tokens for a throwaway database and is worthless anywhere else.
+    private const string SigningKeyVariable = "Jwt__SigningKey";
+    private const string TestSigningKey = "integration-tests-signing-key-0123456789abcdef";
+
+    // The real limit is 10 logins per minute per IP, and every test client shares one address,
+    // so the suite would trip it within seconds. The test that proves the limiter works builds
+    // its own host with a low limit (see LoginRateLimitTests).
+    private const string LoginPermitLimitVariable = "RateLimiting__Login__PermitLimit";
+    private const string TestLoginPermitLimit = "100000";
+
     public GymApiFactory(string connectionString)
     {
         // The Testcontainers string already carries the password, so the separate
         // Postgres:Password key that AddInfrastructure looks for stays unset.
         Environment.SetEnvironmentVariable(ConnectionStringVariable, connectionString);
         Environment.SetEnvironmentVariable(EnvironmentVariable, TestingEnvironment);
+        Environment.SetEnvironmentVariable(SigningKeyVariable, TestSigningKey);
+        Environment.SetEnvironmentVariable(LoginPermitLimitVariable, TestLoginPermitLimit);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -54,5 +66,7 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
 
         Environment.SetEnvironmentVariable(ConnectionStringVariable, null);
         Environment.SetEnvironmentVariable(EnvironmentVariable, null);
+        Environment.SetEnvironmentVariable(SigningKeyVariable, null);
+        Environment.SetEnvironmentVariable(LoginPermitLimitVariable, null);
     }
 }

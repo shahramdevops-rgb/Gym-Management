@@ -47,4 +47,9 @@
     <PackageReference Include="Serilog.Sinks.Seq" />
   </ItemGroup>
 
+  <!-- Validates the JWT access token on every request. Gym.Infrastructure issues it. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+
 </Project>

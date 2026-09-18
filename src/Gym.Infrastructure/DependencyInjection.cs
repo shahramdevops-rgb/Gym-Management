@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Common.Security;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Persistence.Interceptors;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 using Npgsql;
 
@@ -48,11 +50,18 @@ public static class DependencyInjection
         // framework already tracks, so both views share one change tracker and one transaction.
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
 
-        // AddIdentityCore, not AddIdentity: there is no cookie sign-in yet. Task 1.2 adds JWT
-        // bearer auth and can add SignInManager then, if it turns out to need it, instead of
-        // this task carrying services nothing here uses.
+        // AddIdentityCore, not AddIdentity: AddIdentity also registers cookie authentication and
+        // SignInManager. This API authenticates with JWT bearer tokens, and UserAuthenticator
+        // does its password and lockout checks with UserManager alone.
         services.AddIdentityCore<User>(options =>
             {
+                // BUSINESS_RULES.md §1: 5 consecutive wrong passwords lock the account for
+                // 15 minutes. AllowedForNewUsers sets LockoutEnabled on every account created
+                // from now on, the Owner included.
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                options.Lockout.AllowedForNewUsers = true;
+
                 // BUSINESS_RULES.md §1: at least 8 characters, a letter and a digit, no case
                 // or symbol requirement — passwords are typed on a Persian keyboard at the
                 // front desk. The built-in per-class checks are switched off in favor of
@@ -67,6 +76,18 @@ public static class DependencyInjection
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<AppDbContext>()
             .AddPasswordValidator<LetterAndDigitPasswordValidator>();
+
+        services.AddScoped<IUserAuthenticator, UserAuthenticator>();
+
+        // Bound from the section passed in rather than with BindConfiguration, which needs
+        // IConfiguration in the container. The section is a live view, so values added to the
+        // configuration later (user-secrets, a test host's settings) are still picked up.
+        // ValidateOnStart turns a missing signing key into a startup failure, not a failed login.
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
+        services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
 
         // Without this, /health would only report that the process is running, and an
         // orchestrator would happily route traffic to an API that cannot reach its database.
