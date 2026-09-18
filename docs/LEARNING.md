@@ -227,3 +227,17 @@ Format:
 - **Know how your tools touch the database.** A DELETE-blocking trigger could have broken every test reset. It doesn't, because Respawn uses TRUNCATE, which row-level triggers ignore. A test now pins that, so a Respawn upgrade that changes it fails loudly in one place.
 - **My notes:**
 
+---
+
+## 1.7 — UI: login and staff
+
+- **Where a token lives decides who can steal it.** The access token is a variable inside a module, and the refresh token is an HttpOnly cookie. Script on the page can read neither from storage, because there's no storage. The cost is a page reload forgets the access token, so `restoreSession()` asks for a new one with the cookie before the first screen decides anything.
+- **One place for "my token expired".** `authFetch` wraps `fetch`: it adds the bearer header, and on a 401 it refreshes and retries once. No screen handles expiry, so no screen can get it wrong.
+- **Single-flight refresh.** Three requests failing at once must cause *one* refresh. Refresh tokens rotate strictly, and a second refresh with the same cookie looks like theft and logs the user out. A shared promise makes later callers wait for the first refresh. A test fires three requests at once and counts the refreshes.
+- **A request body can be read once.** Retrying a POST needs the body again, so the first attempt sends a `clone()` and the retry sends the original. A test checks that the retried body arrives intact.
+- **Guards are for users, the API is for security.** `RequireAuth` and `RequireRole` keep people away from screens that would fail. The API still refuses the request if someone gets past them. The two protect different things.
+- **Mock at the boundary, run everything else for real.** Tests replace only `fetch`, with a small router. openapi-fetch, `authFetch`, TanStack Query and React Router all run for real, so a test like "login with a temporary password lands on change-password" exercises the actual wiring.
+- **A contract that spans two languages needs its own test.** Nothing links C# error codes to the TypeScript messages. `ErrorCatalogTests` collects every code the API defines, by reflection over errors and validators, and fails when `errors.ts` lacks one. A mutation check confirmed it.
+- **Verify the Done-when for real, and doubt surprising results.** The live run through the Vite proxy showed a staff name as `??????`. Instead of assuming an app bug or ignoring it, the same request sent from a UTF-8 file came back intact: the Windows shell had mangled the argument. The dev data was repaired, and the gotcha is in `ARCHITECTURE.md`.
+- **My notes:**
+
