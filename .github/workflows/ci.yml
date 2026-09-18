@@ -1,0 +1,81 @@
+# Builds and tests both halves of the system on a clean machine for every push.
+# Anything that only works because of local state (.env, user-secrets, a warm node_modules)
+# fails here first.
+name: CI
+
+on:
+  push:
+    branches: [main, "task/**"]
+  pull_request:
+    branches: [main]
+
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (build, test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v7
+
+      # Reads the SDK version from global.json, the same pin developers use.
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/*.csproj"
+
+      - name: Restore
+        run: dotnet restore
+
+      # Release, with TreatWarningsAsErrors from Directory.Build.props: a warning fails the build.
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      # Integration tests start postgres:18 through Testcontainers. Ubuntu runners ship with
+      # Docker, so there is no service container to declare here.
+      - name: Test
+        run: dotnet test --no-build --configuration Release
+
+  frontend:
+    name: Frontend (lint, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # npm ci installs exactly what package-lock.json says and fails if package.json disagrees.
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Test
+        run: npm test
+
+      # tsc -b first: type errors, including drift from the generated API schema, fail here.
+      - name: Build
+        run: npm run build

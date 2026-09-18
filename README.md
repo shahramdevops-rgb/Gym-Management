@@ -1,20 +1,53 @@
 # Gym Management
 
+[![CI](https://github.com/shahramdevops-rgb/Gym-Management/actions/workflows/ci.yml/badge.svg)](https://github.com/shahramdevops-rgb/Gym-Management/actions/workflows/ci.yml)
+
 Internal management system for a single gym: members, plans, subscriptions, payments,
 lockers, attendance, cafe and reporting. Closed system — no public access and no member
 logins. The API is .NET 10 / PostgreSQL; the frontend is a Persian, right-to-left React app.
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for what is built and what is next,
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the stack and
-[docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) for how the gym works.
+| Document | What it answers |
+|---|---|
+| [docs/ROADMAP.md](docs/ROADMAP.md) | What is built and what is next |
+| [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) | How the gym works — the source of truth for every rule |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack, packages, patterns and gotchas |
+| [docs/adr/](docs/adr/README.md) | Why the big decisions were made |
 
-> This README is a skeleton. Task 0.8 fills in the architecture diagram, screenshots and
-> the deployment guide.
+## Architecture
+
+A modular monolith with Clean Architecture, organized by feature inside each layer
+([ADR 0001](docs/adr/0001-modular-monolith-clean-architecture.md)).
+
+```mermaid
+flowchart LR
+    Browser["Browser<br/>React · Persian RTL"] -->|"/api, /health"| Api
+    subgraph Server["One deployable"]
+        Api["Gym.Api<br/>Minimal APIs"] --> Application["Gym.Application<br/>use cases"]
+        Application --> Domain["Gym.Domain<br/>entities and rules"]
+        Infrastructure["Gym.Infrastructure<br/>EF Core · Identity · SMS · jobs"] -. implements .-> Application
+        Api --> Infrastructure
+    end
+    Infrastructure --> Postgres[("PostgreSQL")]
+    Api -. logs .-> Seq["Seq"]
+```
+
+Arrows are project references: Domain references nothing, so business rules are tested
+without a database or a web server.
+
+```
+src/Gym.Domain/           entities, value objects, Result/Error
+src/Gym.Application/      one folder per use case: Command, Validator, Handler, Response
+src/Gym.Infrastructure/   EF Core context, migrations, interceptors
+src/Gym.Api/              Program.cs, endpoints, error mapping
+tests/                    domain unit tests; API integration tests (Testcontainers)
+web/                      React frontend
+```
 
 ## Prerequisites
 
 - .NET SDK 10.0.401 or later (the exact band is pinned in `global.json`)
 - Docker Desktop, running
+- Node.js 24 (for the frontend in `web/`)
 
 ## Local infrastructure
 
@@ -140,3 +173,48 @@ Levels live in `appsettings.json` (`Serilog` section), not in code, so they can 
 without a rebuild. Development adds the Seq sink and turns on EF Core's SQL logging.
 `/health` is logged at `Debug` on purpose — a probe polled every ten seconds is 8,640 events a
 day that say nothing, and Seq stays readable without it.
+
+## Frontend
+
+The frontend lives in `web/`: Vite, React, TypeScript, Tailwind CSS and shadcn/ui. The UI is
+Persian and right-to-left; dates are shown in the Jalali calendar.
+
+```bash
+cd web
+npm ci                # first time, and after package-lock.json changes
+npm run dev           # http://localhost:5173
+npm run lint          # ESLint, including a rule that rejects physical left/right classes
+npm test              # Vitest
+npm run build         # type-check and production build
+npm run format        # Prettier
+```
+
+`npm run dev` proxies `/api` and `/health` to the API on `http://localhost:5134`, so run the
+API alongside it. The browser only ever talks to one origin, as it will in production.
+
+### API types
+
+`web/src/lib/api/schema.d.ts` is generated from the API's OpenAPI document and committed. After
+changing any endpoint, with the API running:
+
+```bash
+cd web
+npm run gen:api
+```
+
+A mismatch between the frontend and the API then shows up as a type error in `npm run build`.
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to `main` and to
+`task/**` branches, and on pull requests:
+
+| Job | Steps |
+|---|---|
+| Backend | `dotnet restore`, `build` (Release, warnings are errors), `test` — integration tests start Postgres through Testcontainers on the runner's Docker |
+| Frontend | `npm ci`, `lint`, `format:check`, `test`, `build` |
+
+## Deployment
+
+Not yet. Production containers, the release process and backups are Phase 6 of the
+[roadmap](docs/ROADMAP.md); the deployment guide is written then.
