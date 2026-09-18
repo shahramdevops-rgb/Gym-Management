@@ -142,6 +142,21 @@ details — no message, no type name, no stack trace.
 - The test fixture applies migrations with `Database.MigrateAsync()`.
 - Helper to create an authenticated client per role.
 
+The harness lives in `tests/Gym.Api.IntegrationTests/Infrastructure/`:
+
+| Type | Job |
+|---|---|
+| `GymApiFactory` | `WebApplicationFactory<Program>` running the real app in environment `Testing` |
+| `DatabaseFixture` | starts the `postgres:18` container, migrates, owns the Respawner, hands out clients and scopes |
+| `DatabaseCollectionDefinition` | the xUnit collection all database-backed classes join |
+| `DatabaseTestBase` | resets the database before each test |
+
+A database test is `[Collection(DatabaseCollectionDefinition.Name)]` plus `: DatabaseTestBase(fixture)`.
+A **collection** fixture, not an assembly fixture, so the tests that need no database (result mapping, the
+validation filter, the middleware) never wait for Docker; the container starts with the first database test
+and is removed when the collection finishes. Tests inside the collection run serially, which is required
+rather than incidental: they share one database, and a reset would delete a parallel test's rows.
+
 ## Frontend (Persian, RTL)
 
 ```
@@ -188,4 +203,18 @@ web/src/
 - `AddProblemDetails()` already adds a `traceId` extension holding the whole W3C traceparent. The API adds
   `correlationId` as well, holding just the trace id — the same string `X-Correlation-Id` returns, which is what a
   user can actually read off a screen and quote.
+- `dotnet test` needs Docker running from task 0.6 on, locally and in CI. The container is Testcontainers'
+  own throwaway `postgres:18` on a random port, never the `gym-postgres` container from docker-compose.yml,
+  so a test run cannot touch development data. Testcontainers also starts a `ryuk` reaper container that
+  removes the rest if the test process is killed; it exits on its own shortly after the run.
+- `WebApplicationFactory` cannot override configuration that `Program.cs` reads **before** `builder.Build()`.
+  With minimal hosting, `AddInfrastructure(builder.Configuration)` has already run by the time the factory's
+  `ConfigureAppConfiguration` delta is applied, so the app starts with no connection string at all. Pass such
+  values as environment variables (`ConnectionStrings__Postgres`) before the factory is constructed — which is
+  also how production supplies them.
+- `Respawner.CreateAsync` throws "No tables found" against a schema whose only table is the ignored
+  `__EFMigrationsHistory`. The fixture therefore builds it lazily and skips the reset while the model has no
+  entities; it starts working by itself once task 1.1 adds the first table.
+- Respawn deletes rows, not tables, so `__EFMigrationsHistory` must be in `TablesToIgnore` — otherwise the
+  next run finds a fully migrated database that believes it has never been migrated.
 - Partial unique indexes: `HasIndex(...).IsUnique().HasFilter("checked_out_at IS NULL")`. The filter uses snake_case column names.
