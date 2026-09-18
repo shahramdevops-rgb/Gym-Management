@@ -4,6 +4,7 @@ import {
   formatDateTime,
   formatMoney,
   formatNumber,
+  formatPhone,
   toPersianDigits,
 } from "./format";
 
@@ -91,4 +92,18 @@ describe("formatDateTime", () => {
       expect(formatDateTime(value)).toBe(emptyValue);
     },
   );
+});
+
+describe("formatPhone", () => {
+  it("formatPhone_IranianMobileInE164_ShowsTheLocalFormatWithPersianDigits", () => {
+    expect(formatPhone("+989121234567")).toBe("۰۹۱۲ ۱۲۳ ۴۵۶۷");
+  });
+
+  it("formatPhone_OtherNumber_ShowsItAsIsWithPersianDigits", () => {
+    expect(formatPhone("+442071234567")).toBe("+۴۴۲۰۷۱۲۳۴۵۶۷");
+  });
+
+  it.each([null, undefined, ""])("formatPhone_Missing_ReturnsTheEmptyMarker (%s)", (value) => {
+    expect(formatPhone(value)).toBe(emptyValue);
+  });
 });

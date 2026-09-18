@@ -4,4 +4,9 @@ export const paths = {
   login: "/login",
   changePassword: "/change-password",
   staff: "/staff",
+  status: "/status",
+  members: "/members",
+  newMember: "/members/new",
+  member: (id: string) => `/members/${id}`,
+  editMember: (id: string) => `/members/${id}/edit`,
 } as const;

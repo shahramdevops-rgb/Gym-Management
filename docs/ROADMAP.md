@@ -156,10 +156,10 @@ Done when: you can log in as the seeded Owner in the Persian app, change the pas
 - [x] Tests: searching "علي" finds "علی"; phone search normalizes input
 
 ### 2.3 UI: members
-- [ ] Home: search by phone or name
-- [ ] Member list with paging
-- [ ] Create and edit member form (Zod validation, Persian messages)
-- [ ] Member profile page (basic info; later phases add sections)
+- [x] Home: search by phone or name
+- [x] Member list with paging
+- [x] Create and edit member form (Zod validation, Persian messages)
+- [x] Member profile page (basic info; later phases add sections)
 
 Done when: staff can find, create, and edit members in the app.
 

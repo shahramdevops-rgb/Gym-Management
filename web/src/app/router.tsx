@@ -4,6 +4,11 @@ import { RequireAuth } from "@/features/auth/components/RequireAuth";
 import { RequireRole } from "@/features/auth/components/RequireRole";
 import { ChangePasswordPage } from "@/features/auth/pages/ChangePasswordPage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
+import { CreateMemberPage } from "@/features/members/pages/CreateMemberPage";
+import { EditMemberPage } from "@/features/members/pages/EditMemberPage";
+import { HomePage } from "@/features/members/pages/HomePage";
+import { MemberProfilePage } from "@/features/members/pages/MemberProfilePage";
+import { MembersPage } from "@/features/members/pages/MembersPage";
 import { StaffPage } from "@/features/staff/pages/StaffPage";
 import { StatusPage } from "@/features/status/pages/StatusPage";
 
@@ -23,7 +28,12 @@ export const routes: RouteObject[] = [
       {
         element: <AppShell />,
         children: [
-          { path: paths.home, element: <StatusPage /> },
+          { path: paths.home, element: <HomePage /> },
+          { path: paths.members, element: <MembersPage /> },
+          { path: paths.newMember, element: <CreateMemberPage /> },
+          { path: paths.member(":id"), element: <MemberProfilePage /> },
+          { path: paths.editMember(":id"), element: <EditMemberPage /> },
+          { path: paths.status, element: <StatusPage /> },
           { path: paths.changePassword, element: <ChangePasswordPage /> },
           {
             path: paths.staff,

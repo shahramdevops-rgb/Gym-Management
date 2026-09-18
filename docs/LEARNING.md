@@ -127,7 +127,7 @@ Format:
 - **RTL works in three layers.** `<html dir="rtl">` is set before JavaScript runs, so there is no flash. Radix `DirectionProvider` exists because Radix computes placement and keyboard direction in JavaScript and does not read the `dir` attribute. And logical utilities (`border-e`, `ps-`) are enforced by an ESLint rule: the navigation is on the right because it comes first in a right-to-left row, not because anything says "right".
 - **A business date is a day, not a moment.** `"2026-09-17"` is formatted in UTC so the day it names can never shift. A timestamp is formatted in `Asia/Tehran` so 21:00 UTC shows as 00:30 on the *next* Jalali day. Mixing these two up is the classic off-by-one-day bug.
 - **Honest tests, again.** A "never shifts the day" test for dates passed with both the old and the new code, because Tehran is ahead of UTC and can't show the bug. It was renamed to what it actually checks instead of being kept as reassurance.
-- **Invisible characters belong in escapes.** ZWNJ, Arabic ي and Persian ی look identical or invisible in an editor, so source code and tests write them as `‌`, `ي` and `ی`. ESLint rejects literal ones, and the reviewer can see which code point is meant.
+- **Invisible characters belong in escapes.** ZWNJ, Arabic ي and Persian ی look identical or invisible in an editor, so source code and tests write them as `\u200C`, `\u064A` and `\u06CC`. ESLint rejects literal ones, and the reviewer can see which code point is meant.
 - **Normalization is a business rule, not a helper detail.** Treating half-space and space as the same, and stripping harakat and tatweel, decide which members a search finds. That is why these rules were written into BUSINESS_RULES §13 before the code was changed to match.
 - **Generators need checking too.** The shadcn CLI read the wrong tsconfig, wrote into a literal `@/` folder and installed an unrelated npm package called `cn`. Reading `package.json` after running any generator is cheap insurance.
 - **My notes:**
@@ -267,7 +267,7 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **The first real domain entity.** `Member.Create` and `Update` return `Result` for rule failures (blank name, too long) and throw only for a caller's bug (a phone that wasn't normalized). Ten unit tests run without a database.
 - **Check first, then let the index decide.** The handler asks "does this phone exist?" for a friendly 409. Six parallel creates can all pass that check, so the database's unique index decides, and `AppDbContext` turns its error into `UniqueConstraintException` so the losers get the same 409. A mutation check showed they got 500s without that translation.
 - **Optimistic concurrency across a whole form.** `xmin` alone protects only the milliseconds between a request's read and write. Returning `Version` with the member, and requiring it back on update, protects the minutes a receptionist spends editing: if someone saved in between, the edit is refused instead of silently erasing their change.
-- **Invisible characters need visible source.** A literal Arabic ي looks exactly like Persian ی, and editing tools quietly turned `ي` escapes into the character itself. Domain code and tests now write them as code points, `(char)0x064A`, which no tool rewrites and every reviewer can read.
+- **Invisible characters need visible source.** A literal Arabic ي looks exactly like Persian ی, and editing tools quietly turned `\u064A` escapes into the character itself. Domain code and tests now write them as code points, `(char)0x064A`, which no tool rewrites and every reviewer can read.
 - **My notes:**
 
 
@@ -282,4 +282,18 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **Stable paging.** Sorting only by name lets two "علی"s swap places between two page requests, so one shows twice and the other never. Adding `Id` as a tie-breaker gives every row a fixed position.
 - **An action that repeats safely.** Deactivating an already inactive member just succeeds. EF Core sees nothing changed, so it writes nothing, not even an audit row. A double-click or a retry after a network error can't do harm.
 - **Where tests found real details.** `timestamptz` keeps microseconds while .NET keeps 100 ns, and the snake-case convention quietly renamed an index. Both are now in the Gotchas in ARCHITECTURE.md.
+- **My notes:**
+
+---
+
+## 2.3 — UI: members
+
+- **State in the URL.** The search text, page and filter live in the query string, not only in React state. Refresh, back from a profile, and a copied link all show the same results. Typing uses `replace` so the back button doesn't step through every pause; paging and filters push, so back undoes them.
+- **Debouncing a call, not a value.** `useDebouncedCallback` waits until typing pauses for 300 ms, then writes the URL once. An effect watching a debounced value would also re-run whenever its other dependencies changed, like `setSearchParams`, which changes on every navigation.
+- **Adjusting state during render.** When the URL changes from outside (back button), the search box follows it with `if (q !== shownQ) { … }` in the render itself, React's documented pattern. An effect would first paint the stale text.
+- **Two layers of validation.** Zod catches blanks and lengths instantly, with the same Persian messages as the API's codes. Only the server knows whether a phone is a real Iranian mobile or already taken, so those codes are routed to the phone field (`codeFields`).
+- **Optimistic concurrency, visible.** The edit form sends back the `version` it was filled from. On `Members.ChangedConcurrently` the page explains and offers to load the colleague's version. The form is keyed by `version`, so React rebuilds it with the fresh values.
+- **Cache after a change.** A mutation puts the server's answer straight into the profile's cache entry and invalidates the lists, so a renamed member never keeps the old name in search results.
+- **Bidi in practice.** In a right-to-left paragraph, `۰۹۱۲ ۱۲۳ ۴۵۶۷` is laid out as `۴۵۶۷ ۱۲۳ ۰۹۱۲`. Wrapping it in `dir="ltr"` keeps the groups in order.
+- **The invisible-character trap, again.** An escape `\u064A` I wrote became a literal ي on disk, and a fix script then replaced ي with ي because its own escape had been converted too. Checking code points found it; the backslash is now built from its code point.
 - **My notes:**

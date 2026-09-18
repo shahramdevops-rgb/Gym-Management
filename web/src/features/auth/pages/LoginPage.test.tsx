@@ -66,7 +66,8 @@ describe("LoginPage", () => {
       ...signedInHandlers(staffUser),
       "POST /api/auth/login": () => json(200, session()),
     });
-    renderApp("/");
+    // Not the home page, so landing there proves the redirect remembered where the user was going.
+    renderApp("/status");
 
     fillAndSubmit("sara", "Pass1234");
 
@@ -82,7 +83,7 @@ describe("LoginPage", () => {
 
     fillAndSubmit("sara", "رمز۱۲۳۴");
 
-    await screen.findByText("سالم");
+    await screen.findByRole("heading", { name: "جستجوی عضو" });
     const body = (await api.requestsTo("POST", "/api/auth/login")[0]!.json()) as {
       password: string;
     };

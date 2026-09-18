@@ -1,4 +1,4 @@
-import { Activity, KeyRound, LogOut, Users, type LucideIcon } from "lucide-react";
+import { Activity, Contact, KeyRound, LogOut, Search, Users, type LucideIcon } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,10 @@ interface NavigationItem {
 }
 
 const navigation: NavigationItem[] = [
-  { to: paths.home, label: "وضعیت سیستم", icon: Activity },
+  { to: paths.home, label: "جستجو", icon: Search },
+  { to: paths.members, label: "اعضا", icon: Contact },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
+  { to: paths.status, label: "وضعیت سیستم", icon: Activity },
   { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },
 ];
 
@@ -74,7 +76,8 @@ export function AppShell() {
               <li key={to}>
                 <NavLink
                   to={to}
-                  end
+                  // "/" would otherwise match every page; "اعضا" should stay lit on a profile.
+                  end={to === paths.home}
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-2 rounded-md px-3 py-2 text-sm",

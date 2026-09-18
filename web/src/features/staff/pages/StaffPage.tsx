@@ -1,11 +1,11 @@
 import { Fragment, useState } from "react";
 
+import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
-import { toPersianDigits } from "@/lib/format";
 
 import { useSetStaffActive, useStaffList, type StaffMember } from "../api";
 import { CreateStaffForm } from "../components/CreateStaffForm";
@@ -135,28 +135,8 @@ export function StaffPage() {
             </div>
           )}
 
-          {staff.isSuccess && staff.data.pageCount > 1 && (
-            <nav aria-label="صفحه‌بندی" className="flex items-center gap-3">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-              >
-                قبلی
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                صفحهٔ {toPersianDigits(page)} از {toPersianDigits(staff.data.pageCount)}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page >= staff.data.pageCount}
-                onClick={() => setPage(page + 1)}
-              >
-                بعدی
-              </Button>
-            </nav>
+          {staff.isSuccess && (
+            <Pager page={page} pageCount={staff.data.pageCount} onPageChange={setPage} />
           )}
         </CardContent>
       </Card>

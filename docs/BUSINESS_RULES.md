@@ -100,6 +100,12 @@ Decided values:
   - The list and search include inactive members by default, so staff can find someone to reactivate or correct. An optional filter shows only active or only inactive members.
   - Results are sorted by name.
 - Deactivating an inactive member, or reactivating an active one, succeeds and changes nothing.
+- Member screens (decided with the developer in task 2.3):
+  - The home page is the member search. The server status page moved to its own menu item.
+  - The search runs by itself about 300 ms after typing stops; Enter searches at once.
+  - Deactivating asks for no confirmation: nothing is deleted, and reactivating undoes it in one click.
+  - After a new member is saved, their profile opens.
+  - Phone numbers are shown in the local format with Persian digits (`۰۹۱۲ ۱۲۳ ۴۵۶۷`); the API stores and returns E.164.
 
 ---
 
