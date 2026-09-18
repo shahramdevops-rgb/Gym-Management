@@ -68,11 +68,16 @@
     xunit.v3 carries its own Microsoft Testing Platform runner, so neither
     Microsoft.NET.Test.Sdk nor xunit.runner.visualstudio is needed: the .NET 10 SDK has
     dropped VSTest support for Microsoft.Testing.Platform. The opt-in is the "test" section
-    of global.json at the repo root.
+    of global.json at the repo root. Microsoft.AspNetCore.Mvc.Testing is safe alongside it:
+    its only dependencies are TestHost, DependencyModel and Hosting, so it does not drag
+    Microsoft.NET.Test.Sdk back in.
   -->
   <ItemGroup Label="Testing">
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+    <PackageVersion Include="Respawn" Version="7.0.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>
 

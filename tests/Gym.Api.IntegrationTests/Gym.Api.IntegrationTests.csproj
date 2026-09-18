@@ -17,4 +17,16 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
+  <!--
+    The database harness. WebApplicationFactory (Mvc.Testing) boots the real Program.cs in
+    process, Testcontainers gives it a throwaway postgres:18 of its own — never the
+    docker-compose container, so running tests cannot touch development data — and Respawn
+    truncates between tests, which is far cheaper than a fresh container or fresh migrations.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Respawn" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+
 </Project>

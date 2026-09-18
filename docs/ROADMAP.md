@@ -61,9 +61,9 @@ Done when: Scalar opens and request logs appear in Seq.
 Done when: an invalid request returns a 400 ProblemDetails with field errors and codes.
 
 ### 0.6 Test harness
-- [ ] Domain tests: xUnit v3 and Shouldly
-- [ ] Integration fixture: WebApplicationFactory, Testcontainers Postgres, migrations, Respawn
-- [ ] First integration test: `/health` returns 200
+- [x] Domain tests: xUnit v3 and Shouldly
+- [x] Integration fixture: WebApplicationFactory, Testcontainers Postgres, migrations, Respawn
+- [x] First integration test: `/health` returns 200
 
 Done when: `dotnet test` is green with Docker running.
 
