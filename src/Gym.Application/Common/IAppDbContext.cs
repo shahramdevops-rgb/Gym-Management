@@ -1,5 +1,6 @@
 using Gym.Domain.Auth;
 using Gym.Domain.Members;
+using Gym.Domain.Plans;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -31,6 +32,8 @@ public interface IAppDbContext
     DbSet<RefreshToken> RefreshTokens { get; }
 
     DbSet<Member> Members { get; }
+
+    DbSet<Plan> Plans { get; }
 
     /// <summary>
     /// Exposed for the rare handler that must recover from a failed save in the same request:

@@ -297,3 +297,16 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **Bidi in practice.** In a right-to-left paragraph, `۰۹۱۲ ۱۲۳ ۴۵۶۷` is laid out as `۴۵۶۷ ۱۲۳ ۰۹۱۲`. Wrapping it in `dir="ltr"` keeps the groups in order.
 - **The invisible-character trap, again.** An escape `\u064A` I wrote became a literal ي on disk, and a fix script then replaced ي with ي because its own escape had been converted too. Checking code points found it; the backslash is now built from its code point.
 - **My notes:**
+
+---
+
+## 3.1 — Plans API
+
+- **Two groups, one prefix, two policies.** `/api/plans` is mapped twice: a read group with `StaffOrOwner` and a write group with `OwnerOnly`. Every endpoint gets its policy from the group it lives in, so a new write endpoint can't be added without the Owner check. Staff still see plans, because they sell them.
+- **Null that means something.** `SessionCount` is `int?`: null is "unlimited". A magic value like 0 or -1 would be a number every caller has to remember isn't a number; `null` makes the compiler remind them. `IsUnlimited` names the meaning and is ignored by EF Core.
+- **Money is exact.** `decimal` in C#, `numeric(18,2)` in Postgres. A price with three decimals is refused, not rounded, because silently changing an amount nobody typed is the kind of bug you find in an audit.
+- **A rule with one home, used later.** "Inactive plans cannot be sold" is `plan.EnsureCanBeSold()`. There is nothing to sell yet; task 4.2 will call it instead of checking `IsActive` itself, so the rule can't be implemented twice slightly differently.
+- **Validator and entity share one source.** The limits are constants on `Plan`, and `PlanRules` uses the same constants and error codes (even `Plan.CheckPrice`). The form gets field-level messages, and the entity still refuses bad values if a caller skips validation.
+- **The database repeats the rules.** Check constraints (`BETWEEN 1 AND 365`, `price >= 0`, `session_count IS NULL OR …`) and a unique index on the normalized name. Tests insert bad rows with raw SQL to prove the database refuses them by itself.
+- **Unique in normalized form.** Uniqueness is checked on `NormalizedName`, not `Name`, so "ویژه" typed with an Arabic ي is the same plan. Check first for a friendly 409, and let the unique index settle the race (the parallel-create test).
+- **My notes:**

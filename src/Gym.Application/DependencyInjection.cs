@@ -10,6 +10,11 @@ using Gym.Application.Members.GetMember;
 using Gym.Application.Members.ListMembers;
 using Gym.Application.Members.SetMemberActive;
 using Gym.Application.Members.UpdateMember;
+using Gym.Application.Plans.CreatePlan;
+using Gym.Application.Plans.GetPlan;
+using Gym.Application.Plans.ListPlans;
+using Gym.Application.Plans.SetPlanActive;
+using Gym.Application.Plans.UpdatePlan;
 using Gym.Application.Staff.CreateStaff;
 using Gym.Application.Staff.GetStaff;
 using Gym.Application.Staff.ListStaff;
@@ -64,6 +69,12 @@ public static class DependencyInjection
         services.AddScoped<GetMemberHandler>();
         services.AddScoped<ListMembersHandler>();
         services.AddScoped<SetMemberActiveHandler>();
+
+        services.AddScoped<CreatePlanHandler>();
+        services.AddScoped<UpdatePlanHandler>();
+        services.AddScoped<GetPlanHandler>();
+        services.AddScoped<ListPlansHandler>();
+        services.AddScoped<SetPlanActiveHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

@@ -78,6 +78,20 @@ export const errorMessages: Record<string, string> = {
   "Members.ChangedConcurrently":
     "این عضو هم‌زمان توسط شخص دیگری ویرایش شد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
+  // Plans
+  "Plans.NotFound": "پلن پیدا نشد.",
+  "Plans.NameAlreadyExists": "پلن دیگری با همین نام وجود دارد.",
+  "Plans.NameRequired": "نام پلن را وارد کنید.",
+  "Plans.NameTooLong": "نام پلن بیش از حد طولانی است.",
+  "Plans.DurationInvalid": "مدت پلن باید بین ۱ تا ۳۶۵ روز باشد.",
+  "Plans.SessionCountInvalid": "تعداد جلسات باید بین ۱ تا ۳۶۵ باشد، یا برای نامحدود خالی بماند.",
+  "Plans.PriceNegative": "قیمت نمی‌تواند منفی باشد.",
+  "Plans.PriceTooLarge": "قیمت بیش از حد بزرگ است.",
+  "Plans.PriceTooManyDecimals": "قیمت حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
+  "Plans.Inactive": "این پلن غیرفعال است و قابل فروش نیست.",
+  "Plans.ChangedConcurrently":
+    "این پلن هم‌زمان توسط شخص دیگری ویرایش شد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",
   "Paging.PageSizeInvalid": "تعداد ردیف‌های هر صفحه نامعتبر است.",

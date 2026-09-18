@@ -2,6 +2,7 @@ using Gym.Application.Common;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Members;
+using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +32,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public DbSet<Member> Members => Set<Member>();
+
+    public DbSet<Plan> Plans => Set<Plan>();
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);

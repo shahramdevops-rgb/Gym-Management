@@ -257,6 +257,83 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Plans.Plan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_days");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("price");
+
+                    b.Property<int?>("SessionCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("session_count");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_plans");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_plans_normalized_name");
+
+                    b.ToTable("plans", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_plans_duration_days_range", "duration_days BETWEEN 1 AND 365");
+
+                            t.HasCheckConstraint("ck_plans_name_not_blank", "btrim(name) <> ''");
+
+                            t.HasCheckConstraint("ck_plans_price_not_negative", "price >= 0");
+
+                            t.HasCheckConstraint("ck_plans_session_count_range", "session_count IS NULL OR session_count BETWEEN 1 AND 365");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Infrastructure.Identity.User", b =>
                 {
                     b.Property<Guid>("Id")

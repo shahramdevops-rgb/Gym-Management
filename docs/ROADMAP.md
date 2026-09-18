@@ -168,10 +168,10 @@ Done when: staff can find, create, and edit members in the app.
 ## Phase 3 — Plans
 
 ### 3.1 Plans API
-- [ ] Plan entity (duration, session count or unlimited, price, active)
-- [ ] Create, update, activate, deactivate (Owner only), list
-- [ ] Validation rules
-- [ ] Tests: staff cannot create plans; inactive plans cannot be sold
+- [x] Plan entity (duration, session count or unlimited, price, active)
+- [x] Create, update, activate, deactivate (Owner only), list
+- [x] Validation rules
+- [x] Tests: staff cannot create plans; inactive plans cannot be sold
 
 ### 3.2 UI: plans
 - [ ] Owner plans screen: list, create, edit, activate/deactivate
