@@ -22,6 +22,72 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Gym.Domain.Audit.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("EntityId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<string>("NewValues")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("new_values");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("OldValues")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("old_values");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_audit_logs");
+
+                    b.HasIndex("OccurredAt")
+                        .HasDatabaseName("ix_audit_logs_occurred_at");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_audit_logs_user_id");
+
+                    b.HasIndex("EntityType", "EntityId")
+                        .HasDatabaseName("ix_audit_logs_entity_type_entity_id");
+
+                    b.ToTable("audit_logs", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_audit_logs_action", "action IN ('Insert', 'Update', 'Delete')");
+
+                            t.HasCheckConstraint("ck_audit_logs_values_match_action", "(action = 'Insert' AND old_values IS NULL AND new_values IS NOT NULL) OR (action = 'Update' AND old_values IS NOT NULL AND new_values IS NOT NULL) OR (action = 'Delete' AND old_values IS NOT NULL AND new_values IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Auth.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")

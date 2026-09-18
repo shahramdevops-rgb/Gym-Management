@@ -215,3 +215,15 @@ Format:
 - **Paging from the start.** Even a list of five staff returns `PagedResponse<T>`. Changing a response shape later breaks the frontend. Paging from day one costs almost nothing.
 - **My notes:**
 
+---
+
+## 1.6 — Audit log
+
+- **An interceptor sees every change, so no handler has to remember.** The audit rule is "every insert, update and delete". Forty handlers each writing their own audit row would be forty chances to forget. One `SaveChangesInterceptor` reads the change tracker and writes the rows for all of them.
+- **Same save, same transaction.** The audit rows are added to the context *inside* `SavingChanges`, so they commit or roll back together with the change they describe. A test proves a failed save leaves no audit row behind.
+- **The change tracker knows the old values.** `PropertyEntry.OriginalValue` and `CurrentValue` give "before" and "after" for free, and `IsModified` says which properties changed. EF marks a property modified when it's *assigned*, so the interceptor also compares the values.
+- **Exclude secrets by name, and prove it with the real values.** The test doesn't only check that no row has a `PasswordHash` key. It loads every real hash and stamp from the database and checks that none appears anywhere in the log. A mutation check confirmed the test fails if the exclusion is removed.
+- **Append-only belongs in the database.** The entity has no update methods, but code isn't the only thing that talks to a database. A trigger rejects UPDATE and DELETE from any connection. Triggers aren't part of EF's model, so the migration creates it with raw SQL and `ARCHITECTURE.md` records that the snapshot doesn't know about it.
+- **Know how your tools touch the database.** A DELETE-blocking trigger could have broken every test reset. It doesn't, because Respawn uses TRUNCATE, which row-level triggers ignore. A test now pins that, so a Respawn upgrade that changes it fails loudly in one place.
+- **My notes:**
+

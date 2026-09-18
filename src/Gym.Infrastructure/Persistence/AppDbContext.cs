@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Infrastructure.Identity;
 
@@ -19,6 +20,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<User, IdentityRole<Guid>, Guid>(options), IAppDbContext
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    /// <summary>
+    /// Not on <c>IAppDbContext</c> yet: nothing in Application reads the audit log until the
+    /// audit screen (task 11.1), and only the interceptor writes it.
+    /// </summary>
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
