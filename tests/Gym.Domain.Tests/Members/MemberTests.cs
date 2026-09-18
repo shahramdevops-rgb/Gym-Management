@@ -91,4 +91,58 @@ public sealed class MemberTests
         member.PhoneNumber.ShouldBe(Phone);
         member.Notes.ShouldBe("قبلی");
     }
+
+    [Fact]
+    public void Deactivate_ActiveMember_BecomesInactive()
+    {
+        var member = Member.Create("رضا", Phone, null).Value;
+
+        member.Deactivate();
+
+        member.IsActive.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Deactivate_InactiveMember_StaysInactive()
+    {
+        var member = Member.Create("رضا", Phone, null).Value;
+        member.Deactivate();
+
+        member.Deactivate();
+
+        member.IsActive.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Reactivate_InactiveMember_BecomesActive()
+    {
+        var member = Member.Create("رضا", Phone, null).Value;
+        member.Deactivate();
+
+        member.Reactivate();
+
+        member.IsActive.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Reactivate_ActiveMember_StaysActive()
+    {
+        var member = Member.Create("رضا", Phone, null).Value;
+
+        member.Reactivate();
+
+        member.IsActive.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Update_InactiveMember_SucceedsAndStaysInactive()
+    {
+        var member = Member.Create("رضا", Phone, null).Value;
+        member.Deactivate();
+
+        member.Update("رضا احمدی", "+989351234567", null).IsSuccess.ShouldBeTrue();
+
+        member.FullName.ShouldBe("رضا احمدی");
+        member.IsActive.ShouldBeFalse();
+    }
 }

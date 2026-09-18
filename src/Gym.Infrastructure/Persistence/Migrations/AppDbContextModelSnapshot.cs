@@ -20,6 +20,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Gym.Domain.Audit.AuditLog", b =>
@@ -235,9 +236,18 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasIndex("NormalizedFullName")
                         .HasDatabaseName("ix_members_normalized_full_name");
 
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("NormalizedFullName"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("NormalizedFullName"), new[] { "gin_trgm_ops" });
+
                     b.HasIndex("PhoneNumber")
                         .IsUnique()
                         .HasDatabaseName("ix_members_phone_number");
+
+                    b.HasIndex(new[] { "PhoneNumber" }, "PhoneNumberTrigram")
+                        .HasDatabaseName("ix_members_phone_number_trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex(new[] { "PhoneNumber" }, "PhoneNumberTrigram"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex(new[] { "PhoneNumber" }, "PhoneNumberTrigram"), new[] { "gin_trgm_ops" });
 
                     b.ToTable("members", null, t =>
                         {

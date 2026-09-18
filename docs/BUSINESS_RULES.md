@@ -93,6 +93,13 @@ Decided values:
 - An inactive member's details can still be edited, for example to correct a phone number before reactivating.
 - Names are stored as entered and also in a normalized search column (see section 13).
 - Name search is partial, case-insensitive, and uses the normalized form. Phone search normalizes the input first.
+- Search and list (decided with the developer in task 2.2):
+  - One search box takes a name or a phone number. Input made only of digits, `+`, spaces, dashes and brackets is a phone search; anything else is a name search.
+  - A whole phone number, in any format, finds the member with exactly that number. At least 4 digits that are not a whole number match anywhere in the stored number (leading zeros are dropped first, so `0912 123` works). Fewer digits, or a number that matches nobody, returns an empty list, not an error.
+  - A search needs at least 2 characters after normalization (`Members.SearchTooShort`). A blank search lists everyone.
+  - The list and search include inactive members by default, so staff can find someone to reactivate or correct. An optional filter shows only active or only inactive members.
+  - Results are sorted by name.
+- Deactivating an inactive member, or reactivating an active one, succeeds and changes nothing.
 
 ---
 

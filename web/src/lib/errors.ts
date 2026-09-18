@@ -73,6 +73,8 @@ export const errorMessages: Record<string, string> = {
   "Members.FullNameRequired": "نام و نام خانوادگی را وارد کنید.",
   "Members.FullNameTooLong": "نام بیش از حد طولانی است.",
   "Members.NotesTooLong": "یادداشت بیش از حد طولانی است.",
+  "Members.SearchTooShort": "برای جستجو دست‌کم ۲ حرف وارد کنید.",
+  "Members.SearchTooLong": "متن جستجو بیش از حد طولانی است.",
   "Members.ChangedConcurrently":
     "این عضو هم‌زمان توسط شخص دیگری ویرایش شد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 

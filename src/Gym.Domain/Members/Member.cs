@@ -95,6 +95,15 @@ public sealed class Member : Entity
         return Result.Success();
     }
 
+    /// <summary>
+    /// An inactive member cannot check in or receive new subscriptions (BUSINESS_RULES.md §2).
+    /// Deactivating an inactive member succeeds and changes nothing.
+    /// </summary>
+    public void Deactivate() => IsActive = false;
+
+    /// <summary>Reactivating an active member succeeds and changes nothing.</summary>
+    public void Reactivate() => IsActive = true;
+
     private static bool IsE164(string value) =>
         value.Length is >= 8 and <= 16 && value[0] == '+' && value.Skip(1).All(char.IsAsciiDigit);
 }

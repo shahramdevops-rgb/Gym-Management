@@ -66,6 +66,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         // would apply first and then be silently overwritten back to "AspNetUsers".
         base.OnModelCreating(builder);
 
+        // Trigram indexes for "contains" searches (MemberConfiguration). A standard Postgres
+        // extension, not a NuGet package; the migration runs CREATE EXTENSION IF NOT EXISTS.
+        builder.HasPostgresExtension("pg_trgm");
+
         // Picks up every IEntityTypeConfiguration<T> in Gym.Infrastructure, so adding an
         // entity is "add one configuration file" and never "also remember to register it".
         builder.ApplyConfigurationsFromAssembly(AssemblyReference.Assembly);
