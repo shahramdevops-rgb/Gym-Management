@@ -5,7 +5,7 @@ using Gym.Domain.Payments;
 namespace Gym.Application.Payments;
 
 /// <summary>
-/// The field checks the register-payment (and, later, refund) commands share, with the entity's
+/// The field checks the register-payment and register-refund commands share, with the entity's
 /// error codes, so the form gets a message per field before anything touches the database.
 /// </summary>
 public static class PaymentRules
@@ -27,4 +27,11 @@ public static class PaymentRules
     public static IRuleBuilderOptions<T, string?> ValidReferenceNumber<T>(this IRuleBuilderInitial<T, string?> rule) =>
         rule.MaximumLength(Payment.ReferenceNumberMaxLength)
             .WithErrorCode(PaymentErrors.ReferenceNumberTooLong.Code).WithMessage(PaymentErrors.ReferenceNumberTooLong.Description);
+
+    public static IRuleBuilderOptions<T, string> ValidRefundReason<T>(this IRuleBuilderInitial<T, string> rule) =>
+        rule.Cascade(CascadeMode.Stop)
+            .NotEmpty()
+            .WithErrorCode(PaymentErrors.RefundReasonRequired.Code).WithMessage(PaymentErrors.RefundReasonRequired.Description)
+            .MaximumLength(Payment.ReasonMaxLength)
+            .WithErrorCode(PaymentErrors.RefundReasonTooLong.Code).WithMessage(PaymentErrors.RefundReasonTooLong.Description);
 }

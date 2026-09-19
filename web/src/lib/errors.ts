@@ -116,6 +116,9 @@ export const errorMessages: Record<string, string> = {
   "Payments.ReferenceNumberTooLong": "شماره پیگیری بیش از حد طولانی است.",
   "Payments.MethodInvalid": "روش پرداخت معتبر نیست.",
   "Payments.Overpayment": "این پرداخت از مبلغ اشتراک بیشتر می‌شود.",
+  "Payments.RefundReasonRequired": "دلیل استرداد را وارد کنید.",
+  "Payments.RefundReasonTooLong": "دلیل استرداد بیش از حد طولانی است.",
+  "Payments.RefundExceedsNetPaid": "این استرداد از مبلغ پرداخت‌شدهٔ اشتراک بیشتر است.",
 
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",

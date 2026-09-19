@@ -72,6 +72,48 @@ public sealed class PaymentTests
         Payment.RegisterForSubscription(SubscriptionId, 100m, PaymentMethod.Card, referenceNumber, UserId, PaidAt)
             .Error.ShouldBe(PaymentErrors.ReferenceNumberTooLong);
     }
+
+    // ---- RegisterRefundForSubscription ----
+
+    [Fact]
+    public void RegisterRefundForSubscription_PositiveAmountWithReason_SucceedsAsARefund()
+    {
+        var registered = Payment.RegisterRefundForSubscription(
+            SubscriptionId, 300_000m, PaymentMethod.Cash, null, "اشتباه در ثبت مبلغ", UserId, PaidAt);
+
+        registered.IsSuccess.ShouldBeTrue();
+        var refund = registered.Value;
+        refund.Kind.ShouldBe(PaymentKind.Refund);
+        refund.Amount.ShouldBe(300_000m);
+        refund.Reason.ShouldBe("اشتباه در ثبت مبلغ");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void RegisterRefundForSubscription_BlankReason_FailsWithRefundReasonRequired(string reason)
+    {
+        Payment.RegisterRefundForSubscription(SubscriptionId, 100m, PaymentMethod.Cash, null, reason, UserId, PaidAt)
+            .Error.ShouldBe(PaymentErrors.RefundReasonRequired);
+    }
+
+    [Fact]
+    public void RegisterRefundForSubscription_ReasonOver500Characters_FailsWithRefundReasonTooLong()
+    {
+        var reason = new string('د', Payment.ReasonMaxLength + 1);
+
+        Payment.RegisterRefundForSubscription(SubscriptionId, 100m, PaymentMethod.Cash, null, reason, UserId, PaidAt)
+            .Error.ShouldBe(PaymentErrors.RefundReasonTooLong);
+    }
+
+    [Fact]
+    public void RegisterRefundForSubscription_ZeroAmount_FailsWithAmountNotPositive()
+    {
+        // The amount and reference-number checks are shared with RegisterForSubscription
+        // through the entity's private Create; one case here is enough to prove that.
+        Payment.RegisterRefundForSubscription(SubscriptionId, 0m, PaymentMethod.Cash, null, "دلیل", UserId, PaidAt)
+            .Error.ShouldBe(PaymentErrors.AmountNotPositive);
+    }
 }
 
 public sealed class PaymentStatusCalculatorTests

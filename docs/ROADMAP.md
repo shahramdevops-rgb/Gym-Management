@@ -204,10 +204,10 @@ Done when: staff can find, create, and edit members in the app.
 - [x] Tests: Unpaid → Partial → Paid
 
 ### 4.5 Refunds and member history
-- [ ] Refund and void (Owner only)
-- [ ] Member subscription history
-- [ ] Member payment history
-- [ ] Tests: refund cannot exceed net paid; status recalculates
+- [x] Refund and void (Owner only)
+- [x] Member subscription history
+- [x] Member payment history
+- [x] Tests: refund cannot exceed net paid; status recalculates
 
 ### 4.6 UI: subscriptions and payments
 - [ ] Member profile: current subscription card (status, Jalali dates, sessions left, payment status)

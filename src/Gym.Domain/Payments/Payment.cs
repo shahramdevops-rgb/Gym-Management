@@ -10,8 +10,8 @@ namespace Gym.Domain.Payments;
 /// <see cref="CafeOrderId"/> exists because the documented entity has it (a payment belongs to
 /// exactly one of a subscription or a cafe order), but nothing sets it before cafe orders exist
 /// (Phase 7); the database's one-target check constraint is enforced from this task on regardless.
-/// Registering a refund (<see cref="PaymentKind.Refund"/>) is task 4.5's use case; this task only
-/// builds <see cref="RegisterForSubscription"/>.
+/// A "void" (BUSINESS_RULES.md §5) is not a separate code path: it is a full-amount
+/// <see cref="RegisterRefundForSubscription"/> whose reason explains the mistake.
 /// </remarks>
 public sealed class Payment : Entity
 {
@@ -51,7 +51,38 @@ public sealed class Payment : Entity
 
     public static Result<Payment> RegisterForSubscription(
         Guid subscriptionId, decimal amount, PaymentMethod method, string? referenceNumber,
+        Guid receivedByUserId, DateTimeOffset paidAt) =>
+        Create(subscriptionId, PaymentKind.Payment, amount, method, referenceNumber, receivedByUserId, paidAt, reason: null);
+
+    /// <summary>
+    /// A refund, or a "void" when it happens to be the full amount of a mistaken payment
+    /// (BUSINESS_RULES.md §5) — the reason is the only thing that tells the two apart, so there is
+    /// no separate void factory. Whether it exceeds the subscription's net paid amount is checked
+    /// by the caller, which is the only place that knows the running total.
+    /// </summary>
+    public static Result<Payment> RegisterRefundForSubscription(
+        Guid subscriptionId, decimal amount, PaymentMethod method, string? referenceNumber, string reason,
         Guid receivedByUserId, DateTimeOffset paidAt)
+    {
+        ArgumentNullException.ThrowIfNull(reason);
+
+        var cleanReason = reason.Trim();
+        if (cleanReason.Length == 0)
+        {
+            return Result.Failure<Payment>(PaymentErrors.RefundReasonRequired);
+        }
+
+        if (cleanReason.Length > ReasonMaxLength)
+        {
+            return Result.Failure<Payment>(PaymentErrors.RefundReasonTooLong);
+        }
+
+        return Create(subscriptionId, PaymentKind.Refund, amount, method, referenceNumber, receivedByUserId, paidAt, cleanReason);
+    }
+
+    private static Result<Payment> Create(
+        Guid subscriptionId, PaymentKind kind, decimal amount, PaymentMethod method, string? referenceNumber,
+        Guid receivedByUserId, DateTimeOffset paidAt, string? reason)
     {
         var amountError = CheckAmount(amount);
         if (amountError is not null)
@@ -73,12 +104,13 @@ public sealed class Payment : Entity
         return new Payment
         {
             SubscriptionId = subscriptionId,
-            Kind = PaymentKind.Payment,
+            Kind = kind,
             Amount = amount,
             Method = method,
             ReferenceNumber = cleanReference,
             PaidAt = paidAt,
             ReceivedByUserId = receivedByUserId,
+            Reason = reason,
         };
     }
 
