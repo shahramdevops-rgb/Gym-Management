@@ -501,6 +501,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: null | string;
+            /** @default false */
+            hasUnpaidSubscription: boolean;
         };
         PagedResponseOfMemberResponse: {
             items: components["schemas"]["MemberResponse"][];
@@ -678,6 +680,9 @@ export interface components {
             version: number | string;
             /** Format: date-time */
             createdAt: string;
+            /** Format: double */
+            netPaid: number | string;
+            paymentStatus: components["schemas"]["PaymentStatus"];
         };
         /** @enum {unknown} */
         SubscriptionStatus: "Cancelled" | "Frozen" | "Upcoming" | "Expired" | "Exhausted" | "Active";

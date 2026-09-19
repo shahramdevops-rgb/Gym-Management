@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Payments;
 using Gym.Domain.Common;
 using Gym.Domain.Subscriptions;
 
@@ -36,6 +37,8 @@ public sealed class FreezeSubscriptionHandler(IAppDbContext db, IGymCalendar cal
             return Result.Failure<SubscriptionResponse>(SubscriptionErrors.ChangedConcurrently);
         }
 
-        return SubscriptionResponse.From(subscription, today);
+        var netPaid = await PaymentLedger.GetNetPaidAsync(db, id, cancellationToken);
+
+        return SubscriptionResponse.From(subscription, today, netPaid);
     }
 }

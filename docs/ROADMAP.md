@@ -210,11 +210,11 @@ Done when: staff can find, create, and edit members in the app.
 - [x] Tests: refund cannot exceed net paid; status recalculates
 
 ### 4.6 UI: subscriptions and payments
-- [ ] Member profile: current subscription card (status, Jalali dates, sessions left, payment status)
-- [ ] Assign and renew subscription dialog
-- [ ] Register payment dialog
-- [ ] Subscription and payment history tabs
-- [ ] Owner: freeze, unfreeze, cancel, refund actions
+- [x] Member profile: current subscription card (status, Jalali dates, sessions left, payment status)
+- [x] Assign and renew subscription dialog
+- [x] Register payment dialog
+- [x] Subscription and payment history tabs
+- [x] Owner: freeze, unfreeze, cancel, refund actions
 
 Done when: staff can sell a subscription and take payment from the member profile.
 

@@ -7,15 +7,17 @@ import { PageMessage } from "@/features/auth/components/PageMessage";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CurrentSubscriptionCard } from "@/features/subscriptions/components/CurrentSubscriptionCard";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 
 import { useMember, useSetMemberActive } from "../api";
+import { MemberHistoryTabs } from "../components/MemberHistoryTabs";
 import { MemberStatusBadge, PhoneNumber } from "../components/MembersTable";
 
 /**
- * A member's basic details. Later phases add sections here: subscription, payments, check-in,
- * locker, cafe purchases.
+ * A member's basic details, current subscription (task 4.6) and subscription/payment history.
+ * Later phases add more sections here: check-in, locker, cafe purchases.
  *
  * Deactivating asks for no confirmation: it deletes nothing and "فعال‌سازی" undoes it in one
  * click (decided in task 2.3).
@@ -52,7 +54,7 @@ export function MemberProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="max-w-4xl space-y-4">
       {notice !== null && (
         <Alert variant={notice.kind} role={notice.kind === "success" ? "status" : "alert"}>
           {notice.text}
@@ -103,6 +105,9 @@ export function MemberProfilePage() {
           عضو غیرفعال نمی‌تواند وارد باشگاه شود یا اشتراک تازه بگیرد.
         </p>
       )}
+
+      <CurrentSubscriptionCard memberId={id} />
+      <MemberHistoryTabs memberId={id} />
     </div>
   );
 }

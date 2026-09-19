@@ -16,6 +16,7 @@ export function MembersTable({ members }: { members: Member[] }) {
             <th className="py-2 text-start font-medium">نام</th>
             <th className="py-2 text-start font-medium">موبایل</th>
             <th className="py-2 text-start font-medium">وضعیت</th>
+            <th className="py-2 text-start font-medium">پرداخت</th>
           </tr>
         </thead>
         <tbody>
@@ -34,6 +35,9 @@ export function MembersTable({ members }: { members: Member[] }) {
               </td>
               <td className="py-2">
                 <MemberStatusBadge isActive={member.isActive} />
+              </td>
+              <td className="py-2">
+                {member.hasUnpaidSubscription && <Badge variant="destructive">بدهکار</Badge>}
               </td>
             </tr>
           ))}
