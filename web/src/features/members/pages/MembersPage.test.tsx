@@ -20,6 +20,21 @@ describe("MembersPage", () => {
     expect(queryOf(api.requestsTo("GET", "/api/members")[0]!).has("IsActive")).toBe(false);
   });
 
+  it("MembersPage_MemberWithUnpaidSubscription_ShowsTheDebtBadge", async () => {
+    const debtor = { ...reza, hasUnpaidSubscription: true };
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([debtor, ali]),
+    });
+
+    renderApp("/members", { session: session() });
+
+    const debtorRow = (await screen.findByRole("link", { name: "رضا احمدی" })).closest("tr")!;
+    expect(within(debtorRow).getByText("بدهکار")).toBeInTheDocument();
+    const aliRow = screen.getByRole("link", { name: "علی رضایی" }).closest("tr")!;
+    expect(within(aliRow).queryByText("بدهکار")).not.toBeInTheDocument();
+  });
+
   it("MembersPage_InactiveFilter_AsksOnlyForInactiveMembers", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),

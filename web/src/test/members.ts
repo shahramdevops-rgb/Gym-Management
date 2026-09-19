@@ -11,6 +11,7 @@ export const reza: Member = {
   version: 5,
   createdAt: "2026-09-18T06:30:00Z",
   updatedAt: null,
+  hasUnpaidSubscription: false,
 };
 
 export const ali: Member = {
@@ -22,6 +23,7 @@ export const ali: Member = {
   version: 7,
   createdAt: "2026-09-17T08:00:00Z",
   updatedAt: null,
+  hasUnpaidSubscription: false,
 };
 
 /** One page of GET /api/members. */

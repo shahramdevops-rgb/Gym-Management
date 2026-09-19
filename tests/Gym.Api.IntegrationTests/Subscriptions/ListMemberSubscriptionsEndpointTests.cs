@@ -6,6 +6,7 @@ using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Common.Paging;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
+using Gym.Domain.Payments;
 using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -36,6 +37,50 @@ public sealed class ListMemberSubscriptionsEndpointTests(DatabaseFixture fixture
         page.TotalCount.ShouldBe(2);
         page.Items[0].Id.ShouldBe(second.Id);
         page.Items[1].Id.ShouldBe(first.Id);
+    }
+
+    [Fact]
+    public async Task List_TwoSubscriptionsWithDifferentPayments_ReportsNetPaidPerRow()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var planA = await AddPlanAsync("پلن یک", 30, null, 900_000m);
+        var planB = await AddPlanAsync("پلن دو", 30, null, 500_000m);
+        var first = await AssignOkAsync(client, token, member.Id, planA.Id);
+        await PayAsync(client, token, first.Id, 900_000m);
+        var second = await AssignOkAsync(client, token, member.Id, planB.Id);
+        await PayAsync(client, token, second.Id, 200_000m);
+
+        var page = await ListOkAsync(client, token, member.Id);
+
+        var firstRow = page.Items.Single(item => item.Id == first.Id);
+        firstRow.NetPaid.ShouldBe(900_000m);
+        firstRow.PaymentStatus.ShouldBe(PaymentStatus.Paid);
+        var secondRow = page.Items.Single(item => item.Id == second.Id);
+        secondRow.NetPaid.ShouldBe(200_000m);
+        secondRow.PaymentStatus.ShouldBe(PaymentStatus.Partial);
+    }
+
+    [Fact]
+    public async Task List_CancelledThenRenewedTheSameDay_PutsTheNewOneFirstNotTheCancelledOne()
+    {
+        // A cancelled subscription covers no dates (BUSINESS_RULES.md §4), so renewing it the
+        // same day gives the new one the same StartDate as the cancelled one. StartDate alone
+        // can no longer tell them apart; found manually testing task 4.6's UI, where the
+        // member profile showed the cancelled subscription as "current" instead of the new one.
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync("ماهانه", 30, null, 900_000m);
+        var cancelled = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await CancelAsync(ownerClient, ownerToken, cancelled.Id, "انصراف عضو");
+
+        var renewed = await RenewOkAsync(staffClient, staffToken, member.Id);
+
+        renewed.StartDate.ShouldBe(cancelled.StartDate);
+        var page = await ListOkAsync(staffClient, staffToken, member.Id);
+        page.Items[0].Id.ShouldBe(renewed.Id);
+        page.Items[1].Id.ShouldBe(cancelled.Id);
     }
 
     [Fact]
@@ -92,6 +137,14 @@ public sealed class ListMemberSubscriptionsEndpointTests(DatabaseFixture fixture
         return (client, await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
     }
 
+    private async Task<(HttpClient Client, string Token)> OwnerClientAsync()
+    {
+        await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "owner", role: Roles.Owner);
+        var client = Fixture.CreateClient();
+
+        return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
+    }
+
     private async Task<Member> AddMemberAsync()
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
@@ -127,6 +180,35 @@ public sealed class ListMemberSubscriptionsEndpointTests(DatabaseFixture fixture
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static async Task CancelAsync(HttpClient client, string token, Guid subscriptionId, string reason)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/subscriptions/{subscriptionId}/cancel")
+        {
+            Content = JsonContent.Create(new { reason }),
+        };
+        using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    private static async Task<SubscriptionResponse> RenewOkAsync(HttpClient client, string token, Guid memberId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/members/{memberId}/subscriptions/renew");
+        using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static async Task PayAsync(HttpClient client, string token, Guid subscriptionId, decimal amount)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/subscriptions/{subscriptionId}/payments")
+        {
+            Content = JsonContent.Create(new { amount, method = "Cash" }),
+        };
+        using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
     private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, Guid memberId)
