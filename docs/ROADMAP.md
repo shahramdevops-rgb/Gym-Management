@@ -198,10 +198,10 @@ Done when: staff can find, create, and edit members in the app.
 - [x] Tests: max freeze days enforced; queued subscription shifted
 
 ### 4.4 Payments
-- [ ] Payment entity with the one-target check constraint
-- [ ] Register payment (partial allowed, overpayment rejected)
-- [ ] Calculated payment status
-- [ ] Tests: Unpaid → Partial → Paid
+- [x] Payment entity with the one-target check constraint
+- [x] Register payment (partial allowed, overpayment rejected)
+- [x] Calculated payment status
+- [x] Tests: Unpaid → Partial → Paid
 
 ### 4.5 Refunds and member history
 - [ ] Refund and void (Owner only)

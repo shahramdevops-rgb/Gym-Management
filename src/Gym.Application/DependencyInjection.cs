@@ -10,6 +10,7 @@ using Gym.Application.Members.GetMember;
 using Gym.Application.Members.ListMembers;
 using Gym.Application.Members.SetMemberActive;
 using Gym.Application.Members.UpdateMember;
+using Gym.Application.Payments.RegisterPayment;
 using Gym.Application.Plans.CreatePlan;
 using Gym.Application.Plans.GetPlan;
 using Gym.Application.Plans.ListPlans;
@@ -90,6 +91,8 @@ public static class DependencyInjection
         services.AddScoped<FreezeSubscriptionHandler>();
         services.AddScoped<UnfreezeSubscriptionHandler>();
         services.AddScoped<CancelSubscriptionHandler>();
+
+        services.AddScoped<RegisterPaymentHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

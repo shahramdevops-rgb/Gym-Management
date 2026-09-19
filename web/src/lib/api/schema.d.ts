@@ -388,6 +388,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/subscriptions/{subscriptionId}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RegisterPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -481,6 +497,33 @@ export interface components {
             /** Format: int32 */
             totalCount: number | string;
         };
+        /** @enum {unknown} */
+        PaymentKind: "Payment" | "Refund";
+        /** @enum {unknown} */
+        PaymentMethod: "Cash" | "Card" | "BankTransfer";
+        PaymentResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            subscriptionId: null | string;
+            kind: components["schemas"]["PaymentKind"];
+            /** Format: double */
+            amount: number | string;
+            method: components["schemas"]["PaymentMethod"];
+            referenceNumber: null | string;
+            /** Format: date-time */
+            paidAt: string;
+            /** Format: uuid */
+            receivedByUserId: string;
+            reason: null | string;
+            /** Format: double */
+            subscriptionNetPaid: number | string;
+            subscriptionPaymentStatus: components["schemas"]["PaymentStatus"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @enum {unknown} */
+        PaymentStatus: "Unpaid" | "Partial" | "Paid";
         PlanResponse: {
             /** Format: uuid */
             id: string;
@@ -506,6 +549,12 @@ export interface components {
             status?: null | number | string;
             detail?: null | string;
             instance?: null | string;
+        };
+        RegisterPaymentCommand: {
+            /** Format: double */
+            amount: number | string;
+            method: components["schemas"]["PaymentMethod"];
+            referenceNumber: null | string;
         };
         ResetStaffPasswordCommand: {
             temporaryPassword: string;
@@ -2174,6 +2223,77 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RegisterPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscriptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterPaymentCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
