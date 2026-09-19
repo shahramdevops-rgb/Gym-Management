@@ -350,3 +350,14 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **Shared logic without a framework.** Assign and renew differ only in *which* plan. `SubscriptionSeller` is a plain injected class holding the common part (lock, schedule, create, save), and the two handlers stay small.
 - **The foreign key is the last word.** `ON DELETE RESTRICT` means a member or plan with sales can never be deleted, even by hand. It reports SQLSTATE 23001, not 23503, which the test found.
 - **My notes:**
+
+---
+
+## 4.3 — Freeze, unfreeze, cancel endpoints
+
+- **One row vs. several rows.** Freeze and cancel each change one field on one subscription, so the `xmin` token from task 4.2 is enough: a concurrent second write just fails with `DbUpdateConcurrencyException`. Unfreeze can change *several* subscriptions' dates at once (the one unfrozen, plus everything queued behind it), so it needs the member lock too — the same reason `SubscriptionSeller` takes it.
+- **Deferring a constraint on purpose.** Moving a chain of date ranges later has to pass through a moment where the old, not-yet-shifted ranges overlap the new ones — if row A is updated before row B, A's stretched range briefly overlaps B's old one. `SET CONSTRAINTS ex_subscriptions_no_overlap DEFERRED` tells Postgres to check the exclusion constraint once, at `COMMIT`, after every row in the transaction is consistent, instead of after each `UPDATE`. This is exactly what the `AddSubscriptions` migration's comment (written in task 4.2) was waiting for.
+- **Commit can fail too.** A deferred constraint's violation surfaces from `transaction.CommitAsync()`, not from `SaveChangesAsync()`, and it isn't wrapped in `DbUpdateException` the way an immediate one is. `IAppDbContext.CommitTransactionAsync` exists just to catch that raw `PostgresException` in Infrastructure (the only project allowed to know about Npgsql) and re-throw the same `ExclusionConstraintException` the immediate path already throws, so the handler's `catch` doesn't care which path it came from.
+- **A second `IOptions<T>` on the same section.** `Gym:MaxFreezeDaysPerSubscription` sits in the same `"Gym"` configuration section as `Gym:TimeZone`, but it's bound by its own `SubscriptionPolicyOptions`, not added to `GymCalendarOptions`. Two small, single-purpose Options types reading the same section beat one growing type that answers unrelated questions.
+- **The entity still only knows how to move.** `Subscription.ShiftQueued(days)` moves `StartDate` and `EndDate` together; it has no opinion on *which* subscriptions should be shifted or why. `UnfreezeSubscriptionHandler` decides that (same member, not cancelled, starts after the original end date) — the same split as `SubscriptionSchedule.NextStartDate` in task 4.2: the entity enforces the rule, the Application layer decides who it applies to.
+- **My notes:**

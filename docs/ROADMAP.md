@@ -193,9 +193,9 @@ Done when: staff can find, create, and edit members in the app.
 - [x] Tests: renewal before expiry is queued; inactive plan or member rejected
 
 ### 4.3 Freeze, unfreeze, cancel endpoints
-- [ ] Owner-only endpoints
-- [ ] Unfreeze shifts queued subscriptions
-- [ ] Tests: max freeze days enforced; queued subscription shifted
+- [x] Owner-only endpoints
+- [x] Unfreeze shifts queued subscriptions
+- [x] Tests: max freeze days enforced; queued subscription shifted
 
 ### 4.4 Payments
 - [ ] Payment entity with the one-target check constraint

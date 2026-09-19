@@ -437,6 +437,34 @@ public sealed class SubscriptionTests
         Sell().Cancel(reason, Now).IsSuccess.ShouldBeTrue();
     }
 
+    // ---- ShiftQueued ----
+
+    [Fact]
+    public void ShiftQueued_MovesStartAndEndDateByTheSameNumberOfDays()
+    {
+        var subscription = Sell();
+
+        subscription.ShiftQueued(3);
+
+        subscription.StartDate.ShouldBe(Start.AddDays(3));
+        subscription.EndDate.ShouldBe(End.AddDays(3));
+    }
+
+    [Fact]
+    public void ShiftQueued_ZeroDays_LeavesDatesUnchanged()
+    {
+        var subscription = Sell();
+
+        subscription.ShiftQueued(0);
+
+        subscription.StartDate.ShouldBe(Start);
+        subscription.EndDate.ShouldBe(End);
+    }
+
+    [Fact]
+    public void ShiftQueued_NegativeDays_Throws() =>
+        Should.Throw<ArgumentOutOfRangeException>(() => Sell().ShiftQueued(-1));
+
     // ---- Helpers ----
 
     private static Subscription Sell(int durationDays = 30, int? sessions = 12)
