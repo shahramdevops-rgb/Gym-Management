@@ -1,11 +1,13 @@
 using Gym.Api.Authorization;
 using Gym.Api.Common;
 using Gym.Api.Filters;
+using Gym.Application.Common.Paging;
 using Gym.Application.Subscriptions;
 using Gym.Application.Subscriptions.AssignSubscription;
 using Gym.Application.Subscriptions.CancelSubscription;
 using Gym.Application.Subscriptions.FreezeSubscription;
 using Gym.Application.Subscriptions.GetSubscription;
+using Gym.Application.Subscriptions.ListMemberSubscriptions;
 using Gym.Application.Subscriptions.RenewSubscription;
 using Gym.Application.Subscriptions.UnfreezeSubscription;
 
@@ -50,6 +52,15 @@ public static class SubscriptionsEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // The member's subscription history, newest first (task 4.5).
+        sales.MapGet("/", async (Guid memberId, [AsParameters] ListMemberSubscriptionsQuery query, ListMemberSubscriptionsHandler handler, CancellationToken ct) =>
+                (await handler.Handle(memberId, query, ct)).ToHttpResult())
+            .AddEndpointFilter<ValidationFilter<ListMemberSubscriptionsQuery>>()
+            .WithName("ListMemberSubscriptions")
+            .Produces<PagedResponse<SubscriptionResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         var subscriptions = app.MapGroup(Prefix)
             .WithTags("Subscriptions")

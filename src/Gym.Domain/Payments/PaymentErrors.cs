@@ -28,4 +28,17 @@ public static class PaymentErrors
     public static readonly Error Overpayment = Error.BusinessRule(
         "Payments.Overpayment",
         "This payment would exceed the subscription's price.");
+
+    public static readonly Error RefundReasonRequired = Error.Validation(
+        "Payments.RefundReasonRequired",
+        "A reason is required to refund a payment.");
+
+    public static readonly Error RefundReasonTooLong = Error.Validation(
+        "Payments.RefundReasonTooLong",
+        "The refund reason is too long.");
+
+    /// <summary>BUSINESS_RULES.md §5: a refund cannot exceed the current net paid amount.</summary>
+    public static readonly Error RefundExceedsNetPaid = Error.BusinessRule(
+        "Payments.RefundExceedsNetPaid",
+        "This refund would exceed the subscription's net paid amount.");
 }
