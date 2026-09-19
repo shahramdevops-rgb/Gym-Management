@@ -60,6 +60,24 @@ public interface IAppDbContext
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
 
     /// <summary>
+    /// Delays the subscriptions no-overlap exclusion check until <see cref="CommitTransactionAsync"/>
+    /// instead of after each write, for a transaction that moves several of one member's
+    /// subscriptions at once and must pass through a moment where their date ranges overlap
+    /// (task 4.3 unfreeze). Must be called inside <see cref="BeginTransactionAsync"/>.
+    /// </summary>
+    Task DeferSubscriptionOverlapCheckAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Commits <paramref name="transaction"/>, translating a deferred exclusion-constraint
+    /// violation into <see cref="ExclusionConstraintException"/> the same way
+    /// <see cref="SaveChangesAsync"/> does for an immediate one. A deferred constraint is
+    /// checked at commit, not at the write, so a caller that deferred it with
+    /// <see cref="DeferSubscriptionOverlapCheckAsync"/> must commit through here to see that
+    /// translation.
+    /// </summary>
+    Task CommitTransactionAsync(IDbContextTransaction transaction, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Commits the tracked changes as one transaction. The audit interceptor runs first, so
     /// callers must not set <c>CreatedAt</c> or <c>UpdatedAt</c> themselves.
     /// </summary>

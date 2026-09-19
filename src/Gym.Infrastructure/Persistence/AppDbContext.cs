@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Subscriptions;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Members;
@@ -53,6 +54,34 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         }
 
         return Database.ExecuteSqlAsync($"SELECT 1 FROM members WHERE id = {memberId} FOR UPDATE", cancellationToken);
+    }
+
+    /// <inheritdoc cref="IAppDbContext.DeferSubscriptionOverlapCheckAsync"/>
+    public Task DeferSubscriptionOverlapCheckAsync(CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("Deferring a constraint outside a transaction has no effect; begin one first.");
+        }
+
+        // The constraint name cannot be a parameter: Postgres does not allow binding identifiers.
+        // SubscriptionConstraints.NoOverlap is a compile-time constant, not user input.
+        return Database.ExecuteSqlRawAsync($"SET CONSTRAINTS {SubscriptionConstraints.NoOverlap} DEFERRED", cancellationToken);
+    }
+
+    /// <inheritdoc cref="IAppDbContext.CommitTransactionAsync"/>
+    public async Task CommitTransactionAsync(IDbContextTransaction transaction, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        try
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.ExclusionViolation)
+        {
+            throw new ExclusionConstraintException(exception.ConstraintName ?? string.Empty, exception);
+        }
     }
 
     /// <summary>

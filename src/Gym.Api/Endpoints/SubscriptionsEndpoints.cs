@@ -3,8 +3,11 @@ using Gym.Api.Common;
 using Gym.Api.Filters;
 using Gym.Application.Subscriptions;
 using Gym.Application.Subscriptions.AssignSubscription;
+using Gym.Application.Subscriptions.CancelSubscription;
+using Gym.Application.Subscriptions.FreezeSubscription;
 using Gym.Application.Subscriptions.GetSubscription;
 using Gym.Application.Subscriptions.RenewSubscription;
+using Gym.Application.Subscriptions.UnfreezeSubscription;
 
 namespace Gym.Api.Endpoints;
 
@@ -59,6 +62,39 @@ public static class SubscriptionsEndpoints
             .WithName("GetSubscription")
             .Produces<SubscriptionResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        // Owner only (BUSINESS_RULES.md §1, permissions: "Freeze, unfreeze, cancel subscriptions").
+        var ownerActions = app.MapGroup(Prefix)
+            .WithTags("Subscriptions")
+            .RequireAuthorization(Policies.OwnerOnly)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        ownerActions.MapPost("/{id:guid}/freeze", async (Guid id, FreezeSubscriptionHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, ct)).ToHttpResult())
+            .WithName("FreezeSubscription")
+            .Produces<SubscriptionResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        ownerActions.MapPost("/{id:guid}/unfreeze", async (Guid id, UnfreezeSubscriptionHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, ct)).ToHttpResult())
+            .WithName("UnfreezeSubscription")
+            .Produces<SubscriptionResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        ownerActions.MapPost("/{id:guid}/cancel", async (Guid id, CancelSubscriptionCommand command, CancelSubscriptionHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, command, ct)).ToHttpResult())
+            .AddEndpointFilter<ValidationFilter<CancelSubscriptionCommand>>()
+            .WithName("CancelSubscription")
+            .Produces<SubscriptionResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         return app;
     }

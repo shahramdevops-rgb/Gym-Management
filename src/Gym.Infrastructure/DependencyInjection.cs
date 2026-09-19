@@ -6,6 +6,7 @@ using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Phones;
 using Gym.Infrastructure.Persistence.Interceptors;
+using Gym.Infrastructure.Subscriptions;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -96,6 +97,14 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<GymCalendarOptions>, GymCalendarOptionsValidator>();
         services.AddSingleton<IGymCalendar, GymCalendar>();
+
+        // Gym:MaxFreezeDaysPerSubscription (BUSINESS_RULES.md §4 Freeze). Same section as the
+        // calendar's time zone, a separate Options type because it is a different concern.
+        services.AddOptions<SubscriptionPolicyOptions>()
+            .Bind(configuration.GetSection(SubscriptionPolicyOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<SubscriptionPolicyOptions>, SubscriptionPolicyOptionsValidator>();
+        services.AddSingleton<ISubscriptionPolicy, SubscriptionPolicy>();
 
         // Stateless: libphonenumber's metadata is loaded once and shared.
         services.AddOptions<PhoneOptions>().Bind(configuration.GetSection(PhoneOptions.SectionName));

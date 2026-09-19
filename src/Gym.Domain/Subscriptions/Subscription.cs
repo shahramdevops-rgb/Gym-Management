@@ -241,6 +241,20 @@ public sealed class Subscription : Entity
     }
 
     /// <summary>
+    /// Moves a queued subscription later by <paramref name="days"/>, because unfreezing another
+    /// subscription of the same member pushed its <c>EndDate</c> out by that many days
+    /// (BUSINESS_RULES.md §4 Freeze, task 4.3). The caller picks which subscriptions are queued
+    /// behind the one being unfrozen; this only knows how to move.
+    /// </summary>
+    public void ShiftQueued(int days)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(days);
+
+        StartDate = StartDate.AddDays(days);
+        EndDate = EndDate.AddDays(days);
+    }
+
+    /// <summary>
     /// Cancels, whatever the status, unless already cancelled (decided in task 4.1). Payments are
     /// untouched: money goes back only through refunds (§4, §5).
     /// </summary>
