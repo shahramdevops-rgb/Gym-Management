@@ -109,6 +109,14 @@ export const errorMessages: Record<string, string> = {
   "Subscriptions.CancelReasonRequired": "دلیل لغو را وارد کنید.",
   "Subscriptions.CancelReasonTooLong": "دلیل لغو بیش از حد طولانی است.",
 
+  // Payments
+  "Payments.AmountNotPositive": "مبلغ باید بزرگ‌تر از صفر باشد.",
+  "Payments.AmountTooLarge": "مبلغ بیش از حد بزرگ است.",
+  "Payments.AmountTooManyDecimals": "مبلغ حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
+  "Payments.ReferenceNumberTooLong": "شماره پیگیری بیش از حد طولانی است.",
+  "Payments.MethodInvalid": "روش پرداخت معتبر نیست.",
+  "Payments.Overpayment": "این پرداخت از مبلغ اشتراک بیشتر می‌شود.",
+
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",
   "Paging.PageSizeInvalid": "تعداد ردیف‌های هر صفحه نامعتبر است.",

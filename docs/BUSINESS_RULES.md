@@ -11,8 +11,6 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 
 | Setting | Decide before | Notes |
 |---|---|---|
-| `Gym:Currency` | Phase 4 | Toman: choose one storage unit and never mix. Amounts are always `decimal`. |
-| Payment methods | Phase 4 | For example Cash, Card, BankTransfer. |
 | `Gym:ClosingTime` | Phase 5 | Local time for the nightly auto-checkout. |
 | Check-in with an unpaid or partially paid subscription | Phase 5 | Block it, or allow it with a warning? |
 | Cafe orders paid in full at creation (no tabs) | Phase 8 | Suggested: yes. |
@@ -20,6 +18,10 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 | SMS provider | Phase 11 | |
 
 Decided values:
+- Currency = Toman. There is no `Gym:Currency` setting and no currency column anywhere: the gym
+  has one currency, amounts are `decimal`/`numeric(18,2)` everywhere, and the frontend appends
+  "تومان" when it formats money (`web/src/lib/format.ts`).
+- Payment methods = Cash, Card, BankTransfer (decided with the developer in task 4.4).
 - `Gym:CancelCheckInWindowMinutes` = 30
 - `Gym:PhoneDefaultRegion` = `IR` (Iran: a local `09…` number becomes `+989…`)
 - `Gym:TimeZone` = `Asia/Tehran`. Defines "today" for every business date (decided in task 4.1).
@@ -170,6 +172,8 @@ Decided values:
 ### Payment status (calculated)
 - Net paid = payments − refunds.
 - `Paid` when net paid >= Price, `Partial` when 0 < net paid < Price, `Unpaid` when net paid = 0.
+  - A free (`Price = 0`) subscription is `Paid` from the start, never `Unpaid`, even though its net
+    paid is also zero: it owes nothing. *Decided by Claude during task 4.4; pending review.*
 
 ---
 
@@ -180,6 +184,15 @@ Decided values:
 - A subscription cannot be overpaid.
 - Payments are never edited or deleted. A mistaken entry is fixed with a full refund whose reason explains the mistake (a "void").
 - A refund cannot exceed the current net paid amount.
+- Details. *Decided by Claude during task 4.4; pending review.*
+  - `Amount` follows the same money rule as `Plan.Price`: at most 2 decimal places, refused rather
+    than rounded, capped at the same column limit (`numeric(18,2)`).
+  - `ReferenceNumber` is at most 100 characters; `Reason` is at most 500 (the same limit as a
+    subscription's cancellation reason). Blank input is stored as `null`.
+  - Registering a payment sets `PaidAt` to the current moment; there is no way to record a
+    backdated payment.
+  - The `CafeOrderId` column and the one-target check constraint exist from this task on, but
+    nothing sets `CafeOrderId` before cafe orders exist (Phase 7).
 - Revenue for a period = payments − refunds, by `PaidAt` in the gym's time zone. There is no separate Income table.
 
 ---
