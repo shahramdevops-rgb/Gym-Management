@@ -1,5 +1,6 @@
 using FluentValidation;
 
+using Gym.Application.Attendances.CheckIn;
 using Gym.Application.Auth.ChangePassword;
 using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
@@ -91,6 +92,8 @@ public static class DependencyInjection
         services.AddScoped<GetLockerHandler>();
         services.AddScoped<ListLockersHandler>();
         services.AddScoped<SetLockerOutOfServiceHandler>();
+
+        services.AddScoped<CheckInHandler>();
 
         services.AddScoped<SubscriptionSeller>();
         services.AddScoped<AssignSubscriptionHandler>();

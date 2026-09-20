@@ -94,6 +94,7 @@ try
     app.MapPlansEndpoints();
     app.MapSubscriptionsEndpoints();
     app.MapLockersEndpoints();
+    app.MapAttendanceEndpoints();
 
     app.Run();
 }

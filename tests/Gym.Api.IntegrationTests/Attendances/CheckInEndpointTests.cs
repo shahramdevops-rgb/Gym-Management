@@ -1,0 +1,354 @@
+using System.Net;
+using System.Net.Http.Json;
+
+using Gym.Api.IntegrationTests.Auth;
+using Gym.Api.IntegrationTests.Infrastructure;
+using Gym.Application.Attendances;
+using Gym.Application.Common;
+using Gym.Application.Lockers;
+using Gym.Domain.Members;
+using Gym.Domain.Plans;
+using Gym.Domain.Subscriptions;
+using Gym.Infrastructure.Identity;
+using Gym.Infrastructure.Persistence;
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Gym.Api.IntegrationTests.Attendances;
+
+/// <summary>
+/// <c>POST /api/members/{memberId}/attendance/check-in</c> (BUSINESS_RULES.md §7). Front desk
+/// work, so both roles.
+/// </summary>
+[Collection(DatabaseCollectionDefinition.Name)]
+public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
+{
+    private static int _phoneSuffix;
+
+    // ---- Happy path ----
+
+    [Fact]
+    public async Task CheckIn_ActiveSubscriptionAndFreeLockers_AssignsTheLowestNumberedLockerAndConsumesASession()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await CreateLockerAsync(ownerClient, ownerToken, 2);
+        await CreateLockerAsync(ownerClient, ownerToken, 1);
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var attendance = await ReadAsync(response);
+        attendance.MemberId.ShouldBe(member.Id);
+        attendance.LockerNumber.ShouldBe(1);
+        (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task CheckIn_AsOwner_Succeeds()
+    {
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(ownerClient, ownerToken, member.Id, plan.Id);
+
+        using var response = await CheckInAsync(ownerClient, ownerToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    [Fact]
+    public async Task CheckIn_NoFreeLocker_Returns201WithNullLocker()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var attendance = await ReadAsync(response);
+        attendance.LockerId.ShouldBeNull();
+        attendance.LockerNumber.ShouldBeNull();
+    }
+
+    // ---- Subscription preconditions ----
+
+    [Fact]
+    public async Task CheckIn_ExpiredSubscription_Returns422SubscriptionsExpired()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        var today = Today();
+        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-40), today.AddDays(-10));
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.Expired");
+    }
+
+    [Fact]
+    public async Task CheckIn_FrozenSubscription_Returns422SubscriptionsFrozen()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        var today = Today();
+        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), frozenSince: today.AddDays(-1));
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.Frozen");
+    }
+
+    [Fact]
+    public async Task CheckIn_ExhaustedSubscription_Returns422SubscriptionsNoSessionsLeft()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        var today = Today();
+        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 12);
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.NoSessionsLeft");
+    }
+
+    [Fact]
+    public async Task CheckIn_NoSubscriptionAtAll_Returns422AttendanceNoSubscription()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.NoSubscription");
+    }
+
+    // ---- Member and attendance preconditions ----
+
+    [Fact]
+    public async Task CheckIn_InactiveMember_Returns422MembersInactive()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync(active: false);
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Members.Inactive");
+    }
+
+    [Fact]
+    public async Task CheckIn_AlreadyCheckedIn_Returns422AttendanceAlreadyCheckedIn()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.AlreadyCheckedIn");
+    }
+
+    [Fact]
+    public async Task CheckIn_UnknownMember_Returns404()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+
+        using var response = await CheckInAsync(staffClient, staffToken, Guid.CreateVersion7());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Members.NotFound");
+    }
+
+    [Fact]
+    public async Task CheckIn_WithoutToken_Returns401()
+    {
+        using var client = Fixture.CreateClient();
+
+        using var response = await client.PostAsync(
+            $"/api/members/{Guid.CreateVersion7()}/attendance/check-in", null, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    // ---- Locker occupancy now that check-in exists ----
+
+    [Fact]
+    public async Task CheckIn_ThenGetLocker_ShowsOccupiedTrue()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        var fetched = await GetLockerOkAsync(ownerClient, ownerToken, locker.Id);
+        fetched.IsOccupied.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task CheckIn_ThenSetLockerOutOfService_Returns422LockersOccupied()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await SendAsync(ownerClient, ownerToken, HttpMethod.Post, $"/api/lockers/{locker.Id}/out-of-service");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Lockers.Occupied");
+    }
+
+    // ---- Helpers ----
+
+    private async Task<(HttpClient Client, string Token)> StaffClientAsync()
+    {
+        await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "staff", role: Roles.Staff);
+        var client = Fixture.CreateClient();
+
+        return (client, await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
+    }
+
+    private async Task<(HttpClient Client, string Token)> OwnerClientAsync()
+    {
+        await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "owner", role: Roles.Owner);
+        var client = Fixture.CreateClient();
+
+        return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
+    }
+
+    private DateOnly Today()
+    {
+        using var scope = Fixture.CreateScope();
+
+        return scope.ServiceProvider.GetRequiredService<IGymCalendar>().Today();
+    }
+
+    private async Task<Member> AddMemberAsync(bool active = true)
+    {
+        var suffix = Interlocked.Increment(ref _phoneSuffix);
+        var member = Member.Create("رضا احمدی", $"+98912{suffix:D7}", null).Value;
+        if (!active)
+        {
+            member.Deactivate();
+        }
+
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Members.Add(member);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return member;
+    }
+
+    private async Task<Plan> AddPlanAsync()
+    {
+        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
+
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Plans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return plan;
+    }
+
+    /// <summary>A row written directly, so states that take real days to reach can be set up in one step.</summary>
+    private async Task InsertSubscriptionAsync(
+        Guid memberId, Guid planId, DateOnly start, DateOnly end, DateOnly? frozenSince = null, int usedSessions = 0)
+    {
+        var id = Guid.CreateVersion7();
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO subscriptions (id, member_id, plan_id, plan_name, price, duration_days, total_sessions,
+                                       start_date, end_date, used_sessions, frozen_since, total_frozen_days, created_at)
+            VALUES ({id}, {memberId}, {planId}, 'پلن', 900000, 30, 12,
+                    {start}, {end}, {usedSessions}, {frozenSince}, 0, now())
+            """,
+            TestContext.Current.CancellationToken);
+    }
+
+    private async Task<Subscription> StoredSubscriptionAsync(Guid memberId)
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Subscriptions
+            .AsNoTracking()
+            .SingleAsync(s => s.MemberId == memberId, TestContext.Current.CancellationToken);
+    }
+
+    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { planId });
+
+    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
+    {
+        using var response = await AssignAsync(client, token, memberId, planId);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private static async Task<LockerResponse> CreateLockerAsync(HttpClient client, string token, int number)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Post, "/api/lockers", new { number });
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static async Task<LockerResponse> GetLockerOkAsync(HttpClient client, string token, Guid id)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Get, $"/api/lockers/{id}");
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+
+    private static async Task<AttendanceResponse> CheckInOkAsync(HttpClient client, string token, Guid memberId)
+    {
+        using var response = await CheckInAsync(client, token, memberId);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return await ReadAsync(response);
+    }
+
+    private static async Task<AttendanceResponse> ReadAsync(HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<AttendanceResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+
+    private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, HttpMethod method, string path, object? body = null)
+    {
+        var request = new HttpRequestMessage(method, path);
+        if (body is not null)
+        {
+            request.Content = JsonContent.Create(body);
+        }
+
+        return client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+    }
+}

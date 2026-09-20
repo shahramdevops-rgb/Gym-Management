@@ -36,6 +36,7 @@ public sealed class CreateLockerHandler(IAppDbContext db)
             return Result.Failure<LockerResponse>(LockerErrors.NumberAlreadyExists);
         }
 
-        return LockerResponse.From(locker);
+        // A locker that was just created cannot already have an open attendance against it.
+        return LockerResponse.From(locker, isOccupied: false);
     }
 }

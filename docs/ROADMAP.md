@@ -228,10 +228,10 @@ Done when: staff can sell a subscription and take payment from the member profil
 - [x] Tests: cannot put an occupied locker out of service
 
 ### 5.2 Check-in
-- [ ] Attendance entity with both partial unique indexes
-- [ ] Transactional check-in use case
-- [ ] No-locker warning
-- [ ] Tests: expired, frozen, exhausted, inactive member, already inside
+- [x] Attendance entity with both partial unique indexes
+- [x] Transactional check-in use case
+- [x] No-locker warning
+- [x] Tests: expired, frozen, exhausted, inactive member, already inside
 
 ### 5.3 Check-out, cancel, lists
 - [ ] Check-out
