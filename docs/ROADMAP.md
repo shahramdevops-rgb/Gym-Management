@@ -241,9 +241,9 @@ Done when: staff can sell a subscription and take payment from the member profil
 - [x] Tests: cancel restores the session; cancel after the window fails
 
 ### 5.4 Concurrency tests
-- [ ] Two parallel check-ins for the same member: one succeeds, one gets 409, one session consumed
-- [ ] Race for the last free locker: no locker assigned twice
-- [ ] Fix any issues found
+- [x] Two parallel check-ins for the same member: one succeeds, one gets 409, one session consumed
+- [x] Race for the last free locker: no locker assigned twice
+- [x] Fix any issues found
 
 ### 5.5 Background jobs
 - [ ] Hangfire with PostgreSQL storage, dashboard restricted to Owner
