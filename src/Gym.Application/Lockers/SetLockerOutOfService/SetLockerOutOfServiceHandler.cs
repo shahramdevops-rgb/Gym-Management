@@ -10,12 +10,6 @@ namespace Gym.Application.Lockers.SetLockerOutOfService;
 /// Takes a locker out of service or brings it back in. BUSINESS_RULES.md §6: a locker cannot be
 /// taken out of service while occupied.
 /// </summary>
-/// <remarks>
-/// Occupancy always passes as <see langword="false"/> here until task 5.2 adds the Attendance
-/// entity (see <see cref="LockerResponse"/>): there is no way yet for a check-in to exist, so
-/// nothing can be occupied. The domain rule itself is fully exercised by <c>LockerTests</c>,
-/// which calls <see cref="Locker.MarkOutOfService"/> directly with both values.
-/// </remarks>
 public sealed class SetLockerOutOfServiceHandler(IAppDbContext db)
 {
     public async Task<Result<LockerResponse>> MarkOutOfService(Guid id, CancellationToken cancellationToken)
@@ -26,13 +20,15 @@ public sealed class SetLockerOutOfServiceHandler(IAppDbContext db)
             return Result.Failure<LockerResponse>(LockerErrors.NotFound);
         }
 
-        var result = locker.MarkOutOfService(isOccupied: false);
+        var isOccupied = await db.Attendances.AnyAsync(a => a.LockerId == id && a.CheckedOutAt == null, cancellationToken);
+
+        var result = locker.MarkOutOfService(isOccupied);
         if (result.IsFailure)
         {
             return Result.Failure<LockerResponse>(result.Error);
         }
 
-        return await SaveAsync(locker, cancellationToken);
+        return await SaveAsync(locker, isOccupied, cancellationToken);
     }
 
     public async Task<Result<LockerResponse>> MarkInService(Guid id, CancellationToken cancellationToken)
@@ -45,10 +41,12 @@ public sealed class SetLockerOutOfServiceHandler(IAppDbContext db)
 
         locker.MarkInService();
 
-        return await SaveAsync(locker, cancellationToken);
+        var isOccupied = await db.Attendances.AnyAsync(a => a.LockerId == id && a.CheckedOutAt == null, cancellationToken);
+
+        return await SaveAsync(locker, isOccupied, cancellationToken);
     }
 
-    private async Task<Result<LockerResponse>> SaveAsync(Locker locker, CancellationToken cancellationToken)
+    private async Task<Result<LockerResponse>> SaveAsync(Locker locker, bool isOccupied, CancellationToken cancellationToken)
     {
         try
         {
@@ -59,6 +57,6 @@ public sealed class SetLockerOutOfServiceHandler(IAppDbContext db)
             return Result.Failure<LockerResponse>(LockerErrors.ChangedConcurrently);
         }
 
-        return LockerResponse.From(locker);
+        return LockerResponse.From(locker, isOccupied);
     }
 }

@@ -111,6 +111,10 @@ public sealed class Member : Entity
     public Result EnsureCanReceiveSubscription() =>
         IsActive ? Result.Success() : Result.Failure(MemberErrors.Inactive);
 
+    /// <summary>BUSINESS_RULES.md §7: inactive members cannot check in.</summary>
+    public Result EnsureCanCheckIn() =>
+        IsActive ? Result.Success() : Result.Failure(MemberErrors.Inactive);
+
     private static bool IsE164(string value) =>
         value.Length is >= 8 and <= 16 && value[0] == '+' && value.Skip(1).All(char.IsAsciiDigit);
 }

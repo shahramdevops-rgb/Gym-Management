@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Subscriptions;
+using Gym.Domain.Attendances;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Lockers;
@@ -41,6 +42,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
 
     public DbSet<Locker> Lockers => Set<Locker>();
+
+    public DbSet<Attendance> Attendances => Set<Attendance>();
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);

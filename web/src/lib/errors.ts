@@ -117,6 +117,11 @@ export const errorMessages: Record<string, string> = {
   "Lockers.ChangedConcurrently":
     "این کمد هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
+  // Attendance
+  "Attendance.NoSubscription": "این عضو اشتراکی ندارد.",
+  "Attendance.AlreadyCheckedIn": "این عضو هم‌اکنون داخل باشگاه است.",
+  "Attendance.ChangedConcurrently": "ورود هم‌زمان با شخص دیگری ثبت شد. دوباره امتحان کنید.",
+
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",
   "Paging.PageSizeInvalid": "تعداد ردیف‌های هر صفحه نامعتبر است.",
