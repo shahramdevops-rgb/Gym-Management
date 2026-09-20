@@ -4,6 +4,7 @@ using Gym.Application.Staff;
 using Gym.Infrastructure.Attendances;
 using Gym.Infrastructure.Calendar;
 using Gym.Infrastructure.Identity;
+using Gym.Infrastructure.Jobs;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Phones;
 using Gym.Infrastructure.Persistence.Interceptors;
@@ -133,6 +134,10 @@ public static class DependencyInjection
         // orchestrator would happily route traffic to an API that cannot reach its database.
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database");
+
+        // The nightly auto-checkout job (BUSINESS_RULES.md §7). Scheduled once the host is
+        // built, by Gym.Api.Program calling RecurringJobScheduler.ScheduleRecurringJobs.
+        services.AddHangfireJobs(connectionString);
 
         return services;
     }

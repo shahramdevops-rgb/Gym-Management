@@ -4,6 +4,9 @@ using Gym.Api.Middleware;
 using Gym.Application;
 using Gym.Infrastructure;
 using Gym.Infrastructure.Identity;
+using Gym.Infrastructure.Jobs;
+
+using Hangfire;
 
 using Scalar.AspNetCore;
 
@@ -49,6 +52,10 @@ try
         await IdentitySeeder.SeedOwnerAsync(scope.ServiceProvider, app.Configuration);
     }
 
+    // Registers the nightly auto-checkout job with Hangfire (BUSINESS_RULES.md §7). Idempotent:
+    // AddOrUpdate overwrites the same job id's schedule rather than duplicating it.
+    RecurringJobScheduler.ScheduleRecurringJobs(app.Services);
+
     // First in the pipeline, so the id is attached to everything that follows, including
     // failures raised by later middleware.
     app.UseMiddleware<CorrelationIdMiddleware>();
@@ -58,6 +65,19 @@ try
     app.UseExceptionHandler();
 
     app.UseSerilogRequestLogging(SerilogConfiguration.ConfigureRequestLogging);
+
+    if (app.Environment.IsDevelopment())
+    {
+        // Plain branch middleware (Hangfire's own request pipeline, not a routed endpoint), so
+        // it has no [AllowAnonymous] to reach for the way MapOpenApi/MapScalarApiReference do
+        // below. Placed before UseAuthentication/UseAuthorization so it never reaches the
+        // fallback policy those set up — the same reasoning as Scalar being a development
+        // convenience gated on the environment rather than a real per-Owner login, because the
+        // JWT bearer scheme this API otherwise uses has no way to authenticate a plain browser
+        // navigation. Restricting it to Owner in every environment is task 11.2 or deployment's
+        // problem, once there is a production host to reach it from.
+        app.UseHangfireDashboard("/hangfire");
+    }
 
     // Scalar and a permissive CORS policy are development conveniences. Gating them on the
     // environment makes "do not ship the API explorer" a property of the code rather than a

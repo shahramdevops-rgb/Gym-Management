@@ -41,6 +41,12 @@ public sealed class Attendance : Entity
     /// <summary><c>null</c> unless <see cref="Cancel"/> closed this attendance (BUSINESS_RULES.md §7).</summary>
     public DateTimeOffset? CancelledAt { get; private set; }
 
+    /// <summary>
+    /// <c>null</c> unless the nightly job (BUSINESS_RULES.md §7 Auto-checkout) closed this
+    /// attendance instead of the member checking out themselves.
+    /// </summary>
+    public DateTimeOffset? AutoClosedAt { get; private set; }
+
     public static Attendance CheckIn(Guid memberId, Guid subscriptionId, Guid? lockerId, DateTimeOffset checkedInAt) =>
         new()
         {
@@ -87,5 +93,17 @@ public sealed class Attendance : Entity
         CheckedOutAt = now;
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// The nightly job's own close (BUSINESS_RULES.md §7 Auto-checkout): the session stays
+    /// consumed, unlike <see cref="Cancel"/>. No <see cref="Result"/>, the same reasoning as
+    /// <see cref="CheckIn"/> — the job only ever loads attendances it already queried as open,
+    /// so there is nothing left here to check.
+    /// </summary>
+    public void AutoClose(DateTimeOffset closedAt)
+    {
+        CheckedOutAt = closedAt;
+        AutoClosedAt = closedAt;
     }
 }

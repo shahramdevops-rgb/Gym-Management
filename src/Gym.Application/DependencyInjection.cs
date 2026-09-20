@@ -1,5 +1,6 @@
 using FluentValidation;
 
+using Gym.Application.Attendances.AutoCheckout;
 using Gym.Application.Attendances.CancelCheckIn;
 using Gym.Application.Attendances.CheckIn;
 using Gym.Application.Attendances.CheckOut;
@@ -102,6 +103,7 @@ public static class DependencyInjection
         services.AddScoped<CancelCheckInHandler>();
         services.AddScoped<ListCurrentlyInsideHandler>();
         services.AddScoped<ListMemberAttendanceHandler>();
+        services.AddScoped<AutoCheckoutHandler>();
 
         services.AddScoped<SubscriptionSeller>();
         services.AddScoped<AssignSubscriptionHandler>();

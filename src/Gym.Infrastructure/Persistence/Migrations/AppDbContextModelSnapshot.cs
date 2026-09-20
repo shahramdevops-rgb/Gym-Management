@@ -31,6 +31,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("AutoClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("auto_closed_at");
+
                     b.Property<DateTimeOffset?>("CancelledAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("cancelled_at");
@@ -89,7 +93,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                     b.ToTable("attendances", null, t =>
                         {
+                            t.HasCheckConstraint("ck_attendances_auto_close", "auto_closed_at IS NULL OR checked_out_at = auto_closed_at");
+
                             t.HasCheckConstraint("ck_attendances_cancellation", "cancelled_at IS NULL OR checked_out_at = cancelled_at");
+
+                            t.HasCheckConstraint("ck_attendances_one_close_reason", "cancelled_at IS NULL OR auto_closed_at IS NULL");
                         });
                 });
 

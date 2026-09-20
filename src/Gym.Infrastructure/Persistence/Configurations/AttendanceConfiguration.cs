@@ -30,6 +30,19 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
             table.HasCheckConstraint(
                 "ck_attendances_cancellation",
                 "cancelled_at IS NULL OR checked_out_at = cancelled_at");
+
+            // The nightly job's own close (Attendance.AutoClose), the same pairing as cancellation.
+            table.HasCheckConstraint(
+                "ck_attendances_auto_close",
+                "auto_closed_at IS NULL OR checked_out_at = auto_closed_at");
+
+            // An attendance closes for exactly one reason: the member checking out, cancelling,
+            // or the nightly job. Cancel and AutoClose each require the row to still be open
+            // before they run, so the application can never set both — this is the database's
+            // own backstop for that invariant.
+            table.HasCheckConstraint(
+                "ck_attendances_one_close_reason",
+                "cancelled_at IS NULL OR auto_closed_at IS NULL");
         });
 
         // Restrict: a visit is a record that must never disappear with the member, subscription

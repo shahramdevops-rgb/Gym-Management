@@ -34,6 +34,8 @@ public sealed class GymCalendar(TimeProvider time, IOptions<GymCalendarOptions> 
 {
     private readonly TimeZoneInfo _timeZone = TimeZoneInfo.FindSystemTimeZoneById(options.Value.TimeZone);
 
+    public TimeZoneInfo TimeZone => _timeZone;
+
     public DateOnly Today() => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(time.GetUtcNow(), _timeZone).DateTime);
 
     public DateTimeOffset StartOfDayUtc(DateOnly date)
