@@ -1,6 +1,10 @@
 using FluentValidation;
 
+using Gym.Application.Attendances.CancelCheckIn;
 using Gym.Application.Attendances.CheckIn;
+using Gym.Application.Attendances.CheckOut;
+using Gym.Application.Attendances.ListCurrentlyInside;
+using Gym.Application.Attendances.ListMemberAttendance;
 using Gym.Application.Auth.ChangePassword;
 using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
@@ -94,6 +98,10 @@ public static class DependencyInjection
         services.AddScoped<SetLockerOutOfServiceHandler>();
 
         services.AddScoped<CheckInHandler>();
+        services.AddScoped<CheckOutHandler>();
+        services.AddScoped<CancelCheckInHandler>();
+        services.AddScoped<ListCurrentlyInsideHandler>();
+        services.AddScoped<ListMemberAttendanceHandler>();
 
         services.AddScoped<SubscriptionSeller>();
         services.AddScoped<AssignSubscriptionHandler>();

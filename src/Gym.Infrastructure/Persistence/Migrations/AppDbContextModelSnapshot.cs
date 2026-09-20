@@ -31,6 +31,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
                     b.Property<DateTimeOffset>("CheckedInAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("checked_in_at");
@@ -83,7 +87,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasIndex("SubscriptionId")
                         .HasDatabaseName("ix_attendances_subscription_id");
 
-                    b.ToTable("attendances", (string)null);
+                    b.ToTable("attendances", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_attendances_cancellation", "cancelled_at IS NULL OR checked_out_at = cancelled_at");
+                        });
                 });
 
             modelBuilder.Entity("Gym.Domain.Audit.AuditLog", b =>

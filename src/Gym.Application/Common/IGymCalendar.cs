@@ -11,4 +11,11 @@ namespace Gym.Application.Common;
 public interface IGymCalendar
 {
     DateOnly Today();
+
+    /// <summary>
+    /// Midnight of <paramref name="date"/> in <c>Gym:TimeZone</c>, as a UTC moment. Turns a
+    /// business date range into a moment range, for filtering a <c>timestamptz</c> column such as
+    /// <c>Attendance.CheckedInAt</c> by day.
+    /// </summary>
+    DateTimeOffset StartOfDayUtc(DateOnly date);
 }

@@ -31,12 +31,15 @@ public sealed class Attendance : Entity
     public DateTimeOffset CheckedInAt { get; private set; }
 
     /// <summary>
-    /// <c>null</c> means still open. Task 5.3 adds check-out and cancel, the only ways this
-    /// becomes non-null; the column exists from this task because the partial unique indexes on
-    /// <see cref="MemberId"/> and <see cref="LockerId"/> (one open attendance per member, one per
-    /// locker) both filter on it.
+    /// <c>null</c> means still open. Set by <see cref="CheckOut"/> and <see cref="Cancel"/> — the
+    /// partial unique indexes on <see cref="MemberId"/> and <see cref="LockerId"/> (one open
+    /// attendance per member, one per locker) both filter on it, so a cancelled attendance counts
+    /// as closed the same as a checked-out one.
     /// </summary>
     public DateTimeOffset? CheckedOutAt { get; private set; }
+
+    /// <summary><c>null</c> unless <see cref="Cancel"/> closed this attendance (BUSINESS_RULES.md §7).</summary>
+    public DateTimeOffset? CancelledAt { get; private set; }
 
     public static Attendance CheckIn(Guid memberId, Guid subscriptionId, Guid? lockerId, DateTimeOffset checkedInAt) =>
         new()
@@ -46,4 +49,43 @@ public sealed class Attendance : Entity
             LockerId = lockerId,
             CheckedInAt = checkedInAt,
         };
+
+    /// <summary>Only an open attendance can be checked out (BUSINESS_RULES.md §7).</summary>
+    public Result CheckOut(DateTimeOffset checkedOutAt)
+    {
+        if (CheckedOutAt is not null)
+        {
+            return Result.Failure(AttendanceErrors.NotOpen);
+        }
+
+        CheckedOutAt = checkedOutAt;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Cancels an open attendance within the allowed window of check-in (BUSINESS_RULES.md §7).
+    /// Restoring the session is the caller's job (it belongs to the subscription, a different
+    /// aggregate); this only records the cancellation and frees the locker.
+    /// </summary>
+    /// <param name="cancelWindowMinutes"><c>Gym:CancelCheckInWindowMinutes</c>.</param>
+    public Result Cancel(DateTimeOffset now, int cancelWindowMinutes)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(cancelWindowMinutes);
+
+        if (CheckedOutAt is not null)
+        {
+            return Result.Failure(AttendanceErrors.NotOpen);
+        }
+
+        if (now - CheckedInAt > TimeSpan.FromMinutes(cancelWindowMinutes))
+        {
+            return Result.Failure(AttendanceErrors.CancelWindowExpired);
+        }
+
+        CancelledAt = now;
+        CheckedOutAt = now;
+
+        return Result.Success();
+    }
 }

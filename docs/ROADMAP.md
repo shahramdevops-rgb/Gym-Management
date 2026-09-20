@@ -234,11 +234,11 @@ Done when: staff can sell a subscription and take payment from the member profil
 - [x] Tests: expired, frozen, exhausted, inactive member, already inside
 
 ### 5.3 Check-out, cancel, lists
-- [ ] Check-out
-- [ ] Cancel check-in within the window
-- [ ] "Currently inside" list with locker numbers
-- [ ] Attendance history by member and by date range
-- [ ] Tests: cancel restores the session; cancel after the window fails
+- [x] Check-out
+- [x] Cancel check-in within the window
+- [x] "Currently inside" list with locker numbers
+- [x] Attendance history by member and by date range
+- [x] Tests: cancel restores the session; cancel after the window fails
 
 ### 5.4 Concurrency tests
 - [ ] Two parallel check-ins for the same member: one succeeds, one gets 409, one session consumed

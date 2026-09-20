@@ -121,6 +121,10 @@ export const errorMessages: Record<string, string> = {
   "Attendance.NoSubscription": "این عضو اشتراکی ندارد.",
   "Attendance.AlreadyCheckedIn": "این عضو هم‌اکنون داخل باشگاه است.",
   "Attendance.ChangedConcurrently": "ورود هم‌زمان با شخص دیگری ثبت شد. دوباره امتحان کنید.",
+  "Attendance.NotFound": "ورود و خروج یافت نشد.",
+  "Attendance.NotOpen": "این ورود قبلاً بسته شده است.",
+  "Attendance.CancelWindowExpired": "مهلت لغو این ورود گذشته است.",
+  "Attendance.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
 
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",

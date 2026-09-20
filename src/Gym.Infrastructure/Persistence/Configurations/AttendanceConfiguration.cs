@@ -22,7 +22,15 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
 {
     public void Configure(EntityTypeBuilder<Attendance> builder)
     {
-        builder.ToTable("attendances");
+        builder.ToTable("attendances", table =>
+        {
+            // BUSINESS_RULES.md §7: cancelling always closes the attendance at the same moment
+            // (Attendance.Cancel sets both together), the same pairing SubscriptionConfiguration
+            // enforces for CancelledAt and CancellationReason.
+            table.HasCheckConstraint(
+                "ck_attendances_cancellation",
+                "cancelled_at IS NULL OR checked_out_at = cancelled_at");
+        });
 
         // Restrict: a visit is a record that must never disappear with the member, subscription
         // or locker it references, the same reasoning SubscriptionConfiguration uses.

@@ -1,6 +1,7 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Security;
 using Gym.Application.Staff;
+using Gym.Infrastructure.Attendances;
 using Gym.Infrastructure.Calendar;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -105,6 +106,14 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<SubscriptionPolicyOptions>, SubscriptionPolicyOptionsValidator>();
         services.AddSingleton<ISubscriptionPolicy, SubscriptionPolicy>();
+
+        // Gym:CancelCheckInWindowMinutes (BUSINESS_RULES.md §7 Cancel check-in). Same section,
+        // its own Options type for the same reason as the subscription policy above.
+        services.AddOptions<AttendancePolicyOptions>()
+            .Bind(configuration.GetSection(AttendancePolicyOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<AttendancePolicyOptions>, AttendancePolicyOptionsValidator>();
+        services.AddSingleton<IAttendancePolicy, AttendancePolicy>();
 
         // Stateless: libphonenumber's metadata is loaded once and shared.
         services.AddOptions<PhoneOptions>().Bind(configuration.GetSection(PhoneOptions.SectionName));
