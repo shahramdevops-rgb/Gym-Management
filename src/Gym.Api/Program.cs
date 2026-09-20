@@ -93,6 +93,7 @@ try
     app.MapMembersEndpoints();
     app.MapPlansEndpoints();
     app.MapSubscriptionsEndpoints();
+    app.MapLockersEndpoints();
 
     app.Run();
 }

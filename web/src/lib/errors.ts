@@ -109,6 +109,14 @@ export const errorMessages: Record<string, string> = {
   "Subscriptions.CancelReasonRequired": "دلیل لغو را وارد کنید.",
   "Subscriptions.CancelReasonTooLong": "دلیل لغو بیش از حد طولانی است.",
 
+  // Lockers
+  "Lockers.NotFound": "کمد پیدا نشد.",
+  "Lockers.NumberInvalid": "شماره کمد باید عددی مثبت باشد.",
+  "Lockers.NumberAlreadyExists": "کمد دیگری با همین شماره وجود دارد.",
+  "Lockers.Occupied": "این کمد اشغال است و نمی‌توان آن را از سرویس خارج کرد.",
+  "Lockers.ChangedConcurrently":
+    "این کمد هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",
   "Paging.PageSizeInvalid": "تعداد ردیف‌های هر صفحه نامعتبر است.",
