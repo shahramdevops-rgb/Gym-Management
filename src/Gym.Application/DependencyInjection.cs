@@ -5,6 +5,10 @@ using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
 using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
+using Gym.Application.Lockers.CreateLocker;
+using Gym.Application.Lockers.GetLocker;
+using Gym.Application.Lockers.ListLockers;
+using Gym.Application.Lockers.SetLockerOutOfService;
 using Gym.Application.Members.CreateMember;
 using Gym.Application.Members.GetMember;
 using Gym.Application.Members.ListMembers;
@@ -82,6 +86,11 @@ public static class DependencyInjection
         services.AddScoped<GetPlanHandler>();
         services.AddScoped<ListPlansHandler>();
         services.AddScoped<SetPlanActiveHandler>();
+
+        services.AddScoped<CreateLockerHandler>();
+        services.AddScoped<GetLockerHandler>();
+        services.AddScoped<ListLockersHandler>();
+        services.AddScoped<SetLockerOutOfServiceHandler>();
 
         services.AddScoped<SubscriptionSeller>();
         services.AddScoped<AssignSubscriptionHandler>();

@@ -223,9 +223,9 @@ Done when: staff can sell a subscription and take payment from the member profil
 ## Phase 5 — Lockers and Attendance
 
 ### 5.1 Lockers API
-- [ ] Locker entity, Owner setup endpoints
-- [ ] Locker list with derived occupancy
-- [ ] Tests: cannot put an occupied locker out of service
+- [x] Locker entity, Owner setup endpoints
+- [x] Locker list with derived occupancy
+- [x] Tests: cannot put an occupied locker out of service
 
 ### 5.2 Check-in
 - [ ] Attendance entity with both partial unique indexes

@@ -1,4 +1,5 @@
 using Gym.Domain.Auth;
+using Gym.Domain.Lockers;
 using Gym.Domain.Members;
 using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
@@ -37,6 +38,8 @@ public interface IAppDbContext
     DbSet<Plan> Plans { get; }
 
     DbSet<Subscription> Subscriptions { get; }
+
+    DbSet<Locker> Lockers { get; }
 
     /// <summary>
     /// Exposed for the rare handler that must recover from a failed save in the same request:
