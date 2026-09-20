@@ -108,6 +108,21 @@ public sealed class AttendanceTests
         result.Error.ShouldBe(AttendanceErrors.NotOpen);
     }
 
+    // ---- AutoClose ----
+
+    [Fact]
+    public void AutoClose_WhenOpen_SetsCheckedOutAtAndAutoClosedAt()
+    {
+        var attendance = OpenAttendance();
+        var closedAt = CheckedInAt.AddHours(3);
+
+        attendance.AutoClose(closedAt);
+
+        attendance.CheckedOutAt.ShouldBe(closedAt);
+        attendance.AutoClosedAt.ShouldBe(closedAt);
+        attendance.CancelledAt.ShouldBeNull();
+    }
+
     private static Attendance OpenAttendance() =>
         Attendance.CheckIn(MemberId, SubscriptionId, Guid.NewGuid(), CheckedInAt);
 }

@@ -71,6 +71,23 @@
   </ItemGroup>
 
   <!--
+    Background jobs (task 5.5). Hangfire.PostgreSql stores the job queue in the same database as
+    the app, in its own "hangfire" schema so the integration test harness's Respawn reset (scoped
+    to the "public" schema) never touches it. Hangfire.AspNetCore brings the dashboard middleware
+    and the ASP.NET Core job activator (each job execution gets its own DI scope).
+  -->
+  <ItemGroup Label="Jobs">
+    <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.25" />
+    <PackageVersion Include="Hangfire.PostgreSql" Version="1.21.1" />
+    <!--
+      Hangfire.Core (transitive) floors on Newtonsoft.Json 11.0.1, which NU1903 flags as a known
+      high-severity vulnerability. Not referenced by any project directly — CentralPackageTransitivePinningEnabled
+      forces the whole graph onto this version instead.
+    -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <!--
     Structured logging. Serilog.AspNetCore brings the hosting integration and the console
     sink; Serilog.Sinks.Seq ships events to the Seq container from docker-compose.yml.
     Both are referenced by Gym.Api alone: the other layers log through Microsoft.Extensions

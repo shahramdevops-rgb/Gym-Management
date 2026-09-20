@@ -18,4 +18,11 @@ public interface IGymCalendar
     /// <c>Attendance.CheckedInAt</c> by day.
     /// </summary>
     DateTimeOffset StartOfDayUtc(DateOnly date);
+
+    /// <summary>
+    /// <c>Gym:TimeZone</c> itself, for the one caller that needs the zone rather than a moment or
+    /// a date in it: the nightly job's own recurring-job schedule (Gym.Infrastructure/Jobs), so
+    /// <c>Gym:ClosingTime</c> fires at that local time regardless of the server's own clock.
+    /// </summary>
+    TimeZoneInfo TimeZone { get; }
 }

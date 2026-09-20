@@ -52,4 +52,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
   </ItemGroup>
 
+  <!-- UseHangfireDashboard (Development only, Program.cs). Gym.Infrastructure registers the server and storage. -->
+  <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" />
+  </ItemGroup>
+
 </Project>

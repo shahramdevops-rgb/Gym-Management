@@ -26,4 +26,10 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
   </ItemGroup>
 
+  <!-- The nightly auto-checkout job (Jobs/). Hangfire.AspNetCore for the ASP.NET Core job activator. -->
+  <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" />
+    <PackageReference Include="Hangfire.PostgreSql" />
+  </ItemGroup>
+
 </Project>

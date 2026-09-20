@@ -12,6 +12,7 @@ namespace Gym.Application.Attendances;
 /// <param name="LockerNumber">Alongside <paramref name="LockerId"/>, so the front desk can show it without a second call.</param>
 /// <param name="CheckedOutAt"><c>null</c> while the visit is still open.</param>
 /// <param name="CancelledAt"><c>null</c> unless the check-in was cancelled (BUSINESS_RULES.md §7).</param>
+/// <param name="AutoClosedAt"><c>null</c> unless the nightly job closed this visit instead of the member checking out (BUSINESS_RULES.md §7 Auto-checkout).</param>
 public sealed record AttendanceResponse(
     Guid Id,
     Guid MemberId,
@@ -21,6 +22,7 @@ public sealed record AttendanceResponse(
     DateTimeOffset CheckedInAt,
     DateTimeOffset? CheckedOutAt,
     DateTimeOffset? CancelledAt,
+    DateTimeOffset? AutoClosedAt,
     DateTimeOffset CreatedAt)
 {
     /// <summary>
@@ -38,6 +40,7 @@ public sealed record AttendanceResponse(
             attendance.CheckedInAt,
             attendance.CheckedOutAt,
             attendance.CancelledAt,
+            attendance.AutoClosedAt,
             attendance.CreatedAt);
 
     public static AttendanceResponse From(Attendance attendance, int? lockerNumber)
@@ -53,6 +56,7 @@ public sealed record AttendanceResponse(
             attendance.CheckedInAt,
             attendance.CheckedOutAt,
             attendance.CancelledAt,
+            attendance.AutoClosedAt,
             attendance.CreatedAt);
     }
 }

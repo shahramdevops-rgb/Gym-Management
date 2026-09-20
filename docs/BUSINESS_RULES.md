@@ -13,7 +13,6 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 |---|---|---|
 | `Gym:Currency` | Phase 4 | Toman: choose one storage unit and never mix. Amounts are always `decimal`. |
 | Payment methods | Phase 4 | For example Cash, Card, BankTransfer. |
-| `Gym:ClosingTime` | Phase 5 | Local time for the nightly auto-checkout. |
 | Check-in with an unpaid or partially paid subscription | Phase 5 | Block it, or allow it with a warning? |
 | Cafe orders paid in full at creation (no tabs) | Phase 8 | Suggested: yes. |
 | `Sms:ExpiringDaysBefore`, `Sms:LowSessionsThreshold`, `Sms:MaxAttempts`, quiet hours | Phase 11 | |
@@ -24,6 +23,7 @@ Decided values:
 - `Gym:PhoneDefaultRegion` = `IR` (Iran: a local `09…` number becomes `+989…`)
 - `Gym:TimeZone` = `Asia/Tehran`. Defines "today" for every business date (decided in task 4.1).
 - `Gym:MaxFreezeDaysPerSubscription` = 30 (decided in task 4.1).
+- `Gym:ClosingTime` = 23:00 (Asia/Tehran). Local time the nightly auto-checkout job runs at (decided in task 5.5).
 
 ---
 

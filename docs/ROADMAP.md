@@ -246,9 +246,9 @@ Done when: staff can sell a subscription and take payment from the member profil
 - [x] Fix any issues found
 
 ### 5.5 Background jobs
-- [ ] Hangfire with PostgreSQL storage, dashboard restricted to Owner
-- [ ] Nightly auto-checkout job
-- [ ] Tests: job closes open attendances and frees lockers
+- [x] Hangfire with PostgreSQL storage, dashboard restricted to Owner (Development-only for now — see docs/LEARNING.md 5.5)
+- [x] Nightly auto-checkout job
+- [x] Tests: job closes open attendances and frees lockers
 
 ### 5.6 UI: front desk
 - [ ] One-click check-in from search results and profile, showing the locker number and warnings
