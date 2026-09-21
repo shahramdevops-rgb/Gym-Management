@@ -211,7 +211,7 @@ Decided values:
 Preconditions: the member is active, has an `Active` subscription, and has no open attendance.
 1. Load the member's current subscription.
 2. `subscription.ConsumeSession(today)`.
-3. Choose the lowest-numbered locker that is in service and not occupied.
+3. Choose a locker at random from those that are in service and not occupied. Random, not lowest-numbered: any free locker is equally valid, and always taking the lowest one wore out the first few lockers while the high numbers were never used.
 4. Insert the Attendance row with `CheckedInAt` and the locker.
 5. Save and commit.
 
