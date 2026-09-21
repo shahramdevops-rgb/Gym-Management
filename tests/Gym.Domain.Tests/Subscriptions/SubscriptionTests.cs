@@ -30,8 +30,8 @@ public sealed class SubscriptionTests
         var subscription = Subscription.Create(MemberId, plan, Start).Value;
 
         subscription.MemberId.ShouldBe(MemberId);
+        // No name here on purpose: it is read live through PlanId (BUSINESS_RULES.md §4).
         subscription.PlanId.ShouldBe(plan.Id);
-        subscription.PlanName.ShouldBe("یک ماهه ۱۲ جلسه");
         subscription.Price.ShouldBe(900_000m);
         subscription.DurationDays.ShouldBe(30);
         subscription.TotalSessions.ShouldBe(12);
@@ -67,7 +67,8 @@ public sealed class SubscriptionTests
         plan.Update("یک ماهه جدید", 60, null, 1_200_000m);
         plan.Deactivate();
 
-        subscription.PlanName.ShouldBe("یک ماهه");
+        // The numbers are the contract and never move. The name is not here at all: it now comes
+        // from the plan, so a rename is meant to show up on this sale.
         subscription.Price.ShouldBe(900_000m);
         subscription.DurationDays.ShouldBe(30);
         subscription.TotalSessions.ShouldBe(12);

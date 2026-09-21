@@ -21,6 +21,8 @@ public sealed class GetSubscriptionHandler(IAppDbContext db, IGymCalendar calend
 
         var netPaid = await PaymentLedger.GetNetPaidAsync(db, id, cancellationToken);
 
-        return SubscriptionResponse.From(subscription, calendar.Today(), netPaid);
+        var planName = await PlanNames.ForAsync(db, subscription.PlanId, cancellationToken);
+
+        return SubscriptionResponse.From(subscription, planName, calendar.Today(), netPaid);
     }
 }

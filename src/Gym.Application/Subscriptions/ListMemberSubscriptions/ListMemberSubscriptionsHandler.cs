@@ -55,8 +55,11 @@ public sealed class ListMemberSubscriptionsHandler(IAppDbContext db, IGymCalenda
             })
             .ToDictionaryAsync(row => row.SubscriptionId, row => row.NetPaid, cancellationToken);
 
+        // Same reason as netPaidById: one query for the page, not one per row.
+        var planNameById = await PlanNames.ByIdAsync(db, items.Select(s => s.PlanId).Distinct().ToList(), cancellationToken);
+
         var responses = items
-            .Select(s => SubscriptionResponse.From(s, today, netPaidById.GetValueOrDefault(s.Id)))
+            .Select(s => SubscriptionResponse.From(s, planNameById[s.PlanId], today, netPaidById.GetValueOrDefault(s.Id)))
             .ToList();
 
         return new PagedResponse<SubscriptionResponse>(responses, query.Page, query.PageSize, totalCount);

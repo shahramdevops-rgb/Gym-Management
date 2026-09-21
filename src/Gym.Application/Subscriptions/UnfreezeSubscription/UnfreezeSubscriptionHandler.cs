@@ -71,6 +71,8 @@ public sealed class UnfreezeSubscriptionHandler(IAppDbContext db, IGymCalendar c
 
         var netPaid = await PaymentLedger.GetNetPaidAsync(db, id, cancellationToken);
 
-        return SubscriptionResponse.From(subscription, today, netPaid);
+        var planName = await PlanNames.ForAsync(db, subscription.PlanId, cancellationToken);
+
+        return SubscriptionResponse.From(subscription, planName, today, netPaid);
     }
 }

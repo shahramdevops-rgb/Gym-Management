@@ -5,6 +5,8 @@ using System.Text.Json;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Common;
+using Gym.Application.Common.Paging;
+using Gym.Application.Payments;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
@@ -83,7 +85,7 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
     }
 
     [Fact]
-    public async Task Assign_PlanEditedAfterTheSale_KeepsTheSnapshot()
+    public async Task Assign_PlanEditedAfterTheSale_KeepsTheNumbersAndShowsTheNewName()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
@@ -92,11 +94,34 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
 
         await ChangePlanAsync(plan.Id, p => p.Update("یک ماهه جدید", 60, null, 1_200_000m));
 
+        // This is the whole boundary of BUSINESS_RULES.md §4: the name is a label and follows the
+        // plan, the numbers are the contract that was sold and never move.
         var read = await GetOkAsync(client, token, sold.Id);
-        read.PlanName.ShouldBe("یک ماهه");
+        read.PlanName.ShouldBe("یک ماهه جدید");
         read.Price.ShouldBe(900_000m);
         read.DurationDays.ShouldBe(30);
         read.TotalSessions.ShouldBe(12);
+    }
+
+    [Fact]
+    public async Task PlanRenamed_SubscriptionHistoryAndPaymentHistory_BothShowTheNewName()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync("یک ماهه", 30, 12, 900_000m);
+        var sold = await AssignOkAsync(client, token, member.Id, plan.Id);
+        await PayAsync(client, token, sold.Id, 900_000m);
+
+        await ChangePlanAsync(plan.Id, p => p.Update("یک ماهه ۱۲ جلسه", 30, 12, 900_000m));
+
+        // The two list endpoints the member profile is built from, not just the single read.
+        var subscriptions = await GetListAsync<SubscriptionResponse>(
+            client, token, $"/api/members/{member.Id}/subscriptions");
+        subscriptions.Single().PlanName.ShouldBe("یک ماهه ۱۲ جلسه");
+
+        var payments = await GetListAsync<PaymentHistoryResponse>(
+            client, token, $"/api/members/{member.Id}/payments");
+        payments.Single().SubscriptionPlanName.ShouldBe("یک ماهه ۱۲ جلسه");
     }
 
     [Fact]
@@ -452,9 +477,9 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlAsync(
             $"""
-            INSERT INTO subscriptions (id, member_id, plan_id, plan_name, price, duration_days, total_sessions,
+            INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, {planId}, 'پلن', 100000, 30, {totalSessions},
+            VALUES ({id}, {memberId}, {planId}, 100000, 30, {totalSessions},
                     {start}, {end}, {usedSessions}, 0, now())
             """,
             TestContext.Current.CancellationToken);
@@ -500,6 +525,15 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         response.EnsureSuccessStatusCode();
 
         return await ReadAsync(response);
+    }
+
+    private static async Task<List<T>> GetListAsync<T>(HttpClient client, string token, string path)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Get, path);
+        response.EnsureSuccessStatusCode();
+        var page = await response.Content.ReadFromJsonAsync<PagedResponse<T>>(TestContext.Current.CancellationToken);
+
+        return page.ShouldNotBeNull().Items.ToList();
     }
 
     private static async Task<SubscriptionResponse> ReadAsync(HttpResponseMessage response) =>

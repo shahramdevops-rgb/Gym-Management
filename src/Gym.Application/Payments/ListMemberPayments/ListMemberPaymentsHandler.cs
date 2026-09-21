@@ -23,11 +23,14 @@ public sealed class ListMemberPaymentsHandler(IAppDbContext db)
 
         // An inner join: a payment always has a subscription today (cafe order payments don't
         // exist until Phase 7), and it is exactly what "this member's payments" means.
+        // The plan is joined for its name only, and read live rather than from the sale: renaming
+        // a plan corrects the label on every receipt it has ever appeared on (BUSINESS_RULES.md §4).
         var payments =
             from payment in db.Payments.AsNoTracking()
             join subscription in db.Subscriptions.AsNoTracking() on payment.SubscriptionId equals subscription.Id
+            join plan in db.Plans.AsNoTracking() on subscription.PlanId equals plan.Id
             where subscription.MemberId == memberId
-            select new { payment, subscription.PlanName };
+            select new { payment, PlanName = plan.Name };
 
         var totalCount = await payments.CountAsync(cancellationToken);
 

@@ -13,6 +13,7 @@ namespace Gym.Application.Payments;
 public sealed record PaymentHistoryResponse(
     Guid Id,
     Guid SubscriptionId,
+    // The plan's name now, not when it was sold (BUSINESS_RULES.md §4).
     string SubscriptionPlanName,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentKind>))] PaymentKind Kind,
     decimal Amount,

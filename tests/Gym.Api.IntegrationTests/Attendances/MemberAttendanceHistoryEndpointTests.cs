@@ -185,9 +185,9 @@ public sealed class MemberAttendanceHistoryEndpointTests(DatabaseFixture fixture
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlAsync(
             $"""
-            INSERT INTO subscriptions (id, member_id, plan_id, plan_name, price, duration_days, total_sessions,
+            INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, {planId}, 'پلن', 900000, 30, 12, {start}, {end}, 1, 0, now())
+            VALUES ({id}, {memberId}, {planId}, 900000, 30, 12, {start}, {end}, 1, 0, now())
             """,
             TestContext.Current.CancellationToken);
 
