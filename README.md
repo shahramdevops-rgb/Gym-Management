@@ -216,5 +216,12 @@ A mismatch between the frontend and the API then shows up as a type error in `np
 
 ## Deployment
 
-Not yet. Production containers, the release process and backups are Phase 6 of the
-[roadmap](docs/ROADMAP.md); the deployment guide is written then.
+Not yet — but the shape is decided. One Docker Compose stack (API, Postgres, Caddy) on a single
+rented Iranian VPS, reachable over a real domain with an automatically issued certificate, with
+images built here and transferred rather than built on the server. The reasoning, the alternatives
+and what the choice costs are in
+[ADR 0003](docs/adr/0003-deployment-topology.md).
+
+The work itself is Phase 6 of the [roadmap](docs/ROADMAP.md): production image and compose, the
+release process, backups, and go-live. The step-by-step deployment guide is written in task 6.4,
+once it has actually been done once.

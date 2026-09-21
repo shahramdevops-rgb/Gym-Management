@@ -65,7 +65,12 @@ Frontend: Vite, React, TypeScript, React Router, TanStack Query, React Hook Form
 
 Frontend supporting packages (dependencies of the tools above, approved in task 0.7): `@radix-ui/react-direction` (Radix `DirectionProvider`), `@radix-ui/react-slot`, `class-variance-authority`, `clsx`, `tailwind-merge` and `lucide-react` (shadcn/ui), `@tailwindcss/vite`, `jsdom` and `@testing-library/jest-dom` (Vitest), ESLint with `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `eslint-config-prettier` and `globals`, Prettier, `@types/node` (types for `vite.config.ts`).
 
-Infrastructure: Docker Compose (postgres:18, datalust/seq), GitHub Actions, Caddy.
+Infrastructure: Docker Compose, GitHub Actions, Caddy.
+
+- Development: `docker-compose.yml` runs postgres:18 and datalust/seq.
+- Production: `docker-compose.prod.yml` runs the API, postgres:18 and Caddy on one Iranian VPS.
+  No Seq — 2 GB of RAM has no room for it, so Serilog writes to the console and Docker's
+  `json-file` driver rotates it. Shape and reasoning: `docs/adr/0003-deployment-topology.md`.
 
 Built-in features used instead of packages: rate limiting, `TimeProvider`, ProblemDetails, `IExceptionHandler`, `Guid.CreateVersion7()`.
 
@@ -215,6 +220,11 @@ web/src/
 - `xmin` concurrency: a `uint Version` property configured with `.IsRowVersion()`.
 - Do not use `MapIdentityApi()`: it adds a register endpoint and uses its own token format.
 - Migrations are never applied automatically at app startup in production. Use an EF migration bundle during deployment.
+- The production runtime image must carry both ICU and tzdata. `InvariantGlobalization=false` (Directory.Build.props)
+  needs ICU to format Persian dates and digits, and `Gym:TimeZone = Asia/Tehran` needs tzdata to resolve at all.
+  The Debian-based `mcr.microsoft.com/dotnet/aspnet` image carries both; an Alpine variant needs `icu-libs` and
+  `tzdata` installed explicitly. The startup validation of `Gym:TimeZone` is the check — an image missing either
+  fails to start rather than serving wrong dates quietly.
 - Testcontainers needs Docker running, locally and in CI.
 - The .NET 10 SDK no longer runs Microsoft.Testing.Platform tests through VSTest. xunit.v3 hosts its own runner, so test projects set `OutputType=Exe` and `TestingPlatformDotnetTestSupport=true`, `global.json` carries `"test": { "runner": "Microsoft.Testing.Platform" }`, and neither `Microsoft.NET.Test.Sdk` nor `xunit.runner.visualstudio` is referenced. Without the `global.json` opt-in, `dotnet test` fails with "Testing with VSTest target is no longer supported".
 - Font files and scripts are self-hosted in the build, never loaded from a public CDN.
@@ -277,7 +287,9 @@ web/src/
   --project src/Gym.Api`. In production: `Jwt__SigningKey`. The API refuses to start without it.
 - The login rate limit partitions by `RemoteIpAddress`. Behind Caddy that is Caddy's address for every request, so
   all users would share one bucket. Configure forwarded headers (`UseForwardedHeaders` with Caddy as a known proxy)
-  before deploying; tracked for task 11.2.
+  before deploying; tracked for task 6.2. It moved there from task 11.2 when the server turned out to be an
+  internet-facing VPS rather than a machine on the gym's own network (ADR 0003): sharing one rate-limit bucket
+  is a defect once the login endpoint is publicly reachable, not a later cleanup.
 - The integration test host raises the login rate limit (`RateLimiting__Login__PermitLimit`), because every test
   client shares one address. A test that needs different settings uses `DatabaseFixture.CreateClient(settings)`,
   which builds a separate host with its own singletons.
