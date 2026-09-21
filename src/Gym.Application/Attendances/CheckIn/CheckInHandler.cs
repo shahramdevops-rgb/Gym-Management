@@ -9,8 +9,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Attendances.CheckIn;
 
 /// <summary>
-/// Checks a member in: consumes a session from their current subscription and takes the
-/// lowest-numbered free locker, if any (BUSINESS_RULES.md §7). Front desk work, so both roles.
+/// Checks a member in: consumes a session from their current subscription and takes a random
+/// free locker, if any (BUSINESS_RULES.md §7). Front desk work, so both roles.
 /// </summary>
 public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, TimeProvider time)
 {
@@ -56,9 +56,13 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
             return Result.Failure<AttendanceResponse>(consumed.Error);
         }
 
+        // Any free locker is equally correct, so the pick is random rather than by number
+        // (BUSINESS_RULES.md §7). Taking the lowest number every time wore out the first few
+        // lockers while the high numbers were never touched. `EF.Functions.Random()` becomes
+        // Postgres's `random()`, so the ordering stays one query on the database side.
         var freeLocker = await db.Lockers
             .Where(l => !l.IsOutOfService && !db.Attendances.Any(a => a.LockerId == l.Id && a.CheckedOutAt == null))
-            .OrderBy(l => l.Number)
+            .OrderBy(l => EF.Functions.Random())
             .Select(l => new { l.Id, l.Number })
             .FirstOrDefaultAsync(cancellationToken);
 

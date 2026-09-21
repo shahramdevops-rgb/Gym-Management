@@ -29,7 +29,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     // ---- Happy path ----
 
     [Fact]
-    public async Task CheckIn_ActiveSubscriptionAndFreeLockers_AssignsTheLowestNumberedLockerAndConsumesASession()
+    public async Task CheckIn_ActiveSubscriptionAndFreeLockers_AssignsAFreeLockerAndConsumesASession()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
         var (ownerClient, ownerToken) = await OwnerClientAsync();
@@ -44,8 +44,39 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var attendance = await ReadAsync(response);
         attendance.MemberId.ShouldBe(member.Id);
-        attendance.LockerNumber.ShouldBe(1);
+        // Which locker is not specified: the pick is random (BUSINESS_RULES.md §7), so the
+        // assertion is that it is one of the free ones, not which one.
+        attendance.LockerNumber.ShouldBeOneOf(1, 2);
         (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task CheckIn_RepeatedVisits_DoesNotAlwaysPickTheSameLocker()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        for (var number = 1; number <= 5; number++)
+        {
+            await CreateLockerAsync(ownerClient, ownerToken, number);
+        }
+
+        // Check out after each visit, so every draw sees all five lockers free. Ten visits stays
+        // inside the plan's twelve sessions.
+        var assigned = new List<int?>();
+        for (var visit = 0; visit < 10; visit++)
+        {
+            var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
+            assigned.Add(attendance.LockerNumber);
+            await CheckOutOkAsync(staffClient, staffToken, attendance.Id);
+        }
+
+        // Statistical, but not flaky: if the pick really is random, the odds of ten draws from
+        // five lockers all landing on the same one are 5^-9. Ordering by number again — the
+        // behaviour this replaced — fails this every single run.
+        assigned.Distinct().Count().ShouldBeGreaterThan(1);
     }
 
     [Fact]
@@ -336,6 +367,12 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return await ReadAsync(response);
+    }
+
+    private static async Task CheckOutOkAsync(HttpClient client, string token, Guid attendanceId)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendanceId}/check-out");
+        response.EnsureSuccessStatusCode();
     }
 
     private static async Task<AttendanceResponse> ReadAsync(HttpResponseMessage response) =>
