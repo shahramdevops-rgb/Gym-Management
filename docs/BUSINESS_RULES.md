@@ -15,8 +15,8 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 | Payment methods | Phase 4 | For example Cash, Card, BankTransfer. |
 | Check-in with an unpaid or partially paid subscription | Phase 5 | Block it, or allow it with a warning? |
 | Cafe orders paid in full at creation (no tabs) | Phase 8 | Suggested: yes. |
-| `Sms:ExpiringDaysBefore`, `Sms:LowSessionsThreshold`, `Sms:MaxAttempts`, quiet hours | Phase 11 | |
-| SMS provider | Phase 11 | |
+| `Sms:ExpiringDaysBefore`, `Sms:LowSessionsThreshold`, `Sms:MaxAttempts`, quiet hours | Phase 10 | |
+| SMS provider | Phase 10 | An Iranian panel, probably Kavenegar. Ask whether it allows free text or only approved templates — see §10. |
 
 Decided values:
 - `Gym:CancelCheckInWindowMinutes` = 30
@@ -251,6 +251,11 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 - Nothing is sent during quiet hours; sending is deferred.
 - The Owner can manually resend a failed notification.
 - Development and tests use `FakeSmsSender`, which only logs.
+- The provider will be an Iranian panel. Those generally require a **pre-approved template** for service
+  messages rather than free text: the Persian wording is registered in the panel and the caller sends a
+  template id plus named parameters. So `ISmsSender` is defined template-first from task 10.1, even while
+  only `FakeSmsSender` exists. If the panel chosen at purchase does allow free text, a template-first
+  interface still works; the reverse does not. Confirm this when the panel is bought.
 
 ---
 

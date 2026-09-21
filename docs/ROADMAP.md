@@ -180,6 +180,14 @@ Done when: staff can find, create, and edit members in the app.
 
 ## Phase 4 — Subscriptions and Payments
 
+> Tasks 4.4-4.6 are **done and tested on branch `task/4.4-payments`** (commits 6a63b24,
+> 66a8f85, 116ee65) but that branch was never merged: `main` stopped at 4.3 (`ae09fec`) and
+> the whole Phase 5 chain branched from the same commit. So the payment entity, the refund
+> endpoints and the member profile's subscription and payment sections are missing from the
+> Phase 5 branches even though the work exists. Merging that branch back is a task of its
+> own: the EF migration chain forked after `AddSubscriptions`, and `Program.cs`,
+> `MemberProfilePage.tsx`, `router.tsx` and `paths.ts` were changed on both sides.
+
 ### 4.1 Subscription domain model
 - [x] Subscription entity with snapshot fields
 - [x] `ConsumeSession`, `RestoreSession`, `Freeze`, `Unfreeze`, `Cancel`
@@ -198,23 +206,23 @@ Done when: staff can find, create, and edit members in the app.
 - [x] Tests: max freeze days enforced; queued subscription shifted
 
 ### 4.4 Payments
-- [ ] Payment entity with the one-target check constraint
-- [ ] Register payment (partial allowed, overpayment rejected)
-- [ ] Calculated payment status
-- [ ] Tests: Unpaid → Partial → Paid
+- [x] Payment entity with the one-target check constraint
+- [x] Register payment (partial allowed, overpayment rejected)
+- [x] Calculated payment status
+- [x] Tests: Unpaid → Partial → Paid
 
 ### 4.5 Refunds and member history
-- [ ] Refund and void (Owner only)
-- [ ] Member subscription history
-- [ ] Member payment history
-- [ ] Tests: refund cannot exceed net paid; status recalculates
+- [x] Refund and void (Owner only)
+- [x] Member subscription history
+- [x] Member payment history
+- [x] Tests: refund cannot exceed net paid; status recalculates
 
 ### 4.6 UI: subscriptions and payments
-- [ ] Member profile: current subscription card (status, Jalali dates, sessions left, payment status)
-- [ ] Assign and renew subscription dialog
-- [ ] Register payment dialog
-- [ ] Subscription and payment history tabs
-- [ ] Owner: freeze, unfreeze, cancel, refund actions
+- [x] Member profile: current subscription card (status, Jalali dates, sessions left, payment status)
+- [x] Assign and renew subscription dialog
+- [x] Register payment dialog
+- [x] Subscription and payment history tabs
+- [x] Owner: freeze, unfreeze, cancel, refund actions
 
 Done when: staff can sell a subscription and take payment from the member profile.
 
@@ -251,36 +259,96 @@ Done when: staff can sell a subscription and take payment from the member profil
 - [x] Tests: job closes open attendances and frees lockers
 
 ### 5.6 UI: front desk
-- [ ] One-click check-in from search results and profile, showing the locker number and warnings
-- [ ] Check-out and cancel check-in
-- [ ] "Currently inside" board (auto-refresh)
-- [ ] Member attendance history tab
-- [ ] Owner lockers screen with live occupancy
+- [x] One-click check-in from search results and profile, showing the locker number and warnings
+- [x] Check-out and cancel check-in
+- [x] "Currently inside" board (auto-refresh)
+- [x] Member attendance history tab (a stacked section, not a `<Tabs>` widget — see docs/LEARNING.md 5.6)
+- [x] Owner lockers screen with live occupancy
 
 Done when: the full front desk flow works in the app: search → check-in → locker shown → check-out.
+Verified against the real API (dev server + Vite proxy, unmocked backend) and with 23 new Testing
+Library tests that render the real components; not verified with an interactive browser click-through
+in this session — see docs/LEARNING.md 5.6.
 
 ---
 
 ## Phase 6 — First Deployment (MVP 1 live)
 
-### 6.1 Production containers
-- [ ] Multi-stage API Dockerfile running as non-root
-- [ ] Production compose: API, Postgres, Caddy (HTTPS, serves the React build, proxies /api)
+Shape and reasoning: `docs/adr/0003-deployment-topology.md`. One Docker Compose stack
+(API, Postgres, Caddy) on one rented Iranian VPS — 2 cores, 2 GB RAM, 50 GB disk — reachable
+from the internet over a real domain. The binding constraint is RAM, not disk.
+
+### 6.0 Deployment decisions and prerequisites
+- [ ] `docs/adr/0003-deployment-topology.md`
+- [ ] Server provisioned: Ubuntu LTS, 2 cores, 2 GB RAM, 50 GB disk, 2 GB swapfile
+- [ ] Domain registered, its A record pointing at the server
+- [ ] SSH key-only login, `ufw` allowing 22/80/443 only, fail2ban
+- [ ] Outbound HTTPS left open: the Phase 10 SMS panel is called from this host
+- [ ] `timedatectl` reports a synchronised clock — JWT validation uses `ClockSkew = TimeSpan.Zero`,
+      so clock drift rejects valid tokens
+
+Done when: `ssh` with a key works, `ufw status` shows only 22/80/443, and the clock is synchronised.
+
+### 6.1 Production image and compose
+- [ ] Multi-stage `src/Gym.Api/Dockerfile`: SDK build stage, `mcr.microsoft.com/dotnet/aspnet:10.0`
+      runtime, `USER $APP_UID`
+- [ ] Frontend built in its own stage (`npm ci && npm run build`); Caddy serves the output
+- [ ] `Asia/Tehran` resolves inside the runtime image: `InvariantGlobalization=false` needs ICU and
+      `Gym:TimeZone` needs tzdata. The existing startup validation of `Gym:TimeZone` is the check —
+      a container missing either cannot start
+- [ ] `docker-compose.prod.yml`: `api`, `postgres`, `caddy`. Postgres publishes **no** host port.
+      `restart: unless-stopped`, `mem_limit` per service, `logging: json-file` with
+      `max-size: 10m` and `max-file: 3`
+- [ ] No Seq in production (ADR 0003): Serilog writes to the console and Docker rotates it
+- [ ] `Caddyfile`: automatic HTTPS, serves the React build, proxies `/api` and `/health`,
+      security headers, `basic_auth` in front of `/hangfire`
+- [ ] Postgres tuned for 2 GB: `shared_buffers=256MB`, `effective_cache_size=768MB`,
+      `max_connections=50`
+
+Done when: the stack comes up on the server, the Persian app loads over HTTPS with a valid
+certificate, and `/health` reports healthy.
 
 ### 6.2 Release process
-- [ ] EF migration bundle executed during deploy
-- [ ] Secrets via environment variables
-- [ ] Log retention settings
+- [ ] Images built on the development machine, not the server: `docker compose build`,
+      `docker save`, `scp`, `docker load`. Not a disk limit — 2 GB of RAM cannot run
+      `dotnet publish` or `npm run build` beside a live Postgres
+- [ ] The previous image tag kept on the server, so a bad release rolls back with one command
+- [ ] `dotnet ef migrations bundle --self-contained -r linux-x64`, copied and run before the new
+      API container starts (migrations never run at application startup — see ARCHITECTURE.md)
+- [ ] Secrets as environment variables from a root-owned `/opt/gym/.env` (mode 600):
+      `ConnectionStrings__Postgres`, `Jwt__SigningKey`, `POSTGRES_PASSWORD`,
+      `Seed__OwnerUserName`, `Seed__OwnerPassword`
+- [ ] `AllowedHosts` set to the real domain instead of `*`
+- [ ] `UseForwardedHeaders` with Caddy as the known proxy — moved forward from task 11.2. Behind
+      Caddy the login rate limit otherwise partitions on Caddy's own address and every user shares
+      one bucket; on an internet-facing host that is a defect, not a future cleanup
+- [ ] `deploy/` scripts so a release is one command from the development machine
+
+Done when: a code change reaches the server, migrations included, by running one script.
 
 ### 6.3 Backups
-- [ ] Daily `pg_dump` with rotation
-- [ ] Off-server copy
-- [ ] Documented and tested restore
+- [ ] Nightly `pg_dump -Fc` on the server into `/opt/gym/backups`, 60 daily copies kept
+- [ ] The gym's computer **pulls** the newest dump on a schedule (Windows Task Scheduler, `scp`,
+      a read-only SSH key) onto its own disk and onto an attached flash drive. Pull, not push:
+      the gym machine is behind NAT and the server cannot reach it
+- [ ] `/opt/gym/.env` copied once, separately, kept by the Owner — not on the shared flash drive
+      with the daily dumps
+- [ ] Restore rehearsed into a scratch database on the development machine and written into the
+      README. What the gym holds is a dump file, not a running second database, so the restore
+      step is the part that has to be proven
+
+Done when: a dump taken on the server restores into a scratch database and the app runs against it.
 
 ### 6.4 Go live
-- [ ] Deploy to the server
-- [ ] Smoke test checklist
-- [ ] Optional: deploy workflow in GitHub Actions
+- [ ] Deploy, seed the Owner, change the password on first login
+- [ ] Persian smoke-test checklist: login → create member → sell subscription → take payment →
+      check-in → locker shown → check-out → nightly job visible in Hangfire
+- [ ] `free -h` and `docker stats` after 24 hours — on 2 GB of RAM this is the number that matters
+- [ ] Deployment guide in the README
+- [ ] If `ghcr.io` turns out to be reachable from the server, move releases to a pull model in
+      GitHub Actions. Not assumed: the save/load script is the baseline
+
+Done when: the front desk runs a real day on the deployed system.
 
 ---
 
@@ -341,7 +409,10 @@ Done when: the full front desk flow works in the app: search → check-in → lo
 ## Phase 10 — SMS Notifications
 
 ### 10.1 Notification model
-- [ ] `ISmsSender`, `FakeSmsSender`
+- [ ] `ISmsSender`, `FakeSmsSender`. Define it template-first (a template id plus named
+      parameters), not as "send this string": Iranian panels generally require a pre-approved
+      template for service messages, so a free-text signature would have to be rewritten in 10.3.
+      See BUSINESS_RULES.md §10
 - [ ] Notification entity with unique (subscription, type)
 - [ ] Persian message templates; count SMS parts (Unicode messages are shorter per part)
 

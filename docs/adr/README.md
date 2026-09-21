@@ -8,6 +8,7 @@ that supersedes the old one, so the history of *why* stays readable.
 |---|---|---|
 | [0001](0001-modular-monolith-clean-architecture.md) | Modular monolith with Clean Architecture | Accepted |
 | [0002](0002-identity-user-in-infrastructure.md) | Keep the Identity User in Infrastructure, not Domain | Accepted |
+| [0003](0003-deployment-topology.md) | Deploy as one Docker Compose stack on a single Iranian VPS | Accepted |
 
 ## Template
 
