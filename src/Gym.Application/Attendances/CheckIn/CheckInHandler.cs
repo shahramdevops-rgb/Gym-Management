@@ -40,17 +40,35 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
             return Result.Failure<AttendanceResponse>(AttendanceErrors.AlreadyCheckedIn);
         }
 
-        var subscription = await db.Subscriptions
-            .Where(s => s.MemberId == memberId && s.CancelledAt == null)
-            .OrderByDescending(s => s.EndDate)
-            .FirstOrDefaultAsync(cancellationToken);
+        var today = calendar.Today();
 
-        if (subscription is null)
+        // Tracked, not AsNoTracking: InEffectToday may move the queue up, and those changes are
+        // saved with the attendance below. Ones that ended before today cannot be used and cannot
+        // be promoted, so they only matter for the error message.
+        var live = await db.Subscriptions
+            .Where(s => s.MemberId == memberId && s.CancelledAt == null)
+            .ToListAsync(cancellationToken);
+
+        if (live.Count == 0)
         {
             return Result.Failure<AttendanceResponse>(AttendanceErrors.NoSubscription);
         }
 
-        var consumed = subscription.ConsumeSession(calendar.Today());
+        // The one usable today, not the one that ends last. A member who renewed early has a
+        // queued subscription with a later end date, and taking that one would refuse them for
+        // the rest of the term they already paid for.
+        var subscription = SubscriptionSchedule.InEffectToday(today, live);
+        if (subscription is null)
+        {
+            // Nothing is usable. Report why through the subscription the member is most likely
+            // asking about — the one that ends last — and let the entity name the reason
+            // (expired, frozen, exhausted, not started yet).
+            var latest = live.MaxBy(s => s.EndDate)!;
+
+            return Result.Failure<AttendanceResponse>(latest.ConsumeSession(today).Error);
+        }
+
+        var consumed = subscription.ConsumeSession(today);
         if (consumed.IsFailure)
         {
             return Result.Failure<AttendanceResponse>(consumed.Error);

@@ -241,6 +241,23 @@ public sealed class Subscription : Entity
     }
 
     /// <summary>
+    /// Brings a queued subscription forward to <paramref name="newStart"/>, because the member's
+    /// current subscription ran out of sessions before its own end date and there is no reason to
+    /// keep them waiting (BUSINESS_RULES.md §4). The duration is preserved — the member still gets
+    /// every day they paid for — so <see cref="EndDate"/> moves by the same amount.
+    /// </summary>
+    public void StartEarly(DateOnly newStart)
+    {
+        if (GetStatus(newStart) != SubscriptionStatus.Upcoming)
+        {
+            throw new InvalidOperationException("Only a queued subscription can be started early.");
+        }
+
+        StartDate = newStart;
+        EndDate = newStart.AddDays(DurationDays - 1);
+    }
+
+    /// <summary>
     /// Moves a queued subscription later by <paramref name="days"/>, because unfreezing another
     /// subscription of the same member pushed its <c>EndDate</c> out by that many days
     /// (BUSINESS_RULES.md §4 Freeze, task 4.3). The caller picks which subscriptions are queued

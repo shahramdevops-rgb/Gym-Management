@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import type { QueryClient } from "@tanstack/react-query";
 
 import { lockerKeys } from "@/features/lockers/api";
+import { subscriptionKeys } from "@/features/subscriptions/api";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 
@@ -67,15 +68,20 @@ export function useMemberAttendanceHistory(memberId: string, page: number) {
 }
 
 /**
- * Check-in, check-out and cancel all change the same three things: the front desk board, the
- * member's own history, and locker occupancy (a different feature's cache, hence the
- * cross-feature import). Nothing here writes a single cache entry the way member/plan mutations
- * do — there is no "attendance detail" screen, only lists.
+ * Check-in, check-out and cancel all change the same four things: the front desk board, the
+ * member's own history, locker occupancy, and the member's subscriptions (two different
+ * features' caches, hence the cross-feature imports). Nothing here writes a single cache entry
+ * the way member/plan mutations do — there is no "attendance detail" screen, only lists.
+ *
+ * Subscriptions are in the list because a visit changes them: every check-in consumes a session,
+ * and a check-in against an exhausted subscription with a renewal queued behind it moves that
+ * renewal forward to today (BUSINESS_RULES.md §4), which rewrites its dates.
  */
 async function invalidateAttendance(queryClient: QueryClient) {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: attendanceKeys.all }),
     queryClient.invalidateQueries({ queryKey: lockerKeys.all }),
+    queryClient.invalidateQueries({ queryKey: subscriptionKeys.all }),
   ]);
 }
 

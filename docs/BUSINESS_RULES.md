@@ -138,6 +138,7 @@ Decided values:
   - Both follow the same start-date rule, and both are refused for an inactive member (`Members.Inactive`).
   - A cancelled subscription covers no dates: it neither delays a new sale nor counts as an overlap.
   - If the latest subscription is `Exhausted` (all sessions used before its `EndDate`), the new one does not wait: the exhausted one ends yesterday and the new one starts today. If the exhausted one started today, it ends today and the new one starts tomorrow, so two subscriptions never cover the same date.
+  - The same applies when the sale came first and the sessions ran out afterwards: if the current subscription becomes `Exhausted` while a queued one is waiting, the next check-in closes the exhausted one early and moves the queued one forward to start today, keeping its full duration. The same edge case holds — an exhausted subscription that only started today still covers today, so the queued one starts tomorrow and the member cannot check in until then.
   - Two sales for the same member at the same moment are handled one after the other: the second waits for the first and is queued after it. Both succeed.
   - The no-overlap rule is enforced by the database too: a Postgres exclusion constraint on (member, date range) for non-cancelled subscriptions. If a write ever gets past the application's ordering, it is refused with `Subscriptions.ChangedConcurrently` rather than stored.
 - Status is calculated, never stored. First match wins:
@@ -209,7 +210,7 @@ Decided values:
 
 ### Check-in (one database transaction)
 Preconditions: the member is active, has an `Active` subscription, and has no open attendance.
-1. Load the member's current subscription.
+1. Load the subscription that is in effect today — an `Active` one always wins over a queued renewal that ends later. If none is active, apply the exhausted-with-a-queue rule above.
 2. `subscription.ConsumeSession(today)`.
 3. Choose a locker at random from those that are in service and not occupied. Random, not lowest-numbered: any free locker is equally valid, and always taking the lowest one wore out the first few lockers while the high numbers were never used.
 4. Insert the Attendance row with `CheckedInAt` and the locker.
