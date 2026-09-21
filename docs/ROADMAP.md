@@ -180,13 +180,13 @@ Done when: staff can find, create, and edit members in the app.
 
 ## Phase 4 — Subscriptions and Payments
 
-> Tasks 4.4-4.6 are **done and tested on branch `task/4.4-payments`** (commits 6a63b24,
-> 66a8f85, 116ee65) but that branch was never merged: `main` stopped at 4.3 (`ae09fec`) and
-> the whole Phase 5 chain branched from the same commit. So the payment entity, the refund
-> endpoints and the member profile's subscription and payment sections are missing from the
-> Phase 5 branches even though the work exists. Merging that branch back is a task of its
-> own: the EF migration chain forked after `AddSubscriptions`, and `Program.cs`,
-> `MemberProfilePage.tsx`, `router.tsx` and `paths.ts` were changed on both sides.
+> Tasks 4.4-4.6 were finished on branch `task/4.4-payments` but that branch sat unmerged:
+> `main` stopped at 4.3 (`ae09fec`) and the whole Phase 5 chain branched from the same
+> commit, so the member profile had no subscription card and no payment history even
+> though the code existed. Merged into the Phase 5 line in `51b93aa`. The migration chain
+> forked after `AddSubscriptions` and reconverges in timestamp order; the integration
+> tests apply every migration to a fresh Postgres, which is what proves the chain is sound.
+> `main` itself is still at 4.3 and has yet to receive any of this.
 
 ### 4.1 Subscription domain model
 - [x] Subscription entity with snapshot fields
