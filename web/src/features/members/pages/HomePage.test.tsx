@@ -136,7 +136,9 @@ describe("HomePage", () => {
     fireEvent.change(searchBox(), { target: { value: "رضا" } });
     fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("رضا احمدی: ورود ثبت شد. کمد شماره ۳");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "رضا احمدی: ورود ثبت شد. کمد شماره ۳",
+    );
     expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(1);
   });
 

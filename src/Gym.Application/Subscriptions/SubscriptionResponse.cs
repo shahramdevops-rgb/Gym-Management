@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 
+using Gym.Domain.Payments;
 using Gym.Domain.Subscriptions;
 
 namespace Gym.Application.Subscriptions;
@@ -7,6 +8,8 @@ namespace Gym.Application.Subscriptions;
 /// <param name="Status">Calculated for the gym's today when the response was built; never stored.</param>
 /// <param name="TotalSessions"><c>null</c> means unlimited.</param>
 /// <param name="RemainingSessions"><c>null</c> means unlimited.</param>
+/// <param name="NetPaid">Payments minus refunds for this subscription (BUSINESS_RULES.md §4).</param>
+/// <param name="PaymentStatus">Calculated from <see cref="NetPaid"/> and <see cref="Price"/>; never stored.</param>
 public sealed record SubscriptionResponse(
     Guid Id,
     Guid MemberId,
@@ -25,9 +28,11 @@ public sealed record SubscriptionResponse(
     DateTimeOffset? CancelledAt,
     string? CancellationReason,
     uint Version,
-    DateTimeOffset CreatedAt)
+    DateTimeOffset CreatedAt,
+    decimal NetPaid,
+    [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentStatus>))] PaymentStatus PaymentStatus)
 {
-    public static SubscriptionResponse From(Subscription subscription, DateOnly today)
+    public static SubscriptionResponse From(Subscription subscription, DateOnly today, decimal netPaid)
     {
         ArgumentNullException.ThrowIfNull(subscription);
 
@@ -49,6 +54,8 @@ public sealed record SubscriptionResponse(
             subscription.CancelledAt,
             subscription.CancellationReason,
             subscription.Version,
-            subscription.CreatedAt);
+            subscription.CreatedAt,
+            netPaid,
+            PaymentStatusCalculator.Calculate(subscription.Price, netPaid));
     }
 }

@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Payments;
 using Gym.Domain.Common;
 using Gym.Domain.Subscriptions;
 
@@ -37,6 +38,8 @@ public sealed class CancelSubscriptionHandler(IAppDbContext db, IGymCalendar cal
             return Result.Failure<SubscriptionResponse>(SubscriptionErrors.ChangedConcurrently);
         }
 
-        return SubscriptionResponse.From(subscription, calendar.Today());
+        var netPaid = await PaymentLedger.GetNetPaidAsync(db, id, cancellationToken);
+
+        return SubscriptionResponse.From(subscription, calendar.Today(), netPaid);
     }
 }

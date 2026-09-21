@@ -6,8 +6,10 @@ using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Common.Paging;
 using Gym.Application.Members;
+using Gym.Application.Subscriptions;
 using Gym.Domain.Audit;
 using Gym.Domain.Members;
+using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -207,6 +209,66 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         (await ListAsync(client, token, "")).TotalCount.ShouldBe(2);
         (await ListAsync(client, token, "?isActive=true")).Items.Single().FullName.ShouldBe("رضا");
         (await ListAsync(client, token, "?isActive=false")).Items.Single().FullName.ShouldBe("علی");
+    }
+
+    // ---- HasUnpaidSubscription (task 4.6 follow-up: the front-desk debt flag) ----
+
+    [Fact]
+    public async Task ListMembers_MemberWithNoSubscription_HasUnpaidSubscriptionIsFalse()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+
+        var listed = await SingleAsync(client, token, member.Id);
+
+        listed.HasUnpaidSubscription.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_MemberWithAFullyPaidSubscription_HasUnpaidSubscriptionIsFalse()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await PayAsync(client, token, sold.Id, 900_000m);
+
+        var listed = await SingleAsync(client, token, member.Id);
+
+        listed.HasUnpaidSubscription.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_MemberWithAPartiallyPaidSubscription_HasUnpaidSubscriptionIsTrue()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await PayAsync(client, token, sold.Id, 300_000m);
+
+        var listed = await SingleAsync(client, token, member.Id);
+
+        listed.HasUnpaidSubscription.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ListMembers_MemberWithOnlyACancelledUnpaidSubscription_HasUnpaidSubscriptionIsFalse()
+    {
+        // Cancelling is how the gym already says it is not chasing that money (BUSINESS_RULES.md
+        // §4 Cancel), so a cancelled, never-paid subscription must not still flag the member.
+        var (client, token) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        var cancelRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/subscriptions/{sold.Id}/cancel")
+        {
+            Content = JsonContent.Create(new { reason = "اشتباه ثبت شد" }),
+        };
+        using var cancelled = await ownerClient.SendAsync(cancelRequest.WithBearer(ownerToken), TestContext.Current.CancellationToken);
+        cancelled.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var listed = await SingleAsync(client, token, member.Id);
+
+        listed.HasUnpaidSubscription.ShouldBeFalse();
     }
 
     // ---- Name search ----
@@ -419,6 +481,58 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         response.EnsureSuccessStatusCode();
 
         return (await response.Content.ReadFromJsonAsync<MemberResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private async Task<(HttpClient Client, string Token)> OwnerClientAsync()
+    {
+        await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "owner", role: Roles.Owner);
+        var client = Fixture.CreateClient();
+
+        return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
+    }
+
+    private async Task<Plan> AddPlanAsync(decimal price)
+    {
+        var plan = Plan.Create("پلن", 30, 12, price).Value;
+
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Plans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return plan;
+    }
+
+    /// <summary>Assigns a fresh subscription through the real endpoint, so its price is a plan's real, saved snapshot.</summary>
+    private async Task<SubscriptionResponse> SellSubscriptionAsync(HttpClient client, string token, Guid memberId, decimal price)
+    {
+        var plan = await AddPlanAsync(price);
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{MembersPath}/{memberId}/subscriptions")
+        {
+            Content = JsonContent.Create(new { planId = plan.Id }),
+        };
+        using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static async Task PayAsync(HttpClient client, string token, Guid subscriptionId, decimal amount)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/subscriptions/{subscriptionId}/payments")
+        {
+            Content = JsonContent.Create(new { amount, method = "Cash" }),
+        };
+        using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    /// <summary>The one member's row from the list endpoint, filtered by search so paging never hides it.</summary>
+    private static async Task<MemberResponse> SingleAsync(HttpClient client, string token, Guid memberId)
+    {
+        var page = await ListAsync(client, token, "?pageSize=100");
+
+        return page.Items.Single(member => member.Id == memberId);
     }
 
     private static Task<PagedResponse<MemberResponse>> SearchAsync(HttpClient client, string token, string search) =>

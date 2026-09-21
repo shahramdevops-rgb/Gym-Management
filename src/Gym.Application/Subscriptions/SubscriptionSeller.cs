@@ -67,6 +67,7 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
             return Result.Failure<SubscriptionResponse>(SubscriptionErrors.ChangedConcurrently);
         }
 
-        return SubscriptionResponse.From(created.Value, today);
+        // A subscription just sold cannot have a payment against it yet.
+        return SubscriptionResponse.From(created.Value, today, netPaid: 0m);
     }
 }

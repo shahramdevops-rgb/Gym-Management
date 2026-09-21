@@ -21,7 +21,12 @@ export function openVisit(memberId: string): Attendance {
 }
 
 export function openVisitNoLocker(memberId: string): Attendance {
-  return { ...openVisit(memberId), id: "0199a000-0000-7000-8000-0000000000c2", lockerId: null, lockerNumber: null };
+  return {
+    ...openVisit(memberId),
+    id: "0199a000-0000-7000-8000-0000000000c2",
+    lockerId: null,
+    lockerNumber: null,
+  };
 }
 
 export function closedVisit(memberId: string): Attendance {

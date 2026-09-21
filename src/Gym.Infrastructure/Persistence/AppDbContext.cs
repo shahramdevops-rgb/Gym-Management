@@ -5,6 +5,7 @@ using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
+using Gym.Domain.Payments;
 using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
@@ -40,6 +41,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Plan> Plans => Set<Plan>();
 
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+
+    public DbSet<Payment> Payments => Set<Payment>();
 
     public DbSet<Locker> Lockers => Set<Locker>();
 
