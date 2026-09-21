@@ -5,6 +5,8 @@ import { RequireAuth } from "@/features/auth/components/RequireAuth";
 import { RequireRole } from "@/features/auth/components/RequireRole";
 import { ChangePasswordPage } from "@/features/auth/pages/ChangePasswordPage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
+import { CurrentlyInsidePage } from "@/features/attendance/pages/CurrentlyInsidePage";
+import { LockersPage } from "@/features/lockers/pages/LockersPage";
 import { CreateMemberPage } from "@/features/members/pages/CreateMemberPage";
 import { EditMemberPage } from "@/features/members/pages/EditMemberPage";
 import { HomePage } from "@/features/members/pages/HomePage";
@@ -42,12 +44,14 @@ export const routes: RouteObject[] = [
           { path: paths.newMember, element: <CreateMemberPage /> },
           { path: paths.member(":id"), element: <MemberProfilePage /> },
           { path: paths.editMember(":id"), element: <EditMemberPage /> },
+          { path: paths.attendance, element: <CurrentlyInsidePage /> },
           { path: paths.status, element: <StatusPage /> },
           { path: paths.changePassword, element: <ChangePasswordPage /> },
           ownerOnly(paths.plans, <PlansPage />),
           ownerOnly(paths.newPlan, <CreatePlanPage />),
           ownerOnly(paths.editPlan(":id"), <EditPlanPage />),
           ownerOnly(paths.staff, <StaffPage />),
+          ownerOnly(paths.lockers, <LockersPage />),
         ],
       },
     ],

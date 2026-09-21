@@ -8,13 +8,15 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { checkInResultMessage } from "@/features/attendance/checkInMessage";
+import { useCheckIn } from "@/features/attendance/api";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 import { normalizeInput } from "@/lib/normalize";
 import { pageFromParams } from "@/lib/searchParams";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 
-import { useMemberList } from "../api";
+import { useMemberList, type Member } from "../api";
 import { MembersTable } from "../components/MembersTable";
 import { searchMinLength } from "../schemas";
 
@@ -55,8 +57,27 @@ export function HomePage() {
   const ready = search.length >= searchMinLength;
   const results = useMemberList({ search, page }, { enabled: ready });
 
+  const checkIn = useCheckIn();
+  const [checkingInId, setCheckingInId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ kind: "success" | "destructive"; text: string } | null>(
+    null,
+  );
+
   function goToPage(next: number) {
     setParams({ q, page: String(next) });
+  }
+
+  async function handleCheckIn(member: Member) {
+    setNotice(null);
+    setCheckingInId(member.id);
+    try {
+      const attendance = await checkIn.mutateAsync(member.id);
+      setNotice({ kind: "success", text: `${member.fullName}: ${checkInResultMessage(attendance)}` });
+    } catch (problem) {
+      setNotice({ kind: "destructive", text: `${member.fullName}: ${errorMessage(problem)}` });
+    } finally {
+      setCheckingInId(null);
+    }
   }
 
   return (
@@ -100,6 +121,12 @@ export function HomePage() {
 
       <Card>
         <CardContent className="space-y-4">
+          {notice !== null && (
+            <Alert variant={notice.kind} role={notice.kind === "success" ? "status" : "alert"}>
+              {notice.text}
+            </Alert>
+          )}
+
           {q.trim() === "" && (
             <p className="text-muted-foreground">
               نام، بخشی از نام، شماره موبایل یا دست‌کم ۴ رقم آن را بنویسید.
@@ -126,7 +153,11 @@ export function HomePage() {
               <p className="text-sm text-muted-foreground">
                 {toPersianDigits(results.data.totalCount)} نتیجه
               </p>
-              <MembersTable members={results.data.items} />
+              <MembersTable
+                members={results.data.items}
+                onCheckIn={(member) => void handleCheckIn(member)}
+                checkingInId={checkingInId}
+              />
               <Pager page={page} pageCount={results.data.pageCount} onPageChange={goToPage} />
             </>
           )}

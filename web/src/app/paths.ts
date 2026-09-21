@@ -12,4 +12,6 @@ export const paths = {
   plans: "/plans",
   newPlan: "/plans/new",
   editPlan: (id: string) => `/plans/${id}/edit`,
+  attendance: "/attendance",
+  lockers: "/lockers",
 } as const;
