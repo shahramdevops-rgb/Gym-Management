@@ -125,6 +125,7 @@ describe("MemberProfilePage", () => {
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
       [`GET /api/members/${reza.id}/attendance`]: () =>
         attendanceHistoryPage([closedVisit(reza.id)]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
     });
 
     renderApp(`/members/${reza.id}`, { session: session() });
@@ -139,6 +140,7 @@ describe("MemberProfilePage", () => {
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
       [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
       [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, visit),
     });
     renderApp(`/members/${reza.id}`, { session: session() });
@@ -154,6 +156,7 @@ describe("MemberProfilePage", () => {
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
       [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
       [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
         json(201, openVisitNoLocker(reza.id)),
     });
@@ -169,6 +172,7 @@ describe("MemberProfilePage", () => {
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
       [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
       [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
         problem(422, "Attendance.NoSubscription"),
     });
@@ -185,6 +189,7 @@ describe("MemberProfilePage", () => {
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
       [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([visit]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
       [`POST /api/attendance/${visit.id}/check-out`]: () =>
         json(200, { ...visit, checkedOutAt: "2026-09-18T09:00:00Z" }),
     });
@@ -206,6 +211,7 @@ describe("MemberProfilePage", () => {
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
       [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([visit]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
       [`POST /api/attendance/${visit.id}/cancel`]: () =>
         json(200, {
           ...visit,
@@ -227,6 +233,7 @@ describe("MemberProfilePage", () => {
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
       [`GET /api/members/${reza.id}/attendance`]: () =>
         attendanceHistoryPage([cancelledVisit(reza.id), autoClosedVisit(reza.id)]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
     });
     renderApp(`/members/${reza.id}`, { session: session() });
 

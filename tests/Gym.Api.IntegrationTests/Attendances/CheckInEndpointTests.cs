@@ -156,6 +156,52 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task CheckIn_ActiveAndQueuedSubscriptions_ConsumesFromTheActiveOne()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        var today = Today();
+        // A member who renewed early: the queued one ends later, so ordering by end date would
+        // pick it and refuse the member for the rest of the term they already paid for.
+        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 3);
+        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(25), today.AddDays(54));
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var subscriptions = await StoredSubscriptionsAsync(member.Id);
+        subscriptions.Single(s => s.StartDate == today.AddDays(-5)).UsedSessions.ShouldBe(4);
+        // The queued one is untouched: neither used nor moved.
+        var queued = subscriptions.Single(s => s.StartDate == today.AddDays(25));
+        queued.UsedSessions.ShouldBe(0);
+        queued.EndDate.ShouldBe(today.AddDays(54));
+    }
+
+    [Fact]
+    public async Task CheckIn_ExhaustedWithAQueuedRenewal_PromotesTheQueuedOneAndLetsTheMemberIn()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        var today = Today();
+        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 12);
+        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(25), today.AddDays(54));
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var subscriptions = await StoredSubscriptionsAsync(member.Id);
+        var exhausted = subscriptions.Single(s => s.StartDate == today.AddDays(-5));
+        exhausted.EndDate.ShouldBe(today.AddDays(-1));
+        exhausted.UsedSessions.ShouldBe(12);
+        // The renewal moved to today and kept its 30 days, and this visit came out of it.
+        var promoted = subscriptions.Single(s => s.StartDate == today);
+        promoted.EndDate.ShouldBe(today.AddDays(29));
+        promoted.UsedSessions.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task CheckIn_NoSubscriptionAtAll_Returns422AttendanceNoSubscription()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
@@ -322,6 +368,16 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
                     {start}, {end}, {usedSessions}, {frozenSince}, 0, now())
             """,
             TestContext.Current.CancellationToken);
+    }
+
+    private async Task<List<Subscription>> StoredSubscriptionsAsync(Guid memberId)
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Subscriptions
+            .AsNoTracking()
+            .Where(s => s.MemberId == memberId)
+            .ToListAsync(TestContext.Current.CancellationToken);
     }
 
     private async Task<Subscription> StoredSubscriptionAsync(Guid memberId)
