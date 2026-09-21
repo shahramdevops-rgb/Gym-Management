@@ -109,6 +109,17 @@ export const errorMessages: Record<string, string> = {
   "Subscriptions.CancelReasonRequired": "دلیل لغو را وارد کنید.",
   "Subscriptions.CancelReasonTooLong": "دلیل لغو بیش از حد طولانی است.",
 
+  // Payments
+  "Payments.AmountNotPositive": "مبلغ باید بزرگ‌تر از صفر باشد.",
+  "Payments.AmountTooLarge": "مبلغ بیش از حد بزرگ است.",
+  "Payments.AmountTooManyDecimals": "مبلغ حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
+  "Payments.ReferenceNumberTooLong": "شماره پیگیری بیش از حد طولانی است.",
+  "Payments.MethodInvalid": "روش پرداخت معتبر نیست.",
+  "Payments.Overpayment": "این پرداخت از مبلغ اشتراک بیشتر می‌شود.",
+  "Payments.RefundReasonRequired": "دلیل استرداد را وارد کنید.",
+  "Payments.RefundReasonTooLong": "دلیل استرداد بیش از حد طولانی است.",
+  "Payments.RefundExceedsNetPaid": "این استرداد از مبلغ پرداخت‌شدهٔ اشتراک بیشتر است.",
+
   // Lockers
   "Lockers.NotFound": "کمد پیدا نشد.",
   "Lockers.NumberInvalid": "شماره کمد باید عددی مثبت باشد.",

@@ -385,6 +385,91 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Payments.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid?>("CafeOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cafe_order_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("method");
+
+                    b.Property<DateTimeOffset>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("ReceivedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("received_by_user_id");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("reference_number");
+
+                    b.Property<Guid?>("SubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subscription_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payments");
+
+                    b.HasIndex("ReceivedByUserId")
+                        .HasDatabaseName("ix_payments_received_by_user_id");
+
+                    b.HasIndex("SubscriptionId")
+                        .HasDatabaseName("ix_payments_subscription_id");
+
+                    b.ToTable("payments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_payments_amount_positive", "amount > 0");
+
+                            t.HasCheckConstraint("ck_payments_one_target", "num_nonnulls(subscription_id, cafe_order_id) = 1");
+
+                            t.HasCheckConstraint("ck_payments_refund_reason", "kind = 'Payment' OR reason IS NOT NULL");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Plans.Plan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -871,6 +956,22 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_refresh_tokens_asp_net_users_user_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Payments.Payment", b =>
+                {
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("ReceivedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payments_asp_net_users_received_by_user_id");
+
+                    b.HasOne("Gym.Domain.Subscriptions.Subscription", null)
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_payments_subscriptions_subscription_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Subscriptions.Subscription", b =>

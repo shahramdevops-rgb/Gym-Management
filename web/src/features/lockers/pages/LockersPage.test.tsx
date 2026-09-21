@@ -1,6 +1,14 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-import { json, mockApi, owner, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
+import {
+  json,
+  mockApi,
+  owner,
+  problem,
+  session,
+  signedInHandlers,
+  staffUser,
+} from "@/test/mockApi";
 import { freeLocker, lockersPage, occupiedLocker, outOfServiceLocker } from "@/test/lockers";
 import { renderApp } from "@/test/renderApp";
 
@@ -93,7 +101,9 @@ describe("LockersPage", () => {
     fireEvent.change(screen.getByLabelText("شماره کمد"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "افزودن" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("کمد دیگری با همین شماره وجود دارد.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "کمد دیگری با همین شماره وجود دارد.",
+    );
   });
 
   it("LockersPage_ToggleOutOfService_CallsTheApi", async () => {
@@ -109,7 +119,9 @@ describe("LockersPage", () => {
     fireEvent.click(await screen.findByRole("button", { name: "خارج از سرویس" }));
 
     await waitFor(() =>
-      expect(api.requestsTo("POST", `/api/lockers/${freeLocker.id}/out-of-service`)).toHaveLength(1),
+      expect(api.requestsTo("POST", `/api/lockers/${freeLocker.id}/out-of-service`)).toHaveLength(
+        1,
+      ),
     );
     expect(await screen.findByText("خارج از سرویس")).toBeInTheDocument();
   });

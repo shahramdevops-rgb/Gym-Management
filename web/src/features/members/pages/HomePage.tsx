@@ -72,7 +72,10 @@ export function HomePage() {
     setCheckingInId(member.id);
     try {
       const attendance = await checkIn.mutateAsync(member.id);
-      setNotice({ kind: "success", text: `${member.fullName}: ${checkInResultMessage(attendance)}` });
+      setNotice({
+        kind: "success",
+        text: `${member.fullName}: ${checkInResultMessage(attendance)}`,
+      });
     } catch (problem) {
       setNotice({ kind: "destructive", text: `${member.fullName}: ${errorMessage(problem)}` });
     } finally {

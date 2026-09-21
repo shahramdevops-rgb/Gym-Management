@@ -16,15 +16,17 @@ import {
 } from "@/features/attendance/api";
 import { AttendanceHistoryTable } from "@/features/attendance/components/AttendanceHistoryTable";
 import { checkInResultMessage } from "@/features/attendance/checkInMessage";
+import { CurrentSubscriptionCard } from "@/features/subscriptions/components/CurrentSubscriptionCard";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime, toPersianDigits } from "@/lib/format";
 
 import { useMember, useSetMemberActive } from "../api";
+import { MemberHistoryTabs } from "../components/MemberHistoryTabs";
 import { MemberStatusBadge, PhoneNumber } from "../components/MembersTable";
 
 /**
- * A member's basic details plus attendance (docs/ROADMAP.md 5.6). Later phases add more
- * sections here: subscription, payments, locker, cafe purchases.
+ * A member's basic details, current subscription (task 4.6), attendance (task 5.6) and the
+ * subscription and payment history. Later phases add more sections here: cafe purchases.
  *
  * Deactivating asks for no confirmation: it deletes nothing and "فعال‌سازی" undoes it in one
  * click (decided in task 2.3).
@@ -115,7 +117,7 @@ export function MemberProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="max-w-4xl space-y-4">
       {notice !== null && (
         <Alert variant={notice.kind} role={notice.kind === "success" ? "status" : "alert"}>
           {notice.text}
@@ -167,6 +169,8 @@ export function MemberProfilePage() {
         </p>
       )}
 
+      <CurrentSubscriptionCard memberId={id} />
+
       <Card>
         <CardHeader>
           <CardTitle>ورود و خروج</CardTitle>
@@ -214,7 +218,10 @@ export function MemberProfilePage() {
                 </div>
               </div>
             ) : (
-              <Button disabled={attendanceBusy || !current.isActive} onClick={() => void handleCheckIn()}>
+              <Button
+                disabled={attendanceBusy || !current.isActive}
+                onClick={() => void handleCheckIn()}
+              >
                 ورود
               </Button>
             ))}
@@ -238,6 +245,8 @@ export function MemberProfilePage() {
           )}
         </CardContent>
       </Card>
+
+      <MemberHistoryTabs memberId={id} />
     </div>
   );
 }

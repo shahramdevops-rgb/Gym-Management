@@ -7,6 +7,7 @@ using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Common;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
+using Gym.Domain.Payments;
 using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
@@ -318,6 +319,39 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.NotFound");
     }
 
+    // ---- Payment status (task 4.6) ----
+
+    [Fact]
+    public async Task Get_NewlySold_HasZeroNetPaidAndUnpaidStatus()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync("ماهانه", 30, 12, 900_000m);
+
+        var sold = await AssignOkAsync(client, token, member.Id, plan.Id);
+
+        sold.NetPaid.ShouldBe(0m);
+        sold.PaymentStatus.ShouldBe(PaymentStatus.Unpaid);
+    }
+
+    [Fact]
+    public async Task Get_AfterPaymentThenRefund_RecalculatesFromUnpaidToPaidToPartial()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync("ماهانه", 30, 12, 900_000m);
+        var sold = await AssignOkAsync(client, token, member.Id, plan.Id);
+        (await GetOkAsync(client, token, sold.Id)).PaymentStatus.ShouldBe(PaymentStatus.Unpaid);
+
+        await PayAsync(client, token, sold.Id, 900_000m);
+        (await GetOkAsync(client, token, sold.Id)).PaymentStatus.ShouldBe(PaymentStatus.Paid);
+
+        await RefundAsync(sold.Id, 300_000m);
+        var afterRefund = await GetOkAsync(client, token, sold.Id);
+        afterRefund.NetPaid.ShouldBe(600_000m);
+        afterRefund.PaymentStatus.ShouldBe(PaymentStatus.Partial);
+    }
+
     // ---- Helpers ----
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
@@ -326,6 +360,31 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         var client = Fixture.CreateClient();
 
         return (client, await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
+    }
+
+    private async Task<(HttpClient Client, string Token)> OwnerClientAsync()
+    {
+        await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "owner", role: Roles.Owner);
+        var client = Fixture.CreateClient();
+
+        return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
+    }
+
+    private static async Task PayAsync(HttpClient client, string token, Guid subscriptionId, decimal amount)
+    {
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/subscriptions/{subscriptionId}/payments",
+            new { amount, method = "Cash" });
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private async Task RefundAsync(Guid subscriptionId, decimal amount)
+    {
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        using var response = await SendAsync(
+            ownerClient, ownerToken, HttpMethod.Post, $"/api/subscriptions/{subscriptionId}/refunds",
+            new { amount, method = "Cash", reason = "بازگشت جزئی" });
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
     private DateOnly Today()
