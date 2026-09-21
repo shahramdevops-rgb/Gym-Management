@@ -68,6 +68,7 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
         }
 
         // A subscription just sold cannot have a payment against it yet.
-        return SubscriptionResponse.From(created.Value, today, netPaid: 0m);
+        // The plan is in hand, so no lookup: it is the same name PlanNames would return.
+        return SubscriptionResponse.From(created.Value, plan.Name, today, netPaid: 0m);
     }
 }

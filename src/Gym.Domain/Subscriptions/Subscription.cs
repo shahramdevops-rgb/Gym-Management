@@ -33,10 +33,13 @@ public sealed class Subscription : Entity
 
     public Guid MemberId { get; private set; }
 
-    /// <summary>The plan it was sold from. Only for reports; every rule reads the snapshot below.</summary>
+    /// <summary>
+    /// The plan it was sold from. Every rule reads the snapshot below instead, with one
+    /// exception: the plan's <i>name</i> is read live through this id rather than copied, so
+    /// renaming a plan corrects the label everywhere it has ever been sold (BUSINESS_RULES.md §4).
+    /// The numbers stay snapshotted — they are the contract, the name is only how it reads.
+    /// </summary>
     public Guid PlanId { get; private set; }
-
-    public string PlanName { get; private set; } = string.Empty;
 
     public decimal Price { get; private set; }
 
@@ -94,7 +97,6 @@ public sealed class Subscription : Entity
         {
             MemberId = memberId,
             PlanId = plan.Id,
-            PlanName = plan.Name,
             Price = plan.Price,
             DurationDays = plan.DurationDays,
             TotalSessions = plan.SessionCount,

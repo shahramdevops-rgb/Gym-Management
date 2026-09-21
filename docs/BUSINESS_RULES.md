@@ -128,7 +128,8 @@ Decided values:
 
 ## 4. Subscriptions
 
-- At sale, the subscription stores a snapshot: `PlanName`, `Price`, `DurationDays`, `TotalSessions`.
+- At sale, the subscription stores a snapshot of the plan's **numbers**: `Price`, `DurationDays`, `TotalSessions`. Editing a plan afterwards never changes what a past sale was worth.
+- The plan's **name** is not snapshotted. It is read live through `PlanId`, so renaming a plan corrects the label on every subscription and receipt it has ever appeared on. The name is how a plan reads; the numbers are what was sold. Renaming a plan into a different product therefore mislabels history — change the numbers and it is a new plan, not a rename.
 - `StartDate` and `EndDate` are `DateOnly` in the gym's time zone. `EndDate = StartDate + DurationDays - 1` (the end date is inclusive).
 - A member never has two subscriptions covering the same date.
   - No current or queued subscription: the new one starts today.

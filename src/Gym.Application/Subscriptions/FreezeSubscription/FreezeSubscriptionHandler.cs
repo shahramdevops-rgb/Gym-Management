@@ -38,7 +38,8 @@ public sealed class FreezeSubscriptionHandler(IAppDbContext db, IGymCalendar cal
         }
 
         var netPaid = await PaymentLedger.GetNetPaidAsync(db, id, cancellationToken);
+        var planName = await PlanNames.ForAsync(db, subscription.PlanId, cancellationToken);
 
-        return SubscriptionResponse.From(subscription, today, netPaid);
+        return SubscriptionResponse.From(subscription, planName, today, netPaid);
     }
 }

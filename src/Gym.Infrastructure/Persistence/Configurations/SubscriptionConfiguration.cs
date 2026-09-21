@@ -42,7 +42,6 @@ public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscri
                 "(cancelled_at IS NULL) = (cancellation_reason IS NULL)");
         });
 
-        builder.Property(s => s.PlanName).HasMaxLength(Plan.NameMaxLength).IsRequired();
         builder.Property(s => s.Price).HasPrecision(18, Plan.PriceDecimals);
         builder.Property(s => s.CancellationReason).HasMaxLength(Subscription.CancellationReasonMaxLength);
 

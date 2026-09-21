@@ -168,10 +168,10 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
 
         await ExecuteAsync(
             $"""
-            INSERT INTO subscriptions (id, member_id, plan_id, plan_name, price, duration_days, total_sessions,
+            INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days,
                                        cancelled_at, cancellation_reason, created_at)
-            VALUES ('{id}', '{memberId}', '{planId}', 'پلن', 900000, 30, {total},
+            VALUES ('{id}', '{memberId}', '{planId}', 900000, 30, {total},
                     '{start:yyyy-MM-dd}', '{end:yyyy-MM-dd}', {usedSessions}, 0,
                     {cancelledAt}, {reason}, now())
             """);
