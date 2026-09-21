@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-import { mockApi, session, signedInHandlers, staffUser } from "@/test/mockApi";
+import { attendanceHistoryPage, openVisit, openVisitNoLocker } from "@/test/attendance";
+import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { ali, membersPage, queryOf, reza } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
 
@@ -96,6 +97,7 @@ describe("HomePage", () => {
       ...signedInHandlers(staffUser),
       "GET /api/members": () => membersPage([reza]),
       [`GET /api/members/${reza.id}`]: () => new Response(JSON.stringify(reza)),
+      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
     });
     const { router } = renderApp(`/?q=${encodeURIComponent("رضا")}`, { session: session() });
 
@@ -119,5 +121,54 @@ describe("HomePage", () => {
     const second = queryOf(api.requestsTo("GET", "/api/members")[1]!);
     expect(second.get("Page")).toBe("2");
     expect(second.get("Search")).toBe("رضا");
+  });
+
+  // ---- One-click check-in (docs/ROADMAP.md 5.6) ----
+
+  it("CheckIn_FromSearchResults_ShowsTheAssignedLocker", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+      [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, openVisit(reza.id)),
+    });
+    renderApp("/", { session: session() });
+
+    fireEvent.change(searchBox(), { target: { value: "رضا" } });
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("رضا احمدی: ورود ثبت شد. کمد شماره ۳");
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(1);
+  });
+
+  it("CheckIn_NoFreeLocker_ShowsTheWarningWithoutFailing", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+      [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+        json(201, openVisitNoLocker(reza.id)),
+    });
+    renderApp("/", { session: session() });
+
+    fireEvent.change(searchBox(), { target: { value: "رضا" } });
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("کمد آزادی نبود");
+  });
+
+  it("CheckIn_AlreadyCheckedIn_ShowsThePersianReason", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+      [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+        problem(422, "Attendance.AlreadyCheckedIn"),
+    });
+    renderApp("/", { session: session() });
+
+    fireEvent.change(searchBox(), { target: { value: "رضا" } });
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "رضا احمدی: این عضو هم‌اکنون داخل باشگاه است.",
+    );
   });
 });

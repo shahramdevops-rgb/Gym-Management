@@ -2,12 +2,23 @@ import { Link } from "react-router";
 
 import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatPhone } from "@/lib/format";
 
 import type { Member } from "../api";
 
+interface MembersTableProps {
+  members: Member[];
+  /**
+   * One-click check-in (docs/ROADMAP.md 5.6), shown only where a caller passes it — the front
+   * desk search, not the full member directory. `checkingInId` disables only the row in flight.
+   */
+  onCheckIn?: (member: Member) => void;
+  checkingInId?: string | null;
+}
+
 /** Search results and the member list: name (a link to the profile), phone, status. */
-export function MembersTable({ members }: { members: Member[] }) {
+export function MembersTable({ members, onCheckIn, checkingInId = null }: MembersTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -16,6 +27,11 @@ export function MembersTable({ members }: { members: Member[] }) {
             <th className="py-2 text-start font-medium">نام</th>
             <th className="py-2 text-start font-medium">موبایل</th>
             <th className="py-2 text-start font-medium">وضعیت</th>
+            {onCheckIn !== undefined && (
+              <th className="py-2 text-start font-medium">
+                <span className="sr-only">عملیات</span>
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -35,6 +51,20 @@ export function MembersTable({ members }: { members: Member[] }) {
               <td className="py-2">
                 <MemberStatusBadge isActive={member.isActive} />
               </td>
+              {onCheckIn !== undefined && (
+                <td className="py-2">
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={checkingInId === member.id}
+                      onClick={() => onCheckIn(member)}
+                    >
+                      ورود
+                    </Button>
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
