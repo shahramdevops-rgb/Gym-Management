@@ -60,12 +60,7 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
         var subscription = SubscriptionSchedule.InEffectToday(today, live);
         if (subscription is null)
         {
-            // Nothing is usable. Report why through the subscription the member is most likely
-            // asking about — the one that ends last — and let the entity name the reason
-            // (expired, frozen, exhausted, not started yet).
-            var latest = live.MaxBy(s => s.EndDate)!;
-
-            return Result.Failure<AttendanceResponse>(latest.ConsumeSession(today).Error);
+            return Result.Failure<AttendanceResponse>(NothingUsableToday(today, live));
         }
 
         var consumed = subscription.ConsumeSession(today);
@@ -103,5 +98,31 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
         }
 
         return AttendanceResponse.From(attendance, freeLocker?.Number);
+    }
+
+    /// <summary>
+    /// Why nothing is usable today, said the way the front desk has to say it to the member.
+    /// </summary>
+    /// <remarks>
+    /// An exhausted subscription with a renewal queued behind it is the case worth naming. The
+    /// queue only moves up once the exhausted one stops covering today (BUSINESS_RULES.md §4), so
+    /// a member who used every session on the day they bought the plan and renewed the same day
+    /// waits until tomorrow. Reading the reason off the queued subscription alone would answer
+    /// "it has not started yet", which sounds like the sale went wrong rather than "come back
+    /// tomorrow".
+    /// </remarks>
+    private static Error NothingUsableToday(DateOnly today, List<Subscription> live)
+    {
+        var exhausted = live.Exists(s => s.GetStatus(today) == SubscriptionStatus.Exhausted);
+        var queued = live.Exists(s => s.GetStatus(today) == SubscriptionStatus.Upcoming);
+        if (exhausted && queued)
+        {
+            return SubscriptionErrors.NextStartsTomorrow;
+        }
+
+        // Otherwise report through the subscription the member is most likely asking about — the
+        // one that ends last — and let the entity name the reason (expired, frozen, exhausted,
+        // not started yet).
+        return live.MaxBy(s => s.EndDate)!.ConsumeSession(today).Error;
     }
 }
