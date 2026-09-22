@@ -5,6 +5,7 @@ using Gym.Application.Common.Paging;
 using Gym.Application.Members;
 using Gym.Application.Members.CreateMember;
 using Gym.Application.Members.GetMember;
+using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.Members.ListMembers;
 using Gym.Application.Members.SetMemberActive;
 using Gym.Application.Members.UpdateMember;
@@ -38,6 +39,13 @@ public static class MembersEndpoints
                 (await handler.Handle(id, ct)).ToHttpResult())
             .WithName("GetMember")
             .Produces<MemberResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        // What the member still owes, item by item (BUSINESS_RULES.md §5 Member debt, task 4.7).
+        group.MapGet("/{id:guid}/debt", async (Guid id, GetMemberDebtHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, ct)).ToHttpResult())
+            .WithName("GetMemberDebt")
+            .Produces<MemberDebtResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPost("/", async (CreateMemberCommand command, CreateMemberHandler handler, CancellationToken ct) =>

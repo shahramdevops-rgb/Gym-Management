@@ -74,4 +74,13 @@ public static class SubscriptionErrors
     public static readonly Error CancelReasonTooLong = Error.Validation(
         "Subscriptions.CancelReasonTooLong",
         "The cancellation reason is too long.");
+
+    /// <summary>
+    /// BUSINESS_RULES.md §4 Cancel: a subscription with at least one used session is not un-sold.
+    /// A visit recorded by mistake is undone with cancel check-in instead, which restores the
+    /// session and reopens this door.
+    /// </summary>
+    public static readonly Error AlreadyUsed = Error.BusinessRule(
+        "Subscriptions.AlreadyUsed",
+        "A subscription with a used session cannot be cancelled.");
 }

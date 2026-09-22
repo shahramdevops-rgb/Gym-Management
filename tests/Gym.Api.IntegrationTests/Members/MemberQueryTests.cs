@@ -237,21 +237,21 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         (await ListAsync(client, token, "?isActive=false")).Items.Single().FullName.ShouldBe("علی");
     }
 
-    // ---- HasUnpaidSubscription (task 4.6 follow-up: the front-desk debt flag) ----
+    // ---- Debt (task 4.7: what the member owes, on the front desk's list) ----
 
     [Fact]
-    public async Task ListMembers_MemberWithNoSubscription_HasUnpaidSubscriptionIsFalse()
+    public async Task ListMembers_MemberWithNoSubscription_DebtIsZero()
     {
         var (client, token) = await StaffClientAsync();
         var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
 
         var listed = await SingleAsync(client, token, member.Id);
 
-        listed.HasUnpaidSubscription.ShouldBeFalse();
+        listed.Debt.ShouldBe(0m);
     }
 
     [Fact]
-    public async Task ListMembers_MemberWithAFullyPaidSubscription_HasUnpaidSubscriptionIsFalse()
+    public async Task ListMembers_MemberWithAFullyPaidSubscription_DebtIsZero()
     {
         var (client, token) = await StaffClientAsync();
         var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
@@ -260,11 +260,11 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
 
         var listed = await SingleAsync(client, token, member.Id);
 
-        listed.HasUnpaidSubscription.ShouldBeFalse();
+        listed.Debt.ShouldBe(0m);
     }
 
     [Fact]
-    public async Task ListMembers_MemberWithAPartiallyPaidSubscription_HasUnpaidSubscriptionIsTrue()
+    public async Task ListMembers_MemberWithAPartiallyPaidSubscription_DebtIsWhatIsLeft()
     {
         var (client, token) = await StaffClientAsync();
         var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
@@ -273,11 +273,11 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
 
         var listed = await SingleAsync(client, token, member.Id);
 
-        listed.HasUnpaidSubscription.ShouldBeTrue();
+        listed.Debt.ShouldBe(600_000m);
     }
 
     [Fact]
-    public async Task ListMembers_MemberWithOnlyACancelledUnpaidSubscription_HasUnpaidSubscriptionIsFalse()
+    public async Task ListMembers_MemberWithOnlyACancelledUnpaidSubscription_DebtIsZero()
     {
         // Cancelling is how the gym already says it is not chasing that money (BUSINESS_RULES.md
         // §4 Cancel), so a cancelled, never-paid subscription must not still flag the member.
@@ -294,7 +294,7 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
 
         var listed = await SingleAsync(client, token, member.Id);
 
-        listed.HasUnpaidSubscription.ShouldBeFalse();
+        listed.Debt.ShouldBe(0m);
     }
 
     // ---- Name search ----

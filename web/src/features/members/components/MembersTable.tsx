@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatPhone } from "@/lib/format";
+import { formatMoney, formatPhone } from "@/lib/format";
 
 import type { Member } from "../api";
 
@@ -27,7 +27,7 @@ export function MembersTable({ members, onCheckIn, checkingInId = null }: Member
             <th className="py-2 text-start font-medium">نام</th>
             <th className="py-2 text-start font-medium">موبایل</th>
             <th className="py-2 text-start font-medium">وضعیت</th>
-            <th className="py-2 text-start font-medium">پرداخت</th>
+            <th className="py-2 text-start font-medium">بدهی</th>
             {onCheckIn !== undefined && (
               <th className="py-2 text-start font-medium">
                 <span className="sr-only">عملیات</span>
@@ -53,7 +53,7 @@ export function MembersTable({ members, onCheckIn, checkingInId = null }: Member
                 <MemberStatusBadge isActive={member.isActive} />
               </td>
               <td className="py-2">
-                {member.hasUnpaidSubscription && <Badge variant="destructive">بدهکار</Badge>}
+                <MemberDebt value={member.debt} />
               </td>
               {onCheckIn !== undefined && (
                 <td className="py-2">
@@ -75,6 +75,17 @@ export function MembersTable({ members, onCheckIn, checkingInId = null }: Member
       </table>
     </div>
   );
+}
+
+/**
+ * The amount rather than a "بدهکار" badge (task 4.7): the gym runs open accounts, so whether a
+ * member owes anything matters less than how much, and the front desk reads it off the list
+ * before opening the profile (BUSINESS_RULES.md §5 Member debt).
+ */
+function MemberDebt({ value }: { value: Member["debt"] }) {
+  const debt = Number(value);
+
+  return debt > 0 ? <Badge variant="destructive">{formatMoney(debt)}</Badge> : null;
 }
 
 export function MemberStatusBadge({ isActive }: { isActive: boolean }) {

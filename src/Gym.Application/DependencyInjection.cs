@@ -17,6 +17,7 @@ using Gym.Application.Lockers.ListLockers;
 using Gym.Application.Lockers.SetLockerOutOfService;
 using Gym.Application.Members.CreateMember;
 using Gym.Application.Members.GetMember;
+using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.Members.ListMembers;
 using Gym.Application.Members.SetMemberActive;
 using Gym.Application.Members.UpdateMember;
@@ -88,6 +89,7 @@ public static class DependencyInjection
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();
         services.AddScoped<GetMemberHandler>();
+        services.AddScoped<GetMemberDebtHandler>();
         services.AddScoped<ListMembersHandler>();
         services.AddScoped<SetMemberActiveHandler>();
 

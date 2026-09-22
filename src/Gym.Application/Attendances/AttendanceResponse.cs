@@ -13,6 +13,13 @@ namespace Gym.Application.Attendances;
 /// <param name="CheckedOutAt"><c>null</c> while the visit is still open.</param>
 /// <param name="CancelledAt"><c>null</c> unless the check-in was cancelled (BUSINESS_RULES.md §7).</param>
 /// <param name="AutoClosedAt"><c>null</c> unless the nightly job closed this visit instead of the member checking out (BUSINESS_RULES.md §7 Auto-checkout).</param>
+/// <param name="MemberDebt">
+/// What the member owed when they walked in (BUSINESS_RULES.md §5 <i>Member debt</i>, §7). Money
+/// owed never blocks a check-in, so this is a warning for the front desk to mention, the same way
+/// a null locker is: the visit is already recorded by the time it is read. Filled in by check-in,
+/// which is where the front desk needs it; the history and "currently inside" lists leave it
+/// <c>0</c> and show the member's debt on their profile instead.
+/// </param>
 public sealed record AttendanceResponse(
     Guid Id,
     Guid MemberId,
@@ -23,7 +30,8 @@ public sealed record AttendanceResponse(
     DateTimeOffset? CheckedOutAt,
     DateTimeOffset? CancelledAt,
     DateTimeOffset? AutoClosedAt,
-    DateTimeOffset CreatedAt)
+    DateTimeOffset CreatedAt,
+    decimal MemberDebt = 0)
 {
     /// <summary>
     /// The same mapping as <see cref="From"/>, as an expression EF Core translates to SQL. Takes
@@ -43,7 +51,7 @@ public sealed record AttendanceResponse(
             attendance.AutoClosedAt,
             attendance.CreatedAt);
 
-    public static AttendanceResponse From(Attendance attendance, int? lockerNumber)
+    public static AttendanceResponse From(Attendance attendance, int? lockerNumber, decimal memberDebt = 0)
     {
         ArgumentNullException.ThrowIfNull(attendance);
 
@@ -57,6 +65,7 @@ public sealed record AttendanceResponse(
             attendance.CheckedOutAt,
             attendance.CancelledAt,
             attendance.AutoClosedAt,
-            attendance.CreatedAt);
+            attendance.CreatedAt,
+            memberDebt);
     }
 }

@@ -112,6 +112,7 @@ export const errorMessages: Record<string, string> = {
   "Subscriptions.FreezeLimitReached": "همهٔ روزهای مجاز فریز این اشتراک استفاده شده است.",
   "Subscriptions.CancelReasonRequired": "دلیل لغو را وارد کنید.",
   "Subscriptions.CancelReasonTooLong": "دلیل لغو بیش از حد طولانی است.",
+  "Subscriptions.AlreadyUsed": "از این اشتراک استفاده شده است و دیگر نمی‌توان آن را لغو کرد.",
 
   // Payments
   "Payments.AmountNotPositive": "مبلغ باید بزرگ‌تر از صفر باشد.",
@@ -123,6 +124,7 @@ export const errorMessages: Record<string, string> = {
   "Payments.RefundReasonRequired": "دلیل استرداد را وارد کنید.",
   "Payments.RefundReasonTooLong": "دلیل استرداد بیش از حد طولانی است.",
   "Payments.RefundExceedsNetPaid": "این استرداد از مبلغ پرداخت‌شدهٔ اشتراک بیشتر است.",
+  "Payments.RefundAfterUse": "از این اشتراک استفاده شده است و مبلغ آن قابل استرداد نیست.",
 
   // Lockers
   "Lockers.NotFound": "کمد پیدا نشد.",

@@ -196,6 +196,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/members/{id}/debt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMemberDebt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/members/{id}/deactivate": {
         parameters: {
             query?: never;
@@ -615,6 +631,11 @@ export interface components {
             autoClosedAt: null | string;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: double
+             * @default 0
+             */
+            memberDebt: number | string;
         };
         CancelSubscriptionCommand: {
             reason: string;
@@ -687,6 +708,26 @@ export interface components {
             userName: string;
             password: string;
         };
+        MemberDebtItemResponse: {
+            /** Format: uuid */
+            subscriptionId: string;
+            planName: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** Format: double */
+            price: number | string;
+            /** Format: double */
+            netPaid: number | string;
+            /** Format: double */
+            outstanding: number | string;
+        };
+        MemberDebtResponse: {
+            /** Format: double */
+            total: number | string;
+            items: components["schemas"]["MemberDebtItemResponse"][];
+        };
         MemberResponse: {
             /** Format: uuid */
             id: string;
@@ -702,8 +743,11 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: null | string;
-            /** @default false */
-            hasUnpaidSubscription: boolean;
+            /**
+             * Format: double
+             * @default 0
+             */
+            debt: number | string;
         };
         PagedResponseOfAttendanceResponse: {
             items: components["schemas"]["AttendanceResponse"][];
@@ -1670,6 +1714,55 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMemberDebt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberDebtResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

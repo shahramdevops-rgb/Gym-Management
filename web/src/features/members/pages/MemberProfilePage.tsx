@@ -21,6 +21,7 @@ import { errorMessage } from "@/lib/errors";
 import { formatDate, formatDateTime, toPersianDigits } from "@/lib/format";
 
 import { useMember, useSetMemberActive } from "../api";
+import { MemberDebtCard } from "../components/MemberDebtCard";
 import { MemberHistoryTabs } from "../components/MemberHistoryTabs";
 import { MemberStatusBadge, PhoneNumber } from "../components/MembersTable";
 
@@ -171,6 +172,8 @@ export function MemberProfilePage() {
           عضو غیرفعال نمی‌تواند وارد باشگاه شود یا اشتراک تازه بگیرد.
         </p>
       )}
+
+      <MemberDebtCard memberId={id} />
 
       <CurrentSubscriptionCard memberId={id} />
 

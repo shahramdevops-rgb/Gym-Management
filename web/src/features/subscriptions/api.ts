@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { memberKeys } from "@/features/members/api";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 
@@ -92,14 +93,21 @@ export function useCurrentSubscription(memberId: string) {
   });
 }
 
-/** Every mutation refreshes the card and every history page for this member. */
+/**
+ * Every mutation refreshes the card and every history page for this member, and the members cache
+ * with them: selling adds to what the member owes and cancelling takes it away
+ * (BUSINESS_RULES.md §5 Member debt).
+ */
 function useSubscriptionMutation<TArgs>(request: (args: TArgs) => Promise<Subscription>) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: request,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: subscriptionKeys.all });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: subscriptionKeys.all }),
+        queryClient.invalidateQueries({ queryKey: memberKeys.all }),
+      ]);
     },
   });
 }

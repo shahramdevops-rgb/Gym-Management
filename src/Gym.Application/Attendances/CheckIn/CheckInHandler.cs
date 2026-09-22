@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Members;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
@@ -97,7 +98,12 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
             return Result.Failure<AttendanceResponse>(SubscriptionErrors.ChangedConcurrently);
         }
 
-        return AttendanceResponse.From(attendance, freeLocker?.Number);
+        // BUSINESS_RULES.md §7: money owed never blocks a check-in. The visit is already committed;
+        // this only tells the front desk what to mention while the member is still at the desk.
+        // Read after the commit because check-in moves no money, so the total cannot have changed.
+        var debt = await MemberDebt.GetTotalAsync(db, memberId, cancellationToken);
+
+        return AttendanceResponse.From(attendance, freeLocker?.Number, debt);
     }
 
     /// <summary>

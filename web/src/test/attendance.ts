@@ -17,6 +17,7 @@ export function openVisit(memberId: string): Attendance {
     cancelledAt: null,
     autoClosedAt: null,
     createdAt: "2026-09-18T07:00:00Z",
+    memberDebt: 0,
   };
 }
 

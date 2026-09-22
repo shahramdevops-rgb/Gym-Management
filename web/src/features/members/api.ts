@@ -4,6 +4,7 @@ import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 
 export type Member = components["schemas"]["MemberResponse"];
+export type MemberDebt = components["schemas"]["MemberDebtResponse"];
 
 export const membersPageSize = 20;
 
@@ -15,6 +16,7 @@ export const memberKeys = {
   all: ["members"] as const,
   list: (filter: MemberListFilter) => [...memberKeys.all, "list", filter] as const,
   detail: (id: string) => [...memberKeys.all, "detail", id] as const,
+  debt: (id: string) => [...memberKeys.all, "debt", id] as const,
 };
 
 export interface MemberListFilter {
@@ -63,6 +65,26 @@ export function useMember(id: string) {
     retry: (failureCount, error) => !isClientError(error) && failureCount < 1,
     queryFn: async () => {
       const { data, error } = await api.GET("/api/members/{id}", { params: { path: { id } } });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/**
+ * What the member still owes, with the item-by-item breakdown the total opens into
+ * (BUSINESS_RULES.md §5 Member debt). Its own query rather than part of the member, because
+ * selling, paying and refunding all change it while the member's own details stay as they were.
+ */
+export function useMemberDebt(id: string) {
+  return useQuery({
+    queryKey: memberKeys.debt(id),
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/members/{id}/debt", {
+        params: { path: { id } },
+      });
       if (error !== undefined) {
         throw error;
       }

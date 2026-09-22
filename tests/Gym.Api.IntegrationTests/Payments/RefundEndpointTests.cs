@@ -88,6 +88,41 @@ public sealed class RefundEndpointTests(DatabaseFixture fixture) : DatabaseTestB
         (await response.ReadErrorCodeAsync()).ShouldBe("Payments.RefundExceedsNetPaid");
     }
 
+    /// <summary>
+    /// BUSINESS_RULES.md §5 (task 4.7): sessions already taken are not bought back, so a paid-up
+    /// subscription the member has already used cannot be refunded at all.
+    /// </summary>
+    [Fact]
+    public async Task Refund_AfterASessionIsUsed_Returns422RefundAfterUse()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var sold = await SellSubscriptionAsync(staffClient, staffToken, 900_000m);
+        await RegisterPaymentAsync(staffClient, staffToken, sold.Id, 900_000m);
+        await CheckInAsync(staffClient, staffToken, sold.MemberId);
+
+        using var response = await RefundAsync(ownerClient, ownerToken, sold.Id, 100_000m, "دلیل");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Payments.RefundAfterUse");
+    }
+
+    /// <summary>The refusal is about the used session, not the amount: even a full void is refused.</summary>
+    [Fact]
+    public async Task Refund_FullVoidAfterASessionIsUsed_Returns422RefundAfterUse()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var sold = await SellSubscriptionAsync(staffClient, staffToken, 900_000m);
+        await RegisterPaymentAsync(staffClient, staffToken, sold.Id, 900_000m);
+        await CheckInAsync(staffClient, staffToken, sold.MemberId);
+
+        using var response = await RefundAsync(ownerClient, ownerToken, sold.Id, 900_000m, "اشتباه در ثبت مبلغ");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Payments.RefundAfterUse");
+    }
+
     [Fact]
     public async Task Refund_BlankReason_Returns400WithFieldCode()
     {
@@ -203,6 +238,14 @@ public sealed class RefundEndpointTests(DatabaseFixture fixture) : DatabaseTestB
         {
             Content = JsonContent.Create(new { amount, method = "Cash" }),
         };
+        using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    /// <summary>Uses a session the only way anything does: a real check-in.</summary>
+    private static async Task CheckInAsync(HttpClient client, string token, Guid memberId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
         using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }

@@ -182,7 +182,6 @@ Decided values:
   - Only a subscription nobody has used yet can be cancelled: `UsedSessions = 0` **and** the status is `Upcoming`, `Active` or `Frozen` (decided with the developer, 1405/06/31 — it replaces the earlier task 4.1 rule that any status could be cancelled). A service that has been consumed is not un-sold, and an `Expired` or `Exhausted` subscription is history, not something still to decide about.
     - `Subscriptions.AlreadyUsed` when a session has been consumed, `Subscriptions.Expired` when it has ended, `Subscriptions.Cancelled` when it was cancelled before.
     - A visit recorded by mistake is undone with cancel check-in, which restores the session (§7). While the member is still at the desk that brings `UsedSessions` back to 0 and the subscription becomes cancellable again — that 30-minute window is the intended escape hatch, not an exception to this rule.
-    - **Not implemented yet** — roadmap 4.7.
   - The reason is required and at most 500 characters.
   - Cancelling does not move queued subscriptions earlier.
   - A cancelled subscription cannot be unfrozen, frozen or used.
@@ -203,7 +202,7 @@ Decided values:
 - Payments are never edited or deleted. A mistaken entry is fixed with a full refund whose reason explains the mistake (a "void").
 - A refund cannot exceed the current net paid amount.
 - A subscription can only be refunded while nobody has used it (`UsedSessions = 0`), whatever its status (decided with the developer, 1405/06/31). Sessions already taken are not bought back. `Payments.RefundAfterUse` otherwise.
-  - This makes the refund unavailable for correcting a payment typed wrong on a subscription the member has already used. That is deliberate: the overpayment guard above refuses more than the price as it is typed, so a wrong figure is caught at the desk, and a visit entered by mistake can be undone within the cancel window (§7). **Not implemented yet** — roadmap 4.7.
+  - This makes the refund unavailable for correcting a payment typed wrong on a subscription the member has already used. That is deliberate: the overpayment guard above refuses more than the price as it is typed, so a wrong figure is caught at the desk, and a visit entered by mistake can be undone within the cancel window (§7).
 - Details. *Decided by Claude during task 4.4; pending review.*
   - `Amount` follows the same money rule as `Plan.Price`: at most 2 decimal places, refused rather
     than rounded, capped at the same column limit (`numeric(18,2)`).
@@ -217,7 +216,8 @@ Decided values:
 
 ### Member debt (open account, حساب باز)
 
-Decided with the developer, 1405/06/31. Nothing here is implemented yet — roadmap 4.7.
+Decided with the developer, 1405/06/31. Implemented for subscriptions in task 4.7; service charges
+join the same total in 5.7 and cafe orders in Phase 7.
 
 - Debt is **calculated, never stored**, the same way subscription status and payment status are: there is no balance column to keep correct, and no nightly job to recompute one.
 - A member's debt = what is still owed on their non-cancelled subscriptions, plus what is still owed on their non-voided service charges (§7 *Gym services*), plus (from Phase 7) what is still owed on their non-cancelled cafe orders. Per item that is `Price − net paid`, never below zero.
@@ -249,7 +249,7 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 5. Save and commit.
 
 - If no locker is available, check-in still succeeds with no locker, and the response includes a warning.
-- Money owed never blocks a check-in. The visit is recorded and the front desk is shown the member's outstanding total, the same way a missing locker is a warning rather than an error (§0, §5 *Member debt*). **Not implemented yet** — roadmap 4.7.
+- Money owed never blocks a check-in. The visit is recorded and the front desk is shown the member's outstanding total, the same way a missing locker is a warning rather than an error (§0, §5 *Member debt*).
 - When nothing is usable because the member used every session on the subscription's first day and renewed the same day, the refusal is `Subscriptions.NextStartsTomorrow` ("today is over for them, come back tomorrow"), not the queued subscription's own `Subscriptions.NotStarted`, which sounds like the sale went wrong.
 - Database: partial unique index on `member_id` where `checked_out_at IS NULL`, and on `locker_id` where `checked_out_at IS NULL`. Cancelled attendances count as closed.
 - Unique-violation or concurrency errors are returned as a clear 409 conflict, never a 500.

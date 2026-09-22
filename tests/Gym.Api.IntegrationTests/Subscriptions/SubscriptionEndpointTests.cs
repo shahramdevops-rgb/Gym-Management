@@ -131,7 +131,7 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync("ماهانه", 30, null, 900_000m);
         var cancelled = await AssignOkAsync(client, token, member.Id, plan.Id);
-        await ChangeSubscriptionAsync(cancelled.Id, s => s.Cancel("انصراف عضو", DateTimeOffset.UtcNow));
+        await ChangeSubscriptionAsync(cancelled.Id, s => s.Cancel("انصراف عضو", Today(), DateTimeOffset.UtcNow));
 
         var next = await AssignOkAsync(client, token, member.Id, plan.Id);
 

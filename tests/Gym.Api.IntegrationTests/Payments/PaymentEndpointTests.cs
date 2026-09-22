@@ -13,6 +13,7 @@ using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gym.Api.IntegrationTests.Payments;
@@ -112,6 +113,27 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
             .ShouldBe("Payments.AmountNotPositive");
     }
 
+    /// <summary>
+    /// BUSINESS_RULES.md §5 <i>Member debt</i> (task 4.7): debt outlives the thing that created
+    /// it. An expired subscription still owes what was never paid, and still takes the money.
+    /// </summary>
+    [Fact]
+    public async Task Register_AgainstAnExpiredUnpaidSubscription_Succeeds()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync(900_000m);
+        var today = Today();
+        var expiredId = await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-60), today.AddDays(-31));
+
+        using var response = await RegisterAsync(client, token, expiredId, 900_000m, PaymentMethod.Cash, null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var payment = await ReadAsync(response);
+        payment.SubscriptionNetPaid.ShouldBe(900_000m);
+        payment.SubscriptionPaymentStatus.ShouldBe(PaymentStatus.Paid);
+    }
+
     [Fact]
     public async Task Register_UnknownSubscription_Returns404()
     {
@@ -188,6 +210,31 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return plan;
+    }
+
+    private DateOnly Today()
+    {
+        using var scope = Fixture.CreateScope();
+
+        return scope.ServiceProvider.GetRequiredService<IGymCalendar>().Today();
+    }
+
+    /// <summary>A row written directly, so a subscription that ended weeks ago is one step away.</summary>
+    private async Task<Guid> InsertSubscriptionAsync(Guid memberId, Guid planId, DateOnly start, DateOnly end)
+    {
+        var id = Guid.CreateVersion7();
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
+                                       start_date, end_date, used_sessions, total_frozen_days, created_at)
+            VALUES ({id}, {memberId}, {planId}, 900000, 30, 12,
+                    {start}, {end}, 0, 0, now())
+            """,
+            TestContext.Current.CancellationToken);
+
+        return id;
     }
 
     /// <summary>Assigns a fresh subscription through the real endpoint, so its price is a plan's real, saved snapshot.</summary>

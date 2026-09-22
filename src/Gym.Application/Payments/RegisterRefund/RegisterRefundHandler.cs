@@ -31,6 +31,18 @@ public sealed class RegisterRefundHandler(IAppDbContext db, TimeProvider time, I
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
         await db.LockMemberAsync(subscription.MemberId, cancellationToken);
 
+        // BUSINESS_RULES.md §5: sessions already taken are not bought back. Read again under the
+        // lock rather than from the copy above, because check-in takes this same member lock
+        // before it consumes a session — otherwise a visit starting now could slip past the check.
+        var usedSessions = await db.Subscriptions.AsNoTracking()
+            .Where(s => s.Id == subscriptionId)
+            .Select(s => s.UsedSessions)
+            .SingleAsync(cancellationToken);
+        if (usedSessions > 0)
+        {
+            return Result.Failure<PaymentResponse>(PaymentErrors.RefundAfterUse);
+        }
+
         var netPaid = await PaymentLedger.GetNetPaidAsync(db, subscriptionId, cancellationToken);
         if (command.Amount > netPaid)
         {

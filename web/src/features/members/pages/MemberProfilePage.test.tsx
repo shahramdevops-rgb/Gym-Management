@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import {
   attendanceHistoryPage,
@@ -18,12 +18,14 @@ import {
   signedInHandlers,
   staffUser,
 } from "@/test/mockApi";
-import { ali, reza } from "@/test/members";
+import { ali, debtItem, memberDebt, reza } from "@/test/members";
 import { paymentHistoryItem, paymentOfActiveSubscription, paymentsPage } from "@/test/payments";
 import { monthly12, plansPage } from "@/test/plans";
 import {
   activeSubscription,
   cancelledRenewal,
+  expiredPaidSubscription,
+  expiredUnpaidSubscription,
   queuedRenewal,
   subscriptionsPage,
 } from "@/test/subscriptions";
@@ -339,7 +341,8 @@ describe("MemberProfilePage", () => {
 
     await screen.findByRole("button", { name: "فروش اشتراک" });
     expect(screen.getByRole("button", { name: /^فریز / })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /^رفع فریز / })).toBeDisabled();
+    // Not merely disabled: a row shows only the actions that are possible on it (task 4.7).
+    expect(screen.queryByRole("button", { name: /^رفع فریز / })).not.toBeInTheDocument();
   });
 
   it("Subscription_Renew_AsksForConfirmationThenCallsTheApiAndShowsSuccess", async () => {
@@ -427,11 +430,13 @@ describe("MemberProfilePage", () => {
     const activeRowFreeze = screen.getByRole("button", {
       name: `فریز ${activeSubscription.planName} (${formatDate(activeSubscription.startDate)})`,
     });
-    const queuedRowFreeze = screen.getByRole("button", {
-      name: `فریز ${queuedRenewal.planName} (${formatDate(queuedRenewal.startDate)})`,
-    });
     expect(activeRowFreeze).toBeEnabled();
-    expect(queuedRowFreeze).toBeDisabled();
+    // The queued row cannot be frozen, so it offers no freeze button at all (task 4.7).
+    expect(
+      screen.queryByRole("button", {
+        name: `فریز ${queuedRenewal.planName} (${formatDate(queuedRenewal.startDate)})`,
+      }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(activeRowFreeze);
 
@@ -442,10 +447,12 @@ describe("MemberProfilePage", () => {
   });
 
   it("Subscription_Cancel_ByOwner_RequiresAReason", async () => {
+    // A queued renewal: nobody has used it, so it is one of the few that can still be cancelled
+    // (BUSINESS_RULES.md §4 Cancel).
     mockApi({
       ...signedInHandlers(owner),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
-      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([queuedRenewal]),
     });
     renderApp(`/members/${reza.id}`, { session: session() });
 
@@ -456,10 +463,12 @@ describe("MemberProfilePage", () => {
   });
 
   it("Subscription_Refund_ExceedsNetPaid_ShowsThePersianError", async () => {
+    // Unused and part-paid: the only shape a refund is offered for (BUSINESS_RULES.md §5).
+    const unusedPartPaid = { ...activeSubscription, usedSessions: 0, remainingSessions: 12 };
     mockApi({
       ...signedInHandlers(owner),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
-      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([unusedPartPaid]),
       [`POST /api/subscriptions/${activeSubscription.id}/refunds`]: () =>
         problem(422, "Payments.RefundExceedsNetPaid"),
     });
@@ -514,7 +523,7 @@ describe("MemberProfilePage", () => {
     expect(amountInput.value).toBe("۲٬۰۰۰٬۰۰۰");
   });
 
-  it("History_SubscriptionAlreadyPaid_DisablesItsPaymentButton", async () => {
+  it("History_SubscriptionAlreadyPaid_HidesItsPaymentButton", async () => {
     const paidSubscription = {
       ...activeSubscription,
       netPaid: activeSubscription.price,
@@ -527,7 +536,121 @@ describe("MemberProfilePage", () => {
     });
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    expect(await screen.findByRole("button", { name: /^ثبت پرداخت برای/ })).toBeDisabled();
+    await screen.findByText(paidSubscription.planName);
+    expect(screen.queryByRole("button", { name: /^ثبت پرداخت برای/ })).not.toBeInTheDocument();
+  });
+
+  // ---- Member debt (task 4.7) ----
+
+  it("Debt_MemberWhoOwesMoney_ShowsTheTotalAndOpensTheBreakdown", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/debt`]: () =>
+        memberDebt([
+          debtItem(),
+          debtItem({
+            subscriptionId: "0199a000-0000-7000-8000-0000000000b2",
+            planName: "سه ماهه",
+            price: 500000,
+            netPaid: 0,
+            outstanding: 500000,
+          }),
+        ]),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    // The total on its own first; the items only after asking for them (BUSINESS_RULES.md §5).
+    expect(await screen.findByText("۱٬۱۰۰٬۰۰۰ تومان")).toBeInTheDocument();
+    expect(screen.queryByText("اشتراک سه ماهه")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "جزء به جزء" }));
+
+    // Each item says what it is, what it cost, what has been paid and what is left.
+    const monthlyRow = (await screen.findByText("اشتراک ماهانه")).closest("tr")!;
+    expect(within(monthlyRow).getByText("۹۰۰٬۰۰۰ تومان")).toBeInTheDocument();
+    expect(within(monthlyRow).getByText("۳۰۰٬۰۰۰ تومان")).toBeInTheDocument();
+    expect(within(monthlyRow).getByText("۶۰۰٬۰۰۰ تومان")).toBeInTheDocument();
+    const quarterlyRow = screen.getByText("اشتراک سه ماهه").closest("tr")!;
+    expect(within(quarterlyRow).getAllByText("۵۰۰٬۰۰۰ تومان")).toHaveLength(2);
+  });
+
+  it("Debt_MemberWhoOwesNothing_SaysSo", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/debt`]: () => memberDebt([]),
+    });
+
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    expect(await screen.findByText("این عضو بدهی ندارد.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "جزء به جزء" })).not.toBeInTheDocument();
+  });
+
+  // ---- Which actions a row offers (task 4.7) ----
+
+  /**
+   * "Debt outlives the thing that created it" (BUSINESS_RULES.md §5 Member debt): an expired
+   * subscription with money still owed keeps taking payments, whatever its status.
+   */
+  it("History_FinishedButUnpaidSubscription_StillOffersToTakeAPayment", async () => {
+    mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () =>
+        subscriptionsPage([expiredUnpaidSubscription]),
+    });
+
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    expect(await screen.findByRole("button", { name: /^ثبت پرداخت برای/ })).toBeEnabled();
+  });
+
+  it("History_FinishedAndSettledSubscription_OffersNoActionsAtAll", async () => {
+    mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () =>
+        subscriptionsPage([expiredPaidSubscription]),
+    });
+
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    const row = (await screen.findByText(expiredPaidSubscription.planName)).closest("tr")!;
+    expect(within(row).queryAllByRole("button")).toHaveLength(0);
+  });
+
+  it("History_UsedSubscription_OffersNeitherCancelNorRefund", async () => {
+    // activeSubscription has three used sessions: a service consumed is not un-sold, and the
+    // money for it is not bought back (BUSINESS_RULES.md §4 Cancel, §5).
+    mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+    });
+
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    await screen.findByRole("button", { name: /^فریز / });
+    expect(screen.queryByRole("button", { name: /^لغو اشتراک / })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^استرداد برای/ })).not.toBeInTheDocument();
+  });
+
+  it("History_UnusedSubscription_OffersCancelToTheOwner", async () => {
+    mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([queuedRenewal]),
+    });
+
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    expect(await screen.findByRole("button", { name: /^لغو اشتراک / })).toBeEnabled();
+    // Nothing has been paid on it, so there is nothing to refund either.
+    expect(screen.queryByRole("button", { name: /^استرداد برای/ })).not.toBeInTheDocument();
   });
 
   it("History_SwitchToPaymentsTab_LoadsAndShowsPayments", async () => {
