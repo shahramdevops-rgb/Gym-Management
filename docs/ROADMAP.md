@@ -163,6 +163,22 @@ Done when: you can log in as the seeded Owner in the Persian app, change the pas
 
 Done when: staff can find, create, and edit members in the app.
 
+### 2.4 Member birth date (and the first Jalali date input)
+Added 1405/06/31. Rules: BUSINESS_RULES.md §2 *Birth date*, §13. Depends on nothing; can be done first.
+This task brings the app's **first Jalali date input and its first Jalali→Gregorian conversion** — today
+`web/src/lib/format.ts` only converts one way, for display. Both `react-multi-date-picker` and
+`date-fns-jalali` are already on the approved list in ARCHITECTURE.md but are not installed yet.
+- [ ] `Member.BirthDate` (`DateOnly?`), validated inside the entity against the gym's today: not in the future (`Members.BirthDateInFuture`), not over 120 years ago (`Members.BirthDateTooOld`). `Create`/`Update` take `today`; the handler passes `IGymCalendar.Today()`
+- [ ] Migration `AddMemberBirthDate`: `date NULL` by convention, plus a check constraint with a **fixed** lower bound (`birth_date IS NULL OR birth_date >= DATE '1900-01-01'`) — `CURRENT_DATE` is not immutable and Postgres refuses it in a CHECK
+- [ ] Create and update commands, validators, and `MemberResponse` (record, `Projection` and `From`; the new parameter goes before the defaulted `HasUnpaidSubscription`)
+- [ ] Jalali↔ISO conversion added to `web/src/lib/format.ts` (the file that owns date translation), with `date-fns-jalali`
+- [ ] Shared `JalaliDateField` in `web/src/components/FormField.tsx` using `react-multi-date-picker`: Persian calendar, RTL, clearable, holds an ISO value, accepts Persian and English digits
+- [ ] Member create and edit forms, and the birth date shown on the member profile. Not searchable, not in the list
+- [ ] `npm run gen:api` after the API is up
+- [ ] Tests: future date and the 120-year edge rejected; empty stays `null`; create and edit through the API with and without a date; a conversion test (۱۳۷۰/۰۵/۱۲ → `1991-08-03`)
+
+Done when: staff can record a birth date with a Persian calendar, leave it empty, and see it on the profile.
+
 ---
 
 ## Phase 3 — Plans
@@ -226,6 +242,36 @@ Done when: staff can find, create, and edit members in the app.
 
 Done when: staff can sell a subscription and take payment from the member profile.
 
+### 4.7 Open accounts: member debt, and who may cancel or refund
+Added 1405/06/31 after the developer reported the subscription row's buttons and then decided the
+gym runs open accounts. Rules: BUSINESS_RULES.md §0, §4 *Cancel*, §5 *Member debt*, §7.
+- [ ] Member debt calculated from non-cancelled subscriptions (`Price − net paid` per item), with a per-item breakdown endpoint
+- [ ] Member profile: the total, opening into the item-by-item breakdown; debt shown in the members list
+- [ ] Check-in returns the outstanding total; the front desk shows it as a warning and still records the visit
+- [ ] Cancel refused unless `UsedSessions = 0` and the status is Upcoming/Active/Frozen (`Subscriptions.AlreadyUsed`)
+- [ ] Refund refused once a session has been used (`Payments.RefundAfterUse`)
+- [ ] Subscription history row shows only the actions that are possible: no buttons at all on a finished, settled subscription; "ثبت پرداخت" stays for as long as anything is owed, whatever the status
+- [ ] Tests: debt adds up across several subscriptions and ignores cancelled ones; cancel and refund refusals; a finished unpaid subscription still takes a payment
+
+Done when: the front desk can see what a member owes, broken down by item, take money against any
+of it, and the actions that are no longer allowed are gone from the screen rather than failing when
+pressed.
+
+### 4.8 One money field for the whole app
+Added 1405/06/31. Rules: BUSINESS_RULES.md §13. Frontend only, no API change. Worth doing before 5.7,
+whose cardio amount uses this field. `MoneyField` in `web/src/components/FormField.tsx` already groups
+digits as you type; what is missing is the amount in words, an empty-allowed variant, and the two
+forms that still do their own thing.
+- [ ] `amountInPersianWords` in `web/src/lib/format.ts`, hand-written (no package): «پانصد هزار تومان». Tests for zero, single digits, 1,000, 500,000, millions and the billion boundary
+- [ ] `MoneyField` shows the words under the input, and gains an optional (empty-allowed) mode
+- [ ] `PlanForm` moves from a plain `FormField` to `MoneyField`, so every typed amount behaves the same
+- [ ] `normalizePrice` (plans) and `normalizeAmount` (payments) collapse into one helper in `web/src/lib/money.ts` — the deliberate duplication documented in `payments/schemas.ts` ends here, because the cardio field is the third caller
+- [ ] Amounts stay strings end to end; no money value becomes a JavaScript number
+- [ ] Tests: words under each money input, an empty optional amount submits as null, plan price still round-trips Persian digits and separators
+
+Done when: every place an amount is typed looks and behaves the same, and the amount in words appears
+under it.
+
 ---
 
 ## Phase 5 — Lockers and Attendance
@@ -269,6 +315,22 @@ Done when: the full front desk flow works in the app: search → check-in → lo
 Verified against the real API (dev server + Vite proxy, unmocked backend) and with 23 new Testing
 Library tests that render the real components; not verified with an interactive browser click-through
 in this session — see docs/LEARNING.md 5.6.
+
+### 5.7 Cardio (هوازی) and gym service charges
+Added 1405/06/31. Rules: BUSINESS_RULES.md §7 *Gym services*, §5, §12. Depends on 4.7 (a service
+charge is the third thing a member can owe money for) and reads better after 4.8 (the amount uses the
+shared money field). Built before 4.7 it still works, but the amount will not appear in any debt total.
+- [ ] `ServiceCharge` entity and `service_charges` table: `MemberId`, `AttendanceId`, `Kind` (enum, only `Cardio` today), `Amount` (`numeric(18,2)`, > 0), `ChargedOn` (`DateOnly`), `RecordedByUserId`, void fields (`VoidedAt`, `VoidReason`, `VoidedByUserId`), `xmin`
+- [ ] Partial unique index `(attendance_id, kind) WHERE voided_at IS NULL`: one live charge per visit per kind
+- [ ] Record and change the amount only while the visit is open and nothing has been paid against it; after check-out or the first payment, only void-with-a-reason. Staff or Owner
+- [ ] Cancelling a check-in voids that visit's charges with a reason
+- [ ] `Payment` gains `ServiceChargeId`; the one-target check constraint becomes "exactly one of subscription, cafe order, service charge" (migration on `payments`)
+- [ ] Member debt and its breakdown include non-voided service charges; revenue by source gains "services"
+- [ ] UI: an optional "مبلغ هوازی" field on the open visit in the member profile and on the "currently inside" board; a هوازی column in the attendance history
+- [ ] Tests: charge refused on a closed or cancelled visit; second live charge for the same visit refused; cancel check-in voids it; an unpaid charge shows in the member's debt; a paid charge cannot be edited, only voided
+
+Done when: staff can put a treadmill amount on a member who is inside the gym, the member owes it
+until it is paid, and a charge entered by mistake is voided rather than erased.
 
 ---
 
@@ -363,7 +425,8 @@ Done when: the front desk runs a real day on the deployed system.
 - [ ] CafeOrder and CafeOrderItem with snapshots
 - [ ] Transactional create order: stock, movements, payment
 - [ ] Optional member link
-- [ ] Tests: insufficient stock rejected; price snapshot unchanged after product edit
+- [ ] Order on a member's account: created unpaid under that member's name, settled later with ordinary payments, counted in their debt (BUSINESS_RULES.md §8, §5 *Member debt*). A walk-in order with no member is paid in full at creation
+- [ ] Tests: insufficient stock rejected; price snapshot unchanged after product edit; an unpaid order on account appears in the member's debt breakdown
 
 ### 7.3 Cancellation and history
 - [ ] Cancel order (Owner): stock restored, refund created

@@ -11,8 +11,6 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 
 | Setting | Decide before | Notes |
 |---|---|---|
-| Check-in with an unpaid or partially paid subscription | Phase 5 | Block it, or allow it with a warning? |
-| Cafe orders paid in full at creation (no tabs) | Phase 8 | Suggested: yes. |
 | `Sms:ExpiringDaysBefore`, `Sms:LowSessionsThreshold`, `Sms:MaxAttempts`, quiet hours | Phase 10 | |
 | SMS provider | Phase 10 | An Iranian panel, probably Kavenegar. Ask whether it allows free text or only approved templates — see §10. |
 
@@ -26,6 +24,16 @@ Decided values:
 - `Gym:TimeZone` = `Asia/Tehran`. Defines "today" for every business date (decided in task 4.1).
 - `Gym:MaxFreezeDaysPerSubscription` = 30 (decided in task 4.1).
 - `Gym:ClosingTime` = 23:00 (Asia/Tehran). Local time the nightly auto-checkout job runs at (decided in task 5.5).
+- **The gym runs open accounts** (حساب باز): a member may owe money and settle later, in as many
+  instalments as it takes, both for a subscription and for cafe orders. This replaces the two
+  settings that used to sit in the table above — "block check-in when unpaid" and "cafe orders paid
+  in full at creation" — and both are answered "no" (decided with the developer, 1405/06/31).
+  There is no configuration switch: owing money is how the gym works, not an option. What it means
+  in each part of the system is §5 *Member debt*, §7 *Check-in* and §8.
+- Money owed never blocks anything. Check-in, selling a subscription and buying from the cafe all
+  succeed with a balance outstanding; the front desk is shown the amount instead of being stopped
+  (decided with the developer, 1405/06/31). There is no debt ceiling. *If the gym later wants one,
+  it becomes a `Gym:MaxMemberDebt` setting and a refusal, not a change to any of the rules below.*
 
 ---
 
@@ -84,7 +92,7 @@ Decided values:
 
 ## 2. Members
 
-- Fields: `FullName`, `PhoneNumber`, `Notes` (optional), `IsActive`.
+- Fields: `FullName`, `PhoneNumber`, `BirthDate` (optional), `Notes` (optional), `IsActive`.
 - Phone numbers are normalized to E.164 before saving and before searching.
 - Phone numbers are unique across all members, including inactive ones.
 - Members are deactivated, never deleted. Inactive members cannot check in or receive new subscriptions.
@@ -92,6 +100,11 @@ Decided values:
 - Only Iranian mobile numbers are accepted. Landlines are rejected (`Members.PhoneNotMobile`): the number receives SMS reminders. Foreign numbers are rejected (`Members.PhoneNotIranian`): the gym has no foreign members, and a visitor can use the gym without being registered as a member.
 - Every member has a phone number (required).
 - Limits: full name at most 200 characters, notes at most 1000.
+- Birth date (decided with the developer, 1405/06/31 — roadmap 2.4). **Not implemented yet.**
+  - Optional and expected to stay empty for most members: the gym has no birth date for anyone who joined before this field existed, and staff must never be forced to invent one.
+  - A business date (`DateOnly`) like every other date here: stored Gregorian, typed and shown Jalali.
+  - It cannot be in the future (`Members.BirthDateInFuture`) and cannot be more than 120 years ago (`Members.BirthDateTooOld`). Both are judged against the gym's today, so the rule lives in the entity and the handler passes the date in.
+  - It is not searchable and does not appear in the members list; it is shown on the member's profile.
 - An inactive member's details can still be edited, for example to correct a phone number before reactivating.
 - Names are stored as entered and also in a normalized search column (see section 13).
 - Name search is partial, case-insensitive, and uses the normalized form. Phone search normalizes the input first.
@@ -166,7 +179,10 @@ Decided values:
 ### Cancel
 - Requires a reason. Payments are not deleted; money is returned only through refunds.
 - Details (decided with the developer in task 4.1):
-  - Any subscription that is not already cancelled can be cancelled, whatever its status (upcoming, active, frozen, exhausted, expired).
+  - Only a subscription nobody has used yet can be cancelled: `UsedSessions = 0` **and** the status is `Upcoming`, `Active` or `Frozen` (decided with the developer, 1405/06/31 — it replaces the earlier task 4.1 rule that any status could be cancelled). A service that has been consumed is not un-sold, and an `Expired` or `Exhausted` subscription is history, not something still to decide about.
+    - `Subscriptions.AlreadyUsed` when a session has been consumed, `Subscriptions.Expired` when it has ended, `Subscriptions.Cancelled` when it was cancelled before.
+    - A visit recorded by mistake is undone with cancel check-in, which restores the session (§7). While the member is still at the desk that brings `UsedSessions` back to 0 and the subscription becomes cancellable again — that 30-minute window is the intended escape hatch, not an exception to this rule.
+    - **Not implemented yet** — roadmap 4.7.
   - The reason is required and at most 500 characters.
   - Cancelling does not move queued subscriptions earlier.
   - A cancelled subscription cannot be unfrozen, frozen or used.
@@ -181,11 +197,13 @@ Decided values:
 
 ## 5. Payments
 
-- A payment belongs to exactly one of: a Subscription or a CafeOrder (enforced by a check constraint).
+- A payment belongs to exactly one of: a Subscription, a CafeOrder or a ServiceCharge (§7 *Gym services*), enforced by a check constraint. The third target arrives with the cardio charge — roadmap 5.7.
 - Fields: `Kind` (Payment or Refund), `Amount` (> 0), `Method`, `ReferenceNumber` (optional), `PaidAt` (UTC), `ReceivedByUserId`, `Reason` (required for refunds).
 - A subscription cannot be overpaid.
 - Payments are never edited or deleted. A mistaken entry is fixed with a full refund whose reason explains the mistake (a "void").
 - A refund cannot exceed the current net paid amount.
+- A subscription can only be refunded while nobody has used it (`UsedSessions = 0`), whatever its status (decided with the developer, 1405/06/31). Sessions already taken are not bought back. `Payments.RefundAfterUse` otherwise.
+  - This makes the refund unavailable for correcting a payment typed wrong on a subscription the member has already used. That is deliberate: the overpayment guard above refuses more than the price as it is typed, so a wrong figure is caught at the desk, and a visit entered by mistake can be undone within the cancel window (§7). **Not implemented yet** — roadmap 4.7.
 - Details. *Decided by Claude during task 4.4; pending review.*
   - `Amount` follows the same money rule as `Plan.Price`: at most 2 decimal places, refused rather
     than rounded, capped at the same column limit (`numeric(18,2)`).
@@ -196,6 +214,19 @@ Decided values:
   - The `CafeOrderId` column and the one-target check constraint exist from this task on, but
     nothing sets `CafeOrderId` before cafe orders exist (Phase 7).
 - Revenue for a period = payments − refunds, by `PaidAt` in the gym's time zone. There is no separate Income table.
+
+### Member debt (open account, حساب باز)
+
+Decided with the developer, 1405/06/31. Nothing here is implemented yet — roadmap 4.7.
+
+- Debt is **calculated, never stored**, the same way subscription status and payment status are: there is no balance column to keep correct, and no nightly job to recompute one.
+- A member's debt = what is still owed on their non-cancelled subscriptions, plus what is still owed on their non-voided service charges (§7 *Gym services*), plus (from Phase 7) what is still owed on their non-cancelled cafe orders. Per item that is `Price − net paid`, never below zero.
+- Cancelled items owe nothing. A subscription can only be cancelled while nobody has used it (§4), and money already paid on one comes back as a refund, not as a debt that quietly disappears. A voided service charge owes nothing for the same reason.
+- **There is no wallet and no credit balance.** Every payment still belongs to exactly one subscription or one cafe order (§5 above), so the total is always the sum of named items and never a figure nobody can account for. A member who hands over a lump sum for several things has it entered against each of those items. *Decided by Claude during this session; pending review.*
+- The total is never shown on its own: opening it shows the breakdown item by item — what it is (subscription, service charge or cafe order), its date, its price, what has been paid and what is left. The developer's requirement is that "جزء به جزء" is always one click from the number.
+- **Debt outlives the thing that created it.** An `Exhausted`, `Expired` or otherwise finished subscription keeps its outstanding balance and keeps accepting payments: the front desk can register a payment whenever anything is left to pay, whatever the subscription's status. Sessions running out settles nothing.
+- Paying in instalments is ordinary, not a special case: several payments against the same item, each its own row with its own moment, method, reference number and the staff member who took it. The existing payment rules already allow this; nothing new is needed for it.
+- A free item (`Price = 0`) owes nothing and never appears in the breakdown.
 
 ---
 
@@ -218,6 +249,8 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 5. Save and commit.
 
 - If no locker is available, check-in still succeeds with no locker, and the response includes a warning.
+- Money owed never blocks a check-in. The visit is recorded and the front desk is shown the member's outstanding total, the same way a missing locker is a warning rather than an error (§0, §5 *Member debt*). **Not implemented yet** — roadmap 4.7.
+- When nothing is usable because the member used every session on the subscription's first day and renewed the same day, the refusal is `Subscriptions.NextStartsTomorrow` ("today is over for them, come back tomorrow"), not the queued subscription's own `Subscriptions.NotStarted`, which sounds like the sale went wrong.
 - Database: partial unique index on `member_id` where `checked_out_at IS NULL`, and on `locker_id` where `checked_out_at IS NULL`. Cancelled attendances count as closed.
 - Unique-violation or concurrency errors are returned as a clear 409 conflict, never a 500.
 
@@ -232,6 +265,20 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 ### Auto-checkout
 - A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed.
 
+### Gym services (هوازی and anything else sold during a visit)
+
+Decided with the developer, 1405/06/31. Nothing here is implemented yet — roadmap 5.7.
+
+- A **service charge** is money owed for something the member used during a visit. Today there is exactly one kind, `Cardio` (هوازی, the treadmill); sauna or massage would be new kinds of the same thing, not new tables.
+- **The price is not calculated by the system, on purpose.** The gym's rate (for example 10,000 Toman per 3 minutes) changes without notice and staff already work it out at the desk. The system takes the number they type and never checks it against a rate. There is no rate setting to keep in sync with reality.
+- The amount is per visit, not per member: the same member may use the treadmill today and not tomorrow, so there is no cardio price on the member record.
+- Recorded against an **open** visit (`CheckedOutAt IS NULL`, not cancelled) and only for the member of that visit. Front desk work, so both roles.
+- One non-voided charge per visit per kind. While the visit is open and nothing has been paid against it, staff can change the amount or remove it — nothing has been settled yet. After check-out, or after the first payment, it is a financial record: it is corrected with a **void plus a reason**, and a fresh charge if one is due (§5: financial records are never edited or deleted).
+- Cancelling a check-in voids that visit's service charges too, with the reason that the check-in was cancelled: money for a visit that never happened is not owed. *Decided by Claude during this session; pending review.*
+- Auto-checkout changes nothing about a charge.
+- A service charge is paid like anything else: it is one of the three things a payment can belong to (§5), it counts toward the member's debt (§5 *Member debt*), and it can be settled later or in instalments.
+- The amount follows the same money rules as every other amount: greater than zero, at most 2 decimal places, `numeric(18,2)`.
+
 ---
 
 ## 8. Cafe
@@ -239,9 +286,10 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 - Categories and Products (`Name`, `CategoryId`, `Price`, `StockQuantity`, `IsActive`).
 - Stock changes only through the StockMovement ledger (`Purchase`, `Sale`, `Adjustment`, `Cancellation`). `Product.StockQuantity` is updated in the same transaction and can never go negative (check constraint).
 - An order has items with snapshots of `ProductName` and `UnitPrice`, and `Quantity` > 0.
-- `MemberId` on an order is optional (walk-in customers are allowed).
-- Creating an order validates stock, writes Sale movements, and records the payment in one transaction.
-- Cancelling an order requires a reason, restores stock with Cancellation movements, and creates a refund.
+- `MemberId` on an order is optional (walk-in customers are allowed), but an order **on account** must name the member: putting it on an account is exactly the act of entering the purchase under that person's name so the money can be collected later (decided with the developer, 1405/06/31).
+- Creating an order validates stock and writes Sale movements in one transaction. The payment belongs to the same transaction only when the order is paid there and then; an order on a member's account is created unpaid and settled later with ordinary `Payment` rows — same partial/paid status, same instalments, and it counts toward that member's debt (§5 *Member debt*).
+- A walk-in order (no member) is paid in full at creation: there is no account to put it on.
+- Cancelling an order requires a reason, restores stock with Cancellation movements, and creates a refund for whatever was actually paid. An unpaid order on account leaves nothing to refund; cancelling it simply removes that item from the member's debt.
 - Stock adjustments require a reason.
 
 ---
@@ -291,7 +339,7 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 ## 12. Reports
 
 - Date ranges are inclusive and interpreted in the gym's time zone.
-- Revenue by source (subscriptions, cafe) and by payment method.
+- Revenue by source (subscriptions, gym services, cafe) and by payment method.
 - Expenses by category (voided excluded). Net profit = revenue − expenses.
 - Attendance per day and by hour (cancelled excluded).
 - Active subscriptions, expiring soon, low sessions. Top cafe products.
@@ -309,6 +357,10 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
   - Zero-width non-joiner (U+200C) → a normal space, because users type half-space and space interchangeably
   - Remove other zero-width and direction marks (U+200B, U+200D, U+200E, U+200F, U+FEFF)
   - Trim and collapse repeated spaces
-- Dates are shown in the Jalali calendar. They are stored and exchanged as Gregorian `DateOnly` and UTC timestamps.
+- Dates are shown in the Jalali calendar. They are stored and exchanged as Gregorian `DateOnly` and UTC timestamps. A date is typed into a Jalali calendar picker, never as a Gregorian date, and converted to ISO before it is sent.
+- **Every amount of money on screen is protected against miscounted zeros** (decided with the developer, 1405/06/31 — roadmap 4.8). Toman amounts are large enough that `500000` and `5000000` look alike at a glance, and a wrong figure here is a wrong figure in the gym's books.
+  - Every amount that is **typed** goes through the shared money field: Persian digits, grouped in threes as it is typed (۵۰۰٬۰۰۰), and the same amount written out in words underneath it — «پانصد هزار تومان». The words are the check: nobody miscounts a word.
+  - Every amount that is **displayed** goes through one formatter, which groups in threes and appends "تومان".
+  - No screen formats an amount by itself, and no money value is ever held as a JavaScript number: rounding a price is never acceptable.
 - Reports offer Jalali periods (this Jalali month, this Jalali year) that the frontend converts to Gregorian date ranges.
 - SMS messages are Persian. Unicode SMS parts hold fewer characters than Latin ones, so templates are kept short and the part count is calculated before sending.
