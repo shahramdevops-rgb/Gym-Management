@@ -24,6 +24,9 @@ public sealed class Member : Entity
     public const int FullNameMaxLength = 200;
     public const int NotesMaxLength = 1000;
 
+    /// <summary>A birth date further back than this is a typing slip (BUSINESS_RULES.md §2).</summary>
+    public const int MaxAgeYears = 120;
+
     // For EF Core.
     private Member()
     {
@@ -39,6 +42,12 @@ public sealed class Member : Entity
 
     public string? Notes { get; private set; }
 
+    /// <summary>
+    /// Optional and usually empty: the gym has no birth date for anyone who joined before this
+    /// field existed, and staff are never made to invent one (BUSINESS_RULES.md §2).
+    /// </summary>
+    public DateOnly? BirthDate { get; private set; }
+
     public bool IsActive { get; private set; }
 
     /// <summary>
@@ -47,10 +56,14 @@ public sealed class Member : Entity
     /// </summary>
     public uint Version { get; private set; }
 
-    public static Result<Member> Create(string fullName, string phoneNumber, string? notes)
+    /// <param name="today">
+    /// The gym's today (Asia/Tehran). A birth date can only be judged against a date, and which
+    /// date that is belongs to the application, not to a clock this entity reads for itself.
+    /// </param>
+    public static Result<Member> Create(string fullName, string phoneNumber, string? notes, DateOnly? birthDate, DateOnly today)
     {
         var member = new Member { IsActive = true };
-        var result = member.Update(fullName, phoneNumber, notes);
+        var result = member.Update(fullName, phoneNumber, notes, birthDate, today);
 
         return result.IsSuccess ? member : Result.Failure<Member>(result.Error);
     }
@@ -59,7 +72,8 @@ public sealed class Member : Entity
     /// Replaces the member's details. Allowed while inactive too: correcting a phone number
     /// before reactivating is a normal thing to do (BUSINESS_RULES.md §2).
     /// </summary>
-    public Result Update(string fullName, string phoneNumber, string? notes)
+    /// <param name="today">The gym's today, as in <see cref="Create"/>.</param>
+    public Result Update(string fullName, string phoneNumber, string? notes, DateOnly? birthDate, DateOnly today)
     {
         ArgumentNullException.ThrowIfNull(fullName);
         ArgumentException.ThrowIfNullOrWhiteSpace(phoneNumber);
@@ -87,10 +101,26 @@ public sealed class Member : Entity
             return Result.Failure(MemberErrors.NotesTooLong);
         }
 
+        if (birthDate is { } born)
+        {
+            if (born > today)
+            {
+                return Result.Failure(MemberErrors.BirthDateInFuture);
+            }
+
+            // AddYears moves 29 February to the 28th in a non-leap year, which can only make the
+            // boundary a day more generous. Exactly 120 years ago is still allowed; older is not.
+            if (born < today.AddYears(-MaxAgeYears))
+            {
+                return Result.Failure(MemberErrors.BirthDateTooOld);
+            }
+        }
+
         FullName = name;
         NormalizedFullName = PersianText.Normalize(name).ToLowerInvariant();
         PhoneNumber = phoneNumber;
         Notes = cleanNotes;
+        BirthDate = birthDate;
 
         return Result.Success();
     }

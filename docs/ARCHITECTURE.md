@@ -63,7 +63,7 @@ Versions are pinned centrally in `Directory.Packages.props`. Ask before adding a
 
 Frontend: Vite, React, TypeScript, React Router, TanStack Query, React Hook Form, Zod, shadcn/ui, Tailwind CSS, openapi-typescript + openapi-fetch, Recharts, Vitest + Testing Library, date-fns-jalali (Jalali date math), react-multi-date-picker (Persian calendar picker), Vazirmatn font (self-hosted). Playwright for end-to-end tests (Phase 11).
 
-Frontend supporting packages (dependencies of the tools above, approved in task 0.7): `@radix-ui/react-direction` (Radix `DirectionProvider`), `@radix-ui/react-slot`, `class-variance-authority`, `clsx`, `tailwind-merge` and `lucide-react` (shadcn/ui), `@tailwindcss/vite`, `jsdom` and `@testing-library/jest-dom` (Vitest), ESLint with `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `eslint-config-prettier` and `globals`, Prettier, `@types/node` (types for `vite.config.ts`).
+Frontend supporting packages (dependencies of the tools above, approved in task 0.7): `@radix-ui/react-direction` (Radix `DirectionProvider`), `@radix-ui/react-slot`, `class-variance-authority`, `clsx`, `tailwind-merge` and `lucide-react` (shadcn/ui), `@tailwindcss/vite`, `react-date-object` (the calendar and locale `react-multi-date-picker` is configured with), `jsdom` and `@testing-library/jest-dom` (Vitest), ESLint with `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `eslint-config-prettier` and `globals`, Prettier, `@types/node` (types for `vite.config.ts`).
 
 Infrastructure: Docker Compose, GitHub Actions, Caddy.
 
@@ -181,7 +181,7 @@ web/src/
 ├── components/ui/  shadcn/ui components (adjusted for RTL)
 ├── lib/
 │   ├── api/        Generated types (do not edit) and the openapi-fetch client
-│   ├── format.ts   Persian digits, money, Jalali dates (Intl with fa-IR)
+│   ├── format.ts   Persian digits, money, Jalali dates both ways (Intl out, date-fns-jalali in)
 │   ├── normalize.ts  Persian/Arabic characters and digits
 │   └── errors.ts   API error code → Persian message
 └── main.tsx
@@ -189,6 +189,7 @@ web/src/
 
 - Direction: `<html lang="fa" dir="rtl">` plus Radix `DirectionProvider dir="rtl"`. After adding a shadcn component, replace any physical left/right classes with logical ones and check icons that should mirror (arrows, chevrons).
 - Dates: API sends and receives ISO dates (`2026-09-17`) and UTC timestamps. Display with `Intl.DateTimeFormat('fa-IR', ...)`, which uses the Persian calendar. Jalali ranges such as "this month" are computed in the frontend and sent as Gregorian dates.
+- A date that is **typed** goes into `JalaliDateField` (`components/FormField.tsx`): a `react-multi-date-picker` calendar whose input is this app's own, so the field keeps its label and `aria-describedby` wiring. It holds the ISO value and shows Jalali; `toIsoDate`/`toJalaliInput` in `format.ts` do the conversion with `date-fns-jalali`, and every `Date` they build is at **noon**, because Iran changed its clocks at midnight through the years birth dates fall in.
 - Numbers and money: `Intl.NumberFormat('fa-IR')`. Inputs convert Persian and Arabic digits to English digits before validation.
 - Text: normalize Arabic ي and ك to Persian ی and ک on input and before search.
 - Server state lives in TanStack Query. No global state library.
@@ -231,6 +232,12 @@ web/src/
   The Debian-based `mcr.microsoft.com/dotnet/aspnet` image carries both; an Alpine variant needs `icu-libs` and
   `tzdata` installed explicitly. The startup validation of `Gym:TimeZone` is the check — an image missing either
   fails to start rather than serving wrong dates quietly.
+- `react-multi-date-picker` ships CommonJS only and puts its component on `exports.default`. Vite
+  pre-bundles it and gives a **default import the whole module object**, so rendering it directly
+  fails in the browser with "Element type is invalid … got: object" — while Vitest's own interop
+  hands back the component and every jsdom test passes. `FormField.tsx` unwraps `.default` when it
+  is there. Its calendar and locale modules need no unwrapping: they are plain `module.exports`
+  objects. The wider lesson: a green Vitest run does not prove a CJS dependency renders in a browser.
 - Testcontainers needs Docker running, locally and in CI.
 - The .NET 10 SDK no longer runs Microsoft.Testing.Platform tests through VSTest. xunit.v3 hosts its own runner, so test projects set `OutputType=Exe` and `TestingPlatformDotnetTestSupport=true`, `global.json` carries `"test": { "runner": "Microsoft.Testing.Platform" }`, and neither `Microsoft.NET.Test.Sdk` nor `xunit.runner.visualstudio` is referenced. Without the `global.json` opt-in, `dotnet test` fails with "Testing with VSTest target is no longer supported".
 - Font files and scripts are self-hosted in the build, never loaded from a public CDN.

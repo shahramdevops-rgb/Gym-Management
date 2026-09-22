@@ -74,6 +74,8 @@ export function useMember(id: string) {
 export interface MemberInput {
   fullName: string;
   phoneNumber: string;
+  /** ISO (`1991-08-03`), or null when the gym has no birth date for this member. */
+  birthDate: string | null;
   notes: string | null;
 }
 

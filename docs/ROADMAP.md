@@ -168,14 +168,14 @@ Added 1405/06/31. Rules: BUSINESS_RULES.md §2 *Birth date*, §13. Depends on no
 This task brings the app's **first Jalali date input and its first Jalali→Gregorian conversion** — today
 `web/src/lib/format.ts` only converts one way, for display. Both `react-multi-date-picker` and
 `date-fns-jalali` are already on the approved list in ARCHITECTURE.md but are not installed yet.
-- [ ] `Member.BirthDate` (`DateOnly?`), validated inside the entity against the gym's today: not in the future (`Members.BirthDateInFuture`), not over 120 years ago (`Members.BirthDateTooOld`). `Create`/`Update` take `today`; the handler passes `IGymCalendar.Today()`
-- [ ] Migration `AddMemberBirthDate`: `date NULL` by convention, plus a check constraint with a **fixed** lower bound (`birth_date IS NULL OR birth_date >= DATE '1900-01-01'`) — `CURRENT_DATE` is not immutable and Postgres refuses it in a CHECK
-- [ ] Create and update commands, validators, and `MemberResponse` (record, `Projection` and `From`; the new parameter goes before the defaulted `HasUnpaidSubscription`)
-- [ ] Jalali↔ISO conversion added to `web/src/lib/format.ts` (the file that owns date translation), with `date-fns-jalali`
-- [ ] Shared `JalaliDateField` in `web/src/components/FormField.tsx` using `react-multi-date-picker`: Persian calendar, RTL, clearable, holds an ISO value, accepts Persian and English digits
-- [ ] Member create and edit forms, and the birth date shown on the member profile. Not searchable, not in the list
-- [ ] `npm run gen:api` after the API is up
-- [ ] Tests: future date and the 120-year edge rejected; empty stays `null`; create and edit through the API with and without a date; a conversion test (۱۳۷۰/۰۵/۱۲ → `1991-08-03`)
+- [x] `Member.BirthDate` (`DateOnly?`), validated inside the entity against the gym's today: not in the future (`Members.BirthDateInFuture`), not over 120 years ago (`Members.BirthDateTooOld`). `Create`/`Update` take `today`; the handler passes `IGymCalendar.Today()`
+- [x] Migration `AddMemberBirthDate`: `date NULL` by convention, plus a check constraint with a **fixed** lower bound (`birth_date IS NULL OR birth_date >= DATE '1900-01-01'`) — `CURRENT_DATE` is not immutable and Postgres refuses it in a CHECK
+- [x] Create and update commands, validators, and `MemberResponse` (record, `Projection` and `From`; the new parameter goes before the defaulted `HasUnpaidSubscription`)
+- [x] Jalali↔ISO conversion added to `web/src/lib/format.ts` (the file that owns date translation), with `date-fns-jalali`
+- [x] Shared `JalaliDateField` in `web/src/components/FormField.tsx` using `react-multi-date-picker`: Persian calendar, RTL, clearable, holds an ISO value, accepts Persian and English digits
+- [x] Member create and edit forms, and the birth date shown on the member profile. Not searchable, not in the list
+- [x] `npm run gen:api` after the API is up
+- [x] Tests: future date and the 120-year edge rejected; empty stays `null`; create and edit through the API with and without a date; a conversion test (۱۳۷۰/۰۵/۱۲ → `1991-08-03`)
 
 Done when: staff can record a birth date with a Persian calendar, leave it empty, and see it on the profile.
 

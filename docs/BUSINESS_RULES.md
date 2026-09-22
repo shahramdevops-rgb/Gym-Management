@@ -100,7 +100,7 @@ Decided values:
 - Only Iranian mobile numbers are accepted. Landlines are rejected (`Members.PhoneNotMobile`): the number receives SMS reminders. Foreign numbers are rejected (`Members.PhoneNotIranian`): the gym has no foreign members, and a visitor can use the gym without being registered as a member.
 - Every member has a phone number (required).
 - Limits: full name at most 200 characters, notes at most 1000.
-- Birth date (decided with the developer, 1405/06/31 — roadmap 2.4). **Not implemented yet.**
+- Birth date (decided with the developer, 1405/06/31 — roadmap 2.4).
   - Optional and expected to stay empty for most members: the gym has no birth date for anyone who joined before this field existed, and staff must never be forced to invent one.
   - A business date (`DateOnly`) like every other date here: stored Gregorian, typed and shown Jalali.
   - It cannot be in the future (`Members.BirthDateInFuture`) and cannot be more than 120 years ago (`Members.BirthDateTooOld`). Both are judged against the gym's today, so the rule lives in the entity and the handler passes the date in.

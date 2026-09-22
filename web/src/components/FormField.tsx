@@ -1,11 +1,34 @@
-import { useId, type ChangeEvent, type ComponentProps } from "react";
+import { X } from "lucide-react";
+import { useId, useState, type ChangeEvent, type ComponentProps } from "react";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
+import DatePickerModule, { DateObject } from "react-multi-date-picker";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toPersianDigits } from "@/lib/format";
+import {
+  jalaliPartsOf,
+  jalaliToIso,
+  toIsoDate,
+  toJalaliInput,
+  toPersianDigits,
+} from "@/lib/format";
 import { normalizeDigits } from "@/lib/normalize";
 import { cn } from "@/lib/utils";
+
+/**
+ * react-multi-date-picker ships CommonJS only and puts its component on `exports.default`.
+ * Vite pre-bundles the package and hands a default import the whole module object, so rendering
+ * it directly fails in the browser with "Element type is invalid ... got: object" — while
+ * Vitest's own interop hands back the component, so every test passes. Unwrap whichever arrived.
+ *
+ * `DateObject` and the calendar and locale modules need none of this: they are read as named
+ * properties, or exported as a plain `module.exports` object with no `default` to unwrap.
+ */
+const DatePicker =
+  (DatePickerModule as unknown as { default?: typeof DatePickerModule }).default ??
+  DatePickerModule;
 
 interface FormFieldProps extends ComponentProps<typeof Input> {
   label: string;
@@ -175,6 +198,141 @@ export function TextareaField({ label, error, id, ...textareaProps }: TextareaFi
         aria-invalid={error !== undefined}
         aria-describedby={error !== undefined ? errorId : undefined}
         {...textareaProps}
+      />
+      {error !== undefined && (
+        <p id={errorId} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+interface JalaliDateFieldProps {
+  label: string;
+  error?: string;
+  id?: string;
+  name?: string;
+  /** The ISO business date the API stores (`1991-08-03`), or `""` when there is none. */
+  value: string;
+  onChange: (iso: string) => void;
+  onBlur?: () => void;
+  disabled?: boolean;
+  placeholder?: string;
+}
+
+/**
+ * `FormField` for a business date (docs/BUSINESS_RULES.md §13): the box speaks Jalali, the value
+ * it holds is the ISO Gregorian date the API stores, and the two never mix.
+ *
+ * The calendar comes from react-multi-date-picker; the input does not. `render` replaces the
+ * library's own input with this app's `Input`, for three reasons: the library's input accepts no
+ * `aria-invalid` or `aria-describedby`, which every other field here has and the tests assert;
+ * typing is then parsed by `toIsoDate`, the one conversion this app owns and tests, rather than
+ * by a second parser that does not know Arabic-Indic digits; and the clear button has somewhere
+ * to live.
+ *
+ * What is typed is committed on every keystroke that forms a whole, real date, and the box snaps
+ * back to the committed date on blur — so what is on screen is always what will be sent, and a
+ * half-typed date is visibly discarded rather than quietly saved as "no birth date".
+ *
+ * No `dir="ltr"`, unlike `MoneyField`: the slashes in ۱۳۷۰/۰۵/۱۲ are bidi common separators and
+ * hold the digit runs together on their own, which the phone number's spaces do not.
+ */
+export function JalaliDateField({
+  label,
+  error,
+  id,
+  name,
+  value,
+  onChange,
+  onBlur,
+  disabled,
+  placeholder = "۱۳۷۰/۰۵/۱۲",
+}: JalaliDateFieldProps) {
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const errorId = `${inputId}-error`;
+
+  // The text in the box. It follows `value` when the form supplies a new one (an edit form
+  // finishing its load, a reset) but not while this field is what changes it, so a half-typed
+  // date is never reformatted under the caret.
+  const [text, setText] = useState(() => toJalaliInput(value));
+  const [committed, setCommitted] = useState(value);
+  if (value !== committed) {
+    setCommitted(value);
+    setText(toJalaliInput(value));
+  }
+
+  function commit(iso: string) {
+    setCommitted(iso);
+    onChange(iso);
+  }
+
+  function handleTyping(event: ChangeEvent<HTMLInputElement>) {
+    setText(event.target.value);
+    commit(toIsoDate(event.target.value) ?? "");
+  }
+
+  function handlePicked(picked: DateObject | null) {
+    // `calendar={persian}` means these are Jalali numbers. format.ts owns the conversion, so the
+    // calendar and the typed box can never disagree about which day was chosen.
+    const iso =
+      picked === null ? "" : (jalaliToIso(picked.year, picked.month.number, picked.day) ?? "");
+
+    setText(toJalaliInput(iso));
+    commit(iso);
+  }
+
+  const parts = jalaliPartsOf(value);
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={inputId}>{label}</Label>
+      <DatePicker
+        calendar={persian}
+        locale={persian_fa}
+        format="YYYY/MM/DD"
+        calendarPosition="bottom-start"
+        containerClassName="block w-full"
+        value={
+          parts === null ? null : new DateObject({ ...parts, calendar: persian, locale: persian_fa })
+        }
+        onChange={handlePicked}
+        render={(_value, openCalendar) => (
+          <span className="relative block">
+            <Input
+              id={inputId}
+              name={name}
+              value={text}
+              disabled={disabled}
+              placeholder={placeholder}
+              autoComplete="off"
+              className="pe-9"
+              aria-invalid={error !== undefined}
+              aria-describedby={error !== undefined ? errorId : undefined}
+              onChange={handleTyping}
+              onFocus={openCalendar}
+              onBlur={() => {
+                setText(toJalaliInput(committed));
+                onBlur?.();
+              }}
+            />
+            {text !== "" && disabled !== true && (
+              <button
+                type="button"
+                aria-label="پاک کردن تاریخ"
+                className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setText("");
+                  commit("");
+                }}
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            )}
+          </span>
+        )}
       />
       {error !== undefined && (
         <p id={errorId} className="text-sm text-destructive">

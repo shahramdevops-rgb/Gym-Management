@@ -54,6 +54,32 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
     }
 
     [Fact]
+    public async Task GetMember_MemberWithABirthDate_ReturnsTheSameDateAsCreate()
+    {
+        // The record equality above cannot catch a Projection that forgot birth_date: with no
+        // birth date, both sides are null and the comparison passes. This one has a date.
+        var (client, token) = await StaffClientAsync();
+        var created = await CreateMemberAsync(client, token, "رضا احمدی", "09121234567", birthDate: "1991-08-03");
+
+        using var response = await SendAsync(client, token, HttpMethod.Get, $"{MembersPath}/{created.Id}");
+
+        var member = (await response.Content.ReadFromJsonAsync<MemberResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        member.BirthDate.ShouldBe(new DateOnly(1991, 8, 3));
+    }
+
+    [Fact]
+    public async Task ListMembers_MemberWithABirthDate_IncludesIt()
+    {
+        // The list is served by the same Projection expression.
+        var (client, token) = await StaffClientAsync();
+        await CreateMemberAsync(client, token, "رضا احمدی", "09121234567", birthDate: "1991-08-03");
+
+        var page = await ListAsync(client, token, "");
+
+        page.Items.Single().BirthDate.ShouldBe(new DateOnly(1991, 8, 3));
+    }
+
+    [Fact]
     public async Task GetMember_UnknownId_Returns404NotFound()
     {
         var (client, token) = await StaffClientAsync();
@@ -474,9 +500,13 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         return (client, await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
     }
 
-    private static async Task<MemberResponse> CreateMemberAsync(HttpClient client, string token, string fullName, string phoneNumber)
+    private static async Task<MemberResponse> CreateMemberAsync(
+        HttpClient client, string token, string fullName, string phoneNumber, string? birthDate = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, MembersPath) { Content = JsonContent.Create(new { fullName, phoneNumber }) };
+        var request = new HttpRequestMessage(HttpMethod.Post, MembersPath)
+        {
+            Content = JsonContent.Create(new { fullName, phoneNumber, birthDate }),
+        };
         using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
 

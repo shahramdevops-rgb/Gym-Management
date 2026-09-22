@@ -309,6 +309,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date")
+                        .HasColumnName("birth_date");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -379,6 +383,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                     b.ToTable("members", null, t =>
                         {
+                            t.HasCheckConstraint("ck_members_birth_date_range", "birth_date IS NULL OR birth_date >= DATE '1900-01-01'");
+
                             t.HasCheckConstraint("ck_members_full_name_not_blank", "btrim(full_name) <> ''");
 
                             t.HasCheckConstraint("ck_members_phone_number_e164", "phone_number ~ '^\\+[0-9]{7,15}$'");

@@ -18,7 +18,7 @@ import { AttendanceHistoryTable } from "@/features/attendance/components/Attenda
 import { checkInResultMessage } from "@/features/attendance/checkInMessage";
 import { CurrentSubscriptionCard } from "@/features/subscriptions/components/CurrentSubscriptionCard";
 import { errorMessage } from "@/lib/errors";
-import { formatDateTime, toPersianDigits } from "@/lib/format";
+import { formatDate, formatDateTime, toPersianDigits } from "@/lib/format";
 
 import { useMember, useSetMemberActive } from "../api";
 import { MemberHistoryTabs } from "../components/MemberHistoryTabs";
@@ -153,6 +153,9 @@ export function MemberProfilePage() {
             <dd>
               <PhoneNumber value={current.phoneNumber} />
             </dd>
+
+            <dt className="text-muted-foreground">تاریخ تولد</dt>
+            <dd>{formatDate(current.birthDate)}</dd>
 
             <dt className="text-muted-foreground">یادداشت</dt>
             <dd className="whitespace-pre-line">{current.notes ?? "—"}</dd>

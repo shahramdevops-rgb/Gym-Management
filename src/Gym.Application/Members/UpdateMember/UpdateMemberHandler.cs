@@ -18,7 +18,7 @@ namespace Gym.Application.Members.UpdateMember;
 /// which the version check cannot.</item>
 /// </list>
 /// </remarks>
-public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phones)
+public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phones, IGymCalendar calendar)
 {
     public async Task<Result<MemberResponse>> Handle(Guid id, UpdateMemberCommand command, CancellationToken cancellationToken)
     {
@@ -47,7 +47,7 @@ public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
             return Result.Failure<MemberResponse>(MemberErrors.PhoneAlreadyExists);
         }
 
-        var updated = member.Update(command.FullName, phone.Value, command.Notes);
+        var updated = member.Update(command.FullName, phone.Value, command.Notes, command.BirthDate, calendar.Today());
         if (updated.IsFailure)
         {
             return Result.Failure<MemberResponse>(updated.Error);
