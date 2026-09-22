@@ -49,6 +49,15 @@ public static class SubscriptionErrors
         "Subscriptions.Cancelled",
         "The subscription is cancelled.");
 
+    /// <summary>
+    /// BUSINESS_RULES.md §4: the member used every session on the day the subscription started
+    /// and renewed the same day, so the renewal cannot cover today as well and starts tomorrow.
+    /// Its own status only says "not started yet", which is not the answer the front desk needs.
+    /// </summary>
+    public static readonly Error NextStartsTomorrow = Error.BusinessRule(
+        "Subscriptions.NextStartsTomorrow",
+        "Today's sessions are used up and the next subscription starts tomorrow.");
+
     public static readonly Error NotFrozen = Error.BusinessRule(
         "Subscriptions.NotFrozen",
         "The subscription is not frozen.");

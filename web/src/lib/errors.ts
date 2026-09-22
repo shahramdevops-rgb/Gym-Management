@@ -100,6 +100,8 @@ export const errorMessages: Record<string, string> = {
   "Subscriptions.ChangedConcurrently":
     "اشتراک‌های این عضو هم‌زمان توسط شخص دیگری تغییر کرد. دوباره امتحان کنید.",
   "Subscriptions.NotStarted": "اشتراک هنوز شروع نشده است.",
+  "Subscriptions.NextStartsTomorrow":
+    "جلسات اشتراک امروز تمام شد. اشتراک بعدی از فردا قابل استفاده است.",
   "Subscriptions.Expired": "اشتراک به پایان رسیده است.",
   "Subscriptions.NoSessionsLeft": "جلسات این اشتراک تمام شده است.",
   "Subscriptions.Frozen": "اشتراک فریز شده است.",

@@ -202,6 +202,33 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task CheckIn_ExhaustedOnItsFirstDayWithAQueuedRenewal_Returns422SubscriptionsNextStartsTomorrow()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        var today = Today();
+        // Every session used on the day the plan was bought, then renewed the same day: the
+        // exhausted one was closed to today, so the renewal starts tomorrow (BUSINESS_RULES.md
+        // §4) and the member cannot come in again today.
+        await InsertSubscriptionAsync(member.Id, plan.Id, today, today, usedSessions: 12);
+        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(1), today.AddDays(30));
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        // Not "Subscriptions.NotStarted": the renewal is the row that refuses the visit, but the
+        // reason the member needs is that today is over for them, not that a sale went wrong.
+        (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.NextStartsTomorrow");
+        // Nothing moved: the refused visit consumed no session and left both rows where they were.
+        var subscriptions = await StoredSubscriptionsAsync(member.Id);
+        subscriptions.Single(s => s.StartDate == today).EndDate.ShouldBe(today);
+        var queued = subscriptions.Single(s => s.StartDate == today.AddDays(1));
+        queued.UsedSessions.ShouldBe(0);
+        queued.EndDate.ShouldBe(today.AddDays(30));
+    }
+
+    [Fact]
     public async Task CheckIn_NoSubscriptionAtAll_Returns422AttendanceNoSubscription()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
