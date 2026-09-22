@@ -50,6 +50,41 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(1);
     }
 
+    /// <summary>
+    /// BUSINESS_RULES.md §7 and §5 <i>Member debt</i> (task 4.7): money owed never blocks a
+    /// check-in. The visit is recorded and the front desk is handed the amount to mention.
+    /// </summary>
+    [Fact]
+    public async Task CheckIn_MemberWhoOwesMoney_RecordsTheVisitAndReturnsTheOutstandingTotal()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var attendance = await ReadAsync(response);
+        attendance.MemberDebt.ShouldBe(900_000m);
+        (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task CheckIn_MemberWhoOwesNothing_ReturnsZeroDebt()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await PayAsync(staffClient, staffToken, (await StoredSubscriptionAsync(member.Id)).Id, 900_000m);
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await ReadAsync(response)).MemberDebt.ShouldBe(0m);
+    }
+
     [Fact]
     public async Task CheckIn_RepeatedVisits_DoesNotAlwaysPickTheSameLocker()
     {
@@ -422,6 +457,13 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
     {
         using var response = await AssignAsync(client, token, memberId, planId);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private static async Task PayAsync(HttpClient client, string token, Guid subscriptionId, decimal amount)
+    {
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/subscriptions/{subscriptionId}/payments", new { amount, method = "Cash" });
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 

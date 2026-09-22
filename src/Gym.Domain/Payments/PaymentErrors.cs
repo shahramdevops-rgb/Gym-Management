@@ -41,4 +41,12 @@ public static class PaymentErrors
     public static readonly Error RefundExceedsNetPaid = Error.BusinessRule(
         "Payments.RefundExceedsNetPaid",
         "This refund would exceed the subscription's net paid amount.");
+
+    /// <summary>
+    /// BUSINESS_RULES.md §5: a subscription can only be refunded while nobody has used it, whatever
+    /// its status. Sessions already taken are not bought back.
+    /// </summary>
+    public static readonly Error RefundAfterUse = Error.BusinessRule(
+        "Payments.RefundAfterUse",
+        "A subscription with a used session cannot be refunded.");
 }

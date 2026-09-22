@@ -132,7 +132,7 @@ public sealed class SubscriptionTests
     public void GetStatus_CancelledWhileFrozen_IsCancelled()
     {
         var subscription = InState("frozen");
-        subscription.Cancel("انصراف عضو", Now).IsSuccess.ShouldBeTrue();
+        subscription.Cancel("انصراف عضو", Mid, Now).IsSuccess.ShouldBeTrue();
 
         subscription.GetStatus(Mid).ShouldBe(SubscriptionStatus.Cancelled);
     }
@@ -141,7 +141,7 @@ public sealed class SubscriptionTests
     public void GetStatus_CancelledBeforeStart_IsCancelled()
     {
         var subscription = Sell();
-        subscription.Cancel("اشتباه در ثبت", Now).IsSuccess.ShouldBeTrue();
+        subscription.Cancel("اشتباه در ثبت", Start.AddDays(-5), Now).IsSuccess.ShouldBeTrue();
 
         subscription.GetStatus(Start.AddDays(-5)).ShouldBe(SubscriptionStatus.Cancelled);
     }
@@ -363,7 +363,7 @@ public sealed class SubscriptionTests
     public void Unfreeze_CancelledWhileFrozen_FailsWithCancelled()
     {
         var subscription = InState("frozen");
-        subscription.Cancel("انصراف عضو", Now);
+        subscription.Cancel("انصراف عضو", Mid, Now);
 
         subscription.Unfreeze(Mid.AddDays(3), MaxFreezeDays).Error.ShouldBe(SubscriptionErrors.Cancelled);
         subscription.EndDate.ShouldBe(End);
@@ -385,27 +385,70 @@ public sealed class SubscriptionTests
     {
         var subscription = Sell();
 
-        subscription.Cancel("  انصراف عضو  ", Now).IsSuccess.ShouldBeTrue();
+        subscription.Cancel("  انصراف عضو  ", Mid, Now).IsSuccess.ShouldBeTrue();
 
         subscription.CancelledAt.ShouldBe(Now);
         subscription.CancellationReason.ShouldBe("انصراف عضو");
     }
 
+    /// <summary>
+    /// BUSINESS_RULES.md §4 Cancel: only a subscription nobody has used yet, and only while it is
+    /// still something to decide about rather than history.
+    /// </summary>
     [Theory]
     [InlineData("upcoming")]
     [InlineData("active")]
     [InlineData("frozen")]
-    [InlineData("exhausted")]
-    [InlineData("expired")]
-    public void Cancel_AnyStatusButCancelled_Succeeds(string state) =>
-        InState(state).Cancel("انصراف عضو", Now).IsSuccess.ShouldBeTrue();
+    public void Cancel_UnusedAndNotFinished_Succeeds(string state) =>
+        InState(state).Cancel("انصراف عضو", TodayFor(state), Now).IsSuccess.ShouldBeTrue();
+
+    [Fact]
+    public void Cancel_AfterASessionIsUsed_FailsWithAlreadyUsed()
+    {
+        var subscription = Sell();
+        Succeed(subscription.ConsumeSession(Mid));
+
+        subscription.Cancel("انصراف عضو", Mid, Now).Error.ShouldBe(SubscriptionErrors.AlreadyUsed);
+        subscription.CancelledAt.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The last session used means every session used, so "exhausted" is refused for having been
+    /// used, not for having ended: the member's answer is the same either way.
+    /// </summary>
+    [Fact]
+    public void Cancel_Exhausted_FailsWithAlreadyUsed() =>
+        InState("exhausted").Cancel("انصراف عضو", Mid, Now).Error.ShouldBe(SubscriptionErrors.AlreadyUsed);
+
+    [Fact]
+    public void Cancel_Expired_FailsWithExpired()
+    {
+        var subscription = InState("expired");
+
+        subscription.Cancel("انصراف عضو", TodayFor("expired"), Now).Error.ShouldBe(SubscriptionErrors.Expired);
+        subscription.CancelledAt.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// The escape hatch of BUSINESS_RULES.md §4: cancel check-in restores the session, which brings
+    /// used sessions back to zero and makes the subscription cancellable again.
+    /// </summary>
+    [Fact]
+    public void Cancel_AfterTheUsedSessionIsRestored_Succeeds()
+    {
+        var subscription = Sell();
+        Succeed(subscription.ConsumeSession(Mid));
+        subscription.RestoreSession();
+
+        subscription.Cancel("انصراف عضو", Mid, Now).IsSuccess.ShouldBeTrue();
+    }
 
     [Fact]
     public void Cancel_Twice_FailsAndKeepsTheFirstReason()
     {
         var subscription = InState("cancelled");
 
-        subscription.Cancel("دلیل دوم", Now.AddHours(1)).Error.ShouldBe(SubscriptionErrors.Cancelled);
+        subscription.Cancel("دلیل دوم", Mid, Now.AddHours(1)).Error.ShouldBe(SubscriptionErrors.Cancelled);
 
         subscription.CancellationReason.ShouldBe("انصراف عضو");
         subscription.CancelledAt.ShouldBe(Now);
@@ -418,7 +461,7 @@ public sealed class SubscriptionTests
     {
         var subscription = Sell();
 
-        subscription.Cancel(reason, Now).Error.ShouldBe(SubscriptionErrors.CancelReasonRequired);
+        subscription.Cancel(reason, Mid, Now).Error.ShouldBe(SubscriptionErrors.CancelReasonRequired);
         subscription.CancelledAt.ShouldBeNull();
     }
 
@@ -427,7 +470,7 @@ public sealed class SubscriptionTests
     {
         var reason = new string('ا', Subscription.CancellationReasonMaxLength + 1);
 
-        Sell().Cancel(reason, Now).Error.ShouldBe(SubscriptionErrors.CancelReasonTooLong);
+        Sell().Cancel(reason, Mid, Now).Error.ShouldBe(SubscriptionErrors.CancelReasonTooLong);
     }
 
     [Fact]
@@ -435,7 +478,7 @@ public sealed class SubscriptionTests
     {
         var reason = new string('ا', Subscription.CancellationReasonMaxLength);
 
-        Sell().Cancel(reason, Now).IsSuccess.ShouldBeTrue();
+        Sell().Cancel(reason, Mid, Now).IsSuccess.ShouldBeTrue();
     }
 
     // ---- ShiftQueued ----
@@ -492,7 +535,7 @@ public sealed class SubscriptionTests
                 Succeed(subscription.Freeze(Mid, MaxFreezeDays));
                 break;
             case "cancelled":
-                Succeed(subscription.Cancel("انصراف عضو", Now));
+                Succeed(subscription.Cancel("انصراف عضو", Mid, Now));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, "Unknown state.");

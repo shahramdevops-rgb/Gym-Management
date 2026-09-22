@@ -13,13 +13,12 @@ namespace Gym.Application.Members;
 /// Sent back with an update. If someone else saved the member after this was read, the update
 /// is refused instead of silently overwriting their change.
 /// </param>
-/// <param name="HasUnpaidSubscription">
-/// True when any of this member's non-cancelled subscriptions has net paid below its price
-/// (BUSINESS_RULES.md §4 payment status). Computed only by <see cref="ListMembers.ListMembersHandler"/>,
-/// which is the only caller that needs it (the member list, task 4.6 follow-up: front-desk staff
-/// scanning for who still owes money); every other path (create, update, get by id, activate)
-/// leaves it <see langword="false"/> since a single-member response already shows the real
-/// subscription and payment history where it matters.
+/// <param name="Debt">
+/// What the member still owes over all their non-cancelled subscriptions (BUSINESS_RULES.md §5
+/// <i>Member debt</i>), so front-desk staff scanning the list can see who owes money and how much.
+/// Computed only by <see cref="ListMembers.ListMembersHandler"/>; every other path (create, update,
+/// get by id, activate) leaves it <c>0</c>, because a single member's debt has its own endpoint
+/// (<see cref="GetMemberDebt.GetMemberDebtHandler"/>) that also says what it is made of.
 /// </param>
 public sealed record MemberResponse(
     Guid Id,
@@ -31,7 +30,7 @@ public sealed record MemberResponse(
     uint Version,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    bool HasUnpaidSubscription = false)
+    decimal Debt = 0)
 {
     /// <summary>
     /// The same mapping as <see cref="From"/>, as an expression EF Core translates to SQL, so a

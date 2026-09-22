@@ -245,13 +245,13 @@ Done when: staff can sell a subscription and take payment from the member profil
 ### 4.7 Open accounts: member debt, and who may cancel or refund
 Added 1405/06/31 after the developer reported the subscription row's buttons and then decided the
 gym runs open accounts. Rules: BUSINESS_RULES.md §0, §4 *Cancel*, §5 *Member debt*, §7.
-- [ ] Member debt calculated from non-cancelled subscriptions (`Price − net paid` per item), with a per-item breakdown endpoint
-- [ ] Member profile: the total, opening into the item-by-item breakdown; debt shown in the members list
-- [ ] Check-in returns the outstanding total; the front desk shows it as a warning and still records the visit
-- [ ] Cancel refused unless `UsedSessions = 0` and the status is Upcoming/Active/Frozen (`Subscriptions.AlreadyUsed`)
-- [ ] Refund refused once a session has been used (`Payments.RefundAfterUse`)
-- [ ] Subscription history row shows only the actions that are possible: no buttons at all on a finished, settled subscription; "ثبت پرداخت" stays for as long as anything is owed, whatever the status
-- [ ] Tests: debt adds up across several subscriptions and ignores cancelled ones; cancel and refund refusals; a finished unpaid subscription still takes a payment
+- [x] Member debt calculated from non-cancelled subscriptions (`Price − net paid` per item), with a per-item breakdown endpoint
+- [x] Member profile: the total, opening into the item-by-item breakdown; debt shown in the members list
+- [x] Check-in returns the outstanding total; the front desk shows it as a warning and still records the visit
+- [x] Cancel refused unless `UsedSessions = 0` and the status is Upcoming/Active/Frozen (`Subscriptions.AlreadyUsed`)
+- [x] Refund refused once a session has been used (`Payments.RefundAfterUse`)
+- [x] Subscription history row shows only the actions that are possible: no buttons at all on a finished, settled subscription; "ثبت پرداخت" stays for as long as anything is owed, whatever the status
+- [x] Tests: debt adds up across several subscriptions and ignores cancelled ones; cancel and refund refusals; a finished unpaid subscription still takes a payment
 
 Done when: the front desk can see what a member owes, broken down by item, take money against any
 of it, and the actions that are no longer allowed are gone from the screen rather than failing when

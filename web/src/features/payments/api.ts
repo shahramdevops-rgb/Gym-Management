@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { memberKeys } from "@/features/members/api";
 import { subscriptionKeys } from "@/features/subscriptions/api";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
@@ -48,8 +49,9 @@ export function useMemberPayments(memberId: string, page: number, { enabled = tr
 
 /**
  * Registering a payment or a refund changes the subscription's net paid amount and payment
- * status, so both the payments cache and the subscriptions cache (the current-subscription card)
- * are invalidated.
+ * status, so the payments cache and the subscriptions cache (the current-subscription card) are
+ * invalidated — and the members cache with them, because the same money is what the member's
+ * debt is made of (BUSINESS_RULES.md §5 Member debt).
  */
 function usePaymentMutation<TArgs>(request: (args: TArgs) => Promise<Payment>) {
   const queryClient = useQueryClient();
@@ -60,6 +62,7 @@ function usePaymentMutation<TArgs>(request: (args: TArgs) => Promise<Payment>) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
         queryClient.invalidateQueries({ queryKey: subscriptionKeys.all }),
+        queryClient.invalidateQueries({ queryKey: memberKeys.all }),
       ]);
     },
   });

@@ -2,7 +2,6 @@ using Gym.Application.Common;
 using Gym.Application.Common.Paging;
 using Gym.Domain.Common.Text;
 using Gym.Domain.Members;
-using Gym.Domain.Payments;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -63,51 +62,15 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
             .Select(MemberResponse.Projection)
             .ToListAsync(cancellationToken);
 
-        var unpaidMemberIds = await GetMembersWithUnpaidSubscriptionAsync(
-            pageMembers.Select(member => member.Id).ToList(), cancellationToken);
+        // Batched for the whole page (MemberDebt), not one query per row.
+        var debtByMemberId = await MemberDebt.GetTotalsAsync(
+            db, pageMembers.Select(member => member.Id).ToList(), cancellationToken);
 
         var items = pageMembers
-            .Select(member => member with { HasUnpaidSubscription = unpaidMemberIds.Contains(member.Id) })
+            .Select(member => member with { Debt = debtByMemberId.GetValueOrDefault(member.Id) })
             .ToList();
 
         return new PagedResponse<MemberResponse>(items, query.Page, query.PageSize, totalCount);
-    }
-
-    /// <summary>
-    /// One page's worth of members whose net paid is below price on at least one non-cancelled
-    /// subscription (BUSINESS_RULES.md §4), batched in two queries instead of one per member.
-    /// A cancelled subscription is excluded even if it was never paid: cancelling is how the gym
-    /// already says it is not chasing that money, so it should not still flag the member as owing.
-    /// </summary>
-    private async Task<HashSet<Guid>> GetMembersWithUnpaidSubscriptionAsync(
-        List<Guid> memberIds, CancellationToken cancellationToken)
-    {
-        if (memberIds.Count == 0)
-        {
-            return [];
-        }
-
-        var subscriptions = await db.Subscriptions.AsNoTracking()
-            .Where(subscription => memberIds.Contains(subscription.MemberId) && subscription.CancelledAt == null)
-            .Select(subscription => new { subscription.Id, subscription.MemberId, subscription.Price })
-            .ToListAsync(cancellationToken);
-
-        var subscriptionIds = subscriptions.Select(subscription => subscription.Id).ToList();
-
-        var netPaidById = await db.Payments.AsNoTracking()
-            .Where(payment => payment.SubscriptionId != null && subscriptionIds.Contains(payment.SubscriptionId!.Value))
-            .GroupBy(payment => payment.SubscriptionId!.Value)
-            .Select(group => new
-            {
-                SubscriptionId = group.Key,
-                NetPaid = group.Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
-            })
-            .ToDictionaryAsync(row => row.SubscriptionId, row => row.NetPaid, cancellationToken);
-
-        return subscriptions
-            .Where(subscription => netPaidById.GetValueOrDefault(subscription.Id) < subscription.Price)
-            .Select(subscription => subscription.MemberId)
-            .ToHashSet();
     }
 
     private IQueryable<Member> Search(IQueryable<Member> members, string text)

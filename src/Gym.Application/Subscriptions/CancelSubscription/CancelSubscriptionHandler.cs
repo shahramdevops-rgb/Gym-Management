@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Subscriptions.CancelSubscription;
 
 /// <summary>
-/// Cancels a subscription whatever its status (BUSINESS_RULES.md §4 Cancel). Owner only.
+/// Cancels a subscription nobody has used yet (BUSINESS_RULES.md §4 Cancel). Owner only.
 /// Payments are untouched and queued subscriptions are not moved earlier.
 /// </summary>
 public sealed class CancelSubscriptionHandler(IAppDbContext db, IGymCalendar calendar, TimeProvider time)
@@ -23,7 +23,9 @@ public sealed class CancelSubscriptionHandler(IAppDbContext db, IGymCalendar cal
             return Result.Failure<SubscriptionResponse>(SubscriptionErrors.NotFound);
         }
 
-        var cancelled = subscription.Cancel(command.Reason, time.GetUtcNow());
+        var today = calendar.Today();
+
+        var cancelled = subscription.Cancel(command.Reason, today, time.GetUtcNow());
         if (cancelled.IsFailure)
         {
             return Result.Failure<SubscriptionResponse>(cancelled.Error);
@@ -42,6 +44,6 @@ public sealed class CancelSubscriptionHandler(IAppDbContext db, IGymCalendar cal
 
         var planName = await PlanNames.ForAsync(db, subscription.PlanId, cancellationToken);
 
-        return SubscriptionResponse.From(subscription, planName, calendar.Today(), netPaid);
+        return SubscriptionResponse.From(subscription, planName, today, netPaid);
     }
 }

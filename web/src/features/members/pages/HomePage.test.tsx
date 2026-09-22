@@ -157,6 +157,25 @@ describe("HomePage", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("کمد آزادی نبود");
   });
 
+  it("CheckIn_MemberWhoOwesMoney_RecordsTheVisitAndWarnsAboutTheDebt", async () => {
+    // Money owed never blocks a check-in (BUSINESS_RULES.md §0, §7): the visit is recorded and
+    // the amount is something for the front desk to mention while the member is still there.
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+      [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+        json(201, { ...openVisit(reza.id), memberDebt: 600000 }),
+    });
+    renderApp("/", { session: session() });
+
+    fireEvent.change(searchBox(), { target: { value: "رضا" } });
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    const notice = await screen.findByRole("status");
+    expect(notice).toHaveTextContent("ورود ثبت شد");
+    expect(notice).toHaveTextContent("بدهی این عضو ۶۰۰٬۰۰۰ تومان است");
+  });
+
   it("CheckIn_AlreadyCheckedIn_ShowsThePersianReason", async () => {
     mockApi({
       ...signedInHandlers(staffUser),

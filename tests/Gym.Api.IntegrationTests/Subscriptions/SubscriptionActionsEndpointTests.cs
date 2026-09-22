@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
+using Gym.Application.Attendances;
 using Gym.Application.Common;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
@@ -257,6 +258,68 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.Cancelled");
     }
 
+    /// <summary>
+    /// BUSINESS_RULES.md §4 Cancel (task 4.7): a service that has been consumed is not un-sold.
+    /// The session is used through the real check-in endpoint, which is the only thing that
+    /// consumes one.
+    /// </summary>
+    [Fact]
+    public async Task Cancel_AfterACheckIn_Returns422AlreadyUsed()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await CancelAsync(ownerClient, ownerToken, sold.Id, "انصراف عضو");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.AlreadyUsed");
+    }
+
+    /// <summary>
+    /// The 30-minute cancel-check-in window is the intended escape hatch (BUSINESS_RULES.md §4):
+    /// undoing the visit restores the session, and the subscription can be cancelled again.
+    /// </summary>
+    [Fact]
+    public async Task Cancel_AfterTheCheckInIsCancelled_Succeeds()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var attendanceId = await CheckInOkAsync(staffClient, staffToken, member.Id);
+        using var cancelledCheckIn = await SendAsync(
+            staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel");
+        cancelledCheckIn.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var response = await CancelAsync(ownerClient, ownerToken, sold.Id, "انصراف عضو");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    /// <summary>
+    /// An expired subscription is history, not something still to decide about
+    /// (BUSINESS_RULES.md §4 Cancel, task 4.7).
+    /// </summary>
+    [Fact]
+    public async Task Cancel_Expired_Returns422Expired()
+    {
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        var today = Today();
+        var expiredId = await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-60), today.AddDays(-31));
+
+        using var response = await CancelAsync(ownerClient, ownerToken, expiredId, "انصراف عضو");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.Expired");
+    }
+
     [Fact]
     public async Task Cancel_DoesNotMoveQueuedSubscriptions()
     {
@@ -383,6 +446,19 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
             TestContext.Current.CancellationToken);
 
         return id;
+    }
+
+    /// <summary>Uses a session the only way anything does, and returns the visit's id.</summary>
+    private static async Task<Guid> CheckInOkAsync(HttpClient client, string token, Guid memberId)
+    {
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var attendance = (await response.Content.ReadFromJsonAsync<AttendanceResponse>(
+            TestContext.Current.CancellationToken)).ShouldNotBeNull();
+
+        return attendance.Id;
     }
 
     private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>

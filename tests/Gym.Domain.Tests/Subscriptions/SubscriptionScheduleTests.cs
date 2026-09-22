@@ -1,4 +1,4 @@
-using Gym.Domain.Members;
+﻿using Gym.Domain.Members;
 using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 
@@ -54,7 +54,7 @@ public sealed class SubscriptionScheduleTests
     public void NextStartDate_CancelledCurrent_IsIgnored()
     {
         var cancelled = Sell(new DateOnly(2026, 9, 1));
-        cancelled.Cancel("انصراف عضو", Now);
+        cancelled.Cancel("انصراف عضو", Today, Now);
 
         SubscriptionSchedule.NextStartDate(Today, [cancelled]).ShouldBe(Today);
     }
@@ -64,7 +64,7 @@ public sealed class SubscriptionScheduleTests
     {
         var current = Sell(new DateOnly(2026, 9, 1));
         var cancelledQueued = Sell(new DateOnly(2026, 10, 1));
-        cancelledQueued.Cancel("اشتباه در ثبت", Now);
+        cancelledQueued.Cancel("اشتباه در ثبت", Today, Now);
 
         SubscriptionSchedule.NextStartDate(Today, [current, cancelledQueued]).ShouldBe(new DateOnly(2026, 10, 1));
     }
@@ -192,7 +192,7 @@ public sealed class SubscriptionScheduleTests
         var exhausted = Sell(new DateOnly(2026, 9, 1), sessions: 1);
         exhausted.ConsumeSession(new DateOnly(2026, 9, 5));
         var cancelledQueued = Sell(new DateOnly(2026, 10, 1));
-        cancelledQueued.Cancel("اشتباه در ثبت", Now);
+        cancelledQueued.Cancel("اشتباه در ثبت", Today, Now);
 
         SubscriptionSchedule.InEffectToday(Today, [exhausted, cancelledQueued]).ShouldBeNull();
     }

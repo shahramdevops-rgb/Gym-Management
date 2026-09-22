@@ -70,6 +70,18 @@ export function SubscriptionHistoryRow({
   const remaining = Number(subscription.price) - Number(subscription.netPaid);
   const hasPanel = action !== null || error !== null;
 
+  // Only the actions that would actually be allowed, so a finished, settled subscription shows no
+  // buttons at all instead of a row of disabled ones (task 4.7). Each condition is the rule the
+  // API would answer with: payment while anything is still owed, whatever the status
+  // (BUSINESS_RULES.md §5 Member debt); cancel and refund only while nobody has used it (§4, §5).
+  const unused = subscription.usedSessions === 0;
+  const canPay = subscription.paymentStatus !== "Paid";
+  const canFreeze = isOwner && subscription.status === "Active";
+  const canUnfreeze = isOwner && subscription.status === "Frozen";
+  const canCancel =
+    isOwner && unused && ["Upcoming", "Active", "Frozen"].includes(subscription.status);
+  const canRefund = isOwner && unused && Number(subscription.netPaid) > 0;
+
   return (
     <>
       <tr className="border-b">
@@ -94,53 +106,57 @@ export function SubscriptionHistoryRow({
         </td>
         <td className="py-2">
           <div className="flex flex-wrap gap-1">
-            <Button
-              size="sm"
-              variant="outline"
-              aria-label={`ثبت پرداخت برای ${context}`}
-              disabled={subscription.paymentStatus === "Paid"}
-              onClick={() => toggle("payment")}
-            >
-              ثبت پرداخت
-            </Button>
-            {isOwner && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  aria-label={`فریز ${context}`}
-                  disabled={subscription.status !== "Active" || freeze.isPending}
-                  onClick={() => void doFreeze()}
-                >
-                  فریز
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  aria-label={`رفع فریز ${context}`}
-                  disabled={subscription.status !== "Frozen" || unfreeze.isPending}
-                  onClick={() => void doUnfreeze()}
-                >
-                  رفع فریز
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  aria-label={`لغو اشتراک ${context}`}
-                  disabled={subscription.status === "Cancelled"}
-                  onClick={() => toggle("cancel")}
-                >
-                  لغو اشتراک
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  aria-label={`استرداد برای ${context}`}
-                  onClick={() => toggle("refund")}
-                >
-                  استرداد
-                </Button>
-              </>
+            {canPay && (
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label={`ثبت پرداخت برای ${context}`}
+                onClick={() => toggle("payment")}
+              >
+                ثبت پرداخت
+              </Button>
+            )}
+            {canFreeze && (
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label={`فریز ${context}`}
+                disabled={freeze.isPending}
+                onClick={() => void doFreeze()}
+              >
+                فریز
+              </Button>
+            )}
+            {canUnfreeze && (
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label={`رفع فریز ${context}`}
+                disabled={unfreeze.isPending}
+                onClick={() => void doUnfreeze()}
+              >
+                رفع فریز
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                size="sm"
+                variant="destructive"
+                aria-label={`لغو اشتراک ${context}`}
+                onClick={() => toggle("cancel")}
+              >
+                لغو اشتراک
+              </Button>
+            )}
+            {canRefund && (
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label={`استرداد برای ${context}`}
+                onClick={() => toggle("refund")}
+              >
+                استرداد
+              </Button>
             )}
           </div>
         </td>

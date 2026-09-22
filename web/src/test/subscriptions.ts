@@ -36,8 +36,33 @@ export const queuedRenewal: Subscription = {
   startDate: "2026-10-01",
   endDate: "2026-10-30",
   status: "Upcoming",
+  // Nobody can have used a subscription that has not started, and what a row allows now depends
+  // on it (task 4.7): a queued renewal is exactly the kind that can still be cancelled.
+  usedSessions: 0,
+  remainingSessions: 12,
   netPaid: 0,
   paymentStatus: "Unpaid",
+};
+
+/** Ended weeks ago, every session used, and still owing money (BUSINESS_RULES.md §5). */
+export const expiredUnpaidSubscription: Subscription = {
+  ...activeSubscription,
+  id: "0199a000-0000-7000-8000-0000000000c4",
+  startDate: "2026-07-01",
+  endDate: "2026-07-30",
+  status: "Expired",
+  usedSessions: 12,
+  remainingSessions: 0,
+  netPaid: 0,
+  paymentStatus: "Unpaid",
+};
+
+/** Ended and paid for: nothing is left to do with it. */
+export const expiredPaidSubscription: Subscription = {
+  ...expiredUnpaidSubscription,
+  id: "0199a000-0000-7000-8000-0000000000c5",
+  netPaid: activeSubscription.price,
+  paymentStatus: "Paid",
 };
 
 /**
