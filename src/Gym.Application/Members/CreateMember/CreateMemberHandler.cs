@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Members.CreateMember;
 
 /// <summary>Registers a member (BUSINESS_RULES.md §2).</summary>
-public sealed class CreateMemberHandler(IAppDbContext db, IPhoneNormalizer phones)
+public sealed class CreateMemberHandler(IAppDbContext db, IPhoneNormalizer phones, IGymCalendar calendar)
 {
     public async Task<Result<MemberResponse>> Handle(CreateMemberCommand command, CancellationToken cancellationToken)
     {
@@ -26,8 +26,9 @@ public sealed class CreateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
             return Result.Failure<MemberResponse>(MemberErrors.PhoneAlreadyExists);
         }
 
-        // 3. Call the domain.
-        var created = Member.Create(command.FullName, phone.Value, command.Notes);
+        // 3. Call the domain. The birth date rules need a today, and the gym's today is the one
+        // in its own time zone, so it is passed in rather than read from a clock in the entity.
+        var created = Member.Create(command.FullName, phone.Value, command.Notes, command.BirthDate, calendar.Today());
         if (created.IsFailure)
         {
             return Result.Failure<MemberResponse>(created.Error);

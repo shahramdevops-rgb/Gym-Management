@@ -5,6 +5,10 @@ using Gym.Domain.Members;
 namespace Gym.Application.Members;
 
 /// <param name="PhoneNumber">E.164. The frontend formats it for display.</param>
+/// <param name="BirthDate">
+/// Gregorian, as every date the API speaks; the frontend shows it in the Jalali calendar. Null for
+/// most members (BUSINESS_RULES.md §2), and shown on the profile only — never searched or listed.
+/// </param>
 /// <param name="Version">
 /// Sent back with an update. If someone else saved the member after this was read, the update
 /// is refused instead of silently overwriting their change.
@@ -22,6 +26,7 @@ public sealed record MemberResponse(
     string FullName,
     string PhoneNumber,
     string? Notes,
+    DateOnly? BirthDate,
     bool IsActive,
     uint Version,
     DateTimeOffset CreatedAt,
@@ -37,6 +42,7 @@ public sealed record MemberResponse(
         member.FullName,
         member.PhoneNumber,
         member.Notes,
+        member.BirthDate,
         member.IsActive,
         member.Version,
         member.CreatedAt,
@@ -51,6 +57,7 @@ public sealed record MemberResponse(
             member.FullName,
             member.PhoneNumber,
             member.Notes,
+            member.BirthDate,
             member.IsActive,
             member.Version,
             member.CreatedAt,

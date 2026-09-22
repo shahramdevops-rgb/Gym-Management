@@ -43,6 +43,19 @@ public static class MemberErrors
         "Members.NotesTooLong",
         "Notes are too long.");
 
+    /// <summary>
+    /// BUSINESS_RULES.md §2: judged against the gym's today (Asia/Tehran), not the server's, so
+    /// the entity is told what today is instead of asking a clock.
+    /// </summary>
+    public static readonly Error BirthDateInFuture = Error.Validation(
+        "Members.BirthDateInFuture",
+        "The birth date cannot be in the future.");
+
+    /// <summary>A date that far back is a typing slip, not a member (BUSINESS_RULES.md §2).</summary>
+    public static readonly Error BirthDateTooOld = Error.Validation(
+        "Members.BirthDateTooOld",
+        "The birth date cannot be more than 120 years ago.");
+
     /// <summary>A one-letter search matches almost everyone, so a search needs at least two characters.</summary>
     public static readonly Error SearchTooShort = Error.Validation(
         "Members.SearchTooShort",

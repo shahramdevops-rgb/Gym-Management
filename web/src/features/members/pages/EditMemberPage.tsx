@@ -78,6 +78,7 @@ export function EditMemberPage() {
           defaultValues={{
             fullName: current.fullName,
             phoneNumber: current.phoneNumber,
+            birthDate: current.birthDate ?? "",
             notes: current.notes ?? "",
           }}
           submitLabel="ذخیره"

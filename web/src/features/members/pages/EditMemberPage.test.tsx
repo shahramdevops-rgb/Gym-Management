@@ -18,6 +18,8 @@ describe("EditMemberPage", () => {
     expect(await screen.findByLabelText("نام و نام خانوادگی")).toHaveValue("رضا احمدی");
     expect(screen.getByLabelText("شماره موبایل")).toHaveValue("+989121234567");
     expect(screen.getByLabelText("یادداشت (اختیاری)")).toHaveValue("عضو قدیمی");
+    // Stored Gregorian, shown Jalali (docs/BUSINESS_RULES.md §13).
+    expect(screen.getByLabelText("تاریخ تولد (اختیاری)")).toHaveValue("۱۳۷۰/۰۵/۱۲");
   });
 
   it("EditMember_Saved_SendsTheVersionItWasFilledFromAndOpensTheProfile", async () => {
@@ -42,11 +44,31 @@ describe("EditMemberPage", () => {
     expect(body).toEqual({
       fullName: "رضا احمدی نژاد",
       phoneNumber: "+989121234567",
+      birthDate: "1991-08-03",
       notes: "عضو قدیمی",
       version: 5,
     });
     // The profile shows the saved member straight from the PUT answer.
     expect(await screen.findByText("رضا احمدی‌نژاد")).toBeInTheDocument();
+  });
+
+  it("EditMember_BirthDateCleared_IsSentAsNull", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`PUT /api/members/${reza.id}`]: () => json(200, { ...reza, birthDate: null, version: 6 }),
+    });
+    renderApp(editPath, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "پاک کردن تاریخ" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    await waitFor(() => expect(api.requestsTo("PUT", `/api/members/${reza.id}`)).toHaveLength(1));
+    const body = (await api.requestsTo("PUT", `/api/members/${reza.id}`)[0]!.json()) as Record<
+      string,
+      unknown
+    >;
+    expect(body.birthDate).toBeNull();
   });
 
   it("EditMember_SomeoneSavedMeanwhile_ExplainsAndReloadsTheirVersion", async () => {

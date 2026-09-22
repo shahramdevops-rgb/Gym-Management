@@ -133,7 +133,7 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
     private async Task<Member> AddMemberAsync()
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
-        var member = Member.Create("رضا احمدی", $"+98913{suffix:D7}", null).Value;
+        var member = TestMembers.Seed("رضا احمدی", $"+98913{suffix:D7}");
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

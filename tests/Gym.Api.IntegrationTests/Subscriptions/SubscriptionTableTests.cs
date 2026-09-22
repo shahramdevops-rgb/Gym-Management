@@ -146,7 +146,7 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     private async Task<(Guid MemberId, Guid PlanId)> AddMemberAndPlanAsync(
         string planName = "ماهانه", string phone = "+989121234567")
     {
-        var member = Member.Create("رضا احمدی", phone, null).Value;
+        var member = TestMembers.Seed("رضا احمدی", phone);
         var plan = Plan.Create(planName, 30, 12, 900_000m).Value;
 
         await using var scope = Fixture.CreateScope();

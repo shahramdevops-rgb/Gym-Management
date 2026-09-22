@@ -102,7 +102,7 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
     private async Task<Member> AddMemberAsync(string fullName)
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
-        var member = Member.Create(fullName, $"+98912{suffix:D7}", null).Value;
+        var member = TestMembers.Seed(fullName, $"+98912{suffix:D7}");
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

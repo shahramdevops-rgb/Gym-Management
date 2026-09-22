@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
-import { FormField, TextareaField } from "@/components/FormField";
+import { FormField, JalaliDateField, TextareaField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
@@ -24,6 +24,8 @@ const codeFields = {
   "Members.FullNameRequired": "fullName",
   "Members.FullNameTooLong": "fullName",
   "Members.NotesTooLong": "notes",
+  "Members.BirthDateInFuture": "birthDate",
+  "Members.BirthDateTooOld": "birthDate",
 } as const;
 
 interface MemberFormProps {
@@ -41,7 +43,7 @@ interface MemberFormProps {
 
 /** The create and edit form. Values are normalized before they are sent, never while typing. */
 export function MemberForm({
-  defaultValues = { fullName: "", phoneNumber: "", notes: "" },
+  defaultValues = { fullName: "", phoneNumber: "", birthDate: "", notes: "" },
   submitLabel,
   submittingLabel,
   onSubmit,
@@ -59,6 +61,7 @@ export function MemberForm({
         fullName: normalizePersianText(values.fullName),
         // The API accepts Persian digits too; sending English ones keeps logs and audit readable.
         phoneNumber: normalizeDigits(values.phoneNumber).trim(),
+        birthDate: values.birthDate === "" ? null : values.birthDate,
         notes: values.notes === "" ? null : values.notes,
       });
     } catch (problem) {
@@ -88,6 +91,22 @@ export function MemberForm({
         placeholder="۰۹۱۲ ۱۲۳ ۴۵۶۷"
         error={errors.phoneNumber?.message}
         {...form.register("phoneNumber")}
+      />
+      <Controller
+        control={form.control}
+        name="birthDate"
+        render={({ field }) => (
+          // Not {...field}: this is not a native input, so field.ref has nowhere to go, and this
+          // form does not use focus-on-error.
+          <JalaliDateField
+            label="تاریخ تولد (اختیاری)"
+            error={errors.birthDate?.message}
+            name={field.name}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+          />
+        )}
       />
       <TextareaField
         label="یادداشت (اختیاری)"

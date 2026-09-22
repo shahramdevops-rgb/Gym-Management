@@ -631,6 +631,8 @@ export interface components {
             fullName: string;
             phoneNumber: string;
             notes: null | string;
+            /** Format: date */
+            birthDate: null | string;
         };
         CreatePlanCommand: {
             name: string;
@@ -691,6 +693,8 @@ export interface components {
             fullName: string;
             phoneNumber: string;
             notes: null | string;
+            /** Format: date */
+            birthDate: null | string;
             isActive: boolean;
             /** Format: uint32 */
             version: number | string;
@@ -914,6 +918,8 @@ export interface components {
             fullName: string;
             phoneNumber: string;
             notes: null | string;
+            /** Format: date */
+            birthDate: null | string;
             /** Format: uint32 */
             version: number | string;
         };

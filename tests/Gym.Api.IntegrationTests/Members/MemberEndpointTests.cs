@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
+using Gym.Application.Common;
 using Gym.Application.Members;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -224,6 +225,101 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
         (await response.ReadErrorCodeAsync()).ShouldBe("Members.NotFound");
     }
 
+    // Birth date (BUSINESS_RULES.md §2). Optional; refused when in the future or over 120 years back.
+
+    [Fact]
+    public async Task CreateMember_WithBirthDate_StoresAndReturnsIt()
+    {
+        var (client, token) = await StaffClientAsync();
+
+        using var response = await SendAsync(client, token, HttpMethod.Post, MembersPath,
+            new { fullName = "رضا", phoneNumber = "09121234567", birthDate = "1991-08-03" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var member = (await response.Content.ReadFromJsonAsync<MemberResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        member.BirthDate.ShouldBe(new DateOnly(1991, 8, 3));
+    }
+
+    [Fact]
+    public async Task CreateMember_WithoutBirthDate_ReturnsNull()
+    {
+        var (client, token) = await StaffClientAsync();
+
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+
+        member.BirthDate.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task CreateMember_FutureBirthDate_Returns400BirthDateInFuture()
+    {
+        var (client, token) = await StaffClientAsync();
+        var tomorrow = (await GymTodayAsync()).AddDays(1);
+
+        using var response = await SendAsync(client, token, HttpMethod.Post, MembersPath,
+            new { fullName = "رضا", phoneNumber = "09121234567", birthDate = tomorrow });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Members.BirthDateInFuture");
+        (await CountMembersAsync()).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task CreateMember_BirthDateOver120YearsAgo_Returns400BirthDateTooOld()
+    {
+        var (client, token) = await StaffClientAsync();
+        var tooOld = (await GymTodayAsync()).AddYears(-120).AddDays(-1);
+
+        using var response = await SendAsync(client, token, HttpMethod.Post, MembersPath,
+            new { fullName = "رضا", phoneNumber = "09121234567", birthDate = tooOld });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Members.BirthDateTooOld");
+    }
+
+    [Fact]
+    public async Task UpdateMember_SetsAndThenClearsTheBirthDate()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+
+        using var set = await UpdateAsync(client, token, member.Id, "رضا", "09121234567", null,
+            await CurrentVersionAsync(member.Id), birthDate: "1991-08-03");
+
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await set.Content.ReadFromJsonAsync<MemberResponse>(TestContext.Current.CancellationToken))
+            .ShouldNotBeNull().BirthDate.ShouldBe(new DateOnly(1991, 8, 3));
+
+        using var cleared = await UpdateAsync(client, token, member.Id, "رضا", "09121234567", null,
+            await CurrentVersionAsync(member.Id));
+
+        cleared.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await cleared.Content.ReadFromJsonAsync<MemberResponse>(TestContext.Current.CancellationToken))
+            .ShouldNotBeNull().BirthDate.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Members_BirthDateBefore1900InsertedDirectly_RejectedByTheCheckConstraint()
+    {
+        // A Jalali year written straight into a Gregorian column is the bug this floor catches.
+        // The 120-year rule itself cannot live here: it needs today, and CURRENT_DATE is not
+        // immutable, so Postgres refuses it in a CHECK.
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync(InsertSql("+989121234567", "DATE '1370-05-12'")));
+
+        exception.SqlState.ShouldBe("23514");
+        exception.ConstraintName.ShouldBe("ck_members_birth_date_range");
+    }
+
+    [Fact]
+    public async Task Members_BirthDateOn1900InsertedDirectly_IsAccepted()
+    {
+        // The floor is inclusive; only dates before it are refused.
+        await ExecuteSqlAsync(InsertSql("+989121234567", "DATE '1900-01-01'"));
+
+        (await CountMembersAsync()).ShouldBe(1);
+    }
+
     [Fact]
     public async Task CreateMember_WithoutToken_Returns401()
     {
@@ -256,10 +352,10 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
         exception.ConstraintName.ShouldBe("ck_members_phone_number_e164");
     }
 
-    private static string InsertSql(string phone) =>
+    private static string InsertSql(string phone, string birthDate = "NULL") =>
         $"""
-        INSERT INTO members (id, full_name, normalized_full_name, phone_number, is_active, created_at)
-        VALUES ('{Guid.CreateVersion7()}', 'x', 'x', '{phone}', true, now())
+        INSERT INTO members (id, full_name, normalized_full_name, phone_number, birth_date, is_active, created_at)
+        VALUES ('{Guid.CreateVersion7()}', 'x', 'x', '{phone}', {birthDate}, true, now())
         """;
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
@@ -282,14 +378,26 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
     }
 
     private static Task<HttpResponseMessage> UpdateAsync(
-        HttpClient client, string token, Guid id, string fullName, string phoneNumber, string? notes, uint version) =>
-        SendAsync(client, token, HttpMethod.Put, $"{MembersPath}/{id}", new { fullName, phoneNumber, notes, version });
+        HttpClient client, string token, Guid id, string fullName, string phoneNumber, string? notes, uint version,
+        string? birthDate = null) =>
+        SendAsync(client, token, HttpMethod.Put, $"{MembersPath}/{id}", new { fullName, phoneNumber, notes, birthDate, version });
 
     private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, HttpMethod method, string path, object body)
     {
         var request = new HttpRequestMessage(method, path) { Content = JsonContent.Create(body) };
 
         return client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// The gym's today as the running application sees it. The API factory installs no fake clock,
+    /// so a date-sensitive test asks the app rather than assuming the machine agrees with it.
+    /// </summary>
+    private async Task<DateOnly> GymTodayAsync()
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return scope.ServiceProvider.GetRequiredService<IGymCalendar>().Today();
     }
 
     private async Task<int> CountMembersAsync()
