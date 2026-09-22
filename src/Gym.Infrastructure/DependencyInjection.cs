@@ -133,7 +133,8 @@ public static class DependencyInjection
         // Without this, /health would only report that the process is running, and an
         // orchestrator would happily route traffic to an API that cannot reach its database.
         services.AddHealthChecks()
-            .AddDbContextCheck<AppDbContext>("database");
+            .AddDbContextCheck<AppDbContext>("database")
+            .AddCheck<PendingMigrationsHealthCheck>(PendingMigrationsHealthCheck.Name);
 
         // The nightly auto-checkout job (BUSINESS_RULES.md §7). Scheduled once the host is
         // built, by Gym.Api.Program calling RecurringJobScheduler.ScheduleRecurringJobs.

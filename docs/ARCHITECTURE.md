@@ -220,6 +220,12 @@ web/src/
 - `xmin` concurrency: a `uint Version` property configured with `.IsRowVersion()`.
 - Do not use `MapIdentityApi()`: it adds a register endpoint and uses its own token format.
 - Migrations are never applied automatically at app startup in production. Use an EF migration bundle during deployment.
+- A consequence of that, and the one that actually bites: after pulling changes, run
+  `dotnet ef database update` before running the app. Nothing applies migrations for you, and the app starts
+  perfectly happily against an old schema — the first symptom is an unexplained 500 on whatever screen writes
+  to the changed table (a dropped column that is still `NOT NULL`, a new column that does not exist yet), which
+  looks like a code bug and is not. `/health` now reports this as `Unhealthy` and names the missing migrations
+  (`PendingMigrationsHealthCheck`), so the Persian status page answers the question before anyone has to guess.
 - The production runtime image must carry both ICU and tzdata. `InvariantGlobalization=false` (Directory.Build.props)
   needs ICU to format Persian dates and digits, and `Gym:TimeZone = Asia/Tehran` needs tzdata to resolve at all.
   The Debian-based `mcr.microsoft.com/dotnet/aspnet` image carries both; an Alpine variant needs `icu-libs` and
