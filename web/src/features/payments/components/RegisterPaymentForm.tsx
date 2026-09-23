@@ -1,12 +1,13 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
 import { FormField, MoneyField, SelectField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { normalizeMoney } from "@/lib/money";
 
 import { paymentMethodLabels, paymentMethods, useRegisterPayment } from "../api";
-import { emptyRegisterPaymentValues, normalizeAmount, registerPaymentSchema } from "../schemas";
+import { emptyRegisterPaymentValues, registerPaymentSchema } from "../schemas";
 
 const codeFields = {
   "Payments.AmountNotPositive": "amount",
@@ -40,7 +41,7 @@ export function RegisterPaymentForm({
     try {
       await registerPayment.mutateAsync({
         subscriptionId,
-        amount: normalizeAmount(values.amount),
+        amount: normalizeMoney(values.amount),
         method: values.method,
         referenceNumber:
           values.referenceNumber.trim() === "" ? null : values.referenceNumber.trim(),
@@ -60,11 +61,20 @@ export function RegisterPaymentForm({
       )}
 
       <div className="w-40">
-        <MoneyField
-          label="مبلغ (تومان)"
-          placeholder="۹۰۰٬۰۰۰"
-          error={errors.amount?.message}
-          {...form.register("amount")}
+        <Controller
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <MoneyField
+              label="مبلغ (تومان)"
+              placeholder="۹۰۰٬۰۰۰"
+              error={errors.amount?.message}
+              name={field.name}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+            />
+          )}
         />
       </div>
       <div className="w-36">

@@ -1,13 +1,14 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
 import { FormField, MoneyField, SelectField, TextareaField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { normalizeMoney } from "@/lib/money";
 import { normalizePersianText } from "@/lib/normalize";
 
 import { paymentMethodLabels, paymentMethods, useRegisterRefund } from "../api";
-import { emptyRegisterRefundValues, normalizeAmount, registerRefundSchema } from "../schemas";
+import { emptyRegisterRefundValues, registerRefundSchema } from "../schemas";
 
 const codeFields = {
   "Payments.AmountNotPositive": "amount",
@@ -42,7 +43,7 @@ export function RegisterRefundForm({ subscriptionId, onDone, onCancel }: Registe
     try {
       await registerRefund.mutateAsync({
         subscriptionId,
-        amount: normalizeAmount(values.amount),
+        amount: normalizeMoney(values.amount),
         method: values.method,
         referenceNumber:
           values.referenceNumber.trim() === "" ? null : values.referenceNumber.trim(),
@@ -63,11 +64,20 @@ export function RegisterRefundForm({ subscriptionId, onDone, onCancel }: Registe
       )}
 
       <div className="w-40">
-        <MoneyField
-          label="مبلغ استرداد (تومان)"
-          placeholder="۹۰۰٬۰۰۰"
-          error={errors.amount?.message}
-          {...form.register("amount")}
+        <Controller
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <MoneyField
+              label="مبلغ استرداد (تومان)"
+              placeholder="۹۰۰٬۰۰۰"
+              error={errors.amount?.message}
+              name={field.name}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+            />
+          )}
         />
       </div>
       <div className="w-36">

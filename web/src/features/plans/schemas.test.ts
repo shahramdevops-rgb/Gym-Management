@@ -1,4 +1,4 @@
-import { normalizePrice, parseWholeNumber, priceProblem } from "./schemas";
+import { parseWholeNumber, priceProblem } from "./schemas";
 
 describe("plan schemas", () => {
   it.each([
@@ -12,16 +12,6 @@ describe("plan schemas", () => {
     ["سی", null],
   ])("parseWholeNumber_%j_Returns%j", (text, expected) => {
     expect(parseWholeNumber(text)).toBe(expected);
-  });
-
-  it.each([
-    ["1500000", "1500000"],
-    ["۱٬۵۰۰٬۰۰۰", "1500000"],
-    ["1,500,000.50", "1500000.50"],
-    ["۱۲۵۰۰٫۵", "12500.5"],
-    [" 900 000 ", "900000"],
-  ])("normalizePrice_%j_Returns%j", (text, expected) => {
-    expect(normalizePrice(text)).toBe(expected);
   });
 
   it.each(["0", "900000", "1500000.5", "1500000.50", "9999999999999999.99", "۱٬۵۰۰٬۰۰۰"])(
@@ -43,9 +33,9 @@ describe("plan schemas", () => {
     expect(priceProblem(text)).toBe(expected);
   });
 
-  it("priceProblem_LargestPrice_KeepsEveryDigitAsAString", () => {
-    // A JavaScript number would turn this into 10000000000000000: the reason it stays a string.
-    expect(Number("9999999999999999.99")).toBe(10000000000000000);
-    expect(normalizePrice("9,999,999,999,999,999.99")).toBe("9999999999999999.99");
+  it("priceProblem_LargestPrice_IsAccepted", () => {
+    // How the separators come off is `normalizeMoney`'s job, tested in lib/money.test.ts; what
+    // matters here is that the largest price the API allows is not refused on the way.
+    expect(priceProblem("9,999,999,999,999,999.99")).toBeNull();
   });
 });

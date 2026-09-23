@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { errorMessages } from "@/lib/errors";
-import { normalizeDigits } from "@/lib/normalize";
+import { normalizeMoney } from "@/lib/money";
 
 import { paymentMethods } from "./api";
 
@@ -15,10 +15,9 @@ function message(code: string): string {
 }
 
 /**
- * The same money-string shape as `features/plans/schemas.ts` (`normalizePrice`/`priceProblem`),
- * kept as its own small copy rather than shared: the two forms answer different questions
- * (`Payments.*` vs `Plans.*` codes) and this codebase does not extract a helper until it is
- * shared by more than one caller that would otherwise disagree.
+ * How a typed amount is spelled is shared with plans, in `lib/money.ts`. What it is *called*
+ * when it is refused is not: an amount here answers to `Payments.*` codes and a plan's price to
+ * `Plans.*`, so `amountProblem` and `priceProblem` stay apart.
  */
 export const paymentLimits = {
   decimals: 2,
@@ -26,16 +25,9 @@ export const paymentLimits = {
   integerDigits: 16,
 } as const;
 
-/** An amount as typed (`۹۰۰٬۰۰۰`, `900,000.50`) turned into the plain decimal string the API reads. */
-export function normalizeAmount(text: string): string {
-  return normalizeDigits(text)
-    .replace(/[\s,٬]/g, "")
-    .replace(/٫/g, ".");
-}
-
 /** Why a typed amount is refused, in Persian, or null when it is a valid amount. */
 export function amountProblem(text: string): string | null {
-  const amount = normalizeAmount(text);
+  const amount = normalizeMoney(text);
 
   if (amount === "") {
     return "مبلغ را وارد کنید.";

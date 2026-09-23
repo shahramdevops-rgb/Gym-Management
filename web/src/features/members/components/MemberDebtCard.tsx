@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney } from "@/lib/format";
+import { isPositiveMoney } from "@/lib/money";
 
 import { useMemberDebt } from "../api";
 
@@ -34,9 +35,9 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
     );
   }
 
-  const total = Number(debt.data.total);
+  const total = debt.data.total;
 
-  if (total <= 0) {
+  if (!isPositiveMoney(total)) {
     return (
       <DebtCard>
         <p className="text-muted-foreground">این عضو بدهی ندارد.</p>
@@ -75,9 +76,9 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
                 <tr key={item.subscriptionId} className="border-b">
                   <td className="py-2">اشتراک {item.planName}</td>
                   <td className="py-2">{formatDate(item.startDate)}</td>
-                  <td className="py-2">{formatMoney(Number(item.price))}</td>
-                  <td className="py-2">{formatMoney(Number(item.netPaid))}</td>
-                  <td className="py-2">{formatMoney(Number(item.outstanding))}</td>
+                  <td className="py-2">{formatMoney(item.price)}</td>
+                  <td className="py-2">{formatMoney(item.netPaid)}</td>
+                  <td className="py-2">{formatMoney(item.outstanding)}</td>
                 </tr>
               ))}
             </tbody>

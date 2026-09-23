@@ -1,4 +1,5 @@
 import { formatMoney, toPersianDigits } from "@/lib/format";
+import { isPositiveMoney } from "@/lib/money";
 
 import type { Attendance } from "./api";
 
@@ -15,7 +16,7 @@ export function checkInResultMessage(attendance: Attendance): string {
       ? "ورود ثبت شد. در حال حاضر کمد آزادی نبود."
       : `ورود ثبت شد. کمد شماره ${toPersianDigits(attendance.lockerNumber)}`;
 
-  const debt = Number(attendance.memberDebt);
-
-  return debt > 0 ? `${locker} — بدهی این عضو ${formatMoney(debt)} است.` : locker;
+  return isPositiveMoney(attendance.memberDebt)
+    ? `${locker} — بدهی این عضو ${formatMoney(attendance.memberDebt)} است.`
+    : locker;
 }

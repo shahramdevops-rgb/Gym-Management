@@ -58,7 +58,7 @@ export function AssignSubscriptionForm({
           </option>
           {plans.data?.items.map((plan) => (
             <option key={plan.id} value={plan.id}>
-              {plan.name} — {formatMoney(Number(plan.price))}
+              {plan.name} — {formatMoney(plan.price)}
             </option>
           ))}
         </SelectField>

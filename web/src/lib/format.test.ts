@@ -1,8 +1,10 @@
 import {
+  amountInPersianWords,
   emptyValue,
   formatDate,
   formatDateTime,
   formatMoney,
+  formatMoneyDigits,
   formatNumber,
   formatPhone,
   gymToday,
@@ -48,14 +50,122 @@ describe("formatNumber", () => {
   );
 });
 
+describe("formatMoneyDigits", () => {
+  it.each([
+    ["1500000", "۱٬۵۰۰٬۰۰۰"],
+    ["500", "۵۰۰"],
+    ["0", "۰"],
+    ["1500000.5", "۱٬۵۰۰٬۰۰۰٫۵"],
+    ["", ""],
+    ["abc", ""],
+  ])("formatMoneyDigits_%j_Returns%j", (digits, expected) => {
+    expect(formatMoneyDigits(digits)).toBe(expected);
+  });
+
+  it("formatMoneyDigits_HalfTypedDecimal_KeepsThePoint", () => {
+    // The money box formats what is in it on every keystroke, so a point typed but not yet
+    // followed by a digit has to survive the trip.
+    expect(formatMoneyDigits("1500000.")).toBe("۱٬۵۰۰٬۰۰۰٫");
+  });
+});
+
 describe("formatMoney", () => {
   it("formatMoney_Amount_AppendsToman", () => {
     expect(formatMoney(1250000)).toBe("۱٬۲۵۰٬۰۰۰ تومان");
   });
 
-  it("formatMoney_Missing_ReturnsEmptyValueWithoutUnit", () => {
-    expect(formatMoney(null)).toBe(emptyValue);
+  it("formatMoney_DecimalString_FormatsItWithoutAFloat", () => {
+    expect(formatMoney("1250000.50")).toBe("۱٬۲۵۰٬۰۰۰٫۵۰ تومان");
   });
+
+  it("formatMoney_WholeAmountStoredWithTwoDecimals_DropsTheZeros", () => {
+    expect(formatMoney("1500000.00")).toBe("۱٬۵۰۰٬۰۰۰ تومان");
+  });
+
+  it("formatMoney_LargestAmount_KeepsEveryDigit", () => {
+    // Through a double this would read ۱۰٬۰۰۰٬۰۰۰٬۰۰۰٬۰۰۰٬۰۰۰ تومان.
+    expect(formatMoney("9999999999999999.99")).toBe("۹٬۹۹۹٬۹۹۹٬۹۹۹٬۹۹۹٬۹۹۹٫۹۹ تومان");
+  });
+
+  it.each([null, undefined, "", "abc"])(
+    "formatMoney_MissingOrNotAnAmount_ReturnsEmptyValueWithoutUnit (%s)",
+    (value) => {
+      expect(formatMoney(value)).toBe(emptyValue);
+    },
+  );
+});
+
+describe("amountInPersianWords", () => {
+  it("amountInPersianWords_Zero_ReturnsSefr", () => {
+    expect(amountInPersianWords("0")).toBe("صفر تومان");
+  });
+
+  it.each([
+    ["1", "یک تومان"],
+    ["5", "پنج تومان"],
+    ["9", "نه تومان"],
+    ["10", "ده تومان"],
+    ["15", "پانزده تومان"],
+    ["21", "بیست و یک تومان"],
+    ["100", "صد تومان"],
+    ["115", "صد و پانزده تومان"],
+    ["999", "نهصد و نود و نه تومان"],
+  ])("amountInPersianWords_%j_Returns%j", (amount, expected) => {
+    expect(amountInPersianWords(amount)).toBe(expected);
+  });
+
+  it("amountInPersianWords_OneThousand_SaysHezarWithoutYek", () => {
+    // «یک هزار تومان» is not how anybody says it, while «یک میلیون تومان» is.
+    expect(amountInPersianWords("1000")).toBe("هزار تومان");
+  });
+
+  it("amountInPersianWords_FiveHundredThousand_ReturnsThePhraseFromTheRules", () => {
+    expect(amountInPersianWords("500000")).toBe("پانصد هزار تومان");
+  });
+
+  it.each([
+    ["1000000", "یک میلیون تومان"],
+    ["2500000", "دو میلیون و پانصد هزار تومان"],
+    ["1234567", "یک میلیون و دویست و سی و چهار هزار و پانصد و شصت و هفت تومان"],
+  ])("amountInPersianWords_%j_Returns%j", (amount, expected) => {
+    expect(amountInPersianWords(amount)).toBe(expected);
+  });
+
+  it("amountInPersianWords_BillionBoundary_CrossesFromMillionsToMilliard", () => {
+    expect(amountInPersianWords("999000000")).toBe("نهصد و نود و نه میلیون تومان");
+    expect(amountInPersianWords("1000000000")).toBe("یک میلیارد تومان");
+    expect(amountInPersianWords("1000000001")).toBe("یک میلیارد و یک تومان");
+  });
+
+  it("amountInPersianWords_LargestAmount_HasAScaleForEveryGroup", () => {
+    expect(amountInPersianWords("1000000000000")).toBe("هزار میلیارد تومان");
+    expect(amountInPersianWords("1000000000000000")).toBe("یک میلیون میلیارد تومان");
+  });
+
+  it("amountInPersianWords_TypedWithPersianDigitsAndSeparators_ReadsTheSame", () => {
+    // This is the form the money field holds, so the words are computed from what is on screen.
+    expect(amountInPersianWords("۹۰۰٬۰۰۰")).toBe("نهصد هزار تومان");
+  });
+
+  it.each([
+    ["0.5", "پنجاه صدم تومان"],
+    ["0.05", "پنج صدم تومان"],
+    ["1500000.25", "یک میلیون و پانصد هزار و بیست و پنج صدم تومان"],
+  ])("amountInPersianWords_Fraction %j_Returns%j", (amount, expected) => {
+    expect(amountInPersianWords(amount)).toBe(expected);
+  });
+
+  it("amountInPersianWords_WholeAmountStoredWithTwoDecimals_IgnoresTheZeros", () => {
+    expect(amountInPersianWords("500000.00")).toBe("پانصد هزار تومان");
+  });
+
+  it.each([null, undefined, "", "abc", "۹۰۰ تومان", "1.234", "1234567890123456789"])(
+    "amountInPersianWords_NotAnAmount_ReturnsNothing (%s)",
+    (value) => {
+      // Nothing rather than a guess: a line that is not the amount is worse than no line.
+      expect(amountInPersianWords(value)).toBe("");
+    },
+  );
 });
 
 describe("formatDate", () => {

@@ -19,7 +19,10 @@ describe("EditPlanPage", () => {
     expect(screen.getByLabelText("مدت (روز)")).toHaveValue("30");
     expect(screen.getByLabelText("تعداد جلسات نامحدود")).not.toBeChecked();
     expect(screen.getByLabelText("تعداد جلسات")).toHaveValue("12");
-    expect(screen.getByLabelText("قیمت (تومان)")).toHaveValue("900000");
+    // The price arrives as a bare 900000 and the money field groups it and spells it out, so a
+    // run of zeros is never what the owner has to count (task 4.8).
+    expect(screen.getByLabelText("قیمت (تومان)")).toHaveValue("۹۰۰٬۰۰۰");
+    expect(screen.getByText("نهصد هزار تومان")).toBeInTheDocument();
   });
 
   it("EditPlan_UnlimitedPlan_ShowsTheBoxTicked", async () => {
@@ -32,7 +35,7 @@ describe("EditPlanPage", () => {
 
     expect(await screen.findByLabelText("تعداد جلسات نامحدود")).toBeChecked();
     expect(screen.getByLabelText("تعداد جلسات")).toBeDisabled();
-    expect(screen.getByLabelText("قیمت (تومان)")).toHaveValue("2500000.5");
+    expect(screen.getByLabelText("قیمت (تومان)")).toHaveValue("۲٬۵۰۰٬۰۰۰٫۵");
   });
 
   it("EditPlan_Saved_SendsTheVersionItWasFilledFromAndOpensTheList", async () => {

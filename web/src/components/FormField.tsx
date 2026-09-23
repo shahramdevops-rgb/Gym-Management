@@ -8,13 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  amountInPersianWords,
+  formatMoneyDigits,
   jalaliPartsOf,
   jalaliToIso,
   toIsoDate,
   toJalaliInput,
-  toPersianDigits,
 } from "@/lib/format";
-import { normalizeDigits } from "@/lib/normalize";
+import { moneyDigits } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 /**
@@ -110,66 +111,88 @@ export function SelectField({
   );
 }
 
-/** A typed amount with the separators stripped back out, the same shape `amountProblem` expects. */
-function cleanAmountDigits(raw: string): string {
-  const ascii = normalizeDigits(raw).replace(/[,٬]/g, "").replace(/٫/g, ".");
-  const onlyDigitsAndDot = ascii.replace(/[^\d.]/g, "");
-  const firstDot = onlyDigitsAndDot.indexOf(".");
-  if (firstDot === -1) {
-    return onlyDigitsAndDot;
-  }
-  return `${onlyDigitsAndDot.slice(0, firstDot)}.${onlyDigitsAndDot.slice(firstDot + 1).replace(/\./g, "")}`;
-}
-
-/** The same digits, grouped by thousands with Persian digits, for display only. */
-function formatAmountDigits(digits: string): string {
-  if (digits === "") {
-    return "";
-  }
-  const [whole = "", fraction] = digits.split(".");
-  const groupedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, "٬");
-  return toPersianDigits(fraction === undefined ? groupedWhole : `${groupedWhole}٫${fraction}`);
-}
-
-interface MoneyFieldProps extends ComponentProps<typeof Input> {
+interface MoneyFieldProps {
   label: string;
   error?: string;
+  id?: string;
+  name?: string;
+  /** The text in the box, grouped and in Persian digits — what `normalizeMoney` turns back into a number. */
+  value: string;
+  onChange: (text: string) => void;
+  onBlur?: () => void;
+  disabled?: boolean;
+  placeholder?: string;
+  /** The box may be left blank. The line underneath then says so, rather than going quiet. */
+  optional?: boolean;
 }
 
 /**
- * `FormField` for a money amount, grouping digits by thousands as you type (۹۰۰٬۰۰۰) the way
- * mobile banking apps do — a long run of zeros is easy to miscount otherwise. It stays an
- * uncontrolled input wired through `register()`, same as every other field here: the reformat
- * happens on the native `input` value before `onChange` (from `register()`) ever sees it, so
- * react-hook-form stores exactly what's on screen. That is still valid input downstream —
- * `amountProblem`/`normalizeAmount` already strip separators and convert Persian digits, since
- * typing a formatted amount by hand was always allowed. The caret is not preserved through a
- * reformat (it lands at the end), which fits how an amount is actually typed here: once, left to
- * right, not edited digit-by-digit in the middle.
+ * `FormField` for an amount of money. Every amount that is typed anywhere in the app goes
+ * through this one field (docs/BUSINESS_RULES.md §13), because a Toman figure is long enough
+ * that ۵۰۰٬۰۰۰ and ۵٬۰۰۰٬۰۰۰ look alike, and a wrong figure here is a wrong figure in the gym's
+ * books. Two things guard against that:
+ *
+ * - digits are grouped in threes as they are typed (۹۰۰٬۰۰۰), the way mobile banking apps do;
+ * - the same amount is written out in words underneath — «نهصد هزار تومان». The words are the
+ *   real check: a run of zeros can be miscounted, a word cannot. They are wired into
+ *   `aria-describedby` too, so the check is read aloud and not merely seen.
+ *
+ * Controlled, like `JalaliDateField` below and for the same reason: a field that shows what the
+ * amount *means* has to know what the amount is. The value it holds is the text on screen, and
+ * `normalizeMoney` turns that into the plain decimal string the API reads when the form is
+ * sent — no money value is ever a JavaScript number on the way.
+ *
+ * The caret is not preserved through a reformat (it lands at the end), which fits how an amount
+ * is actually typed here: once, left to right, not edited digit-by-digit in the middle.
  */
-export function MoneyField({ label, error, id, onChange, ...inputProps }: MoneyFieldProps) {
+export function MoneyField({
+  label,
+  error,
+  id,
+  name,
+  value,
+  onChange,
+  onBlur,
+  disabled,
+  placeholder,
+  optional = false,
+}: MoneyFieldProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const errorId = `${inputId}-error`;
+  const wordsId = `${inputId}-words`;
 
-  function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    event.target.value = formatAmountDigits(cleanAmountDigits(event.target.value));
-    onChange?.(event);
-  }
+  // Formatted on the way out as well as on the way in, so a value the form supplied itself —
+  // an edit form loading a plan's price as a bare `1500000` — is grouped from the first paint.
+  const text = formatMoneyDigits(moneyDigits(value));
+  const words = text === "" ? (optional ? "بدون مبلغ" : "") : amountInPersianWords(text);
+
+  const describedBy = [error !== undefined ? errorId : "", words !== "" ? wordsId : ""]
+    .filter((part) => part !== "")
+    .join(" ");
 
   return (
     <div className="space-y-2">
       <Label htmlFor={inputId}>{label}</Label>
       <Input
         id={inputId}
+        name={name}
         dir="ltr"
         inputMode="decimal"
         autoComplete="off"
+        value={text}
+        disabled={disabled}
+        placeholder={placeholder}
         aria-invalid={error !== undefined}
-        aria-describedby={error !== undefined ? errorId : undefined}
-        {...inputProps}
-        onChange={handleChange}
+        aria-describedby={describedBy === "" ? undefined : describedBy}
+        onChange={(event) => onChange(formatMoneyDigits(moneyDigits(event.target.value)))}
+        onBlur={onBlur}
       />
+      {words !== "" && (
+        <p id={wordsId} className="text-sm text-muted-foreground">
+          {words}
+        </p>
+      )}
       {error !== undefined && (
         <p id={errorId} className="text-sm text-destructive">
           {error}
@@ -296,7 +319,9 @@ export function JalaliDateField({
         calendarPosition="bottom-start"
         containerClassName="block w-full"
         value={
-          parts === null ? null : new DateObject({ ...parts, calendar: persian, locale: persian_fa })
+          parts === null
+            ? null
+            : new DateObject({ ...parts, calendar: persian, locale: persian_fa })
         }
         onChange={handlePicked}
         render={(_value, openCalendar) => (

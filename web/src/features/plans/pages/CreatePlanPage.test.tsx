@@ -127,7 +127,6 @@ describe("CreatePlanPage", () => {
     [{ durationDays: "366" }, "مدت پلن باید بین ۱ تا ۳۶۵ روز باشد."],
     [{ sessionCount: "0" }, "تعداد جلسات باید بین ۱ تا ۳۶۵ باشد، یا برای نامحدود خالی بماند."],
     [{ price: "10.001" }, "قیمت حداکثر می‌تواند ۲ رقم اعشار داشته باشد."],
-    [{ price: "-1" }, "قیمت نمی‌تواند منفی باشد."],
     [{ name: "ن".repeat(101) }, "نام پلن بیش از حد طولانی است."],
   ])("CreatePlan_InvalidField %j_IsRejectedBeforeSending", async (change, text) => {
     const api = ownerApi();
@@ -162,6 +161,30 @@ describe("CreatePlanPage", () => {
     await fill({ name: "پلن", durationDays: "30", sessionCount: "12", price: "900000" });
 
     const message = await screen.findByText("قیمت بیش از حد بزرگ است.");
-    expect(screen.getByLabelText("قیمت (تومان)")).toHaveAttribute("aria-describedby", message.id);
+    // The price box is described by its words line as well as by the error, so both ids are there.
+    expect(screen.getByLabelText("قیمت (تومان)").getAttribute("aria-describedby")).toContain(
+      message.id,
+    );
+  });
+
+  it("CreatePlan_MinusTyped_NeverReachesThePriceBox", async () => {
+    // A negative price used to be typed and then refused by the schema. The money field does not
+    // let it be typed at all, which is why "-1" is no longer among the rejected values above.
+    const api = ownerApi();
+    renderApp("/plans/new", { session: session() });
+
+    await fill({ name: "پلن", durationDays: "30", sessionCount: "12", price: "-900000" });
+
+    expect(await sentBody(api)).toMatchObject({ price: "900000" });
+  });
+
+  it("CreatePlan_PriceTypedWithPersianDigits_IsSentAsPlainDigits", async () => {
+    const api = ownerApi();
+    renderApp("/plans/new", { session: session() });
+
+    await fill({ name: "پلن", durationDays: "30", sessionCount: "12", price: "۱٬۵۰۰٬۰۰۰" });
+
+    expect(screen.getByText("یک میلیون و پانصد هزار تومان")).toBeInTheDocument();
+    expect(await sentBody(api)).toMatchObject({ price: "1500000" });
   });
 });
