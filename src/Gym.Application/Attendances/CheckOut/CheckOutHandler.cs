@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.ServiceCharges;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
 
@@ -32,6 +33,10 @@ public sealed class CheckOutHandler(IAppDbContext db, TimeProvider time)
             ? null
             : await db.Lockers.Where(l => l.Id == attendance.LockerId).Select(l => (int?)l.Number).SingleOrDefaultAsync(cancellationToken);
 
-        return AttendanceResponse.From(attendance, lockerNumber);
+        // Read after the close, so the charges come back with CanChangeAmount already false:
+        // after check-out the amount is corrected with a void, not edited (BUSINESS_RULES.md §7).
+        var charges = await VisitServiceCharges.ByAttendanceAsync(db, [id], cancellationToken);
+
+        return AttendanceResponse.From(attendance, lockerNumber, charges.GetValueOrDefault(id, []));
     }
 }

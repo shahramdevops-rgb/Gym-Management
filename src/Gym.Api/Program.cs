@@ -116,6 +116,7 @@ try
     app.MapPaymentsEndpoints();
     app.MapLockersEndpoints();
     app.MapAttendanceEndpoints();
+    app.MapServiceChargesEndpoints();
 
     app.Run();
 }

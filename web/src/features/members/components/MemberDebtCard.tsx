@@ -3,11 +3,12 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { serviceChargeKindLabels } from "@/features/serviceCharges/api";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney } from "@/lib/format";
 import { isPositiveMoney } from "@/lib/money";
 
-import { useMemberDebt } from "../api";
+import { useMemberDebt, type MemberDebtItem } from "../api";
 
 /**
  * What the member owes, and what it is made of (BUSINESS_RULES.md §5 Member debt). The gym runs
@@ -73,8 +74,8 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
             </thead>
             <tbody>
               {debt.data.items.map((item) => (
-                <tr key={item.subscriptionId} className="border-b">
-                  <td className="py-2">اشتراک {item.planName}</td>
+                <tr key={item.id} className="border-b">
+                  <td className="py-2">{itemLabel(item)}</td>
                   <td className="py-2">{formatDate(item.startDate)}</td>
                   <td className="py-2">{formatMoney(item.price)}</td>
                   <td className="py-2">{formatMoney(item.netPaid)}</td>
@@ -87,6 +88,18 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
       )}
     </DebtCard>
   );
+}
+
+/**
+ * What the row is for. A subscription reads as its plan's name; a service charge reads as the
+ * Persian word for its kind, because the API sends the kind and never Persian text.
+ */
+function itemLabel(item: MemberDebtItem): string {
+  if (item.kind === "ServiceCharge") {
+    return item.serviceKind === null ? "خدمات" : serviceChargeKindLabels[item.serviceKind];
+  }
+
+  return `اشتراک ${item.planName ?? ""}`.trim();
 }
 
 function DebtCard({ children }: { children: React.ReactNode }) {

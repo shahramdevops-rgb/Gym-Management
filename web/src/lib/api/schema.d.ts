@@ -596,6 +596,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/attendance/{attendanceId}/service-charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RecordServiceCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/service-charges/{id}/amount": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ChangeServiceChargeAmount"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/service-charges/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["VoidServiceCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/service-charges/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RegisterServiceChargePayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -631,6 +695,7 @@ export interface components {
             autoClosedAt: null | string;
             /** Format: date-time */
             createdAt: string;
+            serviceCharges: components["schemas"]["ServiceChargeResponse"][];
             /**
              * Format: double
              * @default 0
@@ -643,6 +708,10 @@ export interface components {
         ChangePasswordCommand: {
             currentPassword: string;
             newPassword: string;
+        };
+        ChangeServiceChargeAmountCommand: {
+            /** Format: double */
+            amount: number | string;
         };
         CreateLockerCommand: {
             /** Format: int32 */
@@ -681,6 +750,7 @@ export interface components {
             lockerNumber: null | number | string;
             /** Format: date-time */
             checkedInAt: string;
+            serviceCharges: components["schemas"]["ServiceChargeResponse"][];
         };
         CurrentUserResponse: {
             /** Format: uuid */
@@ -709,13 +779,15 @@ export interface components {
             password: string;
         };
         MemberDebtItemResponse: {
+            kind: components["schemas"]["PaymentTargetKind"];
             /** Format: uuid */
-            subscriptionId: string;
-            planName: string;
+            id: string;
+            planName: null | string;
+            serviceKind: null | components["schemas"]["ServiceChargeKind"];
             /** Format: date */
             startDate: string;
             /** Format: date */
-            endDate: string;
+            endDate: null | string;
             /** Format: double */
             price: number | string;
             /** Format: double */
@@ -824,9 +896,11 @@ export interface components {
         PaymentHistoryResponse: {
             /** Format: uuid */
             id: string;
+            targetKind: components["schemas"]["PaymentTargetKind"];
             /** Format: uuid */
-            subscriptionId: string;
-            subscriptionPlanName: string;
+            targetId: string;
+            subscriptionPlanName: null | string;
+            serviceKind: null | components["schemas"]["ServiceChargeKind"];
             kind: components["schemas"]["PaymentKind"];
             /** Format: double */
             amount: number | string;
@@ -849,6 +923,8 @@ export interface components {
             id: string;
             /** Format: uuid */
             subscriptionId: null | string;
+            /** Format: uuid */
+            serviceChargeId: null | string;
             kind: components["schemas"]["PaymentKind"];
             /** Format: double */
             amount: number | string;
@@ -860,13 +936,15 @@ export interface components {
             receivedByUserId: string;
             reason: null | string;
             /** Format: double */
-            subscriptionNetPaid: number | string;
-            subscriptionPaymentStatus: components["schemas"]["PaymentStatus"];
+            targetNetPaid: number | string;
+            targetPaymentStatus: components["schemas"]["PaymentStatus"];
             /** Format: date-time */
             createdAt: string;
         };
         /** @enum {unknown} */
         PaymentStatus: "Unpaid" | "Partial" | "Paid";
+        /** @enum {unknown} */
+        PaymentTargetKind: "Subscription" | "ServiceCharge";
         PlanResponse: {
             /** Format: uuid */
             id: string;
@@ -893,6 +971,11 @@ export interface components {
             detail?: null | string;
             instance?: null | string;
         };
+        RecordServiceChargeCommand: {
+            kind: components["schemas"]["ServiceChargeKind"];
+            /** Format: double */
+            amount: number | string;
+        };
         RegisterPaymentCommand: {
             /** Format: double */
             amount: number | string;
@@ -908,6 +991,32 @@ export interface components {
         };
         ResetStaffPasswordCommand: {
             temporaryPassword: string;
+        };
+        /** @enum {unknown} */
+        ServiceChargeKind: "Cardio" | null;
+        ServiceChargeResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            memberId: string;
+            /** Format: uuid */
+            attendanceId: string;
+            kind: components["schemas"]["ServiceChargeKind"];
+            /** Format: double */
+            amount: number | string;
+            /** Format: date */
+            chargedOn: string;
+            /** Format: uuid */
+            recordedByUserId: string;
+            /** Format: date-time */
+            voidedAt: null | string;
+            voidReason: null | string;
+            /** Format: double */
+            netPaid: number | string;
+            paymentStatus: components["schemas"]["PaymentStatus"];
+            canChangeAmount: boolean;
+            /** Format: date-time */
+            createdAt: string;
         };
         StaffResponse: {
             /** Format: uuid */
@@ -977,6 +1086,9 @@ export interface components {
             price: number | string;
             /** Format: uint32 */
             version: number | string;
+        };
+        VoidServiceChargeCommand: {
+            reason: string;
         };
     };
     responses: never;
@@ -3480,6 +3592,317 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RecordServiceCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attendanceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordServiceChargeCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceChargeResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ChangeServiceChargeAmount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeServiceChargeAmountCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceChargeResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    VoidServiceCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidServiceChargeCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceChargeResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RegisterServiceChargePayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterPaymentCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

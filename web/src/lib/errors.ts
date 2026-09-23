@@ -120,10 +120,10 @@ export const errorMessages: Record<string, string> = {
   "Payments.AmountTooManyDecimals": "مبلغ حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
   "Payments.ReferenceNumberTooLong": "شماره پیگیری بیش از حد طولانی است.",
   "Payments.MethodInvalid": "روش پرداخت معتبر نیست.",
-  "Payments.Overpayment": "این پرداخت از مبلغ اشتراک بیشتر می‌شود.",
+  "Payments.Overpayment": "این پرداخت از باقی‌ماندهٔ این مورد بیشتر می‌شود.",
   "Payments.RefundReasonRequired": "دلیل استرداد را وارد کنید.",
   "Payments.RefundReasonTooLong": "دلیل استرداد بیش از حد طولانی است.",
-  "Payments.RefundExceedsNetPaid": "این استرداد از مبلغ پرداخت‌شدهٔ اشتراک بیشتر است.",
+  "Payments.RefundExceedsNetPaid": "این استرداد از مبلغ پرداخت‌شدهٔ این مورد بیشتر است.",
   "Payments.RefundAfterUse": "از این اشتراک استفاده شده است و مبلغ آن قابل استرداد نیست.",
 
   // Lockers
@@ -142,6 +142,23 @@ export const errorMessages: Record<string, string> = {
   "Attendance.NotOpen": "این ورود قبلاً بسته شده است.",
   "Attendance.CancelWindowExpired": "مهلت لغو این ورود گذشته است.",
   "Attendance.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
+
+  // Gym services (هوازی)
+  "ServiceCharges.NotFound": "هزینهٔ خدمات پیدا نشد.",
+  "ServiceCharges.KindInvalid": "نوع خدمت معتبر نیست.",
+  "ServiceCharges.AmountNotPositive": "مبلغ باید بزرگ‌تر از صفر باشد.",
+  "ServiceCharges.AmountTooLarge": "مبلغ بیش از حد بزرگ است.",
+  "ServiceCharges.AmountTooManyDecimals": "مبلغ حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
+  "ServiceCharges.VisitNotOpen":
+    "این ورود بسته شده است؛ برای اصلاح مبلغ باید آن را با ذکر دلیل ابطال کنید.",
+  "ServiceCharges.AlreadyCharged": "برای این ورود قبلاً مبلغ هوازی ثبت شده است.",
+  "ServiceCharges.AlreadyVoided": "این مبلغ قبلاً ابطال شده است.",
+  "ServiceCharges.AlreadyPaid":
+    "برای این مبلغ پرداختی ثبت شده است؛ برای اصلاح آن را با ذکر دلیل ابطال کنید.",
+  "ServiceCharges.VoidReasonRequired": "دلیل ابطال را وارد کنید.",
+  "ServiceCharges.VoidReasonTooLong": "دلیل ابطال بیش از حد طولانی است.",
+  "ServiceCharges.ChangedConcurrently":
+    "این مبلغ هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",

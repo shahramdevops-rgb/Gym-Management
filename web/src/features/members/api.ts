@@ -5,6 +5,7 @@ import type { components } from "@/lib/api/schema";
 
 export type Member = components["schemas"]["MemberResponse"];
 export type MemberDebt = components["schemas"]["MemberDebtResponse"];
+export type MemberDebtItem = components["schemas"]["MemberDebtItemResponse"];
 
 export const membersPageSize = 20;
 

@@ -85,6 +85,7 @@ Decided values:
 | Plans, lockers setup, staff accounts | ✅ | ❌ |
 | Freeze, unfreeze, cancel subscriptions | ✅ | ❌ |
 | Refunds, voids, cafe order cancellation, stock adjustments | ✅ | ❌ |
+| Gym service charges: record, change the amount, void (§7 *Gym services*) | ✅ | ✅ |
 | Products and categories | ✅ | ❌ |
 | Expenses, dashboard, reports, audit log, SMS resend | ✅ | ❌ |
 
@@ -196,7 +197,7 @@ Decided values:
 
 ## 5. Payments
 
-- A payment belongs to exactly one of: a Subscription, a CafeOrder or a ServiceCharge (§7 *Gym services*), enforced by a check constraint. The third target arrives with the cardio charge — roadmap 5.7.
+- A payment belongs to exactly one of: a Subscription, a CafeOrder or a ServiceCharge (§7 *Gym services*), enforced by a check constraint. The service charge target arrived in task 5.7; `CafeOrderId` is still never set before Phase 7.
 - Fields: `Kind` (Payment or Refund), `Amount` (> 0), `Method`, `ReferenceNumber` (optional), `PaidAt` (UTC), `ReceivedByUserId`, `Reason` (required for refunds).
 - A subscription cannot be overpaid.
 - Payments are never edited or deleted. A mistaken entry is fixed with a full refund whose reason explains the mistake (a "void").
@@ -216,13 +217,14 @@ Decided values:
 
 ### Member debt (open account, حساب باز)
 
-Decided with the developer, 1405/06/31. Implemented for subscriptions in task 4.7; service charges
-join the same total in 5.7 and cafe orders in Phase 7.
+Decided with the developer, 1405/06/31. Implemented for subscriptions in task 4.7 and for service
+charges in 5.7; cafe orders join the same total in Phase 7.
 
 - Debt is **calculated, never stored**, the same way subscription status and payment status are: there is no balance column to keep correct, and no nightly job to recompute one.
 - A member's debt = what is still owed on their non-cancelled subscriptions, plus what is still owed on their non-voided service charges (§7 *Gym services*), plus (from Phase 7) what is still owed on their non-cancelled cafe orders. Per item that is `Price − net paid`, never below zero.
 - Cancelled items owe nothing. A subscription can only be cancelled while nobody has used it (§4), and money already paid on one comes back as a refund, not as a debt that quietly disappears. A voided service charge owes nothing for the same reason.
-- **There is no wallet and no credit balance.** Every payment still belongs to exactly one subscription or one cafe order (§5 above), so the total is always the sum of named items and never a figure nobody can account for. A member who hands over a lump sum for several things has it entered against each of those items. *Decided by Claude during this session; pending review.*
+- **There is no wallet and no credit balance.** Every payment still belongs to exactly one subscription, service charge or cafe order (§5 above), so the total is always the sum of named items and never a figure nobody can account for. A member who hands over a lump sum for several things has it entered against each of those items.
+  - Reviewed with the developer on 1405/07/01, who proposed a wallet so that money taken at the desk would not have to be tied to a named item, and then decided against it. The reasons, recorded so the question does not have to be reopened from scratch: a wallet splits "money arrived" from "money earned", so the revenue figure in §12 would have to choose between the deposit date and the allocation date; debt would become a net figure rather than the sum of items the breakdown can point at; and refunds would gain a destination. *If the gym later wants one, the balance must be calculated from a deposit/allocation ledger, never stored in a column, like every other figure here.*
 - The total is never shown on its own: opening it shows the breakdown item by item — what it is (subscription, service charge or cafe order), its date, its price, what has been paid and what is left. The developer's requirement is that "جزء به جزء" is always one click from the number.
 - **Debt outlives the thing that created it.** An `Exhausted`, `Expired` or otherwise finished subscription keeps its outstanding balance and keeps accepting payments: the front desk can register a payment whenever anything is left to pay, whatever the subscription's status. Sessions running out settles nothing.
 - Paying in instalments is ordinary, not a special case: several payments against the same item, each its own row with its own moment, method, reference number and the staff member who took it. The existing payment rules already allow this; nothing new is needed for it.
@@ -267,14 +269,18 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 
 ### Gym services (هوازی and anything else sold during a visit)
 
-Decided with the developer, 1405/06/31. Nothing here is implemented yet — roadmap 5.7.
+Decided with the developer, 1405/06/31. Implemented in task 5.7.
 
 - A **service charge** is money owed for something the member used during a visit. Today there is exactly one kind, `Cardio` (هوازی, the treadmill); sauna or massage would be new kinds of the same thing, not new tables.
 - **The price is not calculated by the system, on purpose.** The gym's rate (for example 10,000 Toman per 3 minutes) changes without notice and staff already work it out at the desk. The system takes the number they type and never checks it against a rate. There is no rate setting to keep in sync with reality.
 - The amount is per visit, not per member: the same member may use the treadmill today and not tomorrow, so there is no cardio price on the member record.
 - Recorded against an **open** visit (`CheckedOutAt IS NULL`, not cancelled) and only for the member of that visit. Front desk work, so both roles.
 - One non-voided charge per visit per kind. While the visit is open and nothing has been paid against it, staff can change the amount or remove it — nothing has been settled yet. After check-out, or after the first payment, it is a financial record: it is corrected with a **void plus a reason**, and a fresh charge if one is due (§5: financial records are never edited or deleted).
-- Cancelling a check-in voids that visit's service charges too, with the reason that the check-in was cancelled: money for a visit that never happened is not owed. *Decided by Claude during this session; pending review.*
+- Cancelling a check-in voids that visit's service charges too, with the reason that the check-in was cancelled: money for a visit that never happened is not owed. *Decided by Claude during task 5.7; pending review.*
+- **Voiding a charge that has been paid gives the money back**, as refunds written in the same transaction, one per payment method that is in credit — cash taken at the desk comes back as cash, a card payment is reversed on the card. §5 says there is no wallet, so the money cannot simply sit against the member's name, and neither the void screen nor cancel check-in has to ask which method to use (decided with the developer, 1405/07/01).
+- **Recording, changing and voiding a charge are all Staff or Owner** (decided with the developer, 1405/07/01). This is a deliberate exception to §1's permissions table, which puts "refunds, voids" with the Owner: the amount is typed at the desk and the desk has to be able to take back its own mistake while the member is still standing there. The controls are that the reason is required and the audit log records who did it.
+- There is no separate refund endpoint for a service charge. A charge that needs correcting is voided with a reason and re-entered at the right amount; a partial refund of a treadmill amount is that, not a refund.
+
 - Auto-checkout changes nothing about a charge.
 - A service charge is paid like anything else: it is one of the three things a payment can belong to (§5), it counts toward the member's debt (§5 *Member debt*), and it can be settled later or in instalments.
 - The amount follows the same money rules as every other amount: greater than zero, at most 2 decimal places, `numeric(18,2)`.

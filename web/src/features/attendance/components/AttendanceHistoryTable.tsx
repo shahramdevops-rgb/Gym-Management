@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
-import { emptyValue, formatDateTime, toPersianDigits } from "@/lib/format";
+import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
+import { emptyValue, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 
 import type { Attendance } from "../api";
 
@@ -13,6 +14,7 @@ export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
             <th className="py-2 text-start font-medium">ورود</th>
             <th className="py-2 text-start font-medium">خروج</th>
             <th className="py-2 text-start font-medium">کمد</th>
+            <th className="py-2 text-start font-medium">هوازی</th>
             <th className="py-2 text-start font-medium">وضعیت</th>
           </tr>
         </thead>
@@ -25,6 +27,9 @@ export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
                 {item.lockerNumber === null ? emptyValue : toPersianDigits(item.lockerNumber)}
               </td>
               <td className="py-2">
+                <CardioCell item={item} />
+              </td>
+              <td className="py-2">
                 <AttendanceStatusBadge item={item} />
               </td>
             </tr>
@@ -32,6 +37,37 @@ export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+/**
+ * What this visit was charged for هوازی (BUSINESS_RULES.md §7 Gym services). Voided charges never
+ * reach here — the API leaves them out — so an empty cell means the visit was not charged, not
+ * that a charge was undone.
+ *
+ * A charge on a **closed** visit gets the full box, because debt outlives the thing that created
+ * it (§5): the money is still owed and the desk must be able to take it here, since the visit
+ * itself is over and has left the card above. An **open** visit shows only the amount, because
+ * that same card is already showing its box a few lines up and two of them would be one too many.
+ */
+function CardioCell({ item }: { item: Attendance }) {
+  const cardio = item.serviceCharges.find((charge) => charge.kind === "Cardio");
+
+  if (cardio === undefined) {
+    return emptyValue;
+  }
+
+  if (item.checkedOutAt === null) {
+    return formatMoney(cardio.amount);
+  }
+
+  return (
+    <ServiceChargeBox
+      attendanceId={item.id}
+      kind="Cardio"
+      charge={cardio}
+      visitIsOpen={false}
+    />
   );
 }
 

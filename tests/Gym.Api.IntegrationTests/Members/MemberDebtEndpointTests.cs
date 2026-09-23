@@ -47,7 +47,7 @@ public sealed class MemberDebtEndpointTests(DatabaseFixture fixture) : DatabaseT
 
         debt.Total.ShouldBe(900_000m);
         var item = debt.Items.ShouldHaveSingleItem();
-        item.SubscriptionId.ShouldBe(sold.Id);
+        item.Id.ShouldBe(sold.Id);
         item.PlanName.ShouldBe("پلن طلایی");
         item.StartDate.ShouldBe(sold.StartDate);
         item.EndDate.ShouldBe(sold.EndDate);
@@ -105,9 +105,9 @@ public sealed class MemberDebtEndpointTests(DatabaseFixture fixture) : DatabaseT
 
         debt.Total.ShouldBe(1_000_000m);
         debt.Items.Count.ShouldBe(2);
-        debt.Items.Single(item => item.SubscriptionId == first.Id).Outstanding.ShouldBe(500_000m);
-        debt.Items.Single(item => item.SubscriptionId == second.Id).Outstanding.ShouldBe(500_000m);
-        debt.Items.ShouldNotContain(item => item.SubscriptionId == third.Id);
+        debt.Items.Single(item => item.Id == first.Id).Outstanding.ShouldBe(500_000m);
+        debt.Items.Single(item => item.Id == second.Id).Outstanding.ShouldBe(500_000m);
+        debt.Items.ShouldNotContain(item => item.Id == third.Id);
         debt.Total.ShouldBe(debt.Items.Sum(item => item.Outstanding));
     }
 
@@ -130,7 +130,7 @@ public sealed class MemberDebtEndpointTests(DatabaseFixture fixture) : DatabaseT
         var debt = await GetDebtOkAsync(client, token, member.Id);
 
         debt.Total.ShouldBe(900_000m);
-        debt.Items.ShouldHaveSingleItem().SubscriptionId.ShouldBe(kept.Id);
+        debt.Items.ShouldHaveSingleItem().Id.ShouldBe(kept.Id);
     }
 
     /// <summary>A free item owes nothing and never appears in the breakdown (BUSINESS_RULES.md §5).</summary>

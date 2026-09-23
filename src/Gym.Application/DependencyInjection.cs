@@ -29,6 +29,9 @@ using Gym.Application.Plans.GetPlan;
 using Gym.Application.Plans.ListPlans;
 using Gym.Application.Plans.SetPlanActive;
 using Gym.Application.Plans.UpdatePlan;
+using Gym.Application.ServiceCharges.ChangeServiceChargeAmount;
+using Gym.Application.ServiceCharges.RecordServiceCharge;
+using Gym.Application.ServiceCharges.VoidServiceCharge;
 using Gym.Application.Staff.CreateStaff;
 using Gym.Application.Staff.GetStaff;
 using Gym.Application.Staff.ListStaff;
@@ -122,7 +125,12 @@ public static class DependencyInjection
 
         services.AddScoped<RegisterPaymentHandler>();
         services.AddScoped<RegisterRefundHandler>();
+        services.AddScoped<RegisterServiceChargePaymentHandler>();
         services.AddScoped<ListMemberPaymentsHandler>();
+
+        services.AddScoped<RecordServiceChargeHandler>();
+        services.AddScoped<ChangeServiceChargeAmountHandler>();
+        services.AddScoped<VoidServiceChargeHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

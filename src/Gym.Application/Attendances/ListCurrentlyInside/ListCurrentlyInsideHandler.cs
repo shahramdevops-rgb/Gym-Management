@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Paging;
+using Gym.Application.ServiceCharges;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,13 @@ public sealed class ListCurrentlyInsideHandler(IAppDbContext db)
             .Select(CurrentlyInsideResponse.Projection(db.Members, db.Lockers))
             .ToListAsync(cancellationToken);
 
-        return new PagedResponse<CurrentlyInsideResponse>(items, query.Page, query.PageSize, totalCount);
+        var chargesByVisit = await VisitServiceCharges.ByAttendanceAsync(
+            db, items.Select(item => item.AttendanceId).ToList(), cancellationToken);
+
+        var rows = items
+            .Select(item => item with { ServiceCharges = chargesByVisit.GetValueOrDefault(item.AttendanceId, []) })
+            .ToList();
+
+        return new PagedResponse<CurrentlyInsideResponse>(rows, query.Page, query.PageSize, totalCount);
     }
 }

@@ -41,8 +41,8 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
         payment.Kind.ShouldBe(PaymentKind.Payment);
         payment.Amount.ShouldBe(400_000m);
         payment.Method.ShouldBe(PaymentMethod.Cash);
-        payment.SubscriptionNetPaid.ShouldBe(400_000m);
-        payment.SubscriptionPaymentStatus.ShouldBe(PaymentStatus.Partial);
+        payment.TargetNetPaid.ShouldBe(400_000m);
+        payment.TargetPaymentStatus.ShouldBe(PaymentStatus.Partial);
     }
 
     [Fact]
@@ -56,8 +56,8 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var payment = await ReadAsync(response);
         payment.ReferenceNumber.ShouldBe("ref-1");
-        payment.SubscriptionNetPaid.ShouldBe(900_000m);
-        payment.SubscriptionPaymentStatus.ShouldBe(PaymentStatus.Paid);
+        payment.TargetNetPaid.ShouldBe(900_000m);
+        payment.TargetPaymentStatus.ShouldBe(PaymentStatus.Paid);
     }
 
     [Fact]
@@ -67,11 +67,11 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var sold = await SellSubscriptionAsync(client, token, 900_000m);
 
         var first = await RegisterOkAsync(client, token, sold.Id, 300_000m, PaymentMethod.Cash, null);
-        first.SubscriptionPaymentStatus.ShouldBe(PaymentStatus.Partial);
+        first.TargetPaymentStatus.ShouldBe(PaymentStatus.Partial);
 
         var second = await RegisterOkAsync(client, token, sold.Id, 600_000m, PaymentMethod.BankTransfer, null);
-        second.SubscriptionNetPaid.ShouldBe(900_000m);
-        second.SubscriptionPaymentStatus.ShouldBe(PaymentStatus.Paid);
+        second.TargetNetPaid.ShouldBe(900_000m);
+        second.TargetPaymentStatus.ShouldBe(PaymentStatus.Paid);
     }
 
     [Fact]
@@ -130,8 +130,8 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var payment = await ReadAsync(response);
-        payment.SubscriptionNetPaid.ShouldBe(900_000m);
-        payment.SubscriptionPaymentStatus.ShouldBe(PaymentStatus.Paid);
+        payment.TargetNetPaid.ShouldBe(900_000m);
+        payment.TargetPaymentStatus.ShouldBe(PaymentStatus.Paid);
     }
 
     [Fact]

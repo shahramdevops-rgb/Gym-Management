@@ -42,9 +42,9 @@ public sealed class ListMemberPaymentsEndpointTests(DatabaseFixture fixture) : D
         var page = await ListOkAsync(staffClient, staffToken, member.Id);
 
         page.TotalCount.ShouldBe(3);
-        page.Items.ShouldContain(item => item.SubscriptionId == subscriptionA.Id && item.Kind == PaymentKind.Payment && item.Amount == 900_000m);
-        page.Items.ShouldContain(item => item.SubscriptionId == subscriptionA.Id && item.Kind == PaymentKind.Refund && item.Amount == 100_000m);
-        page.Items.ShouldContain(item => item.SubscriptionId == subscriptionB.Id && item.Kind == PaymentKind.Payment && item.Amount == 200_000m);
+        page.Items.ShouldContain(item => item.TargetId == subscriptionA.Id && item.Kind == PaymentKind.Payment && item.Amount == 900_000m);
+        page.Items.ShouldContain(item => item.TargetId == subscriptionA.Id && item.Kind == PaymentKind.Refund && item.Amount == 100_000m);
+        page.Items.ShouldContain(item => item.TargetId == subscriptionB.Id && item.Kind == PaymentKind.Payment && item.Amount == 200_000m);
     }
 
     [Fact]

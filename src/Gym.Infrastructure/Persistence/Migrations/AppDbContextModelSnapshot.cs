@@ -445,6 +445,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("reference_number");
 
+                    b.Property<Guid?>("ServiceChargeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("service_charge_id");
+
                     b.Property<Guid?>("SubscriptionId")
                         .HasColumnType("uuid")
                         .HasColumnName("subscription_id");
@@ -463,6 +467,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasIndex("ReceivedByUserId")
                         .HasDatabaseName("ix_payments_received_by_user_id");
 
+                    b.HasIndex("ServiceChargeId")
+                        .HasDatabaseName("ix_payments_service_charge_id");
+
                     b.HasIndex("SubscriptionId")
                         .HasDatabaseName("ix_payments_subscription_id");
 
@@ -470,7 +477,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_payments_amount_positive", "amount > 0");
 
-                            t.HasCheckConstraint("ck_payments_one_target", "num_nonnulls(subscription_id, cafe_order_id) = 1");
+                            t.HasCheckConstraint("ck_payments_one_target", "num_nonnulls(subscription_id, cafe_order_id, service_charge_id) = 1");
 
                             t.HasCheckConstraint("ck_payments_refund_reason", "kind = 'Payment' OR reason IS NOT NULL");
                         });
@@ -550,6 +557,100 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_plans_price_not_negative", "price >= 0");
 
                             t.HasCheckConstraint("ck_plans_session_count_range", "session_count IS NULL OR session_count BETWEEN 1 AND 365");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.ServiceCharges.ServiceCharge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid>("AttendanceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attendance_id");
+
+                    b.Property<DateOnly>("ChargedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("charged_on");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<Guid>("RecordedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by_user_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("VoidReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("void_reason");
+
+                    b.Property<DateTimeOffset?>("VoidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("voided_at");
+
+                    b.Property<Guid?>("VoidedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("voided_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_service_charges");
+
+                    b.HasIndex("MemberId")
+                        .HasDatabaseName("ix_service_charges_member_id");
+
+                    b.HasIndex("RecordedByUserId")
+                        .HasDatabaseName("ix_service_charges_recorded_by_user_id");
+
+                    b.HasIndex("VoidedByUserId")
+                        .HasDatabaseName("ix_service_charges_voided_by_user_id");
+
+                    b.HasIndex("AttendanceId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_service_charges_one_live_per_visit_and_kind")
+                        .HasFilter("voided_at IS NULL");
+
+                    b.ToTable("service_charges", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_service_charges_amount_positive", "amount > 0");
+
+                            t.HasCheckConstraint("ck_service_charges_void", "(voided_at IS NULL) = (void_reason IS NULL) AND (voided_at IS NULL) = (voided_by_user_id IS NULL)");
                         });
                 });
 
@@ -967,11 +1068,47 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_payments_asp_net_users_received_by_user_id");
 
+                    b.HasOne("Gym.Domain.ServiceCharges.ServiceCharge", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceChargeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_payments_service_charges_service_charge_id");
+
                     b.HasOne("Gym.Domain.Subscriptions.Subscription", null)
                         .WithMany()
                         .HasForeignKey("SubscriptionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_payments_subscriptions_subscription_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.ServiceCharges.ServiceCharge", b =>
+                {
+                    b.HasOne("Gym.Domain.Attendances.Attendance", null)
+                        .WithMany()
+                        .HasForeignKey("AttendanceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_charges_attendances_attendance_id");
+
+                    b.HasOne("Gym.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_charges_members_member_id");
+
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_service_charges_asp_net_users_recorded_by_user_id");
+
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("VoidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_service_charges_asp_net_users_voided_by_user_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Subscriptions.Subscription", b =>

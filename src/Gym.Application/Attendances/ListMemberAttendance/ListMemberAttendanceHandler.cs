@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Paging;
+using Gym.Application.ServiceCharges;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
 
@@ -50,7 +51,14 @@ public sealed class ListMemberAttendanceHandler(IAppDbContext db, IGymCalendar c
             .Select(AttendanceResponse.Projection(db.Lockers))
             .ToListAsync(cancellationToken);
 
-        return new PagedResponse<AttendanceResponse>(items, query.Page, query.PageSize, totalCount);
+        var chargesByVisit = await VisitServiceCharges.ByAttendanceAsync(
+            db, items.Select(item => item.Id).ToList(), cancellationToken);
+
+        var rows = items
+            .Select(item => item with { ServiceCharges = chargesByVisit.GetValueOrDefault(item.Id, []) })
+            .ToList();
+
+        return new PagedResponse<AttendanceResponse>(rows, query.Page, query.PageSize, totalCount);
     }
 }
 

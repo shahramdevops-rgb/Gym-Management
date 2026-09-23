@@ -24,10 +24,10 @@ public static class PaymentErrors
         "Payments.MethodInvalid",
         "Payment method is not valid.");
 
-    /// <summary>BUSINESS_RULES.md §5: a subscription cannot be overpaid.</summary>
+    /// <summary>BUSINESS_RULES.md §5: a subscription, and likewise a service charge, cannot be overpaid.</summary>
     public static readonly Error Overpayment = Error.BusinessRule(
         "Payments.Overpayment",
-        "This payment would exceed the subscription's price.");
+        "This payment would exceed what is owed on the item.");
 
     public static readonly Error RefundReasonRequired = Error.Validation(
         "Payments.RefundReasonRequired",
@@ -40,7 +40,7 @@ public static class PaymentErrors
     /// <summary>BUSINESS_RULES.md §5: a refund cannot exceed the current net paid amount.</summary>
     public static readonly Error RefundExceedsNetPaid = Error.BusinessRule(
         "Payments.RefundExceedsNetPaid",
-        "This refund would exceed the subscription's net paid amount.");
+        "This refund would exceed the item's net paid amount.");
 
     /// <summary>
     /// BUSINESS_RULES.md §5: a subscription can only be refunded while nobody has used it, whatever

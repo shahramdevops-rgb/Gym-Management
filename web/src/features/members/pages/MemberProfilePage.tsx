@@ -16,6 +16,7 @@ import {
 } from "@/features/attendance/api";
 import { AttendanceHistoryTable } from "@/features/attendance/components/AttendanceHistoryTable";
 import { checkInResultMessage } from "@/features/attendance/checkInMessage";
+import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { CurrentSubscriptionCard } from "@/features/subscriptions/components/CurrentSubscriptionCard";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatDateTime, toPersianDigits } from "@/lib/format";
@@ -196,32 +197,44 @@ export function MemberProfilePage() {
 
           {history.isSuccess &&
             (openAttendance !== undefined ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
-                <div className="text-sm">
-                  <p className="font-medium">هم‌اکنون داخل باشگاه است.</p>
-                  <p className="text-muted-foreground">
-                    ورود: {formatDateTime(openAttendance.checkedInAt)}
-                    {openAttendance.lockerNumber !== null &&
-                      ` · کمد ${toPersianDigits(openAttendance.lockerNumber)}`}
-                  </p>
+              <div className="space-y-3 rounded-md border p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm">
+                    <p className="font-medium">هم‌اکنون داخل باشگاه است.</p>
+                    <p className="text-muted-foreground">
+                      ورود: {formatDateTime(openAttendance.checkedInAt)}
+                      {openAttendance.lockerNumber !== null &&
+                        ` · کمد ${toPersianDigits(openAttendance.lockerNumber)}`}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={attendanceBusy}
+                      onClick={() => void handleCancelCheckIn(openAttendance.id)}
+                    >
+                      لغو ورود
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={attendanceBusy}
+                      onClick={() => void handleCheckOut(openAttendance.id)}
+                    >
+                      ثبت خروج
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={attendanceBusy}
-                    onClick={() => void handleCancelCheckIn(openAttendance.id)}
-                  >
-                    لغو ورود
-                  </Button>
-                  <Button
-                    size="sm"
-                    disabled={attendanceBusy}
-                    onClick={() => void handleCheckOut(openAttendance.id)}
-                  >
-                    ثبت خروج
-                  </Button>
-                </div>
+
+                {/* BUSINESS_RULES.md §7: a treadmill amount is put on the member while they are
+                    inside, so it belongs to the open visit rather than to the member. */}
+                <ServiceChargeBox
+                  attendanceId={openAttendance.id}
+                  kind="Cardio"
+                  charge={openAttendance.serviceCharges.find((charge) => charge.kind === "Cardio")}
+                  visitIsOpen
+                  disabled={attendanceBusy}
+                />
               </div>
             ) : (
               <Button
