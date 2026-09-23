@@ -6,6 +6,7 @@ using Gym.Domain.Auth;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
+using Gym.Domain.ServiceCharges;
 using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
@@ -47,6 +48,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Locker> Lockers => Set<Locker>();
 
     public DbSet<Attendance> Attendances => Set<Attendance>();
+
+    public DbSet<ServiceCharge> ServiceCharges => Set<ServiceCharge>();
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);

@@ -4,6 +4,7 @@ using Gym.Domain.Lockers;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
 using Gym.Domain.Plans;
+using Gym.Domain.ServiceCharges;
 using Gym.Domain.Subscriptions;
 
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +47,8 @@ public interface IAppDbContext
     DbSet<Locker> Lockers { get; }
 
     DbSet<Attendance> Attendances { get; }
+
+    DbSet<ServiceCharge> ServiceCharges { get; }
 
     /// <summary>
     /// Exposed for the rare handler that must recover from a failed save in the same request:

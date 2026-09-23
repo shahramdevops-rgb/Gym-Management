@@ -18,7 +18,7 @@ import {
   signedInHandlers,
   staffUser,
 } from "@/test/mockApi";
-import { ali, debtItem, memberDebt, reza } from "@/test/members";
+import { ali, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
 import { paymentHistoryItem, paymentOfActiveSubscription, paymentsPage } from "@/test/payments";
 import { monthly12, plansPage } from "@/test/plans";
 import {
@@ -482,7 +482,7 @@ describe("MemberProfilePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "تأیید استرداد" }));
 
     expect(
-      await screen.findByText("این استرداد از مبلغ پرداخت‌شدهٔ اشتراک بیشتر است."),
+      await screen.findByText("این استرداد از مبلغ پرداخت‌شدهٔ این مورد بیشتر است."),
     ).toBeInTheDocument();
   });
 
@@ -551,7 +551,7 @@ describe("MemberProfilePage", () => {
         memberDebt([
           debtItem(),
           debtItem({
-            subscriptionId: "0199a000-0000-7000-8000-0000000000b2",
+            id: "0199a000-0000-7000-8000-0000000000b3",
             planName: "سه ماهه",
             price: 500000,
             netPaid: 0,
@@ -574,6 +574,27 @@ describe("MemberProfilePage", () => {
     expect(within(monthlyRow).getByText("۶۰۰٬۰۰۰ تومان")).toBeInTheDocument();
     const quarterlyRow = screen.getByText("اشتراک سه ماهه").closest("tr")!;
     expect(within(quarterlyRow).getAllByText("۵۰۰٬۰۰۰ تومان")).toHaveLength(2);
+  });
+
+  /**
+   * BUSINESS_RULES.md §5 Member debt: a service charge joins the same total, and the breakdown
+   * labels it by its kind — the API sends "Cardio" and never Persian text (roadmap 5.7).
+   */
+  it("Debt_MemberWhoOwesForCardio_ShowsItInTheBreakdown", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/debt`]: () => memberDebt([debtItem(), serviceChargeDebtItem()]),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    expect(await screen.findByText("۶۱۰٬۰۰۰ تومان")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "جزء به جزء" }));
+
+    const cardioRow = (await screen.findByText("هوازی")).closest("tr")!;
+    expect(within(cardioRow).getAllByText("۱۰٬۰۰۰ تومان")).toHaveLength(2);
   });
 
   it("Debt_MemberWhoOwesNothing_SaysSo", async () => {

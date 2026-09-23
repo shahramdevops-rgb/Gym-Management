@@ -1,4 +1,5 @@
 import type { Attendance, CurrentlyInside } from "@/features/attendance/api";
+import type { ServiceCharge } from "@/features/serviceCharges/api";
 
 import { json } from "./mockApi";
 
@@ -17,7 +18,28 @@ export function openVisit(memberId: string): Attendance {
     cancelledAt: null,
     autoClosedAt: null,
     createdAt: "2026-09-18T07:00:00Z",
+    serviceCharges: [],
     memberDebt: 0,
+  };
+}
+
+/** A هوازی charge on a visit: unpaid and still editable unless a caller says otherwise. */
+export function cardioCharge(attendance: Attendance, overrides: Partial<ServiceCharge> = {}): ServiceCharge {
+  return {
+    id: "0199a000-0000-7000-8000-0000000000f1",
+    memberId: attendance.memberId,
+    attendanceId: attendance.id,
+    kind: "Cardio",
+    amount: 10000,
+    chargedOn: "2026-09-18",
+    recordedByUserId: "0199a000-0000-7000-8000-000000000002",
+    voidedAt: null,
+    voidReason: null,
+    netPaid: 0,
+    paymentStatus: "Unpaid",
+    canChangeAmount: attendance.checkedOutAt === null,
+    createdAt: "2026-09-18T07:05:00Z",
+    ...overrides,
   };
 }
 
@@ -69,6 +91,7 @@ export function insideRow(memberFullName: string, attendance: Attendance): Curre
     lockerId: attendance.lockerId,
     lockerNumber: attendance.lockerNumber,
     checkedInAt: attendance.checkedInAt,
+    serviceCharges: attendance.serviceCharges,
   };
 }
 

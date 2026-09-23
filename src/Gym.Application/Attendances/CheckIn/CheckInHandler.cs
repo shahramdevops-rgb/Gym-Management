@@ -103,7 +103,7 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
         // Read after the commit because check-in moves no money, so the total cannot have changed.
         var debt = await MemberDebt.GetTotalAsync(db, memberId, cancellationToken);
 
-        return AttendanceResponse.From(attendance, freeLocker?.Number, debt);
+        return AttendanceResponse.From(attendance, freeLocker?.Number, serviceCharges: [], debt);
     }
 
     /// <summary>

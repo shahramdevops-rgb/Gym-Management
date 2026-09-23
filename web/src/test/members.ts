@@ -41,16 +41,36 @@ export function memberDebt(items: MemberDebt["items"] = []): Response {
   });
 }
 
+type DebtItem = MemberDebt["items"][number];
+
 /** One owed subscription in a debt breakdown. */
-export function debtItem(overrides: Partial<MemberDebt["items"][number]> = {}) {
+export function debtItem(overrides: Partial<DebtItem> = {}): DebtItem {
   return {
-    subscriptionId: "0199a000-0000-7000-8000-0000000000b1",
+    kind: "Subscription",
+    id: "0199a000-0000-7000-8000-0000000000b1",
     planName: "ماهانه",
+    serviceKind: null,
     startDate: "2026-09-01",
     endDate: "2026-09-30",
     price: 900000,
     netPaid: 300000,
     outstanding: 600000,
+    ...overrides,
+  };
+}
+
+/** One owed هوازی charge in a debt breakdown (BUSINESS_RULES.md §7 Gym services). */
+export function serviceChargeDebtItem(overrides: Partial<DebtItem> = {}): DebtItem {
+  return {
+    kind: "ServiceCharge",
+    id: "0199a000-0000-7000-8000-0000000000b2",
+    planName: null,
+    serviceKind: "Cardio",
+    startDate: "2026-09-18",
+    endDate: null,
+    price: 10000,
+    netPaid: 0,
+    outstanding: 10000,
     ...overrides,
   };
 }

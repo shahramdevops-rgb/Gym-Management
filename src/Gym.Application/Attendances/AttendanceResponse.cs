@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 
+using Gym.Application.ServiceCharges;
 using Gym.Domain.Attendances;
 using Gym.Domain.Lockers;
 
@@ -13,6 +14,13 @@ namespace Gym.Application.Attendances;
 /// <param name="CheckedOutAt"><c>null</c> while the visit is still open.</param>
 /// <param name="CancelledAt"><c>null</c> unless the check-in was cancelled (BUSINESS_RULES.md §7).</param>
 /// <param name="AutoClosedAt"><c>null</c> unless the nightly job closed this visit instead of the member checking out (BUSINESS_RULES.md §7 Auto-checkout).</param>
+/// <param name="ServiceCharges">
+/// The visit's non-voided charges (BUSINESS_RULES.md §7 <i>Gym services</i>) — today at most one,
+/// for هوازی. Voided ones are left out: the screen shows what this visit costs, and a void is read
+/// in the audit log rather than in the front desk's list. Attached by
+/// <see cref="VisitServiceCharges"/> rather than projected, because the charge's payment status is
+/// calculated in C# and EF Core cannot translate it into SQL.
+/// </param>
 /// <param name="MemberDebt">
 /// What the member owed when they walked in (BUSINESS_RULES.md §5 <i>Member debt</i>, §7). Money
 /// owed never blocks a check-in, so this is a warning for the front desk to mention, the same way
@@ -31,6 +39,7 @@ public sealed record AttendanceResponse(
     DateTimeOffset? CancelledAt,
     DateTimeOffset? AutoClosedAt,
     DateTimeOffset CreatedAt,
+    IReadOnlyList<ServiceChargeResponse> ServiceCharges,
     decimal MemberDebt = 0)
 {
     /// <summary>
@@ -49,9 +58,14 @@ public sealed record AttendanceResponse(
             attendance.CheckedOutAt,
             attendance.CancelledAt,
             attendance.AutoClosedAt,
-            attendance.CreatedAt);
+            attendance.CreatedAt,
+            new List<ServiceChargeResponse>());
 
-    public static AttendanceResponse From(Attendance attendance, int? lockerNumber, decimal memberDebt = 0)
+    public static AttendanceResponse From(
+        Attendance attendance,
+        int? lockerNumber,
+        IReadOnlyList<ServiceChargeResponse>? serviceCharges = null,
+        decimal memberDebt = 0)
     {
         ArgumentNullException.ThrowIfNull(attendance);
 
@@ -66,6 +80,7 @@ public sealed record AttendanceResponse(
             attendance.CancelledAt,
             attendance.AutoClosedAt,
             attendance.CreatedAt,
+            serviceCharges ?? [],
             memberDebt);
     }
 }

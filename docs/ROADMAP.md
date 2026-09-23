@@ -321,19 +321,26 @@ in this session — see docs/LEARNING.md 5.6.
 Added 1405/06/31. Rules: BUSINESS_RULES.md §7 *Gym services*, §5, §12. Depends on 4.7 (a service
 charge is the third thing a member can owe money for) and reads better after 4.8 (the amount uses the
 shared money field). Built before 4.7 it still works, but the amount will not appear in any debt total.
-4.7 and 4.8 are both done, so the optional «مبلغ هوازی» box is `<MoneyField optional />` and the
-amount it submits is `moneyOrNull(...)`.
-- [ ] `ServiceCharge` entity and `service_charges` table: `MemberId`, `AttendanceId`, `Kind` (enum, only `Cardio` today), `Amount` (`numeric(18,2)`, > 0), `ChargedOn` (`DateOnly`), `RecordedByUserId`, void fields (`VoidedAt`, `VoidReason`, `VoidedByUserId`), `xmin`
-- [ ] Partial unique index `(attendance_id, kind) WHERE voided_at IS NULL`: one live charge per visit per kind
-- [ ] Record and change the amount only while the visit is open and nothing has been paid against it; after check-out or the first payment, only void-with-a-reason. Staff or Owner
-- [ ] Cancelling a check-in voids that visit's charges with a reason
-- [ ] `Payment` gains `ServiceChargeId`; the one-target check constraint becomes "exactly one of subscription, cafe order, service charge" (migration on `payments`)
-- [ ] Member debt and its breakdown include non-voided service charges; revenue by source gains "services"
-- [ ] UI: an optional "مبلغ هوازی" field on the open visit in the member profile and on the "currently inside" board; a هوازی column in the attendance history
-- [ ] Tests: charge refused on a closed or cancelled visit; second live charge for the same visit refused; cancel check-in voids it; an unpaid charge shows in the member's debt; a paid charge cannot be edited, only voided
+4.7 and 4.8 are both done, so the optional «مبلغ هوازی» box is `<MoneyField />` and the amount it
+submits goes through `normalizeMoney`.
+- [x] `ServiceCharge` entity and `service_charges` table: `MemberId`, `AttendanceId`, `Kind` (enum, only `Cardio` today), `Amount` (`numeric(18,2)`, > 0), `ChargedOn` (`DateOnly`), `RecordedByUserId`, void fields (`VoidedAt`, `VoidReason`, `VoidedByUserId`), `xmin`
+- [x] Partial unique index `(attendance_id, kind) WHERE voided_at IS NULL`: one live charge per visit per kind
+- [x] Record and change the amount only while the visit is open and nothing has been paid against it; after check-out or the first payment, only void-with-a-reason. Staff or Owner
+- [x] Cancelling a check-in voids that visit's charges with a reason
+- [x] `Payment` gains `ServiceChargeId`; the one-target check constraint becomes "exactly one of subscription, cafe order, service charge" (migration on `payments`)
+- [x] Member debt and its breakdown include non-voided service charges
+- [x] UI: an optional «مبلغ هوازی» field on the open visit in the member profile and on the "currently inside" board; a هوازی column in the attendance history
+- [x] Tests: charge refused on a closed or cancelled visit; second live charge for the same visit refused; cancel check-in voids it; an unpaid charge shows in the member's debt; a paid charge cannot be edited, only voided
+
+Decided during the task (BUSINESS_RULES.md §5, §7): voiding a charge that has been paid **refunds**
+the money in the same transaction, one refund per payment method in credit — the developer reviewed
+and rejected a wallet, so the gym cannot hold money against a name. Voiding is **Staff or Owner**, a
+documented exception to §1. There is no service-charge refund endpoint: a correction is a void plus a
+fresh charge. "Revenue by source gains services" is left to Phase 9, which is where reports are built.
 
 Done when: staff can put a treadmill amount on a member who is inside the gym, the member owes it
-until it is paid, and a charge entered by mistake is voided rather than erased.
+until it is paid, and a charge entered by mistake is voided rather than erased. Done: 772 backend
+tests and 387 frontend tests pass.
 
 ---
 

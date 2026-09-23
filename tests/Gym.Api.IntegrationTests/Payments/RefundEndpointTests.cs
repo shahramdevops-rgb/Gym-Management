@@ -41,8 +41,8 @@ public sealed class RefundEndpointTests(DatabaseFixture fixture) : DatabaseTestB
         refund.Kind.ShouldBe(PaymentKind.Refund);
         refund.Amount.ShouldBe(300_000m);
         refund.Reason.ShouldBe("بازگشت جزئی وجه");
-        refund.SubscriptionNetPaid.ShouldBe(600_000m);
-        refund.SubscriptionPaymentStatus.ShouldBe(PaymentStatus.Partial);
+        refund.TargetNetPaid.ShouldBe(600_000m);
+        refund.TargetPaymentStatus.ShouldBe(PaymentStatus.Partial);
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public sealed class RefundEndpointTests(DatabaseFixture fixture) : DatabaseTestB
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var refund = await ReadAsync(response);
-        refund.SubscriptionNetPaid.ShouldBe(0m);
-        refund.SubscriptionPaymentStatus.ShouldBe(PaymentStatus.Unpaid);
+        refund.TargetNetPaid.ShouldBe(0m);
+        refund.TargetPaymentStatus.ShouldBe(PaymentStatus.Unpaid);
     }
 
     [Fact]
