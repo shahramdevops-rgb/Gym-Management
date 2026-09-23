@@ -28,7 +28,7 @@ export function PaymentHistoryTable({ payments }: { payments: PaymentHistoryItem
                   {payment.kind === "Refund" ? "استرداد" : "پرداخت"}
                 </Badge>
               </td>
-              <td className="py-2">{formatMoney(Number(payment.amount))}</td>
+              <td className="py-2">{formatMoney(payment.amount)}</td>
               <td className="py-2">{paymentMethodLabels[payment.method]}</td>
               <td className="py-2 text-muted-foreground">
                 {payment.reason ?? payment.referenceNumber ?? "—"}

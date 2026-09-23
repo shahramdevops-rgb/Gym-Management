@@ -7,6 +7,7 @@ import { RegisterPaymentForm } from "@/features/payments/components/RegisterPaym
 import { RegisterRefundForm } from "@/features/payments/components/RegisterRefundForm";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney } from "@/lib/format";
+import { isPositiveMoney, subtractMoney } from "@/lib/money";
 
 import { useFreezeSubscription, useUnfreezeSubscription, type Subscription } from "../api";
 import { CancelSubscriptionForm } from "./CancelSubscriptionForm";
@@ -67,7 +68,7 @@ export function SubscriptionHistoryRow({
   }
 
   const context = `${subscription.planName} (${formatDate(subscription.startDate)})`;
-  const remaining = Number(subscription.price) - Number(subscription.netPaid);
+  const remaining = subtractMoney(subscription.price, subscription.netPaid);
   const hasPanel = action !== null || error !== null;
 
   // Only the actions that would actually be allowed, so a finished, settled subscription shows no
@@ -80,7 +81,7 @@ export function SubscriptionHistoryRow({
   const canUnfreeze = isOwner && subscription.status === "Frozen";
   const canCancel =
     isOwner && unused && ["Upcoming", "Active", "Frozen"].includes(subscription.status);
-  const canRefund = isOwner && unused && Number(subscription.netPaid) > 0;
+  const canRefund = isOwner && unused && isPositiveMoney(subscription.netPaid);
 
   return (
     <>
@@ -99,9 +100,7 @@ export function SubscriptionHistoryRow({
         <td className="py-2">
           <div className="flex items-center gap-2">
             <PaymentStatusBadge status={subscription.paymentStatus} />
-            <span className="text-muted-foreground">
-              {formatMoney(Number(subscription.netPaid))}
-            </span>
+            <span className="text-muted-foreground">{formatMoney(subscription.netPaid)}</span>
           </div>
         </td>
         <td className="py-2">
@@ -166,9 +165,9 @@ export function SubscriptionHistoryRow({
           <td colSpan={7} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">
               برای «{subscription.planName}» — از {formatDate(subscription.startDate)} تا{" "}
-              {formatDate(subscription.endDate)} — قیمت {formatMoney(Number(subscription.price))}،
-              پرداخت‌شده {formatMoney(Number(subscription.netPaid))}
-              {remaining > 0 && <> — مانده {formatMoney(remaining)}</>}
+              {formatDate(subscription.endDate)} — قیمت {formatMoney(subscription.price)}،
+              پرداخت‌شده {formatMoney(subscription.netPaid)}
+              {isPositiveMoney(remaining) && <> — مانده {formatMoney(remaining)}</>}
             </p>
             {error !== null && <Alert variant="destructive">{error}</Alert>}
             {action === "payment" && (

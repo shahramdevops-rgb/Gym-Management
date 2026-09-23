@@ -1,20 +1,15 @@
 import { useId, type ReactNode } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
-import { FormField } from "@/components/FormField";
+import { FormField, MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { normalizeMoney } from "@/lib/money";
 import { normalizePersianText } from "@/lib/normalize";
 
 import type { PlanInput } from "../api";
-import {
-  emptyPlanValues,
-  normalizePrice,
-  parseWholeNumber,
-  planSchema,
-  type PlanValues,
-} from "../schemas";
+import { emptyPlanValues, parseWholeNumber, planSchema, type PlanValues } from "../schemas";
 
 /** Whole-request errors from the API that are really about one field. */
 const codeFields = {
@@ -63,7 +58,7 @@ export function PlanForm({
         // The schema has already checked these parse.
         durationDays: parseWholeNumber(values.durationDays)!,
         sessionCount: values.unlimitedSessions ? null : parseWholeNumber(values.sessionCount)!,
-        price: normalizePrice(values.price),
+        price: normalizeMoney(values.price),
       });
     } catch (problem) {
       applyServerErrors(problem, form.setError, codeFields);
@@ -119,14 +114,20 @@ export function PlanForm({
         />
       </div>
 
-      <FormField
-        label="قیمت (تومان)"
-        dir="ltr"
-        inputMode="decimal"
-        autoComplete="off"
-        placeholder="۱٬۵۰۰٬۰۰۰"
-        error={errors.price?.message}
-        {...form.register("price")}
+      <Controller
+        control={form.control}
+        name="price"
+        render={({ field }) => (
+          <MoneyField
+            label="قیمت (تومان)"
+            placeholder="۱٬۵۰۰٬۰۰۰"
+            error={errors.price?.message}
+            name={field.name}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+          />
+        )}
       />
 
       <div className="flex gap-2">

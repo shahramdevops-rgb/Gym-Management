@@ -4,6 +4,7 @@ import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatMoney, formatPhone } from "@/lib/format";
+import { isPositiveMoney } from "@/lib/money";
 
 import type { Member } from "../api";
 
@@ -83,9 +84,7 @@ export function MembersTable({ members, onCheckIn, checkingInId = null }: Member
  * before opening the profile (BUSINESS_RULES.md §5 Member debt).
  */
 function MemberDebt({ value }: { value: Member["debt"] }) {
-  const debt = Number(value);
-
-  return debt > 0 ? <Badge variant="destructive">{formatMoney(debt)}</Badge> : null;
+  return isPositiveMoney(value) ? <Badge variant="destructive">{formatMoney(value)}</Badge> : null;
 }
 
 export function MemberStatusBadge({ isActive }: { isActive: boolean }) {

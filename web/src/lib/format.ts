@@ -17,6 +17,7 @@ import {
   newDate as newJalaliDate,
 } from "date-fns-jalali";
 
+import { normalizeMoney } from "./money";
 import { normalizeDigits } from "./normalize";
 
 /** Shown instead of a date or amount that is missing or unparseable. */
@@ -63,15 +64,216 @@ export function formatNumber(value: number | null | undefined): string {
   return numberFormatter.format(value);
 }
 
-/**
- * An amount of money. The unit is Toman (docs/BUSINESS_RULES.md section 0); the value is
- * formatted exactly as stored, because whether Toman are stored whole or in a sub-unit is a
- * Phase 4 decision and guessing a divisor here would be a silent factor-of-ten bug.
- */
-export function formatMoney(value: number | null | undefined): string {
-  const amount = formatNumber(value);
+// ---- Money ----
+//
+// Every amount on screen comes through here (docs/BUSINESS_RULES.md §13). Toman amounts run to
+// seven and eight digits, where ۵۰۰٬۰۰۰ and ۵٬۰۰۰٬۰۰۰ look alike at a glance, so an amount is
+// never formatted by the screen that shows it.
+//
+// These work on the decimal *string*, not on a number: `Intl.NumberFormat` would need a float
+// first, and a float cannot hold every amount the API accepts. `formatNumber` above is still
+// the right tool for a count of sessions or members — just never for money.
 
-  return amount === emptyValue ? emptyValue : `${amount} تومان`;
+const moneyPattern = /^(\d+)(?:\.(\d*))?$/;
+
+/** Digits in groups of three, Persian, with ٬ between groups: `1500000` → `۱٬۵۰۰٬۰۰۰`. */
+function groupThousands(whole: string): string {
+  return toPersianDigits(whole.replace(/\B(?=(\d{3})+(?!\d))/g, "٬"));
+}
+
+/**
+ * A plain decimal string exactly as it stands, in Persian: `1500000.5` → `۱٬۵۰۰٬۰۰۰٫۵`. No
+ * unit, and nothing trimmed or added — a half-typed `1500000.` stays `۱٬۵۰۰٬۰۰۰٫`, which is
+ * what a money box needs while somebody is still typing into it. Empty for anything that is
+ * not a number.
+ */
+export function formatMoneyDigits(digits: string): string {
+  if (digits === "") {
+    return "";
+  }
+
+  const parts = moneyPattern.exec(digits);
+  if (parts === null) {
+    return "";
+  }
+
+  const [, whole = "", fraction] = parts;
+
+  return fraction === undefined
+    ? groupThousands(whole)
+    : `${groupThousands(whole)}٫${toPersianDigits(fraction)}`;
+}
+
+/**
+ * An amount of money as it is shown: `۱٬۲۵۰٬۰۰۰ تومان`. The unit is Toman
+ * (docs/BUSINESS_RULES.md §0) and the value is shown exactly as stored, never divided by
+ * anything — guessing a sub-unit divisor here would be a silent factor-of-ten bug.
+ *
+ * A fraction of nothing is dropped, so the `numeric(18,2)` the API sends back as `1500000.00`
+ * reads as `۱٬۵۰۰٬۰۰۰ تومان` rather than trailing two zeros nobody typed.
+ */
+export function formatMoney(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") {
+    return emptyValue;
+  }
+
+  const amount = normalizeMoney(String(value));
+  const parts = moneyPattern.exec(amount);
+  if (parts === null) {
+    return emptyValue;
+  }
+
+  const [, whole = "", fraction = ""] = parts;
+  const withoutEmptyFraction = /^0*$/.test(fraction) ? whole : `${whole}.${fraction}`;
+
+  return `${formatMoneyDigits(withoutEmptyFraction)} تومان`;
+}
+
+// The amount written out in words, which is the actual protection: a run of zeros can be
+// miscounted, «پانصد هزار» cannot. Hand-written rather than a package, because the rules fit on
+// one screen and a dependency here would still have to be checked digit by digit.
+
+const onesWords = ["", "یک", "دو", "سه", "چهار", "پنج", "شش", "هفت", "هشت", "نه"];
+
+// Ten to nineteen are their own words in Persian, as they are in English.
+const teenWords = [
+  "ده",
+  "یازده",
+  "دوازده",
+  "سیزده",
+  "چهارده",
+  "پانزده",
+  "شانزده",
+  "هفده",
+  "هجده",
+  "نوزده",
+];
+
+const tensWords = ["", "", "بیست", "سی", "چهل", "پنجاه", "شصت", "هفتاد", "هشتاد", "نود"];
+
+const hundredsWords = [
+  "",
+  "صد",
+  "دویست",
+  "سیصد",
+  "چهارصد",
+  "پانصد",
+  "ششصد",
+  "هفتصد",
+  "هشتصد",
+  "نهصد",
+];
+
+/**
+ * The scale of each group of three digits, smallest first. Six groups cover eighteen digits,
+ * and the largest amount the API accepts has sixteen.
+ */
+const scaleWords = ["", "هزار", "میلیون", "میلیارد", "هزار میلیارد", "میلیون میلیارد"];
+
+const and = " و ";
+
+/** A number from 1 to 999 in words: `115` → «صد و پانزده». */
+function threeDigitsInWords(value: number): string {
+  const parts: string[] = [];
+  const hundreds = Math.floor(value / 100);
+  const rest = value % 100;
+
+  if (hundreds > 0) {
+    parts.push(hundredsWords[hundreds]!);
+  }
+  if (rest >= 10 && rest <= 19) {
+    parts.push(teenWords[rest - 10]!);
+  } else {
+    const tens = Math.floor(rest / 10);
+    const ones = rest % 10;
+    if (tens > 0) {
+      parts.push(tensWords[tens]!);
+    }
+    if (ones > 0) {
+      parts.push(onesWords[ones]!);
+    }
+  }
+
+  return parts.join(and);
+}
+
+/** The whole part, split into groups of three from the right and named by its scale. */
+function wholeInWords(whole: string): string | null {
+  const digits = whole.replace(/^0+(?=\d)/, "");
+  const groups: number[] = [];
+
+  for (let end = digits.length; end > 0; end -= 3) {
+    groups.push(Number(digits.slice(Math.max(0, end - 3), end)));
+  }
+
+  if (groups.length > scaleWords.length) {
+    return null;
+  }
+
+  const parts: string[] = [];
+
+  // Largest scale first, which is the order the words are said in.
+  for (let scale = groups.length - 1; scale >= 0; scale -= 1) {
+    const group = groups[scale]!;
+    if (group === 0) {
+      continue;
+    }
+
+    const scaleWord = scaleWords[scale]!;
+    if (scaleWord === "") {
+      parts.push(threeDigitsInWords(group));
+    } else if (group === 1 && scaleWord.startsWith("هزار")) {
+      // «هزار تومان», never «یک هزار تومان» — but «یک میلیون» keeps its یک.
+      parts.push(scaleWord);
+    } else {
+      parts.push(`${threeDigitsInWords(group)} ${scaleWord}`);
+    }
+  }
+
+  return parts.join(and);
+}
+
+/**
+ * The amount written out: `500000` → «پانصد هزار تومان». This goes under every money box, and
+ * it is the check — nobody miscounts a word (docs/BUSINESS_RULES.md §13).
+ *
+ * Empty for anything that is not an amount, including a half-typed one and a fraction finer
+ * than the two decimals money has, so the line simply disappears rather than saying something
+ * that is not true.
+ */
+export function amountInPersianWords(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  const parts = moneyPattern.exec(normalizeMoney(String(value)));
+  if (parts === null) {
+    return "";
+  }
+
+  const [, whole = "", fraction = ""] = parts;
+  if (fraction.length > 2) {
+    return "";
+  }
+
+  const words: string[] = [];
+
+  const wholeWords = wholeInWords(whole);
+  if (wholeWords === null) {
+    return "";
+  }
+  if (wholeWords !== "") {
+    words.push(wholeWords);
+  }
+
+  // Stored as numeric(18,2), so a fraction is always some number of hundredths: `.5` is fifty
+  // of them, `.05` is five.
+  const hundredths = fraction === "" ? 0 : Number(fraction.padEnd(2, "0"));
+  if (hundredths > 0) {
+    words.push(`${threeDigitsInWords(hundredths)} صدم`);
+  }
+
+  return words.length === 0 ? "صفر تومان" : `${words.join(and)} تومان`;
 }
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -187,9 +389,7 @@ export function toIsoDate(value: string | null | undefined): string | null {
 
   const match = jalaliInputPattern.exec(normalizeDigits(value).trim());
 
-  return match === null
-    ? null
-    : jalaliToIso(Number(match[1]), Number(match[2]), Number(match[3]));
+  return match === null ? null : jalaliToIso(Number(match[1]), Number(match[2]), Number(match[3]));
 }
 
 /** The Jalali year, month (1-12) and day of an ISO business date, for the calendar picker. */

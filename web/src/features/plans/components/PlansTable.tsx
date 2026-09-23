@@ -41,7 +41,7 @@ export function PlansTable({ plans, busy, onToggleActive }: PlansTableProps) {
                   ? "نامحدود"
                   : `${formatNumber(Number(plan.sessionCount))} جلسه`}
               </td>
-              <td className="py-2">{formatMoney(Number(plan.price))}</td>
+              <td className="py-2">{formatMoney(plan.price)}</td>
               <td className="py-2">
                 <Badge variant={plan.isActive ? "success" : "secondary"}>
                   {plan.isActive ? "فعال" : "غیرفعال"}

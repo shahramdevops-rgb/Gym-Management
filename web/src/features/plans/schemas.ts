@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { errorMessages } from "@/lib/errors";
+import { normalizeMoney } from "@/lib/money";
 import { normalizeDigits } from "@/lib/normalize";
 
 /** The Persian text for a code. Throws at import if the catalogue lacks it, so a typo fails every test. */
@@ -29,22 +30,9 @@ export function parseWholeNumber(text: string): number | null {
   return /^\d{1,6}$/.test(normalized) ? Number(normalized) : null;
 }
 
-/**
- * A price as typed (`۱٬۵۰۰٬۰۰۰`, `1,500,000.50`) turned into the plain decimal string the API
- * reads (`1500000.50`): English digits, no thousands separators, `.` as the decimal point.
- *
- * It stays a string on purpose. A JavaScript number cannot hold every allowed price exactly,
- * and rounding a price is never acceptable (docs/BUSINESS_RULES.md §3).
- */
-export function normalizePrice(text: string): string {
-  return normalizeDigits(text)
-    .replace(/[\s,٬]/g, "") // spaces, commas and the Persian thousands separator ٬
-    .replace(/٫/g, "."); // the Persian decimal separator ٫
-}
-
 /** Why a typed price is refused, in Persian, or null when it is a valid price. */
 export function priceProblem(text: string): string | null {
-  const price = normalizePrice(text);
+  const price = normalizeMoney(text);
 
   if (price === "") {
     return "قیمت را وارد کنید.";

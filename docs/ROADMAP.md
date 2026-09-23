@@ -262,15 +262,16 @@ Added 1405/06/31. Rules: BUSINESS_RULES.md §13. Frontend only, no API change. W
 whose cardio amount uses this field. `MoneyField` in `web/src/components/FormField.tsx` already groups
 digits as you type; what is missing is the amount in words, an empty-allowed variant, and the two
 forms that still do their own thing.
-- [ ] `amountInPersianWords` in `web/src/lib/format.ts`, hand-written (no package): «پانصد هزار تومان». Tests for zero, single digits, 1,000, 500,000, millions and the billion boundary
-- [ ] `MoneyField` shows the words under the input, and gains an optional (empty-allowed) mode
-- [ ] `PlanForm` moves from a plain `FormField` to `MoneyField`, so every typed amount behaves the same
-- [ ] `normalizePrice` (plans) and `normalizeAmount` (payments) collapse into one helper in `web/src/lib/money.ts` — the deliberate duplication documented in `payments/schemas.ts` ends here, because the cardio field is the third caller
-- [ ] Amounts stay strings end to end; no money value becomes a JavaScript number
-- [ ] Tests: words under each money input, an empty optional amount submits as null, plan price still round-trips Persian digits and separators
+- [x] `amountInPersianWords` in `web/src/lib/format.ts`, hand-written (no package): «پانصد هزار تومان». Tests for zero, single digits, 1,000, 500,000, millions and the billion boundary
+- [x] `MoneyField` shows the words under the input (wired into `aria-describedby`), and gains an optional (empty-allowed) mode that says «بدون مبلغ». It is controlled now, like `JalaliDateField`: a field that shows what the amount *means* has to know what the amount is
+- [x] `PlanForm` moves from a plain `FormField` to `MoneyField`, so every typed amount behaves the same. The plan edit form now shows a stored `900000` as ۹۰۰٬۰۰۰ instead of a raw run of zeros
+- [x] `normalizePrice` (plans) and `normalizeAmount` (payments) collapse into `normalizeMoney` in `web/src/lib/money.ts` — the deliberate duplication documented in `payments/schemas.ts` ends here, because the cardio field is the third caller. `priceProblem` and `amountProblem` stay apart: they answer to different error codes
+- [x] Amounts stay strings end to end **on the way in and on screen**: `formatMoney` formats the decimal string without a `Number()` round trip, `subtractMoney` does "price − net paid" exactly in `bigint` hundredths, and `isPositiveMoney` replaces the `Number(debt) > 0` comparisons. The one gap left is not frontend-fixable: the API serializes `decimal` as a JSON number, so `JSON.parse` has already made it a double before any screen sees it — see docs/LEARNING.md 4.8
+- [x] Tests: words under each money input, an empty optional amount submits as null, plan price still round-trips Persian digits and separators
 
 Done when: every place an amount is typed looks and behaves the same, and the amount in words appears
-under it.
+under it. Done: 375 frontend tests pass (`npm test`), 49 of them new across `lib/money.test.ts`,
+`lib/format.test.ts` and `components/FormField.test.tsx`.
 
 ---
 
@@ -320,6 +321,8 @@ in this session — see docs/LEARNING.md 5.6.
 Added 1405/06/31. Rules: BUSINESS_RULES.md §7 *Gym services*, §5, §12. Depends on 4.7 (a service
 charge is the third thing a member can owe money for) and reads better after 4.8 (the amount uses the
 shared money field). Built before 4.7 it still works, but the amount will not appear in any debt total.
+4.7 and 4.8 are both done, so the optional «مبلغ هوازی» box is `<MoneyField optional />` and the
+amount it submits is `moneyOrNull(...)`.
 - [ ] `ServiceCharge` entity and `service_charges` table: `MemberId`, `AttendanceId`, `Kind` (enum, only `Cardio` today), `Amount` (`numeric(18,2)`, > 0), `ChargedOn` (`DateOnly`), `RecordedByUserId`, void fields (`VoidedAt`, `VoidReason`, `VoidedByUserId`), `xmin`
 - [ ] Partial unique index `(attendance_id, kind) WHERE voided_at IS NULL`: one live charge per visit per kind
 - [ ] Record and change the amount only while the visit is open and nothing has been paid against it; after check-out or the first payment, only void-with-a-reason. Staff or Owner
