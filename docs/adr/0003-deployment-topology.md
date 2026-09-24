@@ -78,8 +78,9 @@ One Docker Compose stack on one host: `api`, `postgres`, `caddy`.
   because the sink is configuration (`appsettings.json`), not code.
 - `UseForwardedHeaders` stops being optional. `docs/ARCHITECTURE.md` records that behind Caddy
   the login rate limit partitions on Caddy's own address, putting every user in one bucket. On a
-  LAN that was tolerable; on an internet-facing host it is a defect, so it moves from task 11.2
-  into task 6.2.
+  LAN that was tolerable; on an internet-facing host it is a defect, so it moved from task 11.2
+  into task 6.2, where it is done: the API trusts `X-Forwarded-For` only from the Compose
+  network's pinned subnet.
 - A release is a manual, scripted step from the development machine rather than a push to a
   branch. That is acceptable at one release per session and keeps the server clean, but it means
   the deploy scripts in `deploy/` are the only correct way to ship and have to be kept working.

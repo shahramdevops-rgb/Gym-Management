@@ -92,7 +92,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
     /// configuration (a low rate limit, say). It shares the database but not the services, so
     /// its singletons, such as the rate limiter's counters, start fresh.
     /// </summary>
-    public HttpClient CreateClient(IDictionary<string, string?> settings)
+    public HttpClient CreateClient(IDictionary<string, string?> settings, Action<IWebHostBuilder>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
@@ -103,6 +103,8 @@ public sealed class DatabaseFixture : IAsyncLifetime
                 {
                     builder.UseSetting(key, value);
                 }
+
+                configure?.Invoke(builder);
             })
             .CreateClient(ClientOptions);
     }

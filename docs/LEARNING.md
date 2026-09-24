@@ -622,3 +622,18 @@ The question that started this was whether a gym that is entirely internal — I
 - **Persist the certificates.** The `caddy-data` volume holds the issued Let's Encrypt certificate. Without it every recreate asks again, and Let's Encrypt rate-limits repeated requests.
 - **Verify on the real image.** A green `dotnet test` runs the app on your machine, not in the container. The smoke test found the things only the image can show: the timezone resolves, the Secure cookie is set through HTTPS, `/hangfire` and `/openapi` are not reachable, and the whole stack idles at about 225 MB.
 - **My notes:**
+
+---
+
+## 6.2 — Release process
+
+- **Trust a header only from whoever is allowed to set it.** `X-Forwarded-For` is just text a client can write. The API believes it only when the connection comes from Caddy's network; from anyone else the header is ignored, so nobody can invent a new address per request and dodge the login limit. The test that proves this (a sender outside the network forges the header and still hits the limit) matters more than the one that proves the happy path.
+- **Prove a test can fail.** After the forwarded-headers tests passed, the middleware was removed on purpose and one test turned red. A test that cannot fail proves nothing; it takes ten seconds to check.
+- **A test can stand in for the network.** The test server has no peer address, so a small `IStartupFilter` gives every request one, playing Caddy's part. Same idea as the fake `ssh` used to rehearse the deploy: replace only the thing you cannot have, run everything else for real.
+- **Rehearsing found what reading could not.** The migration bundle looked like "just run it with a connection string". Running it showed it boots the whole application host and fails without the JWT key. Nothing in the docs said so. Run the real thing once before trusting the plan.
+- **One block of settings, two consumers.** A YAML anchor (`&api-environment`) feeds both `api` and `migrate`, so the two cannot drift. Shared configuration in one place is the same principle as one `Policies.cs` for authorization.
+- **Migrate before you start, and never at startup.** If the migration fails, the old containers are still running and the new version never started. Migrating inside the app on boot would risk a half-started new version against a half-migrated database.
+- **Rollback is not time travel.** Going back to the previous image does not undo a migration. That is why a migration should add before it removes: one release where old and new code both work is what makes the rollback safe.
+- **A script's error message is its user interface.** `server.sh` says "`.env` has mode 644; run chmod 600" and "no previous release recorded" instead of failing somewhere deep. The person reading it will be you, at night, on a server.
+- **Only record a rollback target that exists.** The first rehearsal stored the placeholder `latest` as "previous" and offered a rollback to an image that was never there. State that can be wrong should be checked when it is written, not when it is used.
+- **My notes:**

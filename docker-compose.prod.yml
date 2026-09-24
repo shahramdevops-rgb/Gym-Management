@@ -4,10 +4,28 @@
 # Locally, smoke-test it with:  docker compose -f docker-compose.prod.yml --env-file <file> up -d --build
 #
 # Images are tagged with ${TAG} so the previous release stays on the server and a bad one
-# rolls back by starting the old tag. Nothing here runs migrations: the migration bundle
-# does that before a new API container starts (docs/ARCHITECTURE.md).
+# rolls back by starting the old tag. The API never migrates at startup: deploy/server.sh runs
+# the "migrate" service (the EF migration bundle) before it starts a new API container
+# (docs/ARCHITECTURE.md).
 
 name: gym-prod
+
+# What the API needs to start, shared with "migrate": the EF migration bundle boots the
+# application's own host to find its DbContext, exactly as `dotnet ef` does, so it fails on the
+# same missing settings the API would.
+x-api-environment: &api-environment
+  ASPNETCORE_ENVIRONMENT: Production
+  # Only requests for our own domain are answered (Caddy passes the Host header through).
+  AllowedHosts: ${DOMAIN:?set DOMAIN in .env}
+  # Trust X-Forwarded-For only from Caddy's network (the subnet is pinned at the bottom of this file).
+  ForwardedHeaders__TrustedNetwork: 172.28.0.0/24
+  # Host, database and user are not secret. The password is a separate key on purpose:
+  # AddInfrastructure() recombines them (BuildConnectionString).
+  ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER}
+  Postgres__Password: ${POSTGRES_PASSWORD}
+  Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env (at least 32 random bytes)}
+  Seed__OwnerUserName: ${SEED_OWNER_USERNAME:?set SEED_OWNER_USERNAME in .env}
+  Seed__OwnerPassword: ${SEED_OWNER_PASSWORD:?set SEED_OWNER_PASSWORD in .env}
 
 services:
   postgres:
@@ -53,30 +71,48 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      # Host, database and user are not secret. The password is a separate key on purpose:
-      # AddInfrastructure() recombines them (BuildConnectionString).
-      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER}
-      Postgres__Password: ${POSTGRES_PASSWORD}
-      Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env (at least 32 random bytes)}
-      Seed__OwnerUserName: ${SEED_OWNER_USERNAME:?set SEED_OWNER_USERNAME in .env}
-      Seed__OwnerPassword: ${SEED_OWNER_PASSWORD:?set SEED_OWNER_PASSWORD in .env}
+    environment: *api-environment
     mem_limit: ${API_MEM_LIMIT:-512m}
     healthcheck:
       # The aspnet image ships neither curl nor wget, so this is a hand-written HTTP request
       # over bash's /dev/tcp. /health reports the database and pending migrations, so
       # "healthy" means the app can actually serve, not just that the process is up.
       # /dev/tcp is a bash feature: the exec form, because CMD-SHELL would run under dash.
+      # The Host header is our domain because AllowedHosts refuses any other.
       test:
         - CMD
         - bash
         - -c
-        - 'exec 3<>/dev/tcp/localhost/8080; printf "GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3; head -1 <&3 | grep -q "200 OK"'
+        - 'exec 3<>/dev/tcp/localhost/8080; printf "GET /health HTTP/1.1\r\nHost: ${DOMAIN}\r\nConnection: close\r\n\r\n" >&3; head -1 <&3 | grep -q "200 OK"'
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 30s
+    logging: *logging
+
+  # Not part of the running stack ("tools" profile): deploy/server.sh runs it once per release,
+  # before the new API starts, as `docker compose run --rm migrate`. It runs the EF migration
+  # bundle inside the API image, which already carries every native library the self-contained
+  # bundle needs, and it reaches Postgres over the Compose network, where the database lives.
+  migrate:
+    image: gym-api:${TAG:-latest}
+    profiles: ["tools"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/efbundle"]
+    environment:
+      <<: *api-environment
+      # A single-file bundle unpacks native libraries on start; /tmp is writable, home may not be.
+      DOTNET_BUNDLE_EXTRACT_BASE_DIR: /tmp
+    volumes:
+      - type: bind
+        source: ./efbundle
+        target: /efbundle
+        read_only: true
+        bind:
+          # A missing bundle must be an error, not an empty directory Docker creates for us.
+          create_host_path: false
     logging: *logging
 
   caddy:
@@ -101,6 +137,14 @@ services:
       - caddy-config:/config
     mem_limit: ${CADDY_MEM_LIMIT:-128m}
     logging: *logging
+
+networks:
+  default:
+    ipam:
+      config:
+        # Pinned so the API can be told which addresses may send X-Forwarded-For
+        # (ForwardedHeaders__TrustedNetwork above). Keep the two in step.
+        - subnet: 172.28.0.0/24
 
 volumes:
   postgres-data:

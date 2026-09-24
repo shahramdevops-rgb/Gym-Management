@@ -391,22 +391,30 @@ Still to do on the real server: Let's Encrypt issuance (needs 80/443 inbound and
 reachable from the data centre).
 
 ### 6.2 Release process
-- [ ] Images built on the development machine, not the server: `docker compose build`,
-      `docker save`, `scp`, `docker load`. Not a disk limit — 2 GB of RAM cannot run
+- [x] Images built on the development machine, not the server: `docker build`, `docker save`,
+      `scp`, `docker load` (`deploy/release.sh`). Not a disk limit — 2 GB of RAM cannot run
       `dotnet publish` or `npm run build` beside a live Postgres
-- [ ] The previous image tag kept on the server, so a bad release rolls back with one command
-- [ ] `dotnet ef migrations bundle --self-contained -r linux-x64`, copied and run before the new
-      API container starts (migrations never run at application startup — see ARCHITECTURE.md)
-- [ ] Secrets as environment variables from a root-owned `/opt/gym/.env` (mode 600):
-      `ConnectionStrings__Postgres`, `Jwt__SigningKey`, `POSTGRES_PASSWORD`,
-      `Seed__OwnerUserName`, `Seed__OwnerPassword`
-- [ ] `AllowedHosts` set to the real domain instead of `*`
-- [ ] `UseForwardedHeaders` with Caddy as the known proxy — moved forward from task 11.2. Behind
+- [x] The previous image tag kept on the server, so a bad release rolls back with one command
+      (`./server.sh rollback`; the newest three images are kept)
+- [x] `dotnet ef migrations bundle --self-contained -r linux-x64`, copied and run before the new
+      API container starts (migrations never run at application startup — see ARCHITECTURE.md).
+      Runs as the `migrate` service of `docker-compose.prod.yml`
+- [x] Secrets as environment variables from `/opt/gym/.env` (mode 600): the compose file reads
+      them and `server.sh` refuses a `.env` that is not mode 600. Creating the file on the server
+      is a 6.0 step
+- [x] `AllowedHosts` set to the real domain instead of `*`
+- [x] `UseForwardedHeaders` with Caddy as the known proxy — moved forward from task 11.2. Behind
       Caddy the login rate limit otherwise partitions on Caddy's own address and every user shares
       one bucket; on an internet-facing host that is a defect, not a future cleanup
-- [ ] `deploy/` scripts so a release is one command from the development machine
+      (`ForwardedHeadersConfiguration`, tested in `ForwardedHeadersTests`)
+- [x] `deploy/` scripts so a release is one command from the development machine
 
 Done when: a code change reaches the server, migrations included, by running one script.
+
+Rehearsed locally (2026-09-24) with stand-ins for `ssh` and `scp`: release, second release,
+rollback, and a rollback with nothing recorded, against a real Compose stack. Not yet proven
+against the real server: the ssh/scp transfer and a `.env` with a real mode 600. That is 6.4's
+first deploy, so the "Done when" line is confirmed there, not here.
 
 ### 6.3 Backups
 - [ ] Nightly `pg_dump -Fc` on the server into `/opt/gym/backups`, 60 daily copies kept
