@@ -399,9 +399,10 @@ reachable from the data centre).
 - [x] `dotnet ef migrations bundle --self-contained -r linux-x64`, copied and run before the new
       API container starts (migrations never run at application startup — see ARCHITECTURE.md).
       Runs as the `migrate` service of `docker-compose.prod.yml`
-- [x] Secrets as environment variables from `/opt/gym/.env` (mode 600): the compose file reads
-      them and `server.sh` refuses a `.env` that is not mode 600. Creating the file on the server
-      is a 6.0 step
+- [x] Secrets as environment variables from `/opt/gym/.env` (mode 600, **owned by the user you
+      deploy as** — Compose reads it as that user and a release rewrites its `TAG` line).
+      `server.sh` refuses a file others can read, or one it cannot read and write, and names the
+      `chown` to run. Creating the file on the server is a 6.0 step
 - [x] `AllowedHosts` set to the real domain instead of `*`
 - [x] `UseForwardedHeaders` with Caddy as the known proxy — moved forward from task 11.2. Behind
       Caddy the login rate limit otherwise partitions on Caddy's own address and every user shares

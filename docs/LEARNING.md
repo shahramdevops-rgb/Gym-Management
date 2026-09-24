@@ -652,3 +652,17 @@ The question that started this was whether a gym that is entirely internal — I
 - **Match the tool to the machine that runs it.** The server is Linux, so bash; the gym's computer is Windows, so PowerShell 5.1. Trying to share one script would have made both worse. Windows PowerShell 5.1 has no `&&` and no `?:`, so the script avoids them.
 - **Rehearsing with stand-ins is honest only if you say what they stand in for.** `ssh`, `scp` and a file mode were faked; the scripts, Docker, Postgres and PowerShell were real. What is still unproven (the real SSH key, cron, the `gymbackup` account) is written down as unproven.
 - **My notes:**
+
+---
+
+## 6.1–6.3 review — re-checking what was already "done"
+
+- **Re-reading finds typos; re-running finds bugs.** Every one of these was invisible on the page and obvious the moment it ran. The scripts had already been rehearsed end-to-end and still held four real defects, because the rehearsal only ever walked the happy path.
+- **`set -e` does not cover functions; `set -E` does.** The `ERR` trap in `restore` was never firing, so the one message naming the `pre-restore-*` dump — the whole point of taking it — was dead code. A safety net nobody tested is not a safety net.
+- **Test the failure path of the failure path.** The trap was cleared halfway through `restore`, so a failure *after* the data was back left the gym's system stopped in silence. Found only by deliberately breaking `efbundle` mid-restore.
+- **A security check can be wrong in the safe direction and still be wrong.** `[ "$mode" = "600" ]` rejected mode 400, which is stricter. The property that matters is "group and other can read nothing", so that is what the check now tests.
+- **The docs said root-owned; the script needed user-owned.** `sed -i` on a root-owned `.env` as a non-root deploy user fails with a permission error part-way through a release. Two documents agreeing with each other is not the same as either agreeing with the code.
+- **Order writes so a failure cannot lie.** `.previous_tag` was written before the migration ran, so a release that died on its migration recorded the still-running version as the rollback target. State that records "where to go back to" must be written only once going forward has actually happened.
+- **One variable, two consumers, no drift.** The subnet was typed in twice with a comment asking a human to keep them in step. `${GYM_SUBNET}` removes the instruction by removing the possibility.
+- **Run Linux things on Linux.** Git Bash on NTFS cannot represent mode 600, so the mode logic was checked inside a `debian` container. Testing a Linux script on Windows proves the syntax and nothing else.
+- **My notes:**

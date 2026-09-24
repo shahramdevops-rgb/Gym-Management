@@ -325,6 +325,21 @@ web/src/
 - A rollback (`deploy/server.sh rollback`) changes the running code, never the database. A release whose migration is
   not compatible with the previous code cannot be rolled back by the script; that case is a restore from backup.
   Prefer migrations that add before they remove, so one release of overlap is safe.
+- `deploy/backup.sh` sets `-E` (`set -Eeuo pipefail`), not just `-e`. Bash does **not** inherit an `ERR` trap into
+  functions without it, and the failing command inside `restore` is `db()`, a function — so without `-E` the trap that
+  tells the operator where the `pre-restore-*` dump is never fires. `restore` uses two traps, one per phase: while the
+  database is being replaced the answer is "restore the safety dump", and after the data is in it is "the app did not
+  come back up, run `up -d`". Proven by breaking `efbundle` mid-restore.
+- A `ls glob | ...` pipeline under `pipefail` fails when the glob matches nothing, because the literal pattern reaches
+  `ls`. `rotate()` wraps it in `{ ... || true; }`.
+- `/opt/gym/.env` must be **owned by the user the deploy ssh's in as**, mode 600. Docker Compose reads it as that user
+  and `server.sh` rewrites its `TAG` line with `sed -i`, so a root-owned file fails half-way through a release. GNU
+  `sed -i` does preserve the mode when the user owns the file. `check_env_file` tests that group and other have no
+  permissions (600 and 400 both pass) and that the file is readable and writable, and prints the `chown` to run.
+- `server.sh` records `.previous_tag` only **after** the migration succeeds. Writing it earlier meant a release that
+  died on its migration left `.previous_tag` naming the version still running, so a later rollback was a no-op.
+- The Compose subnet is `${GYM_SUBNET}` and feeds both the network and `ForwardedHeaders__TrustedNetwork`, so the two
+  cannot drift and a server whose Docker already uses that range is a one-line change in `.env`.
 - The rehearsal of `deploy/` on a development machine needs stand-ins for `ssh`, `scp` and `stat -c %a` (NTFS cannot
   hold mode 600). The scripts themselves are unchanged by that, but the real ssh transfer is only proven on a server.
 - Backups: `deploy/backup.sh run` dumps with `pg_dump -Fc` through `docker compose exec` inside the Postgres container,

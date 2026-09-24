@@ -12,7 +12,10 @@
 #
 # Set GYM_DIR to run it against another directory, BACKUP_KEEP to keep a different number.
 
-set -euo pipefail
+# -E so the ERR trap in restore() is inherited by functions. Without it the trap never fires,
+# because the command that fails there is db(), a function, and the operator loses the one
+# message that says where the pre-restore dump is.
+set -Eeuo pipefail
 
 GYM_DIR="${GYM_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 cd "$GYM_DIR"
@@ -75,7 +78,9 @@ run() {
 # Keeps the newest $KEEP dumps. Only gym-*.dump files are ever removed, so the safety dumps
 # that restore takes (pre-restore-*) and anything else in the directory are left alone.
 rotate() {
-  ls -1t "$BACKUP_DIR"/gym-*.dump 2>/dev/null | tail -n +"$((KEEP + 1))" | while read -r old; do
+  # "|| true": with no dumps at all the glob stays literal and ls exits non-zero, which
+  # pipefail would turn into a failed backup run.
+  { ls -1t "$BACKUP_DIR"/gym-*.dump 2>/dev/null || true; } | tail -n +"$((KEEP + 1))" | while read -r old; do
     rm -f "$old"
   done
 }
@@ -99,13 +104,20 @@ restore() {
 
   echo "==> Replacing the database"
   # The whole failure window is between DROP and the end of pg_restore. If it fails, the
-  # database is empty or partial and $safety holds what was there before.
-  trap 'echo "The restore did not finish. The database may be incomplete; the state before it is in '"$safety"'." >&2' ERR
+  # database is empty or partial, the application is still stopped, and $safety holds what
+  # was there before.
+  trap 'echo "The restore did not finish. The database may be incomplete and the application is
+still stopped. What was there before this restore is in '"$safety"'; put it back with:
+  ./backup.sh restore '"$safety"' --yes" >&2' ERR
   db sh -c 'psql -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 \
     -c "DROP DATABASE IF EXISTS \"$POSTGRES_DB\" WITH (FORCE)" \
     -c "CREATE DATABASE \"$POSTGRES_DB\""'
   db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --exit-on-error' < "$file"
-  trap - ERR
+
+  # From here the data is in. What is left can only fail to bring the application back, which
+  # needs a different answer from the operator, so the message changes with the phase.
+  trap 'echo "The data from '"$file"' is restored, but the application did not come back up.
+Look at the error above, then: docker compose -f docker-compose.prod.yml up -d --wait" >&2' ERR
 
   # A dump from before a release does not have that release's migrations. The bundle is a
   # no-op when nothing is pending, so it always runs when it is there.
@@ -116,6 +128,7 @@ restore() {
 
   echo "==> Starting the application"
   "${COMPOSE[@]}" up -d --wait --wait-timeout 180
+  trap - ERR
   echo "==> Restored from $file. The state before the restore is in $safety."
 }
 
