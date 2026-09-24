@@ -3,6 +3,9 @@
 How a bare VPS becomes a host this project can be released to. Run this once per server — on
 the first one, and again if the server is ever lost and has to be rebuilt.
 
+Already done it once and just need the commands? Use
+[SERVER-SETUP-QUICK.md](SERVER-SETUP-QUICK.md) instead — same steps, no explanations.
+
 It stops where `deploy/release.sh` starts. Releasing, backups and restoring are in the README
 ("Deployment", "Backup and restore"); going live is roadmap task 6.4.
 
