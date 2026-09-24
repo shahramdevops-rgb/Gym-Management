@@ -1,0 +1,43 @@
+# The one public entrance. {$DOMAIN} comes from the environment (docker-compose.prod.yml).
+# A real domain gets a Let's Encrypt certificate automatically; "localhost" gets one from
+# Caddy's own local CA, which is how the stack is smoke-tested on a development machine.
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# The API. Anything under /api that does not exist is the API's 404, not the SPA's page.
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	# Mapped at the API root, not under /api (docs/ARCHITECTURE.md).
+	handle /health {
+		reverse_proxy api:8080
+	}
+
+	# The React build. Not a public path to /hangfire, /openapi or /scalar: those exist only
+	# in Development, and nothing here proxies them.
+	handle {
+		root * /srv
+
+		# File names under /assets carry a content hash, so they can be cached forever.
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+		# index.html names those hashed files, so a browser must ask again after each release.
+		@shell not path /assets/*
+		header @shell Cache-Control "no-cache"
+
+		# Client-side routes (/members/123) are not files: hand them to the SPA.
+		try_files {path} /index.html
+		file_server
+	}
+}

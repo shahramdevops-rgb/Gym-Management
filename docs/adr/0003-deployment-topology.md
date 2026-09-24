@@ -38,6 +38,10 @@ One Docker Compose stack on one host: `api`, `postgres`, `caddy`.
   development, where it is genuinely useful.
 - **Images are built on the development machine**, transferred with `docker save`/`docker load`,
   and the previous tag is kept on the server so a bad release rolls back with one command.
+  That covers every image, not only ours: `postgres:18` and the `caddy` base come from Docker
+  Hub, which may be unreachable from an Iranian data centre, so the first deploy carries them
+  too (the API's `mcr.microsoft.com` and the frontend's npm and NuGet downloads only matter at
+  build time, and that happens on the development machine).
 - **Migrations run from an EF migration bundle** before the new API container starts, never at
   application startup.
 - **Backups are two copies and no cloud.** A nightly `pg_dump -Fc` on the server, and the gym's

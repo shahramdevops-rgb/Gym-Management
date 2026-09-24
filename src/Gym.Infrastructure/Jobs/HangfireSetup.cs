@@ -35,8 +35,10 @@ public static class HangfireSetup
                 storageOptions));
 
         // Runs jobs in-process, the same host as the API. No separate worker process for a
-        // single-gym deployment this size.
-        services.AddHangfireServer();
+        // single-gym deployment this size. Each worker holds a Postgres connection, and the
+        // production database allows 50 (docker-compose.prod.yml): the default of 20 workers
+        // would leave the API's own pool less than half of them.
+        services.AddHangfireServer(options => options.WorkerCount = 2);
 
         return services;
     }

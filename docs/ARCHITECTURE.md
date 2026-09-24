@@ -239,6 +239,19 @@ web/src/
   is there. Its calendar and locale modules need no unwrapping: they are plain `module.exports`
   objects. The wider lesson: a green Vitest run does not prove a CJS dependency renders in a browser.
 - Testcontainers needs Docker running, locally and in CI.
+- Production images: both Dockerfiles use the **repository root** as their build context (`docker-compose.prod.yml` sets it),
+  because the solution shares `Directory.*.props` and `global.json` and Caddy's image needs `deploy/Caddyfile`. Building from
+  inside `src/Gym.Api` or `web/` fails on a missing file. `global.json` pins SDK 10.0.401 with `latestPatch`, so a
+  `sdk:10.0` tag older than that patch would refuse to build; pin the tag if it ever does.
+- In the production stack `/health` is the gate for start-up order: the API is healthy only when the database answers
+  and no migration is pending, and Caddy starts only after the API is healthy. Migrate first, then start the API.
+- `/hangfire`, `/openapi` and `/scalar` exist only in Development. In production Caddy sends those paths to the SPA, so
+  they answer 200 with the app's `index.html`, not with the tool. That is expected, not a leak.
+- The API logs a Data Protection warning in the container (keys stored in an ephemeral directory). Nothing here uses
+  protected payloads that must survive a restart (tokens are JWTs and hashed refresh tokens), so it is harmless today.
+  Revisit it if a feature ever depends on `IDataProtector`.
+- Hangfire's default is 20 workers and each holds a Postgres connection. `WorkerCount = 2` in `HangfireSetup` keeps the
+  production database's `max_connections=50` for the API's own pool.
 - The .NET 10 SDK no longer runs Microsoft.Testing.Platform tests through VSTest. xunit.v3 hosts its own runner, so test projects set `OutputType=Exe` and `TestingPlatformDotnetTestSupport=true`, `global.json` carries `"test": { "runner": "Microsoft.Testing.Platform" }`, and neither `Microsoft.NET.Test.Sdk` nor `xunit.runner.visualstudio` is referenced. Without the `global.json` opt-in, `dotnet test` fails with "Testing with VSTest target is no longer supported".
 - Font files and scripts are self-hosted in the build, never loaded from a public CDN.
 - `UseSnakeCaseNamingConvention()` also rewrites EF's own `__EFMigrationsHistory` columns to `migration_id` and `product_version`. The table name keeps its original casing, so querying it by hand needs `SELECT migration_id ... FROM "__EFMigrationsHistory"`.

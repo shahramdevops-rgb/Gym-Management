@@ -1,0 +1,14 @@
+# The build context is the repository root. Keep it small and keep secrets out of it.
+**/bin
+**/obj
+**/node_modules
+web/dist
+.git
+.vs
+.claude
+.github
+.env
+.env.*
+TestResults
+tests
+docs
