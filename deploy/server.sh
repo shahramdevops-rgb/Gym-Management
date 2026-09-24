@@ -17,12 +17,19 @@ PREVIOUS_TAG_FILE=".previous_tag"
 
 die() { echo "error: $*" >&2; exit 1; }
 
-# .env holds the database password and the token signing key.
+# .env holds the database password and the token signing key. Docker Compose reads it as the
+# user running this script, and set_tag rewrites the TAG line in it, so that user has to own it:
+# a root-owned .env fails here rather than half-way through a release.
 check_env_file() {
   [ -f .env ] || die ".env is missing in $GYM_DIR (copy deploy/env.example and fill it in)."
+
   local mode
   mode="$(stat -c '%a' .env)"
-  [ "$mode" = "600" ] || die ".env has mode $mode; it holds secrets, so run: chmod 600 .env"
+  # Only the owner may see it. 600 and 400 both pass; 640 and 644 do not.
+  [ "${mode: -2}" = "00" ] || die ".env has mode $mode, so others can read your secrets. Run: chmod 600 .env"
+
+  [ -r .env ] || die ".env is not readable by $(id -un). Run: sudo chown $(id -un) $GYM_DIR/.env"
+  [ -w .env ] || die ".env is not writable by $(id -un), and a release rewrites its TAG line. Run: sudo chown $(id -un) $GYM_DIR/.env && chmod 600 $GYM_DIR/.env"
 }
 
 current_tag() { sed -n 's/^TAG=//p' .env | tail -n 1; }
@@ -57,11 +64,7 @@ release() {
 
   local old
   old="$(current_tag)"
-  # Only a tag that names a real image on this server can be rolled back to. On the first
-  # release .env still holds the placeholder from env.example.
-  if [ -n "$old" ] && [ "$old" != "$tag" ] && docker image inspect "gym-api:$old" >/dev/null 2>&1; then
-    echo "$old" > "$PREVIOUS_TAG_FILE"
-  fi
+  # Set first, so the migrate service below runs this release's image and bundle.
   set_tag "$tag"
 
   # Migrations run before the new API starts and never at application startup. If this fails
@@ -70,6 +73,14 @@ release() {
   if ! "${COMPOSE[@]}" run --rm migrate; then
     [ -n "$old" ] && set_tag "$old"
     die "migration failed; the previous version is still running and TAG is back to '${old:-none}'."
+  fi
+
+  # Recorded only now: a release that never got past its migration is not something to roll
+  # back to, and .previous_tag would otherwise name the version that is still running. Only a
+  # tag whose image is actually here can be a target — on the first release .env still holds
+  # the placeholder from env.example.
+  if [ -n "$old" ] && [ "$old" != "$tag" ] && docker image inspect "gym-api:$old" >/dev/null 2>&1; then
+    echo "$old" > "$PREVIOUS_TAG_FILE"
   fi
 
   echo "==> Starting $tag"

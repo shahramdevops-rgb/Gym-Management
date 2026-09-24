@@ -17,8 +17,9 @@ x-api-environment: &api-environment
   ASPNETCORE_ENVIRONMENT: Production
   # Only requests for our own domain are answered (Caddy passes the Host header through).
   AllowedHosts: ${DOMAIN:?set DOMAIN in .env}
-  # Trust X-Forwarded-For only from Caddy's network (the subnet is pinned at the bottom of this file).
-  ForwardedHeaders__TrustedNetwork: 172.28.0.0/24
+  # Trust X-Forwarded-For only from Caddy's network. Same value as the pinned subnet at the
+  # bottom of this file, from one variable so the two cannot drift.
+  ForwardedHeaders__TrustedNetwork: ${GYM_SUBNET:-172.28.0.0/24}
   # Host, database and user are not secret. The password is a separate key on purpose:
   # AddInfrastructure() recombines them (BuildConnectionString).
   ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER}
@@ -143,8 +144,9 @@ networks:
     ipam:
       config:
         # Pinned so the API can be told which addresses may send X-Forwarded-For
-        # (ForwardedHeaders__TrustedNetwork above). Keep the two in step.
-        - subnet: 172.28.0.0/24
+        # (ForwardedHeaders__TrustedNetwork above reads the same variable). Change it in .env
+        # if the server already has a Docker network on this range.
+        - subnet: ${GYM_SUBNET:-172.28.0.0/24}
 
 volumes:
   postgres-data:

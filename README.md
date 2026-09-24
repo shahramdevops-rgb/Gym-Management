@@ -254,6 +254,10 @@ echo 'restrict <the public key from the gym computer>' | sudo tee /home/gymbacku
 sudo chown gymbackup:gymbackup /home/gymbackup/.ssh/authorized_keys
 sudo chmod 600 /home/gymbackup/.ssh/authorized_keys
 sudo chmod o+x /opt/gym          # lets it reach backups/ only; .env stays mode 600
+
+# 3. /opt/gym and .env must belong to the user you deploy as (the one deploy/release.sh ssh's
+#    in as). Compose reads .env as that user, and a release rewrites its TAG line.
+sudo chown -R "$USER" /opt/gym && chmod 600 /opt/gym/.env
 ./backup.sh run                  # the first dump also fixes the group of backups/
 ```
 
