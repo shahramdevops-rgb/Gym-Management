@@ -241,7 +241,7 @@ certificate, and the Persian smoke test.
 ## Backup and restore
 
 Two copies, no cloud (ADR 0003). Every night the server dumps the database to
-`/opt/gym/backups` (`gym-YYYYmmdd-HHMMSS.dump`, the newest 60 kept). The gym's Windows computer
+`/opt/gym/backups` (`gym-YYYYmmdd-HHMMSS.dump`, the newest 120 kept, about four months). The gym's Windows computer
 then **pulls** the newest dump onto its own disk and onto a flash drive (the newest 30 kept).
 The dumps contain members' names and phone numbers: keep the flash drive somewhere safe, and
 consider BitLocker To Go on it.

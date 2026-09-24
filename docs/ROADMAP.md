@@ -446,7 +446,7 @@ against the real server: the ssh/scp transfer and a `.env` with a real mode 600.
 first deploy, so the "Done when" line is confirmed there, not here.
 
 ### 6.3 Backups
-- [x] Nightly `pg_dump -Fc` on the server into `/opt/gym/backups`, 60 daily copies kept
+- [x] Nightly `pg_dump -Fc` on the server into `/opt/gym/backups`, 120 daily copies kept
       (`deploy/backup.sh run`; each dump is checked with `pg_restore --list` before it is kept).
       Installing the cron line is a server step (README, "Backup and restore")
 - [x] The gym's computer **pulls** the newest dump on a schedule (Windows Task Scheduler, `scp`,
