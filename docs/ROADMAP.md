@@ -363,10 +363,17 @@ Written up step by step, with the reasoning, in `docs/SERVER-SETUP.md`.
 - [x] `/opt/gym` and `.env` (mode 600, owned by `gym`) with the 4 GB memory values
 - [x] Docker Engine and the Compose v2 plugin from Docker's own repository
 - [ ] Domain registered, its A record pointing at the server — `pasargadgymplus.ir` (canonical)
-      and `pasargadgymplus.com` (redirected to it by Caddy, `REDIRECT_DOMAIN`). Both are
-      registered and delegated to `ns1/ns2.parspack.co`, but neither zone is being served:
-      the `.com` gets `REFUSED` from those nameservers and the `.ir` is not published in the
-      `.ir` zone at all. Waiting on the DNS provider; nothing here or at the registrar is wrong
+      and `pasargadgymplus.com` (redirected to it by Caddy, `REDIRECT_DOMAIN`). Cause found
+      2026-09-24: the zone holding the A record lives on the provider's CDN nameservers
+      (`grass/tornado.parspack.net`) while both domains are delegated at the registry to
+      `ns1/ns2.parspack.co`, which do not hold it and answer `REFUSED`. The `.ir` is not
+      published in the `.ir` zone at all, which is consistent — a registry will not publish a
+      delegation whose nameservers do not answer for the domain. Fixed by changing the
+      nameservers at the registry to the two the zone is actually served from, with no glue
+      records (they are out-of-domain names) and the CDN proxy left off
+      (`docs/SERVER-SETUP.md`, step 9). `pasargadgymplus.com` now resolves to the server, with
+      the proxy confirmed off by the A record being the server's own address. The `.ir` is
+      waiting on IRNIC to publish the new delegation
 - [x] SSH key-only login (root login off, `KbdInteractiveAuthentication` off too), `ufw`
       allowing 22/80/443 only, fail2ban reading the systemd journal
 - [x] Outbound HTTPS left open: the Phase 10 SMS panel is called from this host
