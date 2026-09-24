@@ -19,6 +19,7 @@ No public access, no self-registration, no member logins.
 - Apply migrations locally: `dotnet ef database update --project src/Gym.Infrastructure --startup-project src/Gym.Api`
 - Run API: `dotnet run --project src/Gym.Api`
 - Build the production images: `docker compose -f docker-compose.prod.yml --env-file <env file> build` (settings: `deploy/env.example`)
+- Release to the server (from Git Bash, key-based ssh): `deploy/release.sh <user@host> [--with-postgres]`; on the server: `./server.sh rollback`
 - Frontend (inside web/): `npm run dev`, `npm run build`, `npm run lint`, `npm test`
 - Regenerate API types after any endpoint change (inside web/, API running): `npm run gen:api`
 Keep this section up to date when commands change.

@@ -311,11 +311,22 @@ web/src/
   `MapInboundClaims = false` keeps the claim names `sub` and `role` instead of long XML-namespace URIs.
 - `Jwt:SigningKey` is a secret of at least 32 bytes. Locally: `dotnet user-secrets set "Jwt:SigningKey" "<random>"
   --project src/Gym.Api`. In production: `Jwt__SigningKey`. The API refuses to start without it.
-- The login rate limit partitions by `RemoteIpAddress`. Behind Caddy that is Caddy's address for every request, so
-  all users would share one bucket. Configure forwarded headers (`UseForwardedHeaders` with Caddy as a known proxy)
-  before deploying; tracked for task 6.2. It moved there from task 11.2 when the server turned out to be an
-  internet-facing VPS rather than a machine on the gym's own network (ADR 0003): sharing one rate-limit bucket
-  is a defect once the login endpoint is publicly reachable, not a later cleanup.
+- The login rate limit partitions by `RemoteIpAddress`, and so does the audit log's IP. Behind Caddy that is Caddy's
+  address for every request, so `ForwardedHeadersConfiguration` rewrites it from `X-Forwarded-For`, but only for a
+  request that comes from `ForwardedHeaders:TrustedNetwork` (the Compose subnet, pinned in `docker-compose.prod.yml`).
+  Unset, as in development and the tests, the middleware is not added at all. A sender outside the network cannot
+  choose its own address: its header is ignored (`ForwardedHeadersTests`). Keep the subnet in the compose file and
+  the setting in step. Behind Docker Desktop the client shows up as the network gateway (`172.28.0.1`); on a Linux
+  server it is the real address.
+- A **migration bundle boots the application host**, like `dotnet ef` does, to find the `DbContext`. So the `migrate`
+  service needs the API's whole configuration (database password, `Jwt__SigningKey`), not just a connection string,
+  and fails on the same missing setting the API would. `docker-compose.prod.yml` shares one `x-api-environment` block
+  between the two. The bundle is about 140 MB and Npgsql prints a harmless "Cannot load library libgssapi_krb5.so.2".
+- A rollback (`deploy/server.sh rollback`) changes the running code, never the database. A release whose migration is
+  not compatible with the previous code cannot be rolled back by the script; that case is a restore from backup.
+  Prefer migrations that add before they remove, so one release of overlap is safe.
+- The rehearsal of `deploy/` on a development machine needs stand-ins for `ssh`, `scp` and `stat -c %a` (NTFS cannot
+  hold mode 600). The scripts themselves are unchanged by that, but the real ssh transfer is only proven on a server.
 - The integration test host raises the login rate limit (`RateLimiting__Login__PermitLimit`), because every test
   client shares one address. A test that needs different settings uses `DatabaseFixture.CreateClient(settings)`,
   which builds a separate host with its own singletons.

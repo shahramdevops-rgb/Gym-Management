@@ -50,9 +50,9 @@ public static class RateLimitingConfiguration
             {
                 var limits = httpContext.RequestServices.GetRequiredService<IOptions<LoginRateLimitOptions>>().Value;
 
-                // One bucket per client address. Behind a reverse proxy every request carries the
-                // proxy's address until forwarded headers are configured (task 11.2); see the
-                // gotcha in docs/ARCHITECTURE.md.
+                // One bucket per client address. Behind a reverse proxy the address is the real
+                // client's only because ForwardedHeadersConfiguration rewrote it; see the gotcha
+                // in docs/ARCHITECTURE.md.
                 var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
                 return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions

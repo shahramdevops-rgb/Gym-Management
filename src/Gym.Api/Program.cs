@@ -33,6 +33,7 @@ try
 
     builder.Services.AddJwtAuthentication();
     builder.Services.AddApiRateLimiting(builder.Configuration);
+    builder.Services.AddApiForwardedHeaders(builder.Configuration);
 
     builder.Services.AddOpenApi();
 
@@ -56,8 +57,12 @@ try
     // AddOrUpdate overwrites the same job id's schedule rather than duplicating it.
     RecurringJobScheduler.ScheduleRecurringJobs(app.Services);
 
-    // First in the pipeline, so the id is attached to everything that follows, including
-    // failures raised by later middleware.
+    // Before anything that reads the client's address (request logging, the rate limiter, the
+    // audit log's IP), so they all see the real client and not the reverse proxy.
+    app.UseApiForwardedHeaders();
+
+    // Next, so the id is attached to everything that follows, including failures raised by
+    // later middleware.
     app.UseMiddleware<CorrelationIdMiddleware>();
 
     // After the correlation id, so a failed request still returns the id in its header and
