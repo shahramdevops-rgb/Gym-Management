@@ -362,23 +362,33 @@ from the internet over a real domain. The binding constraint is RAM, not disk.
 Done when: `ssh` with a key works, `ufw status` shows only 22/80/443, and the clock is synchronised.
 
 ### 6.1 Production image and compose
-- [ ] Multi-stage `src/Gym.Api/Dockerfile`: SDK build stage, `mcr.microsoft.com/dotnet/aspnet:10.0`
+- [x] Multi-stage `src/Gym.Api/Dockerfile`: SDK build stage, `mcr.microsoft.com/dotnet/aspnet:10.0`
       runtime, `USER $APP_UID`
-- [ ] Frontend built in its own stage (`npm ci && npm run build`); Caddy serves the output
-- [ ] `Asia/Tehran` resolves inside the runtime image: `InvariantGlobalization=false` needs ICU and
+- [x] Frontend built in its own stage (`npm ci && npm run build`); Caddy serves the output
+      (`web/Dockerfile`)
+- [x] `Asia/Tehran` resolves inside the runtime image: `InvariantGlobalization=false` needs ICU and
       `Gym:TimeZone` needs tzdata. The existing startup validation of `Gym:TimeZone` is the check —
       a container missing either cannot start
-- [ ] `docker-compose.prod.yml`: `api`, `postgres`, `caddy`. Postgres publishes **no** host port.
+- [x] `docker-compose.prod.yml`: `api`, `postgres`, `caddy`. Postgres publishes **no** host port.
       `restart: unless-stopped`, `mem_limit` per service, `logging: json-file` with
       `max-size: 10m` and `max-file: 3`
-- [ ] No Seq in production (ADR 0003): Serilog writes to the console and Docker rotates it
-- [ ] `Caddyfile`: automatic HTTPS, serves the React build, proxies `/api` and `/health`,
-      security headers, `basic_auth` in front of `/hangfire`
-- [ ] Postgres tuned for 2 GB: `shared_buffers=256MB`, `effective_cache_size=768MB`,
-      `max_connections=50`
+- [x] No Seq in production (ADR 0003): Serilog writes to the console and Docker rotates it
+- [x] `Caddyfile` (`deploy/Caddyfile`): automatic HTTPS, serves the React build, proxies `/api` and
+      `/health`, security headers. No `basic_auth` for `/hangfire`: the dashboard is
+      Development-only (Program.cs), so nothing is proxied to it. An Owner-only dashboard is its
+      own task, and 6.4's "job visible in Hangfire" is checked in the logs or the database instead
+- [x] Postgres tuned for 2 GB: `shared_buffers=256MB`, `effective_cache_size=768MB`,
+      `max_connections=50`. The sizes come from `.env`; `deploy/env.example` lists the 4 GB values
+- [x] Hangfire `WorkerCount = 2`: the default 20 held 24 of those 50 connections while idle
 
 Done when: the stack comes up on the server, the Persian app loads over HTTPS with a valid
 certificate, and `/health` reports healthy.
+
+Verified locally (2026-09-24) with `DOMAIN=localhost`: all three containers healthy, `/health` 200
+through Caddy, deep links served by the SPA, `/assets/*` cached as immutable, login sets the Secure
+refresh cookie, `/hangfire` and `/openapi` reach only the SPA, and the stack idles at about 225 MB.
+Still to do on the real server: Let's Encrypt issuance (needs 80/443 inbound and Let's Encrypt
+reachable from the data centre).
 
 ### 6.2 Release process
 - [ ] Images built on the development machine, not the server: `docker compose build`,

@@ -605,3 +605,20 @@ The question that started this was whether a gym that is entirely internal — I
 - **A generated type can be nullable for a reason that has nothing to do with it.** `ServiceChargeKind` came back from openapi-typescript as `"Cardio" | null`, because the enum is used as an optional field on two responses and the generator marks the shared component nullable rather than the two usages. `NonNullable<...>` at the one place the frontend names the type is the honest fix: the null belongs to "this row is not a service charge", not to the kind itself.
 - **Writing the test for a rule is what found the hole in the screen.** "Debt outlives the thing that created it" (§5) was already implemented in the API — a closed visit's charge still takes a payment. The test asserting it from the UI failed, because the member profile only renders the charge box for the *open* visit, and a finished visit had left that card. Nowhere on any screen could that money be collected. The fix was to give the attendance history row the full box for closed visits and leave the open one to the card above it. The API was right the whole time; nobody could reach it.
 - **My notes:**
+
+---
+
+## 6.1 — Production image and compose
+
+- **A Dockerfile is a build recipe, a compose file is a running recipe.** The Dockerfile says how to make an image (`dotnet publish`, then copy the result into a small runtime image); `docker-compose.prod.yml` says how images run together (ports, memory, restart, health). Keeping them apart is why one image can run on your laptop and on the server unchanged.
+- **Multi-stage build.** The SDK image (compilers, about 1 GB) builds the app; only the published output is copied into the much smaller `aspnet` runtime image. The final image never contains source code or build tools.
+- **Layer caching decides how fast a build is.** The `.csproj` files are copied and restored before the source, so a code change reuses the cached restore layer instead of downloading every package again. Same idea for `package-lock.json` and `npm ci` in the web image.
+- **The build context is the repository root.** The projects share `Directory.Build.props`, `Directory.Packages.props` and `global.json`, and a Dockerfile can only `COPY` from inside its context. `.dockerignore` keeps `bin/`, `obj/`, `node_modules`, `.env` and `.git` out of it.
+- **A healthy container is not the same as a running one.** `depends_on: condition: service_healthy` makes the API wait for `pg_isready` and Caddy wait for `/health`. `/health` also reports pending migrations, so an API against an unmigrated database never becomes healthy and Caddy never starts: deploy order is migrate, then start.
+- **A minimal image has no `curl`.** The `aspnet` image is Debian but ships neither `curl` nor `wget`, so the health probe is a hand-written HTTP request over bash's `/dev/tcp`, the same trick as the Seq probe in the dev compose file.
+- **`${VAR:?message}` fails at `up`, not at 3 a.m.** A missing secret stops compose with a readable message instead of starting a database with an empty password.
+- **Defaults in the file, sizes in `.env`.** Memory limits and Postgres tuning are `${VAR:-default}`, so a server with more RAM is a change to `/opt/gym/.env` and not to a tracked file.
+- **A limit somewhere is a limit everywhere.** `max_connections=50` looked like a Postgres setting, but Hangfire's default of 20 workers held 24 idle connections, leaving the API's own pool under half. Checking `pg_stat_activity` found it; `WorkerCount = 2` fixed it (24 connections became 6).
+- **Persist the certificates.** The `caddy-data` volume holds the issued Let's Encrypt certificate. Without it every recreate asks again, and Let's Encrypt rate-limits repeated requests.
+- **Verify on the real image.** A green `dotnet test` runs the app on your machine, not in the container. The smoke test found the things only the image can show: the timezone resolves, the Secure cookie is set through HTTPS, `/hangfire` and `/openapi` are not reachable, and the whole stack idles at about 225 MB.
+- **My notes:**
