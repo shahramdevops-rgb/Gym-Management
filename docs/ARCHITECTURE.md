@@ -327,6 +327,20 @@ web/src/
   Prefer migrations that add before they remove, so one release of overlap is safe.
 - The rehearsal of `deploy/` on a development machine needs stand-ins for `ssh`, `scp` and `stat -c %a` (NTFS cannot
   hold mode 600). The scripts themselves are unchanged by that, but the real ssh transfer is only proven on a server.
+- Backups: `deploy/backup.sh run` dumps with `pg_dump -Fc` through `docker compose exec` inside the Postgres container,
+  where local connections need no password, so no secret is on a command line. A dump is written as
+  `.gym-*.dump.partial` and renamed only after `pg_restore --list` can read it, so a half-written or unreadable file is
+  never mistaken for a backup and the pull script never matches it. Rotation removes only `gym-*.dump`; the
+  `pre-restore-*.dump` safety copies and `backup.log` are left alone.
+- `backup.sh restore` drops and recreates the database, so the window between `DROP` and the end of `pg_restore` is the
+  dangerous one: if it fails, the database is partial and the `pre-restore-*.dump` it took first holds what was there.
+  It refuses to run without `--yes`, and it runs the migration bundle afterwards because a dump from before a release
+  lacks that release's migrations (`/health` would otherwise stay unhealthy and Caddy would not start).
+- `pull-backup.ps1` compares the downloaded size with the server's before it renames the file, treats a newest backup
+  older than 36 hours as a failure (the nightly job has stopped), and returns exit code 2 when only the flash drive is
+  missing. It must run under Windows PowerShell 5.1, the version on the gym's computer: no `&&`, no `?:`.
+- `cygpath`, `stat -c` and `chmod` behave differently under Git Bash on NTFS. The bash scripts are for the Linux
+  server; a rehearsal on Windows runs them through Git Bash with the same caveats noted above for `server.sh`.
 - The integration test host raises the login rate limit (`RateLimiting__Login__PermitLimit`), because every test
   client shares one address. A test that needs different settings uses `DatabaseFixture.CreateClient(settings)`,
   which builds a separate host with its own singletons.

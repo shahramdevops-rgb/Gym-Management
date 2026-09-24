@@ -78,9 +78,9 @@ ssh "$HOST" "mkdir -p '$REMOTE_DIR'"
 # The bundle is a 140 MB single file; -C compresses it on the wire.
 scp -C "$ARCHIVE" "$HOST:$REMOTE_DIR/"
 scp -C artifacts/efbundle "$HOST:$REMOTE_DIR/efbundle"
-scp docker-compose.prod.yml deploy/server.sh "$HOST:$REMOTE_DIR/"
+scp docker-compose.prod.yml deploy/server.sh deploy/backup.sh "$HOST:$REMOTE_DIR/"
 
 echo "==> Releasing on the server"
-ssh "$HOST" "cd '$REMOTE_DIR' && chmod +x server.sh && ./server.sh release '$TAG'"
+ssh "$HOST" "cd '$REMOTE_DIR' && chmod +x server.sh backup.sh && ./server.sh release '$TAG'"
 
 echo "==> Done. If something is wrong: ssh $HOST 'cd $REMOTE_DIR && ./server.sh rollback'"
