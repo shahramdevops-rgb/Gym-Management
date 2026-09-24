@@ -7,7 +7,7 @@
 #   ./backup.sh restore-scratch <file> [db]  load a dump into a separate scratch database and
 #                                            show row counts; the live database is not touched
 #
-# Dumps are pg_dump custom-format files in ./backups (gym-YYYYmmdd-HHMMSS.dump). The newest 60
+# Dumps are pg_dump custom-format files in ./backups (gym-YYYYmmdd-HHMMSS.dump). The newest 120
 # are kept. The gym's computer pulls them off this server (deploy/pull-backup.ps1).
 #
 # Set GYM_DIR to run it against another directory, BACKUP_KEEP to keep a different number.
@@ -21,7 +21,7 @@ GYM_DIR="${GYM_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 cd "$GYM_DIR"
 
 BACKUP_DIR="$GYM_DIR/backups"
-KEEP="${BACKUP_KEEP:-60}"
+KEEP="${BACKUP_KEEP:-120}"
 COMPOSE=(docker compose -f docker-compose.prod.yml)
 
 die() { echo "error: $*" >&2; exit 1; }
