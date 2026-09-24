@@ -20,6 +20,7 @@ No public access, no self-registration, no member logins.
 - Run API: `dotnet run --project src/Gym.Api`
 - Build the production images: `docker compose -f docker-compose.prod.yml --env-file <env file> build` (settings: `deploy/env.example`)
 - Release to the server (from Git Bash, key-based ssh): `deploy/release.sh <user@host> [--with-postgres]`; on the server: `./server.sh rollback`
+- Backups: on the server `./backup.sh run | restore <file> --yes | restore-scratch <file>`; on the gym PC `deploy/pull-backup.ps1` (README, "Backup and restore")
 - Frontend (inside web/): `npm run dev`, `npm run build`, `npm run lint`, `npm test`
 - Regenerate API types after any endpoint change (inside web/, API running): `npm run gen:api`
 Keep this section up to date when commands change.

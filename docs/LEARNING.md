@@ -637,3 +637,18 @@ The question that started this was whether a gym that is entirely internal — I
 - **A script's error message is its user interface.** `server.sh` says "`.env` has mode 644; run chmod 600" and "no previous release recorded" instead of failing somewhere deep. The person reading it will be you, at night, on a server.
 - **Only record a rollback target that exists.** The first rehearsal stored the placeholder `latest` as "previous" and offered a rollback to an image that was never there. State that can be wrong should be checked when it is written, not when it is used.
 - **My notes:**
+
+---
+
+## 6.3 — Backups
+
+- **A backup you have not restored is a hope, not a backup.** The rehearsal destroyed the members table, ran `restore --yes`, and checked that the three members, the changed owner password and `/health` all came back. Writing the dump script was twenty minutes; that check is the actual task.
+- **Write to a name nobody looks for, then rename.** The dump goes to `.gym-*.partial` and becomes `gym-*.dump` only after `pg_restore --list` can read it. A rename is atomic, so the pull script can never download a file that is still being written, and a failed dump never looks like a backup.
+- **Verify before you trust, at both ends.** The server checks the dump can be read back; the Windows script checks the downloaded size against the server's before renaming. Each is one cheap line, and each catches a failure that would otherwise be found on the worst day.
+- **Rotation must know what it may delete.** It removes only `gym-*.dump`. The `pre-restore-*` safety copies and the log sit in the same folder and survive; the test put a `pre-restore` file in the folder on purpose to prove it.
+- **Pull, not push, and give the puller almost no power.** The gym computer is behind a router, so it cannot be pushed to. The account it logs in as is not in the docker group and cannot read `.env`: if that PC is stolen, the thief can read backups and nothing else on the server. Least privilege is a design choice made before the incident.
+- **A destructive command needs a way out and a speed bump.** `restore` demands `--yes`, and it takes a `pre-restore` dump first. The dangerous stretch is between `DROP DATABASE` and the end of `pg_restore`; the script says exactly where the old data is if that stretch fails.
+- **Exit codes are a user interface for schedulers.** Task Scheduler shows only a number. 0 is fine, 1 is failure or a stale backup, 2 is "saved, but no flash drive". Being stale counts as failure on purpose: the most dangerous backup problem is the job that quietly stopped running.
+- **Match the tool to the machine that runs it.** The server is Linux, so bash; the gym's computer is Windows, so PowerShell 5.1. Trying to share one script would have made both worse. Windows PowerShell 5.1 has no `&&` and no `?:`, so the script avoids them.
+- **Rehearsing with stand-ins is honest only if you say what they stand in for.** `ssh`, `scp` and a file mode were faked; the scripts, Docker, Postgres and PowerShell were real. What is still unproven (the real SSH key, cron, the `gymbackup` account) is written down as unproven.
+- **My notes:**

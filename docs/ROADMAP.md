@@ -417,17 +417,28 @@ against the real server: the ssh/scp transfer and a `.env` with a real mode 600.
 first deploy, so the "Done when" line is confirmed there, not here.
 
 ### 6.3 Backups
-- [ ] Nightly `pg_dump -Fc` on the server into `/opt/gym/backups`, 60 daily copies kept
-- [ ] The gym's computer **pulls** the newest dump on a schedule (Windows Task Scheduler, `scp`,
+- [x] Nightly `pg_dump -Fc` on the server into `/opt/gym/backups`, 60 daily copies kept
+      (`deploy/backup.sh run`; each dump is checked with `pg_restore --list` before it is kept).
+      Installing the cron line is a server step (README, "Backup and restore")
+- [x] The gym's computer **pulls** the newest dump on a schedule (Windows Task Scheduler, `scp`,
       a read-only SSH key) onto its own disk and onto an attached flash drive. Pull, not push:
-      the gym machine is behind NAT and the server cannot reach it
-- [ ] `/opt/gym/.env` copied once, separately, kept by the Owner — not on the shared flash drive
-      with the daily dumps
-- [ ] Restore rehearsed into a scratch database on the development machine and written into the
-      README. What the gym holds is a dump file, not a running second database, so the restore
-      step is the part that has to be proven
+      the gym machine is behind NAT and the server cannot reach it (`deploy/pull-backup.ps1`).
+      Creating the `gymbackup` account and registering the task are one-time setup steps in the README
+- [x] `/opt/gym/.env` copied once, separately, kept by the Owner — not on the shared flash drive
+      with the daily dumps (written into the README; the copying itself happens at go-live, 6.4)
+- [x] Restore rehearsed into a scratch database and written into the README. What the gym holds
+      is a dump file, not a running second database, so the restore step is the part that has to
+      be proven (`backup.sh restore-scratch` and `restore`)
 
 Done when: a dump taken on the server restores into a scratch database and the app runs against it.
+
+Rehearsed locally (2026-09-24) on a real Compose stack: three members created through the API,
+a dump taken, the members destroyed, `restore --yes` run, and the three members, the changed
+owner password and a healthy `/health` came back. `restore-scratch` loaded the same dump into a
+separate database (3 members, 16 migrations). `pull-backup.ps1` ran on Windows PowerShell 5.1 with
+stand-ins for `ssh`/`scp`. Still to prove on the real server: cron, the `gymbackup` account and
+key, and the real ssh pull. Not rehearsed: restoring a dump older than the current migrations
+(the script runs the bundle afterwards, but that path was not exercised).
 
 ### 6.4 Go live
 - [ ] Deploy, seed the Owner, change the password on first login

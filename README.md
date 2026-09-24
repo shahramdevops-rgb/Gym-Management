@@ -225,3 +225,82 @@ and what the choice costs are in
 The work itself is Phase 6 of the [roadmap](docs/ROADMAP.md): production image and compose, the
 release process, backups, and go-live. The step-by-step deployment guide is written in task 6.4,
 once it has actually been done once.
+
+## Backup and restore
+
+Two copies, no cloud (ADR 0003). Every night the server dumps the database to
+`/opt/gym/backups` (`gym-YYYYmmdd-HHMMSS.dump`, the newest 60 kept). The gym's Windows computer
+then **pulls** the newest dump onto its own disk and onto a flash drive (the newest 30 kept).
+The dumps contain members' names and phone numbers: keep the flash drive somewhere safe, and
+consider BitLocker To Go on it.
+
+The database dump does not contain `/opt/gym/.env` (database password, token signing key). The
+Owner keeps one copy of that file, **not** on the flash drive with the dumps.
+
+### One-time setup on the server
+
+Both scripts arrive with every release (`deploy/release.sh` copies them to `/opt/gym`).
+
+```bash
+# 1. Nightly dump at 03:00 Tehran time, as the user that owns /opt/gym.
+crontab -e
+#   CRON_TZ=Asia/Tehran
+#   0 3 * * * cd /opt/gym && ./backup.sh run >> /opt/gym/backups/backup.log 2>&1
+
+# 2. A read-only account for the gym's computer. It is not in the docker group and cannot read .env.
+sudo adduser --disabled-password --gecos "" gymbackup
+sudo install -d -m 700 -o gymbackup -g gymbackup /home/gymbackup/.ssh
+echo 'restrict <the public key from the gym computer>' | sudo tee /home/gymbackup/.ssh/authorized_keys
+sudo chown gymbackup:gymbackup /home/gymbackup/.ssh/authorized_keys
+sudo chmod 600 /home/gymbackup/.ssh/authorized_keys
+sudo chmod o+x /opt/gym          # lets it reach backups/ only; .env stays mode 600
+./backup.sh run                  # the first dump also fixes the group of backups/
+```
+
+### One-time setup on the gym's computer (Windows)
+
+```powershell
+# Copy deploy\pull-backup.ps1 to C:\GymBackup\, then:
+ssh-keygen -t ed25519 -N '""' -f C:\GymBackup\id_ed25519      # press Enter; no passphrase, it runs unattended
+icacls C:\GymBackup\id_ed25519 /inheritance:r /grant:r "$($env:USERNAME):R"   # ssh refuses a key others can read
+# Put the contents of id_ed25519.pub in the server's authorized_keys (above), then accept the
+# server's host key once, by hand:
+ssh -i C:\GymBackup\id_ed25519 gymbackup@gym.example.ir exit
+
+$arguments = '-NoProfile -ExecutionPolicy Bypass -File C:\GymBackup\pull-backup.ps1 ' +
+  '-RemoteHost gymbackup@gym.example.ir -KeyFile C:\GymBackup\id_ed25519 ' +
+  '-LocalDir C:\GymBackups -FlashDir E:\GymBackups'
+$action   = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arguments
+# This computer may be switched off at night, so it also runs at every log-on, and a missed run starts when it can.
+$triggers = @((New-ScheduledTaskTrigger -Daily -At 4:30am), (New-ScheduledTaskTrigger -AtLogOn))
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAvailable
+Register-ScheduledTask -TaskName 'Gym backup pull' -Action $action -Trigger $triggers -Settings $settings
+Start-ScheduledTask -TaskName 'Gym backup pull'               # try it now
+```
+
+Read the result in Task Scheduler ("Last Run Result") or in `C:\GymBackups\pull-backup.log`:
+`0` fine, `1` failed or the server's newest backup is over 36 hours old (the nightly job has
+stopped), `2` saved on the computer but the flash drive was not attached.
+
+### Restore
+
+Do this once, before you need it. A dump is only a backup if it has been restored.
+
+```bash
+# On the server, with the dump copied next to the scripts (scp it from the gym computer if needed):
+
+# A. Check a dump in a scratch database. The live database is not touched.
+./backup.sh restore-scratch gym-20260924-030001.dump      # prints the rows per table
+
+# B. Replace the live database with a dump (the app is stopped while it runs).
+./backup.sh restore gym-20260924-030001.dump --yes
+```
+
+`restore` first saves the current database as `backups/pre-restore-*.dump`, stops the API and
+Caddy, recreates the database from the dump, applies any migrations the dump does not have
+(`efbundle`), and starts everything again. Users, members, payments and the audit log all come
+back as they were in the dump; anything after the dump's time is lost.
+
+If the whole server is lost: provision a new one (task 6.0), put `.env` back, run
+`deploy/release.sh <user@host> --with-postgres` from the development machine, then restore the
+newest dump as in B.
