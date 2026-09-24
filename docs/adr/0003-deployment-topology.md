@@ -91,3 +91,19 @@ One Docker Compose stack on one host: `api`, `postgres`, `caddy`.
 - The gym holds a dump file, not a running second database. Restoring it is a deliberate manual
   step, so the restore has to be rehearsed once and written down, otherwise the first real
   attempt happens on the worst day.
+
+## Update — the server as rented (2026-09-24)
+
+The machine actually rented is **2 cores, 4 GB of RAM and 60 GB of disk**, Ubuntu 26.04.1 LTS,
+not the 2 GB assumed above. The decision is unchanged and nothing in it depended on 2 GB being
+the exact figure; the headroom argument simply became less tight. The only concrete difference is
+the memory column in `.env` (`deploy/env.example` already carried the 4 GB values as a comment):
+`shared_buffers=512MB`, `effective_cache_size=1536MB`, and limits of 1536m / 768m / 128m.
+
+Two assumptions in the Context were also tested against the real host, with one overturned:
+
+- Docker Hub **is** reachable from this data centre, so "the server cannot pull images" is not a
+  constraint after all. Releases still ship images with `docker save`/`load`, because that path is
+  built, rehearsed and does not depend on a route that can disappear. Task 6.4 keeps the pull
+  model as a measured, post-go-live option rather than an assumption.
+- Inbound 80 is not blocked by the provider, which Let's Encrypt validation requires.
