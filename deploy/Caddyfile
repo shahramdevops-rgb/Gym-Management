@@ -41,3 +41,11 @@
 		file_server
 	}
 }
+
+# The second domain redirects; it is not a second home. The refresh cookie is scoped to one
+# host, so serving the app under both names would sign a member of staff out whenever they
+# typed the other one. Unset (local smoke tests) it falls back to a single-label name, which
+# keeps Caddy on its internal CA instead of asking Let's Encrypt for an unobtainable certificate.
+{$REDIRECT_DOMAIN:no-redirect} {
+	redir https://{$DOMAIN}{uri} permanent
+}

@@ -127,6 +127,8 @@ services:
         condition: service_healthy
     environment:
       DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      # Optional second domain, permanently redirected to DOMAIN. Unset means no redirect.
+      REDIRECT_DOMAIN: ${REDIRECT_DOMAIN:-no-redirect}
     ports:
       - "80:80"
       - "443:443"

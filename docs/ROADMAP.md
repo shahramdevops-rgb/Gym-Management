@@ -347,19 +347,40 @@ tests and 387 frontend tests pass.
 ## Phase 6 — First Deployment (MVP 1 live)
 
 Shape and reasoning: `docs/adr/0003-deployment-topology.md`. One Docker Compose stack
-(API, Postgres, Caddy) on one rented Iranian VPS — 2 cores, 2 GB RAM, 50 GB disk — reachable
-from the internet over a real domain. The binding constraint is RAM, not disk.
+(API, Postgres, Caddy) on one rented Iranian VPS, reachable from the internet over a real domain.
+The binding constraint is RAM, not disk. The ADR was written against 2 cores / 2 GB / 50 GB; the
+server actually rented (2026-09-24) is 2 cores, 4 GB and 60 GB, which changes only the memory
+values in `.env`.
 
 ### 6.0 Deployment decisions and prerequisites
-- [ ] `docs/adr/0003-deployment-topology.md`
-- [ ] Server provisioned: Ubuntu LTS, 2 cores, 2 GB RAM, 50 GB disk, 2 GB swapfile
-- [ ] Domain registered, its A record pointing at the server
-- [ ] SSH key-only login, `ufw` allowing 22/80/443 only, fail2ban
-- [ ] Outbound HTTPS left open: the Phase 10 SMS panel is called from this host
-- [ ] `timedatectl` reports a synchronised clock — JWT validation uses `ClockSkew = TimeSpan.Zero`,
-      so clock drift rejects valid tokens
+
+Written up step by step, with the reasoning, in `docs/SERVER-SETUP.md`.
+
+- [x] `docs/adr/0003-deployment-topology.md`
+- [x] Server provisioned: Ubuntu 26.04.1 LTS, 2 cores, 4 GB RAM, 60 GB disk, 2 GB swapfile
+      (`vm.swappiness=10`)
+- [x] Deploy user `gym` (sudo, in the `docker` group)
+- [x] `/opt/gym` and `.env` (mode 600, owned by `gym`) with the 4 GB memory values
+- [x] Docker Engine and the Compose v2 plugin from Docker's own repository
+- [ ] Domain registered, its A record pointing at the server — `pasargadgymplus.ir` (canonical)
+      and `pasargadgymplus.com` (redirected to it by Caddy, `REDIRECT_DOMAIN`). Both are
+      registered and delegated to `ns1/ns2.parspack.co`, but neither zone is being served:
+      the `.com` gets `REFUSED` from those nameservers and the `.ir` is not published in the
+      `.ir` zone at all. Waiting on the DNS provider; nothing here or at the registrar is wrong
+- [x] SSH key-only login (root login off, `KbdInteractiveAuthentication` off too), `ufw`
+      allowing 22/80/443 only, fail2ban reading the systemd journal
+- [x] Outbound HTTPS left open: the Phase 10 SMS panel is called from this host
+- [x] `timedatectl` reports a synchronised clock — JWT validation uses `ClockSkew = TimeSpan.Zero`,
+      so clock drift rejects valid tokens. Host timezone set to `Asia/Tehran` so `backup.sh`
+      filenames and logs agree with the gym's day
+- [x] Inbound 80 confirmed reachable from outside (some providers block it until an identity
+      check), so Let's Encrypt validation will work once DNS resolves
 
 Done when: `ssh` with a key works, `ufw status` shows only 22/80/443, and the clock is synchronised.
+
+All three verified on the server on 2026-09-24. The one item still open is DNS, which depends on
+the provider serving the zones; it is not a blocker for anything except the certificate, and the
+certificate is 6.4's first step.
 
 ### 6.1 Production image and compose
 - [x] Multi-stage `src/Gym.Api/Dockerfile`: SDK build stage, `mcr.microsoft.com/dotnet/aspnet:10.0`
@@ -447,8 +468,12 @@ key, and the real ssh pull. Not rehearsed: restoring a dump older than the curre
       check-in → locker shown → check-out → nightly job visible in Hangfire
 - [ ] `free -h` and `docker stats` after 24 hours — on 2 GB of RAM this is the number that matters
 - [ ] Deployment guide in the README
+- [ ] Reboot the server deliberately and watch the whole stack come back by itself. Only then
+      decide whether to turn on `unattended-upgrades`' automatic reboot (04:00, gym closed)
 - [ ] If `ghcr.io` turns out to be reachable from the server, move releases to a pull model in
-      GitHub Actions. Not assumed: the save/load script is the baseline
+      GitHub Actions. Not assumed: the save/load script is the baseline. Docker Hub *is*
+      reachable from this data centre (checked 2026-09-24), so a registry pull is worth
+      measuring against the ~1 GB `scp` — but only after go-live, and the save/load path stays
 
 Done when: the front desk runs a real day on the deployed system.
 

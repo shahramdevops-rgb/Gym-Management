@@ -216,15 +216,27 @@ A mismatch between the frontend and the API then shows up as a type error in `np
 
 ## Deployment
 
-Not yet — but the shape is decided. One Docker Compose stack (API, Postgres, Caddy) on a single
-rented Iranian VPS, reachable over a real domain with an automatically issued certificate, with
-images built here and transferred rather than built on the server. The reasoning, the alternatives
-and what the choice costs are in
+One Docker Compose stack (API, Postgres, Caddy) on a single rented Iranian VPS, reachable over a
+real domain with an automatically issued certificate, with images built here and transferred
+rather than built on the server. The reasoning, the alternatives and what the choice costs are in
 [ADR 0003](docs/adr/0003-deployment-topology.md).
 
-The work itself is Phase 6 of the [roadmap](docs/ROADMAP.md): production image and compose, the
-release process, backups, and go-live. The step-by-step deployment guide is written in task 6.4,
-once it has actually been done once.
+**Preparing a server** — everything from a bare VPS to a host that can take a release: user and
+SSH key, firewall, `fail2ban`, swap, clock, Docker, DNS, `/opt/gym/.env` — is in
+[docs/SERVER-SETUP.md](docs/SERVER-SETUP.md), with the reason for each step. Run it once per
+server, and again if one is ever rebuilt.
+
+**Releasing** to a prepared server is one command from the development machine:
+
+```bash
+deploy/release.sh gym@<server-ip> --with-postgres    # --with-postgres on the first release only
+```
+
+It builds the images here, builds the EF migration bundle, copies everything over, runs the
+migrations and starts the new version. `./server.sh rollback` on the server goes back.
+
+Still to do is go-live (task 6.4 of the [roadmap](docs/ROADMAP.md)): the first real deploy, the
+certificate, and the Persian smoke test.
 
 ## Backup and restore
 
