@@ -484,6 +484,83 @@ key, and the real ssh pull. Not rehearsed: restoring a dump older than the curre
 
 Done when: the front desk runs a real day on the deployed system.
 
+### 6.5.0 Panel subdomain and a public placeholder
+
+Decided 2026-09-25, and it has to land **before** the canonical domain moves to the `.ir`. Today
+the bare domain answers with the staff login form, which is the wrong front door for a gym and
+gets indexed by search engines. The panel belongs on its own host:
+
+```
+pasargadgymplus.ir         the gym's public face (a placeholder page until there is a real site)
+panel.pasargadgymplus.ir   this application
+```
+
+A subdomain rather than a path, for four reasons: the refresh cookie stays off the public host;
+Caddy can give the panel its own rate limits or an IP allowlist without touching the public
+site; the public site can be static files that keep working while the API is down; and the
+panel gets `X-Robots-Tag: noindex` on its own. This is separation, not security — the real
+protections are the login rate limit, lockout, fail2ban and the firewall, all already in place.
+
+Timing is the whole point: switching the canonical domain signs every user out and makes staff
+learn a new address, so the move to the `.ir` and the move to `panel.` happen in the same
+change. One disruption, not two.
+
+- [ ] A record for `panel.` alongside the apex, same server, proxy off
+- [ ] A second Caddy site for the apex serving a static placeholder; the panel site keeps
+      everything it has now plus `X-Robots-Tag: noindex`
+- [ ] `DOMAIN=panel.pasargadgymplus.ir` in `/opt/gym/.env` (it also sets `AllowedHosts`);
+      `REDIRECT_DOMAIN` keeps sending the `.com` to the panel until there is a public site
+- [ ] Tell the staff the new address before the switch, and do it before opening time
+
+---
+
+## Phase 6.5 — Front desk follow-ups (found during the first real use, 2026-09-25)
+
+These came out of the Owner using the deployed system for the first time. They are features,
+not polish: the front desk meets both of them every day. Numbered 6.5 rather than folded into
+Phase 7 because they should land before the cafe adds more to the same screens.
+
+### 6.5.1 Lockers for the front desk
+Rule change, decided by the Owner on 2026-09-25: a staff member could not open the lockers
+screen at all, because `LockersEndpoints` puts the whole group behind `Policies.OwnerOnly`. But
+the person who sees a broken locker is the one at the desk, not the Owner.
+
+- [ ] BUSINESS_RULES.md §0: split the "Plans, lockers setup, staff accounts" row. Creating a
+      locker stays Owner-only; listing lockers and taking one out of / back into service become
+      Staff too. Plans and staff accounts are unchanged
+- [ ] Split the endpoint group: `GET /` and `GET /{id}` and the two service endpoints allow
+      Staff, `POST /` stays `OwnerOnly`. One explicit policy per endpoint, never a group default
+      that quietly widens later
+- [ ] A column on the lockers screen naming the member who currently holds each locker, so
+      "whose is locker 1?" is answered without opening attendance. Occupancy is derived from the
+      open attendance and never stored (BUSINESS_RULES.md §6), so the member's name comes from
+      the same join
+- [ ] The create button is hidden for Staff. The API enforces it too — the hidden button is
+      about not offering what would fail, not about security
+- [ ] Tests: Staff can list and take out of service; Staff creating a locker is 403; the holder
+      column is empty for a free locker and names the member for an occupied one
+
+### 6.5.2 The "currently inside" board: one row, one line
+Two problems on one screen. `ServiceChargeBox` is a 147-line component rendered inside a table
+cell, and its amount / payment / void forms expand **in place**, so a row can triple in height.
+The cafe will want the same slot, and a column per service does not scale.
+
+- [ ] A row is always one line. The هوازی cell shows a summary only (amount plus payment badge);
+      every form moves into a side panel or dialog opened from that row
+- [ ] Session progress per row: used / total with a bar, in the shape of the reference design.
+      An unlimited subscription shows "نامحدود" and no bar — a bar needs a denominator
+- [ ] Status badge and expiry date per row, so the desk sees an expiring subscription at
+      check-in rather than after it lapses
+- [ ] `CurrentlyInsideResponse` carries none of this yet (member, locker, time, charges only):
+      extend the projection rather than firing a query per row
+- [ ] Build the bar and the badge as shared components: Phase 9's dashboard needs both, and a
+      second copy would drift from the first
+- [ ] While here: the "عضو جدید" button on the member search screen has no colour, unlike the
+      one on the members list. One primary-button component, used by both
+
+Done when: a staff member can manage lockers without the Owner, and a row on the board never
+grows taller than one line.
+
 ---
 
 ## Phase 7 — Cafe / POS
@@ -585,6 +662,35 @@ Done when: the front desk runs a real day on the deployed system.
 - [ ] Complete ADRs
 - [ ] Demo seed data
 - [ ] Deployment guide
+
+---
+
+## Phase 13 — Look, feel and mobile
+
+Deliberately last, and deliberately in one pass. Phases 7 to 9 add whole screens; restyling
+before they exist means restyling them twice, while a shared set of components built here would
+be built against screens that do not exist yet. The exception is 6.5.2, which builds the bar,
+the badge and the primary button early because the board needs them anyway.
+
+### 13.1 Mobile
+Not cosmetic. The reception PC is a Windows desktop, but the gym loses power: during an outage
+the desk has to keep working from a phone, and the Owner checks the gym from home on one.
+
+- [ ] Check-in, check-out and the board are fully usable on a phone — the flows that cannot wait
+      for the power to come back
+- [ ] Tables become cards below the breakpoint instead of scrolling sideways
+- [ ] Forms and dialogs open full-screen on a phone, including the service-charge panel from 6.5.2
+- [ ] Touch targets, and the Jalali date picker and MoneyField on a real phone keyboard
+
+### 13.2 One visual language
+- [ ] Colour, typography and spacing tokens; every screen built from the same components
+- [ ] The Persian font renders numbers and text consistently across screens
+- [ ] Empty states, loading states and error states that look deliberate
+
+### 13.3 The public site
+- [ ] Replace the placeholder on the apex with a real page for the gym: hours, address, contact,
+      services. Static, no API
+- [ ] Confirm the panel stays out of search results
 
 ---
 
