@@ -34,6 +34,10 @@ Decided values:
   succeed with a balance outstanding; the front desk is shown the amount instead of being stopped
   (decided with the developer, 1405/06/31). There is no debt ceiling. *If the gym later wants one,
   it becomes a `Gym:MaxMemberDebt` setting and a refusal, not a change to any of the rules below.*
+- The single-session (تک‌جلسه‌ای) rate is **not** a setting. There is no `Gym:DropInPrice`: the one
+  single-session plan (§3) carries the price and snapshots it onto every sale (§4), so the Owner
+  editing that plan is the whole mechanism for changing the rate. A setting would be a second place
+  to keep true (decided with the developer, 1405/07/03).
 
 ---
 
@@ -139,6 +143,25 @@ Decided values:
   - The plan list is paged like every list, active plans first, then by name, with an optional active/inactive filter.
   - Activating an active plan, or deactivating an inactive one, succeeds and changes nothing.
 
+### The single-session plan (تک‌جلسه‌ای)
+
+Decided with the developer, 1405/07/03. Roadmap 6.5.3.
+
+- A plan has a `Kind`: `Membership` or `SingleSession`. Every plan that existed before this is a
+  `Membership`.
+- There is exactly **one** `SingleSession` plan, enforced by a partial unique index on `plans` where
+  the kind is single-session. One rate for everyone: the gym charges a walk-in visitor a single
+  figure, and changing that figure is editing this plan's price, which never changes what a past sale
+  was worth (§3 above). So there is no second single-session plan and no versioning of one.
+- Its shape is not typed by hand: a `SingleSession` plan always has `DurationDays = 1` and
+  `SessionCount = 1`. Anything else is refused (`Plans.SingleSessionShape`), and a check constraint
+  refuses it in the database too.
+- The Owner creates it once from the plans screen, like any other plan. It is **not** seeded at
+  startup: its price is the gym's own number and nothing may invent one. *Decided by Claude during
+  task 6.5.3; pending review.*
+- It can be deactivated like any plan, which stops single-session entry. The entry screen says that
+  is why, rather than offering an action that fails with nothing to explain it.
+
 ---
 
 ## 4. Subscriptions
@@ -167,6 +190,50 @@ Decided values:
 - `ConsumeSession(today)` fails unless the status is `Active`. It increments `UsedSessions`.
 - `RestoreSession()` decrements `UsedSessions` (used only by cancel check-in) and never goes below 0.
 - Database: check constraint `used_sessions <= total_sessions` (when total is not null); `xmin` concurrency token.
+
+### Single-session subscriptions (تک‌جلسه‌ای)
+
+Decided with the developer, 1405/07/03. Roadmap 6.5.3.
+
+A single-session sale is an **ordinary subscription** sold from the one single-session plan (§3), not
+a separate kind of record. It has a price, a payment, a place in the member's debt, an attendance row
+and a locker like anything else, and the member can buy هوازی during the visit (§7). What makes it
+different is that it is invisible to every rule that orders a member's calendar: it is one day for one
+visit, and it must never move, delay or shorten what the member already bought.
+
+- The flag is **snapshotted onto the subscription** at sale, not read live through `PlanId` the way
+  the plan's name is. Two reasons: the exclusion constraint below lives on `subscriptions` and cannot
+  join to `plans`, and the shape of a past sale must not change if the plan ever does.
+- **Start date is always today**, and `EndDate` is today. It never reads the member's calendar and it
+  is never queued, whatever else the member holds.
+- **Overlap:** the no-overlap rule and its exclusion constraint apply to **membership** subscriptions
+  only. A single-session subscription may cover a date a membership also covers, and two of them may
+  cover the same date. The constraint's condition becomes "not cancelled **and not single-session**".
+  What stays guarded is the rule that matters: two memberships never cover the same date.
+- **It never moves anything.** Selling one does not close an `Exhausted` membership early and does not
+  pull a queued subscription forward; and a used single-session subscription is itself never the
+  "current exhausted subscription" those rules act on. Without this, selling a single visit to a member
+  whose monthly pack has run out of sessions would rewrite that pack's `EndDate` to yesterday — the
+  desk would be changing the member's own subscription by letting them in for one day.
+- **Renew is refused.** Renewal needs a plan with more than one session, so renew reads the member's
+  latest **membership** subscription and ignores single-session rows entirely. A member whose only
+  history is single-session visits has `Subscriptions.NothingToRenew`.
+- **Freeze is refused** (`Subscriptions.SingleSessionNotFreezable`): a one-day subscription has nothing
+  to suspend. Unfreezing a membership shifts that member's queued subscriptions (§4 *Freeze*) but never
+  a single-session row — those are dated today or earlier, and shifting them would rewrite history.
+- **A member whose membership is frozen and who comes in today is sold a single visit, and their freeze
+  is not touched.** Freeze and unfreeze stay Owner-only (§1): the desk needs neither of them to let the
+  person in, so this feature changes no permissions.
+- **Two visits in one day** are two single-session sales. The one-open-visit-per-member index (§7) means
+  the member checks out before coming back.
+- **Cancel and refund are unchanged** (§4 *Cancel*, §5): cancellable and refundable before the visit,
+  neither afterwards, and the 30-minute cancel-check-in window restores the session, which brings
+  `UsedSessions` back to 0 and makes it refundable again.
+- **It is sold to the person who uses it.** One member, one visit. Buying visits for other people is not
+  possible: a subscription belongs to one member and a member holds one open visit at a time, so ten
+  friends would need ten member records — and every member needs a unique Iranian mobile (§2). The group
+  case is recorded under "Future — Group visits" in the roadmap, with why it needs more than a
+  subscription.
 
 ### Freeze
 - Only `Active` subscriptions can be frozen. A frozen subscription cannot be used for check-in.
@@ -262,6 +329,10 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
   subscription is left, and the visit's هوازی charge.
 - Sessions are shown as used of total. An unlimited subscription has no total to count against,
   so it reads "نامحدود" rather than a bar with no denominator.
+- A single-session visit has no session count to show: the row reads "تک‌جلسه‌ای" where used-of-total
+  goes, and it is excluded from **both** "needs attention" thresholds below. It is always 1 of 1 used
+  and always expires today, so the mark would be on for every such row — and a mark that is always on
+  says nothing, the same reasoning that removed the status badge from this board.
 - A row is marked as needing attention when the subscription behind that visit has **3 or fewer
   sessions left**, or **expires within 5 days**. Both are shown to the front desk while the member
   is standing there, which is the only moment renewing costs nobody a phone call.
@@ -370,6 +441,9 @@ Decided with the developer, 1405/06/31. Implemented in task 5.7.
 - Expenses by category (voided excluded). Net profit = revenue − expenses.
 - Attendance per day and by hour (cancelled excluded).
 - Active subscriptions, expiring soon, low sessions. Top cafe products.
+- Single-session (تک‌جلسه‌ای) revenue is reported separately from membership sales: they are the same
+  kind of record (§4) but not the same business. Until Phase 9 implements the split, the
+  subscription-sales figure includes single-session visits.
 
 ---
 

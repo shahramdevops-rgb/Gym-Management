@@ -560,7 +560,7 @@ out of the other one.
 ## Phase 6.5 — Front desk follow-ups (found during the first real use, 2026-09-25)
 
 These came out of the Owner using the deployed system for the first time. They are features,
-not polish: the front desk meets both of them every day. Numbered 6.5 rather than folded into
+not polish: the front desk meets all of them every day. Numbered 6.5 rather than folded into
 Phase 7 because they should land before the cafe adds more to the same screens.
 
 ### 6.5.1 Lockers for the front desk
@@ -608,6 +608,67 @@ The cafe will want the same slot, and a column per service does not scale.
 
 Done when: a staff member can manage lockers without the Owner, and a row on the board never
 grows taller than one line.
+
+### 6.5.3 Single-session entry (تک‌جلسه‌ای): the rules and the API
+Asked for by the Owner on 2026-09-25: someone walks in with no subscription and wants to pay for one
+visit. Check-in refuses them today, because it requires an `Active` subscription. Decided with the
+Owner to model a single visit as an **ordinary subscription** sold from one dedicated plan
+(BUSINESS_RULES.md §3, §4). That keeps the attendance table, lockers, هوازی, debt, payments and
+refunds working untouched — but it means the subscription must be made invisible to the five rules
+that order a member's calendar, or selling a single visit will silently rewrite what the member
+already bought.
+
+- [x] BUSINESS_RULES.md §0, §3, §4, §7 and §12 written up before any code (planning session,
+      2026-09-25)
+- [ ] `Plan.Kind` (`Membership` / `SingleSession`); validation forcing `DurationDays = 1` and
+      `SessionCount = 1` for the single-session kind; partial unique index so a second
+      single-session plan cannot exist
+- [ ] `Subscription.IsSingleSession`, snapshotted at sale. Migration: the column defaulting to
+      `false` for existing rows, plus a check constraint tying the flag to `duration_days = 1` and
+      `total_sessions = 1`
+- [ ] Migration: recreate the `SubscriptionConstraints.NoOverlap` exclusion constraint with
+      `AND NOT is_single_session` in its `WHERE`. Hand-written SQL, like the original in
+      `AddSubscriptions`
+- [ ] `SubscriptionSchedule.NextStartDate`: a single-session sale starts today and reads nothing.
+      And the `EndDate >= today` query in `SubscriptionSeller` skips single-session rows, so a
+      membership sold to someone who dropped in today still starts today instead of tomorrow
+- [ ] `SubscriptionSchedule.InEffectToday` and `Subscription.CloseExhaustedEarly`: membership rows
+      only. A single-session sale closes nothing early and pulls no queued subscription forward
+- [ ] Freeze refuses a single-session subscription; unfreeze shifts queued memberships only
+- [ ] Renew reads the latest membership subscription and ignores single-session rows
+- [ ] Tests (domain): selling a single visit to a member with an `Exhausted` membership leaves that
+      membership's `EndDate` alone; with a renewal queued, the renewal does not move; the start date
+      is today whatever the calendar holds; freeze and renew are refused
+- [ ] Tests (integration): two single-session sales on the same day both succeed, and the member
+      checks in twice with a check-out between; a single visit sold alongside a frozen membership is
+      accepted; two overlapping **memberships** are still refused by the constraint; a second
+      single-session plan is refused
+
+Done when: a member with no subscription — or with a frozen, expired or exhausted one — can be sold a
+single visit and checked in, and nothing about their own subscription changes.
+
+### 6.5.4 UI: the entry screen
+The member search screen (`HomePage`) is already the desk's entry point and already has a check-in
+button per row, but it dead-ends as soon as the person has no usable subscription. This finishes that
+screen rather than adding a second place that searches members, which would leave staff choosing
+which one to open.
+
+- [ ] One search box, as now. The result shows **one primary action** worked out from that person's
+      state, never a row of buttons to choose between: this is what keeps the common case at one
+      Enter and one click, and what stops a member with a usable subscription being charged for a
+      single visit by mistake
+- [ ] Found, nothing usable: sell a single visit and check in, or sell a plan, from the same place
+- [ ] Not found: register the member (every field we have — name, phone, birth date) and then either
+      action, without leaving the screen
+- [ ] The board shows "تک‌جلسه‌ای" instead of the session bar, and no "needs attention" mark
+      (BUSINESS_RULES.md §7)
+- [ ] When the single-session plan has not been created yet, or is inactive, the screen says so in
+      Persian instead of offering an action that will fail
+- [ ] Tests: all four cases reach check-in; the single-visit action is not the primary one for a
+      member who can already come in
+
+Done when: a walk-in visitor is inside with a locker, paid for, without the desk opening a second
+screen.
 
 ---
 
@@ -750,3 +811,21 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
 - [ ] Fast check-in and check-out
 - [ ] Security and rate limiting
 - [ ] Keep the phone and name fallback
+
+---
+
+## Future — Group visits (not in MVP)
+One person arrives with ten friends and does not want to hand over ten phone numbers. Recorded here
+rather than in 6.5.3 because the current model blocks it twice over: a subscription belongs to exactly
+one member, and a member holds one open visit at a time
+(`ux_attendances_one_open_per_member`). So one buyer cannot hold ten visits, and ten members would
+need ten unique Iranian mobile numbers (BUSINESS_RULES.md §2). Postponed by the Owner on 2026-09-25 —
+until then each visitor buys their own single visit under their own name.
+
+- [ ] A group ticket: one sale of quantity N to the buyer, and N visits carrying only a sequence
+      number ("مهمان ۲ از علی رضایی") and a locker
+- [ ] A visit with no subscription of its own — `Attendance.SubscriptionId` is required today
+- [ ] The one-open-visit-per-member index becomes conditional on guest visits
+- [ ] Check the whole group out in one action. With no names, the locker number is the desk's only
+      handle, so a friend who leaves without checking out has to be findable by locker
+
