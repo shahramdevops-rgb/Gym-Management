@@ -82,7 +82,8 @@ Decided values:
 | Check-in, check-out, cancel check-in | ✅ | ✅ |
 | Assign or renew subscriptions | ✅ | ✅ |
 | Register payments, create cafe orders | ✅ | ✅ |
-| Plans, lockers setup, staff accounts | ✅ | ❌ |
+| Plans, staff accounts, creating a locker | ✅ | ❌ |
+| Lockers: see the list, take one out of service, bring it back in | ✅ | ✅ |
 | Freeze, unfreeze, cancel subscriptions | ✅ | ❌ |
 | Refunds, voids, cafe order cancellation, stock adjustments | ✅ | ❌ |
 | Gym service charges: record, change the amount, void (§7 *Gym services*) | ✅ | ✅ |
@@ -235,8 +236,12 @@ charges in 5.7; cafe orders join the same total in Phase 7.
 ## 6. Lockers
 
 - Fields: `Number` (unique), `IsOutOfService`.
-- A locker is occupied when an open attendance references it. Occupancy is derived, never stored.
+- A locker is occupied when an open attendance references it. Occupancy is derived, never stored,
+  and so is the member holding it: the locker list names whoever the open attendance belongs to,
+  so the desk can answer "whose is locker 1?" without opening attendance.
 - A locker cannot be marked out of service while occupied.
+- Staff see the list and change a locker's service state; only the Owner adds a locker. The
+  person who finds a locker broken is the one at the desk, and the same person sees it repaired.
 
 ---
 

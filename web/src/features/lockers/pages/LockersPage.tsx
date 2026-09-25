@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { hasRole, useCurrentUser } from "@/features/auth/api";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 import { normalizeDigits } from "@/lib/normalize";
@@ -23,13 +24,17 @@ function parseLockerNumber(text: string): number | null {
 }
 
 /**
- * Owner only: the gym's lockers, with live occupancy (derived from an open attendance,
- * BUSINESS_RULES.md §6) and a one-field form to add another. Check-in picks a locker itself
- * (task 5.2), so this screen is only setup, never a browsing step for the front desk.
+ * The gym's lockers: who is holding each one (derived from an open attendance,
+ * BUSINESS_RULES.md §6) and whether it is in service. Both roles read it and change a locker's
+ * service state; only the Owner is offered the form that adds one, because only the Owner's
+ * request would be accepted. The API enforces that — hiding the form is about not offering what
+ * would fail, not about security.
  */
 export function LockersPage() {
   const [params, setParams] = useSearchParams();
   const page = pageFromParams(params);
+  const user = useCurrentUser();
+  const isOwner = hasRole(user.data, "Owner");
   const lockers = useLockerList(page);
   const createLocker = useCreateLocker();
   const setOutOfService = useSetLockerOutOfService();
@@ -69,28 +74,30 @@ export function LockersPage() {
     <div className="space-y-6">
       <h2 className="text-xl font-bold">کمدها</h2>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>کمد جدید</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={(event) => void addLocker(event)} className="flex items-end gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="locker-number">شماره کمد</Label>
-              <Input
-                id="locker-number"
-                inputMode="numeric"
-                className="w-32"
-                value={numberText}
-                onChange={(event) => setNumberText(event.target.value)}
-              />
-            </div>
-            <Button type="submit" disabled={createLocker.isPending}>
-              {createLocker.isPending ? "در حال ثبت…" : "افزودن"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {isOwner && (
+        <Card>
+          <CardHeader>
+            <CardTitle>کمد جدید</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={(event) => void addLocker(event)} className="flex items-end gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="locker-number">شماره کمد</Label>
+                <Input
+                  id="locker-number"
+                  inputMode="numeric"
+                  className="w-32"
+                  value={numberText}
+                  onChange={(event) => setNumberText(event.target.value)}
+                />
+              </div>
+              <Button type="submit" disabled={createLocker.isPending}>
+                {createLocker.isPending ? "در حال ثبت…" : "افزودن"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

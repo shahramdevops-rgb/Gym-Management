@@ -345,6 +345,43 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task CheckIn_ThenGetLocker_NamesTheMemberHoldingIt()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        // The desk asks "whose is locker 1?" without opening attendance (BUSINESS_RULES.md §6).
+        var fetched = await GetLockerOkAsync(staffClient, staffToken, locker.Id);
+        fetched.OccupiedByMemberId.ShouldBe(member.Id);
+        fetched.OccupiedByMemberFullName.ShouldBe(member.FullName);
+    }
+
+    [Fact]
+    public async Task CheckOut_ThenGetLocker_LeavesNoHolder()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+        var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        await CheckOutOkAsync(staffClient, staffToken, attendance.Id);
+
+        var fetched = await GetLockerOkAsync(staffClient, staffToken, locker.Id);
+        fetched.OccupiedByMemberId.ShouldBeNull();
+        fetched.OccupiedByMemberFullName.ShouldBeNull();
+        fetched.IsOccupied.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task CheckIn_ThenSetLockerOutOfService_Returns422LockersOccupied()
     {
         var (staffClient, staffToken) = await StaffClientAsync();

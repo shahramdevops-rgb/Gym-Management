@@ -13,13 +13,35 @@ import { freeLocker, lockersPage, occupiedLocker, outOfServiceLocker } from "@/t
 import { renderApp } from "@/test/renderApp";
 
 describe("LockersPage", () => {
-  it("LockersPage_StaffUser_SeesNoAccessMessageAndNoRequest", async () => {
-    const api = mockApi(signedInHandlers(staffUser));
+  it("LockersPage_StaffUser_ListsLockersWithoutTheCreateForm", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/lockers": () => lockersPage([freeLocker, occupiedLocker]),
+    });
 
     renderApp("/lockers", { session: session() });
 
-    expect(await screen.findByText("اجازهٔ دسترسی به این بخش را ندارید.")).toBeInTheDocument();
-    expect(api.requestsTo("GET", "/api/lockers")).toHaveLength(0);
+    // Staff read the list and change a locker's service state; only the Owner adds one.
+    const row = (await screen.findByText("۱")).closest("tr")!;
+    expect(within(row).getByRole("button", { name: "خارج از سرویس" })).toBeInTheDocument();
+    expect(screen.queryByText("کمد جدید")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("شماره کمد")).not.toBeInTheDocument();
+  });
+
+  it("LockersPage_OccupiedLocker_NamesTheMemberHoldingIt", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/lockers": () => lockersPage([freeLocker, occupiedLocker]),
+    });
+
+    renderApp("/lockers", { session: session() });
+
+    const occupiedRow = (await screen.findByText("۲")).closest("tr")!;
+    const holder = within(occupiedRow).getByRole("link", { name: "رضا احمدی" });
+    expect(holder).toHaveAttribute("href", `/members/${occupiedLocker.occupiedByMemberId}`);
+
+    const freeRow = screen.getByText("۱").closest("tr")!;
+    expect(within(freeRow).getByText("—")).toBeInTheDocument();
   });
 
   it("LockersPage_Owner_ListsLockersWithOccupancy", async () => {

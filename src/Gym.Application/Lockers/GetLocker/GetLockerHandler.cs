@@ -12,11 +12,12 @@ public sealed class GetLockerHandler(IAppDbContext db)
     public async Task<Result<LockerResponse>> Handle(Guid id, CancellationToken cancellationToken)
     {
         var openAttendances = db.Attendances.Where(a => a.CheckedOutAt == null);
+        var members = db.Members;
 
         var locker = await db.Lockers
             .AsNoTracking()
             .Where(l => l.Id == id)
-            .Select(LockerResponse.Projection(openAttendances))
+            .Select(LockerResponse.Projection(openAttendances, members))
             .SingleOrDefaultAsync(cancellationToken);
 
         return locker is null ? Result.Failure<LockerResponse>(LockerErrors.NotFound) : locker;
