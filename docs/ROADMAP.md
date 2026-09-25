@@ -533,11 +533,27 @@ change. One disruption, not two.
       the app with `noindex` and `/health` through to the API, the public page serves its file and
       font and returns 404 for `/health`, and both `www.` and the second domain return 301 to the
       public page with the path kept
-- [ ] `DOMAIN=panel.pasargadgymplus.ir`, `PUBLIC_DOMAIN=pasargadgymplus.ir` and
-      `REDIRECT_DOMAIN=pasargadgymplus.com` in `/opt/gym/.env`, then `up -d`. Release the image
-      first, on its own: with the current `.env` it changes nothing anybody can see, so a broken
-      build is found before the disruptive step rather than during it
-- [ ] Tell the staff the new address before the switch, and do it before opening time
+- [x] `DOMAIN=panel.pasargadgymplus.ir`, `PUBLIC_DOMAIN=pasargadgymplus.ir` and
+      `REDIRECT_DOMAIN=pasargadgymplus.com` in `/opt/gym/.env`, then `up -d`. Released the image
+      first, on its own: with the old `.env` it changed nothing anybody could see, so a broken
+      build would have shown up before the disruptive step rather than during it
+- [x] The staff address is `https://panel.pasargadgymplus.ir`. The system is still in trial use,
+      so the Owner chose not to wait for a quiet hour — being signed out costs a login
+
+Done when: the gym's domain serves the gym, the application answers on its own host, and both are
+on real certificates.
+
+Switched on 2026-09-25 and verified from outside against the live server: the panel serves the
+app (200, `<title>مدیریت باشگاه</title>`) with `X-Robots-Tag: noindex, nofollow`, the apex serves
+the placeholder (200), `www.` and the `.com` both 301 to the apex, and all four names present a
+valid Let's Encrypt chain. `/health` answers 200 on the panel and **404 on the public domain** —
+the public page really is served from static files with no path to the API, which is the property
+that keeps the gym's website up while the application is not.
+
+`panel.pasargadgymplus.com` deliberately does not exist (NXDOMAIN). A second name for the panel
+would need its own certificate and Caddy site for no gain, and would reintroduce exactly the
+problem this task removed: a staff member who typed it would get a separate session and be signed
+out of the other one.
 
 ---
 
