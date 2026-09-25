@@ -235,15 +235,27 @@ deploy/release.sh gym@<server-ip> --with-postgres    # --with-postgres on the fi
 It builds the images here, builds the EF migration bundle, copies everything over, runs the
 migrations and starts the new version. `./server.sh rollback` on the server goes back.
 
-The system has been live since 2026-09-25 on `pasargadgymplus.com`, with a Let's Encrypt
-certificate Caddy obtained and renews by itself. `pasargadgymplus.ir` resolves to the same
-server but is not served yet: it becomes the canonical name together with the move to
-`panel.pasargadgymplus.ir` (task 6.5.0), in one change, because switching the canonical domain
-signs every user out — the refresh cookie is scoped to a single host.
+Live since 2026-09-25, with Let's Encrypt certificates Caddy obtains and renews by itself. One
+image serves four names, and which is which comes from `/opt/gym/.env`:
 
-**Changing the domain later** is one edit to `/opt/gym/.env` (`DOMAIN` sets both the Caddy site
-and the API's `AllowedHosts`) followed by `docker compose -f docker-compose.prod.yml up -d`.
-No release, no rebuild; Caddy gets the new certificate on its own.
+| Variable | Serves |
+|---|---|
+| `DOMAIN` | the application, and nothing else. Also the API's `AllowedHosts` |
+| `PUBLIC_DOMAIN` | the gym's public page: static files from `web/public-site`, no API |
+| `www.$PUBLIC_DOMAIN` | redirects to the public page |
+| `REDIRECT_DOMAIN` | redirects to the public page |
+
+The application lives on its own host (`panel.…`) rather than the bare domain. The refresh cookie
+is scoped to a single host, so one canonical name is not a preference — two names would sign
+staff out whenever they typed the other. Giving the application its own host also keeps the staff
+login form from being what a visitor sees first, and lets only that host carry
+`X-Robots-Tag: noindex`. That is separation, not security: the login rate limit, lockout,
+`fail2ban` and the firewall are what protect the application.
+
+**Changing any of those names** is one edit to `/opt/gym/.env` followed by
+`docker compose -f docker-compose.prod.yml up -d`. No release, no rebuild; Caddy gets the new
+certificate on its own. Changing `DOMAIN` signs every user out, so do it before opening time and
+tell staff the new address first.
 
 **After a reboot** nothing has to be done by hand: every container carries
 `restart: unless-stopped`, and the stack came back on its own from a deliberate `sudo reboot`.

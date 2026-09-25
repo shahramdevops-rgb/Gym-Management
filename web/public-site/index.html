@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>باشگاه پاسارگاد جیم پلاس</title>
+    <meta name="description" content="وب‌سایت باشگاه پاسارگاد جیم پلاس به‌زودی." />
+
+    <!--
+      The gym's public face. Deliberately a single static file with no JavaScript and no call to
+      the API: it is served by Caddy from /srv-public and keeps working while the application,
+      the database or a release is down.
+
+      This is a placeholder. When the real site is written, replace this file — the Caddy site,
+      the certificate and the DNS record all stay as they are.
+
+      TODO, whenever the gym supplies them: address, telephone, opening hours, Instagram. Nothing
+      is invented here on purpose; a wrong phone number on a public page is worse than none.
+    -->
+
+    <style>
+      @font-face {
+        font-family: "Vazirmatn";
+        src: url("./fonts/Vazirmatn-Variable.woff2") format("woff2-variations");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      :root {
+        --ink: #1a1a1a;
+        --muted: #6b6b6b;
+        --surface: #fbfaf8;
+        --line: #e6e3de;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --ink: #f2f0ed;
+          --muted: #a0a0a0;
+          --surface: #141414;
+          --line: #2c2c2c;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 2rem 1rem;
+        background: var(--surface);
+        color: var(--ink);
+        font-family: "Vazirmatn", system-ui, sans-serif;
+        line-height: 1.8;
+      }
+
+      main {
+        max-width: 32rem;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(1.75rem, 5vw, 2.5rem);
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      hr {
+        width: 3rem;
+        margin: 2rem auto;
+        border: 0;
+        border-top: 1px solid var(--line);
+      }
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <h1>باشگاه پاسارگاد جیم پلاس</h1>
+      <hr />
+      <p>وب‌سایت ما به‌زودی در همین نشانی در دسترس خواهد بود.</p>
+    </main>
+  </body>
+</html>

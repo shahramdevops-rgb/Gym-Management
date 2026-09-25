@@ -718,3 +718,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **The generated API types widen integers to `number | string`.** The shared component takes the wide type and narrows it once, rather than making every call site remember a `Number(...)`. Normalising at the boundary of a component is the same idea as normalising at the boundary of a system.
 - **`Attendance.SubscriptionId` made a hard question trivial.** The board could have re-derived "the subscription in effect today" and occasionally disagreed with the check-in that actually consumed the session. The attendance already names the subscription it used, so there was nothing to derive. When a fact is already recorded, the work is finding it, not computing it.
 - **My notes:**
+
+---
+
+## 6.5.0 — Panel subdomain and a public page
+
+- **A login form is not a front door.** Anyone typing the gym's domain met the staff login screen, and search engines were free to index it. The fix is not to hide the panel but to stop it being the apex: the gym's name serves the gym's page, and the application gets a host of its own.
+- **A subdomain, not a path, and the cookie is the reason.** The refresh cookie is scoped to one host, so on `example.ir/panel` it would be set on the public domain and travel with every request to the public page. On `panel.example.ir` it cannot. The rest — separate rate limits, `noindex` on one host only, a public page that survives the API being down — follows from the same separation.
+- **The plan said redirect the second domain to the panel; building it showed that was backwards.** Whoever types the gym's `.com` is a visitor, not a receptionist. Sending them to a staff login form is exactly what this task existed to prevent. The roadmap entry now records the change and why, because a plan that was quietly departed from teaches nobody anything.
+- **The public page has no JavaScript and never calls the API, on purpose.** It keeps serving during a release, a migration or a database outage. The cheapest way to make something reliable is to give it nothing to depend on.
+- **Ship the code and flip the switch as two separate acts.** The new image, released against the old `.env`, changes nothing a user can see: `PUBLIC_DOMAIN` is unset and `DOMAIN` still names the old host. So a broken build is discovered in a harmless release rather than in the five minutes before the gym opens. The disruptive step is then three lines in a file.
+- **`X-Robots-Tag: noindex` is tidiness, not defence.** It asks well-behaved crawlers to stay away. It stops nobody else, and saying so in the comment keeps the next reader from mistaking it for a control.
+- **Smoke-test the config, not the diff.** A Caddyfile is not covered by any test suite, so the whole production stack was built and run locally with `DOMAIN=localhost` and all four names exercised with `curl --resolve`. Reading the file proves the file; running it proves the deployment.
+- **My notes:**

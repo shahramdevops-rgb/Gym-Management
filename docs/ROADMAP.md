@@ -521,10 +521,22 @@ learn a new address, so the move to the `.ir` and the move to `panel.` happen in
 change. One disruption, not two.
 
 - [x] A record for `panel.` alongside the apex, same server, proxy off (done 2026-09-25, TTL 300)
-- [ ] A second Caddy site for the apex serving a static placeholder; the panel site keeps
-      everything it has now plus `X-Robots-Tag: noindex`
-- [ ] `DOMAIN=panel.pasargadgymplus.ir` in `/opt/gym/.env` (it also sets `AllowedHosts`);
-      `REDIRECT_DOMAIN` keeps sending the `.com` to the panel until there is a public site
+- [x] A second Caddy site for the apex serving a static placeholder (`web/public-site`, copied
+      into the image at `/srv-public`); the panel site keeps everything it has now plus
+      `X-Robots-Tag: noindex`. A third block redirects `www.` as well — it has an A record
+- [x] The `.com` redirects to the **public page**, not to the panel. Decided while building it,
+      against what this task first said: whoever types the gym's second domain is a visitor, not
+      a member of staff, and sending the public to a staff login form is the thing this task
+      exists to stop. The cost is that staff who type the old address by habit reach the public
+      page, which is why they are told the new one first
+- [x] Smoke-tested locally on the real production stack with `DOMAIN=localhost`: the panel serves
+      the app with `noindex` and `/health` through to the API, the public page serves its file and
+      font and returns 404 for `/health`, and both `www.` and the second domain return 301 to the
+      public page with the path kept
+- [ ] `DOMAIN=panel.pasargadgymplus.ir`, `PUBLIC_DOMAIN=pasargadgymplus.ir` and
+      `REDIRECT_DOMAIN=pasargadgymplus.com` in `/opt/gym/.env`, then `up -d`. Release the image
+      first, on its own: with the current `.env` it changes nothing anybody can see, so a broken
+      build is found before the disruptive step rather than during it
 - [ ] Tell the staff the new address before the switch, and do it before opening time
 
 ---

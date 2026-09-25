@@ -126,8 +126,12 @@ services:
       api:
         condition: service_healthy
     environment:
+      # The panel's own host. AllowedHosts above is the same value: the API answers to this
+      # name and no other.
       DOMAIN: ${DOMAIN:?set DOMAIN in .env}
-      # Optional second domain, permanently redirected to DOMAIN. Unset means no redirect.
+      # The gym's public page, served from static files. Unset means no public site is served.
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-no-public-site}
+      # Optional second domain, permanently redirected to the public page. Unset means no redirect.
       REDIRECT_DOMAIN: ${REDIRECT_DOMAIN:-no-redirect}
     ports:
       - "80:80"
