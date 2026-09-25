@@ -691,3 +691,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Trust the kernel's numbers over the provider's label.** The panel said 4096 MB; `free -h` and `df -h` confirmed it, and the memory sizes were already variables in `.env`, so a machine twice the planned size cost one edit instead of a rebuild. Configuration that is a variable is configuration that survives being wrong.
 - **The one thing no backup contains is `/opt/gym/.env`.** The nightly dump holds the database; the password and signing key live only in that file. A copy of it, kept apart from the dumps, is part of the backup plan rather than an afterthought.
 - **My notes:**
+
+---
+
+## 6.5.1 — Lockers for the front desk
+
+- **A group-wide authorization default is a decision nobody makes again.** Every locker endpoint was Owner-only because the whole `MapGroup` carried `RequireAuthorization(Policies.OwnerOnly)` once, written when the assumption was that staff would never browse lockers. The assumption aged; the policy did not, and nothing forced anyone to look at it again. Naming the policy on each endpoint costs five lines and makes every future endpoint an explicit choice rather than an inheritance.
+- **The comment that explains a rule is also the thing that outlives it.** The file's own summary said staff "never need to browse the list, because check-in picks a locker itself". That was true and helpful — and it was still sitting there being wrong. When a rule changes, the prose defending it has to change in the same commit, or the next reader trusts it.
+- **Derived data stays derived.** "Whose is locker 1?" could have been a `HolderMemberId` column on the locker, kept in step by check-in and check-out. It is a correlated subquery instead, for the same reason occupancy already was: two places recording the same fact eventually disagree, and the open attendance is the one that cannot be wrong.
+- **A computed property beats a parallel field.** `IsOccupied` used to be a stored parameter of the response that the caller passed in beside the holder. Now it reads `OccupiedByMemberId is not null`, so "occupied but nobody holds it" cannot be expressed at all. Making a bad state unrepresentable is cheaper than testing that it never happens.
+- **Hiding a button is not authorization.** The create form is hidden from staff so the screen does not offer what would fail; the API refuses the request regardless. Two different jobs — one is courtesy, the other is the rule — and the test suite checks both separately.
+- **Tests that assert the old rule are part of the rule.** Four tests said staff get `403` on the locker list. They were not obstacles to route around: they were the previous decision, written down. Rewriting them to assert `200` is how the change gets recorded where it will be noticed.
+- **My notes:**

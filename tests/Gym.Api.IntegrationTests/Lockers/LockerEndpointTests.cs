@@ -17,9 +17,9 @@ using Npgsql;
 namespace Gym.Api.IntegrationTests.Lockers;
 
 /// <summary>
-/// <c>/api/lockers</c>. BUSINESS_RULES.md §6 and the permissions table in §1: setting lockers up
-/// (create, list, get, toggle service status) is the Owner's job; staff never reach it because
-/// check-in (task 5.2) picks a free locker itself.
+/// <c>/api/lockers</c>. BUSINESS_RULES.md §6 and the permissions table in §1: adding a locker is
+/// the Owner's job, while listing them and changing a locker's service state belong to the front
+/// desk, which is where a broken locker is noticed.
 /// </summary>
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class LockerEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
@@ -106,38 +106,52 @@ public sealed class LockerEndpointTests(DatabaseFixture fixture) : DatabaseTestB
     }
 
     [Fact]
-    public async Task ListLockers_AsStaff_Returns403()
+    public async Task ListLockers_AsStaff_Returns200()
     {
         var (client, owner, staff) = await ClientsAsync();
         await CreateLockerAsync(client, owner, 1);
 
         using var response = await SendAsync(client, staff, HttpMethod.Get, LockersPath, body: null);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var page = (await response.Content.ReadFromJsonAsync<PagedResponse<LockerResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        page.Items.ShouldHaveSingleItem().Number.ShouldBe(1);
     }
 
     [Fact]
-    public async Task GetLocker_AsStaff_Returns403()
+    public async Task GetLocker_AsStaff_Returns200()
     {
         var (client, owner, staff) = await ClientsAsync();
         var locker = await CreateLockerAsync(client, owner, 1);
 
         using var response = await SendAsync(client, staff, HttpMethod.Get, $"{LockersPath}/{locker.Id}", body: null);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull().Id.ShouldBe(locker.Id);
     }
 
-    [Theory]
-    [InlineData("out-of-service")]
-    [InlineData("in-service")]
-    public async Task SetLockerServiceStatus_AsStaff_Returns403AndChangesNothing(string action)
+    [Fact]
+    public async Task SetLockerOutOfService_AsStaff_Returns200AndTakesItOut()
     {
         var (client, owner, staff) = await ClientsAsync();
         var locker = await CreateLockerAsync(client, owner, 1);
 
-        using var response = await PostAsync(client, staff, $"{LockersPath}/{locker.Id}/{action}");
+        using var response = await PostAsync(client, staff, $"{LockersPath}/{locker.Id}/out-of-service");
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await StoredAsync(locker.Id)).IsOutOfService.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SetLockerInService_AsStaff_Returns200AndBringsItBack()
+    {
+        var (client, owner, staff) = await ClientsAsync();
+        var locker = await CreateLockerAsync(client, owner, 1);
+        (await PostAsync(client, owner, $"{LockersPath}/{locker.Id}/out-of-service")).Dispose();
+
+        using var response = await PostAsync(client, staff, $"{LockersPath}/{locker.Id}/in-service");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await StoredAsync(locker.Id)).IsOutOfService.ShouldBeFalse();
     }
 

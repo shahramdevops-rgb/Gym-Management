@@ -520,7 +520,7 @@ Timing is the whole point: switching the canonical domain signs every user out a
 learn a new address, so the move to the `.ir` and the move to `panel.` happen in the same
 change. One disruption, not two.
 
-- [ ] A record for `panel.` alongside the apex, same server, proxy off
+- [x] A record for `panel.` alongside the apex, same server, proxy off (done 2026-09-25, TTL 300)
 - [ ] A second Caddy site for the apex serving a static placeholder; the panel site keeps
       everything it has now plus `X-Robots-Tag: noindex`
 - [ ] `DOMAIN=panel.pasargadgymplus.ir` in `/opt/gym/.env` (it also sets `AllowedHosts`);
@@ -540,19 +540,19 @@ Rule change, decided by the Owner on 2026-09-25: a staff member could not open t
 screen at all, because `LockersEndpoints` puts the whole group behind `Policies.OwnerOnly`. But
 the person who sees a broken locker is the one at the desk, not the Owner.
 
-- [ ] BUSINESS_RULES.md §0: split the "Plans, lockers setup, staff accounts" row. Creating a
+- [x] BUSINESS_RULES.md §0: split the "Plans, lockers setup, staff accounts" row. Creating a
       locker stays Owner-only; listing lockers and taking one out of / back into service become
       Staff too. Plans and staff accounts are unchanged
-- [ ] Split the endpoint group: `GET /` and `GET /{id}` and the two service endpoints allow
+- [x] Split the endpoint group: `GET /` and `GET /{id}` and the two service endpoints allow
       Staff, `POST /` stays `OwnerOnly`. One explicit policy per endpoint, never a group default
       that quietly widens later
-- [ ] A column on the lockers screen naming the member who currently holds each locker, so
+- [x] A column on the lockers screen naming the member who currently holds each locker, so
       "whose is locker 1?" is answered without opening attendance. Occupancy is derived from the
       open attendance and never stored (BUSINESS_RULES.md §6), so the member's name comes from
       the same join
-- [ ] The create button is hidden for Staff. The API enforces it too — the hidden button is
+- [x] The create button is hidden for Staff. The API enforces it too — the hidden button is
       about not offering what would fail, not about security
-- [ ] Tests: Staff can list and take out of service; Staff creating a locker is 403; the holder
+- [x] Tests: Staff can list and take out of service; Staff creating a locker is 403; the holder
       column is empty for a free locker and names the member for an occupied one
 
 ### 6.5.2 The "currently inside" board: one row, one line

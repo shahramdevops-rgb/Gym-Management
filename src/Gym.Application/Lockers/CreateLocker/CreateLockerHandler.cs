@@ -37,6 +37,6 @@ public sealed class CreateLockerHandler(IAppDbContext db)
         }
 
         // A locker that was just created cannot already have an open attendance against it.
-        return LockerResponse.From(locker, isOccupied: false);
+        return LockerResponse.From(locker, holder: null);
     }
 }

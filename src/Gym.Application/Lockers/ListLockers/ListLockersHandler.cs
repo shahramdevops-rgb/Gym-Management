@@ -14,6 +14,7 @@ public sealed class ListLockersHandler(IAppDbContext db)
 
         var lockers = db.Lockers.AsNoTracking();
         var openAttendances = db.Attendances.Where(a => a.CheckedOutAt == null);
+        var members = db.Members;
 
         var totalCount = await lockers.CountAsync(cancellationToken);
 
@@ -21,7 +22,7 @@ public sealed class ListLockersHandler(IAppDbContext db)
             .OrderBy(locker => locker.Number)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(LockerResponse.Projection(openAttendances))
+            .Select(LockerResponse.Projection(openAttendances, members))
             .ToListAsync(cancellationToken);
 
         return new PagedResponse<LockerResponse>(items, query.Page, query.PageSize, totalCount);

@@ -32,7 +32,7 @@ const navigation: NavigationItem[] = [
   { to: paths.members, label: "اعضا", icon: Contact },
   { to: paths.attendance, label: "داخل باشگاه", icon: DoorOpen },
   { to: paths.plans, label: "پلن‌ها", icon: Tickets, role: "Owner" },
-  { to: paths.lockers, label: "کمدها", icon: LockKeyhole, role: "Owner" },
+  { to: paths.lockers, label: "کمدها", icon: LockKeyhole },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.status, label: "وضعیت سیستم", icon: Activity },
   { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },

@@ -766,13 +766,16 @@ export interface components {
             /** Format: int32 */
             number: number | string;
             isOutOfService: boolean;
-            isOccupied: boolean;
+            /** Format: uuid */
+            occupiedByMemberId: null | string;
+            occupiedByMemberFullName: null | string;
             /** Format: uint32 */
             version: number | string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             updatedAt: null | string;
+            isOccupied?: boolean;
         };
         LoginCommand: {
             userName: string;
