@@ -22,7 +22,7 @@ public sealed class ListCurrentlyInsideHandler(IAppDbContext db)
             .ThenBy(a => a.Id)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(CurrentlyInsideResponse.Projection(db.Members, db.Lockers))
+            .Select(CurrentlyInsideResponse.Projection(db.Members, db.Lockers, db.Subscriptions))
             .ToListAsync(cancellationToken);
 
         var chargesByVisit = await VisitServiceCharges.ByAttendanceAsync(

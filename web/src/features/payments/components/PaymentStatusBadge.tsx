@@ -8,10 +8,7 @@ const labels: Record<Payment["targetPaymentStatus"], string> = {
   Unpaid: "پرداخت‌نشده",
 };
 
-const variants: Record<
-  Payment["targetPaymentStatus"],
-  "success" | "secondary" | "destructive"
-> = {
+const variants: Record<Payment["targetPaymentStatus"], "success" | "secondary" | "destructive"> = {
   Paid: "success",
   Partial: "secondary",
   Unpaid: "destructive",

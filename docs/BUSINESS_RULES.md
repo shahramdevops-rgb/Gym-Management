@@ -256,6 +256,22 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 5. Save and commit.
 
 - If no locker is available, check-in still succeeds with no locker, and the response includes a warning.
+### The "currently inside" board
+
+- One row per open visit: the member, the locker, the time they came in, how much of their
+  subscription is left, and the visit's هوازی charge.
+- Sessions are shown as used of total. An unlimited subscription has no total to count against,
+  so it reads "نامحدود" rather than a bar with no denominator.
+- A row is marked as needing attention when the subscription behind that visit has **3 or fewer
+  sessions left**, or **expires within 5 days**. Both are shown to the front desk while the member
+  is standing there, which is the only moment renewing costs nobody a phone call.
+  These are the desk's thresholds. Phase 10's SMS reminders (§10) have their own configured ones;
+  they should be set to the same numbers, so what the desk sees and what the member is texted
+  about do not disagree.
+- No status badge here. Check-in refuses a subscription that is not usable today (§7 *Check-in*),
+  so every row on this board would read "فعال" — a badge that is always the same tells nobody
+  anything. Status belongs where expired and unsubscribed members appear together.
+
 - Money owed never blocks a check-in. The visit is recorded and the front desk is shown the member's outstanding total, the same way a missing locker is a warning rather than an error (§0, §5 *Member debt*).
 - When nothing is usable because the member used every session on the subscription's first day and renewed the same day, the refusal is `Subscriptions.NextStartsTomorrow` ("today is over for them, come back tomorrow"), not the queued subscription's own `Subscriptions.NotStarted`, which sounds like the sale went wrong.
 - Database: partial unique index on `member_id` where `checked_out_at IS NULL`, and on `locker_id` where `checked_out_at IS NULL`. Cancelled attendances count as closed.

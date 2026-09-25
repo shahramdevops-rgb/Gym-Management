@@ -108,16 +108,14 @@ export interface RegisterServiceChargePaymentInput {
 }
 
 export function useRegisterServiceChargePayment() {
-  return useServiceChargeMutation(
-    async ({ id, ...body }: RegisterServiceChargePaymentInput) => {
-      const { data, error } = await api.POST("/api/service-charges/{id}/payments", {
-        params: { path: { id } },
-        body,
-      });
-      if (error !== undefined) {
-        throw error;
-      }
-      return data;
-    },
-  );
+  return useServiceChargeMutation(async ({ id, ...body }: RegisterServiceChargePaymentInput) => {
+    const { data, error } = await api.POST("/api/service-charges/{id}/payments", {
+      params: { path: { id } },
+      body,
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  });
 }

@@ -62,12 +62,7 @@ function CardioCell({ item }: { item: Attendance }) {
   }
 
   return (
-    <ServiceChargeBox
-      attendanceId={item.id}
-      kind="Cardio"
-      charge={cardio}
-      visitIsOpen={false}
-    />
+    <ServiceChargeBox attendanceId={item.id} kind="Cardio" charge={cardio} visitIsOpen={false} />
   );
 }
 

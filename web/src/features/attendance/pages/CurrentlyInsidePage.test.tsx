@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import { cardioCharge, currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
@@ -18,6 +18,105 @@ describe("CurrentlyInsidePage", () => {
 
     const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
     expect(row).toHaveTextContent("۳");
+  });
+
+  it("Board_LimitedSubscription_ShowsSessionsUsedOfTotal", async () => {
+    const visit = openVisit(reza.id);
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([
+          insideRow(reza.fullName, visit, {
+            totalSessions: 12,
+            usedSessions: 4,
+            remainingSessions: 8,
+          }),
+        ]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).getByText("۴ از ۱۲")).toBeInTheDocument();
+    expect(within(row).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "4");
+  });
+
+  /** A bar needs a denominator. An unlimited subscription has none, so it says so instead. */
+  it("Board_UnlimitedSubscription_SaysUnlimitedAndDrawsNoBar", async () => {
+    const visit = openVisit(reza.id);
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([
+          insideRow(reza.fullName, visit, {
+            totalSessions: null,
+            usedSessions: 9,
+            remainingSessions: null,
+          }),
+        ]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).getByText("نامحدود")).toBeInTheDocument();
+    expect(within(row).queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+
+  /** BUSINESS_RULES.md §7: three or fewer sessions left is the desk's cue to mention renewing. */
+  it("Board_ThreeSessionsLeft_MarksTheRowForAttention", async () => {
+    const visit = openVisit(reza.id);
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([
+          insideRow(reza.fullName, visit, {
+            totalSessions: 12,
+            usedSessions: 9,
+            remainingSessions: 3,
+          }),
+        ]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).getByText("۹ از ۱۲")).toHaveClass("text-warning");
+  });
+
+  /** BUSINESS_RULES.md §7: within five days of expiry, and how many days are left. */
+  it("Board_SubscriptionExpiringWithinFiveDays_ShowsTheDaysLeft", async () => {
+    const visit = openVisit(reza.id);
+    const inThreeDays = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([
+          insideRow(reza.fullName, visit, { subscriptionEndDate: inThreeDays }),
+        ]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).getByText("(۳ روز)")).toBeInTheDocument();
+  });
+
+  it("Board_SubscriptionNotExpiringSoon_ShowsNoDaysLeft", async () => {
+    const visit = openVisit(reza.id);
+    const inTwoMonths = new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10);
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([
+          insideRow(reza.fullName, visit, { subscriptionEndDate: inTwoMonths }),
+        ]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).queryByText(/روز\)/)).not.toBeInTheDocument();
   });
 
   /**

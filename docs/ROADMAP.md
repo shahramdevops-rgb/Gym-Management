@@ -560,17 +560,22 @@ Two problems on one screen. `ServiceChargeBox` is a 147-line component rendered 
 cell, and its amount / payment / void forms expand **in place**, so a row can triple in height.
 The cafe will want the same slot, and a column per service does not scale.
 
-- [ ] A row is always one line. The هوازی cell shows a summary only (amount plus payment badge);
+- [x] A row is always one line. The هوازی cell shows a summary only (amount plus payment badge);
       every form moves into a side panel or dialog opened from that row
-- [ ] Session progress per row: used / total with a bar, in the shape of the reference design.
+- [x] Session progress per row: used / total with a bar, in the shape of the reference design.
       An unlimited subscription shows "نامحدود" and no bar — a bar needs a denominator
-- [ ] Status badge and expiry date per row, so the desk sees an expiring subscription at
-      check-in rather than after it lapses
-- [ ] `CurrentlyInsideResponse` carries none of this yet (member, locker, time, charges only):
+- [x] Expiry date per row, so the desk sees an expiring subscription at check-in rather than
+      after it lapses. **No status badge**, decided while building it: check-in refuses a
+      subscription that is not usable today, so the badge would read "فعال" on every row of this
+      board. What the desk cannot otherwise see is how close the subscription is to running out,
+      so the row is marked instead — 3 or fewer sessions left, or 5 days to expiry
+      (BUSINESS_RULES.md §7, thresholds chosen by the Owner). Status belongs on the members list,
+      where expired and unsubscribed members appear together
+- [x] `CurrentlyInsideResponse` carries none of this yet (member, locker, time, charges only):
       extend the projection rather than firing a query per row
-- [ ] Build the bar and the badge as shared components: Phase 9's dashboard needs both, and a
-      second copy would drift from the first
-- [ ] While here: the "عضو جدید" button on the member search screen has no colour, unlike the
+- [x] Built the bar as a shared component (`components/SessionsBar.tsx`) for Phase 9 to reuse.
+      The status badge already existed (`SubscriptionStatusBadge`) and was not duplicated
+- [x] While here: the "عضو جدید" button on the member search screen has no colour, unlike the
       one on the members list. One primary-button component, used by both
 
 Done when: a staff member can manage lockers without the Owner, and a row on the board never

@@ -24,7 +24,10 @@ export function openVisit(memberId: string): Attendance {
 }
 
 /** A هوازی charge on a visit: unpaid and still editable unless a caller says otherwise. */
-export function cardioCharge(attendance: Attendance, overrides: Partial<ServiceCharge> = {}): ServiceCharge {
+export function cardioCharge(
+  attendance: Attendance,
+  overrides: Partial<ServiceCharge> = {},
+): ServiceCharge {
   return {
     id: "0199a000-0000-7000-8000-0000000000f1",
     memberId: attendance.memberId,
@@ -83,7 +86,25 @@ export function attendanceHistoryPage(items: Attendance[], totalCount = items.le
   return json(200, { items, page: 1, pageSize: 10, totalCount });
 }
 
-export function insideRow(memberFullName: string, attendance: Attendance): CurrentlyInside {
+/**
+ * One row of the board. The subscription values default to a comfortable limited subscription —
+ * plenty of sessions, expiry far away — so a test that cares about the low or expiring markers
+ * has to ask for them, and every other test is unaffected by them.
+ */
+export function insideRow(
+  memberFullName: string,
+  attendance: Attendance,
+  subscription: Partial<
+    Pick<
+      CurrentlyInside,
+      | "subscriptionId"
+      | "totalSessions"
+      | "usedSessions"
+      | "remainingSessions"
+      | "subscriptionEndDate"
+    >
+  > = {},
+): CurrentlyInside {
   return {
     attendanceId: attendance.id,
     memberId: attendance.memberId,
@@ -91,7 +112,13 @@ export function insideRow(memberFullName: string, attendance: Attendance): Curre
     lockerId: attendance.lockerId,
     lockerNumber: attendance.lockerNumber,
     checkedInAt: attendance.checkedInAt,
+    subscriptionId: "0199a000-0000-7000-8000-0000000000d1",
+    totalSessions: 12,
+    usedSessions: 4,
+    remainingSessions: 8,
+    subscriptionEndDate: "2026-12-31",
     serviceCharges: attendance.serviceCharges,
+    ...subscription,
   };
 }
 

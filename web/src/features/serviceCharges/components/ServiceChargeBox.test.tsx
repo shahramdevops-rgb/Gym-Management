@@ -12,6 +12,10 @@ import type { ServiceCharge } from "@/features/serviceCharges/api";
  * The هوازی slot on a member's open visit (BUSINESS_RULES.md §7 Gym services). Rendered through
  * the profile page rather than on its own, because what the front desk can do to a charge depends
  * on the visit it hangs off, and the page is what puts the two together.
+ *
+ * An existing charge shows only its amount and payment badge; the actions and their forms live in
+ * a dialog opened from it (task 6.5.2), so these tests open it first. That is the point of the
+ * change: the row this sits in must stay one line.
  */
 describe("ServiceChargeBox", () => {
   function renderProfile(visit: Attendance, extra: Record<string, () => Response> = {}) {
@@ -30,6 +34,11 @@ describe("ServiceChargeBox", () => {
 
   function withCharge(visit: Attendance, overrides: Partial<ServiceCharge> = {}): Attendance {
     return { ...visit, serviceCharges: [cardioCharge(visit, overrides)] };
+  }
+
+  /** The row shows a summary; the actions are behind it. Its label carries the amount. */
+  async function openChargeDialog() {
+    fireEvent.click(await screen.findByRole("button", { name: /^هوازی:/ }));
   }
 
   it("Box_OpenVisitWithNoCharge_OffersToAddOne", async () => {
@@ -85,6 +94,8 @@ describe("ServiceChargeBox", () => {
   it("Box_UnpaidChargeOnAnOpenVisit_OffersEditPayAndVoid", async () => {
     renderProfile(withCharge(openVisit(reza.id)));
 
+    await openChargeDialog();
+
     expect(await screen.findByRole("button", { name: "ویرایش مبلغ" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ثبت پرداخت" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ابطال" })).toBeInTheDocument();
@@ -105,6 +116,8 @@ describe("ServiceChargeBox", () => {
       }),
     );
 
+    await openChargeDialog();
+
     expect(await screen.findByRole("button", { name: "ابطال" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ویرایش مبلغ" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ثبت پرداخت" })).not.toBeInTheDocument();
@@ -119,6 +132,8 @@ describe("ServiceChargeBox", () => {
     const visit = closedVisit(reza.id);
     renderProfile(withCharge(visit, { canChangeAmount: false }));
 
+    await openChargeDialog();
+
     expect(await screen.findByRole("button", { name: "ثبت پرداخت" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ویرایش مبلغ" })).not.toBeInTheDocument();
   });
@@ -130,6 +145,8 @@ describe("ServiceChargeBox", () => {
       withCharge(visit, { netPaid: 10000, paymentStatus: "Paid", canChangeAmount: false }),
     );
 
+    await openChargeDialog();
+
     expect(await screen.findByRole("button", { name: "ابطال" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ثبت پرداخت" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ویرایش مبلغ" })).not.toBeInTheDocument();
@@ -137,7 +154,11 @@ describe("ServiceChargeBox", () => {
 
   it("Box_Voiding_RequiresAReasonAndWarnsThatMoneyComesBack", async () => {
     const visit = openVisit(reza.id);
-    const charge = cardioCharge(visit, { netPaid: 10000, paymentStatus: "Paid", canChangeAmount: false });
+    const charge = cardioCharge(visit, {
+      netPaid: 10000,
+      paymentStatus: "Paid",
+      canChangeAmount: false,
+    });
     const api = renderProfile(
       { ...visit, serviceCharges: [charge] },
       {
@@ -146,10 +167,13 @@ describe("ServiceChargeBox", () => {
       },
     );
 
+    await openChargeDialog();
     fireEvent.click(await screen.findByRole("button", { name: "ابطال" }));
 
     expect(
-      screen.getByText("مبلغی که برای این مورد پرداخت شده است، با همین دلیل به عضو بازگردانده می‌شود."),
+      screen.getByText(
+        "مبلغی که برای این مورد پرداخت شده است، با همین دلیل به عضو بازگردانده می‌شود.",
+      ),
     ).toBeInTheDocument();
 
     // A blank reason never reaches the API.

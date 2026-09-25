@@ -87,7 +87,7 @@ export function HomePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold">جستجوی عضو</h2>
-        <Button asChild variant="outline">
+        <Button asChild>
           <Link to={paths.newMember}>
             <UserPlus aria-hidden />
             عضو جدید

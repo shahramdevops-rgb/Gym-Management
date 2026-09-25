@@ -60,11 +60,7 @@ export function VoidServiceChargeForm({
         <Alert>مبلغی که برای این مورد پرداخت شده است، با همین دلیل به عضو بازگردانده می‌شود.</Alert>
       )}
 
-      <FormField
-        label="دلیل ابطال"
-        error={errors.reason?.message}
-        {...form.register("reason")}
-      />
+      <FormField label="دلیل ابطال" error={errors.reason?.message} {...form.register("reason")} />
 
       <div className="flex gap-2">
         <Button type="submit" size="sm" variant="destructive" disabled={isSubmitting}>
