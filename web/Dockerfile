@@ -17,3 +17,6 @@ RUN npm run build
 FROM caddy:2-alpine
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /src/web/dist /srv
+# The gym's public page. Static files only, never built and never calling the API, so it keeps
+# serving while the application is down (deploy/Caddyfile, {$PUBLIC_DOMAIN}).
+COPY web/public-site /srv-public

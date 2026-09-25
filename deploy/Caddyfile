@@ -1,6 +1,19 @@
-# The one public entrance. {$DOMAIN} comes from the environment (docker-compose.prod.yml).
-# A real domain gets a Let's Encrypt certificate automatically; "localhost" gets one from
-# Caddy's own local CA, which is how the stack is smoke-tested on a development machine.
+# Four names, three jobs. {$DOMAIN}, {$PUBLIC_DOMAIN} and {$REDIRECT_DOMAIN} come from the
+# environment (docker-compose.prod.yml). A real domain gets a Let's Encrypt certificate
+# automatically; "localhost" gets one from Caddy's own local CA, which is how the stack is
+# smoke-tested on a development machine.
+#
+#   {$DOMAIN}           panel.example.ir   the application, and nothing else
+#   {$PUBLIC_DOMAIN}    example.ir         the gym's public page: static files, no API
+#   www.{$PUBLIC_DOMAIN}                   redirects to the public page
+#   {$REDIRECT_DOMAIN}  example.com        redirects to the public page
+#
+# The panel is on its own host rather than a path under the public one. The refresh cookie is
+# scoped to a single host, so this keeps it off the public page entirely; the panel can be given
+# its own rate limits or an allowlist without touching the public site; the public site is static
+# files that keep serving while the API is down; and only the panel is told not to be indexed.
+# That is separation, not security — the login rate limit, lockout, fail2ban and the firewall are
+# what actually protect the application.
 
 {$DOMAIN} {
 	encode zstd gzip
@@ -10,6 +23,9 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		# A staff login form has no business in a search index. This is tidiness, not a defence:
+		# it asks well-behaved crawlers to stay away and stops nobody else.
+		X-Robots-Tag "noindex, nofollow"
 		-Server
 	}
 
@@ -42,10 +58,27 @@
 	}
 }
 
-# The second domain redirects; it is not a second home. The refresh cookie is scoped to one
-# host, so serving the app under both names would sign a member of staff out whenever they
-# typed the other one. Unset (local smoke tests) it falls back to a single-label name, which
-# keeps Caddy on its internal CA instead of asking Let's Encrypt for an unobtainable certificate.
-{$REDIRECT_DOMAIN:no-redirect} {
-	redir https://{$DOMAIN}{uri} permanent
+# The gym's public face. One static file and its font, served without touching the API, so a
+# release or a database outage never takes the gym's website down with it.
+# Unset (local smoke tests) it falls back to a single-label name, which keeps Caddy on its
+# internal CA instead of asking Let's Encrypt for an unobtainable certificate.
+{$PUBLIC_DOMAIN:no-public-site} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	root * /srv-public
+	file_server
+}
+
+# www and the second domain are not second homes: they point at the public page. A visitor who
+# types either of them is a member of the public, not a member of staff, so neither is sent to
+# the panel's login form.
+www.{$PUBLIC_DOMAIN:no-public-site}, {$REDIRECT_DOMAIN:no-redirect} {
+	redir https://{$PUBLIC_DOMAIN:no-public-site}{uri} permanent
 }
