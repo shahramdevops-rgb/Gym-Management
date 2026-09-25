@@ -235,8 +235,18 @@ deploy/release.sh gym@<server-ip> --with-postgres    # --with-postgres on the fi
 It builds the images here, builds the EF migration bundle, copies everything over, runs the
 migrations and starts the new version. `./server.sh rollback` on the server goes back.
 
-Still to do is go-live (task 6.4 of the [roadmap](docs/ROADMAP.md)): the first real deploy, the
-certificate, and the Persian smoke test.
+The system has been live since 2026-09-25 on `pasargadgymplus.com`, with a Let's Encrypt
+certificate Caddy obtained and renews by itself. `pasargadgymplus.ir` resolves to the same
+server but is not served yet: it becomes the canonical name together with the move to
+`panel.pasargadgymplus.ir` (task 6.5.0), in one change, because switching the canonical domain
+signs every user out — the refresh cookie is scoped to a single host.
+
+**Changing the domain later** is one edit to `/opt/gym/.env` (`DOMAIN` sets both the Caddy site
+and the API's `AllowedHosts`) followed by `docker compose -f docker-compose.prod.yml up -d`.
+No release, no rebuild; Caddy gets the new certificate on its own.
+
+**After a reboot** nothing has to be done by hand: every container carries
+`restart: unless-stopped`, and the stack came back on its own from a deliberate `sudo reboot`.
 
 ## Backup and restore
 
