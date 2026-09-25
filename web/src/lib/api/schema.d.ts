@@ -750,6 +750,16 @@ export interface components {
             lockerNumber: null | number | string;
             /** Format: date-time */
             checkedInAt: string;
+            /** Format: uuid */
+            subscriptionId: string;
+            /** Format: int32 */
+            totalSessions: null | number | string;
+            /** Format: int32 */
+            usedSessions: number | string;
+            /** Format: int32 */
+            remainingSessions: null | number | string;
+            /** Format: date */
+            subscriptionEndDate: string;
             serviceCharges: components["schemas"]["ServiceChargeResponse"][];
         };
         CurrentUserResponse: {

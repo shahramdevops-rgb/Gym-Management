@@ -12,6 +12,7 @@ using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gym.Api.IntegrationTests.Attendances;
@@ -42,6 +43,43 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         row.MemberId.ShouldBe(member.Id);
         row.MemberFullName.ShouldBe("سارا محمدی");
         row.LockerNumber.ShouldBe(locker.Number);
+    }
+
+    [Fact]
+    public async Task CurrentlyInside_LimitedSubscription_ShowsSessionsUsedTotalAndEndDate()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync("سارا محمدی");
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
+
+        var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
+        // The visit that is being shown is the one that consumed the session, so one is used.
+        row.SubscriptionId.ShouldBe(attendance.SubscriptionId);
+        row.TotalSessions.ShouldBe(12);
+        row.UsedSessions.ShouldBe(1);
+        row.RemainingSessions.ShouldBe(11);
+        row.SubscriptionEndDate.ShouldBe(await SubscriptionEndDateAsync(attendance.SubscriptionId));
+    }
+
+    [Fact]
+    public async Task CurrentlyInside_UnlimitedSubscription_LeavesSessionCountsNull()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync("رضا احمدی");
+        var plan = await AddUnlimitedPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
+
+        var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
+        // Unlimited: nothing to count against, so the board says so instead of drawing a bar.
+        row.TotalSessions.ShouldBeNull();
+        row.RemainingSessions.ShouldBeNull();
     }
 
     [Fact]
@@ -122,6 +160,29 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return plan;
+    }
+
+    private async Task<Plan> AddUnlimitedPlanAsync()
+    {
+        var plan = Plan.Create("پلن نامحدود", 30, null, 1_500_000m).Value;
+
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Plans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return plan;
+    }
+
+    private async Task<DateOnly> SubscriptionEndDateAsync(Guid subscriptionId)
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Subscriptions
+            .AsNoTracking()
+            .Where(s => s.Id == subscriptionId)
+            .Select(s => s.EndDate)
+            .SingleAsync(TestContext.Current.CancellationToken);
     }
 
     private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>

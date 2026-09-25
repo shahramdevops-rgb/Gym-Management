@@ -25,8 +25,7 @@ const codeFields = {
  * endpoints, and this is the one place that has to know which it is doing.
  */
 export type ServiceChargeAmountTarget =
-  | { attendanceId: string; kind: ServiceChargeKind }
-  | { id: string };
+  { attendanceId: string; kind: ServiceChargeKind } | { id: string };
 
 interface ServiceChargeAmountFormProps {
   label: string;
@@ -54,9 +53,7 @@ export function ServiceChargeAmountForm({
   const form = useForm({
     resolver: zodResolver(serviceChargeAmountSchema),
     defaultValues:
-      initialAmount === undefined
-        ? emptyServiceChargeAmountValues
-        : { amount: initialAmount },
+      initialAmount === undefined ? emptyServiceChargeAmountValues : { amount: initialAmount },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
