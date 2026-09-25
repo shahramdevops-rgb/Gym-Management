@@ -362,18 +362,19 @@ Written up step by step, with the reasoning, in `docs/SERVER-SETUP.md`.
 - [x] Deploy user `gym` (sudo, in the `docker` group)
 - [x] `/opt/gym` and `.env` (mode 600, owned by `gym`) with the 4 GB memory values
 - [x] Docker Engine and the Compose v2 plugin from Docker's own repository
-- [ ] Domain registered, its A record pointing at the server — `pasargadgymplus.ir` (canonical)
-      and `pasargadgymplus.com` (redirected to it by Caddy, `REDIRECT_DOMAIN`). Cause found
-      2026-09-24: the zone holding the A record lives on the provider's CDN nameservers
-      (`grass/tornado.parspack.net`) while both domains are delegated at the registry to
-      `ns1/ns2.parspack.co`, which do not hold it and answer `REFUSED`. The `.ir` is not
-      published in the `.ir` zone at all, which is consistent — a registry will not publish a
-      delegation whose nameservers do not answer for the domain. Fixed by changing the
-      nameservers at the registry to the two the zone is actually served from, with no glue
-      records (they are out-of-domain names) and the CDN proxy left off
-      (`docs/SERVER-SETUP.md`, step 9). `pasargadgymplus.com` now resolves to the server, with
-      the proxy confirmed off by the A record being the server's own address. The `.ir` is
-      waiting on IRNIC to publish the new delegation
+- [x] Both domains resolve to the server, CDN proxy off. It took two days and the fault was the
+      same one twice: the nameservers recorded at the registry were not the ones actually
+      serving the zone. `pasargadgymplus.com` came up on 2026-09-24 once its delegation was
+      pointed at the pair that holds its zone. The `.ir` stayed `NXDOMAIN` for another day —
+      IRNIC had `grass/tornado.parspack.net` on record, those servers did not answer for the
+      domain, and a registry will not publish a delegation whose nameservers are lame. The
+      provider's support moved it to `ocean/seedling.parspack.net` on 2026-09-25 and it
+      resolved within the hour. Public resolvers are the only trustworthy check here: probing
+      the nameserver IPs directly from a home connection returned contradictory answers twice
+      and sent the diagnosis the wrong way both times.
+      Two loose ends, neither urgent: the in-zone `NS` records still name `grass/tornado` while
+      the registry delegates to `ocean/seedling`, and `www` has an A record that Caddy does not
+      serve. Both are settled in task 6.5.0, along with `panel.`
 - [x] SSH key-only login (root login off, `KbdInteractiveAuthentication` off too), `ufw`
       allowing 22/80/443 only, fail2ban reading the systemd journal
 - [x] Outbound HTTPS left open: the Phase 10 SMS panel is called from this host
@@ -470,12 +471,12 @@ key, and the real ssh pull. Not rehearsed: restoring a dump older than the curre
 (the script runs the bundle afterwards, but that path was not exercised).
 
 ### 6.4 Go live
-- [ ] Deploy, seed the Owner, change the password on first login
-- [ ] Persian smoke-test checklist: login → create member → sell subscription → take payment →
+- [x] Deploy, seed the Owner, change the password on first login
+- [x] Persian smoke-test checklist: login → create member → sell subscription → take payment →
       check-in → locker shown → check-out → nightly job visible in Hangfire
-- [ ] `free -h` and `docker stats` after 24 hours — on 2 GB of RAM this is the number that matters
-- [ ] Deployment guide in the README
-- [ ] Reboot the server deliberately and watch the whole stack come back by itself. Only then
+- [x] `free -h` and `docker stats` after 24 hours — on 2 GB of RAM this is the number that matters
+- [x] Deployment guide in the README
+- [x] Reboot the server deliberately and watch the whole stack come back by itself. Only then
       decide whether to turn on `unattended-upgrades`' automatic reboot (04:00, gym closed)
 - [ ] If `ghcr.io` turns out to be reachable from the server, move releases to a pull model in
       GitHub Actions. Not assumed: the save/load script is the baseline. Docker Hub *is*
@@ -483,6 +484,20 @@ key, and the real ssh pull. Not rehearsed: restoring a dump older than the curre
       measuring against the ~1 GB `scp` — but only after go-live, and the save/load path stays
 
 Done when: the front desk runs a real day on the deployed system.
+
+Live since 2026-09-25 on `pasargadgymplus.com`, certificate issued by Let's Encrypt on the first
+try. The Owner walked the Persian checklist on the deployed system and found nothing wrong. A
+deliberate `sudo reboot` brought the whole stack back with no manual step — the browser shows
+its own "site can't be reached" while the machine is down, which nothing on the machine can fix;
+a friendly page during an API-only restart is a Phase 13 item.
+
+Memory after 15 hours of real use, on 4 GB: Caddy 60.7 MiB of its 128 MiB limit (47%, down from
+47.4% at boot — the limit stays), API 318 MiB of 768 MiB, Postgres 112 MiB of 1.5 GiB, 3.0 GiB
+still available and **swap untouched at 0 B**. No container was killed and restarted. The
+`unattended-upgrades` automatic reboot is still off; there is no reason to hurry it.
+
+The one item left open is the `ghcr.io` question, which is an optimisation and deliberately not
+a condition of go-live.
 
 ### 6.5.0 Panel subdomain and a public placeholder
 
