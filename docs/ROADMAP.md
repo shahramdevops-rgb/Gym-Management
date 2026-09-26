@@ -831,6 +831,16 @@ as two purchases of one thing is a till mistake worth catching at the till.
 - [ ] Review real production logs and error handling
 - [ ] Playwright end-to-end test for the front desk flow
 
+### 11.4 Opening hours: no check-in while the gym is closed (PENDING)
+Rule decided on 2026-09-26 (BUSINESS_RULES.md §0, §7 *Opening hours*), deliberately left until here
+because the developer builds and tests at night. Do not start it earlier unless asked.
+- [ ] `Gym:OpeningTime` = 06:00 setting next to `Gym:ClosingTime`
+- [ ] Check-in between `Gym:ClosingTime` and `Gym:OpeningTime` (gym time zone, window crosses midnight) is refused with a stable error code, mapped to a Persian message
+- [ ] Decide with the developer before coding: how local development at night stays unblocked (no Owner override: §7 *Opening hours*)
+- [ ] Tests: domain tests for the window edges (22:59, 23:00, 05:59, 06:00) with `FakeTimeProvider`; an integration test for the refusal
+
+Done when: a check-in at 23:30 Tehran time is refused, one at 06:00 succeeds, and the front desk shows the Persian message.
+
 ---
 
 ## Phase 12 — Portfolio Polish
