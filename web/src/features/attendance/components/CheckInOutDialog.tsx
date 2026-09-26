@@ -13,7 +13,7 @@ import {
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 
-import { useCheckIn, useCheckOut, type Attendance } from "../api";
+import { useCancelCheckIn, useCheckIn, useCheckOut, type Attendance } from "../api";
 import { isMissingSubscription, useSellSingleVisit } from "../singleVisit";
 import { SingleVisitOffer } from "./SingleVisitOffer";
 import { VisitSummary } from "./VisitSummary";
@@ -33,17 +33,20 @@ export interface DeskVisit {
 
 /**
  * What the desk pressed. A check-out carries the open visit, or `null` when the screen that
- * offered it turned out to be stale (the member already left).
+ * offered it turned out to be stale (the member already left). Cancelling a check-in carries the
+ * visit it undoes.
  */
 export type DeskAction =
   | { kind: "checkIn"; member: DeskMember }
-  | { kind: "checkOut"; member: DeskMember; visit: DeskVisit | null };
+  | { kind: "checkOut"; member: DeskMember; visit: DeskVisit | null }
+  | { kind: "cancelCheckIn"; member: DeskMember; attendanceId: string };
 
 type Step =
   | { kind: "confirm" }
   | { kind: "checkedIn"; attendance: Attendance; singleVisit: boolean }
   | { kind: "needsSubscription"; reason: string }
   | { kind: "checkedOut" }
+  | { kind: "cancelled" }
   | { kind: "failed"; reason: string };
 
 interface CheckInOutDialogProps {
@@ -70,8 +73,10 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
 
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
+  const cancelCheckIn = useCancelCheckIn();
   const sellSingleVisit = useSellSingleVisit();
-  const busy = checkIn.isPending || checkOut.isPending || sellSingleVisit.isPending;
+  const busy =
+    checkIn.isPending || checkOut.isPending || cancelCheckIn.isPending || sellSingleVisit.isPending;
 
   async function confirmCheckIn() {
     try {
@@ -92,6 +97,15 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
     try {
       await checkOut.mutateAsync(attendanceId);
       setStep({ kind: "checkedOut" });
+    } catch (problem) {
+      setStep({ kind: "failed", reason: errorMessage(problem) });
+    }
+  }
+
+  async function confirmCancel(attendanceId: string) {
+    try {
+      await cancelCheckIn.mutateAsync(attendanceId);
+      setStep({ kind: "cancelled" });
     } catch (problem) {
       setStep({ kind: "failed", reason: errorMessage(problem) });
     }
@@ -172,6 +186,39 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
                 />
               </>
             )}
+          </>
+        )}
+
+        {step.kind === "confirm" && action.kind === "cancelCheckIn" && (
+          // Only the question: undoing a check-in has nothing for the desk to read, but it gives a
+          // session back and frees the locker, so a stray press is worth one more click.
+          <>
+            <DialogHeader>
+              <DialogTitle>لغو ورود</DialogTitle>
+              <DialogDescription>
+                آیا از لغو ورود <strong className="text-foreground">{member.fullName}</strong> مطمئن
+                هستید؟ جلسه به اشتراک او بازمی‌گردد.
+              </DialogDescription>
+            </DialogHeader>
+            <ConfirmButtons
+              label="بله، ورود لغو شود"
+              pending={cancelCheckIn.isPending}
+              onConfirm={() => void confirmCancel(action.attendanceId)}
+              onCancel={onClose}
+            />
+          </>
+        )}
+
+        {step.kind === "cancelled" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-success">
+                <CheckCircle2 className="size-5" aria-hidden />
+                ورود لغو شد
+              </DialogTitle>
+              <DialogDescription>{member.fullName}: جلسه به اشتراک بازگشت.</DialogDescription>
+            </DialogHeader>
+            <CloseButton onClose={onClose} />
           </>
         )}
 

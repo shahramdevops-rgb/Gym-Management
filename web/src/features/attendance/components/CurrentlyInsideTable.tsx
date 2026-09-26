@@ -20,11 +20,10 @@ export const expiringDaysThreshold = 5;
 
 interface CurrentlyInsideTableProps {
   rows: CurrentlyInside[];
-  /** The one attendance a check-out or cancel is in flight for, or null. */
-  busyAttendanceId: string | null;
   /** Opens the check-out box; the row carries the member and the locker it needs. */
   onCheckOut: (row: CurrentlyInside) => void;
-  onCancel: (attendanceId: string) => void;
+  /** Opens the "cancel this check-in?" box. */
+  onCancel: (row: CurrentlyInside) => void;
 }
 
 /**
@@ -53,12 +52,7 @@ function daysUntil(endDate: string, today: string): number {
  * read "فعال". What the desk cannot see otherwise is how close the subscription is to running
  * out, which is marked instead, and only when it is true.
  */
-export function CurrentlyInsideTable({
-  rows,
-  busyAttendanceId,
-  onCheckOut,
-  onCancel,
-}: CurrentlyInsideTableProps) {
+export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyInsideTableProps) {
   // The gym's day, not the browser's: the same definition IGymCalendar.Today() uses on the API.
   const today = gymToday();
 
@@ -81,7 +75,6 @@ export function CurrentlyInsideTable({
         </thead>
         <tbody>
           {rows.map((row) => {
-            const busy = busyAttendanceId === row.attendanceId;
             const daysLeft = daysUntil(row.subscriptionEndDate, today);
 
             // A single visit is spent by design and expires tonight, so both marks would fire on
@@ -136,7 +129,6 @@ export function CurrentlyInsideTable({
                     kind="Cardio"
                     charge={row.serviceCharges.find((charge) => charge.kind === "Cardio")}
                     visitIsOpen
-                    disabled={busy}
                   />
                 </td>
                 <td className="py-2">
@@ -150,20 +142,10 @@ export function CurrentlyInsideTable({
                 </td>
                 <td className="py-2">
                   <div className="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      onClick={() => onCancel(row.attendanceId)}
-                    >
+                    <Button size="sm" variant="outline" onClick={() => onCancel(row)}>
                       لغو ورود
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => onCheckOut(row)}
-                    >
+                    <Button size="sm" variant="secondary" onClick={() => onCheckOut(row)}>
                       ثبت خروج
                     </Button>
                   </div>

@@ -291,9 +291,28 @@ describe("CurrentlyInsidePage", () => {
     expect(api.requestsTo("POST", `/api/attendance/${visit.id}/check-out`)).toHaveLength(1);
   });
 
-  it("Board_CancelCheckIn_ShowsTheConfirmation", async () => {
+  it("Board_CancelCheckIn_AsksFirstAndSendsNothingUntilConfirmed", async () => {
     const visit = openVisit(reza.id);
-    mockApi({
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([insideRow(reza.fullName, visit)]),
+    });
+
+    renderApp("/attendance", { session: session() });
+    fireEvent.click(await screen.findByRole("button", { name: "لغو ورود" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("آیا از لغو ورود رضا احمدی مطمئن هستید؟");
+    fireEvent.click(within(dialog).getByRole("button", { name: "انصراف" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`)).toHaveLength(0);
+  });
+
+  it("Board_CancelCheckIn_Confirmed_CancelsAndSaysTheSessionIsBack", async () => {
+    const visit = openVisit(reza.id);
+    const api = mockApi({
       ...signedInHandlers(staffUser),
       "GET /api/attendance/currently-inside": () =>
         currentlyInsidePage([insideRow(reza.fullName, visit)]),
@@ -306,10 +325,13 @@ describe("CurrentlyInsidePage", () => {
     });
 
     renderApp("/attendance", { session: session() });
-
     fireEvent.click(await screen.findByRole("button", { name: "لغو ورود" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود لغو شود" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("جلسه به اشتراک بازگشت");
+    expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
+    expect(dialog).toHaveTextContent("جلسه به اشتراک بازگشت");
+    expect(api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`)).toHaveLength(1);
   });
 
   it("Board_CheckOutFails_ShowsThePersianReason", async () => {

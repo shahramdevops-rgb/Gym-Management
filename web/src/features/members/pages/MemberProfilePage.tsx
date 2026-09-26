@@ -8,7 +8,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pager } from "@/components/Pager";
-import { useCancelCheckIn, useMemberAttendanceHistory } from "@/features/attendance/api";
+import { useMemberAttendanceHistory } from "@/features/attendance/api";
 import { AttendanceHistoryTable } from "@/features/attendance/components/AttendanceHistoryTable";
 import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
@@ -38,15 +38,9 @@ export function MemberProfilePage() {
 
   const [historyPage, setHistoryPage] = useState(1);
   const history = useMemberAttendanceHistory(id, historyPage);
-  // Check-in and check-out ask first and show the outcome in a box, the same as on the entry
-  // screen (BUSINESS_RULES.md §7 Confirming at the front desk).
+  // Check-in, check-out and cancelling a check-in ask first and show the outcome in a box, the
+  // same as on the entry screen (BUSINESS_RULES.md §7 Confirming at the front desk).
   const desk = useDeskDialog();
-  const cancelCheckIn = useCancelCheckIn();
-  const [attendanceBusy, setAttendanceBusy] = useState(false);
-  const [attendanceNotice, setAttendanceNotice] = useState<{
-    kind: "success" | "destructive";
-    text: string;
-  } | null>(null);
 
   if (member.isPending) {
     return <PageMessage>در حال بارگذاری…</PageMessage>;
@@ -73,19 +67,6 @@ export function MemberProfilePage() {
       });
     } catch (problem) {
       setNotice({ kind: "destructive", text: errorMessage(problem) });
-    }
-  }
-
-  async function handleCancelCheckIn(attendanceId: string) {
-    setAttendanceNotice(null);
-    setAttendanceBusy(true);
-    try {
-      await cancelCheckIn.mutateAsync(attendanceId);
-      setAttendanceNotice({ kind: "success", text: "ورود لغو شد و جلسه به اشتراک بازگشت." });
-    } catch (problem) {
-      setAttendanceNotice({ kind: "destructive", text: errorMessage(problem) });
-    } finally {
-      setAttendanceBusy(false);
     }
   }
 
@@ -160,15 +141,6 @@ export function MemberProfilePage() {
           <CardTitle>ورود و خروج</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {attendanceNotice !== null && (
-            <Alert
-              variant={attendanceNotice.kind}
-              role={attendanceNotice.kind === "success" ? "status" : "alert"}
-            >
-              {attendanceNotice.text}
-            </Alert>
-          )}
-
           {history.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
           {history.isError && <Alert variant="destructive">{errorMessage(history.error)}</Alert>}
 
@@ -188,14 +160,18 @@ export function MemberProfilePage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={attendanceBusy}
-                      onClick={() => void handleCancelCheckIn(openAttendance.id)}
+                      onClick={() =>
+                        desk.open({
+                          kind: "cancelCheckIn",
+                          member: current,
+                          attendanceId: openAttendance.id,
+                        })
+                      }
                     >
                       لغو ورود
                     </Button>
                     <Button
                       size="sm"
-                      disabled={attendanceBusy}
                       onClick={() =>
                         desk.open({
                           kind: "checkOut",
@@ -219,12 +195,11 @@ export function MemberProfilePage() {
                   kind="Cardio"
                   charge={openAttendance.serviceCharges.find((charge) => charge.kind === "Cardio")}
                   visitIsOpen
-                  disabled={attendanceBusy}
                 />
               </div>
             ) : (
               <Button
-                disabled={attendanceBusy || !current.isActive}
+                disabled={!current.isActive}
                 onClick={() => desk.open({ kind: "checkIn", member: current })}
               >
                 ورود
