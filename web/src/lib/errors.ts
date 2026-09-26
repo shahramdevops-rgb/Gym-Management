@@ -199,6 +199,7 @@ export const errorMessages: Record<string, string> = {
   "CafeOrders.AlreadyCancelled": "این سفارش قبلاً لغو شده است.",
   "CafeOrders.CancelReasonRequired": "دلیل لغو را وارد کنید.",
   "CafeOrders.CancelReasonTooLong": "دلیل لغو بیش از حد طولانی است.",
+  "CafeOrders.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
   "CafeOrders.ChangedConcurrently":
     "این سفارش هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 

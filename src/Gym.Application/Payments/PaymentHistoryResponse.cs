@@ -11,12 +11,16 @@ namespace Gym.Application.Payments;
 /// <c>TargetPaymentStatus</c> only make sense as "the result of the payment just registered", not
 /// for a list of historical rows spanning several items.
 /// </summary>
-/// <param name="TargetKind">What was paid for. Decides which of the two labels below is filled.</param>
-/// <param name="TargetId">The subscription or the service charge this money went against.</param>
-/// <param name="SubscriptionPlanName">
-/// The plan's name now, not when it was sold (BUSINESS_RULES.md §4). <c>null</c> for a service charge.
+/// <param name="TargetKind">
+/// What was paid for. Decides which of the two labels below is filled; a cafe order has neither.
 /// </param>
-/// <param name="ServiceKind"><c>null</c> for a subscription. The frontend turns it into Persian.</param>
+/// <param name="TargetId">The subscription, service charge or cafe order this money went against.</param>
+/// <param name="SubscriptionPlanName">
+/// The plan's name now, not when it was sold (BUSINESS_RULES.md §4). <c>null</c> unless a subscription.
+/// </param>
+/// <param name="ServiceKind">
+/// <c>null</c> unless a service charge. The frontend turns it into Persian.
+/// </param>
 public sealed record PaymentHistoryResponse(
     Guid Id,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentTargetKind>))] PaymentTargetKind TargetKind,

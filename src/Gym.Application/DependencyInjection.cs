@@ -11,12 +11,15 @@ using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
 using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
+using Gym.Application.Cafe.CancelCafeOrder;
 using Gym.Application.Cafe.CreateCafeOrder;
 using Gym.Application.Cafe.CreateProduct;
 using Gym.Application.Cafe.CreateProductCategory;
 using Gym.Application.Cafe.DeleteProductCategory;
 using Gym.Application.Cafe.GetCafeOrder;
 using Gym.Application.Cafe.GetProduct;
+using Gym.Application.Cafe.ListCafeOrders;
+using Gym.Application.Cafe.ListMemberCafeOrders;
 using Gym.Application.Cafe.ListProductCategories;
 using Gym.Application.Cafe.ListProducts;
 using Gym.Application.Cafe.SetProductActive;
@@ -147,6 +150,9 @@ public static class DependencyInjection
 
         services.AddScoped<CreateCafeOrderHandler>();
         services.AddScoped<GetCafeOrderHandler>();
+        services.AddScoped<CancelCafeOrderHandler>();
+        services.AddScoped<ListCafeOrdersHandler>();
+        services.AddScoped<ListMemberCafeOrdersHandler>();
 
         services.AddScoped<CreateProductCategoryHandler>();
         services.AddScoped<UpdateProductCategoryHandler>();

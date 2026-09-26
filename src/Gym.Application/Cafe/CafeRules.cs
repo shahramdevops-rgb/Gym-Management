@@ -34,6 +34,15 @@ public static class CafeRules
             .WithErrorCode(ProductErrors.PriceTooManyDecimals.Code)
             .WithMessage(ProductErrors.PriceTooManyDecimals.Description);
 
+    public static IRuleBuilderOptions<T, string> ValidCancelReason<T>(this IRuleBuilderInitial<T, string> rule) =>
+        rule.Cascade(CascadeMode.Stop)
+            .Must(reason => !string.IsNullOrWhiteSpace(reason))
+            .WithErrorCode(CafeOrderErrors.CancelReasonRequired.Code)
+            .WithMessage(CafeOrderErrors.CancelReasonRequired.Description)
+            .Must(reason => reason.Trim().Length <= CafeOrder.CancelReasonMaxLength)
+            .WithErrorCode(CafeOrderErrors.CancelReasonTooLong.Code)
+            .WithMessage(CafeOrderErrors.CancelReasonTooLong.Description);
+
     public static IRuleBuilderOptions<T, string> ValidCategoryName<T>(this IRuleBuilderInitial<T, string> rule) =>
         rule.Cascade(CascadeMode.Stop)
             .Must(name => !string.IsNullOrWhiteSpace(name))

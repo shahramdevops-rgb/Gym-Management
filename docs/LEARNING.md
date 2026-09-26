@@ -809,3 +809,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **A shared label fixes a bug in two places.** The profile's debt card called cafe orders "اشتراک", because its label function only knew two kinds. Moving it to `debtItemLabel` with a `switch` over every kind means TypeScript now complains if a fourth kind is added and not labelled.
 - **A valid format is not a valid number.** libphonenumber checks whether a number falls in an assigned operator range, not just its shape, so `0945…` is refused even though it looks right.
 - **My notes:**
+
+---
+
+## 7.3 — Cancelling a cafe order, and the order history
+
+- **Check again after you take the lock.** The payment handler read the order, saw it was not cancelled, and only then took the member lock. A cancellation finishing in that gap would leave a payment on an order that owes nothing. The fix is to ask the question again *after* the lock: under Postgres's default isolation (read committed), each statement sees everything committed before it started, so the second read sees the cancellation the lock made us wait for. Checking before taking a lock and trusting the answer afterwards is the classic "time of check to time of use" race.
+- **Two different guards for two different races.** An order on a member's account is protected by the member lock, the same lock every payment takes. A walk-in order has no member to lock, but it also takes no payments after it is created, so the only race left is two cancels at once. The order's `xmin` version handles that: the second `UPDATE` matches no row, EF Core throws `DbUpdateConcurrencyException`, and because the refunds were written in the same `SaveChanges` inside the same transaction, they are rolled back too.
+- **Refunds per payment method.** `PaymentLedger.GetNetPaidByMethod…` groups payments by method in SQL and keeps only the methods still in credit. Voiding a service charge and cancelling an order now share that query instead of each having its own copy.
+- **Batch per page, again.** The history reads one page of orders, then makes exactly two more queries for the whole page: member names (`WHERE id IN …`) and net paid per order (`GROUP BY cafe_order_id`). An order with no payments is missing from that dictionary, so it is read with `GetValueOrDefault`, which gives zero.
+- **Filter on the business date, not the moment.** The history filters on `OrderedOn` (a `DateOnly` in the gym's time zone), so "the orders of 3 Mehr" needs no time-zone arithmetic. The attendance history had to turn dates into UTC moments because a visit only stores the moment.
+- **One handler behind two routes.** `/api/cafe/orders?memberId=` and `/api/members/{id}/cafe-orders` return the same thing. The member route's handler only adds "unknown member is a 404" and then calls the counter's handler, so the query logic lives in one place.
+- **A gap found by following the money.** The refunds a cancellation writes needed somewhere to be seen, which exposed that the member's payment history had never included cafe payments at all. Adding a third target meant a third `Any(...)` in the filter and a third branch in the target kind, plus a `switch` in the frontend so TypeScript flags a fourth kind if one is ever added without a label.
+- **My notes:**

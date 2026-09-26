@@ -9,8 +9,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Payments.ListMemberPayments;
 
 /// <summary>
-/// A member's payment history across everything they have paid for — subscriptions and service
-/// charges — newest first (task 4.5, extended in 5.7).
+/// A member's payment history across everything they have paid for — subscriptions, service
+/// charges and cafe orders — newest first (task 4.5, extended in 5.7 and 7.3).
 /// </summary>
 public sealed class ListMemberPaymentsHandler(IAppDbContext db)
 {
@@ -26,15 +26,18 @@ public sealed class ListMemberPaymentsHandler(IAppDbContext db)
         }
 
         // Filtered by "belongs to one of this member's items" rather than joined to them, because
-        // a payment now has two possible parents and a join would have to become a union. The
-        // labels below are correlated subqueries for the same reason; only one of them fires per
-        // row, since a payment belongs to exactly one thing (BUSINESS_RULES.md §5).
+        // a payment has three possible parents and a join would have to become a union. The
+        // labels below are correlated subqueries for the same reason; at most one of them fires
+        // per row, since a payment belongs to exactly one thing (BUSINESS_RULES.md §5). A cafe
+        // order needs no label: its lines are on the order, and the kind says "cafe".
         var payments = db.Payments.AsNoTracking()
             .Where(payment =>
                 db.Subscriptions.Any(subscription =>
                     subscription.Id == payment.SubscriptionId && subscription.MemberId == memberId) ||
                 db.ServiceCharges.Any(charge =>
-                    charge.Id == payment.ServiceChargeId && charge.MemberId == memberId));
+                    charge.Id == payment.ServiceChargeId && charge.MemberId == memberId) ||
+                db.CafeOrders.Any(order =>
+                    order.Id == payment.CafeOrderId && order.MemberId == memberId));
 
         var totalCount = await payments.CountAsync(cancellationToken);
 
@@ -45,8 +48,12 @@ public sealed class ListMemberPaymentsHandler(IAppDbContext db)
             .Take(query.PageSize)
             .Select(payment => new PaymentHistoryResponse(
                 payment.Id,
-                payment.SubscriptionId != null ? PaymentTargetKind.Subscription : PaymentTargetKind.ServiceCharge,
-                payment.SubscriptionId != null ? payment.SubscriptionId!.Value : payment.ServiceChargeId!.Value,
+                payment.SubscriptionId != null
+                    ? PaymentTargetKind.Subscription
+                    : payment.ServiceChargeId != null ? PaymentTargetKind.ServiceCharge : PaymentTargetKind.CafeOrder,
+                payment.SubscriptionId != null
+                    ? payment.SubscriptionId!.Value
+                    : payment.ServiceChargeId != null ? payment.ServiceChargeId!.Value : payment.CafeOrderId!.Value,
                 // The plan's name is read live rather than from the sale: renaming a plan corrects
                 // the label on every receipt it has ever appeared on (BUSINESS_RULES.md §4).
                 db.Subscriptions

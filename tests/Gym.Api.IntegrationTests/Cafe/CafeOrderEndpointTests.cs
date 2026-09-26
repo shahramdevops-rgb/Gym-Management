@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Cafe;
+using Gym.Application.Common.Paging;
 using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.Payments;
 using Gym.Domain.Payments;
@@ -17,9 +18,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gym.Api.IntegrationTests.Cafe;
 
 /// <summary>
-/// <c>/api/cafe/orders</c> (BUSINESS_RULES.md §8, task 7.2). Nothing here counts stock: the point
-/// of these tests is the money — the price snapshot, the walk-in rule, and an order on a member's
-/// account turning into their debt.
+/// <c>/api/cafe/orders</c> (BUSINESS_RULES.md §8, tasks 7.2 and 7.3). Nothing here counts stock:
+/// the point of these tests is the money — the price snapshot, the walk-in rule, an order on a
+/// member's account turning into their debt, and cancelling giving back what was paid.
 /// </summary>
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class CafeOrderEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
@@ -436,6 +437,294 @@ public sealed class CafeOrderEndpointTests(DatabaseFixture fixture) : DatabaseTe
         reread.MemberFullName.ShouldBeNull();
     }
 
+    // ---- Cancelling ----
+
+    [Fact]
+    public async Task CancelOrder_UnpaidOnAccountByStaff_LeavesTheDebtAndRefundsNothing()
+    {
+        // An unpaid order on account leaves nothing to refund; cancelling it simply removes it
+        // from the member's debt (BUSINESS_RULES.md §8). Staff may do it (§1, §8).
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, member.Id, [(water.Id, 2)], paid: null);
+
+        var cancelled = await CancelOkAsync(client, token, order.Id, "  دو بار زده شد  ");
+
+        cancelled.CancelledAt.ShouldNotBeNull();
+        cancelled.CancelReason.ShouldBe("دو بار زده شد");
+        cancelled.Outstanding.ShouldBe(0m);
+        (await DebtAsync(client, token, member.Id)).Total.ShouldBe(0m);
+        (await PaymentsOfAsync(order.Id)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task CancelOrder_PaidWalkIn_RefundsTheWholeAmountWithTheReason()
+    {
+        var (client, token) = await StaffClientAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, memberId: null, [(water.Id, 2)], paid: 30_000m);
+
+        var cancelled = await CancelOkAsync(client, token, order.Id, "مشتری منصرف شد");
+
+        cancelled.NetPaid.ShouldBe(0m);
+        var refund = (await PaymentsOfAsync(order.Id)).Where(p => p.Kind == PaymentKind.Refund).ShouldHaveSingleItem();
+        refund.Amount.ShouldBe(30_000m);
+        refund.Method.ShouldBe(PaymentMethod.Cash);
+        refund.Reason.ShouldBe("مشتری منصرف شد");
+        (await GetOrderAsync(client, token, order.Id)).NetPaid.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task CancelOrder_PaidInCashAndByCard_RefundsEachMethodSeparately()
+    {
+        // Money goes back the way it came, as with a voided service charge (BUSINESS_RULES.md §8).
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, member.Id, [(water.Id, 3)], paid: 10_000m);
+        await PayOkAsync(client, token, order.Id, 20_000m, method: "Card");
+
+        await CancelOkAsync(client, token, order.Id, "اشتباه در سفارش");
+
+        var refunds = (await PaymentsOfAsync(order.Id)).Where(p => p.Kind == PaymentKind.Refund).ToList();
+        refunds.Count.ShouldBe(2);
+        refunds.Single(r => r.Method == PaymentMethod.Cash).Amount.ShouldBe(10_000m);
+        refunds.Single(r => r.Method == PaymentMethod.Card).Amount.ShouldBe(20_000m);
+    }
+
+    [Fact]
+    public async Task CancelOrder_Twice_Returns422AndRefundsOnlyOnce()
+    {
+        var (client, token) = await StaffClientAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, memberId: null, [(water.Id, 1)], paid: 15_000m);
+        await CancelOkAsync(client, token, order.Id, "اول");
+
+        using var response = await CancelAsync(client, token, order.Id, "دوم");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("CafeOrders.AlreadyCancelled");
+        (await PaymentsOfAsync(order.Id)).Count(p => p.Kind == PaymentKind.Refund).ShouldBe(1);
+        (await GetOrderAsync(client, token, order.Id)).CancelReason.ShouldBe("اول");
+    }
+
+    [Fact]
+    public async Task CancelOrder_BlankReason_Returns400AndChangesNothing()
+    {
+        var (client, token) = await StaffClientAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, memberId: null, [(water.Id, 1)], paid: 15_000m);
+
+        using var response = await CancelAsync(client, token, order.Id, "   ");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await GetOrderAsync(client, token, order.Id)).CancelledAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task CancelOrder_UnknownOrder_Returns404()
+    {
+        var (client, token) = await StaffClientAsync();
+
+        using var response = await CancelAsync(client, token, Guid.CreateVersion7(), "دلیل");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await response.ReadErrorCodeAsync()).ShouldBe("CafeOrders.NotFound");
+    }
+
+    [Fact]
+    public async Task CancelOrder_WithoutToken_Returns401()
+    {
+        using var client = Fixture.CreateClient();
+
+        using var response = await client.PostAsJsonAsync(
+            $"{OrdersPath}/{Guid.CreateVersion7()}/cancel", new { reason = "دلیل" }, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task PayOrder_AfterItWasCancelled_Returns422()
+    {
+        // A cancelled order owes nothing, so there is nothing to pay against it.
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, member.Id, [(water.Id, 1)], paid: null);
+        await CancelOkAsync(client, token, order.Id, "دلیل");
+
+        using var response = await PayAsync(client, token, order.Id, 15_000m);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("CafeOrders.AlreadyCancelled");
+    }
+
+    [Fact]
+    public async Task CancelOrder_InParallel_CancelsOnceAndRefundsOnce()
+    {
+        // A walk-in order has no member row to lock; the order's xmin is what stops the second
+        // cancel, and its refund is rolled back with it.
+        var (client, token) = await StaffClientAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, memberId: null, [(water.Id, 2)], paid: 30_000m);
+
+        var responses = await Task.WhenAll(
+            Enumerable.Range(0, 4).Select(i => CancelAsync(client, token, order.Id, $"دلیل {i}")));
+
+        try
+        {
+            responses.Count(response => response.StatusCode == HttpStatusCode.OK).ShouldBe(1);
+            responses.ShouldAllBe(response =>
+                response.StatusCode == HttpStatusCode.OK ||
+                response.StatusCode == HttpStatusCode.Conflict ||
+                response.StatusCode == HttpStatusCode.UnprocessableEntity);
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+
+        var refunds = (await PaymentsOfAsync(order.Id)).Where(p => p.Kind == PaymentKind.Refund).ToList();
+        refunds.Sum(r => r.Amount).ShouldBe(30_000m);
+    }
+
+    [Fact]
+    public async Task CancelAndPay_InParallel_NeverLeavesMoneyOnACancelledOrder()
+    {
+        // The payment asks "is it cancelled?" again under the member lock the cancel also takes,
+        // so whichever runs second sees the first: either the payment is refunded by the cancel,
+        // or the payment is refused.
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var order = await CreateOkAsync(client, token, member.Id, [(water.Id, 1)], paid: null);
+
+            var cancel = CancelAsync(client, token, order.Id, "دلیل");
+            var pay = PayAsync(client, token, order.Id, 15_000m);
+            using var cancelResponse = await cancel;
+            using var payResponse = await pay;
+
+            cancelResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+            (await GetOrderAsync(client, token, order.Id)).NetPaid.ShouldBe(0m);
+        }
+    }
+
+    [Fact]
+    public async Task MemberPayments_CancelledPaidOrder_ShowsThePaymentAndItsRefund()
+    {
+        // Cafe payments belong to the member's payment history like any other (BUSINESS_RULES.md §5).
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, member.Id, [(water.Id, 1)], paid: 15_000m);
+        await CancelOkAsync(client, token, order.Id, "دلیل");
+
+        using var response = await SendAsync(
+            client, token, HttpMethod.Get, $"/api/members/{member.Id}/payments", body: null);
+        response.EnsureSuccessStatusCode();
+        var page = (await response.Content.ReadFromJsonAsync<PagedResponse<PaymentHistoryResponse>>(
+            TestContext.Current.CancellationToken)).ShouldNotBeNull();
+
+        page.TotalCount.ShouldBe(2);
+        page.Items.ShouldAllBe(row => row.TargetKind == PaymentTargetKind.CafeOrder && row.TargetId == order.Id);
+        page.Items.Select(row => row.Kind).ShouldBe([PaymentKind.Payment, PaymentKind.Refund], ignoreOrder: true);
+    }
+
+    // ---- History ----
+
+    [Fact]
+    public async Task ListOrders_NewestFirst_IncludesCancelledOnesWithTheirLines()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var first = await CreateOkAsync(client, token, memberId: null, [(water.Id, 1)], paid: 15_000m);
+        var second = await CreateOkAsync(client, token, member.Id, [(water.Id, 2)], paid: 10_000m);
+        await CancelOkAsync(client, token, first.Id, "دلیل");
+
+        var page = await ListOkAsync(client, token, OrdersPath);
+
+        page.TotalCount.ShouldBe(2);
+        page.Items.Select(order => order.Id).ShouldBe([second.Id, first.Id]);
+
+        var onAccount = page.Items[0];
+        onAccount.MemberFullName.ShouldBe(member.FullName);
+        onAccount.NetPaid.ShouldBe(10_000m);
+        onAccount.Outstanding.ShouldBe(20_000m);
+        onAccount.Items.ShouldHaveSingleItem().Quantity.ShouldBe(2);
+
+        var walkIn = page.Items[1];
+        walkIn.CancelledAt.ShouldNotBeNull();
+        walkIn.NetPaid.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task ListOrders_ByMember_ReturnsOnlyThatMembersOrders()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var other = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var mine = await CreateOkAsync(client, token, member.Id, [(water.Id, 1)], paid: null);
+        await CreateOkAsync(client, token, other.Id, [(water.Id, 1)], paid: null);
+        await CreateOkAsync(client, token, memberId: null, [(water.Id, 1)], paid: 15_000m);
+
+        var byQuery = await ListOkAsync(client, token, $"{OrdersPath}?memberId={member.Id}");
+        var byMember = await ListOkAsync(client, token, $"/api/members/{member.Id}/cafe-orders");
+
+        byQuery.Items.ShouldHaveSingleItem().Id.ShouldBe(mine.Id);
+        byMember.Items.ShouldHaveSingleItem().Id.ShouldBe(mine.Id);
+    }
+
+    [Fact]
+    public async Task ListOrders_DateRange_FiltersByTheBusinessDateInclusively()
+    {
+        var (client, token) = await StaffClientAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var before = await CreateOkAsync(client, token, memberId: null, [(water.Id, 1)], paid: 15_000m);
+        var onStart = await CreateOkAsync(client, token, memberId: null, [(water.Id, 1)], paid: 15_000m);
+        var onEnd = await CreateOkAsync(client, token, memberId: null, [(water.Id, 1)], paid: 15_000m);
+        var after = await CreateOkAsync(client, token, memberId: null, [(water.Id, 1)], paid: 15_000m);
+        await SetOrderedOnAsync(before.Id, new DateOnly(2026, 9, 9));
+        await SetOrderedOnAsync(onStart.Id, new DateOnly(2026, 9, 10));
+        await SetOrderedOnAsync(onEnd.Id, new DateOnly(2026, 9, 12));
+        await SetOrderedOnAsync(after.Id, new DateOnly(2026, 9, 13));
+
+        var page = await ListOkAsync(client, token, $"{OrdersPath}?from=2026-09-10&to=2026-09-12");
+
+        page.Items.Select(order => order.Id).ShouldBe([onEnd.Id, onStart.Id]);
+    }
+
+    [Fact]
+    public async Task ListOrders_FromAfterTo_Returns400()
+    {
+        var (client, token) = await StaffClientAsync();
+
+        using var response = await SendAsync(
+            client, token, HttpMethod.Get, $"{OrdersPath}?from=2026-09-12&to=2026-09-10", body: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ListMemberOrders_UnknownMember_Returns404()
+    {
+        var (client, token) = await StaffClientAsync();
+
+        using var response = await SendAsync(
+            client, token, HttpMethod.Get, $"/api/members/{Guid.CreateVersion7()}/cafe-orders", body: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Members.NotFound");
+    }
+
     // ---- Helpers ----
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
@@ -527,21 +816,44 @@ public sealed class CafeOrderEndpointTests(DatabaseFixture fixture) : DatabaseTe
     }
 
     private static Task<HttpResponseMessage> PayAsync(
-        HttpClient client, string token, Guid orderId, decimal amount) =>
+        HttpClient client, string token, Guid orderId, decimal amount, string method = "Cash") =>
             SendAsync(
                 client,
                 token,
                 HttpMethod.Post,
                 $"{OrdersPath}/{orderId}/payments",
-                new { amount = Money(amount), method = "Cash", referenceNumber = (string?)null });
+                new { amount = Money(amount), method, referenceNumber = (string?)null });
 
     private static async Task<PaymentResponse> PayOkAsync(
-        HttpClient client, string token, Guid orderId, decimal amount)
+        HttpClient client, string token, Guid orderId, decimal amount, string method = "Cash")
     {
-        using var response = await PayAsync(client, token, orderId, amount);
+        using var response = await PayAsync(client, token, orderId, amount, method);
         response.EnsureSuccessStatusCode();
 
         return (await response.Content.ReadFromJsonAsync<PaymentResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static Task<HttpResponseMessage> CancelAsync(
+        HttpClient client, string token, Guid orderId, string reason) =>
+            SendAsync(client, token, HttpMethod.Post, $"{OrdersPath}/{orderId}/cancel", new { reason });
+
+    private static async Task<CafeOrderResponse> CancelOkAsync(
+        HttpClient client, string token, Guid orderId, string reason)
+    {
+        using var response = await CancelAsync(client, token, orderId, reason);
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<CafeOrderResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static async Task<PagedResponse<CafeOrderResponse>> ListOkAsync(
+        HttpClient client, string token, string path)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Get, path, body: null);
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<PagedResponse<CafeOrderResponse>>(
+            TestContext.Current.CancellationToken)).ShouldNotBeNull();
     }
 
     private static async Task<MemberDebtResponse> DebtAsync(HttpClient client, string token, Guid memberId)
@@ -583,5 +895,28 @@ public sealed class CafeOrderEndpointTests(DatabaseFixture fixture) : DatabaseTe
 
         return await scope.ServiceProvider.GetRequiredService<AppDbContext>().CafeOrders
             .CountAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<List<Payment>> PaymentsOfAsync(Guid orderId)
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Payments
+            .AsNoTracking()
+            .Where(payment => payment.CafeOrderId == orderId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Moves an order to another business day. The tests run on the real clock, so every order is
+    /// rung up today; the history's date filter needs orders on other days.
+    /// </summary>
+    private async Task SetOrderedOnAsync(Guid orderId, DateOnly orderedOn)
+    {
+        await using var scope = Fixture.CreateScope();
+
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlAsync(
+            $"UPDATE cafe_orders SET ordered_on = {orderedOn} WHERE id = {orderId}",
+            TestContext.Current.CancellationToken);
     }
 }
