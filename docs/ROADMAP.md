@@ -925,9 +925,9 @@ because the developer builds and tests at night. Do not start it earlier unless 
 - [ ] `Gym:OpeningTime` = 06:00 setting next to `Gym:ClosingTime`
 - [ ] Check-in between `Gym:ClosingTime` and `Gym:OpeningTime` (gym time zone, window crosses midnight) is refused with a stable error code, mapped to a Persian message
 - [ ] Decide with the developer before coding: how local development at night stays unblocked (no Owner override: §7 *Opening hours*)
-- [ ] Tests: domain tests for the window edges (22:59, 23:00, 05:59, 06:00) with `FakeTimeProvider`; an integration test for the refusal
+- [ ] Tests: domain tests for the window edges (23:59, 00:00, 05:59, 06:00) with `FakeTimeProvider`; an integration test for the refusal
 
-Done when: a check-in at 23:30 Tehran time is refused, one at 06:00 succeeds, and the front desk shows the Persian message.
+Done when: a check-in at 00:30 Tehran time is refused, one at 06:00 succeeds, and the front desk shows the Persian message.
 
 ---
 
