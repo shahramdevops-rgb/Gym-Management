@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { cardioCharge, currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { cafeDebtItem, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
+import { confirmMoneyReceived, pickMethod } from "@/test/payments";
 import { renderApp } from "@/test/renderApp";
 import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
 import { gymToday } from "@/lib/format";
@@ -344,7 +345,9 @@ describe("CurrentlyInsidePage", () => {
     fireEvent.click(await screen.findByRole("button", { name: "ثبت خروج" }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(await within(dialog).findByRole("button", { name: "تسویه یکجا" }));
+    pickMethod(dialog);
     fireEvent.click(within(dialog).getByRole("button", { name: "تأیید تسویه" }));
+    await confirmMoneyReceived();
 
     expect(await within(dialog).findByText("بدهی این عضو صاف شد.")).toBeInTheDocument();
     expect(await within(dialog).findByText("این عضو بدهی ندارد.")).toBeInTheDocument();

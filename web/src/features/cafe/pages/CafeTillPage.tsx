@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
-import { FormField, MoneyField, SelectField } from "@/components/FormField";
+import { FormField, MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMember } from "@/features/members/api";
-import { paymentMethodLabels, paymentMethods, type PaymentMethod } from "@/features/payments/api";
+import type { PaymentMethod } from "@/features/payments/api";
+import { ConfirmPaymentDialog } from "@/features/payments/components/ConfirmPaymentDialog";
+import { PaymentMethodField } from "@/features/payments/components/PaymentMethodField";
 import { amountProblem } from "@/features/payments/schemas";
 import { errorMessage, errorMessages, fieldErrors } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
@@ -43,6 +45,10 @@ function problemText(problem: unknown): string {
  *   cannot be changed;
  * - a member may pay all of it, some of it, or none of it; whatever is not paid stays on their
  *   account. The amount starts at the total and follows it until somebody types in the box.
+ *
+ * Whenever money is taken, the desk picks the method (none is chosen in advance) and answers "was
+ * the money received?" before the order is sent (§5). An order left wholly on a member's account
+ * takes no money, so it asks neither.
  */
 export function CafeTillPage() {
   const [params, setParams] = useSearchParams();
@@ -54,9 +60,13 @@ export function CafeTillPage() {
   const [cart, setCart] = useState<CartLine[]>([]);
   // Null: the box follows the total. A string: what somebody typed, blank included.
   const [amountText, setAmountText] = useState<string | null>(null);
-  const [method, setMethod] = useState<PaymentMethod>("Cash");
+  // Empty until the desk picks one: no method is chosen in advance.
+  const [method, setMethod] = useState<PaymentMethod | "">("");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [amountError, setAmountError] = useState<string | undefined>(undefined);
+  const [methodError, setMethodError] = useState<string | undefined>(undefined);
+  // The payment waiting for "was the money received?"; the order is not sent before the answer.
+  const [toConfirm, setToConfirm] = useState<PaymentInput | null>(null);
   const [notice, setNotice] = useState<{ kind: "success" | "destructive"; text: string } | null>(
     null,
   );
@@ -73,45 +83,63 @@ export function CafeTillPage() {
     setAmountError(undefined);
   }
 
-  /** The payment to send, null for "all of it on the account", or a reason to stop. */
-  function paymentToSend(): { payment: PaymentInput | null } | { problem: string } {
-    const amount = normalizeMoney(shownAmount).trim();
+  /** The payment to send, null for "all of it on the account", or a reason to stop and its box. */
+  function paymentToSend():
+    { payment: PaymentInput | null } | { problem: string; field: "amount" | "method" } {
+    const amount = isWalkIn ? total : normalizeMoney(shownAmount).trim();
     const reference = referenceNumber.trim() === "" ? null : referenceNumber.trim();
 
-    if (isWalkIn) {
-      return { payment: { amount: total, method, referenceNumber: reference } };
-    }
-    // Blank or zero: nothing handed over, the whole order goes on the account.
-    if (/^[0.]*$/.test(amount)) {
-      return { payment: null };
+    if (!isWalkIn) {
+      // Blank or zero: nothing handed over, the whole order goes on the account.
+      if (/^[0.]*$/.test(amount)) {
+        return { payment: null };
+      }
+
+      const problem = amountProblem(shownAmount);
+      if (problem !== null) {
+        return { problem, field: "amount" };
+      }
+      if (subtractMoney(total, amount).startsWith("-")) {
+        return { problem: errorMessages["CafeOrders.PaidMoreThanTheOrder"]!, field: "amount" };
+      }
     }
 
-    const problem = amountProblem(shownAmount);
-    if (problem !== null) {
-      return { problem };
-    }
-    if (subtractMoney(total, amount).startsWith("-")) {
-      return { problem: errorMessages["CafeOrders.PaidMoreThanTheOrder"]! };
+    if (method === "") {
+      return { problem: "روش پرداخت را انتخاب کنید.", field: "method" };
     }
 
     return { payment: { amount, method, referenceNumber: reference } };
   }
 
-  async function placeOrder() {
+  /** Checks the form. Money goes to the "was it received?" box first; an order on account goes straight out. */
+  function placeOrder() {
     setNotice(null);
     setAmountError(undefined);
+    setMethodError(undefined);
 
     const decided = paymentToSend();
     if ("problem" in decided) {
-      setAmountError(decided.problem);
+      if (decided.field === "amount") {
+        setAmountError(decided.problem);
+      } else {
+        setMethodError(decided.problem);
+      }
       return;
     }
 
+    if (decided.payment === null) {
+      void send(null);
+    } else {
+      setToConfirm(decided.payment);
+    }
+  }
+
+  async function send(payment: PaymentInput | null) {
     try {
       const order = await createOrder.mutateAsync({
         memberId: isWalkIn ? null : memberId,
         items: cart.map((line) => ({ productId: line.productId, quantity: line.quantity })),
-        payment: decided.payment,
+        payment,
       });
 
       const onAccount = isPositiveMoney(order.outstanding)
@@ -122,6 +150,7 @@ export function CafeTillPage() {
         text: `سفارش ${formatMoney(order.totalAmount)} ثبت شد.${onAccount}`,
       });
       setCart([]);
+      setMethod("");
       setReferenceNumber("");
       // The next customer at the counter is somebody else until the desk says otherwise.
       chooseMember(null);
@@ -129,6 +158,8 @@ export function CafeTillPage() {
       setNotice({ kind: "destructive", text: problemText(problem) });
       // A product switched off since the grid loaded is the likeliest reason; show today's menu.
       void products.refetch();
+    } finally {
+      setToConfirm(null);
     }
   }
 
@@ -218,7 +249,7 @@ export function CafeTillPage() {
                 noValidate
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void placeOrder();
+                  placeOrder();
                 }}
               >
                 <MoneyField
@@ -244,17 +275,14 @@ export function CafeTillPage() {
                   )
                 )}
 
-                <SelectField
-                  label="روش پرداخت"
+                <PaymentMethodField
                   value={method}
-                  onChange={(event) => setMethod(event.target.value as PaymentMethod)}
-                >
-                  {paymentMethods.map((value) => (
-                    <option key={value} value={value}>
-                      {paymentMethodLabels[value]}
-                    </option>
-                  ))}
-                </SelectField>
+                  error={methodError}
+                  onChange={(event) => {
+                    setMethod(event.target.value as PaymentMethod | "");
+                    setMethodError(undefined);
+                  }}
+                />
                 <FormField
                   label="شماره پیگیری (اختیاری)"
                   dir="ltr"
@@ -276,6 +304,17 @@ export function CafeTillPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmPaymentDialog
+        payment={toConfirm}
+        pending={createOrder.isPending}
+        onConfirm={() => {
+          if (toConfirm !== null) {
+            void send(toConfirm);
+          }
+        }}
+        onCancel={() => setToConfirm(null)}
+      />
     </div>
   );
 }

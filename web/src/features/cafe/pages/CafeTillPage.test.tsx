@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { cafePage, orderOnAccount, proteinShake, walkInOrder, water } from "@/test/cafe";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { membersPage, reza } from "@/test/members";
+import { confirmMoneyReceived, pickMethod } from "@/test/payments";
 import { renderApp } from "@/test/renderApp";
 
 const menu = {
@@ -68,7 +69,9 @@ describe("CafeTillPage", () => {
 
     // A walk-in customer pays everything now (§8), so the amount is the total and locked.
     expect(screen.getByLabelText("مبلغ دریافتی (تومان)")).toBeDisabled();
+    pickMethod(document.body);
     fireEvent.click(screen.getByRole("button", { name: "ثبت سفارش" }));
+    await confirmMoneyReceived();
 
     expect(await screen.findByRole("status")).toHaveTextContent("سفارش ۵۰٬۰۰۰ تومان ثبت شد.");
     const [request] = api.requestsTo("POST", "/api/cafe/orders");
@@ -78,6 +81,39 @@ describe("CafeTillPage", () => {
       payment: { amount: "50000.00", method: "Cash", referenceNumber: null },
     });
     expect(screen.getByText("سبد خالی است. روی محصول‌ها بزنید.")).toBeInTheDocument();
+  });
+
+  it("Till_WalkInWithNoMethodPicked_AsksForOneAndSendsNothing", async () => {
+    const api = mockApi({ ...menu });
+    renderApp("/cafe", { session: session() });
+
+    await screen.findByRole("region", { name: "نوشیدنی" });
+    fireEvent.click(productButton("آب معدنی"));
+    expect(screen.getByLabelText("روش پرداخت")).toHaveValue("");
+    fireEvent.click(screen.getByRole("button", { name: "ثبت سفارش" }));
+
+    expect(await screen.findByText("روش پرداخت را انتخاب کنید.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(api.requestsTo("POST", "/api/cafe/orders")).toHaveLength(0);
+  });
+
+  it("Till_WalkInAnsweredNo_SendsNothingAndKeepsTheCart", async () => {
+    const api = mockApi({ ...menu });
+    renderApp("/cafe", { session: session() });
+
+    await screen.findByRole("region", { name: "نوشیدنی" });
+    fireEvent.click(productButton("آب معدنی"));
+    pickMethod(document.body, "Card");
+    fireEvent.click(screen.getByRole("button", { name: "ثبت سفارش" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "آیا پول دریافت شد؟" });
+    expect(dialog).toHaveTextContent("۲۵٬۰۰۰ تومان");
+    expect(dialog).toHaveTextContent("کارت");
+    fireEvent.click(within(dialog).getByRole("button", { name: "خیر، برگرد" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.requestsTo("POST", "/api/cafe/orders")).toHaveLength(0);
+    expect(screen.getByLabelText("تعداد آب معدنی")).toBeInTheDocument();
   });
 
   it("Till_MemberWithTheAmountCleared_PutsTheWholeOrderOnTheAccount", async () => {
@@ -122,8 +158,9 @@ describe("CafeTillPage", () => {
     });
 
     expect(screen.getByText("۷۰٬۰۰۰ تومان به حساب رضا احمدی می‌رود.")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("روش پرداخت"), { target: { value: "Card" } });
+    pickMethod(document.body, "Card");
     fireEvent.click(screen.getByRole("button", { name: "ثبت سفارش" }));
+    await confirmMoneyReceived();
 
     await screen.findByRole("status");
     const [request] = api.requestsTo("POST", "/api/cafe/orders");
@@ -162,7 +199,9 @@ describe("CafeTillPage", () => {
 
     await screen.findByRole("region", { name: "نوشیدنی" });
     fireEvent.click(productButton("آب معدنی"));
+    pickMethod(document.body);
     fireEvent.click(screen.getByRole("button", { name: "ثبت سفارش" }));
+    await confirmMoneyReceived();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "این محصول غیرفعال است و قابل فروش نیست.",

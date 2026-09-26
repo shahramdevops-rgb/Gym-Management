@@ -2,7 +2,7 @@ import { CheckCircle2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { FormField, MoneyField, SelectField } from "@/components/FormField";
+import { FormField, MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { MemberDebtItem } from "@/features/members/api";
@@ -11,9 +11,15 @@ import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { formatDate, formatMoney } from "@/lib/format";
 import { addMoney, isPositiveMoney, normalizeMoney, subtractMoney } from "@/lib/money";
 
-import { paymentMethodLabels, paymentMethods, type PaymentMethod } from "../api";
-import { emptyRegisterPaymentValues, registerPaymentSchema } from "../schemas";
+import { paymentMethodLabels, type PaymentMethod } from "../api";
+import {
+  emptyRegisterPaymentValues,
+  registerPaymentSchema,
+  type RegisterPaymentValues,
+} from "../schemas";
 import { useSettleDebt, type Settlement } from "../settle";
+import { ConfirmPaymentDialog } from "./ConfirmPaymentDialog";
+import { PaymentMethodField } from "./PaymentMethodField";
 
 const codeFields = {
   "Payments.AmountNotPositive": "amount",
@@ -110,8 +116,10 @@ function SettleDebtForm({
   const [unticked, setUnticked] = useState<ReadonlySet<string>>(new Set());
   const selected = ordered.filter((item) => !unticked.has(item.id));
   const selectedTotal = addMoney(...selected.map((item) => item.outstanding));
+  // The checked values waiting for "was the money received?"; nothing is sent before the answer.
+  const [toConfirm, setToConfirm] = useState<RegisterPaymentValues | null>(null);
 
-  const form = useForm({
+  const form = useForm<RegisterPaymentValues>({
     resolver: zodResolver(registerPaymentSchema),
     defaultValues: { ...emptyRegisterPaymentValues, amount: asTypedAmount(selectedTotal) },
   });
@@ -135,20 +143,22 @@ function SettleDebtForm({
     });
   }
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    const amount = normalizeMoney(values.amount);
-    if (subtractMoney(selectedTotal, amount).startsWith("-")) {
+  const onSubmit = form.handleSubmit((values) => {
+    if (subtractMoney(selectedTotal, normalizeMoney(values.amount)).startsWith("-")) {
       form.setError("amount", {
         type: "manual",
         message: "مبلغ از جمع موارد انتخاب‌شده بیشتر است.",
       });
       return;
     }
+    setToConfirm(values);
+  });
 
+  async function send(values: RegisterPaymentValues) {
     try {
       const settlement = await settle.mutateAsync({
         memberId,
-        amount,
+        amount: normalizeMoney(values.amount),
         method: values.method,
         referenceNumber:
           values.referenceNumber.trim() === "" ? null : values.referenceNumber.trim(),
@@ -161,109 +171,124 @@ function SettleDebtForm({
       });
       onSettled(receiptOf(settlement, items));
     } catch (problem) {
+      setToConfirm(null);
       applyServerErrors(problem, form.setError, codeFields);
     }
-  });
+  }
 
-  const { errors, isSubmitting } = form.formState;
+  const { errors } = form.formState;
+  const isSubmitting = settle.isPending;
 
   return (
-    <form
-      aria-label="تسویه یکجا"
-      className="space-y-3 rounded-lg border p-3 text-sm"
-      onSubmit={onSubmit}
-      noValidate
-    >
-      <p className="font-medium">تسویه یکجا</p>
+    <>
+      <form
+        aria-label="تسویه یکجا"
+        className="space-y-3 rounded-lg border p-3 text-sm"
+        onSubmit={onSubmit}
+        noValidate
+      >
+        <p className="font-medium">تسویه یکجا</p>
 
-      {errors.root?.server !== undefined && (
-        <Alert variant="destructive">{errors.root.server.message}</Alert>
-      )}
+        {errors.root?.server !== undefined && (
+          <Alert variant="destructive">{errors.root.server.message}</Alert>
+        )}
 
-      <fieldset className="space-y-1">
-        <legend className="sr-only">موارد تسویه</legend>
-        {ordered.map((item) => (
-          <label key={item.id} className="flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              className="size-4 accent-primary"
-              checked={!unticked.has(item.id)}
-              onChange={() => toggle(item.id)}
-            />
-            <span className="flex-1">
-              {debtItemLabel(item)}
-              <span className="text-muted-foreground"> · {formatDate(item.startDate)}</span>
-            </span>
-            <span className="font-medium">{formatMoney(item.outstanding)}</span>
-          </label>
-        ))}
-      </fieldset>
-
-      <p className="flex justify-between gap-3 border-t pt-2 font-medium">
-        <span>جمع انتخاب‌شده</span>
-        <span>{formatMoney(selectedTotal)}</span>
-      </p>
-
-      {selected.length === 0 ? (
-        <p className="text-muted-foreground">دست‌کم یک مورد را انتخاب کنید.</p>
-      ) : (
-        <>
-          <div className="flex flex-wrap items-start gap-3">
-            <div className="w-44">
-              <Controller
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <MoneyField
-                    label="مبلغ دریافتی (تومان)"
-                    error={errors.amount?.message}
-                    name={field.name}
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                )}
+        <fieldset className="space-y-1">
+          <legend className="sr-only">موارد تسویه</legend>
+          {ordered.map((item) => (
+            <label key={item.id} className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                className="size-4 accent-primary"
+                checked={!unticked.has(item.id)}
+                onChange={() => toggle(item.id)}
               />
-            </div>
-            <div className="w-36">
-              <SelectField
-                label="روش پرداخت"
-                error={errors.method?.message}
-                {...form.register("method")}
-              >
-                {paymentMethods.map((method) => (
-                  <option key={method} value={method}>
-                    {paymentMethodLabels[method]}
-                  </option>
-                ))}
-              </SelectField>
-            </div>
-            <div className="min-w-40 flex-1">
-              <FormField
-                label="شماره پیگیری (اختیاری)"
-                dir="ltr"
-                autoComplete="off"
-                error={errors.referenceNumber?.message}
-                {...form.register("referenceNumber")}
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            اگر مبلغ کمتر از جمع باشد، اول بوفه، بعد هوازی و بعد اشتراک تسویه می‌شود و بقیه بدهی
-            می‌ماند.
-          </p>
-        </>
-      )}
+              <span className="flex-1">
+                {debtItemLabel(item)}
+                <span className="text-muted-foreground"> · {formatDate(item.startDate)}</span>
+              </span>
+              <span className="font-medium">{formatMoney(item.outstanding)}</span>
+            </label>
+          ))}
+        </fieldset>
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" size="sm" disabled={isSubmitting || selected.length === 0}>
-          {isSubmitting ? "در حال ثبت…" : "تأیید تسویه"}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" disabled={isSubmitting} onClick={onCancel}>
-          انصراف
-        </Button>
-      </div>
-    </form>
+        <p className="flex justify-between gap-3 border-t pt-2 font-medium">
+          <span>جمع انتخاب‌شده</span>
+          <span>{formatMoney(selectedTotal)}</span>
+        </p>
+
+        {selected.length === 0 ? (
+          <p className="text-muted-foreground">دست‌کم یک مورد را انتخاب کنید.</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-start gap-3">
+              <div className="w-44">
+                <Controller
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <MoneyField
+                      label="مبلغ دریافتی (تومان)"
+                      error={errors.amount?.message}
+                      name={field.name}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
+              </div>
+              <div className="w-36">
+                <PaymentMethodField error={errors.method?.message} {...form.register("method")} />
+              </div>
+              <div className="min-w-40 flex-1">
+                <FormField
+                  label="شماره پیگیری (اختیاری)"
+                  dir="ltr"
+                  autoComplete="off"
+                  error={errors.referenceNumber?.message}
+                  {...form.register("referenceNumber")}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              اگر مبلغ کمتر از جمع باشد، اول بوفه، بعد هوازی و بعد اشتراک تسویه می‌شود و بقیه بدهی
+              می‌ماند.
+            </p>
+          </>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" size="sm" disabled={isSubmitting || selected.length === 0}>
+            {isSubmitting ? "در حال ثبت…" : "تأیید تسویه"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={isSubmitting}
+            onClick={onCancel}
+          >
+            انصراف
+          </Button>
+        </div>
+      </form>
+
+      <ConfirmPaymentDialog
+        payment={
+          toConfirm === null
+            ? null
+            : { amount: normalizeMoney(toConfirm.amount), method: toConfirm.method }
+        }
+        pending={settle.isPending}
+        onConfirm={() => {
+          if (toConfirm !== null) {
+            void send(toConfirm);
+          }
+        }}
+        onCancel={() => setToConfirm(null)}
+      />
+    </>
   );
 }
 

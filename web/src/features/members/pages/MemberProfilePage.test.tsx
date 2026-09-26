@@ -20,7 +20,14 @@ import {
   staffUser,
 } from "@/test/mockApi";
 import { ali, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
-import { paymentHistoryItem, paymentOfActiveSubscription, paymentsPage } from "@/test/payments";
+import {
+  confirmMoneyReceived,
+  confirmMoneyReturned,
+  paymentHistoryItem,
+  paymentOfActiveSubscription,
+  paymentsPage,
+  pickMethod,
+} from "@/test/payments";
 import { monthly12, plansPage, singleSession } from "@/test/plans";
 import {
   activeSubscription,
@@ -509,7 +516,9 @@ describe("MemberProfilePage", () => {
       target: { value: "500000" },
     });
     fireEvent.change(screen.getByLabelText("دلیل استرداد"), { target: { value: "دلیل" } });
+    pickMethod(document.body, "Cash", "روش");
     fireEvent.click(screen.getByRole("button", { name: "تأیید استرداد" }));
+    await confirmMoneyReturned();
 
     expect(
       await screen.findByText("این استرداد از مبلغ پرداخت‌شدهٔ این مورد بیشتر است."),
@@ -530,12 +539,57 @@ describe("MemberProfilePage", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /^ثبت پرداخت برای/ }));
     fireEvent.change(screen.getByLabelText("مبلغ (تومان)"), { target: { value: "400000" } });
+    pickMethod(document.body);
     fireEvent.click(screen.getByRole("button", { name: "تأیید پرداخت" }));
+    await confirmMoneyReceived();
 
     expect(await screen.findByRole("status")).toHaveTextContent("پرداخت ثبت شد.");
     const request = api.requestsTo("POST", `/api/subscriptions/${activeSubscription.id}/payments`);
     expect(request).toHaveLength(1);
     expect(await request[0]!.clone().json()).toMatchObject({ amount: "400000", method: "Cash" });
+  });
+
+  it("History_RegisterPaymentWithNoMethodPicked_AsksForOneAndSendsNothing", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: /^ثبت پرداخت برای/ }));
+    fireEvent.change(screen.getByLabelText("مبلغ (تومان)"), { target: { value: "400000" } });
+    fireEvent.click(screen.getByRole("button", { name: "تأیید پرداخت" }));
+
+    expect(await screen.findByText("روش پرداخت را انتخاب کنید.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      api.requestsTo("POST", `/api/subscriptions/${activeSubscription.id}/payments`),
+    ).toHaveLength(0);
+  });
+
+  it("History_RegisterPaymentAnsweredNo_SendsNothing", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: /^ثبت پرداخت برای/ }));
+    fireEvent.change(screen.getByLabelText("مبلغ (تومان)"), { target: { value: "400000" } });
+    pickMethod(document.body, "Card");
+    fireEvent.click(screen.getByRole("button", { name: "تأیید پرداخت" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "آیا پول دریافت شد؟" });
+    expect(dialog).toHaveTextContent("۴۰۰٬۰۰۰ تومان");
+    fireEvent.click(within(dialog).getByRole("button", { name: "خیر، برگرد" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(
+      api.requestsTo("POST", `/api/subscriptions/${activeSubscription.id}/payments`),
+    ).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "تأیید پرداخت" })).toBeInTheDocument();
   });
 
   it("History_RegisterPayment_AmountFieldGroupsDigitsAsYouType", async () => {

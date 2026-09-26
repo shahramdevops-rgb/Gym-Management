@@ -1,3 +1,4 @@
+import type { DefaultValues } from "react-hook-form";
 import { z } from "zod";
 
 import { errorMessages } from "@/lib/errors";
@@ -59,7 +60,11 @@ const amountField = z.string().superRefine((text, context) => {
   }
 });
 
-const methodField = z.enum(paymentMethods);
+/**
+ * No method is chosen in advance (BUSINESS_RULES.md §5): the list starts on an empty option, and
+ * leaving it there is refused here, before anything is sent.
+ */
+const methodField = z.enum(paymentMethods, { error: "روش پرداخت را انتخاب کنید." });
 
 const referenceNumberField = z.string().max(100, message("Payments.ReferenceNumberTooLong"));
 
@@ -71,9 +76,9 @@ export const registerPaymentSchema = z.object({
 
 export type RegisterPaymentValues = z.infer<typeof registerPaymentSchema>;
 
-export const emptyRegisterPaymentValues: RegisterPaymentValues = {
+/** Without a method on purpose: the desk has to pick one. */
+export const emptyRegisterPaymentValues: DefaultValues<RegisterPaymentValues> = {
   amount: "",
-  method: "Cash",
   referenceNumber: "",
 };
 
@@ -93,9 +98,9 @@ export const registerRefundSchema = z.object({
 
 export type RegisterRefundValues = z.infer<typeof registerRefundSchema>;
 
-export const emptyRegisterRefundValues: RegisterRefundValues = {
+/** Without a method on purpose, like a payment. */
+export const emptyRegisterRefundValues: DefaultValues<RegisterRefundValues> = {
   amount: "",
-  method: "Cash",
   referenceNumber: "",
   reason: "",
 };

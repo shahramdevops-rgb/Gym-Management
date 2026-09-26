@@ -295,6 +295,26 @@ visit, and it must never move, delay or shorten what the member already bought.
     cafe orders started setting `CafeOrderId` in task 7.2.
 - Revenue for a period = payments − refunds, by `PaidAt` in the gym's time zone. There is no separate Income table.
 
+### Confirming money at the desk
+
+Decided with the developer, 1405/07/04. A payment is never deleted, so a stray press on "تأیید"
+should not be enough to write one. This rule covers every screen that records money.
+
+- **No payment method is chosen in advance.** The "روش پرداخت" list starts empty ("انتخاب کنید…"),
+  and a payment or refund with no method picked is refused before anything is sent. The desk has
+  to look at the list and choose.
+- **The list is always in the same order: کارت (Card), انتقال بانکی (BankTransfer), نقدی (Cash).**
+- **Before any money is written, the desk answers a second question**, which names the amount
+  and the method: "آیا پول دریافت شد؟" for a payment, and "آیا پول به عضو برگردانده شد؟" for a
+  refund. Nothing is sent until the desk answers yes. "No" closes the question and leaves the form
+  as it was.
+- This applies to a payment against a subscription, a هوازی charge or a cafe order, to «تسویه
+  یکجا», to the cafe till, and to a refund.
+- A cafe order left wholly on a member's account takes no money, so it asks neither for a method
+  nor for the confirmation (§8).
+- This is a desk-side guard only. The API already requires a valid method on every payment, so
+  nothing changes on the server.
+
 ### Member debt (open account, حساب باز)
 
 Decided with the developer, 1405/06/31. Implemented for subscriptions in task 4.7 and for service
