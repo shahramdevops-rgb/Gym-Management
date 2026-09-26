@@ -774,9 +774,29 @@ and 424 frontend tests green, zero warnings. Found while building and left for i
 lock, the same gap this task closed for cafe orders.
 
 ### 7.4 UI: cafe
-- [ ] POS screen: product grid, cart, payment
-- [ ] Products and categories screens
-- [ ] Order history; member profile purchases tab
+- [x] POS screen (`/cafe`): product grid of sellable items only, grouped by category, with a name
+      filter; a cart where a second tap raises the quantity rather than adding a line; the
+      customer is a walk-in or a member found by name or phone (`?member=` in the URL, so the
+      member profile's "خرید از بوفه" opens the till with them chosen). A walk-in pays the whole
+      total; a member pays all, part or none of it, and the rest goes on their account
+- [x] Products and categories on one screen (`/cafe/menu`), both roles: add, rename, موجود /
+      ناموجود, delete a category, edit a product with its `Version`. A product that is switched on
+      in a switched-off category says why the till will not offer it
+- [x] Order history (`/cafe/orders`) with a Jalali from/to range in the URL; member profile
+      purchases tab. Rows offer only what the API would accept: a payment while something is owed
+      on a live order (settling an order on account — decided with the developer, since 7.2 built
+      the endpoint and no screen reached it) and a cancellation with a required reason, warning
+      that whatever was paid goes back the way it came
+- [x] Tests: the till asks only for sellable products; a walk-in sends the whole total; a member
+      with the amount cleared sends no payment; more than the total is refused before sending;
+      a backwards date range asks the API nothing; a cancelled order offers no actions
+
+Done when: the front desk can ring up, settle, cancel and look back over cafe sales, and shape the
+menu, without leaving the browser. Closed 2026-09-26: 987 backend tests and 489 frontend tests
+green, zero warnings (the build's chunk-size note predates this task, see LEARNING 2.4). Left for
+its own task: the payment form is now copied three times (subscription, هوازی charge, cafe order)
+with only the endpoint differing — the point at which `lib/money.ts` was extracted for the same
+reason.
 
 ---
 

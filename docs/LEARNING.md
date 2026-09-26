@@ -823,3 +823,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **One handler behind two routes.** `/api/cafe/orders?memberId=` and `/api/members/{id}/cafe-orders` return the same thing. The member route's handler only adds "unknown member is a 404" and then calls the counter's handler, so the query logic lives in one place.
 - **A gap found by following the money.** The refunds a cancellation writes needed somewhere to be seen, which exposed that the member's payment history had never included cafe payments at all. Adding a third target meant a third `Any(...)` in the filter and a third branch in the target kind, plus a `switch` in the frontend so TypeScript flags a fourth kind if one is ever added without a label.
 - **My notes:**
+
+---
+
+## 7.4 — The cafe screens
+
+- **Put the arithmetic where it can be tested without a screen.** The cart is plain functions over a list of lines (`cart.ts`): add, set quantity, remove, total. The till page only calls them. Testing "a second tap raises the quantity" or "3 × 25,000 + 120,000" then needs no rendering, and the rendered tests can stay about what the desk sees.
+- **Money is multiplied as whole hundredths, not floats.** `multiplyMoney` and `addMoney` sit beside `subtractMoney` and turn amounts into `bigint` hundredths first. A float can hold 25,000 × 3 correctly, but not every amount the API accepts, and one helper that is always exact beats remembering when a float happens to be safe. The server's total is still the one that counts; the cart only previews it.
+- **A value that follows another until somebody touches it.** The amount box starts at the cart's total and keeps following it while items are added. Once somebody types, it keeps what they typed. That is one piece of state holding `null` ("follow the total") or a string ("what was typed"). There is no effect copying one value into another, which is where "the box changed under me" bugs come from.
+- **A controlled input that also follows outside changes.** The quantity box has to accept "۱۲" typed one digit at a time and also follow the + and − buttons. Remounting it with a new `key` on every change would lose focus after the first digit. Instead it adjusts its text during render only when the committed number differs from what the box already says (the same "adjust state while rendering" pattern the Jalali date field uses).
+- **Put the filter in the URL.** The till's customer (`?member=`) and the history's date range (`?from=&to=`) live in the URL, not only in component state. The member profile can link to the till with the member already chosen. Refreshing or pressing back keeps the filter. The URL holds the ISO dates the API reads; only the boxes speak Jalali.
+- **Don't send a request you know will be refused.** A backwards date range is shown next to the box and the query is disabled (`enabled: false`), rather than sent to collect a 400. The same idea as showing only the row actions the API would accept: a cancelled order shows no buttons at all.
+- **Fetch every page when the whole list must be on screen.** The till's grid and the category picker need every row, and the API returns at most 100 per page. `fetchAll` keeps asking until it has `totalCount` rows. For a cafe that is one request, but the code does not quietly stop at the hundredth product.
+- **My notes:**

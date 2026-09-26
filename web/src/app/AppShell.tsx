@@ -1,11 +1,14 @@
 import {
   Activity,
+  ClipboardList,
+  Coffee,
   Contact,
   DoorOpen,
   KeyRound,
   LockKeyhole,
   LogIn,
   LogOut,
+  ReceiptText,
   Tickets,
   Users,
   type LucideIcon,
@@ -33,6 +36,9 @@ const navigation: NavigationItem[] = [
   { to: paths.attendance, label: "داخل باشگاه", icon: DoorOpen },
   { to: paths.plans, label: "پلن‌ها", icon: Tickets, role: "Owner" },
   { to: paths.lockers, label: "کمدها", icon: LockKeyhole },
+  { to: paths.cafe, label: "بوفه", icon: Coffee },
+  { to: paths.cafeOrders, label: "سفارش‌های بوفه", icon: ReceiptText },
+  { to: paths.cafeMenu, label: "منوی بوفه", icon: ClipboardList },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.status, label: "وضعیت سیستم", icon: Activity },
   { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },
@@ -90,8 +96,9 @@ export function AppShell() {
               <li key={to}>
                 <NavLink
                   to={to}
-                  // "/" would otherwise match every page; "اعضا" should stay lit on a profile.
-                  end={to === paths.home}
+                  // "/" would otherwise match every page, and "/cafe" every cafe page; "اعضا"
+                  // should stay lit on a profile.
+                  end={to === paths.home || to === paths.cafe}
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-2 rounded-md px-3 py-2 text-sm",

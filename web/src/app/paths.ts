@@ -14,4 +14,7 @@ export const paths = {
   editPlan: (id: string) => `/plans/${id}/edit`,
   attendance: "/attendance",
   lockers: "/lockers",
+  cafe: "/cafe",
+  cafeOrders: "/cafe/orders",
+  cafeMenu: "/cafe/menu",
 } as const;
