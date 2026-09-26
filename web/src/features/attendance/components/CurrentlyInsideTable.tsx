@@ -21,7 +21,8 @@ interface CurrentlyInsideTableProps {
   rows: CurrentlyInside[];
   /** The one attendance a check-out or cancel is in flight for, or null. */
   busyAttendanceId: string | null;
-  onCheckOut: (attendanceId: string) => void;
+  /** Opens the check-out box; the row carries the member and the locker it needs. */
+  onCheckOut: (row: CurrentlyInside) => void;
   onCancel: (attendanceId: string) => void;
 }
 
@@ -149,7 +150,7 @@ export function CurrentlyInsideTable({
                       size="sm"
                       variant="secondary"
                       disabled={busy}
-                      onClick={() => onCheckOut(row.attendanceId)}
+                      onClick={() => onCheckOut(row)}
                     >
                       ثبت خروج
                     </Button>

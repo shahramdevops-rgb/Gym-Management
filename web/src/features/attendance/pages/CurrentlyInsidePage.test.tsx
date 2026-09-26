@@ -2,8 +2,9 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import { cardioCharge, currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
-import { reza } from "@/test/members";
+import { memberDebt, reza } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
+import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
 import { gymToday } from "@/lib/format";
 
 /**
@@ -232,11 +233,46 @@ describe("CurrentlyInsidePage", () => {
     expect(await screen.findByText("در حال حاضر کسی داخل باشگاه نیست.")).toBeInTheDocument();
   });
 
+  /** What the check-out box reads besides the check-out itself: the plan and the debt. */
+  const boxHandlers = {
+    [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+    [`GET /api/members/${reza.id}/debt`]: () => memberDebt([]),
+  };
+
+  async function confirmCheckOut() {
+    fireEvent.click(await screen.findByRole("button", { name: "ثبت خروج" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByLabelText("کلید کمد شماره ۳ را تحویل گرفتم"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، خروج ثبت شود" }));
+    return dialog;
+  }
+
+  it("Board_CheckOut_AsksFirstAndSendsNothingUntilConfirmed", async () => {
+    const visit = openVisit(reza.id);
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      ...boxHandlers,
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([insideRow(reza.fullName, visit)]),
+    });
+
+    renderApp("/attendance", { session: session() });
+    fireEvent.click(await screen.findByRole("button", { name: "ثبت خروج" }));
+
+    // The same box as the entry screen (BUSINESS_RULES.md §7 Confirming at the front desk).
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("آیا از ثبت خروج رضا احمدی مطمئن هستید؟");
+    expect(within(dialog).getByText("کلید کمد را از عضو تحویل بگیرید")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "بله، خروج ثبت شود" })).toBeDisabled();
+    expect(api.requestsTo("POST", `/api/attendance/${visit.id}/check-out`)).toHaveLength(0);
+  });
+
   it("Board_CheckOut_CallsTheApiAndRefreshesTheBoard", async () => {
     const visit = openVisit(reza.id);
     let stillInside = true;
     const api = mockApi({
       ...signedInHandlers(staffUser),
+      ...boxHandlers,
       "GET /api/attendance/currently-inside": () =>
         currentlyInsidePage(stillInside ? [insideRow(reza.fullName, visit)] : []),
       [`POST /api/attendance/${visit.id}/check-out`]: () => {
@@ -246,10 +282,12 @@ describe("CurrentlyInsidePage", () => {
     });
 
     renderApp("/attendance", { session: session() });
+    const dialog = await confirmCheckOut();
 
-    fireEvent.click(await screen.findByRole("button", { name: "ثبت خروج" }));
-
-    expect(await screen.findByText("در حال حاضر کسی داخل باشگاه نیست.")).toBeInTheDocument();
+    expect(await within(dialog).findByText("خروج ثبت شد")).toBeInTheDocument();
+    expect(
+      await screen.findByText("در حال حاضر کسی داخل باشگاه نیست.", undefined, { timeout: 3000 }),
+    ).toBeInTheDocument();
     expect(api.requestsTo("POST", `/api/attendance/${visit.id}/check-out`)).toHaveLength(1);
   });
 
@@ -278,17 +316,17 @@ describe("CurrentlyInsidePage", () => {
     const visit = openVisit(reza.id);
     mockApi({
       ...signedInHandlers(staffUser),
+      ...boxHandlers,
       "GET /api/attendance/currently-inside": () =>
         currentlyInsidePage([insideRow(reza.fullName, visit)]),
       [`POST /api/attendance/${visit.id}/check-out`]: () => problem(422, "Attendance.NotOpen"),
     });
 
     renderApp("/attendance", { session: session() });
+    const dialog = await confirmCheckOut();
 
-    fireEvent.click(await screen.findByRole("button", { name: "ثبت خروج" }));
-
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent("این ورود قبلاً بسته شده است."),
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "این ورود قبلاً بسته شده است.",
     );
   });
 });

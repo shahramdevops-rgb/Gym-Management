@@ -441,25 +441,59 @@ describe("HomePage", () => {
 
     expect(dialog).toHaveTextContent("آیا از ثبت خروج رضا احمدی مطمئن هستید؟");
     expect(within(dialog).getByLabelText("کمد شماره ۱۰")).toBeInTheDocument();
-    expect(within(dialog).getByText("کلید این کمد را تحویل بگیرید")).toBeInTheDocument();
+    expect(within(dialog).getByText("کلید کمد را از عضو تحویل بگیرید")).toBeInTheDocument();
     const debt = await within(dialog).findByRole("region", { name: "بدهی" });
     expect(debt).toHaveTextContent("هوازی");
     expect(debt).toHaveTextContent("۵۰٬۰۰۰ تومان");
     expect(api.requestsTo("POST", `/api/attendance/${visitId}/check-out`)).toHaveLength(0);
   });
 
-  it("CheckOut_Confirmed_ChecksOutTheOpenVisit", async () => {
-    const api = mockApi(
-      deskHandlers(rezaInside, {
-        [`POST /api/attendance/${visitId}/check-out`]: () => json(200, closedVisit(reza.id)),
+  it("CheckOut_KeyNotTickedYet_CannotBeConfirmed", async () => {
+    mockApi(deskHandlers(rezaInside));
+    renderSearch();
+
+    const dialog = await pressCheckOut();
+    const confirm = within(dialog).getByRole("button", { name: "بله، خروج ثبت شود" });
+
+    // The locker goes to the next person in once the visit closes, so the key comes back first.
+    expect(confirm).toBeDisabled();
+    fireEvent.click(within(dialog).getByLabelText("کلید کمد شماره ۱۰ را تحویل گرفتم"));
+    expect(confirm).toBeEnabled();
+  });
+
+  it("CheckOut_NoLocker_NeedsNoKeyTick", async () => {
+    mockApi(
+      deskHandlers({
+        ...rezaInside,
+        currentVisit: { ...rezaInside.currentVisit!, lockerNumber: null },
       }),
     );
     renderSearch();
 
     const dialog = await pressCheckOut();
+
+    expect(within(dialog).queryByText("کلید کمد را از عضو تحویل بگیرید")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "بله، خروج ثبت شود" })).toBeEnabled();
+  });
+
+  it("CheckOut_Confirmed_ChecksOutAndShowsTheDebtAgain", async () => {
+    const api = mockApi(
+      deskHandlers(rezaInside, {
+        [`POST /api/attendance/${visitId}/check-out`]: () => json(200, closedVisit(reza.id)),
+        [`GET /api/members/${reza.id}/debt`]: () =>
+          memberDebt([serviceChargeDebtItem({ outstanding: 50000 })]),
+      }),
+    );
+    renderSearch();
+
+    const dialog = await pressCheckOut();
+    fireEvent.click(within(dialog).getByLabelText("کلید کمد شماره ۱۰ را تحویل گرفتم"));
     fireEvent.click(within(dialog).getByRole("button", { name: "بله، خروج ثبت شود" }));
 
     expect(await within(dialog).findByText("خروج ثبت شد")).toBeInTheDocument();
+    expect(within(dialog).getByText("کمد شماره ۱۰ آزاد شد.")).toBeInTheDocument();
+    // The last moment to collect: the itemized debt is still in front of the desk.
+    expect(await within(dialog).findByRole("region", { name: "بدهی" })).toHaveTextContent("هوازی");
     expect(api.requestsTo("POST", `/api/attendance/${visitId}/check-out`)).toHaveLength(1);
   });
 

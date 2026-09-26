@@ -8,14 +8,9 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pager } from "@/components/Pager";
-import {
-  useCancelCheckIn,
-  useCheckIn,
-  useCheckOut,
-  useMemberAttendanceHistory,
-} from "@/features/attendance/api";
+import { useCancelCheckIn, useMemberAttendanceHistory } from "@/features/attendance/api";
 import { AttendanceHistoryTable } from "@/features/attendance/components/AttendanceHistoryTable";
-import { checkInResultMessage } from "@/features/attendance/checkInMessage";
+import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { CurrentSubscriptionCard } from "@/features/subscriptions/components/CurrentSubscriptionCard";
 import { errorMessage } from "@/lib/errors";
@@ -43,8 +38,9 @@ export function MemberProfilePage() {
 
   const [historyPage, setHistoryPage] = useState(1);
   const history = useMemberAttendanceHistory(id, historyPage);
-  const checkIn = useCheckIn();
-  const checkOut = useCheckOut();
+  // Check-in and check-out ask first and show the outcome in a box, the same as on the entry
+  // screen (BUSINESS_RULES.md §7 Confirming at the front desk).
+  const desk = useDeskDialog();
   const cancelCheckIn = useCancelCheckIn();
   const [attendanceBusy, setAttendanceBusy] = useState(false);
   const [attendanceNotice, setAttendanceNotice] = useState<{
@@ -77,31 +73,6 @@ export function MemberProfilePage() {
       });
     } catch (problem) {
       setNotice({ kind: "destructive", text: errorMessage(problem) });
-    }
-  }
-
-  async function handleCheckIn() {
-    setAttendanceNotice(null);
-    setAttendanceBusy(true);
-    try {
-      const attendance = await checkIn.mutateAsync(id);
-      setAttendanceNotice({ kind: "success", text: checkInResultMessage(attendance) });
-    } catch (problem) {
-      setAttendanceNotice({ kind: "destructive", text: errorMessage(problem) });
-    } finally {
-      setAttendanceBusy(false);
-    }
-  }
-
-  async function handleCheckOut(attendanceId: string) {
-    setAttendanceNotice(null);
-    setAttendanceBusy(true);
-    try {
-      await checkOut.mutateAsync(attendanceId);
-    } catch (problem) {
-      setAttendanceNotice({ kind: "destructive", text: errorMessage(problem) });
-    } finally {
-      setAttendanceBusy(false);
     }
   }
 
@@ -219,7 +190,16 @@ export function MemberProfilePage() {
                     <Button
                       size="sm"
                       disabled={attendanceBusy}
-                      onClick={() => void handleCheckOut(openAttendance.id)}
+                      onClick={() =>
+                        desk.open({
+                          kind: "checkOut",
+                          member: current,
+                          visit: {
+                            attendanceId: openAttendance.id,
+                            lockerNumber: openAttendance.lockerNumber,
+                          },
+                        })
+                      }
                     >
                       ثبت خروج
                     </Button>
@@ -239,7 +219,7 @@ export function MemberProfilePage() {
             ) : (
               <Button
                 disabled={attendanceBusy || !current.isActive}
-                onClick={() => void handleCheckIn()}
+                onClick={() => desk.open({ kind: "checkIn", member: current })}
               >
                 ورود
               </Button>
@@ -266,6 +246,8 @@ export function MemberProfilePage() {
       </Card>
 
       <MemberHistoryTabs memberId={id} />
+
+      {desk.dialog}
     </div>
   );
 }

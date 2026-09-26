@@ -20,7 +20,7 @@ import {
 } from "@/test/mockApi";
 import { ali, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
 import { paymentHistoryItem, paymentOfActiveSubscription, paymentsPage } from "@/test/payments";
-import { monthly12, plansPage } from "@/test/plans";
+import { monthly12, plansPage, singleSession } from "@/test/plans";
 import {
   activeSubscription,
   cancelledRenewal,
@@ -153,62 +153,85 @@ describe("MemberProfilePage", () => {
     expect(screen.queryByText("هم‌اکنون داخل باشگاه است.")).not.toBeInTheDocument();
   });
 
-  it("Profile_CheckIn_ShowsTheAssignedLocker", async () => {
-    const visit = openVisit(reza.id);
-    const api = mockApi({
+  // ---- Check-in and check-out: the same box as the entry screen (BUSINESS_RULES.md §7) ----
+
+  function profileHandlers(visits: ReturnType<typeof openVisit>[] = []) {
+    return {
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
-      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
-      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
-      [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, visit),
-    });
+      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage(visits),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/debt`]: () => memberDebt([]),
+    };
+  }
+
+  async function confirmProfileCheckIn() {
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود ثبت شود" }));
+    return dialog;
+  }
+
+  it("Profile_CheckIn_AsksFirstAndSendsNothingUntilConfirmed", async () => {
+    const api = mockApi(profileHandlers());
     renderApp(`/members/${reza.id}`, { session: session() });
 
     fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("کمد شماره ۳");
+    expect(await screen.findByRole("dialog")).toHaveTextContent(
+      "آیا از ثبت ورود رضا احمدی مطمئن هستید؟",
+    );
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
+  });
+
+  it("Profile_CheckIn_ShowsTheAssignedLocker", async () => {
+    const api = mockApi({
+      ...profileHandlers(),
+      [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, openVisit(reza.id)),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    const dialog = await confirmProfileCheckIn();
+
+    expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("کمد شماره ۳")).toBeInTheDocument();
     expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(1);
   });
 
   it("Profile_CheckInWithNoFreeLocker_ShowsTheWarning", async () => {
     mockApi({
-      ...signedInHandlers(staffUser),
-      [`GET /api/members/${reza.id}`]: () => json(200, reza),
-      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
-      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      ...profileHandlers(),
       [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
         json(201, openVisitNoLocker(reza.id)),
     });
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+    const dialog = await confirmProfileCheckIn();
 
-    expect(await screen.findByRole("status")).toHaveTextContent("کمد آزادی نبود");
+    expect(await within(dialog).findByText(/کمد آزادی نبود/)).toBeInTheDocument();
   });
 
-  it("Profile_CheckInFails_ShowsThePersianReason", async () => {
+  it("Profile_CheckInWithNoSubscription_OffersASingleVisit", async () => {
     mockApi({
-      ...signedInHandlers(staffUser),
-      [`GET /api/members/${reza.id}`]: () => json(200, reza),
-      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
-      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      ...profileHandlers(),
       [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
         problem(422, "Attendance.NoSubscription"),
+      "GET /api/plans": () => plansPage([singleSession]),
     });
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+    const dialog = await confirmProfileCheckIn();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("این عضو اشتراکی ندارد.");
+    expect(await within(dialog).findByText(/این عضو اشتراکی ندارد/)).toBeInTheDocument();
+    expect(
+      await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+    ).toBeInTheDocument();
   });
 
-  it("Profile_OpenVisit_ShowsCheckedInStateAndCanCheckOut", async () => {
+  it("Profile_OpenVisit_ShowsCheckedInStateAndChecksOutAfterTheKey", async () => {
     const visit = openVisit(reza.id);
     const api = mockApi({
-      ...signedInHandlers(staffUser),
-      [`GET /api/members/${reza.id}`]: () => json(200, reza),
-      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([visit]),
-      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      ...profileHandlers([visit]),
       [`POST /api/attendance/${visit.id}/check-out`]: () =>
         json(200, { ...visit, checkedOutAt: "2026-09-18T09:00:00Z" }),
     });
@@ -218,10 +241,14 @@ describe("MemberProfilePage", () => {
     expect(screen.getByText(/کمد ۳/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "ثبت خروج" }));
+    const dialog = await screen.findByRole("dialog");
+    const confirm = within(dialog).getByRole("button", { name: "بله، خروج ثبت شود" });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(within(dialog).getByLabelText("کلید کمد شماره ۳ را تحویل گرفتم"));
+    fireEvent.click(confirm);
 
-    await waitFor(() =>
-      expect(api.requestsTo("POST", `/api/attendance/${visit.id}/check-out`)).toHaveLength(1),
-    );
+    expect(await within(dialog).findByText("خروج ثبت شد")).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/attendance/${visit.id}/check-out`)).toHaveLength(1);
   });
 
   it("Profile_OpenVisit_CanCancelCheckIn", async () => {
