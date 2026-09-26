@@ -137,7 +137,9 @@ try
 
     app.Run();
 }
-catch (Exception exception)
+// Not HostAbortedException: `dotnet ef` builds the host only to read its services and then stops it
+// on purpose by throwing this, so logging it as fatal made every migration command look like a crash.
+catch (Exception exception) when (exception is not HostAbortedException)
 {
     Log.Fatal(exception, "The API terminated unexpectedly during startup.");
     throw;
