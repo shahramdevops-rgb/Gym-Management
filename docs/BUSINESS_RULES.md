@@ -365,7 +365,7 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 
 ### Confirming at the front desk
 Decided with the developer, 1405/07/04.
-- On the entry screen, check-in and check-out each ask the desk to confirm before anything is sent. A mistaken press costs a session or closes someone else's visit, and undoing either is a separate action with its own rules (*Cancel check-in*).
+- Everywhere the desk can check a member in or out (the entry screen, the member's profile and the "currently inside" board), check-in and check-out each ask the desk to confirm before anything is sent, in the same box. A mistaken press costs a session or closes someone else's visit, and undoing either is a separate action with its own rules (*Cancel check-in*).
 - A member who is inside is offered check-out, not check-in. Check-in would only be refused (*Check-in*: no open attendance).
 - After a check-in, the same box shows the locker (or that none was free), the plan and the sessions left, and the member's debt item by item: unpaid subscriptions, services such as هوازی, and cafe orders (§5 *Member debt*). It stays until the desk closes it.
 - Before a check-out, the box shows the locker to take back and the same plan, sessions and itemized debt, so the desk can collect what is owed while the member is still there. Debt is shown, never enforced: check-out is not refused for money owed, the same way check-in is not.

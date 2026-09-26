@@ -8,8 +8,9 @@ import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 import { pageFromParams } from "@/lib/searchParams";
 
-import { useCancelCheckIn, useCheckOut, useCurrentlyInside } from "../api";
+import { useCancelCheckIn, useCurrentlyInside } from "../api";
 import { CurrentlyInsideTable } from "../components/CurrentlyInsideTable";
+import { useDeskDialog } from "../components/useDeskDialog";
 
 /**
  * The front desk board: everyone inside the gym right now, refreshing on its own
@@ -19,24 +20,14 @@ export function CurrentlyInsidePage() {
   const [params, setParams] = useSearchParams();
   const page = pageFromParams(params);
   const inside = useCurrentlyInside(page);
-  const checkOut = useCheckOut();
+  // Check-out asks first, reminds the desk about the key and shows the debt (BUSINESS_RULES.md §7
+  // Confirming at the front desk), the same box as the entry screen.
+  const desk = useDeskDialog();
   const cancel = useCancelCheckIn();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: "success" | "destructive"; text: string } | null>(
     null,
   );
-
-  async function handleCheckOut(attendanceId: string) {
-    setNotice(null);
-    setPendingId(attendanceId);
-    try {
-      await checkOut.mutateAsync(attendanceId);
-    } catch (problem) {
-      setNotice({ kind: "destructive", text: errorMessage(problem) });
-    } finally {
-      setPendingId(null);
-    }
-  }
 
   async function handleCancel(attendanceId: string) {
     setNotice(null);
@@ -85,7 +76,13 @@ export function CurrentlyInsidePage() {
               <CurrentlyInsideTable
                 rows={inside.data.items}
                 busyAttendanceId={pendingId}
-                onCheckOut={(id) => void handleCheckOut(id)}
+                onCheckOut={(row) =>
+                  desk.open({
+                    kind: "checkOut",
+                    member: { id: row.memberId, fullName: row.memberFullName },
+                    visit: { attendanceId: row.attendanceId, lockerNumber: row.lockerNumber },
+                  })
+                }
                 onCancel={(id) => void handleCancel(id)}
               />
               <Pager
@@ -97,6 +94,8 @@ export function CurrentlyInsidePage() {
           )}
         </CardContent>
       </Card>
+
+      {desk.dialog}
     </div>
   );
 }

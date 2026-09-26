@@ -7,10 +7,7 @@ import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  CheckInOutDialog,
-  type DeskAction,
-} from "@/features/attendance/components/CheckInOutDialog";
+import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
@@ -64,11 +61,7 @@ export function HomePage() {
   const createMember = useCreateMember();
   const [registering, setRegistering] = useState(false);
 
-  // The row button just pressed. Each press gets a fresh box (the counter is its key), so a
-  // second press on the same member starts again at "are you sure?".
-  const [deskAction, setDeskAction] = useState<{ id: number; action: DeskAction } | null>(null);
-  const open = (action: DeskAction) =>
-    setDeskAction((current) => ({ id: (current?.id ?? 0) + 1, action }));
+  const desk = useDeskDialog();
 
   function goToPage(next: number) {
     setParams({ q, page: String(next) });
@@ -162,7 +155,7 @@ export function HomePage() {
                 onSubmit={async (input) => {
                   const member = await createMember.mutateAsync(input);
                   setRegistering(false);
-                  open({ kind: "checkIn", member });
+                  desk.open({ kind: "checkIn", member });
                 }}
                 actions={
                   <Button
@@ -187,8 +180,9 @@ export function HomePage() {
               <MembersTable
                 members={results.data.items}
                 deskActions={{
-                  onCheckIn: (member) => open({ kind: "checkIn", member }),
-                  onCheckOut: (member) => open({ kind: "checkOut", member }),
+                  onCheckIn: (member) => desk.open({ kind: "checkIn", member }),
+                  onCheckOut: (member) =>
+                    desk.open({ kind: "checkOut", member, visit: member.currentVisit ?? null }),
                 }}
               />
               <Pager page={page} pageCount={results.data.pageCount} onPageChange={goToPage} />
@@ -197,13 +191,7 @@ export function HomePage() {
         </CardContent>
       </Card>
 
-      {deskAction !== null && (
-        <CheckInOutDialog
-          key={deskAction.id}
-          action={deskAction.action}
-          onClose={() => setDeskAction(null)}
-        />
-      )}
+      {desk.dialog}
     </div>
   );
 }

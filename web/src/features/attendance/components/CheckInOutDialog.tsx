@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Member } from "@/features/members/api";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 
@@ -19,8 +18,26 @@ import { isMissingSubscription, useSellSingleVisit } from "../singleVisit";
 import { SingleVisitOffer } from "./SingleVisitOffer";
 import { VisitSummary } from "./VisitSummary";
 
-/** What the desk pressed on a member's row. */
-export type DeskAction = { kind: "checkIn"; member: Member } | { kind: "checkOut"; member: Member };
+/** Who the box is about. Every screen with these buttons knows at least this much. */
+export interface DeskMember {
+  id: string;
+  fullName: string;
+}
+
+/** The visit a check-out closes. */
+export interface DeskVisit {
+  attendanceId: string;
+  /** `null` when no locker was free at check-in: then there is no key to take back. */
+  lockerNumber: number | string | null;
+}
+
+/**
+ * What the desk pressed. A check-out carries the open visit, or `null` when the screen that
+ * offered it turned out to be stale (the member already left).
+ */
+export type DeskAction =
+  | { kind: "checkIn"; member: DeskMember }
+  | { kind: "checkOut"; member: DeskMember; visit: DeskVisit | null };
 
 type Step =
   | { kind: "confirm" }
@@ -39,7 +56,9 @@ interface CheckInOutDialogProps {
  * desk*): it asks first, then shows the outcome in the same place — the locker large enough to
  * read across the desk, and the debt item by item.
  *
- * Mount it with a `key` per action: each press starts again at "confirm".
+ * Used by every screen with a check-in or check-out button — the entry screen, the member's
+ * profile and the "inside" board — through `useDeskDialog`, which also gives each press a fresh
+ * box that starts again at "confirm".
  *
  * It closes only with its ✕ or its own buttons. A click outside it does nothing, because the
  * outcome is the part the desk must read, and a stray click is exactly how it would be missed.
@@ -47,6 +66,7 @@ interface CheckInOutDialogProps {
 export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
   const { member } = action;
   const [step, setStep] = useState<Step>({ kind: "confirm" });
+  const [keyReturned, setKeyReturned] = useState(false);
 
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
@@ -86,7 +106,7 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
     }
   }
 
-  const visit = member.currentVisit ?? null;
+  const visit = action.kind === "checkOut" ? action.visit : null;
 
   return (
     <Dialog
@@ -134,11 +154,19 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
               <Alert variant="destructive">این عضو هم‌اکنون داخل باشگاه نیست.</Alert>
             ) : (
               <>
-                <LockerBox number={visit.lockerNumber} returning />
+                {visit.lockerNumber !== null && (
+                  <KeyReturn
+                    number={visit.lockerNumber}
+                    returned={keyReturned}
+                    onReturnedChange={setKeyReturned}
+                  />
+                )}
                 <VisitSummary memberId={member.id} />
                 <ConfirmButtons
                   label="بله، خروج ثبت شود"
                   pending={checkOut.isPending}
+                  // With a locker, the key is part of leaving: the button waits for the tick.
+                  disabled={visit.lockerNumber !== null && !keyReturned}
                   onConfirm={() => void confirmCheckOut(visit.attendanceId)}
                   onCancel={onClose}
                 />
@@ -172,8 +200,12 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
               <DialogDescription>{member.fullName}</DialogDescription>
             </DialogHeader>
             {visit !== null && visit.lockerNumber !== null && (
-              <LockerBox number={visit.lockerNumber} returning />
+              <Alert variant="success" role="status">
+                کمد شماره {toPersianDigits(visit.lockerNumber)} آزاد شد.
+              </Alert>
             )}
+            {/* Again after leaving: this is the last moment to collect what is owed. */}
+            <VisitSummary memberId={member.id} />
             <CloseButton onClose={onClose} />
           </>
         )}
@@ -209,26 +241,17 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
   );
 }
 
-/**
- * The locker, large enough to read from across the desk. `returning` is the check-out wording:
- * the key comes back rather than going out.
- */
-function LockerBox({
-  number,
-  returning = false,
-}: {
-  number: number | string | null;
-  returning?: boolean;
-}) {
+/** The locker, large enough to read from across the desk. */
+function LockerBox({ number }: { number: number | string | null }) {
   if (number === null) {
-    return returning ? null : <Alert role="status">کمد آزادی نبود؛ ورود بدون کمد ثبت شد.</Alert>;
+    return <Alert role="status">کمد آزادی نبود؛ ورود بدون کمد ثبت شد.</Alert>;
   }
 
   return (
     <div className="flex items-center justify-between gap-4 rounded-lg border-2 border-primary bg-primary/5 p-4">
       <div className="flex items-center gap-2 text-sm font-medium">
         <KeyRound className="size-5" aria-hidden />
-        {returning ? "کلید این کمد را تحویل بگیرید" : "کمد شماره"}
+        کمد شماره
       </div>
       <p
         className="text-5xl leading-none font-bold"
@@ -240,20 +263,64 @@ function LockerBox({
   );
 }
 
+/**
+ * The key, before check-out frees the locker (BUSINESS_RULES.md §7 *Confirming at the front
+ * desk*). Once the visit is closed the locker is handed to the next person in, so a key still in
+ * someone's pocket is a problem for them, not for the member who took it. The tick is the reminder
+ * the desk cannot skip past.
+ */
+function KeyReturn({
+  number,
+  returned,
+  onReturnedChange,
+}: {
+  number: number | string;
+  returned: boolean;
+  onReturnedChange: (returned: boolean) => void;
+}) {
+  return (
+    <div className="space-y-3 rounded-lg border-2 border-primary bg-primary/5 p-4">
+      <div className="flex items-center justify-between gap-4">
+        <p className="flex items-center gap-2 text-lg font-bold">
+          <KeyRound className="size-6" aria-hidden />
+          کلید کمد را از عضو تحویل بگیرید
+        </p>
+        <p
+          className="text-5xl leading-none font-bold"
+          aria-label={`کمد شماره ${toPersianDigits(number)}`}
+        >
+          {toPersianDigits(number)}
+        </p>
+      </div>
+      <label className="flex cursor-pointer items-center gap-2 text-base font-medium">
+        <input
+          type="checkbox"
+          className="size-5 accent-primary"
+          checked={returned}
+          onChange={(event) => onReturnedChange(event.target.checked)}
+        />
+        کلید کمد شماره {toPersianDigits(number)} را تحویل گرفتم
+      </label>
+    </div>
+  );
+}
+
 function ConfirmButtons({
   label,
   pending,
+  disabled = false,
   onConfirm,
   onCancel,
 }: {
   label: string;
   pending: boolean;
+  disabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <Button disabled={pending} onClick={onConfirm}>
+      <Button disabled={pending || disabled} onClick={onConfirm}>
         {pending ? "در حال ثبت…" : label}
       </Button>
       <Button variant="outline" disabled={pending} onClick={onCancel}>
