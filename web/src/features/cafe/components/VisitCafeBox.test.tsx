@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import type { CurrentlyInside } from "@/features/attendance/api";
 import { currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
@@ -23,7 +23,7 @@ describe("VisitCafeBox on the currently inside board", () => {
 
     renderApp("/attendance", { session: session() });
 
-    expect(await screen.findByRole("button", { name: "افزودن خرید بوفه" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "خرید بوفه" })).toBeInTheDocument();
   });
 
   it("Board_ApiOlderThanTheCafeColumn_StillShowsTheRow", async () => {
@@ -39,7 +39,7 @@ describe("VisitCafeBox on the currently inside board", () => {
     renderApp("/attendance", { session: session() });
 
     expect(await screen.findByRole("link", { name: reza.fullName })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "افزودن خرید بوفه" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "خرید بوفه" })).toBeInTheDocument();
   });
 
   it("Board_AddPurchase_PutsItOnTheAccountTiedToTheVisit", async () => {
@@ -52,15 +52,23 @@ describe("VisitCafeBox on the currently inside board", () => {
     });
 
     renderApp("/attendance", { session: session() });
-    fireEvent.click(await screen.findByRole("button", { name: "افزودن خرید بوفه" }));
+    fireEvent.click(await screen.findByRole("button", { name: "خرید بوفه" }));
 
     const dialog = await screen.findByRole("dialog");
     const drinks = await within(dialog).findByRole("region", { name: "نوشیدنی" });
     fireEvent.click(within(drinks).getByRole("button", { name: /شیک پروتئین/ }));
     fireEvent.click(within(dialog).getByRole("button", { name: "ثبت به حساب عضو" }));
 
-    // The box closes and says where the money went, for a screen reader too.
-    expect(await screen.findByText("۱۲۰٬۰۰۰ تومان به حساب رضا احمدی ثبت شد.")).toBeInTheDocument();
+    // The box stays open on a success step listing what the server saved, so the desk can check it.
+    expect(await within(dialog).findByText("خرید بوفه ثبت شد")).toBeInTheDocument();
+    expect(within(dialog).getByText("به حساب رضا احمدی")).toBeInTheDocument();
+    const saved = within(dialog).getByRole("list", { name: "اقلام ثبت‌شده" });
+    expect(saved).toHaveTextContent("شیک پروتئین × ۱");
+    expect(saved).toHaveTextContent("۱۲۰٬۰۰۰ تومان");
+
+    fireEvent.click(within(dialog).getAllByRole("button", { name: "بستن" })[0]!);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
     const [request] = api.requestsTo("POST", "/api/cafe/orders");
     expect(await request!.json()).toEqual({
       memberId: reza.id,

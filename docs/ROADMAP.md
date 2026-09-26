@@ -816,6 +816,21 @@ reason.
 
 Closed 2026-09-26: 995 backend tests and 500 frontend tests green, zero warnings.
 
+#### 7.4 follow-up — saying "saved" at the desk (asked by the developer, 1405/07/04)
+- [x] Adding a cafe purchase on the board ends on a success step listing what the server saved:
+      each line with quantity and price, and the total (`DialogSuccess`, the same shape check-in
+      and check-out already used)
+- [x] Every هوازی form (record, change amount, payment, void) ends on a success step too; one
+      dialog serves every state of the charge, so the step survives the refetch behind it
+- [x] Shorter board buttons: «خرید بوفه» and «مبلغ هوازی» (the word «افزودن» dropped)
+- [x] Tests: the cafe step lists the saved lines and closes; the هوازی step shows the amount and
+      survives the charge appearing behind it; a void says so
+
+The "unexpected error" on the order history and in the check-out box was not a code bug: an API
+started before those routes existed was still holding ports 5134/7134, which also made every new
+`dotnet run` fail with "address already in use". Closed 2026-09-26: 501 frontend tests green,
+lint and type check clean; no backend change.
+
 ---
 
 ## Phase 8 — Expenses

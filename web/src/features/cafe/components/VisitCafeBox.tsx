@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { DialogSuccess } from "@/components/DialogSuccess";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { errorMessage } from "@/lib/errors";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney } from "@/lib/money";
 
 import { cafeLimits, useCreateCafeOrder, useSellableProducts, type CafeOrder } from "../api";
@@ -33,18 +34,17 @@ interface VisitCafeBoxProps {
  * this visit, and check-out lists it back to them before they leave.
  *
  * Like the هوازی box, the cell holds only a summary and every form opens in a dialog, so the row
- * stays one line (task 6.5.2).
+ * stays one line (task 6.5.2). A purchase ends on a success step that lists what was saved, from
+ * the server's answer rather than the cart, so the desk can check it against what was handed over.
  */
 export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps) {
-  const [open, setOpen] = useState<"add" | "orders" | null>(null);
+  const [open, setOpen] = useState<"add" | "orders" | "done" | null>(null);
+  const [saved, setSaved] = useState<CafeOrder | null>(null);
   const [announcement, setAnnouncement] = useState<string | null>(null);
 
-  function done(text: string) {
-    setOpen(null);
-    setAnnouncement(text);
-  }
-
-  // `aria-live` without `role="status"`, for the reason given on ServiceChargeBox.
+  // What the payment and cancel forms in the orders list report. `aria-live` without
+  // `role="status"` on purpose: the role would make every row's hidden span answer to "the page's
+  // status message" and shadow the page's own; `aria-live="polite"` is what does the announcing.
   const announcer = (
     <span aria-live="polite" aria-atomic="true" className="sr-only">
       {announcement}
@@ -66,7 +66,7 @@ export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps
 
       {orders.length === 0 ? (
         <Button size="sm" variant="outline" onClick={() => setOpen("add")}>
-          افزودن خرید بوفه
+          خرید بوفه
         </Button>
       ) : (
         <button
@@ -81,15 +81,27 @@ export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps
       )}
 
       <Dialog open={open !== null} onOpenChange={(next) => !next && setOpen(null)}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>بوفه — {member.fullName}</DialogTitle>
-            <DialogDescription>
-              {open === "add"
-                ? "خرید به حساب عضو ثبت می‌شود و هنگام خروج به او نشان داده می‌شود."
-                : `خریدهای این مراجعه: ${formatMoney(total)}`}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className={open === "done" ? undefined : "sm:max-w-3xl"}>
+          {open === "done" && saved !== null && (
+            <DialogSuccess
+              title="خرید بوفه ثبت شد"
+              description={`به حساب ${member.fullName}`}
+              onClose={() => setOpen(null)}
+            >
+              <SavedOrder order={saved} />
+            </DialogSuccess>
+          )}
+
+          {(open === "add" || open === "orders") && (
+            <DialogHeader>
+              <DialogTitle>بوفه — {member.fullName}</DialogTitle>
+              <DialogDescription>
+                {open === "add"
+                  ? "خرید به حساب عضو ثبت می‌شود و هنگام خروج به او نشان داده می‌شود."
+                  : `خریدهای این مراجعه: ${formatMoney(total)}`}
+              </DialogDescription>
+            </DialogHeader>
+          )}
 
           {open === "orders" && (
             <div className="space-y-3">
@@ -104,15 +116,38 @@ export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps
             <VisitPurchaseForm
               attendanceId={attendanceId}
               memberId={member.id}
-              onDone={(order) =>
-                done(`${formatMoney(order.totalAmount)} به حساب ${member.fullName} ثبت شد.`)
-              }
+              onDone={(order) => {
+                setSaved(order);
+                setOpen("done");
+              }}
               onCancel={() => setOpen(orders.length === 0 ? null : "orders")}
             />
           )}
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** The order as the server saved it: each line with its quantity and price, and the total. */
+function SavedOrder({ order }: { order: CafeOrder }) {
+  return (
+    <div className="space-y-2 rounded-md border p-3 text-sm">
+      <ul className="space-y-1" aria-label="اقلام ثبت‌شده">
+        {order.items.map((item) => (
+          <li key={item.id} className="flex items-center justify-between gap-4">
+            <span>
+              {item.productName} × {toPersianDigits(item.quantity)}
+            </span>
+            <span>{formatMoney(item.lineTotal)}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="flex items-center justify-between border-t pt-2 font-bold">
+        <span>جمع</span>
+        <span>{formatMoney(order.totalAmount)}</span>
+      </div>
+    </div>
   );
 }
 

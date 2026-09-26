@@ -31,7 +31,8 @@ interface ServiceChargeAmountFormProps {
   label: string;
   target: ServiceChargeAmountTarget;
   initialAmount?: string;
-  onDone: () => void;
+  /** Called with the amount that was saved, so the caller can say it back to the desk. */
+  onDone: (amount: string) => void;
   onCancel: () => void;
 }
 
@@ -64,7 +65,7 @@ export function ServiceChargeAmountForm({
       } else {
         await record.mutateAsync({ ...target, amount });
       }
-      onDone();
+      onDone(amount);
     } catch (problem) {
       applyServerErrors(problem, form.setError, codeFields);
     }
