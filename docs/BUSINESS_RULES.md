@@ -89,9 +89,9 @@ Decided values:
 | Plans, staff accounts, creating a locker | ✅ | ❌ |
 | Lockers: see the list, take one out of service, bring it back in | ✅ | ✅ |
 | Freeze, unfreeze, cancel subscriptions | ✅ | ❌ |
-| Refunds, voids, cafe order cancellation, stock adjustments | ✅ | ❌ |
+| Refunds, voids (outside the cafe) | ✅ | ❌ |
 | Gym service charges: record, change the amount, void (§7 *Gym services*) | ✅ | ✅ |
-| Products and categories | ✅ | ❌ |
+| Cafe: products, categories, orders, and cancelling an order (§8) | ✅ | ✅ |
 | Expenses, dashboard, reports, audit log, SMS resend | ✅ | ❌ |
 
 ---
@@ -386,14 +386,70 @@ Decided with the developer, 1405/06/31. Implemented in task 5.7.
 
 ## 8. Cafe
 
-- Categories and Products (`Name`, `CategoryId`, `Price`, `StockQuantity`, `IsActive`).
-- Stock changes only through the StockMovement ledger (`Purchase`, `Sale`, `Adjustment`, `Cancellation`). `Product.StockQuantity` is updated in the same transaction and can never go negative (check constraint).
-- An order has items with snapshots of `ProductName` and `UnitPrice`, and `Quantity` > 0.
-- `MemberId` on an order is optional (walk-in customers are allowed), but an order **on account** must name the member: putting it on an account is exactly the act of entering the purchase under that person's name so the money can be collected later (decided with the developer, 1405/06/31).
-- Creating an order validates stock and writes Sale movements in one transaction. The payment belongs to the same transaction only when the order is paid there and then; an order on a member's account is created unpaid and settled later with ordinary `Payment` rows — same partial/paid status, same instalments, and it counts toward that member's debt (§5 *Member debt*).
+**The gym does not count stock** (decided by the Owner, 1405/07/03, when Phase 7 started). There is
+no `StockQuantity`, no StockMovement ledger and no "not enough left" refusal anywhere: the Owner
+does not want to know how many bottles are in the fridge, and a number nobody maintains is worse
+than no number. A product is a line on the price list, not an item in a warehouse. *This replaces
+the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
+
+- Categories (`Name`, `IsActive`) and Products (`Name`, `CategoryId`, `Price`, `IsActive`).
+  Nothing else is tracked about a product.
+- Products are switched off, never deleted: an order already sold points at the product it sold.
+  A category is a heading with no financial history, so it can be renamed, switched off, and
+  deleted while no product uses it. *Decided by Claude during task 7.1; pending review.*
+- Product names are unique across the whole cafe, not merely within a category, compared in
+  normalized form (§13) — two products called "آب معدنی" in different categories would be a
+  coin flip at the till. *Decided by Claude during task 7.1; pending review.*
+- The price follows the same money rules as `Plan.Price`: at most 2 decimal places, refused
+  rather than rounded, `numeric(18,2)`, and never negative.
+- **The whole cafe is front-desk work, both roles** (decided by the Owner, 1405/07/03 and
+  widened the same day): adding, editing, removing and switching off both products *and*
+  categories. The person who sees a new box of bars arrive, with its price on it, is the one at
+  the desk, and making them wait for the Owner means the item is sold off the books. Same
+  reasoning as the service-charge amounts in §7. Staff have no restriction in the cafe at all;
+  the controls are the audit log and the fact that an order snapshots what it sold.
+- **A product or a category is switched on and off rather than deleted, and the switch means
+  "in stock" to the people using it** — `موجود` / `ناموجود` on screen. The gym counts no
+  quantities, so this flag is the only thing that says whether something can be bought today.
+- **Something is sellable only when it is switched on *and* its category is switched on.**
+  Switching a category off takes its whole shelf out of the till in one action — that is the
+  point of having the switch on a category at all. The screens where a purchase is rung up (the
+  till, and the product search on an order) show only sellable items; the management screens show
+  everything with its state. *The rule that a category's state reaches its products is Claude's;
+  pending review.*
+- A category can still be deleted outright while no product uses it. Switching it off is for
+  "not today"; deleting is for "this was a mistake".
+- An order has items with snapshots of `ProductName` and `UnitPrice`, and `Quantity` > 0. The
+  snapshot is what makes editing a price safe: yesterday's order keeps yesterday's figure.
+- `MemberId` on an order is optional (walk-in customers are allowed), but an order **on account**
+  must name the member: putting it on an account is exactly the act of entering the purchase under
+  that person's name so the money can be collected later (decided with the developer, 1405/06/31).
+- Creating an order writes the order and its items in one transaction, and is never refused for
+  stock. The payment belongs to the same transaction only when the order is paid there and then;
+  an order on a member's account is created unpaid and settled later with ordinary `Payment` rows
+  — same partial/paid status, same instalments, and it counts toward that member's debt
+  (§5 *Member debt*).
 - A walk-in order (no member) is paid in full at creation: there is no account to put it on.
-- Cancelling an order requires a reason, restores stock with Cancellation movements, and creates a refund for whatever was actually paid. An unpaid order on account leaves nothing to refund; cancelling it simply removes that item from the member's debt.
-- Stock adjustments require a reason.
+- **An order is never edited. It is cancelled with a reason and rung up again** (decided by the
+  Owner, 1405/07/03). Two of something that should have been one is a cancellation and a fresh
+  order, not a quantity corrected in place — §5's rule that financial records are never edited,
+  applied to the cafe. An order that is one minute old and unpaid is no exception: the exception
+  is what would make the audit trail arguable.
+- Cancelling an order requires a reason and creates a refund for whatever was actually paid.
+  Nothing is put back anywhere, because nothing was counted. An unpaid order on account leaves
+  nothing to refund; cancelling it simply removes that item from the member's debt.
+- **Cancelling is Staff or Owner** (decided by the Owner, 1405/07/03), the same exception §7 makes
+  for service charges and for the same reason: the customer is still standing at the desk, and the
+  person who rang it up has to be able to take it back. The controls are the required reason and
+  the audit log. This is deliberately not the general rule for refunds, which stay with the Owner.
+- **A paid-now order can be part-paid.** Whatever the customer hands over is registered against the
+  order and the rest stays on their account — the ordinary instalment rule of §5, so nothing new is
+  needed for it. "Paid in full at creation" applies only to a walk-in order with no member, because
+  there is no account to leave a balance on.
+- **What the gym buys for the cafe is money, not goods** (decided by the Owner, 1405/07/03). The
+  cost of restocking is entered in Phase 8 as an expense under "Cafe Purchasing" (§9), and gross
+  profit is worked out in the reports (§12) as cafe revenue minus those expenses. No purchase
+  price is recorded against a product or an order, so the same money is never counted twice.
 
 ---
 

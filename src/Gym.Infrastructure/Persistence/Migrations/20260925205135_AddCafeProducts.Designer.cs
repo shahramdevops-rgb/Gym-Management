@@ -3,6 +3,7 @@ using System;
 using Gym.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gym.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260925205135_AddCafeProducts")]
+    partial class AddCafeProducts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -249,158 +252,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_refresh_tokens_replaced_only_when_rotated", "replaced_by_token_id IS NULL OR revoked_reason = 'Rotated'");
 
                             t.HasCheckConstraint("ck_refresh_tokens_revocation_complete", "(revoked_at IS NULL) = (revoked_reason IS NULL)");
-                        });
-                });
-
-            modelBuilder.Entity("Gym.Domain.Cafe.CafeOrder", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("CancelReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("cancel_reason");
-
-                    b.Property<DateTimeOffset?>("CancelledAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("cancelled_at");
-
-                    b.Property<Guid?>("CancelledByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("cancelled_by_user_id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<Guid?>("MemberId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("member_id");
-
-                    b.Property<DateOnly>("OrderedOn")
-                        .HasColumnType("date")
-                        .HasColumnName("ordered_on");
-
-                    b.Property<Guid>("PlacedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("placed_by_user_id");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("total_amount");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.Property<uint>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id")
-                        .HasName("pk_cafe_orders");
-
-                    b.HasIndex("CancelledByUserId")
-                        .HasDatabaseName("ix_cafe_orders_cancelled_by_user_id");
-
-                    b.HasIndex("MemberId")
-                        .HasDatabaseName("ix_cafe_orders_member_id");
-
-                    b.HasIndex("OrderedOn")
-                        .HasDatabaseName("ix_cafe_orders_ordered_on");
-
-                    b.HasIndex("PlacedByUserId")
-                        .HasDatabaseName("ix_cafe_orders_placed_by_user_id");
-
-                    b.ToTable("cafe_orders", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_cafe_orders_cancel", "(cancelled_at IS NULL) = (cancel_reason IS NULL) AND (cancelled_at IS NULL) = (cancelled_by_user_id IS NULL)");
-
-                            t.HasCheckConstraint("ck_cafe_orders_total_not_negative", "total_amount >= 0");
-                        });
-                });
-
-            modelBuilder.Entity("Gym.Domain.Cafe.CafeOrderItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<decimal>("LineTotal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("line_total");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("order_id");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("product_id");
-
-                    b.Property<string>("ProductName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("product_name");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer")
-                        .HasColumnName("quantity");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("unit_price");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id")
-                        .HasName("pk_cafe_order_items");
-
-                    b.HasIndex("OrderId")
-                        .HasDatabaseName("ix_cafe_order_items_order_id");
-
-                    b.HasIndex("ProductId")
-                        .HasDatabaseName("ix_cafe_order_items_product_id");
-
-                    b.ToTable("cafe_order_items", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_cafe_order_items_line_total", "line_total = unit_price * quantity");
-
-                            t.HasCheckConstraint("ck_cafe_order_items_quantity_range", "quantity BETWEEN 1 AND 999");
-
-                            t.HasCheckConstraint("ck_cafe_order_items_unit_price_not_negative", "unit_price >= 0");
                         });
                 });
 
@@ -1363,45 +1214,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_refresh_tokens_asp_net_users_user_id");
                 });
 
-            modelBuilder.Entity("Gym.Domain.Cafe.CafeOrder", b =>
-                {
-                    b.HasOne("Gym.Infrastructure.Identity.User", null)
-                        .WithMany()
-                        .HasForeignKey("CancelledByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_cafe_orders_asp_net_users_cancelled_by_user_id");
-
-                    b.HasOne("Gym.Domain.Members.Member", null)
-                        .WithMany()
-                        .HasForeignKey("MemberId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_cafe_orders_members_member_id");
-
-                    b.HasOne("Gym.Infrastructure.Identity.User", null)
-                        .WithMany()
-                        .HasForeignKey("PlacedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_cafe_orders_asp_net_users_placed_by_user_id");
-                });
-
-            modelBuilder.Entity("Gym.Domain.Cafe.CafeOrderItem", b =>
-                {
-                    b.HasOne("Gym.Domain.Cafe.CafeOrder", null)
-                        .WithMany("Items")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_cafe_order_items_cafe_orders_order_id");
-
-                    b.HasOne("Gym.Domain.Cafe.Product", null)
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_cafe_order_items_products_product_id");
-                });
-
             modelBuilder.Entity("Gym.Domain.Cafe.Product", b =>
                 {
                     b.HasOne("Gym.Domain.Cafe.ProductCategory", null)
@@ -1536,11 +1348,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_tokens_users_user_id");
-                });
-
-            modelBuilder.Entity("Gym.Domain.Cafe.CafeOrder", b =>
-                {
-                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

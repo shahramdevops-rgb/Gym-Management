@@ -15,12 +15,9 @@ namespace Gym.Application.Members;
 /// <para>
 /// Debt is <b>calculated, never stored</b>: there is no balance column to keep correct and no
 /// nightly job to recompute one. Per item it is <c>Price − net paid</c>, never below zero, summed
-/// over the member's non-cancelled subscriptions and non-voided service charges. Cancelling or
-/// voiding is how the gym says it is not chasing that money, so such an item owes nothing even if
-/// it was never paid.
-/// </para>
-/// <para>
-/// Cafe orders (Phase 7) join the same total when they exist.
+/// over the member's non-cancelled subscriptions, non-voided service charges and non-cancelled
+/// cafe orders. Cancelling or voiding is how the gym says it is not chasing that money, so such an
+/// item owes nothing even if it was never paid.
 /// </para>
 /// </remarks>
 public static class MemberDebt
@@ -30,11 +27,16 @@ public static class MemberDebt
     /// only one kind has are nullable rather than split into two types, because every caller shows
     /// them as one list ordered by date.
     /// </summary>
-    /// <param name="Id">The subscription's or the service charge's id — what a payment is posted against.</param>
-    /// <param name="PlanId"><c>null</c> for a service charge.</param>
-    /// <param name="ServiceKind"><c>null</c> for a subscription.</param>
-    /// <param name="StartDate">The subscription's start date, or the day of the visit that was charged.</param>
-    /// <param name="EndDate"><c>null</c> for a service charge: it covers the one day it was charged on.</param>
+    /// <param name="Id">The subscription's, service charge's or cafe order's id — what a payment is posted against.</param>
+    /// <param name="PlanId"><c>null</c> for anything that is not a subscription.</param>
+    /// <param name="ServiceKind"><c>null</c> for anything that is not a service charge.</param>
+    /// <param name="StartDate">
+    /// The subscription's start date, the day of the visit that was charged, or the day of the
+    /// cafe sale.
+    /// </param>
+    /// <param name="EndDate">
+    /// <c>null</c> for a service charge and a cafe order: each covers the one day it happened on.
+    /// </param>
     public sealed record Item(
         PaymentTargetKind Kind,
         Guid Id,
@@ -84,6 +86,19 @@ public static class MemberDebt
             })
             .ToListAsync(cancellationToken);
 
+        var orders = await db.CafeOrders.AsNoTracking()
+            .Where(order => order.MemberId == memberId && order.CancelledAt == null)
+            .Select(order => new
+            {
+                order.Id,
+                order.OrderedOn,
+                order.TotalAmount,
+                NetPaid = db.Payments
+                    .Where(payment => payment.CafeOrderId == order.Id)
+                    .Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
+            })
+            .ToListAsync(cancellationToken);
+
         var items = subscriptions
             .Select(subscription => new Item(
                 PaymentTargetKind.Subscription,
@@ -104,7 +119,17 @@ public static class MemberDebt
                 EndDate: null,
                 charge.Amount,
                 charge.NetPaid,
-                Outstanding(charge.Amount, charge.NetPaid))));
+                Outstanding(charge.Amount, charge.NetPaid))))
+            .Concat(orders.Select(order => new Item(
+                PaymentTargetKind.CafeOrder,
+                order.Id,
+                PlanId: null,
+                ServiceKind: null,
+                order.OrderedOn,
+                EndDate: null,
+                order.TotalAmount,
+                order.NetPaid,
+                Outstanding(order.TotalAmount, order.NetPaid))));
 
         // Sorted here rather than in each query, because the two kinds are one list to the reader.
         return items
@@ -173,6 +198,25 @@ public static class MemberDebt
             })
             .ToDictionaryAsync(row => row.TargetId, row => row.NetPaid, cancellationToken);
 
+        var orders = await db.CafeOrders.AsNoTracking()
+            .Where(order => order.MemberId != null
+                && memberIds.Contains(order.MemberId!.Value)
+                && order.CancelledAt == null)
+            .Select(order => new { order.Id, MemberId = order.MemberId!.Value, Price = order.TotalAmount })
+            .ToListAsync(cancellationToken);
+
+        var orderIds = orders.Select(order => order.Id).ToList();
+
+        var orderNetPaid = await db.Payments.AsNoTracking()
+            .Where(payment => payment.CafeOrderId != null && orderIds.Contains(payment.CafeOrderId!.Value))
+            .GroupBy(payment => payment.CafeOrderId!.Value)
+            .Select(group => new
+            {
+                TargetId = group.Key,
+                NetPaid = group.Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
+            })
+            .ToDictionaryAsync(row => row.TargetId, row => row.NetPaid, cancellationToken);
+
         var owed = subscriptions
             .Select(subscription => new
             {
@@ -183,6 +227,11 @@ public static class MemberDebt
             {
                 charge.MemberId,
                 Outstanding = Outstanding(charge.Price, chargeNetPaid.GetValueOrDefault(charge.Id)),
+            }))
+            .Concat(orders.Select(order => new
+            {
+                order.MemberId,
+                Outstanding = Outstanding(order.Price, orderNetPaid.GetValueOrDefault(order.Id)),
             }));
 
         return owed

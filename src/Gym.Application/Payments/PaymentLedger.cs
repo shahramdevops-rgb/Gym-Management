@@ -25,6 +25,16 @@ public static class PaymentLedger
             .SumAsync(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount, cancellationToken);
     }
 
+    public static Task<decimal> GetNetPaidForCafeOrderAsync(
+        IAppDbContext db, Guid cafeOrderId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+
+        return db.Payments
+            .Where(payment => payment.CafeOrderId == cafeOrderId)
+            .SumAsync(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount, cancellationToken);
+    }
+
     public static Task<decimal> GetNetPaidForServiceChargeAsync(
         IAppDbContext db, Guid serviceChargeId, CancellationToken cancellationToken)
     {

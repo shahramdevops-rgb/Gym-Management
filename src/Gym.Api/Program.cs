@@ -122,6 +122,9 @@ try
     app.MapLockersEndpoints();
     app.MapAttendanceEndpoints();
     app.MapServiceChargesEndpoints();
+    app.MapProductCategoriesEndpoints();
+    app.MapProductsEndpoints();
+    app.MapCafeOrdersEndpoints();
 
     app.Run();
 }

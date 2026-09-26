@@ -3,6 +3,7 @@ using Gym.Application.Subscriptions;
 using Gym.Domain.Attendances;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
+using Gym.Domain.Cafe;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
@@ -51,6 +52,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<ServiceCharge> ServiceCharges => Set<ServiceCharge>();
 
+    public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
+
+    public DbSet<Product> Products => Set<Product>();
+
+    public DbSet<CafeOrder> CafeOrders => Set<CafeOrder>();
+
+    public DbSet<CafeOrderItem> CafeOrderItems => Set<CafeOrderItem>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
 
@@ -98,7 +107,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     /// <summary>
     /// Translates a Postgres unique violation (SQLSTATE 23505) into Application's
-    /// <see cref="UniqueConstraintException"/>, and an exclusion violation (23P01) into
+    /// <see cref="UniqueConstraintException"/>, a foreign key violation (23503) into
+    /// <see cref="ForeignKeyConstraintException"/>, and an exclusion violation (23P01) into
     /// <see cref="ExclusionConstraintException"/>, naming the constraint, so handlers can answer
     /// the expected race with a 409 without knowing which database is behind them.
     /// </summary>
@@ -117,6 +127,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
                   exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } unique)
         {
             throw new UniqueConstraintException(unique.ConstraintName ?? string.Empty, exception);
+        }
+        catch (DbUpdateException exception)
+            when (exception is not ForeignKeyConstraintException &&
+                  exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation } foreignKey)
+        {
+            throw new ForeignKeyConstraintException(foreignKey.ConstraintName ?? string.Empty, exception);
         }
         catch (DbUpdateException exception)
             when (exception is not ExclusionConstraintException &&

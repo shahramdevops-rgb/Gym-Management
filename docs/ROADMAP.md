@@ -701,25 +701,65 @@ and the ordinary "ورود" button finishes the job, which is visible and recove
 
 ## Phase 7 — Cafe / POS
 
-### 7.1 Products and stock
-- [ ] Categories and products (Owner)
-- [ ] StockMovement ledger, non-negative stock constraint
-- [ ] Stock purchase and adjustment with reason
+Rule change, decided by the Owner on 2026-09-25 as this phase started: **the gym does not count
+stock.** The tasks below used to carry a StockMovement ledger, a `StockQuantity` column and a
+"not enough left" refusal; all of it is gone (BUSINESS_RULES.md §8). The cafe is a price list and
+a till. What the gym spends on restocking is an expense in Phase 8, and gross profit is worked out
+in the Phase 9 reports — the same money is never counted twice.
+
+### 7.1 Products and categories
+- [x] `ProductCategory`: name (unique, normalized), renameable, switched on and off, deletable
+      only while no product uses it
+- [x] `Product`: name (unique across the cafe, normalized), category, price, `IsActive`.
+      Switched off, never deleted, because orders point at it
+- [x] Price follows the `Plan.Price` money rules exactly: `numeric(18,2)`, at most 2 decimals,
+      refused rather than rounded
+- [x] Endpoints: the whole cafe is readable and writable by both roles (§1, changed with this
+      phase). One explicit policy per endpoint, never a group default
+- [x] Sellable = switched on *and* in a category that is switched on, so the till and the product
+      search on an order never offer a `ناموجود` item. `GET /products?isActive=true` asks
+      that question; the management screens ask for everything and see both flags
+- [x] Tests: staff can do everything in the cafe; a duplicate name is 409; a category with
+      products cannot be deleted; a stale `Version` is refused; switching a category off takes
+      its products out of the sellable list
+
+Done when: the front desk can shape the menu and the price list without the Owner, and nothing
+`ناموجود` can be rung up. Closed 2026-09-26; the cafe endpoint tests and the domain tests
+are green.
 
 ### 7.2 Orders
-- [ ] CafeOrder and CafeOrderItem with snapshots
-- [ ] Transactional create order: stock, movements, payment
-- [ ] Optional member link
-- [ ] Order on a member's account: created unpaid under that member's name, settled later with ordinary payments, counted in their debt (BUSINESS_RULES.md §8, §5 *Member debt*). A walk-in order with no member is paid in full at creation
-- [ ] Tests: insufficient stock rejected; price snapshot unchanged after product edit; an unpaid order on account appears in the member's debt breakdown
+- [x] CafeOrder and CafeOrderItem with `ProductName` and `UnitPrice` snapshots. An order is never
+      edited: a mistake is cancelled with a reason and rung up again (§5, §8), so there is no
+      method and no endpoint to change a line
+- [x] Transactional create order: order, items, and the payment when it is paid there and then
+- [x] Optional member link
+- [x] Order on a member's account: created unpaid or part-paid under that member's name, settled
+      later with ordinary payments through `POST /api/cafe/orders/{id}/payments`, counted in their
+      debt (BUSINESS_RULES.md §8, §5 *Member debt*). A walk-in order with no member is paid in
+      full at creation
+- [x] `Payment.CafeOrderId` finally set: the third target has existed since task 4.4 and nothing
+      wrote it until now. `PaymentTargetKind`, `PaymentLedger` and both `MemberDebt` paths gained
+      the cafe alongside subscriptions and service charges
+- [x] A product that is not sellable — its own switch or its category's — is refused with
+      `Products.Inactive`. Which of the two switches said so is not the till's problem
+- [x] Tests: price snapshot unchanged after product edit; an unpaid order on account appears in
+      the member's debt breakdown and on the member list's row; a walk-in order must be paid in
+      full; instalments add up to Paid; four parallel payments leave exactly one
+
+Done when: the front desk can ring up a sale, on the counter or on a member's account, and the
+money lands where §5 says it should. Closed 2026-09-26: 968 backend tests and 403 frontend tests
+green, zero warnings. Decided while building and needing review: an inactive member may still buy
+from the cafe (§2 only stops check-in and new subscriptions — they are buying water, not being let
+in), and two lines of the same product are refused rather than merged, because a receipt reading
+as two purchases of one thing is a till mistake worth catching at the till.
 
 ### 7.3 Cancellation and history
-- [ ] Cancel order (Owner): stock restored, refund created
+- [ ] Cancel order (Owner): reason required, refund created for whatever was paid
 - [ ] Order history and member purchase history
 
 ### 7.4 UI: cafe
 - [ ] POS screen: product grid, cart, payment
-- [ ] Owner: products, categories, stock adjustments
+- [ ] Products and categories screens
 - [ ] Order history; member profile purchases tab
 
 ---
