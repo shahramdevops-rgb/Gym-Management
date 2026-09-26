@@ -79,6 +79,7 @@ public sealed class StaffEndpointTests(DatabaseFixture fixture) : DatabaseTestBa
     [InlineData("reza", "رضا", "short1", "temporaryPassword", "Auth.PasswordTooShort")]
     [InlineData("reza", "رضا", "Reza kettle 1234", "temporaryPassword", "Auth.PasswordContainsUserName")]
     [InlineData("reza", "رضا", "password12345", "temporaryPassword", "Auth.PasswordTooCommon")]
+    [InlineData("reza", "رضا", "pasargadplas", "temporaryPassword", "Auth.PasswordContainsGymName")]
     public async Task CreateStaff_InvalidInput_Returns400WithFieldCode(
         string userName,
         string fullName,

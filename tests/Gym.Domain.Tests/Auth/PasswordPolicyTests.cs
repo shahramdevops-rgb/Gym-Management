@@ -86,12 +86,33 @@ public sealed class PasswordPolicyTests
     [InlineData("Football2024!")] // case, a year and a symbol do not disguise it
     [InlineData("!!!sunshine2024")] // symbols in front too
     [InlineData("iloveyou 12345")]
-    [InlineData("Pasargad@1405")] // the gym's own name
-    [InlineData("Pasargad Gym Plus 1")] // with spaces
-    [InlineData("bashgah123456")]
+    [InlineData("gymplus2026!")] // an ordinary gym word as a whole password
     public void Check_CommonPassword_FailsWithTooCommon(string password)
     {
         PasswordPolicy.Check(password, userName: null).Error.ShouldBe(PasswordErrors.TooCommon);
+    }
+
+    [Theory]
+    [InlineData("pasargadplas")] // reported by the developer: the gym's name with a typo in "plus"
+    [InlineData("Pasargad@1405")]
+    [InlineData("Pasargad Gym Plus 1")]
+    [InlineData("bashgah123456")]
+    [InlineData("my-pasargad-locker-key")] // inside a longer password too
+    [InlineData("P@sarg4d-is-mine-1")] // look-alike substitutions
+    [InlineData("PAS.AR.GAD.2026")] // separators
+    [InlineData("i love varzesh a lot")]
+    [InlineData("badansazi-club-1405")]
+    public void Check_ContainsTheGymName_FailsWithContainsGymName(string password)
+    {
+        PasswordPolicy.Check(password, userName: null).Error.ShouldBe(PasswordErrors.ContainsGymName);
+    }
+
+    [Theory]
+    [InlineData("i train at the gym every morning")] // "gym" alone is too ordinary to refuse in a passphrase
+    [InlineData("my fitness plan is long")]
+    public void Check_OrdinaryGymWordInsideAPassphrase_Succeeds(string password)
+    {
+        PasswordPolicy.Check(password, userName: null).IsSuccess.ShouldBeTrue();
     }
 
     [Fact]

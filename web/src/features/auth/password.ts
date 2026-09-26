@@ -119,6 +119,7 @@ export function newPasswordCodes<TField extends string>(field: TField): Record<s
       "Auth.PasswordTooLong",
       "Auth.PasswordNotEnglish",
       "Auth.PasswordContainsUserName",
+      "Auth.PasswordContainsGymName",
       "Auth.PasswordTooSimple",
       "Auth.PasswordTooCommon",
       "Auth.PasswordUnchanged",

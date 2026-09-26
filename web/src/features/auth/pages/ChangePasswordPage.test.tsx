@@ -78,6 +78,22 @@ describe("ChangePasswordPage", () => {
     );
   });
 
+  it("ChangePassword_PasswordWithTheGymName_ShowsTheGymNameMessageUnderTheNewPassword", async () => {
+    // The gym's name is refused anywhere in a password, even with a typo (pasargadplas).
+    mockApi({
+      "POST /api/auth/change-password": () => problem(400, "Auth.PasswordContainsGymName"),
+    });
+    renderApp("/change-password", { session: session({ mustChangePassword: true }) });
+
+    fill("Temp1234", "pasargadplas");
+
+    const message = await screen.findByText(/نام باشگاه نباید داخل رمز عبور باشد/);
+    expect(screen.getByLabelText("رمز عبور جدید")).toHaveAttribute(
+      "aria-describedby",
+      expect.stringContaining(message.id),
+    );
+  });
+
   it("PasswordField_PersianLetters_WarnsThatTheKeyboardIsPersian", () => {
     mockApi({});
     renderApp("/change-password", { session: session({ mustChangePassword: true }) });
