@@ -11,6 +11,18 @@ using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
 using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
+using Gym.Application.Cafe.CreateCafeOrder;
+using Gym.Application.Cafe.CreateProduct;
+using Gym.Application.Cafe.CreateProductCategory;
+using Gym.Application.Cafe.DeleteProductCategory;
+using Gym.Application.Cafe.GetCafeOrder;
+using Gym.Application.Cafe.GetProduct;
+using Gym.Application.Cafe.ListProductCategories;
+using Gym.Application.Cafe.ListProducts;
+using Gym.Application.Cafe.SetProductActive;
+using Gym.Application.Cafe.SetProductCategoryActive;
+using Gym.Application.Cafe.UpdateProduct;
+using Gym.Application.Cafe.UpdateProductCategory;
 using Gym.Application.Lockers.CreateLocker;
 using Gym.Application.Lockers.GetLocker;
 using Gym.Application.Lockers.ListLockers;
@@ -126,11 +138,27 @@ public static class DependencyInjection
         services.AddScoped<RegisterPaymentHandler>();
         services.AddScoped<RegisterRefundHandler>();
         services.AddScoped<RegisterServiceChargePaymentHandler>();
+        services.AddScoped<RegisterCafeOrderPaymentHandler>();
         services.AddScoped<ListMemberPaymentsHandler>();
 
         services.AddScoped<RecordServiceChargeHandler>();
         services.AddScoped<ChangeServiceChargeAmountHandler>();
         services.AddScoped<VoidServiceChargeHandler>();
+
+        services.AddScoped<CreateCafeOrderHandler>();
+        services.AddScoped<GetCafeOrderHandler>();
+
+        services.AddScoped<CreateProductCategoryHandler>();
+        services.AddScoped<UpdateProductCategoryHandler>();
+        services.AddScoped<DeleteProductCategoryHandler>();
+        services.AddScoped<ListProductCategoriesHandler>();
+        services.AddScoped<SetProductCategoryActiveHandler>();
+
+        services.AddScoped<CreateProductHandler>();
+        services.AddScoped<UpdateProductHandler>();
+        services.AddScoped<GetProductHandler>();
+        services.AddScoped<ListProductsHandler>();
+        services.AddScoped<SetProductActiveHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

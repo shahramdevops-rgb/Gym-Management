@@ -92,6 +92,9 @@ export const errorMessages: Record<string, string> = {
   "Plans.PriceTooLarge": "قیمت بیش از حد بزرگ است.",
   "Plans.PriceTooManyDecimals": "قیمت حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
   "Plans.Inactive": "این پلن غیرفعال است و قابل فروش نیست.",
+  "Plans.SingleSessionShape": "پلن تک‌جلسه‌ای باید ۱ روزه و ۱ جلسه‌ای باشد.",
+  "Plans.SingleSessionAlreadyExists":
+    "پلن تک‌جلسه‌ای از قبل وجود دارد؛ برای تغییر نرخ، همان را ویرایش کنید.",
   "Plans.ChangedConcurrently":
     "این پلن هم‌زمان توسط شخص دیگری ویرایش شد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
@@ -109,6 +112,7 @@ export const errorMessages: Record<string, string> = {
   "Subscriptions.Frozen": "اشتراک فریز شده است.",
   "Subscriptions.Cancelled": "اشتراک لغو شده است.",
   "Subscriptions.NotFrozen": "اشتراک فریز نشده است.",
+  "Subscriptions.SingleSessionNotFreezable": "اشتراک تک‌جلسه‌ای قابل فریز شدن نیست.",
   "Subscriptions.FreezeLimitReached": "همهٔ روزهای مجاز فریز این اشتراک استفاده شده است.",
   "Subscriptions.CancelReasonRequired": "دلیل لغو را وارد کنید.",
   "Subscriptions.CancelReasonTooLong": "دلیل لغو بیش از حد طولانی است.",
@@ -159,6 +163,44 @@ export const errorMessages: Record<string, string> = {
   "ServiceCharges.VoidReasonTooLong": "دلیل ابطال بیش از حد طولانی است.",
   "ServiceCharges.ChangedConcurrently":
     "این مبلغ هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+
+  // Cafe: categories and products (no stock anywhere — BUSINESS_RULES.md §8)
+  "ProductCategories.NotFound": "دسته‌بندی پیدا نشد.",
+  "ProductCategories.NameAlreadyExists": "دسته‌بندی دیگری با همین نام وجود دارد.",
+  "ProductCategories.NameRequired": "نام دسته‌بندی را وارد کنید.",
+  "ProductCategories.NameTooLong": "نام دسته‌بندی بیش از حد طولانی است.",
+  "ProductCategories.NotEmpty":
+    "این دسته‌بندی محصول دارد و حذف نمی‌شود. اول محصول‌ها را به دسته‌بندی دیگری منتقل کنید.",
+  "ProductCategories.ChangedConcurrently":
+    "این دسته‌بندی هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+  "Products.NotFound": "محصول پیدا نشد.",
+  "Products.NameAlreadyExists": "محصول دیگری با همین نام وجود دارد.",
+  "Products.NameRequired": "نام محصول را وارد کنید.",
+  "Products.NameTooLong": "نام محصول بیش از حد طولانی است.",
+  "Products.CategoryRequired": "دسته‌بندی محصول را انتخاب کنید.",
+  "Products.CategoryNotFound": "دسته‌بندی انتخاب‌شده پیدا نشد.",
+  "Products.PriceNegative": "قیمت نمی‌تواند منفی باشد.",
+  "Products.PriceTooLarge": "قیمت بیش از حد بزرگ است.",
+  "Products.PriceTooManyDecimals": "قیمت حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
+  "Products.Inactive": "این محصول غیرفعال است و قابل فروش نیست.",
+  "Products.ChangedConcurrently":
+    "این محصول هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+
+  // Cafe orders (BUSINESS_RULES.md §8)
+  "CafeOrders.NotFound": "سفارش پیدا نشد.",
+  "CafeOrders.NoItems": "سبد خرید خالی است.",
+  "CafeOrders.TooManyItems": "تعداد ردیف‌های سفارش بیش از حد مجاز است.",
+  "CafeOrders.QuantityInvalid": "تعداد هر محصول باید بین ۱ تا ۹۹۹ باشد.",
+  "CafeOrders.DuplicateProduct": "یک محصول دو بار در سبد آمده است؛ آن را در یک ردیف جمع کنید.",
+  "CafeOrders.ProductNotFound": "یکی از محصول‌های سبد دیگر وجود ندارد.",
+  "CafeOrders.WalkInMustBePaidInFull":
+    "سفارش بدون عضو باید همان لحظه کامل پرداخت شود. برای پرداخت بعدی، عضو را انتخاب کنید.",
+  "CafeOrders.PaidMoreThanTheOrder": "مبلغ پرداختی از مبلغ سفارش بیشتر است.",
+  "CafeOrders.AlreadyCancelled": "این سفارش قبلاً لغو شده است.",
+  "CafeOrders.CancelReasonRequired": "دلیل لغو را وارد کنید.",
+  "CafeOrders.CancelReasonTooLong": "دلیل لغو بیش از حد طولانی است.",
+  "CafeOrders.ChangedConcurrently":
+    "این سفارش هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",

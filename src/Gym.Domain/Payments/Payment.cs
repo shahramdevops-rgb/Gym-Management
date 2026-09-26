@@ -8,10 +8,10 @@ namespace Gym.Domain.Payments;
 /// the mistake.
 /// </summary>
 /// <remarks>
-/// <see cref="CafeOrderId"/> exists because the documented entity has it, but nothing sets it
-/// before cafe orders exist (Phase 7); the database's one-target check constraint is enforced
-/// from this table's first row regardless. <see cref="ServiceChargeId"/> arrived with the cardio
-/// charge (task 5.7) and is set. A "void" (BUSINESS_RULES.md §5) is not a separate code path: it
+/// All three targets are now set by something: <see cref="SubscriptionId"/> since task 4.4,
+/// <see cref="ServiceChargeId"/> since the cardio charge (5.7) and <see cref="CafeOrderId"/> since
+/// cafe orders (7.2). The database's one-target check constraint has been enforced from this
+/// table's first row throughout. A "void" (BUSINESS_RULES.md §5) is not a separate code path: it
 /// is a full-amount refund whose reason explains the mistake.
 /// </remarks>
 public sealed class Payment : Entity
@@ -68,6 +68,26 @@ public sealed class Payment : Entity
         Guid subscriptionId, decimal amount, PaymentMethod method, string? referenceNumber, string reason,
         Guid receivedByUserId, DateTimeOffset paidAt) =>
         CreateRefund(Target.Subscription(subscriptionId), amount, method, referenceNumber, reason, receivedByUserId, paidAt);
+
+    /// <summary>
+    /// Money taken for a cafe order (BUSINESS_RULES.md §8), whether at the till or later against
+    /// an order left on a member's account. Nothing about this differs from paying for a
+    /// subscription: same instalments, same statuses, same debt.
+    /// </summary>
+    public static Result<Payment> RegisterForCafeOrder(
+        Guid cafeOrderId, decimal amount, PaymentMethod method, string? referenceNumber,
+        Guid receivedByUserId, DateTimeOffset paidAt) =>
+        Create(Target.CafeOrder(cafeOrderId), PaymentKind.Payment, amount, method, referenceNumber, receivedByUserId, paidAt, reason: null);
+
+    /// <summary>
+    /// The cafe twin of <see cref="RegisterRefundForSubscription"/>. Cancelling a paid order
+    /// writes one of these for whatever was actually paid, so the gym never holds money for
+    /// something it has decided is not owed (BUSINESS_RULES.md §5: there is no wallet).
+    /// </summary>
+    public static Result<Payment> RegisterRefundForCafeOrder(
+        Guid cafeOrderId, decimal amount, PaymentMethod method, string? referenceNumber, string reason,
+        Guid receivedByUserId, DateTimeOffset paidAt) =>
+        CreateRefund(Target.CafeOrder(cafeOrderId), amount, method, referenceNumber, reason, receivedByUserId, paidAt);
 
     public static Result<Payment> RegisterForServiceCharge(
         Guid serviceChargeId, decimal amount, PaymentMethod method, string? referenceNumber,
@@ -149,6 +169,7 @@ public sealed class Payment : Entity
         {
             SubscriptionId = target.SubscriptionId,
             ServiceChargeId = target.ServiceChargeId,
+            CafeOrderId = target.CafeOrderId,
             Kind = kind,
             Amount = amount,
             Method = method,
@@ -161,13 +182,15 @@ public sealed class Payment : Entity
 
     /// <summary>
     /// The one thing this payment belongs to (BUSINESS_RULES.md §5), so the rule is in the type
-    /// system rather than in a comment above a pair of nullable parameters. Phase 7 adds a third
-    /// factory here for cafe orders; the check constraint in the database says the same.
+    /// system rather than in a comment above three nullable parameters. The check constraint in
+    /// the database says the same thing about the row.
     /// </summary>
-    private readonly record struct Target(Guid? SubscriptionId, Guid? ServiceChargeId)
+    private readonly record struct Target(Guid? SubscriptionId, Guid? ServiceChargeId, Guid? CafeOrderId)
     {
-        public static Target Subscription(Guid id) => new(id, null);
+        public static Target Subscription(Guid id) => new(id, null, null);
 
-        public static Target ServiceCharge(Guid id) => new(null, id);
+        public static Target ServiceCharge(Guid id) => new(null, id, null);
+
+        public static Target CafeOrder(Guid id) => new(null, null, id);
     }
 }
