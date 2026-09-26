@@ -793,3 +793,19 @@ The question that started this was whether a gym that is entirely internal — I
 - **A check constraint can police arithmetic.** `line_total = unit_price * quantity` is one line in the configuration and makes a hand-written INSERT with an inconsistent total impossible. The stored total is what the customer was charged; the constraint is what stops it drifting from the two numbers beside it.
 - **The only cascade in the schema, and it earns it.** Every other foreign key here is `Restrict`, because financial records must not vanish with the thing they point at. An order line has no meaning and no money without its order, so it cascades — and the comment says the application never deletes an order anyway, so the cascade is about the model being honest rather than about a feature.
 - **My notes:**
+
+---
+
+## 6.5.4 follow-up — The entry screen, after real use
+
+- **A button that can only be refused should not be offered.** After a single visit the member was inside, but the row still showed "ورود", and pressing it could only get `Attendance.AlreadyCheckedIn`. The API was right; the screen was offering an action it already knew the answer to. The row now shows "داخل باشگاه" instead.
+- **Derived on read, never stored.** `MemberResponse.CurrentVisit` is "the attendance with no `CheckedOutAt`", or null, the same test `CheckInHandler` uses. Storing a flag on the member would be a second copy of that fact that check-out, cancel and the nightly auto-close would all have to remember to update.
+- **Batch per page, not per row.** Like `Debt`, it is one query for the whole page (`WHERE member_id IN (...)`), not one per member. That keeps the search at a fixed number of queries however many rows it shows.
+- **Cache invalidation follows the data, not the feature.** Member lists now carry attendance state, so the attendance mutations invalidate member lists too. Without that, a check-in would succeed and the row would keep showing the old button until the next refetch.
+- **Start the form from what was already typed.** The search box already holds a name or a phone, so the registration form starts from it using the same "only digits and phone punctuation" rule the API uses to decide between a phone search and a name search. react-hook-form reads `defaultValues` only when the form mounts, which is fine here because the form appears only after the click.
+- **Return what the next action needs, not just a flag.** A yes/no "is inside" was enough to grey out a button, but check-out needs the visit's id and the exit box needs the locker. Returning the open visit itself (`CurrentVisit`) answers the yes/no *and* feeds the next request, without a second call per row.
+- **Confirm before, report after, in one place.** The dialog is a small state machine (`confirm → checkedIn | needsSubscription | checkedOut | failed`). Keeping every step in one box means the desk's eyes never leave it, and mounting it with a fresh `key` per press is what resets it to "confirm" — React throws away the old state instead of us resetting it field by field.
+- **Guard against the accidental second press.** Nothing is focused when the box opens, and a click outside it does nothing. A held Enter or a stray click is exactly how a confirmation gets skipped, so the dialog refuses both.
+- **A shared label fixes a bug in two places.** The profile's debt card called cafe orders "اشتراک", because its label function only knew two kinds. Moving it to `debtItemLabel` with a `switch` over every kind means TypeScript now complains if a fourth kind is added and not labelled.
+- **A valid format is not a valid number.** libphonenumber checks whether a number falls in an assigned operator range, not just its shape, so `0945…` is refused even though it looks right.
+- **My notes:**

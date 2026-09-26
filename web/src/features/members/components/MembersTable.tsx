@@ -11,15 +11,18 @@ import type { Member } from "../api";
 interface MembersTableProps {
   members: Member[];
   /**
-   * One-click check-in (docs/ROADMAP.md 5.6), shown only where a caller passes it — the front
-   * desk search, not the full member directory. `checkingInId` disables only the row in flight.
+   * Check-in and check-out from the row (docs/ROADMAP.md 5.6), shown only where a caller passes
+   * them — the front desk search, not the full member directory. Each opens a confirmation first
+   * (BUSINESS_RULES.md §7 *Confirming at the front desk*); the row only says which was pressed.
    */
-  onCheckIn?: (member: Member) => void;
-  checkingInId?: string | null;
+  deskActions?: {
+    onCheckIn: (member: Member) => void;
+    onCheckOut: (member: Member) => void;
+  };
 }
 
 /** Search results and the member list: name (a link to the profile), phone, status. */
-export function MembersTable({ members, onCheckIn, checkingInId = null }: MembersTableProps) {
+export function MembersTable({ members, deskActions }: MembersTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -29,7 +32,7 @@ export function MembersTable({ members, onCheckIn, checkingInId = null }: Member
             <th className="py-2 text-start font-medium">موبایل</th>
             <th className="py-2 text-start font-medium">وضعیت</th>
             <th className="py-2 text-start font-medium">بدهی</th>
-            {onCheckIn !== undefined && (
+            {deskActions !== undefined && (
               <th className="py-2 text-start font-medium">
                 <span className="sr-only">عملیات</span>
               </th>
@@ -56,24 +59,45 @@ export function MembersTable({ members, onCheckIn, checkingInId = null }: Member
               <td className="py-2">
                 <MemberDebt value={member.debt} />
               </td>
-              {onCheckIn !== undefined && (
+              {deskActions !== undefined && (
                 <td className="py-2">
-                  <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={checkingInId === member.id}
-                      onClick={() => onCheckIn(member)}
-                    >
-                      ورود
-                    </Button>
-                  </div>
+                  <DeskButtons member={member} {...deskActions} />
                 </td>
               )}
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/**
+ * Whichever of check-in and check-out makes sense is the live button; the other stays visible but
+ * grey, so the row keeps its shape and the desk sees at a glance which state the member is in.
+ * Inside is decided by the open visit the API reports, the same test check-in refuses on
+ * (BUSINESS_RULES.md §7).
+ */
+function DeskButtons({
+  member,
+  onCheckIn,
+  onCheckOut,
+}: {
+  member: Member;
+  onCheckIn: (member: Member) => void;
+  onCheckOut: (member: Member) => void;
+}) {
+  const inside = (member.currentVisit ?? null) !== null;
+
+  return (
+    <div className="flex items-center justify-end gap-2">
+      {inside && <Badge variant="secondary">داخل باشگاه</Badge>}
+      <Button size="sm" variant="outline" disabled={inside} onClick={() => onCheckIn(member)}>
+        ورود
+      </Button>
+      <Button size="sm" variant="outline" disabled={!inside} onClick={() => onCheckOut(member)}>
+        خروج
+      </Button>
     </div>
   );
 }

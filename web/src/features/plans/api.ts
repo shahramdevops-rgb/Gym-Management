@@ -112,7 +112,8 @@ function usePlanMutation<TArgs>(request: (args: TArgs) => Promise<Plan>) {
         queryKey: planKeys.all,
         // "single-session" as well as the lists: creating or switching off that one plan is
         // exactly what changes whether the entry screen can sell a visit at all.
-        predicate: (query) => query.queryKey[1] === "list" || query.queryKey[1] === "single-session",
+        predicate: (query) =>
+          query.queryKey[1] === "list" || query.queryKey[1] === "single-session",
       });
     },
   });

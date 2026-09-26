@@ -20,6 +20,13 @@ namespace Gym.Application.Members;
 /// get by id, activate) leaves it <c>0</c>, because a single member's debt has its own endpoint
 /// (<see cref="GetMemberDebt.GetMemberDebtHandler"/>) that also says what it is made of.
 /// </param>
+/// <param name="CurrentVisit">
+/// The member's open visit, checked in and not yet out (BUSINESS_RULES.md §7), or <c>null</c> when
+/// they are not inside. The same test check-in uses to refuse a second entry. The front-desk search
+/// uses it to offer check-out instead of a check-in that could only be refused, and to name the
+/// locker to take back. Like <paramref name="Debt"/>, computed only by
+/// <see cref="ListMembers.ListMembersHandler"/>; every other path leaves it <c>null</c>.
+/// </param>
 public sealed record MemberResponse(
     Guid Id,
     string FullName,
@@ -30,7 +37,8 @@ public sealed record MemberResponse(
     uint Version,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    decimal Debt = 0)
+    decimal Debt = 0,
+    MemberCurrentVisit? CurrentVisit = null)
 {
     /// <summary>
     /// The same mapping as <see cref="From"/>, as an expression EF Core translates to SQL, so a
@@ -63,3 +71,7 @@ public sealed record MemberResponse(
             member.UpdatedAt);
     }
 }
+
+/// <summary>An open visit, as the front-desk search needs it to check the member out.</summary>
+/// <param name="LockerNumber"><c>null</c> when no locker was free at check-in.</param>
+public sealed record MemberCurrentVisit(Guid AttendanceId, int? LockerNumber, DateTimeOffset CheckedInAt);

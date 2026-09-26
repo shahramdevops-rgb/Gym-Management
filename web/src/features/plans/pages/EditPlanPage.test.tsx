@@ -74,10 +74,9 @@ describe("EditPlanPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/plans"));
-    const body = (await api.requestsTo("PUT", `/api/plans/${singleSession.id}`)[0]!.json()) as Record<
-      string,
-      unknown
-    >;
+    const body = (await api
+      .requestsTo("PUT", `/api/plans/${singleSession.id}`)[0]!
+      .json()) as Record<string, unknown>;
     expect(body).toEqual({
       // Half-spaces become spaces on the way out, like every name (BUSINESS_RULES.md §13).
       name: "تک جلسه ای",

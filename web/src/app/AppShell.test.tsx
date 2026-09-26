@@ -13,7 +13,10 @@ describe("AppShell", () => {
     expect(screen.getByRole("heading", { name: "مدیریت باشگاه" })).toBeInTheDocument();
 
     const navigation = screen.getByRole("navigation", { name: "منوی اصلی" });
-    expect(within(navigation).getByRole("link", { name: "جستجو" })).toHaveAttribute("href", "/");
+    expect(within(navigation).getByRole("link", { name: "ورود به باشگاه" })).toHaveAttribute(
+      "href",
+      "/",
+    );
     expect(within(navigation).getByRole("link", { name: "وضعیت سیستم" })).toHaveAttribute(
       "href",
       "/status",
@@ -26,7 +29,10 @@ describe("AppShell", () => {
 
     renderApp("/", { session: session() });
 
-    expect(screen.getByRole("link", { name: "جستجو" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "ورود به باشگاه" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     expect(screen.getByRole("link", { name: "اعضا" })).not.toHaveAttribute("aria-current");
   });
 
@@ -40,7 +46,9 @@ describe("AppShell", () => {
     renderApp("/members/0199a000-0000-7000-8000-0000000000aa", { session: session() });
 
     expect(screen.getByRole("link", { name: "اعضا" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "جستجو" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "ورود به باشگاه" })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 
   it("AppShell_Staff_SeesTheMemberMenuItems", async () => {

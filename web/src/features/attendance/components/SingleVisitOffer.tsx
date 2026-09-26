@@ -7,51 +7,32 @@ import { useSingleSessionPlan } from "@/features/plans/api";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
 
-interface SingleVisitPanelProps {
+interface SingleVisitOfferProps {
   memberId: string;
-  memberName: string;
-  /** Why check-in refused, already in Persian. */
-  reason: string;
   onSell: (planId: string) => void;
   selling: boolean;
-  onDismiss: () => void;
 }
 
 /**
- * What the desk sees when someone cannot come in today (roadmap 6.5.4): the reason, then one
- * primary action — sell a single visit and let them in — with selling a plan beside it.
+ * What the desk is offered when someone cannot come in today (roadmap 6.5.4): one primary action —
+ * sell a single visit and let them in — with selling a plan beside it. It sits in the check-in box
+ * under the refusal's reason (BUSINESS_RULES.md §7 *Confirming at the front desk*).
  *
  * It appears only after check-in has refused, never before. That is what stops a member who can
  * already come in from being charged for a visit they do not need: the API is the one that decides
- * whether they can, and this panel exists only because it said no (BUSINESS_RULES.md §4). The
+ * whether they can, and this offer exists only because it said no (BUSINESS_RULES.md §4). The
  * alternative — working the answer out from the member row before anyone clicks — would mean a
  * second copy of "usable today" living in the browser, and it is the copy that would be wrong.
  *
- * When the single-session plan is missing or switched off, the panel says so instead of offering
+ * When the single-session plan is missing or switched off, the offer says so instead of offering
  * a button that would fail with nothing to explain it (BUSINESS_RULES.md §3).
  */
-export function SingleVisitPanel({
-  memberId,
-  memberName,
-  reason,
-  onSell,
-  selling,
-  onDismiss,
-}: SingleVisitPanelProps) {
+export function SingleVisitOffer({ memberId, onSell, selling }: SingleVisitOfferProps) {
   const plan = useSingleSessionPlan();
   const sellable = plan.isSuccess && plan.data !== null && plan.data.isActive ? plan.data : null;
 
   return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="font-medium">
-          {memberName}: {reason}
-        </p>
-        <Button size="sm" variant="ghost" onClick={onDismiss}>
-          بستن
-        </Button>
-      </div>
-
+    <div className="space-y-3">
       {plan.isPending && <p className="text-sm text-muted-foreground">در حال بررسی…</p>}
 
       {plan.isError && <Alert variant="destructive">{errorMessage(plan.error)}</Alert>}

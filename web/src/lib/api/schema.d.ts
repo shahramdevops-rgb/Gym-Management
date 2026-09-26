@@ -1036,6 +1036,14 @@ export interface components {
             userName: string;
             password: string;
         };
+        MemberCurrentVisit: {
+            /** Format: uuid */
+            attendanceId: string;
+            /** Format: int32 */
+            lockerNumber: null | number | string;
+            /** Format: date-time */
+            checkedInAt: string;
+        };
         MemberDebtItemResponse: {
             kind: components["schemas"]["PaymentTargetKind"];
             /** Format: uuid */
@@ -1078,6 +1086,7 @@ export interface components {
              * @default 0
              */
             debt: number | string;
+            currentVisit?: null | components["schemas"]["MemberCurrentVisit"];
         };
         PagedResponseOfAttendanceResponse: {
             items: components["schemas"]["AttendanceResponse"][];

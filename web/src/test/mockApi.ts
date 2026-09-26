@@ -1,7 +1,7 @@
 import type { AccessTokenResponse } from "@/features/auth/session";
 import type { CurrentUser } from "@/features/auth/api";
 
-type Handler = (request: Request) => Response | Promise<Response>;
+export type Handler = (request: Request) => Response | Promise<Response>;
 
 /** A JSON response; failures carry the ProblemDetails content type, as the API sends them. */
 export function json(status: number, body: unknown): Response {
