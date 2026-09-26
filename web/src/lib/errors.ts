@@ -200,6 +200,8 @@ export const errorMessages: Record<string, string> = {
   "CafeOrders.CancelReasonRequired": "دلیل لغو را وارد کنید.",
   "CafeOrders.CancelReasonTooLong": "دلیل لغو بیش از حد طولانی است.",
   "CafeOrders.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
+  "CafeOrders.VisitNotOpen": "این عضو دیگر داخل باشگاه نیست؛ خرید را از صفحهٔ بوفه ثبت کنید.",
+  "CafeOrders.VisitOfAnotherMember": "این مراجعه متعلق به عضو دیگری است.",
   "CafeOrders.ChangedConcurrently":
     "این سفارش هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 

@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Payments;
+using Gym.Domain.Attendances;
 using Gym.Domain.Cafe;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
@@ -56,6 +57,33 @@ public sealed class CreateCafeOrderHandler(
             memberFullName = member.FullName;
         }
 
+        if (command.AttendanceId is { } attendanceId)
+        {
+            var visit = await db.Attendances.AsNoTracking()
+                .Where(a => a.Id == attendanceId)
+                .Select(a => new { a.MemberId, a.CheckedOutAt })
+                .SingleOrDefaultAsync(cancellationToken);
+            if (visit is null)
+            {
+                return Result.Failure<CafeOrderResponse>(AttendanceErrors.NotFound);
+            }
+
+            // The member's own visit: a purchase put on the wrong visit would show up at the wrong
+            // person's check-out, and a visit with no member named at all is the same mistake.
+            if (visit.MemberId != command.MemberId)
+            {
+                return Result.Failure<CafeOrderResponse>(CafeOrderErrors.VisitOfAnotherMember);
+            }
+
+            // Only while they are inside, the same rule as a هوازی charge (BUSINESS_RULES.md §7).
+            // CheckedOutAt covers all three ways a visit closes: check-out, the nightly job and a
+            // cancelled check-in.
+            if (visit.CheckedOutAt is not null)
+            {
+                return Result.Failure<CafeOrderResponse>(CafeOrderErrors.VisitNotOpen);
+            }
+        }
+
         var productIds = command.Items.Select(item => item.ProductId).Distinct().ToList();
 
         // Joined to the category, because "sellable" is a question about both rows.
@@ -88,7 +116,7 @@ public sealed class CreateCafeOrderHandler(
             lines.Add((row.Product, item.Quantity));
         }
 
-        var created = CafeOrder.Create(command.MemberId, lines, calendar.Today(), userId);
+        var created = CafeOrder.Create(command.MemberId, lines, calendar.Today(), userId, command.AttendanceId);
         if (created.IsFailure)
         {
             return Result.Failure<CafeOrderResponse>(created.Error);

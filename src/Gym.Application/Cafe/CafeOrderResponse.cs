@@ -6,6 +6,7 @@ using Gym.Domain.Payments;
 namespace Gym.Application.Cafe;
 
 /// <param name="MemberId"><c>null</c> for a walk-in customer (BUSINESS_RULES.md §8).</param>
+/// <param name="AttendanceId">The visit it was bought during, or <c>null</c> for an order from the till.</param>
 /// <param name="NetPaid">Payments less refunds, calculated — there is no paid column.</param>
 /// <param name="PaymentStatus">
 /// Unpaid, Partial or Paid, worked out from <see cref="TotalAmount"/> and <see cref="NetPaid"/>
@@ -19,6 +20,7 @@ public sealed record CafeOrderResponse(
     Guid Id,
     Guid? MemberId,
     string? MemberFullName,
+    Guid? AttendanceId,
     decimal TotalAmount,
     DateOnly OrderedOn,
     Guid PlacedByUserId,
@@ -39,6 +41,7 @@ public sealed record CafeOrderResponse(
             order.Id,
             order.MemberId,
             memberFullName,
+            order.AttendanceId,
             order.TotalAmount,
             order.OrderedOn,
             order.PlacedByUserId,

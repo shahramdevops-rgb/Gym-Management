@@ -103,6 +103,7 @@ export function insideRow(
       | "remainingSessions"
       | "subscriptionEndDate"
       | "isSingleSession"
+      | "cafeOrders"
     >
   > = {},
 ): CurrentlyInside {
@@ -120,6 +121,7 @@ export function insideRow(
     subscriptionEndDate: "2026-12-31",
     isSingleSession: false,
     serviceCharges: attendance.serviceCharges,
+    cafeOrders: [],
     ...subscription,
   };
 }

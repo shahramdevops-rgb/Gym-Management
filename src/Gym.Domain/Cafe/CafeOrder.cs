@@ -43,6 +43,14 @@ public sealed class CafeOrder : Entity
     /// <summary><c>null</c> for a walk-in customer (BUSINESS_RULES.md §8).</summary>
     public Guid? MemberId { get; private set; }
 
+    /// <summary>
+    /// The visit the order was rung up during, when it was bought from the "currently inside"
+    /// board; <c>null</c> for an order from the till. It is what lets check-out say "this is what
+    /// you bought today" the way a هوازی charge hangs off its visit (BUSINESS_RULES.md §8). A visit
+    /// always belongs to a member, so an order with one always has <see cref="MemberId"/> too.
+    /// </summary>
+    public Guid? AttendanceId { get; private set; }
+
     /// <summary>The sum of the lines, stored: it is what the customer was charged.</summary>
     public decimal TotalAmount { get; private set; }
 
@@ -72,13 +80,23 @@ public sealed class CafeOrder : Entity
     /// other tables (BUSINESS_RULES.md §8).
     /// </summary>
     /// <param name="lines">Each product with how many of it, in the order they were rung up.</param>
+    /// <param name="attendanceId">
+    /// The open visit it was bought during, or <c>null</c>. The caller has checked that the visit is
+    /// open and is <paramref name="memberId"/>'s; this only refuses a visit with no member at all.
+    /// </param>
     public static Result<CafeOrder> Create(
         Guid? memberId,
         IReadOnlyList<(Product Product, int Quantity)> lines,
         DateOnly orderedOn,
-        Guid placedByUserId)
+        Guid placedByUserId,
+        Guid? attendanceId = null)
     {
         ArgumentNullException.ThrowIfNull(lines);
+
+        if (attendanceId is not null && memberId is null)
+        {
+            return Result.Failure<CafeOrder>(CafeOrderErrors.VisitOfAnotherMember);
+        }
 
         if (lines.Count == 0)
         {
@@ -101,6 +119,7 @@ public sealed class CafeOrder : Entity
         var order = new CafeOrder
         {
             MemberId = memberId,
+            AttendanceId = attendanceId,
             OrderedOn = orderedOn,
             PlacedByUserId = placedByUserId,
         };

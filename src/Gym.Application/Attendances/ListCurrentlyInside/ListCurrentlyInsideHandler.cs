@@ -1,3 +1,4 @@
+using Gym.Application.Cafe;
 using Gym.Application.Common;
 using Gym.Application.Common.Paging;
 using Gym.Application.ServiceCharges;
@@ -25,11 +26,16 @@ public sealed class ListCurrentlyInsideHandler(IAppDbContext db)
             .Select(CurrentlyInsideResponse.Projection(db.Members, db.Lockers, db.Subscriptions))
             .ToListAsync(cancellationToken);
 
-        var chargesByVisit = await VisitServiceCharges.ByAttendanceAsync(
-            db, items.Select(item => item.AttendanceId).ToList(), cancellationToken);
+        var visitIds = items.Select(item => item.AttendanceId).ToList();
+        var chargesByVisit = await VisitServiceCharges.ByAttendanceAsync(db, visitIds, cancellationToken);
+        var ordersByVisit = await VisitCafeOrders.ByAttendanceAsync(db, visitIds, cancellationToken);
 
         var rows = items
-            .Select(item => item with { ServiceCharges = chargesByVisit.GetValueOrDefault(item.AttendanceId, []) })
+            .Select(item => item with
+            {
+                ServiceCharges = chargesByVisit.GetValueOrDefault(item.AttendanceId, []),
+                CafeOrders = ordersByVisit.GetValueOrDefault(item.AttendanceId, []),
+            })
             .ToList();
 
         return new PagedResponse<CurrentlyInsideResponse>(rows, query.Page, query.PageSize, totalCount);

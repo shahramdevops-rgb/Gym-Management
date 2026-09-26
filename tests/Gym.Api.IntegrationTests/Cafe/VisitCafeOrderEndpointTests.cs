@@ -1,0 +1,242 @@
+using System.Globalization;
+using System.Net;
+using System.Net.Http.Json;
+
+using Gym.Api.IntegrationTests.Auth;
+using Gym.Api.IntegrationTests.Infrastructure;
+using Gym.Application.Attendances;
+using Gym.Application.Attendances.ListCurrentlyInside;
+using Gym.Application.Cafe;
+using Gym.Application.Common.Paging;
+using Gym.Domain.Members;
+using Gym.Domain.Plans;
+using Gym.Infrastructure.Identity;
+using Gym.Infrastructure.Persistence;
+
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Gym.Api.IntegrationTests.Cafe;
+
+/// <summary>
+/// A cafe purchase made while the member is inside, from the "currently inside" board
+/// (BUSINESS_RULES.md §8): tied to the visit like a هوازی charge, on the member's account, and
+/// listed again at check-out.
+/// </summary>
+[Collection(DatabaseCollectionDefinition.Name)]
+public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
+{
+    private const string OrdersPath = "/api/cafe/orders";
+
+    private static int _phoneSuffix;
+
+    [Fact]
+    public async Task CreateOrder_OnTheMembersOpenVisit_TiesTheOrderToTheVisit()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+
+        using var response = await CreateAsync(client, token, visit.MemberId, visit.Id, water.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var order = (await response.Content.ReadFromJsonAsync<CafeOrderResponse>(
+            TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        order.AttendanceId.ShouldBe(visit.Id);
+        order.Outstanding.ShouldBe(15_000m);
+    }
+
+    [Fact]
+    public async Task CreateOrder_OnAClosedVisit_Returns422()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        await PostOkAsync(client, token, $"/api/attendance/{visit.Id}/check-out");
+
+        using var response = await CreateAsync(client, token, visit.MemberId, visit.Id, water.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("CafeOrders.VisitNotOpen");
+    }
+
+    [Fact]
+    public async Task CreateOrder_OnAnotherMembersVisit_Returns422()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var someoneElse = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+
+        using var response = await CreateAsync(client, token, someoneElse.Id, visit.Id, water.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("CafeOrders.VisitOfAnotherMember");
+    }
+
+    [Fact]
+    public async Task CreateOrder_UnknownVisit_Returns404()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+
+        using var response = await CreateAsync(client, token, member.Id, Guid.CreateVersion7(), water.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.NotFound");
+    }
+
+    [Fact]
+    public async Task CurrentlyInside_VisitThatBought_ShowsItsStandingOrdersOnly()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var kept = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        var cancelled = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        await PostOkAsync(client, token, $"{OrdersPath}/{cancelled.Id}/cancel", new { reason = "اشتباه" });
+
+        var board = await GetOkAsync<PagedResponse<CurrentlyInsideResponse>>(
+            client, token, "/api/attendance/currently-inside");
+
+        // A cancelled order owes nothing and is left out, the way a voided هوازی charge is.
+        var row = board.Items.ShouldHaveSingleItem();
+        row.CafeOrders.ShouldHaveSingleItem().Id.ShouldBe(kept.Id);
+    }
+
+    [Fact]
+    public async Task ListOrders_ByVisit_ReturnsOnlyWhatThatVisitBought()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var duringVisit = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        await CreateOkAsync(client, token, visit.MemberId, attendanceId: null, water.Id);
+
+        var page = await GetOkAsync<PagedResponse<CafeOrderResponse>>(
+            client, token, $"{OrdersPath}?attendanceId={visit.Id}");
+
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(duringVisit.Id);
+    }
+
+    // ---- Helpers ----
+
+    private async Task<(HttpClient Client, string Token)> StaffClientAsync()
+    {
+        await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "staff", role: Roles.Staff);
+        var client = Fixture.CreateClient();
+
+        return (client, await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
+    }
+
+    /// <summary>A member with a subscription, checked in: the only state the board shows.</summary>
+    private async Task<AttendanceResponse> CheckedInMemberAsync(HttpClient client, string token)
+    {
+        var member = await AddMemberAsync();
+        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
+
+        await using (var scope = Fixture.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Plans.Add(plan);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await PostOkAsync(client, token, $"/api/members/{member.Id}/subscriptions", new { planId = plan.Id });
+
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/members/{member.Id}/attendance/check-in", body: null);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return (await response.Content.ReadFromJsonAsync<AttendanceResponse>(
+            TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private async Task<Member> AddMemberAsync()
+    {
+        var suffix = Interlocked.Increment(ref _phoneSuffix);
+        var member = TestMembers.Seed($"عضو {suffix}", $"+98915{suffix:D7}");
+
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Members.Add(member);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return member;
+    }
+
+    private static async Task<ProductResponse> AddProductAsync(
+        HttpClient client, string token, string name, decimal price)
+    {
+        var category = await PostOkAsync<ProductCategoryResponse>(
+            client, token, "/api/cafe/categories", new { name = $"دسته {name}" });
+
+        return await PostOkAsync<ProductResponse>(
+            client,
+            token,
+            "/api/cafe/products",
+            new { name, categoryId = category.Id, price = price.ToString(CultureInfo.InvariantCulture) });
+    }
+
+    /// <summary>One of <paramref name="productId"/>, on the member's account with nothing paid.</summary>
+    private static Task<HttpResponseMessage> CreateAsync(
+        HttpClient client, string token, Guid memberId, Guid? attendanceId, Guid productId) =>
+            SendAsync(
+                client,
+                token,
+                HttpMethod.Post,
+                OrdersPath,
+                new
+                {
+                    memberId,
+                    attendanceId,
+                    items = new[] { new { productId, quantity = 1 } },
+                    payment = (object?)null,
+                });
+
+    private static async Task<CafeOrderResponse> CreateOkAsync(
+        HttpClient client, string token, Guid memberId, Guid? attendanceId, Guid productId)
+    {
+        using var response = await CreateAsync(client, token, memberId, attendanceId, productId);
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<CafeOrderResponse>(
+            TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static async Task PostOkAsync(HttpClient client, string token, string path, object? body = null)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Post, path, body);
+        response.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<T> PostOkAsync<T>(HttpClient client, string token, string path, object body)
+        where T : class
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Post, path, body);
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<T>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static async Task<T> GetOkAsync<T>(HttpClient client, string token, string path)
+        where T : class
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Get, path, body: null);
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<T>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static Task<HttpResponseMessage> SendAsync(
+        HttpClient client, string token, HttpMethod method, string path, object? body)
+    {
+        var request = new HttpRequestMessage(method, path);
+        if (body is not null)
+        {
+            request.Content = JsonContent.Create(body);
+        }
+
+        return client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+    }
+}

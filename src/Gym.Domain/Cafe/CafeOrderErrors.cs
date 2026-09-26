@@ -53,6 +53,19 @@ public static class CafeOrderErrors
         "CafeOrders.CancelReasonTooLong",
         $"The cancellation reason can be at most {CafeOrder.CancelReasonMaxLength} characters.");
 
+    /// <summary>
+    /// A purchase can be added to a visit only while the member is inside, the same rule as a
+    /// هوازی charge (BUSINESS_RULES.md §7, §8).
+    /// </summary>
+    public static readonly Error VisitNotOpen = Error.BusinessRule(
+        "CafeOrders.VisitNotOpen",
+        "Purchases can only be added to a visit while the member is inside.");
+
+    /// <summary>The visit named on the order is not the member's the order is for.</summary>
+    public static readonly Error VisitOfAnotherMember = Error.BusinessRule(
+        "CafeOrders.VisitOfAnotherMember",
+        "The visit belongs to a different member than the order.");
+
     /// <summary>The order history was asked for a range that ends before it starts.</summary>
     public static readonly Error InvalidDateRange = Error.Validation(
         "CafeOrders.InvalidDateRange",

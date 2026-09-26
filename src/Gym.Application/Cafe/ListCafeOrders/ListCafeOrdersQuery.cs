@@ -12,9 +12,13 @@ namespace Gym.Application.Cafe.ListCafeOrders;
 /// (BUSINESS_RULES.md §12: date ranges are inclusive, in the gym's time zone).
 /// </param>
 /// <param name="To">Inclusive. <c>null</c> means no upper bound.</param>
+/// <param name="AttendanceId">
+/// What was bought during one visit — what check-out shows the member before they leave.
+/// </param>
 public sealed record ListCafeOrdersQuery(
     Guid? MemberId = null,
     DateOnly? From = null,
     DateOnly? To = null,
+    Guid? AttendanceId = null,
     int Page = 1,
     int PageSize = PagingRules.DefaultPageSize);

@@ -459,6 +459,16 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
   — same partial/paid status, same instalments, and it counts toward that member's debt
   (§5 *Member debt*).
 - A walk-in order (no member) is paid in full at creation: there is no account to put it on.
+- **A purchase made while the member is inside is tied to that visit** (decided with the developer,
+  1405/07/04), exactly as a هوازی charge is (§7 *Gym services*). It is rung up from the "currently
+  inside" board, goes on the member's account with nothing paid, and can be added only to an open
+  visit that is that member's own (`CafeOrders.VisitNotOpen`, `CafeOrders.VisitOfAnotherMember`).
+  At check-out the box lists what the visit bought and the member's debt added up by source —
+  plan, هوازی, cafe — before the item-by-item list. An order from the till names no visit.
+  - Cancelling a check-in leaves the visit's cafe orders standing: the goods were handed over
+    whether or not the visit counted, and an order is only ever undone by its own cancellation
+    with a reason. *Claude's reading while building this; pending review — a هوازی charge is
+    voided with the check-in, because it was for using the gym during that visit.*
 - **An order is never edited. It is cancelled with a reason and rung up again** (decided by the
   Owner, 1405/07/03). Two of something that should have been one is a cancellation and a fresh
   order, not a quantity corrected in place — §5's rule that financial records are never edited,

@@ -798,6 +798,24 @@ its own task: the payment form is now copied three times (subscription, هواز
 with only the endpoint differing — the point at which `lib/money.ts` was extracted for the same
 reason.
 
+#### 7.4 follow-up — the cafe on the "currently inside" board (asked by the developer, 1405/07/04)
+- [x] A بوفه column beside هوازی: purchases go on the member's account, tied to the open visit
+      (`CafeOrder.AttendanceId`: nullable, foreign key, check constraint), in a dialog so the row
+      stays one line
+- [x] Check-out lists what the visit bought, and the debt by source: plan, هوازی, cafe
+- [x] `GET /api/cafe/orders?attendanceId=`; the board's rows carry their visit's standing orders,
+      batched per page like the service charges
+- [x] A failure with an empty body (an API older than the route answers 405) is no longer shown as
+      "the server could not be reached"
+- [x] A page that fails while rendering shows a Persian message inside the frame (`PageError`)
+      instead of React Router's screen replacing the whole app; the board reads a row without
+      `cafeOrders` (an older API) as "bought nothing"
+- [x] Tests: the visit must be open and the member's own; the board shows standing orders only;
+      the list filters by visit; the board sends `attendanceId` and no payment; check-out shows
+      the purchases and the three sources
+
+Closed 2026-09-26: 995 backend tests and 500 frontend tests green, zero warnings.
+
 ---
 
 ## Phase 8 — Expenses

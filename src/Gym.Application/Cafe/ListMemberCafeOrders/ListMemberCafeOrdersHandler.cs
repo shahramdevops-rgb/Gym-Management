@@ -28,7 +28,7 @@ public sealed class ListMemberCafeOrdersHandler(IAppDbContext db, ListCafeOrders
         }
 
         return await orders.Handle(
-            new ListCafeOrdersQuery(memberId, query.From, query.To, query.Page, query.PageSize),
+            new ListCafeOrdersQuery(memberId, query.From, query.To, Page: query.Page, PageSize: query.PageSize),
             cancellationToken);
     }
 }

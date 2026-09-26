@@ -26,6 +26,11 @@ public sealed class ListCafeOrdersHandler(IAppDbContext db)
             orders = orders.Where(order => order.MemberId == memberId);
         }
 
+        if (query.AttendanceId is { } attendanceId)
+        {
+            orders = orders.Where(order => order.AttendanceId == attendanceId);
+        }
+
         // By the business date the order carries, not by the moment it was created: "the orders of
         // 3 Mehr" means the gym's day, and OrderedOn already is that day (BUSINESS_RULES.md §12).
         if (query.From is { } from)
