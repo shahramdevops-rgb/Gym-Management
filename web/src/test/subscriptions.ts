@@ -19,6 +19,7 @@ export const activeSubscription: Subscription = {
   totalFrozenDays: 0,
   cancelledAt: null,
   cancellationReason: null,
+  isSingleSession: false,
   version: 1,
   createdAt: "2026-09-01T06:30:00Z",
   netPaid: 400000,

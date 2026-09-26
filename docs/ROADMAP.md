@@ -669,22 +669,33 @@ button per row, but it dead-ends as soon as the person has no usable subscriptio
 screen rather than adding a second place that searches members, which would leave staff choosing
 which one to open.
 
-- [ ] One search box, as now. The result shows **one primary action** worked out from that person's
-      state, never a row of buttons to choose between: this is what keeps the common case at one
-      Enter and one click, and what stops a member with a usable subscription being charged for a
-      single visit by mistake
-- [ ] Found, nothing usable: sell a single visit and check in, or sell a plan, from the same place
-- [ ] Not found: register the member (every field we have — name, phone, birth date) and then either
-      action, without leaving the screen
-- [ ] The board shows "تک‌جلسه‌ای" instead of the session bar, and no "needs attention" mark
-      (BUSINESS_RULES.md §7)
-- [ ] When the single-session plan has not been created yet, or is inactive, the screen says so in
-      Persian instead of offering an action that will fail
-- [ ] Tests: all four cases reach check-in; the single-visit action is not the primary one for a
-      member who can already come in
+- [x] One search box, as now, and one primary action per row: "ورود", exactly as before. **The
+      state is not worked out in the browser** — the screen asks the API to check the person in and
+      reacts to its answer. Deriving "can this person come in today" in React would be a second
+      copy of BUSINESS_RULES.md §4 and §7 living where nobody maintains it, and it is the copy that
+      would be wrong. Changed from the plan while building; the guarantee it was after is stronger
+      this way, because the single-visit offer cannot appear for someone the API just let in
+- [x] Found, nothing usable: the refusal opens a panel with the reason, "ورود تک‌جلسه‌ای" and its
+      price as the primary action, and "فروش اشتراک" beside it
+- [x] Not found: register the member on the same screen (name, phone, birth date, notes — the whole
+      `MemberForm`), and the new member goes straight into check-in, whose refusal opens the same
+      panel
+- [x] The board shows "تک‌جلسه‌ای" instead of the session bar, and no "needs attention" mark
+      (BUSINESS_RULES.md §7). `CurrentlyInsideResponse` carries `IsSingleSession` for it
+- [x] When the single-session plan has not been created yet, or is inactive, the panel says which
+      in Persian and offers no button. `GET /api/plans?kind=SingleSession` finds that one plan —
+      there is exactly one and it can sit on any page, so paging was not a way to find it
+- [x] `npm run gen:api`, which 6.5.3 deliberately left to this task, plus the two frontend fixtures
+      that then needed `kind` and `isSingleSession`
+- [x] Tests: all four cases reach check-in; a successful check-in never offers a single visit; an
+      exhausted pack does; a refusal selling a visit would not fix (already inside) stays an
+      ordinary error
 
 Done when: a walk-in visitor is inside with a locker, paid for, without the desk opening a second
-screen.
+screen. Closed 2026-09-26: 922 backend tests and 403 frontend tests green, zero warnings. One
+thing decided while building and needing review: the sale and the check-in are two requests, not
+one transaction — if the sale lands and the check-in fails, the member has a paid visit for today
+and the ordinary "ورود" button finishes the job, which is visible and recoverable.
 
 ---
 

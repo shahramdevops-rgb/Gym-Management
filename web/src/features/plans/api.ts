@@ -12,6 +12,7 @@ export const planKeys = {
   all: ["plans"] as const,
   list: (filter: PlanListFilter) => [...planKeys.all, "list", filter] as const,
   detail: (id: string) => [...planKeys.all, "detail", id] as const,
+  singleSession: ["plans", "single-session"] as const,
 };
 
 export interface PlanListFilter {
@@ -42,6 +43,30 @@ export function usePlanList(filter: PlanListFilter) {
   });
 }
 
+/**
+ * The one plan a single visit is sold from (BUSINESS_RULES.md §3), or `null` when the Owner has
+ * not created it yet.
+ *
+ * Asked for by kind rather than found by paging: there is exactly one of them and it can sit on
+ * any page of the plan list. Inactive ones are included on purpose, so the entry screen can tell
+ * "there is no single-session plan" from "it is switched off" and say which — an action that
+ * fails with nothing to explain it is worse than no action.
+ */
+export function useSingleSessionPlan() {
+  return useQuery({
+    queryKey: planKeys.singleSession,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/plans", {
+        params: { query: { Kind: "SingleSession", Page: 1, PageSize: 1 } },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data.items[0] ?? null;
+    },
+  });
+}
+
 export function usePlan(id: string) {
   return useQuery({
     queryKey: planKeys.detail(id),
@@ -68,6 +93,11 @@ export interface PlanInput {
   /** `null`: unlimited sessions. */
   sessionCount: number | null;
   price: string;
+  /**
+   * Sent only when creating the walk-in plan. Omitted means a membership, and an update never
+   * sends it: a plan's kind is set once and never changes (BUSINESS_RULES.md §3).
+   */
+  kind?: "SingleSession";
 }
 
 /** The server's answer goes into the detail entry; every plan list is refetched. */
@@ -80,7 +110,9 @@ function usePlanMutation<TArgs>(request: (args: TArgs) => Promise<Plan>) {
       queryClient.setQueryData(planKeys.detail(plan.id), plan);
       await queryClient.invalidateQueries({
         queryKey: planKeys.all,
-        predicate: (query) => query.queryKey[1] === "list",
+        // "single-session" as well as the lists: creating or switching off that one plan is
+        // exactly what changes whether the entry screen can sell a visit at all.
+        predicate: (query) => query.queryKey[1] === "list" || query.queryKey[1] === "single-session",
       });
     },
   });
@@ -98,11 +130,19 @@ export function useCreatePlan() {
 
 export function useUpdatePlan() {
   return usePlanMutation(
-    async ({ id, version, ...body }: PlanInput & { id: string; version: Plan["version"] }) => {
+    async ({
+      id,
+      version,
+      name,
+      durationDays,
+      sessionCount,
+      price,
+    }: PlanInput & { id: string; version: Plan["version"] }) => {
       const { data, error } = await api.PUT("/api/plans/{id}", {
         params: { path: { id } },
-        // The version this form was filled from. If someone saved since, the API refuses.
-        body: { ...body, version },
+        // Named field by field so `kind` is never sent: the API has no way to change it.
+        // `version` is the one this form was filled from; if someone saved since, it refuses.
+        body: { name, durationDays, sessionCount, price, version },
       });
       if (error !== undefined) {
         throw error;
