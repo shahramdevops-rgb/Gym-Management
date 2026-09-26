@@ -929,6 +929,41 @@ because the developer builds and tests at night. Do not start it earlier unless 
 
 Done when: a check-in at 00:30 Tehran time is refused, one at 06:00 succeeds, and the front desk shows the Persian message.
 
+### 11.5 Password policy after NIST (asked by the developer, 1405/07/04)
+The old rule (8 characters, a letter and a digit) was too weak for a panel on the public internet.
+BUSINESS_RULES.md §1 *Password policy*. Done on branch `task/11.5-password-policy-and-lockout`.
+- [x] `PasswordPolicy` moves to Domain: 12–128 characters, English only, no user name, no
+      repetition or keyboard run, not on the blocklist; no composition rules
+- [x] Blocklist: the SecLists 100,000 most common passwords plus the gym's own words, as an
+      embedded resource (`CommonPasswords.txt`)
+- [x] `PasswordPolicyValidator` replaces `LetterAndDigitPasswordValidator`; Identity refusals keep
+      the policy's error code
+- [x] A login whose password fails the current policy sets `MustChangePassword`
+- [x] UI: live checklist under every new-password field, show/hide button, Persian-keyboard warning
+- [x] Tests: every rule (domain and frontend); the old-policy login, the codes from change password
+      and create staff (integration); the checklist, the server's blocklist error, the warning and
+      the eye button (frontend)
+
+Done when: a password like `Football2024!` is refused with a Persian message under the field, and
+a user whose password predates the policy is sent to change it at the next login.
+
+### 11.6 Lockout that an attacker cannot turn against the gym (asked by the developer, 1405/07/04)
+Anyone who knows a user name can keep that account locked by sending five wrong passwords every
+15 minutes. BUSINESS_RULES.md §1 *Lockout*, docs/adr/0004-password-policy-and-lockout.md.
+- [x] Trusted devices: a browser that logged in successfully gets a device cookie; failed attempts
+      from unknown devices lock only unknown devices, and a trusted device has its own count
+- [x] Owner: «باز کردن قفل» for a locked staff account, without a password reset
+- [x] Server console: `./server.sh unlock <user>`, `./server.sh set-password <user>`,
+      `./server.sh rename <old> <new>` (the Owner's user name is `Owner`, easy to guess)
+- [x] Guessable user names (admin, owner, manager, …) refused for new accounts and renames
+- [x] Tests: an attacker's lockout leaves a trusted device working; a trusted device locks only
+      itself; a planted cookie is never trusted; change password and reset forget devices; unlock
+      (integration); the console commands in process; the unlock button (frontend)
+- [ ] After release, on the server: `./server.sh rename Owner <new-name>` (the developer)
+
+Done when: five wrong passwords from a browser without the device cookie lock the account for
+unknown browsers only, the front-desk PC still logs in, and `./server.sh unlock` opens both doors.
+
 ---
 
 ## Phase 12 — Portfolio Polish

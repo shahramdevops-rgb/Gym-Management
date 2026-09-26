@@ -175,7 +175,8 @@ POSTGRES_PASSWORD=$PG_PW
 
 JWT_SIGNING_KEY=$JWT
 
-SEED_OWNER_USERNAME=owner
+# Not owner or admin: a name nobody would guess (BUSINESS_RULES.md §1 *Lockout*).
+SEED_OWNER_USERNAME=<your-own-user-name>
 SEED_OWNER_PASSWORD=$OWNER_PW
 
 TAG=latest

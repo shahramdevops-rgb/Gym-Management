@@ -11,7 +11,7 @@ namespace Gym.Api.IntegrationTests.Auth;
 /// <summary>Creates users through the real <see cref="UserManager{TUser}"/>, so passwords are really hashed.</summary>
 internal static class TestUsers
 {
-    public const string Password = "Staff1234";
+    public const string Password = "tabriz lamp 1234";
 
     public static async Task<User> CreateAsync(
         DatabaseFixture fixture,
@@ -66,6 +66,32 @@ internal static class TestUsers
             TestContext.Current.CancellationToken);
 
         return user;
+    }
+
+    /// <summary>
+    /// Stores a password the current policy would refuse, as if it had been set before the policy
+    /// changed. Hashed with Identity's own hasher, so login checks it for real.
+    /// </summary>
+    public static async Task SetPasswordBypassingPolicyAsync(DatabaseFixture fixture, Guid userId, string password)
+    {
+        await using var scope = fixture.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = (await userManager.FindByIdAsync(userId.ToString())).ShouldNotBeNull();
+        var hash = userManager.PasswordHasher.HashPassword(user, password);
+
+        await dbContext.Database.ExecuteSqlAsync(
+            $"UPDATE users SET password_hash = {hash} WHERE id = {userId}",
+            TestContext.Current.CancellationToken);
+    }
+
+    public static async Task<bool> GetMustChangePasswordAsync(DatabaseFixture fixture, Guid userId)
+    {
+        await using var scope = fixture.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var user = await userManager.FindByIdAsync(userId.ToString());
+
+        return user.ShouldNotBeNull().MustChangePassword;
     }
 
     public static async Task<int> GetAccessFailedCountAsync(DatabaseFixture fixture, Guid userId)

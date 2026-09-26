@@ -1,6 +1,7 @@
 using FluentValidation;
 
 using Gym.Application.Common.Security;
+using Gym.Domain.Auth;
 
 namespace Gym.Application.Auth.ChangePassword;
 

@@ -23,7 +23,7 @@ namespace Gym.Api.IntegrationTests.Staff;
 public sealed class StaffEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
     private const string StaffPath = "/api/staff";
-    private const string TemporaryPassword = "Temp1234";
+    private const string TemporaryPassword = "temp kettle 1234";
 
     [Fact]
     public async Task CreateStaff_AsStaff_Returns403Forbidden()
@@ -74,8 +74,11 @@ public sealed class StaffEndpointTests(DatabaseFixture fixture) : DatabaseTestBa
     [InlineData("ab", "رضا", TemporaryPassword, "userName", "Staff.UserNameLength")]
     [InlineData("رضا", "رضا", TemporaryPassword, "userName", "Staff.UserNameInvalidCharacters")]
     [InlineData("reza", "   ", TemporaryPassword, "fullName", "Staff.FullNameRequired")]
+    [InlineData("admin", "رضا", TemporaryPassword, "userName", "Staff.UserNameGuessable")]
+    [InlineData("Owner2", "رضا", TemporaryPassword, "userName", "Staff.UserNameGuessable")]
     [InlineData("reza", "رضا", "short1", "temporaryPassword", "Auth.PasswordTooShort")]
-    [InlineData("reza", "رضا", "noDigitsHere", "temporaryPassword", "Auth.PasswordRequiresLetterAndDigit")]
+    [InlineData("reza", "رضا", "Reza kettle 1234", "temporaryPassword", "Auth.PasswordContainsUserName")]
+    [InlineData("reza", "رضا", "password12345", "temporaryPassword", "Auth.PasswordTooCommon")]
     public async Task CreateStaff_InvalidInput_Returns400WithFieldCode(
         string userName,
         string fullName,
@@ -190,20 +193,91 @@ public sealed class StaffEndpointTests(DatabaseFixture fixture) : DatabaseTestBa
 
         using var reset = await SendAsync(
             client, ownerToken, HttpMethod.Post, $"{StaffPath}/{staff.Id}/reset-password",
-            new { temporaryPassword = "Fresh5678" });
+            new { temporaryPassword = "fresh kettle 5678" });
 
         reset.StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         using var oldPassword = await client.LoginAsync("reza", TemporaryPassword);
         oldPassword.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
-        using var newPassword = await client.LoginAsync("reza", "Fresh5678");
+        using var newPassword = await client.LoginAsync("reza", "fresh kettle 5678");
         newPassword.StatusCode.ShouldBe(HttpStatusCode.OK, "the reset clears the lockout.");
         (await newPassword.Content.ReadFromJsonAsync<Application.Auth.AccessTokenResponse>(TestContext.Current.CancellationToken))!
             .MustChangePassword.ShouldBeTrue();
 
         using var oldSession = await client.RefreshAsync(session.ReadRefreshToken());
         oldSession.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task ResetPassword_TrustedDevices_AreAllForgotten()
+    {
+        var (client, ownerToken) = await OwnerClientAsync();
+        var staff = await CreateStaffAsync(client, ownerToken, "reza");
+        using var login = await client.LoginAsync("reza", TemporaryPassword);
+
+        using var reset = await SendAsync(
+            client, ownerToken, HttpMethod.Post, $"{StaffPath}/{staff.Id}/reset-password",
+            new { temporaryPassword = "fresh kettle 5678" });
+
+        reset.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.TrustedDevices.AnyAsync(device => device.UserId == staff.Id, TestContext.Current.CancellationToken))
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Unlock_LockedStaff_ClearsTheLockoutAndKeepsThePassword()
+    {
+        var (client, ownerToken) = await OwnerClientAsync();
+        var staff = await CreateStaffAsync(client, ownerToken, "reza");
+        using var frontDesk = await client.LoginAsync("reza", TemporaryPassword);
+        var device = frontDesk.ReadDeviceToken();
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            using var fromNowhere = await client.LoginAsync("reza", "Wrong1234");
+            using var fromTheDesk = await client.LoginFromDeviceAsync("reza", "Wrong1234", device);
+        }
+
+        using var list = await SendAsync(client, ownerToken, HttpMethod.Get, StaffPath);
+        (await list.Content.ReadFromJsonAsync<PagedResponse<StaffResponse>>(TestContext.Current.CancellationToken))!
+            .Items.Single().IsLockedOut.ShouldBeTrue();
+
+        using var unlock = await SendAsync(client, ownerToken, HttpMethod.Post, $"{StaffPath}/{staff.Id}/unlock");
+
+        unlock.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await unlock.Content.ReadFromJsonAsync<StaffResponse>(TestContext.Current.CancellationToken))!
+            .IsLockedOut.ShouldBeFalse();
+        using var elsewhere = await client.LoginAsync("reza", TemporaryPassword);
+        elsewhere.StatusCode.ShouldBe(HttpStatusCode.OK, "both doors are open again, with the same password.");
+        using var atTheDesk = await client.LoginFromDeviceAsync("reza", TemporaryPassword, device);
+        atTheDesk.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Unlock_OwnerAccountId_Returns404()
+    {
+        var (client, ownerToken) = await OwnerClientAsync();
+        using var me = await SendAsync(client, ownerToken, HttpMethod.Get, "/api/auth/me");
+        var ownerId = (await me.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken))
+            .GetProperty("id").GetGuid();
+
+        using var unlock = await SendAsync(client, ownerToken, HttpMethod.Post, $"{StaffPath}/{ownerId}/unlock");
+
+        unlock.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Unlock_AsStaff_Returns403()
+    {
+        var staff = await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "sara");
+        using var client = Fixture.CreateClient();
+        var staffToken = await client.LoginForAccessTokenAsync("sara", TestUsers.Password);
+
+        using var unlock = await SendAsync(client, staffToken, HttpMethod.Post, $"{StaffPath}/{staff.Id}/unlock");
+
+        unlock.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
     [Fact]

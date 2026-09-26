@@ -885,3 +885,31 @@ The question that started this was whether a gym that is entirely internal — I
 - **A dialog in a portal still bubbles through React.** Radix renders the dialog's DOM under `<body>`, but React events travel up the *component* tree. So the dialog sits beside the `<form>` in a fragment rather than inside it, and its buttons are `type="button"`. A click on "yes" can never also submit the form.
 - **Tell `useForm` the type when the defaults are partial.** `useForm` infers its values from `defaultValues`. Without a `method` there, the inferred type lost the field, and the resolver no longer fitted. `useForm<RegisterPaymentValues>` names the full shape, and `DefaultValues<T>` types the partial defaults.
 - **My notes:**
+
+---
+
+## 11.5 — A password policy after NIST
+
+- **Length beats complexity.** NIST SP 800-63B asks for a long password and a blocklist, and advises *against* "one upper case, one digit, one symbol". People meet such rules the same predictable way (`Ali@12345`), so the rules add typing pain without adding guessing cost. The policy is now 12+ characters, English only, no user name, no keyboard run, not on the list.
+- **A blocklist compares cores, not strings.** `Football2024!` is `football` with a disguise. Trimming digits, symbols and spaces from both ends before comparing catches the usual disguises, while equality (not "contains") still lets a passphrase with an ordinary word in it through.
+- **Data can ship inside an assembly.** The 100,000-entry list is an `EmbeddedResource` in `Gym.Domain`, read once into a `FrozenSet`. No package, no network call, no password ever leaves the server to be checked, and Domain still references nothing.
+- **One rule, two enforcers, one error code.** FluentValidation reports the policy as a field error before anything happens; Identity's `IPasswordValidator` checks it again on every stored password. The Identity error carries the policy's own code (`Auth.PasswordTooCommon`), so the frontend shows the same Persian sentence whichever layer refused.
+- **The only moment you see a password is login.** The database holds hashes, so an old weak password cannot be found by a query. At a successful login the server has the real password in hand for a moment; that is where "this no longer meets the policy" is checked and `MustChangePassword` set.
+- **Why English only.** ی/ي and ک/ك look identical but are different code points on different keyboards. A Persian password set on one device can fail on another, and nobody could see why.
+- **`useWatch` instead of `watch()`.** The React Compiler cannot memoize a component that calls `form.watch()`; `useWatch({ control, name })` subscribes properly and keeps the lint clean.
+- **My notes:**
+
+---
+
+## 11.6 — A lockout an attacker cannot turn against the gym
+
+- **Every protection can become a weapon.** A lockout stops guessing, and it also lets anyone who knows a user name lock that person out forever. Security features need to be read from the attacker's side too: "what can someone do *with* this rule?"
+- **Two doors instead of one (OWASP device cookies).** A browser that logged in successfully gets a secret cookie and its own failure count. Wrong passwords from anywhere else lock only the "unknown devices" door. The attacker can still lock something, but it is a door the gym never uses.
+- **Never trust a value you did not issue.** The device secret in the cookie is reused only if the database already knows it. Otherwise a value someone planted (cookie tossing from another subdomain, say) could become a trusted device.
+- **Atomic counters in SQL.** `ExecuteUpdateAsync` with `SET failed_attempts = failed_attempts + 1` lets Postgres do the arithmetic on the locked row, so ten parallel wrong passwords count ten times. Reading, adding in C#, and saving would count one.
+- **Some operations should have no endpoint at all.** Resetting the Owner from the web would put the whole system one stolen password away. `dotnet Gym.Api.dll admin …` builds the same host and runs one command without starting the web server. SSH access is the authorization.
+- **Secrets never go on a command line.** Arguments show up in shell history and in `ps`. `server.sh set-password` reads the password with `read -s` and pipes it on standard input.
+- **Rotate secrets on every use.** A review pointed out that a copied device cookie would have stayed valid for 90 days. Now every login and refresh gives the browser a new secret, so a copy dies the next time the real browser is used. The same idea as refresh-token rotation, applied to a second cookie.
+- **Read a feature from the attacker's side after writing it.** The tests all passed, and a separate review still found a stolen-cookie path, a 500 on a race, and a shell `read` that silently trimmed spaces from a passphrase. Tests check what you thought of; a reviewer checks what you did not.
+- **Two sessions, one folder, is a trap.** Another session was editing the same working tree. A `git worktree` gave this task its own folder and branch, with its own `bin` (no locked DLLs) and its own `node_modules`, and the other session's files were untouched.
+- **My notes:**

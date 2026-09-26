@@ -8,6 +8,14 @@ namespace Gym.Application.Auth;
 /// </summary>
 public sealed record AuthSession(AccessTokenResponse Response, string RefreshToken, DateTimeOffset RefreshTokenExpiresAt)
 {
+    /// <summary>
+    /// The trusted-device secret for the <c>gym_device</c> cookie. Set by login, and by a refresh
+    /// from a trusted device; null means "leave the cookie as it is".
+    /// </summary>
+    public string? DeviceToken { get; init; }
+
+    public DateTimeOffset? DeviceTokenExpiresAt { get; init; }
+
     public static AuthSession Create(
         AuthenticatedUser user,
         AccessToken accessToken,

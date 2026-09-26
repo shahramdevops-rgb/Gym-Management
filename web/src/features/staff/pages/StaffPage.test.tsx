@@ -80,7 +80,9 @@ describe("StaffPage", () => {
       target: { value: "  رضا   احمد\u064A " },
     });
     fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "reza" } });
-    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), { target: { value: "Temp۱۲۳۴" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "temp kettle ۱۲۳۴" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("حساب «رضا احمدی» ساخته شد.");
@@ -89,7 +91,7 @@ describe("StaffPage", () => {
     expect(body).toEqual({
       userName: "reza",
       fullName: "رضا احمدی",
-      temporaryPassword: "Temp1234",
+      temporaryPassword: "temp kettle 1234",
     });
   });
 
@@ -104,7 +106,9 @@ describe("StaffPage", () => {
 
     fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: "رضا" } });
     fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "reza" } });
-    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), { target: { value: "Temp1234" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "temp kettle 1234" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
 
     const message = await screen.findByText("این نام کاربری قبلاً استفاده شده است.");
@@ -118,7 +122,9 @@ describe("StaffPage", () => {
 
     fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: "رضا" } });
     fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "رضا" } });
-    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), { target: { value: "Temp1234" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "temp kettle 1234" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
 
     expect(await screen.findByText(/فقط می‌تواند حروف انگلیسی/)).toBeInTheDocument();
@@ -149,7 +155,7 @@ describe("StaffPage", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "بازنشانی رمز" }));
     fireEvent.change(screen.getByLabelText(/رمز عبور موقت تازه/), {
-      target: { value: "Fresh5678" },
+      target: { value: "fresh kettle 5678" },
     });
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
@@ -157,6 +163,68 @@ describe("StaffPage", () => {
     const body = (await api
       .requestsTo("POST", `/api/staff/${reza.id}/reset-password`)[0]!
       .json()) as Record<string, string>;
-    expect(body).toEqual({ temporaryPassword: "Fresh5678" });
+    expect(body).toEqual({ temporaryPassword: "fresh kettle 5678" });
+  });
+
+  it("Unlock_LockedStaff_CallsTheApiAndConfirmsTheOldPasswordStillWorks", async () => {
+    const api = mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/staff": () => page([mina]),
+      [`POST /api/staff/${mina.id}/unlock`]: () => json(200, { ...mina, isLockedOut: false }),
+    });
+    renderApp("/staff", { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "باز کردن قفل" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("با همان رمز قبلی وارد می‌شود");
+    expect(api.requestsTo("POST", `/api/staff/${mina.id}/unlock`)).toHaveLength(1);
+  });
+
+  it("Unlock_StaffNotLocked_HasNoUnlockButton", async () => {
+    mockApi({ ...signedInHandlers(owner), "GET /api/staff": () => page([reza]) });
+    renderApp("/staff", { session: session() });
+
+    await screen.findByText("رضا احمدی");
+
+    expect(screen.queryByRole("button", { name: "باز کردن قفل" })).not.toBeInTheDocument();
+  });
+
+  it("CreateStaff_PasswordContainsTheUserName_IsRejectedBeforeSending", async () => {
+    const api = mockApi({ ...signedInHandlers(owner), "GET /api/staff": () => page([]) });
+    renderApp("/staff", { session: session() });
+    await screen.findByText("هنوز هیچ کارمندی ثبت نشده است.");
+
+    fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: "رضا" } });
+    fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "reza" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "Reza kettle 1234" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
+
+    expect(await screen.findByText("نام کاربری نباید داخل رمز عبور باشد.")).toBeInTheDocument();
+    expect(api.requestsTo("POST", "/api/staff")).toHaveLength(0);
+  });
+
+  it("CreateStaff_GuessableUserNameRefusedByTheServer_ShowsTheErrorUnderTheUserName", async () => {
+    mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/staff": () => page([]),
+      "POST /api/staff": () =>
+        json(400, {
+          code: "General.ValidationFailed",
+          errors: { userName: [{ code: "Staff.UserNameGuessable", description: "Guessable." }] },
+        }),
+    });
+    renderApp("/staff", { session: session() });
+    await screen.findByText("هنوز هیچ کارمندی ثبت نشده است.");
+
+    fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: "رضا" } });
+    fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "admin" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "temp kettle 1234" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
+
+    expect(await screen.findByText(/به‌راحتی حدس زده می‌شود/)).toBeInTheDocument();
   });
 });
