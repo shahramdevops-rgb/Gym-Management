@@ -24,6 +24,13 @@ Decided values:
 - `Gym:TimeZone` = `Asia/Tehran`. Defines "today" for every business date (decided in task 4.1).
 - `Gym:MaxFreezeDaysPerSubscription` = 30 (decided in task 4.1).
 - `Gym:ClosingTime` = 23:00 (Asia/Tehran). Local time the nightly auto-checkout job runs at (decided in task 5.5).
+- `Gym:OpeningTime` = 06:00 (Asia/Tehran). The gym is open 06:00–23:00, and with `Gym:ClosingTime`
+  this bounds the hours a member can check in (§7 *Opening hours*). **Pending:** decided with the
+  developer on 1405/07/04 (2026-09-26), but deliberately not enforced until roadmap task 11.4,
+  because the developer builds and tests the system at night and must not be blocked by it.
+- **The gym has no closed days.** It is open every day of the year, holidays included, with the same
+  hours. There is no holiday calendar and no per-weekday schedule (decided with the developer,
+  1405/07/04).
 - **The gym runs open accounts** (حساب باز): a member may owe money and settle later, in as many
   instalments as it takes, both for a subscription and for cafe orders. This replaces the two
   settings that used to sit in the table above — "block check-in when unpaid" and "cafe orders paid
@@ -363,6 +370,19 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 
 ### Auto-checkout
 - A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed.
+
+### Opening hours (PENDING — not enforced yet, roadmap 11.4)
+Decided with the developer, 1405/07/04.
+- The gym is open from `Gym:OpeningTime` (06:00) to `Gym:ClosingTime` (23:00), in the gym's time
+  zone, every day (§0: no closed days). Outside those hours there is no check-in and no check-out.
+  Check-in is refused with a clear error, not recorded. Check-out has nothing to close, because
+  *Auto-checkout* has already closed every visit at 23:00.
+- Together with *Auto-checkout*, this means that from 23:00 on, nobody is recorded as inside the gym.
+  Today a check-in after 23:00 still succeeds and stays open until the next night's job.
+- There is no Owner override. If the gym ever needs to open at night, the hours change as a new
+  rule, agreed with the developer and written here first. It is not an exception granted at the desk.
+- Until task 11.4 is done, **the code must not enforce this rule**. The developer checks in test members
+  at night, and enforcing it early would block that work.
 
 ### Gym services (هوازی and anything else sold during a visit)
 
