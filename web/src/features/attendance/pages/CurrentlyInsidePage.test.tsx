@@ -4,6 +4,20 @@ import { cardioCharge, currentlyInsidePage, insideRow, openVisit } from "@/test/
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { reza } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
+import { gymToday } from "@/lib/format";
+
+/**
+ * An end date a number of days from the gym's today, counted the way the board counts it.
+ * Built from `gymToday()` rather than from `Date.now()`: the board measures against the gym's
+ * time zone, so a UTC-derived date made the expiry tests fail between midnight and 03:30 local
+ * time, when UTC is still on the previous day.
+ */
+function endDateInDays(days: number): string {
+  const date = new Date(`${gymToday()}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+
+  return date.toISOString().slice(0, 10);
+}
 
 describe("CurrentlyInsidePage", () => {
   it("Board_SomeoneInside_ShowsNameLockerAndTime", async () => {
@@ -87,7 +101,7 @@ describe("CurrentlyInsidePage", () => {
   /** BUSINESS_RULES.md §7: within five days of expiry, and how many days are left. */
   it("Board_SubscriptionExpiringWithinFiveDays_ShowsTheDaysLeft", async () => {
     const visit = openVisit(reza.id);
-    const inThreeDays = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+    const inThreeDays = endDateInDays(3);
     mockApi({
       ...signedInHandlers(staffUser),
       "GET /api/attendance/currently-inside": () =>
@@ -102,9 +116,57 @@ describe("CurrentlyInsidePage", () => {
     expect(within(row).getByText("(۳ روز)")).toBeInTheDocument();
   });
 
+  it("Board_SingleSessionVisit_ShowsItInsteadOfASessionBar", async () => {
+    // BUSINESS_RULES.md §4, §7: "۱ از ۱" on every such row is a denominator with nothing to say.
+    const visit = openVisit(reza.id);
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([
+          insideRow(reza.fullName, visit, {
+            isSingleSession: true,
+            totalSessions: 1,
+            usedSessions: 1,
+            remainingSessions: 0,
+            subscriptionEndDate: gymToday(),
+          }),
+        ]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).getByText("تک‌جلسه‌ای")).toBeInTheDocument();
+    expect(within(row).queryByText("۱ از ۱")).not.toBeInTheDocument();
+  });
+
+  it("Board_SingleSessionVisit_IsNotMarkedAsRunningOut", async () => {
+    // It is spent by design and expires tonight, so the marks would fire on every row and mean
+    // nothing. The row says what it is instead.
+    const visit = openVisit(reza.id);
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([
+          insideRow(reza.fullName, visit, {
+            isSingleSession: true,
+            totalSessions: 1,
+            usedSessions: 1,
+            remainingSessions: 0,
+            subscriptionEndDate: gymToday(),
+          }),
+        ]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).queryByText("(امروز)")).not.toBeInTheDocument();
+  });
+
   it("Board_SubscriptionNotExpiringSoon_ShowsNoDaysLeft", async () => {
     const visit = openVisit(reza.id);
-    const inTwoMonths = new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10);
+    const inTwoMonths = endDateInDays(60);
     mockApi({
       ...signedInHandlers(staffUser),
       "GET /api/attendance/currently-inside": () =>

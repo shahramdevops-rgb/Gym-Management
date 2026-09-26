@@ -748,3 +748,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **"It will not start" has more than one cause, and the first fix is not the last.** The dev database was two migrations behind (the same trap as the dropped `plan_name` in 4.x — green tests say nothing about the database on your machine), and later Docker itself was down after the machine slept, which took the API with it. Read the actual error each time instead of re-applying the last fix.
 - **422 is a refused business rule; 400 is input the API could not read.** Asserting `HttpStatusCode.BadRequest` on a check-in refusal was my mistake, and the fix was not a better status assertion but a better test: assert the error code, which is the thing the front desk actually maps to a Persian sentence.
 - **My notes:**
+
+---
+
+## 6.5.4 — The entry screen
+
+- **The API already knows; asking it beats re-deriving it.** The plan was to work out each person's state in the browser and show one action for it. "Can this member come in today" is `SubscriptionSchedule.InEffectToday` plus `ConsumeSession` plus the exhausted-with-a-queue rule — all of it in Domain, all of it operating on a list of subscriptions. Rebuilding that in React would have been a second copy of two sections of BUSINESS_RULES.md, and the copy would drift. The screen presses check-in and reads the refusal instead.
+- **That also made the guarantee stronger.** The worry behind "one primary action" was a member with a usable subscription being charged for a single visit. Deriving state in the browser would have made that a bug waiting in the derivation; reacting to a refusal makes it impossible, because the offer exists only where the API said no.
+- **A refusal is not always an error message.** Six error codes mean "needs a subscription" and open a way forward; everything else check-in can answer stays a red alert. The difference is the whole feature: the walk-in case is the one the desk meets all day, and it was previously a dead end.
+- **A filter you can reach beats a page you have to find.** The single-session plan is one row that can sit on any page of a paged list. `GET /api/plans?kind=SingleSession` is three lines in the query and the handler, and replaces "fetch page after page and hope".
+- **Say which thing is missing.** "The plan does not exist" and "the plan is switched off" have different fixes, and the Owner is the person who does both. The panel asks without an `isActive` filter so it can tell them apart, and shows no button at all rather than one that would fail.
+- **Two requests that are not a transaction, and why that is safe here.** Selling the visit and checking in are separate calls. If the second fails, the member has a paid visit for today and the ordinary check-in button finishes the job — the failure is visible and recoverable. The reverse order would not be, which is why the order is the design and not an accident.
+- **Generated types are a shared contract, and someone has to regenerate them.** 6.5.3 left `npm run gen:api` to this task on purpose, because the frontend had no use for `kind` and `isSingleSession` until now. Running it earlier — as this session did once, mid-way through 6.5.3 — broke the frontend build with a contract half the codebase had not caught up to yet.
+- **My notes:**

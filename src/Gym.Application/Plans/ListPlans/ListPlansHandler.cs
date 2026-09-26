@@ -19,6 +19,11 @@ public sealed class ListPlansHandler(IAppDbContext db)
             plans = plans.Where(plan => plan.IsActive == isActive);
         }
 
+        if (query.Kind is { } kind)
+        {
+            plans = plans.Where(plan => plan.Kind == kind);
+        }
+
         var totalCount = await plans.CountAsync(cancellationToken);
 
         // Active plans first, because those are the ones being sold; then by name. Id breaks

@@ -102,6 +102,7 @@ export function insideRow(
       | "usedSessions"
       | "remainingSessions"
       | "subscriptionEndDate"
+      | "isSingleSession"
     >
   > = {},
 ): CurrentlyInside {
@@ -117,6 +118,7 @@ export function insideRow(
     usedSessions: 4,
     remainingSessions: 8,
     subscriptionEndDate: "2026-12-31",
+    isSingleSession: false,
     serviceCharges: attendance.serviceCharges,
     ...subscription,
   };

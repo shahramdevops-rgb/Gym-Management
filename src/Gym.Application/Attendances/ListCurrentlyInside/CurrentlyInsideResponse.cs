@@ -17,6 +17,11 @@ namespace Gym.Application.Attendances.ListCurrentlyInside;
 /// (<c>Attendance.SubscriptionId</c>). Reading it from there rather than re-deriving "the one in
 /// effect today" means the board can never show a different subscription than the one check-in used.
 /// </param>
+/// <param name="IsSingleSession">
+/// One visit, today only (BUSINESS_RULES.md §4). The board shows "تک‌جلسه‌ای" for it instead of a
+/// session bar that would always read "۱ از ۱", and never marks it as running out: it is spent by
+/// design and expires tonight, so both marks would fire on every such row and mean nothing.
+/// </param>
 /// <param name="ServiceCharges">
 /// The visit's non-voided charges (BUSINESS_RULES.md §7 <i>Gym services</i>), so the board can
 /// show and take a هوازی amount without opening the member's profile. Attached by
@@ -35,6 +40,7 @@ public sealed record CurrentlyInsideResponse(
     int UsedSessions,
     int? RemainingSessions,
     DateOnly SubscriptionEndDate,
+    bool IsSingleSession,
     IReadOnlyList<ServiceChargeResponse> ServiceCharges)
 {
     /// <summary>
@@ -63,5 +69,6 @@ public sealed record CurrentlyInsideResponse(
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.UsedSessions).First(),
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.TotalSessions - s.UsedSessions).First(),
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.EndDate).First(),
+            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.IsSingleSession).First(),
             new List<ServiceChargeResponse>());
 }

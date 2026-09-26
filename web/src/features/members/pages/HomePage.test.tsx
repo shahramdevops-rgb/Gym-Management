@@ -3,7 +3,9 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { attendanceHistoryPage, openVisit, openVisitNoLocker } from "@/test/attendance";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { ali, membersPage, queryOf, reza } from "@/test/members";
+import { plansPage, singleSession } from "@/test/plans";
 import { renderApp } from "@/test/renderApp";
+import { activeSubscription } from "@/test/subscriptions";
 
 // Every test signs in as Staff: finding members is front-desk work (BUSINESS_RULES.md §1).
 function searchBox() {
@@ -121,6 +123,150 @@ describe("HomePage", () => {
     const second = queryOf(api.requestsTo("GET", "/api/members")[1]!);
     expect(second.get("Page")).toBe("2");
     expect(second.get("Search")).toBe("رضا");
+  });
+
+  // ---- Single-session entry (docs/ROADMAP.md 6.5.4) ----
+
+  /** Check-in refused for want of a subscription is the walk-in case, not an error to dismiss. */
+  function refusedCheckIn(code = "Attendance.NoSubscription") {
+    return {
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+      [`POST /api/members/${reza.id}/attendance/check-in`]: () => problem(422, code),
+      "GET /api/plans": () => plansPage([singleSession]),
+    };
+  }
+
+  it("CheckIn_MemberWithNoSubscription_OffersASingleVisitWithItsPrice", async () => {
+    mockApi(refusedCheckIn());
+    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    expect(
+      await screen.findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+    ).toHaveTextContent("۱۵۰٬۰۰۰ تومان");
+  });
+
+  it("CheckIn_MemberWhoCanComeIn_NeverOffersASingleVisit", async () => {
+    // The guard that matters: nobody is charged for a visit they already paid for. The offer
+    // exists only because the API refused, so a successful check-in cannot produce it.
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+      [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, openVisit(reza.id)),
+      "GET /api/plans": () => plansPage([singleSession]),
+    });
+    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    await screen.findByRole("status");
+    expect(screen.queryByRole("button", { name: /ورود تک‌جلسه‌ای/ })).not.toBeInTheDocument();
+  });
+
+  it("SingleVisit_Sold_SellsTheSubscriptionThenChecksIn", async () => {
+    let checkedIn = false;
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+      [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+        checkedIn ? json(201, openVisit(reza.id)) : problem(422, "Attendance.NoSubscription"),
+      [`POST /api/members/${reza.id}/subscriptions`]: () => {
+        checkedIn = true;
+        return json(201, { ...activeSubscription, isSingleSession: true });
+      },
+      "GET /api/plans": () => plansPage([singleSession]),
+    });
+    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+    fireEvent.click(await screen.findByRole("button", { name: /ورود تک‌جلسه‌ای/ }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("ورود تک‌جلسه‌ای ثبت شد");
+    const sales = api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`);
+    expect(sales).toHaveLength(1);
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(2);
+  });
+
+  it("SingleVisit_NoSingleSessionPlanYet_SaysSoInsteadOfOfferingIt", async () => {
+    mockApi({
+      ...refusedCheckIn(),
+      "GET /api/plans": () => plansPage([]),
+    });
+    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    expect(await screen.findByText(/هنوز پلن تک‌جلسه‌ای ساخته نشده است/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ورود تک‌جلسه‌ای/ })).not.toBeInTheDocument();
+  });
+
+  it("SingleVisit_SingleSessionPlanInactive_SaysSoInsteadOfOfferingIt", async () => {
+    mockApi({
+      ...refusedCheckIn(),
+      "GET /api/plans": () => plansPage([{ ...singleSession, isActive: false }]),
+    });
+    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    expect(await screen.findByText(/پلن تک‌جلسه‌ای غیرفعال است/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ورود تک‌جلسه‌ای/ })).not.toBeInTheDocument();
+  });
+
+  it("CheckIn_ExhaustedSubscription_AlsoOffersASingleVisit", async () => {
+    // Not only "no subscription at all": a pack that ran out today is the same walk-in case.
+    mockApi(refusedCheckIn("Subscriptions.NoSessionsLeft"));
+    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    expect(await screen.findByRole("button", { name: /ورود تک‌جلسه‌ای/ })).toBeInTheDocument();
+  });
+
+  it("CheckIn_AlreadyInside_ShowsTheErrorWithoutOfferingASingleVisit", async () => {
+    // A refusal that selling a visit would not fix stays an ordinary error message.
+    mockApi({
+      ...refusedCheckIn("Attendance.AlreadyCheckedIn"),
+    });
+    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("رضا احمدی");
+    expect(screen.queryByRole("button", { name: /ورود تک‌جلسه‌ای/ })).not.toBeInTheDocument();
+  });
+
+  it("Search_NoResults_RegistersTheMemberAndGoesStraightToCheckIn", async () => {
+    const created = { ...reza, id: reza.id, fullName: "سارا محمدی" };
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([]),
+      "POST /api/members": () => json(201, created),
+      [`POST /api/members/${created.id}/attendance/check-in`]: () =>
+        problem(422, "Attendance.NoSubscription"),
+      "GET /api/plans": () => plansPage([singleSession]),
+    });
+    renderApp("/?q=" + encodeURIComponent("سارا"), { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: /ثبت این شخص/ }));
+    fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), {
+      target: { value: "سارا محمدی" },
+    });
+    fireEvent.change(screen.getByLabelText("شماره موبایل"), {
+      target: { value: "09121110000" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ثبت و ادامه" }));
+
+    // Registered, then asked to come in, and the refusal opened the single-visit offer — all
+    // without leaving the search screen.
+    expect(
+      await screen.findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(api.requestsTo("POST", "/api/members")).toHaveLength(1);
+    });
   });
 
   // ---- One-click check-in (docs/ROADMAP.md 5.6) ----
