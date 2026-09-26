@@ -58,7 +58,13 @@ export function PasswordField({
   return (
     <div className="space-y-2">
       <Label htmlFor={inputId}>{label}</Label>
-      <span className="relative block">
+      {/*
+        `dir="ltr"` on the wrapper as well as the input: the text is English, so it starts on the
+        left and the eye belongs on the right, the way it does on any English form. The wrapper
+        inherits the page's RTL otherwise, and `end-2` would put the eye on the left, on top of
+        where the text starts, while the input's padding sat on the right.
+      */}
+      <span dir="ltr" className="relative block">
         <Input
           id={inputId}
           type={visible ? "text" : "password"}

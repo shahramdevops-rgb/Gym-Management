@@ -101,6 +101,18 @@ describe("ChangePasswordPage", () => {
     expect(input).toHaveAttribute("type", "password");
   });
 
+  it("PasswordField_EyeButton_SitsOnTheRightBesideTheEnglishText", () => {
+    mockApi({});
+    renderApp("/change-password", { session: session({ mustChangePassword: true }) });
+    const input = screen.getByLabelText("رمز عبور جدید");
+    const eye = screen.getAllByRole("button", { name: "نمایش رمز عبور" })[1]!;
+
+    // jsdom has no layout, so this checks the cause: the eye's `end-2` and the input's `pe-9`
+    // must be resolved in the same left-to-right box, or the eye lands on the left of English text.
+    expect(input.parentElement).toHaveAttribute("dir", "ltr");
+    expect(eye.parentElement).toBe(input.parentElement);
+  });
+
   it("ChangePassword_WrongCurrentPassword_ShowsTheErrorUnderThatField", async () => {
     mockApi({
       "POST /api/auth/change-password": () => problem(400, "Auth.CurrentPasswordIncorrect"),
