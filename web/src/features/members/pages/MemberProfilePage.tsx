@@ -1,4 +1,4 @@
-import { Pencil } from "lucide-react";
+import { Coffee, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 
@@ -23,7 +23,7 @@ import { MemberStatusBadge, PhoneNumber } from "../components/MembersTable";
 
 /**
  * A member's basic details, current subscription (task 4.6), attendance (task 5.6) and the
- * subscription and payment history. Later phases add more sections here: cafe purchases.
+ * subscription, payment and cafe purchase history (task 7.4).
  *
  * Deactivating asks for no confirmation: it deletes nothing and "فعال‌سازی" undoes it in one
  * click (decided in task 2.3).
@@ -104,6 +104,12 @@ export function MemberProfilePage() {
             <MemberStatusBadge isActive={current.isActive} />
           </div>
           <div className="flex gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link to={`${paths.cafe}?member=${id}`}>
+                <Coffee aria-hidden />
+                خرید از بوفه
+              </Link>
+            </Button>
             <Button asChild size="sm" variant="outline">
               <Link to={paths.editMember(id)}>
                 <Pencil aria-hidden />

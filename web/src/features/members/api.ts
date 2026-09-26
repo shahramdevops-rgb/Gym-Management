@@ -59,9 +59,10 @@ export function useMemberList(filter: MemberListFilter, { enabled = true } = {})
   });
 }
 
-export function useMember(id: string) {
+export function useMember(id: string, { enabled = true } = {}) {
   return useQuery({
     queryKey: memberKeys.detail(id),
+    enabled,
     // A 404 will be a 404 again: asking twice only delays the "not found" message.
     retry: (failureCount, error) => !isClientError(error) && failureCount < 1,
     queryFn: async () => {

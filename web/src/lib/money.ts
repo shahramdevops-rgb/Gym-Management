@@ -89,11 +89,46 @@ export function subtractMoney(
     return "";
   }
 
-  const difference = left - right;
-  const sign = difference < 0n ? "-" : "";
-  const digits = (difference < 0n ? -difference : difference).toString().padStart(3, "0");
+  return fromHundredths(left - right);
+}
+
+/** The other direction: `150000050n` → `"1500000.50"`, the plain decimal string the API reads. */
+function fromHundredths(value: bigint): string {
+  const sign = value < 0n ? "-" : "";
+  const digits = (value < 0n ? -value : value).toString().padStart(3, "0");
 
   return `${sign}${digits.slice(0, -2)}.${digits.slice(-2)}`;
+}
+
+/**
+ * Amounts added up exactly — a cart's total from its lines. Empty when any of them is not an
+ * amount, so a broken line shows as a missing total rather than a wrong one. No amounts add up
+ * to zero.
+ */
+export function addMoney(...values: (string | number)[]): string {
+  let total = 0n;
+  for (const value of values) {
+    const amount = hundredths(value);
+    if (amount === null) {
+      return "";
+    }
+    total += amount;
+  }
+
+  return fromHundredths(total);
+}
+
+/**
+ * An amount times a whole count, exactly — a cart line's `unitPrice × quantity`. Empty when the
+ * amount is not an amount or the count is not a whole number of zero or more.
+ */
+export function multiplyMoney(value: string | number, count: number): string {
+  const amount = hundredths(value);
+  if (amount === null || !Number.isInteger(count) || count < 0) {
+    return "";
+  }
+
+  return fromHundredths(amount * BigInt(count));
 }
 
 /**

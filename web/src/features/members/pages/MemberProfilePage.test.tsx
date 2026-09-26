@@ -9,6 +9,7 @@ import {
   openVisitNoLocker,
 } from "@/test/attendance";
 import { formatDate } from "@/lib/format";
+import { cafePage, orderOnAccount } from "@/test/cafe";
 import {
   json,
   mockApi,
@@ -714,5 +715,36 @@ describe("MemberProfilePage", () => {
     fireEvent.click(screen.getByRole("tab", { name: "پرداخت‌ها" }));
 
     expect(await screen.findByText("۴۰۰٬۰۰۰ تومان")).toBeInTheDocument();
+  });
+
+  it("History_SwitchToCafeTab_ListsTheMembersPurchases", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/cafe-orders`]: () => cafePage([orderOnAccount]),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    await screen.findByRole("button", { name: "فروش اشتراک" });
+    fireEvent.click(screen.getByRole("tab", { name: "خریدهای بوفه" }));
+
+    expect(await screen.findByText("شیک پروتئین × ۱")).toBeInTheDocument();
+    // Every row is this member's, so the customer column is left out.
+    expect(screen.queryByRole("columnheader", { name: "مشتری" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^ثبت پرداخت برای سفارش/ })).toBeInTheDocument();
+  });
+
+  it("Profile_CafeButton_OpensTheTillWithThisMemberChosen", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    expect(await screen.findByRole("link", { name: "خرید از بوفه" })).toHaveAttribute(
+      "href",
+      `/cafe?member=${reza.id}`,
+    );
   });
 });

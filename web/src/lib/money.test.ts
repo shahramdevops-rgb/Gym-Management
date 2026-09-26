@@ -1,4 +1,12 @@
-import { isPositiveMoney, moneyDigits, moneyOrNull, normalizeMoney, subtractMoney } from "./money";
+import {
+  addMoney,
+  isPositiveMoney,
+  moneyDigits,
+  moneyOrNull,
+  multiplyMoney,
+  normalizeMoney,
+  subtractMoney,
+} from "./money";
 
 describe("normalizeMoney", () => {
   it.each([
@@ -91,5 +99,39 @@ describe("subtractMoney", () => {
     [null, "1"],
   ])("subtractMoney_NotAnAmount %j %j_ReturnsEmpty", (left, right) => {
     expect(subtractMoney(left, right)).toBe("");
+  });
+});
+
+describe("addMoney", () => {
+  it.each([
+    [["25000", "40000"], "65000.00"],
+    [["0.10", "0.20"], "0.30"],
+    [[25000, "0.5"], "25000.50"],
+    [[], "0.00"],
+  ])("addMoney_%j_Returns%j", (values, expected) => {
+    expect(addMoney(...values)).toBe(expected);
+  });
+
+  it("addMoney_NotAnAmount_ReturnsEmpty", () => {
+    expect(addMoney("25000", "abc")).toBe("");
+  });
+});
+
+describe("multiplyMoney", () => {
+  it.each([
+    ["25000", 3, "75000.00"],
+    ["0.10", 3, "0.30"],
+    [12500.5, 2, "25001.00"],
+    ["25000", 0, "0.00"],
+  ])("multiplyMoney_%j_Times_%j_Returns%j", (value, count, expected) => {
+    expect(multiplyMoney(value, count)).toBe(expected);
+  });
+
+  it.each([
+    ["abc", 1],
+    ["25000", 1.5],
+    ["25000", -1],
+  ])("multiplyMoney_Invalid %j %j_ReturnsEmpty", (value, count) => {
+    expect(multiplyMoney(value, count)).toBe("");
   });
 });

@@ -5,21 +5,24 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { hasRole, useCurrentUser } from "@/features/auth/api";
+import { useMemberCafeOrders } from "@/features/cafe/api";
+import { CafeOrdersTable } from "@/features/cafe/components/CafeOrdersTable";
 import { useMemberPayments } from "@/features/payments/api";
 import { PaymentHistoryTable } from "@/features/payments/components/PaymentHistoryTable";
 import { useMemberSubscriptions } from "@/features/subscriptions/api";
 import { SubscriptionHistoryTable } from "@/features/subscriptions/components/SubscriptionHistoryTable";
 import { errorMessage } from "@/lib/errors";
 
-type Tab = "subscriptions" | "payments";
+type Tab = "subscriptions" | "payments" | "cafe";
 
 const tabs: { value: Tab; label: string }[] = [
   { value: "subscriptions", label: "اشتراک‌ها" },
   { value: "payments", label: "پرداخت‌ها" },
+  { value: "cafe", label: "خریدهای بوفه" },
 ];
 
 /**
- * Subscription and payment history, as two tabs (task 4.6). A manual button group with
+ * Subscription, payment and cafe purchase history, as tabs (tasks 4.6 and 7.4). A manual button group with
  * `role="tablist"`, the same pattern PlansPage already uses for its status filter, rather than a
  * new Radix Tabs component this codebase has not needed before.
  */
@@ -29,12 +32,14 @@ export function MemberHistoryTabs({ memberId }: { memberId: string }) {
   const [tab, setTab] = useState<Tab>("subscriptions");
   const [subscriptionsPage, setSubscriptionsPage] = useState(1);
   const [paymentsPage, setPaymentsPage] = useState(1);
+  const [cafePage, setCafePage] = useState(1);
   const [notice, setNotice] = useState<string | null>(null);
 
   const subscriptions = useMemberSubscriptions(memberId, subscriptionsPage, {
     enabled: tab === "subscriptions",
   });
   const payments = useMemberPayments(memberId, paymentsPage, { enabled: tab === "payments" });
+  const cafeOrders = useMemberCafeOrders(memberId, cafePage, { enabled: tab === "cafe" });
 
   return (
     <Card>
@@ -101,6 +106,37 @@ export function MemberHistoryTabs({ memberId }: { memberId: string }) {
                   page={paymentsPage}
                   pageCount={payments.data.pageCount}
                   onPageChange={setPaymentsPage}
+                />
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === "cafe" && (
+          <div className="space-y-4">
+            {notice !== null && (
+              <Alert variant="success" role="status">
+                {notice}
+              </Alert>
+            )}
+            {cafeOrders.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+            {cafeOrders.isError && (
+              <Alert variant="destructive">{errorMessage(cafeOrders.error)}</Alert>
+            )}
+            {cafeOrders.isSuccess && cafeOrders.data.items.length === 0 && (
+              <p className="text-muted-foreground">این عضو هنوز از بوفه خریدی نداشته است.</p>
+            )}
+            {cafeOrders.isSuccess && cafeOrders.data.items.length > 0 && (
+              <>
+                <CafeOrdersTable
+                  orders={cafeOrders.data.items}
+                  showCustomer={false}
+                  onDone={setNotice}
+                />
+                <Pager
+                  page={cafePage}
+                  pageCount={cafeOrders.data.pageCount}
+                  onPageChange={setCafePage}
                 />
               </>
             )}

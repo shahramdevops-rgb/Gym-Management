@@ -6,6 +6,9 @@ import { RequireRole } from "@/features/auth/components/RequireRole";
 import { ChangePasswordPage } from "@/features/auth/pages/ChangePasswordPage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { CurrentlyInsidePage } from "@/features/attendance/pages/CurrentlyInsidePage";
+import { CafeMenuPage } from "@/features/cafe/pages/CafeMenuPage";
+import { CafeOrdersPage } from "@/features/cafe/pages/CafeOrdersPage";
+import { CafeTillPage } from "@/features/cafe/pages/CafeTillPage";
 import { LockersPage } from "@/features/lockers/pages/LockersPage";
 import { CreateMemberPage } from "@/features/members/pages/CreateMemberPage";
 import { EditMemberPage } from "@/features/members/pages/EditMemberPage";
@@ -46,6 +49,9 @@ export const routes: RouteObject[] = [
           { path: paths.editMember(":id"), element: <EditMemberPage /> },
           { path: paths.attendance, element: <CurrentlyInsidePage /> },
           { path: paths.lockers, element: <LockersPage /> },
+          { path: paths.cafe, element: <CafeTillPage /> },
+          { path: paths.cafeOrders, element: <CafeOrdersPage /> },
+          { path: paths.cafeMenu, element: <CafeMenuPage /> },
           { path: paths.status, element: <StatusPage /> },
           { path: paths.changePassword, element: <ChangePasswordPage /> },
           ownerOnly(paths.plans, <PlansPage />),
