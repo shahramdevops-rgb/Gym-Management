@@ -44,6 +44,22 @@ public static class PlanErrors
         "Plans.PriceTooManyDecimals",
         $"Price can have at most {Plan.PriceDecimals} decimal places.");
 
+    /// <summary>
+    /// BUSINESS_RULES.md §3: the single-session plan is always one day and one session. Refused
+    /// rather than corrected silently — a plan whose numbers nobody typed is a plan nobody can audit.
+    /// </summary>
+    public static readonly Error SingleSessionShape = Error.Validation(
+        "Plans.SingleSessionShape",
+        "The single-session plan must last 1 day and have 1 session.");
+
+    /// <summary>
+    /// BUSINESS_RULES.md §3: there is exactly one single-session plan. Changing the walk-in rate is
+    /// editing that plan's price, which leaves past sales untouched (§3, §4).
+    /// </summary>
+    public static readonly Error SingleSessionAlreadyExists = Error.Conflict(
+        "Plans.SingleSessionAlreadyExists",
+        "A single-session plan already exists; edit that one instead.");
+
     /// <summary>BUSINESS_RULES.md §3: inactive plans cannot be sold.</summary>
     public static readonly Error Inactive = Error.BusinessRule(
         "Plans.Inactive",

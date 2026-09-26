@@ -44,9 +44,12 @@ public sealed class UnfreezeSubscriptionHandler(IAppDbContext db, IGymCalendar c
         var addedDays = unfrozen.Value;
         if (addedDays > 0)
         {
+            // Single-session subscriptions are not queued behind anything and are dated the day they
+            // were sold, so moving them would rewrite history (BUSINESS_RULES.md §4).
             var queued = await db.Subscriptions
                 .Where(s => s.MemberId == subscription.MemberId && s.Id != subscription.Id
-                            && s.CancelledAt == null && s.StartDate > originalEndDate)
+                            && s.CancelledAt == null && s.StartDate > originalEndDate
+                            && !s.IsSingleSession)
                 .ToListAsync(cancellationToken);
 
             foreach (var queuedSubscription in queued)

@@ -53,6 +53,41 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     }
 
     [Fact]
+    public async Task Insert_SingleSessionOverlappingAMembership_Allowed()
+    {
+        // BUSINESS_RULES.md §4: a single visit is outside the no-overlap rule. Proved against the
+        // constraint itself, because this is the one invariant the feature deliberately relaxes.
+        var (memberId, planId) = await AddMemberAndPlanAsync();
+        await InsertAsync(memberId, planId, Start, Start.AddDays(29));
+
+        await InsertSingleVisitAsync(memberId, planId, Start.AddDays(5));
+    }
+
+    [Fact]
+    public async Task Insert_TwoSingleVisitsOnTheSameDay_Allowed()
+    {
+        // How a member comes twice in one day (BUSINESS_RULES.md §4).
+        var (memberId, planId) = await AddMemberAndPlanAsync();
+        await InsertSingleVisitAsync(memberId, planId, Start);
+
+        await InsertSingleVisitAsync(memberId, planId, Start);
+    }
+
+    [Fact]
+    public async Task Insert_SingleVisitWithMembershipNumbers_RejectedByACheckConstraint()
+    {
+        // The flag is what the scheduling rules read, so a row carrying it while describing a
+        // 30-day, 12-session product would quietly opt a real membership out of the calendar.
+        var (memberId, planId) = await AddMemberAndPlanAsync();
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => InsertAsync(memberId, planId, Start, Start.AddDays(29), singleSession: true));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe("ck_subscriptions_single_session_shape");
+    }
+
+    [Fact]
     public async Task Insert_SameDatesForDifferentMembers_Allowed()
     {
         var (firstMember, planId) = await AddMemberAndPlanAsync();
@@ -158,8 +193,13 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
         return (member.Id, plan.Id);
     }
 
+    /// <summary>One day, one session, flagged: what the API writes for a walk-in visit.</summary>
+    private Task<Guid> InsertSingleVisitAsync(Guid memberId, Guid planId, DateOnly day) =>
+        InsertAsync(memberId, planId, day, day, totalSessions: 1, singleSession: true, durationDays: 1);
+
     private async Task<Guid> InsertAsync(
-        Guid memberId, Guid planId, DateOnly start, DateOnly end, int? totalSessions = 12, int usedSessions = 0, bool cancelled = false)
+        Guid memberId, Guid planId, DateOnly start, DateOnly end, int? totalSessions = 12, int usedSessions = 0,
+        bool cancelled = false, bool singleSession = false, int durationDays = 30)
     {
         var id = Guid.CreateVersion7();
         var cancelledAt = cancelled ? "now()" : "NULL";
@@ -170,10 +210,10 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
             $"""
             INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days,
-                                       cancelled_at, cancellation_reason, created_at)
-            VALUES ('{id}', '{memberId}', '{planId}', 900000, 30, {total},
+                                       cancelled_at, cancellation_reason, is_single_session, created_at)
+            VALUES ('{id}', '{memberId}', '{planId}', 900000, {durationDays}, {total},
                     '{start:yyyy-MM-dd}', '{end:yyyy-MM-dd}', {usedSessions}, 0,
-                    {cancelledAt}, {reason}, now())
+                    {cancelledAt}, {reason}, {(singleSession ? "TRUE" : "FALSE")}, now())
             """);
 
         return id;

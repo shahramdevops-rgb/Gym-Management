@@ -25,6 +25,8 @@ function formValues(plan: Plan): PlanValues {
   return {
     name: plan.name,
     durationDays: String(plan.durationDays),
+    // Shown and locked, never changed: a plan's kind is set when it is created.
+    singleSession: plan.kind === "SingleSession",
     unlimitedSessions: plan.sessionCount === null,
     sessionCount: plan.sessionCount === null ? "" : String(plan.sessionCount),
     price: String(plan.price),

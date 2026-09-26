@@ -30,9 +30,14 @@ public sealed class RenewSubscriptionHandler(IAppDbContext db, SubscriptionSelle
 
         // "Latest" by end date, cancelled ones included: a member who cancelled and came back
         // usually wants the same plan again. CreatedAt breaks a tie.
+        //
+        // Single-session sales are skipped (BUSINESS_RULES.md §4): renewal needs a plan with more
+        // than one session, and a member who dropped in yesterday still wants their membership
+        // renewed, not another single visit. A member whose only history is single visits has
+        // nothing to renew.
         var latestPlanId = await db.Subscriptions
             .AsNoTracking()
-            .Where(s => s.MemberId == memberId)
+            .Where(s => s.MemberId == memberId && !s.IsSingleSession)
             .OrderByDescending(s => s.EndDate)
             .ThenByDescending(s => s.CreatedAt)
             .Select(s => (Guid?)s.PlanId)

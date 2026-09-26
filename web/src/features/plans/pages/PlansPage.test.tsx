@@ -10,7 +10,7 @@ import {
   staffUser,
 } from "@/test/mockApi";
 import { queryOf } from "@/test/members";
-import { monthly12, plansPage, unlimitedQuarter } from "@/test/plans";
+import { monthly12, plansPage, singleSession, unlimitedQuarter } from "@/test/plans";
 import { renderApp } from "@/test/renderApp";
 
 describe("PlansPage", () => {
@@ -45,6 +45,21 @@ describe("PlansPage", () => {
     expect(within(quarterRow).getByText("۲٬۵۰۰٬۰۰۰٫۵ تومان")).toBeInTheDocument();
     expect(within(quarterRow).getByText("غیرفعال")).toBeInTheDocument();
     expect(within(quarterRow).getByRole("button", { name: "فعال‌سازی" })).toBeInTheDocument();
+  });
+
+  it("PlansPage_SingleSessionPlan_IsMarkedSoTheOwnerCanFindIt", async () => {
+    // The entry screen sends the Owner here to create or re-price it; the badge is how they spot it.
+    mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/plans": () => plansPage([monthly12, { ...singleSession, name: "ورود آزاد" }]),
+    });
+
+    renderApp("/plans", { session: session() });
+
+    const walkInRow = (await screen.findByText("ورود آزاد")).closest("tr")!;
+    expect(within(walkInRow).getByText("تک‌جلسه‌ای")).toBeInTheDocument();
+    const monthlyRow = screen.getByText(monthly12.name).closest("tr")!;
+    expect(within(monthlyRow).queryByText("تک‌جلسه‌ای")).not.toBeInTheDocument();
   });
 
   it("PlansPage_NoPlans_SaysSo", async () => {

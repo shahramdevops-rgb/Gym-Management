@@ -34,7 +34,13 @@ export function PlansTable({ plans, busy, onToggleActive }: PlansTableProps) {
         <tbody>
           {plans.map((plan) => (
             <tr key={plan.id} className="border-b">
-              <td className="py-2 font-medium">{plan.name}</td>
+              <td className="py-2 font-medium">
+                <span className="flex flex-wrap items-center gap-2">
+                  {plan.name}
+                  {/* The walk-in plan: the one the entry screen sells a single visit from. */}
+                  {plan.kind === "SingleSession" && <Badge variant="outline">تک‌جلسه‌ای</Badge>}
+                </span>
+              </td>
               <td className="py-2">{formatNumber(Number(plan.durationDays))} روز</td>
               <td className="py-2">
                 {plan.sessionCount === null

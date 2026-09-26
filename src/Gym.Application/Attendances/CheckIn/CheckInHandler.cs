@@ -119,8 +119,11 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
     /// </remarks>
     private static Error NothingUsableToday(DateOnly today, List<Subscription> live)
     {
-        var exhausted = live.Exists(s => s.GetStatus(today) == SubscriptionStatus.Exhausted);
-        var queued = live.Exists(s => s.GetStatus(today) == SubscriptionStatus.Upcoming);
+        // Memberships only, for the same reason the promotion itself reads memberships only: a used
+        // single-session subscription is exhausted by design, and pairing it with a membership queued
+        // for next week would answer "come back tomorrow" when the truth is "come back on Saturday".
+        var exhausted = live.Exists(s => !s.IsSingleSession && s.GetStatus(today) == SubscriptionStatus.Exhausted);
+        var queued = live.Exists(s => !s.IsSingleSession && s.GetStatus(today) == SubscriptionStatus.Upcoming);
         if (exhausted && queued)
         {
             return SubscriptionErrors.NextStartsTomorrow;

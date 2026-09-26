@@ -14,7 +14,8 @@ public sealed class CreatePlanHandler(IAppDbContext db)
         ArgumentNullException.ThrowIfNull(command);
 
         // The entity normalizes the name, so build the plan first and compare its normalized form.
-        var created = Plan.Create(command.Name, command.DurationDays, command.SessionCount, command.Price);
+        var created = Plan.Create(
+            command.Name, command.DurationDays, command.SessionCount, command.Price, command.Kind);
         if (created.IsFailure)
         {
             return Result.Failure<PlanResponse>(created.Error);
@@ -26,7 +27,15 @@ public sealed class CreatePlanHandler(IAppDbContext db)
             return Result.Failure<PlanResponse>(PlanErrors.NameAlreadyExists);
         }
 
-        // Two requests can pass the check above at once; the unique index decides.
+        // BUSINESS_RULES.md §3: one single-session plan, one walk-in rate. Checked here so the answer
+        // names the rule; the partial unique index below decides if two requests arrive at once.
+        if (plan.IsSingleSession
+            && await db.Plans.AnyAsync(p => p.Kind == PlanKind.SingleSession, cancellationToken))
+        {
+            return Result.Failure<PlanResponse>(PlanErrors.SingleSessionAlreadyExists);
+        }
+
+        // Two requests can pass the checks above at once; the unique indexes decide.
         db.Plans.Add(plan);
         try
         {
@@ -35,6 +44,10 @@ public sealed class CreatePlanHandler(IAppDbContext db)
         catch (UniqueConstraintException exception) when (exception.ConstraintName == PlanConstraints.UniqueName)
         {
             return Result.Failure<PlanResponse>(PlanErrors.NameAlreadyExists);
+        }
+        catch (UniqueConstraintException exception) when (exception.ConstraintName == PlanConstraints.UniqueSingleSession)
+        {
+            return Result.Failure<PlanResponse>(PlanErrors.SingleSessionAlreadyExists);
         }
 
         return PlanResponse.From(plan);
