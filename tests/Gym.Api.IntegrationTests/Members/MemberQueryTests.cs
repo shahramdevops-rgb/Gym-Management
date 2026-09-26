@@ -4,10 +4,12 @@ using System.Text.Json;
 
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
+using Gym.Application.Attendances;
 using Gym.Application.Common.Paging;
 using Gym.Application.Members;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Audit;
+using Gym.Domain.Lockers;
 using Gym.Domain.Members;
 using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
@@ -297,6 +299,47 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         listed.Debt.ShouldBe(0m);
     }
 
+    // ---- Inside the gym (the front desk's check-in button) ----
+
+    [Fact]
+    public async Task ListMembers_MemberNeverCheckedIn_HasNoCurrentVisit()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+
+        (await SingleAsync(client, token, member.Id)).CurrentVisit.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ListMembers_MemberCheckedIn_HasTheOpenVisitWithItsLocker()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var other = await CreateMemberAsync(client, token, "علی", "09351234567");
+        await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await AddLockerAsync(7);
+        var attendance = await CheckInAsync(client, token, member.Id);
+
+        var visit = (await SingleAsync(client, token, member.Id)).CurrentVisit.ShouldNotBeNull();
+        visit.AttendanceId.ShouldBe(attendance.Id);
+        visit.LockerNumber.ShouldBe(7);
+        visit.CheckedInAt.ShouldBe(attendance.CheckedInAt, TimeSpan.FromMicroseconds(1));
+        (await SingleAsync(client, token, other.Id)).CurrentVisit.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ListMembers_MemberCheckedOut_HasNoCurrentVisit()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        var attendance = await CheckInAsync(client, token, member.Id);
+        using var checkedOut = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendance.Id}/check-out");
+        checkedOut.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        (await SingleAsync(client, token, member.Id)).CurrentVisit.ShouldBeNull();
+    }
+
     // ---- Name search ----
 
     [Fact]
@@ -555,6 +598,22 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         };
         using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private async Task AddLockerAsync(int number)
+    {
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Lockers.Add(Locker.Create(number).Value);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<AttendanceResponse> CheckInAsync(HttpClient client, string token, Guid memberId)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Post, $"{MembersPath}/{memberId}/attendance/check-in");
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return (await response.Content.ReadFromJsonAsync<AttendanceResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
     }
 
     /// <summary>The one member's row from the list endpoint, filtered by search so paging never hides it.</summary>

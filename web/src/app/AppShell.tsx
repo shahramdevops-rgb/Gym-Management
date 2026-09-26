@@ -4,8 +4,8 @@ import {
   DoorOpen,
   KeyRound,
   LockKeyhole,
+  LogIn,
   LogOut,
-  Search,
   Tickets,
   Users,
   type LucideIcon,
@@ -28,7 +28,7 @@ interface NavigationItem {
 }
 
 const navigation: NavigationItem[] = [
-  { to: paths.home, label: "جستجو", icon: Search },
+  { to: paths.home, label: "ورود به باشگاه", icon: LogIn },
   { to: paths.members, label: "اعضا", icon: Contact },
   { to: paths.attendance, label: "داخل باشگاه", icon: DoorOpen },
   { to: paths.plans, label: "پلن‌ها", icon: Tickets, role: "Owner" },

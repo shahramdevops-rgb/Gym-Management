@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import type { QueryClient } from "@tanstack/react-query";
 
 import { lockerKeys } from "@/features/lockers/api";
+import { memberKeys } from "@/features/members/api";
 import { subscriptionKeys } from "@/features/subscriptions/api";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
@@ -76,12 +77,16 @@ export function useMemberAttendanceHistory(memberId: string, page: number) {
  * Subscriptions are in the list because a visit changes them: every check-in consumes a session,
  * and a check-in against an exhausted subscription with a renewal queued behind it moves that
  * renewal forward to today (BUSINESS_RULES.md §4), which rewrites its dates.
+ *
+ * Member lists are in it because each row says whether that member is inside, which decides
+ * between the search screen's check-in button and its "inside" label.
  */
 async function invalidateAttendance(queryClient: QueryClient) {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: attendanceKeys.all }),
     queryClient.invalidateQueries({ queryKey: lockerKeys.all }),
     queryClient.invalidateQueries({ queryKey: subscriptionKeys.all }),
+    queryClient.invalidateQueries({ queryKey: [...memberKeys.all, "list"] }),
   ]);
 }
 

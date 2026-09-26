@@ -1,11 +1,33 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-import { attendanceHistoryPage, openVisit, openVisitNoLocker } from "@/test/attendance";
-import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
-import { ali, membersPage, queryOf, reza } from "@/test/members";
+import type { Member } from "@/features/members/api";
+import {
+  attendanceHistoryPage,
+  closedVisit,
+  openVisit,
+  openVisitNoLocker,
+} from "@/test/attendance";
+import {
+  json,
+  mockApi,
+  problem,
+  session,
+  signedInHandlers,
+  staffUser,
+  type Handler,
+} from "@/test/mockApi";
+import {
+  ali,
+  debtItem,
+  memberDebt,
+  membersPage,
+  queryOf,
+  reza,
+  serviceChargeDebtItem,
+} from "@/test/members";
 import { plansPage, singleSession } from "@/test/plans";
 import { renderApp } from "@/test/renderApp";
-import { activeSubscription } from "@/test/subscriptions";
+import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
 
 // Every test signs in as Staff: finding members is front-desk work (BUSINESS_RULES.md §1).
 function searchBox() {
@@ -125,81 +147,266 @@ describe("HomePage", () => {
     expect(second.get("Search")).toBe("رضا");
   });
 
-  // ---- Single-session entry (docs/ROADMAP.md 6.5.4) ----
+  // ---- The check-in and check-out box (BUSINESS_RULES.md §7 Confirming at the front desk) ----
 
-  /** Check-in refused for want of a subscription is the walk-in case, not an error to dismiss. */
-  function refusedCheckIn(code = "Attendance.NoSubscription") {
+  const visitId = openVisit(reza.id).id;
+
+  /** Reza as the search sees him while he is inside, in locker ۱۰. */
+  const rezaInside: Member = {
+    ...reza,
+    currentVisit: { attendanceId: visitId, lockerNumber: 10, checkedInAt: "2026-09-18T07:00:00Z" },
+  };
+
+  /** What the box reads about the member besides the action itself: the plan and the debt. */
+  function deskHandlers(member: Member, extra: Record<string, Handler> = {}) {
     return {
       ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([reza]),
+      "GET /api/members": () => membersPage([member]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/debt`]: () => memberDebt([]),
+      ...extra,
+    };
+  }
+
+  function renderSearch() {
+    return renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+  }
+
+  async function rowOf(name: string) {
+    return (await screen.findByRole("link", { name })).closest("tr")!;
+  }
+
+  async function pressCheckIn() {
+    fireEvent.click(within(await rowOf("رضا احمدی")).getByRole("button", { name: "ورود" }));
+    return screen.findByRole("dialog");
+  }
+
+  async function confirmCheckIn() {
+    const dialog = await pressCheckIn();
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود ثبت شود" }));
+    return dialog;
+  }
+
+  it("Row_MemberOutside_OffersCheckInAndGreysOutCheckOut", async () => {
+    mockApi(deskHandlers(reza));
+    renderSearch();
+
+    const row = await rowOf("رضا احمدی");
+
+    expect(within(row).getByRole("button", { name: "ورود" })).toBeEnabled();
+    expect(within(row).getByRole("button", { name: "خروج" })).toBeDisabled();
+    expect(within(row).queryByText("داخل باشگاه")).not.toBeInTheDocument();
+  });
+
+  it("Row_MemberInside_GreysOutCheckInAndOffersCheckOut", async () => {
+    mockApi(deskHandlers(rezaInside));
+    renderSearch();
+
+    const row = await rowOf("رضا احمدی");
+
+    expect(within(row).getByText("داخل باشگاه")).toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: "ورود" })).toBeDisabled();
+    expect(within(row).getByRole("button", { name: "خروج" })).toBeEnabled();
+  });
+
+  it("CheckIn_Pressed_AsksFirstAndSendsNothing", async () => {
+    const api = mockApi(deskHandlers(reza));
+    renderSearch();
+
+    const dialog = await pressCheckIn();
+
+    expect(dialog).toHaveTextContent("آیا از ثبت ورود رضا احمدی مطمئن هستید؟");
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
+  });
+
+  it("CheckIn_Cancelled_ClosesTheBoxAndSendsNothing", async () => {
+    const api = mockApi(deskHandlers(reza));
+    renderSearch();
+
+    const dialog = await pressCheckIn();
+    fireEvent.click(within(dialog).getByRole("button", { name: "انصراف" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
+  });
+
+  it("CheckIn_Confirmed_ShowsTheLockerPlanSessionsAndItemizedDebt", async () => {
+    const api = mockApi(
+      deskHandlers(reza, {
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+          json(201, { ...openVisit(reza.id), lockerNumber: 10, memberDebt: 2250000 }),
+        [`GET /api/members/${reza.id}/debt`]: () =>
+          memberDebt([
+            debtItem({ outstanding: 2000000 }),
+            serviceChargeDebtItem({ outstanding: 50000 }),
+            debtItem({
+              kind: "CafeOrder",
+              id: "0199a000-0000-7000-8000-0000000000b3",
+              planName: null,
+              outstanding: 200000,
+            }),
+          ]),
+      }),
+    );
+    renderSearch();
+
+    const dialog = await confirmCheckIn();
+
+    expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("کمد شماره ۱۰")).toHaveTextContent("۱۰");
+    expect(await within(dialog).findByText("یک ماهه ۱۲ جلسه")).toBeInTheDocument();
+    expect(within(dialog).getByText("۹ از ۱۲ جلسه")).toBeInTheDocument();
+
+    const debt = await within(dialog).findByRole("region", { name: "بدهی" });
+    expect(debt).toHaveTextContent("۲٬۲۵۰٬۰۰۰ تومان");
+    expect(debt).toHaveTextContent("اشتراک ماهانه");
+    expect(debt).toHaveTextContent("هوازی");
+    expect(debt).toHaveTextContent("بوفه");
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(1);
+  });
+
+  it("CheckIn_Confirmed_TheResultStaysUntilTheDeskClosesIt", async () => {
+    mockApi(
+      deskHandlers(reza, {
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, openVisit(reza.id)),
+      }),
+    );
+    renderSearch();
+
+    const dialog = await confirmCheckIn();
+    await within(dialog).findByText("ورود ثبت شد");
+
+    // A stray click on the page behind does not dismiss what the desk has to read.
+    fireEvent.pointerDown(document.body);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    const closeButtons = within(dialog).getAllByRole("button", { name: "بستن" });
+    fireEvent.click(closeButtons[0]!);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("CheckIn_NoFreeLocker_SaysSoWithoutFailing", async () => {
+    mockApi(
+      deskHandlers(reza, {
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+          json(201, openVisitNoLocker(reza.id)),
+      }),
+    );
+    renderSearch();
+
+    const dialog = await confirmCheckIn();
+
+    expect(await within(dialog).findByText(/کمد آزادی نبود/)).toBeInTheDocument();
+  });
+
+  it("CheckIn_MemberWithNoDebt_SaysSo", async () => {
+    mockApi(
+      deskHandlers(reza, {
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, openVisit(reza.id)),
+      }),
+    );
+    renderSearch();
+
+    const dialog = await confirmCheckIn();
+
+    expect(await within(dialog).findByText("این عضو بدهی ندارد.")).toBeInTheDocument();
+  });
+
+  it("CheckIn_RefusedForAnotherReason_ShowsItWithoutOfferingASingleVisit", async () => {
+    mockApi(
+      deskHandlers(reza, {
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+          problem(422, "Attendance.AlreadyCheckedIn"),
+      }),
+    );
+    renderSearch();
+
+    const dialog = await confirmCheckIn();
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "این عضو هم‌اکنون داخل باشگاه است.",
+    );
+    expect(
+      within(dialog).queryByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  // ---- Single-session entry, inside the box (docs/ROADMAP.md 6.5.4) ----
+
+  function refusedCheckIn(code = "Attendance.NoSubscription") {
+    return deskHandlers(reza, {
       [`POST /api/members/${reza.id}/attendance/check-in`]: () => problem(422, code),
       "GET /api/plans": () => plansPage([singleSession]),
-    };
+    });
   }
 
   it("CheckIn_MemberWithNoSubscription_OffersASingleVisitWithItsPrice", async () => {
     mockApi(refusedCheckIn());
-    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+    renderSearch();
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+    const dialog = await confirmCheckIn();
 
     expect(
-      await screen.findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+      await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
     ).toHaveTextContent("۱۵۰٬۰۰۰ تومان");
   });
 
-  it("CheckIn_MemberWhoCanComeIn_NeverOffersASingleVisit", async () => {
-    // The guard that matters: nobody is charged for a visit they already paid for. The offer
-    // exists only because the API refused, so a successful check-in cannot produce it.
-    mockApi({
-      ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([reza]),
-      [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, openVisit(reza.id)),
-      "GET /api/plans": () => plansPage([singleSession]),
-    });
-    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+  it("CheckIn_ExhaustedSubscription_AlsoOffersASingleVisit", async () => {
+    // Not only "no subscription at all": a pack that ran out today is the same walk-in case.
+    mockApi(refusedCheckIn("Subscriptions.NoSessionsLeft"));
+    renderSearch();
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+    const dialog = await confirmCheckIn();
 
-    await screen.findByRole("status");
-    expect(screen.queryByRole("button", { name: /ورود تک‌جلسه‌ای/ })).not.toBeInTheDocument();
+    expect(
+      await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+    ).toBeInTheDocument();
   });
 
-  it("SingleVisit_Sold_SellsTheSubscriptionThenChecksIn", async () => {
+  it("SingleVisit_Sold_SellsThenChecksInAndShowsTheLockerInTheSameBox", async () => {
     let checkedIn = false;
     const api = mockApi({
-      ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([reza]),
+      ...refusedCheckIn(),
+      "GET /api/members": () => membersPage([checkedIn ? rezaInside : reza]),
       [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
-        checkedIn ? json(201, openVisit(reza.id)) : problem(422, "Attendance.NoSubscription"),
+        checkedIn
+          ? json(201, { ...openVisit(reza.id), lockerNumber: 10 })
+          : problem(422, "Attendance.NoSubscription"),
       [`POST /api/members/${reza.id}/subscriptions`]: () => {
         checkedIn = true;
         return json(201, { ...activeSubscription, isSingleSession: true });
       },
-      "GET /api/plans": () => plansPage([singleSession]),
     });
-    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+    renderSearch();
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
-    fireEvent.click(await screen.findByRole("button", { name: /ورود تک‌جلسه‌ای/ }));
+    const dialog = await confirmCheckIn();
+    fireEvent.click(await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("ورود تک‌جلسه‌ای ثبت شد");
-    const sales = api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`);
-    expect(sales).toHaveLength(1);
+    // No second "are you sure": the priced button was the decision.
+    expect(await within(dialog).findByText("ورود تک‌جلسه‌ای ثبت شد")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("کمد شماره ۱۰")).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`)).toHaveLength(1);
     expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(2);
+
+    // Behind the box, the row has caught up: inside, so check-out is the live button.
+    await waitFor(() => {
+      const row = screen.getByRole("link", { name: "رضا احمدی", hidden: true }).closest("tr")!;
+      expect(within(row).getByRole("button", { name: "خروج", hidden: true })).toBeEnabled();
+    });
   });
 
   it("SingleVisit_NoSingleSessionPlanYet_SaysSoInsteadOfOfferingIt", async () => {
-    mockApi({
-      ...refusedCheckIn(),
-      "GET /api/plans": () => plansPage([]),
-    });
-    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+    mockApi({ ...refusedCheckIn(), "GET /api/plans": () => plansPage([]) });
+    renderSearch();
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+    const dialog = await confirmCheckIn();
 
-    expect(await screen.findByText(/هنوز پلن تک‌جلسه‌ای ساخته نشده است/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /ورود تک‌جلسه‌ای/ })).not.toBeInTheDocument();
+    expect(
+      await within(dialog).findByText(/هنوز پلن تک‌جلسه‌ای ساخته نشده است/),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("SingleVisit_SingleSessionPlanInactive_SaysSoInsteadOfOfferingIt", async () => {
@@ -207,50 +414,80 @@ describe("HomePage", () => {
       ...refusedCheckIn(),
       "GET /api/plans": () => plansPage([{ ...singleSession, isActive: false }]),
     });
-    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+    renderSearch();
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+    const dialog = await confirmCheckIn();
 
-    expect(await screen.findByText(/پلن تک‌جلسه‌ای غیرفعال است/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /ورود تک‌جلسه‌ای/ })).not.toBeInTheDocument();
+    expect(await within(dialog).findByText(/پلن تک‌جلسه‌ای غیرفعال است/)).toBeInTheDocument();
   });
 
-  it("CheckIn_ExhaustedSubscription_AlsoOffersASingleVisit", async () => {
-    // Not only "no subscription at all": a pack that ran out today is the same walk-in case.
-    mockApi(refusedCheckIn("Subscriptions.NoSessionsLeft"));
-    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+  // ---- Check-out ----
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+  async function pressCheckOut() {
+    fireEvent.click(within(await rowOf("رضا احمدی")).getByRole("button", { name: "خروج" }));
+    return screen.findByRole("dialog");
+  }
 
-    expect(await screen.findByRole("button", { name: /ورود تک‌جلسه‌ای/ })).toBeInTheDocument();
+  it("CheckOut_Pressed_AsksFirstWithTheLockerToTakeBackAndTheDebt", async () => {
+    const api = mockApi(
+      deskHandlers(rezaInside, {
+        [`GET /api/members/${reza.id}/debt`]: () =>
+          memberDebt([serviceChargeDebtItem({ outstanding: 50000 })]),
+      }),
+    );
+    renderSearch();
+
+    const dialog = await pressCheckOut();
+
+    expect(dialog).toHaveTextContent("آیا از ثبت خروج رضا احمدی مطمئن هستید؟");
+    expect(within(dialog).getByLabelText("کمد شماره ۱۰")).toBeInTheDocument();
+    expect(within(dialog).getByText("کلید این کمد را تحویل بگیرید")).toBeInTheDocument();
+    const debt = await within(dialog).findByRole("region", { name: "بدهی" });
+    expect(debt).toHaveTextContent("هوازی");
+    expect(debt).toHaveTextContent("۵۰٬۰۰۰ تومان");
+    expect(api.requestsTo("POST", `/api/attendance/${visitId}/check-out`)).toHaveLength(0);
   });
 
-  it("CheckIn_AlreadyInside_ShowsTheErrorWithoutOfferingASingleVisit", async () => {
-    // A refusal that selling a visit would not fix stays an ordinary error message.
-    mockApi({
-      ...refusedCheckIn("Attendance.AlreadyCheckedIn"),
-    });
-    renderApp("/?q=" + encodeURIComponent("رضا"), { session: session() });
+  it("CheckOut_Confirmed_ChecksOutTheOpenVisit", async () => {
+    const api = mockApi(
+      deskHandlers(rezaInside, {
+        [`POST /api/attendance/${visitId}/check-out`]: () => json(200, closedVisit(reza.id)),
+      }),
+    );
+    renderSearch();
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
+    const dialog = await pressCheckOut();
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، خروج ثبت شود" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("رضا احمدی");
-    expect(screen.queryByRole("button", { name: /ورود تک‌جلسه‌ای/ })).not.toBeInTheDocument();
+    expect(await within(dialog).findByText("خروج ثبت شد")).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/attendance/${visitId}/check-out`)).toHaveLength(1);
   });
 
-  it("Search_NoResults_RegistersTheMemberAndGoesStraightToCheckIn", async () => {
-    const created = { ...reza, id: reza.id, fullName: "سارا محمدی" };
+  it("CheckOut_Cancelled_SendsNothing", async () => {
+    const api = mockApi(deskHandlers(rezaInside));
+    renderSearch();
+
+    const dialog = await pressCheckOut();
+    fireEvent.click(within(dialog).getByRole("button", { name: "انصراف" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.requestsTo("POST", `/api/attendance/${visitId}/check-out`)).toHaveLength(0);
+  });
+
+  // ---- Registering someone nobody found ----
+
+  it("Search_NoResults_RegistersTheMemberThenAsksToCheckThemIn", async () => {
+    const created = { ...reza, fullName: "سارا محمدی" };
     const api = mockApi({
-      ...signedInHandlers(staffUser),
+      ...refusedCheckIn(),
       "GET /api/members": () => membersPage([]),
       "POST /api/members": () => json(201, created),
-      [`POST /api/members/${created.id}/attendance/check-in`]: () =>
-        problem(422, "Attendance.NoSubscription"),
-      "GET /api/plans": () => plansPage([singleSession]),
     });
     renderApp("/?q=" + encodeURIComponent("سارا"), { session: session() });
 
     fireEvent.click(await screen.findByRole("button", { name: /ثبت این شخص/ }));
+    // The name searched for is already in the form; only the rest is typed.
+    expect(screen.getByLabelText("نام و نام خانوادگی")).toHaveValue("سارا");
     fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), {
       target: { value: "سارا محمدی" },
     });
@@ -259,83 +496,23 @@ describe("HomePage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "ثبت و ادامه" }));
 
-    // Registered, then asked to come in, and the refusal opened the single-visit offer — all
-    // without leaving the search screen.
+    // Registered, then the same box as any check-in: ask, and a refusal offers a single visit.
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("آیا از ثبت ورود سارا محمدی مطمئن هستید؟");
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود ثبت شود" }));
     expect(
-      await screen.findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+      await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
     ).toBeInTheDocument();
-    await waitFor(() => {
-      expect(api.requestsTo("POST", "/api/members")).toHaveLength(1);
-    });
+    expect(api.requestsTo("POST", "/api/members")).toHaveLength(1);
   });
 
-  // ---- One-click check-in (docs/ROADMAP.md 5.6) ----
+  it("Search_NoResultsForAPhone_PrefillsThePhoneNotTheName", async () => {
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([]) });
+    renderApp("/?q=" + encodeURIComponent("۰۹۱۲۱۱۱۰۰۰۰"), { session: session() });
 
-  it("CheckIn_FromSearchResults_ShowsTheAssignedLocker", async () => {
-    const api = mockApi({
-      ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([reza]),
-      [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, openVisit(reza.id)),
-    });
-    renderApp("/", { session: session() });
+    fireEvent.click(await screen.findByRole("button", { name: /ثبت این شخص/ }));
 
-    fireEvent.change(searchBox(), { target: { value: "رضا" } });
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
-
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "رضا احمدی: ورود ثبت شد. کمد شماره ۳",
-    );
-    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(1);
-  });
-
-  it("CheckIn_NoFreeLocker_ShowsTheWarningWithoutFailing", async () => {
-    mockApi({
-      ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([reza]),
-      [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
-        json(201, openVisitNoLocker(reza.id)),
-    });
-    renderApp("/", { session: session() });
-
-    fireEvent.change(searchBox(), { target: { value: "رضا" } });
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
-
-    expect(await screen.findByRole("status")).toHaveTextContent("کمد آزادی نبود");
-  });
-
-  it("CheckIn_MemberWhoOwesMoney_RecordsTheVisitAndWarnsAboutTheDebt", async () => {
-    // Money owed never blocks a check-in (BUSINESS_RULES.md §0, §7): the visit is recorded and
-    // the amount is something for the front desk to mention while the member is still there.
-    mockApi({
-      ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([reza]),
-      [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
-        json(201, { ...openVisit(reza.id), memberDebt: 600000 }),
-    });
-    renderApp("/", { session: session() });
-
-    fireEvent.change(searchBox(), { target: { value: "رضا" } });
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
-
-    const notice = await screen.findByRole("status");
-    expect(notice).toHaveTextContent("ورود ثبت شد");
-    expect(notice).toHaveTextContent("بدهی این عضو ۶۰۰٬۰۰۰ تومان است");
-  });
-
-  it("CheckIn_AlreadyCheckedIn_ShowsThePersianReason", async () => {
-    mockApi({
-      ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([reza]),
-      [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
-        problem(422, "Attendance.AlreadyCheckedIn"),
-    });
-    renderApp("/", { session: session() });
-
-    fireEvent.change(searchBox(), { target: { value: "رضا" } });
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "رضا احمدی: این عضو هم‌اکنون داخل باشگاه است.",
-    );
+    expect(screen.getByLabelText("شماره موبایل")).toHaveValue("۰۹۱۲۱۱۱۰۰۰۰");
+    expect(screen.getByLabelText("نام و نام خانوادگی")).toHaveValue("");
   });
 });

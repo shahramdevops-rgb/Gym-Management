@@ -228,9 +228,7 @@ describe("CreatePlanPage", () => {
     ownerApi({ "GET /api/plans": () => plansPage([singleSession]) });
     renderApp("/plans/new", { session: session() });
 
-    await waitFor(() =>
-      expect(screen.getByLabelText("پلن تک‌جلسه‌ای (ورود آزاد)")).toBeDisabled(),
-    );
+    await waitFor(() => expect(screen.getByLabelText("پلن تک‌جلسه‌ای (ورود آزاد)")).toBeDisabled());
     expect(
       screen.getByText("پلن تک‌جلسه‌ای از قبل وجود دارد؛ برای تغییر نرخ، همان را ویرایش کنید."),
     ).toBeInTheDocument();

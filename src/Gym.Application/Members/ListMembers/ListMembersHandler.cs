@@ -63,11 +63,29 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
             .ToListAsync(cancellationToken);
 
         // Batched for the whole page (MemberDebt), not one query per row.
-        var debtByMemberId = await MemberDebt.GetTotalsAsync(
-            db, pageMembers.Select(member => member.Id).ToList(), cancellationToken);
+        var pageIds = pageMembers.Select(member => member.Id).ToList();
+        var debtByMemberId = await MemberDebt.GetTotalsAsync(db, pageIds, cancellationToken);
+
+        // The same test as CheckInHandler's "already inside": an attendance not yet checked out.
+        // The partial unique index allows at most one per member.
+        var visitByMemberId = await db.Attendances
+            .Where(attendance => pageIds.Contains(attendance.MemberId) && attendance.CheckedOutAt == null)
+            .Select(attendance => new
+            {
+                attendance.MemberId,
+                Visit = new MemberCurrentVisit(
+                    attendance.Id,
+                    db.Lockers.Where(locker => locker.Id == attendance.LockerId).Select(locker => (int?)locker.Number).FirstOrDefault(),
+                    attendance.CheckedInAt),
+            })
+            .ToDictionaryAsync(row => row.MemberId, row => row.Visit, cancellationToken);
 
         var items = pageMembers
-            .Select(member => member with { Debt = debtByMemberId.GetValueOrDefault(member.Id) })
+            .Select(member => member with
+            {
+                Debt = debtByMemberId.GetValueOrDefault(member.Id),
+                CurrentVisit = visitByMemberId.GetValueOrDefault(member.Id),
+            })
             .ToList();
 
         return new PagedResponse<MemberResponse>(items, query.Page, query.PageSize, totalCount);
