@@ -23,7 +23,7 @@ namespace Gym.Api.IntegrationTests.Staff;
 public sealed class StaffEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
     private const string StaffPath = "/api/staff";
-    private const string TemporaryPassword = "Temp1234";
+    private const string TemporaryPassword = "temp kettle 1234";
 
     [Fact]
     public async Task CreateStaff_AsStaff_Returns403Forbidden()
@@ -75,7 +75,8 @@ public sealed class StaffEndpointTests(DatabaseFixture fixture) : DatabaseTestBa
     [InlineData("رضا", "رضا", TemporaryPassword, "userName", "Staff.UserNameInvalidCharacters")]
     [InlineData("reza", "   ", TemporaryPassword, "fullName", "Staff.FullNameRequired")]
     [InlineData("reza", "رضا", "short1", "temporaryPassword", "Auth.PasswordTooShort")]
-    [InlineData("reza", "رضا", "noDigitsHere", "temporaryPassword", "Auth.PasswordRequiresLetterAndDigit")]
+    [InlineData("reza", "رضا", "Reza kettle 1234", "temporaryPassword", "Auth.PasswordContainsUserName")]
+    [InlineData("reza", "رضا", "password12345", "temporaryPassword", "Auth.PasswordTooCommon")]
     public async Task CreateStaff_InvalidInput_Returns400WithFieldCode(
         string userName,
         string fullName,
@@ -190,14 +191,14 @@ public sealed class StaffEndpointTests(DatabaseFixture fixture) : DatabaseTestBa
 
         using var reset = await SendAsync(
             client, ownerToken, HttpMethod.Post, $"{StaffPath}/{staff.Id}/reset-password",
-            new { temporaryPassword = "Fresh5678" });
+            new { temporaryPassword = "fresh kettle 5678" });
 
         reset.StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         using var oldPassword = await client.LoginAsync("reza", TemporaryPassword);
         oldPassword.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
-        using var newPassword = await client.LoginAsync("reza", "Fresh5678");
+        using var newPassword = await client.LoginAsync("reza", "fresh kettle 5678");
         newPassword.StatusCode.ShouldBe(HttpStatusCode.OK, "the reset clears the lockout.");
         (await newPassword.Content.ReadFromJsonAsync<Application.Auth.AccessTokenResponse>(TestContext.Current.CancellationToken))!
             .MustChangePassword.ShouldBeTrue();

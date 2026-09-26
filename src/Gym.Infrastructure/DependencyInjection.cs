@@ -1,6 +1,7 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Security;
 using Gym.Application.Staff;
+using Gym.Domain.Auth;
 using Gym.Infrastructure.Attendances;
 using Gym.Infrastructure.Calendar;
 using Gym.Infrastructure.Identity;
@@ -73,11 +74,9 @@ public static class DependencyInjection
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
                 options.Lockout.AllowedForNewUsers = true;
 
-                // BUSINESS_RULES.md §1: at least 8 characters, a letter and a digit, no case
-                // or symbol requirement — passwords are typed on a Persian keyboard at the
-                // front desk. The built-in per-class checks are switched off in favor of
-                // LetterAndDigitPasswordValidator, which checks letter/digit without regard
-                // to case.
+                // BUSINESS_RULES.md §1 and PasswordPolicy: length and a blocklist, no composition
+                // rules. Identity's per-class checks are switched off; PasswordPolicyValidator
+                // applies the whole policy. RequiredLength stays as Identity's own backstop.
                 options.User.AllowedUserNameCharacters = UserNamePolicy.AllowedCharacters;
                 options.Password.RequiredLength = PasswordPolicy.MinimumLength;
                 options.Password.RequireDigit = false;
@@ -87,7 +86,7 @@ public static class DependencyInjection
             })
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<AppDbContext>()
-            .AddPasswordValidator<LetterAndDigitPasswordValidator>();
+            .AddPasswordValidator<PasswordPolicyValidator>();
 
         services.AddScoped<IUserAuthenticator, UserAuthenticator>();
         services.AddScoped<IStaffAccounts, StaffAccounts>();

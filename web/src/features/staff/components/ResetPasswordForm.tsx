@@ -1,8 +1,9 @@
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
-import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { PasswordChecklist, PasswordField } from "@/features/auth/components/PasswordField";
+import { newPasswordCodes } from "@/features/auth/password";
 import { normalizePassword } from "@/features/auth/schemas";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 
@@ -20,7 +21,7 @@ export function ResetPasswordForm({ staff, onDone, onCancel }: ResetPasswordForm
   const resetPassword = useResetStaffPassword();
 
   const form = useForm<ResetPasswordValues>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: zodResolver(resetPasswordSchema(staff.userName)),
     defaultValues: { temporaryPassword: "" },
   });
 
@@ -32,11 +33,12 @@ export function ResetPasswordForm({ staff, onDone, onCancel }: ResetPasswordForm
       });
       onDone(`رمز عبور «${staff.fullName}» بازنشانی شد. او در ورود بعدی باید آن را تغییر دهد.`);
     } catch (problem) {
-      applyServerErrors(problem, form.setError);
+      applyServerErrors(problem, form.setError, newPasswordCodes("temporaryPassword"));
     }
   });
 
   const { errors, isSubmitting } = form.formState;
+  const temporaryPassword = useWatch({ control: form.control, name: "temporaryPassword" });
 
   return (
     <form className="flex flex-wrap items-end gap-3" onSubmit={onSubmit} noValidate>
@@ -44,13 +46,14 @@ export function ResetPasswordForm({ staff, onDone, onCancel }: ResetPasswordForm
         <Alert variant="destructive">{errors.root.server.message}</Alert>
       )}
       <div className="min-w-64 flex-1">
-        <FormField
+        <PasswordField
           label={`رمز عبور موقت تازه برای ${staff.fullName}`}
-          dir="ltr"
           autoComplete="new-password"
+          defaultVisible
           error={errors.temporaryPassword?.message}
           {...form.register("temporaryPassword")}
         />
+        <PasswordChecklist value={temporaryPassword} userName={staff.userName} />
       </div>
       <Button type="submit" size="sm" disabled={isSubmitting}>
         ذخیره

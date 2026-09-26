@@ -1,4 +1,8 @@
 using FluentValidation;
+using FluentValidation.Results;
+
+using Gym.Domain.Auth;
+using Gym.Domain.Common.Text;
 
 namespace Gym.Application.Common.Security;
 
@@ -9,16 +13,39 @@ namespace Gym.Application.Common.Security;
 public static class PasswordRules
 {
     /// <summary>
-    /// Stops at the first failure, so the form shows the one thing to fix rather than three
-    /// messages about an empty field.
+    /// Reports the first rule the password breaks, with that rule's own error code, so the form
+    /// shows the one thing to fix. Digits are converted first, exactly as the handler will do
+    /// before saving (BUSINESS_RULES.md §1).
     /// </summary>
-    public static IRuleBuilderOptions<T, string> ValidNewPassword<T>(this IRuleBuilderInitial<T, string> rule, string requiredCode) =>
-        rule.Cascade(CascadeMode.Stop)
-            .NotEmpty().WithErrorCode(requiredCode).WithMessage("Password is required.")
-            .MinimumLength(PasswordPolicy.MinimumLength).WithErrorCode("Auth.PasswordTooShort")
-                .WithMessage($"Password must be at least {PasswordPolicy.MinimumLength} characters.")
-            .MaximumLength(PasswordPolicy.MaximumLength).WithErrorCode("Auth.PasswordTooLong")
-                .WithMessage("Password is too long.")
-            .Must(PasswordPolicy.HasLetterAndDigit).WithErrorCode("Auth.PasswordRequiresLetterAndDigit")
-                .WithMessage("Password must contain at least one letter and one digit.");
+    /// <param name="userName">
+    /// The account's user name, when the command carries it. When it does not (change password,
+    /// reset), Identity's validator checks the user name at save time instead.
+    /// </param>
+    public static IRuleBuilderOptionsConditions<T, string> ValidNewPassword<T>(
+        this IRuleBuilderInitial<T, string> rule,
+        string requiredCode,
+        Func<T, string?>? userName = null) =>
+        rule.Custom((password, context) =>
+        {
+            if (string.IsNullOrEmpty(password))
+            {
+                context.AddFailure(new ValidationFailure(context.PropertyPath, "Password is required.")
+                {
+                    ErrorCode = requiredCode,
+                });
+                return;
+            }
+
+            var checkedPassword = PasswordPolicy.Check(
+                PersianText.NormalizeDigits(password),
+                userName?.Invoke(context.InstanceToValidate));
+
+            if (checkedPassword.IsFailure)
+            {
+                context.AddFailure(new ValidationFailure(context.PropertyPath, checkedPassword.Error.Description)
+                {
+                    ErrorCode = checkedPassword.Error.Code,
+                });
+            }
+        });
 }

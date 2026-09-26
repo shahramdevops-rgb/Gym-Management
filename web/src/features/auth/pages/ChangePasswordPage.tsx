@@ -1,20 +1,22 @@
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router";
 
 import { paths } from "@/app/paths";
-import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 
 import { useChangePassword } from "../api";
+import { PasswordChecklist, PasswordField } from "../components/PasswordField";
+import { newPasswordCodes } from "../password";
 import { changePasswordSchema, normalizePassword, type ChangePasswordValues } from "../schemas";
-import { useSessionState } from "../session";
+import { tokenUserName, useSessionState } from "../session";
 
 /**
  * Both the forced first-login change and a voluntary one. The only difference is the sentence
- * at the top: a user with a temporary password is told why they are here.
+ * at the top: a user with a temporary password, or one set before the current password policy,
+ * is told why they are here.
  */
 export function ChangePasswordPage() {
   const state = useSessionState();
@@ -22,9 +24,11 @@ export function ChangePasswordPage() {
   const changePassword = useChangePassword();
 
   const mustChange = state.status === "signedIn" && state.session.mustChangePassword;
+  const userName =
+    state.status === "signedIn" ? tokenUserName(state.session.accessToken) : undefined;
 
   const form = useForm<ChangePasswordValues>({
-    resolver: zodResolver(changePasswordSchema),
+    resolver: zodResolver(changePasswordSchema(userName)),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   });
 
@@ -36,15 +40,16 @@ export function ChangePasswordPage() {
       });
       navigate(paths.home, { replace: true });
     } catch (problem) {
-      // These two are about one field each, so they appear under it rather than at the top.
+      // These are about one field each, so they appear under it rather than at the top.
       applyServerErrors(problem, form.setError, {
         "Auth.CurrentPasswordIncorrect": "currentPassword",
-        "Auth.PasswordUnchanged": "newPassword",
+        ...newPasswordCodes("newPassword"),
       });
     }
   });
 
   const { errors, isSubmitting } = form.formState;
+  const newPassword = useWatch({ control: form.control, name: "newPassword" });
 
   return (
     <Card className="max-w-md">
@@ -54,8 +59,9 @@ export function ChangePasswordPage() {
         </CardTitle>
         <CardDescription>
           {mustChange
-            ? "رمز عبور فعلی شما موقت است. برای ادامه، رمز عبور تازه‌ای انتخاب کنید."
-            : "رمز عبور تازه دست‌کم ۸ نویسه و شامل حرف و رقم باشد."}
+            ? "رمز عبور فعلی شما موقت است یا با قوانین تازهٔ امنیتی جور نیست. برای ادامه، رمز عبور تازه‌ای انتخاب کنید."
+            : "رمز عبور تازه‌ای انتخاب کنید."}{" "}
+          یک جملهٔ کوتاه انگلیسی، مثل my gym opens at 6، رمز خوب و به‌یادماندنی است.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -64,29 +70,24 @@ export function ChangePasswordPage() {
             <Alert variant="destructive">{errors.root.server.message}</Alert>
           )}
 
-          <FormField
+          <PasswordField
             label="رمز عبور فعلی"
-            type="password"
             autoComplete="current-password"
-            dir="ltr"
             error={errors.currentPassword?.message}
             {...form.register("currentPassword")}
           />
 
-          <FormField
+          <PasswordField
             label="رمز عبور جدید"
-            type="password"
             autoComplete="new-password"
-            dir="ltr"
             error={errors.newPassword?.message}
             {...form.register("newPassword")}
           />
+          <PasswordChecklist value={newPassword} userName={userName} />
 
-          <FormField
+          <PasswordField
             label="تکرار رمز عبور جدید"
-            type="password"
             autoComplete="new-password"
-            dir="ltr"
             error={errors.confirmPassword?.message}
             {...form.register("confirmPassword")}
           />

@@ -17,7 +17,7 @@ namespace Gym.Api.IntegrationTests.Identity;
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class IdentitySeederTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
-    private const string ValidPassword = "Owner1234";
+    private const string ValidPassword = "seed kettle 1234";
 
     [Fact]
     public async Task SeedOwnerAsync_WhenCalledTwice_CreatesExactlyOneOwner()
@@ -48,7 +48,7 @@ public sealed class IdentitySeederTests(DatabaseFixture fixture) : DatabaseTestB
 
         // A later run with a changed Seed:OwnerUserName must not rename, replace, or touch
         // the password of the Owner that already exists.
-        var secondConfiguration = BuildConfiguration(userName: "new-owner", password: "Different123");
+        var secondConfiguration = BuildConfiguration(userName: "new-owner", password: "different kettle 123");
         await IdentitySeeder.SeedOwnerAsync(scope.ServiceProvider, secondConfiguration, TestContext.Current.CancellationToken);
 
         var owners = await userManager.GetUsersInRoleAsync(Roles.Owner);

@@ -24,7 +24,7 @@ public sealed class ChangePasswordEndpointTests(DatabaseFixture fixture) : Datab
 {
     private const string ChangePasswordPath = "/api/auth/change-password";
     private const string MePath = "/api/auth/me";
-    private const string NewPassword = "Chosen5678";
+    private const string NewPassword = "chosen kettle 5678";
 
     [Fact]
     public async Task Me_UserWhoMustChangePassword_Returns403PasswordChangeRequired()
@@ -152,8 +152,9 @@ public sealed class ChangePasswordEndpointTests(DatabaseFixture fixture) : Datab
 
     [Theory]
     [InlineData("abc1", "Auth.PasswordTooShort")]
-    [InlineData("onlyletters", "Auth.PasswordRequiresLetterAndDigit")]
-    [InlineData("12345678", "Auth.PasswordRequiresLetterAndDigit")]
+    [InlineData("رمز عبور خیلی خوب من", "Auth.PasswordNotEnglish")]
+    [InlineData("abababababab", "Auth.PasswordTooSimple")]
+    [InlineData("Football2024!", "Auth.PasswordTooCommon")]
     public async Task ChangePassword_WeakNewPassword_Returns400WithFieldCode(string newPassword, string expectedCode)
     {
         await TestUsers.CreateAsync(Fixture);
@@ -169,16 +170,33 @@ public sealed class ChangePasswordEndpointTests(DatabaseFixture fixture) : Datab
     }
 
     [Fact]
-    public async Task ChangePassword_PersianLettersAndDigits_AreAccepted()
+    public async Task ChangePassword_PersianDigits_AreAcceptedAsEnglishDigits()
     {
         await TestUsers.CreateAsync(Fixture);
         using var client = Fixture.CreateClient();
         var accessToken = await client.LoginForAccessTokenAsync("staff", TestUsers.Password);
 
-        // Typed on a Persian keyboard: Persian letters and Persian digits both count.
-        using var response = await ChangePasswordAsync(client, accessToken, TestUsers.Password, "رمزعبور۱۲۳۴");
+        // Digits from a Persian keyboard are converted, so they do not count as Persian letters.
+        using var response = await ChangePasswordAsync(client, accessToken, TestUsers.Password, "chosen kettle ۵۶۷۸");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        using var login = await client.LoginAsync("staff", "chosen kettle 5678");
+        login.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task ChangePassword_NewPasswordContainsUserName_Returns400WithContainsUserName()
+    {
+        // The command carries no user name, so Identity's validator is the one that notices,
+        // and it answers with the policy's own code.
+        await TestUsers.CreateAsync(Fixture);
+        using var client = Fixture.CreateClient();
+        var accessToken = await client.LoginForAccessTokenAsync("staff", TestUsers.Password);
+
+        using var response = await ChangePasswordAsync(client, accessToken, TestUsers.Password, "Staff kettle 5678");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Auth.PasswordContainsUserName");
     }
 
     [Fact]

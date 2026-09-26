@@ -38,9 +38,14 @@ export const errorMessages: Record<string, string> = {
   "Auth.PasswordRequired": "رمز عبور را وارد کنید.",
   "Auth.CurrentPasswordRequired": "رمز عبور فعلی را وارد کنید.",
   "Auth.NewPasswordRequired": "رمز عبور جدید را وارد کنید.",
-  "Auth.PasswordTooShort": "رمز عبور باید دست‌کم ۸ نویسه باشد.",
+  "Auth.PasswordTooShort": "رمز عبور باید دست‌کم ۱۲ نویسه باشد.",
   "Auth.PasswordTooLong": "رمز عبور بیش از حد طولانی است.",
-  "Auth.PasswordRequiresLetterAndDigit": "رمز عبور باید دست‌کم یک حرف و یک رقم داشته باشد.",
+  "Auth.PasswordNotEnglish":
+    "رمز عبور فقط می‌تواند حروف، رقم و علامت‌های انگلیسی داشته باشد. کیبورد را انگلیسی کنید.",
+  "Auth.PasswordContainsUserName": "نام کاربری نباید داخل رمز عبور باشد.",
+  "Auth.PasswordTooSimple": "رمز عبور تکراری یا پشت سر هم است. رمز دیگری انتخاب کنید.",
+  "Auth.PasswordTooCommon":
+    "این رمز عبور جزو رمزهای رایج و لو رفته است و به‌راحتی حدس زده می‌شود. رمز دیگری انتخاب کنید.",
   "Auth.CurrentPasswordIncorrect": "رمز عبور فعلی اشتباه است.",
   "Auth.PasswordUnchanged": "رمز عبور جدید باید با رمز فعلی فرق داشته باشد.",
   "Auth.PasswordRejected": "این رمز عبور پذیرفته نشد.",

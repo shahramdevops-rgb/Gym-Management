@@ -60,7 +60,7 @@ public sealed class StaffAccounts(
             return Result.Failure<StaffResponse>(
                 created.Errors.Any(error => error.Code == nameof(IdentityErrorDescriber.DuplicateUserName))
                     ? StaffErrors.UserNameTaken
-                    : StaffErrors.Rejected(Describe(created)));
+                    : PasswordPolicyValidator.PolicyError(created) ?? StaffErrors.Rejected(Describe(created)));
         }
 
         ThrowIfFailed(await userManager.AddToRoleAsync(user, Roles.Staff), "add the user to the Staff role");
@@ -141,7 +141,7 @@ public sealed class StaffAccounts(
             var validation = await validator.ValidateAsync(userManager, user, temporaryPassword);
             if (!validation.Succeeded)
             {
-                return Result.Failure(StaffErrors.Rejected(Describe(validation)));
+                return Result.Failure(PasswordPolicyValidator.PolicyError(validation) ?? StaffErrors.Rejected(Describe(validation)));
             }
         }
 

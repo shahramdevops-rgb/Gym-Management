@@ -80,7 +80,9 @@ describe("StaffPage", () => {
       target: { value: "  رضا   احمد\u064A " },
     });
     fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "reza" } });
-    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), { target: { value: "Temp۱۲۳۴" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "temp kettle ۱۲۳۴" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("حساب «رضا احمدی» ساخته شد.");
@@ -89,7 +91,7 @@ describe("StaffPage", () => {
     expect(body).toEqual({
       userName: "reza",
       fullName: "رضا احمدی",
-      temporaryPassword: "Temp1234",
+      temporaryPassword: "temp kettle 1234",
     });
   });
 
@@ -104,7 +106,9 @@ describe("StaffPage", () => {
 
     fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: "رضا" } });
     fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "reza" } });
-    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), { target: { value: "Temp1234" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "temp kettle 1234" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
 
     const message = await screen.findByText("این نام کاربری قبلاً استفاده شده است.");
@@ -118,7 +122,9 @@ describe("StaffPage", () => {
 
     fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: "رضا" } });
     fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "رضا" } });
-    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), { target: { value: "Temp1234" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "temp kettle 1234" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
 
     expect(await screen.findByText(/فقط می‌تواند حروف انگلیسی/)).toBeInTheDocument();
@@ -149,7 +155,7 @@ describe("StaffPage", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "بازنشانی رمز" }));
     fireEvent.change(screen.getByLabelText(/رمز عبور موقت تازه/), {
-      target: { value: "Fresh5678" },
+      target: { value: "fresh kettle 5678" },
     });
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
@@ -157,6 +163,6 @@ describe("StaffPage", () => {
     const body = (await api
       .requestsTo("POST", `/api/staff/${reza.id}/reset-password`)[0]!
       .json()) as Record<string, string>;
-    expect(body).toEqual({ temporaryPassword: "Fresh5678" });
+    expect(body).toEqual({ temporaryPassword: "fresh kettle 5678" });
   });
 });
