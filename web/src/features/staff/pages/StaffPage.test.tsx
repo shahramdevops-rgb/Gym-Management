@@ -165,4 +165,66 @@ describe("StaffPage", () => {
       .json()) as Record<string, string>;
     expect(body).toEqual({ temporaryPassword: "fresh kettle 5678" });
   });
+
+  it("Unlock_LockedStaff_CallsTheApiAndConfirmsTheOldPasswordStillWorks", async () => {
+    const api = mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/staff": () => page([mina]),
+      [`POST /api/staff/${mina.id}/unlock`]: () => json(200, { ...mina, isLockedOut: false }),
+    });
+    renderApp("/staff", { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "باز کردن قفل" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("با همان رمز قبلی وارد می‌شود");
+    expect(api.requestsTo("POST", `/api/staff/${mina.id}/unlock`)).toHaveLength(1);
+  });
+
+  it("Unlock_StaffNotLocked_HasNoUnlockButton", async () => {
+    mockApi({ ...signedInHandlers(owner), "GET /api/staff": () => page([reza]) });
+    renderApp("/staff", { session: session() });
+
+    await screen.findByText("رضا احمدی");
+
+    expect(screen.queryByRole("button", { name: "باز کردن قفل" })).not.toBeInTheDocument();
+  });
+
+  it("CreateStaff_PasswordContainsTheUserName_IsRejectedBeforeSending", async () => {
+    const api = mockApi({ ...signedInHandlers(owner), "GET /api/staff": () => page([]) });
+    renderApp("/staff", { session: session() });
+    await screen.findByText("هنوز هیچ کارمندی ثبت نشده است.");
+
+    fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: "رضا" } });
+    fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "reza" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "Reza kettle 1234" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
+
+    expect(await screen.findByText("نام کاربری نباید داخل رمز عبور باشد.")).toBeInTheDocument();
+    expect(api.requestsTo("POST", "/api/staff")).toHaveLength(0);
+  });
+
+  it("CreateStaff_GuessableUserNameRefusedByTheServer_ShowsTheErrorUnderTheUserName", async () => {
+    mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/staff": () => page([]),
+      "POST /api/staff": () =>
+        json(400, {
+          code: "General.ValidationFailed",
+          errors: { userName: [{ code: "Staff.UserNameGuessable", description: "Guessable." }] },
+        }),
+    });
+    renderApp("/staff", { session: session() });
+    await screen.findByText("هنوز هیچ کارمندی ثبت نشده است.");
+
+    fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: "رضا" } });
+    fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "admin" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "temp kettle 1234" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
+
+    expect(await screen.findByText(/به‌راحتی حدس زده می‌شود/)).toBeInTheDocument();
+  });
 });

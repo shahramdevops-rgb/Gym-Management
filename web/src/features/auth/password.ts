@@ -13,10 +13,13 @@ export const passwordMinLength = 12;
 export const passwordMaxLength = 128;
 const minimumDistinctCharacters = 5;
 
-/** The same runs as the server's `PasswordPolicy.Sequences`. The digit run wraps from 9 to 0. */
+/**
+ * The same runs as the server's `PasswordPolicy.Sequences`. The digit run wraps from 9 to 0,
+ * repeated past the longest password allowed.
+ */
 const sequences = [
   "abcdefghijklmnopqrstuvwxyz",
-  "01234567890123456789",
+  "0123456789".repeat(Math.floor(passwordMaxLength / 10) + 2),
   "qwertyuiopasdfghjklzxcvbnm",
   "1qaz2wsx3edc4rfv5tgb6yhn7ujm8ik9ol0p",
   "!@#$%^&*()_+",

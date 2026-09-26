@@ -1,3 +1,4 @@
+using Gym.Application.Accounts;
 using Gym.Application.Common;
 using Gym.Application.Common.Security;
 using Gym.Application.Staff;
@@ -90,6 +91,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserAuthenticator, UserAuthenticator>();
         services.AddScoped<IStaffAccounts, StaffAccounts>();
+        services.AddScoped<IUserAccounts, UserAccounts>();
 
         // "Today" in the gym's time zone. A misspelled time zone stops the app at startup instead
         // of silently producing the wrong day.

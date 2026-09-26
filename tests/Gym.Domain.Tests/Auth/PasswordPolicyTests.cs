@@ -73,6 +73,7 @@ public sealed class PasswordPolicyTests
     [InlineData("abcdefghijklm")]
     [InlineData("123456789012")] // the digits wrap from 9 to 0
     [InlineData("210987654321")] // backwards
+    [InlineData("123456789012345678901234567890")] // a digit run longer than one lap
     [InlineData("QWERTYUIOPASD")]
     [InlineData("1qaz2wsx3edc4rfv")]
     public void Check_RepetitionOrSequence_FailsWithTooSimple(string password)

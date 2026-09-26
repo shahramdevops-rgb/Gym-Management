@@ -32,6 +32,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<TrustedDevice> TrustedDevices => Set<TrustedDevice>();
+
     /// <summary>
     /// Not on <c>IAppDbContext</c> yet: nothing in Application reads the audit log until the
     /// audit screen (task 11.1), and only the interceptor writes it.

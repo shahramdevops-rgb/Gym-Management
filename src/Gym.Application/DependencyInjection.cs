@@ -1,5 +1,8 @@
 using FluentValidation;
 
+using Gym.Application.Accounts.RenameUser;
+using Gym.Application.Accounts.SetPassword;
+using Gym.Application.Accounts.UnlockUser;
 using Gym.Application.Attendances.AutoCheckout;
 using Gym.Application.Attendances.CancelCheckIn;
 using Gym.Application.Attendances.CheckIn;
@@ -52,6 +55,7 @@ using Gym.Application.Staff.GetStaff;
 using Gym.Application.Staff.ListStaff;
 using Gym.Application.Staff.ResetStaffPassword;
 using Gym.Application.Staff.SetStaffActive;
+using Gym.Application.Staff.UnlockStaff;
 using Gym.Application.Subscriptions;
 using Gym.Application.Subscriptions.AssignSubscription;
 using Gym.Application.Subscriptions.CancelSubscription;
@@ -171,6 +175,12 @@ public static class DependencyInjection
         services.AddScoped<GetStaffHandler>();
         services.AddScoped<SetStaffActiveHandler>();
         services.AddScoped<ResetStaffPasswordHandler>();
+        services.AddScoped<UnlockStaffHandler>();
+
+        // The server console (./server.sh unlock | set-password | rename).
+        services.AddScoped<UnlockUserHandler>();
+        services.AddScoped<SetPasswordHandler>();
+        services.AddScoped<RenameUserHandler>();
 
         return services;
     }

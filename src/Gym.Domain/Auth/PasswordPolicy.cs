@@ -34,12 +34,13 @@ public static class PasswordPolicy
 
     /// <summary>
     /// Runs of characters people type without thinking. A password that is any stretch of one of
-    /// these, forwards or backwards, is refused. The digit run repeats so that it wraps from 9 to 0.
+    /// these, forwards or backwards, is refused. The digit run wraps from 9 to 0, repeated past the
+    /// longest password allowed, so <c>1234567890123…</c> is caught at any length.
     /// </summary>
     private static readonly string[] Sequences =
     [
         "abcdefghijklmnopqrstuvwxyz",
-        "01234567890123456789",
+        string.Concat(Enumerable.Repeat("0123456789", (MaximumLength / 10) + 2)),
         "qwertyuiopasdfghjklzxcvbnm",
         "1qaz2wsx3edc4rfv5tgb6yhn7ujm8ik9ol0p",
         "!@#$%^&*()_+",

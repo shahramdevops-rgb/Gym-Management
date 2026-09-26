@@ -20,4 +20,7 @@ public enum RefreshTokenRevocationReason
 
     /// <summary>The Owner reset the user's password.</summary>
     PasswordReset = 6,
+
+    /// <summary>The password was set from the server console (<c>./server.sh set-password</c>).</summary>
+    PasswordSetOnServer = 7,
 }

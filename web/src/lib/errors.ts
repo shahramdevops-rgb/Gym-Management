@@ -59,9 +59,22 @@ export const errorMessages: Record<string, string> = {
   "Staff.UserNameLength": "نام کاربری باید بین ۳ تا ۵۰ نویسه باشد.",
   "Staff.UserNameInvalidCharacters":
     "نام کاربری فقط می‌تواند حروف انگلیسی، رقم و نویسه‌های - . _ @ + داشته باشد.",
+  "Staff.UserNameGuessable":
+    "این نام کاربری به‌راحتی حدس زده می‌شود (مثل مدیر، مالک یا تست). نامی مثل نام خود شخص انتخاب کنید.",
   "Staff.FullNameRequired": "نام و نام خانوادگی را وارد کنید.",
   "Staff.FullNameTooLong": "نام بیش از حد طولانی است.",
   "Staff.TemporaryPasswordRequired": "رمز عبور موقت را وارد کنید.",
+
+  // The server console's account commands (./server.sh unlock | set-password | rename). They
+  // print in English on the server and never reach the web app today, but they are real codes,
+  // so they get a message rather than an exception in the catalogue test.
+  "Accounts.UserNotFound": "حسابی با این نام کاربری پیدا نشد.",
+  "Accounts.UserNameTaken": "این نام کاربری قبلاً استفاده شده است.",
+  "Accounts.UserNameInvalid":
+    "نام کاربری باید بین ۳ تا ۵۰ نویسه و فقط از حروف انگلیسی، رقم و نویسه‌های - . _ @ + باشد.",
+  "Accounts.UserNameGuessable": "این نام کاربری به‌راحتی حدس زده می‌شود. نام دیگری انتخاب کنید.",
+  "Accounts.ChangedConcurrently": "این حساب هم‌زمان تغییر کرد. دوباره امتحان کنید.",
+  "Accounts.Rejected": "اطلاعات حساب پذیرفته نشد.",
 
   // Refresh token rules inside the domain. The API reports them as Auth.RefreshTokenInvalid,
   // but they are real codes, so they get a message rather than an exception in the catalogue test.

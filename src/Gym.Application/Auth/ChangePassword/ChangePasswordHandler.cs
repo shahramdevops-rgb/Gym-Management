@@ -27,7 +27,8 @@ public sealed class ChangePasswordHandler(
     ICurrentUser currentUser,
     TimeProvider timeProvider)
 {
-    public async Task<Result<AuthSession>> Handle(ChangePasswordCommand command, CancellationToken cancellationToken)
+    /// <param name="deviceToken">The request's <c>gym_device</c> cookie, if it has one.</param>
+    public async Task<Result<AuthSession>> Handle(ChangePasswordCommand command, string? deviceToken, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -41,7 +42,8 @@ public sealed class ChangePasswordHandler(
         var currentPassword = PersianText.NormalizeDigits(command.CurrentPassword);
         var newPassword = PersianText.NormalizeDigits(command.NewPassword);
 
-        var verified = await users.VerifyPasswordAsync(userId, currentPassword, cancellationToken);
+        var deviceTokenHash = TrustedDevices.HashOf(deviceToken);
+        var verified = await users.VerifyPasswordAsync(userId, currentPassword, deviceTokenHash, cancellationToken);
         if (verified.IsFailure)
         {
             return Result.Failure<AuthSession>(verified.Error);
@@ -67,6 +69,9 @@ public sealed class ChangePasswordHandler(
         }
 
         await db.RevokeAllForUserAsync(userId, RefreshTokenRevocationReason.PasswordChanged, now, cancellationToken);
+
+        // Every other device goes back to the "unknown devices" door; this one stays trusted.
+        await db.ForgetDevicesAsync(userId, exceptTokenHash: deviceTokenHash, cancellationToken);
 
         var refreshSecret = RefreshTokenSecret.Generate();
         var refreshToken = RefreshToken.Issue(userId, RefreshTokenSecret.Hash(refreshSecret), now);

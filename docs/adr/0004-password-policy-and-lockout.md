@@ -40,8 +40,10 @@ whose stored password fails the current policy must change it (BUSINESS_RULES.md
 
 An attacker on the internet has no device cookie, so however many wrong passwords they send, they
 lock only the "unknown devices" door. The front-desk PC and the Owner's phone keep working. Trust
-lasts 90 days from the last successful login on that device, and ends for every other device when
-the password is changed, and for all of them when it is reset.
+lasts 90 days from the last time the device was used (a login, or a session refresh from it), and
+ends for every other device when the password is changed, and for all of them when it is reset.
+The secret in the cookie is replaced at every login and every refresh, so a copied cookie stops
+naming the device the next time the real browser is used.
 
 Three ways to undo a lockout complete it: an «باز کردن قفل» button for the Owner on staff accounts,
 and `./server.sh unlock` and `./server.sh set-password` on the server for anyone, the Owner
@@ -67,8 +69,12 @@ included, for the day the Owner is the one locked out.
 
 - One more table (`trusted_devices`) and one more cookie. Clearing the browser's cookies makes a
   trusted device unknown again until the next successful login.
-- Someone who steals the device cookie from the front-desk PC gets that device's own five tries,
-  not a way in: the password is still needed.
+- Someone who copies the device cookie from the front-desk PC (developer tools can show it) gets
+  no way in, since the password is still needed. Until the real PC next logs in or refreshes (at
+  most 15 minutes while anyone is signed in there), the copy can count wrong passwords at that PC's
+  door and lock the people who use it. Rotation keeps that window short; it cannot close it.
+- Each login and refresh on a trusted device writes an audit row for the device (its secret's hash
+  is excluded from the audit log by name), the same as refresh tokens already do.
 - The blocklist file is data in the repository (~360 KB). It is regenerated from SecLists, never
   edited by hand; its header says how.
 - Passwords set before this policy keep working until their owner next logs in.

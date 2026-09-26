@@ -257,6 +257,18 @@ login form from being what a visitor sees first, and lets only that host carry
 certificate on its own. Changing `DOMAIN` signs every user out, so do it before opening time and
 tell staff the new address first.
 
+**Accounts from the server.** The web app cannot unlock, reset or rename the Owner, so these run
+on the server itself (over SSH, from `/opt/gym`), for any account:
+
+```bash
+./server.sh unlock <user>                # clear a lockout; the password stays
+./server.sh set-password <user>          # asks twice, never on the command line; ends every session
+./server.sh rename <user> <new-user>     # e.g. away from a guessable "Owner"
+```
+
+They run the API's own image once with `admin …` instead of the web server
+(`src/Gym.Api/Admin/AdminConsole.cs`); the rules are in BUSINESS_RULES.md §1 *Lockout*.
+
 **After a reboot** nothing has to be done by hand: every container carries
 `restart: unless-stopped`, and the stack came back on its own from a deliberate `sudo reboot`.
 

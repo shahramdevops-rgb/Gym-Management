@@ -22,8 +22,8 @@ public static class AuthEndpoints
 
         // Anonymous by necessity: this is how a caller gets a token in the first place. It is
         // the only endpoint that checks a password, which is why it carries the rate limit.
-        group.MapPost("/login", async (LoginCommand command, LoginHandler handler, HttpResponse response, CancellationToken ct) =>
-                ToSessionResult(await handler.Handle(command, ct), response))
+        group.MapPost("/login", async (LoginCommand command, LoginHandler handler, HttpRequest request, HttpResponse response, CancellationToken ct) =>
+                ToSessionResult(await handler.Handle(command, TrustedDeviceCookie.Read(request), ct), response))
             .AddEndpointFilter<ValidationFilter<LoginCommand>>()
             .RequireRateLimiting(RateLimitingConfiguration.LoginPolicy)
             .AllowAnonymous()
@@ -36,7 +36,7 @@ public static class AuthEndpoints
         // Anonymous because the access token has usually expired by the time this is called;
         // the refresh cookie is the credential here.
         group.MapPost("/refresh", async (RefreshHandler handler, HttpRequest request, HttpResponse response, CancellationToken ct) =>
-                ToSessionResult(await handler.Handle(new RefreshCommand(RefreshTokenCookie.Read(request)), ct), response))
+                ToSessionResult(await handler.Handle(new RefreshCommand(RefreshTokenCookie.Read(request), TrustedDeviceCookie.Read(request)), ct), response))
             .AllowAnonymous()
             .WithName("Refresh")
             .Produces<AccessTokenResponse>()
@@ -58,8 +58,8 @@ public static class AuthEndpoints
         // The one endpoint a user with a temporary password may call besides logout, which is
         // why it uses PasswordChangeAllowed, the only policy without the gate. Rate-limited like
         // login because it checks a password too.
-        group.MapPost("/change-password", async (ChangePasswordCommand command, ChangePasswordHandler handler, HttpResponse response, CancellationToken ct) =>
-                ToSessionResult(await handler.Handle(command, ct), response))
+        group.MapPost("/change-password", async (ChangePasswordCommand command, ChangePasswordHandler handler, HttpRequest request, HttpResponse response, CancellationToken ct) =>
+                ToSessionResult(await handler.Handle(command, TrustedDeviceCookie.Read(request), ct), response))
             .AddEndpointFilter<ValidationFilter<ChangePasswordCommand>>()
             .RequireRateLimiting(RateLimitingConfiguration.LoginPolicy)
             .RequireAuthorization(Policies.PasswordChangeAllowed)
@@ -95,6 +95,11 @@ public static class AuthEndpoints
         return result.ToHttpResult(session =>
         {
             RefreshTokenCookie.Write(response, session.RefreshToken, session.RefreshTokenExpiresAt);
+
+            if (session is { DeviceToken: { } deviceToken, DeviceTokenExpiresAt: { } deviceTokenExpiresAt })
+            {
+                TrustedDeviceCookie.Write(response, deviceToken, deviceTokenExpiresAt);
+            }
 
             return Results.Ok(session.Response);
         });

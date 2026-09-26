@@ -95,7 +95,8 @@ public sealed class AuditLogTests(DatabaseFixture fixture) : DatabaseTestBase(fi
             client, ownerToken, HttpMethod.Post, $"/api/staff/{staff.Id}/reset-password", new { temporaryPassword = "fresh kettle 5678" });
         reset.EnsureSuccessStatusCode();
         using var login = await client.LoginAsync("reza", "fresh kettle 5678");
-        using var refresh = await client.RefreshAsync(login.ReadRefreshToken());
+        using var again = await client.LoginFromDeviceAsync("reza", "fresh kettle 5678", login.ReadDeviceToken());
+        using var refresh = await client.RefreshFromDeviceAsync(again.ReadRefreshToken(), again.ReadDeviceToken());
 
         var secrets = await LoadSecretsAsync();
         secrets.ShouldNotBeEmpty("the test proves nothing unless there are secrets to look for.");
@@ -115,6 +116,40 @@ public sealed class AuditLogTests(DatabaseFixture fixture) : DatabaseTestBase(fi
                 json.ShouldNotContain(secret);
             }
         }
+    }
+
+    [Fact]
+    public async Task Login_PasswordFromAnOlderPolicy_TheForcedChangeIsAudited()
+    {
+        var user = await TestUsers.CreateWithOwnPasswordAsync(Fixture);
+        await TestUsers.SetPasswordBypassingPolicyAsync(Fixture, user.Id, "Staff1234");
+        using var client = Fixture.CreateClient();
+
+        using var login = await client.LoginAsync("staff", "Staff1234");
+
+        (await LoadAuditAsync()).ShouldContain(log =>
+            log.EntityType == nameof(User) && log.EntityId == user.Id.ToString() &&
+            log.Action == AuditAction.Update && log.NewValues!.Contains("MustChangePassword"));
+    }
+
+    [Fact]
+    public async Task Unlock_ADeviceLockout_IsAudited()
+    {
+        var (client, ownerToken, _) = await OwnerClientAsync();
+        var staff = await CreateStaffAsync(client, ownerToken, "reza");
+        using var login = await client.LoginAsync("reza", TemporaryPassword);
+        var device = login.ReadDeviceToken();
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            using var wrong = await client.LoginFromDeviceAsync("reza", "Wrong1234", device);
+        }
+
+        using var unlock = await SendAsync(client, ownerToken, HttpMethod.Post, $"/api/staff/{staff.Id}/unlock");
+
+        unlock.EnsureSuccessStatusCode();
+        (await LoadAuditAsync()).ShouldContain(log =>
+            log.EntityType == nameof(TrustedDevice) && log.Action == AuditAction.Update &&
+            log.NewValues!.Contains("LockedUntil"));
     }
 
     [Fact]
@@ -228,8 +263,9 @@ public sealed class AuditLogTests(DatabaseFixture fixture) : DatabaseTestBase(fi
             .Select(user => new[] { user.PasswordHash, user.SecurityStamp })
             .ToListAsync(TestContext.Current.CancellationToken);
         var tokenHashes = await db.RefreshTokens.Select(token => token.TokenHash).ToListAsync(TestContext.Current.CancellationToken);
+        var deviceHashes = await db.TrustedDevices.Select(device => device.TokenHash).ToListAsync(TestContext.Current.CancellationToken);
 
-        return [.. userSecrets.SelectMany(pair => pair).OfType<string>(), .. tokenHashes];
+        return [.. userSecrets.SelectMany(pair => pair).OfType<string>(), .. tokenHashes, .. deviceHashes];
     }
 
     private async Task SaveTokenAsync(RefreshToken token)

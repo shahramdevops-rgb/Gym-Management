@@ -21,12 +21,17 @@ public sealed class LoginHandler(
     IAppDbContext db,
     TimeProvider timeProvider)
 {
-    public async Task<Result<AuthSession>> Handle(LoginCommand command, CancellationToken cancellationToken)
+    /// <param name="deviceToken">The request's <c>gym_device</c> cookie, if it has one.</param>
+    public async Task<Result<AuthSession>> Handle(LoginCommand command, string? deviceToken, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
 
         var password = PersianText.NormalizeDigits(command.Password);
-        var authentication = await authenticator.AuthenticateAsync(command.UserName, password, cancellationToken);
+        var authentication = await authenticator.AuthenticateAsync(
+            command.UserName,
+            password,
+            TrustedDevices.HashOf(deviceToken),
+            cancellationToken);
 
         if (authentication.IsFailure)
         {
@@ -44,11 +49,22 @@ public sealed class LoginHandler(
             user = user with { MustChangePassword = true };
         }
 
+        var now = timeProvider.GetUtcNow();
+
         var refreshSecret = RefreshTokenSecret.Generate();
-        var refreshToken = RefreshToken.Issue(user.Id, RefreshTokenSecret.Hash(refreshSecret), timeProvider.GetUtcNow());
+        var refreshToken = RefreshToken.Issue(user.Id, RefreshTokenSecret.Hash(refreshSecret), now);
         db.RefreshTokens.Add(refreshToken);
+
+        // From now on, wrong passwords typed on this browser lock only this browser
+        // (BUSINESS_RULES.md §1 *Lockout*).
+        var trustedDeviceToken = await db.TrustDeviceAsync(user.Id, deviceToken, now, cancellationToken);
+
         await db.SaveChangesAsync(cancellationToken);
 
-        return AuthSession.Create(user, tokenIssuer.Issue(user), refreshSecret, refreshToken.ExpiresAt);
+        return AuthSession.Create(user, tokenIssuer.Issue(user), refreshSecret, refreshToken.ExpiresAt) with
+        {
+            DeviceToken = trustedDeviceToken,
+            DeviceTokenExpiresAt = now + TrustedDevice.Lifetime,
+        };
     }
 }

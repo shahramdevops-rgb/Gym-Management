@@ -34,6 +34,7 @@ describe("isTooSimple", () => {
     "abcdabcdabcd",
     "123456789012",
     "210987654321",
+    "123456789012345678901234567890",
     "QWERTYUIOPASD",
   ])("IsTooSimple_RepetitionOrSequence_ReturnsTrue (%s)", (password) => {
     expect(isTooSimple(password)).toBe(true);
