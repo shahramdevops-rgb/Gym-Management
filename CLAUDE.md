@@ -62,6 +62,8 @@ Keep this section up to date when commands change.
 - Warnings are errors. Fix them; do not suppress them.
 - Never commit secrets. Local secrets use `dotnet user-secrets`; production uses environment variables.
 - Commit messages follow Conventional Commits, e.g. `feat(members): add phone normalization`. Ask before committing.
+- Commit at the end of the session that made the changes, before the developer closes it, so the message comes from what this session already knows.
+- When committing, read `git diff --stat` first and write the message from what you did in this session; re-read the full diff only for parts you did not write. Never read generated files (`Persistence/Migrations/**`, `web/src/lib/api/schema.d.ts`).
 
 ## Teaching mode
 The developer is learning .NET architecture through this project.
