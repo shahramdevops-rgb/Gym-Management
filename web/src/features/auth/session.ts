@@ -52,6 +52,19 @@ export const sessionStore = {
  * it receives; the browser only needs to tell whether two tokens belong to the same person.
  */
 export function tokenSubject(accessToken: string): string | undefined {
+  return tokenClaim(accessToken, "sub");
+}
+
+/**
+ * The user name (`name`) inside an access token, read the same unverified way. The
+ * change-password screen uses it for the "must not contain the user name" rule; the API
+ * checks that rule itself too.
+ */
+export function tokenUserName(accessToken: string): string | undefined {
+  return tokenClaim(accessToken, "name");
+}
+
+function tokenClaim(accessToken: string, claim: string): string | undefined {
   try {
     const payload = accessToken.split(".")[1];
     if (payload === undefined) {
@@ -61,11 +74,10 @@ export function tokenSubject(accessToken: string): string | undefined {
     const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
     const json = JSON.parse(
       atob(base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=")),
-    ) as {
-      sub?: unknown;
-    };
+    ) as Record<string, unknown>;
 
-    return typeof json.sub === "string" ? json.sub : undefined;
+    const value = json[claim];
+    return typeof value === "string" ? value : undefined;
   } catch {
     return undefined;
   }

@@ -23,6 +23,7 @@ public sealed class CreateStaffValidator : AbstractValidator<CreateStaffCommand>
             .MaximumLength(StaffNames.FullNameMaxLength).WithErrorCode("Staff.FullNameTooLong").WithMessage("Full name is too long.")
             .OverridePropertyName(nameof(CreateStaffCommand.FullName));
 
-        RuleFor(command => command.TemporaryPassword).ValidNewPassword("Staff.TemporaryPasswordRequired");
+        // The user name is in the command, so "must not contain the user name" is a field error here too.
+        RuleFor(command => command.TemporaryPassword).ValidNewPassword("Staff.TemporaryPasswordRequired", command => command.UserName);
     }
 }

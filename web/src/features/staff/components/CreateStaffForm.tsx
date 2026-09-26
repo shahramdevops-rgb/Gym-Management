@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PasswordChecklist, PasswordField } from "@/features/auth/components/PasswordField";
+import { newPasswordCodes } from "@/features/auth/password";
 import { normalizePassword } from "@/features/auth/schemas";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { normalizeDigits, normalizePersianText } from "@/lib/normalize";
@@ -32,11 +34,18 @@ export function CreateStaffForm() {
       setCreated(staff.fullName);
       form.reset();
     } catch (problem) {
-      applyServerErrors(problem, form.setError, { "Staff.UserNameTaken": "userName" });
+      applyServerErrors(problem, form.setError, {
+        "Staff.UserNameTaken": "userName",
+        ...newPasswordCodes("temporaryPassword"),
+      });
     }
   });
 
   const { errors, isSubmitting } = form.formState;
+  const [userName, temporaryPassword] = useWatch({
+    control: form.control,
+    name: ["userName", "temporaryPassword"],
+  });
 
   return (
     <Card>
@@ -71,13 +80,16 @@ export function CreateStaffForm() {
             error={errors.userName?.message}
             {...form.register("userName")}
           />
-          <FormField
-            label="رمز عبور موقت"
-            dir="ltr"
-            autoComplete="new-password"
-            error={errors.temporaryPassword?.message}
-            {...form.register("temporaryPassword")}
-          />
+          <div className="space-y-2">
+            <PasswordField
+              label="رمز عبور موقت"
+              autoComplete="new-password"
+              defaultVisible
+              error={errors.temporaryPassword?.message}
+              {...form.register("temporaryPassword")}
+            />
+            <PasswordChecklist value={temporaryPassword} userName={userName} />
+          </div>
 
           <div className="md:col-span-3">
             <Button type="submit" disabled={isSubmitting}>

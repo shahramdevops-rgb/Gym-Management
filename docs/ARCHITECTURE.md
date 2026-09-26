@@ -388,8 +388,12 @@ web/src/
   `ValidationFilter<T>` validates them like a body.
 - Endpoints that share a policy put it on the `MapGroup` (`StaffEndpoints`), so a new endpoint in the group cannot be
   added without it.
-- User names and passwords have one rule each in Application (`UserNamePolicy`, `PasswordPolicy`), used by both the
-  FluentValidation rules (`PasswordRules.ValidNewPassword`) and Identity's options, so the form and the database agree.
+- User names and passwords have one rule each (`UserNamePolicy` in Application, `PasswordPolicy` in Domain), used by
+  both the FluentValidation rules (`PasswordRules.ValidNewPassword`) and Identity (`PasswordPolicyValidator`), so the
+  form and the database agree. A refusal from Identity keeps the policy's own error code (`PolicyError`). The web app
+  mirrors every rule but the blocklist in `web/src/features/auth/password.ts`; change both together.
+- The password blocklist is `src/Gym.Domain/Auth/CommonPasswords.txt`, an embedded resource generated from SecLists
+  (its header says how). Regenerate it rather than editing it by hand, and never read it into a review: it is data.
 - Two `SaveChangesInterceptor`s run in order: `AuditableEntityInterceptor` stamps the audit fields, then
   `AuditLogInterceptor` adds an `AuditLog` row per changed entity in the same save. Sensitive and noisy properties are
   excluded by name in `AuditLogInterceptor.ExcludedProperties`; a new secret column must use one of those names or be

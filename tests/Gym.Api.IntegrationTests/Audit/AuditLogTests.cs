@@ -24,7 +24,7 @@ namespace Gym.Api.IntegrationTests.Audit;
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class AuditLogTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
-    private const string TemporaryPassword = "Temp1234";
+    private const string TemporaryPassword = "temp kettle 1234";
 
     [Fact]
     public async Task Update_DeactivatingStaff_WritesOldAndNewValuesOfTheChangedPropertyOnly()
@@ -92,9 +92,9 @@ public sealed class AuditLogTests(DatabaseFixture fixture) : DatabaseTestBase(fi
         var (client, ownerToken, _) = await OwnerClientAsync();
         var staff = await CreateStaffAsync(client, ownerToken, "reza");
         using var reset = await SendAsync(
-            client, ownerToken, HttpMethod.Post, $"/api/staff/{staff.Id}/reset-password", new { temporaryPassword = "Fresh5678" });
+            client, ownerToken, HttpMethod.Post, $"/api/staff/{staff.Id}/reset-password", new { temporaryPassword = "fresh kettle 5678" });
         reset.EnsureSuccessStatusCode();
-        using var login = await client.LoginAsync("reza", "Fresh5678");
+        using var login = await client.LoginAsync("reza", "fresh kettle 5678");
         using var refresh = await client.RefreshAsync(login.ReadRefreshToken());
 
         var secrets = await LoadSecretsAsync();

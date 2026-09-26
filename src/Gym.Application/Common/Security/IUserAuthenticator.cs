@@ -18,6 +18,12 @@ public interface IUserAuthenticator
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Sets <c>MustChangePassword</c>: the password that just logged in no longer meets the
+    /// password policy (BUSINESS_RULES.md §1).
+    /// </summary>
+    Task RequirePasswordChangeAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Reloads a user for a refresh, so the new access token carries today's roles and flags
     /// rather than those copied from the old token. No password and no lockout check
     /// (BUSINESS_RULES.md §1); fails only with <c>AuthErrors.UserInactive</c>.

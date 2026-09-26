@@ -89,6 +89,15 @@ public sealed class UserAuthenticator(
         return await ToAuthenticatedUserAsync(user);
     }
 
+    /// <remarks>
+    /// One UPDATE of one column, like the failed-attempt counter below, so a login never fails on
+    /// a concurrency check against an unrelated edit of the same user.
+    /// </remarks>
+    public async Task RequirePasswordChangeAsync(Guid userId, CancellationToken cancellationToken) =>
+        await db.Users
+            .Where(user => user.Id == userId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(user => user.MustChangePassword, true), cancellationToken);
+
     public async Task<Result<AuthenticatedUser>> GetActiveUserAsync(Guid userId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -151,8 +160,8 @@ public sealed class UserAuthenticator(
         var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
         if (!result.Succeeded)
         {
-            return Result.Failure<AuthenticatedUser>(AuthErrors.PasswordRejected(
-                string.Join(" ", result.Errors.Select(error => error.Description))));
+            return Result.Failure<AuthenticatedUser>(PasswordPolicyValidator.PolicyError(result)
+                ?? AuthErrors.PasswordRejected(string.Join(" ", result.Errors.Select(error => error.Description))));
         }
 
         return await ToAuthenticatedUserAsync(user);

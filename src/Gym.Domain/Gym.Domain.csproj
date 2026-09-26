@@ -6,4 +6,9 @@
     tests/Gym.Domain.Tests/Architecture/DomainDependencyTests.cs enforces this.
   -->
 
+  <ItemGroup>
+    <!-- PasswordPolicy's blocklist, read by CommonPasswords. A file in the assembly, not a package. -->
+    <EmbeddedResource Include="Auth\CommonPasswords.txt" LogicalName="Gym.Domain.Auth.CommonPasswords.txt" />
+  </ItemGroup>
+
 </Project>

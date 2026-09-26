@@ -44,6 +44,37 @@ public sealed class LoginEndpointTests(DatabaseFixture fixture) : DatabaseTestBa
     }
 
     [Fact]
+    public async Task Login_PasswordFromAnOlderPolicy_SucceedsAndRequiresAPasswordChange()
+    {
+        // BUSINESS_RULES.md §1: "Staff1234" met the 8-character policy, not today's.
+        var user = await TestUsers.CreateWithOwnPasswordAsync(Fixture);
+        await TestUsers.SetPasswordBypassingPolicyAsync(Fixture, user.Id, "Staff1234");
+        using var client = Fixture.CreateClient();
+
+        using var response = await client.LoginAsync("staff", "Staff1234");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken))
+            .ShouldNotBeNull();
+        body.MustChangePassword.ShouldBeTrue();
+        new JsonWebToken(body.AccessToken).GetClaim(JwtClaimNames.MustChangePassword).Value.ShouldBe("true");
+        (await TestUsers.GetMustChangePasswordAsync(Fixture, user.Id)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Login_PasswordThatMeetsThePolicy_LeavesMustChangePasswordAlone()
+    {
+        var user = await TestUsers.CreateWithOwnPasswordAsync(Fixture);
+        using var client = Fixture.CreateClient();
+
+        using var response = await client.LoginAsync("staff", TestUsers.Password);
+        var body = await response.Content.ReadFromJsonAsync<AccessTokenResponse>(TestContext.Current.CancellationToken);
+
+        body.ShouldNotBeNull().MustChangePassword.ShouldBeFalse();
+        (await TestUsers.GetMustChangePasswordAsync(Fixture, user.Id)).ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Login_UserNameInDifferentCase_Succeeds()
     {
         await TestUsers.CreateAsync(Fixture, userName: "staff");

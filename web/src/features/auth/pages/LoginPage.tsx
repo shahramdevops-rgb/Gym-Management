@@ -10,6 +10,7 @@ import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { normalizeDigits } from "@/lib/normalize";
 
 import { useLogin } from "../api";
+import { PasswordField } from "../components/PasswordField";
 import { loginSchema, normalizePassword, type LoginValues } from "../schemas";
 import { useSessionState } from "../session";
 
@@ -69,11 +70,9 @@ export function LoginPage() {
               {...form.register("userName")}
             />
 
-            <FormField
+            <PasswordField
               label="رمز عبور"
-              type="password"
               autoComplete="current-password"
-              dir="ltr"
               error={errors.password?.message}
               {...form.register("password")}
             />

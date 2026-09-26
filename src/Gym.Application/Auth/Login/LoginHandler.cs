@@ -25,10 +25,8 @@ public sealed class LoginHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var authentication = await authenticator.AuthenticateAsync(
-            command.UserName,
-            PersianText.NormalizeDigits(command.Password),
-            cancellationToken);
+        var password = PersianText.NormalizeDigits(command.Password);
+        var authentication = await authenticator.AuthenticateAsync(command.UserName, password, cancellationToken);
 
         if (authentication.IsFailure)
         {
@@ -36,6 +34,15 @@ public sealed class LoginHandler(
         }
 
         var user = authentication.Value;
+
+        // BUSINESS_RULES.md §1: a password set under an older, weaker policy still logs in, but
+        // must be replaced before anything else. Login is the only moment the server sees the
+        // password itself rather than its hash, so it is the only place this can be checked.
+        if (!user.MustChangePassword && PasswordPolicy.Check(password, user.UserName).IsFailure)
+        {
+            await authenticator.RequirePasswordChangeAsync(user.Id, cancellationToken);
+            user = user with { MustChangePassword = true };
+        }
 
         var refreshSecret = RefreshTokenSecret.Generate();
         var refreshToken = RefreshToken.Issue(user.Id, RefreshTokenSecret.Hash(refreshSecret), timeProvider.GetUtcNow());

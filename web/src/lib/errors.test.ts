@@ -37,14 +37,14 @@ describe("fieldErrors", () => {
         ],
         temporaryPassword: [
           { code: "Auth.PasswordTooShort", description: "Too short." },
-          { code: "Auth.PasswordRequiresLetterAndDigit", description: "Letter and digit." },
+          { code: "Auth.PasswordTooCommon", description: "Common." },
         ],
       },
     });
 
     expect(errors).toEqual({
       userName: "نام کاربری باید بین ۳ تا ۵۰ نویسه باشد.",
-      temporaryPassword: "رمز عبور باید دست‌کم ۸ نویسه باشد.",
+      temporaryPassword: "رمز عبور باید دست‌کم ۱۲ نویسه باشد.",
     });
   });
 

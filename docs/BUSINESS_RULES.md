@@ -57,7 +57,15 @@ Decided values:
   - If `Seed:OwnerUserName` or `Seed:OwnerPassword` is missing, seeding logs a warning and does nothing — it never queries the database. Startup does not fail.
   - `Seed:OwnerFullName` defaults to "مدیر" when not configured. The Owner can rename themselves later.
   - The seeded Owner has `MustChangePassword = true`.
-- Password policy: at least 8 characters, containing at least one letter and one digit. No case (upper/lower) or symbol is required — passwords are typed on a Persian keyboard at the front desk.
+- Password policy, following NIST SP 800-63B: length and a blocklist, not composition rules (decided with the developer, 1405/07/04, task 11.5; replaces "8 characters with a letter and a digit"). A password is refused, with the first rule it breaks, when it:
+  - is shorter than **12** or longer than 128 characters (`Auth.PasswordTooShort`, `Auth.PasswordTooLong`). 12 rather than NIST's 15 for a password-only login, chosen by the developer for the front desk;
+  - has anything but English letters, digits, symbols and the space, i.e. printable ASCII (`Auth.PasswordNotEnglish`). Persian letters look the same but have different code points on different keyboards (ی/ي, ک/ك), so a Persian password set on one device could fail on another;
+  - contains the account's user name, ignoring case (`Auth.PasswordContainsUserName`);
+  - is a repetition or a run: fewer than 5 different characters, or any stretch of the alphabet, the digits (wrapping 9→0), a keyboard row or `!@#$%^&*()_+`, forwards or backwards (`Auth.PasswordTooSimple`);
+  - is a common password (`Auth.PasswordTooCommon`): lowercased, it equals an entry of the 100,000 most common leaked passwords or a word for this gym (pasargad, gym, bashgah, varzesh, …), either whole or after trimming digits, symbols and spaces from both ends ("Football2024!" is "football"). Equality, not "contains": a passphrase with a common word in it passes. The list ships with the app; no password is sent anywhere to be checked.
+  - No upper case, digit or symbol is required.
+  - The web app shows the rules as a checklist under every new-password field, each line turning green as it is met. The blocklist lives only on the server, so its error appears under the field after submitting. Every password field has a show/hide button and warns while the text contains a Persian letter ("the keyboard is on Persian").
+  - Passwords set before this policy keep working, but a login whose password fails the current policy sets `MustChangePassword = true`, so the user must choose a new one before anything else. Login is the only moment the server sees a password rather than its hash, so it is the only place this can be checked.
   - Persian and Arabic digits in a password are converted to English digits before it is sent, on every password field (login, change, create, reset) and again by the API, including the seeded Owner password, so "رمز۱۲۳۴" and "رمز1234" are the same password whatever client sends it. Letters are kept exactly as typed. *Decided by Claude during task 1.7 while the developer was away; pending review.*
 - The Owner creates Staff accounts with a temporary password. Staff have `MustChangePassword = true`.
 - Staff account management (Owner only). *Decided by Claude during task 1.5 while the developer was away; pending review.*
