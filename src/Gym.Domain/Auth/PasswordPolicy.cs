@@ -76,6 +76,11 @@ public static class PasswordPolicy
             return Result.Failure(PasswordErrors.ContainsUserName);
         }
 
+        if (CommonPasswords.ContainsGymName(password))
+        {
+            return Result.Failure(PasswordErrors.ContainsGymName);
+        }
+
         if (IsTooSimple(password))
         {
             return Result.Failure(PasswordErrors.TooSimple);

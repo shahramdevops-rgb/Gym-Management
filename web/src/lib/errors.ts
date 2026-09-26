@@ -43,6 +43,8 @@ export const errorMessages: Record<string, string> = {
   "Auth.PasswordNotEnglish":
     "رمز عبور فقط می‌تواند حروف، رقم و علامت‌های انگلیسی داشته باشد. کیبورد را انگلیسی کنید.",
   "Auth.PasswordContainsUserName": "نام کاربری نباید داخل رمز عبور باشد.",
+  "Auth.PasswordContainsGymName":
+    "نام باشگاه نباید داخل رمز عبور باشد، حتی با غلط املایی؛ به‌راحتی حدس زده می‌شود.",
   "Auth.PasswordTooSimple": "رمز عبور تکراری یا پشت سر هم است. رمز دیگری انتخاب کنید.",
   "Auth.PasswordTooCommon":
     "این رمز عبور جزو رمزهای رایج و لو رفته است و به‌راحتی حدس زده می‌شود. رمز دیگری انتخاب کنید.",

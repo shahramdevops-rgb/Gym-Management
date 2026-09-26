@@ -24,6 +24,10 @@ public static class PasswordErrors
         "Auth.PasswordContainsUserName",
         "Password must not contain the user name.");
 
+    public static readonly Error ContainsGymName = Error.Validation(
+        "Auth.PasswordContainsGymName",
+        "Password must not contain the gym's name.");
+
     public static readonly Error TooSimple = Error.Validation(
         "Auth.PasswordTooSimple",
         "Password is a repetition or a keyboard sequence.");
@@ -32,5 +36,5 @@ public static class PasswordErrors
         "Auth.PasswordTooCommon",
         "Password is on the list of common passwords.");
 
-    public static IReadOnlyList<Error> All { get; } = [TooShort, TooLong, NotEnglish, ContainsUserName, TooSimple, TooCommon];
+    public static IReadOnlyList<Error> All { get; } = [TooShort, TooLong, NotEnglish, ContainsUserName, ContainsGymName, TooSimple, TooCommon];
 }
