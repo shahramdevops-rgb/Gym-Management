@@ -75,6 +75,22 @@ export function serviceChargeDebtItem(overrides: Partial<DebtItem> = {}): DebtIt
   };
 }
 
+/** One cafe purchase left on the member's account (BUSINESS_RULES.md §8). */
+export function cafeDebtItem(overrides: Partial<DebtItem> = {}): DebtItem {
+  return {
+    kind: "CafeOrder",
+    id: "0199a000-0000-7000-8000-0000000000b4",
+    planName: null,
+    serviceKind: null,
+    startDate: "2026-09-18",
+    endDate: null,
+    price: 30000,
+    netPaid: 0,
+    outstanding: 30000,
+    ...overrides,
+  };
+}
+
 /** The query string the app sent, for asserting on Search, IsActive and Page. */
 export function queryOf(request: Request): URLSearchParams {
   return new URL(request.url).searchParams;

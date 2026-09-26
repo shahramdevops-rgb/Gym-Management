@@ -310,6 +310,36 @@ charges in 5.7; cafe orders join the same total in Phase 7.
 - Paying in instalments is ordinary, not a special case: several payments against the same item, each its own row with its own moment, method, reference number and the staff member who took it. The existing payment rules already allow this; nothing new is needed for it.
 - A free item (`Price = 0`) owes nothing and never appears in the breakdown.
 
+### Settling several items at once (تسویه یکجا)
+
+Decided with the developer, 1405/07/04. Roadmap 7.5. A walk-in who takes a single visit, uses the
+treadmill and buys a drink owes three items, and paying each one through its own form is three
+entries for one handover of money.
+
+- **One amount, one method, several items.** The desk picks the items (all of the member's debt is
+  ticked to begin with, and any item can be unticked or ticked again), types one amount and one
+  payment method, and the system writes one ordinary `Payment` per item, all in one transaction.
+  This is the "lump sum entered against each of those items" above, done by the system instead of
+  by hand: there is still no wallet, and every payment still belongs to exactly one item.
+- **The payment methods are the usual ones** (Cash, Card, BankTransfer), and a settlement uses one
+  of them. The gym does not split one handover between cash and card.
+- **Less than the ticked total is allowed, and it is spent in a fixed order: cafe first, then
+  هوازی (service charges), then the subscription.** Each item is paid in full before the next one
+  gets anything; the last one reached may be part-paid, and the rest stays owed as usual.
+  - Within the same kind, the oldest item first. *Decided by Claude during task 7.5; pending
+    review.*
+- **More than the ticked total is refused** (`Payments.Overpayment`), the same as for a single item.
+- **What the desk saw is what gets paid.** The request names each ticked item and what the desk
+  was shown as owed on it. If any of them has changed in between — paid elsewhere, voided,
+  cancelled, or another purchase changed the figure — nothing is written and the desk is shown the
+  new debt (`Settlements.DebtChanged`). Money is never spread over a list the desk did not see.
+- Front-desk work, both roles, the same as registering a payment (§1).
+- **The history shows one row per item**, all with the same moment, method and staff member. No
+  settlement or receipt record ties them together. *Decided by Claude during task 7.5; pending
+  review: a `SettlementId` on `payments` can be added later if the gym wants one printed receipt.*
+- Correcting a settlement is the same as correcting any payment: each row is refunded or its item
+  voided or cancelled on its own terms (§5, §7, §8).
+
 ---
 
 ## 6. Lockers

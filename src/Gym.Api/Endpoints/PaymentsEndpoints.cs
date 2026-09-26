@@ -6,6 +6,7 @@ using Gym.Application.Payments;
 using Gym.Application.Payments.ListMemberPayments;
 using Gym.Application.Payments.RegisterPayment;
 using Gym.Application.Payments.RegisterRefund;
+using Gym.Application.Payments.SettleMemberDebt;
 
 namespace Gym.Api.Endpoints;
 
@@ -63,6 +64,24 @@ public static class PaymentsEndpoints
             .Produces<PagedResponse<PaymentHistoryResponse>>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        // One amount over several owed items (BUSINESS_RULES.md §5 Settling several items at once).
+        // Answered 200, not 201: it creates several payments, and there is no one resource to point at.
+        var settlements = app.MapGroup("/api/members/{memberId:guid}/settlements")
+            .WithTags("Payments")
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        settlements.MapPost("/", async (Guid memberId, SettleMemberDebtCommand command, SettleMemberDebtHandler handler, CancellationToken ct) =>
+                (await handler.Handle(memberId, command, ct)).ToHttpResult())
+            .AddEndpointFilter<ValidationFilter<SettleMemberDebtCommand>>()
+            .WithName("SettleMemberDebt")
+            .Produces<SettlementResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         return app;
     }

@@ -130,6 +130,12 @@ export const errorMessages: Record<string, string> = {
   "Payments.RefundExceedsNetPaid": "این استرداد از مبلغ پرداخت‌شدهٔ این مورد بیشتر است.",
   "Payments.RefundAfterUse": "از این اشتراک استفاده شده است و مبلغ آن قابل استرداد نیست.",
 
+  // Settling several items at once (تسویه یکجا)
+  "Settlements.NoItems": "دست‌کم یک مورد را برای تسویه انتخاب کنید.",
+  "Settlements.DuplicateItem": "یک مورد دو بار در تسویه آمده است.",
+  "Settlements.DebtChanged":
+    "بدهی این عضو در این فاصله تغییر کرد و چیزی ثبت نشد. فهرست تازه را بررسی کنید و دوباره تأیید کنید.",
+
   // Lockers
   "Lockers.NotFound": "کمد پیدا نشد.",
   "Lockers.NumberInvalid": "شماره کمد باید عددی مثبت باشد.",
