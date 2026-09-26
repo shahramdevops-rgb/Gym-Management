@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { attendanceKeys } from "@/features/attendance/api";
 import { memberKeys } from "@/features/members/api";
 import { paymentKeys, type PaymentMethod } from "@/features/payments/api";
 import { api } from "@/lib/api/client";
@@ -36,6 +37,7 @@ export const cafeKeys = {
   orders: (filter: CafeOrderListFilter) => [...cafeKeys.all, "orders", filter] as const,
   memberOrders: (memberId: string, page: number) =>
     [...cafeKeys.all, "memberOrders", memberId, page] as const,
+  visitOrders: (attendanceId: string) => [...cafeKeys.all, "visitOrders", attendanceId] as const,
 };
 
 interface Paged<T> {
@@ -285,9 +287,29 @@ export function useMemberCafeOrders(memberId: string, page: number, { enabled = 
 }
 
 /**
+ * What one visit bought, cancelled orders left out: what check-out shows the member before they
+ * leave (BUSINESS_RULES.md §8). A visit buys a handful of things, so one page is all of it.
+ */
+export function useVisitCafeOrders(attendanceId: string) {
+  return useQuery({
+    queryKey: cafeKeys.visitOrders(attendanceId),
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/cafe/orders", {
+        params: { query: { AttendanceId: attendanceId, Page: 1, PageSize: maxPageSize } },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data.items.filter((order) => order.cancelledAt === null);
+    },
+  });
+}
+
+/**
  * An order, its cancellation or a payment against it moves money, so beside the cafe lists the
  * member's debt and payment history are refreshed too: an order on account is part of the debt
- * (BUSINESS_RULES.md §5 Member debt), and a cancellation writes refunds.
+ * (BUSINESS_RULES.md §5 Member debt), and a cancellation writes refunds. The "currently inside"
+ * board carries each visit's orders, so it is refreshed as well.
  */
 function useOrderMutation<TArgs, TResult>(request: (args: TArgs) => Promise<TResult>) {
   const queryClient = useQueryClient();
@@ -299,6 +321,7 @@ function useOrderMutation<TArgs, TResult>(request: (args: TArgs) => Promise<TRes
         queryClient.invalidateQueries({ queryKey: cafeKeys.all }),
         queryClient.invalidateQueries({ queryKey: memberKeys.all }),
         queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
+        queryClient.invalidateQueries({ queryKey: attendanceKeys.all }),
       ]);
     },
   });
@@ -317,6 +340,8 @@ export interface CreateCafeOrderInput {
   items: { productId: string; quantity: number }[];
   /** Null leaves the whole order on the member's account. */
   payment: PaymentInput | null;
+  /** The open visit it is bought during, from the "currently inside" board; omitted at the till. */
+  attendanceId?: string;
 }
 
 export function useCreateCafeOrder() {

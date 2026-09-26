@@ -24,6 +24,28 @@ public sealed class CafeOrderTests
     }
 
     [Fact]
+    public void Create_DuringAVisit_RemembersTheVisit()
+    {
+        var memberId = Guid.CreateVersion7();
+        var visitId = Guid.CreateVersion7();
+
+        var order = CafeOrder.Create(memberId, [(Product("آب معدنی", 15_000m), 1)], Today, StaffId, visitId).Value;
+
+        order.AttendanceId.ShouldBe(visitId);
+        order.MemberId.ShouldBe(memberId);
+    }
+
+    [Fact]
+    public void Create_VisitWithoutAMember_IsRefused()
+    {
+        // A visit always belongs to a member, so an order bought during one must name them.
+        var result = CafeOrder.Create(
+            memberId: null, [(Product("آب معدنی", 15_000m), 1)], Today, StaffId, Guid.CreateVersion7());
+
+        result.Error.ShouldBe(CafeOrderErrors.VisitOfAnotherMember);
+    }
+
+    [Fact]
     public void Create_SeveralLines_TotalsThemAll()
     {
         var order = CafeOrder.Create(

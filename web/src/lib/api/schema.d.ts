@@ -941,6 +941,8 @@ export interface components {
             /** Format: uuid */
             memberId: null | string;
             memberFullName: null | string;
+            /** Format: uuid */
+            attendanceId: null | string;
             /** Format: double */
             totalAmount: number | string;
             /** Format: date */
@@ -980,6 +982,8 @@ export interface components {
             memberId: null | string;
             items: components["schemas"]["CafeOrderLine"][];
             payment: null | components["schemas"]["CafeOrderPayment"];
+            /** Format: uuid */
+            attendanceId?: null | string;
         };
         CreateLockerCommand: {
             /** Format: int32 */
@@ -1041,6 +1045,7 @@ export interface components {
             subscriptionEndDate: string;
             isSingleSession: boolean;
             serviceCharges: components["schemas"]["ServiceChargeResponse"][];
+            cafeOrders: components["schemas"]["CafeOrderResponse"][];
         };
         CurrentUserResponse: {
             /** Format: uuid */
@@ -5008,6 +5013,7 @@ export interface operations {
                 MemberId?: string;
                 From?: string;
                 To?: string;
+                AttendanceId?: string;
                 Page?: number | string;
                 PageSize?: number | string;
             };

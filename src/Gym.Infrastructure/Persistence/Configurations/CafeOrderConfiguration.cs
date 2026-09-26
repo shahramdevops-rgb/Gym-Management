@@ -1,3 +1,4 @@
+using Gym.Domain.Attendances;
 using Gym.Domain.Cafe;
 using Gym.Domain.Members;
 using Gym.Infrastructure.Identity;
@@ -24,6 +25,11 @@ public sealed class CafeOrderConfiguration : IEntityTypeConfiguration<CafeOrder>
             table.HasCheckConstraint(
                 "ck_cafe_orders_cancel",
                 "(cancelled_at IS NULL) = (cancel_reason IS NULL) AND (cancelled_at IS NULL) = (cancelled_by_user_id IS NULL)");
+
+            // A visit always belongs to a member, so an order bought during one names that member:
+            // CafeOrder.Create's rule, repeated where a hand-written INSERT cannot get past it.
+            table.HasCheckConstraint(
+                "ck_cafe_orders_visit_has_member", "attendance_id IS NULL OR member_id IS NOT NULL");
         });
 
         builder.Property(order => order.TotalAmount).HasPrecision(18, 2);
@@ -32,6 +38,10 @@ public sealed class CafeOrderConfiguration : IEntityTypeConfiguration<CafeOrder>
         // Restrict: an order is a financial record and must never disappear with the member it
         // belongs to, the same reasoning PaymentConfiguration uses. Null is a walk-in customer.
         builder.HasOne<Member>().WithMany().HasForeignKey(order => order.MemberId).OnDelete(DeleteBehavior.Restrict);
+
+        // Restrict, like the member: attendances are never deleted (a mistaken one is cancelled),
+        // and an order must not lose the visit it was bought during. Null is an order from the till.
+        builder.HasOne<Attendance>().WithMany().HasForeignKey(order => order.AttendanceId).OnDelete(DeleteBehavior.Restrict);
 
         // Users are deactivated, never deleted, so whoever rang up or cancelled an order stays.
         builder.HasOne<User>().WithMany().HasForeignKey(order => order.PlacedByUserId).OnDelete(DeleteBehavior.Restrict);
@@ -51,6 +61,9 @@ public sealed class CafeOrderConfiguration : IEntityTypeConfiguration<CafeOrder>
         // by the date (BUSINESS_RULES.md §12).
         builder.HasIndex(order => order.MemberId);
         builder.HasIndex(order => order.OrderedOn);
+
+        // The board and check-out both ask "what did this visit buy?".
+        builder.HasIndex(order => order.AttendanceId);
 
         builder.Ignore(order => order.IsCancelled);
 

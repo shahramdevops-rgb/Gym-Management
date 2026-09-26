@@ -1,10 +1,12 @@
 import { Alert } from "@/components/ui/alert";
+import { useVisitCafeOrders } from "@/features/cafe/api";
 import { useMemberDebt } from "@/features/members/api";
+import { debtBySource } from "@/features/members/debtBySource";
 import { debtItemLabel } from "@/features/members/debtItemLabel";
 import { useCurrentSubscription, type Subscription } from "@/features/subscriptions/api";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, toPersianDigits } from "@/lib/format";
-import { isPositiveMoney } from "@/lib/money";
+import { addMoney, isPositiveMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 import { lowSessionsThreshold } from "./CurrentlyInsideTable";
@@ -16,13 +18,59 @@ import { lowSessionsThreshold } from "./CurrentlyInsideTable";
  *
  * Both come from their own queries rather than the check-in response, so the numbers are the ones
  * after this visit: the session it just used, and the single visit it may just have sold.
+ *
+ * At check-out it also lists what the visit bought from the cafe (`attendanceId`), so the member
+ * hears what is on their account before they leave (BUSINESS_RULES.md §8).
  */
-export function VisitSummary({ memberId }: { memberId: string }) {
+export function VisitSummary({
+  memberId,
+  attendanceId,
+}: {
+  memberId: string;
+  /** The visit being closed, whose cafe purchases are listed; omitted at check-in. */
+  attendanceId?: string;
+}) {
   return (
     <div className="space-y-3">
       <SubscriptionLine memberId={memberId} />
+      {attendanceId !== undefined && <VisitPurchases attendanceId={attendanceId} />}
       <DebtBox memberId={memberId} />
     </div>
+  );
+}
+
+/** What this visit picked up at the cafe, line by line; nothing at all when it bought nothing. */
+function VisitPurchases({ attendanceId }: { attendanceId: string }) {
+  const orders = useVisitCafeOrders(attendanceId);
+
+  if (orders.isPending || (orders.isSuccess && orders.data.length === 0)) {
+    return null;
+  }
+  if (orders.isError) {
+    return <Alert variant="destructive">{errorMessage(orders.error)}</Alert>;
+  }
+
+  const lines = orders.data.flatMap((order) => order.items);
+  const total = addMoney(...orders.data.map((order) => order.totalAmount));
+
+  return (
+    <section aria-label="خریدهای بوفه" className="space-y-2 rounded-lg border p-3 text-sm">
+      <p className="font-medium">خریدهای بوفه در این مراجعه</p>
+      <ul className="space-y-1">
+        {lines.map((line) => (
+          <li key={line.id} className="flex justify-between gap-3">
+            <span>
+              {line.productName} × {toPersianDigits(line.quantity)}
+            </span>
+            <span>{formatMoney(line.lineTotal)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="flex justify-between gap-3 border-t pt-2 font-medium">
+        <span>جمع</span>
+        <span>{formatMoney(total)}</span>
+      </p>
+    </section>
   );
 }
 
@@ -109,7 +157,16 @@ function DebtBox({ memberId }: { memberId: string }) {
     >
       <p className="text-sm font-medium">بدهی این عضو</p>
       <p className="text-2xl font-bold">{formatMoney(debt.data.total)}</p>
-      <ul className="space-y-1 border-t border-destructive/30 pt-2 text-sm">
+      {/* By source first — plan, هوازی, cafe — the way the desk says it to the member. */}
+      <dl aria-label="بدهی به تفکیک" className="space-y-1 border-t border-destructive/30 pt-2">
+        {debtBySource(debt.data.items).map((source) => (
+          <div key={source.label} className="flex justify-between gap-3 font-medium">
+            <dt>{source.label}</dt>
+            <dd>{formatMoney(source.amount)}</dd>
+          </div>
+        ))}
+      </dl>
+      <ul className="space-y-1 border-t border-destructive/30 pt-2 text-xs text-destructive/80">
         {debt.data.items.map((item) => (
           <li key={item.id} className="flex justify-between gap-3">
             <span>

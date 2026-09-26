@@ -836,3 +836,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Don't send a request you know will be refused.** A backwards date range is shown next to the box and the query is disabled (`enabled: false`), rather than sent to collect a 400. The same idea as showing only the row actions the API would accept: a cancelled order shows no buttons at all.
 - **Fetch every page when the whole list must be on screen.** The till's grid and the category picker need every row, and the API returns at most 100 per page. `fetchAll` keeps asking until it has `totalCount` rows. For a cafe that is one request, but the code does not quietly stop at the hundredth product.
 - **My notes:**
+
+---
+
+## 7.4 follow-up — The cafe on the "currently inside" board
+
+- **The same shape, a second time.** A هوازی charge hangs off its visit, and now a cafe order can too. The backend repeats the pattern rather than inventing one: a nullable `AttendanceId`, a handler check that the visit is open and belongs to that member, a batched `ByAttendanceAsync` for the board, and the same dialog-over-the-row UI. When a second feature copies a pattern that works, the reader who knows the first one already understands the second.
+- **A nullable link and a check constraint together.** `attendance_id IS NULL OR member_id IS NOT NULL` is the database repeating the domain rule "a visit always belongs to a member". The domain guards what the application writes; the constraint guards everything else, like a hand-written `INSERT`.
+- **An old server can look like no server.** The API on the machine had been started before the order history existed. It answered `405` with no body, openapi-fetch returned `{ error: undefined }`, the hook read missing data, and the resulting `TypeError` was shown as "cannot reach the server". A small middleware now turns an empty failure into an error with its status. The lesson was about the diagnosis: check *when the running process started* before debugging the code.
+- **Group by source, then by item.** At check-out the desk says "this much for the plan, this much for هوازی, this much for the cafe". `debtBySource` adds the items up by kind with the exact money helpers, and the item-by-item list stays underneath. The breakdown is never just a bare total.
+- **One broken page should not take the whole app down.** With no `errorElement`, a single `undefined.map` on the board replaced the entire site with React Router's English error screen. A pathless route with `errorElement` around the framed pages keeps the header and menu, and shows a Persian message where the page would be. An error boundary decides *how much* of the screen an error can take with it.
+- **Regenerating types without disturbing the running app.** A second API instance on another port (`--urls http://localhost:5199`) served the new OpenAPI document for `openapi-typescript`, and was stopped afterwards. The developer's own API kept running.
+- **My notes:**

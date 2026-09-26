@@ -161,7 +161,7 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
                     onReturnedChange={setKeyReturned}
                   />
                 )}
-                <VisitSummary memberId={member.id} />
+                <VisitSummary memberId={member.id} attendanceId={visit.attendanceId} />
                 <ConfirmButtons
                   label="بله، خروج ثبت شود"
                   pending={checkOut.isPending}
@@ -205,7 +205,7 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
               </Alert>
             )}
             {/* Again after leaving: this is the last moment to collect what is owed. */}
-            <VisitSummary memberId={member.id} />
+            <VisitSummary memberId={member.id} attendanceId={visit?.attendanceId} />
             <CloseButton onClose={onClose} />
           </>
         )}

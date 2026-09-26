@@ -22,6 +22,7 @@ import { StaffPage } from "@/features/staff/pages/StaffPage";
 import { StatusPage } from "@/features/status/pages/StatusPage";
 
 import { AppShell } from "./AppShell";
+import { PageError } from "./PageError";
 import { paths } from "./paths";
 
 /** A route only the Owner may open. */
@@ -42,22 +43,29 @@ export const routes: RouteObject[] = [
       {
         element: <AppShell />,
         children: [
-          { path: paths.home, element: <HomePage /> },
-          { path: paths.members, element: <MembersPage /> },
-          { path: paths.newMember, element: <CreateMemberPage /> },
-          { path: paths.member(":id"), element: <MemberProfilePage /> },
-          { path: paths.editMember(":id"), element: <EditMemberPage /> },
-          { path: paths.attendance, element: <CurrentlyInsidePage /> },
-          { path: paths.lockers, element: <LockersPage /> },
-          { path: paths.cafe, element: <CafeTillPage /> },
-          { path: paths.cafeOrders, element: <CafeOrdersPage /> },
-          { path: paths.cafeMenu, element: <CafeMenuPage /> },
-          { path: paths.status, element: <StatusPage /> },
-          { path: paths.changePassword, element: <ChangePasswordPage /> },
-          ownerOnly(paths.plans, <PlansPage />),
-          ownerOnly(paths.newPlan, <CreatePlanPage />),
-          ownerOnly(paths.editPlan(":id"), <EditPlanPage />),
-          ownerOnly(paths.staff, <StaffPage />),
+          {
+            // A page that fails while rendering shows PageError inside the frame, instead of
+            // React Router's own screen replacing the whole app.
+            errorElement: <PageError />,
+            children: [
+              { path: paths.home, element: <HomePage /> },
+              { path: paths.members, element: <MembersPage /> },
+              { path: paths.newMember, element: <CreateMemberPage /> },
+              { path: paths.member(":id"), element: <MemberProfilePage /> },
+              { path: paths.editMember(":id"), element: <EditMemberPage /> },
+              { path: paths.attendance, element: <CurrentlyInsidePage /> },
+              { path: paths.lockers, element: <LockersPage /> },
+              { path: paths.cafe, element: <CafeTillPage /> },
+              { path: paths.cafeOrders, element: <CafeOrdersPage /> },
+              { path: paths.cafeMenu, element: <CafeMenuPage /> },
+              { path: paths.status, element: <StatusPage /> },
+              { path: paths.changePassword, element: <ChangePasswordPage /> },
+              ownerOnly(paths.plans, <PlansPage />),
+              ownerOnly(paths.newPlan, <CreatePlanPage />),
+              ownerOnly(paths.editPlan(":id"), <EditPlanPage />),
+              ownerOnly(paths.staff, <StaffPage />),
+            ],
+          },
         ],
       },
     ],

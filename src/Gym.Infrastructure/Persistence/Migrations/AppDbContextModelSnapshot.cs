@@ -259,6 +259,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("AttendanceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attendance_id");
+
                     b.Property<string>("CancelReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -314,6 +318,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_cafe_orders");
 
+                    b.HasIndex("AttendanceId")
+                        .HasDatabaseName("ix_cafe_orders_attendance_id");
+
                     b.HasIndex("CancelledByUserId")
                         .HasDatabaseName("ix_cafe_orders_cancelled_by_user_id");
 
@@ -331,6 +338,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_cafe_orders_cancel", "(cancelled_at IS NULL) = (cancel_reason IS NULL) AND (cancelled_at IS NULL) = (cancelled_by_user_id IS NULL)");
 
                             t.HasCheckConstraint("ck_cafe_orders_total_not_negative", "total_amount >= 0");
+
+                            t.HasCheckConstraint("ck_cafe_orders_visit_has_member", "attendance_id IS NULL OR member_id IS NOT NULL");
                         });
                 });
 
@@ -1365,6 +1374,12 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Gym.Domain.Cafe.CafeOrder", b =>
                 {
+                    b.HasOne("Gym.Domain.Attendances.Attendance", null)
+                        .WithMany()
+                        .HasForeignKey("AttendanceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_cafe_orders_attendances_attendance_id");
+
                     b.HasOne("Gym.Infrastructure.Identity.User", null)
                         .WithMany()
                         .HasForeignKey("CancelledByUserId")

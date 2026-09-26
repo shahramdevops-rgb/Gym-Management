@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 
+using Gym.Application.Cafe;
 using Gym.Application.ServiceCharges;
 using Gym.Domain.Attendances;
 using Gym.Domain.Lockers;
@@ -28,6 +29,10 @@ namespace Gym.Application.Attendances.ListCurrentlyInside;
 /// <c>VisitServiceCharges</c> after this projection runs, for the reason given on
 /// <see cref="AttendanceResponse"/>.
 /// </param>
+/// <param name="CafeOrders">
+/// What the member bought from the cafe during this visit and has not had cancelled
+/// (BUSINESS_RULES.md §8), attached by <c>VisitCafeOrders</c> the same way.
+/// </param>
 public sealed record CurrentlyInsideResponse(
     Guid AttendanceId,
     Guid MemberId,
@@ -41,7 +46,8 @@ public sealed record CurrentlyInsideResponse(
     int? RemainingSessions,
     DateOnly SubscriptionEndDate,
     bool IsSingleSession,
-    IReadOnlyList<ServiceChargeResponse> ServiceCharges)
+    IReadOnlyList<ServiceChargeResponse> ServiceCharges,
+    IReadOnlyList<CafeOrderResponse> CafeOrders)
 {
     /// <summary>
     /// Correlates each open attendance to its member, locker and subscription in one query, the
@@ -70,5 +76,6 @@ public sealed record CurrentlyInsideResponse(
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.TotalSessions - s.UsedSessions).First(),
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.EndDate).First(),
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.IsSingleSession).First(),
-            new List<ServiceChargeResponse>());
+            new List<ServiceChargeResponse>(),
+            new List<CafeOrderResponse>());
 }

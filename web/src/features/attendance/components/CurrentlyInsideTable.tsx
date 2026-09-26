@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { SessionsBar } from "@/components/SessionsBar";
 import { Button } from "@/components/ui/button";
+import { VisitCafeBox } from "@/features/cafe/components/VisitCafeBox";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { formatDate, formatDateTime, gymToday, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -40,12 +41,13 @@ function daysUntil(endDate: string, today: string): number {
 
 /**
  * The front desk board: who is inside right now, which locker, since when, how much of their
- * subscription is left, and what they are being charged for هوازی.
+ * subscription is left, what they are being charged for هوازی, and what they have picked up at
+ * the cafe (BUSINESS_RULES.md §8).
  *
  * Every row is exactly one line, and stays one line whatever state it is in — the charge forms
  * open in a dialog rather than inside the cell (task 6.5.2). Rows that grow are not a cosmetic
- * problem here: the desk reads this board while somebody is standing in front of them, and the
- * cafe will want the same slot.
+ * problem here: the desk reads this board while somebody is standing in front of them. The cafe
+ * uses the same slot, in the same way.
  *
  * No status column: check-in refuses a subscription that is not usable today, so every row would
  * read "فعال". What the desk cannot see otherwise is how close the subscription is to running
@@ -71,6 +73,7 @@ export function CurrentlyInsideTable({
             <th className="py-2 text-start font-medium">جلسات</th>
             <th className="py-2 text-start font-medium">انقضا</th>
             <th className="py-2 text-start font-medium">هوازی</th>
+            <th className="py-2 text-start font-medium">بوفه</th>
             <th className="py-2 text-start font-medium">
               <span className="sr-only">عملیات</span>
             </th>
@@ -134,6 +137,15 @@ export function CurrentlyInsideTable({
                     charge={row.serviceCharges.find((charge) => charge.kind === "Cardio")}
                     visitIsOpen
                     disabled={busy}
+                  />
+                </td>
+                <td className="py-2">
+                  <VisitCafeBox
+                    attendanceId={row.attendanceId}
+                    member={{ id: row.memberId, fullName: row.memberFullName }}
+                    // An API started before the cafe reached the board sends no such field;
+                    // "bought nothing" is the honest reading, and a crash would blank the site.
+                    orders={row.cafeOrders ?? []}
                   />
                 </td>
                 <td className="py-2">
