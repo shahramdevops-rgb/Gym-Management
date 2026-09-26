@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import { attendanceHistoryPage, cardioCharge, closedVisit, openVisit } from "@/test/attendance";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
@@ -44,7 +44,7 @@ describe("ServiceChargeBox", () => {
   it("Box_OpenVisitWithNoCharge_OffersToAddOne", async () => {
     renderProfile(openVisit(reza.id));
 
-    expect(await screen.findByRole("button", { name: "افزودن مبلغ هوازی" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "مبلغ هوازی" })).toBeInTheDocument();
   });
 
   /**
@@ -58,7 +58,7 @@ describe("ServiceChargeBox", () => {
         json(201, cardioCharge(visit, { amount: 10000 })),
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "افزودن مبلغ هوازی" }));
+    fireEvent.click(await screen.findByRole("button", { name: "مبلغ هوازی" }));
     fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "10000" } });
 
     expect(screen.getByLabelText("مبلغ هوازی")).toHaveValue("۱۰٬۰۰۰");
@@ -71,6 +71,41 @@ describe("ServiceChargeBox", () => {
     );
   });
 
+  /**
+   * The dialog does not just vanish: it says the amount was saved, and which amount, until the
+   * desk closes it. The success step has to survive the refetch that turns "no charge" into a
+   * charge behind it.
+   */
+  it("Box_AmountSaved_ShowsSuccessWithTheAmountUntilClosed", async () => {
+    const visit = openVisit(reza.id);
+    let saved = false;
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/debt`]: () => memberDebt(),
+      [`GET /api/members/${reza.id}/attendance`]: () =>
+        attendanceHistoryPage([saved ? withCharge(visit, { amount: 50000 }) : visit]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      [`POST /api/attendance/${visit.id}/service-charges`]: () => {
+        saved = true;
+        return json(201, cardioCharge(visit, { amount: 50000 }));
+      },
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "مبلغ هوازی" }));
+    fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "50000" } });
+    fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("مبلغ هوازی ثبت شد")).toBeInTheDocument();
+    expect(within(dialog).getByText("۵۰٬۰۰۰ تومان")).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getAllByRole("button", { name: "بستن" })[0]!);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(await screen.findByRole("button", { name: "هوازی: ۵۰٬۰۰۰ تومان" })).toBeInTheDocument();
+  });
+
   it("Box_ServerRefusesTheAmount_ShowsThePersianMessageOnTheField", async () => {
     const visit = openVisit(reza.id);
     renderProfile(visit, {
@@ -78,7 +113,7 @@ describe("ServiceChargeBox", () => {
         problem(409, "ServiceCharges.AlreadyCharged"),
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "افزودن مبلغ هوازی" }));
+    fireEvent.click(await screen.findByRole("button", { name: "مبلغ هوازی" }));
     fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "10000" } });
     fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
 
@@ -187,12 +222,13 @@ describe("ServiceChargeBox", () => {
     await waitFor(() =>
       expect(api.requestsTo("POST", `/api/service-charges/${charge.id}/void`)).toHaveLength(1),
     );
+    expect(await screen.findByText("مبلغ هوازی ابطال شد")).toBeInTheDocument();
   });
 
   it("Box_NoChargeOnAClosedVisit_ShowsNothing", async () => {
     renderProfile(closedVisit(reza.id));
 
     expect(await screen.findByText("تاریخچه ورود و خروج")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "افزودن مبلغ هوازی" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "مبلغ هوازی" })).not.toBeInTheDocument();
   });
 });

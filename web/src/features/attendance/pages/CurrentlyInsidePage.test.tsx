@@ -198,13 +198,15 @@ describe("CurrentlyInsidePage", () => {
 
     renderApp("/attendance", { session: session() });
 
-    fireEvent.click(await screen.findByRole("button", { name: "افزودن مبلغ هوازی" }));
+    fireEvent.click(await screen.findByRole("button", { name: "مبلغ هوازی" }));
     fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "10000" } });
     fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
 
     await waitFor(() =>
       expect(api.requestsTo("POST", `/api/attendance/${visit.id}/service-charges`)).toHaveLength(1),
     );
+    // The desk is told it went through, rather than watching the dialog vanish.
+    expect(await screen.findByText("مبلغ هوازی ثبت شد")).toBeInTheDocument();
   });
 
   it("Board_ChargedVisit_ShowsTheAmountOnTheRow", async () => {

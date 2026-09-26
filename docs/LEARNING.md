@@ -848,3 +848,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **One broken page should not take the whole app down.** With no `errorElement`, a single `undefined.map` on the board replaced the entire site with React Router's English error screen. A pathless route with `errorElement` around the framed pages keeps the header and menu, and shows a Persian message where the page would be. An error boundary decides *how much* of the screen an error can take with it.
 - **Regenerating types without disturbing the running app.** A second API instance on another port (`--urls http://localhost:5199`) served the new OpenAPI document for `openapi-typescript`, and was stopped afterwards. The developer's own API kept running.
 - **My notes:**
+
+---
+
+## 7.4 follow-up — Saying "saved" at the desk
+
+- **A port can only have one listener.** `dotnet run` failed with `address already in use` because an earlier API was still running with nothing attached to it: the window that started it was gone. `Get-NetTCPConnection -LocalPort 7134` shows which process holds a port, and its start time shows whether it is running today's code. `Ctrl+C` stops the API in its own terminal. `Get-Process Gym.Api | Stop-Process` stops one nobody can reach anymore.
+- **A dialog that vanishes says nothing.** Closing the box after a save relied on the desk noticing the row change behind it, and at a busy desk nobody does. The box now ends on a success step (`DialogSuccess`): a green title, what was saved, and a close button. It is the same shape check-in and check-out already used, so the desk learns one pattern.
+- **Show what the server saved, not what was sent.** The cafe's success step lists the order from the API's answer: each line, its quantity, its price, and the total. If the server had changed anything, such as a price edited a moment earlier, the desk would see it there.
+- **State that outlives the state it started in.** Recording a first هوازی amount turns "no charge" into "a charge" while the dialog is open, because the mutation waits for the refetch before it resolves. The box used to have one dialog per state, so the success step would have been unmounted in the middle of showing. Now there is one dialog for every state, and it picks its content from `open` first.
+- **Move the focus off a form that no longer exists.** When the form is replaced, the element that had the focus is gone. `autoFocus` on the close button gives screen readers somewhere to land, and lets Enter close the box.
+- **My notes:**
