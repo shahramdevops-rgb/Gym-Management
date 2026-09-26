@@ -64,12 +64,21 @@ function isValidSessionCount(text: string): boolean {
   return count !== null && count >= 1 && count <= planLimits.maxSessionCount;
 }
 
+function isValidDuration(text: string): boolean {
+  const days = parseWholeNumber(text);
+
+  return days !== null && days >= 1 && days <= planLimits.maxDurationDays;
+}
+
 /**
  * The plan form. Number fields hold the text as typed and are checked after digit
  * normalization, so `۳۰` is as valid as `30`; they become numbers only when the form is sent.
  *
  * "Unlimited" is its own checkbox. The API models it as `sessionCount: null`, but an empty box
  * that silently means "unlimited" is easy to leave empty by mistake.
+ *
+ * `singleSession` is the walk-in plan (BUSINESS_RULES.md §3): always 1 day and 1 session, so the
+ * two number fields are not checked for it — the form sends 1 and 1 whatever they hold.
  */
 export const planSchema = z
   .object({
@@ -78,10 +87,8 @@ export const planSchema = z
       .trim()
       .min(1, message("Plans.NameRequired"))
       .max(planLimits.nameMaxLength, message("Plans.NameTooLong")),
-    durationDays: z.string().refine((text) => {
-      const days = parseWholeNumber(text);
-      return days !== null && days >= 1 && days <= planLimits.maxDurationDays;
-    }, message("Plans.DurationInvalid")),
+    durationDays: z.string(),
+    singleSession: z.boolean(),
     unlimitedSessions: z.boolean(),
     sessionCount: z.string(),
     price: z.string().superRefine((text, context) => {
@@ -91,14 +98,24 @@ export const planSchema = z
       }
     }),
   })
-  .refine((values) => values.unlimitedSessions || isValidSessionCount(values.sessionCount), {
-    path: ["sessionCount"],
-    message: message("Plans.SessionCountInvalid"),
-    // Zod skips an object's refinements while any field has an issue. This one only reads two
-    // fields that are always strings and booleans, so it runs anyway, and the session count
-    // error shows together with the others instead of after they are fixed.
+  .refine((values) => values.singleSession || isValidDuration(values.durationDays), {
+    path: ["durationDays"],
+    message: message("Plans.DurationInvalid"),
+    // Same reason as the session count below: shown together with the other fields' errors.
     when: () => true,
-  });
+  })
+  .refine(
+    (values) =>
+      values.singleSession || values.unlimitedSessions || isValidSessionCount(values.sessionCount),
+    {
+      path: ["sessionCount"],
+      message: message("Plans.SessionCountInvalid"),
+      // Zod skips an object's refinements while any field has an issue. This one only reads
+      // fields that are always strings and booleans, so it runs anyway, and the session count
+      // error shows together with the others instead of after they are fixed.
+      when: () => true,
+    },
+  );
 
 export type PlanValues = z.infer<typeof planSchema>;
 
@@ -106,6 +123,7 @@ export type PlanValues = z.infer<typeof planSchema>;
 export const emptyPlanValues: PlanValues = {
   name: "",
   durationDays: "",
+  singleSession: false,
   unlimitedSessions: false,
   sessionCount: "",
   price: "",

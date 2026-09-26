@@ -70,6 +70,17 @@ public sealed class Subscription : Entity
 
     public string? CancellationReason { get; private set; }
 
+    /// <summary>
+    /// Sold from the single-session plan: one visit, today only (BUSINESS_RULES.md §4
+    /// <i>Single-session subscriptions</i>).
+    /// </summary>
+    /// <remarks>
+    /// Snapshotted at the sale rather than read through <see cref="PlanId"/>, unlike the plan's name.
+    /// Two reasons: the exclusion constraint that enforces no-overlap lives on this table and cannot
+    /// join to <c>plans</c>, and the shape of a sale already made must not change if the plan does.
+    /// </remarks>
+    public bool IsSingleSession { get; private set; }
+
     /// <summary>Postgres <c>xmin</c> (configured in task 4.2): two check-ins cannot both use the last session.</summary>
     public uint Version { get; private set; }
 
@@ -100,6 +111,7 @@ public sealed class Subscription : Entity
             Price = plan.Price,
             DurationDays = plan.DurationDays,
             TotalSessions = plan.SessionCount,
+            IsSingleSession = plan.IsSingleSession,
             StartDate = startDate,
             // Inclusive end: a 30-day plan starting on the 1st ends on the 30th, not the 31st.
             EndDate = startDate.AddDays(plan.DurationDays - 1),
@@ -172,6 +184,13 @@ public sealed class Subscription : Entity
     public Result Freeze(DateOnly today, int maxFreezeDays)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(maxFreezeDays);
+
+        // BUSINESS_RULES.md §4: a one-day subscription has nothing to suspend, and a frozen one has
+        // no status that ever becomes usable again — it would sit frozen for good.
+        if (IsSingleSession)
+        {
+            return Result.Failure(SubscriptionErrors.SingleSessionNotFreezable);
+        }
 
         var active = EnsureActive(today);
         if (active.IsFailure)

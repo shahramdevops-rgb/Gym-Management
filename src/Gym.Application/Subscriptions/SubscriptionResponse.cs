@@ -11,6 +11,8 @@ namespace Gym.Application.Subscriptions;
 /// carries, so every caller has to fetch it and none can silently serve a stale one.</param>
 /// <param name="TotalSessions"><c>null</c> means unlimited.</param>
 /// <param name="RemainingSessions"><c>null</c> means unlimited.</param>
+/// <param name="IsSingleSession">One visit, today only (BUSINESS_RULES.md §4). The front desk shows
+/// "تک‌جلسه‌ای" instead of a session count for these, because 1 of 1 is not progress worth a bar.</param>
 /// <param name="NetPaid">Payments minus refunds for this subscription (BUSINESS_RULES.md §4).</param>
 /// <param name="PaymentStatus">Calculated from <see cref="NetPaid"/> and <see cref="Price"/>; never stored.</param>
 public sealed record SubscriptionResponse(
@@ -30,6 +32,7 @@ public sealed record SubscriptionResponse(
     int TotalFrozenDays,
     DateTimeOffset? CancelledAt,
     string? CancellationReason,
+    bool IsSingleSession,
     uint Version,
     DateTimeOffset CreatedAt,
     decimal NetPaid,
@@ -56,6 +59,7 @@ public sealed record SubscriptionResponse(
             subscription.TotalFrozenDays,
             subscription.CancelledAt,
             subscription.CancellationReason,
+            subscription.IsSingleSession,
             subscription.Version,
             subscription.CreatedAt,
             netPaid,

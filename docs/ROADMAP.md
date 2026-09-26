@@ -620,32 +620,48 @@ already bought.
 
 - [x] BUSINESS_RULES.md §0, §3, §4, §7 and §12 written up before any code (planning session,
       2026-09-25)
-- [ ] `Plan.Kind` (`Membership` / `SingleSession`); validation forcing `DurationDays = 1` and
+- [x] `Plan.Kind` (`Membership` / `SingleSession`); validation forcing `DurationDays = 1` and
       `SessionCount = 1` for the single-session kind; partial unique index so a second
       single-session plan cannot exist
-- [ ] `Subscription.IsSingleSession`, snapshotted at sale. Migration: the column defaulting to
+- [x] `Subscription.IsSingleSession`, snapshotted at sale. Migration: the column defaulting to
       `false` for existing rows, plus a check constraint tying the flag to `duration_days = 1` and
       `total_sessions = 1`
-- [ ] Migration: recreate the `SubscriptionConstraints.NoOverlap` exclusion constraint with
+- [x] Migration: recreate the `SubscriptionConstraints.NoOverlap` exclusion constraint with
       `AND NOT is_single_session` in its `WHERE`. Hand-written SQL, like the original in
       `AddSubscriptions`
-- [ ] `SubscriptionSchedule.NextStartDate`: a single-session sale starts today and reads nothing.
+- [x] `SubscriptionSchedule.NextStartDate`: a single-session sale starts today and reads nothing.
       And the `EndDate >= today` query in `SubscriptionSeller` skips single-session rows, so a
       membership sold to someone who dropped in today still starts today instead of tomorrow
-- [ ] `SubscriptionSchedule.InEffectToday` and `Subscription.CloseExhaustedEarly`: membership rows
+- [x] `SubscriptionSchedule.InEffectToday` and `Subscription.CloseExhaustedEarly`: membership rows
       only. A single-session sale closes nothing early and pulls no queued subscription forward
-- [ ] Freeze refuses a single-session subscription; unfreeze shifts queued memberships only
-- [ ] Renew reads the latest membership subscription and ignores single-session rows
-- [ ] Tests (domain): selling a single visit to a member with an `Exhausted` membership leaves that
+- [x] Freeze refuses a single-session subscription; unfreeze shifts queued memberships only
+- [x] Renew reads the latest membership subscription and ignores single-session rows
+- [x] Tests (domain): selling a single visit to a member with an `Exhausted` membership leaves that
       membership's `EndDate` alone; with a renewal queued, the renewal does not move; the start date
       is today whatever the calendar holds; freeze and renew are refused
-- [ ] Tests (integration): two single-session sales on the same day both succeed, and the member
+- [x] Tests (integration): two single-session sales on the same day both succeed, and the member
       checks in twice with a check-out between; a single visit sold alongside a frozen membership is
       accepted; two overlapping **memberships** are still refused by the constraint; a second
       single-session plan is refused
 
 Done when: a member with no subscription — or with a frozen, expired or exhausted one — can be sold a
-single visit and checked in, and nothing about their own subscription changes.
+single visit and checked in, and nothing about their own subscription changes. Closed 2026-09-26
+with the whole suite green and zero warnings. Two things were decided while building and need
+review: among active subscriptions a single visit is consumed before a membership (it is worth
+nothing tomorrow, the membership's sessions keep), and both new column defaults were kept rather
+than dropped, because every hand-written INSERT that predates them would otherwise fail.
+
+6.5.4 was being built in the same working tree at the same time and took three things the entry
+screen needed from this task's surface: `IsSingleSession` on `CurrentlyInsideResponse`, the `Kind`
+filter on `GET /api/plans`, and the `npm run gen:api` regeneration. They belong to 6.5.4's list,
+noted here so the split is not mistaken for something 6.5.3 forgot.
+
+Follow-up, 2026-09-26: §3 says the Owner creates the single-session plan "from the plans screen",
+and the entry screen tells the desk exactly that when it is missing — but the plan form had no
+way to choose the kind, so the Owner could not create it at all. The create form now has a
+"پلن تک‌جلسه‌ای (ورود آزاد)" box that locks the duration and sessions at 1 and sends
+`kind: "SingleSession"`; it is switched off, with the reason, once that plan exists. The edit form
+shows the kind but cannot change it, and the plan list marks the plan with a badge.
 
 ### 6.5.4 UI: the entry screen
 The member search screen (`HomePage`) is already the desk's entry point and already has a check-in

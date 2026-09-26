@@ -1,26 +1,54 @@
+using Gym.Domain.Plans;
+
 namespace Gym.Domain.Subscriptions;
 
 /// <summary>
 /// Where a new subscription goes in a member's calendar (BUSINESS_RULES.md §4): a member never
 /// has two subscriptions covering the same date.
 /// </summary>
+/// <remarks>
+/// Single-session subscriptions are outside all of this on purpose (§4 <i>Single-session
+/// subscriptions</i>). They are one day for one visit, so they neither wait for the member's calendar
+/// nor change it: every method here reads memberships only, except the lookup for who may come in
+/// today, which has to be able to find the single visit the member just bought.
+/// </remarks>
 public static class SubscriptionSchedule
 {
     /// <summary>
-    /// The start date for a new subscription: today when nothing current or queued remains,
-    /// otherwise the day after the latest end date. Cancelled subscriptions cover no dates.
+    /// The start date for a new sale of <paramref name="kind"/>: today for a single visit, otherwise
+    /// the ordinary queue rule in <see cref="NextStartDate"/>.
     /// </summary>
     /// <remarks>
-    /// If the latest subscription is exhausted, it is closed early first (see
+    /// A single visit is sold for the day it is sold. It never queues behind a membership, and it is
+    /// the only case where a member can hold two subscriptions covering one date.
+    /// </remarks>
+    /// <param name="memberSubscriptions">All of one member's subscriptions, tracked for saving.</param>
+    public static DateOnly StartDateFor(
+        PlanKind kind, DateOnly today, IEnumerable<Subscription> memberSubscriptions)
+    {
+        ArgumentNullException.ThrowIfNull(memberSubscriptions);
+
+        return kind == PlanKind.SingleSession ? today : NextStartDate(today, memberSubscriptions);
+    }
+
+    /// <summary>
+    /// The start date for a new membership: today when nothing current or queued remains,
+    /// otherwise the day after the latest end date. Cancelled subscriptions cover no dates, and
+    /// neither do single-session ones as far as this rule is concerned.
+    /// </summary>
+    /// <remarks>
+    /// If the latest membership is exhausted, it is closed early first (see
     /// <see cref="Subscription.CloseExhaustedEarly"/>), which changes that entity: the caller
-    /// saves it together with the new subscription.
+    /// saves it together with the new subscription. A single-session subscription is never closed
+    /// early and never pushes a membership's start date out — otherwise a member who dropped in
+    /// today would have the plan they bought an hour later start tomorrow.
     /// </remarks>
     /// <param name="memberSubscriptions">All of one member's subscriptions, tracked for saving.</param>
     public static DateOnly NextStartDate(DateOnly today, IEnumerable<Subscription> memberSubscriptions)
     {
         ArgumentNullException.ThrowIfNull(memberSubscriptions);
 
-        var live = memberSubscriptions.Where(subscription => subscription.CancelledAt is null).ToList();
+        var live = Memberships(memberSubscriptions);
         if (live.Count == 0)
         {
             return today;
@@ -48,11 +76,21 @@ public static class SubscriptionSchedule
     /// would hand back the queued one and refuse the member for the rest of their paid term.
     /// </para>
     /// <para>
-    /// When nothing is active but the current subscription is <c>Exhausted</c> with a renewal
+    /// Among active subscriptions a single-session one is used first. It can only ever be used
+    /// today and is worth nothing tomorrow, while the membership's sessions keep — so spending the
+    /// visit the member just paid for is the answer in their favour. This only arises because a
+    /// single visit may overlap a membership (§4). *Decided by Claude during task 6.5.3; pending
+    /// review.*
+    /// </para>
+    /// <para>
+    /// When nothing is active but the current membership is <c>Exhausted</c> with a renewal
     /// queued behind it, the queue moves up: the exhausted one is closed early and the soonest
     /// queued one starts today. This is the same principle <see cref="NextStartDate"/> applies at
     /// the moment of sale — an exhausted subscription should not make anyone wait — extended to
-    /// the case where the sale happened first and the sessions ran out afterwards.
+    /// the case where the sale happened first and the sessions ran out afterwards. A used
+    /// single-session subscription is never the "exhausted" one here: it is exhausted by design,
+    /// and letting it trigger the promotion would drag a membership queued for next week into
+    /// starting today.
     /// </para>
     /// <para>
     /// Like <see cref="NextStartDate"/>, this changes the entities it is given and the caller
@@ -66,14 +104,21 @@ public static class SubscriptionSchedule
 
         var live = memberSubscriptions.Where(subscription => subscription.CancelledAt is null).ToList();
 
-        var active = live.Find(subscription => subscription.GetStatus(today) == SubscriptionStatus.Active);
+        var active = live
+            .Where(subscription => subscription.GetStatus(today) == SubscriptionStatus.Active)
+            .OrderByDescending(subscription => subscription.IsSingleSession)
+            .ThenBy(subscription => subscription.CreatedAt)
+            .FirstOrDefault();
+
         if (active is not null)
         {
             return active;
         }
 
-        var exhausted = live.Find(subscription => subscription.GetStatus(today) == SubscriptionStatus.Exhausted);
-        var queued = live
+        var memberships = live.Where(subscription => !subscription.IsSingleSession).ToList();
+
+        var exhausted = memberships.Find(subscription => subscription.GetStatus(today) == SubscriptionStatus.Exhausted);
+        var queued = memberships
             .Where(subscription => subscription.GetStatus(today) == SubscriptionStatus.Upcoming)
             .MinBy(subscription => subscription.StartDate);
 
@@ -96,4 +141,13 @@ public static class SubscriptionSchedule
 
         return queued;
     }
+
+    /// <summary>
+    /// The member's subscriptions that take part in the calendar: not cancelled, and not a single
+    /// visit. Cancelled ones cover no dates; single visits are outside the ordering entirely.
+    /// </summary>
+    private static List<Subscription> Memberships(IEnumerable<Subscription> memberSubscriptions) =>
+        memberSubscriptions
+            .Where(subscription => subscription.CancelledAt is null && !subscription.IsSingleSession)
+            .ToList();
 }

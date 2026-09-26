@@ -34,13 +34,16 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
         await db.LockMemberAsync(member.Id, cancellationToken);
 
         // Only subscriptions that still cover today or later decide the start date; ones that
-        // ended before today or were cancelled do not. Tracked, because an exhausted one may be
-        // closed early and must be saved together with the new one.
+        // ended before today or were cancelled do not. Single-session ones never do either
+        // (BUSINESS_RULES.md §4): a member who dropped in today would otherwise have the plan they
+        // buy an hour later start tomorrow. Tracked, because an exhausted one may be closed early
+        // and must be saved together with the new one.
         var currentOrQueued = await db.Subscriptions
-            .Where(s => s.MemberId == member.Id && s.CancelledAt == null && s.EndDate >= today)
+            .Where(s => s.MemberId == member.Id && s.CancelledAt == null && s.EndDate >= today
+                        && !s.IsSingleSession)
             .ToListAsync(cancellationToken);
 
-        var startDate = SubscriptionSchedule.NextStartDate(today, currentOrQueued);
+        var startDate = SubscriptionSchedule.StartDateFor(plan.Kind, today, currentOrQueued);
 
         var created = Subscription.Create(member.Id, plan, startDate);
         if (created.IsFailure)

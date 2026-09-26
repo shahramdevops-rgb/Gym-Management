@@ -14,7 +14,9 @@ namespace Gym.Infrastructure.Persistence.Configurations;
 /// <remarks>
 /// The rule that a member's subscriptions never overlap is an exclusion constraint, which EF
 /// Core cannot express. It is written in SQL in the <c>AddSubscriptions</c> migration, under the
-/// name <c>SubscriptionConstraints.NoOverlap</c>.
+/// name <c>SubscriptionConstraints.NoOverlap</c>, and recreated by <c>AddSingleSessionPlan</c> with
+/// <c>AND NOT is_single_session</c> in its condition (BUSINESS_RULES.md §4): a single visit may
+/// share a date with a membership, while two memberships still may not.
 /// </remarks>
 public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
 {
@@ -40,6 +42,13 @@ public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscri
             table.HasCheckConstraint(
                 "ck_subscriptions_cancellation",
                 "(cancelled_at IS NULL) = (cancellation_reason IS NULL)");
+
+            // BUSINESS_RULES.md §4: a single visit is one day and one session. The flag is what the
+            // no-overlap constraint and the scheduling rules read, so a row that carries it while
+            // describing something else would quietly opt a real membership out of the calendar.
+            table.HasCheckConstraint(
+                "ck_subscriptions_single_session_shape",
+                "NOT is_single_session OR (duration_days = 1 AND total_sessions = 1)");
         });
 
         builder.Property(s => s.Price).HasPrecision(18, Plan.PriceDecimals);

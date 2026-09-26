@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 
 import { json, mockApi, owner, problem, session, signedInHandlers } from "@/test/mockApi";
-import { monthly12, plansPage, unlimitedQuarter } from "@/test/plans";
+import { monthly12, plansPage, singleSession, unlimitedQuarter } from "@/test/plans";
 import { renderApp } from "@/test/renderApp";
 
 const editPath = `/plans/${monthly12.id}/edit`;
@@ -36,6 +36,56 @@ describe("EditPlanPage", () => {
     expect(await screen.findByLabelText("تعداد جلسات نامحدود")).toBeChecked();
     expect(screen.getByLabelText("تعداد جلسات")).toBeDisabled();
     expect(screen.getByLabelText("قیمت (تومان)")).toHaveValue("۲٬۵۰۰٬۰۰۰٫۵");
+  });
+
+  it("EditPlan_SingleSessionPlan_LocksItsShapeAndOffersNoKindChoice", async () => {
+    mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/plans/${singleSession.id}`]: () => json(200, singleSession),
+    });
+
+    renderApp(`/plans/${singleSession.id}/edit`, { session: session() });
+
+    expect(
+      await screen.findByText(
+        "این پلن تک‌جلسه‌ای است: همیشه ۱ روز و ۱ جلسه. نام و قیمت آن را می‌توانید تغییر دهید.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("مدت (روز)")).toBeDisabled();
+    expect(screen.getByLabelText("تعداد جلسات")).toBeDisabled();
+    // A kind is set once (BUSINESS_RULES.md §3), so the edit form has no box to change it.
+    expect(screen.queryByLabelText("پلن تک‌جلسه‌ای (ورود آزاد)")).not.toBeInTheDocument();
+  });
+
+  it("EditPlan_SingleSessionPlanNewRate_SendsOneAndOneAndNoKind", async () => {
+    // Changing the walk-in rate is exactly this edit (BUSINESS_RULES.md §3).
+    const api = mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/plans/${singleSession.id}`]: () => json(200, singleSession),
+      [`PUT /api/plans/${singleSession.id}`]: () =>
+        json(200, { ...singleSession, price: 200000, version: 2 }),
+      "GET /api/plans": () => plansPage([singleSession]),
+    });
+    const { router } = renderApp(`/plans/${singleSession.id}/edit`, { session: session() });
+
+    fireEvent.change(await screen.findByLabelText("قیمت (تومان)"), {
+      target: { value: "۲۰۰٬۰۰۰" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/plans"));
+    const body = (await api.requestsTo("PUT", `/api/plans/${singleSession.id}`)[0]!.json()) as Record<
+      string,
+      unknown
+    >;
+    expect(body).toEqual({
+      // Half-spaces become spaces on the way out, like every name (BUSINESS_RULES.md §13).
+      name: "تک جلسه ای",
+      durationDays: 1,
+      sessionCount: 1,
+      price: "200000",
+      version: 1,
+    });
   });
 
   it("EditPlan_Saved_SendsTheVersionItWasFilledFromAndOpensTheList", async () => {

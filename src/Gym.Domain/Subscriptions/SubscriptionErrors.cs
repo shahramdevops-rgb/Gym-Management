@@ -58,6 +58,14 @@ public static class SubscriptionErrors
         "Subscriptions.NextStartsTomorrow",
         "Today's sessions are used up and the next subscription starts tomorrow.");
 
+    /// <summary>
+    /// BUSINESS_RULES.md §4: a single-session subscription cannot be frozen. A member who wants to
+    /// pause is pausing a membership; a single visit is either used or refunded before it is used.
+    /// </summary>
+    public static readonly Error SingleSessionNotFreezable = Error.BusinessRule(
+        "Subscriptions.SingleSessionNotFreezable",
+        "A single-session subscription cannot be frozen.");
+
     public static readonly Error NotFrozen = Error.BusinessRule(
         "Subscriptions.NotFrozen",
         "The subscription is not frozen.");

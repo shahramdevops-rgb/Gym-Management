@@ -55,14 +55,28 @@ public sealed class Plan : Entity
 
     public bool IsActive { get; private set; }
 
+    /// <summary>
+    /// Set at creation and never changed: a membership cannot become the single-session plan or the
+    /// other way round. Subscriptions snapshot this flag when they are sold (BUSINESS_RULES.md §4),
+    /// so flipping it would leave past sales describing a product that no longer exists.
+    /// </summary>
+    public PlanKind Kind { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
     public bool IsUnlimited => SessionCount is null;
 
-    public static Result<Plan> Create(string name, int durationDays, int? sessionCount, decimal price)
+    public bool IsSingleSession => Kind == PlanKind.SingleSession;
+
+    /// <param name="kind">
+    /// Defaults to <see cref="PlanKind.Membership"/>, which is what every plan was before the
+    /// single-session plan existed (task 6.5.3).
+    /// </param>
+    public static Result<Plan> Create(
+        string name, int durationDays, int? sessionCount, decimal price, PlanKind kind = PlanKind.Membership)
     {
-        var plan = new Plan { IsActive = true };
+        var plan = new Plan { IsActive = true, Kind = kind };
         var result = plan.Update(name, durationDays, sessionCount, price);
 
         return result.IsSuccess ? plan : Result.Failure<Plan>(result.Error);
@@ -95,6 +109,13 @@ public sealed class Plan : Entity
         if (sessionCount is < 1 or > MaxSessionCount)
         {
             return Result.Failure(PlanErrors.SessionCountInvalid);
+        }
+
+        // BUSINESS_RULES.md §3: the single-session plan's shape is not a choice. Checked here rather
+        // than only in Create, so an edit cannot turn it into a plan the §4 rules would mis-handle.
+        if (Kind == PlanKind.SingleSession && (durationDays != 1 || sessionCount != 1))
+        {
+            return Result.Failure(PlanErrors.SingleSessionShape);
         }
 
         var priceError = CheckPrice(price);

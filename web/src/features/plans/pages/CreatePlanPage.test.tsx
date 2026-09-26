@@ -9,7 +9,7 @@ import {
   signedInHandlers,
   staffUser,
 } from "@/test/mockApi";
-import { monthly12, plansPage } from "@/test/plans";
+import { monthly12, plansPage, singleSession } from "@/test/plans";
 import { renderApp } from "@/test/renderApp";
 
 interface Fill {
@@ -176,6 +176,92 @@ describe("CreatePlanPage", () => {
     await fill({ name: "پلن", durationDays: "30", sessionCount: "12", price: "-900000" });
 
     expect(await sentBody(api)).toMatchObject({ price: "900000" });
+  });
+
+  // ---- The single-session plan (BUSINESS_RULES.md §3) ----
+
+  /** No single-session plan yet: the GET the create page makes to ask finds nothing. */
+  function noSingleSessionYet(extra: Parameters<typeof mockApi>[0] = {}) {
+    return ownerApi({
+      "GET /api/plans": () => plansPage([]),
+      "POST /api/plans": () => json(201, singleSession),
+      ...extra,
+    });
+  }
+
+  it("CreatePlan_SingleSessionTicked_SendsTheKindWithOneDayAndOneSession", async () => {
+    const api = noSingleSessionYet();
+    renderApp("/plans/new", { session: session() });
+
+    fireEvent.change(await screen.findByLabelText("نام پلن"), {
+      target: { value: "تک‌جلسه‌ای" },
+    });
+    fireEvent.click(await screen.findByLabelText("پلن تک‌جلسه‌ای (ورود آزاد)"));
+    fireEvent.change(screen.getByLabelText("قیمت (تومان)"), { target: { value: "۱۵۰٬۰۰۰" } });
+    fireEvent.click(screen.getByRole("button", { name: "ثبت پلن" }));
+
+    // The shape is not typed: 1 and 1 are sent whatever the two boxes held. The half-spaces in
+    // the name become spaces, like every name (BUSINESS_RULES.md §13).
+    expect(await sentBody(api)).toEqual({
+      name: "تک جلسه ای",
+      durationDays: 1,
+      sessionCount: 1,
+      price: "150000",
+      kind: "SingleSession",
+    });
+  });
+
+  it("CreatePlan_SingleSessionTicked_LocksDurationAndSessionsAtOne", async () => {
+    noSingleSessionYet();
+    renderApp("/plans/new", { session: session() });
+
+    fireEvent.click(await screen.findByLabelText("پلن تک‌جلسه‌ای (ورود آزاد)"));
+
+    expect(screen.getByLabelText("مدت (روز)")).toBeDisabled();
+    expect(screen.getByLabelText("مدت (روز)")).toHaveValue("۱");
+    expect(screen.getByLabelText("تعداد جلسات")).toBeDisabled();
+    expect(screen.getByLabelText("تعداد جلسات")).toHaveValue("۱");
+    expect(screen.getByLabelText("تعداد جلسات نامحدود")).toBeDisabled();
+  });
+
+  it("CreatePlan_SingleSessionAlreadyExists_SwitchesTheChoiceOffAndSaysWhy", async () => {
+    ownerApi({ "GET /api/plans": () => plansPage([singleSession]) });
+    renderApp("/plans/new", { session: session() });
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("پلن تک‌جلسه‌ای (ورود آزاد)")).toBeDisabled(),
+    );
+    expect(
+      screen.getByText("پلن تک‌جلسه‌ای از قبل وجود دارد؛ برای تغییر نرخ، همان را ویرایش کنید."),
+    ).toBeInTheDocument();
+  });
+
+  it("CreatePlan_AnotherPlanOnTheFirstPage_DoesNotCountAsTheSingleSessionPlan", async () => {
+    // The mock does not filter by kind, so a membership comes back; only its kind decides.
+    ownerApi({ "GET /api/plans": () => plansPage([monthly12]) });
+    renderApp("/plans/new", { session: session() });
+
+    expect(await screen.findByLabelText("پلن تک‌جلسه‌ای (ورود آزاد)")).toBeEnabled();
+  });
+
+  it("CreatePlan_SecondSingleSessionRacedIn_ShowsTheServerReason", async () => {
+    // Someone created it between this page loading and the save. The API's answer is shown.
+    noSingleSessionYet({
+      "POST /api/plans": () => problem(409, "Plans.SingleSessionAlreadyExists"),
+    });
+    renderApp("/plans/new", { session: session() });
+
+    fireEvent.change(await screen.findByLabelText("نام پلن"), { target: { value: "ورود آزاد" } });
+    fireEvent.click(await screen.findByLabelText("پلن تک‌جلسه‌ای (ورود آزاد)"));
+    fireEvent.change(screen.getByLabelText("قیمت (تومان)"), { target: { value: "150000" } });
+    fireEvent.click(screen.getByRole("button", { name: "ثبت پلن" }));
+
+    expect(
+      await screen.findByText(
+        "پلن تک‌جلسه‌ای از قبل وجود دارد؛ برای تغییر نرخ، همان را ویرایش کنید.",
+        { selector: "[role=alert], [role=alert] *" },
+      ),
+    ).toBeInTheDocument();
   });
 
   it("CreatePlan_PriceTypedWithPersianDigits_IsSentAsPlainDigits", async () => {

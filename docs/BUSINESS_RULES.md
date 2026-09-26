@@ -210,6 +210,11 @@ visit, and it must never move, delay or shorten what the member already bought.
   only. A single-session subscription may cover a date a membership also covers, and two of them may
   cover the same date. The constraint's condition becomes "not cancelled **and not single-session**".
   What stays guarded is the rule that matters: two memberships never cover the same date.
+- **When both are usable today, the single visit is consumed first.** Because a single visit may now
+  overlap a membership, a member can hold two `Active` subscriptions on one day, and check-in has to
+  spend one of them. It spends the visit: it is worth nothing tomorrow, while the membership's
+  sessions keep. Older first if there are two visits. *Decided by Claude during task 6.5.3; pending
+  review — it decides whose money is spent, so it is a rule and not an implementation detail.*
 - **It never moves anything.** Selling one does not close an `Exhausted` membership early and does not
   pull a queued subscription forward; and a used single-session subscription is itself never the
   "current exhausted subscription" those rules act on. Without this, selling a single visit to a member
