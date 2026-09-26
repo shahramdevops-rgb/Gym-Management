@@ -7,19 +7,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
 
-import { useSetStaffActive, useStaffList, type StaffMember } from "../api";
+import { useSetStaffActive, useStaffList, useUnlockStaff, type StaffMember } from "../api";
 import { CreateStaffForm } from "../components/CreateStaffForm";
 import { ResetPasswordForm } from "../components/ResetPasswordForm";
 
-/** Owner only (the route is wrapped in RequireRole): create, list, deactivate, reset password. */
+/**
+ * Owner only (the route is wrapped in RequireRole): create, list, deactivate, reset password, and
+ * unlock an account someone else's wrong guesses locked.
+ */
 export function StaffPage() {
   const [page, setPage] = useState(1);
   const staff = useStaffList(page);
   const setActive = useSetStaffActive();
+  const unlock = useUnlockStaff();
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: "success" | "destructive"; text: string } | null>(
     null,
   );
+
+  async function unlockAccount(member: StaffMember) {
+    setNotice(null);
+    try {
+      await unlock.mutateAsync(member.id);
+      setNotice({
+        kind: "success",
+        text: `قفل حساب «${member.fullName}» باز شد. او با همان رمز قبلی وارد می‌شود.`,
+      });
+    } catch (problem) {
+      setNotice({ kind: "destructive", text: errorMessage(problem) });
+    }
+  }
 
   async function toggleActive(member: StaffMember) {
     setNotice(null);
@@ -94,6 +111,16 @@ export function StaffPage() {
                         </td>
                         <td className="py-2">
                           <div className="flex justify-end gap-2">
+                            {member.isLockedOut && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={unlock.isPending}
+                                onClick={() => void unlockAccount(member)}
+                              >
+                                باز کردن قفل
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"

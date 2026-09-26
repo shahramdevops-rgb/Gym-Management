@@ -1,3 +1,4 @@
+using Gym.Api.Admin;
 using Gym.Api.Configuration;
 using Gym.Api.Endpoints;
 using Gym.Api.Middleware;
@@ -43,6 +44,14 @@ try
     }
 
     var app = builder.Build();
+
+    // `dotnet Gym.Api.dll admin …` runs one account command against the database and exits,
+    // without starting the web server, the jobs or seeding (Admin/AdminConsole.cs).
+    if (AdminConsole.IsAdminCommand(args))
+    {
+        Environment.ExitCode = await AdminConsole.RunAsync(app.Services, args[1..], Console.In, Console.Out);
+        return;
+    }
 
     // Idempotent: does nothing once an Owner already exists, and does nothing at all if
     // Seed:OwnerUserName/OwnerPassword are not configured. See IdentitySeeder for why it

@@ -263,8 +263,9 @@ chmod 600 /opt/gym/.env
 `.env`, so a `$` in a value silently becomes part of another variable and the database receives a
 different password than the file shows. Base64 has no `$`, so the JWT key is safe as-is.
 
-`SEED_OWNER_PASSWORD` must satisfy `PasswordPolicy`: at least 8 characters with a letter and a
-digit. It is changed at the first login.
+`SEED_OWNER_PASSWORD` must satisfy `PasswordPolicy` (BUSINESS_RULES.md §1): at least 12 English
+characters, not containing the user name, not a common password; the 20 random characters above
+qualify. It is changed at the first login.
 
 On a 4 GB server, use the 4 GB column from `deploy/env.example`:
 

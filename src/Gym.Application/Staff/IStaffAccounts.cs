@@ -29,6 +29,12 @@ public interface IStaffAccounts
     /// <summary>Idempotent: setting the state an account already has succeeds and changes nothing.</summary>
     Task<Result<StaffResponse>> SetActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Clears the lockout at both doors, unknown devices and every trusted device, without
+    /// touching the password (BUSINESS_RULES.md §1 *Lockout*).
+    /// </summary>
+    Task<Result<StaffResponse>> UnlockAsync(Guid id, CancellationToken cancellationToken);
+
     /// <summary>Sets a temporary password, requires a password change and clears any lockout.</summary>
     Task<Result> ResetPasswordAsync(Guid id, string temporaryPassword, CancellationToken cancellationToken);
 }

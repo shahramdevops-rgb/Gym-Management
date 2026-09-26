@@ -58,7 +58,15 @@ Decided values:
   - If `Seed:OwnerUserName` or `Seed:OwnerPassword` is missing, seeding logs a warning and does nothing — it never queries the database. Startup does not fail.
   - `Seed:OwnerFullName` defaults to "مدیر" when not configured. The Owner can rename themselves later.
   - The seeded Owner has `MustChangePassword = true`.
-- Password policy: at least 8 characters, containing at least one letter and one digit. No case (upper/lower) or symbol is required — passwords are typed on a Persian keyboard at the front desk.
+- Password policy, following NIST SP 800-63B: length and a blocklist, not composition rules (decided with the developer, 1405/07/04, task 11.5; replaces "8 characters with a letter and a digit"). A password is refused, with the first rule it breaks, when it:
+  - is shorter than **12** or longer than 128 characters (`Auth.PasswordTooShort`, `Auth.PasswordTooLong`). 12 rather than NIST's 15 for a password-only login, chosen by the developer for the front desk;
+  - has anything but English letters, digits, symbols and the space, i.e. printable ASCII (`Auth.PasswordNotEnglish`). Persian letters look the same but have different code points on different keyboards (ی/ي, ک/ك), so a Persian password set on one device could fail on another;
+  - contains the account's user name, ignoring case (`Auth.PasswordContainsUserName`);
+  - is a repetition or a run: fewer than 5 different characters, or any stretch of the alphabet, the digits (wrapping 9→0), a keyboard row or `!@#$%^&*()_+`, forwards or backwards (`Auth.PasswordTooSimple`);
+  - is a common password (`Auth.PasswordTooCommon`): lowercased, it equals an entry of the 100,000 most common leaked passwords or a word for this gym (pasargad, gym, bashgah, varzesh, …), either whole or after trimming digits, symbols and spaces from both ends ("Football2024!" is "football"). Equality, not "contains": a passphrase with a common word in it passes. The list ships with the app; no password is sent anywhere to be checked.
+  - No upper case, digit or symbol is required.
+  - The web app shows the rules as a checklist under every new-password field, each line turning green as it is met. The blocklist lives only on the server, so its error appears under the field after submitting. Every password field has a show/hide button and warns while the text contains a Persian letter ("the keyboard is on Persian").
+  - Passwords set before this policy keep working, but a login whose password fails the current policy sets `MustChangePassword = true`, so the user must choose a new one before anything else. Login is the only moment the server sees a password rather than its hash, so it is the only place this can be checked.
   - Persian and Arabic digits in a password are converted to English digits before it is sent, on every password field (login, change, create, reset) and again by the API, including the seeded Owner password, so "رمز۱۲۳۴" and "رمز1234" are the same password whatever client sends it. Letters are kept exactly as typed. *Decided by Claude during task 1.7 while the developer was away; pending review.*
 - The Owner creates Staff accounts with a temporary password. Staff have `MustChangePassword = true`.
 - Staff account management (Owner only). *Decided by Claude during task 1.5 while the developer was away; pending review.*
@@ -66,7 +74,8 @@ Decided values:
   - These endpoints manage Staff accounts only. An Owner account id is answered like an unknown id (`Staff.NotFound`), so the Owner cannot deactivate or reset themselves by mistake.
   - Deactivating revokes all of the user's refresh tokens in the same transaction. Their current access token keeps working until it expires (at most 15 minutes). Deactivating an inactive account, or reactivating an active one, succeeds and changes nothing.
   - Reactivating does not reset the password; the user logs in with the password they had.
-  - Resetting a password: the Owner types a new temporary password (same policy as any password). It sets `MustChangePassword = true`, clears any lockout, and revokes all of the user's refresh tokens.
+  - Resetting a password: the Owner types a new temporary password (same policy as any password). It sets `MustChangePassword = true`, clears any lockout, revokes all of the user's refresh tokens and forgets all of their trusted devices (*Lockout* below).
+  - Unlocking: «باز کردن قفل» clears a lockout at both doors without touching the password or sessions (*Lockout* below).
   - After a reset, the staff member's current access token (at most 15 minutes old) still says they need no password change, so the gate does not stop them until it expires; their next refresh fails because every refresh token was revoked. The same 15-minute window as deactivation.
 - A user with `MustChangePassword = true` may only call change-password and logout.
 - Changing a password:
@@ -82,9 +91,30 @@ Decided values:
   - Refresh ignores account lockout: lockout stops password guessing, and a refresh involves no password.
   - Logout revokes the presented refresh token and always succeeds, with or without a valid token.
 - Login has account lockout after repeated failures and per-IP rate limiting.
-  - Lockout: 5 consecutive wrong passwords lock the account for 15 minutes. A successful login resets the count. The Owner can be locked out too.
+  - Lockout: 5 consecutive wrong passwords lock for 15 minutes, counted separately for each trusted device and for all untrusted devices together (*Lockout* below). A successful login resets the count. The Owner can be locked out too.
   - Rate limit: 10 login attempts per minute per IP address. Front-desk staff share one IP, so the limit allows several people to log in at once.
   - Failure responses: an unknown user name and a wrong password return the same error (`Auth.InvalidCredentials`), so user names cannot be discovered. A locked account returns `Auth.LockedOut`. An inactive account returns `Auth.UserInactive`, but only when the password was correct; otherwise `Auth.InvalidCredentials`.
+
+### Lockout
+
+Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-account lockout lets anyone who knows a user name keep that person out forever, with five wrong passwords every 15 minutes. So lockout is split by device:
+
+- **Trusted devices.** After a successful login the browser gets a `gym_device` cookie (a random secret; HttpOnly, Secure, SameSite=Strict, path `/api/auth`), and that browser becomes trusted for that user. The server stores only the secret's hash, one row per user per browser, so a shared front-desk PC has one cookie and a row for everyone who logs in on it.
+- **Two doors.** A login (or a change-password check) from a device trusted for that user counts its wrong passwords on that device alone: 5 in a row lock that device, for that user, for 15 minutes. Any other login (no cookie, an expired one, one trusted only for someone else, or one the app never issued) counts on the user's own counter, and when that locks, only untrusted devices are refused. An attacker on the internet therefore locks only the untrusted door; the front-desk PC and the Owner's own devices keep working.
+- A correct password resets the count at the door it came through, and the untrusted door's count too. A lockout already in force stays until it ends or is cleared.
+- A failed login never clears the device cookie. A cookie value the app never issued is replaced at the next successful login, never trusted.
+- **The secret changes on every use.** Each successful login, and each session refresh from a trusted device, gives the browser a new secret and moves every row that shared the old one onto it (a shared PC keeps one cookie). A copy of the cookie stops counting as that device the next time the real browser is used.
+- **Trust lasts 90 days** from the last time the device was used: a successful login, or a session refresh from that trusted device (opening the app is using it). After that the device is untrusted until the next successful login. A refresh never trusts a device that was not trusted already, because it proves a session, not a password.
+- **Trust ends** for every other device of the user when they change their password (the device making the change stays trusted), and for all of their devices when the Owner resets it or it is set from the server. A device that logged in with the old password, perhaps an attacker's, must not keep its own door.
+- **Unlocking.** Locked means locked at either door, and the Owner's staff list shows «قفل‌شده» for either. Three ways clear both doors:
+  - «باز کردن قفل» on the Owner's staff page, for staff accounts. The password is unchanged and sessions stay: the usual reason is someone else's guesses.
+  - Resetting the password, as before.
+  - The server console, for any account, the Owner's included: `./server.sh unlock <user>`.
+- **The server console** (`deploy/server.sh`, run over SSH on the server; there is deliberately no web endpoint for it):
+  - `./server.sh unlock <user>`: clears both doors.
+  - `./server.sh set-password <user>`: asks for the new password twice without showing it and passes it on standard input, never on the command line. It must follow the password policy. The person needs no change at the next login (they typed it themselves); every session ends and every trusted device is forgotten, as for a reset.
+  - `./server.sh rename <user> <new-user>`: a new user name, following the user-name rules below. Sessions stay; the next login uses the new name.
+- **Guessable user names are refused** for new staff accounts (`Staff.UserNameGuessable`) and for renames: admin, administrator, owner, manager, modir, root, test, user, staff, gym, support, superuser, system, guest, operator, reception, paziresh, karmand, pasargad and bashgah, compared on the name's English letters alone, so `Owner2` and `admin_1` are refused and `owner.reza` is not. The Owner's seeded account keeps whatever name it was given; `./server.sh rename` changes it.
 
 ### Permissions
 

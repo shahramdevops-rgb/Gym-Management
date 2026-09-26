@@ -4,6 +4,9 @@
 #
 #   ./server.sh release <tag>   load the release's images, migrate, start the new version
 #   ./server.sh rollback        start the previous version again
+#   ./server.sh unlock <user>               clear a lockout, the Owner's included
+#   ./server.sh set-password <user>         set a new password (asked for, never on the command line)
+#   ./server.sh rename <user> <new-user>    change a user name, e.g. a guessable "Owner"
 #
 # Set GYM_DIR to run it against another directory (the local rehearsal does).
 
@@ -125,8 +128,32 @@ prune_old_images() {
   done
 }
 
+# Account commands (BUSINESS_RULES.md §1 *Lockout*). They run the API's own image once, against
+# the live database, with `admin …` instead of the web server (src/Gym.Api/Admin/AdminConsole.cs).
+# -T: no terminal, so the password can be piped in on standard input.
+admin() {
+  check_env_file
+  "${COMPOSE[@]}" run --rm -T api admin "$@"
+}
+
+# Asks twice without echoing, and hands the password over on standard input, so it never appears
+# in the shell history or in the process list.
+set_password() {
+  local user="${1:-}" password again
+  [ -n "$user" ] || die "usage: server.sh set-password <user>"
+  # IFS= keeps leading and trailing spaces: the policy allows them, and read would drop them.
+  IFS= read -r -s -p "New password for $user: " password; echo
+  IFS= read -r -s -p "Again: " again; echo
+  [ "$password" = "$again" ] || die "the two passwords differ; nothing was changed."
+  [ -n "$password" ] || die "empty password; nothing was changed."
+  printf '%s\n' "$password" | admin set-password "$user"
+}
+
 case "${1:-}" in
   release) shift; release "$@" ;;
   rollback) rollback ;;
-  *) die "usage: server.sh release <tag> | rollback" ;;
+  unlock) [ -n "${2:-}" ] || die "usage: server.sh unlock <user>"; admin unlock "$2" ;;
+  set-password) set_password "${2:-}" ;;
+  rename) [ -n "${3:-}" ] || die "usage: server.sh rename <user> <new-user>"; admin rename "$2" "$3" ;;
+  *) die "usage: server.sh release <tag> | rollback | unlock <user> | set-password <user> | rename <user> <new-user>" ;;
 esac

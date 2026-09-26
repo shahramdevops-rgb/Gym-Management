@@ -114,6 +114,9 @@ public sealed class DatabaseFixture : IAsyncLifetime
     /// <summary>A scope for resolving scoped services such as <see cref="AppDbContext"/>.</summary>
     public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();
 
+    /// <summary>The app's root services, for code that makes its own scopes (the server console).</summary>
+    public IServiceProvider Services => Factory.Services;
+
     /// <summary>
     /// Empties every table before a test runs. Cheaper than a fresh container or a fresh set
     /// of migrations, which is what makes per-test isolation affordable at all.

@@ -98,7 +98,7 @@ public sealed class ConcurrencyAndHardeningTests(DatabaseFixture fixture) : Data
         string? lastCode = null;
         for (var attempt = 1; attempt <= 5; attempt++)
         {
-            using var response = await ChangePasswordAsync(client, accessToken, WrongPassword, "Chosen5678");
+            using var response = await ChangePasswordAsync(client, accessToken, WrongPassword, "chosen kettle 5678");
             lastCode = await response.ReadErrorCodeAsync();
         }
 
@@ -115,7 +115,7 @@ public sealed class ConcurrencyAndHardeningTests(DatabaseFixture fixture) : Data
         var accessToken = await client.LoginForAccessTokenAsync("staff", TestUsers.Password);
         await TestUsers.DeactivateAsync(Fixture, user.Id);
 
-        using var response = await ChangePasswordAsync(client, accessToken, TestUsers.Password, "Chosen5678");
+        using var response = await ChangePasswordAsync(client, accessToken, TestUsers.Password, "chosen kettle 5678");
 
         (await response.ReadErrorCodeAsync()).ShouldBe("Auth.UserInactive");
     }
@@ -123,12 +123,12 @@ public sealed class ConcurrencyAndHardeningTests(DatabaseFixture fixture) : Data
     [Fact]
     public async Task Login_PasswordTypedWithPersianDigits_MatchesTheSamePasswordWithEnglishDigits()
     {
-        // TestUsers.Password is "Staff1234". The server converts digits itself, so a client
+        // TestUsers.Password is "tabriz lamp 1234". The server converts digits itself, so a client
         // other than the web app cannot end up with a different password from the same keys.
         await TestUsers.CreateAsync(Fixture);
         using var client = Fixture.CreateClient();
 
-        using var response = await client.LoginAsync("staff", "Staff۱۲۳۴");
+        using var response = await client.LoginAsync("staff", "tabriz lamp ۱۲۳۴");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -141,14 +141,14 @@ public sealed class ConcurrencyAndHardeningTests(DatabaseFixture fixture) : Data
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Seed:OwnerUserName"] = "owner",
-                ["Seed:OwnerPassword"] = "Owner۱۲۳۴",
+                ["Seed:OwnerPassword"] = "seed kettle ۱۲۳۴",
             })
             .Build();
 
         await IdentitySeeder.SeedOwnerAsync(scope.ServiceProvider, configuration, TestContext.Current.CancellationToken);
 
         using var client = Fixture.CreateClient();
-        using var response = await client.LoginAsync("owner", "Owner1234");
+        using var response = await client.LoginAsync("owner", "seed kettle 1234");
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 

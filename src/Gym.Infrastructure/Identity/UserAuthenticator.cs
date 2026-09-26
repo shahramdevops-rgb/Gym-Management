@@ -1,5 +1,6 @@
 using Gym.Application.Auth;
 using Gym.Application.Common.Security;
+using Gym.Domain.Auth;
 using Gym.Domain.Common;
 using Gym.Infrastructure.Persistence;
 
@@ -29,6 +30,12 @@ namespace Gym.Infrastructure.Identity;
 /// <item>A wrong password counts toward lockout, atomically (see <see cref="RecordFailedAttemptAsync"/>).</item>
 /// <item>Only after the correct password does an inactive account learn that it is inactive.</item>
 /// </list>
+/// <para>
+/// Lockout has two doors (BUSINESS_RULES.md §1 *Lockout*, ADR 0004). A device this user has logged
+/// in from before (a <see cref="TrustedDevice"/>) counts wrong passwords on its own row
+/// and locks only itself. Every other device shares the user's Identity counter and lockout. So an
+/// attacker without the device cookie can lock only the door they are standing at.
+/// </para>
 /// </remarks>
 public sealed class UserAuthenticator(
     UserManager<User> userManager,
@@ -46,6 +53,7 @@ public sealed class UserAuthenticator(
     public async Task<Result<AuthenticatedUser>> AuthenticateAsync(
         string userName,
         string password,
+        string? deviceTokenHash,
         CancellationToken cancellationToken)
     {
         // UserManager's methods take no CancellationToken; checking once up front at least
@@ -64,7 +72,9 @@ public sealed class UserAuthenticator(
             return Result.Failure<AuthenticatedUser>(AuthErrors.InvalidCredentials);
         }
 
-        if (await userManager.IsLockedOutAsync(user))
+        var device = await FindTrustedDeviceAsync(user.Id, deviceTokenHash, cancellationToken);
+
+        if (await IsLockedOutAsync(user, device))
         {
             return Result.Failure<AuthenticatedUser>(AuthErrors.LockedOut);
         }
@@ -73,7 +83,7 @@ public sealed class UserAuthenticator(
         {
             // The attempt that reaches the limit already reports the lockout, so the user is not
             // told "wrong password" and then refused with the right one.
-            var lockedOut = await RecordFailedAttemptAsync(user.Id, cancellationToken);
+            var lockedOut = await RecordFailedAttemptAsync(user.Id, device, cancellationToken);
 
             return Result.Failure<AuthenticatedUser>(lockedOut ? AuthErrors.LockedOut : AuthErrors.InvalidCredentials);
         }
@@ -84,9 +94,30 @@ public sealed class UserAuthenticator(
         }
 
         // "5 consecutive wrong passwords": a success starts the count again.
-        await ResetFailedAttemptsAsync(user, cancellationToken);
+        await ResetFailedAttemptsAsync(user, device, cancellationToken);
 
         return await ToAuthenticatedUserAsync(user);
+    }
+
+    /// <remarks>
+    /// Through <see cref="UserManager{TUser}"/>, so the audit log shows why the user was sent to
+    /// change their password. If an unrelated edit of the same user wins a concurrency check at
+    /// that moment, the flag is set with one plain UPDATE instead: a security flag must never be
+    /// lost, and a login must not fail over it.
+    /// </remarks>
+    public async Task RequirePasswordChangeAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await FindExistingAsync(userId);
+        user.RequirePasswordChange();
+
+        if ((await userManager.UpdateAsync(user)).Succeeded)
+        {
+            return;
+        }
+
+        await db.Users
+            .Where(row => row.Id == userId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(row => row.MustChangePassword, true), cancellationToken);
     }
 
     public async Task<Result<AuthenticatedUser>> GetActiveUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -102,7 +133,11 @@ public sealed class UserAuthenticator(
         return await ToAuthenticatedUserAsync(user);
     }
 
-    public async Task<Result> VerifyPasswordAsync(Guid userId, string password, CancellationToken cancellationToken)
+    public async Task<Result> VerifyPasswordAsync(
+        Guid userId,
+        string password,
+        string? deviceTokenHash,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -114,7 +149,9 @@ public sealed class UserAuthenticator(
             return Result.Failure(AuthErrors.UserInactive);
         }
 
-        if (await userManager.IsLockedOutAsync(user))
+        var device = await FindTrustedDeviceAsync(user.Id, deviceTokenHash, cancellationToken);
+
+        if (await IsLockedOutAsync(user, device))
         {
             return Result.Failure(AuthErrors.LockedOut);
         }
@@ -123,12 +160,12 @@ public sealed class UserAuthenticator(
         {
             // Counted like a failed login: otherwise a stolen access token would allow
             // unlimited guessing of the password through this endpoint.
-            var lockedOut = await RecordFailedAttemptAsync(user.Id, cancellationToken);
+            var lockedOut = await RecordFailedAttemptAsync(user.Id, device, cancellationToken);
 
             return Result.Failure(lockedOut ? AuthErrors.LockedOut : AuthErrors.CurrentPasswordIncorrect);
         }
 
-        await ResetFailedAttemptsAsync(user, cancellationToken);
+        await ResetFailedAttemptsAsync(user, device, cancellationToken);
 
         return Result.Success();
     }
@@ -151,16 +188,57 @@ public sealed class UserAuthenticator(
         var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
         if (!result.Succeeded)
         {
-            return Result.Failure<AuthenticatedUser>(AuthErrors.PasswordRejected(
-                string.Join(" ", result.Errors.Select(error => error.Description))));
+            return Result.Failure<AuthenticatedUser>(PasswordPolicyValidator.PolicyError(result)
+                ?? AuthErrors.PasswordRejected(string.Join(" ", result.Errors.Select(error => error.Description))));
         }
 
         return await ToAuthenticatedUserAsync(user);
     }
 
     /// <summary>
-    /// Counts one failed attempt and locks the account when it reaches the limit, in a single
-    /// SQL UPDATE. Returns whether the account is locked afterwards.
+    /// The device this request came from, if it is trusted for this user and still in date;
+    /// otherwise null, and the request is at the "unknown devices" door.
+    /// </summary>
+    private async Task<TrustedDevice?> FindTrustedDeviceAsync(
+        Guid userId,
+        string? deviceTokenHash,
+        CancellationToken cancellationToken)
+    {
+        if (deviceTokenHash is null)
+        {
+            return null;
+        }
+
+        var now = timeProvider.GetUtcNow();
+
+        return await db.TrustedDevices
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                device => device.UserId == userId && device.TokenHash == deviceTokenHash && device.ExpiresAt > now,
+                cancellationToken);
+    }
+
+    /// <summary>A trusted device is locked only by its own count; any other device by the user's.</summary>
+    private async Task<bool> IsLockedOutAsync(User user, TrustedDevice? device) =>
+        device is null
+            ? await userManager.IsLockedOutAsync(user)
+            : device.IsLockedOut(timeProvider.GetUtcNow());
+
+    /// <summary>
+    /// Counts one failed attempt at the door the request came through, and returns whether that
+    /// door is locked afterwards.
+    /// </summary>
+    private async Task<bool> RecordFailedAttemptAsync(Guid userId, TrustedDevice? device, CancellationToken cancellationToken) =>
+        device is null
+            ? await RecordUserFailedAttemptAsync(userId, cancellationToken)
+            : await RecordDeviceFailedAttemptAsync(device.Id, cancellationToken)
+                // The device was forgotten a moment ago (a reset, a password change elsewhere),
+                // so this attempt came from what is now an unknown device, and counts there.
+                ?? await RecordUserFailedAttemptAsync(userId, cancellationToken);
+
+    /// <summary>
+    /// Counts one failed attempt from an unknown device and locks that door when it reaches the
+    /// limit, in a single SQL UPDATE.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -179,12 +257,9 @@ public sealed class UserAuthenticator(
     /// anyone reviews.
     /// </para>
     /// </remarks>
-    private async Task<bool> RecordFailedAttemptAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task<bool> RecordUserFailedAttemptAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var lockout = identityOptions.Value.Lockout;
-        var limit = lockout.MaxFailedAccessAttempts;
-        var now = timeProvider.GetUtcNow();
-        DateTimeOffset? lockoutEnd = now + lockout.DefaultLockoutTimeSpan;
+        var (limit, now, lockoutEnd) = LockoutRule();
 
         await db.Users
             .Where(user => user.Id == userId && user.LockoutEnabled)
@@ -204,20 +279,67 @@ public sealed class UserAuthenticator(
     }
 
     /// <summary>
-    /// Back to zero after a correct password. Atomic for the same reason as
-    /// <see cref="RecordFailedAttemptAsync"/>: two correct logins at once must not make one of
-    /// them fail on a concurrency check.
+    /// The same count and the same limit as <see cref="RecordUserFailedAttemptAsync"/>, kept on
+    /// the trusted device's own row, so it locks that device and nothing else. Null when the row no
+    /// longer exists.
     /// </summary>
-    private async Task ResetFailedAttemptsAsync(User user, CancellationToken cancellationToken)
+    private async Task<bool?> RecordDeviceFailedAttemptAsync(Guid deviceId, CancellationToken cancellationToken)
     {
-        if (user.AccessFailedCount == 0)
+        var (limit, now, lockoutEnd) = LockoutRule();
+
+        var updated = await db.TrustedDevices
+            .Where(device => device.Id == deviceId)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(device => device.LockedUntil, device => device.FailedAttempts + 1 >= limit ? lockoutEnd : device.LockedUntil)
+                    .SetProperty(device => device.FailedAttempts, device => device.FailedAttempts + 1 >= limit ? 0 : device.FailedAttempts + 1),
+                cancellationToken);
+
+        if (updated == 0)
         {
-            return;
+            return null;
         }
 
-        await db.Users
-            .Where(row => row.Id == user.Id)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(row => row.AccessFailedCount, 0), cancellationToken);
+        var lockedUntil = await db.TrustedDevices
+            .AsNoTracking()
+            .Where(device => device.Id == deviceId)
+            .Select(device => device.LockedUntil)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return lockedUntil > now;
+    }
+
+    /// <summary>BUSINESS_RULES.md §1, configured once in <c>AddInfrastructure</c>: 5 attempts, 15 minutes.</summary>
+    private (int Limit, DateTimeOffset Now, DateTimeOffset? LockoutEnd) LockoutRule()
+    {
+        var lockout = identityOptions.Value.Lockout;
+        var now = timeProvider.GetUtcNow();
+
+        return (lockout.MaxFailedAccessAttempts, now, now + lockout.DefaultLockoutTimeSpan);
+    }
+
+    /// <summary>
+    /// Back to zero after a correct password, at the door it came through and at the unknown
+    /// devices' door too: the real user has just proved themselves, so an attacker's half-finished
+    /// count need not stand. A lockout already in force is left alone. Atomic for the same reason as
+    /// <see cref="RecordUserFailedAttemptAsync"/>: two correct logins at once must not make one of
+    /// them fail on a concurrency check.
+    /// </summary>
+    private async Task ResetFailedAttemptsAsync(User user, TrustedDevice? device, CancellationToken cancellationToken)
+    {
+        if (user.AccessFailedCount > 0)
+        {
+            await db.Users
+                .Where(row => row.Id == user.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(row => row.AccessFailedCount, 0), cancellationToken);
+        }
+
+        if (device is { FailedAttempts: > 0 })
+        {
+            await db.TrustedDevices
+                .Where(row => row.Id == device.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(row => row.FailedAttempts, 0), cancellationToken);
+        }
     }
 
     /// <summary>

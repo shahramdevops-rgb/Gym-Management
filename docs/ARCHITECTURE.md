@@ -363,8 +363,17 @@ web/src/
 - The refresh token cookie is `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/api/auth`, written only through
   `Gym.Api/Common/RefreshTokenCookie`. Clearing a cookie needs the same name and path it was set with. In development
   the Vite proxy makes the API same-origin, so the browser sends the cookie; `http://localhost` counts as secure.
+- The trusted-device cookie (`gym_device`, `Gym.Api/Common/TrustedDeviceCookie`) has the same attributes and path,
+  and is written only by a successful login. Unlike the refresh cookie, a failed login never clears it. Lockout has
+  two counters (ADR 0004): `users.access_failed_count`/`lockout_end` for untrusted devices and
+  `trusted_devices.failed_attempts`/`locked_until` per trusted device; both are incremented with one SQL `UPDATE`
+  (`UserAuthenticator`), and `Identity/Lockouts.ClearAsync` is the one place that clears both.
 - The integration test client does not keep cookies (`HandleCookies = false`): a cookie jar drops `Secure` cookies
-  over the test server's plain HTTP. Tests read `Set-Cookie` and send `Cookie` themselves (`Auth/RefreshCookies.cs`).
+  over the test server's plain HTTP. Tests read `Set-Cookie` and send `Cookie` themselves (`Auth/RefreshCookies.cs`,
+  `Auth/DeviceCookies.cs`).
+- `dotnet Gym.Api.dll admin …` (`Gym.Api/Admin/AdminConsole`) builds the host but never starts it: no Kestrel, no
+  Hangfire server, no seeding. `WebApplication.CreateBuilder(args)` ignores the bare words, so they reach only the
+  console. Account commands have no HTTP endpoint on purpose; `deploy/server.sh` wraps them.
 - `IAppDbContext` exposes `ChangeTracker` for one reason: after a `DbUpdateConcurrencyException` the tracked entities
   hold values that never reached the database, and `ChangeTracker.Clear()` lets the handler load fresh rows in the
   same request (`RefreshHandler`).
@@ -388,8 +397,12 @@ web/src/
   `ValidationFilter<T>` validates them like a body.
 - Endpoints that share a policy put it on the `MapGroup` (`StaffEndpoints`), so a new endpoint in the group cannot be
   added without it.
-- User names and passwords have one rule each in Application (`UserNamePolicy`, `PasswordPolicy`), used by both the
-  FluentValidation rules (`PasswordRules.ValidNewPassword`) and Identity's options, so the form and the database agree.
+- User names and passwords have one rule each (`UserNamePolicy` in Application, `PasswordPolicy` in Domain), used by
+  both the FluentValidation rules (`PasswordRules.ValidNewPassword`) and Identity (`PasswordPolicyValidator`), so the
+  form and the database agree. A refusal from Identity keeps the policy's own error code (`PolicyError`). The web app
+  mirrors every rule but the blocklist in `web/src/features/auth/password.ts`; change both together.
+- The password blocklist is `src/Gym.Domain/Auth/CommonPasswords.txt`, an embedded resource generated from SecLists
+  (its header says how). Regenerate it rather than editing it by hand, and never read it into a review: it is data.
 - Two `SaveChangesInterceptor`s run in order: `AuditableEntityInterceptor` stamps the audit fields, then
   `AuditLogInterceptor` adds an `AuditLog` row per changed entity in the same save. Sensitive and noisy properties are
   excluded by name in `AuditLogInterceptor.ExcludedProperties`; a new secret column must use one of those names or be

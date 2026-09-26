@@ -37,6 +37,8 @@ public interface IAppDbContext
 {
     DbSet<RefreshToken> RefreshTokens { get; }
 
+    DbSet<TrustedDevice> TrustedDevices { get; }
+
     DbSet<Member> Members { get; }
 
     DbSet<Plan> Plans { get; }

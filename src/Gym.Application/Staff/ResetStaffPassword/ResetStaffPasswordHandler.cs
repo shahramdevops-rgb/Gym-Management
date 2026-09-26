@@ -29,6 +29,7 @@ public sealed class ResetStaffPasswordHandler(IStaffAccounts staff, IAppDbContex
         }
 
         await db.RevokeAllForUserAsync(id, RefreshTokenRevocationReason.PasswordReset, timeProvider.GetUtcNow(), cancellationToken);
+        await db.ForgetDevicesAsync(id, exceptTokenHash: null, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
