@@ -1,8 +1,7 @@
 using Gym.Application.Common;
+using Gym.Application.Payments;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
-
-using Microsoft.EntityFrameworkCore;
 
 namespace Gym.Application.ServiceCharges;
 
@@ -36,19 +35,12 @@ public static class ServiceChargeRefunder
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(charge);
 
-        var netPaidByMethod = await db.Payments
-            .Where(payment => payment.ServiceChargeId == charge.Id)
-            .GroupBy(payment => payment.Method)
-            .Select(group => new
-            {
-                Method = group.Key,
-                NetPaid = group.Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
-            })
-            .ToListAsync(cancellationToken);
+        var netPaidByMethod = await PaymentLedger.GetNetPaidByMethodForServiceChargeAsync(
+            db, charge.Id, cancellationToken);
 
         var refunded = 0m;
 
-        foreach (var row in netPaidByMethod.Where(row => row.NetPaid > 0))
+        foreach (var row in netPaidByMethod)
         {
             var refund = Payment.RegisterRefundForServiceCharge(
                 charge.Id, row.NetPaid, row.Method, referenceNumber: null, reason, userId, now);

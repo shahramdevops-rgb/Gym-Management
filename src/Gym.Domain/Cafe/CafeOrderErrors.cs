@@ -53,6 +53,11 @@ public static class CafeOrderErrors
         "CafeOrders.CancelReasonTooLong",
         $"The cancellation reason can be at most {CafeOrder.CancelReasonMaxLength} characters.");
 
+    /// <summary>The order history was asked for a range that ends before it starts.</summary>
+    public static readonly Error InvalidDateRange = Error.Validation(
+        "CafeOrders.InvalidDateRange",
+        "The start date must be on or before the end date.");
+
     /// <summary>Two people changed the same order at the same moment; the second save is refused.</summary>
     public static readonly Error ChangedConcurrently = Error.Conflict(
         "CafeOrders.ChangedConcurrently",

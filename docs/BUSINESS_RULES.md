@@ -277,7 +277,7 @@ visit, and it must never move, delay or shorten what the member already bought.
 
 ## 5. Payments
 
-- A payment belongs to exactly one of: a Subscription, a CafeOrder or a ServiceCharge (§7 *Gym services*), enforced by a check constraint. The service charge target arrived in task 5.7; `CafeOrderId` is still never set before Phase 7.
+- A payment belongs to exactly one of: a Subscription, a CafeOrder or a ServiceCharge (§7 *Gym services*), enforced by a check constraint. The service charge target arrived in task 5.7 and the cafe order target in task 7.2.
 - Fields: `Kind` (Payment or Refund), `Amount` (> 0), `Method`, `ReferenceNumber` (optional), `PaidAt` (UTC), `ReceivedByUserId`, `Reason` (required for refunds).
 - A subscription cannot be overpaid.
 - Payments are never edited or deleted. A mistaken entry is fixed with a full refund whose reason explains the mistake (a "void").
@@ -291,8 +291,8 @@ visit, and it must never move, delay or shorten what the member already bought.
     subscription's cancellation reason). Blank input is stored as `null`.
   - Registering a payment sets `PaidAt` to the current moment; there is no way to record a
     backdated payment.
-  - The `CafeOrderId` column and the one-target check constraint exist from this task on, but
-    nothing sets `CafeOrderId` before cafe orders exist (Phase 7).
+  - The `CafeOrderId` column and the one-target check constraint exist from this task on;
+    cafe orders started setting `CafeOrderId` in task 7.2.
 - Revenue for a period = payments − refunds, by `PaidAt` in the gym's time zone. There is no separate Income table.
 
 ### Member debt (open account, حساب باز)
@@ -369,6 +369,7 @@ Decided with the developer, 1405/07/04.
 - A member who is inside is offered check-out, not check-in. Check-in would only be refused (*Check-in*: no open attendance).
 - After a check-in, the same box shows the locker (or that none was free), the plan and the sessions left, and the member's debt item by item: unpaid subscriptions, services such as هوازی, and cafe orders (§5 *Member debt*). It stays until the desk closes it.
 - Before a check-out, the box shows the locker to take back and the same plan, sessions and itemized debt, so the desk can collect what is owed while the member is still there. Debt is shown, never enforced: check-out is not refused for money owed, the same way check-in is not.
+- When the visit has a locker, the desk must tick "key received" before the check-out can be confirmed: closing the visit hands the locker to the next person in. After check-out, the box shows that the locker is free and repeats the itemized debt.
 - Selling a single visit from that box needs no second confirmation: pressing the priced button is already the decision.
 
 ### Cancel check-in
@@ -466,6 +467,16 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
 - Cancelling an order requires a reason and creates a refund for whatever was actually paid.
   Nothing is put back anywhere, because nothing was counted. An unpaid order on account leaves
   nothing to refund; cancelling it simply removes that item from the member's debt.
+  - **The money goes back the way it came**: one refund per payment method still in credit, in
+    the same transaction as the cancellation, carrying the cancellation's reason — the same rule
+    §7 uses for a voided service charge, so the cancel screen never asks which method to use
+    (decided with the developer, 1405/07/04).
+  - A cancelled order takes no more payments (`CafeOrders.AlreadyCancelled`), and cannot be
+    cancelled twice.
+- **Order history** lists orders newest first, for the whole counter or one member, optionally
+  within an inclusive range of the order's business date (`OrderedOn`). Cancelled orders are
+  included and marked, the same choice the attendance history makes: it is the record of what
+  happened at the till, not a revenue figure. *Decided by Claude during task 7.3; pending review.*
 - **Cancelling is Staff or Owner** (decided by the Owner, 1405/07/03), the same exception §7 makes
   for service charges and for the same reason: the customer is still standing at the desk, and the
   person who rang it up has to be able to take it back. The controls are the required reason and

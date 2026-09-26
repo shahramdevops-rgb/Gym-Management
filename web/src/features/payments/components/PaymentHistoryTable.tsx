@@ -5,8 +5,8 @@ import { formatDateTime, formatMoney } from "@/lib/format";
 import { paymentMethodLabels, type PaymentHistoryItem } from "../api";
 
 /**
- * A member's payments and refunds across everything they have paid for — subscriptions and gym
- * services — newest first (task 4.5, extended in 5.7).
+ * A member's payments and refunds across everything they have paid for — subscriptions, gym
+ * services and cafe orders — newest first (task 4.5, extended in 5.7 and 7.3).
  */
 export function PaymentHistoryTable({ payments }: { payments: PaymentHistoryItem[] }) {
   return (
@@ -45,11 +45,17 @@ export function PaymentHistoryTable({ payments }: { payments: PaymentHistoryItem
   );
 }
 
-/** What the money went against: the plan's name now, or the Persian word for the service. */
+/**
+ * What the money went against: the plan's name now, the Persian word for the service, or the
+ * cafe. A `switch` over every kind, so TypeScript complains if a fourth one is added unlabelled.
+ */
 function paidForLabel(payment: PaymentHistoryItem): string {
-  if (payment.targetKind === "ServiceCharge") {
-    return payment.serviceKind === null ? "خدمات" : serviceChargeKindLabels[payment.serviceKind];
+  switch (payment.targetKind) {
+    case "Subscription":
+      return payment.subscriptionPlanName ?? "—";
+    case "ServiceCharge":
+      return payment.serviceKind === null ? "خدمات" : serviceChargeKindLabels[payment.serviceKind];
+    case "CafeOrder":
+      return "کافه";
   }
-
-  return payment.subscriptionPlanName ?? "—";
 }

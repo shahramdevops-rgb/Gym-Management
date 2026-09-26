@@ -754,8 +754,24 @@ in), and two lines of the same product are refused rather than merged, because a
 as two purchases of one thing is a till mistake worth catching at the till.
 
 ### 7.3 Cancellation and history
-- [ ] Cancel order (Owner): reason required, refund created for whatever was paid
-- [ ] Order history and member purchase history
+- [x] Cancel order (Staff or Owner — §8, decided by the Owner 1405/07/03; this line used to say
+      Owner): `POST /api/cafe/orders/{id}/cancel`, reason required, a refund per payment method
+      still in credit for whatever was paid, written in the same transaction
+- [x] A payment asks "is the order cancelled?" again under the member lock, so a cancellation that
+      lands while a payment waits is seen and the payment refused
+- [x] Order history `GET /api/cafe/orders?memberId&from&to` and member purchase history
+      `GET /api/members/{memberId}/cafe-orders`, newest first, cancelled orders included and marked
+- [x] A member's payment history now includes cafe payments and refunds (7.2 had left them out)
+- [x] Tests: unpaid on account leaves the debt with no refund; paid walk-in refunded in full; cash
+      and card refunded separately; cancelling twice is 422; four parallel cancels refund once;
+      cancel racing a payment never leaves money on a cancelled order; history filters by member
+      and inclusive date range
+
+Done when: a sale rung up by mistake can be taken back at the desk with the money returned the way
+it came, and every order a member ever placed can be listed. Closed 2026-09-26: 987 backend tests
+and 424 frontend tests green, zero warnings. Found while building and left for its own task:
+`RegisterServiceChargePaymentHandler` checks "is the charge voided?" before it takes the member
+lock, the same gap this task closed for cafe orders.
 
 ### 7.4 UI: cafe
 - [ ] POS screen: product grid, cart, payment

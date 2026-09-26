@@ -30,12 +30,6 @@ public sealed class RegisterCafeOrderPaymentHandler(IAppDbContext db, TimeProvid
             return Result.Failure<PaymentResponse>(CafeOrderErrors.NotFound);
         }
 
-        // A cancelled order owes nothing (§5 Member debt), so there is nothing to pay against it.
-        if (order.CancelledAt is not null)
-        {
-            return Result.Failure<PaymentResponse>(CafeOrderErrors.AlreadyCancelled);
-        }
-
         // "Cannot be overpaid" is a sum-across-rows invariant no check constraint can express, so
         // two payments racing for the same order are serialized the same way the other two payment
         // handlers do it. A walk-in order has no member row to lock, but it also cannot be paid
@@ -44,6 +38,16 @@ public sealed class RegisterCafeOrderPaymentHandler(IAppDbContext db, TimeProvid
         if (order.MemberId is { } memberId)
         {
             await db.LockMemberAsync(memberId, cancellationToken);
+        }
+
+        // A cancelled order owes nothing (§5 Member debt), so there is nothing to pay against it.
+        // Asked again under the lock rather than trusted from the read above: cancelling takes the
+        // same lock, so a cancellation that finished while this request waited is seen here.
+        var isCancelled = await db.CafeOrders
+            .AnyAsync(o => o.Id == cafeOrderId && o.CancelledAt != null, cancellationToken);
+        if (isCancelled)
+        {
+            return Result.Failure<PaymentResponse>(CafeOrderErrors.AlreadyCancelled);
         }
 
         var netPaid = await PaymentLedger.GetNetPaidForCafeOrderAsync(db, cafeOrderId, cancellationToken);
