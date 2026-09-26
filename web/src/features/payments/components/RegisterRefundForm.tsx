@@ -1,14 +1,21 @@
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { FormField, MoneyField, SelectField, TextareaField } from "@/components/FormField";
+import { FormField, MoneyField, TextareaField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { normalizeMoney } from "@/lib/money";
 import { normalizePersianText } from "@/lib/normalize";
 
-import { paymentMethodLabels, paymentMethods, useRegisterRefund } from "../api";
-import { emptyRegisterRefundValues, registerRefundSchema } from "../schemas";
+import { useRegisterRefund } from "../api";
+import {
+  emptyRegisterRefundValues,
+  registerRefundSchema,
+  type RegisterRefundValues,
+} from "../schemas";
+import { ConfirmPaymentDialog } from "./ConfirmPaymentDialog";
+import { PaymentMethodField } from "./PaymentMethodField";
 
 const codeFields = {
   "Payments.AmountNotPositive": "amount",
@@ -33,13 +40,17 @@ interface RegisterRefundFormProps {
  */
 export function RegisterRefundForm({ subscriptionId, onDone, onCancel }: RegisterRefundFormProps) {
   const registerRefund = useRegisterRefund();
+  // The checked values waiting for "was the money handed back?"; nothing is sent before the answer.
+  const [toConfirm, setToConfirm] = useState<RegisterRefundValues | null>(null);
 
-  const form = useForm({
+  const form = useForm<RegisterRefundValues>({
     resolver: zodResolver(registerRefundSchema),
     defaultValues: emptyRegisterRefundValues,
   });
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit((values) => setToConfirm(values));
+
+  async function send(values: RegisterRefundValues) {
     try {
       await registerRefund.mutateAsync({
         subscriptionId,
@@ -51,66 +62,83 @@ export function RegisterRefundForm({ subscriptionId, onDone, onCancel }: Registe
       });
       onDone();
     } catch (problem) {
+      setToConfirm(null);
       applyServerErrors(problem, form.setError, codeFields);
     }
-  });
+  }
 
-  const { errors, isSubmitting } = form.formState;
+  const { errors } = form.formState;
 
   return (
-    <form className="flex flex-wrap items-end gap-3" onSubmit={onSubmit} noValidate>
-      {errors.root?.server !== undefined && (
-        <Alert variant="destructive">{errors.root.server.message}</Alert>
-      )}
+    <>
+      <form className="flex flex-wrap items-end gap-3" onSubmit={onSubmit} noValidate>
+        {errors.root?.server !== undefined && (
+          <Alert variant="destructive">{errors.root.server.message}</Alert>
+        )}
 
-      <div className="w-40">
-        <Controller
-          control={form.control}
-          name="amount"
-          render={({ field }) => (
-            <MoneyField
-              label="مبلغ استرداد (تومان)"
-              placeholder="۹۰۰٬۰۰۰"
-              error={errors.amount?.message}
-              name={field.name}
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-            />
-          )}
-        />
-      </div>
-      <div className="w-36">
-        <SelectField label="روش" error={errors.method?.message} {...form.register("method")}>
-          {paymentMethods.map((method) => (
-            <option key={method} value={method}>
-              {paymentMethodLabels[method]}
-            </option>
-          ))}
-        </SelectField>
-      </div>
-      <div className="min-w-40 flex-1">
-        <FormField
-          label="شماره پیگیری (اختیاری)"
-          dir="ltr"
-          autoComplete="off"
-          error={errors.referenceNumber?.message}
-          {...form.register("referenceNumber")}
-        />
-      </div>
-      <div className="min-w-64 flex-1 basis-full">
-        <TextareaField
-          label="دلیل استرداد"
-          error={errors.reason?.message}
-          {...form.register("reason")}
-        />
-      </div>
-      <Button type="submit" size="sm" variant="destructive" disabled={isSubmitting}>
-        تأیید استرداد
-      </Button>
-      <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-        انصراف
-      </Button>
-    </form>
+        <div className="w-40">
+          <Controller
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <MoneyField
+                label="مبلغ استرداد (تومان)"
+                placeholder="۹۰۰٬۰۰۰"
+                error={errors.amount?.message}
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
+        </div>
+        <div className="w-36">
+          <PaymentMethodField
+            label="روش"
+            error={errors.method?.message}
+            {...form.register("method")}
+          />
+        </div>
+        <div className="min-w-40 flex-1">
+          <FormField
+            label="شماره پیگیری (اختیاری)"
+            dir="ltr"
+            autoComplete="off"
+            error={errors.referenceNumber?.message}
+            {...form.register("referenceNumber")}
+          />
+        </div>
+        <div className="min-w-64 flex-1 basis-full">
+          <TextareaField
+            label="دلیل استرداد"
+            error={errors.reason?.message}
+            {...form.register("reason")}
+          />
+        </div>
+        <Button type="submit" size="sm" variant="destructive" disabled={registerRefund.isPending}>
+          تأیید استرداد
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          انصراف
+        </Button>
+      </form>
+
+      <ConfirmPaymentDialog
+        payment={
+          toConfirm === null
+            ? null
+            : { amount: normalizeMoney(toConfirm.amount), method: toConfirm.method }
+        }
+        direction="out"
+        pending={registerRefund.isPending}
+        onConfirm={() => {
+          if (toConfirm !== null) {
+            void send(toConfirm);
+          }
+        }}
+        onCancel={() => setToConfirm(null)}
+      />
+    </>
   );
 }

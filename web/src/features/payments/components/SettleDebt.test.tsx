@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { Settlement } from "@/features/payments/settle";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { cafeDebtItem, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
+import { confirmMoneyReceived, pickMethod } from "@/test/payments";
 import { renderApp } from "@/test/renderApp";
 import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
 
@@ -88,7 +89,9 @@ describe("SettleDebt", () => {
 
     fireEvent.click(within(form).getByRole("checkbox", { name: /اشتراک ماهانه/ }));
     expect(amountBox(form)).toHaveValue("۴۰٬۰۰۰");
+    pickMethod(form);
     fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
+    await confirmMoneyReceived();
 
     await waitFor(() => expect(api.requestsTo("POST", settlePath)).toHaveLength(1));
     const body = (await api.requestsTo("POST", settlePath)[0]!.json()) as Record<string, unknown>;
@@ -101,6 +104,61 @@ describe("SettleDebt", () => {
         { kind: "ServiceCharge", id: serviceChargeDebtItem().id, outstanding: 10000 },
       ],
     });
+  });
+
+  it("SettleDebt_Opened_ChoosesNoMethodAndListsCardTransferThenCash", async () => {
+    profile();
+    const form = await openForm();
+
+    const methods = within(form).getByLabelText("روش پرداخت");
+    expect(methods).toHaveValue("");
+    expect(
+      within(methods)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["انتخاب کنید…", "کارت", "انتقال بانکی", "نقدی"]);
+  });
+
+  it("SettleDebt_NoMethodPicked_AsksForOneAndSendsNothing", async () => {
+    const api = profile();
+    const form = await openForm();
+
+    fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
+
+    expect(await within(form).findByText("روش پرداخت را انتخاب کنید.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(api.requestsTo("POST", settlePath)).toHaveLength(0);
+  });
+
+  it("SettleDebt_Submitted_AsksWhetherTheMoneyWasReceivedBeforeSending", async () => {
+    const api = profile({ [`POST ${settlePath}`]: () => json(200, settled) });
+    const form = await openForm();
+
+    pickMethod(form, "Card");
+    fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "آیا پول دریافت شد؟" });
+    expect(dialog).toHaveTextContent("۶۴۰٬۰۰۰ تومان");
+    expect(dialog).toHaveTextContent("کارت");
+    expect(api.requestsTo("POST", settlePath)).toHaveLength(0);
+
+    await confirmMoneyReceived();
+    await waitFor(() => expect(api.requestsTo("POST", settlePath)).toHaveLength(1));
+  });
+
+  it("SettleDebt_AnsweredNo_SendsNothingAndKeepsTheForm", async () => {
+    const api = profile();
+    const form = await openForm();
+
+    pickMethod(form, "BankTransfer");
+    fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
+    const dialog = await screen.findByRole("dialog", { name: "آیا پول دریافت شد؟" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "خیر، برگرد" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.requestsTo("POST", settlePath)).toHaveLength(0);
+    expect(within(form).getByLabelText("روش پرداخت")).toHaveValue("BankTransfer");
+    expect(amountBox(form)).toHaveValue("۶۴۰٬۰۰۰");
   });
 
   it("SettleDebt_NothingTicked_CannotBeSent", async () => {
@@ -120,6 +178,7 @@ describe("SettleDebt", () => {
     const form = await openForm();
 
     fireEvent.change(amountBox(form), { target: { value: "700000" } });
+    pickMethod(form);
     fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
 
     expect(
@@ -139,8 +198,9 @@ describe("SettleDebt", () => {
     });
     const form = await openForm();
 
-    fireEvent.change(within(form).getByLabelText("روش پرداخت"), { target: { value: "Card" } });
+    pickMethod(form, "Card");
     fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
+    await confirmMoneyReceived();
 
     const done = await screen.findByRole("status", { name: "تسویه ثبت شد" });
     expect(done).toHaveTextContent("تسویه ثبت شد: ۶۴۰٬۰۰۰ تومان (کارت)");
@@ -172,7 +232,9 @@ describe("SettleDebt", () => {
     const form = await openForm();
 
     fireEvent.change(amountBox(form), { target: { value: "100000" } });
+    pickMethod(form);
     fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
+    await confirmMoneyReceived();
 
     const done = await screen.findByRole("status", { name: "تسویه ثبت شد" });
     expect(within(done).getByText("بدهی باقی‌مانده: ۵۴۰٬۰۰۰ تومان")).toBeInTheDocument();
@@ -189,7 +251,9 @@ describe("SettleDebt", () => {
     });
     const form = await openForm();
 
+    pickMethod(form);
     fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
+    await confirmMoneyReceived();
 
     expect(
       await within(form).findByText(/بدهی این عضو در این فاصله تغییر کرد/),

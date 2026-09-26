@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { attendanceHistoryPage, cardioCharge, closedVisit, openVisit } from "@/test/attendance";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { memberDebt, reza } from "@/test/members";
+import { confirmMoneyReceived, pickMethod } from "@/test/payments";
 import { renderApp } from "@/test/renderApp";
 import { subscriptionsPage } from "@/test/subscriptions";
 import type { Attendance } from "@/features/attendance/api";
@@ -135,6 +136,37 @@ describe("ServiceChargeBox", () => {
     expect(screen.getByRole("button", { name: "ثبت پرداخت" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ابطال" })).toBeInTheDocument();
     expect(screen.getByText("مانده: ۱۰٬۰۰۰ تومان")).toBeInTheDocument();
+  });
+
+  /** Like every payment (BUSINESS_RULES.md §5): a method is picked and the money confirmed first. */
+  it("Box_TakingThePayment_AsksWhetherTheMoneyWasReceivedBeforeSending", async () => {
+    const visit = openVisit(reza.id);
+    const charge = cardioCharge(visit);
+    const paymentPath = `/api/service-charges/${charge.id}/payments`;
+    const api = renderProfile(withCharge(visit), {
+      [`POST ${paymentPath}`]: () => json(201, { id: "payment" }),
+    });
+
+    await openChargeDialog();
+    fireEvent.click(await screen.findByRole("button", { name: "ثبت پرداخت" }));
+    fireEvent.change(screen.getByLabelText("مبلغ (تومان)"), { target: { value: "10000" } });
+    fireEvent.click(screen.getByRole("button", { name: "تأیید پرداخت" }));
+
+    expect(await screen.findByText("روش پرداخت را انتخاب کنید.")).toBeInTheDocument();
+    expect(api.requestsTo("POST", paymentPath)).toHaveLength(0);
+
+    pickMethod(document.body, "Card");
+    fireEvent.click(screen.getByRole("button", { name: "تأیید پرداخت" }));
+    expect(await screen.findByRole("dialog", { name: "آیا پول دریافت شد؟" })).toBeInTheDocument();
+    expect(api.requestsTo("POST", paymentPath)).toHaveLength(0);
+
+    await confirmMoneyReceived();
+    await waitFor(() => expect(api.requestsTo("POST", paymentPath)).toHaveLength(1));
+    expect(await api.requestsTo("POST", paymentPath)[0]!.json()).toEqual({
+      amount: "10000",
+      method: "Card",
+      referenceNumber: null,
+    });
   });
 
   /**

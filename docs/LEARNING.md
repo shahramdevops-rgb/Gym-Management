@@ -873,3 +873,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Store the exception, not the rule.** The form remembers which items were *unticked*, not which were ticked. After a refetch, a new item appears ticked like the rest without any code to reconcile the two lists.
 - **Break an import cycle with a file.** `cafe/api.ts` imports `payments/api.ts`, so the settle hook (which refreshes the cafe's cache) lives in `payments/settle.ts` rather than making the two files import each other.
 - **My notes:**
+
+---
+
+## 7.5 follow-up — Confirming money at the desk
+
+- **Validate first, ask second, send third.** Each money form's `handleSubmit` no longer sends anything. It only stores the checked values (`toConfirm`), which opens `ConfirmPaymentDialog`. The request goes out only from the dialog's "yes". Validation errors still appear the usual way, and nobody is asked "was the money received?" about a form that would have been refused anyway.
+- **A guard that names what it guards.** The question shows the amount and the method ("۶۴۰٬۰۰۰ تومان با روش کارت"). A generic "are you sure?" is clicked through out of habit. A concrete figure is something the desk can check against the money in hand.
+- **No default is a decision too.** With "نقدی" preselected, a card payment the desk forgot to switch was recorded as cash, and the revenue-by-method report (§12) would inherit the mistake. An empty first option, which the Zod schema refuses (`z.enum(..., { error })`), forces a choice. The empty option is not `disabled`, because a browser skips a disabled first option and would show "کارت" as if it were chosen.
+- **One component for one rule.** `PaymentMethodField` holds the empty option and the order (card, bank transfer, cash) for all six forms. The next form that takes money gets the rule by using it, not by remembering it.
+- **A dialog in a portal still bubbles through React.** Radix renders the dialog's DOM under `<body>`, but React events travel up the *component* tree. So the dialog sits beside the `<form>` in a fragment rather than inside it, and its buttons are `type="button"`. A click on "yes" can never also submit the form.
+- **Tell `useForm` the type when the defaults are partial.** `useForm` infers its values from `defaultValues`. Without a `method` there, the inferred type lost the field, and the resolver no longer fitted. `useForm<RegisterPaymentValues>` names the full shape, and `DefaultValues<T>` types the partial defaults.
+- **My notes:**

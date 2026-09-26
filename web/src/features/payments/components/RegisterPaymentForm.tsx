@@ -1,13 +1,20 @@
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { FormField, MoneyField, SelectField } from "@/components/FormField";
+import { FormField, MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { normalizeMoney } from "@/lib/money";
 
-import { paymentMethodLabels, paymentMethods, useRegisterPayment } from "../api";
-import { emptyRegisterPaymentValues, registerPaymentSchema } from "../schemas";
+import { useRegisterPayment } from "../api";
+import {
+  emptyRegisterPaymentValues,
+  registerPaymentSchema,
+  type RegisterPaymentValues,
+} from "../schemas";
+import { ConfirmPaymentDialog } from "./ConfirmPaymentDialog";
+import { PaymentMethodField } from "./PaymentMethodField";
 
 const codeFields = {
   "Payments.AmountNotPositive": "amount",
@@ -31,13 +38,17 @@ export function RegisterPaymentForm({
   onCancel,
 }: RegisterPaymentFormProps) {
   const registerPayment = useRegisterPayment();
+  // The checked values waiting for "was the money received?"; nothing is sent before the answer.
+  const [toConfirm, setToConfirm] = useState<RegisterPaymentValues | null>(null);
 
-  const form = useForm({
+  const form = useForm<RegisterPaymentValues>({
     resolver: zodResolver(registerPaymentSchema),
     defaultValues: emptyRegisterPaymentValues,
   });
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit((values) => setToConfirm(values));
+
+  async function send(values: RegisterPaymentValues) {
     try {
       await registerPayment.mutateAsync({
         subscriptionId,
@@ -48,59 +59,71 @@ export function RegisterPaymentForm({
       });
       onDone();
     } catch (problem) {
+      setToConfirm(null);
       applyServerErrors(problem, form.setError, codeFields);
     }
-  });
+  }
 
-  const { errors, isSubmitting } = form.formState;
+  const { errors } = form.formState;
 
   return (
-    <form className="flex flex-wrap items-end gap-3" onSubmit={onSubmit} noValidate>
-      {errors.root?.server !== undefined && (
-        <Alert variant="destructive">{errors.root.server.message}</Alert>
-      )}
+    <>
+      <form className="flex flex-wrap items-end gap-3" onSubmit={onSubmit} noValidate>
+        {errors.root?.server !== undefined && (
+          <Alert variant="destructive">{errors.root.server.message}</Alert>
+        )}
 
-      <div className="w-40">
-        <Controller
-          control={form.control}
-          name="amount"
-          render={({ field }) => (
-            <MoneyField
-              label="مبلغ (تومان)"
-              placeholder="۹۰۰٬۰۰۰"
-              error={errors.amount?.message}
-              name={field.name}
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-            />
-          )}
-        />
-      </div>
-      <div className="w-36">
-        <SelectField label="روش پرداخت" error={errors.method?.message} {...form.register("method")}>
-          {paymentMethods.map((method) => (
-            <option key={method} value={method}>
-              {paymentMethodLabels[method]}
-            </option>
-          ))}
-        </SelectField>
-      </div>
-      <div className="min-w-40 flex-1">
-        <FormField
-          label="شماره پیگیری (اختیاری)"
-          dir="ltr"
-          autoComplete="off"
-          error={errors.referenceNumber?.message}
-          {...form.register("referenceNumber")}
-        />
-      </div>
-      <Button type="submit" size="sm" disabled={isSubmitting}>
-        تأیید پرداخت
-      </Button>
-      <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-        انصراف
-      </Button>
-    </form>
+        <div className="w-40">
+          <Controller
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <MoneyField
+                label="مبلغ (تومان)"
+                placeholder="۹۰۰٬۰۰۰"
+                error={errors.amount?.message}
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
+        </div>
+        <div className="w-36">
+          <PaymentMethodField error={errors.method?.message} {...form.register("method")} />
+        </div>
+        <div className="min-w-40 flex-1">
+          <FormField
+            label="شماره پیگیری (اختیاری)"
+            dir="ltr"
+            autoComplete="off"
+            error={errors.referenceNumber?.message}
+            {...form.register("referenceNumber")}
+          />
+        </div>
+        <Button type="submit" size="sm" disabled={registerPayment.isPending}>
+          تأیید پرداخت
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          انصراف
+        </Button>
+      </form>
+
+      <ConfirmPaymentDialog
+        payment={
+          toConfirm === null
+            ? null
+            : { amount: normalizeMoney(toConfirm.amount), method: toConfirm.method }
+        }
+        pending={registerPayment.isPending}
+        onConfirm={() => {
+          if (toConfirm !== null) {
+            void send(toConfirm);
+          }
+        }}
+        onCancel={() => setToConfirm(null)}
+      />
+    </>
   );
 }

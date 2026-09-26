@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { cafePage, cancelledOrder, orderOnAccount, walkInOrder } from "@/test/cafe";
 import { json, mockApi, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { reza } from "@/test/members";
+import { confirmMoneyReceived, pickMethod } from "@/test/payments";
 import { renderApp } from "@/test/renderApp";
 
 const history = {
@@ -101,7 +102,9 @@ describe("CafeOrdersPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /^ثبت پرداخت برای/ }));
 
     expect(screen.getByLabelText("مبلغ (تومان)")).toHaveValue("۱۲۰٬۰۰۰");
+    pickMethod(document.body);
     fireEvent.click(screen.getByRole("button", { name: "تأیید پرداخت" }));
+    await confirmMoneyReceived();
 
     expect(await screen.findByRole("status")).toHaveTextContent("پرداخت ثبت شد.");
     const [request] = api.requestsTo("POST", `/api/cafe/orders/${orderOnAccount.id}/payments`);

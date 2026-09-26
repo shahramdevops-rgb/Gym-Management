@@ -11,7 +11,11 @@ export type PaymentMethod = components["schemas"]["PaymentMethod"];
 
 export const paymentsPageSize = 10;
 
-export const paymentMethods: PaymentMethod[] = ["Cash", "Card", "BankTransfer"];
+/**
+ * The order every "روش پرداخت" list shows: card, bank transfer, cash (BUSINESS_RULES.md §5). No
+ * method is chosen in advance; the list starts on an empty "انتخاب کنید…".
+ */
+export const paymentMethods: PaymentMethod[] = ["Card", "BankTransfer", "Cash"];
 
 export const paymentMethodLabels: Record<PaymentMethod, string> = {
   Cash: "نقدی",
