@@ -371,6 +371,7 @@ Decided with the developer, 1405/07/04.
 - Before a check-out, the box shows the locker to take back and the same plan, sessions and itemized debt, so the desk can collect what is owed while the member is still there. Debt is shown, never enforced: check-out is not refused for money owed, the same way check-in is not.
 - When the visit has a locker, the desk must tick "key received" before the check-out can be confirmed: closing the visit hands the locker to the next person in. After check-out, the box shows that the locker is free and repeats the itemized debt.
 - Selling a single visit from that box needs no second confirmation: pressing the priced button is already the decision.
+- Cancelling a check-in (*Cancel check-in*) asks in the same box, with nothing else shown: it gives the session back and frees the locker, so a stray press is worth one more click.
 
 ### Cancel check-in
 - Allowed only for an open attendance within `Gym:CancelCheckInWindowMinutes` of check-in.

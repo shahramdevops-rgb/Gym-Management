@@ -252,13 +252,10 @@ describe("MemberProfilePage", () => {
     expect(api.requestsTo("POST", `/api/attendance/${visit.id}/check-out`)).toHaveLength(1);
   });
 
-  it("Profile_OpenVisit_CanCancelCheckIn", async () => {
+  it("Profile_OpenVisit_CancelCheckInAsksFirstThenCancels", async () => {
     const visit = openVisit(reza.id);
     const api = mockApi({
-      ...signedInHandlers(staffUser),
-      [`GET /api/members/${reza.id}`]: () => json(200, reza),
-      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([visit]),
-      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      ...profileHandlers([visit]),
       [`POST /api/attendance/${visit.id}/cancel`]: () =>
         json(200, {
           ...visit,
@@ -269,8 +266,13 @@ describe("MemberProfilePage", () => {
     renderApp(`/members/${reza.id}`, { session: session() });
 
     fireEvent.click(await screen.findByRole("button", { name: "لغو ورود" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("آیا از لغو ورود رضا احمدی مطمئن هستید؟");
+    expect(api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`)).toHaveLength(0);
 
-    expect(await screen.findByRole("status")).toHaveTextContent("جلسه به اشتراک بازگشت");
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود لغو شود" }));
+
+    expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
     expect(api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`)).toHaveLength(1);
   });
 

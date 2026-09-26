@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useSearchParams } from "react-router";
 
 import { Pager } from "@/components/Pager";
@@ -8,7 +7,7 @@ import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 import { pageFromParams } from "@/lib/searchParams";
 
-import { useCancelCheckIn, useCurrentlyInside } from "../api";
+import { useCurrentlyInside } from "../api";
 import { CurrentlyInsideTable } from "../components/CurrentlyInsideTable";
 import { useDeskDialog } from "../components/useDeskDialog";
 
@@ -20,27 +19,10 @@ export function CurrentlyInsidePage() {
   const [params, setParams] = useSearchParams();
   const page = pageFromParams(params);
   const inside = useCurrentlyInside(page);
-  // Check-out asks first, reminds the desk about the key and shows the debt (BUSINESS_RULES.md §7
-  // Confirming at the front desk), the same box as the entry screen.
+  // Check-out and cancelling a check-in ask first, in the same box as the entry screen
+  // (BUSINESS_RULES.md §7 Confirming at the front desk); check-out also reminds the desk about the
+  // key and shows the debt.
   const desk = useDeskDialog();
-  const cancel = useCancelCheckIn();
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ kind: "success" | "destructive"; text: string } | null>(
-    null,
-  );
-
-  async function handleCancel(attendanceId: string) {
-    setNotice(null);
-    setPendingId(attendanceId);
-    try {
-      await cancel.mutateAsync(attendanceId);
-      setNotice({ kind: "success", text: "ورود لغو شد و جلسه به اشتراک بازگشت." });
-    } catch (problem) {
-      setNotice({ kind: "destructive", text: errorMessage(problem) });
-    } finally {
-      setPendingId(null);
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -58,12 +40,6 @@ export function CurrentlyInsidePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {notice !== null && (
-            <Alert variant={notice.kind} role={notice.kind === "success" ? "status" : "alert"}>
-              {notice.text}
-            </Alert>
-          )}
-
           {inside.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
           {inside.isError && <Alert variant="destructive">{errorMessage(inside.error)}</Alert>}
 
@@ -75,7 +51,6 @@ export function CurrentlyInsidePage() {
             <>
               <CurrentlyInsideTable
                 rows={inside.data.items}
-                busyAttendanceId={pendingId}
                 onCheckOut={(row) =>
                   desk.open({
                     kind: "checkOut",
@@ -83,7 +58,13 @@ export function CurrentlyInsidePage() {
                     visit: { attendanceId: row.attendanceId, lockerNumber: row.lockerNumber },
                   })
                 }
-                onCancel={(id) => void handleCancel(id)}
+                onCancel={(row) =>
+                  desk.open({
+                    kind: "cancelCheckIn",
+                    member: { id: row.memberId, fullName: row.memberFullName },
+                    attendanceId: row.attendanceId,
+                  })
+                }
               />
               <Pager
                 page={page}
