@@ -831,6 +831,25 @@ started before those routes existed was still holding ports 5134/7134, which als
 `dotnet run` fail with "address already in use". Closed 2026-09-26: 501 frontend tests green,
 lint and type check clean; no backend change.
 
+### 7.5 Settle a member's debt in one step (تسویه یکجا) (asked by the developer, 1405/07/04)
+A single visit, هوازی and a cafe purchase are three items, each with its own payment form.
+BUSINESS_RULES.md §5 *Settling several items at once*.
+- [x] `SettlementAllocator` (Domain): spreads one amount over the ticked items, cafe → هوازی →
+      subscription, oldest first within a kind; refuses more than their total
+- [x] `POST /api/members/{memberId}/settlements`, both roles: under the member lock, re-reads the
+      debt, refuses with `Settlements.DebtChanged` if any ticked item's outstanding differs from
+      what the desk sent, then one `Payment` per item in one transaction
+- [x] «تسویه یکجا» in the check-out box and on the member profile's debt card: items ticked, the
+      amount filled with their total, one method, a success step listing what each item received
+- [x] Tests: allocation order and partial amounts (domain); full and partial settlement, a stale
+      item, an unknown or foreign item, overpayment, and two settlements racing (integration); the
+      form's ticks, amount and success step (frontend)
+
+Closed 2026-09-26: 1017 backend tests and 510 frontend tests green, zero warnings (the build's
+chunk-size note predates this task). Two choices are Claude's and wait for review
+(BUSINESS_RULES.md §5): oldest first within one kind, and no `SettlementId` tying the rows of one
+settlement together.
+
 ---
 
 ## Phase 8 — Expenses

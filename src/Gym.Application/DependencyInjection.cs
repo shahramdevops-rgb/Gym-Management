@@ -39,6 +39,7 @@ using Gym.Application.Members.UpdateMember;
 using Gym.Application.Payments.ListMemberPayments;
 using Gym.Application.Payments.RegisterPayment;
 using Gym.Application.Payments.RegisterRefund;
+using Gym.Application.Payments.SettleMemberDebt;
 using Gym.Application.Plans.CreatePlan;
 using Gym.Application.Plans.GetPlan;
 using Gym.Application.Plans.ListPlans;
@@ -143,6 +144,7 @@ public static class DependencyInjection
         services.AddScoped<RegisterServiceChargePaymentHandler>();
         services.AddScoped<RegisterCafeOrderPaymentHandler>();
         services.AddScoped<ListMemberPaymentsHandler>();
+        services.AddScoped<SettleMemberDebtHandler>();
 
         services.AddScoped<RecordServiceChargeHandler>();
         services.AddScoped<ChangeServiceChargeAmountHandler>();

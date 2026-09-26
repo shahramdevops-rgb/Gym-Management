@@ -859,3 +859,17 @@ The question that started this was whether a gym that is entirely internal — I
 - **State that outlives the state it started in.** Recording a first هوازی amount turns "no charge" into "a charge" while the dialog is open, because the mutation waits for the refetch before it resolves. The box used to have one dialog per state, so the success step would have been unmounted in the middle of showing. Now there is one dialog for every state, and it picks its content from `open` first.
 - **Move the focus off a form that no longer exists.** When the form is replaced, the element that had the focus is gone. `autoFocus` on the close button gives screen readers somewhere to land, and lets Enter close the box.
 - **My notes:**
+
+---
+
+## 7.5 — Settle a member's debt in one step (تسویه یکجا)
+
+- **Automate the rule, don't change it.** §5 already said "a lump sum is entered against each item". The settlement endpoint does exactly that and nothing more: one ordinary `Payment` per item. No new table and no wallet, so debt, payment status, refunds, voids and cancellations keep working without a single change. Adding a feature by *reusing* the existing record keeps every rule that already reads that record correct.
+- **A pure function for the rule that decides whose money is spent.** `SettlementAllocator` lives in the Domain and knows nothing about the database: items and an amount in, shares out. The order "cafe → هوازی → subscription, oldest first" is pinned down by ten fast unit tests instead of integration tests that would each have to build three kinds of debt.
+- **"What the desk saw is what gets paid" (optimistic check).** The request carries each ticked item *with the figure the desk was shown*. Under the member lock the handler reads the debt again and refuses with `409 Settlements.DebtChanged` if anything differs. It is the same idea as `xmin` concurrency, done by hand: compare what the client read with what is there now, and refuse rather than guess.
+- **One lock that every writer takes.** Paying, voiding a charge and cancelling an order all take the member lock (`LockMemberAsync`), so the settlement only has to take it too. Four settlements pressed at once become one success and three `409`s, and the member is never charged twice (the parallel integration test proves it).
+- **All or nothing.** The rows are written in one transaction. If the third payment failed, the first two would roll back too. A half-written settlement would be worse than none, because the desk would think it had failed and take the money again.
+- **Keep the success step at one place in the tree.** React keeps a component's state only while it stays at the same position. The debt card first rendered `SettleDebt` in two different branches (owed / not owed), so clearing the debt would have remounted it and wiped the "تسویه ثبت شد" step at the exact moment it appears. Rendering it once, after the branch, fixes that.
+- **Store the exception, not the rule.** The form remembers which items were *unticked*, not which were ticked. After a refetch, a new item appears ticked like the rest without any code to reconcile the two lists.
+- **Break an import cycle with a file.** `cafe/api.ts` imports `payments/api.ts`, so the settle hook (which refreshes the cafe's cache) lives in `payments/settle.ts` rather than making the two files import each other.
+- **My notes:**

@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import { cardioCharge, currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
-import { memberDebt, reza } from "@/test/members";
+import { cafeDebtItem, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
 import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
 import { gymToday } from "@/lib/format";
@@ -291,6 +291,66 @@ describe("CurrentlyInsidePage", () => {
       await screen.findByText("در حال حاضر کسی داخل باشگاه نیست.", undefined, { timeout: 3000 }),
     ).toBeInTheDocument();
     expect(api.requestsTo("POST", `/api/attendance/${visit.id}/check-out`)).toHaveLength(1);
+  });
+
+  /**
+   * The case task 7.5 is for: the walk-in owes the visit, هوازی and a drink, and pays all of it
+   * once, in the check-out box, before the check-out itself (BUSINESS_RULES.md §5).
+   */
+  it("Board_CheckOutBox_SettlesTheWholeDebtInOneStep", async () => {
+    const visit = openVisit(reza.id);
+    let paid = false;
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      ...boxHandlers,
+      [`GET /api/members/${reza.id}/debt`]: () =>
+        memberDebt(paid ? [] : [debtItem(), serviceChargeDebtItem(), cafeDebtItem()]),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([insideRow(reza.fullName, visit)]),
+      [`POST /api/members/${reza.id}/settlements`]: () => {
+        paid = true;
+        return json(200, {
+          amount: 640000,
+          method: "Cash",
+          payments: [
+            {
+              paymentId: "p1",
+              kind: "CafeOrder",
+              targetId: cafeDebtItem().id,
+              amount: 30000,
+              outstanding: 0,
+            },
+            {
+              paymentId: "p2",
+              kind: "ServiceCharge",
+              targetId: serviceChargeDebtItem().id,
+              amount: 10000,
+              outstanding: 0,
+            },
+            {
+              paymentId: "p3",
+              kind: "Subscription",
+              targetId: debtItem().id,
+              amount: 600000,
+              outstanding: 0,
+            },
+          ],
+          remainingDebt: 0,
+        });
+      },
+    });
+
+    renderApp("/attendance", { session: session() });
+    fireEvent.click(await screen.findByRole("button", { name: "ثبت خروج" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(await within(dialog).findByRole("button", { name: "تسویه یکجا" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "تأیید تسویه" }));
+
+    expect(await within(dialog).findByText("بدهی این عضو صاف شد.")).toBeInTheDocument();
+    expect(await within(dialog).findByText("این عضو بدهی ندارد.")).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/settlements`)).toHaveLength(1);
+    // Paying is not leaving: the check-out still waits for its own confirmation.
+    expect(api.requestsTo("POST", `/api/attendance/${visit.id}/check-out`)).toHaveLength(0);
   });
 
   it("Board_CancelCheckIn_AsksFirstAndSendsNothingUntilConfirmed", async () => {

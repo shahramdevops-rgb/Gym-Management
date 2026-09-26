@@ -1,8 +1,9 @@
 import { Alert } from "@/components/ui/alert";
 import { useVisitCafeOrders } from "@/features/cafe/api";
-import { useMemberDebt } from "@/features/members/api";
+import { useMemberDebt, type MemberDebt } from "@/features/members/api";
 import { debtBySource } from "@/features/members/debtBySource";
 import { debtItemLabel } from "@/features/members/debtItemLabel";
+import { SettleDebt } from "@/features/payments/components/SettleDebt";
 import { useCurrentSubscription, type Subscription } from "@/features/subscriptions/api";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, toPersianDigits } from "@/lib/format";
@@ -142,7 +143,18 @@ function DebtBox({ memberId }: { memberId: string }) {
   if (debt.isError) {
     return <Alert variant="destructive">{errorMessage(debt.error)}</Alert>;
   }
-  if (!isPositiveMoney(debt.data.total)) {
+
+  return (
+    <div className="space-y-3">
+      <DebtDetails debt={debt.data} />
+      {/* Collected here, while the member is standing at the desk (BUSINESS_RULES.md §5). */}
+      <SettleDebt memberId={memberId} items={debt.data.items} />
+    </div>
+  );
+}
+
+function DebtDetails({ debt }: { debt: MemberDebt }) {
+  if (!isPositiveMoney(debt.total)) {
     return (
       <Alert variant="success" role="status">
         این عضو بدهی ندارد.
@@ -156,10 +168,10 @@ function DebtBox({ memberId }: { memberId: string }) {
       className="space-y-2 rounded-lg border-2 border-destructive bg-destructive/5 p-4 text-destructive"
     >
       <p className="text-sm font-medium">بدهی این عضو</p>
-      <p className="text-2xl font-bold">{formatMoney(debt.data.total)}</p>
+      <p className="text-2xl font-bold">{formatMoney(debt.total)}</p>
       {/* By source first — plan, هوازی, cafe — the way the desk says it to the member. */}
       <dl aria-label="بدهی به تفکیک" className="space-y-1 border-t border-destructive/30 pt-2">
-        {debtBySource(debt.data.items).map((source) => (
+        {debtBySource(debt.items).map((source) => (
           <div key={source.label} className="flex justify-between gap-3 font-medium">
             <dt>{source.label}</dt>
             <dd>{formatMoney(source.amount)}</dd>
@@ -167,7 +179,7 @@ function DebtBox({ memberId }: { memberId: string }) {
         ))}
       </dl>
       <ul className="space-y-1 border-t border-destructive/30 pt-2 text-xs text-destructive/80">
-        {debt.data.items.map((item) => (
+        {debt.items.map((item) => (
           <li key={item.id} className="flex justify-between gap-3">
             <span>
               {debtItemLabel(item)}
