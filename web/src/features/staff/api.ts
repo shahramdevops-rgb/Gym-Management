@@ -67,6 +67,17 @@ export function useSetStaffActive() {
   });
 }
 
+/** Clears a lockout without touching the password (docs/BUSINESS_RULES.md §1 *Lockout*). */
+export function useUnlockStaff() {
+  return useStaffMutation(async (id: string) => {
+    const { data, error } = await api.POST("/api/staff/{id}/unlock", { params: { path: { id } } });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  });
+}
+
 export function useResetStaffPassword() {
   return useStaffMutation(
     async ({ id, temporaryPassword }: { id: string; temporaryPassword: string }) => {

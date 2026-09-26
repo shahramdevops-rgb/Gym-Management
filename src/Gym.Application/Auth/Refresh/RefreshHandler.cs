@@ -76,6 +76,10 @@ public sealed partial class RefreshHandler(
         var child = token.Rotate(RefreshTokenSecret.Hash(refreshSecret), now).Value;
         db.RefreshTokens.Add(child);
 
+        // Using the app counts as using the device (BUSINESS_RULES.md §1 *Lockout*): a trusted
+        // browser's 90 days start again, and it gets a fresh device secret.
+        var deviceToken = await db.RenewDeviceAsync(user.Value.Id, command.DeviceToken, now, cancellationToken);
+
         try
         {
             await db.SaveChangesAsync(cancellationToken);
@@ -92,7 +96,11 @@ public sealed partial class RefreshHandler(
             return Invalid();
         }
 
-        return AuthSession.Create(user.Value, tokenIssuer.Issue(user.Value), refreshSecret, child.ExpiresAt);
+        return AuthSession.Create(user.Value, tokenIssuer.Issue(user.Value), refreshSecret, child.ExpiresAt) with
+        {
+            DeviceToken = deviceToken,
+            DeviceTokenExpiresAt = deviceToken is null ? null : now + TrustedDevice.Lifetime,
+        };
     }
 
     /// <summary>

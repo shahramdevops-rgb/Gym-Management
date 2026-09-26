@@ -252,6 +252,73 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Auth.TrustedDevice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("failed_attempts");
+
+                    b.Property<DateTimeOffset>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<DateTimeOffset?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("locked_until");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trusted_devices");
+
+                    b.HasIndex("TokenHash")
+                        .HasDatabaseName("ix_trusted_devices_token_hash");
+
+                    b.HasIndex("UserId", "TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_trusted_devices_user_id_token_hash");
+
+                    b.ToTable("trusted_devices", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_trusted_devices_expires_after_last_use", "expires_at > last_used_at");
+
+                            t.HasCheckConstraint("ck_trusted_devices_failed_attempts_not_negative", "failed_attempts >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Cafe.CafeOrder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1370,6 +1437,16 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_refresh_tokens_asp_net_users_user_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Auth.TrustedDevice", b =>
+                {
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_trusted_devices_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Cafe.CafeOrder", b =>

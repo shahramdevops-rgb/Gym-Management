@@ -12,9 +12,15 @@ namespace Gym.Application.Common.Security;
 /// </remarks>
 public interface IUserAuthenticator
 {
+    /// <param name="deviceTokenHash">
+    /// The hash of the request's <c>gym_device</c> cookie, or null without one. When it names a
+    /// device trusted for this user, lockout is counted on that device alone (BUSINESS_RULES.md §1
+    /// *Lockout*).
+    /// </param>
     Task<Result<AuthenticatedUser>> AuthenticateAsync(
         string userName,
         string password,
+        string? deviceTokenHash,
         CancellationToken cancellationToken);
 
     /// <summary>
@@ -35,7 +41,7 @@ public interface IUserAuthenticator
     /// toward lockout exactly like a failed login. Fails with <c>AuthErrors.UserInactive</c>,
     /// <c>AuthErrors.LockedOut</c> or <c>AuthErrors.CurrentPasswordIncorrect</c>.
     /// </summary>
-    Task<Result> VerifyPasswordAsync(Guid userId, string password, CancellationToken cancellationToken);
+    Task<Result> VerifyPasswordAsync(Guid userId, string password, string? deviceTokenHash, CancellationToken cancellationToken);
 
     /// <summary>
     /// Stores the new password and clears <c>MustChangePassword</c> in one save, and returns

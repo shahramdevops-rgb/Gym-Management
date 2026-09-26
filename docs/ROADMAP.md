@@ -931,13 +931,19 @@ a user whose password predates the policy is sent to change it at the next login
 ### 11.6 Lockout that an attacker cannot turn against the gym (asked by the developer, 1405/07/04)
 Anyone who knows a user name can keep that account locked by sending five wrong passwords every
 15 minutes. BUSINESS_RULES.md §1 *Lockout*, docs/adr/0004-password-policy-and-lockout.md.
-- [ ] Trusted devices: a browser that logged in successfully gets a device cookie; failed attempts
+- [x] Trusted devices: a browser that logged in successfully gets a device cookie; failed attempts
       from unknown devices lock only unknown devices, and a trusted device has its own count
-- [ ] Owner: «باز کردن قفل» for a locked staff account, without a password reset
-- [ ] Server console: `./server.sh unlock <user>`, `./server.sh set-password <user>`,
+- [x] Owner: «باز کردن قفل» for a locked staff account, without a password reset
+- [x] Server console: `./server.sh unlock <user>`, `./server.sh set-password <user>`,
       `./server.sh rename <old> <new>` (the Owner's user name is `Owner`, easy to guess)
-- [ ] Guessable user names (admin, owner, manager, …) refused for new accounts and renames
-- [ ] Tests: an attacker's lockout leaves a trusted device working; unlock; the console commands
+- [x] Guessable user names (admin, owner, manager, …) refused for new accounts and renames
+- [x] Tests: an attacker's lockout leaves a trusted device working; a trusted device locks only
+      itself; a planted cookie is never trusted; change password and reset forget devices; unlock
+      (integration); the console commands in process; the unlock button (frontend)
+- [ ] After release, on the server: `./server.sh rename Owner <new-name>` (the developer)
+
+Done when: five wrong passwords from a browser without the device cookie lock the account for
+unknown browsers only, the front-desk PC still logs in, and `./server.sh unlock` opens both doors.
 
 ---
 

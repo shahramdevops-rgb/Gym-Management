@@ -8,6 +8,7 @@ using Gym.Application.Staff.GetStaff;
 using Gym.Application.Staff.ListStaff;
 using Gym.Application.Staff.ResetStaffPassword;
 using Gym.Application.Staff.SetStaffActive;
+using Gym.Application.Staff.UnlockStaff;
 
 namespace Gym.Api.Endpoints;
 
@@ -59,6 +60,15 @@ public static class StaffEndpoints
             .WithName("ReactivateStaff")
             .Produces<StaffResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        // Clears a lockout without a new password: the staff member remembers theirs, and someone
+        // else's wrong guesses are what locked them out (BUSINESS_RULES.md §1 *Lockout*).
+        group.MapPost("/{id:guid}/unlock", async (Guid id, UnlockStaffHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, ct)).ToHttpResult())
+            .WithName("UnlockStaff")
+            .Produces<StaffResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         group.MapPost("/{id:guid}/reset-password", async (Guid id, ResetStaffPasswordCommand command, ResetStaffPasswordHandler handler, CancellationToken ct) =>
                 (await handler.Handle(id, command, ct)).ToHttpResult())

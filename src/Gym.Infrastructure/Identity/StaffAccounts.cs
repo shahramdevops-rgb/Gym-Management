@@ -65,7 +65,7 @@ public sealed class StaffAccounts(
 
         ThrowIfFailed(await userManager.AddToRoleAsync(user, Roles.Staff), "add the user to the Staff role");
 
-        return ToResponse(user);
+        return await ToResponseAsync(user, cancellationToken);
     }
 
     public async Task<PagedResponse<StaffResponse>> ListAsync(int page, int pageSize, CancellationToken cancellationToken)
@@ -85,7 +85,12 @@ public sealed class StaffAccounts(
                 user.FullName,
                 user.IsActive,
                 user.MustChangePassword,
-                user.LockoutEnd != null && user.LockoutEnd > now))
+
+                // Locked at either door (BUSINESS_RULES.md §1 *Lockout*): unknown devices, or a
+                // device this person logs in from.
+                (user.LockoutEnd != null && user.LockoutEnd > now) ||
+                    db.TrustedDevices.Any(device =>
+                        device.UserId == user.Id && device.LockedUntil > now && device.ExpiresAt > now)))
             .ToListAsync(cancellationToken);
 
         return new PagedResponse<StaffResponse>(items, page, pageSize, totalCount);
@@ -95,7 +100,7 @@ public sealed class StaffAccounts(
     {
         var user = await FindStaffAsync(id, cancellationToken);
 
-        return user is null ? null : ToResponse(user);
+        return user is null ? null : await ToResponseAsync(user, cancellationToken);
     }
 
     public async Task<Result<StaffResponse>> SetActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken)
@@ -123,7 +128,7 @@ public sealed class StaffAccounts(
             }
         }
 
-        return ToResponse(user);
+        return await ToResponseAsync(user, cancellationToken);
     }
 
     public async Task<Result> ResetPasswordAsync(Guid id, string temporaryPassword, CancellationToken cancellationToken)
@@ -154,9 +159,9 @@ public sealed class StaffAccounts(
             () => userManager.RemovePasswordAsync(user),
             () => userManager.AddPasswordAsync(user, temporaryPassword),
 
-            // The reset is how a locked-out staff member gets back in, so it clears the lockout.
-            () => userManager.SetLockoutEndDateAsync(user, null),
-            () => userManager.ResetAccessFailedCountAsync(user),
+            // The reset is how a locked-out staff member gets back in, so it clears the lockout,
+            // at both doors.
+            () => Lockouts.ClearAsync(userManager, db, user, cancellationToken),
         };
 
         foreach (var step in steps)
@@ -170,6 +175,22 @@ public sealed class StaffAccounts(
         return Result.Success();
     }
 
+    public async Task<Result<StaffResponse>> UnlockAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var user = await FindStaffAsync(id, cancellationToken);
+        if (user is null)
+        {
+            return Result.Failure<StaffResponse>(StaffErrors.NotFound);
+        }
+
+        if (Conflict(await Lockouts.ClearAsync(userManager, db, user, cancellationToken), "unlock the account") is { } conflict)
+        {
+            return Result.Failure<StaffResponse>(conflict);
+        }
+
+        return await ToResponseAsync(user, cancellationToken);
+    }
+
     /// <summary>Users in the Staff role. The Owner and any other role are invisible here.</summary>
     private IQueryable<User> StaffUsers() =>
         from user in db.Users
@@ -180,13 +201,16 @@ public sealed class StaffAccounts(
     private Task<User?> FindStaffAsync(Guid id, CancellationToken cancellationToken) =>
         StaffUsers().SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 
-    private StaffResponse ToResponse(User user) => new(
-        user.Id,
-        user.UserName!,
-        user.FullName,
-        user.IsActive,
-        user.MustChangePassword,
-        user.LockoutEnd is { } lockoutEnd && lockoutEnd > timeProvider.GetUtcNow());
+    private async Task<StaffResponse> ToResponseAsync(User user, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        var lockedOut = (user.LockoutEnd is { } lockoutEnd && lockoutEnd > now) ||
+            await db.TrustedDevices.AnyAsync(
+                device => device.UserId == user.Id && device.LockedUntil > now && device.ExpiresAt > now,
+                cancellationToken);
+
+        return new StaffResponse(user.Id, user.UserName!, user.FullName, user.IsActive, user.MustChangePassword, lockedOut);
+    }
 
     private static string Describe(IdentityResult result) =>
         string.Join(" ", result.Errors.Select(error => error.Description));

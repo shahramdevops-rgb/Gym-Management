@@ -14,7 +14,9 @@ public sealed class CreateStaffValidator : AbstractValidator<CreateStaffCommand>
             .Length(UserNamePolicy.MinimumLength, UserNamePolicy.MaximumLength).WithErrorCode("Staff.UserNameLength")
                 .WithMessage($"User name must be {UserNamePolicy.MinimumLength} to {UserNamePolicy.MaximumLength} characters.")
             .Must(UserNamePolicy.HasOnlyAllowedCharacters).WithErrorCode("Staff.UserNameInvalidCharacters")
-                .WithMessage("User name may contain only Latin letters, digits and - . _ @ +.");
+                .WithMessage("User name may contain only Latin letters, digits and - . _ @ +.")
+            .Must(userName => !UserNamePolicy.IsGuessable(userName)).WithErrorCode("Staff.UserNameGuessable")
+                .WithMessage("User name is too easy to guess (admin, owner, manager, ...).");
 
         // Checked on the cleaned name, because that is what will be saved.
         RuleFor(command => StaffNames.Clean(command.FullName))
