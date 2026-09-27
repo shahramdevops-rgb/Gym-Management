@@ -16,6 +16,9 @@ namespace Gym.Application.Attendances.AutoCheckout;
 /// the same <c>SaveChangesAsync</c> path as every other write, so the audit interceptor stamps
 /// it the same way — <c>UpdatedBy</c> is simply null, which <c>AuditableEntityInterceptor</c>
 /// already documents as the expected value for background jobs.
+/// A visit the desk closes or moves while this runs changes its <c>xmin</c>, and the save then
+/// throws rather than overwrite it; the job fails and Hangfire runs it again, which closes whatever
+/// is still open by then.
 /// </remarks>
 public sealed class AutoCheckoutHandler(IAppDbContext db, TimeProvider time)
 {

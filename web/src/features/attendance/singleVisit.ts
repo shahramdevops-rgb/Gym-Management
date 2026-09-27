@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { lockerKeys } from "@/features/lockers/api";
 import { memberKeys } from "@/features/members/api";
 import { subscriptionKeys, type Subscription } from "@/features/subscriptions/api";
 import { api } from "@/lib/api/client";
@@ -50,9 +51,12 @@ export interface SingleVisitResult {
  * one would put a second way to sell a subscription next to the first.
  *
  * They are not atomic, and that is survivable in a way the reverse order would not be: if the sale
- * succeeds and the check-in fails, the member has a paid visit for today and the desk can press
- * the ordinary check-in button again. The failure is visible and recoverable. A check-in that
- * somehow preceded its sale would be neither.
+ * succeeds and the check-in fails (someone took the locker in between, say), the member has a paid
+ * visit for today and the desk checks them in from the map again. The failure is visible and
+ * recoverable. A check-in that somehow preceded its sale would be neither.
+ *
+ * The visit is checked in with the place the desk clicked on the map (roadmap 6.5.5): `lockerId`,
+ * or `null` for a reserve place.
  */
 export function useSellSingleVisit() {
   const queryClient = useQueryClient();
@@ -61,9 +65,11 @@ export function useSellSingleVisit() {
     mutationFn: async ({
       memberId,
       planId,
+      lockerId,
     }: {
       memberId: string;
       planId: string;
+      lockerId: string | null;
     }): Promise<SingleVisitResult> => {
       const sale = await api.POST("/api/members/{memberId}/subscriptions", {
         params: { path: { memberId } },
@@ -75,6 +81,7 @@ export function useSellSingleVisit() {
 
       const visit = await api.POST("/api/members/{memberId}/attendance/check-in", {
         params: { path: { memberId } },
+        body: { lockerId },
       });
       if (visit.error !== undefined) {
         throw visit.error;
@@ -85,6 +92,7 @@ export function useSellSingleVisit() {
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: attendanceKeys.all }),
+        queryClient.invalidateQueries({ queryKey: lockerKeys.all }),
         queryClient.invalidateQueries({ queryKey: subscriptionKeys.all }),
         queryClient.invalidateQueries({ queryKey: memberKeys.all }),
       ]),

@@ -93,7 +93,12 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                   </Link>
                 </td>
                 <td className="py-2">
-                  {row.lockerNumber === null ? "—" : toPersianDigits(row.lockerNumber)}
+                  {/* A reserve place has no number to show (BUSINESS_RULES.md §6, §7). */}
+                  {row.lockerNumber !== null
+                    ? toPersianDigits(row.lockerNumber)
+                    : row.usesReservePlace
+                      ? "رزرو"
+                      : "—"}
                 </td>
                 <td className="py-2">{formatDateTime(row.checkedInAt)}</td>
                 <td className="py-2">

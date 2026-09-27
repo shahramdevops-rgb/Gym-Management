@@ -938,3 +938,19 @@ The question that started this was whether a gym that is entirely internal — I
 - **Hide what the API would refuse.** A voided row has no buttons at all, because §9 says it is final. A disabled button would make the user wonder why; no button says there is nothing left to do.
 - **Extract on the second caller.** `dateFromParams` lived inside the cafe's order history. The expenses page needed the same thing, so it moved to `lib/searchParams.ts`, not copied. One copy can be a local detail, but two copies drift apart.
 - **My notes:**
+
+---
+
+## 6.5.5 — The locker map: the desk chooses the locker
+
+- **A rule enforced by the compiler.** "Nobody creates a locker" is not a check in a handler: `Locker.Create` is `internal`, and only `Gym.Domain.Tests` can see it (`InternalsVisibleTo`). Application cannot call it at all. The real 72 come with the migration (`HasData`).
+- **Ids from a formula.** `LockerSeed.IdOf(12)` is `…-000000000012`. A migration has to name its rows, and 72 pasted GUIDs are 72 chances for a typo nobody would notice.
+- **"Exactly one of two" in SQL.** `(locker_id IS NULL) <> (reserve_slot IS NULL)` is an XOR. Prefixing it with `checked_out_at IS NOT NULL OR` limits it to open visits, so old closed visits with neither stay legal.
+- **The unique index is the referee.** Two desks can click the same free locker in the same second. Both pass the "is it free?" read; the partial unique index lets exactly one insert through. The handler maps that index's name to the same error as a locker taken long ago (`Attendance.LockerTaken`), because the desk's next step is the same.
+- **A row nobody edits can still race.** A visit is never "edited", but moving it and checking it out are two writers on one row. Without `xmin`, a move that read the visit before check-out would put a closed visit on another locker. With it, the second save is refused.
+- **Test a race by making the stale read on purpose.** Two parallel requests "succeed" whether the protection works or not. Loading the row in one `DbContext`, changing it through the API, then saving the stale copy proves the token deterministically.
+- **Say it, do not infer it.** A reserve place has no locker, but so does a visit closed before 6.5.5. `UsesReservePlace` says it outright, so the screen never has to guess from a `null`.
+- **A floor plan is data.** `layout.ts` holds zones → groups → cabinets, and a test proves every number from 1 to 72 appears exactly once. The drawing code only walks the data.
+- **A left-to-right island in a right-to-left page.** The wall runs 1 → 30 left to right, so each zone is `dir="ltr"` while the rest of the page stays RTL.
+- **One component, two modes.** `LockerMap` in `desk` mode opens boxes; in `pick` mode only free lockers are clickable. Moving a visit reuses the same map instead of a second picker.
+- **My notes:**

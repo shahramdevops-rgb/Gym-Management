@@ -13,7 +13,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("heading", { name: "مدیریت باشگاه" })).toBeInTheDocument();
 
     const navigation = screen.getByRole("navigation", { name: "منوی اصلی" });
-    expect(within(navigation).getByRole("link", { name: "ورود به باشگاه" })).toHaveAttribute(
+    expect(within(navigation).getByRole("link", { name: "ورود با کمد" })).toHaveAttribute(
       "href",
       "/",
     );
@@ -24,12 +24,28 @@ describe("AppShell", () => {
     expect(await screen.findByText(staffUser.fullName)).toBeInTheDocument();
   });
 
+  it("AppShell_Staff_TheLockerMapIsTheFirstItemAndSearchMovedDown", async () => {
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+
+    // BUSINESS_RULES.md §7: check-in happens only on the map, so it leads the menu for both roles.
+    await screen.findByText(staffUser.fullName);
+    const links = within(screen.getByRole("navigation", { name: "منوی اصلی" })).getAllByRole(
+      "link",
+    );
+    expect(links[0]).toHaveTextContent("ورود با کمد");
+    expect(screen.getByRole("link", { name: "جستجوی عضو" })).toHaveAttribute("href", "/search");
+    expect(screen.queryByRole("link", { name: "کمدها" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "ورود با کمد" })).toBeInTheDocument();
+  });
+
   it("AppShell_CurrentRoute_MarksItsLinkActive", () => {
     mockApi(signedInHandlers(staffUser));
 
     renderApp("/", { session: session() });
 
-    expect(screen.getByRole("link", { name: "ورود به باشگاه" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "ورود با کمد" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -46,9 +62,7 @@ describe("AppShell", () => {
     renderApp("/members/0199a000-0000-7000-8000-0000000000aa", { session: session() });
 
     expect(screen.getByRole("link", { name: "اعضا" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "ورود به باشگاه" })).not.toHaveAttribute(
-      "aria-current",
-    );
+    expect(screen.getByRole("link", { name: "ورود با کمد" })).not.toHaveAttribute("aria-current");
   });
 
   it("AppShell_Staff_SeesTheMemberMenuItems", async () => {

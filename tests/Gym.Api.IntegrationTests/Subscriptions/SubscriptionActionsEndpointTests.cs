@@ -451,8 +451,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
     /// <summary>Uses a session the only way anything does, and returns the visit's id.</summary>
     private static async Task<Guid> CheckInOkAsync(HttpClient client, string token, Guid memberId)
     {
-        using var response = await SendAsync(
-            client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+        using var response = await TestLockers.CheckInAsync(client, token, memberId);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         var attendance = (await response.Content.ReadFromJsonAsync<AttendanceResponse>(

@@ -9,6 +9,7 @@ using Gym.Application.Attendances.CheckIn;
 using Gym.Application.Attendances.CheckOut;
 using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Attendances.ListMemberAttendance;
+using Gym.Application.Attendances.MoveLocker;
 using Gym.Application.Auth.ChangePassword;
 using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
@@ -37,7 +38,6 @@ using Gym.Application.Expenses.RecordExpense;
 using Gym.Application.Expenses.UpdateExpense;
 using Gym.Application.Expenses.UpdateExpenseCategory;
 using Gym.Application.Expenses.VoidExpense;
-using Gym.Application.Lockers.CreateLocker;
 using Gym.Application.Lockers.GetLocker;
 using Gym.Application.Lockers.ListLockers;
 using Gym.Application.Lockers.SetLockerOutOfService;
@@ -130,7 +130,6 @@ public static class DependencyInjection
         services.AddScoped<ListPlansHandler>();
         services.AddScoped<SetPlanActiveHandler>();
 
-        services.AddScoped<CreateLockerHandler>();
         services.AddScoped<GetLockerHandler>();
         services.AddScoped<ListLockersHandler>();
         services.AddScoped<SetLockerOutOfServiceHandler>();
@@ -138,6 +137,7 @@ public static class DependencyInjection
         services.AddScoped<CheckInHandler>();
         services.AddScoped<CheckOutHandler>();
         services.AddScoped<CancelCheckInHandler>();
+        services.AddScoped<MoveLockerHandler>();
         services.AddScoped<ListCurrentlyInsideHandler>();
         services.AddScoped<ListMemberAttendanceHandler>();
         services.AddScoped<AutoCheckoutHandler>();

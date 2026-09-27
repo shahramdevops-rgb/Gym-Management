@@ -13,6 +13,7 @@ export function openVisit(memberId: string): Attendance {
     subscriptionId,
     lockerId,
     lockerNumber: 3,
+    usesReservePlace: false,
     checkedInAt: "2026-09-18T07:00:00Z",
     checkedOutAt: null,
     cancelledAt: null,
@@ -52,6 +53,7 @@ export function openVisitNoLocker(memberId: string): Attendance {
     id: "0199a000-0000-7000-8000-0000000000c2",
     lockerId: null,
     lockerNumber: null,
+    usesReservePlace: true,
   };
 }
 
@@ -113,6 +115,7 @@ export function insideRow(
     memberFullName,
     lockerId: attendance.lockerId,
     lockerNumber: attendance.lockerNumber,
+    usesReservePlace: attendance.usesReservePlace,
     checkedInAt: attendance.checkedInAt,
     subscriptionId: "0199a000-0000-7000-8000-0000000000d1",
     totalSessions: 12,

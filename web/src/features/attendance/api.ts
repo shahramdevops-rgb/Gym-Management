@@ -20,9 +20,33 @@ export const currentlyInsideRefetchMs = 15_000;
 export const attendanceKeys = {
   all: ["attendance"] as const,
   currentlyInside: (page: number) => [...attendanceKeys.all, "currently-inside", page] as const,
+  everyoneInside: () => [...attendanceKeys.all, "currently-inside", "all"] as const,
   memberHistory: (memberId: string, page: number) =>
     [...attendanceKeys.all, "history", memberId, page] as const,
 };
+
+/**
+ * At most 72 lockers and 15 reserve places can be held at once (BUSINESS_RULES.md §6), so 87
+ * open visits at most: one page of 100 always holds everyone inside.
+ */
+export const everyoneInsidePageSize = 100;
+
+/** Everyone inside on one page, for the locker map to join to its lockers by number. */
+export function useEveryoneInside() {
+  return useQuery({
+    queryKey: attendanceKeys.everyoneInside(),
+    refetchInterval: currentlyInsideRefetchMs,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/attendance/currently-inside", {
+        params: { query: { Page: 1, PageSize: everyoneInsidePageSize } },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data.items;
+    },
+  });
+}
 
 export function useCurrentlyInside(page: number) {
   return useQuery({
@@ -78,8 +102,8 @@ export function useMemberAttendanceHistory(memberId: string, page: number) {
  * and a check-in against an exhausted subscription with a renewal queued behind it moves that
  * renewal forward to today (BUSINESS_RULES.md §4), which rewrites its dates.
  *
- * Member lists are in it because each row says whether that member is inside, which decides
- * between the search screen's check-in button and its "inside" label.
+ * Member lists are in it because each row says whether that member is inside, which the search
+ * screen and the map's check-in search both show.
  */
 async function invalidateAttendance(queryClient: QueryClient) {
   await Promise.all([
@@ -90,13 +114,18 @@ async function invalidateAttendance(queryClient: QueryClient) {
   ]);
 }
 
+/**
+ * Checks a member in with the locker the desk clicked, or a reserve place when `lockerId` is
+ * `null` (BUSINESS_RULES.md §6, §7). Only the locker map calls this.
+ */
 export function useCheckIn() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (memberId: string) => {
+    mutationFn: async ({ memberId, lockerId }: { memberId: string; lockerId: string | null }) => {
       const { data, error } = await api.POST("/api/members/{memberId}/attendance/check-in", {
         params: { path: { memberId } },
+        body: { lockerId },
       });
       if (error !== undefined) {
         throw error;
@@ -114,6 +143,25 @@ export function useCheckOut() {
     mutationFn: async (attendanceId: string) => {
       const { data, error } = await api.POST("/api/attendance/{id}/check-out", {
         params: { path: { id: attendanceId } },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => invalidateAttendance(queryClient),
+  });
+}
+
+/** Moves an open visit to another free locker (BUSINESS_RULES.md §7 *Moving to another locker*). */
+export function useMoveLocker() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ attendanceId, lockerId }: { attendanceId: string; lockerId: string }) => {
+      const { data, error } = await api.POST("/api/attendance/{id}/move-locker", {
+        params: { path: { id: attendanceId } },
+        body: { lockerId },
       });
       if (error !== undefined) {
         throw error;

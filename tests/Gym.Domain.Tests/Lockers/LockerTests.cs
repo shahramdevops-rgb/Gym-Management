@@ -4,33 +4,18 @@ namespace Gym.Domain.Tests.Lockers;
 
 public sealed class LockerTests
 {
-    [Fact]
-    public void Create_ValidNumber_IsInServiceWithTheGivenNumber()
-    {
-        var locker = Locker.Create(7).Value;
-
-        locker.Number.ShouldBe(7);
-        locker.IsOutOfService.ShouldBeFalse();
-    }
-
     [Theory]
     [InlineData(0)]
-    [InlineData(-1)]
-    public void Create_NonPositiveNumber_FailsWithNumberInvalid(int number)
+    [InlineData(Locker.Count + 1)]
+    public void Create_NumberOutsideTheGymsLockers_Throws(int number)
     {
-        Locker.Create(number).Error.ShouldBe(LockerErrors.NumberInvalid);
-    }
-
-    [Fact]
-    public void Create_MinimumNumber_Succeeds()
-    {
-        Locker.Create(Locker.MinNumber).IsSuccess.ShouldBeTrue();
+        Should.Throw<ArgumentOutOfRangeException>(() => Locker.Create(number));
     }
 
     [Fact]
     public void MarkOutOfService_NotOccupied_SucceedsAndSetsTheFlag()
     {
-        var locker = Locker.Create(1).Value;
+        var locker = Locker.Create(1);
 
         var result = locker.MarkOutOfService(isOccupied: false);
 
@@ -41,7 +26,7 @@ public sealed class LockerTests
     [Fact]
     public void MarkOutOfService_Occupied_FailsWithOccupiedAndChangesNothing()
     {
-        var locker = Locker.Create(1).Value;
+        var locker = Locker.Create(1);
 
         var result = locker.MarkOutOfService(isOccupied: true);
 
@@ -52,7 +37,7 @@ public sealed class LockerTests
     [Fact]
     public void MarkOutOfService_AlreadyOutOfService_SucceedsAndStaysOutOfService()
     {
-        var locker = Locker.Create(1).Value;
+        var locker = Locker.Create(1);
         locker.MarkOutOfService(isOccupied: false);
 
         var result = locker.MarkOutOfService(isOccupied: false);
@@ -64,7 +49,7 @@ public sealed class LockerTests
     [Fact]
     public void MarkInService_OutOfServiceLocker_ClearsTheFlag()
     {
-        var locker = Locker.Create(1).Value;
+        var locker = Locker.Create(1);
         locker.MarkOutOfService(isOccupied: false);
 
         locker.MarkInService();
@@ -75,7 +60,7 @@ public sealed class LockerTests
     [Fact]
     public void MarkInService_AlreadyInService_StaysInService()
     {
-        var locker = Locker.Create(1).Value;
+        var locker = Locker.Create(1);
 
         locker.MarkInService();
 

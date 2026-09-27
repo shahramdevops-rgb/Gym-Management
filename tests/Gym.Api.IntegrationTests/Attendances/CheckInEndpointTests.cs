@@ -6,6 +6,7 @@ using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Attendances;
 using Gym.Application.Common;
 using Gym.Application.Lockers;
+using Gym.Domain.Attendances;
 using Gym.Domain.Members;
 using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
@@ -29,25 +30,179 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     // ---- Happy path ----
 
     [Fact]
-    public async Task CheckIn_ActiveSubscriptionAndFreeLockers_AssignsAFreeLockerAndConsumesASession()
+    public async Task CheckIn_ChosenFreeLocker_GivesThatLockerAndConsumesASession()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
-        var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        await CreateLockerAsync(ownerClient, ownerToken, 2);
-        await CreateLockerAsync(ownerClient, ownerToken, 1);
 
-        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+        using var response = await TestLockers.CheckInAsync(staffClient, staffToken, member.Id, lockerNumber: 12);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var attendance = await ReadAsync(response);
         attendance.MemberId.ShouldBe(member.Id);
-        // Which locker is not specified: the pick is random (BUSINESS_RULES.md §7), so the
-        // assertion is that it is one of the free ones, not which one.
-        attendance.LockerNumber.ShouldBeOneOf(1, 2);
+        // The one the desk clicked, never a pick of the server's (BUSINESS_RULES.md §7, step 3).
+        attendance.LockerId.ShouldBe(TestLockers.IdOf(12));
+        attendance.LockerNumber.ShouldBe(12);
+        attendance.UsesReservePlace.ShouldBeFalse();
         (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task CheckIn_LockerSomeoneHolds_Returns409LockerTakenAndConsumesNothing()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var plan = await AddPlanAsync();
+        var holder = await AddMemberAsync();
+        await AssignOkAsync(staffClient, staffToken, holder.Id, plan.Id);
+        await TestLockers.CheckInOkAsync(staffClient, staffToken, holder.Id, lockerNumber: 7);
+        var member = await AddMemberAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+
+        using var response = await TestLockers.CheckInAsync(staffClient, staffToken, member.Id, lockerNumber: 7);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.LockerTaken");
+        (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task CheckIn_LockerOutOfService_Returns422LockersOutOfService()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        (await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/lockers/{TestLockers.IdOf(4)}/out-of-service")).Dispose();
+
+        using var response = await TestLockers.CheckInAsync(staffClient, staffToken, member.Id, lockerNumber: 4);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Lockers.OutOfService");
+        (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task CheckIn_UnknownLocker_Returns404LockersNotFound()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+
+        using var response = await TestLockers.CheckInWithAsync(staffClient, staffToken, member.Id, Guid.CreateVersion7());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Lockers.NotFound");
+    }
+
+    [Fact]
+    public async Task CheckIn_WithoutABody_Returns400()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+
+        // The desk always names a place now; a request that says nothing is malformed, not a
+        // request for "any locker" (there is no such thing since 6.5.5).
+        using var response = await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/members/{member.Id}/attendance/check-in");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(0);
+    }
+
+    // ---- Reserve places (BUSINESS_RULES.md §6) ----
+
+    [Fact]
+    public async Task CheckIn_ReservePlaceWhileALockerIsFree_Returns422LockersStillFree()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        // One locker left, and it is free: that one comes first.
+        await TestLockers.TakeOutOfServiceAllButAsync(Fixture, 72);
+
+        using var response = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.LockersStillFree");
+        (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task CheckIn_ReservePlaceWhenEveryLockerIsFull_Returns201OnAReservePlace()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var plan = await AddPlanAsync();
+        // Every locker either out of service or held: the one left in service is taken.
+        await TestLockers.TakeOutOfServiceAllButAsync(Fixture, 72);
+        var holder = await AddMemberAsync();
+        await AssignOkAsync(staffClient, staffToken, holder.Id, plan.Id);
+        await TestLockers.CheckInOkAsync(staffClient, staffToken, holder.Id, lockerNumber: 72);
+        var member = await AddMemberAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+
+        using var response = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var attendance = await ReadAsync(response);
+        attendance.UsesReservePlace.ShouldBeTrue();
+        attendance.LockerId.ShouldBeNull();
+        attendance.LockerNumber.ShouldBeNull();
+        (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task CheckIn_SixteenthWithoutALocker_Returns422ReserveFull()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var plan = await AddPlanAsync();
+        await TestLockers.TakeOutOfServiceAllButAsync(Fixture);
+        for (var i = 0; i < Attendance.ReservePlaceCount; i++)
+        {
+            var inside = await AddMemberAsync();
+            await AssignOkAsync(staffClient, staffToken, inside.Id, plan.Id);
+            using var placed = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, inside.Id);
+            placed.StatusCode.ShouldBe(HttpStatusCode.Created);
+        }
+
+        var member = await AddMemberAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+
+        using var response = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.ReserveFull");
+        (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task CheckOut_FromAReservePlace_FreesItForTheNextPerson()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var plan = await AddPlanAsync();
+        await TestLockers.TakeOutOfServiceAllButAsync(Fixture);
+        // Fill every place, then let one go.
+        var visits = new List<AttendanceResponse>();
+        for (var i = 0; i < Attendance.ReservePlaceCount; i++)
+        {
+            var inside = await AddMemberAsync();
+            await AssignOkAsync(staffClient, staffToken, inside.Id, plan.Id);
+            using var placed = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, inside.Id);
+            visits.Add(await ReadAsync(placed));
+        }
+
+        await CheckOutOkAsync(staffClient, staffToken, visits[0].Id);
+        var member = await AddMemberAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+
+        using var response = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await ReadAsync(response)).UsesReservePlace.ShouldBeTrue();
     }
 
     /// <summary>
@@ -86,35 +241,6 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
-    public async Task CheckIn_RepeatedVisits_DoesNotAlwaysPickTheSameLocker()
-    {
-        var (staffClient, staffToken) = await StaffClientAsync();
-        var (ownerClient, ownerToken) = await OwnerClientAsync();
-        var member = await AddMemberAsync();
-        var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        for (var number = 1; number <= 5; number++)
-        {
-            await CreateLockerAsync(ownerClient, ownerToken, number);
-        }
-
-        // Check out after each visit, so every draw sees all five lockers free. Ten visits stays
-        // inside the plan's twelve sessions.
-        var assigned = new List<int?>();
-        for (var visit = 0; visit < 10; visit++)
-        {
-            var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
-            assigned.Add(attendance.LockerNumber);
-            await CheckOutOkAsync(staffClient, staffToken, attendance.Id);
-        }
-
-        // Statistical, but not flaky: if the pick really is random, the odds of ten draws from
-        // five lockers all landing on the same one are 5^-9. Ordering by number again — the
-        // behaviour this replaced — fails this every single run.
-        assigned.Distinct().Count().ShouldBeGreaterThan(1);
-    }
-
-    [Fact]
     public async Task CheckIn_AsOwner_Succeeds()
     {
         var (ownerClient, ownerToken) = await OwnerClientAsync();
@@ -125,22 +251,6 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         using var response = await CheckInAsync(ownerClient, ownerToken, member.Id);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
-    }
-
-    [Fact]
-    public async Task CheckIn_NoFreeLocker_Returns201WithNullLocker()
-    {
-        var (staffClient, staffToken) = await StaffClientAsync();
-        var member = await AddMemberAsync();
-        var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-
-        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var attendance = await ReadAsync(response);
-        attendance.LockerId.ShouldBeNull();
-        attendance.LockerNumber.ShouldBeNull();
     }
 
     // ---- Subscription preconditions ----
@@ -336,7 +446,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+        var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
 
         await CheckInOkAsync(staffClient, staffToken, member.Id);
 
@@ -352,7 +462,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+        var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
 
         await CheckInOkAsync(staffClient, staffToken, member.Id);
 
@@ -370,7 +480,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+        var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
 
         await CheckOutOkAsync(staffClient, staffToken, attendance.Id);
@@ -389,7 +499,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+        var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
         await CheckInOkAsync(staffClient, staffToken, member.Id);
 
         using var response = await SendAsync(ownerClient, ownerToken, HttpMethod.Post, $"/api/lockers/{locker.Id}/out-of-service");
@@ -504,14 +614,6 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
-    private static async Task<LockerResponse> CreateLockerAsync(HttpClient client, string token, int number)
-    {
-        using var response = await SendAsync(client, token, HttpMethod.Post, "/api/lockers", new { number });
-        response.EnsureSuccessStatusCode();
-
-        return (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-    }
-
     private static async Task<LockerResponse> GetLockerOkAsync(HttpClient client, string token, Guid id)
     {
         using var response = await SendAsync(client, token, HttpMethod.Get, $"/api/lockers/{id}");
@@ -521,7 +623,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+        TestLockers.CheckInAsync(client, token, memberId);
 
     private static async Task<AttendanceResponse> CheckInOkAsync(HttpClient client, string token, Guid memberId)
     {

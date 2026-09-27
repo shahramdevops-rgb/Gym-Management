@@ -245,8 +245,7 @@ public sealed class RefundEndpointTests(DatabaseFixture fixture) : DatabaseTestB
     /// <summary>Uses a session the only way anything does: a real check-in.</summary>
     private static async Task CheckInAsync(HttpClient client, string token, Guid memberId)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
-        using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+        using var response = await TestLockers.CheckInAsync(client, token, memberId);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 

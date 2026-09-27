@@ -11,4 +11,13 @@
     <EmbeddedResource Include="Auth\CommonPasswords.txt" LogicalName="Gym.Domain.Auth.CommonPasswords.txt" />
   </ItemGroup>
 
+  <!--
+    Locker.Create is internal: the gym's lockers arrive with the migration and nothing in the app
+    makes one (BUSINESS_RULES.md §6), so Application cannot even call it. The domain tests still
+    need a locker to test MarkOutOfService on.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Gym.Domain.Tests" />
+  </ItemGroup>
+
 </Project>

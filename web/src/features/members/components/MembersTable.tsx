@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatMoney, formatPhone } from "@/lib/format";
+import { formatMoney, formatPhone, toPersianDigits } from "@/lib/format";
 import { isPositiveMoney } from "@/lib/money";
 
 import type { Member } from "../api";
@@ -11,12 +11,12 @@ import type { Member } from "../api";
 interface MembersTableProps {
   members: Member[];
   /**
-   * Check-in and check-out from the row (docs/ROADMAP.md 5.6), shown only where a caller passes
-   * them — the front desk search, not the full member directory. Each opens a confirmation first
-   * (BUSINESS_RULES.md §7 *Confirming at the front desk*); the row only says which was pressed.
+   * Check-out from the row of someone inside, shown only where a caller passes it — the member
+   * search, not the full member directory. It opens a confirmation first (BUSINESS_RULES.md §7
+   * *Confirming at the front desk*). There is no check-in here: that happens on the locker map,
+   * where the locker is chosen (roadmap 6.5.5).
    */
   deskActions?: {
-    onCheckIn: (member: Member) => void;
     onCheckOut: (member: Member) => void;
   };
 }
@@ -73,29 +73,29 @@ export function MembersTable({ members, deskActions }: MembersTableProps) {
 }
 
 /**
- * Whichever of check-in and check-out makes sense is the live button; the other stays visible but
- * grey, so the row keeps its shape and the desk sees at a glance which state the member is in.
- * Inside is decided by the open visit the API reports, the same test check-in refuses on
- * (BUSINESS_RULES.md §7).
+ * For someone inside, where they are and the check-out button; nothing for anyone else. Inside is
+ * decided by the open visit the API reports, the same test check-in refuses on (BUSINESS_RULES.md
+ * §7).
  */
 function DeskButtons({
   member,
-  onCheckIn,
   onCheckOut,
 }: {
   member: Member;
-  onCheckIn: (member: Member) => void;
   onCheckOut: (member: Member) => void;
 }) {
-  const inside = (member.currentVisit ?? null) !== null;
+  const visit = member.currentVisit ?? null;
+  if (visit === null) {
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-end gap-2">
-      {inside && <Badge variant="secondary">داخل باشگاه</Badge>}
-      <Button size="sm" variant="outline" disabled={inside} onClick={() => onCheckIn(member)}>
-        ورود
-      </Button>
-      <Button size="sm" variant="outline" disabled={!inside} onClick={() => onCheckOut(member)}>
+      <Badge variant="secondary">
+        داخل باشگاه —{" "}
+        {visit.lockerNumber === null ? "بدون کمد" : `کمد ${toPersianDigits(visit.lockerNumber)}`}
+      </Badge>
+      <Button size="sm" variant="outline" onClick={() => onCheckOut(member)}>
         خروج
       </Button>
     </div>

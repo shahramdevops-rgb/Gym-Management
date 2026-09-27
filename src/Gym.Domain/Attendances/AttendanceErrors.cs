@@ -29,8 +29,32 @@ public static class AttendanceErrors
         "The cancel window has passed.");
 
     /// <summary>
-    /// Backstop for the partial unique indexes on member and locker (BUSINESS_RULES.md §7):
-    /// two check-ins raced past the precondition checks above.
+    /// BUSINESS_RULES.md §7: the locker the desk chose already has an open visit. The same error
+    /// whether it was taken long ago or a moment ago by another desk (the partial unique index on
+    /// the locker decides that race), because the desk's next step is the same: choose another.
+    /// </summary>
+    public static readonly Error LockerTaken = Error.Conflict(
+        "Attendance.LockerTaken",
+        "Someone else already holds that locker.");
+
+    /// <summary>BUSINESS_RULES.md §6: a reserve place is only for when no locker is both in service and free.</summary>
+    public static readonly Error LockersStillFree = Error.BusinessRule(
+        "Attendance.LockersStillFree",
+        "A locker is still free, so a reserve place cannot be used.");
+
+    /// <summary>BUSINESS_RULES.md §6: at most Attendance.ReservePlaceCount visits with no locker at once.</summary>
+    public static readonly Error ReserveFull = Error.BusinessRule(
+        "Attendance.ReserveFull",
+        "Every reserve place is in use.");
+
+    /// <summary>BUSINESS_RULES.md §7 <i>Moving to another locker</i>: the visit already holds that locker.</summary>
+    public static readonly Error SameLocker = Error.BusinessRule(
+        "Attendance.SameLocker",
+        "The visit already holds that locker.");
+
+    /// <summary>
+    /// Backstop for the partial unique indexes on member and reserve place (BUSINESS_RULES.md §6,
+    /// §7), and for the visit's own <c>xmin</c>: two requests raced past the checks before them.
     /// </summary>
     public static readonly Error ChangedConcurrently = Error.Conflict(
         "Attendance.ChangedConcurrently",

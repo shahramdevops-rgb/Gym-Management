@@ -563,7 +563,7 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
     }
 
     private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+        TestLockers.CheckInAsync(client, token, memberId);
 
     /// <summary>A whole visit: in and out again, which is what frees the member to come back.</summary>
     private static async Task CheckInAndOutAsync(HttpClient client, string token, Guid memberId)

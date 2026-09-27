@@ -490,8 +490,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
             client, token, HttpMethod.Post, $"/api/members/{member.Id}/subscriptions", new { planId = plan.Id });
         assigned.StatusCode.ShouldBe(HttpStatusCode.Created);
 
-        using var response = await SendAsync(
-            client, token, HttpMethod.Post, $"/api/members/{member.Id}/attendance/check-in");
+        using var response = await TestLockers.CheckInAsync(client, token, member.Id);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return await ReadAttendanceAsync(response);

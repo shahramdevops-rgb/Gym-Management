@@ -274,7 +274,7 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
 
         await PostOkAsync<object>(client, token, $"/api/members/{member.Id}/subscriptions", new { planId = plan.Id });
 
-        using var checkedIn = await SendAsync(client, token, HttpMethod.Post, $"/api/members/{member.Id}/attendance/check-in");
+        using var checkedIn = await TestLockers.CheckInAsync(client, token, member.Id);
         checkedIn.StatusCode.ShouldBe(HttpStatusCode.Created);
         var visit = (await checkedIn.Content.ReadFromJsonAsync<AttendanceResponse>(
             TestContext.Current.CancellationToken)).ShouldNotBeNull();

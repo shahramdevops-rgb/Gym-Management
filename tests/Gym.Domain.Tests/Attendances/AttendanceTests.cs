@@ -20,16 +20,86 @@ public sealed class AttendanceTests
         attendance.MemberId.ShouldBe(MemberId);
         attendance.SubscriptionId.ShouldBe(SubscriptionId);
         attendance.LockerId.ShouldBe(lockerId);
+        attendance.ReserveSlot.ShouldBeNull();
+        attendance.UsesReservePlace.ShouldBeFalse();
         attendance.CheckedInAt.ShouldBe(CheckedInAt);
         attendance.CheckedOutAt.ShouldBeNull();
     }
 
-    [Fact]
-    public void CheckIn_NoLockerAvailable_LeavesLockerIdNull()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(Attendance.ReservePlaceCount)]
+    public void CheckInOnReservePlace_ValidSlot_HoldsTheReservePlaceAndNoLocker(int slot)
     {
-        var attendance = Attendance.CheckIn(MemberId, SubscriptionId, lockerId: null, CheckedInAt);
+        var attendance = Attendance.CheckInOnReservePlace(MemberId, SubscriptionId, slot, CheckedInAt);
 
+        attendance.ReserveSlot.ShouldBe(slot);
+        attendance.UsesReservePlace.ShouldBeTrue();
         attendance.LockerId.ShouldBeNull();
+        attendance.CheckedOutAt.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(Attendance.ReservePlaceCount + 1)]
+    public void CheckInOnReservePlace_SlotOutOfRange_Throws(int slot)
+    {
+        Should.Throw<ArgumentOutOfRangeException>(
+            () => Attendance.CheckInOnReservePlace(MemberId, SubscriptionId, slot, CheckedInAt));
+    }
+
+    // ---- MoveToLocker ----
+
+    [Fact]
+    public void MoveToLocker_OpenVisit_TakesTheNewLocker()
+    {
+        var attendance = OpenAttendance();
+        var target = Guid.NewGuid();
+
+        var result = attendance.MoveToLocker(target);
+
+        result.IsSuccess.ShouldBeTrue();
+        attendance.LockerId.ShouldBe(target);
+        attendance.CheckedOutAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void MoveToLocker_FromReservePlace_GivesUpTheReservePlace()
+    {
+        var attendance = Attendance.CheckInOnReservePlace(MemberId, SubscriptionId, 3, CheckedInAt);
+        var target = Guid.NewGuid();
+
+        var result = attendance.MoveToLocker(target);
+
+        result.IsSuccess.ShouldBeTrue();
+        attendance.LockerId.ShouldBe(target);
+        attendance.ReserveSlot.ShouldBeNull();
+        attendance.UsesReservePlace.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MoveToLocker_SameLocker_ReturnsSameLocker()
+    {
+        var lockerId = Guid.NewGuid();
+        var attendance = Attendance.CheckIn(MemberId, SubscriptionId, lockerId, CheckedInAt);
+
+        var result = attendance.MoveToLocker(lockerId);
+
+        result.Error.ShouldBe(AttendanceErrors.SameLocker);
+        attendance.LockerId.ShouldBe(lockerId);
+    }
+
+    [Fact]
+    public void MoveToLocker_ClosedVisit_ReturnsNotOpenAndKeepsTheLocker()
+    {
+        var lockerId = Guid.NewGuid();
+        var attendance = Attendance.CheckIn(MemberId, SubscriptionId, lockerId, CheckedInAt);
+        attendance.CheckOut(CheckedInAt.AddHours(1)).IsSuccess.ShouldBeTrue();
+
+        var result = attendance.MoveToLocker(Guid.NewGuid());
+
+        result.Error.ShouldBe(AttendanceErrors.NotOpen);
+        attendance.LockerId.ShouldBe(lockerId);
     }
 
     // ---- CheckOut ----

@@ -1,34 +1,38 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 
 export type Locker = components["schemas"]["LockerResponse"];
 
-export const lockersPageSize = 20;
+/**
+ * The page size that holds every locker at once. The gym has 72 and nobody adds one
+ * (BUSINESS_RULES.md §6), and the API's largest page is 100, so the map never pages.
+ */
+export const allLockersPageSize = 100;
+
+/** How often the map polls, the same as the "currently inside" board it is drawn together with. */
+export const lockersRefetchMs = 15_000;
 
 /** Query keys. Every key starts with "lockers", like the members and plans keys. */
 export const lockerKeys = {
   all: ["lockers"] as const,
-  list: (page: number) => [...lockerKeys.all, "list", page] as const,
+  map: () => [...lockerKeys.all, "map"] as const,
 };
 
-export function useLockerList(page: number) {
+/** Every locker, lowest number first, refreshing on its own like the board. */
+export function useAllLockers() {
   return useQuery({
-    queryKey: lockerKeys.list(page),
-    placeholderData: keepPreviousData,
+    queryKey: lockerKeys.map(),
+    refetchInterval: lockersRefetchMs,
     queryFn: async () => {
       const { data, error } = await api.GET("/api/lockers", {
-        params: { query: { Page: page, PageSize: lockersPageSize } },
+        params: { query: { Page: 1, PageSize: allLockersPageSize } },
       });
       if (error !== undefined) {
         throw error;
       }
-      return {
-        items: data.items,
-        totalCount: Number(data.totalCount),
-        pageCount: Math.max(1, Math.ceil(Number(data.totalCount) / lockersPageSize)),
-      };
+      return data.items;
     },
   });
 }
@@ -42,16 +46,6 @@ function useLockerMutation<TArgs>(request: (args: TArgs) => Promise<Locker>) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: lockerKeys.all });
     },
-  });
-}
-
-export function useCreateLocker() {
-  return useLockerMutation(async (number: number) => {
-    const { data, error } = await api.POST("/api/lockers", { body: { number } });
-    if (error !== undefined) {
-      throw error;
-    }
-    return data;
   });
 }
 

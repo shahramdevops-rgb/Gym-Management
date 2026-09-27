@@ -28,7 +28,7 @@ import {
   paymentsPage,
   pickMethod,
 } from "@/test/payments";
-import { monthly12, plansPage, singleSession } from "@/test/plans";
+import { monthly12, plansPage } from "@/test/plans";
 import {
   activeSubscription,
   cancelledRenewal,
@@ -146,7 +146,7 @@ describe("MemberProfilePage", () => {
 
   // ---- Attendance (docs/ROADMAP.md 5.6) ----
 
-  it("Profile_NoOpenVisit_ShowsACheckInButton", async () => {
+  it("Profile_NoOpenVisit_OffersNoCheckInAndPointsToTheLockerMap", async () => {
     mockApi({
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
@@ -157,11 +157,13 @@ describe("MemberProfilePage", () => {
 
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    expect(await screen.findByRole("button", { name: "ورود" })).toBeInTheDocument();
+    // Since 6.5.5 a member is let in only from the locker map, where the locker is chosen.
+    expect(await screen.findByRole("link", { name: "ورود با کمد" })).toHaveAttribute("href", "/");
+    expect(screen.queryByRole("button", { name: "ورود" })).not.toBeInTheDocument();
     expect(screen.queryByText("هم‌اکنون داخل باشگاه است.")).not.toBeInTheDocument();
   });
 
-  // ---- Check-in and check-out: the same box as the entry screen (BUSINESS_RULES.md §7) ----
+  // ---- Check-out and cancel: the same box as the locker map (BUSINESS_RULES.md §7) ----
 
   function profileHandlers(visits: ReturnType<typeof openVisit>[] = []) {
     return {
@@ -173,67 +175,13 @@ describe("MemberProfilePage", () => {
     };
   }
 
-  async function confirmProfileCheckIn() {
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
-    const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود ثبت شود" }));
-    return dialog;
-  }
+  it("Profile_OpenVisitOnAReservePlace_SaysItHasNoLocker", async () => {
+    mockApi(profileHandlers([openVisitNoLocker(reza.id)]));
 
-  it("Profile_CheckIn_AsksFirstAndSendsNothingUntilConfirmed", async () => {
-    const api = mockApi(profileHandlers());
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    fireEvent.click(await screen.findByRole("button", { name: "ورود" }));
-
-    expect(await screen.findByRole("dialog")).toHaveTextContent(
-      "آیا از ثبت ورود رضا احمدی مطمئن هستید؟",
-    );
-    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
-  });
-
-  it("Profile_CheckIn_ShowsTheAssignedLocker", async () => {
-    const api = mockApi({
-      ...profileHandlers(),
-      [`POST /api/members/${reza.id}/attendance/check-in`]: () => json(201, openVisit(reza.id)),
-    });
-    renderApp(`/members/${reza.id}`, { session: session() });
-
-    const dialog = await confirmProfileCheckIn();
-
-    expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("کمد شماره ۳")).toBeInTheDocument();
-    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(1);
-  });
-
-  it("Profile_CheckInWithNoFreeLocker_ShowsTheWarning", async () => {
-    mockApi({
-      ...profileHandlers(),
-      [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
-        json(201, openVisitNoLocker(reza.id)),
-    });
-    renderApp(`/members/${reza.id}`, { session: session() });
-
-    const dialog = await confirmProfileCheckIn();
-
-    expect(await within(dialog).findByText(/کمد آزادی نبود/)).toBeInTheDocument();
-  });
-
-  it("Profile_CheckInWithNoSubscription_OffersASingleVisit", async () => {
-    mockApi({
-      ...profileHandlers(),
-      [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
-        problem(422, "Attendance.NoSubscription"),
-      "GET /api/plans": () => plansPage([singleSession]),
-    });
-    renderApp(`/members/${reza.id}`, { session: session() });
-
-    const dialog = await confirmProfileCheckIn();
-
-    expect(await within(dialog).findByText(/این عضو اشتراکی ندارد/)).toBeInTheDocument();
-    expect(
-      await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("هم‌اکنون داخل باشگاه است.")).toBeInTheDocument();
+    expect(screen.getByText(/· بدون کمد/)).toBeInTheDocument();
   });
 
   it("Profile_OpenVisit_ShowsCheckedInStateAndChecksOutAfterTheKey", async () => {

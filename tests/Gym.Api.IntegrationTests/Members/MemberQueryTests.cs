@@ -9,7 +9,6 @@ using Gym.Application.Common.Paging;
 using Gym.Application.Members;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Audit;
-using Gym.Domain.Lockers;
 using Gym.Domain.Members;
 using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
@@ -317,12 +316,12 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
         var other = await CreateMemberAsync(client, token, "علی", "09351234567");
         await SellSubscriptionAsync(client, token, member.Id, 900_000m);
-        await AddLockerAsync(7);
-        var attendance = await CheckInAsync(client, token, member.Id);
+        var attendance = await TestLockers.CheckInOkAsync(client, token, member.Id, lockerNumber: 7);
 
         var visit = (await SingleAsync(client, token, member.Id)).CurrentVisit.ShouldNotBeNull();
         visit.AttendanceId.ShouldBe(attendance.Id);
         visit.LockerNumber.ShouldBe(7);
+        visit.UsesReservePlace.ShouldBeFalse();
         visit.CheckedInAt.ShouldBe(attendance.CheckedInAt, TimeSpan.FromMicroseconds(1));
         (await SingleAsync(client, token, other.Id)).CurrentVisit.ShouldBeNull();
     }
@@ -600,17 +599,9 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
-    private async Task AddLockerAsync(int number)
-    {
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Lockers.Add(Locker.Create(number).Value);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
-
     private static async Task<AttendanceResponse> CheckInAsync(HttpClient client, string token, Guid memberId)
     {
-        using var response = await SendAsync(client, token, HttpMethod.Post, $"{MembersPath}/{memberId}/attendance/check-in");
+        using var response = await TestLockers.CheckInAsync(client, token, memberId);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return (await response.Content.ReadFromJsonAsync<AttendanceResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
