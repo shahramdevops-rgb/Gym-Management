@@ -875,7 +875,26 @@ warnings. The test fixture now restores migration-seeded rows after each Respawn
 (marked), as the cafe's order history does; the total never counts them.
 
 ### 8.2 UI: expenses
-- [ ] List with Jalali date filters, create, edit, void
+- [x] `/expenses`, Owner only (route behind `RequireRole`, nav item hidden from staff): list
+      newest first with a Jalali from/to range and a category filter, all in the URL; voided rows
+      marked with when and why, and offering no actions
+- [x] The API's `TotalAmount` above the table: every page the filter matches, voided ones left
+      out, and the page says so
+- [x] Record and edit through one form (`MoneyField`, category, Jalali date defaulting to today,
+      description, optional reference); edit sends its `Version`. Void with a required reason,
+      warning that a voided expense is final
+- [x] Categories on the same page (decided with the developer 1405/07/05, since 8.1 built the
+      endpoints and no screen reached them): add and rename with `Version`; no delete, no switch
+- [x] Tests: staff see no menu item and no list; the total and voided rows; filters sent as
+      `From`/`To`/`CategoryId`; a backwards range asks the API nothing; a new expense sends decimal
+      text and today; a future date, zero amount and missing description are refused before
+      sending; an edit sends its version and shows a concurrent change; void needs a reason; a
+      taken category name lands under the box; a rename sends its version
+
+Done when: the Owner can write down, correct, void and look back over what the gym spends, and
+shape the category list, without leaving the browser. Closed 2026-09-27: 1183 backend tests and 576
+frontend tests green, zero warnings (the build's chunk-size note predates this task). `dateFromParams` moved from the cafe's order history to `lib/searchParams.ts` on its
+second caller.
 
 ---
 

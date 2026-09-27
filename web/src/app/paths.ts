@@ -17,4 +17,5 @@ export const paths = {
   cafe: "/cafe",
   cafeOrders: "/cafe/orders",
   cafeMenu: "/cafe/menu",
+  expenses: "/expenses",
 } as const;

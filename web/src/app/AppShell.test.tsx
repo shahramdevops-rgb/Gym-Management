@@ -112,6 +112,27 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "پلن‌ها" })).not.toBeInTheDocument();
   });
 
+  it("AppShell_Owner_SeesTheExpensesMenuItem", async () => {
+    mockApi(signedInHandlers(owner));
+
+    renderApp("/", { session: session() });
+
+    expect(await screen.findByRole("link", { name: "هزینه‌ها" })).toHaveAttribute(
+      "href",
+      "/expenses",
+    );
+  });
+
+  it("AppShell_Staff_DoesNotSeeTheExpensesMenuItem", async () => {
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+
+    // Expenses are the Owner's, reading included (docs/BUSINESS_RULES.md §1, §9).
+    await screen.findByText(staffUser.fullName);
+    expect(screen.queryByRole("link", { name: "هزینه‌ها" })).not.toBeInTheDocument();
+  });
+
   it("AppShell_Logout_RevokesTheSessionAndShowsTheLoginPage", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),
