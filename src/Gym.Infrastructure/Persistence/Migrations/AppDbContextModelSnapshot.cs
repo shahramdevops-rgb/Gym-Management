@@ -63,6 +63,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("member_id");
 
+                    b.Property<short?>("ReserveSlot")
+                        .HasColumnType("smallint")
+                        .HasColumnName("reserve_slot");
+
                     b.Property<Guid>("SubscriptionId")
                         .HasColumnType("uuid")
                         .HasColumnName("subscription_id");
@@ -74,6 +78,12 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid")
                         .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id")
                         .HasName("pk_attendances");
@@ -88,6 +98,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_attendances_one_open_per_member")
                         .HasFilter("checked_out_at IS NULL");
 
+                    b.HasIndex("ReserveSlot")
+                        .IsUnique()
+                        .HasDatabaseName("ix_attendances_one_open_per_reserve_slot")
+                        .HasFilter("checked_out_at IS NULL");
+
                     b.HasIndex("SubscriptionId")
                         .HasDatabaseName("ix_attendances_subscription_id");
 
@@ -98,6 +113,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_attendances_cancellation", "cancelled_at IS NULL OR checked_out_at = cancelled_at");
 
                             t.HasCheckConstraint("ck_attendances_one_close_reason", "cancelled_at IS NULL OR auto_closed_at IS NULL");
+
+                            t.HasCheckConstraint("ck_attendances_open_holds_one_place", "checked_out_at IS NOT NULL OR ((locker_id IS NULL) <> (reserve_slot IS NULL))");
+
+                            t.HasCheckConstraint("ck_attendances_reserve_slot_range", "reserve_slot BETWEEN 1 AND 15");
                         });
                 });
 
@@ -866,7 +885,513 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                     b.ToTable("lockers", null, t =>
                         {
-                            t.HasCheckConstraint("ck_lockers_number_positive", "number >= 1");
+                            t.HasCheckConstraint("ck_lockers_number_range", "number BETWEEN 1 AND 72");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000001"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000002"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 2
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000003"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 3
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000004"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 4
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000005"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 5
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000006"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 6
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000007"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 7
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000008"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 8
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000009"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 9
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000010"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 10
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000011"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 11
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000012"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 12
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000013"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 13
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000014"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 14
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000015"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 15
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000016"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 16
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000017"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 17
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000018"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 18
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000019"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 19
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000020"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 20
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000021"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 21
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000022"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 22
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000023"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 23
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000024"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 24
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000025"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 25
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000026"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 26
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000027"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 27
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000028"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 28
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000029"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 29
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000030"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 30
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000031"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 31
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000032"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 32
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000033"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 33
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000034"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 34
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000035"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 35
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000036"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 36
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000037"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 37
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000038"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 38
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000039"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 39
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000040"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 40
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000041"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 41
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000042"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 42
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000043"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 43
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000044"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 44
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000045"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 45
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000046"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 46
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000047"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 47
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000048"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 48
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000049"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 49
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000050"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 50
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000051"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 51
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000052"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 52
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000053"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 53
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000054"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 54
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000055"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 55
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000056"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 56
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000057"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 57
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000058"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 58
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000059"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 59
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000060"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 60
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000061"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 61
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000062"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 62
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000063"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 63
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000064"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 64
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000065"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 65
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000066"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 66
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000067"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 67
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000068"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 68
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000069"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 69
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000070"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 70
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000071"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 71
+                        },
+                        new
+                        {
+                            Id = new Guid("10c4e700-0000-7000-8000-000000000072"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOutOfService = false,
+                            Number = 72
                         });
                 });
 

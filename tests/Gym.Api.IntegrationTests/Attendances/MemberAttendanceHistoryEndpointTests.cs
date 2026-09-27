@@ -217,7 +217,7 @@ public sealed class MemberAttendanceHistoryEndpointTests(DatabaseFixture fixture
     }
 
     private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+        TestLockers.CheckInAsync(client, token, memberId);
 
     private static async Task<AttendanceResponse> CheckInOkAsync(HttpClient client, string token, Guid memberId)
     {

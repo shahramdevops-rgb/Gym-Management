@@ -1,13 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Common.Paging;
 using Gym.Application.Lockers;
+using Gym.Domain.Lockers;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
+using Gym.Infrastructure.Persistence.Seed;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,142 +18,88 @@ using Npgsql;
 namespace Gym.Api.IntegrationTests.Lockers;
 
 /// <summary>
-/// <c>/api/lockers</c>. BUSINESS_RULES.md §6 and the permissions table in §1: adding a locker is
-/// the Owner's job, while listing them and changing a locker's service state belong to the front
-/// desk, which is where a broken locker is noticed.
+/// <c>/api/lockers</c>. BUSINESS_RULES.md §6 and the permissions table in §1: the gym's 72 lockers
+/// come with the migration and nobody creates one, while reading them and changing a locker's
+/// service state belong to the front desk, which is where a broken locker is noticed.
 /// </summary>
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class LockerEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
     private const string LockersPath = "/api/lockers";
 
-    // ---- Create ----
+    // ---- The fixed lockers ----
 
     [Fact]
-    public async Task CreateLocker_AsOwner_Returns201WithTheValues()
+    public void Migration_FreshDatabase_SeedsExactlyTheGymsLockersInService()
     {
-        var (client, owner, _) = await ClientsAsync();
+        // Read by the fixture straight after migrating, before any reset put rows back: this is
+        // the migration's own work, not the test harness's.
+        var lockers = Fixture.LockersAfterMigration;
 
-        using var response = await CreateAsync(client, owner, 7);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var locker = (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-        response.Headers.Location.ShouldNotBeNull().OriginalString.ShouldBe($"{LockersPath}/{locker.Id}");
-        locker.Number.ShouldBe(7);
-        locker.IsOutOfService.ShouldBeFalse();
-        locker.IsOccupied.ShouldBeFalse();
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public async Task CreateLocker_NonPositiveNumber_Returns400WithFieldCode(int number)
-    {
-        var (client, owner, _) = await ClientsAsync();
-
-        using var response = await CreateAsync(client, owner, number);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
-        body.RootElement.GetProperty("errors").GetProperty("number")[0].GetProperty("code").GetString().ShouldBe("Lockers.NumberInvalid");
-        (await CountLockersAsync()).ShouldBe(0);
+        lockers.Select(locker => locker.Number).ShouldBe(Enumerable.Range(1, Locker.Count));
+        lockers.Select(locker => locker.Id).ShouldBe(LockerSeed.All.Select(seed => seed.Id));
+        lockers.ShouldAllBe(locker => !locker.IsOutOfService);
     }
 
     [Fact]
-    public async Task CreateLocker_DuplicateNumber_Returns409()
+    public async Task ListLockers_OneFullPage_Returns72LockersNumbered1To72()
     {
-        var (client, owner, _) = await ClientsAsync();
-        await CreateLockerAsync(client, owner, 3);
+        var (client, _, staff) = await ClientsAsync();
 
-        using var response = await CreateAsync(client, owner, 3);
+        var page = await ListAsync(client, staff, $"?pageSize={PagingRules.MaxPageSize}");
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Lockers.NumberAlreadyExists");
+        page.TotalCount.ShouldBe(Locker.Count);
+        page.Items.Select(locker => locker.Number).ShouldBe(Enumerable.Range(1, Locker.Count));
+        page.Items.ShouldAllBe(locker => !locker.IsOccupied && !locker.IsOutOfService);
     }
 
     [Fact]
-    public async Task CreateLocker_SameNumberInParallel_OneWinsAndTheRestGet409()
+    public async Task CreateLocker_EndpointRemoved_Returns405AndAddsNothing()
     {
         var (client, owner, _) = await ClientsAsync();
 
-        var responses = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => CreateAsync(client, owner, 1)));
+        using var response = await SendAsync(client, owner, HttpMethod.Post, LockersPath, new { number = 73 });
 
-        try
-        {
-            responses.Count(response => response.StatusCode == HttpStatusCode.Created).ShouldBe(1);
-            responses.Count(response => response.StatusCode == HttpStatusCode.Conflict).ShouldBe(5);
-        }
-        finally
-        {
-            foreach (var response in responses)
-            {
-                response.Dispose();
-            }
-        }
+        // The path still answers GET, so a POST to it is "not allowed here" rather than "not found".
+        response.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
+        (await CountLockersAsync()).ShouldBe(Locker.Count);
     }
 
     // ---- Permissions ----
 
     [Fact]
-    public async Task CreateLocker_AsStaff_Returns403AndCreatesNothing()
+    public async Task GetLocker_AsStaff_Returns200()
     {
         var (client, _, staff) = await ClientsAsync();
 
-        using var response = await CreateAsync(client, staff, 1);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Auth.Forbidden");
-        (await CountLockersAsync()).ShouldBe(0);
-    }
-
-    [Fact]
-    public async Task ListLockers_AsStaff_Returns200()
-    {
-        var (client, owner, staff) = await ClientsAsync();
-        await CreateLockerAsync(client, owner, 1);
-
-        using var response = await SendAsync(client, staff, HttpMethod.Get, LockersPath, body: null);
+        using var response = await SendAsync(client, staff, HttpMethod.Get, $"{LockersPath}/{TestLockers.IdOf(1)}", body: null);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var page = (await response.Content.ReadFromJsonAsync<PagedResponse<LockerResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-        page.Items.ShouldHaveSingleItem().Number.ShouldBe(1);
-    }
-
-    [Fact]
-    public async Task GetLocker_AsStaff_Returns200()
-    {
-        var (client, owner, staff) = await ClientsAsync();
-        var locker = await CreateLockerAsync(client, owner, 1);
-
-        using var response = await SendAsync(client, staff, HttpMethod.Get, $"{LockersPath}/{locker.Id}", body: null);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull().Id.ShouldBe(locker.Id);
+        var locker = (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        locker.Number.ShouldBe(1);
     }
 
     [Fact]
     public async Task SetLockerOutOfService_AsStaff_Returns200AndTakesItOut()
     {
-        var (client, owner, staff) = await ClientsAsync();
-        var locker = await CreateLockerAsync(client, owner, 1);
+        var (client, _, staff) = await ClientsAsync();
 
-        using var response = await PostAsync(client, staff, $"{LockersPath}/{locker.Id}/out-of-service");
+        using var response = await PostAsync(client, staff, $"{LockersPath}/{TestLockers.IdOf(1)}/out-of-service");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await StoredAsync(locker.Id)).IsOutOfService.ShouldBeTrue();
+        (await StoredAsync(TestLockers.IdOf(1))).IsOutOfService.ShouldBeTrue();
     }
 
     [Fact]
     public async Task SetLockerInService_AsStaff_Returns200AndBringsItBack()
     {
         var (client, owner, staff) = await ClientsAsync();
-        var locker = await CreateLockerAsync(client, owner, 1);
-        (await PostAsync(client, owner, $"{LockersPath}/{locker.Id}/out-of-service")).Dispose();
+        (await PostAsync(client, owner, $"{LockersPath}/{TestLockers.IdOf(1)}/out-of-service")).Dispose();
 
-        using var response = await PostAsync(client, staff, $"{LockersPath}/{locker.Id}/in-service");
+        using var response = await PostAsync(client, staff, $"{LockersPath}/{TestLockers.IdOf(1)}/in-service");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await StoredAsync(locker.Id)).IsOutOfService.ShouldBeFalse();
+        (await StoredAsync(TestLockers.IdOf(1))).IsOutOfService.ShouldBeFalse();
     }
 
     [Fact]
@@ -168,42 +115,14 @@ public sealed class LockerEndpointTests(DatabaseFixture fixture) : DatabaseTestB
     // ---- List ----
 
     [Fact]
-    public async Task ListLockers_Mixed_OrderedByNumberAscending()
+    public async Task ListLockers_SecondPage_ReturnsTheNextNumbersWithTheTotal()
     {
         var (client, owner, _) = await ClientsAsync();
-        await CreateLockerAsync(client, owner, 3);
-        await CreateLockerAsync(client, owner, 1);
-        await CreateLockerAsync(client, owner, 2);
-
-        var page = await ListAsync(client, owner, "");
-
-        page.Items.Select(locker => locker.Number).ShouldBe([1, 2, 3]);
-    }
-
-    [Fact]
-    public async Task ListLockers_NoAttendanceYet_EveryLockerShowsNotOccupied()
-    {
-        var (client, owner, _) = await ClientsAsync();
-        await CreateLockerAsync(client, owner, 1);
-
-        var page = await ListAsync(client, owner, "");
-
-        page.Items.ShouldAllBe(locker => !locker.IsOccupied);
-    }
-
-    [Fact]
-    public async Task ListLockers_SecondPage_ReturnsTheRestWithTheTotal()
-    {
-        var (client, owner, _) = await ClientsAsync();
-        foreach (var number in new[] { 1, 2, 3 })
-        {
-            await CreateLockerAsync(client, owner, number);
-        }
 
         var page = await ListAsync(client, owner, "?page=2&pageSize=2");
 
-        page.TotalCount.ShouldBe(3);
-        page.Items.ShouldHaveSingleItem().Number.ShouldBe(3);
+        page.TotalCount.ShouldBe(Locker.Count);
+        page.Items.Select(locker => locker.Number).ShouldBe([3, 4]);
     }
 
     [Fact]
@@ -235,29 +154,29 @@ public sealed class LockerEndpointTests(DatabaseFixture fixture) : DatabaseTestB
     public async Task SetLockerOutOfService_ThenInService_TogglesTheFlag()
     {
         var (client, owner, _) = await ClientsAsync();
-        var locker = await CreateLockerAsync(client, owner, 1);
+        var id = TestLockers.IdOf(1);
 
-        using var outOfService = await PostAsync(client, owner, $"{LockersPath}/{locker.Id}/out-of-service");
+        using var outOfService = await PostAsync(client, owner, $"{LockersPath}/{id}/out-of-service");
         outOfService.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await StoredAsync(locker.Id)).IsOutOfService.ShouldBeTrue();
+        (await StoredAsync(id)).IsOutOfService.ShouldBeTrue();
 
-        using var inService = await PostAsync(client, owner, $"{LockersPath}/{locker.Id}/in-service");
+        using var inService = await PostAsync(client, owner, $"{LockersPath}/{id}/in-service");
         inService.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await StoredAsync(locker.Id)).IsOutOfService.ShouldBeFalse();
+        (await StoredAsync(id)).IsOutOfService.ShouldBeFalse();
     }
 
     [Fact]
     public async Task SetLockerOutOfService_AlreadyOutOfService_Returns200AndChangesNothing()
     {
         var (client, owner, _) = await ClientsAsync();
-        var locker = await CreateLockerAsync(client, owner, 1);
-        using var first = await PostAsync(client, owner, $"{LockersPath}/{locker.Id}/out-of-service");
-        var version = (await StoredAsync(locker.Id)).Version;
+        var id = TestLockers.IdOf(1);
+        using var first = await PostAsync(client, owner, $"{LockersPath}/{id}/out-of-service");
+        var version = (await StoredAsync(id)).Version;
 
-        using var second = await PostAsync(client, owner, $"{LockersPath}/{locker.Id}/out-of-service");
+        using var second = await PostAsync(client, owner, $"{LockersPath}/{id}/out-of-service");
 
         second.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await StoredAsync(locker.Id)).Version.ShouldBe(version, "nothing changed, so nothing was saved.");
+        (await StoredAsync(id)).Version.ShouldBe(version, "nothing changed, so nothing was saved.");
     }
 
     [Fact]
@@ -285,19 +204,19 @@ public sealed class LockerEndpointTests(DatabaseFixture fixture) : DatabaseTestB
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public async Task Lockers_NonPositiveNumberInsertedDirectly_RejectedByACheckConstraint(int number)
+    [InlineData(Locker.Count + 1)]
+    public async Task Lockers_NumberOutsideTheGymsInsertedDirectly_RejectedByACheckConstraint(int number)
     {
         var exception = await Should.ThrowAsync<PostgresException>(() => ExecuteSqlAsync(InsertSql(Guid.CreateVersion7(), number)));
 
         exception.SqlState.ShouldBe("23514");
-        exception.ConstraintName.ShouldBe("ck_lockers_number_positive");
+        exception.ConstraintName.ShouldBe(LockerConstraints.NumberRange);
     }
 
     [Fact]
     public async Task Lockers_DuplicateNumberInsertedDirectly_RejectedByTheUniqueIndex()
     {
-        await ExecuteSqlAsync(InsertSql(Guid.CreateVersion7(), 5));
-
+        // Locker 5 is already there from the seed.
         var exception = await Should.ThrowAsync<PostgresException>(() => ExecuteSqlAsync(InsertSql(Guid.CreateVersion7(), 5)));
 
         exception.SqlState.ShouldBe("23505");
@@ -324,17 +243,6 @@ public sealed class LockerEndpointTests(DatabaseFixture fixture) : DatabaseTestB
             await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
     }
 
-    private static Task<HttpResponseMessage> CreateAsync(HttpClient client, string token, int number) =>
-        SendAsync(client, token, HttpMethod.Post, LockersPath, new { number });
-
-    private static async Task<LockerResponse> CreateLockerAsync(HttpClient client, string token, int number)
-    {
-        using var response = await CreateAsync(client, token, number);
-        response.EnsureSuccessStatusCode();
-
-        return (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-    }
-
     private static Task<HttpResponseMessage> PostAsync(HttpClient client, string token, string path) =>
         SendAsync(client, token, HttpMethod.Post, path, body: null);
 
@@ -357,7 +265,7 @@ public sealed class LockerEndpointTests(DatabaseFixture fixture) : DatabaseTestB
         return client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
     }
 
-    private async Task<Gym.Domain.Lockers.Locker> StoredAsync(Guid id)
+    private async Task<Locker> StoredAsync(Guid id)
     {
         await using var scope = Fixture.CreateScope();
 

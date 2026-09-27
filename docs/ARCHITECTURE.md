@@ -289,8 +289,15 @@ web/src/
 - Respawn also empties the Identity `roles` table. Tests that need the Owner and Staff roles get them by
   running `IdentitySeeder.SeedOwnerAsync`, not by assuming they survive from the migration.
 - Respawn empties migration-seeded (`HasData`) tables too. `DatabaseFixture.ResetAsync` puts the expense
-  categories back after every reset from `ExpenseCategorySeed`, the list the migration was generated from.
-  A new `HasData` table needs a line in `RestoreSeedDataAsync`, or every test sees it empty.
+  categories and the 72 lockers back after every reset from `ExpenseCategorySeed` and `LockerSeed`, the lists
+  the migrations were generated from. A new `HasData` table needs a line in `RestoreSeedDataAsync`, or every
+  test sees it empty.
+- Check-in needs a locker since 6.5.5. A test that is not about lockers uses `TestLockers.CheckInAsync`, which
+  takes the lowest free locker from `GET /api/lockers` the way the desk would; a test about lockers names one
+  (`lockerNumber: 12`). `TestLockers.TakeOutOfServiceAllButAsync` gets to "every locker full" without 72 check-ins.
+- A rowversion test that needs a stale read makes one on purpose (load in one `AppDbContext`, change the row
+  through the API, save the stale copy and expect `DbUpdateConcurrencyException`). Two parallel requests
+  cannot prove it: both "succeed" whether the token works or not.
 - `HasData` on an entity with private setters takes anonymous objects whose property names match the entity's,
   and every required column (the base `CreatedAt` included) needs a value. Leave the `xmin` version out.
 - Respawn deletes rows, not tables, so `__EFMigrationsHistory` must be in `TablesToIgnore` — otherwise the

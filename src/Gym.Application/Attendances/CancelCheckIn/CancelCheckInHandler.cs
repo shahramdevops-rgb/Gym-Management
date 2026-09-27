@@ -71,8 +71,17 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
             await ServiceChargeRefunder.RefundNetPaidAsync(db, charge, VoidReason, userId, now, cancellationToken);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // The visit was closed or moved, or its subscription changed, since they were read
+            // (an xmin changed). Nothing was saved; trying again reads both afresh.
+            return Result.Failure<AttendanceResponse>(AttendanceErrors.ChangedConcurrently);
+        }
 
         var lockerNumber = attendance.LockerId is null
             ? null

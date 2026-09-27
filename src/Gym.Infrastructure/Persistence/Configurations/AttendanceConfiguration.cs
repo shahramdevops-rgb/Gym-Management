@@ -14,8 +14,8 @@ namespace Gym.Infrastructure.Persistence.Configurations;
 /// every one it can check.
 /// </summary>
 /// <remarks>
-/// The two partial unique indexes (BUSINESS_RULES.md §7) — one open attendance per member, one
-/// per locker — are ordinary EF Core filtered indexes, unlike the subscriptions no-overlap rule,
+/// The three partial unique indexes (BUSINESS_RULES.md §6, §7) — one open attendance per member,
+/// one per locker, one per reserve place — are ordinary EF Core filtered indexes, unlike the subscriptions no-overlap rule,
 /// which needed a hand-written exclusion constraint the ORM cannot express.
 /// </remarks>
 public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendance>
@@ -43,7 +43,24 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
             table.HasCheckConstraint(
                 "ck_attendances_one_close_reason",
                 "cancelled_at IS NULL OR auto_closed_at IS NULL");
+
+            // BUSINESS_RULES.md §6 Reserve places: at most Attendance.ReservePlaceCount of them.
+            table.HasCheckConstraint(
+                AttendanceConstraints.ReserveSlotRange,
+                $"reserve_slot BETWEEN 1 AND {Attendance.ReservePlaceCount}");
+
+            // Every open visit holds exactly one of a locker and a reserve place. Only open ones:
+            // visits closed before roadmap 6.5.5 may hold neither, and a closed visit keeps the
+            // place it held, which is history rather than occupancy.
+            table.HasCheckConstraint(
+                AttendanceConstraints.OpenHoldsOnePlace,
+                "checked_out_at IS NOT NULL OR ((locker_id IS NULL) <> (reserve_slot IS NULL))");
         });
+
+        // The number is internal bookkeeping, never shown, and never above 15: smallint says so.
+        builder.Property(a => a.ReserveSlot).HasColumnType("smallint");
+
+        builder.Property(a => a.Version).IsRowVersion();
 
         // Restrict: a visit is a record that must never disappear with the member, subscription
         // or locker it references, the same reasoning SubscriptionConfiguration uses.
@@ -60,5 +77,10 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
             .IsUnique()
             .HasFilter("checked_out_at IS NULL")
             .HasDatabaseName(AttendanceConstraints.OneOpenPerLocker);
+
+        builder.HasIndex(a => a.ReserveSlot)
+            .IsUnique()
+            .HasFilter("checked_out_at IS NULL")
+            .HasDatabaseName(AttendanceConstraints.OneOpenPerReserveSlot);
     }
 }

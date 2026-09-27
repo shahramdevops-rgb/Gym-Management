@@ -27,7 +27,15 @@ public sealed class CheckOutHandler(IAppDbContext db, TimeProvider time)
             return Result.Failure<AttendanceResponse>(checkedOut.Error);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Closed or moved by someone else since it was read (the visit's xmin changed).
+            return Result.Failure<AttendanceResponse>(AttendanceErrors.ChangedConcurrently);
+        }
 
         var lockerNumber = attendance.LockerId is null
             ? null

@@ -81,6 +81,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
         await _connection.OpenAsync(TestContext.Current.CancellationToken);
 
         ExpenseCategoriesAfterMigration = await ReadExpenseCategoriesAsync(_connection);
+        LockersAfterMigration = await ReadLockersAsync(_connection);
     }
 
     /// <summary>
@@ -157,13 +158,53 @@ public sealed class DatabaseFixture : IAsyncLifetime
     /// </summary>
     public IReadOnlyList<(Guid Id, string Name, string NormalizedName)> ExpenseCategoriesAfterMigration { get; private set; } = [];
 
+    /// <summary>The lockers a fresh database gets from its migration, read at the same moment as <see cref="ExpenseCategoriesAfterMigration"/>.</summary>
+    public IReadOnlyList<(Guid Id, int Number, bool IsOutOfService)> LockersAfterMigration { get; private set; } = [];
+
     /// <summary>
     /// Puts back the rows the migrations seed, which Respawn deleted with everything else. A
     /// test then starts from what a freshly migrated database holds, not from an emptier one that
-    /// production never sees. The rows come from <see cref="ExpenseCategorySeed"/>, the same list
-    /// the migration was generated from.
+    /// production never sees. The rows come from <see cref="ExpenseCategorySeed"/> and
+    /// <see cref="LockerSeed"/>, the same lists the migrations were generated from.
     /// </summary>
     private static async Task RestoreSeedDataAsync(NpgsqlConnection connection)
+    {
+        await RestoreExpenseCategoriesAsync(connection);
+        await RestoreLockersAsync(connection);
+    }
+
+    private static async Task RestoreLockersAsync(NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand(
+            """
+            INSERT INTO lockers (id, number, is_out_of_service, created_at)
+            SELECT seed.id, seed.number, false, @created_at
+            FROM unnest(@ids, @numbers) AS seed(id, number)
+            """,
+            connection);
+
+        command.Parameters.AddWithValue("created_at", LockerSeed.CreatedAt);
+        command.Parameters.AddWithValue("ids", LockerSeed.All.Select(seed => seed.Id).ToArray());
+        command.Parameters.AddWithValue("numbers", LockerSeed.All.Select(seed => seed.Number).ToArray());
+
+        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<(Guid Id, int Number, bool IsOutOfService)>> ReadLockersAsync(NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand("SELECT id, number, is_out_of_service FROM lockers ORDER BY number", connection);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+
+        var lockers = new List<(Guid, int, bool)>();
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            lockers.Add((reader.GetGuid(0), reader.GetInt32(1), reader.GetBoolean(2)));
+        }
+
+        return lockers;
+    }
+
+    private static async Task RestoreExpenseCategoriesAsync(NpgsqlConnection connection)
     {
         await using var command = new NpgsqlCommand(
             """

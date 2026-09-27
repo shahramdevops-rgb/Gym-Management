@@ -493,7 +493,7 @@ export interface paths {
         };
         get: operations["ListLockers"];
         put?: never;
-        post: operations["CreateLocker"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -606,6 +606,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["CancelCheckIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/{id}/move-locker": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["MoveLocker"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1005,6 +1021,7 @@ export interface components {
             lockerId: null | string;
             /** Format: int32 */
             lockerNumber: null | number | string;
+            usesReservePlace: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: date-time */
@@ -1089,6 +1106,10 @@ export interface components {
             /** Format: double */
             amount: number | string;
         };
+        CheckInCommand: {
+            /** Format: uuid */
+            lockerId: null | string;
+        };
         CreateCafeOrderCommand: {
             /** Format: uuid */
             memberId: null | string;
@@ -1099,10 +1120,6 @@ export interface components {
         };
         CreateExpenseCategoryCommand: {
             name: string;
-        };
-        CreateLockerCommand: {
-            /** Format: int32 */
-            number: number | string;
         };
         CreateMemberCommand: {
             fullName: string;
@@ -1146,6 +1163,7 @@ export interface components {
             lockerId: null | string;
             /** Format: int32 */
             lockerNumber: null | number | string;
+            usesReservePlace: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: uuid */
@@ -1245,6 +1263,7 @@ export interface components {
             attendanceId: string;
             /** Format: int32 */
             lockerNumber: null | number | string;
+            usesReservePlace: boolean;
             /** Format: date-time */
             checkedInAt: string;
         };
@@ -1291,6 +1310,10 @@ export interface components {
              */
             debt: number | string;
             currentVisit?: null | components["schemas"]["MemberCurrentVisit"];
+        };
+        MoveLockerCommand: {
+            /** Format: uuid */
+            lockerId: string;
         };
         PagedResponseOfAttendanceResponse: {
             items: components["schemas"]["AttendanceResponse"][];
@@ -3829,66 +3852,6 @@ export interface operations {
             };
         };
     };
-    CreateLocker: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateLockerCommand"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LockerResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
     GetLocker: {
         parameters: {
             query?: never;
@@ -4072,7 +4035,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckInCommand"];
+            };
+        };
         responses: {
             /** @description Created */
             201: {
@@ -4081,6 +4048,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */
@@ -4240,6 +4216,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Unprocessable Entity */
             422: {
                 headers: {
@@ -4291,6 +4276,95 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    MoveLocker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveLockerCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

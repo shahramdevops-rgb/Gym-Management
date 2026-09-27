@@ -73,5 +73,6 @@ public sealed record MemberResponse(
 }
 
 /// <summary>An open visit, as the front-desk search needs it to check the member out.</summary>
-/// <param name="LockerNumber"><c>null</c> when no locker was free at check-in.</param>
-public sealed record MemberCurrentVisit(Guid AttendanceId, int? LockerNumber, DateTimeOffset CheckedInAt);
+/// <param name="LockerNumber"><c>null</c> when the visit holds a reserve place (<paramref name="UsesReservePlace"/>).</param>
+/// <param name="UsesReservePlace">The visit holds one of the reserve places (BUSINESS_RULES.md §6).</param>
+public sealed record MemberCurrentVisit(Guid AttendanceId, int? LockerNumber, bool UsesReservePlace, DateTimeOffset CheckedInAt);

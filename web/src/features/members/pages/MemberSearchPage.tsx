@@ -1,6 +1,6 @@
 import { Search, UserPlus } from "lucide-react";
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
 import { Pager } from "@/components/Pager";
@@ -25,13 +25,15 @@ import { memberDraftFromSearch } from "../searchDraft";
 export const searchDelayMs = 300;
 
 /**
- * The front desk's first screen: one box for a name or a phone number.
+ * The member search: one box for a name or a phone number. Since roadmap 6.5.5 it checks nobody in —
+ * that happens on the locker map, where the locker is chosen (BUSINESS_RULES.md §7). For someone
+ * inside it still shows the locker and offers check-out.
  *
- * The search lives in the URL (`/?q=علی&page=2`), not only in component state. Refreshing the
+ * The search lives in the URL (`/search?q=علی&page=2`), not only in component state. Refreshing the
  * page, pressing back after opening a profile, or sharing the link all return to the same
  * results. The box updates the URL once typing pauses, and the query reads the URL.
  */
-export function HomePage() {
+export function MemberSearchPage() {
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
   const page = pageFromParams(params);
@@ -62,6 +64,7 @@ export function HomePage() {
   const [registering, setRegistering] = useState(false);
 
   const desk = useDeskDialog();
+  const navigate = useNavigate();
 
   function goToPage(next: number) {
     setParams({ q, page: String(next) });
@@ -140,10 +143,9 @@ export function HomePage() {
           )}
 
           {registering && (
-            // Registering here rather than on another screen: the desk is mid-task with a person
-            // standing in front of them, and the next step is letting that person in (roadmap
-            // 6.5.4). The new member goes straight to the check-in box; they have no subscription
-            // by definition, so its refusal offers the single visit like any other.
+            // Registering here rather than on another screen: the search already holds the name or
+            // the phone. The new member's profile opens next, where a plan is sold; letting them in
+            // happens on the locker map, from the locker they are given (roadmap 6.5.5).
             <div className="space-y-3 rounded-lg border p-4">
               <h3 className="font-medium">عضو جدید</h3>
               <MemberForm
@@ -154,8 +156,7 @@ export function HomePage() {
                 submittingLabel="در حال ثبت…"
                 onSubmit={async (input) => {
                   const member = await createMember.mutateAsync(input);
-                  setRegistering(false);
-                  desk.open({ kind: "checkIn", member });
+                  void navigate(paths.member(member.id));
                 }}
                 actions={
                   <Button
@@ -180,7 +181,6 @@ export function HomePage() {
               <MembersTable
                 members={results.data.items}
                 deskActions={{
-                  onCheckIn: (member) => desk.open({ kind: "checkIn", member }),
                   onCheckOut: (member) =>
                     desk.open({ kind: "checkOut", member, visit: member.currentVisit ?? null }),
                 }}

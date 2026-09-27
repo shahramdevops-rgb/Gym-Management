@@ -38,7 +38,7 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+        var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
 
         var closed = await RunJobAsync();
@@ -204,14 +204,6 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
-    private static async Task<LockerResponse> CreateLockerAsync(HttpClient client, string token, int number)
-    {
-        using var response = await SendAsync(client, token, HttpMethod.Post, "/api/lockers", new { number });
-        response.EnsureSuccessStatusCode();
-
-        return (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-    }
-
     private static async Task<LockerResponse> GetLockerOkAsync(HttpClient client, string token, Guid id)
     {
         using var response = await SendAsync(client, token, HttpMethod.Get, $"/api/lockers/{id}");
@@ -221,7 +213,7 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
     }
 
     private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+        TestLockers.CheckInAsync(client, token, memberId);
 
     private static async Task<AttendanceResponse> CheckInOkAsync(HttpClient client, string token, Guid memberId)
     {

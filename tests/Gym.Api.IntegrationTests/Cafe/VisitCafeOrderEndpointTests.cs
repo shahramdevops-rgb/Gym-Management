@@ -144,8 +144,7 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
 
         await PostOkAsync(client, token, $"/api/members/{member.Id}/subscriptions", new { planId = plan.Id });
 
-        using var response = await SendAsync(
-            client, token, HttpMethod.Post, $"/api/members/{member.Id}/attendance/check-in", body: null);
+        using var response = await TestLockers.CheckInAsync(client, token, member.Id);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return (await response.Content.ReadFromJsonAsync<AttendanceResponse>(

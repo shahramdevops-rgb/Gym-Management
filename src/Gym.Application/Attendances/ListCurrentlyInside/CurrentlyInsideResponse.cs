@@ -10,7 +10,8 @@ using Gym.Domain.Subscriptions;
 namespace Gym.Application.Attendances.ListCurrentlyInside;
 
 /// <summary>One row of the front desk's "currently inside" board (BUSINESS_RULES.md §7).</summary>
-/// <param name="LockerNumber"><c>null</c> when the member checked in with no locker free.</param>
+/// <param name="LockerNumber"><c>null</c> when the visit holds a reserve place instead (<paramref name="UsesReservePlace"/>).</param>
+/// <param name="UsesReservePlace">The visit holds one of the reserve places (BUSINESS_RULES.md §6); the board shows "رزرو".</param>
 /// <param name="TotalSessions"><c>null</c> means unlimited, and there is then nothing to count against.</param>
 /// <param name="RemainingSessions"><c>null</c> means unlimited.</param>
 /// <param name="SubscriptionEndDate">
@@ -39,6 +40,7 @@ public sealed record CurrentlyInsideResponse(
     string MemberFullName,
     Guid? LockerId,
     int? LockerNumber,
+    bool UsesReservePlace,
     DateTimeOffset CheckedInAt,
     Guid SubscriptionId,
     int? TotalSessions,
@@ -69,6 +71,7 @@ public sealed record CurrentlyInsideResponse(
             members.Where(m => m.Id == attendance.MemberId).Select(m => m.FullName).First(),
             attendance.LockerId,
             lockers.Where(l => l.Id == attendance.LockerId).Select(l => (int?)l.Number).FirstOrDefault(),
+            attendance.ReserveSlot != null,
             attendance.CheckedInAt,
             attendance.SubscriptionId,
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.TotalSessions).First(),

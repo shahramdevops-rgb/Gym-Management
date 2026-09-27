@@ -6,9 +6,9 @@ import {
   DoorOpen,
   KeyRound,
   LockKeyhole,
-  LogIn,
   LogOut,
   ReceiptText,
+  Search,
   Tickets,
   Users,
   Wallet,
@@ -31,12 +31,16 @@ interface NavigationItem {
   role?: Role;
 }
 
+/**
+ * The locker map comes first: it is where every check-in happens, for Staff and the Owner alike
+ * (BUSINESS_RULES.md §6, §7). The member search no longer checks anyone in, so it sits further down.
+ */
 const navigation: NavigationItem[] = [
-  { to: paths.home, label: "ورود به باشگاه", icon: LogIn },
-  { to: paths.members, label: "اعضا", icon: Contact },
+  { to: paths.home, label: "ورود با کمد", icon: LockKeyhole },
   { to: paths.attendance, label: "داخل باشگاه", icon: DoorOpen },
+  { to: paths.search, label: "جستجوی عضو", icon: Search },
+  { to: paths.members, label: "اعضا", icon: Contact },
   { to: paths.plans, label: "پلن‌ها", icon: Tickets, role: "Owner" },
-  { to: paths.lockers, label: "کمدها", icon: LockKeyhole },
   { to: paths.cafe, label: "بوفه", icon: Coffee },
   { to: paths.cafeOrders, label: "سفارش‌های بوفه", icon: ReceiptText },
   { to: paths.cafeMenu, label: "منوی بوفه", icon: ClipboardList },

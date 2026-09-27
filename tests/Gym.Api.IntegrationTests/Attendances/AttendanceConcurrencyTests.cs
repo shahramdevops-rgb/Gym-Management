@@ -5,7 +5,6 @@ using System.Net.Http.Json;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Attendances;
-using Gym.Application.Lockers;
 using Gym.Domain.Attendances;
 using Gym.Domain.Members;
 using Gym.Domain.Plans;
@@ -19,11 +18,12 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gym.Api.IntegrationTests.Attendances;
 
 /// <summary>
-/// Task 5.4: the two races BUSINESS_RULES.md §7 names by name. Check-in has two different
+/// Task 5.4, updated for 6.5.5: the races BUSINESS_RULES.md §6 and §7 name. Check-in has different
 /// safety nets — <c>LockMemberAsync</c> serializes requests for the same member so they never
-/// reach the database constraint, while the free-locker pick has no lock at all and relies on
-/// the partial unique index plus <see cref="CheckInHandler"/>'s catch block. These tests fire
-/// real parallel requests at a live Postgres container to exercise both.
+/// reach the database constraint, while two desks choosing one locker or one reserve place have
+/// no lock at all and rely on the partial unique indexes plus <see cref="CheckInHandler"/>'s catch
+/// blocks; a move relies on the visit's <c>xmin</c>. These tests fire real parallel requests at a
+/// live Postgres container, or make the stale read on purpose.
 /// </summary>
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
@@ -67,33 +67,26 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
     }
 
     [Fact]
-    public async Task CheckIn_ParallelForTheLastFreeLocker_NoLockerIsAssignedTwice()
+    public async Task CheckIn_ParallelForTheSameLocker_OneWinsAndTheRestGetLockerTaken()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
-        var (ownerClient, ownerToken) = await OwnerClientAsync();
         var plan = await AddPlanAsync();
-        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+        var members = await MembersWithAPlanAsync(staffClient, staffToken, plan.Id, count: 6);
 
-        var members = new List<Member>();
-        for (var i = 0; i < 6; i++)
-        {
-            var member = await AddMemberAsync();
-            await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-            members.Add(member);
-        }
-
-        // Six different members, so the member lock does not serialize them against each
-        // other: only the partial unique index on locker_id (BUSINESS_RULES.md §7) stands
-        // between this and two open attendances pointing at the same locker.
-        var responses = await Task.WhenAll(members.Select(m => CheckInAsync(staffClient, staffToken, m.Id)));
+        // Six desks click locker 1 for six different members at once, so the member lock does not
+        // serialize them: the read in LockerChoice turns some away, and the partial unique index on
+        // locker_id (BUSINESS_RULES.md §7) settles the ones that raced past it. Either way the desk
+        // hears the same thing — someone holds that locker, choose another.
+        var responses = await Task.WhenAll(
+            members.Select(m => TestLockers.CheckInAsync(staffClient, staffToken, m.Id, lockerNumber: 1)));
 
         try
         {
-            responses.Select(r => r.StatusCode)
-                .ShouldAllBe(status => status == HttpStatusCode.Created || status == HttpStatusCode.Conflict);
+            responses.Count(r => r.StatusCode == HttpStatusCode.Created).ShouldBe(1);
+            responses.Count(r => r.StatusCode == HttpStatusCode.Conflict).ShouldBe(5);
             foreach (var response in responses.Where(r => r.StatusCode == HttpStatusCode.Conflict))
             {
-                (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.ChangedConcurrently");
+                (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.LockerTaken");
             }
         }
         finally
@@ -104,12 +97,72 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
             }
         }
 
-        (await OpenAttendanceCountAsync(a => a.LockerId == locker.Id)).ShouldBeLessThanOrEqualTo(1);
+        (await OpenAttendanceCountAsync(a => a.LockerId == TestLockers.IdOf(1))).ShouldBe(1);
 
-        // Every member who was told they succeeded really did consume a session; a rejected
-        // member's subscription was rolled back untouched and can retry.
-        var created = responses.Count(r => r.StatusCode == HttpStatusCode.Created);
-        (await OpenAttendanceCountAsync(a => members.Select(m => m.Id).Contains(a.MemberId))).ShouldBe(created);
+        // A refused member's session was rolled back with the rest of their transaction.
+        (await OpenAttendanceCountAsync(a => members.Select(m => m.Id).Contains(a.MemberId))).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task CheckIn_ParallelForReservePlaces_NoPlaceIsHeldTwiceAndNeverMoreThanFifteen()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var plan = await AddPlanAsync();
+        await TestLockers.TakeOutOfServiceAllButAsync(Fixture);
+        var members = await MembersWithAPlanAsync(staffClient, staffToken, plan.Id, count: Attendance.ReservePlaceCount + 3);
+
+        // Every request reads the free places before any commits, so most pick place 1; the
+        // partial unique index on reserve_slot turns the losers away with "try again".
+        var responses = await Task.WhenAll(
+            members.Select(m => TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, m.Id)));
+
+        try
+        {
+            foreach (var response in responses.Where(r => r.StatusCode != HttpStatusCode.Created))
+            {
+                (await response.ReadErrorCodeAsync()).ShouldBeOneOf("Attendance.ChangedConcurrently", "Attendance.ReserveFull");
+            }
+        }
+        finally
+        {
+            foreach (var response in responses)
+            {
+                response.Dispose();
+            }
+        }
+
+        var slots = await OpenReserveSlotsAsync();
+        slots.Count.ShouldBe(responses.Count(r => r.StatusCode == HttpStatusCode.Created));
+        slots.Count.ShouldBeLessThanOrEqualTo(Attendance.ReservePlaceCount);
+        slots.ShouldBeUnique();
+    }
+
+    /// <summary>
+    /// The race a move can lose: it read the visit while open, and another desk checked it out
+    /// before the move saved. A timed race cannot tell the bad outcome from a good one (both calls
+    /// "succeed" either way), so the stale read is made on purpose and the save must be refused by
+    /// the visit's <c>xmin</c> rather than put a closed visit on another locker.
+    /// </summary>
+    [Fact]
+    public async Task Attendance_MovedFromAReadTakenBeforeCheckOut_RefusedByTheVersion()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var plan = await AddPlanAsync();
+        var member = (await MembersWithAPlanAsync(staffClient, staffToken, plan.Id, count: 1)).Single();
+        var visit = await TestLockers.CheckInOkAsync(staffClient, staffToken, member.Id, lockerNumber: 1);
+
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var stale = await db.Attendances.SingleAsync(a => a.Id == visit.Id, TestContext.Current.CancellationToken);
+        using (var checkedOut = await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{visit.Id}/check-out"))
+        {
+            checkedOut.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        stale.MoveToLocker(TestLockers.IdOf(2)).IsSuccess.ShouldBeTrue("the stale copy still looks open.");
+
+        await Should.ThrowAsync<DbUpdateConcurrencyException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+        (await StoredAttendanceAsync(visit.Id)).LockerId.ShouldBe(TestLockers.IdOf(1));
     }
 
     // ---- Helpers ----
@@ -120,14 +173,6 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
         var client = Fixture.CreateClient();
 
         return (client, await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
-    }
-
-    private async Task<(HttpClient Client, string Token)> OwnerClientAsync()
-    {
-        await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "owner", role: Roles.Owner);
-        var client = Fixture.CreateClient();
-
-        return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
     }
 
     private async Task<Member> AddMemberAsync()
@@ -184,16 +229,41 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
-    private static async Task<LockerResponse> CreateLockerAsync(HttpClient client, string token, int number)
+    private async Task<List<Member>> MembersWithAPlanAsync(HttpClient client, string token, Guid planId, int count)
     {
-        using var response = await SendAsync(client, token, HttpMethod.Post, "/api/lockers", new { number });
-        response.EnsureSuccessStatusCode();
+        var members = new List<Member>();
+        for (var i = 0; i < count; i++)
+        {
+            var member = await AddMemberAsync();
+            await AssignOkAsync(client, token, member.Id, planId);
+            members.Add(member);
+        }
 
-        return (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        return members;
+    }
+
+    private async Task<List<int>> OpenReserveSlotsAsync()
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Attendances
+            .AsNoTracking()
+            .Where(a => a.CheckedOutAt == null && a.ReserveSlot != null)
+            .Select(a => a.ReserveSlot!.Value)
+            .ToListAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<Attendance> StoredAttendanceAsync(Guid id)
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Attendances
+            .AsNoTracking()
+            .SingleAsync(a => a.Id == id, TestContext.Current.CancellationToken);
     }
 
     private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+        TestLockers.CheckInAsync(client, token, memberId);
 
     private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, HttpMethod method, string path, object? body = null)
     {

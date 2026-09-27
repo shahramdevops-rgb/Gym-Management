@@ -10,13 +10,16 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Attendances.CheckIn;
 
 /// <summary>
-/// Checks a member in: consumes a session from their current subscription and takes a random
-/// free locker, if any (BUSINESS_RULES.md §7). Front desk work, so both roles.
+/// Checks a member in: consumes a session from their current subscription and gives them the
+/// locker the desk chose, or a reserve place when every locker is full (BUSINESS_RULES.md §6, §7).
+/// Front desk work, so both roles.
 /// </summary>
 public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, TimeProvider time)
 {
-    public async Task<Result<AttendanceResponse>> Handle(Guid memberId, CancellationToken cancellationToken)
+    public async Task<Result<AttendanceResponse>> Handle(Guid memberId, CheckInCommand command, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(command);
+
         var member = await db.Members.AsNoTracking().SingleOrDefaultAsync(m => m.Id == memberId, cancellationToken);
         if (member is null)
         {
@@ -70,17 +73,34 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
             return Result.Failure<AttendanceResponse>(consumed.Error);
         }
 
-        // Any free locker is equally correct, so the pick is random rather than by number
-        // (BUSINESS_RULES.md §7). Taking the lowest number every time wore out the first few
-        // lockers while the high numbers were never touched. `EF.Functions.Random()` becomes
-        // Postgres's `random()`, so the ordering stays one query on the database side.
-        var freeLocker = await db.Lockers
-            .Where(l => !l.IsOutOfService && !db.Attendances.Any(a => a.LockerId == l.Id && a.CheckedOutAt == null))
-            .OrderBy(l => EF.Functions.Random())
-            .Select(l => new { l.Id, l.Number })
-            .FirstOrDefaultAsync(cancellationToken);
+        // The place the desk chose, after the subscription: a member who cannot come in today hears
+        // why (and is offered a single visit) whichever locker was clicked. Nothing is saved on a
+        // failure here, so the session consumed above goes nowhere.
+        var now = time.GetUtcNow();
+        int? lockerNumber = null;
+        Attendance attendance;
+        if (command.LockerId is { } lockerId)
+        {
+            var locker = await LockerChoice.CheckAsync(db, lockerId, cancellationToken);
+            if (locker.IsFailure)
+            {
+                return Result.Failure<AttendanceResponse>(locker.Error);
+            }
 
-        var attendance = Attendance.CheckIn(memberId, subscription.Id, freeLocker?.Id, time.GetUtcNow());
+            lockerNumber = locker.Value;
+            attendance = Attendance.CheckIn(memberId, subscription.Id, lockerId, now);
+        }
+        else
+        {
+            var reserveSlot = await FreeReserveSlotAsync(cancellationToken);
+            if (reserveSlot.IsFailure)
+            {
+                return Result.Failure<AttendanceResponse>(reserveSlot.Error);
+            }
+
+            attendance = Attendance.CheckInOnReservePlace(memberId, subscription.Id, reserveSlot.Value, now);
+        }
+
         db.Attendances.Add(attendance);
 
         try
@@ -88,8 +108,14 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
+        catch (UniqueConstraintException exception) when (exception.ConstraintName == AttendanceConstraints.OneOpenPerLocker)
+        {
+            // Another desk gave out the same locker a moment earlier. The desk's next step is the
+            // same as for one taken long ago — choose another — so the error is too.
+            return Result.Failure<AttendanceResponse>(AttendanceErrors.LockerTaken);
+        }
         catch (UniqueConstraintException exception)
-            when (exception.ConstraintName is AttendanceConstraints.OneOpenPerMember or AttendanceConstraints.OneOpenPerLocker)
+            when (exception.ConstraintName is AttendanceConstraints.OneOpenPerMember or AttendanceConstraints.OneOpenPerReserveSlot)
         {
             return Result.Failure<AttendanceResponse>(AttendanceErrors.ChangedConcurrently);
         }
@@ -103,7 +129,32 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
         // Read after the commit because check-in moves no money, so the total cannot have changed.
         var debt = await MemberDebt.GetTotalAsync(db, memberId, cancellationToken);
 
-        return AttendanceResponse.From(attendance, freeLocker?.Number, serviceCharges: [], debt);
+        return AttendanceResponse.From(attendance, lockerNumber, serviceCharges: [], debt);
+    }
+
+    /// <summary>
+    /// The lowest reserve place not held by an open visit (BUSINESS_RULES.md §6). Which one does
+    /// not matter — its number is never shown — so lowest is simply the easiest to reason about.
+    /// </summary>
+    /// <remarks>
+    /// Two desks asking at once can both read the same place as free. The partial unique index on
+    /// the place refuses the second, which then hears "try again", and the retry reads afresh.
+    /// </remarks>
+    private async Task<Result<int>> FreeReserveSlotAsync(CancellationToken cancellationToken)
+    {
+        if (await LockerChoice.AnyFreeAsync(db, cancellationToken))
+        {
+            return Result.Failure<int>(AttendanceErrors.LockersStillFree);
+        }
+
+        var held = await db.Attendances
+            .Where(a => a.CheckedOutAt == null && a.ReserveSlot != null)
+            .Select(a => a.ReserveSlot!.Value)
+            .ToListAsync(cancellationToken);
+
+        var free = Enumerable.Range(1, Attendance.ReservePlaceCount).Except(held).ToList();
+
+        return free.Count == 0 ? Result.Failure<int>(AttendanceErrors.ReserveFull) : free[0];
     }
 
     /// <summary>

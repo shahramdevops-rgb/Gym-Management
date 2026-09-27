@@ -158,9 +158,8 @@ export const errorMessages: Record<string, string> = {
 
   // Lockers
   "Lockers.NotFound": "کمد پیدا نشد.",
-  "Lockers.NumberInvalid": "شماره کمد باید عددی مثبت باشد.",
-  "Lockers.NumberAlreadyExists": "کمد دیگری با همین شماره وجود دارد.",
   "Lockers.Occupied": "این کمد اشغال است و نمی‌توان آن را از سرویس خارج کرد.",
+  "Lockers.OutOfService": "این کمد خارج از سرویس است. کمد دیگری انتخاب کنید.",
   "Lockers.ChangedConcurrently":
     "این کمد هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
@@ -168,6 +167,11 @@ export const errorMessages: Record<string, string> = {
   "Attendance.NoSubscription": "این عضو اشتراکی ندارد.",
   "Attendance.AlreadyCheckedIn": "این عضو هم‌اکنون داخل باشگاه است.",
   "Attendance.ChangedConcurrently": "ورود هم‌زمان با شخص دیگری ثبت شد. دوباره امتحان کنید.",
+  "Attendance.LockerTaken": "این کمد را کس دیگری گرفته است. کمد دیگری انتخاب کنید.",
+  "Attendance.LockersStillFree":
+    "هنوز کمد آزاد هست؛ ورود بدون کمد فقط وقتی است که همهٔ کمدها پر باشند.",
+  "Attendance.ReserveFull": "هر ۱۵ جای ورود بدون کمد پر است.",
+  "Attendance.SameLocker": "این مراجعه همین حالا همین کمد را دارد.",
   "Attendance.NotFound": "ورود و خروج یافت نشد.",
   "Attendance.NotOpen": "این ورود قبلاً بسته شده است.",
   "Attendance.CancelWindowExpired": "مهلت لغو این ورود گذشته است.",

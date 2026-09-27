@@ -13,7 +13,7 @@ import { ExpensesPage } from "@/features/expenses/pages/ExpensesPage";
 import { LockersPage } from "@/features/lockers/pages/LockersPage";
 import { CreateMemberPage } from "@/features/members/pages/CreateMemberPage";
 import { EditMemberPage } from "@/features/members/pages/EditMemberPage";
-import { HomePage } from "@/features/members/pages/HomePage";
+import { MemberSearchPage } from "@/features/members/pages/MemberSearchPage";
 import { MemberProfilePage } from "@/features/members/pages/MemberProfilePage";
 import { MembersPage } from "@/features/members/pages/MembersPage";
 import { CreatePlanPage } from "@/features/plans/pages/CreatePlanPage";
@@ -49,13 +49,13 @@ export const routes: RouteObject[] = [
             // React Router's own screen replacing the whole app.
             errorElement: <PageError />,
             children: [
-              { path: paths.home, element: <HomePage /> },
+              { path: paths.home, element: <LockersPage /> },
+              { path: paths.search, element: <MemberSearchPage /> },
               { path: paths.members, element: <MembersPage /> },
               { path: paths.newMember, element: <CreateMemberPage /> },
               { path: paths.member(":id"), element: <MemberProfilePage /> },
               { path: paths.editMember(":id"), element: <EditMemberPage /> },
               { path: paths.attendance, element: <CurrentlyInsidePage /> },
-              { path: paths.lockers, element: <LockersPage /> },
               { path: paths.cafe, element: <CafeTillPage /> },
               { path: paths.cafeOrders, element: <CafeOrdersPage /> },
               { path: paths.cafeMenu, element: <CafeMenuPage /> },

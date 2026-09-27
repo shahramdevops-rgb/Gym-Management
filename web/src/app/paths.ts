@@ -1,6 +1,8 @@
 /** Route paths, named once so guards, links and redirects cannot disagree about a URL. */
 export const paths = {
+  /** The locker map, "ورود با کمد": the first screen for everyone (BUSINESS_RULES.md §7). */
   home: "/",
+  search: "/search",
   login: "/login",
   changePassword: "/change-password",
   staff: "/staff",
@@ -13,7 +15,6 @@ export const paths = {
   newPlan: "/plans/new",
   editPlan: (id: string) => `/plans/${id}/edit`,
   attendance: "/attendance",
-  lockers: "/lockers",
   cafe: "/cafe",
   cafeOrders: "/cafe/orders",
   cafeMenu: "/cafe/menu",

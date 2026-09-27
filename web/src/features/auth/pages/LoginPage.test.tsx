@@ -83,7 +83,8 @@ describe("LoginPage", () => {
 
     fillAndSubmit("sara", "رمز۱۲۳۴");
 
-    await screen.findByRole("heading", { name: "جستجوی عضو" });
+    // Lands on the locker map, every user's first screen since 6.5.5.
+    await screen.findByRole("heading", { name: "ورود با کمد" });
     const body = (await api.requestsTo("POST", "/api/auth/login")[0]!.json()) as {
       password: string;
     };

@@ -76,6 +76,7 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
                 Visit = new MemberCurrentVisit(
                     attendance.Id,
                     db.Lockers.Where(locker => locker.Id == attendance.LockerId).Select(locker => (int?)locker.Number).FirstOrDefault(),
+                    attendance.ReserveSlot != null,
                     attendance.CheckedInAt),
             })
             .ToDictionaryAsync(row => row.MemberId, row => row.Visit, cancellationToken);

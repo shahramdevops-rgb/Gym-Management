@@ -38,8 +38,8 @@ export function MemberProfilePage() {
 
   const [historyPage, setHistoryPage] = useState(1);
   const history = useMemberAttendanceHistory(id, historyPage);
-  // Check-in, check-out and cancelling a check-in ask first and show the outcome in a box, the
-  // same as on the entry screen (BUSINESS_RULES.md §7 Confirming at the front desk).
+  // Check-out and cancelling a check-in ask first and show the outcome in a box, the same as on
+  // the locker map (BUSINESS_RULES.md §7 Confirming at the front desk).
   const desk = useDeskDialog();
 
   if (member.isPending) {
@@ -152,8 +152,9 @@ export function MemberProfilePage() {
                     <p className="font-medium">هم‌اکنون داخل باشگاه است.</p>
                     <p className="text-muted-foreground">
                       ورود: {formatDateTime(openAttendance.checkedInAt)}
-                      {openAttendance.lockerNumber !== null &&
-                        ` · کمد ${toPersianDigits(openAttendance.lockerNumber)}`}
+                      {openAttendance.lockerNumber !== null
+                        ? ` · کمد ${toPersianDigits(openAttendance.lockerNumber)}`
+                        : openAttendance.usesReservePlace && " · بدون کمد"}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -198,12 +199,18 @@ export function MemberProfilePage() {
                 />
               </div>
             ) : (
-              <Button
-                disabled={!current.isActive}
-                onClick={() => desk.open({ kind: "checkIn", member: current })}
-              >
-                ورود
-              </Button>
+              // No check-in button here since roadmap 6.5.5: the desk lets a member in from the
+              // locker map, by clicking the locker it gives them (BUSINESS_RULES.md §7).
+              <p className="text-sm text-muted-foreground">
+                برای ثبت ورود، کمد را در صفحهٔ{" "}
+                <Link
+                  to={paths.home}
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                >
+                  ورود با کمد
+                </Link>{" "}
+                انتخاب کنید.
+              </p>
             ))}
 
           {history.isSuccess && (

@@ -35,7 +35,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        var locker = await CreateLockerAsync(ownerClient, ownerToken, 1);
+        var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
         (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(1);
 
@@ -224,16 +224,20 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
             TestContext.Current.CancellationToken);
     }
 
-    /// <summary>A row written directly, so a check-in older than the cancel window can be set up in one step.</summary>
+    /// <summary>
+    /// A row written directly, so a check-in older than the cancel window can be set up in one step.
+    /// On locker 1: an open visit always holds a locker or a reserve place (BUSINESS_RULES.md §6).
+    /// </summary>
     private async Task<Guid> InsertOpenAttendanceAsync(Guid memberId, Guid subscriptionId, DateTimeOffset checkedInAt)
     {
         var id = Guid.CreateVersion7();
+        var lockerId = TestLockers.IdOf(1);
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlAsync(
             $"""
             INSERT INTO attendances (id, member_id, subscription_id, locker_id, checked_in_at, created_at)
-            VALUES ({id}, {memberId}, {subscriptionId}, NULL, {checkedInAt}, now())
+            VALUES ({id}, {memberId}, {subscriptionId}, {lockerId}, {checkedInAt}, now())
             """,
             TestContext.Current.CancellationToken);
 
@@ -258,14 +262,6 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
-    private static async Task<LockerResponse> CreateLockerAsync(HttpClient client, string token, int number)
-    {
-        using var response = await SendAsync(client, token, HttpMethod.Post, "/api/lockers", new { number });
-        response.EnsureSuccessStatusCode();
-
-        return (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-    }
-
     private static async Task<LockerResponse> GetLockerOkAsync(HttpClient client, string token, Guid id)
     {
         using var response = await SendAsync(client, token, HttpMethod.Get, $"/api/lockers/{id}");
@@ -275,7 +271,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
     }
 
     private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+        TestLockers.CheckInAsync(client, token, memberId);
 
     private static async Task<AttendanceResponse> CheckInOkAsync(HttpClient client, string token, Guid memberId)
     {

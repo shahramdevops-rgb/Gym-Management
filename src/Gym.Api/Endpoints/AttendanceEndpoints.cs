@@ -7,6 +7,7 @@ using Gym.Application.Attendances.CheckIn;
 using Gym.Application.Attendances.CheckOut;
 using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Attendances.ListMemberAttendance;
+using Gym.Application.Attendances.MoveLocker;
 using Gym.Application.Common.Paging;
 
 namespace Gym.Api.Endpoints;
@@ -32,10 +33,15 @@ public static class AttendanceEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
-        memberAttendance.MapPost("/check-in", async (Guid memberId, CheckInHandler handler, CancellationToken ct) =>
-                (await handler.Handle(memberId, ct)).ToHttpResult(attendance => Results.Created($"/api/attendance/{attendance.Id}", attendance)))
+        // Check-in and move-locker name their policy themselves as well as getting the group's: the
+        // map is the desk's screen for both roles (BUSINESS_RULES.md §6), and its actions should not
+        // depend on a group default nobody chose for them (the lesson of task 6.5.1).
+        memberAttendance.MapPost("/check-in", async (Guid memberId, CheckInCommand command, CheckInHandler handler, CancellationToken ct) =>
+                (await handler.Handle(memberId, command, ct)).ToHttpResult(attendance => Results.Created($"/api/attendance/{attendance.Id}", attendance)))
+            .RequireAuthorization(Policies.StaffOrOwner)
             .WithName("CheckIn")
             .Produces<AttendanceResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
@@ -59,6 +65,7 @@ public static class AttendanceEndpoints
             .WithName("CheckOut")
             .Produces<AttendanceResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         attendance.MapPost("/{id:guid}/cancel", async (Guid id, CancelCheckInHandler handler, CancellationToken ct) =>
@@ -66,6 +73,17 @@ public static class AttendanceEndpoints
             .WithName("CancelCheckIn")
             .Produces<AttendanceResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        attendance.MapPost("/{id:guid}/move-locker", async (Guid id, MoveLockerCommand command, MoveLockerHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, command, ct)).ToHttpResult())
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .WithName("MoveLocker")
+            .Produces<AttendanceResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         attendance.MapGet("/currently-inside", async ([AsParameters] ListCurrentlyInsideQuery query, ListCurrentlyInsideHandler handler, CancellationToken ct) =>

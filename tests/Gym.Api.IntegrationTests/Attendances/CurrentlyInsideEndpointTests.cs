@@ -27,12 +27,10 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
     public async Task CurrentlyInside_OpenAttendance_ShowsMemberNameAndLockerNumber()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
-        var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync("سارا محمدی");
         var plan = await AddPlanAsync();
         await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        var locker = await CreateLockerAsync(ownerClient, ownerToken, 3);
-        var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
+        var attendance = await TestLockers.CheckInOkAsync(staffClient, staffToken, member.Id, lockerNumber: 3);
 
         using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
 
@@ -42,7 +40,30 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         row.AttendanceId.ShouldBe(attendance.Id);
         row.MemberId.ShouldBe(member.Id);
         row.MemberFullName.ShouldBe("سارا محمدی");
-        row.LockerNumber.ShouldBe(locker.Number);
+        row.LockerNumber.ShouldBe(3);
+        row.LockerId.ShouldBe(TestLockers.IdOf(3));
+        row.UsesReservePlace.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task CurrentlyInside_VisitOnAReservePlace_SaysSoAndHasNoLocker()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync("سارا محمدی");
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await TestLockers.TakeOutOfServiceAllButAsync(Fixture);
+        using (var checkedIn = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, member.Id))
+        {
+            checkedIn.StatusCode.ShouldBe(HttpStatusCode.Created);
+        }
+
+        using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
+
+        var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
+        row.UsesReservePlace.ShouldBeTrue();
+        row.LockerId.ShouldBeNull();
+        row.LockerNumber.ShouldBeNull();
     }
 
     [Fact]
@@ -129,14 +150,6 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         return (client, await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
     }
 
-    private async Task<(HttpClient Client, string Token)> OwnerClientAsync()
-    {
-        await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "owner", role: Roles.Owner);
-        var client = Fixture.CreateClient();
-
-        return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
-    }
-
     private async Task<Member> AddMemberAsync(string fullName)
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
@@ -194,16 +207,8 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
-    private static async Task<LockerResponse> CreateLockerAsync(HttpClient client, string token, int number)
-    {
-        using var response = await SendAsync(client, token, HttpMethod.Post, "/api/lockers", new { number });
-        response.EnsureSuccessStatusCode();
-
-        return (await response.Content.ReadFromJsonAsync<LockerResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-    }
-
     private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/attendance/check-in");
+        TestLockers.CheckInAsync(client, token, memberId);
 
     private static async Task<AttendanceResponse> CheckInOkAsync(HttpClient client, string token, Guid memberId)
     {
