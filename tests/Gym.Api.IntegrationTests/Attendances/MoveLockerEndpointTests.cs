@@ -6,7 +6,6 @@ using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Attendances;
 using Gym.Application.Lockers;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -182,18 +181,16 @@ public sealed class MoveLockerEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed("رضا احمدی", $"+98914{suffix:D7}");
-        // A plan per member, named apart: plan names are unique.
-        var plan = Plan.Create($"پلن {suffix}", 30, 12, 900_000m).Value;
+        var plan = await TestPlans.AddAsync(Fixture);
 
         await using (var scope = Fixture.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Members.Add(member);
-            db.Plans.Add(plan);
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        using var assigned = await SendAsync(client, token, HttpMethod.Post, $"/api/members/{member.Id}/subscriptions", new { planId = plan.Id });
+        using var assigned = await SendAsync(client, token, HttpMethod.Post, $"/api/members/{member.Id}/subscriptions", plan.Body);
         assigned.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return member;

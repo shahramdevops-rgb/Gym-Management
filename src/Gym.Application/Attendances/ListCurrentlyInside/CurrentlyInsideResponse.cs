@@ -12,8 +12,6 @@ namespace Gym.Application.Attendances.ListCurrentlyInside;
 /// <summary>One row of the front desk's "currently inside" board (BUSINESS_RULES.md §7).</summary>
 /// <param name="LockerNumber"><c>null</c> when the visit holds a reserve place instead (<paramref name="UsesReservePlace"/>).</param>
 /// <param name="UsesReservePlace">The visit holds one of the reserve places (BUSINESS_RULES.md §6); the board shows "رزرو".</param>
-/// <param name="TotalSessions"><c>null</c> means unlimited, and there is then nothing to count against.</param>
-/// <param name="RemainingSessions"><c>null</c> means unlimited.</param>
 /// <param name="SubscriptionEndDate">
 /// Of the subscription this visit consumed from, which the attendance names outright
 /// (<c>Attendance.SubscriptionId</c>). Reading it from there rather than re-deriving "the one in
@@ -43,9 +41,9 @@ public sealed record CurrentlyInsideResponse(
     bool UsesReservePlace,
     DateTimeOffset CheckedInAt,
     Guid SubscriptionId,
-    int? TotalSessions,
+    int TotalSessions,
     int UsedSessions,
-    int? RemainingSessions,
+    int RemainingSessions,
     DateOnly SubscriptionEndDate,
     bool IsSingleSession,
     IReadOnlyList<ServiceChargeResponse> ServiceCharges,

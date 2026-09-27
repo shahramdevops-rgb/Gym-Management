@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 
+using Gym.Application.Subscriptions;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
 
@@ -17,9 +18,9 @@ public sealed record MemberDebtResponse(decimal Total, IReadOnlyList<MemberDebtI
 
 /// <param name="Kind">What the money is owed for. Decides which of the two labels below is filled.</param>
 /// <param name="Id">The subscription or service charge a payment for this item is posted against.</param>
-/// <param name="PlanName">
-/// The plan's name <i>now</i>, like every other place a sold subscription is shown
-/// (BUSINESS_RULES.md §4). <c>null</c> for a service charge.
+/// <param name="Plan">
+/// What the subscription sold, which the frontend turns into its label (BUSINESS_RULES.md §3).
+/// <c>null</c> for a service charge and a cafe order.
 /// </param>
 /// <param name="ServiceKind"><c>null</c> for a subscription. The frontend turns it into Persian.</param>
 /// <param name="EndDate"><c>null</c> for a service charge: it covers the one day it was charged on.</param>
@@ -27,7 +28,7 @@ public sealed record MemberDebtResponse(decimal Total, IReadOnlyList<MemberDebtI
 public sealed record MemberDebtItemResponse(
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentTargetKind>))] PaymentTargetKind Kind,
     Guid Id,
-    string? PlanName,
+    PlanSummary? Plan,
     [property: JsonConverter(typeof(JsonStringEnumConverter<ServiceChargeKind>))] ServiceChargeKind? ServiceKind,
     DateOnly StartDate,
     DateOnly? EndDate,

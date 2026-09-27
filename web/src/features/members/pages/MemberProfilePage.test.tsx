@@ -8,6 +8,7 @@ import {
   openVisit,
   openVisitNoLocker,
 } from "@/test/attendance";
+import { planLabel } from "@/features/subscriptions/planLabel";
 import { formatDate } from "@/lib/format";
 import { cafePage, orderOnAccount } from "@/test/cafe";
 import {
@@ -28,7 +29,7 @@ import {
   paymentsPage,
   pickMethod,
 } from "@/test/payments";
-import { monthly12, plansPage } from "@/test/plans";
+import { pricesNotSet, pricesResponse } from "@/test/prices";
 import {
   activeSubscription,
   cancelledRenewal,
@@ -259,7 +260,7 @@ describe("MemberProfilePage", () => {
     // Every label below is shown twice: once on the current-subscription card, once on the same
     // subscription's row in the history tab underneath it (the default tab). The two sections
     // load independently, so wait for both instead of racing on whichever resolves first.
-    await waitFor(() => expect(screen.getAllByText("یک ماهه ۱۲ جلسه")).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText("۳۰ روز · ۱۲ جلسه")).toHaveLength(2));
     expect(screen.getAllByText("فعال").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("پرداخت جزئی").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/۴۰۰٬۰۰۰ تومان از ۹۰۰٬۰۰۰ تومان/)).toBeInTheDocument();
@@ -352,24 +353,65 @@ describe("MemberProfilePage", () => {
     expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions/renew`)).toHaveLength(1);
   });
 
-  it("Subscription_Assign_SellsChosenPlanAndShowsSuccess", async () => {
+  it("Subscription_Assign_SendsTheTypedDaysAndSessionsAndShowsTheirPrice", async () => {
+    // BUSINESS_RULES.md §3: the desk builds the plan, and its price is sessions × the session price.
     const api = mockApi({
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
       [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
-      "GET /api/plans": () => plansPage([monthly12]),
+      "GET /api/pricing": () => pricesResponse(),
       [`POST /api/members/${reza.id}/subscriptions`]: () => json(201, activeSubscription),
     });
     renderApp(`/members/${reza.id}`, { session: session() });
 
     fireEvent.click(await screen.findByRole("button", { name: "فروش اشتراک" }));
-    // Waits for the plan list itself to load, not just the (already-rendered) empty select.
-    await screen.findByRole("option", { name: new RegExp(monthly12.name) });
-    fireEvent.change(screen.getByLabelText("پلن"), { target: { value: monthly12.id } });
+    // Persian digits in one box and English in the other: both are accepted everywhere.
+    fireEvent.change(screen.getByLabelText("تعداد روز"), { target: { value: "۴۵" } });
+    fireEvent.change(screen.getByLabelText("تعداد جلسات"), { target: { value: "12" } });
+
+    // 12 × 75,000, shown before the sale is confirmed.
+    expect(await screen.findByText(/۱۲ جلسه × ۷۵٬۰۰۰ تومان = ۹۰۰٬۰۰۰ تومان/)).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "تأیید فروش" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("اشتراک فروخته شد.");
-    expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`)).toHaveLength(1);
+    const sales = api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`);
+    expect(sales).toHaveLength(1);
+    expect(await sales[0]!.clone().json()).toEqual({ durationDays: 45, sessionCount: 12 });
+  });
+
+  it("Subscription_AssignFewerThanFiveSessions_IsRefusedBeforeAnythingIsSent", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      "GET /api/pricing": () => pricesResponse(),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "فروش اشتراک" }));
+    fireEvent.change(screen.getByLabelText("تعداد روز"), { target: { value: "30" } });
+    fireEvent.change(screen.getByLabelText("تعداد جلسات"), { target: { value: "4" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "تأیید فروش" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "تأیید فروش" }));
+
+    expect(await screen.findByText("تعداد جلسات باید حداقل ۵ باشد.")).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`)).toHaveLength(0);
+  });
+
+  it("Subscription_AssignBeforeTheSessionPriceIsSet_SaysSoAndOffersNoSale", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      "GET /api/pricing": () => pricesResponse(pricesNotSet),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "فروش اشتراک" }));
+
+    expect(await screen.findByText(/قیمت هر جلسه هنوز تعیین نشده است/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "تأیید فروش" })).toBeDisabled();
   });
 
   it("Subscription_Freeze_Returns422AndShowsThePersianError", async () => {
@@ -413,13 +455,13 @@ describe("MemberProfilePage", () => {
     await screen.findByRole("button", { name: "تمدید" });
 
     const activeRowFreeze = screen.getByRole("button", {
-      name: `فریز ${activeSubscription.planName} (${formatDate(activeSubscription.startDate)})`,
+      name: `فریز ${planLabel(activeSubscription)} (${formatDate(activeSubscription.startDate)})`,
     });
     expect(activeRowFreeze).toBeEnabled();
     // The queued row cannot be frozen, so it offers no freeze button at all (task 4.7).
     expect(
       screen.queryByRole("button", {
-        name: `فریز ${queuedRenewal.planName} (${formatDate(queuedRenewal.startDate)})`,
+        name: `فریز ${planLabel(queuedRenewal)} (${formatDate(queuedRenewal.startDate)})`,
       }),
     ).not.toBeInTheDocument();
 
@@ -568,7 +610,7 @@ describe("MemberProfilePage", () => {
     });
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    await screen.findByText(paidSubscription.planName);
+    await screen.findByText(planLabel(paidSubscription), { selector: "td" });
     expect(screen.queryByRole("button", { name: /^ثبت پرداخت برای/ })).not.toBeInTheDocument();
   });
 
@@ -584,7 +626,7 @@ describe("MemberProfilePage", () => {
           debtItem(),
           debtItem({
             id: "0199a000-0000-7000-8000-0000000000b3",
-            planName: "سه ماهه",
+            plan: { durationDays: 90, totalSessions: 36, isSingleSession: false },
             price: 500000,
             netPaid: 0,
             outstanding: 500000,
@@ -595,16 +637,16 @@ describe("MemberProfilePage", () => {
 
     // The total on its own first; the items only after asking for them (BUSINESS_RULES.md §5).
     expect(await screen.findByText("۱٬۱۰۰٬۰۰۰ تومان")).toBeInTheDocument();
-    expect(screen.queryByText("اشتراک سه ماهه")).not.toBeInTheDocument();
+    expect(screen.queryByText("اشتراک ۹۰ روز · ۳۶ جلسه")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "جزء به جزء" }));
 
     // Each item says what it is, what it cost, what has been paid and what is left.
-    const monthlyRow = (await screen.findByText("اشتراک ماهانه")).closest("tr")!;
+    const monthlyRow = (await screen.findByText("اشتراک ۳۰ روز · ۱۲ جلسه")).closest("tr")!;
     expect(within(monthlyRow).getByText("۹۰۰٬۰۰۰ تومان")).toBeInTheDocument();
     expect(within(monthlyRow).getByText("۳۰۰٬۰۰۰ تومان")).toBeInTheDocument();
     expect(within(monthlyRow).getByText("۶۰۰٬۰۰۰ تومان")).toBeInTheDocument();
-    const quarterlyRow = screen.getByText("اشتراک سه ماهه").closest("tr")!;
+    const quarterlyRow = screen.getByText("اشتراک ۹۰ روز · ۳۶ جلسه").closest("tr")!;
     expect(within(quarterlyRow).getAllByText("۵۰۰٬۰۰۰ تومان")).toHaveLength(2);
   });
 
@@ -672,7 +714,9 @@ describe("MemberProfilePage", () => {
 
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    const row = (await screen.findByText(expiredPaidSubscription.planName)).closest("tr")!;
+    const row = (
+      await screen.findByText(planLabel(expiredPaidSubscription), { selector: "td" })
+    ).closest("tr")!;
     expect(within(row).queryAllByRole("button")).toHaveLength(0);
   });
 

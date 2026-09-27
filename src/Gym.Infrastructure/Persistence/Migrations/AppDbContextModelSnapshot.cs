@@ -1576,7 +1576,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Gym.Domain.Plans.Plan", b =>
+            modelBuilder.Entity("Gym.Domain.Pricing.PriceList", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1591,40 +1591,15 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
-                    b.Property<int>("DurationDays")
-                        .HasColumnType("integer")
-                        .HasColumnName("duration_days");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("kind");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("NormalizedName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("normalized_name");
-
-                    b.Property<decimal>("Price")
+                    b.Property<decimal?>("SessionPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
-                        .HasColumnName("price");
+                        .HasColumnName("session_price");
 
-                    b.Property<int?>("SessionCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("session_count");
+                    b.Property<decimal?>("SingleVisitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("single_visit_price");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1641,28 +1616,20 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id")
-                        .HasName("pk_plans");
+                        .HasName("pk_price_lists");
 
-                    b.HasIndex("Kind")
-                        .IsUnique()
-                        .HasDatabaseName("ux_plans_single_session")
-                        .HasFilter("kind = 'SingleSession'");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("ix_plans_normalized_name");
-
-                    b.ToTable("plans", null, t =>
+                    b.ToTable("price_lists", null, t =>
                         {
-                            t.HasCheckConstraint("ck_plans_duration_days_range", "duration_days BETWEEN 1 AND 365");
+                            t.HasCheckConstraint("ck_price_lists_prices_not_negative", "(session_price IS NULL OR session_price >= 0) AND (single_visit_price IS NULL OR single_visit_price >= 0)");
 
-                            t.HasCheckConstraint("ck_plans_name_not_blank", "btrim(name) <> ''");
+                            t.HasCheckConstraint("ck_price_lists_single_row", "id = '3f1c9a52-7d4e-4b8a-9c21-5e6f7a8b9c0d'");
+                        });
 
-                            t.HasCheckConstraint("ck_plans_price_not_negative", "price >= 0");
-
-                            t.HasCheckConstraint("ck_plans_session_count_range", "session_count IS NULL OR session_count BETWEEN 1 AND 365");
-
-                            t.HasCheckConstraint("ck_plans_single_session_shape", "kind <> 'SingleSession' OR (duration_days = 1 AND session_count = 1)");
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("3f1c9a52-7d4e-4b8a-9c21-5e6f7a8b9c0d"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         });
                 });
 
@@ -1804,10 +1771,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("member_id");
 
-                    b.Property<Guid>("PlanId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("plan_id");
-
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -1821,7 +1784,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("total_frozen_days");
 
-                    b.Property<int?>("TotalSessions")
+                    b.Property<int>("TotalSessions")
                         .HasColumnType("integer")
                         .HasColumnName("total_sessions");
 
@@ -1846,9 +1809,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_subscriptions");
 
-                    b.HasIndex("PlanId")
-                        .HasDatabaseName("ix_subscriptions_plan_id");
-
                     b.HasIndex("MemberId", "EndDate")
                         .HasDatabaseName("ix_subscriptions_member_id_end_date");
 
@@ -1866,9 +1826,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_subscriptions_total_frozen_days", "total_frozen_days >= 0");
 
-                            t.HasCheckConstraint("ck_subscriptions_total_sessions_range", "total_sessions IS NULL OR total_sessions BETWEEN 1 AND 365");
+                            t.HasCheckConstraint("ck_subscriptions_total_sessions_range", "is_single_session OR total_sessions >= 5");
 
-                            t.HasCheckConstraint("ck_subscriptions_used_sessions", "used_sessions >= 0 AND (total_sessions IS NULL OR used_sessions <= total_sessions)");
+                            t.HasCheckConstraint("ck_subscriptions_used_sessions", "used_sessions >= 0 AND used_sessions <= total_sessions");
                         });
                 });
 
@@ -2319,13 +2279,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_subscriptions_members_member_id");
-
-                    b.HasOne("Gym.Domain.Plans.Plan", null)
-                        .WithMany()
-                        .HasForeignKey("PlanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_subscriptions_plans_plan_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

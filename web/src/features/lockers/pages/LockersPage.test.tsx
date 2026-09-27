@@ -14,8 +14,8 @@ import {
   type Handler,
 } from "@/test/mockApi";
 import { debtItem, memberDebt, membersPage, reza, serviceChargeDebtItem } from "@/test/members";
-import { plansPage, singleSession } from "@/test/plans";
 import { renderApp } from "@/test/renderApp";
+import { pricesResponse } from "@/test/prices";
 import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
 
 // Every test signs in as Staff: the map is the desk's screen, the same for both roles, and nothing
@@ -178,7 +178,7 @@ describe("LockersPage", () => {
 
     expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("کمد شماره ۱۲")).toBeInTheDocument();
-    expect(await within(dialog).findByText("یک ماهه ۱۲ جلسه")).toBeInTheDocument();
+    expect(await within(dialog).findByText("۳۰ روز · ۱۲ جلسه")).toBeInTheDocument();
     expect(await within(dialog).findByRole("region", { name: "بدهی" })).toHaveTextContent("هوازی");
 
     const requests = api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`);
@@ -212,12 +212,12 @@ describe("LockersPage", () => {
     const api = mockApi(
       mapHandlers(allLockers(), [], {
         "GET /api/members": () => membersPage([reza]),
-        "GET /api/plans": () => plansPage([singleSession]),
+        "GET /api/pricing": () => pricesResponse(),
         [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
           sold
             ? json(201, { ...openVisit(reza.id), lockerId: lockerId(12), lockerNumber: 12 })
             : problem(422, "Attendance.NoSubscription"),
-        [`POST /api/members/${reza.id}/subscriptions`]: () => {
+        [`POST /api/members/${reza.id}/subscriptions/single-visit`]: () => {
           sold = true;
           return json(201, { ...activeSubscription, isSingleSession: true });
         },
@@ -326,7 +326,7 @@ describe("LockersPage", () => {
     );
     expect(within(dialog).getByText("هوازی")).toBeInTheDocument();
     expect(within(dialog).getByText("بوفه")).toBeInTheDocument();
-    expect(await within(dialog).findByText("یک ماهه ۱۲ جلسه")).toBeInTheDocument();
+    expect(await within(dialog).findByText("۳۰ روز · ۱۲ جلسه")).toBeInTheDocument();
     for (const action of ["ثبت خروج", "لغو ورود", "جابه‌جایی کمد"]) {
       expect(within(dialog).getByRole("button", { name: action })).toBeEnabled();
     }

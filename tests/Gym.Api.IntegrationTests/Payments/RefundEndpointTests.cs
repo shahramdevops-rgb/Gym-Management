@@ -9,7 +9,6 @@ using Gym.Application.Payments;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -205,17 +204,7 @@ public sealed class RefundEndpointTests(DatabaseFixture fixture) : DatabaseTestB
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync(decimal price)
-    {
-        var plan = Plan.Create("پلن", 30, 12, price).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync(decimal price) => TestPlans.AddAsync(Fixture, price: price);
 
     private async Task<SubscriptionResponse> SellSubscriptionAsync(HttpClient client, string token, decimal price)
     {
@@ -224,7 +213,7 @@ public sealed class RefundEndpointTests(DatabaseFixture fixture) : DatabaseTestB
 
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/members/{member.Id}/subscriptions")
         {
-            Content = JsonContent.Create(new { planId = plan.Id }),
+            Content = JsonContent.Create(plan.Body),
         };
         using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);

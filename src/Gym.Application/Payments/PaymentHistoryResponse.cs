@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 
+using Gym.Application.Subscriptions;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
 
@@ -15,8 +16,8 @@ namespace Gym.Application.Payments;
 /// What was paid for. Decides which of the two labels below is filled; a cafe order has neither.
 /// </param>
 /// <param name="TargetId">The subscription, service charge or cafe order this money went against.</param>
-/// <param name="SubscriptionPlanName">
-/// The plan's name now, not when it was sold (BUSINESS_RULES.md §4). <c>null</c> unless a subscription.
+/// <param name="SubscriptionPlan">
+/// What the subscription sold, which the frontend labels (BUSINESS_RULES.md §3). <c>null</c> unless a subscription.
 /// </param>
 /// <param name="ServiceKind">
 /// <c>null</c> unless a service charge. The frontend turns it into Persian.
@@ -25,7 +26,7 @@ public sealed record PaymentHistoryResponse(
     Guid Id,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentTargetKind>))] PaymentTargetKind TargetKind,
     Guid TargetId,
-    string? SubscriptionPlanName,
+    PlanSummary? SubscriptionPlan,
     [property: JsonConverter(typeof(JsonStringEnumConverter<ServiceChargeKind>))] ServiceChargeKind? ServiceKind,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentKind>))] PaymentKind Kind,
     decimal Amount,

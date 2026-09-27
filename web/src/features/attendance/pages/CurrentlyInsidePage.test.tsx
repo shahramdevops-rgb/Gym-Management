@@ -57,28 +57,6 @@ describe("CurrentlyInsidePage", () => {
     expect(within(row).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "4");
   });
 
-  /** A bar needs a denominator. An unlimited subscription has none, so it says so instead. */
-  it("Board_UnlimitedSubscription_SaysUnlimitedAndDrawsNoBar", async () => {
-    const visit = openVisit(reza.id);
-    mockApi({
-      ...signedInHandlers(staffUser),
-      "GET /api/attendance/currently-inside": () =>
-        currentlyInsidePage([
-          insideRow(reza.fullName, visit, {
-            totalSessions: null,
-            usedSessions: 9,
-            remainingSessions: null,
-          }),
-        ]),
-    });
-
-    renderApp("/attendance", { session: session() });
-
-    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
-    expect(within(row).getByText("نامحدود")).toBeInTheDocument();
-    expect(within(row).queryByRole("progressbar")).not.toBeInTheDocument();
-  });
-
   /** BUSINESS_RULES.md §7: three or fewer sessions left is the desk's cue to mention renewing. */
   it("Board_ThreeSessionsLeft_MarksTheRowForAttention", async () => {
     const visit = openVisit(reza.id);

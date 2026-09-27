@@ -25,7 +25,7 @@ export const paymentHistoryItem: PaymentHistoryItem = {
   id: paymentOfActiveSubscription.id,
   targetKind: "Subscription",
   targetId: activeSubscription.id,
-  subscriptionPlanName: activeSubscription.planName,
+  subscriptionPlan: { durationDays: 30, totalSessions: 12, isSingleSession: false },
   serviceKind: null,
   kind: "Payment",
   amount: 400000,

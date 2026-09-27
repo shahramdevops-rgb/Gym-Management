@@ -104,7 +104,7 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                 <td className="py-2">
                   {row.isSingleSession ? (
                     // No bar: "۱ از ۱" on every single-visit row is a denominator with nothing to
-                    // say, the same reason SessionsBar draws none for an unlimited subscription.
+                    // say.
                     <span className="whitespace-nowrap text-muted-foreground">تک‌جلسه‌ای</span>
                   ) : (
                     <SessionsBar

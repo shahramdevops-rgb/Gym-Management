@@ -1,5 +1,5 @@
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
+using Gym.Domain.Pricing;
 using Gym.Domain.Subscriptions;
 
 using Microsoft.EntityFrameworkCore;
@@ -26,16 +26,19 @@ public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscri
         {
             table.HasCheckConstraint("ck_subscriptions_dates", "end_date >= start_date");
             table.HasCheckConstraint(
-                "ck_subscriptions_duration_days_range", $"duration_days BETWEEN 1 AND {Plan.MaxDurationDays}");
+                "ck_subscriptions_duration_days_range", $"duration_days BETWEEN 1 AND {Subscription.MaxDurationDays}");
             table.HasCheckConstraint("ck_subscriptions_price_not_negative", "price >= 0");
+
+            // BUSINESS_RULES.md §3: a plan has at least 5 sessions and no upper limit; a single visit
+            // has exactly 1 (its own constraint below).
             table.HasCheckConstraint(
                 "ck_subscriptions_total_sessions_range",
-                $"total_sessions IS NULL OR total_sessions BETWEEN 1 AND {Plan.MaxSessionCount}");
+                $"is_single_session OR total_sessions >= {Subscription.MinSessionCount}");
 
-            // BUSINESS_RULES.md §4: used sessions never exceed the total (unlimited has none).
+            // BUSINESS_RULES.md §4: used sessions never exceed the total.
             table.HasCheckConstraint(
                 "ck_subscriptions_used_sessions",
-                "used_sessions >= 0 AND (total_sessions IS NULL OR used_sessions <= total_sessions)");
+                "used_sessions >= 0 AND used_sessions <= total_sessions");
             table.HasCheckConstraint("ck_subscriptions_total_frozen_days", "total_frozen_days >= 0");
 
             // Cancelled means both a moment and a reason, never one without the other.
@@ -51,18 +54,16 @@ public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscri
                 "NOT is_single_session OR (duration_days = 1 AND total_sessions = 1)");
         });
 
-        builder.Property(s => s.Price).HasPrecision(18, Plan.PriceDecimals);
+        builder.Property(s => s.Price).HasPrecision(18, PriceList.PriceDecimals);
         builder.Property(s => s.CancellationReason).HasMaxLength(Subscription.CancellationReasonMaxLength);
 
-        // Restrict: members and plans are deactivated, never deleted, and a sale is a financial
-        // record that must never disappear with them.
+        // Restrict: members are deactivated, never deleted, and a sale is a financial record that
+        // must never disappear with them.
         builder.HasOne<Member>().WithMany().HasForeignKey(s => s.MemberId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<Plan>().WithMany().HasForeignKey(s => s.PlanId).OnDelete(DeleteBehavior.Restrict);
 
         // A member's subscriptions by date: the sale's calendar lookup and, later, the history.
         builder.HasIndex(s => new { s.MemberId, s.EndDate });
 
-        builder.Ignore(s => s.IsUnlimited);
         builder.Ignore(s => s.RemainingSessions);
 
         builder.Property(s => s.Version).IsRowVersion();

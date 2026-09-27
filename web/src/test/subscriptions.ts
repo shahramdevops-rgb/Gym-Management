@@ -5,8 +5,6 @@ import { json } from "./mockApi";
 export const activeSubscription: Subscription = {
   id: "0199a000-0000-7000-8000-0000000000c1",
   memberId: "0199a000-0000-7000-8000-0000000000a1",
-  planId: "0199a000-0000-7000-8000-0000000000b1",
-  planName: "یک ماهه ۱۲ جلسه",
   price: 900000,
   durationDays: 30,
   totalSessions: 12,

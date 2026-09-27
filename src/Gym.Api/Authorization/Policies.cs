@@ -11,7 +11,7 @@ namespace Gym.Api.Authorization;
 /// </remarks>
 public static class Policies
 {
-    /// <summary>Plans, lockers, staff accounts, refunds, reports and the rest of the Owner column.</summary>
+    /// <summary>Prices, staff accounts, refunds, reports and the rest of the Owner column.</summary>
     public const string OwnerOnly = "OwnerOnly";
 
     /// <summary>The daily front-desk work both roles do: members, check-in, payments.</summary>

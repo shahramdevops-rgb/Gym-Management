@@ -48,7 +48,7 @@ export function debtItem(overrides: Partial<DebtItem> = {}): DebtItem {
   return {
     kind: "Subscription",
     id: "0199a000-0000-7000-8000-0000000000b1",
-    planName: "ماهانه",
+    plan: { durationDays: 30, totalSessions: 12, isSingleSession: false },
     serviceKind: null,
     startDate: "2026-09-01",
     endDate: "2026-09-30",
@@ -64,7 +64,7 @@ export function serviceChargeDebtItem(overrides: Partial<DebtItem> = {}): DebtIt
   return {
     kind: "ServiceCharge",
     id: "0199a000-0000-7000-8000-0000000000b2",
-    planName: null,
+    plan: null,
     serviceKind: "Cardio",
     startDate: "2026-09-18",
     endDate: null,
@@ -80,7 +80,7 @@ export function cafeDebtItem(overrides: Partial<DebtItem> = {}): DebtItem {
   return {
     kind: "CafeOrder",
     id: "0199a000-0000-7000-8000-0000000000b4",
-    planName: null,
+    plan: null,
     serviceKind: null,
     startDate: "2026-09-18",
     endDate: null,

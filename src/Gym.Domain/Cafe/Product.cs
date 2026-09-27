@@ -115,7 +115,7 @@ public sealed class Product : Entity
     public Result EnsureCanBeSold() => IsActive ? Result.Success() : Result.Failure(ProductErrors.Inactive);
 
     /// <summary>
-    /// The same money rule as <see cref="Plans.Plan.CheckPrice"/>, with this feature's own error
+    /// The same money rule as <see cref="Pricing.PriceList.CheckPrice"/>, with this feature's own error
     /// codes so the Persian message names the field the user was typing into. Also used by the
     /// Application validators, so the form hears the same answer as the entity. Too many decimals
     /// is refused rather than rounded: rounding money silently is how "15,000.005" becomes a price

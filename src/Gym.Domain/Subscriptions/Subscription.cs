@@ -1,16 +1,17 @@
 using Gym.Domain.Common;
-using Gym.Domain.Plans;
+using Gym.Domain.Pricing;
 
 namespace Gym.Domain.Subscriptions;
 
 /// <summary>
-/// A plan sold to a member (BUSINESS_RULES.md §4).
+/// A plan sold to a member (BUSINESS_RULES.md §3, §4): so many days, so many sessions, at a price.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Snapshot.</b> The plan's name, price, duration and session count are copied at the sale.
-/// Editing or deactivating the plan later changes nothing here, the way editing a price list
-/// does not change a receipt already printed.
+/// <b>Self-contained.</b> Since task 6.5.6 there is no list of plans to sell from: the desk types the
+/// days and sessions, and the price comes from the <see cref="PriceList"/> of the day. The
+/// subscription keeps all three, so changing a price later changes nothing here, the way editing a
+/// price list does not change a receipt already printed.
 /// </para>
 /// <para>
 /// <b>Calculated status.</b> <see cref="GetStatus"/> works the status out from the dates, the
@@ -26,6 +27,12 @@ public sealed class Subscription : Entity
 {
     public const int CancellationReasonMaxLength = 500;
 
+    /// <summary>Decided with the developer in task 3.1 and kept in 6.5.6: no plan is longer than a year.</summary>
+    public const int MaxDurationDays = 365;
+
+    /// <summary>BUSINESS_RULES.md §3: a plan has at least 5 sessions, and no upper limit.</summary>
+    public const int MinSessionCount = 5;
+
     // For EF Core.
     private Subscription()
     {
@@ -33,20 +40,13 @@ public sealed class Subscription : Entity
 
     public Guid MemberId { get; private set; }
 
-    /// <summary>
-    /// The plan it was sold from. Every rule reads the snapshot below instead, with one
-    /// exception: the plan's <i>name</i> is read live through this id rather than copied, so
-    /// renaming a plan corrects the label everywhere it has ever been sold (BUSINESS_RULES.md §4).
-    /// The numbers stay snapshotted — they are the contract, the name is only how it reads.
-    /// </summary>
-    public Guid PlanId { get; private set; }
-
+    /// <summary>What the member paid for it: the price of the day of the sale, never recalculated.</summary>
     public decimal Price { get; private set; }
 
     public int DurationDays { get; private set; }
 
-    /// <summary><c>null</c> means unlimited sessions.</summary>
-    public int? TotalSessions { get; private set; }
+    /// <summary>Every subscription has a session count; there is no unlimited plan (§3).</summary>
+    public int TotalSessions { get; private set; }
 
     public DateOnly StartDate { get; private set; }
 
@@ -56,7 +56,6 @@ public sealed class Subscription : Entity
     /// </summary>
     public DateOnly EndDate { get; private set; }
 
-    /// <summary>Counted for unlimited plans too, for reports.</summary>
     public int UsedSessions { get; private set; }
 
     /// <summary>The day the current freeze began; <c>null</c> when not frozen.</summary>
@@ -71,50 +70,88 @@ public sealed class Subscription : Entity
     public string? CancellationReason { get; private set; }
 
     /// <summary>
-    /// Sold from the single-session plan: one visit, today only (BUSINESS_RULES.md §4
-    /// <i>Single-session subscriptions</i>).
+    /// One visit, today only (BUSINESS_RULES.md §4 <i>Single-session subscriptions</i>). The
+    /// exclusion constraint that enforces no-overlap reads this column, so it is stored, not derived
+    /// from the numbers.
     /// </summary>
-    /// <remarks>
-    /// Snapshotted at the sale rather than read through <see cref="PlanId"/>, unlike the plan's name.
-    /// Two reasons: the exclusion constraint that enforces no-overlap lives on this table and cannot
-    /// join to <c>plans</c>, and the shape of a sale already made must not change if the plan does.
-    /// </remarks>
     public bool IsSingleSession { get; private set; }
 
     /// <summary>Postgres <c>xmin</c> (configured in task 4.2): two check-ins cannot both use the last session.</summary>
     public uint Version { get; private set; }
 
-    public bool IsUnlimited => TotalSessions is null;
-
-    /// <summary><c>null</c> for an unlimited plan.</summary>
-    public int? RemainingSessions => TotalSessions - UsedSessions;
+    public int RemainingSessions => TotalSessions - UsedSessions;
 
     /// <summary>
-    /// Sells <paramref name="plan"/> to a member, starting on <paramref name="startDate"/>.
+    /// Sells a member a plan of <paramref name="durationDays"/> days and <paramref name="sessionCount"/>
+    /// sessions at today's session price, starting on <paramref name="startDate"/> (BUSINESS_RULES.md §3).
     /// Choosing that date (today, or queued after the member's latest subscription) needs the
     /// member's other subscriptions, so the caller does it (task 4.2).
     /// </summary>
-    public static Result<Subscription> Create(Guid memberId, Plan plan, DateOnly startDate)
+    /// <param name="sessionPrice">
+    /// <see cref="PriceList.SessionPrice"/> as it is today; <c>null</c> while the Owner has not set it.
+    /// </param>
+    public static Result<Subscription> CreateMembership(
+        Guid memberId, int durationDays, int sessionCount, decimal? sessionPrice, DateOnly startDate)
     {
-        ArgumentNullException.ThrowIfNull(plan);
-
-        var sellable = plan.EnsureCanBeSold();
-        if (sellable.IsFailure)
+        if (durationDays is < 1 or > MaxDurationDays)
         {
-            return Result.Failure<Subscription>(sellable.Error);
+            return Result.Failure<Subscription>(SubscriptionErrors.DurationInvalid);
+        }
+
+        if (sessionCount < MinSessionCount)
+        {
+            return Result.Failure<Subscription>(SubscriptionErrors.SessionCountTooLow);
+        }
+
+        if (sessionPrice is not { } rate)
+        {
+            return Result.Failure<Subscription>(PricingErrors.SessionPriceNotSet);
+        }
+
+        // The days do not change the price (§3). No overflow is possible: an int times a price that
+        // fits numeric(18,2) stays far inside decimal's range, so the only question is the column.
+        var price = sessionCount * rate;
+        if (price > PriceList.MaxPrice)
+        {
+            return Result.Failure<Subscription>(SubscriptionErrors.PriceTooLarge);
         }
 
         return new Subscription
         {
             MemberId = memberId,
-            PlanId = plan.Id,
-            Price = plan.Price,
-            DurationDays = plan.DurationDays,
-            TotalSessions = plan.SessionCount,
-            IsSingleSession = plan.IsSingleSession,
+            Price = price,
+            DurationDays = durationDays,
+            TotalSessions = sessionCount,
             StartDate = startDate,
             // Inclusive end: a 30-day plan starting on the 1st ends on the 30th, not the 31st.
-            EndDate = startDate.AddDays(plan.DurationDays - 1),
+            EndDate = startDate.AddDays(durationDays - 1),
+        };
+    }
+
+    /// <summary>
+    /// Sells one visit for <paramref name="today"/> at the single-visit price (BUSINESS_RULES.md §4
+    /// <i>Single-session subscriptions</i>). It never reads the member's calendar, so it needs no start
+    /// date from the caller.
+    /// </summary>
+    /// <param name="singleVisitPrice">
+    /// <see cref="PriceList.SingleVisitPrice"/> as it is today; <c>null</c> while the Owner has not set it.
+    /// </param>
+    public static Result<Subscription> CreateSingleVisit(Guid memberId, decimal? singleVisitPrice, DateOnly today)
+    {
+        if (singleVisitPrice is not { } price)
+        {
+            return Result.Failure<Subscription>(PricingErrors.SingleVisitPriceNotSet);
+        }
+
+        return new Subscription
+        {
+            MemberId = memberId,
+            Price = price,
+            DurationDays = 1,
+            TotalSessions = 1,
+            IsSingleSession = true,
+            StartDate = today,
+            EndDate = today,
         };
     }
 
@@ -141,8 +178,7 @@ public sealed class Subscription : Entity
             return SubscriptionStatus.Expired;
         }
 
-        // An unlimited plan (TotalSessions null) is never exhausted.
-        if (TotalSessions is { } total && UsedSessions >= total)
+        if (UsedSessions >= TotalSessions)
         {
             return SubscriptionStatus.Exhausted;
         }

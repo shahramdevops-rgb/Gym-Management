@@ -8,7 +8,6 @@ using Gym.Application.Attendances;
 using Gym.Application.Common;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -38,7 +37,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await FreezeAsync(ownerClient, ownerToken, sold.Id);
 
@@ -54,7 +53,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await FreezeAsync(staffClient, staffToken, sold.Id);
 
@@ -68,7 +67,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         await FreezeOkAsync(ownerClient, ownerToken, sold.Id);
 
         using var response = await FreezeAsync(ownerClient, ownerToken, sold.Id);
@@ -85,7 +84,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var plan = await AddPlanAsync();
         var today = Today();
         var id = await InsertSubscriptionAsync(
-            member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), totalFrozenDays: MaxFreezeDays);
+            member.Id, today.AddDays(-5), today.AddDays(24), totalFrozenDays: MaxFreezeDays);
 
         using var response = await FreezeAsync(ownerClient, ownerToken, id);
 
@@ -112,7 +111,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await UnfreezeAsync(ownerClient, ownerToken, sold.Id);
 
@@ -128,7 +127,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var plan = await AddPlanAsync();
         var today = Today();
         var originalEnd = today.AddDays(19);
-        var id = await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-10), originalEnd, frozenSince: today.AddDays(-5));
+        var id = await InsertSubscriptionAsync(member.Id, today.AddDays(-10), originalEnd, frozenSince: today.AddDays(-5));
 
         using var response = await UnfreezeAsync(ownerClient, ownerToken, id);
 
@@ -147,10 +146,10 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var plan = await AddPlanAsync();
         var today = Today();
         var originalEnd = today.AddDays(19);
-        var frozenId = await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-10), originalEnd, frozenSince: today.AddDays(-5));
+        var frozenId = await InsertSubscriptionAsync(member.Id, today.AddDays(-10), originalEnd, frozenSince: today.AddDays(-5));
         var queuedStart = originalEnd.AddDays(1);
         var queuedEnd = queuedStart.AddDays(29);
-        var queuedId = await InsertSubscriptionAsync(member.Id, plan.Id, queuedStart, queuedEnd);
+        var queuedId = await InsertSubscriptionAsync(member.Id, queuedStart, queuedEnd);
 
         using var response = await UnfreezeAsync(ownerClient, ownerToken, frozenId);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -171,7 +170,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
 
         // 27 of 30 days already used by earlier freezes; frozen again 10 days ago, so only 3 are left.
         var id = await InsertSubscriptionAsync(
-            member.Id, plan.Id, today.AddDays(-10), originalEnd, frozenSince: today.AddDays(-10), totalFrozenDays: 27);
+            member.Id, today.AddDays(-10), originalEnd, frozenSince: today.AddDays(-10), totalFrozenDays: 27);
 
         using var response = await UnfreezeAsync(ownerClient, ownerToken, id);
 
@@ -188,7 +187,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        var id = await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), frozenSince: today.AddDays(-2));
+        var id = await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), frozenSince: today.AddDays(-2));
 
         using var response = await UnfreezeAsync(staffClient, staffToken, id);
 
@@ -214,7 +213,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await CancelAsync(ownerClient, ownerToken, sold.Id, "انصراف عضو");
 
@@ -232,7 +231,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await CancelAsync(ownerClient, ownerToken, sold.Id, "");
 
@@ -249,7 +248,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         await CancelOkAsync(ownerClient, ownerToken, sold.Id, "انصراف عضو");
 
         using var response = await CancelAsync(ownerClient, ownerToken, sold.Id, "دلیل دیگر");
@@ -270,7 +269,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         await CheckInOkAsync(staffClient, staffToken, member.Id);
 
         using var response = await CancelAsync(ownerClient, ownerToken, sold.Id, "انصراف عضو");
@@ -290,7 +289,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendanceId = await CheckInOkAsync(staffClient, staffToken, member.Id);
         using var cancelledCheckIn = await SendAsync(
             staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel");
@@ -312,7 +311,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        var expiredId = await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-60), today.AddDays(-31));
+        var expiredId = await InsertSubscriptionAsync(member.Id, today.AddDays(-60), today.AddDays(-31));
 
         using var response = await CancelAsync(ownerClient, ownerToken, expiredId, "انصراف عضو");
 
@@ -327,10 +326,10 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        var currentId = await InsertSubscriptionAsync(member.Id, plan.Id, today, today.AddDays(29));
+        var currentId = await InsertSubscriptionAsync(member.Id, today, today.AddDays(29));
         var queuedStart = today.AddDays(30);
         var queuedEnd = queuedStart.AddDays(29);
-        var queuedId = await InsertSubscriptionAsync(member.Id, plan.Id, queuedStart, queuedEnd);
+        var queuedId = await InsertSubscriptionAsync(member.Id, queuedStart, queuedEnd);
 
         using var response = await CancelAsync(ownerClient, ownerToken, currentId, "انصراف عضو");
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -346,7 +345,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await CancelAsync(staffClient, staffToken, sold.Id, "انصراف عضو");
 
@@ -417,30 +416,20 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync()
-    {
-        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync() => TestPlans.AddAsync(Fixture);
 
     /// <summary>A row written directly, so freeze/queue states that take real days to reach can be set up in one step.</summary>
     private async Task<Guid> InsertSubscriptionAsync(
-        Guid memberId, Guid planId, DateOnly start, DateOnly end, DateOnly? frozenSince = null, int totalFrozenDays = 0)
+        Guid memberId, DateOnly start, DateOnly end, DateOnly? frozenSince = null, int totalFrozenDays = 0)
     {
         var id = Guid.CreateVersion7();
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlAsync(
             $"""
-            INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
+            INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, frozen_since, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, {planId}, 900000, 30, 12,
+            VALUES ({id}, {memberId}, 900000, 30, 12,
                     {start}, {end}, 0, {frozenSince}, {totalFrozenDays}, now())
             """,
             TestContext.Current.CancellationToken);
@@ -460,12 +449,12 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         return attendance.Id;
     }
 
-    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { planId });
+    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, TestPlan plan) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
 
-    private static async Task<SubscriptionResponse> AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
+    private static async Task<SubscriptionResponse> AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
-        using var response = await AssignAsync(client, token, memberId, planId);
+        using var response = await AssignAsync(client, token, memberId, plan);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return await ReadAsync(response);

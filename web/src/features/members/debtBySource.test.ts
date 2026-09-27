@@ -4,7 +4,7 @@ import { debtBySource } from "./debtBySource";
 
 describe("debtBySource", () => {
   it("DebtBySource_EverySource_AddsEachUpAndListsThePlanFirst", () => {
-    const cafe = { ...debtItem(), kind: "CafeOrder" as const, planName: null, outstanding: 40000 };
+    const cafe = { ...debtItem(), kind: "CafeOrder" as const, plan: null, outstanding: 40000 };
 
     const sources = debtBySource([
       cafe,

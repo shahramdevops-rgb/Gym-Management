@@ -8,7 +8,6 @@ using Gym.Application.Common;
 using Gym.Application.Lockers;
 using Gym.Domain.Attendances;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -35,7 +34,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await TestLockers.CheckInAsync(staffClient, staffToken, member.Id, lockerNumber: 12);
 
@@ -55,10 +54,10 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (staffClient, staffToken) = await StaffClientAsync();
         var plan = await AddPlanAsync();
         var holder = await AddMemberAsync();
-        await AssignOkAsync(staffClient, staffToken, holder.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, holder.Id, plan);
         await TestLockers.CheckInOkAsync(staffClient, staffToken, holder.Id, lockerNumber: 7);
         var member = await AddMemberAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await TestLockers.CheckInAsync(staffClient, staffToken, member.Id, lockerNumber: 7);
 
@@ -73,7 +72,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         (await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/lockers/{TestLockers.IdOf(4)}/out-of-service")).Dispose();
 
         using var response = await TestLockers.CheckInAsync(staffClient, staffToken, member.Id, lockerNumber: 4);
@@ -89,7 +88,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await TestLockers.CheckInWithAsync(staffClient, staffToken, member.Id, Guid.CreateVersion7());
 
@@ -103,7 +102,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         // The desk always names a place now; a request that says nothing is malformed, not a
         // request for "any locker" (there is no such thing since 6.5.5).
@@ -121,7 +120,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         // One locker left, and it is free: that one comes first.
         await TestLockers.TakeOutOfServiceAllButAsync(Fixture, 72);
 
@@ -140,10 +139,10 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         // Every locker either out of service or held: the one left in service is taken.
         await TestLockers.TakeOutOfServiceAllButAsync(Fixture, 72);
         var holder = await AddMemberAsync();
-        await AssignOkAsync(staffClient, staffToken, holder.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, holder.Id, plan);
         await TestLockers.CheckInOkAsync(staffClient, staffToken, holder.Id, lockerNumber: 72);
         var member = await AddMemberAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, member.Id);
 
@@ -164,13 +163,13 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         for (var i = 0; i < Attendance.ReservePlaceCount; i++)
         {
             var inside = await AddMemberAsync();
-            await AssignOkAsync(staffClient, staffToken, inside.Id, plan.Id);
+            await AssignOkAsync(staffClient, staffToken, inside.Id, plan);
             using var placed = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, inside.Id);
             placed.StatusCode.ShouldBe(HttpStatusCode.Created);
         }
 
         var member = await AddMemberAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, member.Id);
 
@@ -190,14 +189,14 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         for (var i = 0; i < Attendance.ReservePlaceCount; i++)
         {
             var inside = await AddMemberAsync();
-            await AssignOkAsync(staffClient, staffToken, inside.Id, plan.Id);
+            await AssignOkAsync(staffClient, staffToken, inside.Id, plan);
             using var placed = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, inside.Id);
             visits.Add(await ReadAsync(placed));
         }
 
         await CheckOutOkAsync(staffClient, staffToken, visits[0].Id);
         var member = await AddMemberAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, member.Id);
 
@@ -215,7 +214,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
 
@@ -231,7 +230,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         await PayAsync(staffClient, staffToken, (await StoredSubscriptionAsync(member.Id)).Id, 900_000m);
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
@@ -246,7 +245,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(ownerClient, ownerToken, member.Id, plan.Id);
+        await AssignOkAsync(ownerClient, ownerToken, member.Id, plan);
 
         using var response = await CheckInAsync(ownerClient, ownerToken, member.Id);
 
@@ -262,7 +261,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-40), today.AddDays(-10));
+        await InsertSubscriptionAsync(member.Id, today.AddDays(-40), today.AddDays(-10));
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
 
@@ -277,7 +276,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), frozenSince: today.AddDays(-1));
+        await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), frozenSince: today.AddDays(-1));
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
 
@@ -292,7 +291,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 12);
+        await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 12);
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
 
@@ -309,8 +308,8 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var today = Today();
         // A member who renewed early: the queued one ends later, so ordering by end date would
         // pick it and refuse the member for the rest of the term they already paid for.
-        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 3);
-        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(25), today.AddDays(54));
+        await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 3);
+        await InsertSubscriptionAsync(member.Id, today.AddDays(25), today.AddDays(54));
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
 
@@ -330,8 +329,8 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 12);
-        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(25), today.AddDays(54));
+        await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 12);
+        await InsertSubscriptionAsync(member.Id, today.AddDays(25), today.AddDays(54));
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
 
@@ -356,8 +355,8 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         // Every session used on the day the plan was bought, then renewed the same day: the
         // exhausted one was closed to today, so the renewal starts tomorrow (BUSINESS_RULES.md
         // §4) and the member cannot come in again today.
-        await InsertSubscriptionAsync(member.Id, plan.Id, today, today, usedSessions: 12);
-        await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(1), today.AddDays(30));
+        await InsertSubscriptionAsync(member.Id, today, today, usedSessions: 12);
+        await InsertSubscriptionAsync(member.Id, today.AddDays(1), today.AddDays(30));
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
 
@@ -405,7 +404,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         await CheckInOkAsync(staffClient, staffToken, member.Id);
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
@@ -445,7 +444,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
 
         await CheckInOkAsync(staffClient, staffToken, member.Id);
@@ -461,7 +460,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
 
         await CheckInOkAsync(staffClient, staffToken, member.Id);
@@ -479,7 +478,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
 
@@ -498,7 +497,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
         await CheckInOkAsync(staffClient, staffToken, member.Id);
 
@@ -550,30 +549,20 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync()
-    {
-        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync() => TestPlans.AddAsync(Fixture);
 
     /// <summary>A row written directly, so states that take real days to reach can be set up in one step.</summary>
     private async Task InsertSubscriptionAsync(
-        Guid memberId, Guid planId, DateOnly start, DateOnly end, DateOnly? frozenSince = null, int usedSessions = 0)
+        Guid memberId, DateOnly start, DateOnly end, DateOnly? frozenSince = null, int usedSessions = 0)
     {
         var id = Guid.CreateVersion7();
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlAsync(
             $"""
-            INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
+            INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, frozen_since, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, {planId}, 900000, 30, 12,
+            VALUES ({id}, {memberId}, 900000, 30, 12,
                     {start}, {end}, {usedSessions}, {frozenSince}, 0, now())
             """,
             TestContext.Current.CancellationToken);
@@ -598,12 +587,12 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
             .SingleAsync(s => s.MemberId == memberId, TestContext.Current.CancellationToken);
     }
 
-    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { planId });
+    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, TestPlan plan) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
 
-    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
+    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
-        using var response = await AssignAsync(client, token, memberId, planId);
+        using var response = await AssignAsync(client, token, memberId, plan);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 

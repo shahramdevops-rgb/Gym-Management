@@ -9,7 +9,6 @@ using Gym.Application.Payments;
 using Gym.Application.ServiceCharges;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
-using Gym.Domain.Plans;
 using Gym.Domain.ServiceCharges;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -390,7 +389,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         row.TargetKind.ShouldBe(PaymentTargetKind.ServiceCharge);
         row.TargetId.ShouldBe(charge.Id);
         row.ServiceKind.ShouldBe(ServiceChargeKind.Cardio);
-        row.SubscriptionPlanName.ShouldBeNull();
+        row.SubscriptionPlan.ShouldBeNull();
         row.Amount.ShouldBe(10_000m);
     }
 
@@ -410,7 +409,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         var item = debt.Items.Single(i => i.Kind == PaymentTargetKind.ServiceCharge);
         item.Id.ShouldBe(charge.Id);
         item.ServiceKind.ShouldBe(ServiceChargeKind.Cardio);
-        item.PlanName.ShouldBeNull();
+        item.Plan.ShouldBeNull();
         item.EndDate.ShouldBeNull();
         item.Price.ShouldBe(10_000m);
         item.NetPaid.ShouldBe(0m);
@@ -487,7 +486,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         var plan = await AddPlanAsync();
 
         using var assigned = await SendAsync(
-            client, token, HttpMethod.Post, $"/api/members/{member.Id}/subscriptions", new { planId = plan.Id });
+            client, token, HttpMethod.Post, $"/api/members/{member.Id}/subscriptions", plan.Body);
         assigned.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         using var response = await TestLockers.CheckInAsync(client, token, member.Id);
@@ -509,17 +508,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync()
-    {
-        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync() => TestPlans.AddAsync(Fixture);
 
     private async Task<ServiceCharge> StoredChargeAsync(Guid id)
     {

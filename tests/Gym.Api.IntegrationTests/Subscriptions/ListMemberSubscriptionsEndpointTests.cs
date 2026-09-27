@@ -7,7 +7,6 @@ using Gym.Application.Common.Paging;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -28,9 +27,9 @@ public sealed class ListMemberSubscriptionsEndpointTests(DatabaseFixture fixture
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddPlanAsync("ماهانه", 30, null, 900_000m);
-        var first = await AssignOkAsync(client, token, member.Id, plan.Id);
-        var second = await AssignOkAsync(client, token, member.Id, plan.Id);
+        var plan = await TestPlans.AddAsync(Fixture);
+        var first = await AssignOkAsync(client, token, member.Id, plan);
+        var second = await AssignOkAsync(client, token, member.Id, plan);
 
         var page = await ListOkAsync(client, token, member.Id);
 
@@ -44,11 +43,12 @@ public sealed class ListMemberSubscriptionsEndpointTests(DatabaseFixture fixture
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var planA = await AddPlanAsync("پلن یک", 30, null, 900_000m);
-        var planB = await AddPlanAsync("پلن دو", 30, null, 500_000m);
-        var first = await AssignOkAsync(client, token, member.Id, planA.Id);
+        // One session price at a time, so each plan is sold before the next price is set.
+        var planA = await TestPlans.AddAsync(Fixture, sessions: 12, price: 900_000m);
+        var first = await AssignOkAsync(client, token, member.Id, planA);
         await PayAsync(client, token, first.Id, 900_000m);
-        var second = await AssignOkAsync(client, token, member.Id, planB.Id);
+        var planB = await TestPlans.AddAsync(Fixture, sessions: 10, price: 500_000m);
+        var second = await AssignOkAsync(client, token, member.Id, planB);
         await PayAsync(client, token, second.Id, 200_000m);
 
         var page = await ListOkAsync(client, token, member.Id);
@@ -71,8 +71,8 @@ public sealed class ListMemberSubscriptionsEndpointTests(DatabaseFixture fixture
         var (staffClient, staffToken) = await StaffClientAsync();
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddPlanAsync("ماهانه", 30, null, 900_000m);
-        var cancelled = await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        var plan = await TestPlans.AddAsync(Fixture);
+        var cancelled = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         await CancelAsync(ownerClient, ownerToken, cancelled.Id, "انصراف عضو");
 
         var renewed = await RenewOkAsync(staffClient, staffToken, member.Id);
@@ -158,23 +158,11 @@ public sealed class ListMemberSubscriptionsEndpointTests(DatabaseFixture fixture
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync(string name, int durationDays, int? sessionCount, decimal price)
-    {
-        var plan = Plan.Create(name, durationDays, sessionCount, price).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
-
-    private static async Task<SubscriptionResponse> AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
+    private static async Task<SubscriptionResponse> AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/members/{memberId}/subscriptions")
         {
-            Content = JsonContent.Create(new { planId }),
+            Content = JsonContent.Create(plan.Body),
         };
         using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);

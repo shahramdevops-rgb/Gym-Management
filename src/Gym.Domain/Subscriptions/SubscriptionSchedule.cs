@@ -1,5 +1,3 @@
-using Gym.Domain.Plans;
-
 namespace Gym.Domain.Subscriptions;
 
 /// <summary>
@@ -14,23 +12,6 @@ namespace Gym.Domain.Subscriptions;
 /// </remarks>
 public static class SubscriptionSchedule
 {
-    /// <summary>
-    /// The start date for a new sale of <paramref name="kind"/>: today for a single visit, otherwise
-    /// the ordinary queue rule in <see cref="NextStartDate"/>.
-    /// </summary>
-    /// <remarks>
-    /// A single visit is sold for the day it is sold. It never queues behind a membership, and it is
-    /// the only case where a member can hold two subscriptions covering one date.
-    /// </remarks>
-    /// <param name="memberSubscriptions">All of one member's subscriptions, tracked for saving.</param>
-    public static DateOnly StartDateFor(
-        PlanKind kind, DateOnly today, IEnumerable<Subscription> memberSubscriptions)
-    {
-        ArgumentNullException.ThrowIfNull(memberSubscriptions);
-
-        return kind == PlanKind.SingleSession ? today : NextStartDate(today, memberSubscriptions);
-    }
-
     /// <summary>
     /// The start date for a new membership: today when nothing current or queued remains,
     /// otherwise the day after the latest end date. Cancelled subscriptions cover no dates, and

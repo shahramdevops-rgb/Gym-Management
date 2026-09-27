@@ -1,10 +1,12 @@
 import { serviceChargeKindLabels } from "@/features/serviceCharges/api";
+import { planLabel } from "@/features/subscriptions/planLabel";
 
 import type { MemberDebtItem } from "./api";
 
 /**
- * What a debt row is for, in Persian: a subscription reads as its plan's name, a service charge as
- * its kind (هوازی), a cafe order as بوفه. The API sends kinds, never Persian text.
+ * What a debt row is for, in Persian: a subscription reads as its plan («اشتراک ۳۰ روز · ۱۲ جلسه»),
+ * a service charge as its kind (هوازی), a cafe order as بوفه. The API sends kinds and numbers, never
+ * Persian text.
  */
 export function debtItemLabel(item: MemberDebtItem): string {
   switch (item.kind) {
@@ -13,6 +15,6 @@ export function debtItemLabel(item: MemberDebtItem): string {
     case "CafeOrder":
       return "بوفه";
     case "Subscription":
-      return `اشتراک ${item.planName ?? ""}`.trim();
+      return item.plan === null ? "اشتراک" : `اشتراک ${planLabel(item.plan)}`;
   }
 }

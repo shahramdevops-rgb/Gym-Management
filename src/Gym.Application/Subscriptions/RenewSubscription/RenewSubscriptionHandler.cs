@@ -8,8 +8,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Subscriptions.RenewSubscription;
 
 /// <summary>
-/// Sells the member the same plan as their latest subscription, at the plan's current values
-/// (decided in task 4.2). A one-click shortcut for assign; the start date follows the same rule.
+/// Sells the member the same days and sessions as their latest subscription, at today's session
+/// price (BUSINESS_RULES.md §4, rewritten in task 6.5.6). A one-click shortcut for assign; the start
+/// date follows the same rule.
 /// </summary>
 public sealed class RenewSubscriptionHandler(IAppDbContext db, SubscriptionSeller seller)
 {
@@ -21,7 +22,7 @@ public sealed class RenewSubscriptionHandler(IAppDbContext db, SubscriptionSelle
             return Result.Failure<SubscriptionResponse>(MemberErrors.NotFound);
         }
 
-        // Checked before looking for a plan, so an inactive member hears about that first.
+        // Checked before looking for a subscription, so an inactive member hears about that first.
         var canReceive = member.EnsureCanReceiveSubscription();
         if (canReceive.IsFailure)
         {
@@ -31,26 +32,23 @@ public sealed class RenewSubscriptionHandler(IAppDbContext db, SubscriptionSelle
         // "Latest" by end date, cancelled ones included: a member who cancelled and came back
         // usually wants the same plan again. CreatedAt breaks a tie.
         //
-        // Single-session sales are skipped (BUSINESS_RULES.md §4): renewal needs a plan with more
-        // than one session, and a member who dropped in yesterday still wants their membership
-        // renewed, not another single visit. A member whose only history is single visits has
-        // nothing to renew.
-        var latestPlanId = await db.Subscriptions
+        // Single-session sales are skipped (BUSINESS_RULES.md §4): a member who dropped in yesterday
+        // still wants their plan renewed, not another single visit. A member whose only history is
+        // single visits has nothing to renew.
+        var latest = await db.Subscriptions
             .AsNoTracking()
             .Where(s => s.MemberId == memberId && !s.IsSingleSession)
             .OrderByDescending(s => s.EndDate)
             .ThenByDescending(s => s.CreatedAt)
-            .Select(s => (Guid?)s.PlanId)
+            .Select(s => new { s.DurationDays, s.TotalSessions })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (latestPlanId is null)
+        if (latest is null)
         {
             return Result.Failure<SubscriptionResponse>(SubscriptionErrors.NothingToRenew);
         }
 
-        // Plans are never deleted and the foreign key forbids it, so the plan is there.
-        var plan = await db.Plans.AsNoTracking().SingleAsync(p => p.Id == latestPlanId, cancellationToken);
-
-        return await seller.SellAsync(member, plan, cancellationToken);
+        // Only the numbers are reused, never the old price: the renewal costs what the plan costs today.
+        return await seller.SellMembershipAsync(member, latest.DurationDays, latest.TotalSessions, cancellationToken);
     }
 }

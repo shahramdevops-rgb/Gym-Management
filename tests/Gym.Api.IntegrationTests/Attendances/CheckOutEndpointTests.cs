@@ -6,7 +6,6 @@ using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Attendances;
 using Gym.Application.Lockers;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -27,7 +26,7 @@ public sealed class CheckOutEndpointTests(DatabaseFixture fixture) : DatabaseTes
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
 
@@ -49,7 +48,7 @@ public sealed class CheckOutEndpointTests(DatabaseFixture fixture) : DatabaseTes
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
 
         using var response = await CheckOutAsync(ownerClient, ownerToken, attendance.Id);
@@ -63,7 +62,7 @@ public sealed class CheckOutEndpointTests(DatabaseFixture fixture) : DatabaseTes
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
         await CheckOutAsync(staffClient, staffToken, attendance.Id);
 
@@ -126,24 +125,14 @@ public sealed class CheckOutEndpointTests(DatabaseFixture fixture) : DatabaseTes
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync()
+    private Task<TestPlan> AddPlanAsync() => TestPlans.AddAsync(Fixture);
+
+    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, TestPlan plan) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
+
+    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
-        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
-
-    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { planId });
-
-    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
-    {
-        using var response = await AssignAsync(client, token, memberId, planId);
+        using var response = await AssignAsync(client, token, memberId, plan);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 

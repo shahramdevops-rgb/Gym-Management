@@ -954,3 +954,19 @@ The question that started this was whether a gym that is entirely internal — I
 - **A left-to-right island in a right-to-left page.** The wall runs 1 → 30 left to right, so each zone is `dir="ltr"` while the rest of the page stays RTL.
 - **One component, two modes.** `LockerMap` in `desk` mode opens boxes; in `pick` mode only free lockers are clickable. Moving a visit reuses the same map instead of a second picker.
 - **My notes:**
+
+---
+
+## 6.5.6 — Custom plans and two fixed prices
+
+- **Settings the Owner edits belong in the database, not in `appsettings`.** `Gym:TimeZone` changes once, with a deployment. A price changes with inflation, from the Owner's own screen. That makes it data: a row with an `xmin` token, an audit trail and an endpoint, not a configuration key.
+- **A one-row table.** `price_lists` has a fixed id (`PriceList.TheId`), seeded by `HasData`, and a check constraint `id = '<that id>'`. A second row cannot exist even by hand, so "which price list?" has one answer. The entity has no public constructor: nothing in the app ever creates one.
+- **`null` is not zero.** The prices start empty, not at 0. A seeded 0 would be a price nobody chose that the desk could sell at. The entity refuses to sell with `Pricing.SessionPriceNotSet`, and the screens say the Owner has to set it.
+- **Snapshot the result, not the formula.** A subscription stores its price, days and sessions, never "the rate that was used". Changing the rate afterwards changes nothing already sold, the same way a printed receipt does not change when the price list does.
+- **Pass the value, not the aggregate.** `CreateMembership` takes `decimal? sessionPrice`, not the whole `PriceList`. The rule still lives in the entity, and a unit test does not have to build a row that only the migration can create.
+- **Delete a concept completely.** "Unlimited sessions" went from the entity (`int?` → `int`), the column (`NOT NULL`), the constraints, the responses and every `"نامحدود"` branch in the UI. Leaving half of it would be code that handles a state the database now forbids.
+- **The server computes, the screen previews.** The sale form shows `۱۲ جلسه × ۷۵٬۰۰۰ = ۹۰۰٬۰۰۰` with `multiplyMoney`, but the request carries only days and sessions. The server prices it again from the list at that moment, so a preview that went stale cannot become the price.
+- **Numbers from the API, words in the browser.** A plan has no name now. The API sends `durationDays`, `totalSessions` and `isSingleSession`, and one function, `planLabel`, turns them into «۳۰ روز · ۱۲ جلسه» on every screen.
+- **State that must survive a re-key.** The settings form is `key`ed by `version`, so fresh data rebuilds it. A "saved" message kept inside the form died with that rebuild; it had to live one level up. A test caught it.
+- **Big mechanical test changes: script, then compile.** Twenty-five test files built a `Plan`. A small script did the repeated edit, the compiler listed what it missed, and the handful of real rewrites were done by hand. One file quietly lost its price in the script, and only the full test run showed it.
+- **My notes:**

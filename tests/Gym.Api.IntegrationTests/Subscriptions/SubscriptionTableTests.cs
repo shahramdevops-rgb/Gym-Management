@@ -1,8 +1,5 @@
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Subscriptions;
-using Gym.Domain.Members;
-using Gym.Domain.Plans;
-using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Persistence;
 
 using Microsoft.EntityFrameworkCore;
@@ -24,11 +21,11 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     [Fact]
     public async Task Insert_OverlappingDatesForOneMember_RejectedByTheExclusionConstraint()
     {
-        var (memberId, planId) = await AddMemberAndPlanAsync();
-        await InsertAsync(memberId, planId, Start, Start.AddDays(29));
+        var memberId = await AddMemberAsync();
+        await InsertAsync(memberId, Start, Start.AddDays(29));
 
         var exception = await Should.ThrowAsync<PostgresException>(
-            () => InsertAsync(memberId, planId, Start.AddDays(29), Start.AddDays(58)));
+            () => InsertAsync(memberId, Start.AddDays(29), Start.AddDays(58)));
 
         exception.SqlState.ShouldBe(PostgresErrorCodes.ExclusionViolation);
         exception.ConstraintName.ShouldBe(SubscriptionConstraints.NoOverlap);
@@ -37,19 +34,19 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     [Fact]
     public async Task Insert_AdjacentDates_Allowed()
     {
-        var (memberId, planId) = await AddMemberAndPlanAsync();
-        await InsertAsync(memberId, planId, Start, Start.AddDays(29));
+        var memberId = await AddMemberAsync();
+        await InsertAsync(memberId, Start, Start.AddDays(29));
 
-        await InsertAsync(memberId, planId, Start.AddDays(30), Start.AddDays(59));
+        await InsertAsync(memberId, Start.AddDays(30), Start.AddDays(59));
     }
 
     [Fact]
     public async Task Insert_OverlapWithACancelledSubscription_Allowed()
     {
-        var (memberId, planId) = await AddMemberAndPlanAsync();
-        await InsertAsync(memberId, planId, Start, Start.AddDays(29), cancelled: true);
+        var memberId = await AddMemberAsync();
+        await InsertAsync(memberId, Start, Start.AddDays(29), cancelled: true);
 
-        await InsertAsync(memberId, planId, Start, Start.AddDays(29));
+        await InsertAsync(memberId, Start, Start.AddDays(29));
     }
 
     [Fact]
@@ -57,20 +54,20 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     {
         // BUSINESS_RULES.md §4: a single visit is outside the no-overlap rule. Proved against the
         // constraint itself, because this is the one invariant the feature deliberately relaxes.
-        var (memberId, planId) = await AddMemberAndPlanAsync();
-        await InsertAsync(memberId, planId, Start, Start.AddDays(29));
+        var memberId = await AddMemberAsync();
+        await InsertAsync(memberId, Start, Start.AddDays(29));
 
-        await InsertSingleVisitAsync(memberId, planId, Start.AddDays(5));
+        await InsertSingleVisitAsync(memberId, Start.AddDays(5));
     }
 
     [Fact]
     public async Task Insert_TwoSingleVisitsOnTheSameDay_Allowed()
     {
         // How a member comes twice in one day (BUSINESS_RULES.md §4).
-        var (memberId, planId) = await AddMemberAndPlanAsync();
-        await InsertSingleVisitAsync(memberId, planId, Start);
+        var memberId = await AddMemberAsync();
+        await InsertSingleVisitAsync(memberId, Start);
 
-        await InsertSingleVisitAsync(memberId, planId, Start);
+        await InsertSingleVisitAsync(memberId, Start);
     }
 
     [Fact]
@@ -78,10 +75,10 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     {
         // The flag is what the scheduling rules read, so a row carrying it while describing a
         // 30-day, 12-session product would quietly opt a real membership out of the calendar.
-        var (memberId, planId) = await AddMemberAndPlanAsync();
+        var memberId = await AddMemberAsync();
 
         var exception = await Should.ThrowAsync<PostgresException>(
-            () => InsertAsync(memberId, planId, Start, Start.AddDays(29), singleSession: true));
+            () => InsertAsync(memberId, Start, Start.AddDays(29), singleSession: true));
 
         exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
         exception.ConstraintName.ShouldBe("ck_subscriptions_single_session_shape");
@@ -90,42 +87,56 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     [Fact]
     public async Task Insert_SameDatesForDifferentMembers_Allowed()
     {
-        var (firstMember, planId) = await AddMemberAndPlanAsync();
-        var (secondMember, _) = await AddMemberAndPlanAsync(planName: "دیگر", phone: "+989351234567");
-        await InsertAsync(firstMember, planId, Start, Start.AddDays(29));
+        var firstMember = await AddMemberAsync();
+        var secondMember = await AddMemberAsync(phone: "+989351234567");
+        await InsertAsync(firstMember, Start, Start.AddDays(29));
 
-        await InsertAsync(secondMember, planId, Start, Start.AddDays(29));
+        await InsertAsync(secondMember, Start, Start.AddDays(29));
     }
 
     [Theory]
     [InlineData(12, 13, "ck_subscriptions_used_sessions")]
     [InlineData(12, -1, "ck_subscriptions_used_sessions")]
+    [InlineData(4, 0, "ck_subscriptions_total_sessions_range")] // BUSINESS_RULES.md §3: at least 5
+    [InlineData(1, 0, "ck_subscriptions_total_sessions_range")] // one session is only a single visit
     public async Task Insert_ImpossibleSessionCount_RejectedByACheckConstraint(int total, int used, string constraint)
     {
-        var (memberId, planId) = await AddMemberAndPlanAsync();
+        var memberId = await AddMemberAsync();
 
         var exception = await Should.ThrowAsync<PostgresException>(
-            () => InsertAsync(memberId, planId, Start, Start.AddDays(29), totalSessions: total, usedSessions: used));
+            () => InsertAsync(memberId, Start, Start.AddDays(29), totalSessions: total, usedSessions: used));
 
         exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
         exception.ConstraintName.ShouldBe(constraint);
     }
 
     [Fact]
-    public async Task Insert_UnlimitedWithManySessionsUsed_Allowed()
+    public async Task Insert_NoSessionCount_RejectedBecauseThereIsNoUnlimitedPlan()
     {
-        var (memberId, planId) = await AddMemberAndPlanAsync();
+        var memberId = await AddMemberAsync();
 
-        await InsertAsync(memberId, planId, Start, Start.AddDays(29), totalSessions: null, usedSessions: 400);
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => InsertAsync(memberId, Start, Start.AddDays(29), totalSessions: null));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.NotNullViolation);
+    }
+
+    [Fact]
+    public async Task Insert_ManySessions_Allowed()
+    {
+        // No upper limit on sessions (BUSINESS_RULES.md §3).
+        var memberId = await AddMemberAsync();
+
+        await InsertAsync(memberId, Start, Start.AddDays(29), totalSessions: 1_000, usedSessions: 400);
     }
 
     [Fact]
     public async Task Insert_EndBeforeStart_RejectedByACheckConstraint()
     {
-        var (memberId, planId) = await AddMemberAndPlanAsync();
+        var memberId = await AddMemberAsync();
 
         var exception = await Should.ThrowAsync<PostgresException>(
-            () => InsertAsync(memberId, planId, Start, Start.AddDays(-1)));
+            () => InsertAsync(memberId, Start, Start.AddDays(-1)));
 
         exception.ConstraintName.ShouldBe("ck_subscriptions_dates");
     }
@@ -133,8 +144,8 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     [Fact]
     public async Task Update_CancelledWithoutAReason_RejectedByACheckConstraint()
     {
-        var (memberId, planId) = await AddMemberAndPlanAsync();
-        var id = await InsertAsync(memberId, planId, Start, Start.AddDays(29));
+        var memberId = await AddMemberAsync();
+        var id = await InsertAsync(memberId, Start, Start.AddDays(29));
 
         var exception = await Should.ThrowAsync<PostgresException>(
             () => ExecuteAsync($"UPDATE subscriptions SET cancelled_at = now() WHERE id = '{id}'"));
@@ -145,8 +156,8 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     [Fact]
     public async Task Delete_MemberWithASubscription_RejectedByTheForeignKey()
     {
-        var (memberId, planId) = await AddMemberAndPlanAsync();
-        await InsertAsync(memberId, planId, Start, Start.AddDays(29));
+        var memberId = await AddMemberAsync();
+        await InsertAsync(memberId, Start, Start.AddDays(29));
 
         var exception = await Should.ThrowAsync<PostgresException>(
             () => ExecuteAsync($"DELETE FROM members WHERE id = '{memberId}'"));
@@ -158,8 +169,8 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     [Fact]
     public async Task Save_StaleCopyAfterAnotherSave_ThrowsConcurrencyException()
     {
-        var (memberId, planId) = await AddMemberAndPlanAsync();
-        var id = await InsertAsync(memberId, planId, Start, Start.AddDays(29));
+        var memberId = await AddMemberAsync();
+        var id = await InsertAsync(memberId, Start, Start.AddDays(29));
         var today = Start.AddDays(5);
 
         await using var firstScope = Fixture.CreateScope();
@@ -178,27 +189,24 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
             () => second.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
-    private async Task<(Guid MemberId, Guid PlanId)> AddMemberAndPlanAsync(
-        string planName = "ماهانه", string phone = "+989121234567")
+    private async Task<Guid> AddMemberAsync(string phone = "+989121234567")
     {
         var member = TestMembers.Seed("رضا احمدی", phone);
-        var plan = Plan.Create(planName, 30, 12, 900_000m).Value;
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Members.Add(member);
-        db.Plans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        return (member.Id, plan.Id);
+        return member.Id;
     }
 
     /// <summary>One day, one session, flagged: what the API writes for a walk-in visit.</summary>
-    private Task<Guid> InsertSingleVisitAsync(Guid memberId, Guid planId, DateOnly day) =>
-        InsertAsync(memberId, planId, day, day, totalSessions: 1, singleSession: true, durationDays: 1);
+    private Task<Guid> InsertSingleVisitAsync(Guid memberId, DateOnly day) =>
+        InsertAsync(memberId, day, day, totalSessions: 1, singleSession: true, durationDays: 1);
 
     private async Task<Guid> InsertAsync(
-        Guid memberId, Guid planId, DateOnly start, DateOnly end, int? totalSessions = 12, int usedSessions = 0,
+        Guid memberId, DateOnly start, DateOnly end, int? totalSessions = 12, int usedSessions = 0,
         bool cancelled = false, bool singleSession = false, int durationDays = 30)
     {
         var id = Guid.CreateVersion7();
@@ -208,10 +216,10 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
 
         await ExecuteAsync(
             $"""
-            INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
+            INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days,
                                        cancelled_at, cancellation_reason, is_single_session, created_at)
-            VALUES ('{id}', '{memberId}', '{planId}', 900000, {durationDays}, {total},
+            VALUES ('{id}', '{memberId}', 900000, {durationDays}, {total},
                     '{start:yyyy-MM-dd}', '{end:yyyy-MM-dd}', {usedSessions}, 0,
                     {cancelledAt}, {reason}, {(singleSession ? "TRUE" : "FALSE")}, now())
             """);

@@ -8,8 +8,8 @@ using Gym.Domain.Expenses;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
+using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 
@@ -43,7 +43,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Member> Members => Set<Member>();
 
-    public DbSet<Plan> Plans => Set<Plan>();
+    public DbSet<PriceList> PriceLists => Set<PriceList>();
 
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
 

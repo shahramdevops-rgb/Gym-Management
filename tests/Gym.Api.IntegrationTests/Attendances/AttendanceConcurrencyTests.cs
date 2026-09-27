@@ -7,7 +7,6 @@ using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Attendances;
 using Gym.Domain.Attendances;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -36,7 +35,7 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(client, token, member.Id, plan.Id);
+        await AssignOkAsync(client, token, member.Id, plan);
 
         // The member row lock makes these take turns: whichever gets there second sees the
         // first one's committed attendance and is rejected as a normal business rule, not a
@@ -71,7 +70,7 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
     {
         var (staffClient, staffToken) = await StaffClientAsync();
         var plan = await AddPlanAsync();
-        var members = await MembersWithAPlanAsync(staffClient, staffToken, plan.Id, count: 6);
+        var members = await MembersWithAPlanAsync(staffClient, staffToken, plan, count: 6);
 
         // Six desks click locker 1 for six different members at once, so the member lock does not
         // serialize them: the read in LockerChoice turns some away, and the partial unique index on
@@ -109,7 +108,7 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
         var (staffClient, staffToken) = await StaffClientAsync();
         var plan = await AddPlanAsync();
         await TestLockers.TakeOutOfServiceAllButAsync(Fixture);
-        var members = await MembersWithAPlanAsync(staffClient, staffToken, plan.Id, count: Attendance.ReservePlaceCount + 3);
+        var members = await MembersWithAPlanAsync(staffClient, staffToken, plan, count: Attendance.ReservePlaceCount + 3);
 
         // Every request reads the free places before any commits, so most pick place 1; the
         // partial unique index on reserve_slot turns the losers away with "try again".
@@ -148,7 +147,7 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
     {
         var (staffClient, staffToken) = await StaffClientAsync();
         var plan = await AddPlanAsync();
-        var member = (await MembersWithAPlanAsync(staffClient, staffToken, plan.Id, count: 1)).Single();
+        var member = (await MembersWithAPlanAsync(staffClient, staffToken, plan, count: 1)).Single();
         var visit = await TestLockers.CheckInOkAsync(staffClient, staffToken, member.Id, lockerNumber: 1);
 
         await using var scope = Fixture.CreateScope();
@@ -188,17 +187,7 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync()
-    {
-        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync() => TestPlans.AddAsync(Fixture);
 
     private async Task<Subscription> StoredSubscriptionAsync(Guid memberId)
     {
@@ -220,22 +209,22 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
             .CountAsync(TestContext.Current.CancellationToken);
     }
 
-    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { planId });
+    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, TestPlan plan) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
 
-    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
+    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
-        using var response = await AssignAsync(client, token, memberId, planId);
+        using var response = await AssignAsync(client, token, memberId, plan);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
-    private async Task<List<Member>> MembersWithAPlanAsync(HttpClient client, string token, Guid planId, int count)
+    private async Task<List<Member>> MembersWithAPlanAsync(HttpClient client, string token, TestPlan plan, int count)
     {
         var members = new List<Member>();
         for (var i = 0; i < count; i++)
         {
             var member = await AddMemberAsync();
-            await AssignOkAsync(client, token, member.Id, planId);
+            await AssignOkAsync(client, token, member.Id, plan);
             members.Add(member);
         }
 

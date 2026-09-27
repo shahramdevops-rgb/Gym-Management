@@ -14,7 +14,7 @@ describe("PaymentHistoryTable", () => {
       id: crypto.randomUUID(),
       targetKind: "Subscription",
       targetId: crypto.randomUUID(),
-      subscriptionPlanName: null,
+      subscriptionPlan: null,
       serviceKind: null,
       kind: "Payment",
       amount: "15000",
@@ -32,14 +32,17 @@ describe("PaymentHistoryTable", () => {
     render(
       <PaymentHistoryTable
         payments={[
-          payment({ targetKind: "Subscription", subscriptionPlanName: "ماهانه" }),
+          payment({
+            targetKind: "Subscription",
+            subscriptionPlan: { durationDays: 30, totalSessions: 12, isSingleSession: false },
+          }),
           payment({ targetKind: "ServiceCharge", serviceKind: "Cardio" }),
           payment({ targetKind: "CafeOrder" }),
         ]}
       />,
     );
 
-    expect(screen.getByText("ماهانه")).toBeInTheDocument();
+    expect(screen.getByText("۳۰ روز · ۱۲ جلسه")).toBeInTheDocument();
     expect(screen.getByText("هوازی")).toBeInTheDocument();
     expect(screen.getByText("کافه")).toBeInTheDocument();
   });

@@ -7,7 +7,6 @@ using Gym.Application.Attendances;
 using Gym.Application.Common;
 using Gym.Application.Lockers;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -34,7 +33,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
         (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(1);
@@ -58,7 +57,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        var subscriptionId = await InsertSubscriptionAsync(member.Id, plan.Id, today, today.AddDays(29));
+        var subscriptionId = await InsertSubscriptionAsync(member.Id, today, today.AddDays(29));
         var attendanceId = await InsertOpenAttendanceAsync(
             member.Id, subscriptionId, checkedInAt: DateTimeOffset.UtcNow.AddMinutes(-(CancelWindowMinutes + 1)));
 
@@ -74,7 +73,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
         await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{attendance.Id}/check-out");
 
@@ -102,7 +101,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
 
         using var response = await CancelAsync(ownerClient, ownerToken, attendance.Id);
@@ -134,7 +133,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        var subscriptionId = await InsertSubscriptionAsync(member.Id, plan.Id, today, today.AddDays(29));
+        var subscriptionId = await InsertSubscriptionAsync(member.Id, today, today.AddDays(29));
         var checkedInAt = DateTimeOffset.UtcNow;
 
         var exception = await Should.ThrowAsync<PostgresException>(() => InsertMismatchedCancellationAsync(
@@ -182,29 +181,19 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync()
-    {
-        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync() => TestPlans.AddAsync(Fixture);
 
     /// <summary>A row written directly, so a subscription with sessions left can be set up in one step.</summary>
-    private async Task<Guid> InsertSubscriptionAsync(Guid memberId, Guid planId, DateOnly start, DateOnly end)
+    private async Task<Guid> InsertSubscriptionAsync(Guid memberId, DateOnly start, DateOnly end)
     {
         var id = Guid.CreateVersion7();
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlAsync(
             $"""
-            INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
+            INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, {planId}, 900000, 30, 12, {start}, {end}, 1, 0, now())
+            VALUES ({id}, {memberId}, 900000, 30, 12, {start}, {end}, 1, 0, now())
             """,
             TestContext.Current.CancellationToken);
 
@@ -253,12 +242,12 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
             .SingleAsync(s => s.MemberId == memberId, TestContext.Current.CancellationToken);
     }
 
-    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { planId });
+    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, TestPlan plan) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
 
-    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
+    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
-        using var response = await AssignAsync(client, token, memberId, planId);
+        using var response = await AssignAsync(client, token, memberId, plan);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 

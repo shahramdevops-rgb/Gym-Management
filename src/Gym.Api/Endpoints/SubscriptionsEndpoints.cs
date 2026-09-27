@@ -9,6 +9,7 @@ using Gym.Application.Subscriptions.FreezeSubscription;
 using Gym.Application.Subscriptions.GetSubscription;
 using Gym.Application.Subscriptions.ListMemberSubscriptions;
 using Gym.Application.Subscriptions.RenewSubscription;
+using Gym.Application.Subscriptions.SellSingleVisit;
 using Gym.Application.Subscriptions.UnfreezeSubscription;
 
 namespace Gym.Api.Endpoints;
@@ -48,6 +49,18 @@ public static class SubscriptionsEndpoints
         sales.MapPost("/renew", async (Guid memberId, RenewSubscriptionHandler handler, CancellationToken ct) =>
                 (await handler.Handle(memberId, ct)).ToHttpResult(Created))
             .WithName("RenewSubscription")
+            .Produces<SubscriptionResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // One visit for today at the single-visit price (BUSINESS_RULES.md §4). No body: the price is
+        // the Owner's setting and the desk types nothing. The policy is named here as well as on the
+        // group, so this endpoint says outright that Staff may use it (the lesson of task 6.5.1).
+        sales.MapPost("/single-visit", async (Guid memberId, SellSingleVisitHandler handler, CancellationToken ct) =>
+                (await handler.Handle(memberId, ct)).ToHttpResult(Created))
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .WithName("SellSingleVisit")
             .Produces<SubscriptionResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)

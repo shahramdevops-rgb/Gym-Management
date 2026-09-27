@@ -10,7 +10,6 @@ using Gym.Application.Members;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Audit;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -563,17 +562,7 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
     }
 
-    private async Task<Plan> AddPlanAsync(decimal price)
-    {
-        var plan = Plan.Create("پلن", 30, 12, price).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync(decimal price) => TestPlans.AddAsync(Fixture, price: price);
 
     /// <summary>Assigns a fresh subscription through the real endpoint, so its price is a plan's real, saved snapshot.</summary>
     private async Task<SubscriptionResponse> SellSubscriptionAsync(HttpClient client, string token, Guid memberId, decimal price)
@@ -581,7 +570,7 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         var plan = await AddPlanAsync(price);
         var request = new HttpRequestMessage(HttpMethod.Post, $"{MembersPath}/{memberId}/subscriptions")
         {
-            Content = JsonContent.Create(new { planId = plan.Id }),
+            Content = JsonContent.Create(plan.Body),
         };
         using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);

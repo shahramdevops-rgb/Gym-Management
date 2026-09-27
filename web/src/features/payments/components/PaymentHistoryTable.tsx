@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { serviceChargeKindLabels } from "@/features/serviceCharges/api";
+import { planLabel } from "@/features/subscriptions/planLabel";
 import { formatDateTime, formatMoney } from "@/lib/format";
 
 import { paymentMethodLabels, type PaymentHistoryItem } from "../api";
@@ -52,7 +53,7 @@ export function PaymentHistoryTable({ payments }: { payments: PaymentHistoryItem
 function paidForLabel(payment: PaymentHistoryItem): string {
   switch (payment.targetKind) {
     case "Subscription":
-      return payment.subscriptionPlanName ?? "—";
+      return payment.subscriptionPlan === null ? "—" : planLabel(payment.subscriptionPlan);
     case "ServiceCharge":
       return payment.serviceKind === null ? "خدمات" : serviceChargeKindLabels[payment.serviceKind];
     case "CafeOrder":

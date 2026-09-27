@@ -101,26 +101,22 @@ export const errorMessages: Record<string, string> = {
   "Members.ChangedConcurrently":
     "این عضو هم‌زمان توسط شخص دیگری ویرایش شد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
-  // Plans
-  "Plans.NotFound": "پلن پیدا نشد.",
-  "Plans.NameAlreadyExists": "پلن دیگری با همین نام وجود دارد.",
-  "Plans.NameRequired": "نام پلن را وارد کنید.",
-  "Plans.NameTooLong": "نام پلن بیش از حد طولانی است.",
-  "Plans.DurationInvalid": "مدت پلن باید بین ۱ تا ۳۶۵ روز باشد.",
-  "Plans.SessionCountInvalid": "تعداد جلسات باید بین ۱ تا ۳۶۵ باشد، یا برای نامحدود خالی بماند.",
-  "Plans.PriceNegative": "قیمت نمی‌تواند منفی باشد.",
-  "Plans.PriceTooLarge": "قیمت بیش از حد بزرگ است.",
-  "Plans.PriceTooManyDecimals": "قیمت حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
-  "Plans.Inactive": "این پلن غیرفعال است و قابل فروش نیست.",
-  "Plans.SingleSessionShape": "پلن تک‌جلسه‌ای باید ۱ روزه و ۱ جلسه‌ای باشد.",
-  "Plans.SingleSessionAlreadyExists":
-    "پلن تک‌جلسه‌ای از قبل وجود دارد؛ برای تغییر نرخ، همان را ویرایش کنید.",
-  "Plans.ChangedConcurrently":
-    "این پلن هم‌زمان توسط شخص دیگری ویرایش شد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+  // Pricing (BUSINESS_RULES.md §3)
+  "Pricing.PriceNegative": "قیمت نمی‌تواند منفی باشد.",
+  "Pricing.PriceTooLarge": "قیمت بیش از حد بزرگ است.",
+  "Pricing.PriceTooManyDecimals": "قیمت حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
+  "Pricing.SessionPriceNotSet":
+    "قیمت هر جلسه هنوز تعیین نشده است. مدیر باید آن را در صفحهٔ تنظیمات وارد کند.",
+  "Pricing.SingleVisitPriceNotSet":
+    "قیمت تک‌جلسهٔ آزاد هنوز تعیین نشده است. مدیر باید آن را در صفحهٔ تنظیمات وارد کند.",
+  "Pricing.ChangedConcurrently":
+    "قیمت‌ها هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
   // Subscriptions
   "Subscriptions.NotFound": "اشتراک پیدا نشد.",
-  "Subscriptions.PlanRequired": "یک پلن انتخاب کنید.",
+  "Subscriptions.DurationInvalid": "تعداد روزها باید بین ۱ تا ۳۶۵ باشد.",
+  "Subscriptions.SessionCountTooLow": "تعداد جلسات باید حداقل ۵ باشد.",
+  "Subscriptions.PriceTooLarge": "قیمت این پلن بیش از حد بزرگ است.",
   "Subscriptions.NothingToRenew": "این عضو اشتراکی برای تمدید ندارد.",
   "Subscriptions.ChangedConcurrently":
     "اشتراک‌های این عضو هم‌زمان توسط شخص دیگری تغییر کرد. دوباره امتحان کنید.",

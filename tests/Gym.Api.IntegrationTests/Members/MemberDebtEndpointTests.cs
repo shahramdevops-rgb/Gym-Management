@@ -6,7 +6,6 @@ using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -22,7 +21,6 @@ namespace Gym.Api.IntegrationTests.Members;
 public sealed class MemberDebtEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
     private static int _phoneSuffix;
-    private static int _planSuffix;
 
     [Fact]
     public async Task GetDebt_MemberWithNoSubscription_IsZeroWithNoItems()
@@ -41,14 +39,15 @@ public sealed class MemberDebtEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var sold = await SellAsync(client, token, member.Id, 900_000m, planName: "پلن طلایی");
+        var sold = await SellAsync(client, token, member.Id, 900_000m);
 
         var debt = await GetDebtOkAsync(client, token, member.Id);
 
         debt.Total.ShouldBe(900_000m);
         var item = debt.Items.ShouldHaveSingleItem();
         item.Id.ShouldBe(sold.Id);
-        item.PlanName.ShouldBe("پلن طلایی");
+        // What was sold, for the frontend's label: a plan has no name (BUSINESS_RULES.md §3).
+        item.Plan.ShouldBe(new PlanSummary(DurationDays: 30, TotalSessions: 10, IsSingleSession: false));
         item.StartDate.ShouldBe(sold.StartDate);
         item.EndDate.ShouldBe(sold.EndDate);
         item.Price.ShouldBe(900_000m);
@@ -247,29 +246,18 @@ public sealed class MemberDebtEndpointTests(DatabaseFixture fixture) : DatabaseT
         return member;
     }
 
-    /// <summary>Plan names are unique, and one test sells three plans to the same member.</summary>
-    private async Task<Plan> AddPlanAsync(decimal price, string? name)
-    {
-        var plan = Plan.Create(name ?? $"پلن {Interlocked.Increment(ref _planSuffix)}", 30, 12, price).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
-
     /// <summary>
-    /// Sold through the real endpoint, so the price is a plan's saved snapshot and the second and
-    /// third sales are queued behind the first exactly as the gym would have them.
+    /// Sold through the real endpoint, so the price is the one the sale stored and the second and
+    /// third sales are queued behind the first exactly as the gym would have them. The session
+    /// price is set just before each sale, which is how one member ends up with plans at different
+    /// prices.
     /// </summary>
-    private async Task<SubscriptionResponse> SellAsync(
-        HttpClient client, string token, Guid memberId, decimal price, string? planName = null)
+    private async Task<SubscriptionResponse> SellAsync(HttpClient client, string token, Guid memberId, decimal price)
     {
-        var plan = await AddPlanAsync(price, planName);
+        // Ten sessions, so every price these tests use is a whole number of cents per session.
+        var plan = await TestPlans.AddAsync(Fixture, sessions: 10, price: price);
 
-        using var response = await SendAsync(client, token, $"/api/members/{memberId}/subscriptions", new { planId = plan.Id });
+        using var response = await SendAsync(client, token, $"/api/members/{memberId}/subscriptions", plan.Body);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();

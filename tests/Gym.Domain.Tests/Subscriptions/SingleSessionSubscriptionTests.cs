@@ -1,4 +1,3 @@
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 
 namespace Gym.Domain.Tests.Subscriptions;
@@ -8,6 +7,11 @@ namespace Gym.Domain.Tests.Subscriptions;
 /// subscription that every calendar rule ignores. These tests are mostly about what must
 /// <b>not</b> happen — the damage a single visit could do to a membership sold earlier.
 /// </summary>
+/// <remarks>
+/// Where a single visit starts is not tested against a calendar any more: since task 6.5.6
+/// <see cref="Subscription.CreateSingleVisit"/> takes today and nothing else, so it cannot read, queue
+/// behind or close anything. The integration tests check the same through the endpoint.
+/// </remarks>
 public sealed class SingleSessionSubscriptionTests
 {
     private const int MaxFreezeDays = 30;
@@ -16,7 +20,7 @@ public sealed class SingleSessionSubscriptionTests
     private static readonly DateOnly Today = new(2026, 9, 10);
 
     [Fact]
-    public void Create_FromASingleSessionPlan_IsFlaggedAndCoversOnlyToday()
+    public void CreateSingleVisit_Always_IsFlaggedAndCoversOnlyToday()
     {
         var visit = SellSingleVisit();
 
@@ -24,46 +28,6 @@ public sealed class SingleSessionSubscriptionTests
         visit.StartDate.ShouldBe(Today);
         visit.EndDate.ShouldBe(Today);
         visit.TotalSessions.ShouldBe(1);
-    }
-
-    [Fact]
-    public void StartDateFor_SingleVisitWithACurrentMembership_IsToday()
-    {
-        // The membership runs to 2026-09-30, so the queue rule would say 2026-10-01.
-        var membership = SellMembership(new DateOnly(2026, 9, 1));
-
-        SubscriptionSchedule.StartDateFor(PlanKind.SingleSession, Today, [membership]).ShouldBe(Today);
-    }
-
-    [Fact]
-    public void StartDateFor_SingleVisitWithAQueuedMembership_IsToday()
-    {
-        var membership = SellMembership(new DateOnly(2026, 9, 1));
-        var queued = SellMembership(new DateOnly(2026, 10, 1));
-
-        SubscriptionSchedule.StartDateFor(PlanKind.SingleSession, Today, [membership, queued]).ShouldBe(Today);
-    }
-
-    [Fact]
-    public void StartDateFor_SecondSingleVisitOnTheSameDay_IsAlsoToday()
-    {
-        var firstVisit = SellSingleVisit();
-        firstVisit.ConsumeSession(Today);
-
-        SubscriptionSchedule.StartDateFor(PlanKind.SingleSession, Today, [firstVisit]).ShouldBe(Today);
-    }
-
-    [Fact]
-    public void StartDateFor_SingleVisitWithAnExhaustedMembership_LeavesThatMembershipAlone()
-    {
-        // The case that cost the member money: their pack ran out of sessions on the 5th but the
-        // term runs to the 30th, so the ordinary rule would close it "yesterday" to free up today.
-        var exhausted = SellMembership(new DateOnly(2026, 9, 1), sessions: 1);
-        exhausted.ConsumeSession(new DateOnly(2026, 9, 5));
-
-        SubscriptionSchedule.StartDateFor(PlanKind.SingleSession, Today, [exhausted]).ShouldBe(Today);
-
-        exhausted.EndDate.ShouldBe(new DateOnly(2026, 9, 30));
     }
 
     [Fact]
@@ -75,6 +39,21 @@ public sealed class SingleSessionSubscriptionTests
         visit.ConsumeSession(Today);
 
         SubscriptionSchedule.NextStartDate(Today, [visit]).ShouldBe(Today);
+    }
+
+    [Fact]
+    public void NextStartDate_UsedSingleVisitAndAnExhaustedMembership_ClosesOnlyTheMembership()
+    {
+        // The pack ran out of sessions on the 5th; the visit on the 10th is used too. Selling a new
+        // plan closes the pack early and never mistakes the used visit for "the exhausted one".
+        var exhausted = SellExhausted(new DateOnly(2026, 9, 1), usedOn: new DateOnly(2026, 9, 5));
+        var visit = SellSingleVisit();
+        visit.ConsumeSession(Today);
+
+        SubscriptionSchedule.NextStartDate(Today, [exhausted, visit]).ShouldBe(Today);
+
+        exhausted.EndDate.ShouldBe(Today.AddDays(-1));
+        visit.EndDate.ShouldBe(Today);
     }
 
     [Fact]
@@ -152,17 +131,22 @@ public sealed class SingleSessionSubscriptionTests
         visit.ConsumeSession(Today).Error.ShouldBe(SubscriptionErrors.NoSessionsLeft);
     }
 
-    private static Subscription SellSingleVisit()
+    private static Subscription SellSingleVisit() =>
+        Subscription.CreateSingleVisit(MemberId, 150_000m, Today).Value;
+
+    /// <summary>A 30-day, 12-session plan.</summary>
+    private static Subscription SellMembership(DateOnly start) =>
+        Subscription.CreateMembership(MemberId, 30, 12, 100_000m, start).Value;
+
+    /// <summary>The smallest plan (5 sessions, 30 days), every session used on <paramref name="usedOn"/>.</summary>
+    private static Subscription SellExhausted(DateOnly start, DateOnly usedOn)
     {
-        var plan = Plan.Create("تک‌جلسه‌ای", 1, 1, 150_000m, PlanKind.SingleSession).Value;
+        var subscription = Subscription.CreateMembership(MemberId, 30, Subscription.MinSessionCount, 100_000m, start).Value;
+        for (var visit = 0; visit < Subscription.MinSessionCount; visit++)
+        {
+            subscription.ConsumeSession(usedOn).IsSuccess.ShouldBeTrue();
+        }
 
-        return Subscription.Create(MemberId, plan, Today).Value;
-    }
-
-    private static Subscription SellMembership(DateOnly start, int? sessions = 12)
-    {
-        var plan = Plan.Create("پلن", 30, sessions, 900_000m).Value;
-
-        return Subscription.Create(MemberId, plan, start).Value;
+        return subscription;
     }
 }

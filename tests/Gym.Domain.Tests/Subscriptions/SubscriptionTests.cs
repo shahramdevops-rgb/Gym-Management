@@ -1,5 +1,5 @@
 using Gym.Domain.Common;
-using Gym.Domain.Plans;
+using Gym.Domain.Pricing;
 using Gym.Domain.Subscriptions;
 
 using Microsoft.Extensions.Time.Testing;
@@ -7,12 +7,15 @@ using Microsoft.Extensions.Time.Testing;
 namespace Gym.Domain.Tests.Subscriptions;
 
 /// <summary>
-/// BUSINESS_RULES.md §4. Most tests sell a 30-day, 12-session plan starting on 2026-09-01, so
+/// BUSINESS_RULES.md §3, §4. Most tests sell a 30-day, 12-session plan starting on 2026-09-01, so
 /// it ends on 2026-09-30.
 /// </summary>
 public sealed class SubscriptionTests
 {
     private const int MaxFreezeDays = 30;
+
+    /// <summary>The price of one session in these tests: 12 sessions cost 1,200,000.</summary>
+    private const decimal SessionPrice = 100_000m;
 
     private static readonly Guid MemberId = Guid.CreateVersion7();
     private static readonly DateOnly Start = new(2026, 9, 1);
@@ -20,27 +23,88 @@ public sealed class SubscriptionTests
     private static readonly DateOnly Mid = new(2026, 9, 10);
     private static readonly DateTimeOffset Now = new(2026, 9, 10, 8, 0, 0, TimeSpan.Zero);
 
-    // ---- Create ----
+    // ---- CreateMembership (BUSINESS_RULES.md §3) ----
 
     [Fact]
-    public void Create_ActivePlan_CopiesTheSnapshot()
+    public void CreateMembership_ValidPlan_StoresTheNumbersSold()
     {
-        var plan = Plan.Create("یک ماهه ۱۲ جلسه", 30, 12, 900_000m).Value;
-
-        var subscription = Subscription.Create(MemberId, plan, Start).Value;
+        var subscription = Subscription.CreateMembership(MemberId, 30, 12, SessionPrice, Start).Value;
 
         subscription.MemberId.ShouldBe(MemberId);
-        // No name here on purpose: it is read live through PlanId (BUSINESS_RULES.md §4).
-        subscription.PlanId.ShouldBe(plan.Id);
-        subscription.Price.ShouldBe(900_000m);
         subscription.DurationDays.ShouldBe(30);
         subscription.TotalSessions.ShouldBe(12);
         subscription.UsedSessions.ShouldBe(0);
         subscription.RemainingSessions.ShouldBe(12);
+        subscription.IsSingleSession.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(5, 30, 500_000)]
+    [InlineData(12, 30, 1_200_000)]
+    [InlineData(12, 90, 1_200_000)] // the days do not change the price
+    [InlineData(12, 10, 1_200_000)] // and need not cover the sessions
+    public void CreateMembership_AnyPlan_PriceIsSessionsTimesTheSessionPrice(int sessions, int days, int expected)
+    {
+        var subscription = Subscription.CreateMembership(MemberId, days, sessions, SessionPrice, Start).Value;
+
+        subscription.Price.ShouldBe(expected);
     }
 
     [Fact]
-    public void Create_ThirtyDayPlan_EndDateIsInclusive()
+    public void CreateMembership_SessionPriceWithCents_KeepsThemExactly()
+    {
+        var subscription = Subscription.CreateMembership(MemberId, 30, 7, 1_000.25m, Start).Value;
+
+        subscription.Price.ShouldBe(7_001.75m);
+    }
+
+    [Fact]
+    public void CreateMembership_FreeSessions_PriceIsZero() =>
+        Subscription.CreateMembership(MemberId, 30, 12, 0m, Start).Value.Price.ShouldBe(0m);
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(366)]
+    public void CreateMembership_DaysOutOfRange_FailsWithDurationInvalid(int days) =>
+        Subscription.CreateMembership(MemberId, days, 12, SessionPrice, Start)
+            .Error.ShouldBe(SubscriptionErrors.DurationInvalid);
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(365)]
+    public void CreateMembership_DaysAtTheLimits_Succeeds(int days) =>
+        Subscription.CreateMembership(MemberId, days, 12, SessionPrice, Start).IsSuccess.ShouldBeTrue();
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(1)]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void CreateMembership_FewerThanFiveSessions_FailsWithSessionCountTooLow(int sessions) =>
+        Subscription.CreateMembership(MemberId, 30, sessions, SessionPrice, Start)
+            .Error.ShouldBe(SubscriptionErrors.SessionCountTooLow);
+
+    [Theory]
+    [InlineData(5)]
+    [InlineData(366)]
+    [InlineData(1_000)]
+    public void CreateMembership_FiveOrMoreSessions_HasNoUpperLimit(int sessions) =>
+        Subscription.CreateMembership(MemberId, 30, sessions, SessionPrice, Start)
+            .Value.TotalSessions.ShouldBe(sessions);
+
+    [Fact]
+    public void CreateMembership_SessionPriceNotSet_FailsWithSessionPriceNotSet() =>
+        Subscription.CreateMembership(MemberId, 30, 12, sessionPrice: null, Start)
+            .Error.ShouldBe(PricingErrors.SessionPriceNotSet);
+
+    [Fact]
+    public void CreateMembership_PriceBeyondTheMoneyColumn_FailsWithPriceTooLarge() =>
+        Subscription.CreateMembership(MemberId, 30, 1_000, PriceList.MaxPrice, Start)
+            .Error.ShouldBe(SubscriptionErrors.PriceTooLarge);
+
+    [Fact]
+    public void CreateMembership_ThirtyDayPlan_EndDateIsInclusive()
     {
         var subscription = Sell(durationDays: 30);
 
@@ -49,7 +113,7 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
-    public void Create_OneDayPlan_StartsAndEndsOnTheSameDay()
+    public void CreateMembership_OneDayPlan_StartsAndEndsOnTheSameDay()
     {
         var subscription = Sell(durationDays: 1);
 
@@ -58,43 +122,26 @@ public sealed class SubscriptionTests
         subscription.GetStatus(Start.AddDays(1)).ShouldBe(SubscriptionStatus.Expired);
     }
 
+    // ---- CreateSingleVisit (BUSINESS_RULES.md §4 Single-session subscriptions) ----
+
     [Fact]
-    public void Create_PlanEditedAfterSale_SubscriptionKeepsTheSnapshot()
+    public void CreateSingleVisit_PriceSet_IsOneSessionForToday()
     {
-        var plan = Plan.Create("یک ماهه", 30, 12, 900_000m).Value;
-        var subscription = Subscription.Create(MemberId, plan, Start).Value;
+        var visit = Subscription.CreateSingleVisit(MemberId, 150_000m, Mid).Value;
 
-        plan.Update("یک ماهه جدید", 60, null, 1_200_000m);
-        plan.Deactivate();
-
-        // The numbers are the contract and never move. The name is not here at all: it now comes
-        // from the plan, so a rename is meant to show up on this sale.
-        subscription.Price.ShouldBe(900_000m);
-        subscription.DurationDays.ShouldBe(30);
-        subscription.TotalSessions.ShouldBe(12);
-        subscription.EndDate.ShouldBe(End);
+        visit.IsSingleSession.ShouldBeTrue();
+        visit.Price.ShouldBe(150_000m);
+        visit.DurationDays.ShouldBe(1);
+        visit.TotalSessions.ShouldBe(1);
+        visit.StartDate.ShouldBe(Mid);
+        visit.EndDate.ShouldBe(Mid);
+        visit.GetStatus(Mid).ShouldBe(SubscriptionStatus.Active);
     }
 
     [Fact]
-    public void Create_InactivePlan_FailsWithPlanInactive()
-    {
-        var plan = Plan.Create("قدیمی", 30, 12, 900_000m).Value;
-        plan.Deactivate();
-
-        var result = Subscription.Create(MemberId, plan, Start);
-
-        result.Error.ShouldBe(PlanErrors.Inactive);
-    }
-
-    [Fact]
-    public void Create_UnlimitedPlan_HasNoSessionLimit()
-    {
-        var subscription = Sell(sessions: null);
-
-        subscription.IsUnlimited.ShouldBeTrue();
-        subscription.TotalSessions.ShouldBeNull();
-        subscription.RemainingSessions.ShouldBeNull();
-    }
+    public void CreateSingleVisit_PriceNotSet_FailsWithSingleVisitPriceNotSet() =>
+        Subscription.CreateSingleVisit(MemberId, singleVisitPrice: null, Mid)
+            .Error.ShouldBe(PricingErrors.SingleVisitPriceNotSet);
 
     // ---- Status: one per status ----
 
@@ -185,28 +232,17 @@ public sealed class SubscriptionTests
     [Fact]
     public void ConsumeSession_LastSession_MakesItExhaustedAndTheNextOneFails()
     {
-        var subscription = Sell(sessions: 2);
-        subscription.ConsumeSession(Mid).IsSuccess.ShouldBeTrue();
+        var subscription = Sell(sessions: 5);
+        for (var visit = 0; visit < 4; visit++)
+        {
+            subscription.ConsumeSession(Mid).IsSuccess.ShouldBeTrue();
+        }
 
         subscription.ConsumeSession(Mid).IsSuccess.ShouldBeTrue();
 
         subscription.GetStatus(Mid).ShouldBe(SubscriptionStatus.Exhausted);
         subscription.ConsumeSession(Mid).Error.ShouldBe(SubscriptionErrors.NoSessionsLeft);
-        subscription.UsedSessions.ShouldBe(2);
-    }
-
-    [Fact]
-    public void ConsumeSession_UnlimitedPlan_IsNeverExhausted()
-    {
-        var subscription = Sell(sessions: null);
-
-        for (var visit = 0; visit < 400; visit++)
-        {
-            subscription.ConsumeSession(Mid).IsSuccess.ShouldBeTrue();
-        }
-
-        subscription.UsedSessions.ShouldBe(400);
-        subscription.GetStatus(Mid).ShouldBe(SubscriptionStatus.Active);
+        subscription.UsedSessions.ShouldBe(5);
     }
 
     [Theory]
@@ -511,25 +547,24 @@ public sealed class SubscriptionTests
 
     // ---- Helpers ----
 
-    private static Subscription Sell(int durationDays = 30, int? sessions = 12)
-    {
-        var plan = Plan.Create("پلن", durationDays, sessions, 900_000m).Value;
-
-        return Subscription.Create(MemberId, plan, Start).Value;
-    }
+    private static Subscription Sell(int durationDays = 30, int sessions = 12) =>
+        Subscription.CreateMembership(MemberId, durationDays, sessions, SessionPrice, Start).Value;
 
     /// <summary>A subscription that has the given status on <see cref="TodayFor"/>.</summary>
     private static Subscription InState(string state)
     {
-        var subscription = Sell(sessions: 2);
+        var subscription = Sell(sessions: Subscription.MinSessionCount);
 
         switch (state)
         {
             case "upcoming" or "active" or "expired":
                 break;
             case "exhausted":
-                Succeed(subscription.ConsumeSession(Mid));
-                Succeed(subscription.ConsumeSession(Mid));
+                for (var visit = 0; visit < Subscription.MinSessionCount; visit++)
+                {
+                    Succeed(subscription.ConsumeSession(Mid));
+                }
+
                 break;
             case "frozen":
                 Succeed(subscription.Freeze(Mid, MaxFreezeDays));

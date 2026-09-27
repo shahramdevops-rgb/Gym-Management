@@ -1,5 +1,4 @@
-import { Badge } from "@/components/ui/badge";
-import { toPersianDigits } from "@/lib/format";
+import { emptyValue, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -9,10 +8,8 @@ import { cn } from "@/lib/utils";
 type SessionCount = number | string | null | undefined;
 
 interface SessionsBarProps {
-  /** null means unlimited: there is no denominator, so there is no bar to draw. */
   total: SessionCount;
   used: SessionCount;
-  /** null means unlimited. */
   remaining: SessionCount;
   /** At or below this many sessions left, the bar asks for attention (BUSINESS_RULES.md §7). */
   lowThreshold: number;
@@ -30,10 +27,9 @@ function toCount(value: SessionCount): number | null {
 }
 
 /**
- * How much of a subscription is left, as "used of total" over a bar.
- *
- * An unlimited subscription says so instead: a progress bar with no denominator would have to
- * invent one, and a full bar and an empty bar would both be lies.
+ * How much of a subscription is left, as "used of total" over a bar. Every subscription has a
+ * session count since task 6.5.6 (BUSINESS_RULES.md §3: there is no unlimited plan); a count that
+ * is missing anyway draws no bar rather than one with an invented denominator.
  *
  * Shared rather than local to attendance because Phase 9's dashboard shows the same thing, and a
  * second copy would drift from this one.
@@ -44,7 +40,7 @@ export function SessionsBar({ total, used, remaining, lowThreshold, className }:
   const usedCount = toCount(used) ?? 0;
 
   if (totalCount === null || remainingCount === null) {
-    return <Badge variant="secondary">نامحدود</Badge>;
+    return <span className="text-muted-foreground">{emptyValue}</span>;
   }
 
   const isLow = remainingCount <= lowThreshold;

@@ -6,7 +6,6 @@ using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Attendances;
 using Gym.Application.Lockers;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -121,16 +120,15 @@ public sealed class LockerMapStaffTests(DatabaseFixture fixture) : DatabaseTestB
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed("رضا احمدی", $"+98916{suffix:D7}");
-        var plan = Plan.Create($"پلن {suffix}", 30, 12, 900_000m).Value;
+        var plan = await TestPlans.AddAsync(Fixture);
         await using (var scope = Fixture.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Members.Add(member);
-            db.Plans.Add(plan);
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        using var assigned = await PostAsync(client, token, $"/api/members/{member.Id}/subscriptions", new { planId = plan.Id });
+        using var assigned = await PostAsync(client, token, $"/api/members/{member.Id}/subscriptions", plan.Body);
         assigned.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return member;

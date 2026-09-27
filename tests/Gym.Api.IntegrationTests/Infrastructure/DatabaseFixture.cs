@@ -1,4 +1,5 @@
 using Gym.Domain.Expenses;
+using Gym.Domain.Pricing;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Persistence.Seed;
 
@@ -82,6 +83,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
         ExpenseCategoriesAfterMigration = await ReadExpenseCategoriesAsync(_connection);
         LockersAfterMigration = await ReadLockersAsync(_connection);
+        PriceListsAfterMigration = await ReadPriceListsAsync(_connection);
     }
 
     /// <summary>
@@ -161,16 +163,51 @@ public sealed class DatabaseFixture : IAsyncLifetime
     /// <summary>The lockers a fresh database gets from its migration, read at the same moment as <see cref="ExpenseCategoriesAfterMigration"/>.</summary>
     public IReadOnlyList<(Guid Id, int Number, bool IsOutOfService)> LockersAfterMigration { get; private set; } = [];
 
+    /// <summary>The price list rows a fresh database gets from its migration: one, with both prices empty.</summary>
+    public IReadOnlyList<(Guid Id, decimal? SessionPrice, decimal? SingleVisitPrice)> PriceListsAfterMigration { get; private set; } = [];
+
     /// <summary>
     /// Puts back the rows the migrations seed, which Respawn deleted with everything else. A
     /// test then starts from what a freshly migrated database holds, not from an emptier one that
-    /// production never sees. The rows come from <see cref="ExpenseCategorySeed"/> and
-    /// <see cref="LockerSeed"/>, the same lists the migrations were generated from.
+    /// production never sees. The rows come from <see cref="ExpenseCategorySeed"/>,
+    /// <see cref="LockerSeed"/> and <see cref="PriceList.TheId"/>, the same values the migrations
+    /// were generated from.
     /// </summary>
     private static async Task RestoreSeedDataAsync(NpgsqlConnection connection)
     {
         await RestoreExpenseCategoriesAsync(connection);
         await RestoreLockersAsync(connection);
+        await RestorePriceListAsync(connection);
+    }
+
+    /// <summary>The one price list, with both prices empty, as the migration seeds it (BUSINESS_RULES.md §3).</summary>
+    private static async Task RestorePriceListAsync(NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand(
+            "INSERT INTO price_lists (id, created_at) VALUES (@id, now())", connection);
+
+        command.Parameters.AddWithValue("id", PriceList.TheId);
+
+        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<(Guid Id, decimal? SessionPrice, decimal? SingleVisitPrice)>> ReadPriceListsAsync(
+        NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand(
+            "SELECT id, session_price, single_visit_price FROM price_lists", connection);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+
+        var rows = new List<(Guid, decimal?, decimal?)>();
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            rows.Add((
+                reader.GetGuid(0),
+                reader.IsDBNull(1) ? null : reader.GetDecimal(1),
+                reader.IsDBNull(2) ? null : reader.GetDecimal(2)));
+        }
+
+        return rows;
     }
 
     private static async Task RestoreLockersAsync(NpgsqlConnection connection)

@@ -1,5 +1,4 @@
 ﻿using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 
 namespace Gym.Domain.Tests.Subscriptions;
@@ -72,8 +71,7 @@ public sealed class SubscriptionScheduleTests
     [Fact]
     public void NextStartDate_LatestExhausted_ClosesItYesterdayAndStartsToday()
     {
-        var exhausted = Sell(new DateOnly(2026, 9, 1), sessions: 1);
-        exhausted.ConsumeSession(new DateOnly(2026, 9, 5));
+        var exhausted = SellExhausted(new DateOnly(2026, 9, 1), usedOn: new DateOnly(2026, 9, 5));
 
         var start = SubscriptionSchedule.NextStartDate(Today, [exhausted]);
 
@@ -85,8 +83,7 @@ public sealed class SubscriptionScheduleTests
     [Fact]
     public void NextStartDate_ExhaustedOnItsFirstDay_EndsItTodayAndStartsTomorrow()
     {
-        var exhausted = Sell(Today, sessions: 1);
-        exhausted.ConsumeSession(Today);
+        var exhausted = SellExhausted(Today, usedOn: Today);
 
         var start = SubscriptionSchedule.NextStartDate(Today, [exhausted]);
 
@@ -97,8 +94,7 @@ public sealed class SubscriptionScheduleTests
     [Fact]
     public void NextStartDate_ExhaustedButNotLatest_QueuesAfterTheLatest()
     {
-        var exhausted = Sell(new DateOnly(2026, 9, 1), sessions: 1);
-        exhausted.ConsumeSession(new DateOnly(2026, 9, 5));
+        var exhausted = SellExhausted(new DateOnly(2026, 9, 1), usedOn: new DateOnly(2026, 9, 5));
         var queued = Sell(new DateOnly(2026, 10, 1));
 
         var start = SubscriptionSchedule.NextStartDate(Today, [exhausted, queued]);
@@ -147,8 +143,7 @@ public sealed class SubscriptionScheduleTests
     [Fact]
     public void InEffectToday_ExhaustedAndQueued_PromotesTheQueuedOne()
     {
-        var exhausted = Sell(new DateOnly(2026, 9, 1), sessions: 1);
-        exhausted.ConsumeSession(new DateOnly(2026, 9, 5));
+        var exhausted = SellExhausted(new DateOnly(2026, 9, 1), usedOn: new DateOnly(2026, 9, 5));
         var queued = Sell(new DateOnly(2026, 10, 1));
 
         var inEffect = SubscriptionSchedule.InEffectToday(Today, [exhausted, queued]);
@@ -164,8 +159,7 @@ public sealed class SubscriptionScheduleTests
     [Fact]
     public void InEffectToday_ExhaustedOnItsFirstDay_DoesNotPromote()
     {
-        var exhausted = Sell(Today, sessions: 1);
-        exhausted.ConsumeSession(Today);
+        var exhausted = SellExhausted(Today, usedOn: Today);
         var queued = Sell(new DateOnly(2026, 10, 1));
 
         var inEffect = SubscriptionSchedule.InEffectToday(Today, [exhausted, queued]);
@@ -179,8 +173,7 @@ public sealed class SubscriptionScheduleTests
     [Fact]
     public void InEffectToday_ExhaustedWithNothingQueued_IsNull()
     {
-        var exhausted = Sell(new DateOnly(2026, 9, 1), sessions: 1);
-        exhausted.ConsumeSession(new DateOnly(2026, 9, 5));
+        var exhausted = SellExhausted(new DateOnly(2026, 9, 1), usedOn: new DateOnly(2026, 9, 5));
 
         SubscriptionSchedule.InEffectToday(Today, [exhausted]).ShouldBeNull();
         exhausted.EndDate.ShouldBe(new DateOnly(2026, 9, 30));
@@ -189,8 +182,7 @@ public sealed class SubscriptionScheduleTests
     [Fact]
     public void InEffectToday_ExhaustedAndCancelledQueued_IsNull()
     {
-        var exhausted = Sell(new DateOnly(2026, 9, 1), sessions: 1);
-        exhausted.ConsumeSession(new DateOnly(2026, 9, 5));
+        var exhausted = SellExhausted(new DateOnly(2026, 9, 1), usedOn: new DateOnly(2026, 9, 5));
         var cancelledQueued = Sell(new DateOnly(2026, 10, 1));
         cancelledQueued.Cancel("اشتباه در ثبت", Today, Now);
 
@@ -214,10 +206,19 @@ public sealed class SubscriptionScheduleTests
         Should.Throw<InvalidOperationException>(() => active.StartEarly(Today));
     }
 
-    private static Subscription Sell(DateOnly start, int? sessions = 12)
-    {
-        var plan = Plan.Create("پلن", 30, sessions, 900_000m).Value;
+    /// <summary>A 30-day, 12-session plan.</summary>
+    private static Subscription Sell(DateOnly start) =>
+        Subscription.CreateMembership(MemberId, 30, 12, 100_000m, start).Value;
 
-        return Subscription.Create(MemberId, plan, start).Value;
+    /// <summary>The smallest plan (5 sessions, 30 days), every session used on <paramref name="usedOn"/>.</summary>
+    private static Subscription SellExhausted(DateOnly start, DateOnly usedOn)
+    {
+        var subscription = Subscription.CreateMembership(MemberId, 30, Subscription.MinSessionCount, 100_000m, start).Value;
+        for (var visit = 0; visit < Subscription.MinSessionCount; visit++)
+        {
+            subscription.ConsumeSession(usedOn).IsSuccess.ShouldBeTrue();
+        }
+
+        return subscription;
     }
 }

@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Paging;
+using Gym.Application.Subscriptions;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
@@ -54,14 +55,12 @@ public sealed class ListMemberPaymentsHandler(IAppDbContext db)
                 payment.SubscriptionId != null
                     ? payment.SubscriptionId!.Value
                     : payment.ServiceChargeId != null ? payment.ServiceChargeId!.Value : payment.CafeOrderId!.Value,
-                // The plan's name is read live rather than from the sale: renaming a plan corrects
-                // the label on every receipt it has ever appeared on (BUSINESS_RULES.md §4).
+                // A plan has no name (BUSINESS_RULES.md §3): the row carries its numbers and the
+                // frontend labels it.
                 db.Subscriptions
                     .Where(subscription => subscription.Id == payment.SubscriptionId)
-                    .Select(subscription => db.Plans
-                        .Where(plan => plan.Id == subscription.PlanId)
-                        .Select(plan => plan.Name)
-                        .FirstOrDefault())
+                    .Select(subscription => new PlanSummary(
+                        subscription.DurationDays, subscription.TotalSessions, subscription.IsSingleSession))
                     .FirstOrDefault(),
                 db.ServiceCharges
                     .Where(charge => charge.Id == payment.ServiceChargeId)

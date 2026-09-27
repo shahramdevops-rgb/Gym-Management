@@ -108,22 +108,35 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "کارمندان" })).not.toBeInTheDocument();
   });
 
-  it("AppShell_Owner_SeesThePlansMenuItem", async () => {
+  it("AppShell_Owner_SeesTheSettingsMenuItem", async () => {
     mockApi(signedInHandlers(owner));
 
     renderApp("/", { session: session() });
 
-    expect(await screen.findByRole("link", { name: "پلن‌ها" })).toHaveAttribute("href", "/plans");
+    expect(await screen.findByRole("link", { name: "تنظیمات" })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
   });
 
-  it("AppShell_Staff_DoesNotSeeThePlansMenuItem", async () => {
+  it("AppShell_Anyone_SeesNoPlansMenuItem", async () => {
+    // BUSINESS_RULES.md §3 since task 6.5.6: there is no list of plans to set up.
+    mockApi(signedInHandlers(owner));
+
+    renderApp("/", { session: session() });
+
+    await screen.findByText(owner.fullName);
+    expect(screen.queryByRole("link", { name: "پلن‌ها" })).not.toBeInTheDocument();
+  });
+
+  it("AppShell_Staff_DoesNotSeeTheSettingsMenuItem", async () => {
     mockApi(signedInHandlers(staffUser));
 
     renderApp("/", { session: session() });
 
-    // Plan setup is the Owner's job (docs/BUSINESS_RULES.md §3); staff see plans when selling.
+    // Changing the prices is the Owner's job (docs/BUSINESS_RULES.md §1); staff see them when selling.
     await screen.findByText(staffUser.fullName);
-    expect(screen.queryByRole("link", { name: "پلن‌ها" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "تنظیمات" })).not.toBeInTheDocument();
   });
 
   it("AppShell_Owner_SeesTheExpensesMenuItem", async () => {

@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Subscriptions;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
 
@@ -28,7 +29,7 @@ public static class MemberDebt
     /// them as one list ordered by date.
     /// </summary>
     /// <param name="Id">The subscription's, service charge's or cafe order's id — what a payment is posted against.</param>
-    /// <param name="PlanId"><c>null</c> for anything that is not a subscription.</param>
+    /// <param name="Plan">What the subscription sold; <c>null</c> for anything that is not a subscription.</param>
     /// <param name="ServiceKind"><c>null</c> for anything that is not a service charge.</param>
     /// <param name="StartDate">
     /// The subscription's start date, the day of the visit that was charged, or the day of the
@@ -40,7 +41,7 @@ public static class MemberDebt
     public sealed record Item(
         PaymentTargetKind Kind,
         Guid Id,
-        Guid? PlanId,
+        PlanSummary? Plan,
         ServiceChargeKind? ServiceKind,
         DateOnly StartDate,
         DateOnly? EndDate,
@@ -62,7 +63,7 @@ public static class MemberDebt
             .Select(subscription => new
             {
                 subscription.Id,
-                subscription.PlanId,
+                Plan = new PlanSummary(subscription.DurationDays, subscription.TotalSessions, subscription.IsSingleSession),
                 subscription.StartDate,
                 subscription.EndDate,
                 subscription.Price,
@@ -103,7 +104,7 @@ public static class MemberDebt
             .Select(subscription => new Item(
                 PaymentTargetKind.Subscription,
                 subscription.Id,
-                subscription.PlanId,
+                subscription.Plan,
                 ServiceKind: null,
                 subscription.StartDate,
                 subscription.EndDate,
@@ -113,7 +114,7 @@ public static class MemberDebt
             .Concat(charges.Select(charge => new Item(
                 PaymentTargetKind.ServiceCharge,
                 charge.Id,
-                PlanId: null,
+                Plan: null,
                 charge.Kind,
                 charge.ChargedOn,
                 EndDate: null,
@@ -123,7 +124,7 @@ public static class MemberDebt
             .Concat(orders.Select(order => new Item(
                 PaymentTargetKind.CafeOrder,
                 order.Id,
-                PlanId: null,
+                Plan: null,
                 ServiceKind: null,
                 order.OrderedOn,
                 EndDate: null,
