@@ -122,11 +122,11 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | Action | Owner | Staff |
 |---|---|---|
 | Members: create, update, deactivate, search | ✅ | ✅ |
-| Check-in, check-out, cancel check-in | ✅ | ✅ |
+| Check-in (from the lockers screen only, §7 *Confirming at the front desk*), check-out, cancel check-in | ✅ | ✅ |
 | Assign or renew subscriptions | ✅ | ✅ |
 | Register payments, create cafe orders | ✅ | ✅ |
-| Plans, staff accounts, creating a locker | ✅ | ❌ |
-| Lockers: see the list, take one out of service, bring it back in | ✅ | ✅ |
+| Plans, staff accounts | ✅ | ❌ |
+| Lockers: see the map, take one out of service, bring it back in, move a visit to another locker (§6, §7) | ✅ | ✅ |
 | Freeze, unfreeze, cancel subscriptions | ✅ | ❌ |
 | Refunds, voids (outside the cafe) | ✅ | ❌ |
 | Gym service charges: record, change the amount, void (§7 *Gym services*) | ✅ | ✅ |
@@ -198,8 +198,8 @@ Decided with the developer, 1405/07/03. Roadmap 6.5.3.
 - The Owner creates it once from the plans screen, like any other plan. It is **not** seeded at
   startup: its price is the gym's own number and nothing may invent one. *Decided by Claude during
   task 6.5.3; pending review.*
-- It can be deactivated like any plan, which stops single-session entry. The entry screen says that
-  is why, rather than offering an action that fails with nothing to explain it.
+- It can be deactivated like any plan, which stops single-session entry. The check-in box (on the lockers
+  screen since 6.5.5) says that is why, rather than offering an action that fails with nothing to explain it.
 
 ---
 
@@ -396,13 +396,58 @@ entries for one handover of money.
 
 ## 6. Lockers
 
+Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This replaces
+"only the Owner adds a locker" and the random pick at check-in (§7).
+
 - Fields: `Number` (unique), `IsOutOfService`.
+- **The gym has exactly 72 lockers, numbered 1 to 72, and nobody creates or deletes one.** They
+  arrive with the migration, the way the expense categories do (§9), so every database has all
+  of them from the start. There is no endpoint and no screen that adds a locker. The number
+  changes only when the gym buys or removes a cabinet, and then it is a code change with a
+  migration, agreed first, not something done at the desk. The database refuses a number outside
+  1–72 with a check constraint.
+- **Where they stand.** The lockers screen draws them the way they stand in the gym, so the desk
+  sees on screen what is in front of the member:
+  - Every cabinet is two columns of three. Numbers run down a column, then on to the next
+    column: 1, 2, 3 in the first column, 4, 5, 6 in the second.
+  - **Outside the changing room (بیرون رختکن), 1–30:** one wall of five cabinets: 1–6, 7–12,
+    13–18, 19–24, 25–30.
+  - **Inside the changing room (داخل رختکن), 31–72:** the main wall of six cabinets (31–36,
+    37–42, 43–48, 49–54, 55–60, 61–66), and one free-standing cabinet on another wall, 67–72,
+    drawn apart from the wall.
+  - Left to right, as on the wall, even though the rest of the screen is right-to-left.
+  - The screen does not repeat a locker's location in words; the map already shows it.
 - A locker is occupied when an open attendance references it. Occupancy is derived, never stored,
-  and so is the member holding it: the locker list names whoever the open attendance belongs to,
+  and so is the member holding it: the map names whoever the open attendance belongs to,
   so the desk can answer "whose is locker 1?" without opening attendance.
-- A locker cannot be marked out of service while occupied.
-- Staff see the list and change a locker's service state; only the Owner adds a locker. The
-  person who finds a locker broken is the one at the desk, and the same person sees it repaired.
+- A locker cannot be marked out of service while occupied. A locker that breaks while someone
+  holds it: move that visit to another locker first (§7 *Moving to another locker*), then take
+  the empty one out of service.
+- **The map is the desk's screen, the same for Staff and the Owner** (confirmed by the Owner,
+  1405/07/05). Everything on it is front-desk work for both roles: check-in, check-out, cancel
+  check-in, moving a visit, هوازی, cafe, and taking a locker out of service or back in. Nothing on
+  the map is Owner-only, so a staff member never meets a button that would be refused. The person
+  who finds a locker broken is the one at the desk, and the same person sees it repaired.
+
+### Reserve places (ورود بدون کمد)
+
+- **15 reserve places** for a visit with no locker. They have no number: on screen each one shows
+  the name of the member using it where a locker would show its number.
+- A reserve place can be used **only when no locker is both in service and free**
+  (`Attendance.LockersStillFree`). They are there for the day every locker is full, not as a
+  choice beside a free locker.
+- **At most 15 at once** (`Attendance.ReserveFull`). The sixteenth person with no locker is
+  refused. The database enforces it too: an open attendance holds a reserve place from 1 to 15
+  (check constraint), and a partial unique index on that place where `checked_out_at IS NULL`
+  lets no two open visits hold the same one. The place's number is internal and never shown.
+- Every open visit holds **exactly one** of the two: a locker or a reserve place (check
+  constraint). Check-out, cancel check-in and auto-checkout free a reserve place the same way they
+  free a locker.
+- A reserve place behaves like a locker in every other way. Clicking it opens the same box, with
+  هوازی, cafe, check-out, cancel and move (§7).
+- They are out of the way on the screen, behind one small control that shows how many are used
+  (for example "ورود بدون کمد ۰ از ۱۵"). All lockers being full is rare, and 15 boxes that are
+  nearly always empty must not take the desk's room.
 
 ---
 
@@ -410,16 +455,23 @@ entries for one handover of money.
 
 ### Check-in (one database transaction)
 Preconditions: the member is active, has an `Active` subscription, and has no open attendance.
+The request names the locker the desk chose, or asks for a reserve place (§6).
 1. Load the subscription that is in effect today — an `Active` one always wins over a queued renewal that ends later. If none is active, apply the exhausted-with-a-queue rule above.
 2. `subscription.ConsumeSession(today)`.
-3. Choose a locker at random from those that are in service and not occupied. Random, not lowest-numbered: any free locker is equally valid, and always taking the lowest one wore out the first few lockers while the high numbers were never used.
-4. Insert the Attendance row with `CheckedInAt` and the locker.
+3. Take the place the desk chose (decided by the Owner, 1405/07/05; this replaces the random pick):
+   - **A locker:** it must exist (`Lockers.NotFound`), be in service (`Lockers.OutOfService`), and
+     have no open attendance (`Attendance.LockerTaken`). Two desks choosing the same free locker
+     at the same moment meet the partial unique index on `locker_id`: one succeeds, the other
+     gets `Attendance.LockerTaken`, the same error as a locker that was already taken.
+   - **No locker:** a reserve place, under §6's conditions (`Attendance.LockersStillFree`,
+     `Attendance.ReserveFull`).
+   - There is no longer a check-in "with no locker and a warning". Every visit has a locker or a
+     reserve place.
+4. Insert the Attendance row with `CheckedInAt` and the locker or reserve place.
 5. Save and commit.
-
-- If no locker is available, check-in still succeeds with no locker, and the response includes a warning.
 ### The "currently inside" board
 
-- One row per open visit: the member, the locker, the time they came in, how much of their
+- One row per open visit: the member, the locker (or "رزرو" for a reserve place, §6), the time they came in, how much of their
   subscription is left, and the visit's هوازی charge.
 - Sessions are shown as used of total. An unlimited subscription has no total to count against,
   so it reads "نامحدود" rather than a bar with no denominator.
@@ -437,19 +489,51 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
   so every row on this board would read "فعال" — a badge that is always the same tells nobody
   anything. Status belongs where expired and unsubscribed members appear together.
 
-- Money owed never blocks a check-in. The visit is recorded and the front desk is shown the member's outstanding total, the same way a missing locker is a warning rather than an error (§0, §5 *Member debt*).
+- Money owed never blocks a check-in. The visit is recorded and the front desk is shown the member's outstanding total, as information rather than an error (§0, §5 *Member debt*).
 - When nothing is usable because the member used every session on the subscription's first day and renewed the same day, the refusal is `Subscriptions.NextStartsTomorrow` ("today is over for them, come back tomorrow"), not the queued subscription's own `Subscriptions.NotStarted`, which sounds like the sale went wrong.
 - Database: partial unique index on `member_id` where `checked_out_at IS NULL`, and on `locker_id` where `checked_out_at IS NULL`. Cancelled attendances count as closed.
 - Unique-violation or concurrency errors are returned as a clear 409 conflict, never a 500.
 
 ### Check-out
-- Only an open attendance can be checked out. Sets `CheckedOutAt`, which frees the locker.
+- Only an open attendance can be checked out. Sets `CheckedOutAt`, which frees the locker or reserve place.
+
+### Moving to another locker
+Decided by the Owner, 1405/07/05. Roadmap 6.5.5.
+- An open visit can be moved to another locker: the desk gave the wrong one, or the locker broke
+  while in use (§6). Front-desk work, so both roles.
+- Only an open attendance (`Attendance.NotOpen`). The target is a locker that is in service and
+  free, under the same checks and errors as check-in (`Lockers.NotFound`, `Lockers.OutOfService`,
+  `Attendance.LockerTaken`), and not the locker the visit already holds (`Attendance.SameLocker`).
+- A visit on a reserve place can move to a locker, which frees the reserve place: the member gets
+  a locker as soon as one is free. A move always ends on a locker, never on a reserve place
+  (proposed by Claude in the 6.5.5 planning session, confirmed by the Owner, 1405/07/05). The one
+  case it leaves out is a locker breaking while in use on a day every other locker is full.
+- Moving consumes no session and gives none back; the visit, its هوازی and its cafe orders stay
+  exactly as they were. The old locker is free as soon as the move is saved, because occupancy is
+  derived. The audit log records the change like any other.
 
 ### Confirming at the front desk
-Decided with the developer, 1405/07/04.
-- Everywhere the desk can check a member in or out (the entry screen, the member's profile and the "currently inside" board), check-in and check-out each ask the desk to confirm before anything is sent, in the same box. A mistaken press costs a session or closes someone else's visit, and undoing either is a separate action with its own rules (*Cancel check-in*).
+Decided with the developer, 1405/07/04. Where check-in happens changed with the Owner, 1405/07/05.
+- **Check-in happens only on the lockers screen**, which is named "ورود با کمد" and is the first
+  screen of the app (decided by the Owner, 1405/07/05). The desk clicks the free locker it chooses,
+  which opens a box with one search field for a name or a mobile number. It then picks the member,
+  confirms, and the visit is recorded with that locker. The search screen and the member's profile
+  no longer have a check-in button. For a member who is inside they still show the locker and offer
+  check-out and cancel check-in.
+- In that search, a member who is already inside is marked "داخل باشگاه" with their locker.
+  Choosing them shows an error in the box and sends nothing (*Check-in*: no open attendance; the API
+  refuses it anyway with `Attendance.AlreadyCheckedIn`).
+- Everything the member search screen offered for check-in before moves into that box: registering a person who is not
+  found, and selling a single visit when the member has nothing usable (§4). The single visit is
+  checked in with the locker the desk clicked.
+- Clicking an occupied locker (or a used reserve place) opens that visit's box: the member (linked to
+  their profile), when they came in, the plan and sessions left, the debt item by item, هوازی and
+  cafe for the visit (§7 *Gym services*, §8), and check-out, cancel check-in and move to another
+  locker. Clicking an out-of-service locker offers to bring it back into service; clicking a free
+  one also offers to take it out of service.
+- Everywhere the desk can check a member in or out (the lockers screen, the member search screen, the member's profile and the "currently inside" board), check-in and check-out each ask the desk to confirm before anything is sent, in the same box. A mistaken press costs a session or closes someone else's visit, and undoing either is a separate action with its own rules (*Cancel check-in*).
 - A member who is inside is offered check-out, not check-in. Check-in would only be refused (*Check-in*: no open attendance).
-- After a check-in, the same box shows the locker (or that none was free), the plan and the sessions left, and the member's debt item by item: unpaid subscriptions, services such as هوازی, and cafe orders (§5 *Member debt*). It stays until the desk closes it.
+- After a check-in, the same box shows the locker (or that a reserve place was used), the plan and the sessions left, and the member's debt item by item: unpaid subscriptions, services such as هوازی, and cafe orders (§5 *Member debt*). It stays until the desk closes it.
 - Before a check-out, the box shows the locker to take back and the same plan, sessions and itemized debt, so the desk can collect what is owed while the member is still there. Debt is shown, never enforced: check-out is not refused for money owed, the same way check-in is not.
 - When the visit has a locker, the desk must tick "key received" before the check-out can be confirmed: closing the visit hands the locker to the next person in. After check-out, the box shows that the locker is free and repeats the itemized debt.
 - Selling a single visit from that box needs no second confirmation: pressing the priced button is already the decision.

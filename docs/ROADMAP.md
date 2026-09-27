@@ -288,6 +288,10 @@ under it. Done: 375 frontend tests pass (`npm test`), 49 of them new across `lib
 - [x] No-locker warning
 - [x] Tests: expired, frozen, exhausted, inactive member, already inside
 
+Superseded in 6.5.5: the desk chooses the locker instead of a random pick, the no-locker warning
+becomes a reserve place, the 72 lockers are fixed and seeded instead of created, and check-in moves
+from search and profile to the lockers screen.
+
 ### 5.3 Check-out, cancel, lists
 - [x] Check-out
 - [x] Cancel check-in within the window
@@ -696,6 +700,103 @@ screen. Closed 2026-09-26: 922 backend tests and 403 frontend tests green, zero 
 thing decided while building and needing review: the sale and the check-in are two requests, not
 one transaction — if the sale lands and the check-in fails, the member has a paid visit for today
 and the ordinary "ورود" button finishes the job, which is visible and recoverable.
+
+### 6.5.5 The locker map: the desk chooses the locker
+Rule change, decided by the Owner on 1405/07/05 (2026-09-27), with photos of the real lockers.
+Until now check-in took a random free locker, the Owner created lockers one by one, and the
+lockers screen was a paged table. Now the gym's 72 lockers are fixed, drawn exactly as they stand
+(1–30 outside the changing room; 31–66 on the inside wall and 67–72 in a separate cabinet), and
+the desk gives a member the locker it chooses, by clicking it, the way a cinema seat is booked.
+Check-in happens **only** there. BUSINESS_RULES.md §1, §6 and §7 have the rules.
+
+One task, not an API task followed by a UI task: check-in now needs a locker in its request and
+the create-locker endpoint disappears, so an API change on its own would leave the running web
+app broken.
+
+- [x] BUSINESS_RULES.md §1, §6, §7 written up before any code (planning session, 2026-09-27)
+- [ ] **Fixed lockers.** `LockerSeed` (72 rows with fixed ids, 1–72) applied with `HasData`, like
+      `ExpenseCategorySeed`; `Locker.Count = 72` in Domain; `ck_lockers_number_range` (1–72).
+      The integration `DatabaseFixture` puts the lockers back after every Respawn reset, as it
+      does for the expense categories. The server's test data is wiped before release (the
+      Owner's call), so no existing rows need reconciling
+- [ ] **No creating lockers.** Remove `Application/Lockers/CreateLocker/*`, `POST /api/lockers`,
+      `Locker.Create` / `CheckNumber`, the create-only errors (`Lockers.NumberInvalid`,
+      `Lockers.NumberAlreadyExists`) and their Persian messages, and the DI registrations
+- [ ] **Check-in takes the chosen place.** A body `CheckInCommand(Guid? LockerId)` on
+      `POST /api/members/{memberId}/attendance/check-in`; `null` asks for a reserve place.
+      `CheckInHandler` drops `EF.Functions.Random()` and checks `Lockers.NotFound`,
+      `Lockers.OutOfService`, `Attendance.LockerTaken`; with no locker, `Attendance.LockersStillFree`
+      or the lowest free reserve place, else `Attendance.ReserveFull`. A unique violation on
+      `OneOpenPerLocker` maps to `Attendance.LockerTaken` instead of the generic
+      `ChangedConcurrently`
+- [ ] **Reserve places in the database.** `Attendance.ReserveSlot` (`smallint`, nullable), check
+      constraint 1–15, partial unique index where `checked_out_at IS NULL`, and a check that an
+      open visit has exactly one of `locker_id` / `reserve_slot`. `Attendance.CheckIn` takes one
+      or the other
+- [ ] **Move to another locker.** `Attendance.MoveToLocker(lockerId)` (`NotOpen`, `SameLocker`;
+      clears the reserve place) and `POST /api/attendance/{id}/move-locker` with a handler in
+      `Application/Attendances/MoveLocker/` that checks the target like check-in does
+- [ ] Every new error code in `web/src/lib/errors.ts` (`ErrorCatalogTests` checks it), then
+      `npm run gen:api`
+- [ ] **The map layout** (`features/lockers/layout.ts`): zones → groups (wall, free-standing
+      cabinet) → cabinets → columns of three, top to bottom. Drawn `dir="ltr"` like the wall. A
+      test that every number 1–72 appears exactly once
+- [ ] **`LockerMap`**, reusable: each locker a door-shaped button, green free, red occupied (the
+      holder's name as its tooltip), grey hatched out of service; a legend with counts; a "pick"
+      mode that enables free lockers only, for moving
+- [ ] **`LockersPage` rewritten.** All lockers (`PageSize=100`) and the currently-inside list
+      (`PageSize=100`), both refreshing every 15 s, joined by locker number. At most 72 + 15 = 87
+      visits are open at once, so one page always holds them all. The create form, `LockersTable`,
+      `Pager` and `useCreateLocker` go
+- [ ] **Free locker → `LockerCheckInDialog`.** Search by name or mobile (`useMemberList`,
+      debounced like `HomePage`); a member already inside is marked "داخل باشگاه — کمد n" and
+      choosing them shows an error; confirm → check-in with `lockerId` → the locker large plus
+      `VisitSummary`; no usable subscription → `SingleVisitOffer`, with `useSellSingleVisit`
+      taking the `lockerId`; not found → register with `MemberForm` and carry on; and "خارج از
+      سرویس" for the locker itself
+- [ ] **Occupied locker → `LockerVisitDialog`.** Member linked to the profile, time in,
+      `SessionsBar`, `VisitSummary` (debt item by item), `ServiceChargeBox` (هوازی),
+      `VisitCafeBox` (cafe), check-out and cancel through the existing `CheckInOutDialog`, and
+      "جابه‌جایی کمد" through `LockerMap` in pick mode. Out-of-service locker → bring back into
+      service. No location text in any box
+- [ ] **Reserve places**: one small control ("ورود بدون کمد n از ۱۵") opening 15 boxes. A used box
+      shows the member's name and opens `LockerVisitDialog`; an empty one opens check-in only when
+      every locker is full, and otherwise says why not
+- [ ] **Check-in leaves the other screens.** `CheckInOutDialog` loses its `checkIn` kind (that
+      logic moves to `LockerCheckInDialog`); `HomePage` / `MembersTable` and `MemberProfilePage`
+      lose the check-in button but keep the locker and check-out for someone inside; "ثبت این شخص"
+      on the search screen registers and opens the profile. The "currently inside" board shows
+      "رزرو" for a reserve place
+- [ ] Tests (domain): `MoveToLocker` on a closed visit, to the same locker, from a reserve place;
+      `CheckIn` with a locker or a reserve place
+- [ ] Tests (integration): exactly 72 lockers 1–72 after migrating; the create endpoint is gone;
+      check-in gets the chosen locker; occupied → `LockerTaken`; out of service →
+      `OutOfService`; reserve while a locker is free → `LockersStillFree`; all full → reserve
+      works and the sixteenth gets `ReserveFull`; two check-ins racing for one locker → one wins,
+      one `LockerTaken`; move (ok, target taken, closed visit, reserve → locker); every new
+      constraint refused by raw SQL. Rewrite the old tests that created lockers or expected a
+      random pick or a no-locker warning (5.1, 5.2, 5.4, 6.5.1)
+- [ ] **The map is the first screen** (the Owner, 1405/07/05): the first item in the menu, named
+      "ورود با کمد", and the page every user lands on after logging in. The member search screen
+      that held "ورود به باشگاه" no longer checks anyone in, so it is renamed "جستجوی عضو" and moves
+      down the menu. Links and redirects that assumed search was home (`paths.home`, the
+      catch-all redirect, the post-login redirect) follow
+- [ ] **Staff use the whole map** (BUSINESS_RULES.md §6): the screen stays in every user's menu,
+      and each new endpoint (check-in with a locker, move-locker) names a policy that allows Staff
+      explicitly, never a group default (the lesson of 6.5.1)
+- [ ] Tests (integration, roles): a Staff user checks in with a chosen locker, takes a reserve
+      place, moves a visit, and takes a locker out of service and back; none of it is 403
+- [ ] Tests (frontend): the layout; the map draws two zones and 72 doors with the right colours
+      and labels; signed in as Staff, every action on the map is offered; a free locker opens the search; an inside member is marked and refused; check-in
+      sends `lockerId`; the occupied box shows هوازی, cafe, check-out, cancel and move; the reserve
+      places are tucked away and locked while a locker is free; `HomePage`, `MemberProfilePage`
+      and `CurrentlyInsidePage` tests updated
+- Mobile is out of scope on purpose: how the map opens on a phone is decided with 13.1
+
+Done when: at the desk, clicking locker 12, finding the member and confirming checks them in with
+locker 12; هوازی and a cafe item are added from the same locker; the visit moves to locker 40; and
+check-out with the key ticked turns 40 green again — all from the lockers screen, with no locker
+ever chosen at random.
 
 ---
 
