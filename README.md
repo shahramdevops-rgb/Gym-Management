@@ -195,12 +195,16 @@ API alongside it. The browser only ever talks to one origin, as it will in produ
 ### API types
 
 `web/src/lib/api/schema.d.ts` is generated from the API's OpenAPI document and committed. After
-changing any endpoint, with the API running:
+changing any endpoint (with `docker compose up -d` running):
 
 ```bash
 cd web
 npm run gen:api
 ```
+
+The script uses an API already listening on :5134; otherwise it starts one in the Development
+profile, waits for the document, generates the types and stops it again. An API left running from
+before the endpoint change serves an old document, so stop it first.
 
 A mismatch between the frontend and the API then shows up as a type error in `npm run build`.
 
