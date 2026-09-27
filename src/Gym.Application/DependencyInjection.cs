@@ -29,6 +29,14 @@ using Gym.Application.Cafe.SetProductActive;
 using Gym.Application.Cafe.SetProductCategoryActive;
 using Gym.Application.Cafe.UpdateProduct;
 using Gym.Application.Cafe.UpdateProductCategory;
+using Gym.Application.Expenses.CreateExpenseCategory;
+using Gym.Application.Expenses.GetExpense;
+using Gym.Application.Expenses.ListExpenseCategories;
+using Gym.Application.Expenses.ListExpenses;
+using Gym.Application.Expenses.RecordExpense;
+using Gym.Application.Expenses.UpdateExpense;
+using Gym.Application.Expenses.UpdateExpenseCategory;
+using Gym.Application.Expenses.VoidExpense;
 using Gym.Application.Lockers.CreateLocker;
 using Gym.Application.Lockers.GetLocker;
 using Gym.Application.Lockers.ListLockers;
@@ -171,6 +179,16 @@ public static class DependencyInjection
         services.AddScoped<GetProductHandler>();
         services.AddScoped<ListProductsHandler>();
         services.AddScoped<SetProductActiveHandler>();
+
+        services.AddScoped<CreateExpenseCategoryHandler>();
+        services.AddScoped<UpdateExpenseCategoryHandler>();
+        services.AddScoped<ListExpenseCategoriesHandler>();
+
+        services.AddScoped<RecordExpenseHandler>();
+        services.AddScoped<UpdateExpenseHandler>();
+        services.AddScoped<VoidExpenseHandler>();
+        services.AddScoped<GetExpenseHandler>();
+        services.AddScoped<ListExpensesHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

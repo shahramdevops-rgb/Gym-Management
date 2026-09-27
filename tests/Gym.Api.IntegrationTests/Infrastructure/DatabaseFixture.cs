@@ -1,4 +1,6 @@
+using Gym.Domain.Expenses;
 using Gym.Infrastructure.Persistence;
+using Gym.Infrastructure.Persistence.Seed;
 
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -77,6 +79,8 @@ public sealed class DatabaseFixture : IAsyncLifetime
         // One long-lived connection for the resets. Respawn is not created here: see ResetAsync.
         _connection = new NpgsqlConnection(ConnectionString);
         await _connection.OpenAsync(TestContext.Current.CancellationToken);
+
+        ExpenseCategoriesAfterMigration = await ReadExpenseCategoriesAsync(_connection);
     }
 
     /// <summary>
@@ -142,7 +146,56 @@ public sealed class DatabaseFixture : IAsyncLifetime
         if (_respawner is not null)
         {
             await _respawner.ResetAsync(_connection);
+            await RestoreSeedDataAsync(_connection);
         }
+    }
+
+    /// <summary>
+    /// The expense categories a fresh database gets from its migration, as they were read right
+    /// after migrating and before any reset. It is the one moment the migration's own rows are
+    /// visible, so it is what proves the migration seeds them.
+    /// </summary>
+    public IReadOnlyList<(Guid Id, string Name, string NormalizedName)> ExpenseCategoriesAfterMigration { get; private set; } = [];
+
+    /// <summary>
+    /// Puts back the rows the migrations seed, which Respawn deleted with everything else. A
+    /// test then starts from what a freshly migrated database holds, not from an emptier one that
+    /// production never sees. The rows come from <see cref="ExpenseCategorySeed"/>, the same list
+    /// the migration was generated from.
+    /// </summary>
+    private static async Task RestoreSeedDataAsync(NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand(
+            """
+            INSERT INTO expense_categories (id, name, normalized_name, created_at)
+            SELECT seed.id, seed.name, seed.normalized_name, @created_at
+            FROM unnest(@ids, @names, @normalized_names) AS seed(id, name, normalized_name)
+            """,
+            connection);
+
+        command.Parameters.AddWithValue("created_at", ExpenseCategorySeed.CreatedAt);
+        command.Parameters.AddWithValue("ids", ExpenseCategorySeed.All.Select(seed => seed.Id).ToArray());
+        command.Parameters.AddWithValue("names", ExpenseCategorySeed.All.Select(seed => seed.Name).ToArray());
+        command.Parameters.AddWithValue(
+            "normalized_names", ExpenseCategorySeed.All.Select(seed => ExpenseCategory.Normalize(seed.Name)).ToArray());
+
+        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<(Guid Id, string Name, string NormalizedName)>> ReadExpenseCategoriesAsync(
+        NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand(
+            "SELECT id, name, normalized_name FROM expense_categories ORDER BY id", connection);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+
+        var categories = new List<(Guid, string, string)>();
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            categories.Add((reader.GetGuid(0), reader.GetString(1), reader.GetString(2)));
+        }
+
+        return categories;
     }
 
     /// <summary>Whether the schema holds anything Respawn would be able to empty.</summary>

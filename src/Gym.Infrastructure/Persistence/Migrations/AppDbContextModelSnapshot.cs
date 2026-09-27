@@ -613,6 +613,213 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Expenses.Expense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<DateOnly>("ExpenseDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expense_date");
+
+                    b.Property<Guid>("RecordedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by_user_id");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("reference_number");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("VoidReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("void_reason");
+
+                    b.Property<DateTimeOffset?>("VoidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("voided_at");
+
+                    b.Property<Guid?>("VoidedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("voided_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_expenses");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_expenses_category_id");
+
+                    b.HasIndex("RecordedByUserId")
+                        .HasDatabaseName("ix_expenses_recorded_by_user_id");
+
+                    b.HasIndex("VoidedByUserId")
+                        .HasDatabaseName("ix_expenses_voided_by_user_id");
+
+                    b.HasIndex("ExpenseDate", "CategoryId")
+                        .HasDatabaseName("ix_expenses_expense_date_category_id");
+
+                    b.ToTable("expenses", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_expenses_amount_positive", "amount > 0");
+
+                            t.HasCheckConstraint("ck_expenses_description_not_blank", "btrim(description) <> ''");
+
+                            t.HasCheckConstraint("ck_expenses_void", "(voided_at IS NULL) = (void_reason IS NULL) AND (voided_at IS NULL) = (voided_by_user_id IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.Expenses.ExpenseCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_expense_categories");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_expense_categories_normalized_name");
+
+                    b.ToTable("expense_categories", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_expense_categories_name_not_blank", "btrim(name) <> ''");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("0b3f6685-b1a2-4979-acd9-c1fe848f156b"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "اجاره",
+                            NormalizedName = "اجاره"
+                        },
+                        new
+                        {
+                            Id = new Guid("5e5cf0e4-0d67-4b55-830a-8d0a6919fd00"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "حقوق",
+                            NormalizedName = "حقوق"
+                        },
+                        new
+                        {
+                            Id = new Guid("b74beca9-8e56-440f-9a19-e3ab97690134"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "برق",
+                            NormalizedName = "برق"
+                        },
+                        new
+                        {
+                            Id = new Guid("627d2be7-d824-422a-ba2c-8d17c98633b5"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "آب",
+                            NormalizedName = "آب"
+                        },
+                        new
+                        {
+                            Id = new Guid("270c9d15-6962-4eae-a492-483541b8d516"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "تجهیزات",
+                            NormalizedName = "تجهیزات"
+                        },
+                        new
+                        {
+                            Id = new Guid("97813c23-681f-4e8e-84eb-fa8ecd73c3ac"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "تعمیر و نگهداری",
+                            NormalizedName = "تعمیر و نگهداری"
+                        },
+                        new
+                        {
+                            Id = new Guid("c4e2af4c-deb5-420e-8087-a7780b0356fd"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "خرید بوفه",
+                            NormalizedName = "خرید بوفه"
+                        },
+                        new
+                        {
+                            Id = new Guid("1dfd1cc7-0587-4096-a384-73e0449b23cd"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "سایر",
+                            NormalizedName = "سایر"
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Lockers.Locker", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1502,6 +1709,29 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_products_product_categories_category_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Expenses.Expense", b =>
+                {
+                    b.HasOne("Gym.Domain.Expenses.ExpenseCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_expenses_expense_categories_category_id");
+
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_expenses_asp_net_users_recorded_by_user_id");
+
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("VoidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_expenses_asp_net_users_voided_by_user_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Payments.Payment", b =>

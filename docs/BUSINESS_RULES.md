@@ -592,6 +592,14 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
 - ExpenseCategory is a table, seeded with: Rent, Salary, Electricity, Water, Equipment, Maintenance, Cafe Purchasing, Other. The Owner can add more.
 - Fields: `Amount` (> 0), `CategoryId`, `ExpenseDate` (DateOnly), `Description`, `ReferenceNumber` (optional), `RecordedByUserId`.
 - Expenses can be edited (every edit is audited). They are voided with a reason, never deleted. Voided expenses are excluded from reports.
+- Details (decided with the developer, 1405/07/05, task 8.1):
+  - The seeded categories carry Persian names: اجاره (Rent), حقوق (Salary), برق (Electricity), آب (Water), تجهیزات (Equipment), تعمیر و نگهداری (Maintenance), خرید بوفه (Cafe Purchasing), سایر (Other). They arrive with the migration, so every database has them from the start.
+  - Category names are unique in normalized form (§13), like the cafe's. The Owner can add and rename a category, the seeded ones included. A category is never deleted or switched off: expenses and reports point at it.
+  - `Description` is required, at most 500 characters. `ReferenceNumber` is optional, at most 100. The void reason is required, at most 500.
+  - `Amount` follows the money rules of every other amount: greater than zero, at most 2 decimals, refused rather than rounded.
+  - `ExpenseDate` cannot be after the gym's today (`Expenses.DateInFuture`). Any past date is accepted, so an old bill can still be entered.
+  - A voided expense is final: it cannot be edited or voided again. A correction is a fresh expense.
+  - Expenses and their categories are Owner only, reading included (§1).
 
 ---
 

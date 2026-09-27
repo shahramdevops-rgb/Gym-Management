@@ -855,9 +855,24 @@ settlement together.
 ## Phase 8 — Expenses
 
 ### 8.1 Expenses API
-- [ ] ExpenseCategory table with seed data (Persian display names)
-- [ ] Expense entity; register, edit, void (Owner)
-- [ ] Tests: voided expenses excluded from totals
+- [x] ExpenseCategory table with seed data (Persian display names): eight rows written by the
+      migration (`HasData`, fixed ids), added to and renamed by the Owner, never deleted or
+      switched off (BUSINESS_RULES.md §9, details decided with the developer 1405/07/05)
+- [x] Expense entity; register, edit, void (Owner): `POST /api/expenses`, `PUT /api/expenses/{id}`
+      with `Version`, `POST /api/expenses/{id}/void` with a required reason. Not dated after the
+      gym's today; a voided expense is final
+- [x] `GET /api/expenses?from&to&categoryId&includeVoided`, newest first, with `TotalAmount` over
+      every matching row, voided ones left out; `GET /api/expenses/{id}`; categories at
+      `/api/expenses/categories`. Owner only, reading included
+- [x] Tests: voided expenses excluded from totals; the total covers every page; inclusive date
+      range; staff refused everywhere; stale `Version`; editing or voiding a voided expense is 422;
+      four parallel voids leave one; an edit is audited; the migration seeds the eight categories
+
+Done when: the Owner can write down, correct and void what the gym spends, and ask what went out
+in a date range. Closed 2026-09-27: 1183 backend tests and 550 frontend tests green, zero
+warnings. The test fixture now restores migration-seeded rows after each Respawn reset
+(docs/ARCHITECTURE.md). Chosen by Claude and open to review: voided expenses are listed by default
+(marked), as the cafe's order history does; the total never counts them.
 
 ### 8.2 UI: expenses
 - [ ] List with Jalali date filters, create, edit, void
