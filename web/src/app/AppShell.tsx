@@ -11,6 +11,7 @@ import {
   ReceiptText,
   Tickets,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router";
@@ -39,6 +40,7 @@ const navigation: NavigationItem[] = [
   { to: paths.cafe, label: "بوفه", icon: Coffee },
   { to: paths.cafeOrders, label: "سفارش‌های بوفه", icon: ReceiptText },
   { to: paths.cafeMenu, label: "منوی بوفه", icon: ClipboardList },
+  { to: paths.expenses, label: "هزینه‌ها", icon: Wallet, role: "Owner" },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.status, label: "وضعیت سیستم", icon: Activity },
   { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },

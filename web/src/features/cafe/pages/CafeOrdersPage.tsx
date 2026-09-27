@@ -9,19 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorMessage, errorMessages } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
-import { pageFromParams } from "@/lib/searchParams";
+import { dateFromParams, pageFromParams } from "@/lib/searchParams";
 
 import { useCafeOrderList } from "../api";
 import { CafeOrdersTable } from "../components/CafeOrdersTable";
-
-const isoDate = /^\d{4}-\d{2}-\d{2}$/;
-
-/** A date from the URL, or undefined for one that is missing or hand-edited into nonsense. */
-function dateFromParams(params: URLSearchParams, name: string): string | undefined {
-  const value = params.get(name) ?? "";
-
-  return isoDate.test(value) ? value : undefined;
-}
 
 /**
  * Every order the till has rung up, newest first, cancelled ones included and marked

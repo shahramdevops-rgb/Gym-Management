@@ -926,3 +926,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **A rule the database cannot hold.** "Not after today" moves every midnight, and a check constraint must stay true for a row forever. The entity checks it against the gym's today; the database checks only what never changes (amount > 0, a void always has a reason and a user).
 - **Join before paging.** `Skip`/`Take` go after the join and the `OrderBy`, so the order the database pages in is the order the client gets.
 - **My notes:**
+
+---
+
+## 8.2 — UI: expenses
+
+- **The filter lives in the URL.** `/expenses?from=…&to=…&category=…&page=2` is the page's state, not `useState`. A refresh, the back button and a pasted link all open the same list, and changing a filter replaces the history entry while changing the page pushes one, so "back" means "the page I was on".
+- **The server's total, not the client's sum.** The page shows `totalAmount` from the API and never adds the rows up. The browser sees twenty rows; the total covers every page the filter matches, voided ones left out, and only the database can say that.
+- **Say what the API would refuse before asking it.** A backwards date range, a future date, a zero amount: each is refused next to its box and no request is sent. The API still checks all of them. The form's copy is for speed and clarity, the API's is the rule.
+- **Optimistic concurrency reaches the screen as a message.** The edit form sends the `version` it read. If someone else saved in between, the API answers 409 `Expenses.ChangedConcurrently` and the form shows it above the button, instead of quietly overwriting the other edit.
+- **Hide what the API would refuse.** A voided row has no buttons at all, because §9 says it is final. A disabled button would make the user wonder why; no button says there is nothing left to do.
+- **Extract on the second caller.** `dateFromParams` lived inside the cafe's order history. The expenses page needed the same thing, so it moved to `lib/searchParams.ts`, not copied. One copy can be a local detail, but two copies drift apart.
+- **My notes:**

@@ -9,6 +9,7 @@ import { CurrentlyInsidePage } from "@/features/attendance/pages/CurrentlyInside
 import { CafeMenuPage } from "@/features/cafe/pages/CafeMenuPage";
 import { CafeOrdersPage } from "@/features/cafe/pages/CafeOrdersPage";
 import { CafeTillPage } from "@/features/cafe/pages/CafeTillPage";
+import { ExpensesPage } from "@/features/expenses/pages/ExpensesPage";
 import { LockersPage } from "@/features/lockers/pages/LockersPage";
 import { CreateMemberPage } from "@/features/members/pages/CreateMemberPage";
 import { EditMemberPage } from "@/features/members/pages/EditMemberPage";
@@ -63,6 +64,7 @@ export const routes: RouteObject[] = [
               ownerOnly(paths.plans, <PlansPage />),
               ownerOnly(paths.newPlan, <CreatePlanPage />),
               ownerOnly(paths.editPlan(":id"), <EditPlanPage />),
+              ownerOnly(paths.expenses, <ExpensesPage />),
               ownerOnly(paths.staff, <StaffPage />),
             ],
           },
