@@ -959,7 +959,8 @@ Anyone who knows a user name can keep that account locked by sending five wrong 
 - [x] Tests: an attacker's lockout leaves a trusted device working; a trusted device locks only
       itself; a planted cookie is never trusted; change password and reset forget devices; unlock
       (integration); the console commands in process; the unlock button (frontend)
-- [ ] After release, on the server: `./server.sh rename Owner <new-name>` (the developer)
+- [x] Released as 20260927-0310-9eb8f63 (2026-09-27); the Owner's user name was changed on the
+      server with `./server.sh rename`, which also proved the console commands work in production
 
 Done when: five wrong passwords from a browser without the device cookie lock the account for
 unknown browsers only, the front-desk PC still logs in, and `./server.sh unlock` opens both doors.
