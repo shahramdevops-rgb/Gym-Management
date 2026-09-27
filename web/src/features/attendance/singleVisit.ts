@@ -46,9 +46,9 @@ export interface SingleVisitResult {
  * Sells one visit and checks the member in, in that order (BUSINESS_RULES.md §4
  * <i>Single-session subscriptions</i>, roadmap 6.5.4).
  *
- * Two requests, not one: a single visit is an ordinary subscription sold from the single-session
- * plan, and check-in is the same check-in as any other. There is no combined endpoint, and adding
- * one would put a second way to sell a subscription next to the first.
+ * Two requests, not one: a single visit is an ordinary subscription sold at the single-visit price
+ * (BUSINESS_RULES.md §3), and check-in is the same check-in as any other. There is no combined
+ * endpoint, and adding one would put a check-in in a second place.
  *
  * They are not atomic, and that is survivable in a way the reverse order would not be: if the sale
  * succeeds and the check-in fails (someone took the locker in between, say), the member has a paid
@@ -64,16 +64,14 @@ export function useSellSingleVisit() {
   return useMutation({
     mutationFn: async ({
       memberId,
-      planId,
       lockerId,
     }: {
       memberId: string;
-      planId: string;
       lockerId: string | null;
     }): Promise<SingleVisitResult> => {
-      const sale = await api.POST("/api/members/{memberId}/subscriptions", {
+      // No body: the price is the Owner's setting, so the desk sends nothing but who it is for.
+      const sale = await api.POST("/api/members/{memberId}/subscriptions/single-visit", {
         params: { path: { memberId } },
-        body: { planId },
       });
       if (sale.error !== undefined) {
         throw sale.error;

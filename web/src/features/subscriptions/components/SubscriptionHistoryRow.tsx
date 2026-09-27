@@ -10,6 +10,7 @@ import { formatDate, formatMoney } from "@/lib/format";
 import { isPositiveMoney, subtractMoney } from "@/lib/money";
 
 import { useFreezeSubscription, useUnfreezeSubscription, type Subscription } from "../api";
+import { planLabel } from "../planLabel";
 import { CancelSubscriptionForm } from "./CancelSubscriptionForm";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
 
@@ -67,7 +68,8 @@ export function SubscriptionHistoryRow({
     }
   }
 
-  const context = `${subscription.planName} (${formatDate(subscription.startDate)})`;
+  const label = planLabel(subscription);
+  const context = `${label} (${formatDate(subscription.startDate)})`;
   const remaining = subtractMoney(subscription.price, subscription.netPaid);
   const hasPanel = action !== null || error !== null;
 
@@ -86,14 +88,10 @@ export function SubscriptionHistoryRow({
   return (
     <>
       <tr className="border-b">
-        <td className="py-2">{subscription.planName}</td>
+        <td className="py-2">{label}</td>
         <td className="py-2">{formatDate(subscription.startDate)}</td>
         <td className="py-2">{formatDate(subscription.endDate)}</td>
-        <td className="py-2">
-          {subscription.totalSessions === null
-            ? "نامحدود"
-            : `${subscription.usedSessions} / ${subscription.totalSessions}`}
-        </td>
+        <td className="py-2">{`${subscription.usedSessions} / ${subscription.totalSessions}`}</td>
         <td className="py-2">
           <SubscriptionStatusBadge status={subscription.status} />
         </td>
@@ -164,7 +162,7 @@ export function SubscriptionHistoryRow({
         <tr className="border-b bg-muted/30">
           <td colSpan={7} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">
-              برای «{subscription.planName}» — از {formatDate(subscription.startDate)} تا{" "}
+              برای «{label}» — از {formatDate(subscription.startDate)} تا{" "}
               {formatDate(subscription.endDate)} — قیمت {formatMoney(subscription.price)}،
               پرداخت‌شده {formatMoney(subscription.netPaid)}
               {isPositiveMoney(remaining) && <> — مانده {formatMoney(remaining)}</>}

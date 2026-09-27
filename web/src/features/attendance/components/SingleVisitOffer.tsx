@@ -3,13 +3,13 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { useSingleSessionPlan } from "@/features/plans/api";
+import { usePrices } from "@/features/settings/api";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
 
 interface SingleVisitOfferProps {
   memberId: string;
-  onSell: (planId: string) => void;
+  onSell: () => void;
   selling: boolean;
 }
 
@@ -24,38 +24,28 @@ interface SingleVisitOfferProps {
  * alternative — working the answer out from the member row before anyone clicks — would mean a
  * second copy of "usable today" living in the browser, and it is the copy that would be wrong.
  *
- * When the single-session plan is missing or switched off, the offer says so instead of offering
- * a button that would fail with nothing to explain it (BUSINESS_RULES.md §3).
+ * The price on the button is the Owner's single-visit price (BUSINESS_RULES.md §3 *Prices*); the
+ * desk never types it. While the Owner has not set it, the offer says so instead of offering a
+ * button that would fail with nothing to explain it.
  */
 export function SingleVisitOffer({ memberId, onSell, selling }: SingleVisitOfferProps) {
-  const plan = useSingleSessionPlan();
-  const sellable = plan.isSuccess && plan.data !== null && plan.data.isActive ? plan.data : null;
+  const prices = usePrices();
+  const price = prices.data?.singleVisitPrice ?? null;
 
   return (
     <div className="space-y-3">
-      {plan.isPending && <p className="text-sm text-muted-foreground">در حال بررسی…</p>}
+      {prices.isPending && <p className="text-sm text-muted-foreground">در حال بررسی…</p>}
 
-      {plan.isError && <Alert variant="destructive">{errorMessage(plan.error)}</Alert>}
+      {prices.isError && <Alert variant="destructive">{errorMessage(prices.error)}</Alert>}
 
-      {plan.isSuccess && plan.data === null && (
-        <Alert>
-          هنوز پلن تک‌جلسه‌ای ساخته نشده است. مدیر باید آن را یک بار در صفحهٔ پلن‌ها بسازد.
-        </Alert>
-      )}
-
-      {plan.isSuccess && plan.data !== null && !plan.data.isActive && (
-        <Alert>پلن تک‌جلسه‌ای غیرفعال است، پس فروش ورود تک‌جلسه‌ای ممکن نیست.</Alert>
+      {prices.isSuccess && price === null && (
+        <Alert>{errorMessage({ code: "Pricing.SingleVisitPriceNotSet" })}</Alert>
       )}
 
       <div className="flex flex-wrap gap-2">
-        {sellable !== null && (
-          <Button
-            disabled={selling}
-            onClick={() => {
-              onSell(sellable.id);
-            }}
-          >
-            {selling ? "در حال ثبت…" : `ورود تک‌جلسه‌ای — ${formatMoney(sellable.price)}`}
+        {price !== null && (
+          <Button disabled={selling} onClick={onSell}>
+            {selling ? "در حال ثبت…" : `ورود تک‌جلسه‌ای — ${formatMoney(price)}`}
           </Button>
         )}
         <Button asChild variant="outline">

@@ -9,7 +9,6 @@ using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Cafe;
 using Gym.Application.Common.Paging;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -133,16 +132,9 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
     private async Task<AttendanceResponse> CheckedInMemberAsync(HttpClient client, string token)
     {
         var member = await AddMemberAsync();
-        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
+        var plan = await TestPlans.AddAsync(Fixture);
 
-        await using (var scope = Fixture.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Plans.Add(plan);
-            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
-
-        await PostOkAsync(client, token, $"/api/members/{member.Id}/subscriptions", new { planId = plan.Id });
+        await PostOkAsync(client, token, $"/api/members/{member.Id}/subscriptions", plan.Body);
 
         using var response = await TestLockers.CheckInAsync(client, token, member.Id);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);

@@ -8,6 +8,7 @@ import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 
 import { useCurrentSubscription } from "../api";
+import { planLabel } from "../planLabel";
 import { AssignSubscriptionForm } from "./AssignSubscriptionForm";
 import { RenewSubscriptionForm } from "./RenewSubscriptionForm";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
@@ -88,7 +89,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
         ) : (
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
             <dt className="text-muted-foreground">پلن</dt>
-            <dd>{current.planName}</dd>
+            <dd>{planLabel(current)}</dd>
 
             <dt className="text-muted-foreground">وضعیت</dt>
             <dd>
@@ -102,11 +103,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
             <dd>{formatDate(current.endDate)}</dd>
 
             <dt className="text-muted-foreground">جلسات باقی‌مانده</dt>
-            <dd>
-              {current.totalSessions === null
-                ? "نامحدود"
-                : formatNumber(Number(current.remainingSessions))}
-            </dd>
+            <dd>{formatNumber(Number(current.remainingSessions))}</dd>
 
             <dt className="text-muted-foreground">وضعیت پرداخت</dt>
             <dd className="flex flex-wrap items-center gap-2">
@@ -142,7 +139,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
         {panel === "renew" && current !== null && (
           <RenewSubscriptionForm
             memberId={memberId}
-            planName={current.planName}
+            current={current}
             onDone={(renewed) =>
               done(
                 renewed.status === "Upcoming"

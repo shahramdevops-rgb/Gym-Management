@@ -107,7 +107,7 @@ public sealed class Payment : Entity
 
     /// <summary>
     /// Also used by <c>PaymentRules</c>, so the form hears the same answer as the entity
-    /// (the same split <see cref="Domain.Plans.Plan.CheckPrice"/> uses for a price).
+    /// (the same split <see cref="Domain.Pricing.PriceList.CheckPrice"/> uses for a price).
     /// </summary>
     public static Error? CheckAmount(decimal amount)
     {

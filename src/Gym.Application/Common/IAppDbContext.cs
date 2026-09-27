@@ -5,7 +5,7 @@ using Gym.Domain.Expenses;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
-using Gym.Domain.Plans;
+using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
 using Gym.Domain.Subscriptions;
 
@@ -42,7 +42,7 @@ public interface IAppDbContext
 
     DbSet<Member> Members { get; }
 
-    DbSet<Plan> Plans { get; }
+    DbSet<PriceList> PriceLists { get; }
 
     DbSet<Subscription> Subscriptions { get; }
 

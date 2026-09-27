@@ -125,7 +125,7 @@ try
     app.MapAuthEndpoints();
     app.MapStaffEndpoints();
     app.MapMembersEndpoints();
-    app.MapPlansEndpoints();
+    app.MapPricingEndpoints();
     app.MapSubscriptionsEndpoints();
     app.MapPaymentsEndpoints();
     app.MapLockersEndpoints();

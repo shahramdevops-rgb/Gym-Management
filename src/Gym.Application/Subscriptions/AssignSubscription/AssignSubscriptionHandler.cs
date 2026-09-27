@@ -1,15 +1,15 @@
 using Gym.Application.Common;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 
 using Microsoft.EntityFrameworkCore;
 
 namespace Gym.Application.Subscriptions.AssignSubscription;
 
 /// <summary>
-/// Sells a chosen plan to a member, starting today or queued after their latest subscription
-/// (BUSINESS_RULES.md §4). Owner and Staff.
+/// Sells a member the plan the desk built for them — so many days, so many sessions — at today's
+/// session price, starting today or queued after their latest subscription (BUSINESS_RULES.md §3,
+/// §4). Owner and Staff.
 /// </summary>
 public sealed class AssignSubscriptionHandler(IAppDbContext db, SubscriptionSeller seller)
 {
@@ -24,12 +24,6 @@ public sealed class AssignSubscriptionHandler(IAppDbContext db, SubscriptionSell
             return Result.Failure<SubscriptionResponse>(MemberErrors.NotFound);
         }
 
-        var plan = await db.Plans.AsNoTracking().SingleOrDefaultAsync(p => p.Id == command.PlanId, cancellationToken);
-        if (plan is null)
-        {
-            return Result.Failure<SubscriptionResponse>(PlanErrors.NotFound);
-        }
-
-        return await seller.SellAsync(member, plan, cancellationToken);
+        return await seller.SellMembershipAsync(member, command.DurationDays, command.SessionCount, cancellationToken);
     }
 }

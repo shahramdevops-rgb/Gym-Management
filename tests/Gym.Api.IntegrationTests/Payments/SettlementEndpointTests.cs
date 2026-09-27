@@ -11,7 +11,6 @@ using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.Payments.SettleMemberDebt;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -262,17 +261,9 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     private async Task<AttendanceResponse> VisitWithThreeItemsAsync(HttpClient client, string token)
     {
         var member = await AddMemberAsync();
-        // Plan names are unique, and one test builds two of these visits.
-        var plan = Plan.Create($"پلن {member.Id}", 30, 12, PlanPrice).Value;
+        var plan = await TestPlans.AddAsync(Fixture, price: PlanPrice);
 
-        await using (var scope = Fixture.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Plans.Add(plan);
-            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
-
-        await PostOkAsync<object>(client, token, $"/api/members/{member.Id}/subscriptions", new { planId = plan.Id });
+        await PostOkAsync<object>(client, token, $"/api/members/{member.Id}/subscriptions", plan.Body);
 
         using var checkedIn = await TestLockers.CheckInAsync(client, token, member.Id);
         checkedIn.StatusCode.ShouldBe(HttpStatusCode.Created);

@@ -109,7 +109,7 @@ describe("VisitCafeBox on the currently inside board", () => {
             ...debtItem(),
             kind: "CafeOrder",
             id: visitOrder.id,
-            planName: null,
+            plan: null,
             price: 120000,
             netPaid: 0,
             outstanding: 120000,

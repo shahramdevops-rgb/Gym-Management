@@ -75,7 +75,7 @@ describe("SettleDebt", () => {
     expect(boxes.map((box) => box.closest("label")!.textContent)).toEqual([
       expect.stringContaining("بوفه"),
       expect.stringContaining("هوازی"),
-      expect.stringContaining("اشتراک ماهانه"),
+      expect.stringContaining("اشتراک ۳۰ روز · ۱۲ جلسه"),
     ]);
     boxes.forEach((box) => expect(box).toBeChecked());
     expect(amountBox(form)).toHaveValue("۶۴۰٬۰۰۰");
@@ -87,7 +87,7 @@ describe("SettleDebt", () => {
     });
     const form = await openForm();
 
-    fireEvent.click(within(form).getByRole("checkbox", { name: /اشتراک ماهانه/ }));
+    fireEvent.click(within(form).getByRole("checkbox", { name: /اشتراک ۳۰ روز · ۱۲ جلسه/ }));
     expect(amountBox(form)).toHaveValue("۴۰٬۰۰۰");
     pickMethod(form);
     fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
@@ -205,7 +205,7 @@ describe("SettleDebt", () => {
     const done = await screen.findByRole("status", { name: "تسویه ثبت شد" });
     expect(done).toHaveTextContent("تسویه ثبت شد: ۶۴۰٬۰۰۰ تومان (کارت)");
     expect(within(done).getByText("بوفه")).toBeInTheDocument();
-    expect(within(done).getByText("اشتراک ماهانه")).toBeInTheDocument();
+    expect(within(done).getByText("اشتراک ۳۰ روز · ۱۲ جلسه")).toBeInTheDocument();
     expect(within(done).getByText("بدهی این عضو صاف شد.")).toBeInTheDocument();
 
     // The debt behind it is refetched and empty; the step stays until the desk closes it.

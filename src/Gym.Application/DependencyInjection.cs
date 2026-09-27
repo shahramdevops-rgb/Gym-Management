@@ -51,11 +51,8 @@ using Gym.Application.Payments.ListMemberPayments;
 using Gym.Application.Payments.RegisterPayment;
 using Gym.Application.Payments.RegisterRefund;
 using Gym.Application.Payments.SettleMemberDebt;
-using Gym.Application.Plans.CreatePlan;
-using Gym.Application.Plans.GetPlan;
-using Gym.Application.Plans.ListPlans;
-using Gym.Application.Plans.SetPlanActive;
-using Gym.Application.Plans.UpdatePlan;
+using Gym.Application.Pricing.GetPrices;
+using Gym.Application.Pricing.UpdatePrices;
 using Gym.Application.ServiceCharges.ChangeServiceChargeAmount;
 using Gym.Application.ServiceCharges.RecordServiceCharge;
 using Gym.Application.ServiceCharges.VoidServiceCharge;
@@ -72,6 +69,7 @@ using Gym.Application.Subscriptions.FreezeSubscription;
 using Gym.Application.Subscriptions.GetSubscription;
 using Gym.Application.Subscriptions.ListMemberSubscriptions;
 using Gym.Application.Subscriptions.RenewSubscription;
+using Gym.Application.Subscriptions.SellSingleVisit;
 using Gym.Application.Subscriptions.UnfreezeSubscription;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -124,11 +122,8 @@ public static class DependencyInjection
         services.AddScoped<ListMembersHandler>();
         services.AddScoped<SetMemberActiveHandler>();
 
-        services.AddScoped<CreatePlanHandler>();
-        services.AddScoped<UpdatePlanHandler>();
-        services.AddScoped<GetPlanHandler>();
-        services.AddScoped<ListPlansHandler>();
-        services.AddScoped<SetPlanActiveHandler>();
+        services.AddScoped<GetPricesHandler>();
+        services.AddScoped<UpdatePricesHandler>();
 
         services.AddScoped<GetLockerHandler>();
         services.AddScoped<ListLockersHandler>();
@@ -145,6 +140,7 @@ public static class DependencyInjection
         services.AddScoped<SubscriptionSeller>();
         services.AddScoped<AssignSubscriptionHandler>();
         services.AddScoped<RenewSubscriptionHandler>();
+        services.AddScoped<SellSingleVisitHandler>();
         services.AddScoped<GetSubscriptionHandler>();
         services.AddScoped<ListMemberSubscriptionsHandler>();
         services.AddScoped<FreezeSubscriptionHandler>();

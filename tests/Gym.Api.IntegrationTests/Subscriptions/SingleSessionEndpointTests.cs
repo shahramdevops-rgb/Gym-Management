@@ -8,10 +8,8 @@ using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Common;
 using Gym.Application.Common.Paging;
 using Gym.Application.Members.GetMemberDebt;
-using Gym.Application.Plans;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -22,174 +20,115 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gym.Api.IntegrationTests.Subscriptions;
 
 /// <summary>
-/// Selling and using a single visit end to end (BUSINESS_RULES.md §3, §4, task 6.5.3). The point of
-/// these tests is the damage that must <b>not</b> happen to a membership the member already paid for.
+/// Selling and using a single visit end to end: <c>POST /api/members/{id}/subscriptions/single-visit</c>
+/// (BUSINESS_RULES.md §3, §4; tasks 6.5.3 and 6.5.6). The point of these tests is the damage that must
+/// <b>not</b> happen to a membership the member already paid for.
 /// </summary>
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
+    private const decimal SingleVisitPrice = 150_000m;
+
     private static int _phoneSuffix;
-
-    // ---- The plan ----
-
-    [Fact]
-    public async Task CreatePlan_SingleSession_IsStoredWithItsKind()
-    {
-        var (client, token) = await OwnerClientAsync();
-
-        using var response = await CreatePlanAsync(client, token, "تک‌جلسه‌ای", 1, 1, 150_000m, "SingleSession");
-
-        response.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var plan = (await response.Content.ReadFromJsonAsync<PlanResponse>(TestContext.Current.CancellationToken))
-            .ShouldNotBeNull();
-        plan.Kind.ShouldBe(PlanKind.SingleSession);
-        plan.DurationDays.ShouldBe(1);
-        plan.SessionCount.ShouldBe(1);
-    }
-
-    [Fact]
-    public async Task CreatePlan_SecondSingleSessionPlan_IsRefused()
-    {
-        var (client, token) = await OwnerClientAsync();
-        using var first = await CreatePlanAsync(client, token, "تک‌جلسه‌ای", 1, 1, 150_000m, "SingleSession");
-        first.StatusCode.ShouldBe(HttpStatusCode.Created);
-
-        using var response = await CreatePlanAsync(client, token, "ورود آزاد", 1, 1, 200_000m, "SingleSession");
-
-        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Plans.SingleSessionAlreadyExists");
-    }
-
-    [Fact]
-    public async Task CreatePlan_SingleSessionWithMoreThanOneSession_IsRefused()
-    {
-        var (client, token) = await OwnerClientAsync();
-
-        using var response = await CreatePlanAsync(client, token, "تک‌جلسه‌ای", 1, 10, 150_000m, "SingleSession");
-
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Plans.SingleSessionShape");
-    }
-
-    [Fact]
-    public async Task CreatePlan_ManyMemberships_AreAllAllowed()
-    {
-        // The partial unique index must not touch memberships.
-        var (client, token) = await OwnerClientAsync();
-
-        using var first = await CreatePlanAsync(client, token, "یک ماهه", 30, 12, 900_000m);
-        using var second = await CreatePlanAsync(client, token, "سه ماهه", 90, 36, 2_400_000m);
-
-        first.StatusCode.ShouldBe(HttpStatusCode.Created);
-        second.StatusCode.ShouldBe(HttpStatusCode.Created);
-    }
-
-    [Fact]
-    public async Task ListPlans_FilteredByKind_FindsTheSingleSessionPlanWhateverPageItIsOn()
-    {
-        // How the entry screen finds it (task 6.5.4): there is exactly one, it can sit on any
-        // page, and paging through every plan hoping to meet it is not a way to find something.
-        var (client, token) = await StaffClientAsync();
-        foreach (var index in Enumerable.Range(1, 3))
-        {
-            await AddPlanAsync($"ماهانه {index}", 30, 12, 900_000m);
-        }
-
-        var single = await AddSingleSessionPlanAsync();
-
-        using var response = await SendAsync(
-            client, token, HttpMethod.Get, "/api/plans?kind=SingleSession&pageSize=1", body: null);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var page = (await response.Content.ReadFromJsonAsync<PagedResponse<PlanResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-        page.TotalCount.ShouldBe(1);
-        page.Items.ShouldHaveSingleItem().Id.ShouldBe(single.Id);
-    }
-
-    [Fact]
-    public async Task ListPlans_FilteredByMembershipKind_LeavesOutTheSingleSessionPlan()
-    {
-        var (client, token) = await StaffClientAsync();
-        await AddPlanAsync("ماهانه", 30, 12, 900_000m);
-        await AddSingleSessionPlanAsync();
-
-        using var response = await SendAsync(
-            client, token, HttpMethod.Get, "/api/plans?kind=Membership", body: null);
-
-        var page = (await response.Content.ReadFromJsonAsync<PagedResponse<PlanResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-        page.Items.ShouldHaveSingleItem().Name.ShouldBe("ماهانه");
-    }
-
-    [Fact]
-    public async Task CurrentlyInside_AfterASingleVisitCheckIn_SaysItWasASingleVisit()
-    {
-        // The board needs this to show "تک‌جلسه‌ای" instead of a bar that would always read
-        // "۱ از ۱", and to leave off the running-out mark that would fire on every such row.
-        var (client, token) = await StaffClientAsync();
-        var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
-        await AssignOkAsync(client, token, member.Id, plan.Id);
-        using (var checkIn = await CheckInAsync(client, token, member.Id))
-        {
-            checkIn.EnsureSuccessStatusCode();
-        }
-
-        using var response = await SendAsync(
-            client, token, HttpMethod.Get, "/api/attendance/currently-inside", body: null);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var page = (await response.Content.ReadFromJsonAsync<PagedResponse<CurrentlyInsideResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-        page.Items.ShouldHaveSingleItem().IsSingleSession.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task CurrentlyInside_AfterAMembershipCheckIn_SaysItWasNotASingleVisit()
-    {
-        var (client, token) = await StaffClientAsync();
-        var member = await AddMemberAsync();
-        var plan = await AddPlanAsync("ماهانه", 30, 12, 900_000m);
-        await AssignOkAsync(client, token, member.Id, plan.Id);
-        using (var checkIn = await CheckInAsync(client, token, member.Id))
-        {
-            checkIn.EnsureSuccessStatusCode();
-        }
-
-        using var response = await SendAsync(
-            client, token, HttpMethod.Get, "/api/attendance/currently-inside", body: null);
-
-        var page = (await response.Content.ReadFromJsonAsync<PagedResponse<CurrentlyInsideResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
-        page.Items.ShouldHaveSingleItem().IsSingleSession.ShouldBeFalse();
-    }
 
     // ---- Selling it ----
 
     [Fact]
-    public async Task Assign_SingleVisit_StartsAndEndsToday()
+    public async Task SellSingleVisit_PriceSet_IsOneSessionForTodayAtThatPrice()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
+        await SetSingleVisitPriceAsync();
         var today = Today();
 
-        var visit = await AssignOkAsync(client, token, member.Id, plan.Id);
+        using var response = await SellVisitAsync(client, token, member.Id);
 
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var visit = (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken))
+            .ShouldNotBeNull();
+        response.Headers.Location.ShouldNotBeNull().OriginalString.ShouldBe($"/api/subscriptions/{visit.Id}");
         visit.IsSingleSession.ShouldBeTrue();
+        visit.Price.ShouldBe(SingleVisitPrice);
         visit.StartDate.ShouldBe(today);
         visit.EndDate.ShouldBe(today);
+        visit.DurationDays.ShouldBe(1);
         visit.TotalSessions.ShouldBe(1);
         visit.Status.ShouldBe(SubscriptionStatus.Active);
     }
 
     [Fact]
-    public async Task Assign_SingleVisitWhileAMembershipIsCurrent_StillStartsToday()
+    public async Task SellSingleVisit_PriceNotSet_Returns422SingleVisitPriceNotSet()
+    {
+        // BUSINESS_RULES.md §3: both prices start empty, and nothing sells at a price nobody chose.
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+
+        using var response = await SellVisitAsync(client, token, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Pricing.SingleVisitPriceNotSet");
+        (await CountSubscriptionsAsync()).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task SellSingleVisit_PriceChangedAfterwards_KeepsWhatTheVisitCost()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var membership = await AddPlanAsync("ماهانه", 30, 12, 900_000m);
-        var singleSession = await AddSingleSessionPlanAsync();
-        var current = await AssignOkAsync(client, token, member.Id, membership.Id);
+        await SetSingleVisitPriceAsync();
+        var visit = await SellVisitOkAsync(client, token, member.Id);
 
-        var visit = await AssignOkAsync(client, token, member.Id, singleSession.Id);
+        await TestPlans.SetPricesAsync(Fixture, singleVisitPrice: 200_000m);
+
+        (await GetOkAsync(client, token, visit.Id)).Price.ShouldBe(SingleVisitPrice);
+    }
+
+    [Fact]
+    public async Task SellSingleVisit_InactiveMember_Returns422MemberInactive()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync(active: false);
+        await SetSingleVisitPriceAsync();
+
+        using var response = await SellVisitAsync(client, token, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Members.Inactive");
+    }
+
+    [Fact]
+    public async Task SellSingleVisit_UnknownMember_Returns404()
+    {
+        var (client, token) = await StaffClientAsync();
+        await SetSingleVisitPriceAsync();
+
+        using var response = await SellVisitAsync(client, token, Guid.CreateVersion7());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Members.NotFound");
+    }
+
+    [Fact]
+    public async Task SellSingleVisit_WithoutToken_Returns401()
+    {
+        using var client = Fixture.CreateClient();
+
+        using var response = await client.PostAsync(
+            $"/api/members/{Guid.CreateVersion7()}/subscriptions/single-visit", content: null, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task SellSingleVisit_WhileAMembershipIsCurrent_StillStartsToday()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var membership = await TestPlans.AddAsync(Fixture);
+        await SetSingleVisitPriceAsync();
+        var current = await AssignOkAsync(client, token, member.Id, membership);
+
+        var visit = await SellVisitOkAsync(client, token, member.Id);
 
         visit.StartDate.ShouldBe(Today());
         // The membership is untouched: same term, same sessions.
@@ -199,17 +138,17 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
     }
 
     [Fact]
-    public async Task Assign_SingleVisitWhileAMembershipIsExhausted_LeavesItsEndDateAlone()
+    public async Task SellSingleVisit_WhileAMembershipIsExhausted_LeavesItsEndDateAlone()
     {
         // The bug this feature exists to avoid: closing the exhausted pack "yesterday" to make room.
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var membership = await AddPlanAsync("ماهانه ۱ جلسه", 30, 1, 900_000m);
-        var singleSession = await AddSingleSessionPlanAsync();
-        var pack = await AssignOkAsync(client, token, member.Id, membership.Id);
+        var membership = await TestPlans.AddAsync(Fixture, sessions: 5, price: 500_000m);
+        await SetSingleVisitPriceAsync();
+        var pack = await AssignOkAsync(client, token, member.Id, membership);
         await UseEverySessionAsync(pack.Id);
 
-        var visit = await AssignOkAsync(client, token, member.Id, singleSession.Id);
+        var visit = await SellVisitOkAsync(client, token, member.Id);
 
         visit.StartDate.ShouldBe(Today());
         (await GetOkAsync(client, token, pack.Id)).EndDate.ShouldBe(pack.EndDate);
@@ -221,25 +160,25 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         // The visitor buys a plan an hour after dropping in; it must not start tomorrow.
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var singleSession = await AddSingleSessionPlanAsync();
-        var membership = await AddPlanAsync("ماهانه", 30, 12, 900_000m);
-        await AssignOkAsync(client, token, member.Id, singleSession.Id);
+        var membership = await TestPlans.AddAsync(Fixture);
+        await SetSingleVisitPriceAsync();
+        await SellVisitOkAsync(client, token, member.Id);
 
-        var sold = await AssignOkAsync(client, token, member.Id, membership.Id);
+        var sold = await AssignOkAsync(client, token, member.Id, membership);
 
         sold.StartDate.ShouldBe(Today());
         sold.Status.ShouldBe(SubscriptionStatus.Active);
     }
 
     [Fact]
-    public async Task Assign_TwoSingleVisitsOnTheSameDay_BothStartToday()
+    public async Task SellSingleVisit_TwiceOnTheSameDay_BothStartToday()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
+        await SetSingleVisitPriceAsync();
 
-        var first = await AssignOkAsync(client, token, member.Id, plan.Id);
-        var second = await AssignOkAsync(client, token, member.Id, plan.Id);
+        var first = await SellVisitOkAsync(client, token, member.Id);
+        var second = await SellVisitOkAsync(client, token, member.Id);
 
         first.StartDate.ShouldBe(Today());
         second.StartDate.ShouldBe(Today());
@@ -247,25 +186,61 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
     }
 
     [Fact]
-    public async Task Assign_SingleVisitWhileTheMembershipIsFrozen_SucceedsAndLeavesTheFreezeAlone()
+    public async Task SellSingleVisit_WhileTheMembershipIsFrozen_SucceedsAndLeavesTheFreezeAlone()
     {
         // What the front desk does for a member who is away and drops in once. Freeze and unfreeze
         // stay Owner-only (BUSINESS_RULES.md §1); the desk does not need either of them.
         var (staff, staffToken) = await StaffClientAsync();
         var (owner, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
-        var membership = await AddPlanAsync("ماهانه", 30, 12, 900_000m);
-        var singleSession = await AddSingleSessionPlanAsync();
-        var pack = await AssignOkAsync(staff, staffToken, member.Id, membership.Id);
+        var membership = await TestPlans.AddAsync(Fixture);
+        await SetSingleVisitPriceAsync();
+        var pack = await AssignOkAsync(staff, staffToken, member.Id, membership);
         using var frozen = await SendAsync(owner, ownerToken, HttpMethod.Post, $"/api/subscriptions/{pack.Id}/freeze");
         frozen.EnsureSuccessStatusCode();
 
-        var visit = await AssignOkAsync(staff, staffToken, member.Id, singleSession.Id);
+        var visit = await SellVisitOkAsync(staff, staffToken, member.Id);
 
         visit.StartDate.ShouldBe(Today());
         var reread = await GetOkAsync(owner, ownerToken, pack.Id);
         reread.Status.ShouldBe(SubscriptionStatus.Frozen);
         reread.EndDate.ShouldBe(pack.EndDate);
+    }
+
+    [Fact]
+    public async Task CurrentlyInside_AfterASingleVisitCheckIn_SaysItWasASingleVisit()
+    {
+        // The board needs this to show "تک‌جلسه‌ای" instead of a bar that would always read
+        // "۱ از ۱", and to leave off the running-out mark that would fire on every such row.
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        await SetSingleVisitPriceAsync();
+        await SellVisitOkAsync(client, token, member.Id);
+        using (var checkIn = await CheckInAsync(client, token, member.Id))
+        {
+            checkIn.EnsureSuccessStatusCode();
+        }
+
+        var page = await CurrentlyInsideAsync(client, token);
+
+        page.Items.ShouldHaveSingleItem().IsSingleSession.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task CurrentlyInside_AfterAMembershipCheckIn_SaysItWasNotASingleVisit()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var membership = await TestPlans.AddAsync(Fixture);
+        await AssignOkAsync(client, token, member.Id, membership);
+        using (var checkIn = await CheckInAsync(client, token, member.Id))
+        {
+            checkIn.EnsureSuccessStatusCode();
+        }
+
+        var page = await CurrentlyInsideAsync(client, token);
+
+        page.Items.ShouldHaveSingleItem().IsSingleSession.ShouldBeFalse();
     }
 
     // ---- Freeze and renew ----
@@ -276,8 +251,8 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         var (staff, staffToken) = await StaffClientAsync();
         var (owner, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
-        var visit = await AssignOkAsync(staff, staffToken, member.Id, plan.Id);
+        await SetSingleVisitPriceAsync();
+        var visit = await SellVisitOkAsync(staff, staffToken, member.Id);
 
         using var response = await SendAsync(owner, ownerToken, HttpMethod.Post, $"/api/subscriptions/{visit.Id}/freeze");
 
@@ -289,8 +264,9 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
-        await AssignOkAsync(client, token, member.Id, plan.Id);
+        await TestPlans.AddAsync(Fixture);
+        await SetSingleVisitPriceAsync();
+        await SellVisitOkAsync(client, token, member.Id);
 
         using var response = await SendAsync(
             client, token, HttpMethod.Post, $"/api/members/{member.Id}/subscriptions/renew");
@@ -305,11 +281,11 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         // date" would pick the visit. Renew reads memberships only.
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var membership = await AddPlanAsync("ماهانه", 30, 12, 900_000m);
-        var singleSession = await AddSingleSessionPlanAsync();
-        var pack = await AssignOkAsync(client, token, member.Id, membership.Id);
+        var membership = await TestPlans.AddAsync(Fixture, durationDays: 45, sessions: 12);
+        await SetSingleVisitPriceAsync();
+        var pack = await AssignOkAsync(client, token, member.Id, membership);
         await ExpireAsync(pack.Id);
-        await AssignOkAsync(client, token, member.Id, singleSession.Id);
+        await SellVisitOkAsync(client, token, member.Id);
 
         using var response = await SendAsync(
             client, token, HttpMethod.Post, $"/api/members/{member.Id}/subscriptions/renew");
@@ -317,8 +293,9 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var renewed = (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken))
             .ShouldNotBeNull();
-        renewed.PlanId.ShouldBe(membership.Id);
         renewed.IsSingleSession.ShouldBeFalse();
+        renewed.DurationDays.ShouldBe(45);
+        renewed.TotalSessions.ShouldBe(12);
     }
 
     // ---- Money: what §4 says is unchanged, proved rather than assumed ----
@@ -330,16 +307,19 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         // code of its own. That is the whole argument for this design, so it gets a test.
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
-        var visit = await AssignOkAsync(client, token, member.Id, plan.Id);
+        await SetSingleVisitPriceAsync();
+        var visit = await SellVisitOkAsync(client, token, member.Id);
 
         using var response = await SendAsync(client, token, HttpMethod.Get, $"/api/members/{member.Id}/debt");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var debt = (await response.Content.ReadFromJsonAsync<MemberDebtResponse>(TestContext.Current.CancellationToken))
             .ShouldNotBeNull();
-        debt.Total.ShouldBe(150_000m);
-        debt.Items.ShouldContain(item => item.Id == visit.Id && item.Outstanding == 150_000m);
+        debt.Total.ShouldBe(SingleVisitPrice);
+        var item = debt.Items.ShouldHaveSingleItem();
+        item.Id.ShouldBe(visit.Id);
+        item.Outstanding.ShouldBe(SingleVisitPrice);
+        item.Plan.ShouldBe(new PlanSummary(DurationDays: 1, TotalSessions: 1, IsSingleSession: true));
     }
 
     [Fact]
@@ -348,8 +328,8 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         var (staff, staffToken) = await StaffClientAsync();
         var (owner, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
-        var visit = await AssignOkAsync(staff, staffToken, member.Id, plan.Id);
+        await SetSingleVisitPriceAsync();
+        var visit = await SellVisitOkAsync(staff, staffToken, member.Id);
 
         using var response = await SendAsync(
             owner, ownerToken, HttpMethod.Post, $"/api/subscriptions/{visit.Id}/cancel",
@@ -367,8 +347,8 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         var (staff, staffToken) = await StaffClientAsync();
         var (owner, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
-        var visit = await AssignOkAsync(staff, staffToken, member.Id, plan.Id);
+        await SetSingleVisitPriceAsync();
+        var visit = await SellVisitOkAsync(staff, staffToken, member.Id);
         using var checkedIn = await CheckInAsync(staff, staffToken, member.Id);
         checkedIn.StatusCode.ShouldBe(HttpStatusCode.Created);
 
@@ -379,27 +359,6 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.AlreadyUsed");
     }
 
-    [Fact]
-    public async Task UpdatePlan_ChangingTheWalkInRate_KeepsTheKind()
-    {
-        // BUSINESS_RULES.md §3: editing this plan's price is the whole mechanism for changing the
-        // rate, and the kind is set once and never edited.
-        var (client, token) = await OwnerClientAsync();
-        using var created = await CreatePlanAsync(client, token, "تک‌جلسه‌ای", 1, 1, 150_000m, "SingleSession");
-        var plan = (await created.Content.ReadFromJsonAsync<PlanResponse>(TestContext.Current.CancellationToken))
-            .ShouldNotBeNull();
-
-        using var response = await SendAsync(
-            client, token, HttpMethod.Put, $"/api/plans/{plan.Id}",
-            new { name = "تک‌جلسه‌ای", durationDays = 1, sessionCount = 1, price = 200_000m, version = plan.Version });
-
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var updated = (await response.Content.ReadFromJsonAsync<PlanResponse>(TestContext.Current.CancellationToken))
-            .ShouldNotBeNull();
-        updated.Price.ShouldBe(200_000m);
-        updated.Kind.ShouldBe(PlanKind.SingleSession);
-    }
-
     // ---- Using it ----
 
     [Fact]
@@ -407,10 +366,10 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var membership = await AddPlanAsync("ماهانه", 30, 12, 900_000m);
-        var singleSession = await AddSingleSessionPlanAsync();
-        var pack = await AssignOkAsync(client, token, member.Id, membership.Id);
-        var visit = await AssignOkAsync(client, token, member.Id, singleSession.Id);
+        var membership = await TestPlans.AddAsync(Fixture);
+        await SetSingleVisitPriceAsync();
+        var pack = await AssignOkAsync(client, token, member.Id, membership);
+        var visit = await SellVisitOkAsync(client, token, member.Id);
 
         using var response = await CheckInAsync(client, token, member.Id);
 
@@ -424,9 +383,9 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
-        await AssignOkAsync(client, token, member.Id, plan.Id);
-        await AssignOkAsync(client, token, member.Id, plan.Id);
+        await SetSingleVisitPriceAsync();
+        await SellVisitOkAsync(client, token, member.Id);
+        await SellVisitOkAsync(client, token, member.Id);
 
         await CheckInAndOutAsync(client, token, member.Id);
 
@@ -440,8 +399,8 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var plan = await AddSingleSessionPlanAsync();
-        await AssignOkAsync(client, token, member.Id, plan.Id);
+        await SetSingleVisitPriceAsync();
+        await SellVisitOkAsync(client, token, member.Id);
         await CheckInAndOutAsync(client, token, member.Id);
 
         using var response = await CheckInAsync(client, token, member.Id);
@@ -455,12 +414,12 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var membership = await AddPlanAsync("ماهانه", 30, 12, 900_000m);
-        var singleSession = await AddSingleSessionPlanAsync();
-        var current = await AssignOkAsync(client, token, member.Id, membership.Id);
-        var queued = await AssignOkAsync(client, token, member.Id, membership.Id);
+        var membership = await TestPlans.AddAsync(Fixture);
+        await SetSingleVisitPriceAsync();
+        var current = await AssignOkAsync(client, token, member.Id, membership);
+        var queued = await AssignOkAsync(client, token, member.Id, membership);
         await ExpireAsync(current.Id);
-        await AssignOkAsync(client, token, member.Id, singleSession.Id);
+        await SellVisitOkAsync(client, token, member.Id);
         await CheckInAndOutAsync(client, token, member.Id);
 
         using var response = await CheckInAsync(client, token, member.Id);
@@ -473,7 +432,30 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         stillQueued.Status.ShouldBe(SubscriptionStatus.Upcoming);
     }
 
+    // ---- Database ----
+
+    [Fact]
+    public async Task Database_SingleSessionRowWithTwoSessions_IsRefused()
+    {
+        var member = await AddMemberAsync();
+
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var insert = () => db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions, is_single_session,
+                                       start_date, end_date, used_sessions, total_frozen_days, created_at)
+            VALUES ({Guid.CreateVersion7()}, {member.Id}, 150000, 1, 2, true, {Today()}, {Today()}, 0, 0, now())
+            """,
+            TestContext.Current.CancellationToken);
+
+        (await Should.ThrowAsync<Npgsql.PostgresException>(insert)).ConstraintName
+            .ShouldBe("ck_subscriptions_single_session_shape");
+    }
+
     // ---- Helpers ----
+
+    private Task SetSingleVisitPriceAsync() => TestPlans.SetPricesAsync(Fixture, singleVisitPrice: SingleVisitPrice);
 
     private DateOnly Today()
     {
@@ -482,10 +464,14 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         return scope.ServiceProvider.GetRequiredService<IGymCalendar>().Today();
     }
 
-    private async Task<Member> AddMemberAsync()
+    private async Task<Member> AddMemberAsync(bool active = true)
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed("رضا احمدی", $"+98913{suffix:D7}");
+        if (!active)
+        {
+            member.Deactivate();
+        }
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -493,22 +479,6 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return member;
-    }
-
-    private Task<Plan> AddSingleSessionPlanAsync() =>
-        AddPlanAsync("تک‌جلسه‌ای", 1, 1, 150_000m, PlanKind.SingleSession);
-
-    private async Task<Plan> AddPlanAsync(
-        string name, int durationDays, int? sessions, decimal price, PlanKind kind = PlanKind.Membership)
-    {
-        var plan = Plan.Create(name, durationDays, sessions, price, kind).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
     }
 
     /// <summary>Uses every session, which is what makes a subscription <c>Exhausted</c>.</summary>
@@ -535,6 +505,14 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
             TestContext.Current.CancellationToken);
     }
 
+    private async Task<int> CountSubscriptionsAsync()
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Subscriptions
+            .CountAsync(TestContext.Current.CancellationToken);
+    }
+
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {
         await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "staff", role: Roles.Staff);
@@ -549,17 +527,6 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         var client = Fixture.CreateClient();
 
         return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
-    }
-
-    private static Task<HttpResponseMessage> CreatePlanAsync(
-        HttpClient client, string token, string name, int durationDays, int? sessionCount, decimal price,
-        string? kind = null)
-    {
-        object body = kind is null
-            ? new { name, durationDays, sessionCount, price }
-            : new { name, durationDays, sessionCount, price, kind };
-
-        return SendAsync(client, token, HttpMethod.Post, "/api/plans", body);
     }
 
     private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
@@ -578,11 +545,32 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         checkedOut.EnsureSuccessStatusCode();
     }
 
+    private static async Task<PagedResponse<CurrentlyInsideResponse>> CurrentlyInsideAsync(HttpClient client, string token)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Get, "/api/attendance/currently-inside");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        return (await response.Content.ReadFromJsonAsync<PagedResponse<CurrentlyInsideResponse>>(TestContext.Current.CancellationToken))
+            .ShouldNotBeNull();
+    }
+
+    private static Task<HttpResponseMessage> SellVisitAsync(HttpClient client, string token, Guid memberId) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions/single-visit");
+
+    private static async Task<SubscriptionResponse> SellVisitOkAsync(HttpClient client, string token, Guid memberId)
+    {
+        using var response = await SellVisitAsync(client, token, memberId);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken))
+            .ShouldNotBeNull();
+    }
+
     private static async Task<SubscriptionResponse> AssignOkAsync(
-        HttpClient client, string token, Guid memberId, Guid planId)
+        HttpClient client, string token, Guid memberId, TestPlan plan)
     {
         using var response = await SendAsync(
-            client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { planId });
+            client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken))

@@ -9,7 +9,6 @@ using Gym.Application.Payments;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -124,7 +123,7 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync(900_000m);
         var today = Today();
-        var expiredId = await InsertSubscriptionAsync(member.Id, plan.Id, today.AddDays(-60), today.AddDays(-31));
+        var expiredId = await InsertSubscriptionAsync(member.Id, today.AddDays(-60), today.AddDays(-31));
 
         using var response = await RegisterAsync(client, token, expiredId, 900_000m, PaymentMethod.Cash, null);
 
@@ -200,17 +199,7 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync(decimal price)
-    {
-        var plan = Plan.Create("پلن", 30, 12, price).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync(decimal price) => TestPlans.AddAsync(Fixture, price: price);
 
     private DateOnly Today()
     {
@@ -220,16 +209,16 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     /// <summary>A row written directly, so a subscription that ended weeks ago is one step away.</summary>
-    private async Task<Guid> InsertSubscriptionAsync(Guid memberId, Guid planId, DateOnly start, DateOnly end)
+    private async Task<Guid> InsertSubscriptionAsync(Guid memberId, DateOnly start, DateOnly end)
     {
         var id = Guid.CreateVersion7();
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlAsync(
             $"""
-            INSERT INTO subscriptions (id, member_id, plan_id, price, duration_days, total_sessions,
+            INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, {planId}, 900000, 30, 12,
+            VALUES ({id}, {memberId}, 900000, 30, 12,
                     {start}, {end}, 0, 0, now())
             """,
             TestContext.Current.CancellationToken);
@@ -245,7 +234,7 @@ public sealed class PaymentEndpointTests(DatabaseFixture fixture) : DatabaseTest
 
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/members/{member.Id}/subscriptions")
         {
-            Content = JsonContent.Create(new { planId = plan.Id }),
+            Content = JsonContent.Create(plan.Body),
         };
         using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);

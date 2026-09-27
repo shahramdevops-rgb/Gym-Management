@@ -6,25 +6,19 @@ using Gym.Domain.Subscriptions;
 namespace Gym.Application.Subscriptions;
 
 /// <param name="Status">Calculated for the gym's today when the response was built; never stored.</param>
-/// <param name="PlanName">The plan's name <i>now</i>, not when it was sold: renaming a plan corrects the
-/// label everywhere (BUSINESS_RULES.md §4). It is a parameter rather than something the subscription
-/// carries, so every caller has to fetch it and none can silently serve a stale one.</param>
-/// <param name="TotalSessions"><c>null</c> means unlimited.</param>
-/// <param name="RemainingSessions"><c>null</c> means unlimited.</param>
 /// <param name="IsSingleSession">One visit, today only (BUSINESS_RULES.md §4). The front desk shows
-/// "تک‌جلسه‌ای" instead of a session count for these, because 1 of 1 is not progress worth a bar.</param>
+/// "تک‌جلسه‌ای" instead of a session count for these, because 1 of 1 is not progress worth a bar.
+/// A plan has no name (§3): the frontend labels it from its days and sessions.</param>
 /// <param name="NetPaid">Payments minus refunds for this subscription (BUSINESS_RULES.md §4).</param>
 /// <param name="PaymentStatus">Calculated from <see cref="NetPaid"/> and <see cref="Price"/>; never stored.</param>
 public sealed record SubscriptionResponse(
     Guid Id,
     Guid MemberId,
-    Guid PlanId,
-    string PlanName,
     decimal Price,
     int DurationDays,
-    int? TotalSessions,
+    int TotalSessions,
     int UsedSessions,
-    int? RemainingSessions,
+    int RemainingSessions,
     DateOnly StartDate,
     DateOnly EndDate,
     [property: JsonConverter(typeof(JsonStringEnumConverter<SubscriptionStatus>))] SubscriptionStatus Status,
@@ -38,15 +32,13 @@ public sealed record SubscriptionResponse(
     decimal NetPaid,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentStatus>))] PaymentStatus PaymentStatus)
 {
-    public static SubscriptionResponse From(Subscription subscription, string planName, DateOnly today, decimal netPaid)
+    public static SubscriptionResponse From(Subscription subscription, DateOnly today, decimal netPaid)
     {
         ArgumentNullException.ThrowIfNull(subscription);
 
         return new SubscriptionResponse(
             subscription.Id,
             subscription.MemberId,
-            subscription.PlanId,
-            planName,
             subscription.Price,
             subscription.DurationDays,
             subscription.TotalSessions,

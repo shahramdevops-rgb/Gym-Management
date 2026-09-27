@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Attendances;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -109,18 +108,17 @@ public sealed class AttendancePlaceConstraintTests(DatabaseFixture fixture) : Da
 
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed("رضا احمدی", $"+98915{suffix:D7}");
-        var plan = Plan.Create($"پلن {suffix}", 30, 12, 900_000m).Value;
+        var plan = await TestPlans.AddAsync(Fixture);
         await using (var scope = Fixture.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Members.Add(member);
-            db.Plans.Add(plan);
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/members/{member.Id}/subscriptions")
         {
-            Content = JsonContent.Create(new { planId = plan.Id }),
+            Content = JsonContent.Create(plan.Body),
         };
         using (var assigned = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken))
         {

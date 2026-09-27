@@ -5,6 +5,7 @@ import { debtBySource } from "@/features/members/debtBySource";
 import { debtItemLabel } from "@/features/members/debtItemLabel";
 import { SettleDebt } from "@/features/payments/components/SettleDebt";
 import { useCurrentSubscription, type Subscription } from "@/features/subscriptions/api";
+import { planLabel } from "@/features/subscriptions/planLabel";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney } from "@/lib/money";
@@ -94,7 +95,7 @@ function SubscriptionLine({ memberId }: { memberId: string }) {
     <dl className="grid grid-cols-2 gap-3 rounded-lg border p-3 text-sm">
       <div>
         <dt className="text-muted-foreground">پلن</dt>
-        <dd className="font-medium">{current.planName}</dd>
+        <dd className="font-medium">{planLabel(current)}</dd>
       </div>
       <div>
         <dt className="text-muted-foreground">جلسات باقی‌مانده</dt>
@@ -114,18 +115,13 @@ function sessionsLeft(subscription: Subscription): string {
   if (subscription.isSingleSession) {
     return "تک‌جلسه‌ای";
   }
-  if (subscription.totalSessions === null || subscription.remainingSessions === null) {
-    return "نامحدود";
-  }
   return `${toPersianDigits(subscription.remainingSessions)} از ${toPersianDigits(subscription.totalSessions)} جلسه`;
 }
 
 /** The front desk board's threshold (BUSINESS_RULES.md §7), so both screens flag the same members. */
 function isLow(subscription: Subscription): boolean {
   return (
-    !subscription.isSingleSession &&
-    subscription.remainingSessions !== null &&
-    Number(subscription.remainingSessions) <= lowSessionsThreshold
+    !subscription.isSingleSession && Number(subscription.remainingSessions) <= lowSessionsThreshold
   );
 }
 

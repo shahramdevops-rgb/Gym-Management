@@ -8,7 +8,6 @@ using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Common.Paging;
 using Gym.Application.Lockers;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -29,7 +28,7 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync("سارا محمدی");
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendance = await TestLockers.CheckInOkAsync(staffClient, staffToken, member.Id, lockerNumber: 3);
 
         using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
@@ -51,7 +50,7 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync("سارا محمدی");
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         await TestLockers.TakeOutOfServiceAllButAsync(Fixture);
         using (var checkedIn = await TestLockers.CheckInOnReservePlaceAsync(staffClient, staffToken, member.Id))
         {
@@ -72,7 +71,7 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync("سارا محمدی");
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
 
         using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
@@ -87,40 +86,23 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
     }
 
     [Fact]
-    public async Task CurrentlyInside_UnlimitedSubscription_LeavesSessionCountsNull()
-    {
-        var (staffClient, staffToken) = await StaffClientAsync();
-        var member = await AddMemberAsync("رضا احمدی");
-        var plan = await AddUnlimitedPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
-        await CheckInOkAsync(staffClient, staffToken, member.Id);
-
-        using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
-
-        var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
-        // Unlimited: nothing to count against, so the board says so instead of drawing a bar.
-        row.TotalSessions.ShouldBeNull();
-        row.RemainingSessions.ShouldBeNull();
-    }
-
-    [Fact]
     public async Task CurrentlyInside_CheckedOutAndCancelledAttendances_AreExcluded()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
         var plan = await AddPlanAsync();
 
         var checkedOutMember = await AddMemberAsync("علی رضایی");
-        await AssignOkAsync(staffClient, staffToken, checkedOutMember.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, checkedOutMember.Id, plan);
         var checkedOutAttendance = await CheckInOkAsync(staffClient, staffToken, checkedOutMember.Id);
         await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{checkedOutAttendance.Id}/check-out");
 
         var cancelledMember = await AddMemberAsync("مریم کریمی");
-        await AssignOkAsync(staffClient, staffToken, cancelledMember.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, cancelledMember.Id, plan);
         var cancelledAttendance = await CheckInOkAsync(staffClient, staffToken, cancelledMember.Id);
         await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{cancelledAttendance.Id}/cancel");
 
         var stillInsideMember = await AddMemberAsync("حسین قاسمی");
-        await AssignOkAsync(staffClient, staffToken, stillInsideMember.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, stillInsideMember.Id, plan);
         await CheckInOkAsync(staffClient, staffToken, stillInsideMember.Id);
 
         using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
@@ -163,29 +145,7 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync()
-    {
-        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
-
-    private async Task<Plan> AddUnlimitedPlanAsync()
-    {
-        var plan = Plan.Create("پلن نامحدود", 30, null, 1_500_000m).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync() => TestPlans.AddAsync(Fixture);
 
     private async Task<DateOnly> SubscriptionEndDateAsync(Guid subscriptionId)
     {
@@ -198,12 +158,12 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 
-    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { planId });
+    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, TestPlan plan) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
 
-    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
+    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
-        using var response = await AssignAsync(client, token, memberId, planId);
+        using var response = await AssignAsync(client, token, memberId, plan);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 

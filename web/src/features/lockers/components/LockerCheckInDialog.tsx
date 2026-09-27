@@ -93,11 +93,10 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
     }
   }
 
-  async function sell(member: DeskMember, planId: string) {
+  async function sell(member: DeskMember) {
     try {
       const { attendance } = await sellSingleVisit.mutateAsync({
         memberId: member.id,
-        planId,
         lockerId,
       });
       setStep({ kind: "checkedIn", member, attendance, singleVisit: true });
@@ -235,7 +234,7 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
             <SingleVisitOffer
               memberId={step.member.id}
               selling={sellSingleVisit.isPending}
-              onSell={(planId) => void sell(step.member, planId)}
+              onSell={() => void sell(step.member)}
             />
           </>
         )}

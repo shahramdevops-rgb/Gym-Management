@@ -183,6 +183,9 @@ Done when: staff can record a birth date with a Persian calendar, leave it empty
 
 ## Phase 3 — Plans
 
+**Superseded by 6.5.6** (the Owner, 1405/07/05): the gym no longer sells from a list of plans.
+Everything below was built and then removed; it stays here as the record of what existed.
+
 ### 3.1 Plans API
 - [x] Plan entity (duration, session count or unlimited, price, active)
 - [x] Create, update, activate, deactivate (Owner only), list
@@ -805,6 +808,67 @@ closed visit (check-out, cancel and move answer `Attendance.ChangedConcurrently`
 the member search moved to `/search`, and `/lockers` is gone (an old link lands on the map). The
 "done when" scenario runs as Staff in `LockerMapStaffTests`. Done: 405 domain, 809 integration and
 575 frontend tests pass.
+
+### 6.5.6 Custom plans and two fixed prices (پلن شخصی و قیمت‌های ثابت)
+Rule change, decided by the Owner on 1405/07/05 (2026-09-27). The gym stops selling from a list of
+plans. Each member's plan is built at the desk — any number of days (1–365) and at least 5
+sessions, no upper limit, the two unrelated — and every session costs the same, so a plan's price
+is `sessions × SessionPrice`. A single visit (walk-in or guest) costs `SingleVisitPrice`. Both
+prices are set by the Owner on a settings screen, so they follow inflation without a deployment and
+the desk never types a price. BUSINESS_RULES.md §0, §1, §3 and §4 have the rules; this replaces
+Phase 3 and the single-session plan of 6.5.3.
+
+One task, not API then UI: selling a subscription changes its request body, so an API change alone
+would break the running web app.
+
+- [x] BUSINESS_RULES.md §0, §1, §3, §4 rewritten before any code (planning session, 2026-09-27).
+      Proposed by Claude and approved with the plan: both prices start unset and selling is
+      refused until the Owner sets them; renew sells the same days and sessions at today's price;
+      Staff read the prices, only the Owner changes them; a plan reads as its numbers
+- [x] **Domain.** `Plans/` deleted. `Pricing/PriceList` (one row, `TheId`, both prices nullable,
+      `Update`, `CheckPrice`). `Subscription` loses `PlanId`; `TotalSessions` is required (no
+      unlimited); `CreateMembership(days, sessions, sessionPrice, start)` and
+      `CreateSingleVisit(price, today)` replace `Create(plan)`. `SubscriptionSchedule.StartDateFor`
+      is gone: a single visit takes today and never sees the calendar
+- [x] **Application.** `Plans/` and `PlanNames` deleted. `Pricing/GetPrices`,
+      `Pricing/UpdatePrices` (version check + `xmin`). `AssignSubscriptionCommand(DurationDays,
+      SessionCount)`; `Subscriptions/SellSingleVisit`; `SubscriptionSeller.SellMembershipAsync` /
+      `SellSingleVisitAsync` share the lock and the save. Responses carry the numbers
+      (`PlanSummary` on debt items and payment history) instead of a plan name
+- [x] **Database.** Migration `CustomPlansAndPriceList`: drops `plans` and `subscriptions.plan_id`;
+      `total_sessions` NOT NULL; `ck_subscriptions_total_sessions_range` becomes
+      `is_single_session OR total_sessions >= 5`; `price_lists` with one seeded row, a check that
+      its id is the fixed one, and non-negative prices. The integration fixture restores the row
+      after each reset
+- [x] **API.** `PlansEndpoints` deleted. `GET /api/pricing` (Staff and Owner), `PUT /api/pricing`
+      (Owner); `POST /api/members/{id}/subscriptions/single-visit`. Each names its policy
+- [x] **Web.** `features/plans` deleted with its route and menu item. «تنظیمات» (Owner only): two
+      `MoneyField`s. The sale form takes days and sessions and shows `n جلسه × price = total` before
+      confirming; the single-visit offer reads its price from the settings and posts to the new
+      endpoint. `planLabel()` names a subscription «۳۰ روز · ۱۲ جلسه» or «تک‌جلسه‌ای» everywhere.
+      The unlimited-session branches are gone. `npm run gen:api`
+- [x] Tests (domain): price = sessions × rate, days do not change it, 4 sessions refused, 1,000
+      allowed, days 0/366 refused, prices unset refused, overflow refused; single visit;
+      `PriceList` rules
+- [x] Tests (integration): pricing endpoints (Staff reads, Staff PUT 403, audit, stale version,
+      field codes, seeded row, second row refused); sale at the current rate, price change leaves a
+      past sale alone, renew at today's price, single visit sold at its price / refused while unset;
+      every constraint by raw SQL. The ~25 files that inserted a `Plan` use `TestPlans` instead
+- [x] Tests (frontend): settings page (Staff refused, save sends both prices and the version,
+      stale version, empty price), sale form (digits, preview, fewer than 5, price unset), the
+      single-visit offer, `planLabel`
+
+**Release step:** the server's test data must be wiped before this migration runs — it refuses
+subscriptions with fewer than 5 sessions or none (the Owner's call, as in 6.5.5). After release the
+Owner opens «تنظیمات» and sets both prices; until then the desk can sell nothing.
+
+Done when: the Owner sets 75,000 a session and 150,000 a visit; the desk sells «۴۵ روز · ۱۲ جلسه»
+for 900,000 without typing a price; the Owner raises the session price and that sale still costs
+900,000; a walk-in is let in from the locker map for 150,000.
+
+Built (2026-09-28). Found while building: the settings form is keyed by `version`, so its "saved"
+message lived one level up or it vanished with the rebuild. Done: 389 domain, 785 integration and
+532 frontend tests pass, zero warnings.
 
 ---
 

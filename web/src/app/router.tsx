@@ -16,9 +16,7 @@ import { EditMemberPage } from "@/features/members/pages/EditMemberPage";
 import { MemberSearchPage } from "@/features/members/pages/MemberSearchPage";
 import { MemberProfilePage } from "@/features/members/pages/MemberProfilePage";
 import { MembersPage } from "@/features/members/pages/MembersPage";
-import { CreatePlanPage } from "@/features/plans/pages/CreatePlanPage";
-import { EditPlanPage } from "@/features/plans/pages/EditPlanPage";
-import { PlansPage } from "@/features/plans/pages/PlansPage";
+import { SettingsPage } from "@/features/settings/pages/SettingsPage";
 import { StaffPage } from "@/features/staff/pages/StaffPage";
 import { StatusPage } from "@/features/status/pages/StatusPage";
 
@@ -61,9 +59,7 @@ export const routes: RouteObject[] = [
               { path: paths.cafeMenu, element: <CafeMenuPage /> },
               { path: paths.status, element: <StatusPage /> },
               { path: paths.changePassword, element: <ChangePasswordPage /> },
-              ownerOnly(paths.plans, <PlansPage />),
-              ownerOnly(paths.newPlan, <CreatePlanPage />),
-              ownerOnly(paths.editPlan(":id"), <EditPlanPage />),
+              ownerOnly(paths.settings, <SettingsPage />),
               ownerOnly(paths.expenses, <ExpensesPage />),
               ownerOnly(paths.staff, <StaffPage />),
             ],

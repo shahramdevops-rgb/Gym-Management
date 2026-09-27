@@ -260,64 +260,16 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/plans": {
+    "/api/pricing": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["ListPlans"];
-        put?: never;
-        post: operations["CreatePlan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/plans/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["GetPlan"];
-        put: operations["UpdatePlan"];
+        get: operations["GetPrices"];
+        put: operations["UpdatePrices"];
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/plans/{id}/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["ActivatePlan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/plans/{id}/deactivate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["DeactivatePlan"];
         delete?: never;
         options?: never;
         head?: never;
@@ -350,6 +302,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["RenewSubscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/members/{memberId}/subscriptions/single-visit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SellSingleVisit"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1007,8 +975,10 @@ export interface components {
             mustChangePassword: boolean;
         };
         AssignSubscriptionCommand: {
-            /** Format: uuid */
-            planId: string;
+            /** Format: int32 */
+            durationDays: number | string;
+            /** Format: int32 */
+            sessionCount: number | string;
         };
         AttendanceResponse: {
             /** Format: uuid */
@@ -1128,16 +1098,6 @@ export interface components {
             /** Format: date */
             birthDate: null | string;
         };
-        CreatePlanCommand: {
-            name: string;
-            /** Format: int32 */
-            durationDays: number | string;
-            /** Format: int32 */
-            sessionCount: null | number | string;
-            /** Format: double */
-            price: number | string;
-            kind?: components["schemas"]["PlanKind"];
-        };
         CreateProductCategoryCommand: {
             name: string;
         };
@@ -1169,11 +1129,11 @@ export interface components {
             /** Format: uuid */
             subscriptionId: string;
             /** Format: int32 */
-            totalSessions: null | number | string;
+            totalSessions: number | string;
             /** Format: int32 */
             usedSessions: number | string;
             /** Format: int32 */
-            remainingSessions: null | number | string;
+            remainingSessions: number | string;
             /** Format: date */
             subscriptionEndDate: string;
             isSingleSession: boolean;
@@ -1271,7 +1231,7 @@ export interface components {
             kind: components["schemas"]["PaymentTargetKind"];
             /** Format: uuid */
             id: string;
-            planName: null | string;
+            plan: null | components["schemas"]["PlanSummary"];
             serviceKind: null | components["schemas"]["ServiceChargeKind"];
             /** Format: date */
             startDate: string;
@@ -1378,15 +1338,6 @@ export interface components {
             /** Format: int32 */
             totalCount: number | string;
         };
-        PagedResponseOfPlanResponse: {
-            items: components["schemas"]["PlanResponse"][];
-            /** Format: int32 */
-            page: number | string;
-            /** Format: int32 */
-            pageSize: number | string;
-            /** Format: int32 */
-            totalCount: number | string;
-        };
         PagedResponseOfProductCategoryResponse: {
             items: components["schemas"]["ProductCategoryResponse"][];
             /** Format: int32 */
@@ -1429,7 +1380,7 @@ export interface components {
             targetKind: components["schemas"]["PaymentTargetKind"];
             /** Format: uuid */
             targetId: string;
-            subscriptionPlanName: null | string;
+            subscriptionPlan: null | components["schemas"]["PlanSummary"];
             serviceKind: null | components["schemas"]["ServiceChargeKind"];
             kind: components["schemas"]["PaymentKind"];
             /** Format: double */
@@ -1475,26 +1426,20 @@ export interface components {
         PaymentStatus: "Unpaid" | "Partial" | "Paid";
         /** @enum {unknown} */
         PaymentTargetKind: "Subscription" | "ServiceCharge" | "CafeOrder";
-        /** @enum {unknown} */
-        PlanKind: "Membership" | "SingleSession";
-        PlanResponse: {
-            /** Format: uuid */
-            id: string;
-            name: string;
+        PlanSummary: {
             /** Format: int32 */
             durationDays: number | string;
             /** Format: int32 */
-            sessionCount: null | number | string;
+            totalSessions: number | string;
+            isSingleSession: boolean;
+        };
+        PricesResponse: {
             /** Format: double */
-            price: number | string;
-            isActive: boolean;
-            kind: components["schemas"]["PlanKind"];
+            sessionPrice: null | number | string;
+            /** Format: double */
+            singleVisitPrice: null | number | string;
             /** Format: uint32 */
             version: number | string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: null | string;
         };
         ProblemDetails: {
             type?: null | string;
@@ -1639,19 +1584,16 @@ export interface components {
             id: string;
             /** Format: uuid */
             memberId: string;
-            /** Format: uuid */
-            planId: string;
-            planName: string;
             /** Format: double */
             price: number | string;
             /** Format: int32 */
             durationDays: number | string;
             /** Format: int32 */
-            totalSessions: null | number | string;
+            totalSessions: number | string;
             /** Format: int32 */
             usedSessions: number | string;
             /** Format: int32 */
-            remainingSessions: null | number | string;
+            remainingSessions: number | string;
             /** Format: date */
             startDate: string;
             /** Format: date */
@@ -1701,14 +1643,11 @@ export interface components {
             /** Format: uint32 */
             version: number | string;
         };
-        UpdatePlanCommand: {
-            name: string;
-            /** Format: int32 */
-            durationDays: number | string;
-            /** Format: int32 */
-            sessionCount: null | number | string;
+        UpdatePricesCommand: {
             /** Format: double */
-            price: number | string;
+            sessionPrice: number | string;
+            /** Format: double */
+            singleVisitPrice: number | string;
             /** Format: uint32 */
             version: number | string;
         };
@@ -2700,14 +2639,9 @@ export interface operations {
             };
         };
     };
-    ListPlans: {
+    GetPrices: {
         parameters: {
-            query?: {
-                IsActive?: boolean;
-                Kind?: components["schemas"]["PlanKind"];
-                Page?: number | string;
-                PageSize?: number | string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -2720,16 +2654,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PagedResponseOfPlanResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/json": components["schemas"]["PricesResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -2752,7 +2677,7 @@ export interface operations {
             };
         };
     };
-    CreatePlan: {
+    UpdatePrices: {
         parameters: {
             query?: never;
             header?: never;
@@ -2761,17 +2686,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePlanCommand"];
+                "application/json": components["schemas"]["UpdatePricesCommand"];
             };
         };
         responses: {
-            /** @description Created */
-            201: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlanResponse"];
+                    "application/json": components["schemas"]["PricesResponse"];
                 };
             };
             /** @description Bad Request */
@@ -2794,242 +2719,6 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    GetPlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    UpdatePlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdatePlanCommand"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    ActivatePlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    DeactivatePlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlanResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Not Found */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3190,6 +2879,73 @@ export interface operations {
         };
     };
     RenewSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SellSingleVisit: {
         parameters: {
             query?: never;
             header?: never;

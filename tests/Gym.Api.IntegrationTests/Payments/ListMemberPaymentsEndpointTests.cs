@@ -8,7 +8,6 @@ using Gym.Application.Payments;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
-using Gym.Domain.Plans;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -31,11 +30,12 @@ public sealed class ListMemberPaymentsEndpointTests(DatabaseFixture fixture) : D
         var (staffClient, staffToken) = await StaffClientAsync();
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
-        var planA = await AddPlanAsync("پلن یک", 900_000m);
-        var planB = await AddPlanAsync("پلن دو", 500_000m);
-        var subscriptionA = await AssignOkAsync(staffClient, staffToken, member.Id, planA.Id);
+        // One session price at a time, so each plan is sold before the next price is set.
+        var planA = await TestPlans.AddAsync(Fixture, sessions: 12, price: 900_000m);
+        var subscriptionA = await AssignOkAsync(staffClient, staffToken, member.Id, planA);
         await RegisterPaymentAsync(staffClient, staffToken, subscriptionA.Id, 900_000m);
-        var subscriptionB = await AssignOkAsync(staffClient, staffToken, member.Id, planB.Id);
+        var planB = await TestPlans.AddAsync(Fixture, durationDays: 20, sessions: 10, price: 500_000m);
+        var subscriptionB = await AssignOkAsync(staffClient, staffToken, member.Id, planB);
         await RegisterPaymentAsync(staffClient, staffToken, subscriptionB.Id, 200_000m);
         await RefundAsync(ownerClient, ownerToken, subscriptionA.Id, 100_000m, "بازگشت جزئی");
 
@@ -45,6 +45,12 @@ public sealed class ListMemberPaymentsEndpointTests(DatabaseFixture fixture) : D
         page.Items.ShouldContain(item => item.TargetId == subscriptionA.Id && item.Kind == PaymentKind.Payment && item.Amount == 900_000m);
         page.Items.ShouldContain(item => item.TargetId == subscriptionA.Id && item.Kind == PaymentKind.Refund && item.Amount == 100_000m);
         page.Items.ShouldContain(item => item.TargetId == subscriptionB.Id && item.Kind == PaymentKind.Payment && item.Amount == 200_000m);
+
+        // Each row says what its subscription sold, for the frontend's label (BUSINESS_RULES.md §3).
+        page.Items.Where(item => item.TargetId == subscriptionA.Id)
+            .ShouldAllBe(item => item.SubscriptionPlan == new PlanSummary(30, 12, false));
+        page.Items.Single(item => item.TargetId == subscriptionB.Id)
+            .SubscriptionPlan.ShouldBe(new PlanSummary(20, 10, false));
     }
 
     [Fact]
@@ -110,23 +116,11 @@ public sealed class ListMemberPaymentsEndpointTests(DatabaseFixture fixture) : D
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync(string name, decimal price)
-    {
-        var plan = Plan.Create(name, 30, 12, price).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
-
-    private static async Task<SubscriptionResponse> AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
+    private static async Task<SubscriptionResponse> AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/members/{memberId}/subscriptions")
         {
-            Content = JsonContent.Create(new { planId }),
+            Content = JsonContent.Create(plan.Body),
         };
         using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);

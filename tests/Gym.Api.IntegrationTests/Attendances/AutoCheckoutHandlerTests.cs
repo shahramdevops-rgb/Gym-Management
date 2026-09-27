@@ -9,7 +9,6 @@ using Gym.Application.Common;
 using Gym.Application.Lockers;
 using Gym.Domain.Attendances;
 using Gym.Domain.Members;
-using Gym.Domain.Plans;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -37,7 +36,7 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var locker = await GetLockerOkAsync(ownerClient, ownerToken, TestLockers.IdOf(1));
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
 
@@ -61,7 +60,7 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
         await CheckOutOkAsync(staffClient, staffToken, attendance.Id);
         var before = await StoredAttendanceAsync(attendance.Id);
@@ -80,7 +79,7 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
         var (staffClient, staffToken) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
-        await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
         await CancelOkAsync(staffClient, staffToken, attendance.Id);
         var before = await StoredAttendanceAsync(attendance.Id);
@@ -103,7 +102,7 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
         for (var i = 0; i < 3; i++)
         {
             var member = await AddMemberAsync();
-            await AssignOkAsync(staffClient, staffToken, member.Id, plan.Id);
+            await AssignOkAsync(staffClient, staffToken, member.Id, plan);
             attendanceIds.Add((await CheckInOkAsync(staffClient, staffToken, member.Id)).Id);
         }
 
@@ -165,17 +164,7 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
         return member;
     }
 
-    private async Task<Plan> AddPlanAsync()
-    {
-        var plan = Plan.Create("پلن", 30, 12, 900_000m).Value;
-
-        await using var scope = Fixture.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Plans.Add(plan);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return plan;
-    }
+    private Task<TestPlan> AddPlanAsync() => TestPlans.AddAsync(Fixture);
 
     private async Task<Subscription> StoredSubscriptionAsync(Guid memberId)
     {
@@ -195,12 +184,12 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
             .SingleAsync(a => a.Id == id, TestContext.Current.CancellationToken);
     }
 
-    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, Guid planId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { planId });
+    private static Task<HttpResponseMessage> AssignAsync(HttpClient client, string token, Guid memberId, TestPlan plan) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
 
-    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, Guid planId)
+    private static async Task AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
-        using var response = await AssignAsync(client, token, memberId, planId);
+        using var response = await AssignAsync(client, token, memberId, plan);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 

@@ -42,10 +42,11 @@ Decided values:
   succeed with a balance outstanding; the front desk is shown the amount instead of being stopped
   (decided with the developer, 1405/06/31). There is no debt ceiling. *If the gym later wants one,
   it becomes a `Gym:MaxMemberDebt` setting and a refusal, not a change to any of the rules below.*
-- The single-session (تک‌جلسه‌ای) rate is **not** a setting. There is no `Gym:DropInPrice`: the one
-  single-session plan (§3) carries the price and snapshots it onto every sale (§4), so the Owner
-  editing that plan is the whole mechanism for changing the rate. A setting would be a second place
-  to keep true (decided with the developer, 1405/07/03).
+- **The gym has two prices, and the Owner sets both in the app** (§3 *Prices*): the price of one
+  session of a plan, and the price of a single-session (تک‌جلسه‌ای) visit. They are stored in the
+  database, not in configuration, because the Owner changes them with inflation and must not need a
+  deployment to do it (decided with the developer, 1405/07/05, replacing the 1405/07/03 rule that the
+  single-session rate was a plan's price and not a setting — there are no plans any more).
 
 ---
 
@@ -125,7 +126,8 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | Check-in (from the lockers screen only, §7 *Confirming at the front desk*), check-out, cancel check-in | ✅ | ✅ |
 | Assign or renew subscriptions | ✅ | ✅ |
 | Register payments, create cafe orders | ✅ | ✅ |
-| Plans, staff accounts | ✅ | ❌ |
+| See the two prices (§3) | ✅ | ✅ |
+| Change the two prices (§3), staff accounts | ✅ | ❌ |
 | Lockers: see the map, take one out of service, bring it back in, move a visit to another locker (§6, §7) | ✅ | ✅ |
 | Freeze, unfreeze, cancel subscriptions | ✅ | ❌ |
 | Refunds, voids (outside the cafe) | ✅ | ❌ |
@@ -169,50 +171,57 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 
 ---
 
-## 3. Plans
+## 3. Plans and prices
 
-- Fields: `Name`, `DurationDays` (> 0), `SessionCount` (null means unlimited, otherwise > 0), `Price` (>= 0), `IsActive`.
-- Inactive plans cannot be sold. Existing subscriptions are not affected.
-- Editing a plan never changes existing subscriptions.
-- Details (decided with the developer in task 3.1):
-  - Limits: name at most 100 characters, `DurationDays` 1 to 365, `SessionCount` 1 to 365 (or null for unlimited).
-  - `Price` has at most 2 decimal places. More is refused, never rounded (`Plans.PriceTooManyDecimals`).
-  - Names are unique across all plans, inactive ones included, compared in normalized form (§13), so the same name typed with the Arabic ي is a duplicate (`Plans.NameAlreadyExists`).
-  - Owner and Staff can list and view plans (staff sell subscriptions); only the Owner creates, edits, activates or deactivates them.
-  - The plan list is paged like every list, active plans first, then by name, with an optional active/inactive filter.
-  - Activating an active plan, or deactivating an inactive one, succeeds and changes nothing.
+Rule change, decided by the Owner on 1405/07/05 (2026-09-27), roadmap 6.5.6. It replaces the list of
+plans (task 3.1) and the one single-session plan (task 6.5.3): **the gym has no plans to choose
+from.** Each member's plan is built for them at the desk, and every session costs the same.
 
-### The single-session plan (تک‌جلسه‌ای)
+### A member's plan
 
-Decided with the developer, 1405/07/03. Roadmap 6.5.3.
+- The desk types two numbers when it sells a subscription: the **days** and the **sessions**.
+  - Days: 1 to 365 (`Subscriptions.DurationInvalid`).
+  - Sessions: at least **5** (`Subscriptions.SessionCountTooLow`), with no upper limit.
+  - The two are unrelated: 10 days with 12 sessions is allowed.
+  - There is no "unlimited sessions" plan. Every subscription has a session count.
+- **Price = sessions × the session price** (*Prices* below). The days do not change the price. The
+  server works it out; the desk never types a price, and the sale form shows it before the desk
+  confirms. A price that does not fit the money column is refused (`Subscriptions.PriceTooLarge`).
+- A plan has no name. It reads as its numbers: «۳۰ روز · ۱۲ جلسه».
+- *If the gym later prices by tiers (a cheaper session for a bigger pack), that becomes a change to
+  how the price is worked out here, not to anything in §4.*
 
-- A plan has a `Kind`: `Membership` or `SingleSession`. Every plan that existed before this is a
-  `Membership`.
-- There is exactly **one** `SingleSession` plan, enforced by a partial unique index on `plans` where
-  the kind is single-session. One rate for everyone: the gym charges a walk-in visitor a single
-  figure, and changing that figure is editing this plan's price, which never changes what a past sale
-  was worth (§3 above). So there is no second single-session plan and no versioning of one.
-- Its shape is not typed by hand: a `SingleSession` plan always has `DurationDays = 1` and
-  `SessionCount = 1`. Anything else is refused (`Plans.SingleSessionShape`), and a check constraint
-  refuses it in the database too.
-- The Owner creates it once from the plans screen, like any other plan. It is **not** seeded at
-  startup: its price is the gym's own number and nothing may invent one. *Decided by Claude during
-  task 6.5.3; pending review.*
-- It can be deactivated like any plan, which stops single-session entry. The check-in box (on the lockers
-  screen since 6.5.5) says that is why, rather than offering an action that fails with nothing to explain it.
+### Prices
+
+- Two prices, set by the Owner on the settings screen (تنظیمات):
+  - `SessionPrice`, the price of one session of a plan (قیمت هر جلسه);
+  - `SingleVisitPrice`, the price of a single-session visit (قیمت تک‌جلسهٔ آزاد, §4
+    *Single-session subscriptions*).
+- They follow the money rules of every price: at least 0, at most 2 decimal places (more is
+  refused, never rounded), and within `numeric(18,2)` (`Pricing.PriceNegative`,
+  `Pricing.PriceTooManyDecimals`, `Pricing.PriceTooLarge`).
+- **Both start unset.** They are not seeded: they are the gym's own numbers and nothing may invent
+  them. Selling a plan while `SessionPrice` is unset is refused (`Pricing.SessionPriceNotSet`), and a
+  single visit while `SingleVisitPrice` is unset (`Pricing.SingleVisitPriceNotSet`); the desk is
+  told the Owner has to set it. Once saved, the Owner saves both together and neither can be
+  cleared. *Proposed by Claude in the 6.5.6 planning session, approved by the developer.*
+- **A price change never reaches a past sale**: each subscription stores its own price (§4).
+- Owner and Staff see the prices (the desk sells at them); only the Owner changes them. Each change
+  is in the audit log, like any other edit. Two Owners saving at once: the second is refused
+  (`Pricing.ChangedConcurrently`) rather than silently overwriting the first.
+- There is exactly one row of prices, enforced by the database.
 
 ---
 
 ## 4. Subscriptions
 
-- At sale, the subscription stores a snapshot of the plan's **numbers**: `Price`, `DurationDays`, `TotalSessions`. Editing a plan afterwards never changes what a past sale was worth.
-- The plan's **name** is not snapshotted. It is read live through `PlanId`, so renaming a plan corrects the label on every subscription and receipt it has ever appeared on. The name is how a plan reads; the numbers are what was sold. Renaming a plan into a different product therefore mislabels history — change the numbers and it is a new plan, not a rename.
+- At sale, the subscription stores the numbers that were sold: `Price`, `DurationDays`, `TotalSessions`. Changing the prices afterwards never changes what a past sale was worth.
 - `StartDate` and `EndDate` are `DateOnly` in the gym's time zone. `EndDate = StartDate + DurationDays - 1` (the end date is inclusive).
 - A member never has two subscriptions covering the same date.
   - No current or queued subscription: the new one starts today.
   - Otherwise: the new one is queued and starts the day after the latest existing `EndDate`.
 - Selling (decided with the developer in task 4.2):
-  - **Assign** sells a chosen plan. **Renew** sells the same plan as the member's latest subscription (by `EndDate`, cancelled ones included), at that plan's current name, price and limits, not the old snapshot. A member with no subscription has nothing to renew (`Subscriptions.NothingToRenew`); an inactive plan cannot be renewed (`Plans.Inactive`).
+  - **Assign** sells the days and sessions the desk types (§3). **Renew** sells the same days and sessions as the member's latest subscription (by `EndDate`, cancelled ones included), at **today's** session price, not the old one (the same "current values, not the old snapshot" rule renew always had; rewritten in 6.5.6). A member with no subscription has nothing to renew (`Subscriptions.NothingToRenew`).
   - Both follow the same start-date rule, and both are refused for an inactive member (`Members.Inactive`).
   - A cancelled subscription covers no dates: it neither delays a new sale nor counts as an overlap.
   - If the latest subscription is `Exhausted` (all sessions used before its `EndDate`), the new one does not wait: the exhausted one ends yesterday and the new one starts today. If the exhausted one started today, it ends today and the new one starts tomorrow, so two subscriptions never cover the same date.
@@ -224,25 +233,25 @@ Decided with the developer, 1405/07/03. Roadmap 6.5.3.
   2. `Frozen`
   3. `Upcoming` (today < StartDate)
   4. `Expired` (today > EndDate)
-  5. `Exhausted` (limited plan and UsedSessions = TotalSessions)
+  5. `Exhausted` (UsedSessions = TotalSessions)
   6. `Active`
 - `ConsumeSession(today)` fails unless the status is `Active`. It increments `UsedSessions`.
 - `RestoreSession()` decrements `UsedSessions` (used only by cancel check-in) and never goes below 0.
-- Database: check constraint `used_sessions <= total_sessions` (when total is not null); `xmin` concurrency token.
+- Database: `total_sessions` is required; check constraints `used_sessions <= total_sessions`, `duration_days` 1 to 365, and at least 5 sessions unless single-session (§3); `xmin` concurrency token.
 
 ### Single-session subscriptions (تک‌جلسه‌ای)
 
-Decided with the developer, 1405/07/03. Roadmap 6.5.3.
+Decided with the developer, 1405/07/03. Roadmap 6.5.3. Since 6.5.6 it is sold at `SingleVisitPrice`
+(§3 *Prices*) instead of from a single-session plan, and the desk types nothing: one click sells it.
 
-A single-session sale is an **ordinary subscription** sold from the one single-session plan (§3), not
-a separate kind of record. It has a price, a payment, a place in the member's debt, an attendance row
+A single-session sale is an **ordinary subscription** of 1 day and 1 session at `SingleVisitPrice`, not
+a separate kind of record. Guests and walk-in visitors are sold it too. It has a price, a payment, a place in the member's debt, an attendance row
 and a locker like anything else, and the member can buy هوازی during the visit (§7). What makes it
 different is that it is invisible to every rule that orders a member's calendar: it is one day for one
 visit, and it must never move, delay or shorten what the member already bought.
 
-- The flag is **snapshotted onto the subscription** at sale, not read live through `PlanId` the way
-  the plan's name is. Two reasons: the exclusion constraint below lives on `subscriptions` and cannot
-  join to `plans`, and the shape of a past sale must not change if the plan ever does.
+- The subscription carries an `IsSingleSession` flag, set at sale, and a check constraint ties it to
+  1 day and 1 session. The exclusion constraint below reads it.
 - **Start date is always today**, and `EndDate` is today. It never reads the member's calendar and it
   is never queued, whatever else the member holds.
 - **Overlap:** the no-overlap rule and its exclusion constraint apply to **membership** subscriptions
@@ -259,7 +268,7 @@ visit, and it must never move, delay or shorten what the member already bought.
   "current exhausted subscription" those rules act on. Without this, selling a single visit to a member
   whose monthly pack has run out of sessions would rewrite that pack's `EndDate` to yesterday — the
   desk would be changing the member's own subscription by letting them in for one day.
-- **Renew is refused.** Renewal needs a plan with more than one session, so renew reads the member's
+- **Renew is refused.** Renewal sells a plan (at least 5 sessions), so renew reads the member's
   latest **membership** subscription and ignores single-session rows entirely. A member whose only
   history is single-session visits has `Subscriptions.NothingToRenew`.
 - **Freeze is refused** (`Subscriptions.SingleSessionNotFreezable`): a one-day subscription has nothing
@@ -317,7 +326,7 @@ visit, and it must never move, delay or shorten what the member already bought.
 - A subscription can only be refunded while nobody has used it (`UsedSessions = 0`), whatever its status (decided with the developer, 1405/06/31). Sessions already taken are not bought back. `Payments.RefundAfterUse` otherwise.
   - This makes the refund unavailable for correcting a payment typed wrong on a subscription the member has already used. That is deliberate: the overpayment guard above refuses more than the price as it is typed, so a wrong figure is caught at the desk, and a visit entered by mistake can be undone within the cancel window (§7).
 - Details. *Decided by Claude during task 4.4; pending review.*
-  - `Amount` follows the same money rule as `Plan.Price`: at most 2 decimal places, refused rather
+  - `Amount` follows the same money rule as the prices (§3): at most 2 decimal places, refused rather
     than rounded, capped at the same column limit (`numeric(18,2)`).
   - `ReferenceNumber` is at most 100 characters; `Reason` is at most 500 (the same limit as a
     subscription's cancellation reason). Blank input is stored as `null`.
@@ -473,8 +482,7 @@ The request names the locker the desk chose, or asks for a reserve place (§6).
 
 - One row per open visit: the member, the locker (or "رزرو" for a reserve place, §6), the time they came in, how much of their
   subscription is left, and the visit's هوازی charge.
-- Sessions are shown as used of total. An unlimited subscription has no total to count against,
-  so it reads "نامحدود" rather than a bar with no denominator.
+- Sessions are shown as used of total.
 - A single-session visit has no session count to show: the row reads "تک‌جلسه‌ای" where used-of-total
   goes, and it is excluded from **both** "needs attention" thresholds below. It is always 1 of 1 used
   and always expires today, so the mark would be on for every such row — and a mark that is always on
@@ -596,7 +604,7 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
 - Product names are unique across the whole cafe, not merely within a category, compared in
   normalized form (§13) — two products called "آب معدنی" in different categories would be a
   coin flip at the till. *Decided by Claude during task 7.1; pending review.*
-- The price follows the same money rules as `Plan.Price`: at most 2 decimal places, refused
+- The price follows the same money rules as the prices (§3): at most 2 decimal places, refused
   rather than rounded, `numeric(18,2)`, and never negative.
 - **The whole cafe is front-desk work, both roles** (decided by the Owner, 1405/07/03 and
   widened the same day): adding, editing, removing and switching off both products *and*
@@ -693,7 +701,7 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
 - Types: `SubscriptionExpiring`, `LowSessions`.
 - A daily job creates notifications for `Active` subscriptions where:
   - days until `EndDate` <= `Sms:ExpiringDaysBefore`, or
-  - the plan is limited and remaining sessions <= `Sms:LowSessionsThreshold`.
+  - remaining sessions <= `Sms:LowSessionsThreshold`.
 - Unique index on (`subscription_id`, `type`): the same reminder is never created twice.
 - Status: `Pending`, `Sent`, `Failed`. Sending retries with backoff and becomes `Failed` after `Sms:MaxAttempts`.
 - Nothing is sent during quiet hours; sending is deferred.
