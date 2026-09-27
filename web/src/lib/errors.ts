@@ -231,6 +231,30 @@ export const errorMessages: Record<string, string> = {
   "CafeOrders.ChangedConcurrently":
     "این سفارش هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
+  // Expenses (BUSINESS_RULES.md §9)
+  "ExpenseCategories.NotFound": "دسته‌بندی هزینه پیدا نشد.",
+  "ExpenseCategories.NameAlreadyExists": "دسته‌بندی هزینهٔ دیگری با همین نام وجود دارد.",
+  "ExpenseCategories.NameRequired": "نام دسته‌بندی را وارد کنید.",
+  "ExpenseCategories.NameTooLong": "نام دسته‌بندی بیش از حد طولانی است.",
+  "ExpenseCategories.ChangedConcurrently":
+    "این دسته‌بندی هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+  "Expenses.NotFound": "هزینه پیدا نشد.",
+  "Expenses.AmountNotPositive": "مبلغ باید بزرگ‌تر از صفر باشد.",
+  "Expenses.AmountTooLarge": "مبلغ بیش از حد بزرگ است.",
+  "Expenses.AmountTooManyDecimals": "مبلغ حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
+  "Expenses.CategoryRequired": "دسته‌بندی هزینه را انتخاب کنید.",
+  "Expenses.CategoryNotFound": "دسته‌بندی انتخاب‌شده پیدا نشد.",
+  "Expenses.DateInFuture": "تاریخ هزینه نمی‌تواند بعد از امروز باشد.",
+  "Expenses.DescriptionRequired": "شرح هزینه را وارد کنید.",
+  "Expenses.DescriptionTooLong": "شرح هزینه بیش از حد طولانی است.",
+  "Expenses.ReferenceNumberTooLong": "شمارهٔ مرجع بیش از حد طولانی است.",
+  "Expenses.AlreadyVoided": "این هزینه باطل شده است و دیگر تغییر نمی‌کند.",
+  "Expenses.VoidReasonRequired": "دلیل ابطال را وارد کنید.",
+  "Expenses.VoidReasonTooLong": "دلیل ابطال بیش از حد طولانی است.",
+  "Expenses.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
+  "Expenses.ChangedConcurrently":
+    "این هزینه هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",
   "Paging.PageSizeInvalid": "تعداد ردیف‌های هر صفحه نامعتبر است.",

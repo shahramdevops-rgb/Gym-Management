@@ -134,6 +134,8 @@ try
     app.MapProductCategoriesEndpoints();
     app.MapProductsEndpoints();
     app.MapCafeOrdersEndpoints();
+    app.MapExpenseCategoriesEndpoints();
+    app.MapExpensesEndpoints();
 
     app.Run();
 }

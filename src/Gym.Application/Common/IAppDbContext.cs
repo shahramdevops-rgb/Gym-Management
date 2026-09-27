@@ -1,6 +1,7 @@
 using Gym.Domain.Attendances;
 using Gym.Domain.Auth;
 using Gym.Domain.Cafe;
+using Gym.Domain.Expenses;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
@@ -60,6 +61,10 @@ public interface IAppDbContext
     DbSet<CafeOrder> CafeOrders { get; }
 
     DbSet<CafeOrderItem> CafeOrderItems { get; }
+
+    DbSet<ExpenseCategory> ExpenseCategories { get; }
+
+    DbSet<Expense> Expenses { get; }
 
     /// <summary>
     /// Exposed for the rare handler that must recover from a failed save in the same request:

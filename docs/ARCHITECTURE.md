@@ -288,6 +288,11 @@ web/src/
   tables, so this only matters if the model is ever emptied again.
 - Respawn also empties the Identity `roles` table. Tests that need the Owner and Staff roles get them by
   running `IdentitySeeder.SeedOwnerAsync`, not by assuming they survive from the migration.
+- Respawn empties migration-seeded (`HasData`) tables too. `DatabaseFixture.ResetAsync` puts the expense
+  categories back after every reset from `ExpenseCategorySeed`, the list the migration was generated from.
+  A new `HasData` table needs a line in `RestoreSeedDataAsync`, or every test sees it empty.
+- `HasData` on an entity with private setters takes anonymous objects whose property names match the entity's,
+  and every required column (the base `CreatedAt` included) needs a value. Leave the `xmin` version out.
 - Respawn deletes rows, not tables, so `__EFMigrationsHistory` must be in `TablesToIgnore` — otherwise the
   next run finds a fully migrated database that believes it has never been migrated.
 - Partial unique indexes: `HasIndex(...).IsUnique().HasFilter("checked_out_at IS NULL")`. The filter uses snake_case column names.

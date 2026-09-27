@@ -913,3 +913,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Read a feature from the attacker's side after writing it.** The tests all passed, and a separate review still found a stolen-cookie path, a 500 on a race, and a shell `read` that silently trimmed spaces from a passphrase. Tests check what you thought of; a reviewer checks what you did not.
 - **Two sessions, one folder, is a trap.** Another session was editing the same working tree. A `git worktree` gave this task its own folder and branch, with its own `bin` (no locked DLLs) and its own `node_modules`, and the other session's files were untouched.
 - **My notes:**
+
+---
+
+## 8.1 — Expenses API
+
+- **Reference data belongs in the migration.** The eight categories are `HasData` rows, so they arrive on the same deployment step as the table, exactly once. A start-up seeder would run on every start, and one that re-created a missing name would bring back a category the Owner renamed.
+- **Fixed ids for seeded rows.** A migration has to name its rows, and a later migration or report can point at "خرید بوفه" by id without depending on a name the Owner may change.
+- **Test resets must restore what production always has.** Respawn deletes every row, seeded ones included. The fixture writes them back from the same C# list the migration came from, and reads the table once right after migrating, which is the only moment that proves the migration itself seeds them.
+- **Editable is not the same as deletable.** A payment is never edited, because someone else's balance depends on it. An expense is the Owner's own note, so it can be corrected, and the audit log keeps every earlier value. A void is still final, because a voided row that could change would make the history arguable.
+- **A total the client cannot compute.** The list is paged, so the browser sees one page. `TotalAmount` is summed in SQL over every row the filter matches, voided rows left out, before paging.
+- **A rule the database cannot hold.** "Not after today" moves every midnight, and a check constraint must stay true for a row forever. The entity checks it against the gym's today; the database checks only what never changes (amount > 0, a void always has a reason and a user).
+- **Join before paging.** `Skip`/`Take` go after the join and the `OrderBy`, so the order the database pages in is the order the client gets.
+- **My notes:**
