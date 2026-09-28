@@ -207,20 +207,24 @@ describe("LockersPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("CheckIn_NoSubscription_SellsASingleVisitAndChecksInWithTheSameLocker", async () => {
-    let sold = false;
+  /** Check-in refuses until a request carries a sale, which the API sells and checks in at once. */
+  function checkInSellsWith(refusal: string) {
+    return async (request: Request) => {
+      const body = (await request.clone().json()) as { sale?: unknown };
+      return body.sale === undefined
+        ? problem(422, refusal)
+        : json(201, { ...openVisit(reza.id), lockerId: lockerId(12), lockerNumber: 12 });
+    };
+  }
+
+  it("CheckIn_NoSubscription_SellsASingleVisitAndChecksInWithTheSameLockerInOneRequest", async () => {
     const api = mockApi(
       mapHandlers(allLockers(), [], {
         "GET /api/members": () => membersPage([reza]),
         "GET /api/pricing": () => pricesResponse(),
-        [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
-          sold
-            ? json(201, { ...openVisit(reza.id), lockerId: lockerId(12), lockerNumber: 12 })
-            : problem(422, "Attendance.NoSubscription"),
-        [`POST /api/members/${reza.id}/subscriptions/single-visit`]: () => {
-          sold = true;
-          return json(201, { ...activeSubscription, isSingleSession: true });
-        },
+        [`POST /api/members/${reza.id}/attendance/check-in`]: checkInSellsWith(
+          "Attendance.NoSubscription",
+        ),
       }),
     );
     renderMap();
@@ -232,14 +236,105 @@ describe("LockersPage", () => {
     expect(await within(dialog).findByText("ورود تک‌جلسه‌ای ثبت شد")).toBeInTheDocument();
     const checkIns = api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`);
     expect(checkIns).toHaveLength(2);
-    expect(await checkIns[1]!.clone().json()).toEqual({ lockerId: lockerId(12) });
+    expect(await checkIns[1]!.clone().json()).toEqual({
+      lockerId: lockerId(12),
+      sale: { kind: "SingleVisit" },
+    });
+    // The old two-step sale is gone: nothing is sold without its check-in.
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions/single-visit`)).toHaveLength(0);
   });
 
-  it("CheckIn_NobodyFound_RegistersThemAndCarriesOnToTheCheckIn", async () => {
+  it("CheckIn_NoSubscription_SellsAPlanRightHereAndChecksInWithTheSameLocker", async () => {
+    const api = mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza]),
+        "GET /api/pricing": () => pricesResponse(),
+        [`POST /api/members/${reza.id}/attendance/check-in`]: checkInSellsWith(
+          "Subscriptions.Expired",
+        ),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await chooseAndConfirm(dialog, "رضا احمدی");
+    fireEvent.click(await within(dialog).findByRole("button", { name: "فروش اشتراک" }));
+    const sale = within(dialog).getByRole("region", { name: "فروش اشتراک" });
+    fireEvent.change(within(sale).getByLabelText("تعداد روز"), { target: { value: "۳۰" } });
+    fireEvent.change(within(sale).getByLabelText("تعداد جلسات"), { target: { value: "12" } });
+    // The price before the desk confirms: 12 × 75,000.
+    expect(await within(sale).findByText(/۹۰۰٬۰۰۰/)).toBeInTheDocument();
+    fireEvent.click(within(sale).getByRole("button", { name: "فروش و ثبت ورود" }));
+
+    expect(await within(dialog).findByText("اشتراک فروخته شد و ورود ثبت شد")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("کمد شماره ۱۲")).toBeInTheDocument();
+    const checkIns = api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`);
+    expect(checkIns).toHaveLength(2);
+    expect(await checkIns[1]!.clone().json()).toEqual({
+      lockerId: lockerId(12),
+      sale: { kind: "Membership", durationDays: 30, sessionCount: 12 },
+    });
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`)).toHaveLength(0);
+  });
+
+  it("CheckIn_PlanSaleRefused_ShowsWhyInTheFormAndStaysOpen", async () => {
+    mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza]),
+        "GET /api/pricing": () => pricesResponse(),
+        [`POST /api/members/${reza.id}/attendance/check-in`]: async (request) => {
+          const body = (await request.clone().json()) as { sale?: unknown };
+          return body.sale === undefined
+            ? problem(422, "Attendance.NoSubscription")
+            : problem(409, "Attendance.LockerTaken");
+        },
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await chooseAndConfirm(dialog, "رضا احمدی");
+    fireEvent.click(await within(dialog).findByRole("button", { name: "فروش اشتراک" }));
+    const sale = within(dialog).getByRole("region", { name: "فروش اشتراک" });
+    fireEvent.change(within(sale).getByLabelText("تعداد روز"), { target: { value: "30" } });
+    fireEvent.change(within(sale).getByLabelText("تعداد جلسات"), { target: { value: "12" } });
+    await within(sale).findByText(/۹۰۰٬۰۰۰/);
+    fireEvent.click(within(sale).getByRole("button", { name: "فروش و ثبت ورود" }));
+
+    expect(await within(sale).findByText(/این کمد را کس دیگری گرفته است/)).toBeInTheDocument();
+    expect(within(dialog).queryByText("اشتراک فروخته شد و ورود ثبت شد")).not.toBeInTheDocument();
+  });
+
+  it("CheckIn_FrozenPlan_OffersTheSingleVisitAndLeavesPlansToTheProfile", async () => {
+    mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza]),
+        "GET /api/pricing": () => pricesResponse(),
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+          problem(422, "Subscriptions.Frozen"),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await chooseAndConfirm(dialog, "رضا احمدی");
+
+    // A new plan would queue behind the frozen one and could not let them in today.
+    expect(
+      await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: "فروش اشتراک" })).toHaveAttribute(
+      "href",
+      `/members/${reza.id}`,
+    );
+  });
+
+  it("CheckIn_NobodyFound_RegistersThemAndGoesStraightToTheSale", async () => {
     const created = { ...reza, fullName: "سارا محمدی" };
     const api = mockApi(
       mapHandlers(allLockers(), [], {
         "GET /api/members": () => membersPage([]),
+        "GET /api/pricing": () => pricesResponse(),
         "POST /api/members": () => json(201, created),
       }),
     );
@@ -257,10 +352,14 @@ describe("LockersPage", () => {
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "ثبت و ادامه" }));
 
-    await waitFor(() =>
-      expect(dialog).toHaveTextContent("آیا از ثبت ورود سارا محمدی با کمد شماره ۱۲ مطمئن هستید؟"),
-    );
+    // No check-in to confirm: someone registered a moment ago has nothing it could use.
+    expect(await within(dialog).findByText("عضو جدید ثبت شد")).toBeInTheDocument();
+    expect(
+      await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "فروش اشتراک" })).toBeInTheDocument();
     expect(api.requestsTo("POST", "/api/members")).toHaveLength(1);
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
   });
 
   it("FreeLocker_TakeOutOfService_CallsTheApi", async () => {

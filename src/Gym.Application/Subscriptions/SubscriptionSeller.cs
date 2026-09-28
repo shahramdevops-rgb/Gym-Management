@@ -14,6 +14,12 @@ namespace Gym.Application.Subscriptions;
 /// and save it (BUSINESS_RULES.md §3, §4). The handlers decide which member and which numbers; this
 /// decides when and at what price.
 /// </summary>
+/// <remarks>
+/// Each sale comes in two forms. <c>Sell…Async</c> is a sale on its own: it opens the transaction,
+/// takes the member's lock and commits. <c>Add…Async</c> is the same sale inside a transaction the
+/// caller already holds, for check-in, which sells and lets the member in as one operation
+/// (BUSINESS_RULES.md §7 <i>Confirming at the front desk</i>, roadmap 6.5.7).
+/// </remarks>
 public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
 {
     /// <summary>A plan of so many days and sessions: assign and renew.</summary>
@@ -22,20 +28,61 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
     {
         ArgumentNullException.ThrowIfNull(member);
 
-        var canReceive = member.EnsureCanReceiveSubscription();
-        if (canReceive.IsFailure)
-        {
-            return Result.Failure<SubscriptionResponse>(canReceive.Error);
-        }
-
-        var today = calendar.Today();
-        var prices = await PriceLists.CurrentAsync(db, cancellationToken);
-
         // One sale per member at a time: a second sale for the same member waits here until the
         // first commits, then reads its subscription and queues after it. Without the lock both
         // would read the same calendar and pick the same start date.
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
         await db.LockMemberAsync(member.Id, cancellationToken);
+
+        var today = calendar.Today();
+        var added = await AddMembershipAsync(member, durationDays, sessionCount, today, cancellationToken);
+        if (added.IsFailure)
+        {
+            return Result.Failure<SubscriptionResponse>(added.Error);
+        }
+
+        return await SaveAsync(added.Value, transaction, today, cancellationToken);
+    }
+
+    /// <summary>
+    /// One visit for today (BUSINESS_RULES.md §4 <i>Single-session subscriptions</i>). It reads no
+    /// calendar and moves nothing, but it still takes the member's lock, so it cannot land between a
+    /// membership sale's read and its write.
+    /// </summary>
+    public async Task<Result<SubscriptionResponse>> SellSingleVisitAsync(
+        Member member, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(member);
+
+        await using var transaction = await db.BeginTransactionAsync(cancellationToken);
+        await db.LockMemberAsync(member.Id, cancellationToken);
+
+        var today = calendar.Today();
+        var added = await AddSingleVisitAsync(member, today, cancellationToken);
+        if (added.IsFailure)
+        {
+            return Result.Failure<SubscriptionResponse>(added.Error);
+        }
+
+        return await SaveAsync(added.Value, transaction, today, cancellationToken);
+    }
+
+    /// <summary>
+    /// Prices and places a plan and adds it to the context, unsaved. The caller must already hold
+    /// the member's lock inside its own transaction, and saves.
+    /// </summary>
+    public async Task<Result<Subscription>> AddMembershipAsync(
+        Member member, int durationDays, int sessionCount, DateOnly today, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(member);
+
+        var canReceive = member.EnsureCanReceiveSubscription();
+        if (canReceive.IsFailure)
+        {
+            return Result.Failure<Subscription>(canReceive.Error);
+        }
+
+        var prices = await PriceLists.CurrentAsync(db, cancellationToken);
 
         // Only subscriptions that still cover today or later decide the start date; ones that
         // ended before today or were cancelled do not. Single-session ones never do either
@@ -52,41 +99,40 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
         var created = Subscription.CreateMembership(member.Id, durationDays, sessionCount, prices.SessionPrice, startDate);
         if (created.IsFailure)
         {
-            return Result.Failure<SubscriptionResponse>(created.Error);
+            return created;
         }
 
-        return await SaveAsync(created.Value, transaction, today, cancellationToken);
+        db.Subscriptions.Add(created.Value);
+
+        return created;
     }
 
     /// <summary>
-    /// One visit for today (BUSINESS_RULES.md §4 <i>Single-session subscriptions</i>). It reads no
-    /// calendar and moves nothing, but it still takes the member's lock, so it cannot land between a
-    /// membership sale's read and its write.
+    /// Prices a single visit for today and adds it to the context, unsaved. The caller must already
+    /// hold the member's lock inside its own transaction, and saves.
     /// </summary>
-    public async Task<Result<SubscriptionResponse>> SellSingleVisitAsync(
-        Member member, CancellationToken cancellationToken)
+    public async Task<Result<Subscription>> AddSingleVisitAsync(
+        Member member, DateOnly today, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(member);
 
         var canReceive = member.EnsureCanReceiveSubscription();
         if (canReceive.IsFailure)
         {
-            return Result.Failure<SubscriptionResponse>(canReceive.Error);
+            return Result.Failure<Subscription>(canReceive.Error);
         }
 
-        var today = calendar.Today();
         var prices = await PriceLists.CurrentAsync(db, cancellationToken);
 
         var created = Subscription.CreateSingleVisit(member.Id, prices.SingleVisitPrice, today);
         if (created.IsFailure)
         {
-            return Result.Failure<SubscriptionResponse>(created.Error);
+            return created;
         }
 
-        await using var transaction = await db.BeginTransactionAsync(cancellationToken);
-        await db.LockMemberAsync(member.Id, cancellationToken);
+        db.Subscriptions.Add(created.Value);
 
-        return await SaveAsync(created.Value, transaction, today, cancellationToken);
+        return created;
     }
 
     private async Task<Result<SubscriptionResponse>> SaveAsync(
@@ -95,8 +141,6 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
         DateOnly today,
         CancellationToken cancellationToken)
     {
-        db.Subscriptions.Add(subscription);
-
         // The lock makes these unreachable in normal use. They remain for a writer that does not
         // take the lock: the exclusion constraint still refuses the overlap, and xmin a second
         // change to the same subscription.

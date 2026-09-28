@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Members;
+using Gym.Application.Subscriptions;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
@@ -12,9 +13,10 @@ namespace Gym.Application.Attendances.CheckIn;
 /// <summary>
 /// Checks a member in: consumes a session from their current subscription and gives them the
 /// locker the desk chose, or a reserve place when every locker is full (BUSINESS_RULES.md §6, §7).
-/// Front desk work, so both roles.
+/// When the desk sells a single visit or a plan in the same box, the sale happens here too, in the
+/// same transaction: both are saved or neither is (roadmap 6.5.7). Front desk work, so both roles.
 /// </summary>
-public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, TimeProvider time)
+public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, TimeProvider time, SubscriptionSeller seller)
 {
     public async Task<Result<AttendanceResponse>> Handle(Guid memberId, CheckInCommand command, CancellationToken cancellationToken)
     {
@@ -45,6 +47,15 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
         }
 
         var today = calendar.Today();
+
+        if (command.Sale is { } sale)
+        {
+            var sold = await SellAsync(member, sale, today, cancellationToken);
+            if (sold.IsFailure)
+            {
+                return Result.Failure<AttendanceResponse>(sold.Error);
+            }
+        }
 
         // Tracked, not AsNoTracking: InEffectToday may move the queue up, and those changes are
         // saved with the attendance below. Ones that ended before today cannot be used and cannot
@@ -130,6 +141,41 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
         var debt = await MemberDebt.GetTotalAsync(db, memberId, cancellationToken);
 
         return AttendanceResponse.From(attendance, lockerNumber, serviceCharges: [], debt);
+    }
+
+    /// <summary>
+    /// Sells what the desk chose and saves it inside the check-in's transaction. Saved rather than
+    /// only added, so the lookup that follows finds it the way it finds any other subscription and
+    /// it carries its <c>CreatedAt</c>, which decides which of two single visits is used first.
+    /// Nothing is committed until the visit is: if the member still cannot come in today (a plan
+    /// queued behind a frozen one, say), or the locker is gone, the sale is rolled back with it.
+    /// </summary>
+    private async Task<Result> SellAsync(Member member, CheckInSale sale, DateOnly today, CancellationToken cancellationToken)
+    {
+        var added = sale.Kind == CheckInSaleKind.SingleVisit
+            ? await seller.AddSingleVisitAsync(member, today, cancellationToken)
+            // The validator has already required both numbers for a plan.
+            : await seller.AddMembershipAsync(member, sale.DurationDays!.Value, sale.SessionCount!.Value, today, cancellationToken);
+
+        if (added.IsFailure)
+        {
+            return Result.Failure(added.Error);
+        }
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (ExclusionConstraintException exception) when (exception.ConstraintName == SubscriptionConstraints.NoOverlap)
+        {
+            return Result.Failure(SubscriptionErrors.ChangedConcurrently);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result.Failure(SubscriptionErrors.ChangedConcurrently);
+        }
+
+        return Result.Success();
     }
 
     /// <summary>

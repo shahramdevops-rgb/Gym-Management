@@ -158,6 +158,21 @@ public sealed class ValidationFilterTests
     }
 
     [Fact]
+    public async Task InvokeAsync_WhenTheBodyFailedToBind_LeavesTheFrameworks400()
+    {
+        var filter = new ValidationFilter<SampleCommand>(new SampleCommandValidator());
+        var httpContext = new DefaultHttpContext();
+        // What minimal APIs hand a filter when the body is missing: a null argument, 400 already set.
+        httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+        var context = EndpointFilterInvocationContext.Create<SampleCommand?>(httpContext, null);
+        var expected = Results.Empty;
+
+        var returned = await filter.InvokeAsync(context, _ => ValueTask.FromResult<object?>(expected));
+
+        returned.ShouldBeSameAs(expected);
+    }
+
+    [Fact]
     public async Task InvokeAsync_WhenNoArgumentOfTheExpectedType_Throws()
     {
         var filter = new ValidationFilter<SampleCommand>(new SampleCommandValidator());

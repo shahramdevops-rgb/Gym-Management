@@ -39,6 +39,7 @@ public static class AttendanceEndpoints
         memberAttendance.MapPost("/check-in", async (Guid memberId, CheckInCommand command, CheckInHandler handler, CancellationToken ct) =>
                 (await handler.Handle(memberId, command, ct)).ToHttpResult(attendance => Results.Created($"/api/attendance/{attendance.Id}", attendance)))
             .RequireAuthorization(Policies.StaffOrOwner)
+            .AddEndpointFilter<ValidationFilter<CheckInCommand>>()
             .WithName("CheckIn")
             .Produces<AttendanceResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)

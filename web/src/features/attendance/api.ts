@@ -9,6 +9,7 @@ import type { components } from "@/lib/api/schema";
 
 export type Attendance = components["schemas"]["AttendanceResponse"];
 export type CurrentlyInside = components["schemas"]["CurrentlyInsideResponse"];
+export type CheckInSale = components["schemas"]["CheckInSale"];
 
 export const currentlyInsidePageSize = 20;
 export const memberHistoryPageSize = 10;
@@ -117,22 +118,39 @@ async function invalidateAttendance(queryClient: QueryClient) {
 /**
  * Checks a member in with the locker the desk clicked, or a reserve place when `lockerId` is
  * `null` (BUSINESS_RULES.md §6, §7). Only the locker map calls this.
+ *
+ * With a `sale`, the API first sells a single visit or a plan and then checks the member in, in one
+ * transaction: both happen or neither does, so a subscription sold at the locker always comes with
+ * that locker (roadmap 6.5.7).
  */
 export function useCheckIn() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ memberId, lockerId }: { memberId: string; lockerId: string | null }) => {
+    mutationFn: async ({
+      memberId,
+      lockerId,
+      sale,
+    }: {
+      memberId: string;
+      lockerId: string | null;
+      sale?: CheckInSale;
+    }) => {
       const { data, error } = await api.POST("/api/members/{memberId}/attendance/check-in", {
         params: { path: { memberId } },
-        body: { lockerId },
+        body: sale === undefined ? { lockerId } : { lockerId, sale },
       });
       if (error !== undefined) {
         throw error;
       }
       return data;
     },
-    onSuccess: () => invalidateAttendance(queryClient),
+    onSuccess: (_attendance, { sale }) =>
+      Promise.all([
+        invalidateAttendance(queryClient),
+        // A sale adds to what the member owes, which the member's own queries show.
+        sale === undefined ? null : queryClient.invalidateQueries({ queryKey: memberKeys.all }),
+      ]),
   });
 }
 
