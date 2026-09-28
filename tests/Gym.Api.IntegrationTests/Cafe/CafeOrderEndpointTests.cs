@@ -295,6 +295,23 @@ public sealed class CafeOrderEndpointTests(DatabaseFixture fixture) : DatabaseTe
     }
 
     [Fact]
+    public async Task MemberDebt_UnpaidOrderOnAccount_ListsWhatItBoughtWithPrices()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var cake = await AddProductAsync(client, token, "کیک", 40_000m);
+        await CreateOkAsync(client, token, member.Id, [(water.Id, 2), (cake.Id, 1)], paid: null);
+
+        var debt = await DebtAsync(client, token, member.Id);
+
+        var lines = debt.Items.ShouldHaveSingleItem().CafeItems;
+        lines.Count.ShouldBe(2);
+        lines.ShouldContain(line => line.ProductName == "آب معدنی" && line.Quantity == 2 && line.LineTotal == 30_000m);
+        lines.ShouldContain(line => line.ProductName == "کیک" && line.Quantity == 1 && line.LineTotal == 40_000m);
+    }
+
+    [Fact]
     public async Task MemberDebt_WalkInOrder_IsNobodysDebt()
     {
         var (client, token) = await StaffClientAsync();

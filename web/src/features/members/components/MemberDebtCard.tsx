@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SettleDebt } from "@/features/payments/components/SettleDebt";
 import { errorMessage } from "@/lib/errors";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, toPersianDigits } from "@/lib/format";
 import { isPositiveMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
-import { useMemberDebt } from "../api";
+import { useMemberDebt, type MemberDebtItem } from "../api";
 import { debtItemLabel } from "../debtItemLabel";
 
 /**
@@ -71,13 +72,7 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
                 </thead>
                 <tbody>
                   {debt.data.items.map((item) => (
-                    <tr key={item.id} className="border-b">
-                      <td className="py-2">{debtItemLabel(item)}</td>
-                      <td className="py-2">{formatDate(item.startDate)}</td>
-                      <td className="py-2">{formatMoney(item.price)}</td>
-                      <td className="py-2">{formatMoney(item.netPaid)}</td>
-                      <td className="py-2">{formatMoney(item.outstanding)}</td>
-                    </tr>
+                    <DebtRow key={item.id} item={item} />
                   ))}
                 </tbody>
               </table>
@@ -90,6 +85,41 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
 
       <SettleDebt memberId={memberId} items={debt.data.items} />
     </DebtCard>
+  );
+}
+
+/**
+ * One owed item. A cafe order is followed by what it bought, one step in, each with its price, so
+ * «بوفه» on its own never leaves the desk guessing what the money is for — the same lines as the
+ * member's cafe purchases.
+ */
+function DebtRow({ item }: { item: MemberDebtItem }) {
+  const lines = item.cafeItems;
+
+  return (
+    <>
+      <tr className={cn(lines.length === 0 && "border-b")}>
+        <td className="py-2">{debtItemLabel(item)}</td>
+        <td className="py-2">{formatDate(item.startDate)}</td>
+        <td className="py-2">{formatMoney(item.price)}</td>
+        <td className="py-2">{formatMoney(item.netPaid)}</td>
+        <td className="py-2">{formatMoney(item.outstanding)}</td>
+      </tr>
+      {lines.map((line, index) => {
+        const last = index === lines.length - 1;
+        return (
+          <tr key={line.id} className={cn("text-muted-foreground", last && "border-b")}>
+            <td className={cn("ps-4", last ? "pb-2" : "pb-1")}>
+              {line.productName} × {toPersianDigits(line.quantity)}
+            </td>
+            <td />
+            <td className={last ? "pb-2" : "pb-1"}>{formatMoney(line.lineTotal)}</td>
+            <td />
+            <td />
+          </tr>
+        );
+      })}
+    </>
   );
 }
 

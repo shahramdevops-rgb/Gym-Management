@@ -22,7 +22,14 @@ import {
   signedInHandlers,
   staffUser,
 } from "@/test/mockApi";
-import { ali, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
+import {
+  ali,
+  cafeDebtItem,
+  debtItem,
+  memberDebt,
+  reza,
+  serviceChargeDebtItem,
+} from "@/test/members";
 import {
   confirmMoneyReceived,
   confirmMoneyReturned,
@@ -451,9 +458,9 @@ describe("MemberProfilePage", () => {
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent(/آیا از فریز .* مطمئن هستید؟/);
-    expect(api.requestsTo("POST", `/api/subscriptions/${activeSubscription.id}/freeze`)).toHaveLength(
-      0,
-    );
+    expect(
+      api.requestsTo("POST", `/api/subscriptions/${activeSubscription.id}/freeze`),
+    ).toHaveLength(0);
   });
 
   it("Subscription_Freeze_ConfirmationShowsTheThirtyDayCapAndTheDaysLeft", async () => {
@@ -485,9 +492,9 @@ describe("MemberProfilePage", () => {
     fireEvent.click(await screen.findByRole("button", { name: "خیر، برگرد" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(api.requestsTo("POST", `/api/subscriptions/${activeSubscription.id}/freeze`)).toHaveLength(
-      0,
-    );
+    expect(
+      api.requestsTo("POST", `/api/subscriptions/${activeSubscription.id}/freeze`),
+    ).toHaveLength(0);
   });
 
   it("Subscription_Unfreeze_AsksForConfirmationThenCallsTheApiAndShowsSuccess", async () => {
@@ -754,6 +761,52 @@ describe("MemberProfilePage", () => {
 
     const cardioRow = (await screen.findByText("هوازی")).closest("tr")!;
     expect(within(cardioRow).getAllByText("۱۰٬۰۰۰ تومان")).toHaveLength(2);
+  });
+
+  it("Debt_MemberWhoOwesTheCafe_ListsWhatWasBoughtUnderTheCafeRowWithPrices", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/debt`]: () =>
+        memberDebt([
+          cafeDebtItem({
+            price: 70000,
+            outstanding: 70000,
+            cafeItems: [
+              {
+                id: "0199a000-0000-7000-8000-0000000000c1",
+                productId: "0199a000-0000-7000-8000-0000000000c2",
+                productName: "آب معدنی",
+                unitPrice: 15000,
+                quantity: 2,
+                lineTotal: 30000,
+              },
+              {
+                id: "0199a000-0000-7000-8000-0000000000c3",
+                productId: "0199a000-0000-7000-8000-0000000000c4",
+                productName: "کیک",
+                unitPrice: 40000,
+                quantity: 1,
+                lineTotal: 40000,
+              },
+            ],
+          }),
+        ]),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    expect(await screen.findByText("۷۰٬۰۰۰ تومان")).toBeInTheDocument();
+    expect(screen.queryByText("آب معدنی × ۲")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "جزء به جزء" }));
+
+    // Each thing bought sits on its own row under «بوفه», with what it cost.
+    const waterRow = (await screen.findByText("آب معدنی × ۲")).closest("tr")!;
+    expect(within(waterRow).getByText("۳۰٬۰۰۰ تومان")).toBeInTheDocument();
+    const cakeRow = screen.getByText("کیک × ۱").closest("tr")!;
+    expect(within(cakeRow).getByText("۴۰٬۰۰۰ تومان")).toBeInTheDocument();
+    expect(waterRow.previousElementSibling).toHaveTextContent("بوفه");
   });
 
   it("Debt_MemberWhoOwesNothing_SaysSo", async () => {

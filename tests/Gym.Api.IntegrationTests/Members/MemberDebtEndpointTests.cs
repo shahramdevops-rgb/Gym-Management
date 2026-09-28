@@ -53,6 +53,7 @@ public sealed class MemberDebtEndpointTests(DatabaseFixture fixture) : DatabaseT
         item.Price.ShouldBe(900_000m);
         item.NetPaid.ShouldBe(0m);
         item.Outstanding.ShouldBe(900_000m);
+        item.CafeItems.ShouldBeEmpty();
     }
 
     [Fact]
