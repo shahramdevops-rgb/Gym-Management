@@ -12,6 +12,7 @@ import { isPositiveMoney, subtractMoney } from "@/lib/money";
 import { useFreezeSubscription, useUnfreezeSubscription, type Subscription } from "../api";
 import { planLabel } from "../planLabel";
 import { CancelSubscriptionForm } from "./CancelSubscriptionForm";
+import { ConfirmFreezeDialog, type FreezeAction } from "./ConfirmFreezeDialog";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
 
 type RowAction = "payment" | "refund" | "cancel" | null;
@@ -35,6 +36,7 @@ export function SubscriptionHistoryRow({
 }: SubscriptionHistoryRowProps) {
   const [action, setAction] = useState<RowAction>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<FreezeAction | null>(null);
   const freeze = useFreezeSubscription();
   const unfreeze = useUnfreezeSubscription();
 
@@ -48,22 +50,25 @@ export function SubscriptionHistoryRow({
     onDone(message);
   }
 
-  async function doFreeze() {
+  function askToConfirm(next: FreezeAction) {
     setError(null);
-    try {
-      await freeze.mutateAsync({ id: subscription.id });
-      onDone("اشتراک فریز شد.");
-    } catch (problem) {
-      setError(errorMessage(problem));
-    }
+    setConfirming(next);
   }
 
-  async function doUnfreeze() {
-    setError(null);
+  // Sent only from the confirmation box. A refusal closes the box and shows under the row, where
+  // every other action on this subscription shows its errors.
+  async function confirmFreezeAction() {
+    const freezing = confirming === "freeze";
     try {
-      await unfreeze.mutateAsync({ id: subscription.id });
-      onDone("فریز اشتراک برداشته شد.");
+      if (freezing) {
+        await freeze.mutateAsync({ id: subscription.id });
+      } else {
+        await unfreeze.mutateAsync({ id: subscription.id });
+      }
+      setConfirming(null);
+      onDone(freezing ? "اشتراک فریز شد." : "فریز اشتراک برداشته شد.");
     } catch (problem) {
+      setConfirming(null);
       setError(errorMessage(problem));
     }
   }
@@ -119,7 +124,7 @@ export function SubscriptionHistoryRow({
                 variant="outline"
                 aria-label={`فریز ${context}`}
                 disabled={freeze.isPending}
-                onClick={() => void doFreeze()}
+                onClick={() => askToConfirm("freeze")}
               >
                 فریز
               </Button>
@@ -130,7 +135,7 @@ export function SubscriptionHistoryRow({
                 variant="outline"
                 aria-label={`رفع فریز ${context}`}
                 disabled={unfreeze.isPending}
-                onClick={() => void doUnfreeze()}
+                onClick={() => askToConfirm("unfreeze")}
               >
                 رفع فریز
               </Button>
@@ -192,6 +197,14 @@ export function SubscriptionHistoryRow({
           </td>
         </tr>
       )}
+      <ConfirmFreezeDialog
+        action={confirming}
+        context={context}
+        totalFrozenDays={Number(subscription.totalFrozenDays)}
+        pending={freeze.isPending || unfreeze.isPending}
+        onConfirm={() => void confirmFreezeAction()}
+        onCancel={() => setConfirming(null)}
+      />
     </>
   );
 }

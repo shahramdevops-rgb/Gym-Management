@@ -432,10 +432,87 @@ describe("MemberProfilePage", () => {
     renderApp(`/members/${reza.id}`, { session: session() });
 
     fireEvent.click(await screen.findByRole("button", { name: /^فریز / }));
+    fireEvent.click(await screen.findByRole("button", { name: "بله، فریز شود" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "همهٔ روزهای مجاز فریز این اشتراک استفاده شده است",
     );
+  });
+
+  it("Subscription_Freeze_AsksForConfirmationBeforeAnythingIsSent", async () => {
+    const api = mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: /^فریز / }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent(/آیا از فریز .* مطمئن هستید؟/);
+    expect(api.requestsTo("POST", `/api/subscriptions/${activeSubscription.id}/freeze`)).toHaveLength(
+      0,
+    );
+  });
+
+  it("Subscription_Freeze_ConfirmationShowsTheThirtyDayCapAndTheDaysLeft", async () => {
+    // BUSINESS_RULES.md §4 Freeze: at most Gym:MaxFreezeDaysPerSubscription (30) days in total.
+    mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () =>
+        subscriptionsPage([{ ...activeSubscription, totalFrozenDays: 12 }]),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: /^فریز / }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("هر اشتراک حداکثر ۳۰ روز فریز دارد.");
+    expect(dialog).toHaveTextContent("تاکنون ۱۲ روز استفاده شده و ۱۸ روز باقی مانده است.");
+  });
+
+  it("Subscription_FreezeAnsweredNo_ClosesTheBoxAndSendsNothing", async () => {
+    const api = mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: /^فریز / }));
+    fireEvent.click(await screen.findByRole("button", { name: "خیر، برگرد" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.requestsTo("POST", `/api/subscriptions/${activeSubscription.id}/freeze`)).toHaveLength(
+      0,
+    );
+  });
+
+  it("Subscription_Unfreeze_AsksForConfirmationThenCallsTheApiAndShowsSuccess", async () => {
+    const frozen = {
+      ...activeSubscription,
+      status: "Frozen" as const,
+      frozenSince: activeSubscription.startDate,
+    };
+    const api = mockApi({
+      ...signedInHandlers(owner),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([frozen]),
+      [`POST /api/subscriptions/${frozen.id}/unfreeze`]: () =>
+        json(200, { ...activeSubscription, version: 2 }),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: /^رفع فریز / }));
+    const confirm = await screen.findByRole("button", { name: "بله، فریز برداشته شود" });
+    expect(api.requestsTo("POST", `/api/subscriptions/${frozen.id}/unfreeze`)).toHaveLength(0);
+
+    fireEvent.click(confirm);
+
+    expect(await screen.findByRole("status")).toHaveTextContent("فریز اشتراک برداشته شد.");
+    expect(api.requestsTo("POST", `/api/subscriptions/${frozen.id}/unfreeze`)).toHaveLength(1);
   });
 
   it("Subscription_ActiveWithAQueuedRenewal_CanStillFreezeTheActiveOneFromItsRow", async () => {
@@ -473,6 +550,7 @@ describe("MemberProfilePage", () => {
     ).not.toBeInTheDocument();
 
     fireEvent.click(activeRowFreeze);
+    fireEvent.click(await screen.findByRole("button", { name: "بله، فریز شود" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("اشتراک فریز شد.");
     expect(
