@@ -248,14 +248,10 @@ describe("LockersPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("TodayHistory_BesideTheConfirmation_ShowsWhoIsStillInsideAndGoesBackToTheSameMember", async () => {
-    const api = mockApi(
+  it("TodayHistory_AtTheConfirmation_IsNotOffered", async () => {
+    mockApi(
       mapHandlers(allLockers(), [], {
         "GET /api/members": () => membersPage([reza]),
-        [`GET /api/lockers/${lockerId(12)}/today`]: () =>
-          json(200, [
-            lockerVisit({ memberId: ali.id, memberFullName: ali.fullName, checkedOutAt: null }),
-          ]),
       }),
     );
     renderMap();
@@ -263,18 +259,12 @@ describe("LockersPage", () => {
     const dialog = await openFreeLocker("۱۲");
     await search(dialog, "رضا");
     fireEvent.click(await within(dialog).findByRole("button", { name: /رضا احمدی/ }));
-    // The third choice beside the two the confirmation always had.
+    // Once a member is chosen, the box is only about confirming them.
     expect(await within(dialog).findByRole("button", { name: "بله، ورود ثبت شود" })).toBeEnabled();
     expect(within(dialog).getByRole("button", { name: "انصراف" })).toBeEnabled();
-    fireEvent.click(within(dialog).getByRole("button", { name: "تاریخچه امروز این کمد" }));
-
-    expect(await within(dialog).findByRole("listitem")).toHaveTextContent("ورود ۰۹:۰۰ · هنوز داخل");
-
-    fireEvent.click(within(dialog).getByRole("button", { name: "بازگشت" }));
-    await waitFor(() =>
-      expect(dialog).toHaveTextContent("آیا از ثبت ورود رضا احمدی با کمد شماره ۱۲ مطمئن هستید؟"),
-    );
-    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
+    expect(
+      within(dialog).queryByRole("button", { name: "تاریخچه امروز این کمد" }),
+    ).not.toBeInTheDocument();
   });
 
   it("TodayHistory_NobodyHadIt_SaysSo", async () => {

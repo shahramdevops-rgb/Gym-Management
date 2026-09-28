@@ -989,16 +989,16 @@ Asked by the developer, 1405/07/06. BUSINESS_RULES.md §6 *Who had a locker toda
 - [x] A visit counts for the locker it holds now; a moved visit is listed under its new locker
       only (the developer's answer: the old locker is only in the audit log)
 - [x] Cancelled check-ins are listed, marked «لغو شده» (the developer's answer)
-- [x] The free locker's box offers «تاریخچه امروز این کمد» before a member is chosen and beside
-      «بله، ورود ثبت شود» / «انصراف» (the developer asked for the second; the first was proposed
-      and accepted). Each name links to the member's profile; «بازگشت» returns to where it was
-      asked. Not offered for a reserve place
+- [x] The free locker's box offers «تاریخچه امروز این کمد» before a member is chosen only; the
+      button beside «بله، ورود ثبت شود» / «انصراف» was removed later (the developer's answer:
+      once a member is chosen, the box is only about confirming). Each name links to the
+      member's profile; «بازگشت» returns to the search. Not offered for a reserve place
 - [x] BUSINESS_RULES.md §1 and §6 written first
 - [x] Tests (integration, as Staff): two visits oldest first with names; a visit a minute before
       midnight left out; another locker's visit left out; a cancelled check-in listed; a moved visit
       only under its new locker; unknown locker 404; no token 401
 - [x] Tests (frontend): the list with profile links, times and the cancelled mark, fetched only
-      when asked; from the confirmation and back to the same member with nothing sent; the empty
+      when asked; not offered at the confirmation; the empty
       state; no button on a reserve place; `formatTime`
 
 Done when: the desk clicks a free locker, asks who had it today, sees this morning's members with

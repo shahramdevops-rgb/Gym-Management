@@ -460,8 +460,10 @@ Asked by the developer, 1405/07/06 (2026-09-28); where the button goes and the t
 the developer's answers. Roadmap 6.5.10.
 - The box a free locker opens can list everyone who had that locker **today**, so the desk can
   answer "who used locker 5 this morning?" (something left behind, something broken) while the next
-  member is standing there. It is offered both before a member is chosen and next to the check-in
-  confirmation. Each name links to that member's profile, with when they came in and left.
+  member is standing there. It is offered only before a member is chosen: once a member is chosen,
+  the box is about confirming them (the developer's answer, 1405/07/06, replacing the earlier button
+  next to the confirmation). Each name links to that member's profile, with when they came in and
+  left.
 - **Today only**: visits checked in since midnight of the gym's day (`Gym:TimeZone`, §0), oldest
   first. Earlier days are not asked for here; a member's own history is on their profile.
 - A visit counts for the locker it holds now. A visit moved to another locker (§7 *Moving to
