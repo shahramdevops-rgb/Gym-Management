@@ -177,7 +177,6 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
             event.preventDefault();
           }
         }}
-        onInteractOutside={(event) => event.preventDefault()}
       >
         {step.kind === "search" && (
           <>

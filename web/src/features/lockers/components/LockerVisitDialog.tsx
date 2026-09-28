@@ -89,7 +89,6 @@ export function LockerVisitDialog({
       <DialogContent
         className={step.kind === "pick" ? "max-w-5xl" : "max-w-2xl"}
         onOpenAutoFocus={(event) => event.preventDefault()}
-        onInteractOutside={(event) => event.preventDefault()}
       >
         {step.kind === "view" && (
           <>

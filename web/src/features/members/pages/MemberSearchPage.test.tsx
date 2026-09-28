@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import type { Member } from "@/features/members/api";
 import { attendanceHistoryPage, closedVisit, openVisit } from "@/test/attendance";
+import { clickOutsideDialog } from "@/test/dialog";
 import { json, mockApi, session, signedInHandlers, staffUser, type Handler } from "@/test/mockApi";
 import { ali, memberDebt, membersPage, queryOf, reza, serviceChargeDebtItem } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
@@ -278,6 +279,17 @@ describe("MemberSearchPage", () => {
 
     const dialog = await pressCheckOut();
     fireEvent.click(within(dialog).getByRole("button", { name: "انصراف" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.requestsTo("POST", `/api/attendance/${visitId}/check-out`)).toHaveLength(0);
+  });
+
+  it("CheckOut_ClickedOutside_ClosesAndSendsNothing", async () => {
+    const api = mockApi(deskHandlers(rezaInside));
+    renderSearch();
+
+    await pressCheckOut();
+    await clickOutsideDialog();
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(api.requestsTo("POST", `/api/attendance/${visitId}/check-out`)).toHaveLength(0);

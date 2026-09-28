@@ -109,7 +109,6 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
       <DialogContent
         // Nothing is focused on open, so an Enter still held from a search box cannot confirm.
         onOpenAutoFocus={(event) => event.preventDefault()}
-        onInteractOutside={(event) => event.preventDefault()}
       >
         {step.kind === "confirm" && action.kind === "checkOut" && (
           <>
