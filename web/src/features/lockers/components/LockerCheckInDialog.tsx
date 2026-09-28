@@ -15,10 +15,11 @@ import { Input } from "@/components/ui/input";
 import { useCheckIn, type Attendance } from "@/features/attendance/api";
 import type { DeskMember } from "@/features/attendance/components/CheckInOutDialog";
 import { CloseButton, ConfirmButtons, LockerBox } from "@/features/attendance/components/deskParts";
-import { SingleVisitOffer } from "@/features/attendance/components/SingleVisitOffer";
+import { SaleAtCheckInOffer } from "@/features/attendance/components/SaleAtCheckInOffer";
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
-import { isMissingSubscription, useSellSingleVisit } from "@/features/attendance/singleVisit";
+import { canSellPlanForToday, isMissingSubscription } from "@/features/attendance/saleAtCheckIn";
 import { useCreateMember, useMemberList, type Member } from "@/features/members/api";
+import type { PlanChoice } from "@/features/subscriptions/components/PlanForm";
 import { MemberForm } from "@/features/members/components/MemberForm";
 import { searchMinLength } from "@/features/members/schemas";
 import { memberDraftFromSearch } from "@/features/members/searchDraft";
@@ -38,13 +39,29 @@ const shownMatches = 8;
 /** Where the visit goes: the locker the desk clicked, or a reserve place (BUSINESS_RULES.md §6). */
 export type CheckInPlace = { kind: "locker"; locker: Locker } | { kind: "reserve" };
 
+/** What was sold with the check-in, if anything; it names the result. */
+type Sold = "nothing" | "singleVisit" | "plan";
+
 type Step =
   | { kind: "search" }
   | { kind: "register"; text: string }
   | { kind: "confirm"; member: DeskMember }
-  | { kind: "checkedIn"; member: DeskMember; attendance: Attendance; singleVisit: boolean }
-  | { kind: "needsSubscription"; member: DeskMember; reason: string }
+  | { kind: "checkedIn"; member: DeskMember; attendance: Attendance; sold: Sold }
+  | {
+      kind: "needsSubscription";
+      member: DeskMember;
+      heading: string;
+      reason: string;
+      /** Whether a plan sold now would start today, so it can be sold here (roadmap 6.5.7). */
+      planHere: boolean;
+    }
   | { kind: "failed"; reason: string };
+
+const checkedInTitle: Record<Sold, string> = {
+  nothing: "ورود ثبت شد",
+  singleVisit: "ورود تک‌جلسه‌ای ثبت شد",
+  plan: "اشتراک فروخته شد و ورود ثبت شد",
+};
 
 interface LockerCheckInDialogProps {
   place: CheckInPlace;
@@ -55,8 +72,12 @@ interface LockerCheckInDialogProps {
  * The whole check-in, from the locker the desk clicked (BUSINESS_RULES.md §7 *Confirming at the
  * front desk*): find the member by name or mobile, confirm, and the visit is recorded with that
  * locker. Everything the search screen used to offer for check-in lives here now: registering a
- * person who is not found, and selling a single visit when the member has nothing usable (§4) —
- * checked in with this same locker.
+ * person who is not found, and selling a single visit or a plan when the member has nothing usable
+ * (§4) — checked in with this same locker, in the same request, so the desk never goes back to the
+ * map to choose the locker a second time (roadmap 6.5.7).
+ *
+ * A person just registered has no subscription by definition, so the box goes straight to the
+ * sale instead of asking to confirm a check-in that could only be refused.
  *
  * A member who is already inside is marked in the results, and choosing them shows why not and
  * sends nothing; the API would refuse it anyway (`Attendance.AlreadyCheckedIn`).
@@ -69,11 +90,12 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
   const lockerId = place.kind === "locker" ? place.locker.id : null;
 
   const checkIn = useCheckIn();
-  const sellSingleVisit = useSellSingleVisit();
   const createMember = useCreateMember();
   const setOutOfService = useSetLockerOutOfService();
   const [outOfServiceError, setOutOfServiceError] = useState<string | null>(null);
-  const busy = checkIn.isPending || sellSingleVisit.isPending || setOutOfService.isPending;
+  const busy = checkIn.isPending || setOutOfService.isPending;
+  // Which request is in flight: the single-visit button shows its own "در حال ثبت…".
+  const sellingSingleVisit = checkIn.isPending && checkIn.variables?.sale?.kind === "SingleVisit";
 
   const title =
     place.kind === "locker" ? `کمد شماره ${toPersianDigits(place.locker.number)}` : "ورود بدون کمد";
@@ -81,28 +103,45 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
   async function confirmCheckIn(member: DeskMember) {
     try {
       const attendance = await checkIn.mutateAsync({ memberId: member.id, lockerId });
-      setStep({ kind: "checkedIn", member, attendance, singleVisit: false });
+      setStep({ kind: "checkedIn", member, attendance, sold: "nothing" });
     } catch (problem) {
       const reason = errorMessage(problem);
       // The walk-in case the desk meets all day: offer the way in rather than just saying no.
       setStep(
         isMissingSubscription(problem)
-          ? { kind: "needsSubscription", member, reason }
+          ? {
+              kind: "needsSubscription",
+              member,
+              heading: "ورود ممکن نیست",
+              reason: `${member.fullName}: ${reason}`,
+              planHere: canSellPlanForToday(problem),
+            }
           : { kind: "failed", reason },
       );
     }
   }
 
-  async function sell(member: DeskMember) {
+  async function sellSingleVisit(member: DeskMember) {
     try {
-      const { attendance } = await sellSingleVisit.mutateAsync({
+      const attendance = await checkIn.mutateAsync({
         memberId: member.id,
         lockerId,
+        sale: { kind: "SingleVisit" },
       });
-      setStep({ kind: "checkedIn", member, attendance, singleVisit: true });
+      setStep({ kind: "checkedIn", member, attendance, sold: "singleVisit" });
     } catch (problem) {
       setStep({ kind: "failed", reason: errorMessage(problem) });
     }
+  }
+
+  /** A rejection is left to the plan form, which shows it by the field or above its button. */
+  async function sellPlan(member: DeskMember, plan: PlanChoice) {
+    const attendance = await checkIn.mutateAsync({
+      memberId: member.id,
+      lockerId,
+      sale: { kind: "Membership", ...plan },
+    });
+    setStep({ kind: "checkedIn", member, attendance, sold: "plan" });
   }
 
   async function takeOutOfService(locker: Locker) {
@@ -164,7 +203,7 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
         {step.kind === "register" && (
           // Registering here rather than on another screen: the person is standing at the desk, and
           // the next step is letting them in (roadmap 6.5.4). They have no subscription by
-          // definition, so the check-in's refusal offers the single visit like any other.
+          // definition, so the box goes straight to selling them one (roadmap 6.5.7).
           <>
             <DialogHeader>
               <DialogTitle>{title} — عضو جدید</DialogTitle>
@@ -176,7 +215,13 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               submittingLabel="در حال ثبت…"
               onSubmit={async (input) => {
                 const member = await createMember.mutateAsync(input);
-                setStep({ kind: "confirm", member });
+                setStep({
+                  kind: "needsSubscription",
+                  member,
+                  heading: "عضو جدید ثبت شد",
+                  reason: `${member.fullName} اشتراکی ندارد. برای ورود، تک‌جلسه یا اشتراک بفروشید.`,
+                  planHere: true,
+                });
               }}
               actions={
                 <Button type="button" variant="ghost" onClick={() => setStep({ kind: "search" })}>
@@ -213,7 +258,7 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-success">
                 <CheckCircle2 className="size-5" aria-hidden />
-                {step.singleVisit ? "ورود تک‌جلسه‌ای ثبت شد" : "ورود ثبت شد"}
+                {checkedInTitle[step.sold]}
               </DialogTitle>
               <DialogDescription>{step.member.fullName}</DialogDescription>
             </DialogHeader>
@@ -226,15 +271,15 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
         {step.kind === "needsSubscription" && (
           <>
             <DialogHeader>
-              <DialogTitle>ورود ممکن نیست</DialogTitle>
-              <DialogDescription>
-                {step.member.fullName}: {step.reason}
-              </DialogDescription>
+              <DialogTitle>{step.heading}</DialogTitle>
+              <DialogDescription>{step.reason}</DialogDescription>
             </DialogHeader>
-            <SingleVisitOffer
+            <SaleAtCheckInOffer
               memberId={step.member.id}
-              selling={sellSingleVisit.isPending}
-              onSell={() => void sell(step.member)}
+              planHere={step.planHere}
+              selling={sellingSingleVisit}
+              onSellSingleVisit={() => void sellSingleVisit(step.member)}
+              onSellPlan={(plan) => sellPlan(step.member, plan)}
             />
           </>
         )}

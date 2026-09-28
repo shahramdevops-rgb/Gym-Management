@@ -970,3 +970,18 @@ The question that started this was whether a gym that is entirely internal — I
 - **State that must survive a re-key.** The settings form is `key`ed by `version`, so fresh data rebuilds it. A "saved" message kept inside the form died with that rebuild; it had to live one level up. A test caught it.
 - **Big mechanical test changes: script, then compile.** Twenty-five test files built a `Plan`. A small script did the repeated edit, the compiler listed what it missed, and the handful of real rewrites were done by hand. One file quietly lost its price in the script, and only the full test run showed it.
 - **My notes:**
+
+---
+
+## 6.5.7 — Sell at the locker: the sale and the check-in in one step
+
+- **One transaction instead of two requests.** The single visit used to be two calls: sell, then check in. If the second failed, the member had paid for a visit with no locker. Now check-in takes an optional `sale` and does both in one database transaction, so they are saved together or not at all.
+- **Split a method by who owns the transaction.** `SubscriptionSeller.SellMembershipAsync` opens a transaction, locks the member and commits. Check-in already holds its own transaction and lock, so the pricing and scheduling part moved into `AddMembershipAsync`, which only adds the row. The standalone sale is now just "begin, lock, `Add…`, save".
+- **Save inside the transaction, commit at the end.** Check-in calls `SaveChangesAsync` right after the sale, so its own lookup finds the new subscription like any other row. Nothing is committed until the visit is saved as well, and a transaction disposed without a commit rolls both back.
+- **Test what did not happen.** The key test takes the locker first, then sells a plan with a check-in on it. It asserts the 409 and also that the member has no subscription at all. An atomicity rule is proved by the row that is missing.
+- **FluentValidation: `WithErrorCode` only applies to the rule right before it.** `NotNull().InclusiveBetween(...).WithErrorCode(X)` gives a missing value the default `NotNullValidator` code, not `X`. One `Must(...)` that covers "missing" and "out of range" gives both the same code.
+- **`OverridePropertyName` keeps the form simple.** The API reports `sale.durationDays` as `durationDays`, so the same `PlanForm` puts the error under its field, whether it is selling from the profile or from the locker.
+- **Minimal APIs run filters even when body binding failed.** The argument is `null` and the status is already 400. `ValidationFilter` took that for a wiring mistake and threw a 500. A test that sends no body caught it.
+- **Reuse by extracting the part that differs.** `PlanForm` knows the fields, the price preview and how to show a server error. What happens on submit is passed in as a prop: `assign` on the profile, `checkIn({ sale })` at the locker.
+- **Generate types from the code you just wrote.** An API that was already running on :5134 was the old build, so `gen:api` would have read the old document. The new build ran on a spare port for one generation and was stopped afterwards.
+- **My notes:**

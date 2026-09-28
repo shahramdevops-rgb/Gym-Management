@@ -172,6 +172,7 @@ export const errorMessages: Record<string, string> = {
   "Attendance.NotOpen": "این ورود قبلاً بسته شده است.",
   "Attendance.CancelWindowExpired": "مهلت لغو این ورود گذشته است.",
   "Attendance.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
+  "Attendance.SaleInvalid": "فروش همراه ورود نامعتبر است.",
 
   // Gym services (هوازی)
   "ServiceCharges.NotFound": "هزینهٔ خدمات پیدا نشد.",

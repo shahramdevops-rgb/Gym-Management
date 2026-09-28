@@ -1079,7 +1079,17 @@ export interface components {
         CheckInCommand: {
             /** Format: uuid */
             lockerId: null | string;
+            sale?: null | components["schemas"]["CheckInSale"];
         };
+        CheckInSale: {
+            kind: components["schemas"]["CheckInSaleKind"];
+            /** Format: int32 */
+            durationDays?: null | number | string;
+            /** Format: int32 */
+            sessionCount?: null | number | string;
+        };
+        /** @enum {unknown} */
+        CheckInSaleKind: "SingleVisit" | "Membership";
         CreateCafeOrderCommand: {
             /** Format: uuid */
             memberId: null | string;

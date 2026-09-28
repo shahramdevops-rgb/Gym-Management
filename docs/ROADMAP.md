@@ -870,6 +870,68 @@ Built (2026-09-28). Found while building: the settings form is keyed by `version
 message lived one level up or it vanished with the rebuild. Done: 389 domain, 785 integration and
 532 frontend tests pass, zero warnings.
 
+### 6.5.7 Sell at the locker: the sale and the check-in in one step
+Asked by the Owner, 1405/07/06 (2026-09-28). A member with no usable subscription had to be sold a
+plan on their profile and then brought back to the map to choose the locker a second time. Now the
+check-in box sells the plan (or the single visit) right under the refusal, and the same press checks
+them in with the locker already clicked. The Owner's rule: a subscription sold at the locker always
+comes with the locker — one person does these steps one after another, so a sale without the locker
+is never what they meant. BUSINESS_RULES.md §7 *Check-in* and *Confirming at the front desk*.
+
+- [x] BUSINESS_RULES.md §7 written first: the sale is part of the check-in's transaction; the plan
+      form is offered only when a new plan would start today; a person registered in the box goes
+      straight to the sale; payment is left to the visit's box
+- [x] **Application.** `CheckInCommand` takes an optional `Sale` (`SingleVisit`, or `Membership`
+      with days and sessions) and `CheckInValidator` checks it, reporting `durationDays` and
+      `sessionCount` under the same codes as the profile's sale. `SubscriptionSeller` gains
+      `AddMembershipAsync` / `AddSingleVisitAsync`, the same sale inside a transaction the caller
+      holds; `CheckInHandler` sells, saves inside its transaction, then checks in, so a refused
+      check-in (locker taken, plan not starting today) rolls the sale back. New code
+      `Attendance.SaleInvalid`
+- [x] **API.** The check-in endpoint validates its body. Found on the way: `ValidationFilter` threw
+      (500) when the body was missing, because minimal APIs run filters even after binding failed;
+      it now leaves the framework's 400
+- [x] **Web.** `PlanForm` (days, sessions, price preview) shared by the profile's sale and the
+      check-in box. `SaleAtCheckInOffer` (was `SingleVisitOffer`): single visit, and a plan form
+      that opens in place when `canSellPlanForToday`; otherwise the profile link as before. Both
+      sales go through `useCheckIn({ sale })`; the two-request `useSellSingleVisit` is gone. A
+      person registered in the box goes straight to the offer. `npm run gen:api`
+- [x] Tests (integration): plan sold and checked in with the chosen locker, starting today; after
+      an expired plan; locker taken → 409 and nothing sold; behind a frozen plan → refused and
+      nothing sold; exhausted on its first day → `NextStartsTomorrow` and nothing sold; price unset;
+      field codes; inactive member; single visit sold and checked in, locker taken, numbers with a
+      single visit, member already inside; cancel check-in keeps the plan; the filter's empty body
+- [x] Tests (frontend): single visit in one request with the sale; plan sold in place with the
+      price shown and the same locker; a refused sale shown in the form; a frozen plan leaves plans
+      to the profile; a registered person goes straight to the sale
+
+The standalone `POST /api/members/{id}/subscriptions/single-visit` stays (its tests pin the
+single-session rules), but the web app no longer calls it.
+
+Done when: a walk-in with no plan is sold «۳۰ روز · ۱۲ جلسه» from the locker they clicked and is
+inside without the desk going back to the map; payment is collected later from that locker's box.
+
+### 6.5.8 Cancel check-in: ask before cancelling هوازی and cafe (PENDING)
+Asked by the Owner, 1405/07/06. Today cancel check-in always voids the visit's هوازی and never
+touches its cafe orders (BUSINESS_RULES.md §7 *Gym services*, §8). Agreed plan:
+- [ ] Nothing bought during the visit: only the 30-minute window is checked, then it is cancelled
+- [ ] هوازی or cafe on the visit: the box lists them with their amounts and asks whether they are
+      cancelled too. "No" cancels the visit only and leaves them on the member's account. "Yes"
+      asks a second time, then voids the هوازی and cancels the cafe orders, refunding what was paid
+      the way it came
+- [ ] The request carries the choice; the server does not guess
+- [ ] Open question for the developer: one question for both, or one each for هوازی and cafe
+- [ ] BUSINESS_RULES.md §7 and §8 rewritten first; integration tests for both choices
+
+### 6.5.9 A frozen member who comes in is unfrozen (PENDING)
+Asked by the Owner, 1405/07/06. Replaces "a frozen member is sold a single visit and the freeze is
+not touched" (BUSINESS_RULES.md §4). Agreed plan:
+- [ ] Check-in on a frozen plan unfreezes it in the same transaction, by the ordinary unfreeze
+      rules (frozen days added, the allowance respected, queued plans shifted), then uses a session
+- [ ] A single visit already usable today is still used first, and the freeze is left alone
+- [ ] The box tells the desk the plan was unfrozen. The manual unfreeze stays Owner-only
+- [ ] BUSINESS_RULES.md §1 and §4 rewritten first; domain and integration tests
+
 ---
 
 ## Phase 7 — Cafe / POS

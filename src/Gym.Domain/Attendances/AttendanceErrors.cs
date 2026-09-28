@@ -60,6 +60,14 @@ public static class AttendanceErrors
         "Attendance.ChangedConcurrently",
         "Attendance changed at the same moment. Try again.");
 
+    /// <summary>
+    /// The sale sent with a check-in (roadmap 6.5.7) is neither a single visit with no numbers nor
+    /// a plan. A client mistake, never something the desk can cause from the box.
+    /// </summary>
+    public static readonly Error SaleInvalid = Error.Validation(
+        "Attendance.SaleInvalid",
+        "A sale at check-in is a single visit with no days or sessions, or a plan with both.");
+
     /// <summary>The member history filter (BUSINESS_RULES.md §12: date ranges are inclusive).</summary>
     public static readonly Error InvalidDateRange = Error.Validation(
         "Attendance.InvalidDateRange",

@@ -38,6 +38,14 @@ public sealed class ValidationFilter<TRequest>(IValidator<TRequest> validator) :
 
         if (context.Arguments.OfType<TRequest>().FirstOrDefault() is not { } request)
         {
+            // The body was missing or unreadable. Minimal APIs still run the filters in that case,
+            // with the argument null and the status already set to 400; passing on lets the
+            // framework finish its own 400 without calling the handler.
+            if (context.HttpContext.Response.StatusCode == StatusCodes.Status400BadRequest)
+            {
+                return await next(context);
+            }
+
             // A wiring mistake, not a bad request: the filter was attached to an endpoint that
             // takes no argument of this type. Failing loudly beats skipping validation
             // silently, which would leave the endpoint unprotected and look like it worked.

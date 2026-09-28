@@ -464,7 +464,9 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
 
 ### Check-in (one database transaction)
 Preconditions: the member is active, has an `Active` subscription, and has no open attendance.
-The request names the locker the desk chose, or asks for a reserve place (§6).
+The request names the locker the desk chose, or asks for a reserve place (§6). It may also carry a
+sale — a single visit or a plan — which is made first, in the same transaction, and is then what
+step 1 finds (*Confirming at the front desk*).
 1. Load the subscription that is in effect today — an `Active` one always wins over a queued renewal that ends later. If none is active, apply the exhausted-with-a-queue rule above.
 2. `subscription.ConsumeSession(today)`.
 3. Take the place the desk chose (decided by the Owner, 1405/07/05; this replaces the random pick):
@@ -532,8 +534,24 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
   Choosing them shows an error in the box and sends nothing (*Check-in*: no open attendance; the API
   refuses it anyway with `Attendance.AlreadyCheckedIn`).
 - Everything the member search screen offered for check-in before moves into that box: registering a person who is not
-  found, and selling a single visit when the member has nothing usable (§4). The single visit is
-  checked in with the locker the desk clicked.
+  found, and selling when the member has nothing usable (§4) — a single visit or a plan.
+- **What is sold in that box is sold with the check-in** (decided by the Owner, 1405/07/06, roadmap
+  6.5.7). The sale and the check-in are one transaction, with the locker the desk clicked, so the
+  locker is chosen once. A subscription sold at the locker always comes with that locker: when the
+  member still cannot come in (the locker was taken a moment earlier, or the plan would not start
+  today), the check-in is refused and nothing is sold. The one way such a sale ends up without a
+  visit is *Cancel check-in*, which keeps the subscription and gives its session back for next time.
+  - Payment is not asked for at the sale. What is owed shows on the visit's box, where the desk
+    collects it then or later (§5).
+  - The plan form (days and sessions, the price shown before confirming, §3) opens under the
+    refusal only when a new plan would start today: after "no subscription", "expired", "no
+    sessions left" or "cancelled". When the member holds a frozen plan or one bought for later, a
+    new plan would queue behind it (§4) and could not let them in today, so the box offers the
+    single visit and leaves selling a plan to the profile.
+  - A person registered in the box has no subscription by definition, so the box goes straight to
+    the sale instead of asking to confirm a check-in that could only be refused.
+  - Selling from the member's profile is unchanged: the plan is added to the member's
+    subscriptions (starting today or queued, §4) and is used on the next visit.
 - Clicking an occupied locker (or a used reserve place) opens that visit's box: the member (linked to
   their profile), when they came in, the plan and sessions left, the debt item by item, هوازی and
   cafe for the visit (§7 *Gym services*, §8), and check-out, cancel check-in and move to another
@@ -544,7 +562,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 - After a check-in, the same box shows the locker (or that a reserve place was used), the plan and the sessions left, and the member's debt item by item: unpaid subscriptions, services such as هوازی, and cafe orders (§5 *Member debt*). It stays until the desk closes it.
 - Before a check-out, the box shows the locker to take back and the same plan, sessions and itemized debt, so the desk can collect what is owed while the member is still there. Debt is shown, never enforced: check-out is not refused for money owed, the same way check-in is not.
 - When the visit has a locker, the desk must tick "key received" before the check-out can be confirmed: closing the visit hands the locker to the next person in. After check-out, the box shows that the locker is free and repeats the itemized debt.
-- Selling a single visit from that box needs no second confirmation: pressing the priced button is already the decision.
+- Selling a single visit or a plan from that box needs no second confirmation: pressing the priced button, or «فروش و ثبت ورود» under the plan's price, is already the decision.
 - Cancelling a check-in (*Cancel check-in*) asks in the same box, with nothing else shown: it gives the session back and frees the locker, so a stray press is worth one more click.
 
 ### Cancel check-in
