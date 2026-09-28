@@ -445,6 +445,11 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
 - A locker is occupied when an open attendance references it. Occupancy is derived, never stored,
   and so is the member holding it: the map names whoever the open attendance belongs to,
   so the desk can answer "whose is locker 1?" without opening attendance.
+- **A holder who owes money is marked on the map** (asked by the developer, 1405/07/06): a small
+  «بدهکار» label across the door's top-left corner, whenever the member holding the locker has any
+  debt at all (§5 *Member debt*: a subscription, a service such as هوازی, or a cafe order). It is
+  information only, like the debt shown at check-in; the amount and what it is for are in the
+  locker's box. A holder who owes nothing, and a free locker, carry no label.
 - A locker cannot be marked out of service while occupied. A locker that breaks while someone
   holds it: move that visit to another locker first (§7 *Moving to another locker*), then take
   the empty one out of service.

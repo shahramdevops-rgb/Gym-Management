@@ -16,6 +16,7 @@ export function locker(number: number, overrides: Partial<Locker> = {}): Locker 
     isOccupied: false,
     occupiedByMemberId: null,
     occupiedByMemberFullName: null,
+    occupiedByMemberDebt: 0,
     version: 1,
     createdAt: "2026-09-27T00:00:00Z",
     updatedAt: null,
@@ -23,12 +24,16 @@ export function locker(number: number, overrides: Partial<Locker> = {}): Locker 
   };
 }
 
-/** Locker `number` held by a member, as the API derives it from their open visit. */
-export function heldLocker(number: number, memberId: string, fullName: string): Locker {
+/**
+ * Locker `number` held by a member, as the API derives it from their open visit, with what they
+ * owe (nothing unless given).
+ */
+export function heldLocker(number: number, memberId: string, fullName: string, debt = 0): Locker {
   return locker(number, {
     isOccupied: true,
     occupiedByMemberId: memberId,
     occupiedByMemberFullName: fullName,
+    occupiedByMemberDebt: debt,
   });
 }
 

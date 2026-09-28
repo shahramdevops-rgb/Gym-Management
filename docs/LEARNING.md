@@ -1025,6 +1025,18 @@ The question that started this was whether a gym that is entirely internal — I
 
 ---
 
+## 6.5.5 (follow-up) — «بدهکار» on a debtor's locker
+
+- **Add a derived field after the query, not inside it.** Debt is calculated by `MemberDebt`, which is C# over several queries and cannot sit inside the EF Core projection. So the projection passes `0`, and the list handler fills `OccupiedByMemberDebt` afterwards with `record with { … }`, the same way the member list fills `Debt`.
+- **Expression trees cannot skip optional arguments.** A constructor call inside `Expression<Func<…>>` must pass every argument, even one with a default, so the projection writes `0m` explicitly.
+- **Batch per page, not per row.** `MemberDebt.GetTotalsAsync` takes all holders' ids at once: a fixed number of queries for the whole map instead of one or two per occupied locker.
+- **Cut a shape instead of rotating a box.** The first version was a rotated 48px rectangle clipped by the door, and it only just reached the left edge; in the real page it fell short. `clip-path: polygon(22px 0, 100% 0, 0 100%, 0 22px)` on a 42px square draws exactly the strip between x + y = 22 and x + y = 42, so both ends lie on the door's edges by construction; 42px still fits the smallest door (44px). On a debtor's door the number and name move to the bottom, with a little padding under them so a one-line name does not sit on the frame, which keeps them out of that corner at every door size, however long the name.
+- **Tailwind's `translate` and `rotate` compose.** They are separate CSS properties, so `-translate-x-1/2 -translate-y-1/2 -rotate-45` puts the word's centre on a point and then turns it about that centre.
+- **Logical insets and `dir`.** `start-*` becomes `inset-inline-start`, which follows the text direction. A positioned element inside the left-to-right map must not carry `dir="rtl"` itself, or its "start" could turn into the right.
+- **My notes:**
+
+---
+
 ## 6.5.10 — Who had a locker today
 
 - **Answer a question from the rows you already keep.** The history needs no new table: every visit already stores its locker and its check-in moment, so "who had locker 5 today" is a filtered query over `attendances`. The trade-off is that a move overwrites `LockerId`, so a visit shows only under its final locker. Keeping the old one would mean a new table and a migration, for a case that is nearly always the desk correcting a mistake.

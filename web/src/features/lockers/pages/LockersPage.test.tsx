@@ -111,6 +111,29 @@ describe("LockersPage", () => {
     expect(legend).toHaveTextContent("خارج از سرویس: ۱");
   });
 
+  it("Map_HolderOwesMoney_MarksTheirDoorDebtorAndNoOtherDoor", async () => {
+    mockApi(
+      mapHandlers(
+        allLockers(
+          heldLocker(2, reza.id, reza.fullName),
+          heldLocker(67, ali.id, ali.fullName, 150_000),
+        ),
+      ),
+    );
+    renderMap();
+
+    const owing = await door("۶۷");
+    // The label, on hover and for a screen reader, besides the name (BUSINESS_RULES.md §6).
+    expect(owing).toHaveTextContent("بدهکار");
+    expect(owing).toHaveTextContent(ali.fullName);
+    expect(owing).toHaveAttribute("title", `${ali.fullName}، بدهکار`);
+    expect(owing).toHaveAccessibleName(`کمد ۶۷، اشغال — ${ali.fullName}، بدهکار`);
+
+    // A holder who owes nothing, and a free door, carry no label.
+    expect(await door("۲")).not.toHaveTextContent("بدهکار");
+    expect(screen.getAllByText("بدهکار")).toHaveLength(1);
+  });
+
   it("Map_Cabinets_RunDownAColumnThenOnToTheNext", async () => {
     mockApi(mapHandlers());
     renderMap();
