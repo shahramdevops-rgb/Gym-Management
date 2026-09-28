@@ -57,6 +57,7 @@ export function debtItem(overrides: Partial<DebtItem> = {}): DebtItem {
     price: 900000,
     netPaid: 300000,
     outstanding: 600000,
+    cafeItems: [],
     ...overrides,
   };
 }
@@ -73,6 +74,7 @@ export function serviceChargeDebtItem(overrides: Partial<DebtItem> = {}): DebtIt
     price: 10000,
     netPaid: 0,
     outstanding: 10000,
+    cafeItems: [],
     ...overrides,
   };
 }
@@ -89,6 +91,16 @@ export function cafeDebtItem(overrides: Partial<DebtItem> = {}): DebtItem {
     price: 30000,
     netPaid: 0,
     outstanding: 30000,
+    cafeItems: [
+      {
+        id: "0199a000-0000-7000-8000-0000000000c1",
+        productId: "0199a000-0000-7000-8000-0000000000c2",
+        productName: "آب معدنی",
+        unitPrice: 15000,
+        quantity: 2,
+        lineTotal: 30000,
+      },
+    ],
     ...overrides,
   };
 }

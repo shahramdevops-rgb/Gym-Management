@@ -1034,3 +1034,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **A step that remembers where it came from.** The history step stores `back: Step`, the step it was opened from. «بازگشت» restores that exact step, so the desk returns to the same chosen member's confirmation and does not have to search again.
 - **Extend a shared component with a slot.** `ConfirmButtons` gained an optional `children` rendered after «انصراف». The other three screens that use it are unchanged, and only the locker box puts a third button there.
 - **My notes:**
+
+---
+
+## 4.7 (follow-up) — What the cafe debt is for
+
+- **Put the detail in the response that already owns the list.** The member's cafe purchases endpoint is paged, so an old unpaid order might not be on the page the profile loaded. The debt response already names exactly the orders that owe money, so each cafe item now carries its `CafeItems`, and every line always matches a row.
+- **Reuse the response type, not only the idea.** The lines are `CafeOrderItemResponse`, the same record the purchases card reads. The name and price are the snapshot taken at the till, so the debt and the purchase history can never disagree.
+- **Keep the shared calculation lean.** `MemberDebt.GetItemsAsync` also feeds settling a debt and the totals on the member list, which have no use for product lines. The lines are loaded in the one handler that shows them: one extra query for all the orders, grouped with `ToLookup`, instead of one query per order.
+- **A lookup has an empty answer for a missing key.** `lookup[id]` returns an empty sequence for an id it does not hold, where a dictionary would throw `KeyNotFoundException`. It is the natural type for "the lines of each order", where any order may have none in the result.
+- **Indent with a logical utility.** The sub-rows use `ps-4` (padding-inline-start), so the indent sits on the right in Persian and would flip by itself in a left-to-right layout.
+- **My notes:**

@@ -1288,6 +1288,7 @@ export interface components {
             netPaid: number | string;
             /** Format: double */
             outstanding: number | string;
+            cafeItems: components["schemas"]["CafeOrderItemResponse"][];
         };
         MemberDebtResponse: {
             /** Format: double */
