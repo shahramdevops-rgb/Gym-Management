@@ -484,6 +484,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lockers/{id}/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListLockerVisitsToday"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lockers/{id}/out-of-service": {
         parameters: {
             query?: never;
@@ -1229,6 +1245,19 @@ export interface components {
             /** Format: date-time */
             updatedAt: null | string;
             isOccupied?: boolean;
+        };
+        LockerVisitResponse: {
+            /** Format: uuid */
+            attendanceId: string;
+            /** Format: uuid */
+            memberId: string;
+            memberFullName: string;
+            /** Format: date-time */
+            checkedInAt: string;
+            /** Format: date-time */
+            checkedOutAt: null | string;
+            /** Format: date-time */
+            cancelledAt: null | string;
         };
         LoginCommand: {
             userName: string;
@@ -3644,6 +3673,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LockerResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListLockerVisitsToday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LockerVisitResponse"][];
                 };
             };
             /** @description Unauthorized */

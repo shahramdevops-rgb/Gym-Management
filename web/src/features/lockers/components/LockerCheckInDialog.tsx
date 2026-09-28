@@ -1,4 +1,4 @@
-import { CheckCircle2, Search, UserPlus } from "lucide-react";
+import { CheckCircle2, History, Search, UserPlus } from "lucide-react";
 import { useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
@@ -30,6 +30,7 @@ import { normalizeInput } from "@/lib/normalize";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 
 import { useSetLockerOutOfService, type Locker } from "../api";
+import { LockerTodayHistory } from "./LockerTodayHistory";
 
 /** Long enough to skip the keys of one word, short enough to feel immediate (the same as the search screen). */
 const searchDelayMs = 300;
@@ -56,7 +57,9 @@ type Step =
       /** Whether a plan sold now would start today, so it can be sold here (roadmap 6.5.7). */
       planHere: boolean;
     }
-  | { kind: "failed"; reason: string };
+  | { kind: "failed"; reason: string }
+  /** Who had the locker today (BUSINESS_RULES.md §6); «بازگشت» goes back to where it was asked. */
+  | { kind: "history"; locker: Locker; back: Step };
 
 const checkedInTitle: Record<Sold, string> = {
   nothing: "ورود ثبت شد",
@@ -82,6 +85,9 @@ interface LockerCheckInDialogProps {
  *
  * A member who is already inside is marked in the results, and choosing them shows why not and
  * sends nothing; the API would refuse it anyway (`Attendance.AlreadyCheckedIn`).
+ *
+ * For a locker (not a reserve place), the box also shows who had it today, both before a member
+ * is chosen and beside the confirmation (BUSINESS_RULES.md §6 *Who had a locker today*).
  *
  * Like the check-out box, it closes only with its ✕ or its own buttons: the outcome is what the
  * desk must read.
@@ -188,14 +194,19 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
                 {outOfServiceError !== null && (
                   <Alert variant="destructive">{outOfServiceError}</Alert>
                 )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={setOutOfService.isPending}
-                  onClick={() => void takeOutOfService(place.locker)}
-                >
-                  خارج از سرویس کردن این کمد
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <TodayHistoryButton
+                    onClick={() => setStep({ kind: "history", locker: place.locker, back: step })}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={setOutOfService.isPending}
+                    onClick={() => void takeOutOfService(place.locker)}
+                  >
+                    خارج از سرویس کردن این کمد
+                  </Button>
+                </div>
               </div>
             )}
           </>
@@ -251,7 +262,31 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               pending={checkIn.isPending}
               onConfirm={() => void confirmCheckIn(step.member)}
               onCancel={() => setStep({ kind: "search" })}
-            />
+            >
+              {place.kind === "locker" && (
+                <TodayHistoryButton
+                  disabled={checkIn.isPending}
+                  onClick={() => setStep({ kind: "history", locker: place.locker, back: step })}
+                />
+              )}
+            </ConfirmButtons>
+          </>
+        )}
+
+        {step.kind === "history" && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{title} — تاریخچه امروز</DialogTitle>
+              <DialogDescription>
+                کسانی که امروز این کمد را داشته‌اند، از اولین نفر.
+              </DialogDescription>
+            </DialogHeader>
+            <LockerTodayHistory lockerId={step.locker.id} />
+            <div className="flex">
+              <Button variant="outline" onClick={() => setStep(step.back)}>
+                بازگشت
+              </Button>
+            </div>
           </>
         )}
 
@@ -265,9 +300,10 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               <DialogDescription>{step.member.fullName}</DialogDescription>
             </DialogHeader>
             <LockerBox number={step.attendance.lockerNumber} />
-            {step.attendance.unfrozenDays !== undefined && step.attendance.unfrozenDays !== null && (
-              <Alert role="status">{unfrozenNotice(Number(step.attendance.unfrozenDays))}</Alert>
-            )}
+            {step.attendance.unfrozenDays !== undefined &&
+              step.attendance.unfrozenDays !== null && (
+                <Alert role="status">{unfrozenNotice(Number(step.attendance.unfrozenDays))}</Alert>
+              )}
             <VisitSummary memberId={step.member.id} />
             <CloseButton onClose={onClose} />
           </>
@@ -318,6 +354,26 @@ function FrozenPlanWarning({ memberId }: { memberId: string }) {
   }
 
   return <Alert>اشتراک او فریز است. با ثبت این ورود، اشتراک از حالت فریز خارج می‌شود.</Alert>;
+}
+
+/**
+ * Opens who had the locker today (BUSINESS_RULES.md §6 *Who had a locker today*). Offered before a
+ * member is chosen and beside the check-in confirmation, so the desk never has to pick someone just
+ * to ask.
+ */
+function TodayHistoryButton({
+  onClick,
+  disabled = false,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Button size="sm" variant="ghost" disabled={disabled} onClick={onClick}>
+      <History aria-hidden />
+      تاریخچه امروز این کمد
+    </Button>
+  );
 }
 
 /** What the desk is told after a check-in that ended a freeze. */

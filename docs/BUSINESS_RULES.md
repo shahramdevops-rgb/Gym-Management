@@ -128,7 +128,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | Register payments, create cafe orders | ✅ | ✅ |
 | See the two prices (§3) | ✅ | ✅ |
 | Change the two prices (§3), staff accounts | ✅ | ❌ |
-| Lockers: see the map, take one out of service, bring it back in, move a visit to another locker (§6, §7) | ✅ | ✅ |
+| Lockers: see the map, see who had a locker today, take one out of service, bring it back in, move a visit to another locker (§6, §7) | ✅ | ✅ |
 | Freeze, unfreeze, cancel subscriptions (a check-in by either role still ends a freeze, §4 *Freeze*) | ✅ | ❌ |
 | Refunds, voids (outside the cafe) | ✅ | ❌ |
 | Gym service charges: record, change the amount, void (§7 *Gym services*) | ✅ | ✅ |
@@ -453,6 +453,25 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
   check-in, moving a visit, هوازی, cafe, and taking a locker out of service or back in. Nothing on
   the map is Owner-only, so a staff member never meets a button that would be refused. The person
   who finds a locker broken is the one at the desk, and the same person sees it repaired.
+
+### Who had a locker today (تاریخچه امروز کمد)
+
+Asked by the developer, 1405/07/06 (2026-09-28); where the button goes and the two cases below are
+the developer's answers. Roadmap 6.5.10.
+- The box a free locker opens can list everyone who had that locker **today**, so the desk can
+  answer "who used locker 5 this morning?" (something left behind, something broken) while the next
+  member is standing there. It is offered both before a member is chosen and next to the check-in
+  confirmation. Each name links to that member's profile, with when they came in and left.
+- **Today only**: visits checked in since midnight of the gym's day (`Gym:TimeZone`, §0), oldest
+  first. Earlier days are not asked for here; a member's own history is on their profile.
+- A visit counts for the locker it holds now. A visit moved to another locker (§7 *Moving to
+  another locker*) is listed under the locker it was moved to, not the one it left: moves are
+  nearly always the desk correcting a wrong locker, and the old locker is not stored anywhere but
+  the audit log.
+- A cancelled check-in (§7 *Cancel check-in*) is listed, marked «لغو شده»: the member held the key,
+  however briefly. This is an operational view, like a member's history, not a report.
+- A reserve place has no such list: it has no number, so "who had it" means nothing (§6 *Reserve
+  places*).
 
 ### Reserve places (ورود بدون کمد)
 

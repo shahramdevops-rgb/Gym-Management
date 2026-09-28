@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { Member } from "@/features/members/api";
 import { cafePage } from "@/test/cafe";
 import { closedVisit, currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
-import { allLockers, heldLocker, locker, lockerId, lockersPage } from "@/test/lockers";
+import { allLockers, heldLocker, locker, lockerId, lockersPage, lockerVisit } from "@/test/lockers";
 import {
   json,
   mockApi,
@@ -13,7 +13,14 @@ import {
   staffUser,
   type Handler,
 } from "@/test/mockApi";
-import { debtItem, memberDebt, membersPage, reza, serviceChargeDebtItem } from "@/test/members";
+import {
+  ali,
+  debtItem,
+  memberDebt,
+  membersPage,
+  reza,
+  serviceChargeDebtItem,
+} from "@/test/members";
 import { renderApp } from "@/test/renderApp";
 import { pricesResponse } from "@/test/prices";
 import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
@@ -83,6 +90,9 @@ describe("LockersPage", () => {
     const inside = screen.getByRole("region", { name: "داخل رختکن" });
     expect(within(outside).getAllByRole("button", { name: /^کمد / })).toHaveLength(30);
     expect(within(inside).getAllByRole("button", { name: /^کمد / })).toHaveLength(42);
+    // The zone names are for a screen reader only; the drawing says where a locker is.
+    expect(screen.queryByText("بیرون رختکن")).not.toBeInTheDocument();
+    expect(screen.queryByText("داخل رختکن")).not.toBeInTheDocument();
 
     const free = await door("۱");
     expect(free).toHaveAttribute("data-state", "free");
@@ -93,9 +103,6 @@ describe("LockersPage", () => {
     expect(held).toHaveTextContent("رضا احمدی");
     expect(held).toHaveAttribute("title", "رضا احمدی");
     expect(held).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی");
-    // The zone names are for a screen reader only; the drawing says where a locker is.
-    expect(screen.queryByText("بیرون رختکن")).not.toBeInTheDocument();
-    expect(screen.queryByText("داخل رختکن")).not.toBeInTheDocument();
     expect(await door("۳")).toHaveAttribute("data-state", "outOfService");
 
     const legend = screen.getByRole("list", { name: "راهنمای کمدها" });
@@ -194,6 +201,98 @@ describe("LockersPage", () => {
     expect(await requests[0]!.clone().json()).toEqual({ lockerId: lockerId(12) });
   });
 
+  // ---- A free locker: who had it today ----
+
+  it("TodayHistory_BeforeChoosingAMember_ListsTodaysHoldersLinkedToTheirProfiles", async () => {
+    const api = mockApi(
+      mapHandlers(allLockers(), [], {
+        [`GET /api/lockers/${lockerId(12)}/today`]: () =>
+          json(200, [
+            lockerVisit({ memberId: reza.id, memberFullName: reza.fullName }),
+            lockerVisit({
+              attendanceId: "0199b000-0000-7000-8000-000000000002",
+              memberId: ali.id,
+              memberFullName: ali.fullName,
+              checkedInAt: "2026-09-28T08:00:00Z",
+              checkedOutAt: "2026-09-28T08:05:00Z",
+              cancelledAt: "2026-09-28T08:05:00Z",
+            }),
+          ]),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    // Nothing is fetched until the desk asks.
+    expect(api.requestsTo("GET", `/api/lockers/${lockerId(12)}/today`)).toHaveLength(0);
+    fireEvent.click(within(dialog).getByRole("button", { name: "تاریخچه امروز این کمد" }));
+
+    const list = await within(dialog).findByRole("list", { name: "تاریخچه امروز کمد" });
+    const rows = within(list).getAllByRole("listitem");
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0]!).getByRole("link", { name: "رضا احمدی" })).toHaveAttribute(
+      "href",
+      `/members/${reza.id}`,
+    );
+    expect(rows[0]).toHaveTextContent("ورود ۰۹:۰۰ · خروج ۱۰:۳۰");
+    expect(rows[0]).not.toHaveTextContent("لغو شده");
+    expect(within(rows[1]!).getByRole("link", { name: ali.fullName })).toHaveAttribute(
+      "href",
+      `/members/${ali.id}`,
+    );
+    expect(rows[1]).toHaveTextContent("لغو شده");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "بازگشت" }));
+    expect(
+      await within(dialog).findByRole("searchbox", { name: "نام یا شماره موبایل" }),
+    ).toBeInTheDocument();
+  });
+
+  it("TodayHistory_BesideTheConfirmation_ShowsWhoIsStillInsideAndGoesBackToTheSameMember", async () => {
+    const api = mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza]),
+        [`GET /api/lockers/${lockerId(12)}/today`]: () =>
+          json(200, [
+            lockerVisit({ memberId: ali.id, memberFullName: ali.fullName, checkedOutAt: null }),
+          ]),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await search(dialog, "رضا");
+    fireEvent.click(await within(dialog).findByRole("button", { name: /رضا احمدی/ }));
+    // The third choice beside the two the confirmation always had.
+    expect(await within(dialog).findByRole("button", { name: "بله، ورود ثبت شود" })).toBeEnabled();
+    expect(within(dialog).getByRole("button", { name: "انصراف" })).toBeEnabled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "تاریخچه امروز این کمد" }));
+
+    expect(await within(dialog).findByRole("listitem")).toHaveTextContent("ورود ۰۹:۰۰ · هنوز داخل");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "بازگشت" }));
+    await waitFor(() =>
+      expect(dialog).toHaveTextContent("آیا از ثبت ورود رضا احمدی با کمد شماره ۱۲ مطمئن هستید؟"),
+    );
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
+  });
+
+  it("TodayHistory_NobodyHadIt_SaysSo", async () => {
+    mockApi(
+      mapHandlers(allLockers(), [], {
+        [`GET /api/lockers/${lockerId(12)}/today`]: () => json(200, []),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    fireEvent.click(within(dialog).getByRole("button", { name: "تاریخچه امروز این کمد" }));
+
+    expect(
+      await within(dialog).findByText("امروز کسی از این کمد استفاده نکرده است."),
+    ).toBeInTheDocument();
+  });
+
   it("CheckIn_LockerTakenMeanwhile_ShowsWhyWithoutOfferingASingleVisit", async () => {
     mockApi(
       mapHandlers(allLockers(), [], {
@@ -249,7 +348,9 @@ describe("LockersPage", () => {
       sale: { kind: "SingleVisit" },
     });
     // The old two-step sale is gone: nothing is sold without its check-in.
-    expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions/single-visit`)).toHaveLength(0);
+    expect(
+      api.requestsTo("POST", `/api/members/${reza.id}/subscriptions/single-visit`),
+    ).toHaveLength(0);
   });
 
   it("CheckIn_NoSubscription_SellsAPlanRightHereAndChecksInWithTheSameLocker", async () => {
@@ -257,9 +358,8 @@ describe("LockersPage", () => {
       mapHandlers(allLockers(), [], {
         "GET /api/members": () => membersPage([reza]),
         "GET /api/pricing": () => pricesResponse(),
-        [`POST /api/members/${reza.id}/attendance/check-in`]: checkInSellsWith(
-          "Subscriptions.Expired",
-        ),
+        [`POST /api/members/${reza.id}/attendance/check-in`]:
+          checkInSellsWith("Subscriptions.Expired"),
       }),
     );
     renderMap();
@@ -344,7 +444,12 @@ describe("LockersPage", () => {
         "GET /api/members": () => membersPage([reza]),
         [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([frozen]),
         [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
-          json(201, { ...openVisit(reza.id), lockerId: lockerId(12), lockerNumber: 12, unfrozenDays: 4 }),
+          json(201, {
+            ...openVisit(reza.id),
+            lockerId: lockerId(12),
+            lockerNumber: 12,
+            unfrozenDays: 4,
+          }),
       }),
     );
     renderMap();
@@ -381,7 +486,8 @@ describe("LockersPage", () => {
       mapHandlers(allLockers(), [], {
         "GET /api/members": () => membersPage([reza]),
         // Newest first, as the API sends them: the visit for today is what check-in will use.
-        [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([singleVisit, frozen]),
+        [`GET /api/members/${reza.id}/subscriptions`]: () =>
+          subscriptionsPage([singleVisit, frozen]),
       }),
     );
     renderMap();
@@ -593,6 +699,10 @@ describe("LockersPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "جای خالی ورود بدون کمد" })[0]!);
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByRole("heading", { name: "ورود بدون کمد" })).toBeInTheDocument();
+    // A reserve place has no number, so "who had it today" means nothing (BUSINESS_RULES.md §6).
+    expect(
+      within(dialog).queryByRole("button", { name: "تاریخچه امروز این کمد" }),
+    ).not.toBeInTheDocument();
     await chooseAndConfirm(dialog, "رضا احمدی");
 
     expect(await within(dialog).findByText(/ورود بدون کمد ثبت شد/)).toBeInTheDocument();
