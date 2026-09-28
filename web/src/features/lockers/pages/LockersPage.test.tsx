@@ -179,6 +179,8 @@ describe("LockersPage", () => {
     expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("کمد شماره ۱۲")).toBeInTheDocument();
     expect(await within(dialog).findByText("۳۰ روز · ۱۲ جلسه")).toBeInTheDocument();
+    // Nothing was frozen, so nothing is said about it.
+    expect(within(dialog).queryByText(/فریز/)).not.toBeInTheDocument();
     expect(await within(dialog).findByRole("region", { name: "بدهی" })).toHaveTextContent("هوازی");
 
     const requests = api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`);
@@ -305,13 +307,13 @@ describe("LockersPage", () => {
     expect(within(dialog).queryByText("اشتراک فروخته شد و ورود ثبت شد")).not.toBeInTheDocument();
   });
 
-  it("CheckIn_FrozenPlan_OffersTheSingleVisitAndLeavesPlansToTheProfile", async () => {
+  it("CheckIn_PlanBoughtForLater_OffersTheSingleVisitAndLeavesPlansToTheProfile", async () => {
     mockApi(
       mapHandlers(allLockers(), [], {
         "GET /api/members": () => membersPage([reza]),
         "GET /api/pricing": () => pricesResponse(),
         [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
-          problem(422, "Subscriptions.Frozen"),
+          problem(422, "Subscriptions.NotStarted"),
       }),
     );
     renderMap();
@@ -319,7 +321,7 @@ describe("LockersPage", () => {
     const dialog = await openFreeLocker("۱۲");
     await chooseAndConfirm(dialog, "رضا احمدی");
 
-    // A new plan would queue behind the frozen one and could not let them in today.
+    // A new plan would queue behind the one bought for later and could not let them in today.
     expect(
       await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
     ).toBeInTheDocument();
@@ -327,6 +329,67 @@ describe("LockersPage", () => {
       "href",
       `/members/${reza.id}`,
     );
+  });
+
+  it("CheckIn_FrozenPlan_WarnsBeforeConfirmingAndSaysAfterwardsItWasUnfrozen", async () => {
+    const frozen = { ...activeSubscription, status: "Frozen" as const, frozenSince: "2026-09-14" };
+    const api = mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza]),
+        [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([frozen]),
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+          json(201, { ...openVisit(reza.id), lockerId: lockerId(12), lockerNumber: 12, unfrozenDays: 4 }),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await search(dialog, "رضا");
+    fireEvent.click(await within(dialog).findByRole("button", { name: /رضا احمدی/ }));
+
+    // BUSINESS_RULES.md §4 Freeze: said before anything is sent, since coming in ends the freeze.
+    expect(await within(dialog).findByText(/اشتراک او فریز است/)).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود ثبت شود" }));
+
+    expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
+    expect(within(dialog).getByRole("status")).toHaveTextContent(
+      "اشتراک فریز بود و با این ورود از حالت فریز خارج شد؛ ۴ روز به پایان آن اضافه شد.",
+    );
+  });
+
+  it("CheckIn_SingleVisitHeldAlongAFrozenPlan_DoesNotWarn", async () => {
+    const frozen = { ...activeSubscription, status: "Frozen" as const, frozenSince: "2026-09-14" };
+    const singleVisit = {
+      ...activeSubscription,
+      id: "0199a000-0000-7000-8000-0000000000c9",
+      isSingleSession: true,
+      durationDays: 1,
+      totalSessions: 1,
+      usedSessions: 0,
+      remainingSessions: 1,
+      startDate: "2026-09-18",
+      endDate: "2026-09-18",
+    };
+    const api = mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza]),
+        // Newest first, as the API sends them: the visit for today is what check-in will use.
+        [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([singleVisit, frozen]),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await search(dialog, "رضا");
+    fireEvent.click(await within(dialog).findByRole("button", { name: /رضا احمدی/ }));
+
+    await within(dialog).findByRole("button", { name: "بله، ورود ثبت شود" });
+    await waitFor(() =>
+      expect(api.requestsTo("GET", `/api/members/${reza.id}/subscriptions`)).not.toHaveLength(0),
+    );
+    // The freeze is left alone (§4), so there is nothing to warn about.
+    expect(within(dialog).queryByText(/فریز/)).not.toBeInTheDocument();
   });
 
   it("CheckIn_NobodyFound_RegistersThemAndGoesStraightToTheSale", async () => {

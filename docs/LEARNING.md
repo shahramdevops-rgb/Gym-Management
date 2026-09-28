@@ -998,3 +998,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Tell staff what to do, not how the ledger works.** The second question says "hand back what you collected; if nothing was collected, nothing to do", and adds the recorded figure when there is one. The refund rows are the system's job; handing over the cash is the desk's.
 - **Read the data the screen already has.** The "inside" list already carries each visit's هوازی and cafe orders with what was paid. So the cancel box reads that list on every screen instead of needing a new endpoint.
 - **My notes:**
+
+---
+
+## 6.5.9 — A frozen member who comes in is unfrozen
+
+- **One rule, one place, two callers.** The Owner's unfreeze button and a check-in both end a freeze. The queue-shifting logic was inside `UnfreezeSubscriptionHandler` as a database query. It moved into `SubscriptionSchedule.Unfreeze` in the Domain, which works on the member's subscriptions already in memory. Both handlers now call it, and it is unit-tested with no database.
+- **Load everything, let the Domain choose.** Moving the queue into the Domain meant loading all of the member's subscriptions (tracked) instead of querying only the queued ones. For one member that is a handful of rows. The payoff is that "which ones are queued behind this one" is a plain C# rule a test can check.
+- **A deferred constraint needs the right commit.** Unfreezing moves several rows whose date ranges overlap for a moment, so the overlap check is deferred to commit. Check-in used to call `transaction.CommitAsync` directly. A deferred violation surfaces at commit, and only `db.CommitTransactionAsync` translates it into the `ExclusionConstraintException` the handler catches.
+- **Rollback is the "undo" for a refused check-in.** If the plan turns out expired once unfrozen, `ConsumeSession` refuses and the handler returns before saving. The unfreeze was only a change in memory, so the plan stays frozen with no special code. The test checks the stored row: still frozen, same end date.
+- **Add to a response with an optional field.** `UnfrozenDays` is `int?` with a default of `null`. Existing code building `AttendanceResponse` did not change, and `with { UnfrozenDays = … }` sets it only where check-in knows it.
+- **Warn with data the screen already fetches.** The confirm step warns about a frozen plan using `useCurrentSubscription`, the query the profile card uses. It already puts a plan usable today ahead of a frozen one, the same order as the server, so a member holding a single visit is not warned. It is only a warning: the result box reports what the server actually did.
+- **Generated integer types are `number | string`.** The OpenAPI document allows an integer as a string, so the TypeScript type is `null | number | string`. The screen wraps it in `Number()` before formatting it, the same as `totalCount`.
+- **My notes:**

@@ -32,30 +32,17 @@ public sealed class UnfreezeSubscriptionHandler(IAppDbContext db, IGymCalendar c
         await db.LockMemberAsync(found.MemberId, cancellationToken);
         await db.DeferSubscriptionOverlapCheckAsync(cancellationToken);
 
-        var subscription = await db.Subscriptions.SingleAsync(s => s.Id == id, cancellationToken);
-        var originalEndDate = subscription.EndDate;
+        // Tracked, all of them: the schedule picks which ones are queued behind this one and moves
+        // them, and they are saved together. Check-in unfreezes by the same rule (roadmap 6.5.9).
+        var memberSubscriptions = await db.Subscriptions
+            .Where(s => s.MemberId == found.MemberId)
+            .ToListAsync(cancellationToken);
+        var subscription = memberSubscriptions.Single(s => s.Id == id);
 
-        var unfrozen = subscription.Unfreeze(today, policy.MaxFreezeDays);
+        var unfrozen = SubscriptionSchedule.Unfreeze(subscription, today, policy.MaxFreezeDays, memberSubscriptions);
         if (unfrozen.IsFailure)
         {
             return Result.Failure<SubscriptionResponse>(unfrozen.Error);
-        }
-
-        var addedDays = unfrozen.Value;
-        if (addedDays > 0)
-        {
-            // Single-session subscriptions are not queued behind anything and are dated the day they
-            // were sold, so moving them would rewrite history (BUSINESS_RULES.md §4).
-            var queued = await db.Subscriptions
-                .Where(s => s.MemberId == subscription.MemberId && s.Id != subscription.Id
-                            && s.CancelledAt == null && s.StartDate > originalEndDate
-                            && !s.IsSingleSession)
-                .ToListAsync(cancellationToken);
-
-            foreach (var queuedSubscription in queued)
-            {
-                queuedSubscription.ShiftQueued(addedDays);
-            }
         }
 
         try

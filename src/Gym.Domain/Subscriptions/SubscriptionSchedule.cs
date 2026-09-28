@@ -1,3 +1,5 @@
+using Gym.Domain.Common;
+
 namespace Gym.Domain.Subscriptions;
 
 /// <summary>
@@ -121,6 +123,63 @@ public static class SubscriptionSchedule
         queued.StartEarly(today);
 
         return queued;
+    }
+
+    /// <summary>
+    /// The frozen membership a check-in unfreezes when the member comes in (BUSINESS_RULES.md §4
+    /// <i>Freeze</i>, roadmap 6.5.9), or <c>null</c> when none is frozen.
+    /// </summary>
+    /// <remarks>
+    /// Asked only after <see cref="InEffectToday"/> found nothing: anything usable today — a single
+    /// visit, another membership — is used first and the freeze is left alone. Single visits cannot
+    /// be frozen, so only memberships are read. Two frozen at once is possible only when a queued
+    /// plan was frozen after it started; the one that started first is the member's current term.
+    /// </remarks>
+    public static Subscription? FrozenToResume(IEnumerable<Subscription> memberSubscriptions)
+    {
+        ArgumentNullException.ThrowIfNull(memberSubscriptions);
+
+        return Memberships(memberSubscriptions)
+            .Where(subscription => subscription.FrozenSince is not null)
+            .MinBy(subscription => subscription.StartDate);
+    }
+
+    /// <summary>
+    /// Ends <paramref name="frozen"/>'s freeze and shifts the member's queued memberships by the days
+    /// its <c>EndDate</c> moved (BUSINESS_RULES.md §4 <i>Freeze</i>, task 4.3). The one rule behind
+    /// both the Owner's unfreeze and a check-in that ends a freeze (roadmap 6.5.9).
+    /// </summary>
+    /// <remarks>
+    /// Queued means starting after the frozen one's end date as it was before the freeze ended. Single
+    /// visits are never shifted: they are dated the day they were sold, and moving them would rewrite
+    /// history (§4 <i>Single-session subscriptions</i>). The ranges pass through a moment where they
+    /// overlap, so the caller defers the database's overlap check before saving.
+    /// </remarks>
+    /// <param name="memberSubscriptions">All of the member's subscriptions, tracked for saving.</param>
+    /// <returns>The days <c>EndDate</c> moved, the same as <see cref="Subscription.Unfreeze"/>.</returns>
+    public static Result<int> Unfreeze(
+        Subscription frozen, DateOnly today, int maxFreezeDays, IEnumerable<Subscription> memberSubscriptions)
+    {
+        ArgumentNullException.ThrowIfNull(frozen);
+        ArgumentNullException.ThrowIfNull(memberSubscriptions);
+
+        var originalEndDate = frozen.EndDate;
+
+        var unfrozen = frozen.Unfreeze(today, maxFreezeDays);
+        if (unfrozen.IsFailure || unfrozen.Value == 0)
+        {
+            return unfrozen;
+        }
+
+        var queued = Memberships(memberSubscriptions)
+            .Where(subscription => subscription.Id != frozen.Id && subscription.StartDate > originalEndDate);
+
+        foreach (var subscription in queued)
+        {
+            subscription.ShiftQueued(unfrozen.Value);
+        }
+
+        return unfrozen;
     }
 
     /// <summary>

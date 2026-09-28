@@ -270,21 +270,6 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
-    public async Task CheckIn_FrozenSubscription_Returns422SubscriptionsFrozen()
-    {
-        var (staffClient, staffToken) = await StaffClientAsync();
-        var member = await AddMemberAsync();
-        var plan = await AddPlanAsync();
-        var today = Today();
-        await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), frozenSince: today.AddDays(-1));
-
-        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.Frozen");
-    }
-
-    [Fact]
     public async Task CheckIn_ExhaustedSubscription_Returns422SubscriptionsNoSessionsLeft()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
@@ -553,7 +538,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
 
     /// <summary>A row written directly, so states that take real days to reach can be set up in one step.</summary>
     private async Task InsertSubscriptionAsync(
-        Guid memberId, DateOnly start, DateOnly end, DateOnly? frozenSince = null, int usedSessions = 0)
+        Guid memberId, DateOnly start, DateOnly end, int usedSessions = 0)
     {
         var id = Guid.CreateVersion7();
         await using var scope = Fixture.CreateScope();
@@ -561,9 +546,9 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         await db.Database.ExecuteSqlAsync(
             $"""
             INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
-                                       start_date, end_date, used_sessions, frozen_since, total_frozen_days, created_at)
+                                       start_date, end_date, used_sessions, total_frozen_days, created_at)
             VALUES ({id}, {memberId}, 900000, 30, 12,
-                    {start}, {end}, {usedSessions}, {frozenSince}, 0, now())
+                    {start}, {end}, {usedSessions}, 0, now())
             """,
             TestContext.Current.CancellationToken);
     }

@@ -129,7 +129,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | See the two prices (§3) | ✅ | ✅ |
 | Change the two prices (§3), staff accounts | ✅ | ❌ |
 | Lockers: see the map, take one out of service, bring it back in, move a visit to another locker (§6, §7) | ✅ | ✅ |
-| Freeze, unfreeze, cancel subscriptions | ✅ | ❌ |
+| Freeze, unfreeze, cancel subscriptions (a check-in by either role still ends a freeze, §4 *Freeze*) | ✅ | ❌ |
 | Refunds, voids (outside the cafe) | ✅ | ❌ |
 | Gym service charges: record, change the amount, void (§7 *Gym services*) | ✅ | ✅ |
 | Cafe: products, categories, orders, and cancelling an order (§8) | ✅ | ✅ |
@@ -274,9 +274,10 @@ visit, and it must never move, delay or shorten what the member already bought.
 - **Freeze is refused** (`Subscriptions.SingleSessionNotFreezable`): a one-day subscription has nothing
   to suspend. Unfreezing a membership shifts that member's queued subscriptions (§4 *Freeze*) but never
   a single-session row — those are dated today or earlier, and shifting them would rewrite history.
-- **A member whose membership is frozen and who comes in today is sold a single visit, and their freeze
-  is not touched.** Freeze and unfreeze stay Owner-only (§1): the desk needs neither of them to let the
-  person in, so this feature changes no permissions.
+- **A single visit the member already holds for today is used before a frozen membership, and the
+  freeze is left alone** (§4 *Freeze*). This replaces "a frozen member is sold a single visit and the
+  freeze is not touched" (roadmap 6.5.9): a frozen member who comes in without one is no longer sold
+  one, their plan is unfrozen instead.
 - **Two visits in one day** are two single-session sales. The one-open-visit-per-member index (§7) means
   the member checks out before coming back.
 - **Cancel and refund are unchanged** (§4 *Cancel*, §5): cancellable and refundable before the visit,
@@ -289,7 +290,22 @@ visit, and it must never move, delay or shorten what the member already bought.
   subscription.
 
 ### Freeze
-- Only `Active` subscriptions can be frozen. A frozen subscription cannot be used for check-in.
+- Only `Active` subscriptions can be frozen. A frozen subscription is not used while it is frozen.
+- **A frozen member who comes in is unfrozen** (asked by the Owner, 1405/07/06, roadmap 6.5.9). When
+  nothing else is usable today, check-in ends the freeze by the rules below — frozen days added to
+  `EndDate` within the allowance, queued subscriptions shifted — and then uses a session, all in the
+  check-in's transaction (§7). Either role may do it: coming in is what ends the freeze, and the
+  manual freeze and unfreeze stay Owner-only (§1).
+  - Anything already usable today is used first and the freeze is left alone: a single visit held for
+    today (§4 *Single-session subscriptions*), or another membership that is active today.
+  - If the plan turns out expired once unfrozen (a freeze that ran past the allowance), check-in is
+    refused with `Subscriptions.Expired` and nothing changes: the plan stays frozen for the Owner.
+  - A check-in that carries a sale (§7 *Confirming at the front desk*) never unfreezes: it uses what it
+    sold or is refused, so a plan sold at the locker is never queued behind one unfrozen a moment later.
+  - The check-in box warns before confirming that the plan is frozen and will be unfrozen, and says
+    afterwards that it was, with the days added to its end.
+  - Cancelling that check-in (§7) gives the session back but does not put the freeze back. The Owner
+    freezes it again from that day; freeze days add up, so none are lost.
 - Unfreezing extends `EndDate` by the number of frozen days, and shifts that member's queued subscriptions by the same number of days.
 - Total frozen days cannot exceed `Gym:MaxFreezeDaysPerSubscription`.
 - Details (decided with the developer in task 4.1):
@@ -467,7 +483,7 @@ Preconditions: the member is active, has an `Active` subscription, and has no op
 The request names the locker the desk chose, or asks for a reserve place (§6). It may also carry a
 sale — a single visit or a plan — which is made first, in the same transaction, and is then what
 step 1 finds (*Confirming at the front desk*).
-1. Load the subscription that is in effect today — an `Active` one always wins over a queued renewal that ends later. If none is active, apply the exhausted-with-a-queue rule above.
+1. Load the subscription that is in effect today — an `Active` one always wins over a queued renewal that ends later. If none is active, apply the exhausted-with-a-queue rule above. If still none and a membership is frozen, unfreeze it (§4 *Freeze*) — unless the request carries a sale.
 2. `subscription.ConsumeSession(today)`.
 3. Take the place the desk chose (decided by the Owner, 1405/07/05; this replaces the random pick):
    - **A locker:** it must exist (`Lockers.NotFound`), be in service (`Lockers.OutOfService`), and
@@ -545,9 +561,10 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
     collects it then or later (§5).
   - The plan form (days and sessions, the price shown before confirming, §3) opens under the
     refusal only when a new plan would start today: after "no subscription", "expired", "no
-    sessions left" or "cancelled". When the member holds a frozen plan or one bought for later, a
-    new plan would queue behind it (§4) and could not let them in today, so the box offers the
-    single visit and leaves selling a plan to the profile.
+    sessions left" or "cancelled". When the member holds a plan bought for later, a new plan would
+    queue behind it (§4) and could not let them in today, so the box offers the single visit and
+    leaves selling a plan to the profile. A frozen plan is no longer a refusal: check-in unfreezes
+    it (§4 *Freeze*).
   - A person registered in the box has no subscription by definition, so the box goes straight to
     the sale instead of asking to confirm a check-in that could only be refused.
   - Selling from the member's profile is unchanged: the plan is added to the member's
@@ -570,6 +587,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 ### Cancel check-in
 - Allowed only for an open attendance within `Gym:CancelCheckInWindowMinutes` of check-in.
 - Restores the session, frees the locker, and marks the attendance cancelled (who and when). The row is kept.
+- A freeze the check-in ended stays ended (§4 *Freeze*): the Owner freezes the plan again if it was a mistake.
 - Cancelled attendances are excluded from attendance reports.
 - **What the visit bought is cancelled only when the desk says so, one purchase at a time**
   (decided by the Owner, 1405/07/06, roadmap 6.5.8). The box lists the visit's هوازی and each of

@@ -21,8 +21,10 @@ const needsASubscription = new Set([
 /**
  * The refusals after which a new plan starts today, so selling one in the check-in box lets the
  * member straight in (roadmap 6.5.7). After the others the member already holds something that
- * a new plan would queue behind — a frozen plan, one bought for later — so it could not start
- * today, and the box offers the single visit and the profile instead.
+ * a new plan would queue behind — one bought for later — so it could not start today, and the box
+ * offers the single visit and the profile instead. A frozen plan no longer refuses a check-in
+ * (roadmap 6.5.9: coming in unfreezes it); `Subscriptions.Frozen` stays in the list above only
+ * because the API has the last word.
  *
  * The API still has the last word: a plan sold with a check-in that cannot happen today is
  * refused and rolled back with it, so a wrong entry here costs a message, never a stray sale.

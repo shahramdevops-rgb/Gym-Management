@@ -14,9 +14,12 @@ namespace Gym.Application.Attendances.CheckIn;
 /// Checks a member in: consumes a session from their current subscription and gives them the
 /// locker the desk chose, or a reserve place when every locker is full (BUSINESS_RULES.md §6, §7).
 /// When the desk sells a single visit or a plan in the same box, the sale happens here too, in the
-/// same transaction: both are saved or neither is (roadmap 6.5.7). Front desk work, so both roles.
+/// same transaction: both are saved or neither is (roadmap 6.5.7). A member whose plan is frozen
+/// and who has nothing else usable today is unfrozen here too (roadmap 6.5.9). Front desk work, so
+/// both roles.
 /// </summary>
-public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, TimeProvider time, SubscriptionSeller seller)
+public sealed class CheckInHandler(
+    IAppDbContext db, IGymCalendar calendar, TimeProvider time, SubscriptionSeller seller, ISubscriptionPolicy policy)
 {
     public async Task<Result<AttendanceResponse>> Handle(Guid memberId, CheckInCommand command, CancellationToken cancellationToken)
     {
@@ -73,6 +76,29 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
         // queued subscription with a later end date, and taking that one would refuse them for
         // the rest of the term they already paid for.
         var subscription = SubscriptionSchedule.InEffectToday(today, live);
+
+        // Nothing usable, but a plan is frozen: coming in ends the freeze (BUSINESS_RULES.md §4
+        // Freeze, roadmap 6.5.9). Not with a sale: the desk sold something so that it would be
+        // used, and a plan sold behind a frozen one must not be queued by the unfreeze below.
+        int? unfrozenDays = null;
+        if (subscription is null && command.Sale is null && SubscriptionSchedule.FrozenToResume(live) is { } frozen)
+        {
+            // Unfreezing moves the queued plans behind this one, which passes through a moment
+            // where their date ranges overlap, the same as the Owner's unfreeze.
+            await db.DeferSubscriptionOverlapCheckAsync(cancellationToken);
+
+            var unfrozen = SubscriptionSchedule.Unfreeze(frozen, today, policy.MaxFreezeDays, live);
+            if (unfrozen.IsFailure)
+            {
+                return Result.Failure<AttendanceResponse>(unfrozen.Error);
+            }
+
+            unfrozenDays = unfrozen.Value;
+            // If it ran out while frozen, ConsumeSession below refuses with Expired and nothing is
+            // saved, so the plan stays frozen for the Owner to decide about.
+            subscription = frozen;
+        }
+
         if (subscription is null)
         {
             return Result.Failure<AttendanceResponse>(NothingUsableToday(today, live));
@@ -117,7 +143,12 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
         try
         {
             await db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            // Through the context, so an overlap check deferred by an unfreeze is translated too.
+            await db.CommitTransactionAsync(transaction, cancellationToken);
+        }
+        catch (ExclusionConstraintException exception) when (exception.ConstraintName == SubscriptionConstraints.NoOverlap)
+        {
+            return Result.Failure<AttendanceResponse>(SubscriptionErrors.ChangedConcurrently);
         }
         catch (UniqueConstraintException exception) when (exception.ConstraintName == AttendanceConstraints.OneOpenPerLocker)
         {
@@ -140,7 +171,7 @@ public sealed class CheckInHandler(IAppDbContext db, IGymCalendar calendar, Time
         // Read after the commit because check-in moves no money, so the total cannot have changed.
         var debt = await MemberDebt.GetTotalAsync(db, memberId, cancellationToken);
 
-        return AttendanceResponse.From(attendance, lockerNumber, serviceCharges: [], debt);
+        return AttendanceResponse.From(attendance, lockerNumber, serviceCharges: [], debt) with { UnfrozenDays = unfrozenDays };
     }
 
     /// <summary>

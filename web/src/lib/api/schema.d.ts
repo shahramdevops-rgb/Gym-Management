@@ -1008,6 +1008,8 @@ export interface components {
              * @default 0
              */
             memberDebt: number | string;
+            /** Format: int32 */
+            unfrozenDays?: null | number | string;
         };
         CafeOrderItemResponse: {
             /** Format: uuid */
