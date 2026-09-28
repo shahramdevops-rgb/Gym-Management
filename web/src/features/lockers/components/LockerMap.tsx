@@ -29,6 +29,9 @@ const stateLabel: Record<LockerState, string> = {
   outOfService: "خارج از سرویس",
 };
 
+/** Written across the corner of a door whose holder owes money. */
+const debtorLabel = "بدهکار";
+
 const stateClass: Record<LockerState, string> = {
   free: "border-success bg-success/15 text-success hover:bg-success/30",
   occupied: "border-destructive bg-destructive/15 text-destructive hover:bg-destructive/25",
@@ -58,7 +61,8 @@ interface LockerMapProps {
  * only for a screen reader.
  *
  * The doors grow with the screen so the whole width is used, and an occupied door carries its
- * holder's name once it is wide enough to read, cut to two lines inside the door.
+ * holder's name once it is wide enough to read, cut to two lines inside the door. A holder who
+ * owes money gets "بدهکار" across the door's top-left corner.
  */
 export function LockerMap({ lockers, onSelect, mode = "desk" }: LockerMapProps) {
   const byNumber = new Map(lockers.map((locker) => [Number(locker.number), locker]));
@@ -130,27 +134,37 @@ function LockerDoor({
 
   const state = lockerState(locker);
   const holder = locker.occupiedByMemberFullName;
-  const label = `کمد ${toPersianDigits(number)}، ${stateLabel[state]}${holder === null ? "" : ` — ${holder}`}`;
+  // Any money the holder owes, whatever it is for: a plan, هوازی or the cafe (BUSINESS_RULES.md §6).
+  const owes = holder !== null && Number(locker.occupiedByMemberDebt) > 0;
+  const holderText = owes ? `${holder}، ${debtorLabel}` : holder;
+  const label = `کمد ${toPersianDigits(number)}، ${stateLabel[state]}${holderText === null ? "" : ` — ${holderText}`}`;
 
   return (
     <button
       type="button"
       aria-label={label}
-      title={holder ?? stateLabel[state]}
+      title={holderText ?? stateLabel[state]}
       disabled={mode === "pick" && state !== "free"}
       data-state={state}
       onClick={() => onSelect(locker)}
       className={cn(
         doorSize,
-        "overflow-hidden rounded-sm border-2 transition-colors",
+        "relative overflow-hidden rounded-sm border-2 transition-colors",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-40",
         stateClass[state],
       )}
     >
+      {owes && <DebtorRibbon />}
       {/* Its own query container, so what is written inside follows the door's size, not the
-          screen's. The door's size never follows what is written. */}
-      <span className="@container flex size-full flex-col items-center justify-center gap-1 px-2">
+          screen's. The door's size never follows what is written. A debtor's number and name sit
+          at the bottom, out of the ribbon's corner, a little off the frame. */}
+      <span
+        className={cn(
+          "@container flex size-full flex-col items-center gap-1 px-2",
+          owes ? "justify-end pb-2" : "justify-center",
+        )}
+      >
         <span className="text-sm font-bold @min-[4.5rem]:text-lg">{toPersianDigits(number)}</span>
         {holder !== null && (
           <span
@@ -162,6 +176,29 @@ function LockerDoor({
         )}
       </span>
     </button>
+  );
+}
+
+/**
+ * A small band across the door's top-left corner, at 45°: the strip between the lines x + y = 22px
+ * and x + y = 42px, cut out of a 42px square with `clip-path`. Its two ends are therefore exactly
+ * on the door's top and left edges, whatever the door's size (the smallest door is 44px), and it
+ * never reaches past the frame or into the number and name, which sit at the bottom beside it.
+ * The word is centred on the band's middle line (16px in from each edge) and turned the same way.
+ *
+ * No `dir` on the positioned elements: `start` has to mean the left, as it does inside the map
+ * (`dir="ltr"`). A single Persian word reads correctly without it.
+ */
+function DebtorRibbon() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute start-0 top-0 size-[42px] bg-warning [clip-path:polygon(22px_0,100%_0,0_100%,0_22px)]"
+    >
+      <span className="absolute start-[16px] top-[16px] -translate-x-1/2 -translate-y-1/2 -rotate-45 text-[11px] leading-none font-bold whitespace-nowrap text-warning-foreground">
+        {debtorLabel}
+      </span>
+    </span>
   );
 }
 

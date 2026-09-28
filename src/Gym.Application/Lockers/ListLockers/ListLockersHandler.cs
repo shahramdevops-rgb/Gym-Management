@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Paging;
+using Gym.Application.Members;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,19 @@ public sealed class ListLockersHandler(IAppDbContext db)
             .Take(query.PageSize)
             .Select(LockerResponse.Projection(openAttendances, members))
             .ToListAsync(cancellationToken);
+
+        // Batched for the whole page (MemberDebt), not one query per held locker.
+        var holderIds = items
+            .Where(locker => locker.OccupiedByMemberId is not null)
+            .Select(locker => locker.OccupiedByMemberId!.Value)
+            .ToList();
+        var debtByMemberId = await MemberDebt.GetTotalsAsync(db, holderIds, cancellationToken);
+
+        items = items
+            .Select(locker => locker.OccupiedByMemberId is { } holderId
+                ? locker with { OccupiedByMemberDebt = debtByMemberId.GetValueOrDefault(holderId) }
+                : locker)
+            .ToList();
 
         return new PagedResponse<LockerResponse>(items, query.Page, query.PageSize, totalCount);
     }

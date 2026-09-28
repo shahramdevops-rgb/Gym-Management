@@ -1244,6 +1244,11 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: null | string;
+            /**
+             * Format: double
+             * @default 0
+             */
+            occupiedByMemberDebt: number | string;
             isOccupied?: boolean;
         };
         LockerVisitResponse: {

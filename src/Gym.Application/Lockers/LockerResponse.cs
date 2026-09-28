@@ -15,6 +15,12 @@ public sealed record LockerHolder(Guid MemberId, string FullName);
 /// attendance already says it, and a second copy could disagree with it.
 /// </param>
 /// <param name="Version">Sent back with a status change, so a stale request is refused.</param>
+/// <param name="OccupiedByMemberDebt">
+/// What the member holding the locker still owes (BUSINESS_RULES.md §5 <i>Member debt</i>), so the
+/// map can mark their door "بدهکار" (§6). <c>0</c> for a free locker. Computed only by
+/// <see cref="ListLockers.ListLockersHandler"/>, the map's one read; every other path leaves it
+/// <c>0</c>, the way <see cref="Members.MemberResponse.Debt"/> is filled only by the member list.
+/// </param>
 public sealed record LockerResponse(
     Guid Id,
     int Number,
@@ -23,7 +29,8 @@ public sealed record LockerResponse(
     string? OccupiedByMemberFullName,
     uint Version,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt)
+    DateTimeOffset? UpdatedAt,
+    decimal OccupiedByMemberDebt = 0)
 {
     /// <summary>
     /// A locker is occupied exactly when somebody holds it, so this is read off the holder rather
@@ -53,7 +60,9 @@ public sealed record LockerResponse(
                 .FirstOrDefault(),
             locker.Version,
             locker.CreatedAt,
-            locker.UpdatedAt);
+            locker.UpdatedAt,
+            // An expression tree cannot leave an optional argument out; the list fills it in after.
+            0m);
 
     public static LockerResponse From(Locker locker, LockerHolder? holder)
     {

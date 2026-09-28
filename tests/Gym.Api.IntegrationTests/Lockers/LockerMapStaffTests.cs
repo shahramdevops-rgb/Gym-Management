@@ -4,7 +4,9 @@ using System.Net.Http.Json;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Attendances;
+using Gym.Application.Common.Paging;
 using Gym.Application.Lockers;
+using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -106,6 +108,40 @@ public sealed class LockerMapStaffTests(DatabaseFixture fixture) : DatabaseTestB
         (await LockerAsync(client, token, 40)).IsOccupied.ShouldBeFalse();
     }
 
+    // ---- The debtor label (BUSINESS_RULES.md §6) ----
+
+    [Fact]
+    public async Task ListLockers_HolderOwesForTheirPlan_ReturnsTheDebtOnTheirLockerOnly()
+    {
+        var (client, token) = await StaffClientAsync();
+        var (member, _) = await AddMemberWithSubscriptionAsync(client, token);
+        await TestLockers.CheckInOkAsync(client, token, member.Id, lockerNumber: 67);
+
+        var lockers = await ListLockersAsync(client, token);
+
+        lockers.Single(locker => locker.Number == 67).OccupiedByMemberDebt.ShouldBe(900_000m);
+        lockers.Where(locker => locker.Number != 67).ShouldAllBe(locker => locker.OccupiedByMemberDebt == 0);
+    }
+
+    [Fact]
+    public async Task ListLockers_HolderPaidInFull_ReturnsNoDebtOnTheirLocker()
+    {
+        var (client, token) = await StaffClientAsync();
+        var (member, subscriptionId) = await AddMemberWithSubscriptionAsync(client, token);
+        using (var paid = await PostAsync(client, token, $"/api/subscriptions/{subscriptionId}/payments", new { amount = 900_000m, method = "Cash" }))
+        {
+            paid.StatusCode.ShouldBe(HttpStatusCode.Created);
+        }
+
+        await TestLockers.CheckInOkAsync(client, token, member.Id, lockerNumber: 67);
+
+        var lockers = await ListLockersAsync(client, token);
+
+        var held = lockers.Single(locker => locker.Number == 67);
+        held.IsOccupied.ShouldBeTrue();
+        held.OccupiedByMemberDebt.ShouldBe(0m);
+    }
+
     // ---- Helpers ----
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
@@ -116,7 +152,11 @@ public sealed class LockerMapStaffTests(DatabaseFixture fixture) : DatabaseTestB
         return (client, await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
     }
 
-    private async Task<Member> AddMemberWithPlanAsync(HttpClient client, string token)
+    private async Task<Member> AddMemberWithPlanAsync(HttpClient client, string token) =>
+        (await AddMemberWithSubscriptionAsync(client, token)).Member;
+
+    /// <summary>A member sold the default 900,000 plan and paying nothing yet, so they owe all of it.</summary>
+    private async Task<(Member Member, Guid SubscriptionId)> AddMemberWithSubscriptionAsync(HttpClient client, string token)
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed("رضا احمدی", $"+98916{suffix:D7}");
@@ -130,8 +170,18 @@ public sealed class LockerMapStaffTests(DatabaseFixture fixture) : DatabaseTestB
 
         using var assigned = await PostAsync(client, token, $"/api/members/{member.Id}/subscriptions", plan.Body);
         assigned.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var subscription = (await assigned.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
 
-        return member;
+        return (member, subscription.Id);
+    }
+
+    private static async Task<IReadOnlyList<LockerResponse>> ListLockersAsync(HttpClient client, string token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/lockers?pageSize={PagingRules.MaxPageSize}");
+        using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<PagedResponse<LockerResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull().Items;
     }
 
     private static async Task<LockerResponse> LockerAsync(HttpClient client, string token, int number)
