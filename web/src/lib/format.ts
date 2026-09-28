@@ -50,6 +50,13 @@ const dateTimeFormatter = new Intl.DateTimeFormat(locale, {
   minute: "2-digit",
 });
 
+const timeFormatter = new Intl.DateTimeFormat(locale, {
+  timeZone: gymTimeZone,
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
 /** Rewrites English digits as Persian ones, leaving everything else alone. */
 export function toPersianDigits(value: string | number): string {
   return String(value).replace(/[0-9]/g, (digit) => String.fromCodePoint(0x06f0 + Number(digit)));
@@ -305,6 +312,16 @@ export function formatDateTime(value: string | null | undefined): string {
   const date = parseTimestamp(value);
 
   return date === null ? emptyValue : dateTimeFormatter.format(date);
+}
+
+/**
+ * A UTC timestamp as the time of day in the gym's time zone, with no date: for a list that is
+ * about today only, where repeating the date on every row says nothing.
+ */
+export function formatTime(value: string | null | undefined): string {
+  const date = parseTimestamp(value);
+
+  return date === null ? emptyValue : timeFormatter.format(date);
 }
 
 /**

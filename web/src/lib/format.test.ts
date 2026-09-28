@@ -7,6 +7,7 @@ import {
   formatMoneyDigits,
   formatNumber,
   formatPhone,
+  formatTime,
   gymToday,
   isoYearsAgo,
   toIsoDate,
@@ -204,6 +205,24 @@ describe("formatDateTime", () => {
     "formatDateTime_MissingOrInvalid_ReturnsEmptyValue (%s)",
     (value) => {
       expect(formatDateTime(value)).toBe(emptyValue);
+    },
+  );
+});
+
+describe("formatTime", () => {
+  it("formatTime_UtcTimestamp_ShowsTehranTimeWithoutTheDate", () => {
+    expect(formatTime("2026-09-17T08:15:00Z")).toBe("۱۱:۴۵");
+  });
+
+  it("formatTime_JustAfterTehranMidnight_ShowsTwentyFourHourClock", () => {
+    // 21:00 UTC is 00:30 at +03:30: a 24-hour clock, so the desk never reads "۱۲:۳۰".
+    expect(formatTime("2026-09-17T21:00:00Z")).toBe("۰۰:۳۰");
+  });
+
+  it.each([null, undefined, "", "yesterday"])(
+    "formatTime_MissingOrInvalid_ReturnsEmptyValue (%s)",
+    (value) => {
+      expect(formatTime(value)).toBe(emptyValue);
     },
   );
 });

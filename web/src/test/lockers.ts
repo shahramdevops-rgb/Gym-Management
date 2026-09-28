@@ -1,4 +1,4 @@
-import type { Locker } from "@/features/lockers/api";
+import type { Locker, LockerVisit } from "@/features/lockers/api";
 
 import { json } from "./mockApi";
 
@@ -42,4 +42,17 @@ export function allLockers(...changed: Locker[]): Locker[] {
 /** One page of GET /api/lockers. */
 export function lockersPage(items: Locker[], totalCount = items.length): Response {
   return json(200, { items, page: 1, pageSize: 100, totalCount });
+}
+
+/** One visit on a locker today, closed at 10:30 in Tehran unless the overrides say otherwise. */
+export function lockerVisit(overrides: Partial<LockerVisit> = {}): LockerVisit {
+  return {
+    attendanceId: "0199b000-0000-7000-8000-000000000001",
+    memberId: "0199b000-0000-7000-8000-0000000000aa",
+    memberFullName: "رضا احمدی",
+    checkedInAt: "2026-09-28T05:30:00Z",
+    checkedOutAt: "2026-09-28T07:00:00Z",
+    cancelledAt: null,
+    ...overrides,
+  };
 }

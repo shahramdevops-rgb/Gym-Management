@@ -5,6 +5,7 @@ using Gym.Application.Common.Paging;
 using Gym.Application.Lockers;
 using Gym.Application.Lockers.GetLocker;
 using Gym.Application.Lockers.ListLockers;
+using Gym.Application.Lockers.ListLockerVisitsToday;
 using Gym.Application.Lockers.SetLockerOutOfService;
 
 namespace Gym.Api.Endpoints;
@@ -45,6 +46,14 @@ public static class LockersEndpoints
             .RequireAuthorization(Policies.StaffOrOwner)
             .WithName("GetLocker")
             .Produces<LockerResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        // Who had the locker today, for the box a free locker opens (BUSINESS_RULES.md §6).
+        group.MapGet("/{id:guid}/today", async (Guid id, ListLockerVisitsTodayHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, ct)).ToHttpResult())
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .WithName("ListLockerVisitsToday")
+            .Produces<IReadOnlyList<LockerVisitResponse>>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapPost("/{id:guid}/out-of-service", async (Guid id, SetLockerOutOfServiceHandler handler, CancellationToken ct) =>

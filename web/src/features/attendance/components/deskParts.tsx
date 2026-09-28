@@ -1,4 +1,5 @@
 import { KeyRound } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -35,12 +36,15 @@ export function ConfirmButtons({
   disabled = false,
   onConfirm,
   onCancel,
+  children,
 }: {
   label: string;
   pending: boolean;
   disabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Anything else the box offers beside the decision, after «انصراف». */
+  children?: ReactNode;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -50,6 +54,7 @@ export function ConfirmButtons({
       <Button variant="outline" disabled={pending} onClick={onCancel}>
         انصراف
       </Button>
+      {children}
     </div>
   );
 }

@@ -40,6 +40,7 @@ using Gym.Application.Expenses.UpdateExpenseCategory;
 using Gym.Application.Expenses.VoidExpense;
 using Gym.Application.Lockers.GetLocker;
 using Gym.Application.Lockers.ListLockers;
+using Gym.Application.Lockers.ListLockerVisitsToday;
 using Gym.Application.Lockers.SetLockerOutOfService;
 using Gym.Application.Members.CreateMember;
 using Gym.Application.Members.GetMember;
@@ -127,6 +128,7 @@ public static class DependencyInjection
 
         services.AddScoped<GetLockerHandler>();
         services.AddScoped<ListLockersHandler>();
+        services.AddScoped<ListLockerVisitsTodayHandler>();
         services.AddScoped<SetLockerOutOfServiceHandler>();
 
         services.AddScoped<CheckInHandler>();

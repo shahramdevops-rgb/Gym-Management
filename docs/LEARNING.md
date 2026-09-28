@@ -1022,3 +1022,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Clamp text instead of growing the box.** `line-clamp-2` with `break-words` cuts a long name to two lines with an ellipsis; the full name stays in the tooltip and the screen-reader label.
 - **Remove visible text, keep the meaning.** The zone headings are gone from the screen, but each zone keeps its `aria-label`, so a screen reader and the tests still know "inside" from "outside".
 - **My notes:**
+
+---
+
+## 6.5.10 — Who had a locker today
+
+- **Answer a question from the rows you already keep.** The history needs no new table: every visit already stores its locker and its check-in moment, so "who had locker 5 today" is a filtered query over `attendances`. The trade-off is that a move overwrites `LockerId`, so a visit shows only under its final locker. Keeping the old one would mean a new table and a migration, for a case that is nearly always the desk correcting a mistake.
+- **"Today" is a range of moments.** `CheckedInAt` is a UTC `timestamptz`, while "today" is a date in the gym's time zone. `IGymCalendar.StartOfDayUtc(Today())` turns that date into the UTC moment of the gym's midnight, and the query keeps `CheckedInAt >= start`. The test puts a visit one minute before that moment to prove the line is drawn in the right place.
+- **Not every list needs paging.** Every list endpoint is paged because it can grow without limit. One locker on one day holds a handful of visits, so this endpoint returns a plain array. The handler says why in a comment, so nobody "fixes" it later.
+- **Fetch on demand.** The list is a React Query hook inside a component that renders only when the desk opens the history step. So nothing is requested until the button is pressed, and the test checks that no request went out before the click.
+- **A step that remembers where it came from.** The history step stores `back: Step`, the step it was opened from. «بازگشت» restores that exact step, so the desk returns to the same chosen member's confirmation and does not have to search again.
+- **Extend a shared component with a slot.** `ConfirmButtons` gained an optional `children` rendered after «انصراف». The other three screens that use it are unchanged, and only the locker box puts a third button there.
+- **My notes:**

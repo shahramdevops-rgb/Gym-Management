@@ -4,6 +4,7 @@ import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 
 export type Locker = components["schemas"]["LockerResponse"];
+export type LockerVisit = components["schemas"]["LockerVisitResponse"];
 
 /**
  * The page size that holds every locker at once. The gym has 72 and nobody adds one
@@ -18,6 +19,7 @@ export const lockersRefetchMs = 15_000;
 export const lockerKeys = {
   all: ["lockers"] as const,
   map: () => [...lockerKeys.all, "map"] as const,
+  today: (id: string) => [...lockerKeys.all, "today", id] as const,
 };
 
 /** Every locker, lowest number first, refreshing on its own like the board. */
@@ -33,6 +35,25 @@ export function useAllLockers() {
         throw error;
       }
       return data.items;
+    },
+  });
+}
+
+/**
+ * Everyone who had the locker today, oldest first (BUSINESS_RULES.md §6 *Who had a locker today*).
+ * Read when the desk asks for it, not polled: it is looked at for a moment, then closed.
+ */
+export function useLockerVisitsToday(id: string) {
+  return useQuery({
+    queryKey: lockerKeys.today(id),
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/lockers/{id}/today", {
+        params: { path: { id } },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
     },
   });
 }
