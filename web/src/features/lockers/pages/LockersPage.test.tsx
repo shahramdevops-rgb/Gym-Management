@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { Member } from "@/features/members/api";
 import { cafePage } from "@/test/cafe";
 import { closedVisit, currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
+import { clickOutsideDialog } from "@/test/dialog";
 import { allLockers, heldLocker, locker, lockerId, lockersPage, lockerVisit } from "@/test/lockers";
 import {
   json,
@@ -158,6 +159,16 @@ describe("LockersPage", () => {
 
     expect(within(dialog).getByRole("heading", { name: "کمد شماره ۱۲" })).toBeInTheDocument();
     expect(within(dialog).getByRole("searchbox", { name: "نام یا شماره موبایل" })).toHaveFocus();
+  });
+
+  it("FreeLocker_ClickedOutsideTheBox_ClosesIt", async () => {
+    mockApi(mapHandlers());
+    renderMap();
+
+    await openFreeLocker("۱۲");
+    await clickOutsideDialog();
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("Search_MemberAlreadyInside_IsMarkedAndChoosingThemSendsNothing", async () => {
@@ -617,6 +628,16 @@ describe("LockersPage", () => {
     for (const action of ["ثبت خروج", "لغو ورود", "جابه‌جایی کمد"]) {
       expect(within(dialog).getByRole("button", { name: action })).toBeEnabled();
     }
+  });
+
+  it("OccupiedLocker_ClickedOutsideTheBox_ClosesIt", async () => {
+    mockApi(occupiedHandlers());
+    renderMap();
+
+    await openVisitBox();
+    await clickOutsideDialog();
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("OccupiedLocker_CheckOut_AsksWithTheKeyToTakeBack", async () => {
