@@ -519,8 +519,12 @@ step 1 finds (*Confirming at the front desk*).
 5. Save and commit.
 ### The "currently inside" board
 
-- One row per open visit: the member, the locker (or "رزرو" for a reserve place, §6), the time they came in, how much of their
-  subscription is left, and the visit's هوازی charge.
+- One row per open visit: the member, the locker (or "رزرو" for a reserve place, §6), the time they came in, and how much of their
+  subscription is left.
+- **Nothing is bought from this board, and nothing from the member's profile** (decided by the
+  developer, 1405/07/06). A visit's هوازی and cafe are rung up from the member's locker (*Confirming
+  at the front desk*), and the cafe also from its till (§8). One place to look at what a visit
+  bought, instead of three that could disagree.
 - Sessions are shown as used of total.
 - A single-session visit has no session count to show: the row reads "تک‌جلسه‌ای" where used-of-total
   goes, and it is excluded from **both** "needs attention" thresholds below. It is always 1 of 1 used
@@ -591,14 +595,20 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
   - Selling from the member's profile is unchanged: the plan is added to the member's
     subscriptions (starting today or queued, §4) and is used on the next visit.
 - Clicking an occupied locker (or a used reserve place) opens that visit's box: the member (linked to
-  their profile), when they came in, the plan and sessions left, the debt item by item, هوازی and
-  cafe for the visit (§7 *Gym services*, §8), and check-out, cancel check-in and move to another
-  locker. Clicking an out-of-service locker offers to bring it back into service; clicking a free
+  their profile), when they came in, the plan and sessions left, هوازی and cafe for the visit (§7
+  *Gym services*, §8), the visit's cafe purchases, and check-out, cancel check-in and move to another
+  locker.
+  - The visit's cafe purchases are listed one line per product, the quantities of the same product
+    added across orders: two espressos, one from the locker and one from the till, are "× 2".
+  - Below them, the member's debt stops at the total and its split by source (plan, هوازی, cafe);
+    the items one by one are not repeated under a list that already shows them (decided by the
+    developer, 1405/07/06). The same holds before a check-out. At check-in there is no such list,
+    so the debt is shown item by item there. Clicking an out-of-service locker offers to bring it back into service; clicking a free
   one also offers to take it out of service.
 - Everywhere the desk can check a member in or out (the lockers screen, the member search screen, the member's profile and the "currently inside" board), check-in and check-out each ask the desk to confirm before anything is sent, in the same box. A mistaken press costs a session or closes someone else's visit, and undoing either is a separate action with its own rules (*Cancel check-in*).
 - A member who is inside is offered check-out, not check-in. Check-in would only be refused (*Check-in*: no open attendance).
 - After a check-in, the same box shows the locker (or that a reserve place was used), the plan and the sessions left, and the member's debt item by item: unpaid subscriptions, services such as هوازی, and cafe orders (§5 *Member debt*). It stays until the desk closes it.
-- Before a check-out, the box shows the locker to take back and the same plan, sessions and itemized debt, so the desk can collect what is owed while the member is still there. Debt is shown, never enforced: check-out is not refused for money owed, the same way check-in is not.
+- Before a check-out, the box shows the locker to take back, the same plan and sessions, the visit's cafe purchases and the debt by source, so the desk can collect what is owed while the member is still there. Debt is shown, never enforced: check-out is not refused for money owed, the same way check-in is not.
 - When the visit has a locker, the desk must tick "key received" before the check-out can be confirmed: closing the visit hands the locker to the next person in. After check-out, the box shows that the locker is free and repeats the itemized debt.
 - Selling a single visit or a plan from that box needs no second confirmation: pressing the priced button, or «فروش و ثبت ورود» under the plan's price, is already the decision.
 - Cancelling a check-in (*Cancel check-in*) asks in the same box. When the visit bought nothing, that
@@ -709,11 +719,17 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
   (§5 *Member debt*).
 - A walk-in order (no member) is paid in full at creation: there is no account to put it on.
 - **A purchase made while the member is inside is tied to that visit** (decided with the developer,
-  1405/07/04), exactly as a هوازی charge is (§7 *Gym services*). It is rung up from the "currently
-  inside" board, goes on the member's account with nothing paid, and can be added only to an open
-  visit that is that member's own (`CafeOrders.VisitNotOpen`, `CafeOrders.VisitOfAnotherMember`).
+  1405/07/04), exactly as a هوازی charge is (§7 *Gym services*). It is rung up from the member's
+  locker, goes on the member's account with nothing paid, and can be added only to an open visit
+  that is that member's own (`CafeOrders.VisitNotOpen`, `CafeOrders.VisitOfAnotherMember`).
   At check-out the box lists what the visit bought and the member's debt added up by source —
-  plan, هوازی, cafe — before the item-by-item list. An order from the till names no visit.
+  plan, هوازی, cafe — before the item-by-item list.
+  - **An order rung up at the till for a member who is inside joins their open visit by itself**
+    (decided by the developer, 1405/07/06; replaces "an order from the till names no visit"). The
+    till may be on a computer of its own, and the member is buying during that visit wherever the
+    order is entered, so it shows on their locker as one of the visit's purchases. Whatever was
+    paid at the till stays paid. A member who is not inside, and a walk-in, get an order with no
+    visit, as before.
   - **Cancelling a check-in cancels only the cafe orders the desk ticks** (decided by the Owner,
     1405/07/06, roadmap 6.5.8; replaces "always leaves them standing", 1405/07/04). Each order of
     the visit has its own tick, unticked by default: goods handed over stay sold unless the desk

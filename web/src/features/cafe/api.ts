@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { attendanceKeys } from "@/features/attendance/api";
+import { attendanceKeys, currentlyInsideRefetchMs } from "@/features/attendance/api";
 import { memberKeys } from "@/features/members/api";
 import { paymentKeys, type PaymentMethod } from "@/features/payments/api";
 import { api } from "@/lib/api/client";
@@ -289,10 +289,14 @@ export function useMemberCafeOrders(memberId: string, page: number, { enabled = 
 /**
  * What one visit bought, cancelled orders left out: what check-out shows the member before they
  * leave (BUSINESS_RULES.md §8). A visit buys a handful of things, so one page is all of it.
+ *
+ * Polled like the locker map: the till may be on another computer, and what it rings up for a
+ * member who is inside joins this visit without anybody here pressing anything.
  */
 export function useVisitCafeOrders(attendanceId: string) {
   return useQuery({
     queryKey: cafeKeys.visitOrders(attendanceId),
+    refetchInterval: currentlyInsideRefetchMs,
     queryFn: async () => {
       const { data, error } = await api.GET("/api/cafe/orders", {
         params: { query: { AttendanceId: attendanceId, Page: 1, PageSize: maxPageSize } },

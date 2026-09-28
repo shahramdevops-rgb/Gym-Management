@@ -21,7 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gym.Api.IntegrationTests.Cafe;
 
 /// <summary>
-/// A cafe purchase made while the member is inside, from the "currently inside" board
+/// A cafe purchase made while the member is inside, from their locker or from the till
 /// (BUSINESS_RULES.md §8): tied to the visit like a هوازی charge, on the member's account, and
 /// listed again at check-out.
 /// </summary>
@@ -89,6 +89,39 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.NotFound");
     }
 
+    /// <summary>
+    /// The till may be on another computer and names no visit, but a member who is inside is buying
+    /// during their visit, so the order joins it and shows on their locker.
+    /// </summary>
+    [Fact]
+    public async Task CreateOrder_FromTheTillWhileInside_TiesTheOrderToTheOpenVisit()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+
+        var order = await CreateOkAsync(client, token, visit.MemberId, attendanceId: null, water.Id);
+
+        order.AttendanceId.ShouldBe(visit.Id);
+        var board = await GetOkAsync<PagedResponse<CurrentlyInsideResponse>>(
+            client, token, "/api/attendance/currently-inside");
+        board.Items.ShouldHaveSingleItem().CafeOrders.ShouldHaveSingleItem().Id.ShouldBe(order.Id);
+    }
+
+    [Fact]
+    public async Task CreateOrder_FromTheTillAfterCheckOut_NamesNoVisit()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        await PostOkAsync(client, token, $"/api/attendance/{visit.Id}/check-out");
+
+        var order = await CreateOkAsync(client, token, visit.MemberId, attendanceId: null, water.Id);
+
+        order.AttendanceId.ShouldBeNull();
+        order.Outstanding.ShouldBe(15_000m);
+    }
+
     [Fact]
     public async Task CurrentlyInside_VisitThatBought_ShowsItsStandingOrdersOnly()
     {
@@ -113,8 +146,9 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var otherVisit = await CheckedInMemberAsync(client, token);
         var duringVisit = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
-        await CreateOkAsync(client, token, visit.MemberId, attendanceId: null, water.Id);
+        await CreateOkAsync(client, token, otherVisit.MemberId, otherVisit.Id, water.Id);
 
         var page = await GetOkAsync<PagedResponse<CafeOrderResponse>>(
             client, token, $"{OrdersPath}?attendanceId={visit.Id}");
@@ -176,18 +210,19 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var otherVisit = await CheckedInMemberAsync(client, token);
         var own = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
-        var fromTheTill = await CreateOkAsync(client, token, visit.MemberId, attendanceId: null, water.Id);
+        var someoneElses = await CreateOkAsync(client, token, otherVisit.MemberId, otherVisit.Id, water.Id);
 
         using var response = await SendAsync(
-            client, token, HttpMethod.Post, CancelPath(visit.Id), CancelCheckInBody.Cancel(voidCardio: true, own.Id, fromTheTill.Id));
+            client, token, HttpMethod.Post, CancelPath(visit.Id), CancelCheckInBody.Cancel(voidCardio: true, own.Id, someoneElses.Id));
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.CafeOrderNotOnVisit");
         (await StoredOrderAsync(own.Id)).CancelledAt.ShouldBeNull();
         var board = await GetOkAsync<PagedResponse<CurrentlyInsideResponse>>(
             client, token, "/api/attendance/currently-inside");
-        board.Items.ShouldHaveSingleItem().AttendanceId.ShouldBe(visit.Id);
+        board.Items.ShouldContain(row => row.AttendanceId == visit.Id);
     }
 
     [Fact]

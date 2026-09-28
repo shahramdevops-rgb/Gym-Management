@@ -16,9 +16,10 @@ namespace Gym.Application.Cafe.CreateCafeOrder;
 /// balance on.
 /// </param>
 /// <param name="AttendanceId">
-/// The open visit this was bought during, when it is rung up from the "currently inside" board;
-/// <c>null</c> from the till. It must be <paramref name="MemberId"/>'s own visit, and still open,
-/// like a هوازی charge (BUSINESS_RULES.md §8).
+/// The open visit this was bought during, when it is rung up from the member's locker; it must be
+/// <paramref name="MemberId"/>'s own visit, and still open, like a هوازی charge. <c>null</c> from
+/// the till, where the handler ties the order to the member's open visit itself when they are
+/// inside (BUSINESS_RULES.md §8).
 /// </param>
 public sealed record CreateCafeOrderCommand(
     Guid? MemberId,

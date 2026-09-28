@@ -1,20 +1,18 @@
 import { screen } from "@testing-library/react";
 
 import type { CurrentlyInside } from "@/features/attendance/api";
-import { currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
+import { currentlyInsidePage } from "@/test/attendance";
 import { mockApi, session, signedInHandlers, staffUser } from "@/test/mockApi";
-import { reza } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
 
 describe("PageError", () => {
   it("PageError_PageFailsWhileRendering_ShowsAPersianMessageAndKeepsTheMenu", async () => {
-    // A row the page cannot read (no serviceCharges) makes the board throw while rendering.
-    const brokenRow: Partial<CurrentlyInside> = insideRow(reza.fullName, openVisit(reza.id));
-    delete brokenRow.serviceCharges;
+    // A row the page cannot read (null where a visit should be) makes the board throw while
+    // rendering.
+    const brokenRow = null as unknown as CurrentlyInside;
     mockApi({
       ...signedInHandlers(staffUser),
-      "GET /api/attendance/currently-inside": () =>
-        currentlyInsidePage([brokenRow as CurrentlyInside]),
+      "GET /api/attendance/currently-inside": () => currentlyInsidePage([brokenRow]),
     });
     // The error is logged on purpose; keep it out of the test output.
     vi.spyOn(console, "error").mockImplementation(() => {});

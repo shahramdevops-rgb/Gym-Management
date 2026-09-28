@@ -3,8 +3,6 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { SessionsBar } from "@/components/SessionsBar";
 import { Button } from "@/components/ui/button";
-import { VisitCafeBox } from "@/features/cafe/components/VisitCafeBox";
-import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { formatDate, formatDateTime, gymToday, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -39,14 +37,12 @@ function daysUntil(endDate: string, today: string): number {
 }
 
 /**
- * The front desk board: who is inside right now, which locker, since when, how much of their
- * subscription is left, what they are being charged for هوازی, and what they have picked up at
- * the cafe (BUSINESS_RULES.md §8).
+ * The front desk board: who is inside right now, which locker, since when, and how much of their
+ * subscription is left. Every row is exactly one line: the desk reads this board while somebody
+ * is standing in front of them.
  *
- * Every row is exactly one line, and stays one line whatever state it is in — the charge forms
- * open in a dialog rather than inside the cell (task 6.5.2). Rows that grow are not a cosmetic
- * problem here: the desk reads this board while somebody is standing in front of them. The cafe
- * uses the same slot, in the same way.
+ * Nothing is bought from here. هوازی and the cafe are rung up from the member's locker, or the
+ * cafe from its till, so a visit's purchases have one place to be looked at (BUSINESS_RULES.md §7).
  *
  * No status column: check-in refuses a subscription that is not usable today, so every row would
  * read "فعال". What the desk cannot see otherwise is how close the subscription is to running
@@ -66,8 +62,6 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
             <th className="py-2 text-start font-medium">ساعت ورود</th>
             <th className="py-2 text-start font-medium">جلسات</th>
             <th className="py-2 text-start font-medium">انقضا</th>
-            <th className="py-2 text-start font-medium">هوازی</th>
-            <th className="py-2 text-start font-medium">بوفه</th>
             <th className="py-2 text-start font-medium">
               <span className="sr-only">عملیات</span>
             </th>
@@ -127,23 +121,6 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                       {daysLeft <= 0 ? "(امروز)" : `(${toPersianDigits(daysLeft)} روز)`}
                     </span>
                   )}
-                </td>
-                <td className="py-2">
-                  <ServiceChargeBox
-                    attendanceId={row.attendanceId}
-                    kind="Cardio"
-                    charge={row.serviceCharges.find((charge) => charge.kind === "Cardio")}
-                    visitIsOpen
-                  />
-                </td>
-                <td className="py-2">
-                  <VisitCafeBox
-                    attendanceId={row.attendanceId}
-                    member={{ id: row.memberId, fullName: row.memberFullName }}
-                    // An API started before the cafe reached the board sends no such field;
-                    // "bought nothing" is the honest reading, and a crash would blank the site.
-                    orders={row.cafeOrders ?? []}
-                  />
                 </td>
                 <td className="py-2">
                   <div className="flex justify-end gap-2">
