@@ -19,6 +19,7 @@ import { SaleAtCheckInOffer } from "@/features/attendance/components/SaleAtCheck
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
 import { canSellPlanForToday, isMissingSubscription } from "@/features/attendance/saleAtCheckIn";
 import { useCreateMember, useMemberList, type Member } from "@/features/members/api";
+import { useCurrentSubscription } from "@/features/subscriptions/api";
 import type { PlanChoice } from "@/features/subscriptions/components/PlanForm";
 import { MemberForm } from "@/features/members/components/MemberForm";
 import { searchMinLength } from "@/features/members/schemas";
@@ -244,6 +245,7 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
                 مطمئن هستید؟ یک جلسه از اشتراک او کم می‌شود.
               </DialogDescription>
             </DialogHeader>
+            <FrozenPlanWarning memberId={step.member.id} />
             <ConfirmButtons
               label="بله، ورود ثبت شود"
               pending={checkIn.isPending}
@@ -263,6 +265,9 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               <DialogDescription>{step.member.fullName}</DialogDescription>
             </DialogHeader>
             <LockerBox number={step.attendance.lockerNumber} />
+            {step.attendance.unfrozenDays !== undefined && step.attendance.unfrozenDays !== null && (
+              <Alert role="status">{unfrozenNotice(Number(step.attendance.unfrozenDays))}</Alert>
+            )}
             <VisitSummary memberId={step.member.id} />
             <CloseButton onClose={onClose} />
           </>
@@ -296,6 +301,33 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
       </DialogContent>
     </Dialog>
   );
+}
+
+/**
+ * Said before the desk confirms: checking in a member whose plan is frozen ends the freeze
+ * (BUSINESS_RULES.md §4 *Freeze*, roadmap 6.5.9). Read from the plan the profile's card shows, which
+ * already prefers a plan usable today over a frozen one, the same as the API: a member holding a
+ * single visit for today is not warned, because their freeze is left alone. Only a warning; the
+ * API decides, and the box says afterwards what it did.
+ */
+function FrozenPlanWarning({ memberId }: { memberId: string }) {
+  const subscription = useCurrentSubscription(memberId);
+
+  if (subscription.data?.status !== "Frozen") {
+    return null;
+  }
+
+  return <Alert>اشتراک او فریز است. با ثبت این ورود، اشتراک از حالت فریز خارج می‌شود.</Alert>;
+}
+
+/** What the desk is told after a check-in that ended a freeze. */
+function unfrozenNotice(days: number): string {
+  const unfrozen = "اشتراک فریز بود و با این ورود از حالت فریز خارج شد";
+
+  // Frozen and unfrozen on the same day adds nothing to the end (§4), so there is nothing to count.
+  return days === 0
+    ? `${unfrozen}.`
+    : `${unfrozen}؛ ${toPersianDigits(days)} روز به پایان آن اضافه شد.`;
 }
 
 /**

@@ -946,14 +946,40 @@ Built (2026-09-28). Found while building: an API left running from an earlier se
 build on :5134, which would also have fed `gen:api` the old endpoint. Done: 389 domain, 809
 integration and 540 frontend tests pass, zero warnings, lint and typecheck clean.
 
-### 6.5.9 A frozen member who comes in is unfrozen (PENDING)
+### 6.5.9 A frozen member who comes in is unfrozen
 Asked by the Owner, 1405/07/06. Replaces "a frozen member is sold a single visit and the freeze is
-not touched" (BUSINESS_RULES.md §4). Agreed plan:
-- [ ] Check-in on a frozen plan unfreezes it in the same transaction, by the ordinary unfreeze
-      rules (frozen days added, the allowance respected, queued plans shifted), then uses a session
-- [ ] A single visit already usable today is still used first, and the freeze is left alone
-- [ ] The box tells the desk the plan was unfrozen. The manual unfreeze stays Owner-only
-- [ ] BUSINESS_RULES.md §1 and §4 rewritten first; domain and integration tests
+not touched" (BUSINESS_RULES.md §4 *Freeze*).
+- [x] Check-in on a frozen plan unfreezes it in the same transaction, by the ordinary unfreeze
+      rules (frozen days added, the allowance respected, queued plans shifted), then uses a session.
+      `SubscriptionSchedule.FrozenToResume` / `Unfreeze` (Domain) hold the rule; the Owner's
+      `UnfreezeSubscriptionHandler` now calls the same `Unfreeze`
+- [x] Anything usable today is still used first and the freeze is left alone: a single visit, or
+      another plan active today
+- [x] A plan that turns out expired once unfrozen: `Subscriptions.Expired`, nothing saved, still
+      frozen for the Owner (proposed in planning, not objected to)
+- [x] A check-in that carries a sale never unfreezes: it uses what it sold or is refused, so a plan
+      sold at the locker is never queued behind one unfrozen a moment later
+- [x] Cancel check-in gives the session back but leaves the plan unfrozen (the developer's answer);
+      the Owner freezes it again, and freeze days add up, so none are lost
+- [x] The box warns before confirming that the plan is frozen and will be unfrozen (the
+      developer's answer, from the plan the profile card shows), and afterwards says it was, with
+      the days added (`AttendanceResponse.UnfrozenDays`). The manual unfreeze stays Owner-only
+- [x] BUSINESS_RULES.md §1, §4 and §7 rewritten first
+- [x] Tests (domain): which frozen plan is resumed; the queue shifted by the added days, capped by
+      the allowance; single visits and earlier plans untouched; same day moves nothing
+- [x] Tests (integration, as Staff): unfrozen, extended and a session used; the queued plan
+      shifted; the allowance cap; expired once unfrozen → 422 and still frozen; a single visit held
+      or sold with the check-in is used and the freeze stays; a plan sold behind a frozen plan →
+      refused and still frozen; cancel keeps it unfrozen
+- [x] Tests (frontend): the warning before confirming and the notice after; no warning when a
+      single visit is held for today; no word of a freeze on an ordinary check-in
+
+Done when: a member whose plan the Owner froze walks in, the desk clicks a locker and is told the
+plan is frozen, confirms, and the member is inside with a session used and the frozen days added to
+the plan's end.
+
+Built (2026-09-28): 398 domain, 817 integration and 542 frontend tests pass, zero warnings, lint and
+build clean (the chunk-size note predates this task).
 
 ---
 

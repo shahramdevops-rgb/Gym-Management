@@ -199,6 +199,117 @@ public sealed class SubscriptionScheduleTests
     }
 
     [Fact]
+    public void FrozenToResume_NothingFrozen_IsNull()
+    {
+        var active = Sell(new DateOnly(2026, 9, 1));
+
+        SubscriptionSchedule.FrozenToResume([active]).ShouldBeNull();
+    }
+
+    [Fact]
+    public void FrozenToResume_FrozenMembership_ReturnsIt()
+    {
+        var frozen = Sell(new DateOnly(2026, 9, 1));
+        frozen.Freeze(Today, MaxFreezeDays);
+        var queued = Sell(new DateOnly(2026, 10, 1));
+
+        SubscriptionSchedule.FrozenToResume([queued, frozen]).ShouldBeSameAs(frozen);
+    }
+
+    [Fact]
+    public void FrozenToResume_FrozenThenCancelled_IsNull()
+    {
+        var cancelled = Sell(new DateOnly(2026, 9, 1));
+        cancelled.Freeze(Today, MaxFreezeDays);
+        cancelled.Cancel("انصراف عضو", Today, Now);
+
+        SubscriptionSchedule.FrozenToResume([cancelled]).ShouldBeNull();
+    }
+
+    [Fact]
+    public void FrozenToResume_TwoFrozen_ReturnsTheOneThatStartedFirst()
+    {
+        // The first frozen long enough for the queued one to start, and then that one frozen too.
+        var first = Sell(new DateOnly(2026, 9, 1));
+        first.Freeze(Today, MaxFreezeDays);
+        var second = Sell(new DateOnly(2026, 10, 1));
+        second.Freeze(new DateOnly(2026, 10, 5), MaxFreezeDays);
+
+        SubscriptionSchedule.FrozenToResume([second, first]).ShouldBeSameAs(first);
+    }
+
+    [Fact]
+    public void Unfreeze_FrozenWithAQueue_ExtendsItAndShiftsTheQueueByTheSameDays()
+    {
+        var frozen = Sell(new DateOnly(2026, 9, 1)); // ends 2026-09-30
+        frozen.Freeze(Today, MaxFreezeDays);
+        var queued = Sell(new DateOnly(2026, 10, 1)); // ends 2026-10-30
+        var unfreezeDay = Today.AddDays(4);
+
+        var unfrozen = SubscriptionSchedule.Unfreeze(frozen, unfreezeDay, MaxFreezeDays, [frozen, queued]);
+
+        unfrozen.Value.ShouldBe(4);
+        frozen.GetStatus(unfreezeDay).ShouldBe(SubscriptionStatus.Active);
+        frozen.EndDate.ShouldBe(new DateOnly(2026, 10, 4));
+        queued.StartDate.ShouldBe(new DateOnly(2026, 10, 5));
+        queued.EndDate.ShouldBe(new DateOnly(2026, 11, 3));
+    }
+
+    [Fact]
+    public void Unfreeze_SingleVisitsAndEarlierPlans_AreNotShifted()
+    {
+        var expired = Sell(new DateOnly(2026, 8, 1)); // ended 2026-08-30
+        var frozen = Sell(new DateOnly(2026, 9, 1));
+        frozen.Freeze(Today, MaxFreezeDays);
+        var unfreezeDay = Today.AddDays(4);
+        var singleVisit = Subscription.CreateSingleVisit(MemberId, 50_000m, unfreezeDay).Value;
+
+        SubscriptionSchedule.Unfreeze(frozen, unfreezeDay, MaxFreezeDays, [expired, frozen, singleVisit]).IsSuccess.ShouldBeTrue();
+
+        expired.EndDate.ShouldBe(new DateOnly(2026, 8, 30));
+        singleVisit.StartDate.ShouldBe(unfreezeDay);
+        singleVisit.EndDate.ShouldBe(unfreezeDay);
+    }
+
+    [Fact]
+    public void Unfreeze_BeyondTheAllowance_ShiftsTheQueueByTheCappedDaysOnly()
+    {
+        var frozen = Sell(new DateOnly(2026, 9, 1));
+        frozen.Freeze(Today, MaxFreezeDays);
+        var queued = Sell(new DateOnly(2026, 10, 1));
+
+        var unfrozen = SubscriptionSchedule.Unfreeze(frozen, Today.AddDays(40), MaxFreezeDays, [frozen, queued]);
+
+        unfrozen.Value.ShouldBe(MaxFreezeDays);
+        queued.StartDate.ShouldBe(new DateOnly(2026, 10, 1).AddDays(MaxFreezeDays));
+    }
+
+    [Fact]
+    public void Unfreeze_SameDay_MovesNothing()
+    {
+        var frozen = Sell(new DateOnly(2026, 9, 1));
+        frozen.Freeze(Today, MaxFreezeDays);
+        var queued = Sell(new DateOnly(2026, 10, 1));
+
+        SubscriptionSchedule.Unfreeze(frozen, Today, MaxFreezeDays, [frozen, queued]).Value.ShouldBe(0);
+
+        frozen.EndDate.ShouldBe(new DateOnly(2026, 9, 30));
+        queued.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+    }
+
+    [Fact]
+    public void Unfreeze_NotFrozen_FailsAndShiftsNothing()
+    {
+        var active = Sell(new DateOnly(2026, 9, 1));
+        var queued = Sell(new DateOnly(2026, 10, 1));
+
+        var unfrozen = SubscriptionSchedule.Unfreeze(active, Today, MaxFreezeDays, [active, queued]);
+
+        unfrozen.Error.ShouldBe(SubscriptionErrors.NotFrozen);
+        queued.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+    }
+
+    [Fact]
     public void StartEarly_NotQueued_Throws()
     {
         var active = Sell(new DateOnly(2026, 9, 1));

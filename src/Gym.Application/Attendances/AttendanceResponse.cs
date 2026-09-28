@@ -34,6 +34,12 @@ namespace Gym.Application.Attendances;
 /// which is where the front desk needs it; the history and "currently inside" lists leave it
 /// <c>0</c> and show the member's debt on their profile instead.
 /// </param>
+/// <param name="UnfrozenDays">
+/// Set only by check-in, when coming in ended the member's freeze (BUSINESS_RULES.md §4
+/// <i>Freeze</i>, roadmap 6.5.9): the days added to the plan's end, which may be <c>0</c> for a plan
+/// frozen and unfrozen on the same day. <c>null</c> when nothing was unfrozen, so the desk is told
+/// only when it happened.
+/// </param>
 public sealed record AttendanceResponse(
     Guid Id,
     Guid MemberId,
@@ -47,7 +53,8 @@ public sealed record AttendanceResponse(
     DateTimeOffset? AutoClosedAt,
     DateTimeOffset CreatedAt,
     IReadOnlyList<ServiceChargeResponse> ServiceCharges,
-    decimal MemberDebt = 0)
+    decimal MemberDebt = 0,
+    int? UnfrozenDays = null)
 {
     /// <summary>
     /// The same mapping as <see cref="From"/>, as an expression EF Core translates to SQL. Takes
