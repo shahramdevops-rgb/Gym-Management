@@ -11,6 +11,7 @@ import { formatDate, formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
+import { currentlyInsideRefetchMs } from "../api";
 import { lowSessionsThreshold } from "./CurrentlyInsideTable";
 
 /**
@@ -154,7 +155,9 @@ function isLow(subscription: Subscription): boolean {
  * read, not skimmed.
  */
 function DebtBox({ memberId, itemized }: { memberId: string; itemized: boolean }) {
-  const debt = useMemberDebt(memberId);
+  // Polled with the visit's purchases above it: an order from the till on another computer has to
+  // reach «تسویه یکجا» as well, not only the list.
+  const debt = useMemberDebt(memberId, { refetchInterval: currentlyInsideRefetchMs });
 
   if (debt.isPending) {
     return <p className="text-sm text-muted-foreground">در حال بارگذاری بدهی…</p>;

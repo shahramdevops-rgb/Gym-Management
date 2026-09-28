@@ -79,10 +79,14 @@ export function useMember(id: string, { enabled = true } = {}) {
  * What the member still owes, with the item-by-item breakdown the total opens into
  * (BUSINESS_RULES.md §5 Member debt). Its own query rather than part of the member, because
  * selling, paying and refunding all change it while the member's own details stay as they were.
+ *
+ * `refetchInterval` is for a screen the desk keeps open while the debt can change elsewhere — the
+ * till on another computer — so it catches up without a reload.
  */
-export function useMemberDebt(id: string) {
+export function useMemberDebt(id: string, { refetchInterval }: { refetchInterval?: number } = {}) {
   return useQuery({
     queryKey: memberKeys.debt(id),
+    refetchInterval,
     queryFn: async () => {
       const { data, error } = await api.GET("/api/members/{id}/debt", {
         params: { path: { id } },

@@ -1,11 +1,12 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-import type { CurrentlyInside } from "@/features/attendance/api";
+import { currentlyInsideRefetchMs, type CurrentlyInside } from "@/features/attendance/api";
 import { currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
 import { cafePage, orderOnAccount, proteinShake, water } from "@/test/cafe";
 import { allLockers, heldLocker, lockerId, lockersPage } from "@/test/lockers";
 import { json, mockApi, session, signedInHandlers, staffUser, type Handler } from "@/test/mockApi";
-import { debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
+import { cafeDebtItem, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
+import { confirmMoneyReceived, pickMethod } from "@/test/payments";
 import { renderApp } from "@/test/renderApp";
 import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
 
@@ -35,6 +36,84 @@ async function openLocker() {
   fireEvent.click(await screen.findByRole("button", { name: /^کمد ۲،/ }));
   return screen.findByRole("dialog");
 }
+
+/**
+ * The till is often on another computer, so the locker's box polls: what it rings up for a member
+ * who is inside reaches «تسویه یکجا» without a reload. Time is faked only to skip the wait.
+ */
+describe("The locker's box while the till sells elsewhere", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** The debt answers with the plan only until `soldAtTheTill` is set, then with a drink too. */
+  function debtThatGrows() {
+    const state = { soldAtTheTill: false };
+    const handler = () =>
+      memberDebt(state.soldAtTheTill ? [debtItem(), cafeDebtItem()] : [debtItem()]);
+
+    return { state, handler };
+  }
+
+  async function openSettlement() {
+    renderApp("/", { session: session() });
+    const box = await openLocker();
+    fireEvent.click(await within(box).findByRole("button", { name: "تسویه یکجا" }));
+
+    return within(box).findByRole("form", { name: "تسویه یکجا" });
+  }
+
+  it("Locker_OrderFromTheTillMeanwhile_ReachesTheSettlementWithoutAReload", async () => {
+    const debt = debtThatGrows();
+    mockApi(lockerHandlers(undefined, { [`GET /api/members/${reza.id}/debt`]: debt.handler }));
+
+    const form = await openSettlement();
+    expect(within(form).getAllByRole("checkbox")).toHaveLength(1);
+
+    debt.state.soldAtTheTill = true;
+    await vi.advanceTimersByTimeAsync(currentlyInsideRefetchMs);
+
+    // It arrives ticked, like every item, and the total to collect follows it.
+    await waitFor(() => expect(within(form).getAllByRole("checkbox")).toHaveLength(2));
+    expect(within(form).getAllByRole("checkbox")[0]).toBeChecked();
+    expect(form).toHaveTextContent("۶۳۰٬۰۰۰ تومان");
+  });
+
+  /** The desk agreed to a list; an order that lands while "was it received?" is open stays owed. */
+  it("Settle_OrderArrivesWhileConfirming_PaysOnlyWhatWasConfirmed", async () => {
+    const debt = debtThatGrows();
+    const settlementsPath = `/api/members/${reza.id}/settlements`;
+    const api = mockApi(
+      lockerHandlers(undefined, {
+        [`GET /api/members/${reza.id}/debt`]: debt.handler,
+        [`POST ${settlementsPath}`]: () =>
+          json(201, { amount: 600000, method: "Cash", remainingDebt: 30000, payments: [] }),
+      }),
+    );
+
+    const form = await openSettlement();
+    pickMethod(form, "Cash");
+    fireEvent.click(within(form).getByRole("button", { name: "تأیید تسویه" }));
+    await screen.findByRole("dialog", { name: "آیا پول دریافت شد؟" });
+
+    debt.state.soldAtTheTill = true;
+    await vi.advanceTimersByTimeAsync(currentlyInsideRefetchMs);
+    // The form sits behind the open question, hidden from the accessibility tree meanwhile.
+    await waitFor(() =>
+      expect(within(form).getAllByRole("checkbox", { hidden: true })).toHaveLength(2),
+    );
+    await confirmMoneyReceived();
+
+    await waitFor(() => expect(api.requestsTo("POST", settlementsPath)).toHaveLength(1));
+    const body = await api.requestsTo("POST", settlementsPath)[0]!.json();
+    expect(body.items).toEqual([
+      { kind: "Subscription", id: debtItem().id, outstanding: debtItem().outstanding },
+    ]);
+  });
+});
 
 describe("VisitCafeBox in the locker's box", () => {
   it("Locker_NothingBoughtYet_OffersToAddAPurchase", async () => {
