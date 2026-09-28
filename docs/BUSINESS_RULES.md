@@ -124,11 +124,13 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 |---|---|---|
 | Members: create, update, deactivate, search | ✅ | ✅ |
 | Check-in (from the lockers screen only, §7 *Confirming at the front desk*), check-out, cancel check-in | ✅ | ✅ |
+| Guest visit (ورود مهمان): check in, check out, cancel, settle its cafe (§7 *Guest visit*) | ✅ | ✅ |
 | Assign or renew subscriptions | ✅ | ✅ |
 | Register payments, create cafe orders | ✅ | ✅ |
 | See the two prices (§3) | ✅ | ✅ |
 | Change the two prices (§3), staff accounts | ✅ | ❌ |
 | Lockers: see the map, see who had a locker today, take one out of service, bring it back in, move a visit to another locker (§6, §7) | ✅ | ✅ |
+| Lockers screen: the desk panel, today by hour, the locker usage map (§6; counts only, no money) | ✅ | ✅ |
 | Freeze, unfreeze, cancel subscriptions (a check-in by either role still ends a freeze, §4 *Freeze*) | ✅ | ❌ |
 | Refunds, voids (outside the cafe) | ✅ | ❌ |
 | Gym service charges: record, change the amount, void (§7 *Gym services*) | ✅ | ✅ |
@@ -445,11 +447,17 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
 - A locker is occupied when an open attendance references it. Occupancy is derived, never stored,
   and so is the member holding it: the map names whoever the open attendance belongs to,
   so the desk can answer "whose is locker 1?" without opening attendance.
+- **A locker held by a guest** (§7 *Guest visit*) is occupied like any other and shows the guest's
+  name, but in **a colour of its own**, distinct from free, occupied and out of service, with
+  «مهمان» in its label and its own line in the map's legend. The desk sees at a glance that nobody
+  paid for that key.
 - **A holder who owes money is marked on the map** (asked by the developer, 1405/07/06): a small
   «بدهکار» label across the door's top-left corner, whenever the member holding the locker has any
   debt at all (§5 *Member debt*: a subscription, a service such as هوازی, or a cafe order). It is
   information only, like the debt shown at check-in; the amount and what it is for are in the
-  locker's box. A holder who owes nothing, and a free locker, carry no label.
+  locker's box. A holder who owes nothing, and a free locker, carry no label. A guest holder carries
+  the same label while any cafe order of their visit is unpaid (§7 *Guest visit*); for a guest it is
+  not only information, because the guest cannot check out until it is paid.
 - A locker cannot be marked out of service while occupied. A locker that breaks while someone
   holds it: move that visit to another locker first (§7 *Moving to another locker*), then take
   the empty one out of service.
@@ -500,12 +508,75 @@ the developer's answers. Roadmap 6.5.10.
   (for example "ورود بدون کمد ۰ از ۱۵"). All lockers being full is rare, and 15 boxes that are
   nearly always empty must not take the desk's room.
 
+### The desk panel: birthdays and renewal opportunities (تولد، فرصت تمدید)
+
+Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.12. It fills the empty space beside
+the wall outside the changing room (the top zone is five cabinets wide; the zone below it is seven).
+- It lists **only members who are inside now** (an open visit, on a locker or a reserve place):
+  the desk can act on it only while the member is in front of them. It has up to two lists, and a
+  list with nobody in it is not shown. With nobody in either, the panel is not shown at all.
+- **Birthday (تولدت مبارک):** a member whose birthday is today, by the **Jalali** month and day
+  (the day Iranians celebrate; the Gregorian anniversary can fall a day off). Someone born on
+  30 Esfand is listed on 29 Esfand in a year that has no 30 Esfand. A member with no birth date
+  is never listed. Nothing is drawn on the locker door for a birthday: the door's corners are
+  kept for other marks.
+- **Renewal opportunity (فرصت تمدید):** a member whose visit's subscription is running out by the
+  board's own thresholds (§7 *The "currently inside" board*: 3 or fewer sessions left, or ending
+  within 5 days), so the desk tells them to renew before it runs out. A single-session visit is
+  never listed, for the same reason the board leaves it unmarked. **A member who has already bought
+  the next subscription** (a queued one, §4 `Upcoming`, not cancelled) is not listed: they have
+  renewed, and listing them would only invite selling it to them again. The board itself is not
+  changed by this and still marks them.
+- Each entry shows the name, the locker number (or «رزرو» for a reserve place), and, for a renewal,
+  what is running out: «۲ جلسه مانده», «۳ روز مانده», or «امروز تمام می‌شود». Entries are in the
+  order the members came in, like the board.
+- Pointing at an entry makes that member's locker blink on the map, so the desk finds them at a
+  glance. Clicking it opens the locker's box, the same box a click on the locker opens. A reserve
+  place has no door to blink; its entry still opens its box.
+- A guest (§7 *Guest visit*) is never listed: a guest has no birth date and no subscription.
+
+### Long stay (خیلی وقته داخله) (PENDING — roadmap 6.5.13)
+
+Decided by the developer, 1405/07/07. Not built yet.
+- An occupied door carries a thin bar along its bottom edge that fills as the visit goes on,
+  reaching full at **3 hours** after check-in. From 3 hours it turns to the warning colour: the
+  member has probably left without checking out, or has not given the key back. The desk looks
+  into it the same day, before auto-checkout closes the visit at night (§7 *Auto-checkout*).
+- It is only information: nothing is blocked or closed by it. It takes no corner of the door and
+  no line of text; the door's label for a screen reader says it («بیش از ۳ ساعت»).
+- A reserve place in use shows the same bar.
+
+### Today by hour (ورود امروز ساعت به ساعت) (PENDING — roadmap 6.5.14)
+
+Decided by the developer, 1405/07/07. Not built yet.
+- Under the map, on the same screen, a small chart: for each hour of today, how many visits were
+  checked in during that hour (by `CheckedInAt` in the gym's time zone, §0). Cancelled check-ins
+  are not counted (§12).
+- Beside each hour, the **average for the same hour on the same weekday over the previous 4 weeks**,
+  so the desk and the Owner see whether today is busier or quieter than usual.
+- It shows counts only, never money, so it is on the desk's screen for both roles (§1 *Permissions*).
+  Full attendance reports stay Owner-only (§12).
+
+### Locker usage map (نقشهٔ استفادهٔ کمدها) (PENDING — roadmap 6.5.15)
+
+Decided by the developer, 1405/07/07. Not built yet.
+- A switch on the map shows, instead of who holds each locker, **how often each locker was used**
+  over a period the viewer picks: the last **7, 30 or 90 days** (up to and including today). The
+  doors are coloured from least to most used, and each shows its count. A locker never used in the
+  period has a colour of its own: it is either in a bad spot or has a problem nobody has reported.
+- A use is a visit that held the locker. Cancelled check-ins are not counted. A visit moved to
+  another locker counts for the locker it holds at the end, the same way as *Who had a locker
+  today*: the old locker is recorded only in the audit log.
+- It is a view only. Switching back shows the map as usual; no desk work happens in this view.
+- Counts only, so both roles see it (§1 *Permissions*).
+
 ---
 
 ## 7. Attendance
 
 ### Check-in (one database transaction)
 Preconditions: the member is active, has an `Active` subscription, and has no open attendance.
+The one visit without a member or a subscription is a guest's, under its own rules (*Guest visit*).
 The request names the locker the desk chose, or asks for a reserve place (§6). It may also carry a
 sale — a single visit or a plan — which is made first, in the same transaction, and is then what
 step 1 finds (*Confirming at the front desk*).
@@ -644,6 +715,52 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 ### Auto-checkout
 - A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed.
 
+### Guest visit (ورود مهمان)
+Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.11 (**not built yet**). This replaces
+marking a locker «خارج از سرویس» for someone who takes a key without paying: that recorded no name,
+looked like a broken locker to the next shift, was never freed at midnight, and left no trace in the
+locker's history.
+- **Who it is for:** people the gym lets in for free, such as the first-degree relatives of the
+  gym's people. They take a key and hold a locker, but they have no plan, pay nothing for the gym and
+  are not registered.
+- **A guest visit is an attendance with no member and no subscription**, only the guest's **full
+  name**. The name is required, with the same length limit and normalization as a member's name
+  (§2, §13). No phone number is asked, no member record is created, no session is consumed and
+  nothing is sold. A guest is not a member: they never appear in the member search, and the same
+  person coming again is a new guest visit with their name typed again.
+  - The database holds the rule too: an attendance has either a member or a guest name, never
+    both and never neither, and it has a subscription exactly when it has a member (check
+    constraints).
+- **Where:** from the box a free locker opens, as a third choice beside finding a member and
+  registering one («ورود مهمان»), or from a reserve place under §6's rules: only when no locker is
+  both in service and free, and at most 15 at once, counted together with members.
+- **Who:** both roles (§1). It is front-desk work like the rest of the map; the audit log records
+  who let each guest in, and every guest inside is on the map and the board for anyone to see.
+- **On screen:** the guest's locker has its own colour and shows their name (§6). The locker's
+  today history lists them, marked «مهمان», with no profile link (§6 *Who had a locker today*). The
+  "currently inside" board shows them with «مهمان» where the sessions go, never marked as needing
+  attention.
+- **Everything else is an ordinary visit:** move to another locker (§7 *Moving to another locker*),
+  check-out with «key received», cancel check-in within the same window (nothing to give back:
+  there is no session), and auto-checkout at midnight.
+- **هوازی is not recorded** on a guest visit (§7 *Gym services*).
+- **Cafe:** a guest buys on their visit, under their name, from their locker's box or from the till
+  (§8). While they are inside, their orders may stay unpaid, and their locker carries «بدهکار» (§6).
+  **A guest has no account and leaves no debt behind:**
+  - **Check-out is refused while any order of the visit is unpaid**
+    (`Attendance.GuestHasUnpaidCafe`). The guest's box settles all of them in one step
+    («تسویه یکجا»), then checks out. This is the one place money blocks a check-out: a member's
+    debt stays on their account and is shown, never enforced (§5), but a guest has no account to
+    leave it on.
+  - **Cancel check-in** asks about each order, as for a member (*Cancel check-in*). The ticked ones
+    are cancelled; an unticked order that is not fully paid refuses the cancellation with the same
+    error, so it is paid first or ticked.
+  - **Auto-checkout** still closes a guest visit at midnight, even with unpaid orders: the locker
+    must be free the next morning. Those orders stay in the cafe's order history, marked
+    «پرداخت‌نشده — مهمان» with the guest's name, and are paid or cancelled with a reason later (§8).
+- **Not counted as attendance** in any attendance report (Phase 9). A guest visit sold nothing and
+  used no session; counting it would make the gym look busier than its members make it.
+
 ### Opening hours (PENDING — not enforced yet, roadmap 11.4)
 Decided with the developer, 1405/07/04.
 - The gym is open from `Gym:OpeningTime` (06:00) to `Gym:ClosingTime` (00:00, midnight), in the gym's
@@ -665,6 +782,7 @@ Decided with the developer, 1405/06/31. Implemented in task 5.7.
 - **The price is not calculated by the system, on purpose.** The gym's rate (for example 10,000 Toman per 3 minutes) changes without notice and staff already work it out at the desk. The system takes the number they type and never checks it against a rate. There is no rate setting to keep in sync with reality.
 - The amount is per visit, not per member: the same member may use the treadmill today and not tomorrow, so there is no cardio price on the member record.
 - Recorded against an **open** visit (`CheckedOutAt IS NULL`, not cancelled) and only for the member of that visit. Front desk work, so both roles.
+- **Never on a guest visit** (`ServiceCharges.GuestVisit`, §7 *Guest visit*): a charge goes on a member's account, and a guest has none. A guest who uses the treadmill uses it for free.
 - One non-voided charge per visit per kind. While the visit is open and nothing has been paid against it, staff can change the amount or remove it — nothing has been settled yet. After check-out, or after the first payment, it is a financial record: it is corrected with a **void plus a reason**, and a fresh charge if one is due (§5: financial records are never edited or deleted).
 - Cancelling a check-in voids the visit's هوازی only when the desk ticks it (§7 *Cancel check-in*), with the reason that the check-in was cancelled. Left unticked, the charge stays owed on a visit that is now closed, and is corrected like any closed visit's charge: void plus a reason. *Replaces "cancelling always voids it", decided by Claude in task 5.7; decided by the Owner, 1405/07/06, roadmap 6.5.8.*
 - **Voiding a charge that has been paid gives the money back**, as refunds written in the same transaction, one per payment method that is in credit — cash taken at the desk comes back as cash, a card payment is reversed on the card. §5 says there is no wallet, so the money cannot simply sit against the member's name, and neither the void screen nor cancel check-in has to ask which method to use (decided with the developer, 1405/07/01).
@@ -722,7 +840,12 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
   an order on a member's account is created unpaid and settled later with ordinary `Payment` rows
   — same partial/paid status, same instalments, and it counts toward that member's debt
   (§5 *Member debt*).
-- A walk-in order (no member) is paid in full at creation: there is no account to put it on.
+- A walk-in order (no member and no visit) is paid in full at creation: there is no account to put it on.
+- **An order on a guest visit** (§7 *Guest visit*) names the visit and no member. It is under the
+  guest's name, may stay unpaid while the guest is inside, and must be paid before the guest checks
+  out. It is rung up from the guest's locker or from the till, where the guests inside can be chosen
+  as the buyer. It never counts toward any member's debt. Paid and cancelled like any other order
+  (reason, refund the way the money came).
 - **A purchase made while the member is inside is tied to that visit** (decided with the developer,
   1405/07/04), exactly as a هوازی charge is (§7 *Gym services*). It is rung up from the member's
   locker, goes on the member's account with nothing paid, and can be added only to an open visit

@@ -1004,6 +1004,126 @@ Asked by the developer, 1405/07/06. BUSINESS_RULES.md §6 *Who had a locker toda
 Done when: the desk clicks a free locker, asks who had it today, sees this morning's members with
 their times, and opens one of them's profile from the list.
 
+### 6.5.11 Guest visit (ورود مهمان)
+Asked by the developer, 1405/07/07 (2026-09-29). BUSINESS_RULES.md §1, §6, §7 *Guest visit*, §7 *Gym
+services* and §8, written first (this session). Replaces marking a locker «خارج از سرویس» for a
+relative who takes a key without paying.
+- [x] BUSINESS_RULES.md §1, §6, §7 and §8 written first
+- [ ] Domain: `Attendance` gets `MemberId?`, `SubscriptionId?` and `GuestName?`, with new factories
+      `CheckInGuest` and `CheckInGuestOnReservePlace`. The name is trimmed and required, at most
+      `Member.FullNameMaxLength`, and normalized like a member's
+- [ ] Domain: `CafeOrder` may name a guest visit and no member, and stay unpaid. A walk-in with
+      neither a member nor a visit is still paid in full
+- [ ] Migration `GuestVisits`:
+      - `member_id` and `subscription_id` become nullable
+      - new column `guest_name varchar(200)`
+      - checks `(member_id IS NULL) <> (guest_name IS NULL)` and
+        `(member_id IS NULL) = (subscription_id IS NULL)`
+      - `ck_cafe_orders_visit_has_member` is replaced so a guest visit's order passes
+      - the existing partial unique indexes stay
+- [ ] `POST /api/attendance/guest-check-in` `{ guestName, lockerId? }`, `StaffOrOwner`:
+      - the locker goes through `LockerChoice.CheckAsync`
+      - with no locker, a reserve place under §6. Move the reserve-place pick out of
+        `CheckInHandler` into a shared helper
+      - the same unique-violation mapping as check-in
+- [ ] `POST /api/attendance/{id}/settle-guest` pays every unpaid order of a guest visit in one
+      transaction, one payment per order, as `SettleMemberDebt` does
+- [ ] Check-out, and a cancel that leaves an unpaid order unticked, are refused on a guest visit
+      with `Attendance.GuestHasUnpaidCafe`. Auto-checkout still closes the visit
+- [ ] هوازی on a guest visit is refused with `ServiceCharges.GuestVisit`
+- [ ] Places that assume a visit has a member or a subscription:
+      - `AttendanceResponse`: member and subscription become nullable, plus `GuestName`
+      - `CurrentlyInsideResponse`: the same; its projection's `.First()` becomes null-safe
+      - `LockerResponse`: gains the guest's name. `IsOccupied` counts a member or a guest, and
+        the holder's debt for a guest is the visit's unpaid cafe
+      - `LockerVisitResponse`
+      - `VisitCafeOrders` (`MemberId!.Value`)
+      - `CancelCheckInHandler`: no member lock and no `RestoreSession` for a guest
+      - `CreateCafeOrderHandler`: an open guest visit with no member makes a guest order
+      - the cafe order list shows the guest's name and filters unpaid guest orders
+- [ ] Fix `SetLockerOutOfServiceHandler.FindHolderAsync`. Its inner join to members would read a
+      guest-held locker as free and take it out of service
+- [ ] `npm run gen:api`, then the frontend:
+      - `useGuestCheckIn`
+      - in `LockerCheckInDialog`, the «ورود مهمان» button leads to a full-name step and then the
+        result, for a locker and for a reserve place
+      - a `"guest"` state in `lockerState.ts`, drawn in the colour of a new `--guest` token in
+        `index.css` (light and dark), with its own legend line and the «بدهکار» ribbon for
+        unpaid cafe
+- [ ] A guest variant of `LockerVisitDialog`:
+      - the name and «مهمان», with no profile link
+      - no sessions and no هوازی
+      - the cafe box with «تسویه یکجا»
+      - check-out disabled until everything is paid; move and cancel as for a member
+- [ ] `CheckInOutDialog` and `CancelCheckInConfirm` handle a member or a guest. The till can pick a
+      guest who is inside. `CurrentlyInsideTable`, `ReservePlaces` and `LockerTodayHistory` show
+      the guest's name without a link. New error codes go in `lib/errors.ts`
+- [ ] Tests (domain): guest factories and name validation; a guest visit's cafe order
+- [ ] Tests (integration, as Staff):
+      - guest check-in on a locker and on a reserve place
+      - refusals: locker taken, out of service, lockers still free, reserve full, blank or long name
+      - the database checks
+      - move, and auto-close with unpaid orders kept
+      - check-out and cancel refused while unpaid, allowed after `settle-guest`
+      - هوازی refused
+      - an order from the till joins the guest visit
+      - the guest shown on the map, the board and today's history
+      - out of service refused while a guest holds the locker
+- [ ] Tests (frontend):
+      - guest check-in from a locker and from a reserve place
+      - the guest colour, label and ribbon
+      - the guest's box: pay everything, then check out
+      - a guest row on the board
+      - picking a guest at the till
+
+Done when: a relative walks in, the desk clicks a free locker, chooses «ورود مهمان» and types their
+name. The locker turns the guest colour with the name on it. The relative buys a drink from the till
+under their name, and the locker shows «بدهکار». At the door, the desk settles the drink, takes the
+key and checks them out.
+
+### 6.5.12 The desk panel: birthdays and renewal opportunities (تولد، فرصت تمدید)
+Asked by the developer, 1405/07/07. BUSINESS_RULES.md §6 *The desk panel*.
+- [x] BUSINESS_RULES.md §1 and §6 written first (with 6.5.13–6.5.15's rules)
+- [x] `CurrentlyInsideResponse` gains `MemberBirthDate` and `HasQueuedRenewal` (a non-cancelled,
+      non-frozen, non-single-session subscription of the same member starting after today: the SQL
+      form of `Upcoming`), still one SQL statement
+- [x] Frontend: the thresholds and `daysUntil` move to `features/attendance/renewal.ts` with
+      `renewalDue`; `isJalaliBirthday` in `lib/format.ts` (30 Esfand falls back to 29 Esfand in a
+      common year)
+- [x] `DeskPanel` in the map's empty top-right corner: «تولدت مبارک» and «فرصت تمدید», each hidden
+      when empty. Pointing at an entry blinks its locker; clicking opens the locker's box
+- [x] Tests (integration): birth date returned; queued renewal true, false once cancelled, false
+      with none
+- [x] Tests (frontend): `isJalaliBirthday`, `renewalDue`; the panel's lists, hidden when empty,
+      blink on hover, box on click
+
+Done when: a member with two sessions left walks in, and the desk sees their name under
+«فرصت تمدید», points at it, sees locker 19 blink, and tells them to renew.
+
+### 6.5.13 Long stay bar on the door (PENDING)
+BUSINESS_RULES.md §6 *Long stay*. Frontend only: `checkedInAt` is already in the visits list.
+- [ ] A thin bar along the bottom of an occupied door and a used reserve place, filling over
+      3 hours, warning colour from 3 hours; re-rendered each minute
+- [ ] The door's accessible label says «بیش از ۳ ساعت»
+- [ ] Tests (frontend, fake timers): the bar's fill at 1.5 h, the warning at 3 h
+
+### 6.5.14 Today by hour, under the map (PENDING)
+BUSINESS_RULES.md §6 *Today by hour*.
+- [ ] Migration: an index on `attendances(checked_in_at)` (none exists; shared with 6.5.15)
+- [ ] `GET /api/attendance/today-by-hour`, both roles: per hour in the gym's time zone, today's
+      count and the same weekday's average over the previous 4 weeks; cancelled excluded
+- [ ] A small bar chart under the map, drawn with plain SVG (no chart package is listed)
+- [ ] Tests (integration): hours bucketed in the gym's zone; cancelled excluded; the 4-week average
+
+### 6.5.15 Locker usage map (PENDING)
+BUSINESS_RULES.md §6 *Locker usage map*.
+- [ ] `GET /api/lockers/usage?days=7|30|90`, both roles: visits per locker checked in during the
+      period, cancelled excluded, counted for the locker they hold now
+- [ ] A switch on the map's legend: doors coloured by use with the count on each, a colour of their
+      own for unused; a period picker; a view only
+- [ ] Tests (integration): counts, period edges, cancelled excluded, moved visit; (frontend) the
+      switch, colours and period
+
 ---
 
 ## Phase 7 — Cafe / POS
