@@ -755,4 +755,121 @@ describe("LockersPage", () => {
     expect(within(dialog).getByRole("heading", { name: "ورود بدون کمد" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "جابه‌جایی کمد" })).toBeInTheDocument();
   });
+
+  // ---- The desk panel: birthdays and renewal opportunities (BUSINESS_RULES.md §6) ----
+
+  describe("DeskPanel", () => {
+    // ۱۴۰۵/۰۵/۱۲, late morning in Tehran: a fixed "today" for birthdays and days left.
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date("2026-08-03T08:00:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** Ali's open visit on locker 67, comfortably far from running out unless a test says otherwise. */
+    const aliVisit = {
+      ...openVisit(ali.id),
+      id: "0199a000-0000-7000-8000-0000000000c8",
+      lockerId: lockerId(67),
+      lockerNumber: 67,
+    };
+
+    function panelHandlers(
+      rezaRow: Parameters<typeof insideRow>[2],
+      aliRow: Parameters<typeof insideRow>[2] = {},
+    ) {
+      return mapHandlers(
+        allLockers(heldLocker(2, reza.id, reza.fullName), heldLocker(67, ali.id, ali.fullName)),
+        [insideRow(reza.fullName, rezaVisit, rezaRow), insideRow(ali.fullName, aliVisit, aliRow)],
+      );
+    }
+
+    async function panelSection(name: string) {
+      const panel = await screen.findByRole("complementary", { name: "پنل پذیرش" });
+      return within(panel).getByRole("region", { name });
+    }
+
+    it("DeskPanel_SessionsRunningOut_ListsThemUnderRenewalWithWhatIsLeft", async () => {
+      mockApi(panelHandlers({ usedSessions: 10, remainingSessions: 2 }));
+      renderMap();
+
+      const renewals = await panelSection("فرصت تمدید");
+      expect(within(renewals).getByRole("heading")).toHaveTextContent("فرصت تمدید (۱)");
+      const entry = within(renewals).getByRole("button", { name: /رضا احمدی/ });
+      expect(entry).toHaveTextContent("کمد ۲");
+      expect(entry).toHaveTextContent("۲ جلسه مانده");
+      expect(within(renewals).queryByText(ali.fullName)).not.toBeInTheDocument();
+    });
+
+    it("DeskPanel_EndingWithinFiveDays_SaysHowManyDaysAreLeft", async () => {
+      mockApi(panelHandlers({ subscriptionEndDate: "2026-08-06" }));
+      renderMap();
+
+      const renewals = await panelSection("فرصت تمدید");
+      expect(within(renewals).getByRole("button", { name: /رضا احمدی/ })).toHaveTextContent(
+        "۳ روز مانده",
+      );
+    });
+
+    it("DeskPanel_AlreadyRenewedOrASingleVisit_IsNotListedAndThePanelIsHidden", async () => {
+      mockApi(
+        panelHandlers(
+          { usedSessions: 11, remainingSessions: 1, hasQueuedRenewal: true },
+          { isSingleSession: true, totalSessions: 1, usedSessions: 1, remainingSessions: 0 },
+        ),
+      );
+      renderMap();
+
+      expect(await door("۲")).toHaveAttribute("data-state", "occupied");
+      expect(screen.queryByRole("complementary", { name: "پنل پذیرش" })).not.toBeInTheDocument();
+    });
+
+    it("DeskPanel_JalaliBirthdayToday_ListsThemUnderHappyBirthday", async () => {
+      // Born ۱۳۷۰/۰۵/۱۲; ali's birthday is another day.
+      mockApi(panelHandlers({ memberBirthDate: "1991-08-03" }, { memberBirthDate: "1991-08-04" }));
+      renderMap();
+
+      const birthdays = await panelSection("تولدت مبارک");
+      expect(within(birthdays).getByRole("button", { name: /رضا احمدی/ })).toHaveTextContent(
+        "کمد ۲",
+      );
+      expect(within(birthdays).queryByText(ali.fullName)).not.toBeInTheDocument();
+      // Nobody is running out, so that list is not shown at all.
+      expect(screen.queryByRole("region", { name: "فرصت تمدید" })).not.toBeInTheDocument();
+      // Nothing is drawn on the door for a birthday.
+      expect(await door("۲")).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی");
+    });
+
+    it("DeskPanel_EntryPointedAt_MakesItsLockerBlinkUntilLeft", async () => {
+      mockApi(panelHandlers({ usedSessions: 10, remainingSessions: 2 }));
+      renderMap();
+
+      const entry = within(await panelSection("فرصت تمدید")).getByRole("button", {
+        name: /رضا احمدی/,
+      });
+      fireEvent.mouseEnter(entry);
+
+      expect(await door("۲")).toHaveAttribute("data-highlighted", "true");
+      expect(await door("۶۷")).not.toHaveAttribute("data-highlighted");
+
+      fireEvent.mouseLeave(entry);
+
+      expect(await door("۲")).not.toHaveAttribute("data-highlighted");
+    });
+
+    it("DeskPanel_EntryClicked_OpensThatLockersBox", async () => {
+      mockApi(panelHandlers({ usedSessions: 10, remainingSessions: 2 }));
+      renderMap();
+
+      fireEvent.click(
+        within(await panelSection("فرصت تمدید")).getByRole("button", { name: /رضا احمدی/ }),
+      );
+
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByRole("heading", { name: "کمد شماره ۲" })).toBeInTheDocument();
+    });
+  });
 });

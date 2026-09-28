@@ -16,6 +16,7 @@ import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 
 import { useAllLockers, useSetLockerOutOfService, type Locker } from "../api";
+import { DeskPanel } from "../components/DeskPanel";
 import { LockerCheckInDialog, type CheckInPlace } from "../components/LockerCheckInDialog";
 import { LockerMap } from "../components/LockerMap";
 import { LockerVisitDialog } from "../components/LockerVisitDialog";
@@ -45,6 +46,8 @@ export function LockersPage() {
   const inside = useEveryoneInside();
   const desk = useDeskDialog();
   const [box, setBox] = useState<{ id: number; open: OpenBox } | null>(null);
+  // The locker an entry of the desk panel is pointing at, blinking on the map (§6 *The desk panel*).
+  const [highlighted, setHighlighted] = useState<string | null>(null);
 
   const open = (next: OpenBox) =>
     setBox((previous) => ({ id: (previous?.id ?? 0) + 1, open: next }));
@@ -105,7 +108,21 @@ export function LockersPage() {
     <PageFrame>
       <Card>
         <CardContent className="space-y-6">
-          <LockerMap lockers={lockers.data} onSelect={select} />
+          <LockerMap
+            lockers={lockers.data}
+            onSelect={select}
+            highlightedLockerId={highlighted}
+            aside={
+              <DeskPanel
+                visits={inside.data}
+                onHighlight={setHighlighted}
+                onOpen={(visit) => {
+                  setHighlighted(null);
+                  open({ kind: "visit", attendanceId: visit.attendanceId });
+                }}
+              />
+            }
+          />
           <ReservePlaces
             visits={reserveVisits}
             anyLockerFree={anyLockerFree}

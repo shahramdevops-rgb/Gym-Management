@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,13 @@ interface LockerMapProps {
    * for choosing where to move a visit (BUSINESS_RULES.md §7 *Moving to another locker*).
    */
   mode?: "desk" | "pick";
+  /**
+   * Shown at the right-hand end of the first zone, in the room its five cabinets leave beside the
+   * seven below (BUSINESS_RULES.md §6 *The desk panel*). It wraps under the zone on a narrow screen.
+   */
+  aside?: ReactNode;
+  /** A locker to make blink, so the desk finds it at a glance; `null` or absent for none. */
+  highlightedLockerId?: string | null;
 }
 
 /**
@@ -64,13 +71,19 @@ interface LockerMapProps {
  * holder's name once it is wide enough to read, cut to two lines inside the door. A holder who
  * owes money gets "بدهکار" across the door's top-left corner.
  */
-export function LockerMap({ lockers, onSelect, mode = "desk" }: LockerMapProps) {
+export function LockerMap({
+  lockers,
+  onSelect,
+  mode = "desk",
+  aside,
+  highlightedLockerId = null,
+}: LockerMapProps) {
   const byNumber = new Map(lockers.map((locker) => [Number(locker.number), locker]));
 
   return (
     <div className="@container space-y-6" style={{ "--door": doorWidth } as CSSProperties}>
       <Legend lockers={lockers} />
-      {lockerZones.map((zone) => (
+      {lockerZones.map((zone, zoneIndex) => (
         <section key={zone.name} aria-label={zone.name}>
           <div dir="ltr" className="flex flex-wrap items-start gap-10 overflow-x-auto pb-1">
             {zone.groups.map((group) => (
@@ -89,6 +102,10 @@ export function LockerMap({ lockers, onSelect, mode = "desk" }: LockerMapProps) 
                             number={number}
                             locker={byNumber.get(number)}
                             mode={mode}
+                            highlighted={
+                              highlightedLockerId !== null &&
+                              byNumber.get(number)?.id === highlightedLockerId
+                            }
                             onSelect={onSelect}
                           />
                         ))}
@@ -98,6 +115,11 @@ export function LockerMap({ lockers, onSelect, mode = "desk" }: LockerMapProps) 
                 ))}
               </div>
             ))}
+            {/* ms-auto here, inside dir="ltr", is a left margin: it pushes the aside to the right
+                end. Hidden while empty, so a panel with nothing to say leaves no gap to wrap. */}
+            {zoneIndex === 0 && aside !== undefined && (
+              <div className="ms-auto empty:hidden">{aside}</div>
+            )}
           </div>
         </section>
       ))}
@@ -109,11 +131,13 @@ function LockerDoor({
   number,
   locker,
   mode,
+  highlighted,
   onSelect,
 }: {
   number: number;
   locker: Locker | undefined;
   mode: "desk" | "pick";
+  highlighted: boolean;
   onSelect: (locker: Locker) => void;
 }) {
   // A locker the API did not send cannot be acted on. It should never happen — all 72 are seeded —
@@ -146,6 +170,7 @@ function LockerDoor({
       title={holderText ?? stateLabel[state]}
       disabled={mode === "pick" && state !== "free"}
       data-state={state}
+      data-highlighted={highlighted || undefined}
       onClick={() => onSelect(locker)}
       className={cn(
         doorSize,
@@ -153,6 +178,11 @@ function LockerDoor({
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-40",
         stateClass[state],
+        // Pointed at from the desk panel. The ring stays for anyone who has asked for less motion.
+        // Ring and offset together reach 4px out, inside the cabinet's 5px of frame, so the zone's
+        // scrolling edge never cuts them off.
+        highlighted &&
+          "animate-pulse ring-2 ring-primary ring-offset-2 ring-offset-background motion-reduce:animate-none",
       )}
     >
       {owes && <DebtorRibbon />}

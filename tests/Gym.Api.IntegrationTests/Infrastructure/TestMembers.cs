@@ -18,4 +18,8 @@ internal static class TestMembers
     /// <summary>An active member with no notes and no birth date.</summary>
     internal static Member Seed(string fullName, string phoneNumber) =>
         Member.Create(fullName, phoneNumber, notes: null, birthDate: null, today: SeedToday).Value;
+
+    /// <summary>An active member with no notes and the given birth date.</summary>
+    internal static Member Seed(string fullName, string phoneNumber, DateOnly birthDate) =>
+        Member.Create(fullName, phoneNumber, notes: null, birthDate, today: SeedToday).Value;
 }

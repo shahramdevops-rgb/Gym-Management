@@ -7,6 +7,7 @@ using Gym.Application.Attendances;
 using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Common.Paging;
 using Gym.Application.Lockers;
+using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -113,6 +114,75 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
     }
 
     [Fact]
+    public async Task CurrentlyInside_MemberWithBirthDate_ReturnsBirthDate()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var birthDate = new DateOnly(1991, 8, 3);
+        var member = await AddMemberAsync("سارا محمدی", birthDate);
+        await AssignOkAsync(staffClient, staffToken, member.Id, await AddPlanAsync());
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
+
+        var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
+        row.MemberBirthDate.ShouldBe(birthDate);
+    }
+
+    [Fact]
+    public async Task CurrentlyInside_NoRenewal_HasQueuedRenewalFalse()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync("سارا محمدی");
+        await AssignOkAsync(staffClient, staffToken, member.Id, await AddPlanAsync());
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
+
+        var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
+        row.MemberBirthDate.ShouldBeNull();
+        row.HasQueuedRenewal.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task CurrentlyInside_RenewedBeforeExpiry_HasQueuedRenewalTrue()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync("سارا محمدی");
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
+        // Sold while the first one is current, so it waits for the day after it ends (§4).
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
+
+        var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
+        row.HasQueuedRenewal.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task CurrentlyInside_QueuedRenewalCancelled_HasQueuedRenewalFalse()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync("سارا محمدی");
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
+        var queued = await AssignForResponseAsync(staffClient, staffToken, member.Id, plan);
+        await CheckInOkAsync(staffClient, staffToken, member.Id);
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        using (var cancelled = await SendAsync(
+            ownerClient, ownerToken, HttpMethod.Post, $"/api/subscriptions/{queued.Id}/cancel", new { reason = "انصراف عضو" }))
+        {
+            cancelled.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
+
+        var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
+        row.HasQueuedRenewal.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task CurrentlyInside_WithoutToken_Returns401()
     {
         using var client = Fixture.CreateClient();
@@ -132,10 +202,21 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         return (client, await client.LoginForAccessTokenAsync("staff", TestUsers.Password));
     }
 
-    private async Task<Member> AddMemberAsync(string fullName)
+    private async Task<(HttpClient Client, string Token)> OwnerClientAsync()
+    {
+        await TestUsers.CreateWithOwnPasswordAsync(Fixture, userName: "owner", role: Roles.Owner);
+        var client = Fixture.CreateClient();
+
+        return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
+    }
+
+    private async Task<Member> AddMemberAsync(string fullName, DateOnly? birthDate = null)
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
-        var member = TestMembers.Seed(fullName, $"+98912{suffix:D7}");
+        var phoneNumber = $"+98912{suffix:D7}";
+        var member = birthDate is null
+            ? TestMembers.Seed(fullName, phoneNumber)
+            : TestMembers.Seed(fullName, phoneNumber, birthDate.Value);
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -165,6 +246,14 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
     {
         using var response = await AssignAsync(client, token, memberId, plan);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private static async Task<SubscriptionResponse> AssignForResponseAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
+    {
+        using var response = await AssignAsync(client, token, memberId, plan);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
     }
 
     private static Task<HttpResponseMessage> CheckInAsync(HttpClient client, string token, Guid memberId) =>
