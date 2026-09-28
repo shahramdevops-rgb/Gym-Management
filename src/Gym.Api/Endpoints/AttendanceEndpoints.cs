@@ -69,10 +69,14 @@ public static class AttendanceEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
-        attendance.MapPost("/{id:guid}/cancel", async (Guid id, CancelCheckInHandler handler, CancellationToken ct) =>
-                (await handler.Handle(id, ct)).ToHttpResult())
+        // The body carries the desk's choice for the visit's purchases (roadmap 6.5.8); without it
+        // the request is refused rather than read as a default.
+        attendance.MapPost("/{id:guid}/cancel", async (Guid id, CancelCheckInCommand command, CancelCheckInHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, command, ct)).ToHttpResult())
+            .AddEndpointFilter<ValidationFilter<CancelCheckInCommand>>()
             .WithName("CancelCheckIn")
             .Produces<AttendanceResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);

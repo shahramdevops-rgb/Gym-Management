@@ -1,8 +1,6 @@
 using Gym.Application.Common;
-using Gym.Application.Payments;
 using Gym.Domain.Cafe;
 using Gym.Domain.Common;
-using Gym.Domain.Payments;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -63,22 +61,7 @@ public sealed class CancelCafeOrderHandler(IAppDbContext db, TimeProvider time, 
             return Result.Failure<CafeOrderResponse>(cancelled.Error);
         }
 
-        var netPaidByMethod = await PaymentLedger.GetNetPaidByMethodForCafeOrderAsync(db, order.Id, cancellationToken);
-        foreach (var row in netPaidByMethod)
-        {
-            var refund = Payment.RegisterRefundForCafeOrder(
-                order.Id, row.NetPaid, row.Method, referenceNumber: null, order.CancelReason!, userId, now);
-
-            // The amount comes from rows this application wrote, each already within the money
-            // rules, so a failure here is a bug rather than something a user can cause.
-            if (refund.IsFailure)
-            {
-                throw new InvalidOperationException(
-                    $"Refunding a cancelled cafe order produced an invalid payment: {refund.Error.Code}.");
-            }
-
-            db.Payments.Add(refund.Value);
-        }
+        await CafeOrderRefunder.RefundNetPaidAsync(db, order, userId, now, cancellationToken);
 
         try
         {

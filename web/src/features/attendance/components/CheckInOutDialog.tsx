@@ -13,6 +13,7 @@ import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 
 import { useCancelCheckIn, useCheckOut } from "../api";
+import { CancelCheckInConfirm, type CancelChoice } from "./CancelCheckInConfirm";
 import { CloseButton, ConfirmButtons } from "./deskParts";
 import { VisitSummary } from "./VisitSummary";
 
@@ -44,7 +45,7 @@ export type DeskAction =
 type Step =
   | { kind: "confirm" }
   | { kind: "checkedOut" }
-  | { kind: "cancelled" }
+  | { kind: "cancelled"; purchasesCancelled: boolean }
   | { kind: "failed"; reason: string };
 
 interface CheckInOutDialogProps {
@@ -82,10 +83,13 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
     }
   }
 
-  async function confirmCancel(attendanceId: string) {
+  async function confirmCancel(attendanceId: string, choice: CancelChoice) {
     try {
-      await cancelCheckIn.mutateAsync(attendanceId);
-      setStep({ kind: "cancelled" });
+      await cancelCheckIn.mutateAsync({ attendanceId, ...choice });
+      setStep({
+        kind: "cancelled",
+        purchasesCancelled: choice.voidCardio || choice.cafeOrderIds.length > 0,
+      });
     } catch (problem) {
       setStep({ kind: "failed", reason: errorMessage(problem) });
     }
@@ -143,23 +147,15 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
         )}
 
         {step.kind === "confirm" && action.kind === "cancelCheckIn" && (
-          // Only the question: undoing a check-in has nothing for the desk to read, but it gives a
-          // session back and frees the locker, so a stray press is worth one more click.
-          <>
-            <DialogHeader>
-              <DialogTitle>لغو ورود</DialogTitle>
-              <DialogDescription>
-                آیا از لغو ورود <strong className="text-foreground">{member.fullName}</strong> مطمئن
-                هستید؟ جلسه به اشتراک او بازمی‌گردد.
-              </DialogDescription>
-            </DialogHeader>
-            <ConfirmButtons
-              label="بله، ورود لغو شود"
-              pending={cancelCheckIn.isPending}
-              onConfirm={() => void confirmCancel(action.attendanceId)}
-              onCancel={onClose}
-            />
-          </>
+          // It gives a session back and frees the locker, so a stray press is worth one more
+          // click; what the visit bought is asked about one purchase at a time (roadmap 6.5.8).
+          <CancelCheckInConfirm
+            memberFullName={member.fullName}
+            attendanceId={action.attendanceId}
+            pending={cancelCheckIn.isPending}
+            onConfirm={(choice) => void confirmCancel(action.attendanceId, choice)}
+            onCancel={onClose}
+          />
         )}
 
         {step.kind === "cancelled" && (
@@ -169,7 +165,10 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
                 <CheckCircle2 className="size-5" aria-hidden />
                 ورود لغو شد
               </DialogTitle>
-              <DialogDescription>{member.fullName}: جلسه به اشتراک بازگشت.</DialogDescription>
+              <DialogDescription>
+                {member.fullName}: جلسه به اشتراک بازگشت.
+                {step.purchasesCancelled && " خریدهای انتخاب‌شده هم لغو شد."}
+              </DialogDescription>
             </DialogHeader>
             <CloseButton onClose={onClose} />
           </>

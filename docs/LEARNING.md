@@ -985,3 +985,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Reuse by extracting the part that differs.** `PlanForm` knows the fields, the price preview and how to show a server error. What happens on submit is passed in as a prop: `assign` on the profile, `checkIn({ sale })` at the locker.
 - **Generate types from the code you just wrote.** An API that was already running on :5134 was the old build, so `gen:api` would have read the old document. The new build ran on a spare port for one generation and was stopped afterwards.
 - **My notes:**
+
+---
+
+## 6.5.8 — Cancel check-in: the desk chooses, one purchase at a time
+
+- **Nullable fields turn "missing" into an error.** With `bool VoidCardio`, a body without the field still binds, as `false`. That is a silent guess. With `bool?` plus a `NotNull` rule, a missing choice becomes a 400 with its own code, so a client can't cancel a هوازی, or keep one, by accident.
+- **Send ids, not a flag, when each item is its own decision.** "Cancel the cafe" as one boolean would also cancel an order added after the desk opened the box. A list of ids cancels exactly what the desk saw and ticked. Anything added later is simply not named.
+- **All or nothing without extra code.** When one named order doesn't belong to the visit, the handler returns the failure before `SaveChangesAsync`. The transaction is then disposed without a commit, so the session, the locker and the other orders are all left as they were. The test checks exactly that: the visit is still on the "inside" board.
+- **Extract a helper when a second caller appears.** Cancelling an order at the till and cancelling it with a check-in both refund "the way the money came". `CafeOrderRefunder` now holds that once, the same shape `ServiceChargeRefunder` already had.
+- **The second question is a UI step, not an API call.** The box keeps the ticks in its own state. "بازگشت" returns to them unchanged, and nothing reaches the server until the last button. The tests assert the request count is still zero at the second step.
+- **Tell staff what to do, not how the ledger works.** The second question says "hand back what you collected; if nothing was collected, nothing to do", and adds the recorded figure when there is one. The refund rows are the system's job; handing over the cash is the desk's.
+- **Read the data the screen already has.** The "inside" list already carries each visit's هوازی and cafe orders with what was paid. So the cancel box reads that list on every screen instead of needing a new endpoint.
+- **My notes:**

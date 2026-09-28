@@ -173,6 +173,9 @@ export const errorMessages: Record<string, string> = {
   "Attendance.CancelWindowExpired": "مهلت لغو این ورود گذشته است.",
   "Attendance.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
   "Attendance.SaleInvalid": "فروش همراه ورود نامعتبر است.",
+  "Attendance.CancelChoiceRequired": "مشخص نشده است با خریدهای این مراجعه چه شود.",
+  "Attendance.CafeOrderNotOnVisit":
+    "یکی از خریدهای بوفه در این فاصله تغییر کرده است. پنجره را ببندید و دوباره امتحان کنید.",
 
   // Gym services (هوازی)
   "ServiceCharges.NotFound": "هزینهٔ خدمات پیدا نشد.",

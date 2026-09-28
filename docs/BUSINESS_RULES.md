@@ -563,12 +563,29 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 - Before a check-out, the box shows the locker to take back and the same plan, sessions and itemized debt, so the desk can collect what is owed while the member is still there. Debt is shown, never enforced: check-out is not refused for money owed, the same way check-in is not.
 - When the visit has a locker, the desk must tick "key received" before the check-out can be confirmed: closing the visit hands the locker to the next person in. After check-out, the box shows that the locker is free and repeats the itemized debt.
 - Selling a single visit or a plan from that box needs no second confirmation: pressing the priced button, or «فروش و ثبت ورود» under the plan's price, is already the decision.
-- Cancelling a check-in (*Cancel check-in*) asks in the same box, with nothing else shown: it gives the session back and frees the locker, so a stray press is worth one more click.
+- Cancelling a check-in (*Cancel check-in*) asks in the same box. When the visit bought nothing, that
+  is the only question: it gives the session back and frees the locker, so a stray press is worth
+  one more click. When it bought something, the box asks about each purchase (*Cancel check-in*).
 
 ### Cancel check-in
 - Allowed only for an open attendance within `Gym:CancelCheckInWindowMinutes` of check-in.
 - Restores the session, frees the locker, and marks the attendance cancelled (who and when). The row is kept.
 - Cancelled attendances are excluded from attendance reports.
+- **What the visit bought is cancelled only when the desk says so, one purchase at a time**
+  (decided by the Owner, 1405/07/06, roadmap 6.5.8). The box lists the visit's هوازی and each of
+  its cafe orders with its amount, each with its own tick, all unticked. A purchase left unticked
+  stays on the member's account and is paid like any other: the member may have used the treadmill
+  or taken a drink and still had to leave. The ticked ones are voided (هوازی, §7 *Gym services*) or
+  cancelled (cafe, §8) with the reason that the check-in was cancelled, and what was paid on them
+  goes back the way it came, in the same transaction as the cancellation.
+  - When anything is ticked, the box asks a second time before sending, naming what will be
+    cancelled and reminding the desk to hand back what was collected for it; nothing collected
+    means nothing to hand back. With nothing ticked there is no second question.
+  - The request names the choice outright — void the هوازی or not, and which cafe orders — and
+    the server does not guess: a request without it is refused. An order named that is not a
+    standing order of this visit refuses the whole cancellation (`Attendance.CafeOrderNotOnVisit`),
+    so nothing is half done. A purchase added after the desk opened the box is simply not named
+    and stays.
 
 ### Auto-checkout
 - A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed.
@@ -595,7 +612,7 @@ Decided with the developer, 1405/06/31. Implemented in task 5.7.
 - The amount is per visit, not per member: the same member may use the treadmill today and not tomorrow, so there is no cardio price on the member record.
 - Recorded against an **open** visit (`CheckedOutAt IS NULL`, not cancelled) and only for the member of that visit. Front desk work, so both roles.
 - One non-voided charge per visit per kind. While the visit is open and nothing has been paid against it, staff can change the amount or remove it — nothing has been settled yet. After check-out, or after the first payment, it is a financial record: it is corrected with a **void plus a reason**, and a fresh charge if one is due (§5: financial records are never edited or deleted).
-- Cancelling a check-in voids that visit's service charges too, with the reason that the check-in was cancelled: money for a visit that never happened is not owed. *Decided by Claude during task 5.7; pending review.*
+- Cancelling a check-in voids the visit's هوازی only when the desk ticks it (§7 *Cancel check-in*), with the reason that the check-in was cancelled. Left unticked, the charge stays owed on a visit that is now closed, and is corrected like any closed visit's charge: void plus a reason. *Replaces "cancelling always voids it", decided by Claude in task 5.7; decided by the Owner, 1405/07/06, roadmap 6.5.8.*
 - **Voiding a charge that has been paid gives the money back**, as refunds written in the same transaction, one per payment method that is in credit — cash taken at the desk comes back as cash, a card payment is reversed on the card. §5 says there is no wallet, so the money cannot simply sit against the member's name, and neither the void screen nor cancel check-in has to ask which method to use (decided with the developer, 1405/07/01).
 - **Recording, changing and voiding a charge are all Staff or Owner** (decided with the developer, 1405/07/01). This is a deliberate exception to §1's permissions table, which puts "refunds, voids" with the Owner: the amount is typed at the desk and the desk has to be able to take back its own mistake while the member is still standing there. The controls are that the reason is required and the audit log records who did it.
 - There is no separate refund endpoint for a service charge. A charge that needs correcting is voided with a reason and re-entered at the right amount; a partial refund of a treadmill amount is that, not a refund.
@@ -658,12 +675,12 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
   visit that is that member's own (`CafeOrders.VisitNotOpen`, `CafeOrders.VisitOfAnotherMember`).
   At check-out the box lists what the visit bought and the member's debt added up by source —
   plan, هوازی, cafe — before the item-by-item list. An order from the till names no visit.
-  - **Cancelling a check-in leaves the visit's cafe orders standing** (decided by the developer,
-    1405/07/04): the goods were handed over whether or not the visit counted — the member may
-    have bought something and had to leave — so the sale stays on record and on their account.
-    An order is only ever undone by its own cancellation with a reason. This is the opposite of a
-    هوازی charge, which is voided with the check-in because it was for using the gym during
-    that visit.
+  - **Cancelling a check-in cancels only the cafe orders the desk ticks** (decided by the Owner,
+    1405/07/06, roadmap 6.5.8; replaces "always leaves them standing", 1405/07/04). Each order of
+    the visit has its own tick, unticked by default: goods handed over stay sold unless the desk
+    says otherwise — the member may have bought something and had to leave. A ticked order is
+    cancelled exactly as from the till (reason, refund the way the money came), the reason being
+    that the check-in was cancelled (§7 *Cancel check-in*).
 - **An order is never edited. It is cancelled with a reason and rung up again** (decided by the
   Owner, 1405/07/03). Two of something that should have been one is a cancellation and a fresh
   order, not a quantity corrected in place — §5's rule that financial records are never edited,

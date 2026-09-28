@@ -5,6 +5,8 @@ import {
   autoClosedVisit,
   cancelledVisit,
   closedVisit,
+  currentlyInsidePage,
+  insideRow,
   openVisit,
   openVisitNoLocker,
 } from "@/test/attendance";
@@ -212,6 +214,9 @@ describe("MemberProfilePage", () => {
     const visit = openVisit(reza.id);
     const api = mockApi({
       ...profileHandlers([visit]),
+      // The box reads the visit's purchases from the "inside" list (roadmap 6.5.8).
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([insideRow(reza.fullName, visit)]),
       [`POST /api/attendance/${visit.id}/cancel`]: () =>
         json(200, {
           ...visit,
@@ -226,7 +231,9 @@ describe("MemberProfilePage", () => {
     expect(dialog).toHaveTextContent("آیا از لغو ورود رضا احمدی مطمئن هستید؟");
     expect(api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`)).toHaveLength(0);
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود لغو شود" }));
+    const confirm = within(dialog).getByRole("button", { name: "بله، ورود لغو شود" });
+    await waitFor(() => expect(confirm).toBeEnabled());
+    fireEvent.click(confirm);
 
     expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
     expect(api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`)).toHaveLength(1);
