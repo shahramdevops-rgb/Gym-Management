@@ -1,7 +1,24 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-import { attendanceHistoryPage, cardioCharge, closedVisit, openVisit } from "@/test/attendance";
-import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
+import {
+  attendanceHistoryPage,
+  cardioCharge,
+  closedVisit,
+  currentlyInsidePage,
+  insideRow,
+  openVisit,
+} from "@/test/attendance";
+import { cafePage } from "@/test/cafe";
+import { allLockers, heldLocker, lockerId, lockersPage } from "@/test/lockers";
+import {
+  json,
+  mockApi,
+  problem,
+  session,
+  signedInHandlers,
+  staffUser,
+  type Handler,
+} from "@/test/mockApi";
 import { memberDebt, reza } from "@/test/members";
 import { confirmMoneyReceived, pickMethod } from "@/test/payments";
 import { renderApp } from "@/test/renderApp";
@@ -10,9 +27,10 @@ import type { Attendance } from "@/features/attendance/api";
 import type { ServiceCharge } from "@/features/serviceCharges/api";
 
 /**
- * The هوازی slot on a member's open visit (BUSINESS_RULES.md §7 Gym services). Rendered through
- * the profile page rather than on its own, because what the front desk can do to a charge depends
- * on the visit it hangs off, and the page is what puts the two together.
+ * The هوازی slot of a visit (BUSINESS_RULES.md §7 Gym services). Rendered through the page that
+ * holds it rather than on its own, because what the front desk can do to a charge depends on the
+ * visit it hangs off: an open visit's box on its locker, and a closed visit's row in the profile's
+ * history.
  *
  * An existing charge shows only its amount and payment badge; the actions and their forms live in
  * a dialog opened from it (task 6.5.2), so these tests open it first. That is the point of the
@@ -33,6 +51,30 @@ describe("ServiceChargeBox", () => {
     return api;
   }
 
+  /** Reza inside on locker 2, the only place an open visit's هوازی is typed. */
+  function onLocker(visit: Attendance): Attendance {
+    return { ...visit, lockerId: lockerId(2), lockerNumber: 2 };
+  }
+
+  /** Opens locker 2's box on the map; `visit` is read on every request, so a test can change it. */
+  async function renderLocker(visit: () => Attendance, extra: Record<string, Handler> = {}) {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/lockers": () => lockersPage(allLockers(heldLocker(2, reza.id, reza.fullName))),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([insideRow(reza.fullName, visit())]),
+      [`GET /api/members/${reza.id}/debt`]: () => memberDebt(),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      "GET /api/cafe/orders": () => cafePage([]),
+      ...extra,
+    });
+    renderApp("/", { session: session() });
+    fireEvent.click(await screen.findByRole("button", { name: /^کمد ۲،/ }));
+    await screen.findByRole("dialog");
+
+    return api;
+  }
+
   function withCharge(visit: Attendance, overrides: Partial<ServiceCharge> = {}): Attendance {
     return { ...visit, serviceCharges: [cardioCharge(visit, overrides)] };
   }
@@ -43,7 +85,8 @@ describe("ServiceChargeBox", () => {
   }
 
   it("Box_OpenVisitWithNoCharge_OffersToAddOne", async () => {
-    renderProfile(openVisit(reza.id));
+    const visit = onLocker(openVisit(reza.id));
+    await renderLocker(() => visit);
 
     expect(await screen.findByRole("button", { name: "مبلغ هوازی" })).toBeInTheDocument();
   });
@@ -53,8 +96,8 @@ describe("ServiceChargeBox", () => {
    * هوازی box has to be the shared MoneyField and not a plain input.
    */
   it("Box_TypingAnAmount_ShowsItInPersianWordsAndPostsIt", async () => {
-    const visit = openVisit(reza.id);
-    const api = renderProfile(visit, {
+    const visit = onLocker(openVisit(reza.id));
+    const api = await renderLocker(() => visit, {
       [`POST /api/attendance/${visit.id}/service-charges`]: () =>
         json(201, cardioCharge(visit, { amount: 10000 })),
     });
@@ -78,38 +121,30 @@ describe("ServiceChargeBox", () => {
    * charge behind it.
    */
   it("Box_AmountSaved_ShowsSuccessWithTheAmountUntilClosed", async () => {
-    const visit = openVisit(reza.id);
+    const visit = onLocker(openVisit(reza.id));
     let saved = false;
-    mockApi({
-      ...signedInHandlers(staffUser),
-      [`GET /api/members/${reza.id}`]: () => json(200, reza),
-      [`GET /api/members/${reza.id}/debt`]: () => memberDebt(),
-      [`GET /api/members/${reza.id}/attendance`]: () =>
-        attendanceHistoryPage([saved ? withCharge(visit, { amount: 50000 }) : visit]),
-      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+    await renderLocker(() => (saved ? withCharge(visit, { amount: 50000 }) : visit), {
       [`POST /api/attendance/${visit.id}/service-charges`]: () => {
         saved = true;
         return json(201, cardioCharge(visit, { amount: 50000 }));
       },
     });
-    renderApp(`/members/${reza.id}`, { session: session() });
 
     fireEvent.click(await screen.findByRole("button", { name: "مبلغ هوازی" }));
     fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "50000" } });
     fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
 
-    const dialog = await screen.findByRole("dialog");
-    expect(await within(dialog).findByText("مبلغ هوازی ثبت شد")).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "مبلغ هوازی ثبت شد" });
     expect(within(dialog).getByText("۵۰٬۰۰۰ تومان")).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getAllByRole("button", { name: "بستن" })[0]!);
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
     expect(await screen.findByRole("button", { name: "هوازی: ۵۰٬۰۰۰ تومان" })).toBeInTheDocument();
   });
 
   it("Box_ServerRefusesTheAmount_ShowsThePersianMessageOnTheField", async () => {
-    const visit = openVisit(reza.id);
-    renderProfile(visit, {
+    const visit = onLocker(openVisit(reza.id));
+    await renderLocker(() => visit, {
       [`POST /api/attendance/${visit.id}/service-charges`]: () =>
         problem(409, "ServiceCharges.AlreadyCharged"),
     });
@@ -128,7 +163,8 @@ describe("ServiceChargeBox", () => {
    * undo it altogether.
    */
   it("Box_UnpaidChargeOnAnOpenVisit_OffersEditPayAndVoid", async () => {
-    renderProfile(withCharge(openVisit(reza.id)));
+    const visit = withCharge(onLocker(openVisit(reza.id)));
+    await renderLocker(() => visit);
 
     await openChargeDialog();
 
@@ -140,10 +176,10 @@ describe("ServiceChargeBox", () => {
 
   /** Like every payment (BUSINESS_RULES.md §5): a method is picked and the money confirmed first. */
   it("Box_TakingThePayment_AsksWhetherTheMoneyWasReceivedBeforeSending", async () => {
-    const visit = openVisit(reza.id);
+    const visit = onLocker(openVisit(reza.id));
     const charge = cardioCharge(visit);
     const paymentPath = `/api/service-charges/${charge.id}/payments`;
-    const api = renderProfile(withCharge(visit), {
+    const api = await renderLocker(() => withCharge(visit), {
       [`POST ${paymentPath}`]: () => json(201, { id: "payment" }),
     });
 
@@ -175,13 +211,12 @@ describe("ServiceChargeBox", () => {
    * decision as the subscription history row in task 4.7.
    */
   it("Box_PaidCharge_OffersOnlyVoid", async () => {
-    renderProfile(
-      withCharge(openVisit(reza.id), {
-        netPaid: 10000,
-        paymentStatus: "Paid",
-        canChangeAmount: false,
-      }),
-    );
+    const visit = withCharge(onLocker(openVisit(reza.id)), {
+      netPaid: 10000,
+      paymentStatus: "Paid",
+      canChangeAmount: false,
+    });
+    await renderLocker(() => visit);
 
     await openChargeDialog();
 
@@ -220,19 +255,16 @@ describe("ServiceChargeBox", () => {
   });
 
   it("Box_Voiding_RequiresAReasonAndWarnsThatMoneyComesBack", async () => {
-    const visit = openVisit(reza.id);
+    const visit = onLocker(openVisit(reza.id));
     const charge = cardioCharge(visit, {
       netPaid: 10000,
       paymentStatus: "Paid",
       canChangeAmount: false,
     });
-    const api = renderProfile(
-      { ...visit, serviceCharges: [charge] },
-      {
-        [`POST /api/service-charges/${charge.id}/void`]: () =>
-          json(200, { ...charge, voidedAt: "2026-09-18T07:30:00Z", voidReason: "اشتباه بود" }),
-      },
-    );
+    const api = await renderLocker(() => ({ ...visit, serviceCharges: [charge] }), {
+      [`POST /api/service-charges/${charge.id}/void`]: () =>
+        json(200, { ...charge, voidedAt: "2026-09-18T07:30:00Z", voidReason: "اشتباه بود" }),
+    });
 
     await openChargeDialog();
     fireEvent.click(await screen.findByRole("button", { name: "ابطال" }));

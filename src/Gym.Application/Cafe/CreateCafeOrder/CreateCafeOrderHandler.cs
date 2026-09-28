@@ -57,7 +57,8 @@ public sealed class CreateCafeOrderHandler(
             memberFullName = member.FullName;
         }
 
-        if (command.AttendanceId is { } attendanceId)
+        var visitId = command.AttendanceId;
+        if (visitId is { } attendanceId)
         {
             var visit = await db.Attendances.AsNoTracking()
                 .Where(a => a.Id == attendanceId)
@@ -82,6 +83,16 @@ public sealed class CreateCafeOrderHandler(
             {
                 return Result.Failure<CafeOrderResponse>(CafeOrderErrors.VisitNotOpen);
             }
+        }
+        else if (command.MemberId is { } buyerId)
+        {
+            // A member who is inside is buying during their visit wherever the order is rung up —
+            // the till may be on another computer — so it joins that visit and shows on its locker
+            // (BUSINESS_RULES.md §8). The partial unique index allows at most one open visit.
+            visitId = await db.Attendances.AsNoTracking()
+                .Where(a => a.MemberId == buyerId && a.CheckedOutAt == null)
+                .Select(a => (Guid?)a.Id)
+                .SingleOrDefaultAsync(cancellationToken);
         }
 
         var productIds = command.Items.Select(item => item.ProductId).Distinct().ToList();
@@ -116,7 +127,7 @@ public sealed class CreateCafeOrderHandler(
             lines.Add((row.Product, item.Quantity));
         }
 
-        var created = CafeOrder.Create(command.MemberId, lines, calendar.Today(), userId, command.AttendanceId);
+        var created = CafeOrder.Create(command.MemberId, lines, calendar.Today(), userId, visitId);
         if (created.IsFailure)
         {
             return Result.Failure<CafeOrderResponse>(created.Error);

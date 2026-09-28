@@ -163,33 +163,10 @@ describe("CurrentlyInsidePage", () => {
   });
 
   /**
-   * BUSINESS_RULES.md §7 Gym services: the treadmill amount is typed while the member is inside,
-   * so the board takes it without anybody opening a profile (roadmap 5.7).
+   * BUSINESS_RULES.md §7 *The "currently inside" board*: هوازی and the cafe are rung up from the
+   * member's locker (and the cafe from its till), so the board offers neither.
    */
-  it("Board_SomeoneInside_TakesACardioAmountFromTheBoard", async () => {
-    const visit = openVisit(reza.id);
-    const api = mockApi({
-      ...signedInHandlers(staffUser),
-      "GET /api/attendance/currently-inside": () =>
-        currentlyInsidePage([insideRow(reza.fullName, visit)]),
-      [`POST /api/attendance/${visit.id}/service-charges`]: () =>
-        json(201, cardioCharge(visit, { amount: 10000 })),
-    });
-
-    renderApp("/attendance", { session: session() });
-
-    fireEvent.click(await screen.findByRole("button", { name: "مبلغ هوازی" }));
-    fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "10000" } });
-    fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
-
-    await waitFor(() =>
-      expect(api.requestsTo("POST", `/api/attendance/${visit.id}/service-charges`)).toHaveLength(1),
-    );
-    // The desk is told it went through, rather than watching the dialog vanish.
-    expect(await screen.findByText("مبلغ هوازی ثبت شد")).toBeInTheDocument();
-  });
-
-  it("Board_ChargedVisit_ShowsTheAmountOnTheRow", async () => {
+  it("Board_VisitThatBought_OffersNoPurchase", async () => {
     const visit = openVisit(reza.id);
     const charged = { ...visit, serviceCharges: [cardioCharge(visit)] };
     mockApi({
@@ -201,7 +178,10 @@ describe("CurrentlyInsidePage", () => {
     renderApp("/attendance", { session: session() });
 
     const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
-    expect(row).toHaveTextContent("۱۰٬۰۰۰ تومان");
+    expect(screen.queryByRole("columnheader", { name: "هوازی" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "بوفه" })).not.toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: "مبلغ هوازی" })).not.toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: "خرید بوفه" })).not.toBeInTheDocument();
   });
 
   it("Board_NobodyInside_SaysSo", async () => {
@@ -452,7 +432,11 @@ describe("CurrentlyInsidePage", () => {
       ...signedInHandlers(staffUser),
       "GET /api/attendance/currently-inside": () => currentlyInsidePage([row]),
       [`POST /api/attendance/${visit.id}/cancel`]: () =>
-        json(200, { ...visit, checkedOutAt: "2026-09-18T07:05:00Z", cancelledAt: "2026-09-18T07:05:00Z" }),
+        json(200, {
+          ...visit,
+          checkedOutAt: "2026-09-18T07:05:00Z",
+          cancelledAt: "2026-09-18T07:05:00Z",
+        }),
     });
 
     renderApp("/attendance", { session: session() });
@@ -471,7 +455,11 @@ describe("CurrentlyInsidePage", () => {
       ...signedInHandlers(staffUser),
       "GET /api/attendance/currently-inside": () => currentlyInsidePage([row]),
       [`POST /api/attendance/${visit.id}/cancel`]: () =>
-        json(200, { ...visit, checkedOutAt: "2026-09-18T07:05:00Z", cancelledAt: "2026-09-18T07:05:00Z" }),
+        json(200, {
+          ...visit,
+          checkedOutAt: "2026-09-18T07:05:00Z",
+          cancelledAt: "2026-09-18T07:05:00Z",
+        }),
     });
 
     renderApp("/attendance", { session: session() });
@@ -511,7 +499,9 @@ describe("CurrentlyInsidePage", () => {
     fireEvent.click(await within(dialog).findByLabelText(/شیک پروتئین × ۱/));
     fireEvent.click(await confirmCancelButton(dialog));
     // Nothing was paid on the shake, so there is no figure to hand back.
-    expect(await within(dialog).findByText(/اگر وجه این موارد را دریافت کرده‌اید/)).toBeInTheDocument();
+    expect(
+      await within(dialog).findByText(/اگر وجه این موارد را دریافت کرده‌اید/),
+    ).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent("طبق ثبت سیستم");
 
     fireEvent.click(within(dialog).getByRole("button", { name: "بازگشت" }));

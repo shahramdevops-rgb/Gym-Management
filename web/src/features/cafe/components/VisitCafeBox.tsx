@@ -29,13 +29,14 @@ interface VisitCafeBoxProps {
 }
 
 /**
- * The بوفه slot of one visit on the "currently inside" board — the cafe's twin of the هوازی box
+ * The بوفه slot of one visit in its locker's box — the cafe's twin of the هوازی box
  * (BUSINESS_RULES.md §8). What the member picks up while inside goes on their account, tied to
- * this visit, and check-out lists it back to them before they leave.
+ * this visit, and check-out lists it back to them before they leave. The till ties its own orders
+ * for a member who is inside to the same visit, so both show here.
  *
- * Like the هوازی box, the cell holds only a summary and every form opens in a dialog, so the row
- * stays one line (task 6.5.2). A purchase ends on a success step that lists what was saved, from
- * the server's answer rather than the cart, so the desk can check it against what was handed over.
+ * Like the هوازی box, the slot holds only a summary and every form opens in a dialog. A purchase
+ * ends on a success step that lists what was saved, from the server's answer rather than the cart,
+ * so the desk can check it against what was handed over.
  */
 export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps) {
   const [open, setOpen] = useState<"add" | "orders" | "done" | null>(null);

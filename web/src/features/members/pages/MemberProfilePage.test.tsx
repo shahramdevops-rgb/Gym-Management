@@ -921,16 +921,15 @@ describe("MemberProfilePage", () => {
     expect(screen.getByRole("button", { name: /^ثبت پرداخت برای سفارش/ })).toBeInTheDocument();
   });
 
-  it("Profile_CafeButton_OpensTheTillWithThisMemberChosen", async () => {
+  /** BUSINESS_RULES.md §7: nothing is bought from the profile; the locker and the till do that. */
+  it("Profile_Member_OffersNoCafePurchase", async () => {
     mockApi({
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
     });
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    expect(await screen.findByRole("link", { name: "خرید از بوفه" })).toHaveAttribute(
-      "href",
-      `/cafe?member=${reza.id}`,
-    );
+    await screen.findByRole("link", { name: "ویرایش" });
+    expect(screen.queryByRole("link", { name: "خرید از بوفه" })).not.toBeInTheDocument();
   });
 });

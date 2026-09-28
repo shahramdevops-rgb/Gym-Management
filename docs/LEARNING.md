@@ -1045,3 +1045,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **A lookup has an empty answer for a missing key.** `lookup[id]` returns an empty sequence for an id it does not hold, where a dictionary would throw `KeyNotFoundException`. It is the natural type for "the lines of each order", where any order may have none in the result.
 - **Indent with a logical utility.** The sub-rows use `ps-4` (padding-inline-start), so the indent sits on the right in Persian and would flip by itself in a left-to-right layout.
 - **My notes:**
+
+---
+
+## 8 (follow-up) — Till orders join the member's open visit; purchases only from the locker
+
+- **Let the server fill in what the client cannot know.** The till may run on another computer and has no idea who is inside, so the handler looks up the member's open visit itself (`CheckedOutAt == null`) and ties the order to it. Every screen that reads "this visit's purchases" is then right without any of them changing. The trade-off is that the till can no longer ring up an order *outside* a visit for a member who is inside. That case has no business meaning, which is why the rule could change.
+- **A database index makes the lookup safe.** `SingleOrDefaultAsync` would throw if a member had two open visits; the partial unique index `ix_attendances_one_open_per_member` guarantees that cannot happen, so the code states the assumption and the database enforces it.
+- **Polling is the cheap form of "live".** `refetchInterval` on the visit's purchase query re-reads it every 15 seconds, the same interval as the locker map. There are no WebSockets and no server push: for a desk of a few people a short poll is enough, and it needs nothing on the server.
+- **Fewer entry points, fewer ways to disagree.** Taking the هوازی and cafe buttons off the board and the profile removes code as well as confusion: one place to ring up a visit's purchases means one place to look at them.
+- **Group in the view when the data is right but the reading is not.** Each order keeps its own lines, which is correct for the ledger. The visit list groups them by `productId` with a `Map` and adds the amounts with `addMoney` instead of multiplying quantity by price, so a price changed between two orders still adds up to what was charged.
+- **My notes:**

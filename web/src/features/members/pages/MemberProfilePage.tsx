@@ -1,4 +1,4 @@
-import { Coffee, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 
@@ -11,7 +11,6 @@ import { Pager } from "@/components/Pager";
 import { useMemberAttendanceHistory } from "@/features/attendance/api";
 import { AttendanceHistoryTable } from "@/features/attendance/components/AttendanceHistoryTable";
 import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
-import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { CurrentSubscriptionCard } from "@/features/subscriptions/components/CurrentSubscriptionCard";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatDateTime, toPersianDigits } from "@/lib/format";
@@ -85,12 +84,6 @@ export function MemberProfilePage() {
             <MemberStatusBadge isActive={current.isActive} />
           </div>
           <div className="flex gap-2">
-            <Button asChild size="sm" variant="outline">
-              <Link to={`${paths.cafe}?member=${id}`}>
-                <Coffee aria-hidden />
-                خرید از بوفه
-              </Link>
-            </Button>
             <Button asChild size="sm" variant="outline">
               <Link to={paths.editMember(id)}>
                 <Pencil aria-hidden />
@@ -188,15 +181,6 @@ export function MemberProfilePage() {
                     </Button>
                   </div>
                 </div>
-
-                {/* BUSINESS_RULES.md §7: a treadmill amount is put on the member while they are
-                    inside, so it belongs to the open visit rather than to the member. */}
-                <ServiceChargeBox
-                  attendanceId={openAttendance.id}
-                  kind="Cardio"
-                  charge={openAttendance.serviceCharges.find((charge) => charge.kind === "Cardio")}
-                  visitIsOpen
-                />
               </div>
             ) : (
               // No check-in button here since roadmap 6.5.5: the desk lets a member in from the

@@ -1,5 +1,5 @@
 import { Alert } from "@/components/ui/alert";
-import { useVisitCafeOrders } from "@/features/cafe/api";
+import { useVisitCafeOrders, type CafeOrderItem } from "@/features/cafe/api";
 import { useMemberDebt, type MemberDebt } from "@/features/members/api";
 import { debtBySource } from "@/features/members/debtBySource";
 import { debtItemLabel } from "@/features/members/debtItemLabel";
@@ -36,7 +36,7 @@ export function VisitSummary({
     <div className="space-y-3">
       <SubscriptionLine memberId={memberId} />
       {attendanceId !== undefined && <VisitPurchases attendanceId={attendanceId} />}
-      <DebtBox memberId={memberId} />
+      <DebtBox memberId={memberId} itemized={attendanceId === undefined} />
     </div>
   );
 }
@@ -52,7 +52,7 @@ function VisitPurchases({ attendanceId }: { attendanceId: string }) {
     return <Alert variant="destructive">{errorMessage(orders.error)}</Alert>;
   }
 
-  const lines = orders.data.flatMap((order) => order.items);
+  const lines = byProduct(orders.data.flatMap((order) => order.items));
   const total = addMoney(...orders.data.map((order) => order.totalAmount));
 
   return (
@@ -60,7 +60,7 @@ function VisitPurchases({ attendanceId }: { attendanceId: string }) {
       <p className="font-medium">خریدهای بوفه در این مراجعه</p>
       <ul className="space-y-1">
         {lines.map((line) => (
-          <li key={line.id} className="flex justify-between gap-3">
+          <li key={line.productId} className="flex justify-between gap-3">
             <span>
               {line.productName} × {toPersianDigits(line.quantity)}
             </span>
@@ -74,6 +74,29 @@ function VisitPurchases({ attendanceId }: { attendanceId: string }) {
       </p>
     </section>
   );
+}
+
+/**
+ * One line per product, however many orders it came in: two espressos bought at the locker and at
+ * the till are "× 2", the way the member would say it. The amounts are added, not recomputed, so a
+ * price changed between the two orders still adds up to what was charged.
+ */
+function byProduct(items: CafeOrderItem[]) {
+  const lines = new Map<
+    string,
+    { productId: string; productName: string; quantity: number; lineTotal: string }
+  >();
+  for (const item of items) {
+    const line = lines.get(item.productId);
+    lines.set(item.productId, {
+      productId: item.productId,
+      productName: item.productName,
+      quantity: (line?.quantity ?? 0) + Number(item.quantity),
+      lineTotal: addMoney(line?.lineTotal ?? "0", item.lineTotal),
+    });
+  }
+
+  return [...lines.values()];
 }
 
 function SubscriptionLine({ memberId }: { memberId: string }) {
@@ -130,7 +153,7 @@ function isLow(subscription: Subscription): boolean {
  * shown as a bare total (BUSINESS_RULES.md §5 *Member debt*), and it is large and red so it is
  * read, not skimmed.
  */
-function DebtBox({ memberId }: { memberId: string }) {
+function DebtBox({ memberId, itemized }: { memberId: string; itemized: boolean }) {
   const debt = useMemberDebt(memberId);
 
   if (debt.isPending) {
@@ -142,14 +165,19 @@ function DebtBox({ memberId }: { memberId: string }) {
 
   return (
     <div className="space-y-3">
-      <DebtDetails debt={debt.data} />
+      <DebtDetails debt={debt.data} itemized={itemized} />
       {/* Collected here, while the member is standing at the desk (BUSINESS_RULES.md §5). */}
       <SettleDebt memberId={memberId} items={debt.data.items} />
     </div>
   );
 }
 
-function DebtDetails({ debt }: { debt: MemberDebt }) {
+/**
+ * With a visit's purchases already listed above it (the locker's box, check-out), the debt stops at
+ * the total by source: the same cafe lines twice over is noise the desk has to read past. At
+ * check-in there is no such list, so the items are shown one by one.
+ */
+function DebtDetails({ debt, itemized }: { debt: MemberDebt; itemized: boolean }) {
   if (!isPositiveMoney(debt.total)) {
     return (
       <Alert variant="success" role="status">
@@ -174,17 +202,22 @@ function DebtDetails({ debt }: { debt: MemberDebt }) {
           </div>
         ))}
       </dl>
-      <ul className="space-y-1 border-t border-destructive/30 pt-2 text-xs text-destructive/80">
-        {debt.items.map((item) => (
-          <li key={item.id} className="flex justify-between gap-3">
-            <span>
-              {debtItemLabel(item)}
-              <span className="text-destructive/70"> · {formatDate(item.startDate)}</span>
-            </span>
-            <span className="font-medium">{formatMoney(item.outstanding)}</span>
-          </li>
-        ))}
-      </ul>
+      {itemized && (
+        <ul
+          aria-label="بدهی جزء به جزء"
+          className="space-y-1 border-t border-destructive/30 pt-2 text-xs text-destructive/80"
+        >
+          {debt.items.map((item) => (
+            <li key={item.id} className="flex justify-between gap-3">
+              <span>
+                {debtItemLabel(item)}
+                <span className="text-destructive/70"> · {formatDate(item.startDate)}</span>
+              </span>
+              <span className="font-medium">{formatMoney(item.outstanding)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
