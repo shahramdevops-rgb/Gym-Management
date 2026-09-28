@@ -117,7 +117,12 @@ function SettleDebtForm({
   const selected = ordered.filter((item) => !unticked.has(item.id));
   const selectedTotal = addMoney(...selected.map((item) => item.outstanding));
   // The checked values waiting for "was the money received?"; nothing is sent before the answer.
-  const [toConfirm, setToConfirm] = useState<RegisterPaymentValues | null>(null);
+  // The ticked items are kept with them: the debt is polled, and an order that arrives while the
+  // question is open must not join a payment the desk has already agreed to.
+  const [toConfirm, setToConfirm] = useState<{
+    values: RegisterPaymentValues;
+    items: MemberDebtItem[];
+  } | null>(null);
 
   const form = useForm<RegisterPaymentValues>({
     resolver: zodResolver(registerPaymentSchema),
@@ -151,10 +156,16 @@ function SettleDebtForm({
       });
       return;
     }
-    setToConfirm(values);
+    setToConfirm({ values, items: selected });
   });
 
-  async function send(values: RegisterPaymentValues) {
+  async function send({
+    values,
+    items: chosen,
+  }: {
+    values: RegisterPaymentValues;
+    items: MemberDebtItem[];
+  }) {
     try {
       const settlement = await settle.mutateAsync({
         memberId,
@@ -163,7 +174,7 @@ function SettleDebtForm({
         referenceNumber:
           values.referenceNumber.trim() === "" ? null : values.referenceNumber.trim(),
         // Sent back exactly as the debt gave it: the server compares it with what is owed now.
-        items: selected.map((item) => ({
+        items: chosen.map((item) => ({
           kind: item.kind,
           id: item.id,
           outstanding: item.outstanding,
@@ -278,7 +289,7 @@ function SettleDebtForm({
         payment={
           toConfirm === null
             ? null
-            : { amount: normalizeMoney(toConfirm.amount), method: toConfirm.method }
+            : { amount: normalizeMoney(toConfirm.values.amount), method: toConfirm.values.method }
         }
         pending={settle.isPending}
         onConfirm={() => {

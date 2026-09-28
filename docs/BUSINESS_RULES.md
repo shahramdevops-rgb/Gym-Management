@@ -727,7 +727,8 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
   - **An order rung up at the till for a member who is inside joins their open visit by itself**
     (decided by the developer, 1405/07/06; replaces "an order from the till names no visit"). The
     till may be on a computer of its own, and the member is buying during that visit wherever the
-    order is entered, so it shows on their locker as one of the visit's purchases. Whatever was
+    order is entered, so it shows on their locker as one of the visit's purchases, and in the
+    debt and «تسویه یکجا» of the box, without the desk reloading anything. Whatever was
     paid at the till stays paid. A member who is not inside, and a walk-in, get an order with no
     visit, as before.
   - **Cancelling a check-in cancels only the cafe orders the desk ticks** (decided by the Owner,
