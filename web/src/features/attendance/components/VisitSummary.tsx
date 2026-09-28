@@ -12,7 +12,7 @@ import { addMoney, isPositiveMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 import { currentlyInsideRefetchMs } from "../api";
-import { lowSessionsThreshold } from "./CurrentlyInsideTable";
+import { lowSessionsThreshold } from "../renewal";
 
 /**
  * What the desk should know while the member is standing there (BUSINESS_RULES.md §7 *Confirming

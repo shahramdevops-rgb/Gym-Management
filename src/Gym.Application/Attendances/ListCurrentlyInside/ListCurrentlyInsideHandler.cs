@@ -8,12 +8,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Attendances.ListCurrentlyInside;
 
 /// <summary>The front desk's "currently inside" board: everyone with an open attendance (BUSINESS_RULES.md §7).</summary>
-public sealed class ListCurrentlyInsideHandler(IAppDbContext db)
+public sealed class ListCurrentlyInsideHandler(IAppDbContext db, IGymCalendar calendar)
 {
     public async Task<PagedResponse<CurrentlyInsideResponse>> Handle(ListCurrentlyInsideQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
 
+        var today = calendar.Today();
         var open = db.Attendances.AsNoTracking().Where(a => a.CheckedOutAt == null);
 
         var totalCount = await open.CountAsync(cancellationToken);
@@ -23,7 +24,7 @@ public sealed class ListCurrentlyInsideHandler(IAppDbContext db)
             .ThenBy(a => a.Id)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(CurrentlyInsideResponse.Projection(db.Members, db.Lockers, db.Subscriptions))
+            .Select(CurrentlyInsideResponse.Projection(db.Members, db.Lockers, db.Subscriptions, today))
             .ToListAsync(cancellationToken);
 
         var visitIds = items.Select(item => item.AttendanceId).ToList();

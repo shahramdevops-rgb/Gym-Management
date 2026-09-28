@@ -9,6 +9,7 @@ import {
   formatPhone,
   formatTime,
   gymToday,
+  isJalaliBirthday,
   isoYearsAgo,
   toIsoDate,
   toJalaliInput,
@@ -304,6 +305,49 @@ describe("toJalaliInput", () => {
     "toJalaliInput_NotAnIsoDate_ReturnsEmpty (%s)",
     (value) => {
       expect(toJalaliInput(value)).toBe("");
+    },
+  );
+});
+
+describe("isJalaliBirthday", () => {
+  // Born ۱۳۷۰/۰۵/۱۲.
+  const born = "1991-08-03";
+
+  it("isJalaliBirthday_SameJalaliMonthAndDay_ReturnsTrue", () => {
+    // ۱۴۰۵/۰۵/۱۲
+    expect(isJalaliBirthday(born, "2026-08-03")).toBe(true);
+  });
+
+  it("isJalaliBirthday_GregorianAnniversaryOnAnotherJalaliDay_FollowsTheJalaliDay", () => {
+    // 1403 began on 20 March 2024, a day earlier than usual, so ۱۴۰۳/۰۵/۱۲ is 2 August.
+    expect(isJalaliBirthday(born, "2024-08-02")).toBe(true);
+    expect(isJalaliBirthday(born, "2024-08-03")).toBe(false);
+  });
+
+  it("isJalaliBirthday_AnotherDay_ReturnsFalse", () => {
+    expect(isJalaliBirthday(born, "2026-08-04")).toBe(false);
+  });
+
+  it("isJalaliBirthday_BornOn30EsfandInACommonYear_ReturnsTrueOn29Esfand", () => {
+    // Born ۱۳۹۹/۱۲/۳۰. 1404 has no 30 Esfand; ۱۴۰۴/۱۲/۲۹ is 20 March 2026.
+    expect(isJalaliBirthday("2021-03-20", "2026-03-20")).toBe(true);
+  });
+
+  it("isJalaliBirthday_BornOn30EsfandInALeapYear_ReturnsTrueOn30EsfandOnly", () => {
+    // 1403 has a 30 Esfand: 20 March 2025. Its 29 Esfand, the day before, is not the birthday.
+    expect(isJalaliBirthday("2021-03-20", "2025-03-20")).toBe(true);
+    expect(isJalaliBirthday("2021-03-20", "2025-03-19")).toBe(false);
+  });
+
+  it("isJalaliBirthday_BornOn29Esfand_IsNotAlsoCelebratedOn30Esfand", () => {
+    // Born ۱۴۰۲/۱۲/۲۹ (19 March 2024); ۱۴۰۳/۱۲/۳۰ is 20 March 2025.
+    expect(isJalaliBirthday("2024-03-19", "2025-03-20")).toBe(false);
+  });
+
+  it.each([null, undefined, "", "not-a-date"])(
+    "isJalaliBirthday_NoBirthDate_ReturnsFalse (%s)",
+    (value) => {
+      expect(isJalaliBirthday(value, "2026-08-03")).toBe(false);
     },
   );
 });

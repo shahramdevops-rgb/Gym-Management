@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { useMoveLocker, type CurrentlyInside } from "@/features/attendance/api";
 import type { DeskAction } from "@/features/attendance/components/CheckInOutDialog";
-import { lowSessionsThreshold } from "@/features/attendance/components/CurrentlyInsideTable";
+import { lowSessionsThreshold } from "@/features/attendance/renewal";
 import { CloseButton, ConfirmButtons, LockerBox } from "@/features/attendance/components/deskParts";
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
 import { VisitCafeBox } from "@/features/cafe/components/VisitCafeBox";

@@ -1171,6 +1171,9 @@ export interface components {
             isSingleSession: boolean;
             serviceCharges: components["schemas"]["ServiceChargeResponse"][];
             cafeOrders: components["schemas"]["CafeOrderResponse"][];
+            /** Format: date */
+            memberBirthDate: null | string;
+            hasQueuedRenewal: boolean;
         };
         CurrentUserResponse: {
             /** Format: uuid */

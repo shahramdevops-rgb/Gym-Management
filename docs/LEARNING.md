@@ -1081,3 +1081,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **The request in flight is still protected.** Each dialog's `onOpenChange` ignores a close while its request is pending, so a click outside cannot cut off a check-in that is being saved.
 - **Test the tick the library waits.** Radix starts listening for outside presses one tick after the dialog mounts, so the test helper `clickOutsideDialog` waits that tick before pressing the backdrop; without it the press lands before anyone is listening.
 - **My notes:**
+
+---
+
+## 6.5.12 — The desk panel: birthdays and renewal opportunities
+
+- **An `EXISTS` inside a projection stays one query.** `HasQueuedRenewal` is `subscriptions.Any(...)` inside the `Select` expression, so EF Core writes it as `EXISTS (SELECT 1 ...)` in the same statement. Calling `GetStatus(today)` there would not translate, because it is C#. The condition therefore repeats the columns `GetStatus` reads (not cancelled, not frozen, starts after today), and the XML comment points at the method it mirrors, so the two are changed together.
+- **Pass "today" into an expression as a parameter.** `Projection(..., DateOnly today)` captures the value, and EF sends it as a SQL parameter. The database never decides what day it is: the gym's calendar does, through `IGymCalendar`.
+- **Business dates stay Gregorian; the calendar people celebrate is a display concern.** The API sends the stored birth date. The frontend matches it by Jalali month and day, where the Jalali code already lives. The Gregorian anniversary can drift by a day in years after a leap year, and a test pins that drift.
+- **One definition, two readers.** The "running out" thresholds moved from the board's component into `features/attendance/renewal.ts`, so the board and the panel cannot disagree about what "running out" means.
+- **A slot prop keeps a component ignorant of its neighbour.** `LockerMap` takes an `aside` it places at the end of the first zone, without knowing what it is. The move dialog's map passes nothing and is unchanged.
+- **Lift shared state to the closest common parent.** The hovered entry lives in `LockersPage`: the panel sets it, the map reads it. Neither child knows about the other.
+- **Logical margins follow the element's own direction.** `ms-auto` on a wrapper inside `dir="ltr"` is a left margin that pushes it right. Putting it on the panel itself, which is `dir="rtl"`, would have flipped it. `empty:hidden` removes the wrapper when the panel renders nothing, so it cannot wrap onto a blank line.
+- **My notes:**

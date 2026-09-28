@@ -32,6 +32,15 @@ namespace Gym.Application.Attendances.ListCurrentlyInside;
 /// What the member bought from the cafe during this visit and has not had cancelled
 /// (BUSINESS_RULES.md §8), attached by <c>VisitCafeOrders</c> the same way.
 /// </param>
+/// <param name="MemberBirthDate">
+/// For the desk panel's birthday list (BUSINESS_RULES.md §6 <i>The desk panel</i>). Sent as the
+/// stored Gregorian date; the frontend matches it against today by the Jalali month and day.
+/// </param>
+/// <param name="HasQueuedRenewal">
+/// The member has already bought the next subscription: one that is not cancelled, not frozen, not
+/// a single visit, and starts after today (§4 <c>Upcoming</c>). The desk panel leaves such a member
+/// out of its renewal list (§6 <i>The desk panel</i>); the board does not use it.
+/// </param>
 public sealed record CurrentlyInsideResponse(
     Guid AttendanceId,
     Guid MemberId,
@@ -47,7 +56,9 @@ public sealed record CurrentlyInsideResponse(
     DateOnly SubscriptionEndDate,
     bool IsSingleSession,
     IReadOnlyList<ServiceChargeResponse> ServiceCharges,
-    IReadOnlyList<CafeOrderResponse> CafeOrders)
+    IReadOnlyList<CafeOrderResponse> CafeOrders,
+    DateOnly? MemberBirthDate,
+    bool HasQueuedRenewal)
 {
     /// <summary>
     /// Correlates each open attendance to its member, locker and subscription in one query, the
@@ -60,9 +71,13 @@ public sealed record CurrentlyInsideResponse(
     /// is not usable today, so the badge would read "Active" on every row (BUSINESS_RULES.md §7,
     /// <i>The "currently inside" board</i>). What the desk needs is how close the subscription is
     /// to running out, which these four values answer.
+    ///
+    /// <c>HasQueuedRenewal</c> is <see cref="Subscription.GetStatus"/> returning <c>Upcoming</c>,
+    /// written as the columns it reads so it becomes an SQL <c>EXISTS</c> inside the same statement.
+    /// The check-in handler asks the same question in C# for its <c>NextStartsTomorrow</c> refusal.
     /// </remarks>
     public static Expression<Func<Attendance, CurrentlyInsideResponse>> Projection(
-        IQueryable<Member> members, IQueryable<Locker> lockers, IQueryable<Subscription> subscriptions) =>
+        IQueryable<Member> members, IQueryable<Locker> lockers, IQueryable<Subscription> subscriptions, DateOnly today) =>
         attendance => new CurrentlyInsideResponse(
             attendance.Id,
             attendance.MemberId,
@@ -78,5 +93,11 @@ public sealed record CurrentlyInsideResponse(
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.EndDate).First(),
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.IsSingleSession).First(),
             new List<ServiceChargeResponse>(),
-            new List<CafeOrderResponse>());
+            new List<CafeOrderResponse>(),
+            members.Where(m => m.Id == attendance.MemberId).Select(m => m.BirthDate).First(),
+            subscriptions.Any(s => s.MemberId == attendance.MemberId
+                && s.CancelledAt == null
+                && s.FrozenSince == null
+                && !s.IsSingleSession
+                && s.StartDate > today));
 }

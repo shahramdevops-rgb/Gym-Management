@@ -433,6 +433,35 @@ export function jalaliPartsOf(
 }
 
 /**
+ * Whether an ISO birth date is someone's birthday on the ISO date `today`, by the **Jalali** month
+ * and day, the day Iranians celebrate (BUSINESS_RULES.md §6 *The desk panel*). The Gregorian
+ * anniversary can fall a day off it: ۱۲ مرداد is 3 August in one year and 4 August in another.
+ *
+ * Someone born on 30 Esfand has no such day in a common year, and is celebrated on 29 Esfand.
+ */
+export function isJalaliBirthday(birthDate: string | null | undefined, today: string): boolean {
+  const born = jalaliPartsOf(birthDate);
+  const now = jalaliPartsOf(today);
+  if (born === null || now === null || born.month !== now.month) {
+    return false;
+  }
+
+  if (born.day === now.day) {
+    return true;
+  }
+
+  const lastDayOfYear = 30;
+  const esfand = 12;
+
+  return (
+    born.month === esfand &&
+    born.day === lastDayOfYear &&
+    now.day === lastDayOfYear - 1 &&
+    jalaliToIso(now.year, esfand, lastDayOfYear) === null
+  );
+}
+
+/**
  * An ISO business date as the text a Jalali date box shows: `1991-08-03` → `۱۳۷۰/۰۵/۱۲`.
  * Empty for anything that is not an ISO date, so a blank field stays blank.
  *

@@ -7,14 +7,7 @@ import { formatDate, formatDateTime, gymToday, toPersianDigits } from "@/lib/for
 import { cn } from "@/lib/utils";
 
 import type { CurrentlyInside } from "../api";
-
-/**
- * When the desk should mention renewing (BUSINESS_RULES.md §7, the "currently inside" board).
- * The same numbers Phase 10's SMS reminders are to be configured with, so the desk and the
- * member's text message do not disagree about what "running out" means.
- */
-export const lowSessionsThreshold = 3;
-export const expiringDaysThreshold = 5;
+import { daysUntil, expiringDaysThreshold, lowSessionsThreshold } from "../renewal";
 
 interface CurrentlyInsideTableProps {
   rows: CurrentlyInside[];
@@ -22,18 +15,6 @@ interface CurrentlyInsideTableProps {
   onCheckOut: (row: CurrentlyInside) => void;
   /** Opens the "cancel this check-in?" box. */
   onCancel: (row: CurrentlyInside) => void;
-}
-
-/**
- * Whole days from the gym's today until a subscription's last day; negative once it has passed.
- * Both dates are read at noon, so a daylight-saving shift cannot turn a day into 23 or 25 hours
- * and round the wrong way.
- */
-function daysUntil(endDate: string, today: string): number {
-  const end = new Date(`${endDate}T12:00:00Z`).getTime();
-  const start = new Date(`${today}T12:00:00Z`).getTime();
-
-  return Math.round((end - start) / 86_400_000);
 }
 
 /**
