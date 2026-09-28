@@ -1286,6 +1286,8 @@ export interface components {
              */
             debt: number | string;
             currentVisit?: null | components["schemas"]["MemberCurrentVisit"];
+            /** @default false */
+            isFrozen: boolean;
         };
         MoveLockerCommand: {
             /** Format: uuid */

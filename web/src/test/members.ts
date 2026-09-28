@@ -13,6 +13,7 @@ export const reza: Member = {
   createdAt: "2026-09-18T06:30:00Z",
   updatedAt: null,
   debt: 0,
+  isFrozen: false,
 };
 
 export const ali: Member = {
@@ -26,6 +27,7 @@ export const ali: Member = {
   createdAt: "2026-09-17T08:00:00Z",
   updatedAt: null,
   debt: 0,
+  isFrozen: false,
 };
 
 /** One page of GET /api/members. */

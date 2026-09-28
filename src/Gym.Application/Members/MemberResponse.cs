@@ -27,6 +27,11 @@ namespace Gym.Application.Members;
 /// locker to take back. Like <paramref name="Debt"/>, computed only by
 /// <see cref="ListMembers.ListMembersHandler"/>; every other path leaves it <c>null</c>.
 /// </param>
+/// <param name="IsFrozen">
+/// The member has a subscription that is frozen right now (BUSINESS_RULES.md §4 <i>Freeze</i>), so
+/// the list can say so next to the member's status. Like <paramref name="Debt"/>, computed only by
+/// <see cref="ListMembers.ListMembersHandler"/>; every other path leaves it <c>false</c>.
+/// </param>
 public sealed record MemberResponse(
     Guid Id,
     string FullName,
@@ -38,7 +43,8 @@ public sealed record MemberResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     decimal Debt = 0,
-    MemberCurrentVisit? CurrentVisit = null)
+    MemberCurrentVisit? CurrentVisit = null,
+    bool IsFrozen = false)
 {
     /// <summary>
     /// The same mapping as <see cref="From"/>, as an expression EF Core translates to SQL, so a

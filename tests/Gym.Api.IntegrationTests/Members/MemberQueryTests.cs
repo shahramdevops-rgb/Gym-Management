@@ -338,6 +338,56 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         (await SingleAsync(client, token, member.Id)).CurrentVisit.ShouldBeNull();
     }
 
+    // ---- Frozen (shown next to the member's status on the list) ----
+
+    [Fact]
+    public async Task ListMembers_MemberWithAFrozenSubscription_IsFrozen()
+    {
+        var (client, token) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var other = await CreateMemberAsync(client, token, "علی", "09351234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await SellSubscriptionAsync(client, token, other.Id, 900_000m);
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{sold.Id}/freeze");
+
+        (await SingleAsync(client, token, member.Id)).IsFrozen.ShouldBeTrue();
+        (await SingleAsync(client, token, other.Id)).IsFrozen.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_MemberUnfrozen_IsNotFrozen()
+    {
+        var (client, token) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{sold.Id}/freeze");
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{sold.Id}/unfreeze");
+
+        (await SingleAsync(client, token, member.Id)).IsFrozen.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_FrozenSubscriptionThenCancelled_IsNotFrozen()
+    {
+        // A cancelled subscription is Cancelled, not Frozen (Subscription.GetStatus), even though
+        // its FrozenSince is still set.
+        var (client, token) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{sold.Id}/freeze");
+        var cancelRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/subscriptions/{sold.Id}/cancel")
+        {
+            Content = JsonContent.Create(new { reason = "اشتباه ثبت شد" }),
+        };
+        using var cancelled = await ownerClient.SendAsync(cancelRequest.WithBearer(ownerToken), TestContext.Current.CancellationToken);
+        cancelled.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        (await SingleAsync(client, token, member.Id)).IsFrozen.ShouldBeFalse();
+    }
+
     // ---- Name search ----
 
     [Fact]
@@ -613,6 +663,12 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         return (await response.Content.ReadFromJsonAsync<PagedResponse<MemberResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static async Task PostOkAsync(HttpClient client, string token, string path)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Post, path);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, HttpMethod method, string path) =>

@@ -54,7 +54,11 @@ export function MembersTable({ members, deskActions }: MembersTableProps) {
                 <PhoneNumber value={member.phoneNumber} />
               </td>
               <td className="py-2">
-                <MemberStatusBadge isActive={member.isActive} />
+                <div className="flex flex-wrap items-center gap-1">
+                  <MemberStatusBadge isActive={member.isActive} />
+                  {/* Only the list fills isFrozen, so it is shown here, not in MemberStatusBadge. */}
+                  {member.isFrozen && <Badge variant="secondary">فریز</Badge>}
+                </div>
               </td>
               <td className="py-2">
                 <MemberDebt value={member.debt} />

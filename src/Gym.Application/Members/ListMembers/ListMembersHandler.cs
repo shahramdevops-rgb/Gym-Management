@@ -81,11 +81,22 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
             })
             .ToDictionaryAsync(row => row.MemberId, row => row.Visit, cancellationToken);
 
+        // The same test as Subscription.GetStatus's Frozen: frozen and not cancelled. No date is
+        // involved, since a freeze lasts until someone ends it.
+        var frozenMemberIds = await db.Subscriptions
+            .Where(subscription => pageIds.Contains(subscription.MemberId)
+                && subscription.FrozenSince != null
+                && subscription.CancelledAt == null)
+            .Select(subscription => subscription.MemberId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
         var items = pageMembers
             .Select(member => member with
             {
                 Debt = debtByMemberId.GetValueOrDefault(member.Id),
                 CurrentVisit = visitByMemberId.GetValueOrDefault(member.Id),
+                IsFrozen = frozenMemberIds.Contains(member.Id),
             })
             .ToList();
 
