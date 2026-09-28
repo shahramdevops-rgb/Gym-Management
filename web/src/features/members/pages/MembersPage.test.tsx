@@ -36,6 +36,22 @@ describe("MembersPage", () => {
     expect(within(aliRow).queryByText(/تومان/)).not.toBeInTheDocument();
   });
 
+  it("MembersPage_FrozenMember_ShowsFrozenNextToTheStatusOnlyOnTheirRow", async () => {
+    // BUSINESS_RULES.md §4 Freeze: a member whose subscription is frozen right now.
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([{ ...reza, isFrozen: true }, ali]),
+    });
+
+    renderApp("/members", { session: session() });
+
+    const frozenRow = (await screen.findByRole("link", { name: "رضا احمدی" })).closest("tr")!;
+    expect(within(frozenRow).getByText("فعال")).toBeInTheDocument();
+    expect(within(frozenRow).getByText("فریز")).toBeInTheDocument();
+    const aliRow = screen.getByRole("link", { name: "علی رضایی" }).closest("tr")!;
+    expect(within(aliRow).queryByText("فریز")).not.toBeInTheDocument();
+  });
+
   it("MembersPage_InactiveFilter_AsksOnlyForInactiveMembers", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),
