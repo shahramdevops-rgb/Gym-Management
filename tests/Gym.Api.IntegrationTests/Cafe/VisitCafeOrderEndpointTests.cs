@@ -8,10 +8,14 @@ using Gym.Application.Attendances;
 using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Cafe;
 using Gym.Application.Common.Paging;
+using Gym.Application.Members.GetMemberDebt;
+using Gym.Domain.Cafe;
 using Gym.Domain.Members;
+using Gym.Domain.Payments;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gym.Api.IntegrationTests.Cafe;
@@ -118,7 +122,112 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         page.Items.ShouldHaveSingleItem().Id.ShouldBe(duringVisit.Id);
     }
 
+    // ---- Cancelling the check-in (BUSINESS_RULES.md §7 Cancel check-in, roadmap 6.5.8) ----
+
+    [Fact]
+    public async Task CancelCheckIn_NoOrderTicked_LeavesTheOrdersOnTheAccount()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+
+        await PostOkAsync(client, token, CancelPath(visit.Id), CancelCheckInBody.KeepPurchases);
+
+        var stored = await StoredOrderAsync(order.Id);
+        stored.CancelledAt.ShouldBeNull();
+        var debt = await GetOkAsync<MemberDebtResponse>(client, token, $"/api/members/{visit.MemberId}/debt");
+        debt.Items.ShouldContain(item => item.Id == order.Id && item.Outstanding == 15_000m);
+    }
+
+    /// <summary>
+    /// Each order has its own tick: the ticked one is cancelled with the check-in's reason and its
+    /// money goes back the way it came; the other stays sold.
+    /// </summary>
+    [Fact]
+    public async Task CancelCheckIn_OneOrderTicked_CancelsOnlyThatOneAndRefundsIt()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var ticked = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        var kept = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        await PostOkAsync(client, token, $"{OrdersPath}/{ticked.Id}/payments", new { amount = 10_000m, method = "Card" });
+
+        await PostOkAsync(client, token, CancelPath(visit.Id), CancelCheckInBody.Cancel(voidCardio: false, ticked.Id));
+
+        var cancelled = await StoredOrderAsync(ticked.Id);
+        cancelled.CancelledAt.ShouldNotBeNull();
+        cancelled.CancelReason.ShouldBe("The check-in was cancelled.");
+        var refund = (await StoredPaymentsAsync(ticked.Id)).Single(p => p.Kind == PaymentKind.Refund);
+        refund.Amount.ShouldBe(10_000m);
+        refund.Method.ShouldBe(PaymentMethod.Card);
+
+        (await StoredOrderAsync(kept.Id)).CancelledAt.ShouldBeNull();
+    }
+
+    /// <summary>
+    /// An order that is not a standing order of this visit refuses the whole cancellation: the
+    /// visit stays open and nothing is cancelled, so nothing is half done.
+    /// </summary>
+    [Fact]
+    public async Task CancelCheckIn_OrderOfAnotherVisit_Returns422AndChangesNothing()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var own = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        var fromTheTill = await CreateOkAsync(client, token, visit.MemberId, attendanceId: null, water.Id);
+
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, CancelPath(visit.Id), CancelCheckInBody.Cancel(voidCardio: true, own.Id, fromTheTill.Id));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.CafeOrderNotOnVisit");
+        (await StoredOrderAsync(own.Id)).CancelledAt.ShouldBeNull();
+        var board = await GetOkAsync<PagedResponse<CurrentlyInsideResponse>>(
+            client, token, "/api/attendance/currently-inside");
+        board.Items.ShouldHaveSingleItem().AttendanceId.ShouldBe(visit.Id);
+    }
+
+    [Fact]
+    public async Task CancelCheckIn_OrderAlreadyCancelledAtTheTill_Returns422()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        var order = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        await PostOkAsync(client, token, $"{OrdersPath}/{order.Id}/cancel", new { reason = "اشتباه" });
+
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, CancelPath(visit.Id), CancelCheckInBody.Cancel(voidCardio: false, order.Id));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.CafeOrderNotOnVisit");
+    }
+
     // ---- Helpers ----
+
+    private static string CancelPath(Guid attendanceId) => $"/api/attendance/{attendanceId}/cancel";
+
+    private async Task<CafeOrder> StoredOrderAsync(Guid id)
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().CafeOrders
+            .AsNoTracking()
+            .SingleAsync(order => order.Id == id, TestContext.Current.CancellationToken);
+    }
+
+    private async Task<List<Payment>> StoredPaymentsAsync(Guid cafeOrderId)
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Payments
+            .AsNoTracking()
+            .Where(payment => payment.CafeOrderId == cafeOrderId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+    }
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {

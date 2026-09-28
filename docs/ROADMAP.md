@@ -911,17 +911,40 @@ single-session rules), but the web app no longer calls it.
 Done when: a walk-in with no plan is sold «۳۰ روز · ۱۲ جلسه» from the locker they clicked and is
 inside without the desk going back to the map; payment is collected later from that locker's box.
 
-### 6.5.8 Cancel check-in: ask before cancelling هوازی and cafe (PENDING)
-Asked by the Owner, 1405/07/06. Today cancel check-in always voids the visit's هوازی and never
-touches its cafe orders (BUSINESS_RULES.md §7 *Gym services*, §8). Agreed plan:
-- [ ] Nothing bought during the visit: only the 30-minute window is checked, then it is cancelled
-- [ ] هوازی or cafe on the visit: the box lists them with their amounts and asks whether they are
-      cancelled too. "No" cancels the visit only and leaves them on the member's account. "Yes"
-      asks a second time, then voids the هوازی and cancels the cafe orders, refunding what was paid
-      the way it came
-- [ ] The request carries the choice; the server does not guess
-- [ ] Open question for the developer: one question for both, or one each for هوازی and cafe
-- [ ] BUSINESS_RULES.md §7 and §8 rewritten first; integration tests for both choices
+### 6.5.8 Cancel check-in: ask before cancelling هوازی and cafe
+Asked by the Owner, 1405/07/06. Before this, cancel check-in always voided the visit's هوازی and
+never touched its cafe orders (BUSINESS_RULES.md §7 *Gym services*, §8). Now the desk decides, one
+purchase at a time. BUSINESS_RULES.md §7 *Cancel check-in*.
+- [x] Nothing bought during the visit: one question, as before, then it is cancelled
+- [x] هوازی or cafe on the visit: the box lists the هوازی and **each cafe order with its own
+      tick** (the developer's answer to the open question: one per purchase, not one for both),
+      with its amount and what was paid, all unticked. Unticked stays on the member's account.
+      With anything ticked, a second question names what goes and tells the desk, briefly: hand
+      back what you collected for it; nothing collected, nothing to do (plus the recorded figure
+      when there is one). "بازگشت" returns to the ticks
+- [x] **API.** `CancelCheckInCommand(bool? VoidCardio, Guid[]? CafeOrderIds)`, both required
+      (`Attendance.CancelChoiceRequired`, 400); an order that is not a standing order of the visit
+      refuses the whole cancellation (`Attendance.CafeOrderNotOnVisit`, 422). The handler voids
+      and cancels in the check-in's transaction; the refund of a cafe order moved into
+      `CafeOrderRefunder`, shared with cancelling at the till
+- [x] **Web.** `CancelCheckInConfirm` reads the visit's purchases from the "inside" list, so the
+      locker map, the board and the profile ask the same way; `useCancelCheckIn` sends the choice
+      and refreshes debt, payments and cafe. `npm run gen:api`
+- [x] BUSINESS_RULES.md §7 and §8 rewritten first
+- [x] Tests (integration): هوازی ticked → voided and refunded; unticked → still owed; one order of
+      two ticked → only it cancelled, card refund as card; an order of another visit or already
+      cancelled → 422 and nothing changed; choice missing or an order named twice → 400; هوازی
+      ticked with none → fine. Every existing cancel call now sends "keep everything"
+- [x] Tests (frontend): nothing bought → no ticks, one question; each purchase its own unticked
+      box; nothing ticked → no second question; ticks → second question with the refund reminder
+      and only the ticked ones sent; "بازگشت" keeps the ticks; a refusal shown in Persian
+
+Done when: a member who took a drink and used the treadmill is cancelled with only the treadmill
+ticked; the desk is told to hand back what was collected for it, and the drink stays on the account.
+
+Built (2026-09-28). Found while building: an API left running from an earlier session held the old
+build on :5134, which would also have fed `gen:api` the old endpoint. Done: 389 domain, 809
+integration and 540 frontend tests pass, zero warnings, lint and typecheck clean.
 
 ### 6.5.9 A frozen member who comes in is unfrozen (PENDING)
 Asked by the Owner, 1405/07/06. Replaces "a frozen member is sold a single visit and the freeze is

@@ -68,6 +68,24 @@ public static class AttendanceErrors
         "Attendance.SaleInvalid",
         "A sale at check-in is a single visit with no days or sessions, or a plan with both.");
 
+    /// <summary>
+    /// BUSINESS_RULES.md §7 <i>Cancel check-in</i>: the request must say what happens to the
+    /// visit's purchases — the هوازی and which cafe orders — because the server does not guess.
+    /// A client mistake, never something the desk can cause from the box.
+    /// </summary>
+    public static readonly Error CancelChoiceRequired = Error.Validation(
+        "Attendance.CancelChoiceRequired",
+        "Say whether the visit's cardio is voided and which of its cafe orders are cancelled.");
+
+    /// <summary>
+    /// BUSINESS_RULES.md §7 <i>Cancel check-in</i>: a cafe order named for cancelling is not a
+    /// standing order of this visit (another visit's, or cancelled since the box was opened).
+    /// The whole cancellation is refused so nothing is half done.
+    /// </summary>
+    public static readonly Error CafeOrderNotOnVisit = Error.BusinessRule(
+        "Attendance.CafeOrderNotOnVisit",
+        "A cafe order to cancel is not a standing order of this visit.");
+
     /// <summary>The member history filter (BUSINESS_RULES.md §12: date ranges are inclusive).</summary>
     public static readonly Error InvalidDateRange = Error.Validation(
         "Attendance.InvalidDateRange",

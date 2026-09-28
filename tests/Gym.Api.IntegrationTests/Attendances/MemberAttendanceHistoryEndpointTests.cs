@@ -66,7 +66,7 @@ public sealed class MemberAttendanceHistoryEndpointTests(DatabaseFixture fixture
         var plan = await AddPlanAsync();
         await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
-        await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{attendance.Id}/cancel");
+        await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{attendance.Id}/cancel", CancelCheckInBody.KeepPurchases);
 
         using var response = await HistoryAsync(staffClient, staffToken, member.Id);
 

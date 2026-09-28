@@ -303,18 +303,19 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
     // ---- Cancelling the check-in ----
 
     /// <summary>
-    /// BUSINESS_RULES.md §7: money for a visit that never happened is not owed, so cancelling the
-    /// check-in voids the visit's charges — and refunds whatever had been collected for them.
+    /// BUSINESS_RULES.md §7 <i>Cancel check-in</i>: a هوازی the desk ticks is voided with the
+    /// check-in, and whatever had been collected for it is refunded.
     /// </summary>
     [Fact]
-    public async Task CancelCheckIn_WithAPaidCharge_VoidsItAndRefundsTheMoney()
+    public async Task CancelCheckIn_CardioTicked_VoidsItAndRefundsTheMoney()
     {
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
         var charge = await RecordOkAsync(client, token, visit.Id, 10_000m);
         await PayChargeOkAsync(client, token, charge.Id, 10_000m);
 
-        using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/cancel");
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/cancel", CancelCheckInBody.Cancel(voidCardio: true));
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await ReadAttendanceAsync(response)).ServiceCharges.ShouldBeEmpty();
@@ -326,6 +327,30 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         var payments = await StoredPaymentsAsync(charge.Id);
         payments.Count(p => p.Kind == PaymentKind.Refund).ShouldBe(1);
         payments.Sum(p => p.Kind == PaymentKind.Payment ? p.Amount : -p.Amount).ShouldBe(0m);
+    }
+
+    /// <summary>
+    /// Left unticked, the treadmill was used and is still owed (roadmap 6.5.8): the charge stays
+    /// on the cancelled visit and in the member's debt, and nothing is refunded.
+    /// </summary>
+    [Fact]
+    public async Task CancelCheckIn_CardioUnticked_LeavesItOwed()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        var charge = await RecordOkAsync(client, token, visit.Id, 10_000m);
+        await PayChargeOkAsync(client, token, charge.Id, 4_000m);
+
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/cancel", CancelCheckInBody.KeepPurchases);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await ReadAttendanceAsync(response)).ServiceCharges.ShouldHaveSingleItem().Id.ShouldBe(charge.Id);
+        (await StoredChargeAsync(charge.Id)).VoidedAt.ShouldBeNull();
+        (await StoredPaymentsAsync(charge.Id)).ShouldNotContain(p => p.Kind == PaymentKind.Refund);
+
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        debt.Items.Single(i => i.Kind == PaymentTargetKind.ServiceCharge).Outstanding.ShouldBe(6_000m);
     }
 
     // ---- Paying for it ----
@@ -572,7 +597,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
 
     private static async Task CancelCheckInOkAsync(HttpClient client, string token, Guid attendanceId)
     {
-        using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel");
+        using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel", CancelCheckInBody.KeepPurchases);
         response.EnsureSuccessStatusCode();
     }
 

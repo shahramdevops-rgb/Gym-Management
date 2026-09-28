@@ -292,7 +292,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
         var sold = await AssignOkAsync(staffClient, staffToken, member.Id, plan);
         var attendanceId = await CheckInOkAsync(staffClient, staffToken, member.Id);
         using var cancelledCheckIn = await SendAsync(
-            staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel");
+            staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel", CancelCheckInBody.KeepPurchases);
         cancelledCheckIn.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         using var response = await CancelAsync(ownerClient, ownerToken, sold.Id, "انصراف عضو");

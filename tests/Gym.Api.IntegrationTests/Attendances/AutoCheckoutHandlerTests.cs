@@ -222,7 +222,7 @@ public sealed class AutoCheckoutHandlerTests(DatabaseFixture fixture) : Database
 
     private static async Task<AttendanceResponse> CancelOkAsync(HttpClient client, string token, Guid attendanceId)
     {
-        using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel");
+        using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel", CancelCheckInBody.KeepPurchases);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         return await ReadAsync(response);

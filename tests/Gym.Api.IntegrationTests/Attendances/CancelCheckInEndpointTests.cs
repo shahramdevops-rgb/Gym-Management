@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
@@ -118,6 +119,69 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
             $"/api/attendance/{Guid.CreateVersion7()}/cancel", null, TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    // ---- The desk's choice for the visit's purchases (roadmap 6.5.8) ----
+
+    /// <summary>
+    /// BUSINESS_RULES.md §7 <i>Cancel check-in</i>: the server does not guess, so a request that
+    /// does not say what happens to the purchases is refused, and the visit stays open.
+    /// </summary>
+    [Fact]
+    public async Task Cancel_WithoutTheCafeChoice_Returns400AndKeepsTheVisit()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
+        var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await CancelAsync(staffClient, staffToken, attendance.Id, new { voidCardio = false });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await FieldErrorCodeAsync(response, "cafeOrderIds")).ShouldBe("Attendance.CancelChoiceRequired");
+        (await StoredSubscriptionAsync(member.Id)).UsedSessions.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Cancel_WithoutTheCardioChoice_Returns400()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+
+        using var response = await CancelAsync(
+            staffClient, staffToken, Guid.CreateVersion7(), new { cafeOrderIds = Array.Empty<Guid>() });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await FieldErrorCodeAsync(response, "voidCardio")).ShouldBe("Attendance.CancelChoiceRequired");
+    }
+
+    [Fact]
+    public async Task Cancel_SameOrderNamedTwice_Returns400()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var orderId = Guid.CreateVersion7();
+
+        using var response = await CancelAsync(
+            staffClient, staffToken, Guid.CreateVersion7(), CancelCheckInBody.Cancel(voidCardio: false, orderId, orderId));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await FieldErrorCodeAsync(response, "cafeOrderIds")).ShouldBe("Attendance.CancelChoiceRequired");
+    }
+
+    /// <summary>A visit that bought nothing: ticking هوازی simply has nothing to void.</summary>
+    [Fact]
+    public async Task Cancel_CardioTickedOnAVisitWithoutOne_Succeeds()
+    {
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var plan = await AddPlanAsync();
+        await AssignOkAsync(staffClient, staffToken, member.Id, plan);
+        var attendance = await CheckInOkAsync(staffClient, staffToken, member.Id);
+
+        using var response = await CancelAsync(staffClient, staffToken, attendance.Id, CancelCheckInBody.Cancel(voidCardio: true));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await ReadAsync(response)).ServiceCharges.ShouldBeEmpty();
     }
 
     // ---- Database constraints ----
@@ -270,8 +334,15 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
         return await ReadAsync(response);
     }
 
-    private static Task<HttpResponseMessage> CancelAsync(HttpClient client, string token, Guid attendanceId) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel");
+    private static Task<HttpResponseMessage> CancelAsync(HttpClient client, string token, Guid attendanceId, object? body = null) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendanceId}/cancel", body ?? CancelCheckInBody.KeepPurchases);
+
+    private static async Task<string?> FieldErrorCodeAsync(HttpResponseMessage response, string field)
+    {
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        return body.RootElement.GetProperty("errors").GetProperty(field)[0].GetProperty("code").GetString();
+    }
 
     private static async Task<AttendanceResponse> ReadAsync(HttpResponseMessage response) =>
         (await response.Content.ReadFromJsonAsync<AttendanceResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();

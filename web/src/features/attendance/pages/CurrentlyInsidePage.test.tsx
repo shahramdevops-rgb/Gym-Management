@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import { cardioCharge, currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
+import { orderOnAccount, water } from "@/test/cafe";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { cafeDebtItem, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
 import { confirmMoneyReceived, pickMethod } from "@/test/payments";
@@ -368,13 +369,177 @@ describe("CurrentlyInsidePage", () => {
     });
 
     renderApp("/attendance", { session: session() });
-    fireEvent.click(await screen.findByRole("button", { name: "لغو ورود" }));
-    const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود لغو شود" }));
+    const dialog = await openCancelBox();
+    // Nothing bought: one question, as before 6.5.8, and nothing to tick.
+    expect(within(dialog).queryByRole("checkbox")).not.toBeInTheDocument();
+    fireEvent.click(await confirmCancelButton(dialog));
 
     expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
     expect(dialog).toHaveTextContent("جلسه به اشتراک بازگشت");
-    expect(api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`)).toHaveLength(1);
+    const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
+    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [] });
+  });
+
+  // ---- Cancel check-in with purchases (BUSINESS_RULES.md §7 Cancel check-in, roadmap 6.5.8) ----
+
+  const visitCafeOrder = {
+    ...orderOnAccount,
+    id: "0199a000-0000-7000-8000-0000000000c1",
+    attendanceId: openVisit(reza.id).id,
+  };
+  const secondCafeOrder = {
+    ...visitCafeOrder,
+    id: "0199a000-0000-7000-8000-0000000000c2",
+    totalAmount: 25000,
+    netPaid: 25000,
+    items: [
+      {
+        id: "0199a000-0000-7000-8000-0000000001c2",
+        productId: water.id,
+        productName: water.name,
+        unitPrice: 25000,
+        quantity: 1,
+        lineTotal: 25000,
+      },
+    ],
+  };
+
+  /** A visit with هوازی (10,000, 4,000 of it paid) and two cafe orders. */
+  function visitWithPurchases() {
+    const visit = openVisit(reza.id);
+    const charged = { ...visit, serviceCharges: [cardioCharge(visit, { netPaid: 4000 })] };
+    return {
+      visit,
+      row: insideRow(reza.fullName, charged, { cafeOrders: [visitCafeOrder, secondCafeOrder] }),
+    };
+  }
+
+  async function openCancelBox() {
+    fireEvent.click(await screen.findByRole("button", { name: "لغو ورود" }));
+    return screen.findByRole("dialog");
+  }
+
+  /** The first question's button, once the visit's purchases have loaded. */
+  async function confirmCancelButton(dialog: HTMLElement) {
+    const confirm = within(dialog).getByRole("button", { name: "بله، ورود لغو شود" });
+    await waitFor(() => expect(confirm).toBeEnabled());
+    return confirm;
+  }
+
+  it("Board_CancelWithPurchases_ListsEachWithItsOwnUntickedBox", async () => {
+    const { row } = visitWithPurchases();
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () => currentlyInsidePage([row]),
+    });
+
+    renderApp("/attendance", { session: session() });
+    const dialog = await openCancelBox();
+
+    const purchases = await within(dialog).findByRole("region", { name: "خریدهای این مراجعه" });
+    const boxes = within(purchases).getAllByRole("checkbox");
+    expect(boxes).toHaveLength(3);
+    boxes.forEach((box) => expect(box).not.toBeChecked());
+    expect(within(purchases).getByLabelText(/هوازی/)).toBeInTheDocument();
+    expect(within(purchases).getByLabelText(/شیک پروتئین × ۱/)).toBeInTheDocument();
+    expect(within(purchases).getByLabelText(/آب معدنی × ۱/)).toBeInTheDocument();
+    expect(purchases).toHaveTextContent("پرداخت‌شده ۴٬۰۰۰ تومان");
+  });
+
+  it("Board_CancelWithNothingTicked_KeepsThePurchasesWithoutASecondQuestion", async () => {
+    const { visit, row } = visitWithPurchases();
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () => currentlyInsidePage([row]),
+      [`POST /api/attendance/${visit.id}/cancel`]: () =>
+        json(200, { ...visit, checkedOutAt: "2026-09-18T07:05:00Z", cancelledAt: "2026-09-18T07:05:00Z" }),
+    });
+
+    renderApp("/attendance", { session: session() });
+    const dialog = await openCancelBox();
+    await within(dialog).findByRole("region", { name: "خریدهای این مراجعه" });
+    fireEvent.click(await confirmCancelButton(dialog));
+
+    expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
+    const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
+    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [] });
+  });
+
+  it("Board_CancelWithTicks_AsksAgainAndSendsOnlyTheTickedOnes", async () => {
+    const { visit, row } = visitWithPurchases();
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () => currentlyInsidePage([row]),
+      [`POST /api/attendance/${visit.id}/cancel`]: () =>
+        json(200, { ...visit, checkedOutAt: "2026-09-18T07:05:00Z", cancelledAt: "2026-09-18T07:05:00Z" }),
+    });
+
+    renderApp("/attendance", { session: session() });
+    const dialog = await openCancelBox();
+    fireEvent.click(await within(dialog).findByLabelText(/هوازی/));
+    fireEvent.click(within(dialog).getByLabelText(/آب معدنی × ۱/));
+    fireEvent.click(await confirmCancelButton(dialog));
+
+    // The second question: what goes, and the reminder about money already collected.
+    const cancelling = await within(dialog).findByRole("list", { name: "خریدهای لغوشونده" });
+    expect(within(cancelling).getAllByRole("listitem")).toHaveLength(2);
+    expect(cancelling).not.toHaveTextContent("شیک پروتئین");
+    expect(dialog).toHaveTextContent(
+      "اگر وجه این موارد را دریافت کرده‌اید، آن را به عضو بازگردانید؛ اگر دریافت نشده، اقدامی لازم نیست.",
+    );
+    // 4,000 on the هوازی and 25,000 on the water.
+    expect(dialog).toHaveTextContent("طبق ثبت سیستم ۲۹٬۰۰۰ تومان دریافت شده است");
+    expect(api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`)).toHaveLength(0);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود و این موارد لغو شوند" }));
+
+    expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
+    expect(dialog).toHaveTextContent("خریدهای انتخاب‌شده هم لغو شد.");
+    const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
+    expect(await request.json()).toEqual({ voidCardio: true, cafeOrderIds: [secondCafeOrder.id] });
+  });
+
+  it("Board_CancelSecondQuestion_BackKeepsTheTicksAndSendsNothing", async () => {
+    const { visit, row } = visitWithPurchases();
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () => currentlyInsidePage([row]),
+    });
+
+    renderApp("/attendance", { session: session() });
+    const dialog = await openCancelBox();
+    fireEvent.click(await within(dialog).findByLabelText(/شیک پروتئین × ۱/));
+    fireEvent.click(await confirmCancelButton(dialog));
+    // Nothing was paid on the shake, so there is no figure to hand back.
+    expect(await within(dialog).findByText(/اگر وجه این موارد را دریافت کرده‌اید/)).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent("طبق ثبت سیستم");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "بازگشت" }));
+
+    expect(await within(dialog).findByLabelText(/شیک پروتئین × ۱/)).toBeChecked();
+    expect(api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`)).toHaveLength(0);
+  });
+
+  it("Board_CancelRefusedForAChangedOrder_ShowsThePersianReason", async () => {
+    const { visit, row } = visitWithPurchases();
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () => currentlyInsidePage([row]),
+      [`POST /api/attendance/${visit.id}/cancel`]: () =>
+        problem(422, "Attendance.CafeOrderNotOnVisit"),
+    });
+
+    renderApp("/attendance", { session: session() });
+    const dialog = await openCancelBox();
+    fireEvent.click(await within(dialog).findByLabelText(/آب معدنی × ۱/));
+    fireEvent.click(await confirmCancelButton(dialog));
+    fireEvent.click(
+      await within(dialog).findByRole("button", { name: "بله، ورود و این موارد لغو شوند" }),
+    );
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "یکی از خریدهای بوفه در این فاصله تغییر کرده است.",
+    );
   });
 
   it("Board_CheckOutFails_ShowsThePersianReason", async () => {

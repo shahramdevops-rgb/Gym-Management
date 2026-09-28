@@ -1065,6 +1065,10 @@ export interface components {
         CancelCafeOrderCommand: {
             reason: string;
         };
+        CancelCheckInCommand: {
+            voidCardio: null | boolean;
+            cafeOrderIds: null | string[];
+        };
         CancelSubscriptionCommand: {
             reason: string;
         };
@@ -4011,7 +4015,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelCheckInCommand"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -4020,6 +4028,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */

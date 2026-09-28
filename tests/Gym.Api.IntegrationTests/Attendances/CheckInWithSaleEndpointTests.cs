@@ -187,7 +187,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         using var checkIn = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(days: 30, sessions: 12));
         var attendance = await ReadAsync(checkIn);
 
-        using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendance.Id}/cancel");
+        using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendance.Id}/cancel", CancelCheckInBody.KeepPurchases);
 
         // The only way a plan sold at the locker ends up without a visit: the visit is undone, the
         // plan stays for next time.

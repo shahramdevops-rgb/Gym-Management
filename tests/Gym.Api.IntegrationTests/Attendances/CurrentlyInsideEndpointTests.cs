@@ -99,7 +99,7 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         var cancelledMember = await AddMemberAsync("مریم کریمی");
         await AssignOkAsync(staffClient, staffToken, cancelledMember.Id, plan);
         var cancelledAttendance = await CheckInOkAsync(staffClient, staffToken, cancelledMember.Id);
-        await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{cancelledAttendance.Id}/cancel");
+        await SendAsync(staffClient, staffToken, HttpMethod.Post, $"/api/attendance/{cancelledAttendance.Id}/cancel", CancelCheckInBody.KeepPurchases);
 
         var stillInsideMember = await AddMemberAsync("حسین قاسمی");
         await AssignOkAsync(staffClient, staffToken, stillInsideMember.Id, plan);

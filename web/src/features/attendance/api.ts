@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { lockerKeys } from "@/features/lockers/api";
 import { memberKeys } from "@/features/members/api";
+import { paymentKeys } from "@/features/payments/api";
 import { subscriptionKeys } from "@/features/subscriptions/api";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
@@ -190,19 +191,40 @@ export function useMoveLocker() {
   });
 }
 
+/** What the desk ticked in the cancel box: the visit's هوازی, and each cafe order on its own. */
+export interface CancelCheckInChoice {
+  attendanceId: string;
+  voidCardio: boolean;
+  cafeOrderIds: string[];
+}
+
+/**
+ * Cancels a check-in, and with it the purchases the desk ticked (BUSINESS_RULES.md §7 *Cancel
+ * check-in*, roadmap 6.5.8). The choice is always sent in full: the API refuses a request without
+ * it rather than guess.
+ */
 export function useCancelCheckIn() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (attendanceId: string) => {
+    mutationFn: async ({ attendanceId, voidCardio, cafeOrderIds }: CancelCheckInChoice) => {
       const { data, error } = await api.POST("/api/attendance/{id}/cancel", {
         params: { path: { id: attendanceId } },
+        body: { voidCardio, cafeOrderIds },
       });
       if (error !== undefined) {
         throw error;
       }
       return data;
     },
-    onSuccess: () => invalidateAttendance(queryClient),
+    onSuccess: () =>
+      Promise.all([
+        invalidateAttendance(queryClient),
+        // A cancelled purchase leaves the member's debt and may write refunds.
+        queryClient.invalidateQueries({ queryKey: memberKeys.all }),
+        queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
+        // `cafeKeys.all`, spelled out: the cafe's api module imports this one.
+        queryClient.invalidateQueries({ queryKey: ["cafe"] }),
+      ]),
   });
 }
