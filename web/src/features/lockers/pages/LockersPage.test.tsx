@@ -84,12 +84,18 @@ describe("LockersPage", () => {
     expect(within(outside).getAllByRole("button", { name: /^کمد / })).toHaveLength(30);
     expect(within(inside).getAllByRole("button", { name: /^کمد / })).toHaveLength(42);
 
-    expect(await door("۱")).toHaveAttribute("data-state", "free");
+    const free = await door("۱");
+    expect(free).toHaveAttribute("data-state", "free");
+    expect(free).toHaveTextContent(/^۱$/);
     const held = await door("۲");
     expect(held).toHaveAttribute("data-state", "occupied");
-    // The holder's name, on hover and for a screen reader.
+    // The holder's name, written on the door, on hover, and for a screen reader.
+    expect(held).toHaveTextContent("رضا احمدی");
     expect(held).toHaveAttribute("title", "رضا احمدی");
     expect(held).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی");
+    // The zone names are for a screen reader only; the drawing says where a locker is.
+    expect(screen.queryByText("بیرون رختکن")).not.toBeInTheDocument();
+    expect(screen.queryByText("داخل رختکن")).not.toBeInTheDocument();
     expect(await door("۳")).toHaveAttribute("data-state", "outOfService");
 
     const legend = screen.getByRole("list", { name: "راهنمای کمدها" });

@@ -1011,3 +1011,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **Warn with data the screen already fetches.** The confirm step warns about a frozen plan using `useCurrentSubscription`, the query the profile card uses. It already puts a plan usable today ahead of a frozen one, the same order as the server, so a member holding a single visit is not warned. It is only a warning: the result box reports what the server actually did.
 - **Generated integer types are `number | string`.** The OpenAPI document allows an integer as a string, so the TypeScript type is `null | number | string`. The screen wraps it in `Number()` before formatting it, the same as `totalCount`.
 - **My notes:**
+
+---
+
+## 6.5.5 (follow-up) — Bigger locker doors with the holder's name
+
+- **Size from the container, not the content.** Each door's width is `clamp(min, (map width − frames) / 14, max)`, set once as the CSS variable `--door` on the map. Nothing inside a door feeds into that number, so a long name can never make one door bigger than its neighbours.
+- **Container query units (`cqw`).** `100cqw` is the width of the nearest ancestor marked `@container`, here the map itself. Unlike `vw`, it follows the card, so the same map fits the full page and the narrower "move to another locker" dialog.
+- **Container queries inside the door.** The door's inner box is its own container. The name appears only when that box is at least 4.5rem wide (`@min-[4.5rem]:`), so small doors show just the number instead of a squashed name.
+- **Clamp text instead of growing the box.** `line-clamp-2` with `break-words` cuts a long name to two lines with an ellipsis; the full name stays in the tooltip and the screen-reader label.
+- **Remove visible text, keep the meaning.** The zone headings are gone from the screen, but each zone keeps its `aria-label`, so a screen reader and the tests still know "inside" from "outside".
+- **My notes:**
