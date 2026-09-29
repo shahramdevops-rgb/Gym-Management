@@ -324,6 +324,30 @@ export function formatTime(value: string | null | undefined): string {
   return date === null ? emptyValue : timeFormatter.format(date);
 }
 
+const longDateFormatter = new Intl.DateTimeFormat(locale, {
+  calendar: "persian",
+  timeZone: gymTimeZone,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+/**
+ * A moment as the day it falls on in the gym, written out: «سه‌شنبه ۷ مهر ۱۴۰۵». For the clock in
+ * the side menu, where there is room to say the day in words.
+ *
+ * Put together from its parts: ICU builds differ on the order and the comma they use for this
+ * style (Node writes «۱۴۰۵ مهر ۷, سه‌شنبه»), and the order a Persian reader expects is fixed.
+ */
+export function formatLongDate(moment: Date): string {
+  const parts = longDateFormatter.formatToParts(moment);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((piece) => piece.type === type)?.value ?? "";
+
+  return `${part("weekday")} ${part("day")} ${part("month")} ${part("year")}`;
+}
+
 /**
  * A stored E.164 Iranian mobile (`+989121234567`) the way people write it: `۰۹۱۲ ۱۲۳ ۴۵۶۷`.
  * Anything else is shown as it is, with Persian digits.

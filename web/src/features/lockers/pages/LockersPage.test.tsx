@@ -117,10 +117,12 @@ describe("LockersPage", () => {
     expect(held).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی");
     expect(await door("۳")).toHaveAttribute("data-state", "outOfService");
 
-    const legend = screen.getByRole("list", { name: "راهنمای کمدها" });
-    expect(legend).toHaveTextContent("آزاد: ۷۰");
-    expect(legend).toHaveTextContent("اشغال: ۱");
-    expect(legend).toHaveTextContent("خارج از سرویس: ۱");
+    // The counts above the map, and how full the lockers in service are (§6 *The desk screen's look*).
+    const stats = screen.getByRole("region", { name: "وضعیت کمدها" });
+    const legend = within(stats).getByRole("list", { name: "راهنمای کمدها" });
+    expect(legend).toHaveTextContent("۷۰ آزاد");
+    expect(legend).toHaveTextContent("۱ اشغال");
+    expect(legend).toHaveTextContent("۱ خارج از سرویس");
   });
 
   it("Map_HolderOwesMoney_MarksTheirDoorDebtorAndNoOtherDoor", async () => {
@@ -141,9 +143,11 @@ describe("LockersPage", () => {
     expect(owing).toHaveAttribute("title", `${ali.fullName}، بدهکار`);
     expect(owing).toHaveAccessibleName(`کمد ۶۷، اشغال — ${ali.fullName}، بدهکار`);
 
-    // A holder who owes nothing, and a free door, carry no label.
+    // A holder who owes nothing, and a free door, carry no label. (The legend above the map
+    // shows the tag once more, to say what it means.)
     expect(await door("۲")).not.toHaveTextContent("بدهکار");
-    expect(screen.getAllByText("بدهکار")).toHaveLength(1);
+    const doors = screen.getAllByRole("button", { name: /^کمد / });
+    expect(doors.filter((element) => element.textContent?.includes("بدهکار"))).toHaveLength(1);
   });
 
   it("Map_Cabinets_RunDownAColumnThenOnToTheNext", async () => {
@@ -158,6 +162,150 @@ describe("LockersPage", () => {
     expect(numbers).toEqual(["۱", "۲", "۳", "۴", "۵", "۶"]);
     // Left to right like the wall, though the page is right-to-left.
     expect(cabinet.closest("[dir='ltr']")).not.toBeNull();
+  });
+
+  // ---- The look: dark, and alive (BUSINESS_RULES.md §6 *The desk screen's look*) ----
+
+  it("Look_ScreenOpen_TurnsTheAppDarkUntilItCloses", async () => {
+    mockApi(mapHandlers());
+    const { unmount } = renderMap();
+
+    await door("۱");
+    // On <html>, so the boxes the screen opens (dialogs, in a portal) are dark too.
+    expect(document.documentElement).toHaveClass("dark");
+
+    unmount();
+
+    expect(document.documentElement).not.toHaveClass("dark");
+  });
+
+  it("Look_RefreshChangesADoor_PulsesThatDoorOnly", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let refreshes = 0;
+      mockApi(
+        mapHandlers(allLockers(), [], {
+          "GET /api/lockers": () =>
+            lockersPage(
+              refreshes++ === 0 ? allLockers() : allLockers(heldLocker(5, reza.id, reza.fullName)),
+            ),
+        }),
+      );
+      renderMap();
+
+      // The first drawing changes nothing: every door is new to the eye then.
+      expect(await door("۵")).not.toHaveAttribute("data-changed");
+
+      await act(() => vi.advanceTimersByTimeAsync(15_000));
+
+      await waitFor(async () => expect(await door("۵")).toHaveAttribute("data-state", "occupied"));
+      expect(await door("۵")).toHaveAttribute("data-changed", "true");
+      expect(await door("۶")).not.toHaveAttribute("data-changed");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // ---- Finding a member on the map (BUSINESS_RULES.md §6) ----
+
+  describe("NameSearch", () => {
+    function searchMap(text: string) {
+      fireEvent.change(screen.getByRole("searchbox", { name: "جستجوی نام در نقشه" }), {
+        target: { value: text },
+      });
+    }
+
+    function twoHolders() {
+      return mapHandlers(
+        allLockers(heldLocker(2, reza.id, reza.fullName), heldLocker(67, ali.id, ali.fullName)),
+      );
+    }
+
+    it("NameSearch_PartOfAName_LiftsThatDoorAndFadesEveryOther", async () => {
+      mockApi(twoHolders());
+      renderMap();
+      await door("۲");
+
+      searchMap("احمد");
+
+      expect(await door("۲")).toHaveAttribute("data-found", "true");
+      expect(await door("۶۷")).toHaveAttribute("data-found", "false");
+      expect(await door("۱")).toHaveAttribute("data-found", "false");
+      expect(screen.getByText("۱ نفر پیدا شد")).toBeInTheDocument();
+      // On the legend's row, not in the page's header.
+      expect(
+        within(screen.getByRole("region", { name: "وضعیت کمدها" })).getByRole("searchbox"),
+      ).toBeInTheDocument();
+      // A way to find someone, not a filter: a faded door still opens its box.
+      fireEvent.click(await door("۱"));
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    });
+
+    it("NameSearch_ArabicLetters_FindThePersianName", async () => {
+      mockApi(twoHolders());
+      renderMap();
+      await door("۲");
+
+      // «علي» with an Arabic ye finds «علی رضایی» (§13).
+      searchMap("علي");
+
+      expect(await door("۶۷")).toHaveAttribute("data-found", "true");
+      expect(await door("۲")).toHaveAttribute("data-found", "false");
+    });
+
+    it("NameSearch_ALockerNumber_FindsNobody", async () => {
+      mockApi(twoHolders());
+      renderMap();
+      await door("۲");
+
+      searchMap("۶۷");
+
+      expect(await door("۶۷")).toHaveAttribute("data-found", "false");
+      expect(screen.getByText("کسی با این نام داخل نیست")).toBeInTheDocument();
+    });
+
+    it("NameSearch_OneCharacterOrEscape_LeavesTheMapAsItIs", async () => {
+      mockApi(twoHolders());
+      renderMap();
+      await door("۲");
+
+      searchMap("ر");
+      expect(await door("۲")).not.toHaveAttribute("data-found");
+
+      searchMap("رضا");
+      expect(await door("۲")).toHaveAttribute("data-found", "true");
+      fireEvent.keyDown(screen.getByRole("searchbox", { name: "جستجوی نام در نقشه" }), {
+        key: "Escape",
+      });
+
+      expect(screen.getByRole("searchbox", { name: "جستجوی نام در نقشه" })).toHaveValue("");
+      expect(await door("۲")).not.toHaveAttribute("data-found");
+    });
+
+    it("NameSearch_MemberOnAReservePlace_OpensThePlacesAndMarksTheirs", async () => {
+      mockApi(
+        mapHandlers(allLockers(), [
+          insideRow(reza.fullName, {
+            ...openVisit(reza.id),
+            lockerId: null,
+            lockerNumber: null,
+            usesReservePlace: true,
+            checkedInAt: justNow,
+          }),
+        ]),
+      );
+      renderMap();
+      await door("۱");
+      expect(screen.queryByRole("list", { name: "جاهای ورود بدون کمد" })).not.toBeInTheDocument();
+
+      searchMap("رضا احمدی");
+
+      const places = screen.getByRole("list", { name: "جاهای ورود بدون کمد" });
+      expect(within(places).getByRole("button", { name: "رضا احمدی" })).toHaveAttribute(
+        "data-found",
+        "true",
+      );
+    });
   });
 
   // ---- A free locker: check-in ----
@@ -499,9 +647,11 @@ describe("LockersPage", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود ثبت شود" }));
 
     expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
-    expect(within(dialog).getByRole("status")).toHaveTextContent(
+    // By its text: the member's debt ("این عضو بدهی ندارد.") is a status too, once it has loaded.
+    const notice = within(dialog).getByText(
       "اشتراک فریز بود و با این ورود از حالت فریز خارج شد؛ ۴ روز به پایان آن اضافه شد.",
     );
+    expect(notice.closest("[role='status']")).not.toBeNull();
   });
 
   it("CheckIn_SingleVisitHeldAlongAFrozenPlan_DoesNotWarn", async () => {
@@ -851,8 +1001,37 @@ describe("LockersPage", () => {
       expect(within(birthdays).queryByText(ali.fullName)).not.toBeInTheDocument();
       // Nobody is running out, so that list is not shown at all.
       expect(screen.queryByRole("region", { name: "فرصت تمدید" })).not.toBeInTheDocument();
-      // Nothing is drawn on the door for a birthday.
-      expect(await door("۲")).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی");
+      // Their door celebrates, and says why to a screen reader; ali's does not.
+      const party = await door("۲");
+      expect(party).toHaveAttribute("data-birthday", "true");
+      expect(within(party).getByTestId("party-ring")).toBeInTheDocument();
+      expect(party).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی، امروز تولدش است");
+      const other = await door("۶۷");
+      expect(other).not.toHaveAttribute("data-birthday");
+      expect(within(other).queryByTestId("party-ring")).not.toBeInTheDocument();
+    });
+
+    it("DeskPanel_BirthdayOnAReservePlace_ThePlaceCelebratesToo", async () => {
+      mockApi(
+        mapHandlers(allLockers(), [
+          insideRow(
+            reza.fullName,
+            {
+              ...openVisit(reza.id),
+              lockerId: null,
+              lockerNumber: null,
+              usesReservePlace: true,
+              checkedInAt: new Date().toISOString(),
+            },
+            { memberBirthDate: "1991-08-03" },
+          ),
+        ]),
+      );
+      renderMap();
+
+      fireEvent.click(await screen.findByRole("button", { name: /ورود بدون کمد/ }));
+      const place = screen.getByRole("button", { name: "رضا احمدی، امروز تولدش است" });
+      expect(place).toHaveAttribute("data-birthday", "true");
     });
 
     it("DeskPanel_EntryPointedAt_MakesItsLockerBlinkUntilLeft", async () => {
@@ -917,7 +1096,11 @@ describe("LockersPage", () => {
 
       const held = await door("۲");
       const bar = stayBar(held);
-      expect(within(bar).getByTestId("stay-bar-fill")).toHaveStyle({ width: "50%" });
+      const fill = within(bar).getByTestId("stay-bar-fill");
+      expect(fill).toHaveStyle({ width: "50%" });
+      // Halfway from green to red, and still: only a long stay blinks.
+      expect(fill.style.getPropertyValue("--stay-mix")).toBe("50%");
+      expect(fill).not.toHaveClass("animate-stay-blink");
       expect(bar).not.toHaveAttribute("data-long");
       expect(held).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی");
       // Only a held door carries a bar.
@@ -936,7 +1119,11 @@ describe("LockersPage", () => {
       const held = await door("۲");
       const bar = stayBar(held);
       expect(bar).toHaveAttribute("data-long", "true");
-      expect(within(bar).getByTestId("stay-bar-fill")).toHaveStyle({ width: "100%" });
+      const fill = within(bar).getByTestId("stay-bar-fill");
+      expect(fill).toHaveStyle({ width: "100%" });
+      // Wholly red now, blinking faintly (still for anyone who asked for less motion).
+      expect(fill.style.getPropertyValue("--stay-mix")).toBe("100%");
+      expect(fill).toHaveClass("animate-stay-blink", "motion-reduce:animate-none");
       expect(held).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی، بیش از ۳ ساعت");
       // Nothing is written on the door for it.
       expect(held).not.toHaveTextContent("بیش از ۳ ساعت");

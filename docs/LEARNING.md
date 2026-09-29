@@ -1107,3 +1107,32 @@ The question that started this was whether a gym that is entirely internal — I
 - **Say it to a screen reader, not on the screen.** The bar is `aria-hidden`; its meaning goes into the button's `aria-label` («بیش از ۳ ساعت»). The door keeps its room for the number and the name, and a blind user still hears the warning.
 - **Fix the time a test depends on.** Two existing tests used a check-in on 2026-09-18 with the real clock, so after this change they suddenly read as long stays. Their fixtures now check in "just now". The new tests set the clock with `vi.setSystemTime` and move it with `vi.advanceTimersByTimeAsync(60_000)` inside `act`, which proves the minute tick itself redraws the bar.
 - **My notes:**
+
+---
+
+## 6.5.16 — The desk screen's new look, dark
+
+- **A theme is a second set of values for the same tokens.** Every component reads `--background`, `--card`, `--success` and so on; `.dark` in `index.css` gives those names new values. Nothing in the components changed to go dark, and the whole app can switch later by moving one class.
+- **Put the theme class where portals can see it.** Dialogs render into `document.body`, outside the page's own `<div>`. A `dark` class on that `<div>` would leave every box the page opens light. `useDarkScreen()` puts it on `<html>` on mount and removes it in the effect's cleanup, so leaving the screen turns it off.
+- **Mix colours in CSS, not in JavaScript.** The long-stay bar's colour is `color-mix(in oklch, var(--destructive) var(--stay-mix), var(--success))`, and the component only sets `--stay-mix` to the fill. Mixing in oklch walks the hue from green through yellow to red, and because it mixes tokens it stays right in either theme.
+- **A CSS custom property is a prop for a stylesheet.** `style={{ "--stay-mix": "50%" }}` passes a number into a class that was written once. The test reads it back with `style.getPropertyValue("--stay-mix")`, which is easier to check than a computed colour.
+- **Adjust state while rendering to compare with the previous props.** `useChangedDoors` keeps the last lockers list in state and, when a new list arrives, works out which doors changed and stores that, all during render. An effect would draw the new colours first and the pulse one paint later. React allows `setState` during render for exactly this, as long as it is guarded by a condition.
+- **A `key` restarts an animation.** The pulse is a small `<span>` keyed on the refresh round. A door that changes twice gets a new key, so React mounts a new element and the CSS animation plays again.
+- **Structural sharing keeps "unchanged" cheap to detect.** TanStack Query hands back the same array when a refresh brings identical data, so `seen !== lockers` is only true when something really changed.
+- **A ticking clock belongs in the smallest component that shows it.** `SidebarClock` has its own one-second `useNow`, so only its two lines re-render each second, never the page beside it. Putting it in `AppShell` puts it on every screen at once.
+- **One style module, two components that must look alike.** `doorStyle.ts` holds the door's face, motion and state classes; the map's doors and the reserve places both build from it, so a later change to the look reaches both.
+- **Search the data you already have.** The name search filters the two lists the page has already loaded, through the same `normalizePersianText` as member search. No request, no debounce, and it can never disagree with what the map shows.
+- **Keep formatters away from files they do not own.** Running Prettier over `docs/` rewrote tables and emphasis all through `BUSINESS_RULES.md`. The file was restored from git and only this task's edits put back: a diff should hold what the task changed and nothing else.
+- **Tests should find things the way a user does, but not assume there is only one.** An old test used `getByRole("status")` in the check-in box and broke once the debt's own status loaded first. It now finds the notice by its text and checks that it sits in a status.
+- **My notes:**
+
+---
+
+## 6.5.17 — A birthday door celebrates
+
+- **`@property` makes a custom property animatable.** A plain `--party-angle` is just text to the browser, so it cannot tween between `0deg` and `360deg`. Registering it with `syntax: "<angle>"` tells the browser it is an angle, and then a keyframe can turn the conic gradient that uses it.
+- **A ring that follows any rounding: fill, pad, mask.** The ring is a box filled with the gradient, with 2px of padding, and a mask that keeps everything except the content box (`content-box exclude`). What is left is a 2px frame in the shape of whatever it sits in, a square door or a rounded place, with no SVG.
+- **Decoration goes under the words, and `relative` puts the words back on top.** The confetti is `absolute` and drawn first; the number and name are wrapped in a `relative` span, which puts them above it, so the party never makes the door harder to read.
+- **Fixed "random" values keep an effect testable and calm.** The eight confetti pieces have set positions, delays and speeds. Every birthday door looks the same, a test sees the same thing twice, and nothing depends on `Math.random` during render.
+- **An effect only for the eye still says its meaning.** The ring and confetti are `aria-hidden`, and the door's label gets «امروز تولدش است», so a screen reader hears what a sighted person sees.
+- **My notes:**
