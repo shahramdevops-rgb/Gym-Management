@@ -239,6 +239,23 @@ deploy/release.sh gym@<server-ip> --with-postgres    # --with-postgres on the fi
 It builds the images here, builds the EF migration bundle, copies everything over, runs the
 migrations and starts the new version. `./server.sh rollback` on the server goes back.
 
+**A release whose migrations refuse the old rows** (a roadmap task says "Release step: wipe"). This
+applies only while the server holds trial data; once real members are registered, a migration has
+to carry the rows forward instead. On the server, from `/opt/gym`, before `release.sh`:
+
+```bash
+./backup.sh run    # the only way back: after such a release, rollback alone meets a newer schema
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U gym -d gym -v ON_ERROR_STOP=1 \
+  -c "TRUNCATE members, lockers, plans, subscriptions, attendances, service_charges, payments, cafe_orders, cafe_order_items, products, product_categories, expenses, audit_logs CASCADE;"
+```
+
+Users stay, and so do `expense_categories`, which a migration seeded. Drop a table from the list
+once a migration has removed it. To load the local trial data afterwards: `pg_dump -Fc` it here,
+`scp` it to `/opt/gym/`, then `./backup.sh restore <file> --yes` and `./server.sh rename` /
+`set-password`, since the users come from the dump. Going back after such a release means moving
+`efbundle` aside (restore runs whatever bundle is there), then `./server.sh rollback` and
+`./backup.sh restore backups/<the dump above> --yes`.
+
 Live since 2026-09-25, with Let's Encrypt certificates Caddy obtains and renews by itself. One
 image serves four names, and which is which comes from `/opt/gym/.env`:
 
