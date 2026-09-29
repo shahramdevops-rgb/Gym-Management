@@ -858,6 +858,60 @@ describe("LockersPage", () => {
     expect(await moves[0]!.clone().json()).toEqual({ lockerId: lockerId(40) });
   });
 
+  it("OccupiedLocker_TodayHistory_ListsWhoHadItThenGoesBackToTheVisit", async () => {
+    const api = mockApi(
+      occupiedHandlers({
+        [`GET /api/lockers/${lockerId(2)}/today`]: () =>
+          json(200, [lockerVisit({ memberId: ali.id, memberFullName: ali.fullName })]),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openVisitBox();
+    // Nothing is fetched until the desk asks.
+    expect(api.requestsTo("GET", `/api/lockers/${lockerId(2)}/today`)).toHaveLength(0);
+    fireEvent.click(within(dialog).getByRole("button", { name: "تاریخچه امروز این کمد" }));
+
+    const list = await within(dialog).findByRole("list", { name: "تاریخچه امروز کمد" });
+    expect(within(list).getByRole("link", { name: ali.fullName })).toHaveAttribute(
+      "href",
+      `/members/${ali.id}`,
+    );
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "بازگشت" }));
+    expect(await within(dialog).findByRole("button", { name: "ثبت خروج" })).toBeEnabled();
+  });
+
+  describe("OccupiedLocker plan", () => {
+    // 08:00 UTC on 25 September is the same day in Tehran: five days before the plan's last day.
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date("2026-09-25T08:00:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("OccupiedLocker_Clicked_ShowsTheSessionsBesideTheNameAndThePlanPeriod", async () => {
+      mockApi(occupiedHandlers());
+      renderMap();
+
+      const dialog = await openVisitBox();
+
+      const sessions = within(dialog).getByRole("region", { name: "جلسات" });
+      expect(sessions).toHaveTextContent("۴ از ۱۲");
+      expect(sessions).toHaveTextContent("۸ جلسه مانده");
+      // activeSubscription runs from 1 September to 30 September 2026, both days included.
+      expect(await within(dialog).findByText("۱۴۰۵/۰۶/۱۰ تا ۱۴۰۵/۰۷/۰۸")).toBeInTheDocument();
+      expect(within(dialog).getByText("دوره اعتبار")).toBeInTheDocument();
+      // Five days is the desk panel's renewal threshold, so it is marked the same way.
+      expect(within(dialog).getByText("۵ روز مانده")).toHaveClass("text-destructive");
+      // The header already shows the sessions; the plan box does not repeat them.
+      expect(within(dialog).queryByText("جلسات باقی‌مانده")).not.toBeInTheDocument();
+    });
+  });
+
   // ---- Reserve places ----
 
   const reserveVisit = {
@@ -890,6 +944,25 @@ describe("LockersPage", () => {
     expect(empty).toHaveLength(14);
     expect(empty[0]).toBeDisabled();
     expect(screen.getByText(/تا وقتی کمد آزادی هست، ورود بدون کمد ممکن نیست/)).toBeInTheDocument();
+  });
+
+  it("ReservePlaces_UsedOneOpened_OffersNoLockerHistory", async () => {
+    mockApi(mapHandlers(allLockers(), [insideRow(reza.fullName, reserveVisit)]));
+    renderMap();
+
+    fireEvent.click(await screen.findByRole("button", { name: /ورود بدون کمد/ }));
+    fireEvent.click(
+      within(screen.getByRole("list", { name: "جاهای ورود بدون کمد" })).getByRole("button", {
+        name: "رضا احمدی",
+      }),
+    );
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("button", { name: "ثبت خروج" })).toBeEnabled();
+    // A reserve place is not a locker: there is no one else's day on it to show.
+    expect(
+      within(dialog).queryByRole("button", { name: "تاریخچه امروز این کمد" }),
+    ).not.toBeInTheDocument();
   });
 
   it("ReservePlaces_EveryLockerFull_ChecksInWithNoLocker", async () => {

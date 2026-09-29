@@ -7,12 +7,12 @@ import { SettleDebt } from "@/features/payments/components/SettleDebt";
 import { useCurrentSubscription, type Subscription } from "@/features/subscriptions/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
 import { errorMessage } from "@/lib/errors";
-import { formatDate, formatMoney, toPersianDigits } from "@/lib/format";
+import { formatDate, formatMoney, gymToday, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 import { currentlyInsideRefetchMs } from "../api";
-import { lowSessionsThreshold } from "../renewal";
+import { daysUntil, expiringDaysThreshold, lowSessionsThreshold } from "../renewal";
 
 /**
  * What the desk should know while the member is standing there (BUSINESS_RULES.md §7 *Confirming
@@ -28,14 +28,17 @@ import { lowSessionsThreshold } from "../renewal";
 export function VisitSummary({
   memberId,
   attendanceId,
+  withSessions = true,
 }: {
   memberId: string;
   /** The visit being closed, whose cafe purchases are listed; omitted at check-in. */
   attendanceId?: string;
+  /** False where the caller already shows the sessions (the locker's box, with its bar). */
+  withSessions?: boolean;
 }) {
   return (
     <div className="space-y-3">
-      <SubscriptionLine memberId={memberId} />
+      <SubscriptionLine memberId={memberId} withSessions={withSessions} />
       {attendanceId !== undefined && <VisitPurchases attendanceId={attendanceId} />}
       <DebtBox memberId={memberId} itemized={attendanceId === undefined} />
     </div>
@@ -100,7 +103,7 @@ function byProduct(items: CafeOrderItem[]) {
   return [...lines.values()];
 }
 
-function SubscriptionLine({ memberId }: { memberId: string }) {
+function SubscriptionLine({ memberId, withSessions }: { memberId: string; withSessions: boolean }) {
   const subscription = useCurrentSubscription(memberId);
 
   if (subscription.isPending) {
@@ -121,17 +124,64 @@ function SubscriptionLine({ memberId }: { memberId: string }) {
         <dt className="text-muted-foreground">پلن</dt>
         <dd className="font-medium">{planLabel(current)}</dd>
       </div>
-      <div>
-        <dt className="text-muted-foreground">جلسات باقی‌مانده</dt>
-        <dd className={cn("font-medium", isLow(current) && "text-destructive")}>
-          {sessionsLeft(current)}
-        </dd>
-      </div>
-      <div className="col-span-2">
-        <dt className="text-muted-foreground">اعتبار تا</dt>
-        <dd className="font-medium">{formatDate(current.endDate)}</dd>
-      </div>
+      <ValidityPeriod subscription={current} />
+      {withSessions && (
+        <div className="col-span-2">
+          <dt className="text-muted-foreground">جلسات باقی‌مانده</dt>
+          <dd className={cn("font-medium", isLow(current) && "text-destructive")}>
+            {sessionsLeft(current)}
+          </dd>
+        </div>
+      )}
     </dl>
+  );
+}
+
+/**
+ * The first and the last day the plan can be used, both inclusive (BUSINESS_RULES.md §4), and how
+ * many days that leaves from the gym's today. The count turns red at the same threshold the desk
+ * panel's renewal list uses, so both screens call the same plan "running out".
+ */
+function ValidityPeriod({ subscription }: { subscription: Subscription }) {
+  const sameDay = subscription.startDate === subscription.endDate;
+
+  return (
+    <div>
+      <dt className="text-muted-foreground">دوره اعتبار</dt>
+      <dd className="font-medium">
+        {sameDay
+          ? formatDate(subscription.startDate)
+          : `${formatDate(subscription.startDate)} تا ${formatDate(subscription.endDate)}`}
+      </dd>
+      <DaysLeft subscription={subscription} />
+    </div>
+  );
+}
+
+function DaysLeft({ subscription }: { subscription: Subscription }) {
+  // A single visit is today only by design (§4); counting its days says nothing.
+  if (subscription.isSingleSession) {
+    return null;
+  }
+
+  const today = gymToday();
+  if (subscription.startDate > today) {
+    return <dd className="text-xs text-muted-foreground">هنوز شروع نشده</dd>;
+  }
+
+  const left = daysUntil(subscription.endDate, today);
+  const text =
+    left < 0 ? "تمام شده" : left === 0 ? "امروز تمام می‌شود" : `${toPersianDigits(left)} روز مانده`;
+
+  return (
+    <dd
+      className={cn(
+        "text-xs",
+        left <= expiringDaysThreshold ? "font-medium text-destructive" : "text-muted-foreground",
+      )}
+    >
+      {text}
+    </dd>
   );
 }
 

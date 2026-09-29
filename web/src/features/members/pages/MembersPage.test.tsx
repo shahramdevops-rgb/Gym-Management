@@ -1,8 +1,20 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-import { mockApi, session, signedInHandlers, staffUser } from "@/test/mockApi";
-import { ali, membersPage, queryOf, reza } from "@/test/members";
+import type { Member } from "@/features/members/api";
+import { attendanceHistoryPage, closedVisit, openVisit } from "@/test/attendance";
+import { json, mockApi, session, signedInHandlers, staffUser, type Handler } from "@/test/mockApi";
+import { ali, memberDebt, membersPage, queryOf, reza, serviceChargeDebtItem } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
+import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
+
+function searchBox() {
+  return screen.getByRole("searchbox", { name: "نام یا شماره موبایل" });
+}
+
+/** The list requests that carried a search, leaving out the plain list the page opens with. */
+function searchRequests(api: ReturnType<typeof mockApi>) {
+  return api.requestsTo("GET", "/api/members").filter((request) => queryOf(request).has("Search"));
+}
 
 describe("MembersPage", () => {
   it("MembersPage_Default_ListsActiveAndInactiveMembersWithTheirStatus", async () => {
@@ -99,5 +111,253 @@ describe("MembersPage", () => {
     renderApp("/members", { session: session() });
 
     expect(await screen.findByText("هنوز هیچ عضوی ثبت نشده است.")).toBeInTheDocument();
+  });
+
+  // ---- The search box (it replaced the member search screen) ----
+
+  it("Search_TypedWithArabicYe_SendsOneNormalizedRequestAfterThePause", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": (request) => membersPage(queryOf(request).has("Search") ? [ali] : []),
+    });
+    renderApp("/members", { session: session() });
+
+    // Three quick key presses, the last with the Arabic ye (U+064A).
+    fireEvent.change(searchBox(), { target: { value: "عل" } });
+    fireEvent.change(searchBox(), { target: { value: "عل\u064A" } });
+    fireEvent.change(searchBox(), { target: { value: "عل\u064A " } });
+
+    expect(await screen.findByRole("link", { name: "علی رضایی" })).toBeInTheDocument();
+    const requests = searchRequests(api);
+    expect(requests).toHaveLength(1);
+    expect(queryOf(requests[0]!).get("Search")).toBe("علی");
+  });
+
+  it("Search_PhoneWithPersianDigits_SendsEnglishDigits", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+    });
+    renderApp("/members", { session: session() });
+
+    fireEvent.change(searchBox(), { target: { value: "۰۹۱۲ ۱۲۳ ۴۵۶۷" } });
+
+    await waitFor(() => expect(searchRequests(api)).toHaveLength(1));
+    expect(queryOf(searchRequests(api)[0]!).get("Search")).toBe("0912 123 4567");
+  });
+
+  it("Search_EnterKey_SearchesWithoutWaiting", async () => {
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([reza]) });
+    const { router } = renderApp("/members", { session: session() });
+
+    fireEvent.change(searchBox(), { target: { value: "رضا" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    // Straight into the URL, not after the debounce.
+    expect(router.state.location.search).toBe(`?q=${encodeURIComponent("رضا")}`);
+    expect(await screen.findByText("نتیجه جستجو")).toBeInTheDocument();
+  });
+
+  it("Search_OneCharacter_ShowsAHintAndKeepsTheWholeList", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([ali, reza]),
+    });
+    renderApp("/members", { session: session() });
+
+    fireEvent.change(searchBox(), { target: { value: "ع" } });
+
+    expect(await screen.findByText("برای جستجو دست‌کم ۲ حرف وارد کنید.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "رضا احمدی" })).toBeInTheDocument();
+    expect(searchRequests(api)).toHaveLength(0);
+  });
+
+  it("Search_InTheUrl_IsRestoredAfterAReload", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+    });
+
+    // A reload, or "back" from a profile, arrives with the search already in the URL.
+    renderApp(`/members?q=${encodeURIComponent("رضا")}`, { session: session() });
+
+    expect(await screen.findByRole("link", { name: "رضا احمدی" })).toBeInTheDocument();
+    expect(searchBox()).toHaveValue("رضا");
+    expect(queryOf(api.requestsTo("GET", "/api/members")[0]!).get("Search")).toBe("رضا");
+  });
+
+  it("Search_WithAStatusFilter_SendsBothAndKeepsTheSearchWhenTheFilterChanges", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+    });
+    const { router } = renderApp(`/members?q=${encodeURIComponent("رضا")}&status=active`, {
+      session: session(),
+    });
+
+    await screen.findByRole("link", { name: "رضا احمدی" });
+    const first = queryOf(api.requestsTo("GET", "/api/members")[0]!);
+    expect(first.get("Search")).toBe("رضا");
+    expect(first.get("IsActive")).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "همه" }));
+
+    await waitFor(() =>
+      expect(router.state.location.search).toBe(`?q=${encodeURIComponent("رضا")}`),
+    );
+    const last = queryOf(api.requestsTo("GET", "/api/members").at(-1)!);
+    expect(last.get("Search")).toBe("رضا");
+    expect(last.has("IsActive")).toBe(false);
+  });
+
+  it("Search_ManyResults_PagesKeepTheSearch", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza], 45),
+    });
+    renderApp(`/members?q=${encodeURIComponent("رضا")}`, { session: session() });
+
+    expect(await screen.findByText("صفحهٔ ۱ از ۳")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "بعدی" }));
+
+    await waitFor(() => expect(api.requestsTo("GET", "/api/members")).toHaveLength(2));
+    const second = queryOf(api.requestsTo("GET", "/api/members")[1]!);
+    expect(second.get("Page")).toBe("2");
+    expect(second.get("Search")).toBe("رضا");
+  });
+
+  it("Search_OldSearchScreenLink_LandsOnTheMemberList", async () => {
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([reza]) });
+    const { router } = renderApp("/search", { session: session() });
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/members"));
+    expect(await screen.findByRole("link", { name: "رضا احمدی" })).toBeInTheDocument();
+  });
+
+  // ---- Registering someone nobody found ----
+
+  it("Search_NoResults_RegistersTheMemberThenOpensTheirProfile", async () => {
+    const created = { ...reza, fullName: "سارا محمدی" };
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([]),
+      "POST /api/members": () => json(201, created),
+      [`GET /api/members/${reza.id}`]: () => json(200, created),
+      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
+    });
+    const { router } = renderApp(`/members?q=${encodeURIComponent("سارا")}`, {
+      session: session(),
+    });
+
+    expect(await screen.findByText("عضوی با این مشخصات پیدا نشد.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /ثبت این شخص/ }));
+    // The name searched for is already in the form; only the rest is typed.
+    expect(screen.getByLabelText("نام و نام خانوادگی")).toHaveValue("سارا");
+    fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), {
+      target: { value: "سارا محمدی" },
+    });
+    fireEvent.change(screen.getByLabelText("شماره موبایل"), {
+      target: { value: "09121110000" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ثبت و ادامه" }));
+
+    // Registered, then the profile, where a plan is sold. Letting them in is the map's job.
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/members/${reza.id}`));
+    expect(api.requestsTo("POST", "/api/members")).toHaveLength(1);
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
+  });
+
+  it("Search_NoResultsForAPhone_PrefillsThePhoneNotTheName", async () => {
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([]) });
+    renderApp(`/members?q=${encodeURIComponent("۰۹۱۲۱۱۱۰۰۰۰")}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: /ثبت این شخص/ }));
+
+    expect(screen.getByLabelText("شماره موبایل")).toHaveValue("۰۹۱۲۱۱۱۰۰۰۰");
+    expect(screen.getByLabelText("نام و نام خانوادگی")).toHaveValue("");
+  });
+
+  it("MembersPage_NoSearch_OffersNoRegistering", async () => {
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([]) });
+    renderApp("/members", { session: session() });
+
+    expect(await screen.findByText("هنوز هیچ عضوی ثبت نشده است.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ثبت این شخص/ })).not.toBeInTheDocument();
+  });
+
+  // ---- Someone inside: check-out from the row (BUSINESS_RULES.md §7 Confirming at the front desk) ----
+
+  const visitId = openVisit(reza.id).id;
+
+  /** Reza as the list sees him while he is inside, in locker ۱۰. */
+  const rezaInside: Member = {
+    ...reza,
+    currentVisit: {
+      attendanceId: visitId,
+      lockerNumber: 10,
+      usesReservePlace: false,
+      checkedInAt: "2026-09-18T07:00:00Z",
+    },
+  };
+
+  /** What the box reads about the member besides the action itself: the plan and the debt. */
+  function deskHandlers(extra: Record<string, Handler> = {}) {
+    return {
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([rezaInside]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
+      [`GET /api/members/${reza.id}/debt`]: () => memberDebt([]),
+      ...extra,
+    };
+  }
+
+  async function rezaRow() {
+    return (await screen.findByRole("link", { name: "رضا احمدی" })).closest("tr")!;
+  }
+
+  it("Row_MemberInside_ShowsTheLockerAndOffersCheckOutButNoCheckIn", async () => {
+    mockApi(deskHandlers());
+    renderApp("/members", { session: session() });
+
+    const row = await rezaRow();
+
+    expect(within(row).getByText("داخل باشگاه — کمد ۱۰")).toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: "خروج" })).toBeEnabled();
+    // Check-in happens only on the locker map, where the locker is chosen.
+    expect(within(row).queryByRole("button", { name: "ورود" })).not.toBeInTheDocument();
+  });
+
+  it("CheckOut_Confirmed_ChecksOutAndShowsTheDebtAgain", async () => {
+    const api = mockApi(
+      deskHandlers({
+        [`POST /api/attendance/${visitId}/check-out`]: () => json(200, closedVisit(reza.id)),
+        [`GET /api/members/${reza.id}/debt`]: () =>
+          memberDebt([serviceChargeDebtItem({ outstanding: 50000 })]),
+      }),
+    );
+    renderApp("/members", { session: session() });
+
+    fireEvent.click(within(await rezaRow()).getByRole("button", { name: "خروج" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("آیا از ثبت خروج رضا احمدی مطمئن هستید؟");
+    fireEvent.click(within(dialog).getByLabelText("کلید کمد شماره ۱۰ را تحویل گرفتم"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، خروج ثبت شود" }));
+
+    expect(await within(dialog).findByText("خروج ثبت شد")).toBeInTheDocument();
+    expect(within(dialog).getByText("کمد شماره ۱۰ آزاد شد.")).toBeInTheDocument();
+    expect(await within(dialog).findByRole("region", { name: "بدهی" })).toHaveTextContent("هوازی");
+    expect(api.requestsTo("POST", `/api/attendance/${visitId}/check-out`)).toHaveLength(1);
+  });
+
+  it("CheckOut_Cancelled_SendsNothing", async () => {
+    const api = mockApi(deskHandlers());
+    renderApp("/members", { session: session() });
+
+    fireEvent.click(within(await rezaRow()).getByRole("button", { name: "خروج" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "انصراف" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.requestsTo("POST", `/api/attendance/${visitId}/check-out`)).toHaveLength(0);
   });
 });

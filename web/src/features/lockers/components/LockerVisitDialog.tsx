@@ -1,4 +1,4 @@
-import { ArrowLeftRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeftRight, CheckCircle2, History } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -25,9 +25,12 @@ import { formatDateTime, toPersianDigits } from "@/lib/format";
 
 import type { Locker } from "../api";
 import { LockerMap } from "./LockerMap";
+import { LockerTodayHistory } from "./LockerTodayHistory";
 
 type Step =
   | { kind: "view" }
+  /** Who had the locker today (BUSINESS_RULES.md §6); «بازگشت» goes back to the visit. */
+  | { kind: "history"; lockerId: string }
   | { kind: "pick" }
   | { kind: "confirmMove"; target: Locker }
   | { kind: "moved"; number: Locker["number"] }
@@ -45,9 +48,10 @@ interface LockerVisitDialogProps {
 
 /**
  * One visit, opened from its locker (BUSINESS_RULES.md §7 *Confirming at the front desk*): who it
- * is (linked to their profile), when they came in, the plan and sessions left, the debt item by
- * item, هوازی and cafe for the visit, and check-out, cancel check-in and moving to another locker.
- * A used reserve place opens the same box.
+ * is (linked to their profile), when they came in, the sessions beside them, the plan and its
+ * dates, the debt item by item, هوازی and cafe for the visit, and check-out, cancel check-in, moving
+ * to another locker and who had the locker earlier today. A used reserve place opens the same box,
+ * without the locker's history.
  *
  * Check-out and cancel go through the same confirming box as every other screen, so the key and the
  * debt are handled the same everywhere. Moving picks the target on the map itself, with only free
@@ -62,6 +66,8 @@ export function LockerVisitDialog({
   const [step, setStep] = useState<Step>({ kind: "view" });
   const moveLocker = useMoveLocker();
   const member = { id: visit.memberId, fullName: visit.memberFullName };
+  // Null on a reserve place, which has no history of its own.
+  const lockerId = visit.lockerId;
 
   const title =
     visit.lockerNumber === null
@@ -92,31 +98,22 @@ export function LockerVisitDialog({
       >
         {step.kind === "view" && (
           <>
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-              <DialogDescription>
-                <Link
-                  to={paths.member(visit.memberId)}
-                  className="font-medium text-foreground underline-offset-4 hover:underline"
-                >
-                  {visit.memberFullName}
-                </Link>
-                {" · "}ورود: {formatDateTime(visit.checkedInAt)}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="flex items-center gap-3 text-sm">
-              <span className="text-muted-foreground">جلسات</span>
-              {visit.isSingleSession ? (
-                <span className="text-muted-foreground">تک‌جلسه‌ای</span>
-              ) : (
-                <SessionsBar
-                  total={visit.totalSessions}
-                  used={visit.usedSessions}
-                  remaining={visit.remainingSessions}
-                  lowThreshold={lowSessionsThreshold}
-                />
-              )}
+            {/* The sessions sit beside the name, where the header had room to spare; pe-6 keeps them
+                clear of the ✕. */}
+            <div className="flex flex-wrap items-start justify-between gap-4 pe-6">
+              <DialogHeader>
+                <DialogTitle>{title}</DialogTitle>
+                <DialogDescription>
+                  <Link
+                    to={paths.member(visit.memberId)}
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    {visit.memberFullName}
+                  </Link>
+                  {" · "}ورود: {formatDateTime(visit.checkedInAt)}
+                </DialogDescription>
+              </DialogHeader>
+              <VisitSessions visit={visit} />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -139,7 +136,12 @@ export function LockerVisitDialog({
               </div>
             </div>
 
-            <VisitSummary memberId={visit.memberId} attendanceId={visit.attendanceId} />
+            {/* Without its own sessions line: the header already shows them. */}
+            <VisitSummary
+              memberId={visit.memberId}
+              attendanceId={visit.attendanceId}
+              withSessions={false}
+            />
 
             <div className="flex flex-wrap gap-2 border-t pt-3">
               <Button
@@ -164,6 +166,29 @@ export function LockerVisitDialog({
                 }
               >
                 لغو ورود
+              </Button>
+              {lockerId !== null && (
+                <Button variant="outline" onClick={() => setStep({ kind: "history", lockerId })}>
+                  <History aria-hidden />
+                  تاریخچه امروز این کمد
+                </Button>
+              )}
+            </div>
+          </>
+        )}
+
+        {step.kind === "history" && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{title} — تاریخچه امروز</DialogTitle>
+              <DialogDescription>
+                کسانی که امروز این کمد را داشته‌اند، از اولین نفر.
+              </DialogDescription>
+            </DialogHeader>
+            <LockerTodayHistory lockerId={step.lockerId} />
+            <div className="flex">
+              <Button variant="outline" onClick={() => setStep({ kind: "view" })}>
+                بازگشت
               </Button>
             </div>
           </>
@@ -244,5 +269,33 @@ export function LockerVisitDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * The visit's sessions, used of total over a bar, and how many that leaves: the one count the desk
+ * reads at the door. A single visit has nothing to count.
+ */
+function VisitSessions({ visit }: { visit: CurrentlyInside }) {
+  return (
+    <section aria-label="جلسات" className="w-full space-y-1 text-sm sm:w-48">
+      <p className="text-muted-foreground">جلسات</p>
+      {visit.isSingleSession ? (
+        <p className="font-medium">تک‌جلسه‌ای</p>
+      ) : (
+        <>
+          <SessionsBar
+            className="w-full"
+            total={visit.totalSessions}
+            used={visit.usedSessions}
+            remaining={visit.remainingSessions}
+            lowThreshold={lowSessionsThreshold}
+          />
+          <p className="text-xs text-muted-foreground">
+            {toPersianDigits(visit.remainingSessions)} جلسه مانده
+          </p>
+        </>
+      )}
+    </section>
   );
 }

@@ -8,7 +8,6 @@ import {
   LockKeyhole,
   LogOut,
   ReceiptText,
-  Search,
   Settings,
   Users,
   Wallet,
@@ -34,12 +33,11 @@ interface NavigationItem {
 
 /**
  * The locker map comes first: it is where every check-in happens, for Staff and the Owner alike
- * (BUSINESS_RULES.md §6, §7). The member search no longer checks anyone in, so it sits further down.
+ * (BUSINESS_RULES.md §6, §7). Finding a member is on the member list, which checks nobody in.
  */
 const navigation: NavigationItem[] = [
   { to: paths.home, label: "ورود با کمد", icon: LockKeyhole },
   { to: paths.attendance, label: "داخل باشگاه", icon: DoorOpen },
-  { to: paths.search, label: "جستجوی عضو", icon: Search },
   { to: paths.members, label: "اعضا", icon: Contact },
   { to: paths.cafe, label: "بوفه", icon: Coffee },
   { to: paths.cafeOrders, label: "سفارش‌های بوفه", icon: ReceiptText },

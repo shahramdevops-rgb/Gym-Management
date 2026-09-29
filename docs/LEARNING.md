@@ -1190,3 +1190,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **If it can't be clicked, don't make it a button.** A usage door is a `div` with `role="img"` and a label. It can't take focus or be clicked, and a screen reader hears it as a picture with its count, which is what it is here.
 - **`enabled` and `placeholderData` on a query.** `enabled: usageView` means the counts are never fetched until someone asks for them. `keepPreviousData` keeps the old period's shades on the doors while the new period loads, so the map doesn't blink back to "loading".
 - **My notes:**
+
+---
+
+## 6.5.19 — One member list, and a roomier locker box
+
+- **Merge two screens by merging their URL state.** The member list already kept `status` and `page` in the URL; the search screen kept `q`. One `show({ q?, status?, page? })` helper builds the next query string from the current values plus the one that changed, so changing the filter keeps the search and a new search goes back to page 1, without each button rebuilding the URL on its own.
+- **An old URL gets a redirect, not a 404.** `{ path: "/search", element: <Navigate to="/members" replace /> }` sends a bookmark to where the feature went. `replace` keeps the dead address out of the back button's history.
+- **An optional prop with a default beats a second copy.** `VisitSummary` is used in three boxes, and only the locker box already shows the sessions. `withSessions = true` lets that one caller turn the line off, and the other two don't change at all.
+- **One `<dt>`, several `<dd>`.** A description list allows more than one value per term, so «دوره اعتبار» has the date range and the days left as two `<dd>`s. A screen reader still reads them as belonging to that one label.
+- **ISO dates compare as strings.** `"2026-10-01" > "2026-09-25"` is true because the format is fixed-width and goes from year down to day, so "has this plan started?" needs no `Date` object. Counting days still goes through `daysUntil`, which reads both dates at noon so daylight saving can't shift the count.
+- **Narrow before the closure instead of `!`.** `visit.lockerId!` inside an `onClick` tells TypeScript "trust me". Copying it to `const lockerId` and checking `lockerId !== null` around the button lets the compiler prove it, and the closure keeps the narrowed type.
+- **Reuse the threshold, don't invent one.** "Days left" turns red at `expiringDaysThreshold`, the same number the desk panel's renewal list uses, so two screens never disagree about which plan is running out.
+- **My notes:**

@@ -487,8 +487,9 @@ the developer's answers. Roadmap 6.5.10.
   answer "who used locker 5 this morning?" (something left behind, something broken) while the next
   member is standing there. It is offered only before a member is chosen: once a member is chosen,
   the box is about confirming them (the developer's answer, 1405/07/06, replacing the earlier button
-  next to the confirmation). Each name links to that member's profile, with when they came in and
-  left.
+  next to the confirmation). The box an occupied locker opens offers the same list under the visit's
+  buttons (asked by the developer, 1405/07/07): while the locker is in use there is no other way to
+  it. Each name links to that member's profile, with when they came in and left.
 - **Today only**: visits checked in since midnight of the gym's day (`Gym:TimeZone`, §0), oldest
   first. Earlier days are not asked for here; a member's own history is on their profile.
 - A visit counts for the locker it holds now. A visit moved to another locker (§7 *Moving to
@@ -719,9 +720,11 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 - **Check-in happens only on the lockers screen**, which is named "ورود با کمد" and is the first
   screen of the app (decided by the Owner, 1405/07/05). The desk clicks the free locker it chooses,
   which opens a box with one search field for a name or a mobile number. It then picks the member,
-  confirms, and the visit is recorded with that locker. The search screen and the member's profile
-  no longer have a check-in button. For a member who is inside they still show the locker and offer
-  check-out and cancel check-in.
+  confirms, and the visit is recorded with that locker. The member list («اعضا») and the member's
+  profile have no check-in button. For a member who is inside they show the locker and offer
+  check-out (the profile also offers cancel check-in). The member search screen is gone: its box,
+  and registering a person nobody matches, moved onto the member list (asked by the developer,
+  1405/07/07).
 - In that search, a member who is already inside is marked "داخل باشگاه" with their locker.
   Choosing them shows an error in the box and sends nothing (*Check-in*: no open attendance; the API
   refuses it anyway with `Attendance.AlreadyCheckedIn`).
@@ -746,9 +749,11 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
   - Selling from the member's profile is unchanged: the plan is added to the member's
     subscriptions (starting today or queued, §4) and is used on the next visit.
 - Clicking an occupied locker (or a used reserve place) opens that visit's box: the member (linked to
-  their profile), when they came in, the plan and sessions left, هوازی and cafe for the visit (§7
-  *Gym services*, §8), the visit's cafe purchases, and check-out, cancel check-in and move to another
-  locker.
+  their profile), when they came in, the sessions beside them (used of total, and how many are left),
+  the plan and its period (first and last day, and the days left), هوازی and cafe for the visit (§7
+  *Gym services*, §8), the visit's cafe purchases, and check-out, cancel check-in, move to another
+  locker and, for a locker, who had it today (§6 *Who had a locker today*). The layout is the
+  developer's, 1405/07/07.
   - The visit's cafe purchases are listed one line per product, the quantities of the same product
     added across orders: two espressos, one from the locker and one from the till, are "× 2".
   - Below them, the member's debt stops at the total and its split by source (plan, هوازی, cafe);
@@ -756,7 +761,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
     developer, 1405/07/06). The same holds before a check-out. At check-in there is no such list,
     so the debt is shown item by item there. Clicking an out-of-service locker offers to bring it back into service; clicking a free
   one also offers to take it out of service.
-- Everywhere the desk can check a member in or out (the lockers screen, the member search screen, the member's profile and the "currently inside" board), check-in and check-out each ask the desk to confirm before anything is sent, in the same box. A mistaken press costs a session or closes someone else's visit, and undoing either is a separate action with its own rules (*Cancel check-in*).
+- Everywhere the desk can check a member in or out (the lockers screen, the member list, the member's profile and the "currently inside" board), check-in and check-out each ask the desk to confirm before anything is sent, in the same box. A mistaken press costs a session or closes someone else's visit, and undoing either is a separate action with its own rules (*Cancel check-in*).
 - A member who is inside is offered check-out, not check-in. Check-in would only be refused (*Check-in*: no open attendance).
 - After a check-in, the same box shows the locker (or that a reserve place was used), the plan and the sessions left, and the member's debt item by item: unpaid subscriptions, services such as هوازی, and cafe orders (§5 *Member debt*). It stays until the desk closes it.
 - Before a check-out, the box shows the locker to take back, the same plan and sessions, the visit's cafe purchases and the debt by source, so the desk can collect what is owed while the member is still there. Debt is shown, never enforced: check-out is not refused for money owed, the same way check-in is not.

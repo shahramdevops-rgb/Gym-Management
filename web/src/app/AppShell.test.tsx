@@ -24,7 +24,7 @@ describe("AppShell", () => {
     expect(await screen.findByText(staffUser.fullName)).toBeInTheDocument();
   });
 
-  it("AppShell_Staff_TheLockerMapIsTheFirstItemAndSearchMovedDown", async () => {
+  it("AppShell_Staff_TheLockerMapIsTheFirstItemAndTheSearchIsOnTheMemberList", async () => {
     mockApi(signedInHandlers(staffUser));
 
     renderApp("/", { session: session() });
@@ -35,7 +35,9 @@ describe("AppShell", () => {
       "link",
     );
     expect(links[0]).toHaveTextContent("ورود با کمد");
-    expect(screen.getByRole("link", { name: "جستجوی عضو" })).toHaveAttribute("href", "/search");
+    // The member search screen was folded into «اعضا» (the box sits above the list).
+    expect(screen.queryByRole("link", { name: "جستجوی عضو" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "اعضا" })).toHaveAttribute("href", "/members");
     expect(screen.queryByRole("link", { name: "کمدها" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "ورود با کمد" })).toBeInTheDocument();
   });
