@@ -11,10 +11,10 @@ import type { Member } from "../api";
 interface MembersTableProps {
   members: Member[];
   /**
-   * Check-out from the row of someone inside, shown only where a caller passes it — the member
-   * search, not the full member directory. It opens a confirmation first (BUSINESS_RULES.md §7
-   * *Confirming at the front desk*). There is no check-in here: that happens on the locker map,
-   * where the locker is chosen (roadmap 6.5.5).
+   * Check-out from the row of someone inside, shown only where a caller passes it (the member
+   * list). It opens a confirmation first (BUSINESS_RULES.md §7 *Confirming at the front desk*).
+   * There is no check-in here: that happens on the locker map, where the locker is chosen
+   * (roadmap 6.5.5).
    */
   deskActions?: {
     onCheckOut: (member: Member) => void;

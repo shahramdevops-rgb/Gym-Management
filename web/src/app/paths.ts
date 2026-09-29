@@ -2,7 +2,6 @@
 export const paths = {
   /** The locker map, "ورود با کمد": the first screen for everyone (BUSINESS_RULES.md §7). */
   home: "/",
-  search: "/search",
   login: "/login",
   changePassword: "/change-password",
   staff: "/staff",

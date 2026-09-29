@@ -13,7 +13,6 @@ import { ExpensesPage } from "@/features/expenses/pages/ExpensesPage";
 import { LockersPage } from "@/features/lockers/pages/LockersPage";
 import { CreateMemberPage } from "@/features/members/pages/CreateMemberPage";
 import { EditMemberPage } from "@/features/members/pages/EditMemberPage";
-import { MemberSearchPage } from "@/features/members/pages/MemberSearchPage";
 import { MemberProfilePage } from "@/features/members/pages/MemberProfilePage";
 import { MembersPage } from "@/features/members/pages/MembersPage";
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
@@ -48,7 +47,6 @@ export const routes: RouteObject[] = [
             errorElement: <PageError />,
             children: [
               { path: paths.home, element: <LockersPage /> },
-              { path: paths.search, element: <MemberSearchPage /> },
               { path: paths.members, element: <MembersPage /> },
               { path: paths.newMember, element: <CreateMemberPage /> },
               { path: paths.member(":id"), element: <MemberProfilePage /> },
@@ -68,6 +66,8 @@ export const routes: RouteObject[] = [
       },
     ],
   },
+  // The member search screen was folded into the member list; an old bookmark lands there.
+  { path: "/search", element: <Navigate to={paths.members} replace /> },
   { path: "*", element: <Navigate to={paths.home} replace /> },
 ];
 

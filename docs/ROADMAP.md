@@ -1257,6 +1257,31 @@ server's trial data was wiped first (README, *Deployment*), the wipe and all mig
 rehearsed on a throwaway Postgres beforehand, and the local trial data was then restored onto the
 server.
 
+### 6.5.19 One member list, and a roomier locker box (فهرست اعضا با جستجو، کادر کمد اشغال)
+Asked by the developer on 1405/07/07 (2026-09-29), from a screenshot of an occupied locker's box.
+Web only; no API change. BUSINESS_RULES.md §6 and §7 updated.
+
+- [x] **The member search screen is gone.** `/search`, its menu item and `MemberSearchPage` are
+      removed; an old `/search` link lands on «اعضا». The member list has the same box above it:
+      the search sits in the URL beside the status filter and the page (`/members?q=…&status=…`),
+      a search nobody matches offers «ثبت این شخص» with the name or phone already typed, and
+      someone inside can be checked out from their row
+- [x] **Occupied locker box.** The sessions bar moves up beside the name, where the header was
+      empty, with «N جلسه مانده» under it. «تاریخچه امروز این کمد» joins the buttons at the
+      bottom (not for a reserve place), with «بازگشت» back to the visit
+- [x] **The plan box.** «اعتبار تا» becomes «دوره اعتبار»: first and last day («… تا …») and the
+      days left, red at the desk panel's 5-day renewal threshold. It takes the place of «جلسات
+      باقی‌مانده», which the locker box drops (its header shows the sessions); after a check-in and
+      before a check-out the sessions line stays, below the period
+- [x] Tests (frontend): the search tests moved to `MembersPage.test.tsx` (plus search with a status
+      filter, paging keeps the search, the old link); locker box: sessions in the header, the
+      period and its days left, the history and back, none for a reserve place; the menu has no
+      «جستجوی عضو»
+
+Done when: «اعضا» finds a member by name or phone and registers one nobody matches, and an
+occupied locker's box shows «۴ از ۱۲» beside the name, «۱۴۰۵/۰۶/۱۰ تا ۱۴۰۵/۰۷/۰۸ · ۵ روز مانده»
+next to the plan, and opens the locker's day from its own button.
+
 ---
 
 ## Phase 7 — Cafe / POS
