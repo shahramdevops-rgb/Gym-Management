@@ -623,17 +623,26 @@ Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.14.
 - It shows counts only, never money, so it is on the desk's screen for both roles (§1 *Permissions*).
   Full attendance reports stay Owner-only (§12).
 
-### Locker usage map (نقشهٔ استفادهٔ کمدها) (PENDING — roadmap 6.5.15)
+### Locker usage map (نقشهٔ استفادهٔ کمدها)
 
-Decided by the developer, 1405/07/07. Not built yet.
+Decided by the developer, 1405/07/07; the details below confirmed by the developer, 1405/07/07.
+Roadmap 6.5.15.
 - A switch on the map shows, instead of who holds each locker, **how often each locker was used**
-  over a period the viewer picks: the last **7, 30 or 90 days** (up to and including today). The
-  doors are coloured from least to most used, and each shows its count. A locker never used in the
-  period has a colour of its own: it is either in a bad spot or has a problem nobody has reported.
+  over a period the viewer picks: the last **7, 30 or 90 days**, counted in the gym's days (§0) up
+  to and including today, so "7 days" is today and the 6 days before it. **30 days** is picked
+  when the switch is turned on.
+- The doors are coloured from least to most used, **relative to the most used locker in the
+  period**, in five steps of one colour that is neither green nor red (those already mean free and
+  occupied on this screen). Each door shows its count. A locker never used in the period has a
+  colour of its own: it is either in a bad spot or has a problem nobody has reported. An
+  out-of-service locker keeps its small lock, so a count of zero on it explains itself.
 - A use is a visit that held the locker. Cancelled check-ins are not counted. A visit moved to
   another locker counts for the locker it holds at the end, the same way as *Who had a locker
-  today*: the old locker is recorded only in the audit log.
-- It is a view only. Switching back shows the map as usual; no desk work happens in this view.
+  today*: the old locker is recorded only in the audit log. Reserve places have no number, so they
+  are not part of this view.
+- It is a view only. No door can be clicked in it, and what belongs to who is inside now (the
+  holder's name, the «بدهکار» tag, the long-stay bar, the birthday, the desk panel and the name
+  search) is not shown. Switching back shows the map as usual.
 - Counts only, so both roles see it (§1 *Permissions*).
 
 ---

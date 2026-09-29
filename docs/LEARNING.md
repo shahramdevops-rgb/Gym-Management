@@ -1176,3 +1176,17 @@ The question that started this was whether a gym that is entirely internal — I
 - **Extra information must fail quietly.** The chart's request is separate from the map's. If it fails, one grey line says so and the desk keeps working. A failed chart should never block a check-in.
 - **Generated types can be wider than the data.** The OpenAPI types allow `number | string` for every number, so the hook converts each one with `Number()` once, and every component after it works with plain numbers.
 - **My notes:**
+
+---
+
+## 6.5.15 — Locker usage map
+
+- **Start the query from the thing that must always be listed.** Grouping the visits by locker would drop every locker nobody used, and those are the ones this view exists to find. `LockerUsageHandler` starts from `Lockers` and counts each one's visits in a subquery (`attendances.Count(...)` inside `Select`). EF turns that into one SQL statement with a correlated `COUNT`, and an unused locker comes back as 0.
+- **"The last 7 days" needs its edges decided.** Today and the 6 before it, in the gym's days, is `from = today - (days - 1)`. As a moment range, that is `>= StartOfDayUtc(from)` and `< StartOfDayUtc(today + 1)`. The tests pin both edges: 00:00 on the first day is counted, 23:59 the day before is not.
+- **Let a query-string parameter have a default and a whitelist.** `LockerUsageQuery(int Days = 30)` binds `?days=7` through `[AsParameters]`. The validator allows only 7, 30 or 90, so a caller can't ask the database for ten years of rows.
+- **A value derived from current state gives some rules for free.** A move overwrites `Attendance.LockerId`, so counting by `LockerId` already counts a moved visit for the locker it ended on. The only code for that rule is the test that proves it.
+- **Shade relative to the busiest, but keep "used" distinct from "unused".** `usageLevel` scales against the most-used locker, so the map means something at 7 days and at 90 alike. It rounds up with a floor of 1, so one use beside forty never looks like zero, and zero gets its own amber, dashed look.
+- **`color-mix` makes a scale from one token.** Each shade is `color-mix(in oklch, var(--door-use) N%, var(--door))`. Redefine `--door-use` and `--door` for the dark palette and all five shades follow, with no second list of colours.
+- **If it can't be clicked, don't make it a button.** A usage door is a `div` with `role="img"` and a label. It can't take focus or be clicked, and a screen reader hears it as a picture with its count, which is what it is here.
+- **`enabled` and `placeholderData` on a query.** `enabled: usageView` means the counts are never fetched until someone asks for them. `keepPreviousData` keeps the old period's shades on the doors while the new period loads, so the map doesn't blink back to "loading".
+- **My notes:**

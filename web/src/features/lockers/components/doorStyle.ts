@@ -33,3 +33,18 @@ export const doorStateClass: Record<LockerState, string> = {
   outOfService:
     "text-muted-foreground bg-[repeating-linear-gradient(135deg,var(--door-hatch)_0_6px,var(--door)_6px_12px)]",
 };
+
+/**
+ * A door's face in the usage view (BUSINESS_RULES.md §6 *Locker usage map*), by its shade from
+ * `usageLevel`: a dashed amber frame and number for a locker nobody used in the period, otherwise
+ * the usage colour mixed into the door, stronger the more it was used, with the number turning
+ * white once the colour is deep enough to need it.
+ */
+export const usageDoorClass: readonly string[] = [
+  "border-dashed border-door-unused text-door-unused",
+  "border-e-door-use text-foreground bg-[color-mix(in_oklch,var(--door-use)_14%,var(--door))]",
+  "border-e-door-use text-foreground bg-[color-mix(in_oklch,var(--door-use)_30%,var(--door))]",
+  "border-e-door-use text-foreground bg-[color-mix(in_oklch,var(--door-use)_46%,var(--door))]",
+  "border-e-door-use text-white bg-[color-mix(in_oklch,var(--door-use)_64%,var(--door))]",
+  "border-e-door-use text-white bg-[color-mix(in_oklch,var(--door-use)_84%,var(--door))]",
+];

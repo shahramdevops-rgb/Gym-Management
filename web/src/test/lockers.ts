@@ -49,6 +49,26 @@ export function lockersPage(items: Locker[], totalCount = items.length): Respons
   return json(200, { items, page: 1, pageSize: 100, totalCount });
 }
 
+/**
+ * GET /api/lockers/usage: all 72 lockers with the uses given by number, every other one unused, over
+ * the last `days` days up to 2026-09-30.
+ */
+export function lockerUsage(uses: Partial<Record<number, number>> = {}, days = 30): Response {
+  const to = new Date("2026-09-30T00:00:00Z");
+  const from = new Date(to.getTime() - (days - 1) * 86_400_000);
+
+  return json(200, {
+    from: from.toISOString().slice(0, 10),
+    to: "2026-09-30",
+    days,
+    lockers: Array.from({ length: 72 }, (_, index) => ({
+      lockerId: lockerId(index + 1),
+      number: index + 1,
+      uses: uses[index + 1] ?? 0,
+    })),
+  });
+}
+
 /** One visit on a locker today, closed at 10:30 in Tehran unless the overrides say otherwise. */
 export function lockerVisit(overrides: Partial<LockerVisit> = {}): LockerVisit {
   return {

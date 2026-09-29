@@ -468,6 +468,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lockers/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["LockerUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lockers/{id}": {
         parameters: {
             query?: never;
@@ -1273,6 +1289,23 @@ export interface components {
              */
             occupiedByMemberDebt: number | string;
             isOccupied?: boolean;
+        };
+        LockerUsageResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            days: number | string;
+            lockers: components["schemas"]["LockerUseCountResponse"][];
+        };
+        LockerUseCountResponse: {
+            /** Format: uuid */
+            lockerId: string;
+            /** Format: int32 */
+            number: number | string;
+            /** Format: int32 */
+            uses: number | string;
         };
         LockerVisitResponse: {
             /** Format: uuid */
@@ -3660,6 +3693,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedResponseOfLockerResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    LockerUsage: {
+        parameters: {
+            query?: {
+                Days?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LockerUsageResponse"];
                 };
             };
             /** @description Bad Request */

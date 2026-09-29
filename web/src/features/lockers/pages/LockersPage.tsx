@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { ChartColumn, Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { Alert } from "@/components/ui/alert";
@@ -19,7 +19,7 @@ import { useDarkScreen } from "@/lib/useDarkScreen";
 import { useNow } from "@/lib/useNow";
 import { cn } from "@/lib/utils";
 
-import { useAllLockers, useSetLockerOutOfService, type Locker } from "../api";
+import { useAllLockers, useLockerUsage, useSetLockerOutOfService, type Locker } from "../api";
 import { DeskPanel } from "../components/DeskPanel";
 import { LockerCheckInDialog, type CheckInPlace } from "../components/LockerCheckInDialog";
 import { LockerMap } from "../components/LockerMap";
@@ -27,9 +27,11 @@ import { LockerStats } from "../components/LockerStats";
 import { LockerVisitDialog } from "../components/LockerVisitDialog";
 import { ReservePlaces } from "../components/ReservePlaces";
 import { TodayByHourChart } from "../components/TodayByHourChart";
+import { UsageLegend } from "../components/UsageLegend";
 import { lockerState } from "../lockerState";
 import { stayProgress } from "../longStay";
 import { nameMatches, nameSearchTerm } from "../nameSearch";
+import { defaultUsagePeriod, type UsagePeriod } from "../usage";
 
 /** Which box is open. Each open gets a new id, so the next box starts fresh even for the same locker. */
 type OpenBox =
@@ -55,6 +57,11 @@ type OpenBox =
  *
  * The screen is dark (§6 *The desk screen's look*), the only one that is for now, and it has a
  * name search that finds who is inside on the map (§6 *Finding a member on the map*).
+ *
+ * A switch on the legend turns the map into a picture of how often each locker was used over the
+ * last 7, 30 or 90 days (§6 *Locker usage map*). While it is on, nothing about who is inside now is
+ * drawn and nothing can be clicked: the desk panel, the name search and the reserve places go, and
+ * the doors show counts. Switching it off brings the desk's map back as it was.
  */
 export function LockersPage() {
   useDarkScreen();
@@ -66,6 +73,19 @@ export function LockersPage() {
   // The locker an entry of the desk panel is pointing at, blinking on the map (§6 *The desk panel*).
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [nameQuery, setNameQuery] = useState("");
+  const [usageView, setUsageView] = useState(false);
+  const [usagePeriod, setUsagePeriod] = useState<UsagePeriod>(defaultUsagePeriod);
+  const usage = useLockerUsage(usagePeriod, usageView);
+
+  function toggleUsageView() {
+    // The search and the blink belong to the desk's map; the usage view starts without them.
+    setNameQuery("");
+    setHighlighted(null);
+    if (!usageView) {
+      setUsagePeriod(defaultUsagePeriod);
+    }
+    setUsageView(!usageView);
+  }
 
   const open = (next: OpenBox) =>
     setBox((previous) => ({ id: (previous?.id ?? 0) + 1, open: next }));
@@ -128,6 +148,12 @@ export function LockersPage() {
   );
   const birthdayAttendanceIds = new Set(birthdayVisits.map((visit) => visit.attendanceId));
 
+  // The usage view's counts by locker id, or `null` until the first period has arrived.
+  const usesByLocker =
+    usage.data === undefined
+      ? null
+      : new Map(usage.data.lockers.map((row) => [row.lockerId, Number(row.uses)]));
+
   function select(locker: Locker) {
     const state = lockerState(locker);
     if (state === "free") {
@@ -165,41 +191,76 @@ export function LockersPage() {
     <PageFrame>
       <LockerStats
         lockers={lockers.data}
+        legend={
+          usageView ? (
+            <UsageLegend
+              period={usagePeriod}
+              onPeriodChange={setUsagePeriod}
+              mostUses={usesByLocker === null ? null : Math.max(0, ...usesByLocker.values())}
+            />
+          ) : undefined
+        }
         tools={
-          <NameSearch
-            value={nameQuery}
-            onChange={setNameQuery}
-            result={term === null ? null : foundCount}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            {!usageView && (
+              <NameSearch
+                value={nameQuery}
+                onChange={setNameQuery}
+                result={term === null ? null : foundCount}
+              />
+            )}
+            <Button
+              variant={usageView ? "default" : "outline"}
+              size="sm"
+              aria-pressed={usageView}
+              onClick={toggleUsageView}
+              className="h-9 rounded-lg"
+            >
+              <ChartColumn aria-hidden />
+              نقشهٔ استفاده
+            </Button>
+          </div>
         }
       />
-      <LockerMap
-        lockers={lockers.data}
-        onSelect={select}
-        highlightedLockerId={highlighted}
-        stays={stays}
-        foundLockerIds={foundLockerIds}
-        birthdayLockerIds={birthdayLockerIds}
-        aside={
-          <DeskPanel
-            visits={inside.data}
-            onHighlight={setHighlighted}
-            onOpen={(visit) => {
-              setHighlighted(null);
-              open({ kind: "visit", attendanceId: visit.attendanceId });
-            }}
+      {usageView ? (
+        usage.isError ? (
+          <Alert variant="destructive">{errorMessage(usage.error)}</Alert>
+        ) : usesByLocker === null ? (
+          <p className="text-muted-foreground">در حال بارگذاری…</p>
+        ) : (
+          <LockerMap lockers={lockers.data} onSelect={select} usage={usesByLocker} />
+        )
+      ) : (
+        <>
+          <LockerMap
+            lockers={lockers.data}
+            onSelect={select}
+            highlightedLockerId={highlighted}
+            stays={stays}
+            foundLockerIds={foundLockerIds}
+            birthdayLockerIds={birthdayLockerIds}
+            aside={
+              <DeskPanel
+                visits={inside.data}
+                onHighlight={setHighlighted}
+                onOpen={(visit) => {
+                  setHighlighted(null);
+                  open({ kind: "visit", attendanceId: visit.attendanceId });
+                }}
+              />
+            }
           />
-        }
-      />
-      <ReservePlaces
-        visits={reserveVisits}
-        anyLockerFree={anyLockerFree}
-        now={now}
-        foundAttendanceIds={foundAttendanceIds}
-        birthdayAttendanceIds={birthdayAttendanceIds}
-        onOpenVisit={(visit) => open({ kind: "visit", attendanceId: visit.attendanceId })}
-        onCheckIn={() => open({ kind: "checkIn", place: { kind: "reserve" } })}
-      />
+          <ReservePlaces
+            visits={reserveVisits}
+            anyLockerFree={anyLockerFree}
+            now={now}
+            foundAttendanceIds={foundAttendanceIds}
+            birthdayAttendanceIds={birthdayAttendanceIds}
+            onOpenVisit={(visit) => open({ kind: "visit", attendanceId: visit.attendanceId })}
+            onCheckIn={() => open({ kind: "checkIn", place: { kind: "reserve" } })}
+          />
+        </>
+      )}
       <TodayByHourChart now={now} />
 
       {box !== null && box.open.kind === "checkIn" && (
