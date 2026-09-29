@@ -84,6 +84,59 @@ describe("MembersPage", () => {
     expect(queryOf(last).get("IsActive")).toBe("false");
   });
 
+  it("MembersPage_DebtorsFilter_AsksOnlyForDebtorsAndKeepsItInTheUrl", async () => {
+    // Roadmap 6.5.20: the API filters before paging, so the page only has to ask.
+    const debtor = { ...reza, debt: 600000 };
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": (request) =>
+        membersPage(queryOf(request).get("DebtorsOnly") === "true" ? [debtor] : [ali, debtor]),
+    });
+    const { router } = renderApp("/members", { session: session() });
+    await screen.findByRole("link", { name: "علی رضایی" });
+    expect(queryOf(api.requestsTo("GET", "/api/members")[0]!).has("DebtorsOnly")).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "بدهکار" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("link", { name: "علی رضایی" })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "بدهکار" })).toHaveAttribute("aria-pressed", "true");
+    expect(router.state.location.search).toBe("?debt=1");
+    expect(queryOf(api.requestsTo("GET", "/api/members").at(-1)!).get("DebtorsOnly")).toBe("true");
+  });
+
+  it("MembersPage_DebtorsWithAStatus_SendsBothAndPressingAgainClearsOnlyTheDebtors", async () => {
+    // A toggle beside the status, not a fourth status: inactive members who still owe.
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([ali]),
+    });
+    const { router } = renderApp("/members?status=inactive&debt=1", { session: session() });
+    await screen.findByRole("link", { name: "علی رضایی" });
+
+    const first = queryOf(api.requestsTo("GET", "/api/members")[0]!);
+    expect(first.get("IsActive")).toBe("false");
+    expect(first.get("DebtorsOnly")).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "بدهکار" }));
+
+    await waitFor(() => expect(router.state.location.search).toBe("?status=inactive"));
+    expect(screen.getByRole("button", { name: "غیرفعال" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "بدهکار" })).toHaveAttribute("aria-pressed", "false");
+    const last = queryOf(api.requestsTo("GET", "/api/members").at(-1)!);
+    expect(last.has("DebtorsOnly")).toBe(false);
+    expect(last.get("IsActive")).toBe("false");
+  });
+
+  it("MembersPage_NoDebtors_SaysNobodyOwes", async () => {
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([]) });
+
+    renderApp("/members?debt=1", { session: session() });
+
+    expect(await screen.findByText("عضو بدهکاری نیست.")).toBeInTheDocument();
+  });
+
   it("MembersPage_ManyMembers_ShowsPersianPageNumbersAndCount", async () => {
     mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([reza], 45) });
 

@@ -38,6 +38,10 @@ function statusFromParams(params: URLSearchParams): StatusFilter {
   return status === "active" || status === "inactive" ? status : "all";
 }
 
+function debtorsOnlyFromParams(params: URLSearchParams): boolean {
+  return params.get("debt") === "1";
+}
+
 /**
  * Every member, by name, a page at a time, with one box above the list for a name or a phone
  * number. Inactive members are included by default (docs/BUSINESS_RULES.md §2), so staff can find
@@ -46,15 +50,19 @@ function statusFromParams(params: URLSearchParams): StatusFilter {
  * their row. Nobody is checked in here; that happens on the locker map, where the locker is chosen
  * (BUSINESS_RULES.md §7).
  *
- * The search, the filter and the page live in the URL (`/members?q=علی&status=active&page=2`), not
- * only in component state. Refreshing the page, pressing back after opening a profile, or sharing
+ * The search, the filters and the page live in the URL (`/members?q=علی&status=active&debt=1&page=2`),
+ * not only in component state. Refreshing the page, pressing back after opening a profile, or sharing
  * the link all return to the same list. The box updates the URL once typing pauses, and the query
  * reads the URL.
+ *
+ * «بدهکار» is its own toggle rather than a fourth status, so it combines with the status: inactive
+ * members who still owe is a list the desk chases. The API filters before paging (roadmap 6.5.20).
  */
 export function MembersPage() {
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
   const status = statusFromParams(params);
+  const debtorsOnly = debtorsOnlyFromParams(params);
   const page = pageFromParams(params);
 
   // What is in the box. It runs ahead of `q` while the user types.
@@ -76,6 +84,7 @@ export function MembersPage() {
   const members = useMemberList({
     search: searching ? search : undefined,
     isActive: status === "all" ? undefined : status === "active",
+    debtorsOnly: debtorsOnly || undefined,
     page,
   });
 
@@ -85,9 +94,13 @@ export function MembersPage() {
   const desk = useDeskDialog();
   const navigate = useNavigate();
 
-  function show(next: { q?: string; status?: StatusFilter; page?: number }, replace = false) {
+  function show(
+    next: { q?: string; status?: StatusFilter; debtorsOnly?: boolean; page?: number },
+    replace = false,
+  ) {
     const nextQ = next.q ?? q;
     const nextStatus = next.status ?? status;
+    const nextDebtorsOnly = next.debtorsOnly ?? debtorsOnly;
     const nextPage = next.page ?? 1;
 
     const values: Record<string, string> = {};
@@ -96,6 +109,9 @@ export function MembersPage() {
     }
     if (nextStatus !== "all") {
       values.status = nextStatus;
+    }
+    if (nextDebtorsOnly) {
+      values.debt = "1";
     }
     if (nextPage > 1) {
       values.page = String(nextPage);
@@ -188,18 +204,29 @@ export function MembersPage() {
               </span>
             )}
           </CardTitle>
-          <div role="group" aria-label="وضعیت عضویت" className="flex gap-1">
-            {filters.map((filter) => (
-              <Button
-                key={filter.value}
-                size="sm"
-                variant={status === filter.value ? "secondary" : "ghost"}
-                aria-pressed={status === filter.value}
-                onClick={() => show({ status: filter.value })}
-              >
-                {filter.label}
-              </Button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="وضعیت عضویت" className="flex gap-1">
+              {filters.map((filter) => (
+                <Button
+                  key={filter.value}
+                  size="sm"
+                  variant={status === filter.value ? "secondary" : "ghost"}
+                  aria-pressed={status === filter.value}
+                  onClick={() => show({ status: filter.value })}
+                >
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
+            <span className="h-5 w-px bg-border" aria-hidden />
+            <Button
+              size="sm"
+              variant={debtorsOnly ? "secondary" : "ghost"}
+              aria-pressed={debtorsOnly}
+              onClick={() => show({ debtorsOnly: !debtorsOnly })}
+            >
+              بدهکار
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -226,7 +253,11 @@ export function MembersPage() {
 
           {members.isSuccess && members.data.items.length === 0 && !searching && (
             <p className="text-muted-foreground">
-              {status === "all" ? "هنوز هیچ عضوی ثبت نشده است." : "عضوی با این وضعیت نیست."}
+              {debtorsOnly
+                ? "عضو بدهکاری نیست."
+                : status === "all"
+                  ? "هنوز هیچ عضوی ثبت نشده است."
+                  : "عضوی با این وضعیت نیست."}
             </p>
           )}
 

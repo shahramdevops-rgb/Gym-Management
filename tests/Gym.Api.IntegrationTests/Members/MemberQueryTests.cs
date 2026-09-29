@@ -297,6 +297,89 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         listed.Debt.ShouldBe(0m);
     }
 
+    // ---- Debtors only (task 6.5.20: the «بدهکار» filter) ----
+
+    [Fact]
+    public async Task ListMembers_DebtorsOnly_ListsOnlyMembersWhoOweSomething()
+    {
+        var (client, token) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var partlyPaid = await CreateMemberAsync(client, token, "الف بدهکار", "09121234561");
+        var unpaid = await CreateMemberAsync(client, token, "ب بدهکار", "09121234562");
+        await CreateMemberAsync(client, token, "پ بدون اشتراک", "09121234563");
+        var fullyPaid = await CreateMemberAsync(client, token, "ت تسویه", "09121234564");
+        var cancelledOnly = await CreateMemberAsync(client, token, "ث لغو شده", "09121234565");
+
+        var first = await SellSubscriptionAsync(client, token, partlyPaid.Id, 900_000m);
+        await PayAsync(client, token, first.Id, 300_000m);
+        await SellSubscriptionAsync(client, token, unpaid.Id, 900_000m);
+        var paid = await SellSubscriptionAsync(client, token, fullyPaid.Id, 900_000m);
+        await PayAsync(client, token, paid.Id, 900_000m);
+        var cancelled = await SellSubscriptionAsync(client, token, cancelledOnly.Id, 900_000m);
+        var cancelRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/subscriptions/{cancelled.Id}/cancel")
+        {
+            Content = JsonContent.Create(new { reason = "اشتباه ثبت شد" }),
+        };
+        using var cancelResponse = await ownerClient.SendAsync(cancelRequest.WithBearer(ownerToken), TestContext.Current.CancellationToken);
+        cancelResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var page = await ListAsync(client, token, "?debtorsOnly=true");
+
+        page.TotalCount.ShouldBe(2);
+        page.Items.Select(member => member.Id).ShouldBe([partlyPaid.Id, unpaid.Id]);
+        page.Items.Select(member => member.Debt).ShouldBe([600_000m, 900_000m]);
+    }
+
+    [Fact]
+    public async Task ListMembers_DebtorsOnlyWithPaging_CountsDebtorsBeforePaging()
+    {
+        // The filter must run in the query, not on the page afterwards: a page of 1 still reports
+        // both debtors, and the non-debtor named between them does not take a slot.
+        var (client, token) = await StaffClientAsync();
+        var first = await CreateMemberAsync(client, token, "الف", "09121234561");
+        await CreateMemberAsync(client, token, "ب", "09121234562");
+        var second = await CreateMemberAsync(client, token, "پ", "09121234563");
+        await SellSubscriptionAsync(client, token, first.Id, 900_000m);
+        await SellSubscriptionAsync(client, token, second.Id, 900_000m);
+
+        var page1 = await ListAsync(client, token, "?debtorsOnly=true&page=1&pageSize=1");
+        var page2 = await ListAsync(client, token, "?debtorsOnly=true&page=2&pageSize=1");
+
+        page1.TotalCount.ShouldBe(2);
+        page1.Items.Single().Id.ShouldBe(first.Id);
+        page2.Items.Single().Id.ShouldBe(second.Id);
+    }
+
+    [Fact]
+    public async Task ListMembers_DebtorsOnlyAndInactive_ListsOnlyInactiveDebtors()
+    {
+        var (client, token) = await StaffClientAsync();
+        var activeDebtor = await CreateMemberAsync(client, token, "رضا", "09121234561");
+        var inactiveDebtor = await CreateMemberAsync(client, token, "علی", "09121234562");
+        await CreateMemberAsync(client, token, "مریم", "09121234563");
+        await SellSubscriptionAsync(client, token, activeDebtor.Id, 900_000m);
+        await SellSubscriptionAsync(client, token, inactiveDebtor.Id, 900_000m);
+        await PostOkAsync(client, token, $"{MembersPath}/{inactiveDebtor.Id}/deactivate");
+
+        var page = await ListAsync(client, token, "?debtorsOnly=true&isActive=false");
+
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(inactiveDebtor.Id);
+    }
+
+    [Fact]
+    public async Task ListMembers_DebtorsOnlyWithSearch_ListsOnlyMatchingDebtors()
+    {
+        var (client, token) = await StaffClientAsync();
+        var reza = await CreateMemberAsync(client, token, "رضا احمدی", "09121234561");
+        var ali = await CreateMemberAsync(client, token, "علی احمدی", "09121234562");
+        await SellSubscriptionAsync(client, token, reza.Id, 900_000m);
+        await SellSubscriptionAsync(client, token, ali.Id, 900_000m);
+
+        var page = await ListAsync(client, token, $"?debtorsOnly=true&search={Uri.EscapeDataString("رضا")}");
+
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(reza.Id);
+    }
+
     // ---- Inside the gym (the front desk's check-in button) ----
 
     [Fact]

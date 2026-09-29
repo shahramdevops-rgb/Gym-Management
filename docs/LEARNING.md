@@ -1203,3 +1203,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **Narrow before the closure instead of `!`.** `visit.lockerId!` inside an `onClick` tells TypeScript "trust me". Copying it to `const lockerId` and checking `lockerId !== null` around the button lets the compiler prove it, and the closure keeps the narrowed type.
 - **Reuse the threshold, don't invent one.** "Days left" turns red at `expiringDaysThreshold`, the same number the desk panel's renewal list uses, so two screens never disagree about which plan is running out.
 - **My notes:**
+
+---
+
+## 6.5.20 — Debtors filter on the member list
+
+- **Filter before paging, never after.** Debt was only worked out for the 20 rows of a page. Dropping the non-debtors from that page would leave short pages and a total that counts everyone. The condition has to be part of the SQL, so `COUNT`, `OFFSET` and `LIMIT` only see debtors.
+- **An `Expression<Func<T, bool>>` is a condition EF can translate.** `MemberDebt.OwesSomething(db)` returns an expression tree, not compiled code, so `members.Where(...)` turns it into SQL. A plain `Func` would make EF load every member and test each one in memory, or throw.
+- **"Total above zero" can become "any item above zero".** No item's outstanding amount is ever below zero, so a member owes something exactly when one of their items is still unpaid. That is three `EXISTS` subqueries with no need to add up every member's items first. The shortcut only holds because the never-below-zero rule does.
+- **Two code paths for one rule need their own tests.** The number on the row comes from `GetTotalsAsync` and the filter comes from `OwesSomething`. If one starts counting something the other doesn't (say, a voided charge), the row and the filter disagree. Each kind of item (subscription, هوازی, cafe) has a filter test next to its existing debt test.
+- **A toggle, not another option in the group.** Status is one of three values, but "owes money" is a separate yes/no. Keeping it as its own `aria-pressed` button, with its own `debt=1` URL parameter, lets the two combine, and pressing it again leaves the status alone.
+- **My notes:**

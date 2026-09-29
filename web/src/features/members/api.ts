@@ -25,6 +25,8 @@ export interface MemberListFilter {
   search?: string;
   /** Omitted: active and inactive members both. */
   isActive?: boolean;
+  /** Only members who owe something (BUSINESS_RULES.md §5 Member debt). Omitted: everyone. */
+  debtorsOnly?: boolean;
   page: number;
 }
 
@@ -42,6 +44,7 @@ export function useMemberList(filter: MemberListFilter, { enabled = true } = {})
           query: {
             Search: filter.search,
             IsActive: filter.isActive,
+            DebtorsOnly: filter.debtorsOnly,
             Page: filter.page,
             PageSize: membersPageSize,
           },

@@ -2363,6 +2363,7 @@ export interface operations {
             query?: {
                 Search?: string;
                 IsActive?: boolean;
+                DebtorsOnly?: boolean;
                 Page?: number | string;
                 PageSize?: number | string;
             };

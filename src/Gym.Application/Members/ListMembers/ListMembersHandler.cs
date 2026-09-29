@@ -45,6 +45,12 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
             members = members.Where(member => member.IsActive == isActive);
         }
 
+        if (query.DebtorsOnly)
+        {
+            // In the query, before the count and the paging, not on the page afterwards.
+            members = members.Where(MemberDebt.OwesSomething(db));
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             members = Search(members, PersianText.Normalize(query.Search));

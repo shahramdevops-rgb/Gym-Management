@@ -1,5 +1,8 @@
+using System.Linq.Expressions;
+
 using Gym.Application.Common;
 using Gym.Application.Subscriptions;
+using Gym.Domain.Members;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
 
@@ -240,6 +243,41 @@ public static class MemberDebt
             .Select(group => new { MemberId = group.Key, Total = group.Sum(row => row.Outstanding) })
             .Where(row => row.Total > 0)
             .ToDictionary(row => row.MemberId, row => row.Total);
+    }
+
+    /// <summary>
+    /// "Owes something", as a condition the database evaluates, so the member list can filter on
+    /// it before paging: filtering one page in memory would leave short pages and a wrong total.
+    /// </summary>
+    /// <remarks>
+    /// No item's outstanding amount is ever below zero, so the total is above zero exactly when at
+    /// least one item's price is above its net paid. That lets each item be tested on its own with
+    /// <c>EXISTS</c>, instead of summing every item of every member first. It must stay in step
+    /// with <see cref="GetTotalsAsync"/>: the same items count, the same ones are left out.
+    /// </remarks>
+    public static Expression<Func<Member, bool>> OwesSomething(IAppDbContext db)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+
+        return member =>
+            db.Subscriptions.Any(subscription =>
+                subscription.MemberId == member.Id
+                && subscription.CancelledAt == null
+                && subscription.Price > db.Payments
+                    .Where(payment => payment.SubscriptionId == subscription.Id)
+                    .Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount))
+            || db.ServiceCharges.Any(charge =>
+                charge.MemberId == member.Id
+                && charge.VoidedAt == null
+                && charge.Amount > db.Payments
+                    .Where(payment => payment.ServiceChargeId == charge.Id)
+                    .Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount))
+            || db.CafeOrders.Any(order =>
+                order.MemberId == member.Id
+                && order.CancelledAt == null
+                && order.TotalAmount > db.Payments
+                    .Where(payment => payment.CafeOrderId == order.Id)
+                    .Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount));
     }
 
     /// <summary>
