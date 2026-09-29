@@ -10,7 +10,15 @@ import {
   todayByHour,
 } from "@/test/attendance";
 import { clickOutsideDialog } from "@/test/dialog";
-import { allLockers, heldLocker, locker, lockerId, lockersPage, lockerVisit } from "@/test/lockers";
+import {
+  allLockers,
+  heldLocker,
+  locker,
+  lockerId,
+  lockersPage,
+  lockerUsage,
+  lockerVisit,
+} from "@/test/lockers";
 import {
   json,
   mockApi,
@@ -1231,7 +1239,9 @@ describe("LockersPage", () => {
 
       const region = await chart();
       expect(within(region).getByText("هنوز میانگینی از هفته‌های گذشته نیست")).toBeInTheDocument();
-      expect(within(region).queryByRole("columnheader", { name: "میانگین" })).not.toBeInTheDocument();
+      expect(
+        within(region).queryByRole("columnheader", { name: "میانگین" }),
+      ).not.toBeInTheDocument();
     });
 
     it("TodayByHour_NothingYet_SaysSo", async () => {
@@ -1252,7 +1262,11 @@ describe("LockersPage", () => {
       renderMap();
 
       // The app retries a failed request once, a second later, before giving up.
-      const line = await screen.findByText("نمودار ورود امروز بارگذاری نشد.", {}, { timeout: 3000 });
+      const line = await screen.findByText(
+        "نمودار ورود امروز بارگذاری نشد.",
+        {},
+        { timeout: 3000 },
+      );
       expect(await chart()).toContainElement(line);
       expect(await door("۱")).toHaveAttribute("data-state", "free");
     });
@@ -1276,6 +1290,144 @@ describe("LockersPage", () => {
           before,
         ),
       );
+    });
+  });
+
+  describe("UsageMap", () => {
+    function usageHandlers(uses: Partial<Record<number, number>> = {}) {
+      return mapHandlers(
+        allLockers(heldLocker(2, reza.id, reza.fullName), locker(3, { isOutOfService: true })),
+        [insideRow(reza.fullName, rezaVisit)],
+        { "GET /api/lockers/usage": () => lockerUsage(uses) },
+      );
+    }
+
+    async function switchOn() {
+      fireEvent.click(await screen.findByRole("button", { name: "نقشهٔ استفاده" }));
+    }
+
+    /** A door in the usage view: a picture, not a button. */
+    async function usageDoor(number: string) {
+      return screen.findByRole("img", { name: new RegExp(`^کمد ${number}،`) });
+    }
+
+    it("UsageMap_SwitchedOn_ShadesEachDoorAgainstTheMostUsedWithItsCount", async () => {
+      const api = mockApi(usageHandlers({ 5: 40, 6: 20, 7: 1 }));
+      renderMap();
+
+      await switchOn();
+
+      const most = await usageDoor("۵");
+      expect(most).toHaveAccessibleName("کمد ۵، ۴۰ بار استفاده");
+      expect(most).toHaveAttribute("data-usage-level", "5");
+      expect(most).toHaveTextContent("۴۰ بار");
+      expect(await usageDoor("۶")).toHaveAttribute("data-usage-level", "3");
+      // Used once beside a locker used 40 times: still shaded, never taken for unused.
+      expect(await usageDoor("۷")).toHaveAttribute("data-usage-level", "1");
+      const unused = await usageDoor("۸");
+      expect(unused).toHaveAccessibleName("کمد ۸، استفاده نشده");
+      expect(unused).toHaveAttribute("data-usage-level", "0");
+      // An out-of-service locker says so, which explains its zero.
+      expect(await usageDoor("۳")).toHaveAccessibleName("کمد ۳، استفاده نشده، خارج از سرویس");
+
+      expect(screen.getByRole("button", { name: "نقشهٔ استفاده" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(screen.getByRole("button", { name: "۳۰ روز اخیر" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(screen.getByRole("list", { name: "راهنمای نقشهٔ استفاده" })).toHaveTextContent(
+        "بیشترین ۴۰ بار",
+      );
+      const [request] = api.requestsTo("GET", "/api/lockers/usage");
+      expect(new URL(request!.url).searchParams.get("Days")).toBe("30");
+    });
+
+    it("UsageMap_On_ShowsNothingOfWhoIsInsideAndNothingCanBeClicked", async () => {
+      mockApi(usageHandlers({ 2: 3 }));
+      renderMap();
+      await door("۲");
+
+      await switchOn();
+
+      const held = await usageDoor("۲");
+      expect(held).toHaveTextContent("۳ بار");
+      expect(screen.queryByText(reza.fullName)).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^کمد / })).not.toBeInTheDocument();
+      expect(screen.getAllByRole("img", { name: /^کمد / })).toHaveLength(72);
+      expect(
+        screen.queryByRole("searchbox", { name: "جستجوی نام در نقشه" }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /ورود بدون کمد/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("list", { name: "راهنمای کمدها" })).not.toBeInTheDocument();
+
+      fireEvent.click(held);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("UsageMap_PeriodPicked_FetchesThoseDaysAndMarksThePick", async () => {
+      const api = mockApi(usageHandlers({ 5: 2 }));
+      renderMap();
+      await switchOn();
+      await usageDoor("۵");
+
+      fireEvent.click(screen.getByRole("button", { name: "۷ روز اخیر" }));
+
+      await waitFor(() =>
+        expect(
+          api
+            .requestsTo("GET", "/api/lockers/usage")
+            .map((request) => new URL(request.url).searchParams.get("Days")),
+        ).toEqual(["30", "7"]),
+      );
+      expect(screen.getByRole("button", { name: "۷ روز اخیر" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(screen.getByRole("button", { name: "۳۰ روز اخیر" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    it("UsageMap_SwitchedOff_BringsTheDesksMapBack", async () => {
+      const api = mockApi(usageHandlers());
+      renderMap();
+      await switchOn();
+      await usageDoor("۵");
+
+      fireEvent.click(screen.getByRole("button", { name: "نقشهٔ استفاده" }));
+
+      expect(await door("۲")).toHaveAttribute("data-state", "occupied");
+      expect(screen.getByRole("searchbox", { name: "جستجوی نام در نقشه" })).toBeInTheDocument();
+      expect(screen.getByRole("list", { name: "راهنمای کمدها" })).toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: /^کمد / })).not.toBeInTheDocument();
+      // Never asked for until the view is turned on, and not polled once it is off.
+      expect(api.requestsTo("GET", "/api/lockers/usage")).toHaveLength(1);
+    });
+
+    it("UsageMap_Off_NeverAsksForTheCounts", async () => {
+      const api = mockApi(usageHandlers());
+      renderMap();
+
+      await door("۱");
+
+      expect(api.requestsTo("GET", "/api/lockers/usage")).toHaveLength(0);
+    });
+
+    it("UsageMap_RequestFails_SaysSoInPlaceOfTheMap", async () => {
+      mockApi({
+        ...usageHandlers(),
+        "GET /api/lockers/usage": () => problem(500, "General.Unexpected"),
+      });
+      renderMap();
+
+      await switchOn();
+
+      expect(await screen.findByRole("alert", {}, { timeout: 3000 })).toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: /^کمد / })).not.toBeInTheDocument();
     });
   });
 });

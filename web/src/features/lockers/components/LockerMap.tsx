@@ -8,8 +8,9 @@ import type { Locker } from "../api";
 import { cabinetColumns, columnsPerCabinet, lockerZones } from "../layout";
 import { lockerState, lockerStateLabel, type LockerState } from "../lockerState";
 import { longStayLabel, type StayProgress } from "../longStay";
+import { unusedLabel, usageLevel } from "../usage";
 import { birthdayLabel, Celebration } from "./Celebration";
-import { doorFace, doorMotion, doorStateClass } from "./doorStyle";
+import { doorFace, doorMotion, doorStateClass, usageDoorClass } from "./doorStyle";
 import { StayBar } from "./StayBar";
 
 /** Doors side by side in the widest zone (inside the changing room: seven cabinets of two). */
@@ -70,6 +71,12 @@ interface LockerMapProps {
    * doors celebrate. Absent where it does not matter, such as choosing a locker to move to.
    */
   birthdayLockerIds?: ReadonlySet<string>;
+  /**
+   * The usage view (BUSINESS_RULES.md §6 *Locker usage map*): how many visits each locker had in
+   * the period, by locker id. When given, every door is shaded by it and shows the count instead of
+   * who holds it, and no door can be clicked. Absent for the map as usual.
+   */
+  usage?: ReadonlyMap<string, number>;
 }
 
 /**
@@ -99,9 +106,11 @@ export function LockerMap({
   stays,
   foundLockerIds = null,
   birthdayLockerIds,
+  usage,
 }: LockerMapProps) {
   const byNumber = new Map(lockers.map((locker) => [Number(locker.number), locker]));
   const changed = useChangedDoors(lockers);
+  const mostUses = usage === undefined ? 0 : Math.max(0, ...usage.values());
 
   return (
     <div className="@container space-y-6" style={{ "--door-size": doorWidth } as CSSProperties}>
@@ -121,6 +130,17 @@ export function LockerMap({
                       <div key={column[0]} className="flex flex-col gap-2">
                         {column.map((number) => {
                           const locker = byNumber.get(number);
+                          if (usage !== undefined && locker !== undefined) {
+                            return (
+                              <UsageDoor
+                                key={number}
+                                number={number}
+                                outOfService={locker.isOutOfService}
+                                uses={usage.get(locker.id) ?? 0}
+                                mostUses={mostUses}
+                              />
+                            );
+                          }
                           return (
                             <LockerDoor
                               key={number}
@@ -320,6 +340,55 @@ function LockerDoor({
         {state === "outOfService" && <Lock aria-hidden className="size-3.5" />}
       </span>
     </button>
+  );
+}
+
+/**
+ * A door in the usage view (BUSINESS_RULES.md §6 *Locker usage map*): shaded by how often it was
+ * used against the most used locker, with its number and the count under it, or amber and dashed
+ * when nobody used it. An out-of-service locker keeps its lock, so a zero on it explains itself.
+ * It is a picture, not a button: no desk work happens in this view.
+ */
+function UsageDoor({
+  number,
+  outOfService,
+  uses,
+  mostUses,
+}: {
+  number: number;
+  outOfService: boolean;
+  uses: number;
+  mostUses: number;
+}) {
+  const level = usageLevel(uses, mostUses);
+  const usesText = uses === 0 ? unusedLabel : `${toPersianDigits(uses)} بار`;
+  const label = [
+    `کمد ${toPersianDigits(number)}`,
+    uses === 0 ? unusedLabel : `${toPersianDigits(uses)} بار استفاده`,
+    outOfService ? lockerStateLabel.outOfService : null,
+  ]
+    .filter((part) => part !== null)
+    .join("، ");
+
+  return (
+    <div
+      role="img"
+      aria-label={label}
+      title={label}
+      data-usage-level={level}
+      className={cn(doorSize, doorFace, usageDoorClass[level])}
+    >
+      <span className="@container flex size-full flex-col items-center justify-center gap-0.5 px-1">
+        <span className="text-sm font-bold @min-[4.5rem]:text-xl">{toPersianDigits(number)}</span>
+        <span
+          dir="rtl"
+          className="text-[10px] leading-tight whitespace-nowrap @min-[4.5rem]:text-xs"
+        >
+          {usesText}
+        </span>
+        {outOfService && <Lock aria-hidden className="size-3" />}
+      </span>
+    </div>
   );
 }
 

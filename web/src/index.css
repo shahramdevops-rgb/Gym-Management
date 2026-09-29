@@ -43,6 +43,11 @@
   --door-border: oklch(0.88 0.005 270);
   --door-held: oklch(0.93 0.04 25);
   --door-hatch: oklch(0.92 0.004 270);
+  /* The usage view (BUSINESS_RULES.md §6 *Locker usage map*): the one colour a door is shaded in by
+     how often it was used, neither the free green nor the held red, and the amber of a locker
+     nobody used in the period. */
+  --door-use: oklch(0.58 0.17 290);
+  --door-unused: oklch(0.72 0.15 85);
   /* A birthday (BUSINESS_RULES.md §6 *The desk panel*): the party ring's and the confetti's
      colours. Bright enough for both palettes, so the dark one does not redefine them. */
   --party-pink: oklch(0.72 0.19 350);
@@ -91,6 +96,8 @@
   --door-border: oklch(0.31 0.009 270);
   --door-held: oklch(0.27 0.05 20);
   --door-hatch: oklch(0.255 0.008 270);
+  --door-use: oklch(0.68 0.16 290);
+  --door-unused: oklch(0.82 0.14 85);
 }
 
 @theme inline {
@@ -123,6 +130,8 @@
   --color-door-border: var(--door-border);
   --color-door-held: var(--door-held);
   --color-door-hatch: var(--door-hatch);
+  --color-door-use: var(--door-use);
+  --color-door-unused: var(--door-unused);
   --color-party-pink: var(--party-pink);
   --color-party-gold: var(--party-gold);
   --color-party-mint: var(--party-mint);

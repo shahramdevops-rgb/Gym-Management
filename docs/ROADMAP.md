@@ -1145,14 +1145,32 @@ last four Wednesdays, and knows the evening is busier than usual.
 Built (2026-09-29): 1256 backend (398 domain, 858 integration) and 634 frontend tests pass, zero
 warnings, lint, type check and build clean.
 
-### 6.5.15 Locker usage map (PENDING)
+### 6.5.15 Locker usage map (نقشهٔ استفادهٔ کمدها)
 BUSINESS_RULES.md §6 *Locker usage map*.
-- [ ] `GET /api/lockers/usage?days=7|30|90`, both roles: visits per locker checked in during the
-      period, cancelled excluded, counted for the locker they hold now
-- [ ] A switch on the map's legend: doors coloured by use with the count on each, a colour of their
-      own for unused; a period picker; a view only
-- [ ] Tests (integration): counts, period edges, cancelled excluded, moved visit; (frontend) the
-      switch, colours and period
+- [x] BUSINESS_RULES.md §6 first: 7 days is today and the 6 before, 30 picked by default, five
+      shades of one colour relative to the most used locker, amber for unused, the lock kept, and
+      what the view leaves out (the developer's answers, 1405/07/07)
+- [x] `GET /api/lockers/usage?days=7|30|90` (default 30, anything else 400), both roles
+      (`LockerUsageHandler`): every locker with a correlated count of its visits between the gym's
+      midnight at the start of the period and the one after today, cancelled excluded, counted for
+      the locker they hold now. One SQL statement; no migration (6.5.14's index serves it)
+- [x] `usageLevel` in `features/lockers/usage.ts`; `--door-use` and `--door-unused` tokens in both
+      palettes; `usageDoorClass` in `doorStyle.ts`
+- [x] «نقشهٔ استفاده» switch beside the name search; `UsageLegend` (period picker, the five shades
+      with the most uses, unused) replaces the counts; `LockerMap`'s `usage` draws `UsageDoor`s, a
+      picture rather than a button. The desk panel, the name search and the reserve places go while
+      it is on. Read only while on, not polled, the previous period kept while the next loads
+- [x] Tests (integration): counts and every locker listed, the 7-day edges on the gym's clock, 30
+      and 90 reaching back, cancelled excluded (inserted and through the API), a moved visit, the
+      default, 400 for other days, both roles and 401. (Frontend) `usageLevel`; the shades, counts
+      and labels; nothing of who is inside and nothing clickable; the period; switching back; not
+      asked for while off; a failed request
+
+Done when: the Owner turns on «نقشهٔ استفاده», picks ۹۰ روز, sees locker 67 dashed amber with
+«استفاده نشده» while its neighbours are deep violet, and goes to look at its door.
+
+Built (2026-09-29): 1270 backend (398 domain, 872 integration) and 645 frontend tests pass, zero
+warnings, lint, type check and build clean.
 
 ### 6.5.16 The desk screen's new look, dark (ظاهر تیره صفحه ورود با کمد)
 BUSINESS_RULES.md §6 *The desk screen's look*, *Finding a member on the map*, and the changed

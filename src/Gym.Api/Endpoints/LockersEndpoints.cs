@@ -4,6 +4,7 @@ using Gym.Api.Filters;
 using Gym.Application.Common.Paging;
 using Gym.Application.Lockers;
 using Gym.Application.Lockers.GetLocker;
+using Gym.Application.Lockers.LockerUsage;
 using Gym.Application.Lockers.ListLockers;
 using Gym.Application.Lockers.ListLockerVisitsToday;
 using Gym.Application.Lockers.SetLockerOutOfService;
@@ -39,6 +40,15 @@ public static class LockersEndpoints
             .RequireAuthorization(Policies.StaffOrOwner)
             .WithName("ListLockers")
             .Produces<PagedResponse<LockerResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        // Visits per locker over the last 7, 30 or 90 days, for the map's usage view (BUSINESS_RULES.md §6).
+        group.MapGet("/usage", async ([AsParameters] LockerUsageQuery query, LockerUsageHandler handler, CancellationToken ct) =>
+                Results.Ok(await handler.Handle(query, ct)))
+            .AddEndpointFilter<ValidationFilter<LockerUsageQuery>>()
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .WithName("LockerUsage")
+            .Produces<LockerUsageResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
         group.MapGet("/{id:guid}", async (Guid id, GetLockerHandler handler, CancellationToken ct) =>
