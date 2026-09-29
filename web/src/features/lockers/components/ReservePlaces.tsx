@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import type { CurrentlyInside } from "@/features/attendance/api";
 import { toPersianDigits } from "@/lib/format";
 
+import { longStayLabel, stayProgress } from "../longStay";
+import { StayBar } from "./StayBar";
+
 /** How many visits can be inside with no locker at once: `Attendance.ReservePlaceCount` (BUSINESS_RULES.md §6). */
 export const reservePlaceCount = 15;
 
@@ -13,6 +16,8 @@ interface ReservePlacesProps {
   visits: CurrentlyInside[];
   /** Whether a locker is both in service and free, which rules a reserve place out. */
   anyLockerFree: boolean;
+  /** The current moment, for how long each visit has gone on (BUSINESS_RULES.md §6 *Long stay*). */
+  now: Date;
   onOpenVisit: (visit: CurrentlyInside) => void;
   onCheckIn: () => void;
 }
@@ -22,13 +27,14 @@ interface ReservePlacesProps {
  * that says how many are used. Every locker being full is rare, and 15 boxes that are nearly always
  * empty must not take the desk's room.
  *
- * A used place shows the member's name where a locker would show its number and opens the same box
- * as a locker. An empty one checks someone in only when no locker is free; until then it says why
+ * A used place shows the member's name where a locker would show its number, carries the same
+ * long-stay bar as a door, and opens the same box as a locker. An empty one checks someone in only when no locker is free; until then it says why
  * not, rather than offering a check-in the API would refuse (`Attendance.LockersStillFree`).
  */
 export function ReservePlaces({
   visits,
   anyLockerFree,
+  now,
   onOpenVisit,
   onCheckIn,
 }: ReservePlacesProps) {
@@ -50,17 +56,24 @@ export function ReservePlaces({
             </p>
           )}
           <ul aria-label="جاهای ورود بدون کمد" className="grid grid-cols-5 gap-2">
-            {visits.map((visit) => (
-              <li key={visit.attendanceId}>
-                <button
-                  type="button"
-                  className="flex h-14 w-full items-center justify-center rounded-sm border-2 border-destructive bg-destructive/15 px-1 text-center text-xs font-medium text-destructive hover:bg-destructive/25"
-                  onClick={() => onOpenVisit(visit)}
-                >
-                  {visit.memberFullName}
-                </button>
-              </li>
-            ))}
+            {visits.map((visit) => {
+              const stay = stayProgress(visit.checkedInAt, now);
+              return (
+                <li key={visit.attendanceId}>
+                  <button
+                    type="button"
+                    aria-label={
+                      stay.isLong ? `${visit.memberFullName}، ${longStayLabel}` : undefined
+                    }
+                    className="relative flex h-14 w-full items-center justify-center overflow-hidden rounded-sm border-2 border-destructive bg-destructive/15 px-1 text-center text-xs font-medium text-destructive hover:bg-destructive/25"
+                    onClick={() => onOpenVisit(visit)}
+                  >
+                    {visit.memberFullName}
+                    <StayBar progress={stay} />
+                  </button>
+                </li>
+              );
+            })}
             {Array.from({ length: empty }, (_, index) => (
               <li key={`empty-${index}`}>
                 <button

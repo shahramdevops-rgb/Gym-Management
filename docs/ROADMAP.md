@@ -1100,12 +1100,26 @@ Asked by the developer, 1405/07/07. BUSINESS_RULES.md §6 *The desk panel*.
 Done when: a member with two sessions left walks in, and the desk sees their name under
 «فرصت تمدید», points at it, sees locker 19 blink, and tells them to renew.
 
-### 6.5.13 Long stay bar on the door (PENDING)
+### 6.5.13 Long stay bar on the door (خیلی وقته داخله)
 BUSINESS_RULES.md §6 *Long stay*. Frontend only: `checkedInAt` is already in the visits list.
-- [ ] A thin bar along the bottom of an occupied door and a used reserve place, filling over
-      3 hours, warning colour from 3 hours; re-rendered each minute
-- [ ] The door's accessible label says «بیش از ۳ ساعت»
-- [ ] Tests (frontend, fake timers): the bar's fill at 1.5 h, the warning at 3 h
+- [x] `stayProgress(checkedInAt, now)` in `features/lockers/longStay.ts`: the fill from 0 to 1
+      over 3 hours and `isLong` from 3 hours; a check-in ahead of the browser's clock reads as 0
+- [x] `useNow(60_000)` in `lib/useNow.ts`: one timer on `LockersPage`, which builds the progress
+      per locker from the visits list and passes it to `LockerMap` (`stays`) and `ReservePlaces`
+      (`now`). The move dialog's map passes none and shows no bar
+- [x] `StayBar`: a thin bar along the bottom of an occupied door and a used reserve place, filling
+      from the right in the door's red, wholly the warning colour from 3 hours
+- [x] The door's accessible label (and its hover title) says «بیش از ۳ ساعت»; so does a reserve
+      place's. Nothing is written on the door
+- [x] Tests (frontend): `stayProgress` at 0, 1.5 h, 2 h 59 m, 3 h, 5 h and a clock behind the
+      server; the page with fake timers: half full at 1.5 h, turning to the warning when a minute
+      passes at 2 h 59 m (no new request), the same warning on a reserve place
+
+Done when: a member checked in at 9:00 is still on locker 14 at noon, and the desk sees the bar
+along its door turn orange without anything being written over the name.
+
+Built (2026-09-29): 1234 backend (domain and integration) and 596 frontend tests pass, zero
+warnings, lint and build clean.
 
 ### 6.5.14 Today by hour, under the map (PENDING)
 BUSINESS_RULES.md §6 *Today by hour*.
