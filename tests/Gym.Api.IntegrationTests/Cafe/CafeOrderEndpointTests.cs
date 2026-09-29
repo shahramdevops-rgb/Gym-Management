@@ -352,6 +352,28 @@ public sealed class CafeOrderEndpointTests(DatabaseFixture fixture) : DatabaseTe
         page.Items.ShouldHaveSingleItem().Debt.ShouldBe(45_000m);
     }
 
+    [Fact]
+    public async Task MemberList_DebtorsOnly_ListsAMemberWithAnUnpaidOrderButNotACancelledOne()
+    {
+        // Task 6.5.20, the «بدهکار» filter. Neither member has a subscription, so the cafe order
+        // alone decides; a cancelled order owes nothing (BUSINESS_RULES.md §5 Member debt).
+        var (client, token) = await StaffClientAsync();
+        var owing = await AddMemberAsync();
+        var cancelledOnly = await AddMemberAsync();
+        var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
+        await CreateOkAsync(client, token, owing.Id, [(water.Id, 1)], paid: 5_000m);
+        var cancelled = await CreateOkAsync(client, token, cancelledOnly.Id, [(water.Id, 1)], paid: null);
+        await CancelOkAsync(client, token, cancelled.Id, "اشتباه ثبت شد");
+
+        using var response = await SendAsync(client, token, HttpMethod.Get, "/api/members?debtorsOnly=true", body: null);
+
+        response.EnsureSuccessStatusCode();
+        var page = (await response.Content.ReadFromJsonAsync<PagedResponse<Application.Members.MemberResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        var listed = page.Items.ShouldHaveSingleItem();
+        listed.Id.ShouldBe(owing.Id);
+        listed.Debt.ShouldBe(10_000m);
+    }
+
     // ---- Settling later ----
 
     [Fact]

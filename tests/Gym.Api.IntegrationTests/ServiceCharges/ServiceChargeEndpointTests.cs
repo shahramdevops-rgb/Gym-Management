@@ -488,6 +488,37 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         page.Items.Single(m => m.Id == visit.MemberId).Debt.ShouldBe(910_000m);
     }
 
+    /// <summary>
+    /// The «بدهکار» filter (task 6.5.20) tests each item in SQL rather than reading the total, so
+    /// a charge has to reach it separately: with the subscription paid, the charge alone decides.
+    /// </summary>
+    [Fact]
+    public async Task ListMembers_DebtorsOnly_ListsAMemberWhoOwesOnlyACharge()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        await PaySubscriptionOkAsync(client, token, visit.SubscriptionId, 900_000m);
+        await RecordOkAsync(client, token, visit.Id, 10_000m);
+
+        var page = await ListDebtorsOkAsync(client, token);
+
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(visit.MemberId);
+    }
+
+    [Fact]
+    public async Task ListMembers_DebtorsOnly_LeavesOutAMemberWhoseOnlyChargeIsVoided()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await CheckedInMemberAsync(client, token);
+        await PaySubscriptionOkAsync(client, token, visit.SubscriptionId, 900_000m);
+        var charge = await RecordOkAsync(client, token, visit.Id, 10_000m);
+        await VoidOkAsync(client, token, charge.Id, "اشتباه بود");
+
+        var page = await ListDebtorsOkAsync(client, token);
+
+        page.Items.ShouldBeEmpty();
+    }
+
     // ---- Helpers ----
 
     private sealed record MembersPage(List<MemberRow> Items);
@@ -587,6 +618,21 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
     {
         using var response = await PayChargeAsync(client, token, id, amount, method);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private static async Task PaySubscriptionOkAsync(HttpClient client, string token, Guid subscriptionId, decimal amount)
+    {
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/subscriptions/{subscriptionId}/payments", new { amount, method = "Cash" });
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private static async Task<MembersPage> ListDebtorsOkAsync(HttpClient client, string token)
+    {
+        using var response = await SendAsync(client, token, HttpMethod.Get, "/api/members?debtorsOnly=true");
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<MembersPage>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
     }
 
     private static async Task CheckOutOkAsync(HttpClient client, string token, Guid attendanceId)

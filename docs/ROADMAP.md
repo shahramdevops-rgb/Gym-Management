@@ -1282,6 +1282,26 @@ Done when: «اعضا» finds a member by name or phone and registers one nobody
 occupied locker's box shows «۴ از ۱۲» beside the name, «۱۴۰۵/۰۶/۱۰ تا ۱۴۰۵/۰۷/۰۸ · ۵ روز مانده»
 next to the plan, and opens the locker's day from its own button.
 
+### 6.5.20 Debtors filter on the member list (فیلتر بدهکاران)
+Asked by the developer on 1405/07/07 (2026-09-29). BUSINESS_RULES.md §2 updated. No migration.
+
+- [x] **API.** `GET /api/members?debtorsOnly=true` lists only members who owe something. Debt is
+      calculated, never stored (§5), so the filter is a condition in the query
+      (`MemberDebt.OwesSomething`: some non-cancelled subscription, non-voided charge or
+      non-cancelled cafe order whose price is above its net paid), applied before the count and
+      the paging. It combines with `isActive` and the search
+- [x] **Web.** A «بدهکار» toggle beside «همه / فعال / غیرفعال», kept in the URL as `debt=1`;
+      pressing it again clears only it. An empty result says «عضو بدهکاری نیست.»
+- [x] Tests (integration): partly paid and unpaid listed, fully paid, no subscription and a
+      cancelled one left out; paging counts debtors only; with `isActive=false`; with a search;
+      a هوازی charge alone lists the member and a voided one does not; an unpaid cafe order
+      lists the member and a cancelled one does not
+- [x] Tests (frontend): the toggle sends `DebtorsOnly` and writes `?debt=1`; with a status both are
+      sent and pressing again keeps the status; the empty message
+
+Done when: pressing «بدهکار» on «اعضا» leaves only the rows with an amount owed, the count above
+the table counts only them, and «غیرفعال» + «بدهکار» lists inactive members who still owe.
+
 ---
 
 ## Phase 7 — Cafe / POS

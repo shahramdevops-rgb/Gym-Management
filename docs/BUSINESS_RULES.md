@@ -162,6 +162,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
   - A whole phone number, in any format, finds the member with exactly that number. At least 4 digits that are not a whole number match anywhere in the stored number (leading zeros are dropped first, so `0912 123` works). Fewer digits, or a number that matches nobody, returns an empty list, not an error.
   - A search needs at least 2 characters after normalization (`Members.SearchTooShort`). A blank search lists everyone.
   - The list and search include inactive members by default, so staff can find someone to reactivate or correct. An optional filter shows only active or only inactive members.
+  - A second, separate filter shows only members who owe something (§5 *Member debt*: debt above zero, counted the same way as the amount on their row). It combines with the status filter and the search, so "inactive and still owing" is one list. Asked by the developer on 1405/07/07, roadmap 6.5.20.
   - Results are sorted by name.
 - Deactivating an inactive member, or reactivating an active one, succeeds and changes nothing.
 - Member screens (decided with the developer in task 2.3):
