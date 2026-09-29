@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import type { Locker } from "../api";
 import { cabinetColumns, columnsPerCabinet, lockerZones } from "../layout";
 import { lockerState, type LockerState } from "../lockerState";
+import { longStayLabel, type StayProgress } from "../longStay";
+import { StayBar } from "./StayBar";
 
 /** Doors side by side in the widest zone (inside the changing room: seven cabinets of two). */
 const widestRowDoors =
@@ -54,6 +56,12 @@ interface LockerMapProps {
   aside?: ReactNode;
   /** A locker to make blink, so the desk finds it at a glance; `null` or absent for none. */
   highlightedLockerId?: string | null;
+  /**
+   * How long each held locker's visit has gone on, by locker id, for the bar along the bottom of
+   * its door (BUSINESS_RULES.md §6 *Long stay*). Absent where the time does not matter, such as
+   * choosing a locker to move to.
+   */
+  stays?: ReadonlyMap<string, StayProgress>;
 }
 
 /**
@@ -69,7 +77,8 @@ interface LockerMapProps {
  *
  * The doors grow with the screen so the whole width is used, and an occupied door carries its
  * holder's name once it is wide enough to read, cut to two lines inside the door. A holder who
- * owes money gets "بدهکار" across the door's top-left corner.
+ * owes money gets "بدهکار" across the door's top-left corner, and a thin bar along its bottom fills
+ * over three hours of the visit.
  */
 export function LockerMap({
   lockers,
@@ -77,6 +86,7 @@ export function LockerMap({
   mode = "desk",
   aside,
   highlightedLockerId = null,
+  stays,
 }: LockerMapProps) {
   const byNumber = new Map(lockers.map((locker) => [Number(locker.number), locker]));
 
@@ -106,6 +116,7 @@ export function LockerMap({
                               highlightedLockerId !== null &&
                               byNumber.get(number)?.id === highlightedLockerId
                             }
+                            stays={stays}
                             onSelect={onSelect}
                           />
                         ))}
@@ -132,12 +143,14 @@ function LockerDoor({
   locker,
   mode,
   highlighted,
+  stays,
   onSelect,
 }: {
   number: number;
   locker: Locker | undefined;
   mode: "desk" | "pick";
   highlighted: boolean;
+  stays: ReadonlyMap<string, StayProgress> | undefined;
   onSelect: (locker: Locker) => void;
 }) {
   // A locker the API did not send cannot be acted on. It should never happen — all 72 are seeded —
@@ -160,14 +173,18 @@ function LockerDoor({
   const holder = locker.occupiedByMemberFullName;
   // Any money the holder owes, whatever it is for: a plan, هوازی or the cafe (BUSINESS_RULES.md §6).
   const owes = holder !== null && Number(locker.occupiedByMemberDebt) > 0;
-  const holderText = owes ? `${holder}، ${debtorLabel}` : holder;
-  const label = `کمد ${toPersianDigits(number)}، ${stateLabel[state]}${holderText === null ? "" : ` — ${holderText}`}`;
+  // The visit behind an occupied door, once the list of everyone inside has caught up with it.
+  const stay = state === "occupied" ? stays?.get(locker.id) : undefined;
+  const holderText = [holder, owes ? debtorLabel : null, stay?.isLong ? longStayLabel : null]
+    .filter((part) => part !== null)
+    .join("، ");
+  const label = `کمد ${toPersianDigits(number)}، ${stateLabel[state]}${holder === null ? "" : ` — ${holderText}`}`;
 
   return (
     <button
       type="button"
       aria-label={label}
-      title={holderText ?? stateLabel[state]}
+      title={holder === null ? stateLabel[state] : holderText}
       disabled={mode === "pick" && state !== "free"}
       data-state={state}
       data-highlighted={highlighted || undefined}
@@ -186,6 +203,7 @@ function LockerDoor({
       )}
     >
       {owes && <DebtorRibbon />}
+      {stay !== undefined && <StayBar progress={stay} />}
       {/* Its own query container, so what is written inside follows the door's size, not the
           screen's. The door's size never follows what is written. A debtor's number and name sit
           at the bottom, out of the ribbon's corner, a little off the frame. */}

@@ -1094,3 +1094,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Lift shared state to the closest common parent.** The hovered entry lives in `LockersPage`: the panel sets it, the map reads it. Neither child knows about the other.
 - **Logical margins follow the element's own direction.** `ms-auto` on a wrapper inside `dir="ltr"` is a left margin that pushes it right. Putting it on the panel itself, which is `dir="rtl"`, would have flipped it. `empty:hidden` removes the wrapper when the panel renders nothing, so it cannot wrap onto a blank line.
 - **My notes:**
+
+---
+
+## 6.5.13 — Long stay bar on the door
+
+- **Keep the rule in a pure function.** `stayProgress(checkedInAt, now)` takes the current moment as an argument instead of reading the clock, so its test needs no fake timers at all: it passes six moments and checks six answers. The component only draws what the function says.
+- **A clock is state.** `useNow(60_000)` keeps the current moment in `useState` and replaces it every minute with `setInterval`. React re-renders because the state changed, not because time passed. Without it the bar would only move when the 15-second poll happened to bring new data. The effect's cleanup (`clearInterval`) stops the timer when the page is left.
+- **One timer high up, not one per item.** The hook is called once in `LockersPage`, and `now` flows down as a prop. Seventy-two doors each with their own interval would be 72 timers ticking out of step.
+- **Derive, don't store.** The progress per locker is a `Map` built on every render from the visits list and `now`. Nothing about it is kept in state, so it can never disagree with the data it comes from.
+- **An optional prop turns a feature off where it does not belong.** `LockerMap` draws a bar only when it is given `stays`. The move dialog's map, where the desk picks a free locker, passes none and did not change.
+- **Say it to a screen reader, not on the screen.** The bar is `aria-hidden`; its meaning goes into the button's `aria-label` («بیش از ۳ ساعت»). The door keeps its room for the number and the name, and a blind user still hears the warning.
+- **Fix the time a test depends on.** Two existing tests used a check-in on 2026-09-18 with the real clock, so after this change they suddenly read as long stays. Their fixtures now check in "just now". The new tests set the clock with `vi.setSystemTime` and move it with `vi.advanceTimersByTimeAsync(60_000)` inside `act`, which proves the minute tick itself redraws the bar.
+- **My notes:**

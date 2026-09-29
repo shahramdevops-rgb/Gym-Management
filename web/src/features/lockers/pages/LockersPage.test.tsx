@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import type { Member } from "@/features/members/api";
 import { cafePage } from "@/test/cafe";
@@ -29,8 +29,19 @@ import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
 // Every test signs in as Staff: the map is the desk's screen, the same for both roles, and nothing
 // on it is Owner-only (BUSINESS_RULES.md §6). A test passing here is a test that Staff can do it.
 
+/**
+ * When the visits below checked in: as the tests start, so none of them is a long stay (BUSINESS_RULES.md
+ * §6 *Long stay*) unless a test says so.
+ */
+const justNow = new Date().toISOString();
+
 /** Reza's open visit on locker 2, as the "currently inside" list carries it. */
-const rezaVisit = { ...openVisit(reza.id), lockerId: lockerId(2), lockerNumber: 2 };
+const rezaVisit = {
+  ...openVisit(reza.id),
+  lockerId: lockerId(2),
+  lockerNumber: 2,
+  checkedInAt: justNow,
+};
 
 function mapHandlers(
   lockers = allLockers(),
@@ -691,6 +702,7 @@ describe("LockersPage", () => {
     lockerId: null,
     lockerNumber: null,
     usesReservePlace: true,
+    checkedInAt: justNow,
   };
 
   it("ReservePlaces_Collapsed_ShowOnlyHowManyAreUsed", async () => {
@@ -870,6 +882,83 @@ describe("LockersPage", () => {
 
       const dialog = await screen.findByRole("dialog");
       expect(within(dialog).getByRole("heading", { name: "کمد شماره ۲" })).toBeInTheDocument();
+    });
+  });
+
+  // ---- Long stay: the bar along the bottom of a door (BUSINESS_RULES.md §6) ----
+
+  describe("LongStay", () => {
+    const now = new Date("2026-09-29T09:00:00Z");
+    const checkedInBefore = (minutes: number) =>
+      new Date(now.getTime() - minutes * 60_000).toISOString();
+
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(now);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function onLocker2(checkedInAt: string) {
+      return mapHandlers(allLockers(heldLocker(2, reza.id, reza.fullName)), [
+        insideRow(reza.fullName, { ...rezaVisit, checkedInAt }),
+      ]);
+    }
+
+    function stayBar(element: HTMLElement) {
+      return within(element).getByTestId("stay-bar");
+    }
+
+    it("LongStay_OneAndAHalfHoursIn_BarIsHalfFullWithNoWarning", async () => {
+      mockApi(onLocker2(checkedInBefore(90)));
+      renderMap();
+
+      const held = await door("۲");
+      const bar = stayBar(held);
+      expect(within(bar).getByTestId("stay-bar-fill")).toHaveStyle({ width: "50%" });
+      expect(bar).not.toHaveAttribute("data-long");
+      expect(held).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی");
+      // Only a held door carries a bar.
+      expect(screen.getAllByTestId("stay-bar")).toHaveLength(1);
+    });
+
+    it("LongStay_AMinutePassesAtThreeHours_BarTurnsToTheWarningAndTheLabelSaysIt", async () => {
+      mockApi(onLocker2(checkedInBefore(179)));
+      renderMap();
+
+      expect(stayBar(await door("۲"))).not.toHaveAttribute("data-long");
+
+      // No new request: the page's own clock moves the bar on.
+      await act(() => vi.advanceTimersByTimeAsync(60_000));
+
+      const held = await door("۲");
+      const bar = stayBar(held);
+      expect(bar).toHaveAttribute("data-long", "true");
+      expect(within(bar).getByTestId("stay-bar-fill")).toHaveStyle({ width: "100%" });
+      expect(held).toHaveAccessibleName("کمد ۲، اشغال — رضا احمدی، بیش از ۳ ساعت");
+      // Nothing is written on the door for it.
+      expect(held).not.toHaveTextContent("بیش از ۳ ساعت");
+    });
+
+    it("LongStay_ReservePlaceThreeHoursIn_ShowsTheSameWarning", async () => {
+      mockApi(
+        mapHandlers(allLockers(), [
+          insideRow(reza.fullName, {
+            ...openVisit(reza.id),
+            lockerId: null,
+            lockerNumber: null,
+            usesReservePlace: true,
+            checkedInAt: checkedInBefore(200),
+          }),
+        ]),
+      );
+      renderMap();
+
+      fireEvent.click(await screen.findByRole("button", { name: /ورود بدون کمد/ }));
+      const place = screen.getByRole("button", { name: "رضا احمدی، بیش از ۳ ساعت" });
+      expect(stayBar(place)).toHaveAttribute("data-long", "true");
     });
   });
 });

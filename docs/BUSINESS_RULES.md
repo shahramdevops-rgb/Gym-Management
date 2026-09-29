@@ -535,9 +535,9 @@ the wall outside the changing room (the top zone is five cabinets wide; the zone
   place has no door to blink; its entry still opens its box.
 - A guest (§7 *Guest visit*) is never listed: a guest has no birth date and no subscription.
 
-### Long stay (خیلی وقته داخله) (PENDING — roadmap 6.5.13)
+### Long stay (خیلی وقته داخله)
 
-Decided by the developer, 1405/07/07. Not built yet.
+Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.13.
 - An occupied door carries a thin bar along its bottom edge that fills as the visit goes on,
   reaching full at **3 hours** after check-in. From 3 hours it turns to the warning colour: the
   member has probably left without checking out, or has not given the key back. The desk looks

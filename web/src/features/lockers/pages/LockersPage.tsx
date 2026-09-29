@@ -14,6 +14,7 @@ import { useEveryoneInside, type CurrentlyInside } from "@/features/attendance/a
 import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
+import { useNow } from "@/lib/useNow";
 
 import { useAllLockers, useSetLockerOutOfService, type Locker } from "../api";
 import { DeskPanel } from "../components/DeskPanel";
@@ -22,6 +23,7 @@ import { LockerMap } from "../components/LockerMap";
 import { LockerVisitDialog } from "../components/LockerVisitDialog";
 import { ReservePlaces } from "../components/ReservePlaces";
 import { lockerState } from "../lockerState";
+import { stayProgress } from "../longStay";
 
 /** Which box is open. Each open gets a new id, so the next box starts fresh even for the same locker. */
 type OpenBox =
@@ -40,11 +42,15 @@ type OpenBox =
  * the API) and everyone inside (the visit behind each held locker or reserve place). They are
  * joined here by locker, and one page of each always holds everything — 72 lockers, and at most
  * 72 + 15 open visits.
+ *
+ * A third clock ticks every minute with no request at all, moving on the bar that shows how long
+ * each visit has gone on (§6 *Long stay*).
  */
 export function LockersPage() {
   const lockers = useAllLockers();
   const inside = useEveryoneInside();
   const desk = useDeskDialog();
+  const now = useNow(60_000);
   const [box, setBox] = useState<{ id: number; open: OpenBox } | null>(null);
   // The locker an entry of the desk panel is pointing at, blinking on the map (§6 *The desk panel*).
   const [highlighted, setHighlighted] = useState<string | null>(null);
@@ -70,6 +76,11 @@ export function LockersPage() {
 
   const reserveVisits = inside.data.filter((visit) => visit.usesReservePlace);
   const anyLockerFree = lockers.data.some((locker) => lockerState(locker) === "free");
+  const stays = new Map(
+    inside.data.flatMap((visit) =>
+      visit.lockerId === null ? [] : [[visit.lockerId, stayProgress(visit.checkedInAt, now)]],
+    ),
+  );
 
   function select(locker: Locker) {
     const state = lockerState(locker);
@@ -112,6 +123,7 @@ export function LockersPage() {
             lockers={lockers.data}
             onSelect={select}
             highlightedLockerId={highlighted}
+            stays={stays}
             aside={
               <DeskPanel
                 visits={inside.data}
@@ -126,6 +138,7 @@ export function LockersPage() {
           <ReservePlaces
             visits={reserveVisits}
             anyLockerFree={anyLockerFree}
+            now={now}
             onOpenVisit={(visit) => open({ kind: "visit", attendanceId: visit.attendanceId })}
             onCheckIn={() => open({ kind: "checkIn", place: { kind: "reserve" } })}
           />
