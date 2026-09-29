@@ -88,6 +88,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_attendances");
 
+                    b.HasIndex("CheckedInAt")
+                        .HasDatabaseName("ix_attendances_checked_in_at");
+
                     b.HasIndex("LockerId")
                         .IsUnique()
                         .HasDatabaseName("ix_attendances_one_open_per_locker")

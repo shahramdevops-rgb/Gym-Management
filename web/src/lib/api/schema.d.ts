@@ -628,6 +628,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/attendance/today-by-hour": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TodayByHour"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/attendance/{attendanceId}/service-charges": {
         parameters: {
             query?: never;
@@ -1228,6 +1244,14 @@ export interface components {
             /** Format: date-time */
             updatedAt: null | string;
         };
+        HourCountResponse: {
+            /** Format: int32 */
+            hour: number | string;
+            /** Format: int32 */
+            today: number | string;
+            /** Format: double */
+            average: number | string;
+        };
         LockerResponse: {
             /** Format: uuid */
             id: string;
@@ -1669,6 +1693,13 @@ export interface components {
         };
         /** @enum {unknown} */
         SubscriptionStatus: "Cancelled" | "Frozen" | "Upcoming" | "Expired" | "Exhausted" | "Active";
+        TodayByHourResponse: {
+            /** Format: date */
+            date: string;
+            /** Format: int32 */
+            daysAveraged: number | string;
+            hours: components["schemas"]["HourCountResponse"][];
+        };
         UpdateExpenseCategoryCommand: {
             name: string;
             /** Format: uint32 */
@@ -4281,6 +4312,44 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    TodayByHour: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodayByHourResponse"];
                 };
             };
             /** @description Unauthorized */

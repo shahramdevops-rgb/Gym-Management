@@ -8,6 +8,7 @@ using Gym.Application.Attendances.CheckOut;
 using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Attendances.ListMemberAttendance;
 using Gym.Application.Attendances.MoveLocker;
+using Gym.Application.Attendances.TodayByHour;
 using Gym.Application.Common.Paging;
 
 namespace Gym.Api.Endpoints;
@@ -97,6 +98,14 @@ public static class AttendanceEndpoints
             .WithName("ListCurrentlyInside")
             .Produces<PagedResponse<CurrentlyInsideResponse>>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        // Counts only, never money, so it is on the desk's screen for both roles (BUSINESS_RULES.md §6
+        // *Today by hour*); the policy is named here for the same reason as check-in's.
+        attendance.MapGet("/today-by-hour", async (TodayByHourHandler handler, CancellationToken ct) =>
+                Results.Ok(await handler.Handle(ct)))
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .WithName("TodayByHour")
+            .Produces<TodayByHourResponse>();
 
         return app;
     }

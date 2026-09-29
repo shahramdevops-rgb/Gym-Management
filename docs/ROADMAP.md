@@ -1122,13 +1122,28 @@ along its door turn orange without anything being written over the name.
 Built (2026-09-29): 1234 backend (domain and integration) and 596 frontend tests pass, zero
 warnings, lint and build clean.
 
-### 6.5.14 Today by hour, under the map (PENDING)
+### 6.5.14 Today by hour, under the map (ورود امروز ساعت به ساعت)
 BUSINESS_RULES.md §6 *Today by hour*.
-- [ ] Migration: an index on `attendances(checked_in_at)` (none exists; shared with 6.5.15)
-- [ ] `GET /api/attendance/today-by-hour`, both roles: per hour in the gym's time zone, today's
-      count and the same weekday's average over the previous 4 weeks; cancelled excluded
-- [ ] A small bar chart under the map, drawn with plain SVG (no chart package is listed)
-- [ ] Tests (integration): hours bucketed in the gym's zone; cancelled excluded; the 4-week average
+- [x] BUSINESS_RULES.md §6 first: the average is over only the days of the 4 that had a check-in
+      (a closed day is left out, not counted as zero), the developer's choice
+- [x] Migration `AddAttendanceCheckedInAtIndex`: `ix_attendances_checked_in_at` (shared with 6.5.15)
+- [x] `GET /api/attendance/today-by-hour`, both roles (`TodayByHourHandler`): 24 hours in the
+      gym's time zone, today's count and the same weekday's average over the previous 4 weeks,
+      plus how many days the average covers; cancelled excluded. Five small range queries, the
+      moments put into hours in C#
+- [x] `TodayByHourChart` under the reserve places, plain SVG: a bar for today, a dashed line at
+      the average, hours right to left, the current hour marked, only the busy span of hours; a
+      hidden table for a screen reader. Polls every minute and refreshes on any check-in or cancel
+- [x] Tests (integration): hours bucketed in the gym's zone around midnight; cancelled excluded
+      from today and the average; the average over open days only, ignoring week 5 and another
+      weekday; no past days; both roles and 401. (Frontend) the busy span, `gymHour`, the labels,
+      no average, nothing yet, a failed request, refetch after a check-in
+
+Done when: at 18:10 on a Wednesday the desk sees today's bar at 18 above the dashed line of the
+last four Wednesdays, and knows the evening is busier than usual.
+
+Built (2026-09-29): 1256 backend (398 domain, 858 integration) and 634 frontend tests pass, zero
+warnings, lint, type check and build clean.
 
 ### 6.5.15 Locker usage map (PENDING)
 BUSINESS_RULES.md §6 *Locker usage map*.

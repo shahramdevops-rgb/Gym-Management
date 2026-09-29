@@ -604,14 +604,22 @@ Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadma
 - The time and today's date, written out («سه‌شنبه ۷ مهر ۱۴۰۵»), are at the top of the side
   menu, so they are on every screen, not only this one.
 
-### Today by hour (ورود امروز ساعت به ساعت) (PENDING — roadmap 6.5.14)
+### Today by hour (ورود امروز ساعت به ساعت)
 
-Decided by the developer, 1405/07/07. Not built yet.
+Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.14.
 - Under the map, on the same screen, a small chart: for each hour of today, how many visits were
   checked in during that hour (by `CheckedInAt` in the gym's time zone, §0). Cancelled check-ins
   are not counted (§12).
 - Beside each hour, the **average for the same hour on the same weekday over the previous 4 weeks**,
   so the desk and the Owner see whether today is busier or quieter than usual.
+- The average is taken over **only those of the 4 days that had at least one counted check-in**
+  (decided by the developer, 1405/07/07): a day the gym was closed (a holiday such as Nowruz) or a
+  day before the system was in use is left out rather than counted as zero, so the average shows an
+  ordinary open day. With none of the 4 days open, the average is zero. The chart says how many
+  days the average covers when it is fewer than 4.
+- Only the hours from the first to the last with anything in them (today or on average) are drawn,
+  so the night the gym is shut takes no room. The hour it is now is marked. Hours run from right to
+  left, as time runs along the long-stay bar.
 - It shows counts only, never money, so it is on the desk's screen for both roles (§1 *Permissions*).
   Full attendance reports stay Owner-only (§12).
 
