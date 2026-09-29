@@ -36,7 +36,7 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
     return null;
   }
 
-  const entry = (visit: CurrentlyInside, detail?: ReactNode) => (
+  const entry = (visit: CurrentlyInside, detail: ReactNode) => (
     <li key={visit.attendanceId}>
       <button
         type="button"
@@ -45,10 +45,13 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
         onMouseLeave={() => onHighlight(null)}
         onFocus={() => onHighlight(visit.lockerId)}
         onBlur={() => onHighlight(null)}
-        className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-start text-sm transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        className="flex w-full items-center gap-3 rounded-lg border border-door-border px-2.5 py-2 text-start text-sm transition-[translate,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-y-0"
       >
-        <span className="min-w-0 flex-1 truncate font-medium">{visit.memberFullName}</span>
-        <span className="shrink-0 text-xs text-muted-foreground">{placeLabel(visit)}</span>
+        <Initials name={visit.memberFullName} />
+        <span className="grid min-w-0 flex-1">
+          <span className="truncate font-bold">{visit.memberFullName}</span>
+          <span className="text-xs text-muted-foreground">{placeLabel(visit)}</span>
+        </span>
         {detail}
       </button>
     </li>
@@ -59,32 +62,36 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
       aria-label="پنل پذیرش"
       dir="rtl"
       // As tall as the three doors of the cabinets beside it, and scrolling inside beyond that,
-      // so a busy day never pushes the map down.
-      className="flex max-h-[calc(3*var(--door)+1.25rem)] w-72 max-w-full flex-col gap-2 overflow-y-auto"
+      // so a busy day never pushes the map down. The line across its top is drawn by `before:`.
+      className="relative flex max-h-[calc(3*var(--door-size)+1.25rem)] w-80 max-w-full flex-col gap-4 overflow-y-auto rounded-xl border bg-card p-3 pt-4 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-linear-to-l before:from-success before:to-primary before:content-['']"
     >
       {birthdays.length > 0 && (
-        <section
-          aria-label="تولدت مبارک"
-          className="rounded-md border border-primary/50 bg-primary/10 p-2"
-        >
-          <h3 className="mb-1 flex items-center gap-2 px-2 text-sm font-bold">
-            <Cake aria-hidden className="size-4 text-primary" />
+        // A plain list, like the renewals: the party is drawn on the member's door, not here.
+        <section aria-label="تولدت مبارک">
+          <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-bold text-party-pink">
+            <Cake aria-hidden className="size-4" />
             تولدت مبارک
           </h3>
-          <ul>{birthdays.map((visit) => entry(visit))}</ul>
+          <ul className="space-y-2">
+            {birthdays.map((visit) =>
+              entry(
+                visit,
+                <span className="shrink-0 text-xs font-bold whitespace-nowrap text-party-pink">
+                  امروز تولدشه
+                </span>,
+              ),
+            )}
+          </ul>
         </section>
       )}
 
       {renewals.length > 0 && (
-        <section
-          aria-label="فرصت تمدید"
-          className="rounded-md border border-warning/50 bg-warning/10 p-2"
-        >
-          <h3 className="mb-1 flex items-center gap-2 px-2 text-sm font-bold">
-            <RefreshCw aria-hidden className="size-4 text-warning" />
+        <section aria-label="فرصت تمدید">
+          <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-bold text-warning">
+            <RefreshCw aria-hidden className="size-4" />
             فرصت تمدید ({toPersianDigits(renewals.length)})
           </h3>
-          <ul>
+          <ul className="space-y-2">
             {renewals.map(({ visit, due }) =>
               entry(
                 visit,
@@ -97,6 +104,30 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
         </section>
       )}
     </aside>
+  );
+}
+
+/**
+ * The member's initials in a circle, the first letter of their first and last names, kept apart
+ * by a zero-width non-joiner so they read as two letters, not a word. The circle's hue comes from
+ * the name, so the same member always gets the same one; it only helps the eye, so it is hidden
+ * from a screen reader.
+ */
+function Initials({ name }: { name: string }) {
+  const words = name.split(" ").filter((word) => word !== "");
+  const first = words[0]?.[0] ?? "";
+  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? "") : "";
+  const letters = last === "" ? first : [first, last].join("\u200C");
+  const hue = [...name].reduce((sum, character) => sum + character.codePointAt(0)!, 0) % 360;
+
+  return (
+    <span
+      aria-hidden
+      className="grid size-8 shrink-0 place-items-center rounded-full text-xs font-extrabold text-white"
+      style={{ backgroundColor: `oklch(0.5 0.13 ${hue})` }}
+    >
+      {letters}
+    </span>
   );
 }
 

@@ -452,7 +452,8 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
   «مهمان» in its label and its own line in the map's legend. The desk sees at a glance that nobody
   paid for that key.
 - **A holder who owes money is marked on the map** (asked by the developer, 1405/07/06): a small
-  «بدهکار» label across the door's top-left corner, whenever the member holding the locker has any
+  red «بدهکار» tag hanging from the door's top edge at its top-right corner (changed by the
+  developer, 1405/07/07, from a band across the top-left corner), whenever the member holding the locker has any
   debt at all (§5 *Member debt*: a subscription, a service such as هوازی, or a cafe order). It is
   information only, like the debt shown at check-in; the amount and what it is for are in the
   locker's box. A holder who owes nothing, and a free locker, carry no label. A guest holder carries
@@ -518,8 +519,13 @@ the wall outside the changing room (the top zone is five cabinets wide; the zone
 - **Birthday (تولدت مبارک):** a member whose birthday is today, by the **Jalali** month and day
   (the day Iranians celebrate; the Gregorian anniversary can fall a day off). Someone born on
   30 Esfand is listed on 29 Esfand in a year that has no 30 Esfand. A member with no birth date
-  is never listed. Nothing is drawn on the locker door for a birthday: the door's corners are
-  kept for other marks.
+  is never listed. **Their door celebrates** (changed by the developer, 1405/07/07, from "nothing
+  is drawn on the door"): a ring of party colours turns around its edge, confetti falls inside it
+  behind the number and the name, and it glows softly. It takes no corner (those are kept for the
+  «بدهکار» tag) and no line of text; the door's label for a screen reader says «امروز تولدش است».
+  A reserve place in use celebrates the same way. The birthday list in the panel is plain, like the
+  renewal list: the celebration is on the door only (changed by the developer, 1405/07/07). For
+  anyone who has asked for less motion the ring stands still and no confetti falls.
 - **Renewal opportunity (فرصت تمدید):** a member whose visit's subscription is running out by the
   board's own thresholds (§7 *The "currently inside" board*: 3 or fewer sessions left, or ending
   within 5 days), so the desk tells them to renew before it runs out. A single-session visit is
@@ -539,12 +545,53 @@ the wall outside the changing room (the top zone is five cabinets wide; the zone
 
 Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.13.
 - An occupied door carries a thin bar along its bottom edge that fills as the visit goes on,
-  reaching full at **3 hours** after check-in. From 3 hours it turns to the warning colour: the
-  member has probably left without checking out, or has not given the key back. The desk looks
-  into it the same day, before auto-checkout closes the visit at night (§7 *Auto-checkout*).
+  reaching full at **3 hours** after check-in. Its colour moves with it, from green at check-in
+  through yellow to red at 3 hours (changed by the developer, 1405/07/07, from a red bar that
+  turned wholly the warning colour). From 3 hours the full red bar blinks, calmly but clearly: it
+  glows, then nearly fades out, once every two seconds (made stronger by the developer,
+  1405/07/07, after a faint blink went unnoticed); it stays still for anyone who has asked their
+  system for less motion. At that point the member has probably left without checking out, or has
+  not given the key back. The desk looks into it the same day, before auto-checkout closes the
+  visit at night (§7 *Auto-checkout*).
 - It is only information: nothing is blocked or closed by it. It takes no corner of the door and
   no line of text; the door's label for a screen reader says it («بیش از ۳ ساعت»).
 - A reserve place in use shows the same bar.
+
+### Finding a member on the map (جستجو با نام)
+
+Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.16.
+- A search field above the map, at the end of the legend's row, takes a **name only**. There are
+  72 lockers and the drawing already shows where each one is, so a locker number is not searched
+  for.
+- It looks only at who is **inside now**: the holders of occupied lockers and the members on
+  reserve places. It needs no request; the screen already has both lists.
+- The match is partial and uses the same normalization as member search (§13), so «علي» finds
+  «علی» and a half-space matches a space. Nothing is searched until the field holds at least
+  2 characters after normalization.
+- Matching doors are lifted and outlined; every other door fades. A match on a reserve place opens
+  the reserve places and marks that place. Clearing the field (or Escape) brings the map back.
+  It is a way to find someone, not a filter: every door can still be clicked.
+
+### The desk screen's look (ظاهر صفحه ورود با کمد)
+
+Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadmap 6.5.16.
+- The screen is dark. For now only this screen is; whether the rest of the app follows is decided
+  later (Phase 13.2 *One visual language*).
+- A free door is a dark tile with a green number and a green edge down its right side. An occupied
+  door is tinted red from its top corner, with a red edge, the number in white and the holder's
+  name under it. An out-of-service door is hatched, with a grey number and a lock under it.
+- A door rises a little under the mouse, so the map feels alive. A door whose state changed since
+  the last refresh pulses once in its new colour. Neither moves for anyone who has asked their
+  system for less motion.
+- Above the map: the counts of free, occupied and out-of-service lockers, and what the «بدهکار»
+  tag and the long-stay bar mean. (A strip of 72 marks showing how full the lockers are, and a
+  "refreshed N seconds ago" mark, were tried and removed by the developer, 1405/07/07: the desk
+  does not need them.)
+- The reserve places (*Reserve places* above) are drawn like doors: a used one like an occupied
+  door with the member's name, an empty one like a free door with «خالی», faded while a locker is
+  still free.
+- The time and today's date, written out («سه‌شنبه ۷ مهر ۱۴۰۵»), are at the top of the side
+  menu, so they are on every screen, not only this one.
 
 ### Today by hour (ورود امروز ساعت به ساعت) (PENDING — roadmap 6.5.14)
 

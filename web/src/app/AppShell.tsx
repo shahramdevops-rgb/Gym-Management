@@ -22,6 +22,7 @@ import { useSessionState } from "@/features/auth/session";
 import { cn } from "@/lib/utils";
 
 import { paths } from "./paths";
+import { SidebarClock } from "./SidebarClock";
 
 interface NavigationItem {
   to: string;
@@ -57,7 +58,7 @@ const navigation: NavigationItem[] = [
  * right-to-left, so it lands on the right; the border sits on its logical end (border-e).
  *
  * The menu shows only what the user may open. A user who must change their password sees
- * no menu at all: there is nowhere else they can go yet.
+ * no menu at all: there is nowhere else they can go yet. The clock above it is always there.
  */
 export function AppShell() {
   const state = useSessionState();
@@ -96,7 +97,8 @@ export function AppShell() {
       </header>
 
       <div className="flex flex-1">
-        <nav aria-label="منوی اصلی" className="w-56 shrink-0 border-e bg-card p-3">
+        <nav aria-label="منوی اصلی" className="w-56 shrink-0 space-y-3 border-e bg-card p-3">
+          <SidebarClock />
           <ul className="space-y-1">
             {items.map(({ to, label, icon: Icon }) => (
               <li key={to}>

@@ -1,12 +1,15 @@
-import type { CSSProperties, ReactNode } from "react";
+import { Lock } from "lucide-react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { Locker } from "../api";
 import { cabinetColumns, columnsPerCabinet, lockerZones } from "../layout";
-import { lockerState, type LockerState } from "../lockerState";
+import { lockerState, lockerStateLabel, type LockerState } from "../lockerState";
 import { longStayLabel, type StayProgress } from "../longStay";
+import { birthdayLabel, Celebration } from "./Celebration";
+import { doorFace, doorMotion, doorStateClass } from "./doorStyle";
 import { StayBar } from "./StayBar";
 
 /** Doors side by side in the widest zone (inside the changing room: seven cabinets of two). */
@@ -17,28 +20,22 @@ const widestRowDoors =
 /**
  * A door's width: as wide as the map lets the widest zone be, never smaller than a fingertip and
  * never larger than a real door would read. `100cqw` is the map's own width (it is the query
- * container); 12rem leaves room for the cabinet frames and the gaps between cabinets and groups.
+ * container); 12rem leaves room for the gaps between doors, cabinets and groups.
  * Every door gets the same size whatever is written on it, so a long name can never grow one.
  */
 const doorWidth = `clamp(2.75rem, calc((100cqw - 12rem) / ${widestRowDoors}), 6rem)`;
 
-/** Fixed square doors, sized by `--door` on the map. */
-const doorSize = "w-(--door) shrink-0 aspect-square";
+/** Fixed square doors, sized by `--door-size` on the map. */
+const doorSize = "w-(--door-size) shrink-0 aspect-square";
 
-const stateLabel: Record<LockerState, string> = {
-  free: "آزاد",
-  occupied: "اشغال",
-  outOfService: "خارج از سرویس",
-};
-
-/** Written across the corner of a door whose holder owes money. */
+/** Written on the tag of a door whose holder owes money. */
 const debtorLabel = "بدهکار";
 
-const stateClass: Record<LockerState, string> = {
-  free: "border-success bg-success/15 text-success hover:bg-success/30",
-  occupied: "border-destructive bg-destructive/15 text-destructive hover:bg-destructive/25",
-  outOfService:
-    "border-muted-foreground/50 text-muted-foreground bg-[repeating-linear-gradient(45deg,var(--muted)_0_5px,transparent_5px_10px)]",
+/** The one-time pulse on a door that changed, in its new colour. */
+const changedRingClass: Record<LockerState, string> = {
+  free: "ring-success",
+  occupied: "ring-destructive",
+  outOfService: "ring-muted-foreground",
 };
 
 interface LockerMapProps {
@@ -62,23 +59,36 @@ interface LockerMapProps {
    * choosing a locker to move to.
    */
   stays?: ReadonlyMap<string, StayProgress>;
+  /**
+   * The lockers whose holder matches the name being searched for (BUSINESS_RULES.md §6 *Finding a
+   * member on the map*): they are lifted and outlined, every other door fades. `null` or absent
+   * while nothing is being searched for.
+   */
+  foundLockerIds?: ReadonlySet<string> | null;
+  /**
+   * The lockers whose holder's birthday is today (BUSINESS_RULES.md §6 *The desk panel*): their
+   * doors celebrate. Absent where it does not matter, such as choosing a locker to move to.
+   */
+  birthdayLockerIds?: ReadonlySet<string>;
 }
 
 /**
  * The gym's lockers drawn the way they stand (BUSINESS_RULES.md §6 *Where they stand*): each a
- * door-shaped button, green when free, red when someone holds it (their name on hover), grey and
- * hatched when out of service. The desk clicks the locker it gives a member, the way a cinema seat
- * is booked.
+ * door-shaped button, with a green number and edge when free, tinted red with a red edge when
+ * someone holds it (their name on it and on hover), hatched with a lock when out of service. The
+ * desk clicks the locker it gives a member, the way a cinema seat is booked.
  *
  * The cabinets are laid out left to right, as on the wall, even though the page is right-to-left:
  * `dir="ltr"` on each zone keeps locker 1 at the left end where it really is. No location words
  * are written on the map; the drawing already says where a locker is, and the zone names are
- * only for a screen reader.
+ * only for a screen reader. A cabinet has no frame: the gap between cabinets is twice the gap
+ * between doors, which is enough to tell them apart.
  *
- * The doors grow with the screen so the whole width is used, and an occupied door carries its
- * holder's name once it is wide enough to read, cut to two lines inside the door. A holder who
- * owes money gets "بدهکار" across the door's top-left corner, and a thin bar along its bottom fills
- * over three hours of the visit.
+ * The doors grow with the screen so the whole width is used, rise a little under the mouse, and
+ * pulse once when a refresh changes them (§6 *The desk screen's look*). A holder who owes money
+ * gets a red «بدهکار» tag on the door's top-right corner, and a thin bar along its bottom fills
+ * over three hours of the visit. A holder whose birthday is today gets a party on their door: a
+ * turning ring of colours and falling confetti (§6 *The desk panel*).
  */
 export function LockerMap({
   lockers,
@@ -87,39 +97,57 @@ export function LockerMap({
   aside,
   highlightedLockerId = null,
   stays,
+  foundLockerIds = null,
+  birthdayLockerIds,
 }: LockerMapProps) {
   const byNumber = new Map(lockers.map((locker) => [Number(locker.number), locker]));
+  const changed = useChangedDoors(lockers);
 
   return (
-    <div className="@container space-y-6" style={{ "--door": doorWidth } as CSSProperties}>
-      <Legend lockers={lockers} />
+    <div className="@container space-y-6" style={{ "--door-size": doorWidth } as CSSProperties}>
       {lockerZones.map((zone, zoneIndex) => (
         <section key={zone.name} aria-label={zone.name}>
-          <div dir="ltr" className="flex flex-wrap items-start gap-10 overflow-x-auto pb-1">
+          {/* The padding keeps a lifted door, and the ring around a found one, inside the zone's
+              scrolling edge, which would otherwise cut them off. */}
+          <div
+            dir="ltr"
+            className="flex flex-wrap items-start gap-10 overflow-x-auto px-1 pt-3 pb-2"
+          >
             {zone.groups.map((group) => (
-              <div key={group.cabinets[0]} className="flex gap-2">
+              <div key={group.cabinets[0]} className="flex gap-4">
                 {group.cabinets.map((first) => (
-                  <div
-                    key={first}
-                    className="flex gap-1 rounded-md border bg-muted/40 p-1"
-                    data-testid={`cabinet-${first}`}
-                  >
+                  <div key={first} className="flex gap-2" data-testid={`cabinet-${first}`}>
                     {cabinetColumns(first).map((column) => (
-                      <div key={column[0]} className="flex flex-col gap-1">
-                        {column.map((number) => (
-                          <LockerDoor
-                            key={number}
-                            number={number}
-                            locker={byNumber.get(number)}
-                            mode={mode}
-                            highlighted={
-                              highlightedLockerId !== null &&
-                              byNumber.get(number)?.id === highlightedLockerId
-                            }
-                            stays={stays}
-                            onSelect={onSelect}
-                          />
-                        ))}
+                      <div key={column[0]} className="flex flex-col gap-2">
+                        {column.map((number) => {
+                          const locker = byNumber.get(number);
+                          return (
+                            <LockerDoor
+                              key={number}
+                              number={number}
+                              locker={locker}
+                              mode={mode}
+                              highlighted={
+                                highlightedLockerId !== null && locker?.id === highlightedLockerId
+                              }
+                              found={
+                                foundLockerIds === null
+                                  ? null
+                                  : locker !== undefined && foundLockerIds.has(locker.id)
+                              }
+                              changedRound={
+                                locker !== undefined && changed.ids.has(locker.id)
+                                  ? changed.round
+                                  : null
+                              }
+                              birthday={
+                                locker !== undefined && (birthdayLockerIds?.has(locker.id) ?? false)
+                              }
+                              stays={stays}
+                              onSelect={onSelect}
+                            />
+                          );
+                        })}
                       </div>
                     ))}
                   </div>
@@ -138,11 +166,49 @@ export function LockerMap({
   );
 }
 
+/**
+ * The lockers whose state changed in the last refresh that changed any, and a round number that
+ * goes up with each such refresh. A door keys its pulse on the round, so a door that changes
+ * twice pulses twice. The first drawing changes nothing: every door is new to the eye then.
+ *
+ * Kept by comparing with the previous list during render (React's "adjusting state when a prop
+ * changes"), not in an effect: the pulse starts in the same paint as the new colour. The list keeps
+ * its identity between refreshes that change nothing (TanStack Query's structural sharing).
+ */
+function useChangedDoors(lockers: Locker[]): { ids: ReadonlySet<string>; round: number } {
+  const [seen, setSeen] = useState(lockers);
+  const [changed, setChanged] = useState<{ ids: ReadonlySet<string>; round: number }>({
+    ids: new Set(),
+    round: 0,
+  });
+
+  if (seen !== lockers) {
+    const before = new Map(seen.map((locker) => [locker.id, lockerState(locker)]));
+    const ids = new Set(
+      lockers
+        .filter((locker) => {
+          const previous = before.get(locker.id);
+          return previous !== undefined && previous !== lockerState(locker);
+        })
+        .map((locker) => locker.id),
+    );
+    setSeen(lockers);
+    if (ids.size > 0) {
+      setChanged((current) => ({ ids, round: current.round + 1 }));
+    }
+  }
+
+  return changed;
+}
+
 function LockerDoor({
   number,
   locker,
   mode,
   highlighted,
+  found,
+  changedRound,
+  birthday,
   stays,
   onSelect,
 }: {
@@ -150,6 +216,12 @@ function LockerDoor({
   locker: Locker | undefined;
   mode: "desk" | "pick";
   highlighted: boolean;
+  /** Whether a name search matched this door's holder; `null` while nothing is searched for. */
+  found: boolean | null;
+  /** The refresh round in which this door changed, or `null` if it did not in the last one. */
+  changedRound: number | null;
+  /** Whether the holder's birthday is today: the door celebrates. */
+  birthday: boolean;
   stays: ReadonlyMap<string, StayProgress> | undefined;
   onSelect: (locker: Locker) => void;
 }) {
@@ -160,7 +232,7 @@ function LockerDoor({
       <span
         className={cn(
           doorSize,
-          "flex items-center justify-center rounded-sm border-2 border-dashed text-sm text-muted-foreground",
+          "flex items-center justify-center rounded-lg border-2 border-dashed text-sm text-muted-foreground",
         )}
         aria-label={`کمد ${toPersianDigits(number)}، نامعلوم`}
       >
@@ -175,98 +247,94 @@ function LockerDoor({
   const owes = holder !== null && Number(locker.occupiedByMemberDebt) > 0;
   // The visit behind an occupied door, once the list of everyone inside has caught up with it.
   const stay = state === "occupied" ? stays?.get(locker.id) : undefined;
-  const holderText = [holder, owes ? debtorLabel : null, stay?.isLong ? longStayLabel : null]
+  const celebrates = birthday && holder !== null;
+  const holderText = [
+    holder,
+    celebrates ? birthdayLabel : null,
+    owes ? debtorLabel : null,
+    stay?.isLong ? longStayLabel : null,
+  ]
     .filter((part) => part !== null)
     .join("، ");
-  const label = `کمد ${toPersianDigits(number)}، ${stateLabel[state]}${holder === null ? "" : ` — ${holderText}`}`;
+  const label = `کمد ${toPersianDigits(number)}، ${lockerStateLabel[state]}${holder === null ? "" : ` — ${holderText}`}`;
 
   return (
     <button
       type="button"
       aria-label={label}
-      title={holder === null ? stateLabel[state] : holderText}
+      title={holder === null ? lockerStateLabel[state] : holderText}
       disabled={mode === "pick" && state !== "free"}
       data-state={state}
       data-highlighted={highlighted || undefined}
+      data-found={found ?? undefined}
+      data-changed={changedRound !== null || undefined}
+      data-birthday={celebrates || undefined}
       onClick={() => onSelect(locker)}
       className={cn(
         doorSize,
-        "relative overflow-hidden rounded-sm border-2 transition-colors",
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-        "disabled:cursor-not-allowed disabled:opacity-40",
-        stateClass[state],
+        doorFace,
+        doorMotion,
+        doorStateClass[state],
+        celebrates && "shadow-[0_0_18px_-4px_var(--party-pink)]",
         // Pointed at from the desk panel. The ring stays for anyone who has asked for less motion.
-        // Ring and offset together reach 4px out, inside the cabinet's 5px of frame, so the zone's
-        // scrolling edge never cuts them off.
+        // Ring and offset together reach 4px out, inside the zone's padding, so its scrolling
+        // edge never cuts them off.
         highlighted &&
-          "animate-pulse ring-2 ring-primary ring-offset-2 ring-offset-background motion-reduce:animate-none",
+          "-translate-y-1 animate-pulse ring-2 ring-primary ring-offset-2 ring-offset-background motion-reduce:translate-y-0 motion-reduce:animate-none",
+        found === true &&
+          "-translate-y-1 ring-2 ring-success ring-offset-2 ring-offset-background motion-reduce:translate-y-0",
+        found === false && "opacity-30",
       )}
     >
-      {owes && <DebtorRibbon />}
+      {changedRound !== null && (
+        <span
+          key={changedRound}
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-0 animate-door-changed rounded-[inherit] ring-2 ring-inset motion-reduce:hidden",
+            changedRingClass[state],
+          )}
+        />
+      )}
+      {celebrates && <Celebration />}
+      {owes && <DebtorTag />}
       {stay !== undefined && <StayBar progress={stay} />}
       {/* Its own query container, so what is written inside follows the door's size, not the
-          screen's. The door's size never follows what is written. A debtor's number and name sit
-          at the bottom, out of the ribbon's corner, a little off the frame. */}
+          screen's. The door's size never follows what is written. A debtor's number and name
+          sit a little lower, clear of the tag. `relative` keeps them above a birthday's confetti. */}
       <span
         className={cn(
-          "@container flex size-full flex-col items-center gap-1 px-2",
-          owes ? "justify-end pb-2" : "justify-center",
+          "@container relative flex size-full flex-col items-center justify-center gap-1 px-2",
+          owes && "pt-3",
         )}
       >
-        <span className="text-sm font-bold @min-[4.5rem]:text-lg">{toPersianDigits(number)}</span>
+        <span className="text-sm font-bold @min-[4.5rem]:text-xl">{toPersianDigits(number)}</span>
         {holder !== null && (
           <span
             dir="rtl"
-            className="hidden w-full text-center text-xs leading-tight font-medium break-words @min-[4.5rem]:line-clamp-2"
+            className="hidden w-full text-center text-[11px] leading-tight text-muted-foreground break-words @min-[4.5rem]:line-clamp-2"
           >
             {holder}
           </span>
         )}
+        {state === "outOfService" && <Lock aria-hidden className="size-3.5" />}
       </span>
     </button>
   );
 }
 
 /**
- * A small band across the door's top-left corner, at 45°: the strip between the lines x + y = 22px
- * and x + y = 42px, cut out of a 42px square with `clip-path`. Its two ends are therefore exactly
- * on the door's top and left edges, whatever the door's size (the smallest door is 44px), and it
- * never reaches past the frame or into the number and name, which sit at the bottom beside it.
- * The word is centred on the band's middle line (16px in from each edge) and turned the same way.
- *
- * No `dir` on the positioned elements: `start` has to mean the left, as it does inside the map
- * (`dir="ltr"`). A single Persian word reads correctly without it.
+ * A small red tag hanging from the door's top edge, in its top-right corner (BUSINESS_RULES.md §6).
+ * `end-0` is the right inside the map (`dir="ltr"`), and the one rounded corner is the one that
+ * hangs free, bottom-left. A single Persian word reads correctly without a `dir` of its own.
  */
-function DebtorRibbon() {
+function DebtorTag() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute start-0 top-0 size-[42px] bg-warning [clip-path:polygon(22px_0,100%_0,0_100%,0_22px)]"
+      className="pointer-events-none absolute end-0 top-0 rounded-es-md bg-destructive px-1.5 pb-0.5 text-[10px] leading-snug font-bold whitespace-nowrap text-destructive-foreground"
     >
-      <span className="absolute start-[16px] top-[16px] -translate-x-1/2 -translate-y-1/2 -rotate-45 text-[11px] leading-none font-bold whitespace-nowrap text-warning-foreground">
-        {debtorLabel}
-      </span>
+      {debtorLabel}
     </span>
-  );
-}
-
-function Legend({ lockers }: { lockers: Locker[] }) {
-  const counts: Record<LockerState, number> = { free: 0, occupied: 0, outOfService: 0 };
-  for (const locker of lockers) {
-    counts[lockerState(locker)] += 1;
-  }
-
-  return (
-    <ul aria-label="راهنمای کمدها" className="flex flex-wrap gap-4 text-sm">
-      {(["free", "occupied", "outOfService"] as const).map((state) => (
-        <li key={state} className="flex items-center gap-2">
-          <span
-            aria-hidden
-            className={cn("inline-block h-4 w-3 rounded-sm border-2", stateClass[state])}
-          />
-          {stateLabel[state]}: {toPersianDigits(counts[state])}
-        </li>
-      ))}
-    </ul>
   );
 }

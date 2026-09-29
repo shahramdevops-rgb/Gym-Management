@@ -3,6 +3,7 @@ import {
   emptyValue,
   formatDate,
   formatDateTime,
+  formatLongDate,
   formatMoney,
   formatMoneyDigits,
   formatNumber,
@@ -208,6 +209,18 @@ describe("formatDateTime", () => {
       expect(formatDateTime(value)).toBe(emptyValue);
     },
   );
+});
+
+describe("formatLongDate", () => {
+  it("formatLongDate_Moment_WritesTheGymsDayInWords", () => {
+    // 2026-09-29 09:00 UTC is Tuesday 7 Mehr 1405 in Tehran.
+    expect(formatLongDate(new Date("2026-09-29T09:00:00Z"))).toBe("سه‌شنبه ۷ مهر ۱۴۰۵");
+  });
+
+  it("formatLongDate_LateEveningUtc_IsAlreadyTomorrowInTehran", () => {
+    // 21:00 UTC is 00:30 the next day in Tehran: Wednesday 8 Mehr.
+    expect(formatLongDate(new Date("2026-09-29T21:00:00Z"))).toBe("چهارشنبه ۸ مهر ۱۴۰۵");
+  });
 });
 
 describe("formatTime", () => {

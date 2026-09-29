@@ -37,6 +37,60 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+  /* A locker door on the map (BUSINESS_RULES.md §6 *The desk screen's look*): its face, its frame,
+     the red tint an occupied door takes from its top corner, and the hatching of one out of service. */
+  --door: oklch(0.985 0.002 270);
+  --door-border: oklch(0.88 0.005 270);
+  --door-held: oklch(0.93 0.04 25);
+  --door-hatch: oklch(0.92 0.004 270);
+  /* A birthday (BUSINESS_RULES.md §6 *The desk panel*): the party ring's and the confetti's
+     colours. Bright enough for both palettes, so the dark one does not redefine them. */
+  --party-pink: oklch(0.72 0.19 350);
+  --party-gold: oklch(0.86 0.16 90);
+  --party-mint: oklch(0.8 0.15 165);
+  --party-sky: oklch(0.76 0.13 235);
+  --party-violet: oklch(0.7 0.17 300);
+}
+
+/* The party ring's turn. Registered, so the browser can animate an angle inside a gradient. */
+@property --party-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/*
+ * The dark palette, for the whole app, switched on by a `dark` class on <html>. Only the locker
+ * map turns it on for now (useDarkScreen); the other screens follow when Phase 13.2 decides.
+ * Every colour a screen uses is one of these tokens, so nothing is restyled to go dark.
+ */
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.18 0.006 270);
+  --foreground: oklch(0.95 0.004 270);
+  --card: oklch(0.205 0.007 270);
+  --card-foreground: oklch(0.95 0.004 270);
+  --primary: oklch(0.66 0.15 250);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.255 0.008 270);
+  --secondary-foreground: oklch(0.95 0.004 270);
+  --muted: oklch(0.255 0.008 270);
+  --muted-foreground: oklch(0.66 0.012 265);
+  --accent: oklch(0.27 0.009 270);
+  --accent-foreground: oklch(0.95 0.004 270);
+  --destructive: oklch(0.63 0.2 25);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.73 0.16 155);
+  --success-foreground: oklch(0.2 0.03 155);
+  --warning: oklch(0.77 0.15 70);
+  --warning-foreground: oklch(0.2 0.02 70);
+  --border: oklch(0.3 0.009 270);
+  --input: oklch(0.32 0.009 270);
+  --ring: oklch(0.56 0.012 270);
+  --door: oklch(0.225 0.008 270);
+  --door-border: oklch(0.31 0.009 270);
+  --door-held: oklch(0.27 0.05 20);
+  --door-hatch: oklch(0.255 0.008 270);
 }
 
 @theme inline {
@@ -65,6 +119,67 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-door: var(--door);
+  --color-door-border: var(--door-border);
+  --color-door-held: var(--door-held);
+  --color-door-hatch: var(--door-hatch);
+  --color-party-pink: var(--party-pink);
+  --color-party-gold: var(--party-gold);
+  --color-party-mint: var(--party-mint);
+  --color-party-sky: var(--party-sky);
+  --color-party-violet: var(--party-violet);
+
+  /* A birthday door: the ring around it turns, and confetti falls inside it. */
+  --animate-party-spin: party-spin 3s linear infinite;
+  --animate-confetti-fall: confetti-fall 2.8s linear infinite;
+
+  @keyframes party-spin {
+    to {
+      --party-angle: 360deg;
+    }
+  }
+
+  @keyframes confetti-fall {
+    0% {
+      translate: 0 -0.75rem;
+      rotate: 0deg;
+      opacity: 0;
+    }
+    12% {
+      opacity: 1;
+    }
+    100% {
+      translate: var(--confetti-drift, 0) 6.75rem;
+      rotate: 540deg;
+      opacity: 0.8;
+    }
+  }
+
+  /* A long stay's full bar, blinking slowly but clearly: it glows red, then nearly fades out (§6). */
+  --animate-stay-blink: stay-blink 2s ease-in-out infinite;
+  /* A door whose state changed since the last refresh: one pulse, then still. */
+  --animate-door-changed: door-changed 1.4s ease-out forwards;
+
+  @keyframes stay-blink {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 8px 1px var(--destructive);
+    }
+    50% {
+      opacity: 0.15;
+      box-shadow: none;
+    }
+  }
+
+  @keyframes door-changed {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
 }
 
 @layer base {

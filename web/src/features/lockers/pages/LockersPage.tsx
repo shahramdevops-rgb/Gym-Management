@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { Search } from "lucide-react";
+import { useState, type ReactNode } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -13,17 +14,21 @@ import {
 import { useEveryoneInside, type CurrentlyInside } from "@/features/attendance/api";
 import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
 import { errorMessage } from "@/lib/errors";
-import { toPersianDigits } from "@/lib/format";
+import { gymToday, isJalaliBirthday, toPersianDigits } from "@/lib/format";
+import { useDarkScreen } from "@/lib/useDarkScreen";
 import { useNow } from "@/lib/useNow";
+import { cn } from "@/lib/utils";
 
 import { useAllLockers, useSetLockerOutOfService, type Locker } from "../api";
 import { DeskPanel } from "../components/DeskPanel";
 import { LockerCheckInDialog, type CheckInPlace } from "../components/LockerCheckInDialog";
 import { LockerMap } from "../components/LockerMap";
+import { LockerStats } from "../components/LockerStats";
 import { LockerVisitDialog } from "../components/LockerVisitDialog";
 import { ReservePlaces } from "../components/ReservePlaces";
 import { lockerState } from "../lockerState";
 import { stayProgress } from "../longStay";
+import { nameMatches, nameSearchTerm } from "../nameSearch";
 
 /** Which box is open. Each open gets a new id, so the next box starts fresh even for the same locker. */
 type OpenBox =
@@ -45,8 +50,12 @@ type OpenBox =
  *
  * A third clock ticks every minute with no request at all, moving on the bar that shows how long
  * each visit has gone on (§6 *Long stay*).
+ *
+ * The screen is dark (§6 *The desk screen's look*), the only one that is for now, and it has a
+ * name search that finds who is inside on the map (§6 *Finding a member on the map*).
  */
 export function LockersPage() {
+  useDarkScreen();
   const lockers = useAllLockers();
   const inside = useEveryoneInside();
   const desk = useDeskDialog();
@@ -54,6 +63,7 @@ export function LockersPage() {
   const [box, setBox] = useState<{ id: number; open: OpenBox } | null>(null);
   // The locker an entry of the desk panel is pointing at, blinking on the map (§6 *The desk panel*).
   const [highlighted, setHighlighted] = useState<string | null>(null);
+  const [nameQuery, setNameQuery] = useState("");
 
   const open = (next: OpenBox) =>
     setBox((previous) => ({ id: (previous?.id ?? 0) + 1, open: next }));
@@ -81,6 +91,40 @@ export function LockersPage() {
       visit.lockerId === null ? [] : [[visit.lockerId, stayProgress(visit.checkedInAt, now)]],
     ),
   );
+
+  // Who the name search finds: holders of occupied lockers, and members on a reserve place.
+  // `null` while the field is too short to search, so the map is drawn as usual.
+  const term = nameSearchTerm(nameQuery);
+  const foundLockerIds =
+    term === null
+      ? null
+      : new Set(
+          lockers.data
+            .filter((locker) => {
+              const holder = locker.occupiedByMemberFullName;
+              return holder !== null && nameMatches(holder, term);
+            })
+            .map((locker) => locker.id),
+        );
+  const foundAttendanceIds =
+    term === null
+      ? null
+      : new Set(
+          reserveVisits
+            .filter((visit) => nameMatches(visit.memberFullName, term))
+            .map((visit) => visit.attendanceId),
+        );
+  const foundCount = (foundLockerIds?.size ?? 0) + (foundAttendanceIds?.size ?? 0);
+
+  // Whose birthday it is (the same Jalali match as the desk panel): their door or place celebrates.
+  const today = gymToday();
+  const birthdayVisits = inside.data.filter((visit) =>
+    isJalaliBirthday(visit.memberBirthDate, today),
+  );
+  const birthdayLockerIds = new Set(
+    birthdayVisits.flatMap((visit) => (visit.lockerId === null ? [] : [visit.lockerId])),
+  );
+  const birthdayAttendanceIds = new Set(birthdayVisits.map((visit) => visit.attendanceId));
 
   function select(locker: Locker) {
     const state = lockerState(locker);
@@ -117,33 +161,44 @@ export function LockersPage() {
 
   return (
     <PageFrame>
-      <Card>
-        <CardContent className="space-y-6">
-          <LockerMap
-            lockers={lockers.data}
-            onSelect={select}
-            highlightedLockerId={highlighted}
-            stays={stays}
-            aside={
-              <DeskPanel
-                visits={inside.data}
-                onHighlight={setHighlighted}
-                onOpen={(visit) => {
-                  setHighlighted(null);
-                  open({ kind: "visit", attendanceId: visit.attendanceId });
-                }}
-              />
-            }
+      <LockerStats
+        lockers={lockers.data}
+        tools={
+          <NameSearch
+            value={nameQuery}
+            onChange={setNameQuery}
+            result={term === null ? null : foundCount}
           />
-          <ReservePlaces
-            visits={reserveVisits}
-            anyLockerFree={anyLockerFree}
-            now={now}
-            onOpenVisit={(visit) => open({ kind: "visit", attendanceId: visit.attendanceId })}
-            onCheckIn={() => open({ kind: "checkIn", place: { kind: "reserve" } })}
+        }
+      />
+      <LockerMap
+        lockers={lockers.data}
+        onSelect={select}
+        highlightedLockerId={highlighted}
+        stays={stays}
+        foundLockerIds={foundLockerIds}
+        birthdayLockerIds={birthdayLockerIds}
+        aside={
+          <DeskPanel
+            visits={inside.data}
+            onHighlight={setHighlighted}
+            onOpen={(visit) => {
+              setHighlighted(null);
+              open({ kind: "visit", attendanceId: visit.attendanceId });
+            }}
           />
-        </CardContent>
-      </Card>
+        }
+      />
+      {/* 6.5.14's chart of today by hour goes under this row (BUSINESS_RULES.md §6). */}
+      <ReservePlaces
+        visits={reserveVisits}
+        anyLockerFree={anyLockerFree}
+        now={now}
+        foundAttendanceIds={foundAttendanceIds}
+        birthdayAttendanceIds={birthdayAttendanceIds}
+        onOpenVisit={(visit) => open({ kind: "visit", attendanceId: visit.attendanceId })}
+        onCheckIn={() => open({ kind: "checkIn", place: { kind: "reserve" } })}
+      />
 
       {box !== null && box.open.kind === "checkIn" && (
         <LockerCheckInDialog key={box.id} place={box.open.place} onClose={close} />
@@ -177,11 +232,67 @@ export function LockersPage() {
   );
 }
 
-function PageFrame({ children }: { children: React.ReactNode }) {
+/** The screen's title. The clock is in the side menu, the name search on the legend's row. */
+function PageFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold">ورود با کمد</h2>
+    <div className="space-y-5">
+      <h2 className="text-xl font-extrabold">ورود با کمد</h2>
       {children}
+    </div>
+  );
+}
+
+/**
+ * The search field on the legend's row above the map (BUSINESS_RULES.md §6 *Finding a member on
+ * the map*): a name only, among who is inside now. Escape clears it. Beside it, once there is
+ * something to search for, how many were found or that nobody was; a screen reader hears it as it
+ * changes. Kept to one line, so the row stays as tall as the legend.
+ */
+function NameSearch({
+  value,
+  onChange,
+  result,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  /** How many the search found, or `null` while the field is too short to search. */
+  result: number | null;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <p
+        role="status"
+        className={cn(
+          "text-xs whitespace-nowrap",
+          result === 0 ? "text-warning" : "text-muted-foreground",
+        )}
+      >
+        {result === null
+          ? ""
+          : result === 0
+            ? "کسی با این نام داخل نیست"
+            : `${toPersianDigits(result)} نفر پیدا شد`}
+      </p>
+      <div className="relative w-60">
+        <Search
+          aria-hidden
+          className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          type="search"
+          aria-label="جستجوی نام در نقشه"
+          placeholder="جستجوی نام"
+          autoComplete="off"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              onChange("");
+            }
+          }}
+          className="h-9 rounded-lg bg-background ps-9"
+        />
+      </div>
     </div>
   );
 }

@@ -1117,6 +1117,7 @@ BUSINESS_RULES.md §6 *Long stay*. Frontend only: `checkedInAt` is already in th
 
 Done when: a member checked in at 9:00 is still on locker 14 at noon, and the desk sees the bar
 along its door turn orange without anything being written over the name.
+(Its colours were changed in 6.5.16: green to red as it fills, and a faint blink once long.)
 
 Built (2026-09-29): 1234 backend (domain and integration) and 596 frontend tests pass, zero
 warnings, lint and build clean.
@@ -1137,6 +1138,47 @@ BUSINESS_RULES.md §6 *Locker usage map*.
       own for unused; a period picker; a view only
 - [ ] Tests (integration): counts, period edges, cancelled excluded, moved visit; (frontend) the
       switch, colours and period
+
+### 6.5.16 The desk screen's new look, dark (ظاهر تیره صفحه ورود با کمد)
+BUSINESS_RULES.md §6 *The desk screen's look*, *Finding a member on the map*, and the changed
+*Long stay* and debtor rules. Frontend only, no new package. The first piece of Phase 13.2: the
+dark palette is defined once for the whole app, and only this screen switches it on for now.
+- [x] BUSINESS_RULES.md §6 written first: the look, the name search, the debtor tag and the
+      green-to-red long-stay bar
+- [x] `.dark` tokens in `index.css` (the shadcn set plus the door's own); `useDarkScreen()` puts
+      `dark` on `<html>` while the screen is open, so its boxes (portalled dialogs) are dark too
+- [x] Doors as in the developer's sketch, a hover lift, a one-time pulse on a changed door; the
+      cabinet frames go, a wider gap between cabinets keeps them apart
+- [x] `DebtorTag` replaces the corner band; `StayBar` mixes green into red by the fill and blinks
+      faintly once long, still under `motion-reduce`
+- [x] The title alone at the top; the stats strip (`LockerStats`, now the map's legend) with the
+      name search at the other end of its row; the desk
+      panel restyled; the reserve places drawn as doors from the same classes (`doorStyle.ts`).
+      The 72-mark strip and the "last refreshed" mark were tried and dropped
+- [x] The clock (time and the date in words) moved to the top of the side menu (`SidebarClock`),
+      on every screen
+- [x] Room kept for 6.5.14 (the chart goes under the reserve-places row) and 6.5.15 (its switch
+      goes on the stats strip); every colour comes from tokens so both read in the dark
+- [x] Tests (frontend): the dark class on and off with the screen; the bar's mix at half and full
+      and the blink only when long; name search matches, fades the rest, finds nobody by a
+      number, normalizes ي/ك and the half-space, opens the reserve places; the changed-door pulse
+
+Built (2026-09-29): 613 frontend tests pass; lint, type check and build clean. Backend untouched.
+
+### 6.5.17 A birthday door celebrates (جشن تولد روی کمد)
+BUSINESS_RULES.md §6 *The desk panel*, changed: the birthday member's door is no longer left
+plain. Frontend only.
+- [x] BUSINESS_RULES.md §6 changed first
+- [x] `Celebration`: a turning ring of party colours (a conic gradient on a registered
+      `--party-angle`, masked to the edge) and falling confetti, behind the number and name; a
+      soft pink glow on the door; still under `motion-reduce`
+- [x] The door's label (and hover title) says «امروز تولدش است»; a used reserve place celebrates too
+- [x] The panel's birthday list stays plain, like the renewal list, with «امروز تولدشه» beside
+      each (the ring and confetti were tried on it and removed by the developer: the door is enough)
+- [x] Tests (frontend): the birthday door celebrates and says so, another door does not; a
+      reserve place celebrates too
+
+Built (2026-09-29): 614 frontend tests pass; lint, type check and build clean.
 
 ---
 
