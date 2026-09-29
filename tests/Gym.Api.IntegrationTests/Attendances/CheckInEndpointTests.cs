@@ -331,6 +331,31 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task CheckIn_ExhaustedWithAQueuedRenewalWhoseIdSortsFirst_StillPromotesIt()
+    {
+        // EF writes the two updates in key order. With the queued one first, it moves onto today
+        // while the exhausted one still covers today: a moment of overlap the constraint must not
+        // see until commit. Random v7 ids made this order happen now and then (the flaky test above).
+        var (staffClient, staffToken) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        await AddPlanAsync();
+        var today = Today();
+        await InsertSubscriptionAsync(
+            member.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 10,
+            id: Guid.Parse("ffffffff-ffff-7fff-bfff-ffffffffffff"));
+        await InsertSubscriptionAsync(
+            member.Id, today.AddDays(25), today.AddDays(54),
+            id: Guid.Parse("00000000-0000-7000-8000-000000000001"));
+
+        using var response = await CheckInAsync(staffClient, staffToken, member.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var subscriptions = await StoredSubscriptionsAsync(member.Id);
+        subscriptions.Single(s => s.StartDate == today.AddDays(-5)).EndDate.ShouldBe(today.AddDays(-1));
+        subscriptions.Single(s => s.StartDate == today).UsedSessions.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task CheckIn_ExhaustedOnItsFirstDayWithAQueuedRenewal_Returns422SubscriptionsNextStartsTomorrow()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
@@ -538,9 +563,9 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
 
     /// <summary>A row written directly, so states that take real days to reach can be set up in one step.</summary>
     private async Task InsertSubscriptionAsync(
-        Guid memberId, DateOnly start, DateOnly end, int usedSessions = 0)
+        Guid memberId, DateOnly start, DateOnly end, int usedSessions = 0, Guid? id = null)
     {
-        var id = Guid.CreateVersion7();
+        id ??= Guid.CreateVersion7();
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlAsync(
