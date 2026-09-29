@@ -6,9 +6,9 @@ using Gym.Domain.Subscriptions;
 namespace Gym.Application.Attendances.CheckIn;
 
 /// <summary>
-/// The shape of the optional sale. A plan's numbers follow the same limits as selling one from the
-/// profile, under the same error codes, and are reported as <c>durationDays</c> and
-/// <c>sessionCount</c> so the sale form in the check-in box shows each one under its own field.
+/// The shape of the optional sale. A plan's sessions follow the same limits as selling one from the
+/// profile, under the same error codes, and are reported as <c>sessionCount</c> so the sale form in
+/// the check-in box shows them under their field.
 /// </summary>
 public sealed class CheckInValidator : AbstractValidator<CheckInCommand>
 {
@@ -23,27 +23,27 @@ public sealed class CheckInValidator : AbstractValidator<CheckInCommand>
 
             When(command => command.Sale!.Kind == CheckInSaleKind.Membership, () =>
             {
-                // One rule each, missing included, so a missing number carries the same code as a
-                // wrong one: the form has one message per field, not one per kind of mistake.
-                RuleFor(command => command.Sale!.DurationDays)
-                    .Must(days => days is >= 1 and <= Subscription.MaxDurationDays)
-                    .OverridePropertyName("durationDays")
-                    .WithErrorCode(SubscriptionErrors.DurationInvalid.Code)
-                    .WithMessage(SubscriptionErrors.DurationInvalid.Description);
-
+                // A missing count carries the same code as too few: the form has one message per
+                // field, not one per kind of mistake.
                 RuleFor(command => command.Sale!.SessionCount)
                     .Must(sessions => sessions >= Subscription.MinSessionCount)
                     .OverridePropertyName("sessionCount")
                     .WithErrorCode(SubscriptionErrors.SessionCountTooLow.Code)
                     .WithMessage(SubscriptionErrors.SessionCountTooLow.Description);
+
+                RuleFor(command => command.Sale!.SessionCount)
+                    .Must(sessions => sessions is null || sessions <= Subscription.MaxSessionCount)
+                    .OverridePropertyName("sessionCount")
+                    .WithErrorCode(SubscriptionErrors.SessionCountTooHigh.Code)
+                    .WithMessage(SubscriptionErrors.SessionCountTooHigh.Description);
             });
 
-            // A single visit is always one day and one session (§4); numbers sent with it mean the
-            // caller thinks it is selling something else.
+            // A single visit is always one day and one session (§4); a session count sent with it
+            // means the caller thinks it is selling something else.
             When(command => command.Sale!.Kind == CheckInSaleKind.SingleVisit, () =>
             {
                 RuleFor(command => command.Sale)
-                    .Must(sale => sale!.DurationDays is null && sale.SessionCount is null)
+                    .Must(sale => sale!.SessionCount is null)
                     .WithErrorCode(AttendanceErrors.SaleInvalid.Code)
                     .WithMessage(AttendanceErrors.SaleInvalid.Description);
             });

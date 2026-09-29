@@ -34,7 +34,7 @@ public sealed class ListMemberPaymentsEndpointTests(DatabaseFixture fixture) : D
         var planA = await TestPlans.AddAsync(Fixture, sessions: 12, price: 900_000m);
         var subscriptionA = await AssignOkAsync(staffClient, staffToken, member.Id, planA);
         await RegisterPaymentAsync(staffClient, staffToken, subscriptionA.Id, 900_000m);
-        var planB = await TestPlans.AddAsync(Fixture, durationDays: 20, sessions: 10, price: 500_000m);
+        var planB = await TestPlans.AddAsync(Fixture, sessions: 10, price: 500_000m);
         var subscriptionB = await AssignOkAsync(staffClient, staffToken, member.Id, planB);
         await RegisterPaymentAsync(staffClient, staffToken, subscriptionB.Id, 200_000m);
         await RefundAsync(ownerClient, ownerToken, subscriptionA.Id, 100_000m, "بازگشت جزئی");
@@ -48,9 +48,9 @@ public sealed class ListMemberPaymentsEndpointTests(DatabaseFixture fixture) : D
 
         // Each row says what its subscription sold, for the frontend's label (BUSINESS_RULES.md §3).
         page.Items.Where(item => item.TargetId == subscriptionA.Id)
-            .ShouldAllBe(item => item.SubscriptionPlan == new PlanSummary(30, 12, false));
+            .ShouldAllBe(item => item.SubscriptionPlan == new PlanSummary(45, 12, false));
         page.Items.Single(item => item.TargetId == subscriptionB.Id)
-            .SubscriptionPlan.ShouldBe(new PlanSummary(20, 10, false));
+            .SubscriptionPlan.ShouldBe(new PlanSummary(30, 10, false));
     }
 
     [Fact]

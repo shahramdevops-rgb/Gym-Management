@@ -22,9 +22,9 @@ namespace Gym.Application.Subscriptions;
 /// </remarks>
 public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
 {
-    /// <summary>A plan of so many days and sessions: assign and renew.</summary>
+    /// <summary>A plan of so many sessions, for the days they give: assign and renew.</summary>
     public async Task<Result<SubscriptionResponse>> SellMembershipAsync(
-        Member member, int durationDays, int sessionCount, CancellationToken cancellationToken)
+        Member member, int sessionCount, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(member);
 
@@ -35,7 +35,7 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
         await db.LockMemberAsync(member.Id, cancellationToken);
 
         var today = calendar.Today();
-        var added = await AddMembershipAsync(member, durationDays, sessionCount, today, cancellationToken);
+        var added = await AddMembershipAsync(member, sessionCount, today, cancellationToken);
         if (added.IsFailure)
         {
             return Result.Failure<SubscriptionResponse>(added.Error);
@@ -72,7 +72,7 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
     /// the member's lock inside its own transaction, and saves.
     /// </summary>
     public async Task<Result<Subscription>> AddMembershipAsync(
-        Member member, int durationDays, int sessionCount, DateOnly today, CancellationToken cancellationToken)
+        Member member, int sessionCount, DateOnly today, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(member);
 
@@ -96,7 +96,7 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
 
         var startDate = SubscriptionSchedule.NextStartDate(today, currentOrQueued);
 
-        var created = Subscription.CreateMembership(member.Id, durationDays, sessionCount, prices.SessionPrice, startDate);
+        var created = Subscription.CreateMembership(member.Id, sessionCount, prices.SessionPrice, startDate);
         if (created.IsFailure)
         {
             return created;

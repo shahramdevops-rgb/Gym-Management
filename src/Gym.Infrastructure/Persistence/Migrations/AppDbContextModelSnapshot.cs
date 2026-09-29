@@ -1818,7 +1818,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_subscriptions_dates", "end_date >= start_date");
 
-                            t.HasCheckConstraint("ck_subscriptions_duration_days_range", "duration_days BETWEEN 1 AND 365");
+                            t.HasCheckConstraint("ck_subscriptions_duration_days_for_sessions", "is_single_session OR duration_days = CASE WHEN total_sessions <= 10 THEN 30 WHEN total_sessions <= 20 THEN 45 WHEN total_sessions <= 140 THEN 70 END");
 
                             t.HasCheckConstraint("ck_subscriptions_price_not_negative", "price >= 0");
 
@@ -1826,7 +1826,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_subscriptions_total_frozen_days", "total_frozen_days >= 0");
 
-                            t.HasCheckConstraint("ck_subscriptions_total_sessions_range", "is_single_session OR total_sessions >= 5");
+                            t.HasCheckConstraint("ck_subscriptions_total_sessions_range", "is_single_session OR total_sessions BETWEEN 5 AND 140");
 
                             t.HasCheckConstraint("ck_subscriptions_used_sessions", "used_sessions >= 0 AND used_sessions <= total_sessions");
                         });

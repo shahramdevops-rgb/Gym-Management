@@ -1180,6 +1180,44 @@ plain. Frontend only.
 
 Built (2026-09-29): 614 frontend tests pass; lint, type check and build clean.
 
+### 6.5.18 A plan's days follow its sessions (روزهای پلن از تعداد جلسات)
+Rule change, decided by the Owner on 1405/07/07 (2026-09-29). The desk no longer types a plan's
+days: it types the sessions and the days follow — 5 to 10 sessions last 30 days, 11 to 20 last 45,
+21 to 140 last 70. Fewer than 5 or more than 140 is refused. The price is unchanged: sessions ×
+the session price. BUSINESS_RULES.md §3 and §4 have the rules. This replaces the 6.5.6 rule that
+days were 1 to 365 and had nothing to do with the sessions.
+
+- [x] BUSINESS_RULES.md §3, §4, §7 changed first. Decided with the developer: renew sells the
+      same sessions for the days today's table gives; the database enforces the table too, since
+      nothing has been released and the server holds no real sales
+- [x] **Domain.** `Subscription.DurationTable` (the one copy of the table), `MaxSessionCount = 140`,
+      `DurationDaysFor(sessions)`; `CreateMembership(member, sessions, price, start)` loses its days.
+      `MaxDurationDays` and `Subscriptions.DurationInvalid` are gone; `Subscriptions.SessionCountTooHigh`
+      is new
+- [x] **Application / API.** `AssignSubscriptionCommand(SessionCount)` and `CheckInSale(Kind,
+      SessionCount)`: `durationDays` is no longer in either request body (an old client that
+      still sends it has it ignored). Renew reads only the latest plan's sessions
+- [x] **Database.** Migration `PlanDaysFollowSessions`: `ck_subscriptions_total_sessions_range`
+      becomes 5 to 140; `ck_subscriptions_duration_days_range` is replaced by
+      `ck_subscriptions_duration_days_for_sessions`, whose `CASE` is written from `DurationTable`
+- [x] **Web.** `PlanForm`: the sessions box first; the days box beside it fills itself in and is
+      locked; `planDaysFor` mirrors the table for display only. `npm run gen:api`
+- [x] Tests (domain): days at every boundary (5, 10, 11, 20, 21, 140), 4 and 141 refused, price
+      unchanged; helpers moved from 12 sessions to 10 so they keep their 30-day dates
+- [x] Tests (integration): assign and check-in-with-sale send only sessions and get the table's
+      days; 141 refused on the field; days sent by an old client ignored; renew; both constraints
+      by raw SQL. Raw-SQL rows in other tests moved from 30 days · 12 sessions to 30 · 10
+- [x] Tests (frontend): the days box fills itself for every boundary and is disabled; only
+      `sessionCount` is sent from the profile and from the locker; more than 140 refused
+
+**Release step:** the server holds only test data; wipe it before this migration runs, as for
+6.5.6, or the new constraint refuses the old rows. (Locally, `TRUNCATE subscriptions CASCADE`
+was enough; members, users, lockers and prices were kept.)
+
+Done when: the desk types ۱۲ sessions and sees «۴۵ روز» filled in and the price, cannot change
+the days, and the member's plan reads «۱۲ جلسه - ۴۵ روزه» (sessions first, asked by the developer while
+building; every screen, through `planLabel`).
+
 ---
 
 ## Phase 7 — Cafe / POS

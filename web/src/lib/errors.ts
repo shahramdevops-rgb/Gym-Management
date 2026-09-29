@@ -114,8 +114,8 @@ export const errorMessages: Record<string, string> = {
 
   // Subscriptions
   "Subscriptions.NotFound": "اشتراک پیدا نشد.",
-  "Subscriptions.DurationInvalid": "تعداد روزها باید بین ۱ تا ۳۶۵ باشد.",
   "Subscriptions.SessionCountTooLow": "تعداد جلسات باید حداقل ۵ باشد.",
+  "Subscriptions.SessionCountTooHigh": "تعداد جلسات حداکثر ۱۴۰ است.",
   "Subscriptions.PriceTooLarge": "قیمت این پلن بیش از حد بزرگ است.",
   "Subscriptions.NothingToRenew": "این عضو اشتراکی برای تمدید ندارد.",
   "Subscriptions.ChangedConcurrently":

@@ -276,7 +276,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 12);
+        await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 10);
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
 
@@ -314,7 +314,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync();
         var plan = await AddPlanAsync();
         var today = Today();
-        await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 12);
+        await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), usedSessions: 10);
         await InsertSubscriptionAsync(member.Id, today.AddDays(25), today.AddDays(54));
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
@@ -323,7 +323,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var subscriptions = await StoredSubscriptionsAsync(member.Id);
         var exhausted = subscriptions.Single(s => s.StartDate == today.AddDays(-5));
         exhausted.EndDate.ShouldBe(today.AddDays(-1));
-        exhausted.UsedSessions.ShouldBe(12);
+        exhausted.UsedSessions.ShouldBe(10);
         // The renewal moved to today and kept its 30 days, and this visit came out of it.
         var promoted = subscriptions.Single(s => s.StartDate == today);
         promoted.EndDate.ShouldBe(today.AddDays(29));
@@ -340,7 +340,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
         // Every session used on the day the plan was bought, then renewed the same day: the
         // exhausted one was closed to today, so the renewal starts tomorrow (BUSINESS_RULES.md
         // §4) and the member cannot come in again today.
-        await InsertSubscriptionAsync(member.Id, today, today, usedSessions: 12);
+        await InsertSubscriptionAsync(member.Id, today, today, usedSessions: 10);
         await InsertSubscriptionAsync(member.Id, today.AddDays(1), today.AddDays(30));
 
         using var response = await CheckInAsync(staffClient, staffToken, member.Id);
@@ -547,7 +547,7 @@ public sealed class CheckInEndpointTests(DatabaseFixture fixture) : DatabaseTest
             $"""
             INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, 900000, 30, 12,
+            VALUES ({id}, {memberId}, 900000, 30, 10,
                     {start}, {end}, {usedSessions}, 0, now())
             """,
             TestContext.Current.CancellationToken);

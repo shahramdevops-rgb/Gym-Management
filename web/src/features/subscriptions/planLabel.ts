@@ -8,7 +8,7 @@ export interface PlanNumbers {
 }
 
 /**
- * How a plan reads (BUSINESS_RULES.md §3): «۳۰ روز · ۱۲ جلسه», or «تک‌جلسه‌ای» for a single visit.
+ * How a plan reads (BUSINESS_RULES.md §3): «۱۲ جلسه - ۳۰ روزه», or «تک‌جلسه‌ای» for a single visit.
  *
  * Since task 6.5.6 a plan has no name: the desk builds each one from its days and sessions, so its
  * numbers are all there is to call it by. One function, so every screen that names a subscription —
@@ -19,5 +19,5 @@ export function planLabel(plan: PlanNumbers): string {
     return "تک‌جلسه‌ای";
   }
 
-  return `${toPersianDigits(plan.durationDays)} روز · ${toPersianDigits(plan.totalSessions)} جلسه`;
+  return `${toPersianDigits(plan.totalSessions)} جلسه - ${toPersianDigits(plan.durationDays)} روزه`;
 }

@@ -4,7 +4,7 @@ import { planLabel } from "@/features/subscriptions/planLabel";
 import type { MemberDebtItem } from "./api";
 
 /**
- * What a debt row is for, in Persian: a subscription reads as its plan («اشتراک ۳۰ روز · ۱۲ جلسه»),
+ * What a debt row is for, in Persian: a subscription reads as its plan («اشتراک ۱۲ جلسه - ۳۰ روزه»),
  * a service charge as its kind (هوازی), a cafe order as بوفه. The API sends kinds and numbers, never
  * Persian text.
  */

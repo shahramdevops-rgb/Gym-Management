@@ -317,14 +317,14 @@ public sealed class SubscriptionScheduleTests
         Should.Throw<InvalidOperationException>(() => active.StartEarly(Today));
     }
 
-    /// <summary>A 30-day, 12-session plan.</summary>
+    /// <summary>A 10-session plan, which lasts 30 days.</summary>
     private static Subscription Sell(DateOnly start) =>
-        Subscription.CreateMembership(MemberId, 30, 12, 100_000m, start).Value;
+        Subscription.CreateMembership(MemberId, 10, 100_000m, start).Value;
 
     /// <summary>The smallest plan (5 sessions, 30 days), every session used on <paramref name="usedOn"/>.</summary>
     private static Subscription SellExhausted(DateOnly start, DateOnly usedOn)
     {
-        var subscription = Subscription.CreateMembership(MemberId, 30, Subscription.MinSessionCount, 100_000m, start).Value;
+        var subscription = Subscription.CreateMembership(MemberId, Subscription.MinSessionCount, 100_000m, start).Value;
         for (var visit = 0; visit < Subscription.MinSessionCount; visit++)
         {
             subscription.ConsumeSession(usedOn).IsSuccess.ShouldBeTrue();

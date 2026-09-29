@@ -15,11 +15,12 @@ namespace Gym.Application.Attendances.CheckIn;
 public sealed record CheckInCommand(Guid? LockerId, CheckInSale? Sale = null);
 
 /// <param name="Kind">What is sold.</param>
-/// <param name="DurationDays">A plan's days (§3). Only for <see cref="CheckInSaleKind.Membership"/>.</param>
-/// <param name="SessionCount">A plan's sessions (§3). Only for <see cref="CheckInSaleKind.Membership"/>.</param>
+/// <param name="SessionCount">
+/// A plan's sessions (§3); the server works its days out from them. Only for
+/// <see cref="CheckInSaleKind.Membership"/>.
+/// </param>
 public sealed record CheckInSale(
     [property: JsonConverter(typeof(JsonStringEnumConverter<CheckInSaleKind>))] CheckInSaleKind Kind,
-    int? DurationDays = null,
     int? SessionCount = null);
 
 public enum CheckInSaleKind
@@ -27,6 +28,6 @@ public enum CheckInSaleKind
     /// <summary>One visit for today at the single-visit price (BUSINESS_RULES.md §4).</summary>
     SingleVisit,
 
-    /// <summary>A plan of so many days and sessions at the session price (BUSINESS_RULES.md §3).</summary>
+    /// <summary>A plan of so many sessions at the session price, for the days they give (BUSINESS_RULES.md §3).</summary>
     Membership,
 }

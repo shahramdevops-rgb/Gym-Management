@@ -7,15 +7,15 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gym.Api.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// A plan the desk would build (BUSINESS_RULES.md §3): so many days, so many sessions. Posting
+/// A plan the desk would build (BUSINESS_RULES.md §3): so many sessions, for the days they give. Posting
 /// <see cref="Body"/> to <c>/api/members/{id}/subscriptions</c> sells it at the session price of the
 /// moment.
 /// </summary>
 /// <param name="Price">What it costs at the session price <see cref="TestPlans.AddAsync"/> set.</param>
-internal sealed record TestPlan(int DurationDays, int SessionCount, decimal Price)
+internal sealed record TestPlan(int SessionCount, decimal Price)
 {
     /// <summary>The body of an assign request.</summary>
-    public object Body => new { durationDays = DurationDays, sessionCount = SessionCount };
+    public object Body => new { sessionCount = SessionCount };
 }
 
 /// <summary>
@@ -27,15 +27,16 @@ internal static class TestPlans
 {
     /// <summary>
     /// Sets the session price so that <paramref name="sessions"/> sessions cost exactly
-    /// <paramref name="price"/>, and returns that plan. The defaults are the plan most tests sold
-    /// before 6.5.6 — 30 days, 12 sessions, 900,000 — so their expected amounts still hold.
+    /// <paramref name="price"/>, and returns that plan. The defaults — 10 sessions, so 30 days, for
+    /// 900,000 — keep the dates and amounts most tests were written for before 6.5.18, when the days
+    /// stopped being typed.
     /// </summary>
     /// <remarks>
     /// The price is the gym's one session price, so a test that needs two plans at different rates
     /// must sell the first before setting the second.
     /// </remarks>
     internal static async Task<TestPlan> AddAsync(
-        DatabaseFixture fixture, int durationDays = 30, int sessions = 12, decimal price = 900_000m)
+        DatabaseFixture fixture, int sessions = 10, decimal price = 900_000m)
     {
         var sessionPrice = price / sessions;
         if (decimal.Round(sessionPrice, PriceList.PriceDecimals) != sessionPrice)
@@ -45,7 +46,7 @@ internal static class TestPlans
 
         await SetPricesAsync(fixture, sessionPrice: sessionPrice);
 
-        return new TestPlan(durationDays, sessions, price);
+        return new TestPlan(sessions, price);
     }
 
     /// <summary>

@@ -281,7 +281,7 @@ public sealed class SingleSessionEndpointTests(DatabaseFixture fixture) : Databa
         // date" would pick the visit. Renew reads memberships only.
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var membership = await TestPlans.AddAsync(Fixture, durationDays: 45, sessions: 12);
+        var membership = await TestPlans.AddAsync(Fixture, sessions: 12);
         await SetSingleVisitPriceAsync();
         var pack = await AssignOkAsync(client, token, member.Id, membership);
         await ExpireAsync(pack.Id);

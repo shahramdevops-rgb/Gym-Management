@@ -429,7 +429,7 @@ public sealed class SubscriptionActionsEndpointTests(DatabaseFixture fixture) : 
             $"""
             INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, frozen_since, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, 900000, 30, 12,
+            VALUES ({id}, {memberId}, 900000, 30, 10,
                     {start}, {end}, 0, {frozenSince}, {totalFrozenDays}, now())
             """,
             TestContext.Current.CancellationToken);

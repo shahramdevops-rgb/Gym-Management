@@ -156,7 +156,7 @@ public sealed class CheckInUnfreezeEndpointTests(DatabaseFixture fixture) : Data
 
         using var response = await SendAsync(
             client, token, HttpMethod.Post, $"/api/members/{member.Id}/attendance/check-in",
-            new { lockerId = TestLockers.IdOf(3), sale = new { kind = "Membership", durationDays = 30, sessionCount = 12 } });
+            new { lockerId = TestLockers.IdOf(3), sale = new { kind = "Membership", sessionCount = 12 } });
 
         // A sale is made to be used: the new plan would queue behind the frozen one, so the check-in
         // is refused and rolled back rather than unfreezing the old plan and keeping the new one.
@@ -239,7 +239,7 @@ public sealed class CheckInUnfreezeEndpointTests(DatabaseFixture fixture) : Data
             $"""
             INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, frozen_since, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, 900000, 30, 12,
+            VALUES ({id}, {memberId}, 900000, 30, 10,
                     {start}, {end}, 0, {frozenSince}, {totalFrozenDays}, now())
             """,
             TestContext.Current.CancellationToken);

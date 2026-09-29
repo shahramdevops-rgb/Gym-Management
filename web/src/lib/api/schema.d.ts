@@ -992,8 +992,6 @@ export interface components {
         };
         AssignSubscriptionCommand: {
             /** Format: int32 */
-            durationDays: number | string;
-            /** Format: int32 */
             sessionCount: number | string;
         };
         AttendanceResponse: {
@@ -1105,8 +1103,6 @@ export interface components {
         };
         CheckInSale: {
             kind: components["schemas"]["CheckInSaleKind"];
-            /** Format: int32 */
-            durationDays?: null | number | string;
             /** Format: int32 */
             sessionCount?: null | number | string;
         };

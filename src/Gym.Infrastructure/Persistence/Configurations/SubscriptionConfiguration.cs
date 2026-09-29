@@ -25,15 +25,20 @@ public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscri
         builder.ToTable("subscriptions", table =>
         {
             table.HasCheckConstraint("ck_subscriptions_dates", "end_date >= start_date");
-            table.HasCheckConstraint(
-                "ck_subscriptions_duration_days_range", $"duration_days BETWEEN 1 AND {Subscription.MaxDurationDays}");
             table.HasCheckConstraint("ck_subscriptions_price_not_negative", "price >= 0");
 
-            // BUSINESS_RULES.md §3: a plan has at least 5 sessions and no upper limit; a single visit
-            // has exactly 1 (its own constraint below).
+            // BUSINESS_RULES.md §3: a plan has 5 to 140 sessions; a single visit has exactly 1 (its
+            // own constraint below).
             table.HasCheckConstraint(
                 "ck_subscriptions_total_sessions_range",
-                $"is_single_session OR total_sessions >= {Subscription.MinSessionCount}");
+                $"is_single_session OR total_sessions BETWEEN {Subscription.MinSessionCount} AND {Subscription.MaxSessionCount}");
+
+            // BUSINESS_RULES.md §3 (task 6.5.18): a plan lasts the days its sessions give. A count
+            // above the table matches no row and the CASE is NULL, which a check lets through; the
+            // sessions range above is what refuses it.
+            table.HasCheckConstraint(
+                "ck_subscriptions_duration_days_for_sessions",
+                $"is_single_session OR duration_days = {DurationDaysSql()}");
 
             // BUSINESS_RULES.md §4: used sessions never exceed the total.
             table.HasCheckConstraint(
@@ -67,5 +72,17 @@ public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscri
         builder.Ignore(s => s.RemainingSessions);
 
         builder.Property(s => s.Version).IsRowVersion();
+    }
+
+    /// <summary>
+    /// <see cref="Subscription.DurationTable"/> as SQL:
+    /// <c>CASE WHEN total_sessions &lt;= 10 THEN 30 WHEN … END</c>. Written from the table, so the
+    /// database and the entity cannot disagree about a plan's days.
+    /// </summary>
+    private static string DurationDaysSql()
+    {
+        var rows = Subscription.DurationTable.Select(row => $"WHEN total_sessions <= {row.MaxSessions} THEN {row.Days}");
+
+        return $"CASE {string.Join(' ', rows)} END";
     }
 }

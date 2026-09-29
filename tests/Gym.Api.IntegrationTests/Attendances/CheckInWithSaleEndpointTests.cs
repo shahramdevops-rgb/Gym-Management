@@ -38,7 +38,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         await SetPricesAsync();
         var member = await AddMemberAsync();
 
-        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 12, PlanSale(days: 30, sessions: 12));
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 12, PlanSale(sessions: 12));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var attendance = await ReadAsync(response);
@@ -47,7 +47,8 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         attendance.SubscriptionId.ShouldBe(sold.Id);
         sold.IsSingleSession.ShouldBeFalse();
         sold.StartDate.ShouldBe(Today());
-        sold.EndDate.ShouldBe(Today().AddDays(29));
+        sold.EndDate.ShouldBe(Today().AddDays(44)); // 12 sessions give 45 days (§3)
+        sold.DurationDays.ShouldBe(45);
         sold.TotalSessions.ShouldBe(12);
         sold.UsedSessions.ShouldBe(1);
         sold.Price.ShouldBe(12 * SessionPrice);
@@ -62,7 +63,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         var today = Today();
         await InsertSubscriptionAsync(member.Id, today.AddDays(-40), today.AddDays(-10));
 
-        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 3, PlanSale(days: 30, sessions: 8));
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 3, PlanSale(sessions: 8));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var sold = (await StoredSubscriptionsAsync(member.Id)).Single(s => s.StartDate == today);
@@ -83,7 +84,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
 
         var member = await AddMemberAsync();
 
-        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 7, PlanSale(days: 30, sessions: 12));
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 7, PlanSale(sessions: 12));
 
         // A subscription sold at the locker always comes with that locker: no locker, no sale.
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -100,7 +101,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         var today = Today();
         await InsertSubscriptionAsync(member.Id, today.AddDays(-5), today.AddDays(24), frozenSince: today.AddDays(-1));
 
-        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(days: 30, sessions: 12));
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(sessions: 12));
 
         // The new plan would start after the frozen one ends, so the member still cannot come in
         // today, and the sale goes back with the refused check-in.
@@ -115,9 +116,9 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         await SetPricesAsync();
         var member = await AddMemberAsync();
         var today = Today();
-        await InsertSubscriptionAsync(member.Id, today, today.AddDays(29), usedSessions: 12);
+        await InsertSubscriptionAsync(member.Id, today, today.AddDays(29), usedSessions: 10);
 
-        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(days: 30, sessions: 12));
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(sessions: 12));
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.NextStartsTomorrow");
@@ -130,7 +131,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
 
-        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(days: 30, sessions: 12));
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(sessions: 12));
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.ReadErrorCodeAsync()).ShouldBe("Pricing.SessionPriceNotSet");
@@ -144,24 +145,37 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         await SetPricesAsync();
         var member = await AddMemberAsync();
 
-        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(days: 30, sessions: 4));
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(sessions: 4));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await FieldErrorCodeAsync(response, "sessionCount")).ShouldBe("Subscriptions.SessionCountTooLow");
     }
 
     [Fact]
-    public async Task CheckIn_PlanSaleWithNoDays_Returns400OnTheDurationDaysField()
+    public async Task CheckIn_PlanSaleWithMoreThan140Sessions_Returns400OnTheSessionCountField()
+    {
+        var (client, token) = await StaffClientAsync();
+        await SetPricesAsync();
+        var member = await AddMemberAsync();
+
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(sessions: 141));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await FieldErrorCodeAsync(response, "sessionCount")).ShouldBe("Subscriptions.SessionCountTooHigh");
+    }
+
+    [Fact]
+    public async Task CheckIn_PlanSaleWithNoSessions_Returns400OnTheSessionCountField()
     {
         var (client, token) = await StaffClientAsync();
         await SetPricesAsync();
         var member = await AddMemberAsync();
 
         using var response = await CheckInAsync(
-            client, token, member.Id, lockerNumber: 1, new { kind = "Membership", sessionCount = 12 });
+            client, token, member.Id, lockerNumber: 1, new { kind = "Membership" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await FieldErrorCodeAsync(response, "durationDays")).ShouldBe("Subscriptions.DurationInvalid");
+        (await FieldErrorCodeAsync(response, "sessionCount")).ShouldBe("Subscriptions.SessionCountTooLow");
     }
 
     [Fact]
@@ -171,7 +185,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         await SetPricesAsync();
         var member = await AddMemberAsync(active: false);
 
-        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(days: 30, sessions: 12));
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(sessions: 12));
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.ReadErrorCodeAsync()).ShouldBe("Members.Inactive");
@@ -184,7 +198,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         var (client, token) = await StaffClientAsync();
         await SetPricesAsync();
         var member = await AddMemberAsync();
-        using var checkIn = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(days: 30, sessions: 12));
+        using var checkIn = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(sessions: 12));
         var attendance = await ReadAsync(checkIn);
 
         using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{attendance.Id}/cancel", CancelCheckInBody.KeepPurchases);
@@ -246,7 +260,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
         var member = await AddMemberAsync();
 
         using var response = await CheckInAsync(
-            client, token, member.Id, lockerNumber: 1, new { kind = "SingleVisit", durationDays = 30, sessionCount = 12 });
+            client, token, member.Id, lockerNumber: 1, new { kind = "SingleVisit", sessionCount = 12 });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await FieldErrorCodeAsync(response, "sale")).ShouldBe("Attendance.SaleInvalid");
@@ -273,8 +287,8 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
 
     // ---- Helpers ----
 
-    private static object PlanSale(int days, int sessions) =>
-        new { kind = "Membership", durationDays = days, sessionCount = sessions };
+    private static object PlanSale(int sessions) =>
+        new { kind = "Membership", sessionCount = sessions };
 
     private static object SingleVisitSale() => new { kind = "SingleVisit" };
 
@@ -324,7 +338,7 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
             $"""
             INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, frozen_since, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, 900000, 30, 12,
+            VALUES ({id}, {memberId}, 900000, 30, 10,
                     {start}, {end}, {usedSessions}, {frozenSince}, 0, now())
             """,
             TestContext.Current.CancellationToken);

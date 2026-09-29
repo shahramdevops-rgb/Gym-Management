@@ -42,7 +42,7 @@ describe("PaymentHistoryTable", () => {
       />,
     );
 
-    expect(screen.getByText("۳۰ روز · ۱۲ جلسه")).toBeInTheDocument();
+    expect(screen.getByText("۱۲ جلسه - ۳۰ روزه")).toBeInTheDocument();
     expect(screen.getByText("هوازی")).toBeInTheDocument();
     expect(screen.getByText("کافه")).toBeInTheDocument();
   });

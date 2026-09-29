@@ -181,15 +181,26 @@ from.** Each member's plan is built for them at the desk, and every session cost
 
 ### A member's plan
 
-- The desk types two numbers when it sells a subscription: the **days** and the **sessions**.
-  - Days: 1 to 365 (`Subscriptions.DurationInvalid`).
-  - Sessions: at least **5** (`Subscriptions.SessionCountTooLow`), with no upper limit.
-  - The two are unrelated: 10 days with 12 sessions is allowed.
+- The desk types one number when it sells a subscription: the **sessions**. The **days** follow
+  from the sessions; the desk never chooses them (decided by the Owner on 1405/07/07 (2026-09-29),
+  roadmap 6.5.18, replacing "any days from 1 to 365, unrelated to the sessions" of 6.5.6):
+
+  | Sessions | Days |
+  |---|---|
+  | 5 to 10 | 30 |
+  | 11 to 20 | 45 |
+  | 21 to 140 | 70 |
+
+  - Fewer than 5 sessions is refused (`Subscriptions.SessionCountTooLow`); more than 140 is refused
+    (`Subscriptions.SessionCountTooHigh`). Nobody trains more than once a day, so 140 is the
+    ceiling of a 70-day plan with room to spare.
+  - The server works the days out. The sale form shows them, filled in by themselves as the
+    sessions are typed, and does not let the desk change them.
   - There is no "unlimited sessions" plan. Every subscription has a session count.
 - **Price = sessions × the session price** (*Prices* below). The days do not change the price. The
   server works it out; the desk never types a price, and the sale form shows it before the desk
   confirms. A price that does not fit the money column is refused (`Subscriptions.PriceTooLarge`).
-- A plan has no name. It reads as its numbers: «۳۰ روز · ۱۲ جلسه».
+- A plan has no name. It reads as its numbers: «۱۲ جلسه - ۳۰ روزه».
 - *If the gym later prices by tiers (a cheaper session for a bigger pack), that becomes a change to
   how the price is worked out here, not to anything in §4.*
 
@@ -223,7 +234,7 @@ from.** Each member's plan is built for them at the desk, and every session cost
   - No current or queued subscription: the new one starts today.
   - Otherwise: the new one is queued and starts the day after the latest existing `EndDate`.
 - Selling (decided with the developer in task 4.2):
-  - **Assign** sells the days and sessions the desk types (§3). **Renew** sells the same days and sessions as the member's latest subscription (by `EndDate`, cancelled ones included), at **today's** session price, not the old one (the same "current values, not the old snapshot" rule renew always had; rewritten in 6.5.6). A member with no subscription has nothing to renew (`Subscriptions.NothingToRenew`).
+  - **Assign** sells the sessions the desk types, for the days they give (§3). **Renew** sells the same sessions as the member's latest subscription (by `EndDate`, cancelled ones included), for the days today's table gives them, at **today's** session price, not the old one (the same "current values, not the old snapshot" rule renew always had; rewritten in 6.5.6 and 6.5.18). A member with no subscription has nothing to renew (`Subscriptions.NothingToRenew`).
   - Both follow the same start-date rule, and both are refused for an inactive member (`Members.Inactive`).
   - A cancelled subscription covers no dates: it neither delays a new sale nor counts as an overlap.
   - If the latest subscription is `Exhausted` (all sessions used before its `EndDate`), the new one does not wait: the exhausted one ends yesterday and the new one starts today. If the exhausted one started today, it ends today and the new one starts tomorrow, so two subscriptions never cover the same date.
@@ -239,7 +250,7 @@ from.** Each member's plan is built for them at the desk, and every session cost
   6. `Active`
 - `ConsumeSession(today)` fails unless the status is `Active`. It increments `UsedSessions`.
 - `RestoreSession()` decrements `UsedSessions` (used only by cancel check-in) and never goes below 0.
-- Database: `total_sessions` is required; check constraints `used_sessions <= total_sessions`, `duration_days` 1 to 365, and at least 5 sessions unless single-session (§3); `xmin` concurrency token.
+- Database: `total_sessions` is required; check constraints `used_sessions <= total_sessions`, and, unless single-session, 5 to 140 sessions with the days the §3 table gives them; `xmin` concurrency token.
 
 ### Single-session subscriptions (تک‌جلسه‌ای)
 
@@ -707,7 +718,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
   visit is *Cancel check-in*, which keeps the subscription and gives its session back for next time.
   - Payment is not asked for at the sale. What is owed shows on the visit's box, where the desk
     collects it then or later (§5).
-  - The plan form (days and sessions, the price shown before confirming, §3) opens under the
+  - The plan form (the sessions, the days they give and the price, shown before confirming, §3) opens under the
     refusal only when a new plan would start today: after "no subscription", "expired", "no
     sessions left" or "cancelled". When the member holds a plan bought for later, a new plan would
     queue behind it (§4) and could not let them in today, so the box offers the single visit and
