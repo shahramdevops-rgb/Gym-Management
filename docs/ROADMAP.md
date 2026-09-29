@@ -1251,6 +1251,12 @@ Done when: the desk types ۱۲ sessions and sees «۴۵ روز» filled in and t
 the days, and the member's plan reads «۱۲ جلسه - ۴۵ روزه» (sessions first, asked by the developer while
 building; every screen, through `planLabel`).
 
+**Released** from `0514e28` on 2026-09-29, together with everything since `7644b75` (the expenses
+screen, released 2026-09-27 but not recorded here): 6.5.5 to 6.5.18 and four migrations. The
+server's trial data was wiped first (README, *Deployment*), the wipe and all migrations were
+rehearsed on a throwaway Postgres beforehand, and the local trial data was then restored onto the
+server.
+
 ---
 
 ## Phase 7 — Cafe / POS
