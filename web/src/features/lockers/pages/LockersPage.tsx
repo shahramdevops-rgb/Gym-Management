@@ -26,6 +26,7 @@ import { LockerMap } from "../components/LockerMap";
 import { LockerStats } from "../components/LockerStats";
 import { LockerVisitDialog } from "../components/LockerVisitDialog";
 import { ReservePlaces } from "../components/ReservePlaces";
+import { TodayByHourChart } from "../components/TodayByHourChart";
 import { lockerState } from "../lockerState";
 import { stayProgress } from "../longStay";
 import { nameMatches, nameSearchTerm } from "../nameSearch";
@@ -49,7 +50,8 @@ type OpenBox =
  * 72 + 15 open visits.
  *
  * A third clock ticks every minute with no request at all, moving on the bar that shows how long
- * each visit has gone on (§6 *Long stay*).
+ * each visit has gone on (§6 *Long stay*) and the hour marked on the chart under the map (§6
+ * *Today by hour*), which fetches its own counts once a minute.
  *
  * The screen is dark (§6 *The desk screen's look*), the only one that is for now, and it has a
  * name search that finds who is inside on the map (§6 *Finding a member on the map*).
@@ -189,7 +191,6 @@ export function LockersPage() {
           />
         }
       />
-      {/* 6.5.14's chart of today by hour goes under this row (BUSINESS_RULES.md §6). */}
       <ReservePlaces
         visits={reserveVisits}
         anyLockerFree={anyLockerFree}
@@ -199,6 +200,7 @@ export function LockersPage() {
         onOpenVisit={(visit) => open({ kind: "visit", attendanceId: visit.attendanceId })}
         onCheckIn={() => open({ kind: "checkIn", place: { kind: "reserve" } })}
       />
+      <TodayByHourChart now={now} />
 
       {box !== null && box.open.kind === "checkIn" && (
         <LockerCheckInDialog key={box.id} place={box.open.place} onClose={close} />

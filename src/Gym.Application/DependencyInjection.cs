@@ -10,6 +10,7 @@ using Gym.Application.Attendances.CheckOut;
 using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Attendances.ListMemberAttendance;
 using Gym.Application.Attendances.MoveLocker;
+using Gym.Application.Attendances.TodayByHour;
 using Gym.Application.Auth.ChangePassword;
 using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
@@ -137,6 +138,7 @@ public static class DependencyInjection
         services.AddScoped<MoveLockerHandler>();
         services.AddScoped<ListCurrentlyInsideHandler>();
         services.AddScoped<ListMemberAttendanceHandler>();
+        services.AddScoped<TodayByHourHandler>();
         services.AddScoped<AutoCheckoutHandler>();
 
         services.AddScoped<SubscriptionSeller>();

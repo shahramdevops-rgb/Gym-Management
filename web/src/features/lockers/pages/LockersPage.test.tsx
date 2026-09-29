@@ -2,7 +2,13 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 
 import type { Member } from "@/features/members/api";
 import { cafePage } from "@/test/cafe";
-import { closedVisit, currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
+import {
+  closedVisit,
+  currentlyInsidePage,
+  insideRow,
+  openVisit,
+  todayByHour,
+} from "@/test/attendance";
 import { clickOutsideDialog } from "@/test/dialog";
 import { allLockers, heldLocker, locker, lockerId, lockersPage, lockerVisit } from "@/test/lockers";
 import {
@@ -52,6 +58,7 @@ function mapHandlers(
     ...signedInHandlers(staffUser),
     "GET /api/lockers": () => lockersPage(lockers),
     "GET /api/attendance/currently-inside": () => currentlyInsidePage(inside),
+    "GET /api/attendance/today-by-hour": () => todayByHour(),
     [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([activeSubscription]),
     [`GET /api/members/${reza.id}/debt`]: () => memberDebt([]),
     "GET /api/cafe/orders": () => cafePage([]),
@@ -1144,6 +1151,131 @@ describe("LockersPage", () => {
       fireEvent.click(await screen.findByRole("button", { name: /ورود بدون کمد/ }));
       const place = screen.getByRole("button", { name: "رضا احمدی، بیش از ۳ ساعت" });
       expect(stayBar(place)).toHaveAttribute("data-long", "true");
+    });
+  });
+
+  // ---- Today by hour: the chart under the map (BUSINESS_RULES.md §6) ----
+
+  describe("TodayByHour", () => {
+    // 14:40 UTC is 18:10 in Tehran: hour 18 is the one it is now.
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date("2026-09-30T14:40:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function chart() {
+      return screen.findByRole("region", { name: "ورود امروز ساعت به ساعت" });
+    }
+
+    function hourRows(region: HTMLElement) {
+      return within(within(region).getByRole("table")).getAllByRole("row").slice(1);
+    }
+
+    it("TodayByHour_Counts_DrawsTheBusyHoursWithTodayAndTheAverage", async () => {
+      mockApi(
+        mapHandlers(allLockers(), [], {
+          "GET /api/attendance/today-by-hour": () =>
+            todayByHour({ 7: { average: 1.5 }, 9: { today: 2, average: 3 }, 18: { today: 4 } }),
+        }),
+      );
+      renderMap();
+
+      const region = await chart();
+      // From the first busy hour to the last, the quiet ones between kept; the night left out.
+      const rows = hourRows(region);
+      expect(rows).toHaveLength(12);
+      expect(rows[0]).toHaveTextContent("ساعت ۷ تا ۸");
+      expect(rows[2]).toHaveTextContent("ساعت ۹ تا ۱۰۲۳");
+      expect(rows[11]).toHaveTextContent("ساعت ۱۸ تا ۱۹۴۰");
+      expect(within(region).getByText("میانگین چهارشنبه‌های ۴ هفتهٔ گذشته")).toBeInTheDocument();
+
+      const bars = within(region).getByTestId("today-by-hour-bars");
+      const nine = bars.querySelector('[data-hour="9"]');
+      expect(nine?.querySelector("title")).toHaveTextContent("ساعت ۹ تا ۱۰: امروز ۲، میانگین ۳");
+      const seven = bars.querySelector('[data-hour="7"]');
+      expect(seven?.querySelector("title")).toHaveTextContent("امروز ۰، میانگین ۱٫۵");
+      // The hour it is now on the gym's clock is marked.
+      expect(bars.querySelector("[data-now]")).toHaveAttribute("data-hour", "18");
+      // Time runs from the right: the first hour is drawn further right than the last.
+      const xOf = (hour: number) =>
+        Number(bars.querySelector(`[data-hour="${hour}"] rect`)?.getAttribute("x"));
+      expect(xOf(7)).toBeGreaterThan(xOf(18));
+    });
+
+    it("TodayByHour_SomePastDaysClosed_SaysHowManyOpenDaysTheAverageCovers", async () => {
+      mockApi(
+        mapHandlers(allLockers(), [], {
+          "GET /api/attendance/today-by-hour": () =>
+            todayByHour({ 9: { today: 1, average: 2 } }, { daysAveraged: 3 }),
+        }),
+      );
+      renderMap();
+
+      expect(
+        within(await chart()).getByText("میانگین ۳ چهارشنبه باز در ۴ هفتهٔ گذشته"),
+      ).toBeInTheDocument();
+    });
+
+    it("TodayByHour_NoPastDays_ShowsTodayWithoutAnAverage", async () => {
+      mockApi(
+        mapHandlers(allLockers(), [], {
+          "GET /api/attendance/today-by-hour": () =>
+            todayByHour({ 9: { today: 1 } }, { daysAveraged: 0 }),
+        }),
+      );
+      renderMap();
+
+      const region = await chart();
+      expect(within(region).getByText("هنوز میانگینی از هفته‌های گذشته نیست")).toBeInTheDocument();
+      expect(within(region).queryByRole("columnheader", { name: "میانگین" })).not.toBeInTheDocument();
+    });
+
+    it("TodayByHour_NothingYet_SaysSo", async () => {
+      mockApi(mapHandlers());
+      renderMap();
+
+      const region = await chart();
+      expect(within(region).getByText("امروز هنوز ورودی ثبت نشده است.")).toBeInTheDocument();
+      expect(within(region).queryByTestId("today-by-hour-bars")).not.toBeInTheDocument();
+    });
+
+    it("TodayByHour_RequestFails_OneQuietLineAndTheMapStillWorks", async () => {
+      mockApi(
+        mapHandlers(allLockers(), [], {
+          "GET /api/attendance/today-by-hour": () => problem(500, "General.Unexpected"),
+        }),
+      );
+      renderMap();
+
+      // The app retries a failed request once, a second later, before giving up.
+      const line = await screen.findByText("نمودار ورود امروز بارگذاری نشد.", {}, { timeout: 3000 });
+      expect(await chart()).toContainElement(line);
+      expect(await door("۱")).toHaveAttribute("data-state", "free");
+    });
+
+    it("TodayByHour_CheckIn_FetchesTheCountsAgain", async () => {
+      const api = mockApi(
+        mapHandlers(allLockers(), [], {
+          "GET /api/members": () => membersPage([reza]),
+          [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+            json(201, { ...openVisit(reza.id), lockerId: lockerId(1), lockerNumber: 1 }),
+        }),
+      );
+      renderMap();
+      await chart();
+      const before = api.requestsTo("GET", "/api/attendance/today-by-hour").length;
+
+      await chooseAndConfirm(await openFreeLocker("۱"), "رضا احمدی");
+
+      await waitFor(() =>
+        expect(api.requestsTo("GET", "/api/attendance/today-by-hour").length).toBeGreaterThan(
+          before,
+        ),
+      );
     });
   });
 });

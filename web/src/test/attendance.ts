@@ -137,3 +137,19 @@ export function insideRow(
 export function currentlyInsidePage(items: CurrentlyInside[], totalCount = items.length): Response {
   return json(200, { items, page: 1, pageSize: 20, totalCount });
 }
+
+/**
+ * `GET /api/attendance/today-by-hour`: 24 hours, empty unless given, as the API always sends them.
+ * With no hours given, nothing has happened and the chart says so.
+ */
+export function todayByHour(
+  filled: Partial<Record<number, { today?: number; average?: number }>> = {},
+  { date = "2026-09-30", daysAveraged = 4 }: { date?: string; daysAveraged?: number } = {},
+): Response {
+  const hours = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    today: filled[hour]?.today ?? 0,
+    average: filled[hour]?.average ?? 0,
+  }));
+  return json(200, { date, daysAveraged, hours });
+}

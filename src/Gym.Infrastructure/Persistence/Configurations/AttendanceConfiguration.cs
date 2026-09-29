@@ -82,5 +82,9 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
             .IsUnique()
             .HasFilter("checked_out_at IS NULL")
             .HasDatabaseName(AttendanceConstraints.OneOpenPerReserveSlot);
+
+        // Not a rule, only speed: the desk's charts read visits by a range of check-in moments (today
+        // by hour, and a locker's use over a period). Nothing reacts to its name.
+        builder.HasIndex(a => a.CheckedInAt);
     }
 }

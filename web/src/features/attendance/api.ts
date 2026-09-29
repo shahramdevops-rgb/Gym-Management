@@ -25,6 +25,7 @@ export const attendanceKeys = {
   everyoneInside: () => [...attendanceKeys.all, "currently-inside", "all"] as const,
   memberHistory: (memberId: string, page: number) =>
     [...attendanceKeys.all, "history", memberId, page] as const,
+  todayByHour: () => [...attendanceKeys.all, "today-by-hour"] as const,
 };
 
 /**
@@ -46,6 +47,36 @@ export function useEveryoneInside() {
         throw error;
       }
       return data.items;
+    },
+  });
+}
+
+/**
+ * The chart under the locker map changes an hour at a time, so a minute is often enough. A
+ * check-in or cancel refreshes it at once anyway: its key starts with "attendance", which every
+ * visit mutation invalidates.
+ */
+export const todayByHourRefetchMs = 60_000;
+
+/** Today's check-ins by hour and the same weekday's average (BUSINESS_RULES.md §6 *Today by hour*). */
+export function useTodayByHour() {
+  return useQuery({
+    queryKey: attendanceKeys.todayByHour(),
+    refetchInterval: todayByHourRefetchMs,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/attendance/today-by-hour");
+      if (error !== undefined) {
+        throw error;
+      }
+      return {
+        date: data.date,
+        daysAveraged: Number(data.daysAveraged),
+        hours: data.hours.map((row) => ({
+          hour: Number(row.hour),
+          today: Number(row.today),
+          average: Number(row.average),
+        })),
+      };
     },
   });
 }

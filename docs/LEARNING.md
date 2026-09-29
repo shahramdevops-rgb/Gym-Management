@@ -1160,3 +1160,19 @@ The question that started this was whether a gym that is entirely internal — I
 - **Defer the check when a transaction must pass through an invalid moment.** The constraint is `DEFERRABLE INITIALLY IMMEDIATE`; `SET CONSTRAINTS … DEFERRED` makes it wait for `COMMIT`, where only the end result is checked. Check-in now defers once, before either move (promoting or unfreezing), the same way the Owner's unfreeze already did.
 - **Native controls draw part of themselves.** An open `<select>` list is drawn by the browser, not the page. The box was transparent, so the list fell back to white while its options inherited the dark theme's light text. Giving `option` the card colours (`[&_option]:bg-card`) fixes it in both themes, for every select at once, because they all go through `SelectField`.
 - **My notes:**
+
+---
+
+## 6.5.14 — Today by hour, under the map
+
+- **An index for speed is still part of the schema.** `ix_attendances_checked_in_at` enforces no rule. It lets Postgres jump straight to one day's rows by `checked_in_at` instead of reading the whole table, which grows by hundreds of rows a day. It lives in the entity configuration, so a migration creates it like any other index.
+- **Filter by a range of moments, not by a date function.** Each day is `checked_in_at >= midnight AND < next midnight`, with both midnights worked out in the gym's zone by `StartOfDayUtc`. A condition like `date(checked_in_at) = …` would stop the index from being used, and it would also use UTC's midnight, which is the wrong one.
+- **Fetch the small thing, then compute in C#.** The query returns only the check-in moments, a few hundred at most. Converting them to Tehran time and counting per hour is a short loop that anyone can read. The same thing in SQL (`AT TIME ZONE`, `extract(hour …)`, `GROUP BY`) would be faster only at a size this gym will never reach.
+- **An average needs its divisor chosen on purpose.** "The last 4 Wednesdays" could be divided by 4 or by the Wednesdays the gym was open. The two give different answers after a holiday, so it was a business decision (open days only), written into BUSINESS_RULES.md before the code. The response says how many days went in (`DaysAveraged`), so the screen can be honest about it.
+- **Integration tests can call a handler with its own clock.** The API stamps check-ins with the real time, so the tests write visits into the table at chosen moments and build `TodayByHourHandler` directly with a `FakeTimeProvider` and a real `GymCalendar`. The database is real; only "now" is fixed. The HTTP tests just check the wiring: roles, 401, and a real check-in showing up.
+- **A chart is a few rectangles.** Without a chart package, the SVG has one `<g>` per hour holding a `<rect>` bar, a dashed `<line>` for the average and two `<text>` labels, all placed with plain arithmetic. `viewBox` gives it its own units, so it scales to any width.
+- **Give a picture a text twin.** The SVG is `aria-hidden`, and a `sr-only` table carries the same numbers for a screen reader. Each hour's `<title>` gives a sighted user the exact numbers on hover.
+- **A query key can join an existing family.** The chart's key starts with `"attendance"`, and every check-in, check-out and cancel already invalidates `attendanceKeys.all`. So the chart refreshes after a check-in without any new code in those mutations.
+- **Extra information must fail quietly.** The chart's request is separate from the map's. If it fails, one grey line says so and the desk keeps working. A failed chart should never block a check-in.
+- **Generated types can be wider than the data.** The OpenAPI types allow `number | string` for every number, so the hook converts each one with `Number()` once, and every component after it works with plain numbers.
+- **My notes:**
