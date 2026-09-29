@@ -1149,3 +1149,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **The screen may copy a rule to show it, never to decide it.** `planDaysFor` in the web app mirrors the table so the locked days box can fill in as you type. Nothing it computes is sent: the server works the days out again, just as it prices the plan again.
 - **Ignoring unknown JSON fields is a free compatibility window.** System.Text.Json skips properties it doesn't recognize. A web app still open from before the release, sending `durationDays`, sells the right plan instead of failing, and a test pins that down.
 - **My notes:**
+
+---
+
+## Fix (follow-up to 6.5.18) — A flaky check-in, and a white dropdown in the dark
+
+- **A flaky test is a real bug until proven otherwise.** `CheckIn_ExhaustedWithAQueuedRenewal…` returned 409 now and then. The cause was real: moving a queued plan forward changes two rows, and the no-overlap constraint is checked after each statement. If the queued row is written first, it briefly overlaps the exhausted one and the database refuses.
+- **EF Core writes independent updates in key order, not in your order.** Nothing in the code says "close the old one first", so EF sorts by primary key. With v7 ids made in the same millisecond, the order came down to random bits, which is what made the test "sometimes".
+- **Make the flake deterministic before fixing it.** A new test gives the queued row the smallest possible id and the exhausted one the largest, so the bad order happens every time. It failed before the fix and passes after, so it proves the cause instead of assuming it.
+- **Defer the check when a transaction must pass through an invalid moment.** The constraint is `DEFERRABLE INITIALLY IMMEDIATE`; `SET CONSTRAINTS … DEFERRED` makes it wait for `COMMIT`, where only the end result is checked. Check-in now defers once, before either move (promoting or unfreezing), the same way the Owner's unfreeze already did.
+- **Native controls draw part of themselves.** An open `<select>` list is drawn by the browser, not the page. The box was transparent, so the list fell back to white while its options inherited the dark theme's light text. Giving `option` the card colours (`[&_option]:bg-card`) fixes it in both themes, for every select at once, because they all go through `SelectField`.
+- **My notes:**

@@ -72,6 +72,13 @@ public sealed class CheckInHandler(
             return Result.Failure<AttendanceResponse>(AttendanceErrors.NoSubscription);
         }
 
+        // Both moves below change two subscriptions in one save: bringing a queued plan forward
+        // over an exhausted one, and unfreezing (which pushes the queued plans behind it back).
+        // EF writes the rows in key order, not in the order that keeps the dates apart, so the
+        // no-overlap check waits for the commit and sees only the end result. The sale above has
+        // already been saved and checked on its own.
+        await db.DeferSubscriptionOverlapCheckAsync(cancellationToken);
+
         // The one usable today, not the one that ends last. A member who renewed early has a
         // queued subscription with a later end date, and taking that one would refuse them for
         // the rest of the term they already paid for.
@@ -83,10 +90,6 @@ public sealed class CheckInHandler(
         int? unfrozenDays = null;
         if (subscription is null && command.Sale is null && SubscriptionSchedule.FrozenToResume(live) is { } frozen)
         {
-            // Unfreezing moves the queued plans behind this one, which passes through a moment
-            // where their date ranges overlap, the same as the Owner's unfreeze.
-            await db.DeferSubscriptionOverlapCheckAsync(cancellationToken);
-
             var unfrozen = SubscriptionSchedule.Unfreeze(frozen, today, policy.MaxFreezeDays, live);
             if (unfrozen.IsFailure)
             {
