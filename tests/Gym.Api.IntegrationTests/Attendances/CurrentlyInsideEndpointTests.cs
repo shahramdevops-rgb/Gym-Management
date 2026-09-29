@@ -80,9 +80,9 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
         // The visit that is being shown is the one that consumed the session, so one is used.
         row.SubscriptionId.ShouldBe(attendance.SubscriptionId);
-        row.TotalSessions.ShouldBe(12);
+        row.TotalSessions.ShouldBe(10);
         row.UsedSessions.ShouldBe(1);
-        row.RemainingSessions.ShouldBe(11);
+        row.RemainingSessions.ShouldBe(9);
         row.SubscriptionEndDate.ShouldBe(await SubscriptionEndDateAsync(attendance.SubscriptionId));
     }
 

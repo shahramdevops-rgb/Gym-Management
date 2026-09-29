@@ -384,7 +384,7 @@ describe("LockersPage", () => {
 
     expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("کمد شماره ۱۲")).toBeInTheDocument();
-    expect(await within(dialog).findByText("۳۰ روز · ۱۲ جلسه")).toBeInTheDocument();
+    expect(await within(dialog).findByText("۱۲ جلسه - ۳۰ روزه")).toBeInTheDocument();
     // Nothing was frozen, so nothing is said about it.
     expect(within(dialog).queryByText(/فریز/)).not.toBeInTheDocument();
     expect(await within(dialog).findByRole("region", { name: "بدهی" })).toHaveTextContent("هوازی");
@@ -551,7 +551,6 @@ describe("LockersPage", () => {
     await chooseAndConfirm(dialog, "رضا احمدی");
     fireEvent.click(await within(dialog).findByRole("button", { name: "فروش اشتراک" }));
     const sale = within(dialog).getByRole("region", { name: "فروش اشتراک" });
-    fireEvent.change(within(sale).getByLabelText("تعداد روز"), { target: { value: "۳۰" } });
     fireEvent.change(within(sale).getByLabelText("تعداد جلسات"), { target: { value: "12" } });
     // The price before the desk confirms: 12 × 75,000.
     expect(await within(sale).findByText(/۹۰۰٬۰۰۰/)).toBeInTheDocument();
@@ -563,7 +562,7 @@ describe("LockersPage", () => {
     expect(checkIns).toHaveLength(2);
     expect(await checkIns[1]!.clone().json()).toEqual({
       lockerId: lockerId(12),
-      sale: { kind: "Membership", durationDays: 30, sessionCount: 12 },
+      sale: { kind: "Membership", sessionCount: 12 },
     });
     expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`)).toHaveLength(0);
   });
@@ -587,7 +586,6 @@ describe("LockersPage", () => {
     await chooseAndConfirm(dialog, "رضا احمدی");
     fireEvent.click(await within(dialog).findByRole("button", { name: "فروش اشتراک" }));
     const sale = within(dialog).getByRole("region", { name: "فروش اشتراک" });
-    fireEvent.change(within(sale).getByLabelText("تعداد روز"), { target: { value: "30" } });
     fireEvent.change(within(sale).getByLabelText("تعداد جلسات"), { target: { value: "12" } });
     await within(sale).findByText(/۹۰۰٬۰۰۰/);
     fireEvent.click(within(sale).getByRole("button", { name: "فروش و ثبت ورود" }));
@@ -785,7 +783,7 @@ describe("LockersPage", () => {
     );
     expect(within(dialog).getByText("هوازی")).toBeInTheDocument();
     expect(within(dialog).getByText("بوفه")).toBeInTheDocument();
-    expect(await within(dialog).findByText("۳۰ روز · ۱۲ جلسه")).toBeInTheDocument();
+    expect(await within(dialog).findByText("۱۲ جلسه - ۳۰ روزه")).toBeInTheDocument();
     for (const action of ["ثبت خروج", "لغو ورود", "جابه‌جایی کمد"]) {
       expect(within(dialog).getByRole("button", { name: action })).toBeEnabled();
     }

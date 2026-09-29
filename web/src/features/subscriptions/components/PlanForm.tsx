@@ -13,16 +13,16 @@ import {
   assignSubscriptionSchema,
   emptyAssignSubscriptionValues,
   parseWholeNumber,
+  planDaysFor,
 } from "../schemas";
 
 const codeFields = {
-  "Subscriptions.DurationInvalid": "durationDays",
   "Subscriptions.SessionCountTooLow": "sessionCount",
+  "Subscriptions.SessionCountTooHigh": "sessionCount",
 } as const;
 
-/** The plan the desk built: so many days, so many sessions (BUSINESS_RULES.md §3). */
+/** The plan the desk built: so many sessions; the days follow from them (BUSINESS_RULES.md §3). */
 export interface PlanChoice {
-  durationDays: number;
   sessionCount: number;
 }
 
@@ -35,8 +35,10 @@ interface PlanFormProps {
 }
 
 /**
- * Days and sessions, with the price shown before the desk confirms. There is no price to type: it
- * is the sessions times the session price the Owner set (BUSINESS_RULES.md §3).
+ * Sessions, with the days and the price shown before the desk confirms. Neither is typed: the days
+ * follow from the sessions (5–10 → 30, 11–20 → 45, 21–140 → 70) and the price is the sessions
+ * times the session price the Owner set (BUSINESS_RULES.md §3, task 6.5.18). The days box fills
+ * itself in as the sessions are typed and is locked.
  *
  * The price shown is a preview. The server works the price out again when it sells, from the price
  * list as it is at that moment.
@@ -55,11 +57,8 @@ export function PlanForm({ submitLabel, onSubmit, onCancel }: PlanFormProps) {
 
   const submit = form.handleSubmit(async (values) => {
     try {
-      await onSubmit({
-        // The schema has already checked both parse.
-        durationDays: parseWholeNumber(values.durationDays)!,
-        sessionCount: parseWholeNumber(values.sessionCount)!,
-      });
+      // The schema has already checked it parses.
+      await onSubmit({ sessionCount: parseWholeNumber(values.sessionCount)! });
     } catch (problem) {
       applyServerErrors(problem, form.setError, codeFields);
     }
@@ -69,6 +68,7 @@ export function PlanForm({ submitLabel, onSubmit, onCancel }: PlanFormProps) {
   const sessionPrice = prices.data?.sessionPrice ?? null;
   const priceNotSet = prices.isSuccess && sessionPrice === null;
   const sessions = parseWholeNumber(sessionsText);
+  const days = sessions === null ? null : planDaysFor(sessions);
 
   return (
     <form className="space-y-3" onSubmit={submit} noValidate>
@@ -81,17 +81,6 @@ export function PlanForm({ submitLabel, onSubmit, onCancel }: PlanFormProps) {
       <div className="flex flex-wrap items-start gap-3">
         <div className="w-40">
           <FormField
-            label="تعداد روز"
-            dir="ltr"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="۳۰"
-            error={errors.durationDays?.message}
-            {...form.register("durationDays")}
-          />
-        </div>
-        <div className="w-40">
-          <FormField
             label="تعداد جلسات"
             dir="ltr"
             inputMode="numeric"
@@ -101,12 +90,22 @@ export function PlanForm({ submitLabel, onSubmit, onCancel }: PlanFormProps) {
             {...form.register("sessionCount")}
           />
         </div>
+        <div className="w-40">
+          {/* Not registered with the form: nothing here is sent, the server works the days out. */}
+          <FormField
+            label="تعداد روز"
+            dir="ltr"
+            placeholder="خودکار"
+            disabled
+            value={days === null ? "" : toPersianDigits(days)}
+          />
+        </div>
       </div>
 
       {sessionPrice !== null && (
         <p className="text-sm" aria-live="polite">
           <span className="text-muted-foreground">قیمت: </span>
-          {sessions === null ? (
+          {sessions === null || days === null ? (
             <span className="text-muted-foreground">هر جلسه {formatMoney(sessionPrice)}</span>
           ) : (
             <span className="font-medium">

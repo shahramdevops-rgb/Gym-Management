@@ -1136,3 +1136,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Fixed "random" values keep an effect testable and calm.** The eight confetti pieces have set positions, delays and speeds. Every birthday door looks the same, a test sees the same thing twice, and nothing depends on `Math.random` during render.
 - **An effect only for the eye still says its meaning.** The ring and confetti are `aria-hidden`, and the door's label gets «امروز تولدش است», so a screen reader hears what a sighted person sees.
 - **My notes:**
+
+---
+
+## 6.5.18 — A plan's days follow its sessions
+
+- **When one value follows from another, stop asking for it.** A request that carries both the sessions and the days lets them disagree, and then the server has to reject the combination. With only `sessionCount` in the body, a wrong days value can't be sent at all. The server works the days out, the same way it already worked out the price.
+- **Keep one copy of a table and build everything else from it.** `Subscription.DurationTable` is the only place the tiers are written. `DurationDaysFor` reads it, and so does the database check: `SubscriptionConfiguration` turns the rows into `CASE WHEN total_sessions <= 10 THEN 30 …`. If the Owner changes a tier, you edit that table, add a migration, and the entity and the database both follow.
+- **A `CASE` with no match is `NULL`, and a check lets `NULL` through.** Above 140 sessions no row matches, so `duration_days = CASE … END` is `NULL` rather than false. The separate sessions-range constraint is what refuses that row. Knowing that is why there are two constraints, not one.
+- **Postgres tests check constraints in name order.** A row that breaks two checks is reported under the first name alphabetically. When `ck_subscriptions_duration_days_for_sessions` arrived, a test that expected `ck_subscriptions_used_sessions` had to move its row to a valid days/sessions pair, so it still breaks only the one check it is testing.
+- **Move test helpers to a value that keeps the old meaning.** Most tests were written around "30 days, 12 sessions", which now reads as 45 days. The helpers now sell 10 sessions, which still lasts 30 days, so dozens of date assertions stay correct without edits.
+- **The screen may copy a rule to show it, never to decide it.** `planDaysFor` in the web app mirrors the table so the locked days box can fill in as you type. Nothing it computes is sent: the server works the days out again, just as it prices the plan again.
+- **Ignoring unknown JSON fields is a free compatibility window.** System.Text.Json skips properties it doesn't recognize. A web app still open from before the release, sending `durationDays`, sells the right plan instead of failing, and a test pins that down.
+- **My notes:**

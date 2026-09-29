@@ -1,7 +1,7 @@
 namespace Gym.Application.Subscriptions.AssignSubscription;
 
 /// <summary>
-/// The plan the desk builds for the member (BUSINESS_RULES.md §3). No price: the server works it out
-/// from the session price, so the desk never types one.
+/// The plan the desk builds for the member (BUSINESS_RULES.md §3): only its sessions. No days and no
+/// price: the server works both out from the sessions, so the desk never types either.
 /// </summary>
-public sealed record AssignSubscriptionCommand(int DurationDays, int SessionCount);
+public sealed record AssignSubscriptionCommand(int SessionCount);

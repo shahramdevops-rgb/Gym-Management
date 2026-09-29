@@ -274,7 +274,7 @@ describe("MemberProfilePage", () => {
     // Every label below is shown twice: once on the current-subscription card, once on the same
     // subscription's row in the history tab underneath it (the default tab). The two sections
     // load independently, so wait for both instead of racing on whichever resolves first.
-    await waitFor(() => expect(screen.getAllByText("۳۰ روز · ۱۲ جلسه")).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText("۱۲ جلسه - ۳۰ روزه")).toHaveLength(2));
     expect(screen.getAllByText("فعال").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("پرداخت جزئی").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/۴۰۰٬۰۰۰ تومان از ۹۰۰٬۰۰۰ تومان/)).toBeInTheDocument();
@@ -367,8 +367,8 @@ describe("MemberProfilePage", () => {
     expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions/renew`)).toHaveLength(1);
   });
 
-  it("Subscription_Assign_SendsTheTypedDaysAndSessionsAndShowsTheirPrice", async () => {
-    // BUSINESS_RULES.md §3: the desk builds the plan, and its price is sessions × the session price.
+  it("Subscription_Assign_SendsOnlyTheSessionsAndShowsTheirDaysAndPrice", async () => {
+    // BUSINESS_RULES.md §3: the desk types the sessions; the days and the price follow from them.
     const api = mockApi({
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
@@ -379,11 +379,11 @@ describe("MemberProfilePage", () => {
     renderApp(`/members/${reza.id}`, { session: session() });
 
     fireEvent.click(await screen.findByRole("button", { name: "فروش اشتراک" }));
-    // Persian digits in one box and English in the other: both are accepted everywhere.
-    fireEvent.change(screen.getByLabelText("تعداد روز"), { target: { value: "۴۵" } });
-    fireEvent.change(screen.getByLabelText("تعداد جلسات"), { target: { value: "12" } });
+    // Persian digits are accepted as well as English ones.
+    fireEvent.change(screen.getByLabelText("تعداد جلسات"), { target: { value: "۱۲" } });
 
-    // 12 × 75,000, shown before the sale is confirmed.
+    // 11 to 20 sessions last 45 days, and cost 12 × 75,000, shown before the sale is confirmed.
+    expect(screen.getByLabelText("تعداد روز")).toHaveValue("۴۵");
     expect(await screen.findByText(/۱۲ جلسه × ۷۵٬۰۰۰ تومان = ۹۰۰٬۰۰۰ تومان/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "تأیید فروش" }));
@@ -391,7 +391,52 @@ describe("MemberProfilePage", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("اشتراک فروخته شد.");
     const sales = api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`);
     expect(sales).toHaveLength(1);
-    expect(await sales[0]!.clone().json()).toEqual({ durationDays: 45, sessionCount: 12 });
+    expect(await sales[0]!.clone().json()).toEqual({ sessionCount: 12 });
+  });
+
+  it.each([
+    ["5", "۳۰"],
+    ["10", "۳۰"],
+    ["11", "۴۵"],
+    ["20", "۴۵"],
+    ["21", "۷۰"],
+    ["140", "۷۰"],
+    ["4", ""],
+    ["141", ""],
+    ["", ""],
+  ])("Subscription_AssignSessions%s_FillsTheLockedDaysBox", async (sessions, days) => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      "GET /api/pricing": () => pricesResponse(),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "فروش اشتراک" }));
+    fireEvent.change(screen.getByLabelText("تعداد جلسات"), { target: { value: sessions } });
+
+    const daysBox = screen.getByLabelText("تعداد روز");
+    expect(daysBox).toBeDisabled();
+    expect(daysBox).toHaveValue(days);
+  });
+
+  it("Subscription_AssignMoreThan140Sessions_IsRefusedBeforeAnythingIsSent", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+      "GET /api/pricing": () => pricesResponse(),
+    });
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "فروش اشتراک" }));
+    fireEvent.change(screen.getByLabelText("تعداد جلسات"), { target: { value: "141" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "تأیید فروش" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "تأیید فروش" }));
+
+    expect(await screen.findByText("تعداد جلسات حداکثر ۱۴۰ است.")).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`)).toHaveLength(0);
   });
 
   it("Subscription_AssignFewerThanFiveSessions_IsRefusedBeforeAnythingIsSent", async () => {
@@ -404,7 +449,6 @@ describe("MemberProfilePage", () => {
     renderApp(`/members/${reza.id}`, { session: session() });
 
     fireEvent.click(await screen.findByRole("button", { name: "فروش اشتراک" }));
-    fireEvent.change(screen.getByLabelText("تعداد روز"), { target: { value: "30" } });
     fireEvent.change(screen.getByLabelText("تعداد جلسات"), { target: { value: "4" } });
     await waitFor(() => expect(screen.getByRole("button", { name: "تأیید فروش" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "تأیید فروش" }));
@@ -729,16 +773,16 @@ describe("MemberProfilePage", () => {
 
     // The total on its own first; the items only after asking for them (BUSINESS_RULES.md §5).
     expect(await screen.findByText("۱٬۱۰۰٬۰۰۰ تومان")).toBeInTheDocument();
-    expect(screen.queryByText("اشتراک ۹۰ روز · ۳۶ جلسه")).not.toBeInTheDocument();
+    expect(screen.queryByText("اشتراک ۳۶ جلسه - ۹۰ روزه")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "جزء به جزء" }));
 
     // Each item says what it is, what it cost, what has been paid and what is left.
-    const monthlyRow = (await screen.findByText("اشتراک ۳۰ روز · ۱۲ جلسه")).closest("tr")!;
+    const monthlyRow = (await screen.findByText("اشتراک ۱۲ جلسه - ۳۰ روزه")).closest("tr")!;
     expect(within(monthlyRow).getByText("۹۰۰٬۰۰۰ تومان")).toBeInTheDocument();
     expect(within(monthlyRow).getByText("۳۰۰٬۰۰۰ تومان")).toBeInTheDocument();
     expect(within(monthlyRow).getByText("۶۰۰٬۰۰۰ تومان")).toBeInTheDocument();
-    const quarterlyRow = screen.getByText("اشتراک ۹۰ روز · ۳۶ جلسه").closest("tr")!;
+    const quarterlyRow = screen.getByText("اشتراک ۳۶ جلسه - ۹۰ روزه").closest("tr")!;
     expect(within(quarterlyRow).getAllByText("۵۰۰٬۰۰۰ تومان")).toHaveLength(2);
   });
 

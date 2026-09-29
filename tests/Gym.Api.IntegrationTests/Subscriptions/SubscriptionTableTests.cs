@@ -74,7 +74,7 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     public async Task Insert_SingleVisitWithMembershipNumbers_RejectedByACheckConstraint()
     {
         // The flag is what the scheduling rules read, so a row carrying it while describing a
-        // 30-day, 12-session product would quietly opt a real membership out of the calendar.
+        // 30-day, 10-session product would quietly opt a real membership out of the calendar.
         var memberId = await AddMemberAsync();
 
         var exception = await Should.ThrowAsync<PostgresException>(
@@ -95,8 +95,8 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     }
 
     [Theory]
-    [InlineData(12, 13, "ck_subscriptions_used_sessions")]
-    [InlineData(12, -1, "ck_subscriptions_used_sessions")]
+    [InlineData(10, 11, "ck_subscriptions_used_sessions")]
+    [InlineData(10, -1, "ck_subscriptions_used_sessions")]
     [InlineData(4, 0, "ck_subscriptions_total_sessions_range")] // BUSINESS_RULES.md §3: at least 5
     [InlineData(1, 0, "ck_subscriptions_total_sessions_range")] // one session is only a single visit
     public async Task Insert_ImpossibleSessionCount_RejectedByACheckConstraint(int total, int used, string constraint)
@@ -122,12 +122,39 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     }
 
     [Fact]
-    public async Task Insert_ManySessions_Allowed()
+    public async Task Insert_140SessionsFor70Days_Allowed()
     {
-        // No upper limit on sessions (BUSINESS_RULES.md §3).
+        // The largest plan (BUSINESS_RULES.md §3).
         var memberId = await AddMemberAsync();
 
-        await InsertAsync(memberId, Start, Start.AddDays(29), totalSessions: 1_000, usedSessions: 400);
+        await InsertAsync(memberId, Start, Start.AddDays(69), totalSessions: 140, usedSessions: 40, durationDays: 70);
+    }
+
+    [Fact]
+    public async Task Insert_141Sessions_RejectedByACheckConstraint()
+    {
+        var memberId = await AddMemberAsync();
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => InsertAsync(memberId, Start, Start.AddDays(69), totalSessions: 141, durationDays: 70));
+
+        exception.ConstraintName.ShouldBe("ck_subscriptions_total_sessions_range");
+    }
+
+    [Theory]
+    [InlineData(10, 45)]
+    [InlineData(11, 30)]
+    [InlineData(20, 70)]
+    [InlineData(21, 45)]
+    public async Task Insert_DaysThatDoNotMatchTheSessions_RejectedByACheckConstraint(int sessions, int days)
+    {
+        // BUSINESS_RULES.md §3 (task 6.5.18): the days follow from the sessions.
+        var memberId = await AddMemberAsync();
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => InsertAsync(memberId, Start, Start.AddDays(days - 1), totalSessions: sessions, durationDays: days));
+
+        exception.ConstraintName.ShouldBe("ck_subscriptions_duration_days_for_sessions");
     }
 
     [Fact]
@@ -206,7 +233,7 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
         InsertAsync(memberId, day, day, totalSessions: 1, singleSession: true, durationDays: 1);
 
     private async Task<Guid> InsertAsync(
-        Guid memberId, DateOnly start, DateOnly end, int? totalSessions = 12, int usedSessions = 0,
+        Guid memberId, DateOnly start, DateOnly end, int? totalSessions = 10, int usedSessions = 0,
         bool cancelled = false, bool singleSession = false, int durationDays = 30)
     {
         var id = Guid.CreateVersion7();

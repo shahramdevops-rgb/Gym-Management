@@ -39,35 +39,56 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         await TestPlans.SetPricesAsync(Fixture, sessionPrice: 75_000m);
         var today = Today();
 
-        using var response = await AssignAsync(client, token, member.Id, durationDays: 30, sessionCount: 12);
+        using var response = await AssignAsync(client, token, member.Id, sessionCount: 12);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var subscription = await ReadAsync(response);
         response.Headers.Location.ShouldNotBeNull().OriginalString.ShouldBe($"/api/subscriptions/{subscription.Id}");
         subscription.MemberId.ShouldBe(member.Id);
         subscription.Price.ShouldBe(900_000m);
-        subscription.DurationDays.ShouldBe(30);
+        subscription.DurationDays.ShouldBe(45);
         subscription.TotalSessions.ShouldBe(12);
         subscription.RemainingSessions.ShouldBe(12);
         subscription.IsSingleSession.ShouldBeFalse();
         subscription.StartDate.ShouldBe(today);
-        subscription.EndDate.ShouldBe(today.AddDays(29));
+        subscription.EndDate.ShouldBe(today.AddDays(44));
         subscription.Status.ShouldBe(SubscriptionStatus.Active);
     }
 
-    [Fact]
-    public async Task Assign_MoreDaysSameSessions_CostsTheSame()
+    [Theory]
+    [InlineData(5, 30)]
+    [InlineData(10, 30)]
+    [InlineData(11, 45)]
+    [InlineData(20, 45)]
+    [InlineData(21, 70)]
+    [InlineData(140, 70)]
+    public async Task Assign_SessionCount_TheServerWorksOutTheDays(int sessions, int expectedDays)
     {
-        // BUSINESS_RULES.md §3: the days never change the price.
+        // BUSINESS_RULES.md §3 (task 6.5.18): the desk sends only the sessions.
         var (client, token) = await StaffClientAsync();
         await TestPlans.SetPricesAsync(Fixture, sessionPrice: 75_000m);
 
-        var short_ = await AssignOkAsync(client, token, (await AddMemberAsync()).Id, durationDays: 10, sessionCount: 12);
-        var long_ = await AssignOkAsync(client, token, (await AddMemberAsync()).Id, durationDays: 90, sessionCount: 12);
+        var sold = await AssignOkAsync(client, token, (await AddMemberAsync()).Id, sessionCount: sessions);
 
-        short_.Price.ShouldBe(900_000m);
-        long_.Price.ShouldBe(900_000m);
-        long_.EndDate.ShouldBe(long_.StartDate.AddDays(89));
+        sold.DurationDays.ShouldBe(expectedDays);
+        sold.EndDate.ShouldBe(sold.StartDate.AddDays(expectedDays - 1));
+        sold.Price.ShouldBe(sessions * 75_000m);
+    }
+
+    [Fact]
+    public async Task Assign_DaysSentByAnOldClient_AreIgnored()
+    {
+        // The days are not the desk's to choose any more; a body that still carries them sells
+        // the days the sessions give.
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        await TestPlans.SetPricesAsync(Fixture, sessionPrice: 75_000m);
+
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/members/{member.Id}/subscriptions", new { durationDays = 90, sessionCount = 12 });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await ReadAsync(response)).DurationDays.ShouldBe(45);
     }
 
     [Fact]
@@ -76,7 +97,7 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
 
-        using var response = await AssignAsync(client, token, member.Id, durationDays: 30, sessionCount: 12);
+        using var response = await AssignAsync(client, token, member.Id, sessionCount: 12);
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.ReadErrorCodeAsync()).ShouldBe("Pricing.SessionPriceNotSet");
@@ -97,7 +118,7 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         var read = await GetOkAsync(client, token, sold.Id);
         read.Price.ShouldBe(900_000m);
         read.DurationDays.ShouldBe(30);
-        read.TotalSessions.ShouldBe(12);
+        read.TotalSessions.ShouldBe(10);
     }
 
     [Fact]
@@ -107,39 +128,25 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         var member = await AddMemberAsync();
         await TestPlans.AddAsync(Fixture);
 
-        using var response = await AssignAsync(client, token, member.Id, durationDays: 30, sessionCount: 4);
+        using var response = await AssignAsync(client, token, member.Id, sessionCount: 4);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await FieldErrorCodeAsync(response, "sessionCount")).ShouldBe("Subscriptions.SessionCountTooLow");
         (await CountSubscriptionsAsync()).ShouldBe(0);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(366)]
-    public async Task Assign_DaysOutOfRange_Returns400WithFieldCode(int days)
+    [Fact]
+    public async Task Assign_MoreThan140Sessions_Returns400WithFieldCode()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
         await TestPlans.AddAsync(Fixture);
 
-        using var response = await AssignAsync(client, token, member.Id, durationDays: days, sessionCount: 12);
+        using var response = await AssignAsync(client, token, member.Id, sessionCount: 141);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await FieldErrorCodeAsync(response, "durationDays")).ShouldBe("Subscriptions.DurationInvalid");
-    }
-
-    [Fact]
-    public async Task Assign_ManySessions_HasNoUpperLimit()
-    {
-        var (client, token) = await StaffClientAsync();
-        var member = await AddMemberAsync();
-        await TestPlans.SetPricesAsync(Fixture, sessionPrice: 50_000m);
-
-        var sold = await AssignOkAsync(client, token, member.Id, durationDays: 365, sessionCount: 500);
-
-        sold.TotalSessions.ShouldBe(500);
-        sold.Price.ShouldBe(25_000_000m);
+        (await FieldErrorCodeAsync(response, "sessionCount")).ShouldBe("Subscriptions.SessionCountTooHigh");
+        (await CountSubscriptionsAsync()).ShouldBe(0);
     }
 
     [Fact]
@@ -175,7 +182,7 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var plan = await TestPlans.AddAsync(Fixture, durationDays: 45, sessions: 12);
+        var plan = await TestPlans.AddAsync(Fixture, sessions: 12);
         var sold = await AssignOkAsync(client, token, member.Id, plan);
         await PayAsync(client, token, sold.Id, 900_000m);
 
@@ -256,7 +263,7 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
 
         using var response = await client.PostAsJsonAsync(
             $"/api/members/{Guid.CreateVersion7()}/subscriptions",
-            new { durationDays = 30, sessionCount = 12 },
+            new { sessionCount = 12 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
@@ -293,11 +300,11 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
     // ---- Renew ----
 
     [Fact]
-    public async Task Renew_AfterASessionPriceChange_SellsTheSameDaysAndSessionsAtTodaysPrice()
+    public async Task Renew_AfterASessionPriceChange_SellsTheSameSessionsAtTodaysPrice()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        var plan = await TestPlans.AddAsync(Fixture, durationDays: 45, sessions: 12);
+        var plan = await TestPlans.AddAsync(Fixture, sessions: 12);
         var first = await AssignOkAsync(client, token, member.Id, plan);
         await TestPlans.SetPricesAsync(Fixture, sessionPrice: 80_000m);
 
@@ -407,6 +414,33 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
             .ShouldBe("ck_subscriptions_total_sessions_range");
     }
 
+    [Fact]
+    public async Task Database_MembershipWithMoreThan140Sessions_IsRefused()
+    {
+        var member = await AddMemberAsync();
+
+        var insert = () => InsertSubscriptionAsync(member.Id, Today(), Today().AddDays(69), totalSessions: 141, usedSessions: 0, durationDays: 70);
+
+        (await Should.ThrowAsync<Npgsql.PostgresException>(insert)).ConstraintName
+            .ShouldBe("ck_subscriptions_total_sessions_range");
+    }
+
+    [Theory]
+    [InlineData(12, 30)]
+    [InlineData(10, 45)]
+    [InlineData(21, 365)]
+    public async Task Database_DaysThatDoNotMatchTheSessions_AreRefused(int sessions, int days)
+    {
+        var member = await AddMemberAsync();
+
+        // BUSINESS_RULES.md §3 (task 6.5.18): the days follow from the sessions.
+        var insert = () => InsertSubscriptionAsync(
+            member.Id, Today(), Today().AddDays(days - 1), totalSessions: sessions, usedSessions: 0, durationDays: days);
+
+        (await Should.ThrowAsync<Npgsql.PostgresException>(insert)).ConstraintName
+            .ShouldBe("ck_subscriptions_duration_days_for_sessions");
+    }
+
     // ---- Helpers ----
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
@@ -476,7 +510,7 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
 
     /// <summary>A row written directly, for states the API cannot create in one step.</summary>
     private async Task<Guid> InsertSubscriptionAsync(
-        Guid memberId, DateOnly start, DateOnly end, int totalSessions, int usedSessions)
+        Guid memberId, DateOnly start, DateOnly end, int totalSessions, int usedSessions, int durationDays = 30)
     {
         var id = Guid.CreateVersion7();
         await using var scope = Fixture.CreateScope();
@@ -485,7 +519,7 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
             $"""
             INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, 100000, 30, {totalSessions},
+            VALUES ({id}, {memberId}, 100000, {durationDays}, {totalSessions},
                     {start}, {end}, {usedSessions}, 0, now())
             """,
             TestContext.Current.CancellationToken);
@@ -515,8 +549,8 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
         SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
 
     private static Task<HttpResponseMessage> AssignAsync(
-        HttpClient client, string token, Guid memberId, int durationDays, int sessionCount) =>
-        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { durationDays, sessionCount });
+        HttpClient client, string token, Guid memberId, int sessionCount) =>
+        SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", new { sessionCount });
 
     private static async Task<SubscriptionResponse> AssignOkAsync(HttpClient client, string token, Guid memberId, TestPlan plan)
     {
@@ -527,9 +561,9 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
     }
 
     private static async Task<SubscriptionResponse> AssignOkAsync(
-        HttpClient client, string token, Guid memberId, int durationDays, int sessionCount)
+        HttpClient client, string token, Guid memberId, int sessionCount)
     {
-        using var response = await AssignAsync(client, token, memberId, durationDays, sessionCount);
+        using var response = await AssignAsync(client, token, memberId, sessionCount);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return await ReadAsync(response);

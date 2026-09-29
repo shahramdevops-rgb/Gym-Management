@@ -185,8 +185,8 @@ public sealed class CheckInHandler(
     {
         var added = sale.Kind == CheckInSaleKind.SingleVisit
             ? await seller.AddSingleVisitAsync(member, today, cancellationToken)
-            // The validator has already required both numbers for a plan.
-            : await seller.AddMembershipAsync(member, sale.DurationDays!.Value, sale.SessionCount!.Value, today, cancellationToken);
+            // The validator has already required the session count for a plan.
+            : await seller.AddMembershipAsync(member, sale.SessionCount!.Value, today, cancellationToken);
 
         if (added.IsFailure)
         {

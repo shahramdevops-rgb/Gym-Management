@@ -257,7 +257,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
             $"""
             INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days, created_at)
-            VALUES ({id}, {memberId}, 900000, 30, 12, {start}, {end}, 1, 0, now())
+            VALUES ({id}, {memberId}, 900000, 30, 10, {start}, {end}, 1, 0, now())
             """,
             TestContext.Current.CancellationToken);
 

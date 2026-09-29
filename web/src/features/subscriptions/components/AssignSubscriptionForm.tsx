@@ -9,8 +9,8 @@ interface AssignSubscriptionFormProps {
 
 /**
  * Opens under the current subscription card: sell the member the plan the desk builds for them —
- * so many days, so many sessions (BUSINESS_RULES.md §3). It starts today or waits behind what the
- * member already holds (§4), and the member uses it the next time they come in.
+ * so many sessions, for the days they give (BUSINESS_RULES.md §3). It starts today or waits
+ * behind what the member already holds (§4), and the member uses it the next time they come in.
  */
 export function AssignSubscriptionForm({
   memberId,

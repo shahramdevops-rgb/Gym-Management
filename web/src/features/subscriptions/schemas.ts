@@ -17,10 +17,32 @@ export const cancelReasonMaxLength = 500;
 
 /** The same limits as the API's `Subscription.CreateMembership` (BUSINESS_RULES.md §3). */
 export const planLimits = {
-  maxDurationDays: 365,
-  /** At least 5 sessions; there is no upper limit. */
   minSessionCount: 5,
+  /** Nobody trains more than once a day, so a 70-day plan tops out here. */
+  maxSessionCount: 140,
 } as const;
+
+/**
+ * How many days a plan of so many sessions lasts (BUSINESS_RULES.md §3, task 6.5.18), the same
+ * table as the API's `Subscription.DurationTable`: the first row whose `maxSessions` is at least
+ * the plan's sessions wins.
+ */
+const durationTable = [
+  { maxSessions: 10, days: 30 },
+  { maxSessions: 20, days: 45 },
+  { maxSessions: planLimits.maxSessionCount, days: 70 },
+] as const;
+
+/**
+ * The days a plan of `sessions` sessions lasts, or null when that many sessions cannot be sold.
+ * Only for showing: the server works the days out again when it sells.
+ */
+export function planDaysFor(sessions: number): number | null {
+  if (sessions < planLimits.minSessionCount) {
+    return null;
+  }
+  return durationTable.find((row) => sessions <= row.maxSessions)?.days ?? null;
+}
 
 /** A whole number typed with any digits (`۳۰`, `30`), or null for anything else. */
 export function parseWholeNumber(text: string): number | null {
@@ -30,26 +52,27 @@ export function parseWholeNumber(text: string): number | null {
 }
 
 /**
- * The plan the desk builds for a member: days and sessions, as typed. Both hold the text as typed
- * and are checked after digit normalization, so `۳۰` is as valid as `30`; they become numbers only
- * when the form is sent. There is no price field: the price is sessions × the session price, and
- * the server works it out (BUSINESS_RULES.md §3).
+ * The plan the desk builds for a member: only its sessions, as typed. The text is checked after
+ * digit normalization, so `۱۲` is as valid as `12`, and becomes a number only when the form is
+ * sent. There is no days field and no price field: both follow from the sessions, and the server
+ * works them out (BUSINESS_RULES.md §3).
  */
 export const assignSubscriptionSchema = z.object({
-  durationDays: z.string().refine((text) => {
-    const days = parseWholeNumber(text);
-    return days !== null && days >= 1 && days <= planLimits.maxDurationDays;
-  }, message("Subscriptions.DurationInvalid")),
-  sessionCount: z.string().refine((text) => {
-    const sessions = parseWholeNumber(text);
-    return sessions !== null && sessions >= planLimits.minSessionCount;
-  }, message("Subscriptions.SessionCountTooLow")),
+  sessionCount: z
+    .string()
+    .refine((text) => {
+      const sessions = parseWholeNumber(text);
+      return sessions !== null && sessions >= planLimits.minSessionCount;
+    }, message("Subscriptions.SessionCountTooLow"))
+    .refine((text) => {
+      const sessions = parseWholeNumber(text);
+      return sessions === null || sessions <= planLimits.maxSessionCount;
+    }, message("Subscriptions.SessionCountTooHigh")),
 });
 
 export type AssignSubscriptionValues = z.infer<typeof assignSubscriptionSchema>;
 
 export const emptyAssignSubscriptionValues: AssignSubscriptionValues = {
-  durationDays: "",
   sessionCount: "",
 };
 

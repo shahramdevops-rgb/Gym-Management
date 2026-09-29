@@ -8,21 +8,22 @@ public static class SubscriptionErrors
         "Subscriptions.NotFound",
         "No subscription has that id.");
 
-    public static readonly Error DurationInvalid = Error.Validation(
-        "Subscriptions.DurationInvalid",
-        $"Duration must be between 1 and {Subscription.MaxDurationDays} days.");
-
-    /// <summary>BUSINESS_RULES.md §3: a plan has at least 5 sessions. There is no upper limit.</summary>
+    /// <summary>BUSINESS_RULES.md §3: a plan has at least 5 sessions.</summary>
     public static readonly Error SessionCountTooLow = Error.Validation(
         "Subscriptions.SessionCountTooLow",
         $"A plan has at least {Subscription.MinSessionCount} sessions.");
+
+    /// <summary>BUSINESS_RULES.md §3: a plan has at most 140 sessions.</summary>
+    public static readonly Error SessionCountTooHigh = Error.Validation(
+        "Subscriptions.SessionCountTooHigh",
+        $"A plan has at most {Subscription.MaxSessionCount} sessions.");
 
     /// <summary>Sessions times the session price does not fit the money column.</summary>
     public static readonly Error PriceTooLarge = Error.Validation(
         "Subscriptions.PriceTooLarge",
         "The plan's price is too large.");
 
-    /// <summary>Renew sells the days and sessions of the member's latest subscription; there is none.</summary>
+    /// <summary>Renew sells the sessions of the member's latest subscription; there is none.</summary>
     public static readonly Error NothingToRenew = Error.BusinessRule(
         "Subscriptions.NothingToRenew",
         "The member has no subscription to renew.");

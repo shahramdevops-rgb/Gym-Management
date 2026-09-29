@@ -24,6 +24,6 @@ public sealed class AssignSubscriptionHandler(IAppDbContext db, SubscriptionSell
             return Result.Failure<SubscriptionResponse>(MemberErrors.NotFound);
         }
 
-        return await seller.SellMembershipAsync(member, command.DurationDays, command.SessionCount, cancellationToken);
+        return await seller.SellMembershipAsync(member, command.SessionCount, cancellationToken);
     }
 }

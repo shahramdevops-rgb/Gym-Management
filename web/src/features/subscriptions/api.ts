@@ -114,18 +114,10 @@ function useSubscriptionMutation<TArgs>(request: (args: TArgs) => Promise<Subscr
 
 export function useAssignSubscription() {
   return useSubscriptionMutation(
-    async ({
-      memberId,
-      durationDays,
-      sessionCount,
-    }: {
-      memberId: string;
-      durationDays: number;
-      sessionCount: number;
-    }) => {
+    async ({ memberId, sessionCount }: { memberId: string; sessionCount: number }) => {
       const { data, error } = await api.POST("/api/members/{memberId}/subscriptions", {
         params: { path: { memberId } },
-        body: { durationDays, sessionCount },
+        body: { sessionCount },
       });
       if (error !== undefined) {
         throw error;

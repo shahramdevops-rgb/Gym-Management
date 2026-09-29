@@ -27,11 +27,26 @@ public sealed class Subscription : Entity
 {
     public const int CancellationReasonMaxLength = 500;
 
-    /// <summary>Decided with the developer in task 3.1 and kept in 6.5.6: no plan is longer than a year.</summary>
-    public const int MaxDurationDays = 365;
-
-    /// <summary>BUSINESS_RULES.md §3: a plan has at least 5 sessions, and no upper limit.</summary>
+    /// <summary>BUSINESS_RULES.md §3: a plan has at least 5 sessions.</summary>
     public const int MinSessionCount = 5;
+
+    /// <summary>BUSINESS_RULES.md §3: at most 140 sessions, since nobody trains more than once a day.</summary>
+    public const int MaxSessionCount = 140;
+
+    /// <summary>
+    /// BUSINESS_RULES.md §3 (task 6.5.18): how many days a plan of so many sessions lasts. Read top
+    /// down, the first row whose <c>MaxSessions</c> is at least the plan's sessions wins. The last
+    /// row ends at <see cref="MaxSessionCount"/>.
+    /// </summary>
+    /// <remarks>
+    /// The database check constraint is written from this table too, so the two cannot drift apart.
+    /// </remarks>
+    public static readonly IReadOnlyList<(int MaxSessions, int Days)> DurationTable =
+    [
+        (10, 30),
+        (20, 45),
+        (MaxSessionCount, 70),
+    ];
 
     // For EF Core.
     private Subscription()
@@ -82,25 +97,43 @@ public sealed class Subscription : Entity
     public int RemainingSessions => TotalSessions - UsedSessions;
 
     /// <summary>
-    /// Sells a member a plan of <paramref name="durationDays"/> days and <paramref name="sessionCount"/>
-    /// sessions at today's session price, starting on <paramref name="startDate"/> (BUSINESS_RULES.md §3).
-    /// Choosing that date (today, or queued after the member's latest subscription) needs the
-    /// member's other subscriptions, so the caller does it (task 4.2).
+    /// The days a plan of <paramref name="sessionCount"/> sessions lasts (<see cref="DurationTable"/>),
+    /// or a failure when the count is outside <see cref="MinSessionCount"/> to <see cref="MaxSessionCount"/>.
+    /// </summary>
+    public static Result<int> DurationDaysFor(int sessionCount)
+    {
+        if (sessionCount < MinSessionCount)
+        {
+            return Result.Failure<int>(SubscriptionErrors.SessionCountTooLow);
+        }
+
+        foreach (var (maxSessions, days) in DurationTable)
+        {
+            if (sessionCount <= maxSessions)
+            {
+                return days;
+            }
+        }
+
+        return Result.Failure<int>(SubscriptionErrors.SessionCountTooHigh);
+    }
+
+    /// <summary>
+    /// Sells a member a plan of <paramref name="sessionCount"/> sessions at today's session price,
+    /// starting on <paramref name="startDate"/> and lasting the days the sessions give
+    /// (BUSINESS_RULES.md §3). Choosing that date (today, or queued after the member's latest
+    /// subscription) needs the member's other subscriptions, so the caller does it (task 4.2).
     /// </summary>
     /// <param name="sessionPrice">
     /// <see cref="PriceList.SessionPrice"/> as it is today; <c>null</c> while the Owner has not set it.
     /// </param>
     public static Result<Subscription> CreateMembership(
-        Guid memberId, int durationDays, int sessionCount, decimal? sessionPrice, DateOnly startDate)
+        Guid memberId, int sessionCount, decimal? sessionPrice, DateOnly startDate)
     {
-        if (durationDays is < 1 or > MaxDurationDays)
+        var durationDays = DurationDaysFor(sessionCount);
+        if (durationDays.IsFailure)
         {
-            return Result.Failure<Subscription>(SubscriptionErrors.DurationInvalid);
-        }
-
-        if (sessionCount < MinSessionCount)
-        {
-            return Result.Failure<Subscription>(SubscriptionErrors.SessionCountTooLow);
+            return Result.Failure<Subscription>(durationDays.Error);
         }
 
         if (sessionPrice is not { } rate)
@@ -120,11 +153,11 @@ public sealed class Subscription : Entity
         {
             MemberId = memberId,
             Price = price,
-            DurationDays = durationDays,
+            DurationDays = durationDays.Value,
             TotalSessions = sessionCount,
             StartDate = startDate,
             // Inclusive end: a 30-day plan starting on the 1st ends on the 30th, not the 31st.
-            EndDate = startDate.AddDays(durationDays - 1),
+            EndDate = startDate.AddDays(durationDays.Value - 1),
         };
     }
 

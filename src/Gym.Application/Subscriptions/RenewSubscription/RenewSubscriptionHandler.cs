@@ -8,9 +8,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Subscriptions.RenewSubscription;
 
 /// <summary>
-/// Sells the member the same days and sessions as their latest subscription, at today's session
-/// price (BUSINESS_RULES.md §4, rewritten in task 6.5.6). A one-click shortcut for assign; the start
-/// date follows the same rule.
+/// Sells the member the same sessions as their latest subscription, for the days they give today
+/// and at today's session price (BUSINESS_RULES.md §4, rewritten in tasks 6.5.6 and 6.5.18). A
+/// one-click shortcut for assign; the start date follows the same rule.
 /// </summary>
 public sealed class RenewSubscriptionHandler(IAppDbContext db, SubscriptionSeller seller)
 {
@@ -40,15 +40,16 @@ public sealed class RenewSubscriptionHandler(IAppDbContext db, SubscriptionSelle
             .Where(s => s.MemberId == memberId && !s.IsSingleSession)
             .OrderByDescending(s => s.EndDate)
             .ThenByDescending(s => s.CreatedAt)
-            .Select(s => new { s.DurationDays, s.TotalSessions })
+            .Select(s => (int?)s.TotalSessions)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (latest is null)
+        if (latest is not { } sessionCount)
         {
             return Result.Failure<SubscriptionResponse>(SubscriptionErrors.NothingToRenew);
         }
 
-        // Only the numbers are reused, never the old price: the renewal costs what the plan costs today.
-        return await seller.SellMembershipAsync(member, latest.DurationDays, latest.TotalSessions, cancellationToken);
+        // Only the sessions are reused, never the old price or days: the renewal costs what the plan
+        // costs today and lasts what the table gives today.
+        return await seller.SellMembershipAsync(member, sessionCount, cancellationToken);
     }
 }
