@@ -15,7 +15,6 @@ import { useEveryoneInside, type CurrentlyInside } from "@/features/attendance/a
 import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
 import { errorMessage } from "@/lib/errors";
 import { gymToday, isJalaliBirthday, toPersianDigits } from "@/lib/format";
-import { useDarkScreen } from "@/lib/useDarkScreen";
 import { useNow } from "@/lib/useNow";
 import { cn } from "@/lib/utils";
 
@@ -55,8 +54,8 @@ type OpenBox =
  * each visit has gone on (§6 *Long stay*) and the hour marked on the chart under the map (§6
  * *Today by hour*), which fetches its own counts once a minute.
  *
- * The screen is dark (§6 *The desk screen's look*), the only one that is for now, and it has a
- * name search that finds who is inside on the map (§6 *Finding a member on the map*).
+ * The screen has a name search that finds who is inside on the map (§6 *Finding a member on the
+ * map*).
  *
  * A switch on the legend turns the map into a picture of how often each locker was used over the
  * last 7, 30 or 90 days (§6 *Locker usage map*). While it is on, nothing about who is inside now is
@@ -64,7 +63,6 @@ type OpenBox =
  * the doors show counts. Switching it off brings the desk's map back as it was.
  */
 export function LockersPage() {
-  useDarkScreen();
   const lockers = useAllLockers();
   const inside = useEveryoneInside();
   const desk = useDeskDialog();

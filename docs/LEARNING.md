@@ -1214,3 +1214,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **Two code paths for one rule need their own tests.** The number on the row comes from `GetTotalsAsync` and the filter comes from `OwesSomething`. If one starts counting something the other doesn't (say, a voided charge), the row and the filter disagree. Each kind of item (subscription, هوازی, cafe) has a filter test next to its existing debt test.
 - **A toggle, not another option in the group.** Status is one of three values, but "owes money" is a separate yes/no. Keeping it as its own `aria-pressed` button, with its own `debt=1` URL parameter, lets the two combine, and pressing it again leaves the status alone.
 - **My notes:**
+
+---
+
+## 6.5.21 — One theme, light
+
+- **A theme is a set of token values, not a set of styles.** Every screen uses `bg-background`, `text-foreground`, `bg-door` and so on, and only the values behind those names change under `.dark`. That is why turning the locker map light took deleting one hook call, with no screen restyled.
+- **Keep the palette, drop the switch.** The `.dark` tokens cost nothing while no element has the class, and if the whole app goes dark later, it's one class on `<html>`. Deleting the tokens now would mean choosing all those colours again.
+- **A theme belongs to the app, not to one screen.** A per-screen dark mode had to put the class on `<html>` anyway, because dialogs render in a portal outside the screen. Then the header and the menu flickered dark and light as you moved between screens. One theme for the whole app avoids both.
+- **My notes:**

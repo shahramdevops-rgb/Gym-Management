@@ -2,7 +2,7 @@ import type { LockerState } from "../lockerState";
 
 /**
  * The look every locker door shares, and every reserve place with it, so the two can never drift
- * apart (BUSINESS_RULES.md §6 *The desk screen's look*): a dark tile in a thin frame, with a thicker
+ * apart (BUSINESS_RULES.md §6 *The desk screen's look*): a plain tile in a thin frame, with a thicker
  * edge down its right side (`border-e`, the right inside the map's `dir="ltr"`) that the state
  * colours.
  */

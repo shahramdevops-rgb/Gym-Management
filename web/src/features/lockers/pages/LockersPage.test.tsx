@@ -179,18 +179,14 @@ describe("LockersPage", () => {
     expect(cabinet.closest("[dir='ltr']")).not.toBeNull();
   });
 
-  // ---- The look: dark, and alive (BUSINESS_RULES.md §6 *The desk screen's look*) ----
+  // ---- The look: light, and alive (BUSINESS_RULES.md §6 *The desk screen's look*) ----
 
-  it("Look_ScreenOpen_TurnsTheAppDarkUntilItCloses", async () => {
+  it("Look_ScreenOpen_StaysLight", async () => {
     mockApi(mapHandlers());
-    const { unmount } = renderMap();
+    renderMap();
 
     await door("۱");
-    // On <html>, so the boxes the screen opens (dialogs, in a portal) are dark too.
-    expect(document.documentElement).toHaveClass("dark");
-
-    unmount();
-
+    // The app has one theme, light; the dark palette waits for Phase 13.2.
     expect(document.documentElement).not.toHaveClass("dark");
   });
 
