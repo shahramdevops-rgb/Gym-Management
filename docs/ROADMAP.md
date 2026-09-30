@@ -1302,6 +1302,17 @@ Asked by the developer on 1405/07/07 (2026-09-29). BUSINESS_RULES.md §2 updated
 Done when: pressing «بدهکار» on «اعضا» leaves only the rows with an amount owed, the count above
 the table counts only them, and «غیرفعال» + «بدهکار» lists inactive members who still owe.
 
+### 6.5.21 One theme, light (یک تم، روشن)
+Asked by the developer on 1405/07/08 (2026-09-30). BUSINESS_RULES.md §6 *The desk screen's look*
+updated. Frontend only; undoes the dark half of 6.5.16.
+
+- [x] The locker map no longer turns the app dark; `useDarkScreen` is deleted, so no screen does
+- [x] The `.dark` tokens stay in `index.css`, unused, ready for Phase 13.2 if the whole app goes
+      dark (the class would go on `<html>`, not on one screen)
+- [x] Tests (frontend): the map leaves `<html>` without the `dark` class
+
+Done when: the first page (the locker map) and its dialogs are light like every other screen.
+
 ---
 
 ## Phase 7 — Cafe / POS
@@ -1633,6 +1644,8 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
 
 ### 13.2 One visual language
 - [ ] Colour, typography and spacing tokens; every screen built from the same components
+- [ ] Decide whether the whole app gets a dark theme (the `.dark` tokens are ready; 6.5.21 made
+      the app light-only for now)
 - [ ] The Persian font renders numbers and text consistently across screens
 - [ ] Empty states, loading states and error states that look deliberate
 

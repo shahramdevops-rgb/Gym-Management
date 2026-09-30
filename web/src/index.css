@@ -65,9 +65,10 @@
 }
 
 /*
- * The dark palette, for the whole app, switched on by a `dark` class on <html>. Only the locker
- * map turns it on for now (useDarkScreen); the other screens follow when Phase 13.2 decides.
- * Every colour a screen uses is one of these tokens, so nothing is restyled to go dark.
+ * The dark palette, for the whole app, switched on by a `dark` class on <html>. Nothing turns it
+ * on for now: the app has one theme, light (BUSINESS_RULES.md §6 *The desk screen's look*). If the
+ * whole app goes dark later (Phase 13.2), the class goes on <html> in index.html, or a switch
+ * sets it. Every colour a screen uses is one of these tokens, so nothing is restyled to go dark.
  */
 .dark {
   color-scheme: dark;

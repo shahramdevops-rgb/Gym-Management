@@ -588,11 +588,13 @@ Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.16.
 ### The desk screen's look (ظاهر صفحه ورود با کمد)
 
 Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadmap 6.5.16.
-- The screen is dark. For now only this screen is; whether the rest of the app follows is decided
-  later (Phase 13.2 *One visual language*).
-- A free door is a dark tile with a green number and a green edge down its right side. An occupied
-  door is tinted red from its top corner, with a red edge, the number in white and the holder's
-  name under it. An out-of-service door is hatched, with a grey number and a lock under it.
+- The screen is light, like every other screen: the app has one theme, and it is light. (It was
+  dark from 1405/07/07 until the developer turned it light on 1405/07/08, roadmap 6.5.21.) Whether
+  the whole app goes dark later is decided in Phase 13.2 *One visual language*; the dark palette is
+  kept ready for it.
+- A free door is a plain tile with a green number and a green edge down its right side. An occupied
+  door is tinted red from its top corner, with a red edge, the number in the text colour and the
+  holder's name under it. An out-of-service door is hatched, with a grey number and a lock under it.
 - A door rises a little under the mouse, so the map feels alive. A door whose state changed since
   the last refresh pulses once in its new colour. Neither moves for anyone who has asked their
   system for less motion.
