@@ -65,10 +65,9 @@
 }
 
 /*
- * The dark palette, for the whole app, switched on by a `dark` class on <html>. Nothing turns it
- * on for now: the app has one theme, light (BUSINESS_RULES.md §6 *The desk screen's look*). If the
- * whole app goes dark later (Phase 13.2), the class goes on <html> in index.html, or a switch
- * sets it. Every colour a screen uses is one of these tokens, so nothing is restyled to go dark.
+ * The dark palette, for the whole app, switched on by a `dark` class on <html>: the header's
+ * «تم تیره» button sets it, and index.html puts it back on load (BUSINESS_RULES.md §14, theme.ts).
+ * Every colour a screen uses is one of these tokens, so nothing is restyled to go dark.
  */
 .dark {
   color-scheme: dark;
@@ -99,6 +98,43 @@
   --door-hatch: oklch(0.255 0.008 270);
   --door-use: oklch(0.68 0.16 290);
   --door-unused: oklch(0.82 0.14 85);
+}
+
+/*
+ * The Jalali calendar (react-multi-date-picker) brings its own white and black, not these tokens,
+ * so in the dark theme it is pointed at them here. Outside any layer on purpose: the library adds
+ * its styles at runtime, unlayered, and a layered rule would lose to them whatever its selector.
+ * Its blue for the selected day and today reads on both backgrounds and is left alone.
+ */
+.dark .rmdp-wrapper,
+.dark .rmdp-month-picker,
+.dark .rmdp-year-picker,
+.dark .rmdp-ep-arrow::after {
+  background-color: var(--card);
+  color: var(--card-foreground);
+}
+
+.dark .rmdp-wrapper.rmdp-shadow,
+.dark .rmdp-ep-shadow::after {
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.dark .rmdp-ep-arrow[direction="top"] {
+  border-bottom-color: var(--border);
+}
+
+.dark .rmdp-ep-arrow[direction="bottom"] {
+  border-top-color: var(--border);
+}
+
+.dark .rmdp-header-values,
+.dark .rmdp-day:not(.rmdp-deactive):not(.rmdp-disabled) {
+  color: var(--card-foreground);
+}
+
+.dark .rmdp-day.rmdp-deactive,
+.dark .rmdp-day.rmdp-disabled {
+  color: var(--muted-foreground);
 }
 
 @theme inline {

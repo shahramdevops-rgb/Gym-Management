@@ -179,14 +179,14 @@ describe("LockersPage", () => {
     expect(cabinet.closest("[dir='ltr']")).not.toBeNull();
   });
 
-  // ---- The look: light, and alive (BUSINESS_RULES.md §6 *The desk screen's look*) ----
+  // ---- The look: alive (BUSINESS_RULES.md §6 *The desk screen's look*) ----
 
-  it("Look_ScreenOpen_StaysLight", async () => {
+  it("Look_ScreenOpen_DoesNotTurnTheAppDark", async () => {
     mockApi(mapHandlers());
     renderMap();
 
     await door("۱");
-    // The app has one theme, light; the dark palette waits for Phase 13.2.
+    // The map no longer picks a theme of its own; only the header's switch does (§14).
     expect(document.documentElement).not.toHaveClass("dark");
   });
 

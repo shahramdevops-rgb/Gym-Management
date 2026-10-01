@@ -1313,6 +1313,24 @@ updated. Frontend only; undoes the dark half of 6.5.16.
 
 Done when: the first page (the locker map) and its dialogs are light like every other screen.
 
+### 6.5.22 A dark theme switch (دکمهٔ تم تیره)
+Asked by the developer on 1405/07/09 (2026-10-01). BUSINESS_RULES.md §14 written first. Frontend
+only, no new package. The choice is kept per device (localStorage), not per user, so no backend.
+
+- [x] `lib/theme.ts`: read the saved theme (light when none, or storage blocked), apply it as the
+      `dark` class on `<html>` and save it; `useTheme()` for the button
+- [x] `ThemeToggle` in the header beside «خروج»: a moon / sun button named «تم تیره», `aria-pressed`
+- [x] An inline script in `index.html` puts the saved theme on before the first paint (no CSP on
+      the server to block it)
+- [x] The Jalali calendar's own white and black pointed at the tokens under `.dark`, unlayered so
+      they beat the library's runtime styles
+- [x] Tests (frontend): first visit light; the button turns `<html>` dark and back and saves each;
+      opened dark shows it pressed; saved theme read with nothing, dark, junk and blocked storage;
+      blocked storage still switches the screen
+
+Done when: pressing the moon turns every screen, its dialogs and the calendar dark; a reload keeps
+it dark with no white flash; another browser still opens light.
+
 ---
 
 ## Phase 7 — Cafe / POS
@@ -1644,8 +1662,8 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
 
 ### 13.2 One visual language
 - [ ] Colour, typography and spacing tokens; every screen built from the same components
-- [ ] Decide whether the whole app gets a dark theme (the `.dark` tokens are ready; 6.5.21 made
-      the app light-only for now)
+- [x] Decide whether the whole app gets a dark theme: yes, as a switch in the header, light by
+      default (6.5.22)
 - [ ] The Persian font renders numbers and text consistently across screens
 - [ ] Empty states, loading states and error states that look deliberate
 

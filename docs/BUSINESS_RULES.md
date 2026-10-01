@@ -588,10 +588,8 @@ Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.16.
 ### The desk screen's look (ظاهر صفحه ورود با کمد)
 
 Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadmap 6.5.16.
-- The screen is light, like every other screen: the app has one theme, and it is light. (It was
-  dark from 1405/07/07 until the developer turned it light on 1405/07/08, roadmap 6.5.21.) Whether
-  the whole app goes dark later is decided in Phase 13.2 *One visual language*; the dark palette is
-  kept ready for it.
+- The screen has no theme of its own: it is light or dark with the rest of the app (§14). (It was
+  always dark from 1405/07/07 until the developer turned it light on 1405/07/08, roadmap 6.5.21.)
 - A free door is a plain tile with a green number and a green edge down its right side. An occupied
   door is tinted red from its top corner, with a red edge, the number in the text colour and the
   holder's name under it. An out-of-service door is hatched, with a grey number and a lock under it.
@@ -1062,3 +1060,15 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
   - No screen formats an amount by itself, and no money value is ever held as a JavaScript number: rounding a price is never acceptable.
 - Reports offer Jalali periods (this Jalali month, this Jalali year) that the frontend converts to Gregorian date ranges.
 - SMS messages are Persian. Unicode SMS parts hold fewer characters than Latin ones, so templates are kept short and the part count is calculated before sending.
+
+## 14. Theme (تم روشن و تیره)
+
+Decided by the developer, 1405/07/09 (2026-10-01). Roadmap 6.5.22.
+- The app has two themes, light and dark, and every screen follows the same one: the frame, every
+  page, the dialogs and the date picker's calendar. No screen picks a theme of its own.
+- It opens light. A button in the header (a moon, «تم تیره») switches to dark; pressed again (a sun)
+  it switches back.
+- The choice is remembered **on that device, in that browser**, not for the user: the desk PC can
+  stay dark while the Owner's phone stays light, and signing in as someone else on the desk PC keeps
+  the desk's theme. A browser that cannot store it (a private window) opens light every time.
+- A device that saved dark opens dark straight away, with no white flash while the page loads.
