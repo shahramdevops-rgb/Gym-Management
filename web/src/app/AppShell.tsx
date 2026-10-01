@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 
 import { paths } from "./paths";
 import { SidebarClock } from "./SidebarClock";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface NavigationItem {
   to: string;
@@ -82,6 +83,7 @@ export function AppShell() {
           {user.data !== undefined && (
             <span className="text-sm text-muted-foreground">{user.data.fullName}</span>
           )}
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="sm"

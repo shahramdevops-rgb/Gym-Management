@@ -162,6 +162,53 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "هزینه‌ها" })).not.toBeInTheDocument();
   });
 
+  // ---- The theme (BUSINESS_RULES.md §14) ----
+
+  it("AppShell_FirstVisit_OpensLightWithTheDarkButtonNotPressed", async () => {
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+
+    await screen.findByText(staffUser.fullName);
+    expect(screen.getByRole("button", { name: "تم تیره" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(document.documentElement).not.toHaveClass("dark");
+  });
+
+  it("AppShell_DarkButton_TurnsTheWholeAppDarkAndBackAndRemembersIt", async () => {
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+    await screen.findByText(staffUser.fullName);
+    const button = screen.getByRole("button", { name: "تم تیره" });
+
+    fireEvent.click(button);
+
+    // On <html>, so dialogs and the calendar (in portals outside the frame) go dark too.
+    expect(document.documentElement).toHaveClass("dark");
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(localStorage.getItem("gym.theme")).toBe("dark");
+
+    fireEvent.click(button);
+
+    expect(document.documentElement).not.toHaveClass("dark");
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    expect(localStorage.getItem("gym.theme")).toBe("light");
+  });
+
+  it("AppShell_OpenedDark_ShowsTheDarkButtonPressed", async () => {
+    // What index.html does on load when the device saved «تیره».
+    document.documentElement.classList.add("dark");
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+
+    await screen.findByText(staffUser.fullName);
+    expect(screen.getByRole("button", { name: "تم تیره" })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("AppShell_Logout_RevokesTheSessionAndShowsTheLoginPage", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),

@@ -1223,3 +1223,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Keep the palette, drop the switch.** The `.dark` tokens cost nothing while no element has the class, and if the whole app goes dark later, it's one class on `<html>`. Deleting the tokens now would mean choosing all those colours again.
 - **A theme belongs to the app, not to one screen.** A per-screen dark mode had to put the class on `<html>` anyway, because dialogs render in a portal outside the screen. Then the header and the menu flickered dark and light as you moved between screens. One theme for the whole app avoids both.
 - **My notes:**
+
+---
+
+## 6.5.22 — A dark theme switch
+
+- **Blocking inline script against the flash.** React only runs after the bundle downloads. A theme applied there would draw the page white and then turn it dark. A few lines in `index.html` run before the first paint and put the class on `<html>` first.
+- **The DOM as the starting truth.** `useTheme()` reads its first value from `<html>`, which the script has already set, and doesn't read storage a second time. One place decides, so the button and the screen can't disagree on load.
+- **Storage can throw.** `localStorage` throws in some private windows and when site data is blocked. Every read and write sits in `try/catch`, and the fallback is the safe default (light) rather than a crash.
+- **Per device vs per user is a design decision.** Saving the theme in the browser needs no API, no migration and no tests against a database. The cost is that it doesn't follow a person to another device. For a desk PC shared by several staff, that is arguably the better behaviour anyway.
+- **CSS cascade layers decide before specificity.** Tailwind's rules sit in layers, and a library that injects plain CSS at runtime beats every layered rule. The calendar's dark overrides live outside any layer, where the usual specificity (`.dark .rmdp-wrapper` beats `.rmdp-wrapper`) applies again.
+- **`aria-pressed` for an on/off button.** One fixed name («تم تیره») plus a pressed state is what a screen reader expects from a toggle. A label that flips between two texts makes the user guess which one is the current state.
+- **My notes:**
