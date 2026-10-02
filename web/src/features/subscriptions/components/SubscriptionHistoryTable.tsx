@@ -1,4 +1,5 @@
 import type { Subscription } from "../api";
+import { isQueuedBehindAnother } from "../queue";
 import { SubscriptionHistoryRow } from "./SubscriptionHistoryRow";
 
 interface SubscriptionHistoryTableProps {
@@ -24,6 +25,7 @@ export function SubscriptionHistoryTable({
         <thead>
           <tr className="border-b text-muted-foreground">
             <th className="py-2 text-start font-medium">پلن</th>
+            <th className="py-2 text-start font-medium">تاریخ فروش</th>
             <th className="py-2 text-start font-medium">شروع</th>
             <th className="py-2 text-start font-medium">پایان</th>
             <th className="py-2 text-start font-medium">جلسات</th>
@@ -39,6 +41,7 @@ export function SubscriptionHistoryTable({
             <SubscriptionHistoryRow
               key={subscription.id}
               subscription={subscription}
+              queued={isQueuedBehindAnother(subscription, subscriptions)}
               isOwner={isOwner}
               onDone={onActionDone}
             />

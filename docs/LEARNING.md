@@ -1235,3 +1235,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **CSS cascade layers decide before specificity.** Tailwind's rules sit in layers, and a library that injects plain CSS at runtime beats every layered rule. The calendar's dark overrides live outside any layer, where the usual specificity (`.dark .rmdp-wrapper` beats `.rmdp-wrapper`) applies again.
 - **`aria-pressed` for an on/off button.** One fixed name («تم تیره») plus a pressed state is what a screen reader expects from a toggle. A label that flips between two texts makes the user guess which one is the current state.
 - **My notes:**
+
+---
+
+## 6.5.23 — A queued plan's dates read as provisional
+
+- **Show what is certain, label what is not.** A queued plan's stored dates are correct today but can move, while its length can't. The row shows the length as fact and the date as «فعلاً», so the desk doesn't promise the member a start day that the next check-in may change.
+- **Derive display state from data you already have.** Whether a plan is "queued" isn't a column. It follows from its neighbours: upcoming, with a live plan ending the day before. The history page already holds those rows, so the screen works it out without a new API field.
+- **Fall back to the plain answer when the data is incomplete.** If the plan before it is on another page, the helper says "not queued" and the row shows the stored dates. Those dates are still true for today, so the worst case is the old screen, never a wrong one.
+- **Check what is already stored before planning a migration.** "When was it sold?" sounded like new data, but every entity already has `CreatedAt` and the API already returned it. Showing it was one table column. "Who sold it?" really is new data: a column, a migration, and a value for every old row.
+- **My notes:**

@@ -142,8 +142,10 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
             current={current}
             onDone={(renewed) =>
               done(
+                // Renew only queues behind a plan that is still running (§4), so an upcoming
+                // renewal always waits for it, and its dates move with it.
                 renewed.status === "Upcoming"
-                  ? `اشتراک تمدید شد؛ از ${formatDate(renewed.startDate)} تا ${formatDate(renewed.endDate)} در انتظار شروع است.`
+                  ? `اشتراک تمدید شد؛ بعد از پایان پلن فعلی شروع می‌شود (فعلاً از ${formatDate(renewed.startDate)}) و ${formatNumber(Number(renewed.durationDays))} روز اعتبار دارد.`
                   : `اشتراک تمدید شد و از همین امروز تا ${formatDate(renewed.endDate)} فعال است.`,
               )
             }

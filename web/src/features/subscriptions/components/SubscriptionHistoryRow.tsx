@@ -6,7 +6,7 @@ import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatus
 import { RegisterPaymentForm } from "@/features/payments/components/RegisterPaymentForm";
 import { RegisterRefundForm } from "@/features/payments/components/RegisterRefundForm";
 import { errorMessage } from "@/lib/errors";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/format";
 import { isPositiveMoney, subtractMoney } from "@/lib/money";
 
 import { useFreezeSubscription, useUnfreezeSubscription, type Subscription } from "../api";
@@ -19,6 +19,8 @@ type RowAction = "payment" | "refund" | "cancel" | null;
 
 interface SubscriptionHistoryRowProps {
   subscription: Subscription;
+  /** Waiting behind another plan, so its dates are provisional (see `isQueuedBehindAnother`). */
+  queued: boolean;
   isOwner: boolean;
   onDone: (message: string) => void;
 }
@@ -31,6 +33,7 @@ interface SubscriptionHistoryRowProps {
  */
 export function SubscriptionHistoryRow({
   subscription,
+  queued,
   isOwner,
   onDone,
 }: SubscriptionHistoryRowProps) {
@@ -94,8 +97,26 @@ export function SubscriptionHistoryRow({
     <>
       <tr className="border-b">
         <td className="py-2">{label}</td>
-        <td className="py-2">{formatDate(subscription.startDate)}</td>
-        <td className="py-2">{formatDate(subscription.endDate)}</td>
+        {/* When it was sold, paid or not: payments carry their own times in «پرداخت‌ها». */}
+        <td className="py-2">{formatDateTime(subscription.createdAt)}</td>
+        {queued ? (
+          // A queued plan's dates move if the plan before it ends early or is frozen (§4); only
+          // its length is fixed. The stored start is still shown, as where it stands today.
+          <>
+            <td className="py-2">
+              <div>بعد از پلن قبلی</div>
+              <div className="text-xs text-muted-foreground">
+                فعلاً {formatDate(subscription.startDate)}
+              </div>
+            </td>
+            <td className="py-2">{`${formatNumber(Number(subscription.durationDays))} روز از شروع`}</td>
+          </>
+        ) : (
+          <>
+            <td className="py-2">{formatDate(subscription.startDate)}</td>
+            <td className="py-2">{formatDate(subscription.endDate)}</td>
+          </>
+        )}
         <td className="py-2">{`${subscription.usedSessions} / ${subscription.totalSessions}`}</td>
         <td className="py-2">
           <SubscriptionStatusBadge status={subscription.status} />
@@ -165,10 +186,13 @@ export function SubscriptionHistoryRow({
       </tr>
       {hasPanel && (
         <tr className="border-b bg-muted/30">
-          <td colSpan={7} className="space-y-2 py-2">
+          <td colSpan={8} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">
-              برای «{label}» — از {formatDate(subscription.startDate)} تا{" "}
-              {formatDate(subscription.endDate)} — قیمت {formatMoney(subscription.price)}،
+              برای «{label}» —{" "}
+              {queued
+                ? `بعد از پلن قبلی (فعلاً از ${formatDate(subscription.startDate)})`
+                : `از ${formatDate(subscription.startDate)} تا ${formatDate(subscription.endDate)}`}{" "}
+              — قیمت {formatMoney(subscription.price)}،
               پرداخت‌شده {formatMoney(subscription.netPaid)}
               {isPositiveMoney(remaining) && <> — مانده {formatMoney(remaining)}</>}
             </p>

@@ -11,7 +11,7 @@ import {
   openVisitNoLocker,
 } from "@/test/attendance";
 import { planLabel } from "@/features/subscriptions/planLabel";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { cafePage, orderOnAccount } from "@/test/cafe";
 import {
   json,
@@ -299,6 +299,40 @@ describe("MemberProfilePage", () => {
       expect(screen.getAllByText(formatDate(activeSubscription.startDate))).toHaveLength(2),
     );
     expect(screen.getAllByText(formatDate(cancelledRenewal.startDate))).toHaveLength(1);
+  });
+
+  it("Subscription_QueuedRenewal_ShowsItStartsAfterThePlanBeforeIt", async () => {
+    // A queued plan's dates move if the plan before it runs out of sessions or is frozen
+    // (BUSINESS_RULES.md §4), so its row says when it starts and how long it lasts, not a fixed
+    // end date.
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () =>
+        subscriptionsPage([queuedRenewal, activeSubscription]),
+    });
+
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    expect(await screen.findByText("بعد از پلن قبلی")).toBeInTheDocument();
+    expect(screen.getByText(`فعلاً ${formatDate(queuedRenewal.startDate)}`)).toBeInTheDocument();
+    expect(screen.getByText("۳۰ روز از شروع")).toBeInTheDocument();
+    expect(screen.queryByText(formatDate(queuedRenewal.endDate))).not.toBeInTheDocument();
+  });
+
+  it("Subscription_UnpaidSale_HistoryShowsWhenItWasSold", async () => {
+    // The sale's own time, recorded whether or not any money was taken; payments have theirs in
+    // «پرداخت‌ها».
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([queuedRenewal]),
+    });
+
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    expect(await screen.findByRole("columnheader", { name: "تاریخ فروش" })).toBeInTheDocument();
+    expect(screen.getByText(formatDateTime(queuedRenewal.createdAt))).toBeInTheDocument();
   });
 
   it("Subscription_MemberHasNone_SaysSoAndDisablesRenew", async () => {

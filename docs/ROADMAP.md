@@ -1331,6 +1331,26 @@ only, no new package. The choice is kept per device (localStorage), not per user
 Done when: pressing the moon turns every screen, its dialogs and the calendar dark; a reload keeps
 it dark with no white flash; another browser still opens light.
 
+### 6.5.23 A queued plan's dates read as provisional (تاریخ اشتراک در صف)
+Asked by the developer on 1405/07/10 (2026-10-02). BUSINESS_RULES.md §4 updated. Frontend only;
+the queueing rule itself was already right (checked: sessions running out pull the queued plan
+forward at the next check-in, a freeze pushes it later).
+
+- [x] `isQueuedBehindAnother`: upcoming, and a live membership on the same history page ends the
+      day before it starts. Not found on the page → plain dates, still correct for today
+- [x] History row: start «بعد از پلن قبلی» with «فعلاً <date>» under it, end «N روز از شروع»; the
+      row's action panel says the same
+- [x] Renew notice: «بعد از پایان پلن فعلی شروع می‌شود (فعلاً از …) و N روز اعتبار دارد»
+- [x] «تاریخ فروش» column in the history: the subscription's `CreatedAt`, already stored and
+      returned, recorded at sale whether or not anything was paid. Who sold it is not recorded;
+      not needed for now (developer, same day)
+- [x] Tests (frontend): queued behind a live plan; behind a cancelled one, a gap, a single visit or
+      off the page → not queued; the profile row shows the new texts and no end date; an unpaid
+      sale shows its sale time
+
+Done when: a member with an active plan and a renewal sees the renewal's row read «بعد از پلن
+قبلی» instead of a fixed start and end.
+
 ---
 
 ## Phase 7 — Cafe / POS
