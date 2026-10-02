@@ -324,15 +324,17 @@ function LockerDoor({
           sit a little lower, clear of the tag. `relative` keeps them above a birthday's confetti. */}
       <span
         className={cn(
-          "@container relative flex size-full flex-col items-center justify-center gap-1 px-2",
+          "@container relative flex size-full flex-col items-center justify-center gap-1 px-1",
           owes && "pt-3",
         )}
       >
-        <span className="text-sm font-bold @min-[4.5rem]:text-xl">{toPersianDigits(number)}</span>
+        <span className="text-sm font-bold @min-[3.5rem]:text-base @min-[4.5rem]:text-xl">
+          {toPersianDigits(number)}
+        </span>
         {holder !== null && (
           <span
             dir="rtl"
-            className="hidden w-full text-center text-[11px] leading-tight text-muted-foreground break-words @min-[4.5rem]:line-clamp-2"
+            className="hidden w-full text-center text-[11px] leading-tight text-muted-foreground break-words @min-[3.5rem]:line-clamp-2"
           >
             {holder}
           </span>
