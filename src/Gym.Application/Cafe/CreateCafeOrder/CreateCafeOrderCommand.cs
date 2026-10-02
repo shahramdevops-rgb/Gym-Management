@@ -19,7 +19,9 @@ namespace Gym.Application.Cafe.CreateCafeOrder;
 /// The open visit this was bought during, when it is rung up from the member's locker; it must be
 /// <paramref name="MemberId"/>'s own visit, and still open, like a هوازی charge. <c>null</c> from
 /// the till, where the handler ties the order to the member's open visit itself when they are
-/// inside (BUSINESS_RULES.md §8).
+/// inside (BUSINESS_RULES.md §8). A guest's open visit, from their locker or picked at the till,
+/// comes with no <paramref name="MemberId"/>: the order goes under the guest's name and may be
+/// left unpaid until they check out (§7 <i>Guest visit</i>).
 /// </param>
 public sealed record CreateCafeOrderCommand(
     Guid? MemberId,

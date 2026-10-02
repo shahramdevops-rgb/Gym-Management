@@ -22,6 +22,8 @@ namespace Gym.Domain.Cafe;
 /// <b>A walk-in order names no member</b> and must be paid in full at creation, because there is
 /// no account to leave a balance on. An order on a member's account may be paid in part, in full,
 /// or not at all, and whatever is left counts toward that member's debt (§5 <i>Member debt</i>).
+/// An order on a guest's visit names no member either, but may stay unpaid while the guest is
+/// inside, because the guest cannot check out until it is paid (§7 <i>Guest visit</i>).
 /// Whether it has been paid is not stored here: it is the sum of its payments, calculated the same
 /// way a subscription's payment status is.
 /// </para>
@@ -44,10 +46,11 @@ public sealed class CafeOrder : Entity
     public Guid? MemberId { get; private set; }
 
     /// <summary>
-    /// The visit the order was rung up during, when it was bought from the "currently inside"
-    /// board; <c>null</c> for an order from the till. It is what lets check-out say "this is what
-    /// you bought today" the way a هوازی charge hangs off its visit (BUSINESS_RULES.md §8). A visit
-    /// always belongs to a member, so an order with one always has <see cref="MemberId"/> too.
+    /// The visit the order was rung up during; <c>null</c> for a member who was not inside and for
+    /// a walk-in. It is what lets check-out say "this is what you bought today" the way a هوازی
+    /// charge hangs off its visit (BUSINESS_RULES.md §8). On a member's visit the order names that
+    /// member too (<see cref="Create"/>); on a guest's visit it names no member
+    /// (<see cref="CreateForGuestVisit"/>).
     /// </summary>
     public Guid? AttendanceId { get; private set; }
 
@@ -98,6 +101,33 @@ public sealed class CafeOrder : Entity
             return Result.Failure<CafeOrder>(CafeOrderErrors.VisitOfAnotherMember);
         }
 
+        return Build(memberId, attendanceId, lines, orderedOn, placedByUserId);
+    }
+
+    /// <summary>
+    /// Rings up an order for a guest who is inside (BUSINESS_RULES.md §7 <i>Guest visit</i>, §8):
+    /// it names the guest's visit and no member, never counts toward any member's debt, and may
+    /// stay unpaid until the guest checks out. The caller has checked that the visit is an open
+    /// guest's visit.
+    /// </summary>
+    public static Result<CafeOrder> CreateForGuestVisit(
+        Guid attendanceId,
+        IReadOnlyList<(Product Product, int Quantity)> lines,
+        DateOnly orderedOn,
+        Guid placedByUserId)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+
+        return Build(memberId: null, attendanceId, lines, orderedOn, placedByUserId);
+    }
+
+    private static Result<CafeOrder> Build(
+        Guid? memberId,
+        Guid? attendanceId,
+        IReadOnlyList<(Product Product, int Quantity)> lines,
+        DateOnly orderedOn,
+        Guid placedByUserId)
+    {
         if (lines.Count == 0)
         {
             return Result.Failure<CafeOrder>(CafeOrderErrors.NoItems);

@@ -149,6 +149,8 @@ details — no message, no type name, no stack trace.
   `db.LockMemberAsync(memberId)` (`SELECT … FOR UPDATE` on the member row) before reading them, so concurrent
   requests for the same member take turns instead of racing. The exclusion constraint
   `ex_subscriptions_no_overlap` (btree_gist, written by hand in the `AddSubscriptions` migration) is the safety net.
+  A guest's visit has no member row, so what changes its cafe orders or closes it locks the visit instead,
+  `db.LockAttendanceAsync(attendanceId)` (roadmap 6.5.11).
 - "Contains" searches (`LIKE '%…%'`) use a GIN trigram index (`HasMethod("gin").HasOperators("gin_trgm_ops")`). The `pg_trgm` extension ships with Postgres and is enabled in `AppDbContext` with `HasPostgresExtension`. User input is escaped (`%`, `_`, `\`) before it goes into a pattern.
 
 ### Testing

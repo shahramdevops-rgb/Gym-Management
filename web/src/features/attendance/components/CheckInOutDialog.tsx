@@ -13,6 +13,7 @@ import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 
 import { useCancelCheckIn, useCheckOut } from "../api";
+import { guestLabel, type DeskHolder } from "../holder";
 import { CancelCheckInConfirm, type CancelChoice } from "./CancelCheckInConfirm";
 import { CloseButton, ConfirmButtons } from "./deskParts";
 import { VisitSummary } from "./VisitSummary";
@@ -35,12 +36,14 @@ export interface DeskVisit {
  * offered it turned out to be stale (the member already left). Cancelling a check-in carries the
  * visit it undoes.
  *
+ * `member` is whoever the visit belongs to: a guest has no id (BUSINESS_RULES.md §7 *Guest visit*).
+ *
  * There is no check-in here: since roadmap 6.5.5 a member is checked in only from the locker map,
  * by clicking the locker they are given (`LockerCheckInDialog`).
  */
 export type DeskAction =
-  | { kind: "checkOut"; member: DeskMember; visit: DeskVisit | null }
-  | { kind: "cancelCheckIn"; member: DeskMember; attendanceId: string };
+  | { kind: "checkOut"; member: DeskHolder; visit: DeskVisit | null }
+  | { kind: "cancelCheckIn"; member: DeskHolder; attendanceId: string };
 
 type Step =
   | { kind: "confirm" }
@@ -67,6 +70,7 @@ interface CheckInOutDialogProps {
  */
 export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
   const { member } = action;
+  const isGuest = member.id === null;
   const [step, setStep] = useState<Step>({ kind: "confirm" });
   const [keyReturned, setKeyReturned] = useState(false);
 
@@ -127,6 +131,7 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
                 {visit.lockerNumber !== null && (
                   <KeyReturn
                     number={visit.lockerNumber}
+                    from={isGuest ? guestLabel : "عضو"}
                     returned={keyReturned}
                     onReturnedChange={setKeyReturned}
                   />
@@ -150,6 +155,7 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
           // click; what the visit bought is asked about one purchase at a time (roadmap 6.5.8).
           <CancelCheckInConfirm
             memberFullName={member.fullName}
+            isGuest={isGuest}
             attendanceId={action.attendanceId}
             pending={cancelCheckIn.isPending}
             onConfirm={(choice) => void confirmCancel(action.attendanceId, choice)}
@@ -165,7 +171,8 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
                 ورود لغو شد
               </DialogTitle>
               <DialogDescription>
-                {member.fullName}: جلسه به اشتراک بازگشت.
+                {member.fullName}
+                {isGuest ? "." : ": جلسه به اشتراک بازگشت."}
                 {step.purchasesCancelled && " خریدهای انتخاب‌شده هم لغو شد."}
               </DialogDescription>
             </DialogHeader>
@@ -216,10 +223,13 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
  */
 function KeyReturn({
   number,
+  from,
   returned,
   onReturnedChange,
 }: {
   number: number | string;
+  /** Who hands the key back: «عضو» or «مهمان». */
+  from: string;
   returned: boolean;
   onReturnedChange: (returned: boolean) => void;
 }) {
@@ -228,7 +238,7 @@ function KeyReturn({
       <div className="flex items-center justify-between gap-4">
         <p className="flex items-center gap-2 text-lg font-bold">
           <KeyRound className="size-6" aria-hidden />
-          کلید کمد را از عضو تحویل بگیرید
+          کلید کمد را از {from} تحویل بگیرید
         </p>
         <p
           className="text-5xl leading-none font-bold"

@@ -2,6 +2,7 @@ import { Cake, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { CurrentlyInside } from "@/features/attendance/api";
+import { holderName } from "@/features/attendance/holder";
 import { renewalDue, type RenewalDue } from "@/features/attendance/renewal";
 import { gymToday, isJalaliBirthday, toPersianDigits } from "@/lib/format";
 
@@ -47,9 +48,9 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
         onBlur={() => onHighlight(null)}
         className="flex w-full items-center gap-3 rounded-lg border border-door-border px-2.5 py-2 text-start text-sm transition-[translate,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-y-0"
       >
-        <Initials name={visit.memberFullName} />
+        <Initials name={holderName(visit)} />
         <span className="grid min-w-0 flex-1">
-          <span className="truncate font-bold">{visit.memberFullName}</span>
+          <span className="truncate font-bold">{holderName(visit)}</span>
           <span className="text-xs text-muted-foreground">{placeLabel(visit)}</span>
         </span>
         {detail}

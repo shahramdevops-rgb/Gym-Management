@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useEveryoneInside, type CurrentlyInside } from "@/features/attendance/api";
 import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
+import { holderName } from "@/features/attendance/holder";
 import { errorMessage } from "@/lib/errors";
 import { gymToday, isJalaliBirthday, toPersianDigits } from "@/lib/format";
 import { useNow } from "@/lib/useNow";
@@ -27,7 +28,7 @@ import { LockerVisitDialog } from "../components/LockerVisitDialog";
 import { ReservePlaces } from "../components/ReservePlaces";
 import { TodayByHourChart } from "../components/TodayByHourChart";
 import { UsageLegend } from "../components/UsageLegend";
-import { lockerState } from "../lockerState";
+import { isHeld, lockerHolderName, lockerState } from "../lockerState";
 import { stayProgress } from "../longStay";
 import { nameMatches, nameSearchTerm } from "../nameSearch";
 import { defaultUsagePeriod, type UsagePeriod } from "../usage";
@@ -121,7 +122,7 @@ export function LockersPage() {
       : new Set(
           lockers.data
             .filter((locker) => {
-              const holder = locker.occupiedByMemberFullName;
+              const holder = lockerHolderName(locker);
               return holder !== null && nameMatches(holder, term);
             })
             .map((locker) => locker.id),
@@ -131,7 +132,7 @@ export function LockersPage() {
       ? null
       : new Set(
           reserveVisits
-            .filter((visit) => nameMatches(visit.memberFullName, term))
+            .filter((visit) => nameMatches(holderName(visit), term))
             .map((visit) => visit.attendanceId),
         );
   const foundCount = (foundLockerIds?.size ?? 0) + (foundAttendanceIds?.size ?? 0);
@@ -156,7 +157,7 @@ export function LockersPage() {
     const state = lockerState(locker);
     if (state === "free") {
       open({ kind: "checkIn", place: { kind: "locker", locker } });
-    } else if (state === "occupied") {
+    } else if (isHeld(state)) {
       // By the visit when it is already known, so the box keeps it after a move to another locker.
       const visit = inside.data?.find((row) => row.lockerId === locker.id);
       open(

@@ -7,6 +7,7 @@ import { formatDate, formatDateTime, gymToday, toPersianDigits } from "@/lib/for
 import { cn } from "@/lib/utils";
 
 import type { CurrentlyInside } from "../api";
+import { guestLabel } from "../holder";
 import { daysUntil, expiringDaysThreshold, lowSessionsThreshold } from "../renewal";
 
 interface CurrentlyInsideTableProps {
@@ -50,7 +51,18 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
         </thead>
         <tbody>
           {rows.map((row) => {
-            const daysLeft = daysUntil(row.subscriptionEndDate, today);
+            if (row.memberId === null) {
+              return (
+                <GuestRow
+                  key={row.attendanceId}
+                  row={row}
+                  onCheckOut={onCheckOut}
+                  onCancel={onCancel}
+                />
+              );
+            }
+
+            const daysLeft = daysUntil(row.subscriptionEndDate ?? today, today);
 
             // A single visit is spent by design and expires tonight, so both marks would fire on
             // every such row and mean nothing. What the desk needs to see is that it was a single
@@ -83,9 +95,9 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                     <span className="whitespace-nowrap text-muted-foreground">تک‌جلسه‌ای</span>
                   ) : (
                     <SessionsBar
-                      total={row.totalSessions}
-                      used={row.usedSessions}
-                      remaining={row.remainingSessions}
+                      total={row.totalSessions ?? 0}
+                      used={row.usedSessions ?? 0}
+                      remaining={row.remainingSessions ?? 0}
                       lowThreshold={lowSessionsThreshold}
                     />
                   )}
@@ -96,7 +108,7 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                     expiringSoon && "font-medium text-warning",
                   )}
                 >
-                  {formatDate(row.subscriptionEndDate)}
+                  {row.subscriptionEndDate !== null && formatDate(row.subscriptionEndDate)}
                   {expiringSoon && (
                     <span className="ms-1 text-xs">
                       {daysLeft <= 0 ? "(امروز)" : `(${toPersianDigits(daysLeft)} روز)`}
@@ -119,5 +131,46 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
         </tbody>
       </table>
     </div>
+  );
+}
+
+/**
+ * A guest on the board (BUSINESS_RULES.md §7 *Guest visit*): the name with no profile to link to,
+ * «مهمان» where the sessions go, and nothing that could mark the row as needing attention: a guest
+ * has no plan to run out.
+ */
+function GuestRow({
+  row,
+  onCheckOut,
+  onCancel,
+}: {
+  row: CurrentlyInside;
+} & Pick<CurrentlyInsideTableProps, "onCheckOut" | "onCancel">) {
+  return (
+    <tr className="border-b">
+      <td className="py-2 font-medium">{row.guestName}</td>
+      <td className="py-2">
+        {row.lockerNumber !== null
+          ? toPersianDigits(row.lockerNumber)
+          : row.usesReservePlace
+            ? "رزرو"
+            : "—"}
+      </td>
+      <td className="py-2">{formatDateTime(row.checkedInAt)}</td>
+      <td className="py-2">
+        <span className="whitespace-nowrap text-muted-foreground">{guestLabel}</span>
+      </td>
+      <td className="py-2 text-muted-foreground">—</td>
+      <td className="py-2">
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={() => onCancel(row)}>
+            لغو ورود
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => onCheckOut(row)}>
+            ثبت خروج
+          </Button>
+        </div>
+      </td>
+    </tr>
   );
 }

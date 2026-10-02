@@ -3,7 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { lockerKeys } from "@/features/lockers/api";
 import { memberKeys } from "@/features/members/api";
-import { paymentKeys } from "@/features/payments/api";
+import { paymentKeys, type PaymentMethod } from "@/features/payments/api";
 import { subscriptionKeys } from "@/features/subscriptions/api";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
@@ -182,6 +182,64 @@ export function useCheckIn() {
         invalidateAttendance(queryClient),
         // A sale adds to what the member owes, which the member's own queries show.
         sale === undefined ? null : queryClient.invalidateQueries({ queryKey: memberKeys.all }),
+      ]),
+  });
+}
+
+/**
+ * Lets a guest in on the locker the desk clicked, or a reserve place when `lockerId` is `null`
+ * (BUSINESS_RULES.md §7 *Guest visit*): a name and nothing else, no member, no session.
+ */
+export function useGuestCheckIn() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ guestName, lockerId }: { guestName: string; lockerId: string | null }) => {
+      const { data, error } = await api.POST("/api/attendance/guest-check-in", {
+        body: { guestName, lockerId },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => invalidateAttendance(queryClient),
+  });
+}
+
+/**
+ * «تسویه یکجا» for a guest: pays every unpaid cafe order of the visit, one payment per order
+ * (BUSINESS_RULES.md §7 *Guest visit*). `amount` is the total the box showed; the API refuses it
+ * if the orders changed since.
+ */
+export function useSettleGuestCafe() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      attendanceId,
+      ...body
+    }: {
+      attendanceId: string;
+      amount: string;
+      method: PaymentMethod;
+      referenceNumber: string | null;
+    }) => {
+      const { data, error } = await api.POST("/api/attendance/{id}/settle-guest", {
+        params: { path: { id: attendanceId } },
+        body,
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () =>
+      Promise.all([
+        invalidateAttendance(queryClient),
+        queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
+        // `cafeKeys.all`, spelled out: the cafe's api module imports this one.
+        queryClient.invalidateQueries({ queryKey: ["cafe"] }),
       ]),
   });
 }

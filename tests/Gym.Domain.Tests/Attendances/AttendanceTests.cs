@@ -193,6 +193,135 @@ public sealed class AttendanceTests
         attendance.CancelledAt.ShouldBeNull();
     }
 
+    // ---- Guest visit ----
+
+    [Fact]
+    public void CheckInGuest_WithLocker_HasANameAndNoMemberOrSubscription()
+    {
+        var lockerId = Guid.NewGuid();
+
+        var attendance = Attendance.CheckInGuest("  مریم احمدی  ", lockerId, CheckedInAt).Value;
+
+        attendance.GuestName.ShouldBe("مریم احمدی");
+        attendance.IsGuest.ShouldBeTrue();
+        attendance.MemberId.ShouldBeNull();
+        attendance.SubscriptionId.ShouldBeNull();
+        attendance.LockerId.ShouldBe(lockerId);
+        attendance.UsesReservePlace.ShouldBeFalse();
+        attendance.CheckedOutAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CheckInGuestOnReservePlace_ValidSlot_HoldsTheReservePlace()
+    {
+        var attendance = Attendance.CheckInGuestOnReservePlace("مریم احمدی", 3, CheckedInAt).Value;
+
+        attendance.ReserveSlot.ShouldBe(3);
+        attendance.LockerId.ShouldBeNull();
+        attendance.IsGuest.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void CheckInGuest_BlankName_FailsWithGuestNameRequired(string? name)
+    {
+        Attendance.CheckInGuest(name!, Guid.NewGuid(), CheckedInAt).Error.ShouldBe(AttendanceErrors.GuestNameRequired);
+        Attendance.CheckInGuestOnReservePlace(name!, 1, CheckedInAt).Error.ShouldBe(AttendanceErrors.GuestNameRequired);
+    }
+
+    [Fact]
+    public void CheckInGuest_NameAtTheLimitAfterTrimming_IsAccepted()
+    {
+        var name = new string('ن', Attendance.GuestNameMaxLength);
+
+        Attendance.CheckInGuest($" {name} ", Guid.NewGuid(), CheckedInAt).Value.GuestName.ShouldBe(name);
+    }
+
+    [Fact]
+    public void CheckInGuest_NameOverTheLimit_FailsWithGuestNameTooLong()
+    {
+        var name = new string('ن', Attendance.GuestNameMaxLength + 1);
+
+        Attendance.CheckInGuest(name, Guid.NewGuid(), CheckedInAt).Error.ShouldBe(AttendanceErrors.GuestNameTooLong);
+    }
+
+    [Fact]
+    public void CheckInGuestOnReservePlace_SlotOutOfRange_Throws()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(
+            () => Attendance.CheckInGuestOnReservePlace("مریم احمدی", Attendance.ReservePlaceCount + 1, CheckedInAt));
+    }
+
+    [Fact]
+    public void CheckOut_GuestWithUnpaidCafe_FailsAndStaysOpen()
+    {
+        var guest = GuestAttendance();
+
+        var result = guest.CheckOut(CheckedInAt.AddHours(1), hasUnpaidCafe: true);
+
+        result.Error.ShouldBe(AttendanceErrors.GuestHasUnpaidCafe);
+        guest.CheckedOutAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CheckOut_GuestWithEverythingPaid_Closes()
+    {
+        var guest = GuestAttendance();
+        var at = CheckedInAt.AddHours(1);
+
+        guest.CheckOut(at, hasUnpaidCafe: false).IsSuccess.ShouldBeTrue();
+
+        guest.CheckedOutAt.ShouldBe(at);
+    }
+
+    [Fact]
+    public void CheckOut_MemberWithUnpaidCafe_StillCloses()
+    {
+        // A member's debt stays on their account and is never enforced (BUSINESS_RULES.md §5).
+        var attendance = OpenAttendance();
+
+        attendance.CheckOut(CheckedInAt.AddHours(1), hasUnpaidCafe: true).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Cancel_GuestLeavingAnUnpaidOrder_FailsAndStaysOpen()
+    {
+        var guest = GuestAttendance();
+
+        var result = guest.Cancel(CheckedInAt.AddMinutes(5), CancelWindowMinutes, leavesUnpaidCafe: true);
+
+        result.Error.ShouldBe(AttendanceErrors.GuestHasUnpaidCafe);
+        guest.CheckedOutAt.ShouldBeNull();
+        guest.CancelledAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Cancel_GuestWithNothingUnpaidLeft_Cancels()
+    {
+        var guest = GuestAttendance();
+
+        guest.Cancel(CheckedInAt.AddMinutes(5), CancelWindowMinutes, leavesUnpaidCafe: false).IsSuccess.ShouldBeTrue();
+
+        guest.CancelledAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void AutoClose_GuestWithUnpaidCafe_StillCloses()
+    {
+        // The locker must be free the next morning (BUSINESS_RULES.md §7 Guest visit).
+        var guest = GuestAttendance();
+        var closedAt = CheckedInAt.AddHours(14);
+
+        guest.AutoClose(closedAt);
+
+        guest.AutoClosedAt.ShouldBe(closedAt);
+    }
+
     private static Attendance OpenAttendance() =>
         Attendance.CheckIn(MemberId, SubscriptionId, Guid.NewGuid(), CheckedInAt);
+
+    private static Attendance GuestAttendance() =>
+        Attendance.CheckInGuest("مریم احمدی", Guid.NewGuid(), CheckedInAt).Value;
 }

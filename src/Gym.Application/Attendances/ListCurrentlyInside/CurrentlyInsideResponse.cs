@@ -10,6 +10,12 @@ using Gym.Domain.Subscriptions;
 namespace Gym.Application.Attendances.ListCurrentlyInside;
 
 /// <summary>One row of the front desk's "currently inside" board (BUSINESS_RULES.md §7).</summary>
+/// <param name="MemberId">
+/// <c>null</c> on a guest's visit (§7 <i>Guest visit</i>), and so are the member's name and birth
+/// date and every subscription value: a guest has no plan. The board shows «مهمان» where the
+/// sessions go and never marks the row as needing attention.
+/// </param>
+/// <param name="GuestName">The guest's full name; <c>null</c> on a member's visit.</param>
 /// <param name="LockerNumber"><c>null</c> when the visit holds a reserve place instead (<paramref name="UsesReservePlace"/>).</param>
 /// <param name="UsesReservePlace">The visit holds one of the reserve places (BUSINESS_RULES.md §6); the board shows "رزرو".</param>
 /// <param name="SubscriptionEndDate">
@@ -43,17 +49,18 @@ namespace Gym.Application.Attendances.ListCurrentlyInside;
 /// </param>
 public sealed record CurrentlyInsideResponse(
     Guid AttendanceId,
-    Guid MemberId,
-    string MemberFullName,
+    Guid? MemberId,
+    string? MemberFullName,
+    string? GuestName,
     Guid? LockerId,
     int? LockerNumber,
     bool UsesReservePlace,
     DateTimeOffset CheckedInAt,
-    Guid SubscriptionId,
-    int TotalSessions,
-    int UsedSessions,
-    int RemainingSessions,
-    DateOnly SubscriptionEndDate,
+    Guid? SubscriptionId,
+    int? TotalSessions,
+    int? UsedSessions,
+    int? RemainingSessions,
+    DateOnly? SubscriptionEndDate,
     bool IsSingleSession,
     IReadOnlyList<ServiceChargeResponse> ServiceCharges,
     IReadOnlyList<CafeOrderResponse> CafeOrders,
@@ -81,20 +88,21 @@ public sealed record CurrentlyInsideResponse(
         attendance => new CurrentlyInsideResponse(
             attendance.Id,
             attendance.MemberId,
-            members.Where(m => m.Id == attendance.MemberId).Select(m => m.FullName).First(),
+            members.Where(m => m.Id == attendance.MemberId).Select(m => m.FullName).FirstOrDefault(),
+            attendance.GuestName,
             attendance.LockerId,
             lockers.Where(l => l.Id == attendance.LockerId).Select(l => (int?)l.Number).FirstOrDefault(),
             attendance.ReserveSlot != null,
             attendance.CheckedInAt,
             attendance.SubscriptionId,
-            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.TotalSessions).First(),
-            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.UsedSessions).First(),
-            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.TotalSessions - s.UsedSessions).First(),
-            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.EndDate).First(),
-            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.IsSingleSession).First(),
+            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => (int?)s.TotalSessions).FirstOrDefault(),
+            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => (int?)s.UsedSessions).FirstOrDefault(),
+            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => (int?)(s.TotalSessions - s.UsedSessions)).FirstOrDefault(),
+            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => (DateOnly?)s.EndDate).FirstOrDefault(),
+            subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => s.IsSingleSession).FirstOrDefault(),
             new List<ServiceChargeResponse>(),
             new List<CafeOrderResponse>(),
-            members.Where(m => m.Id == attendance.MemberId).Select(m => m.BirthDate).First(),
+            members.Where(m => m.Id == attendance.MemberId).Select(m => (DateOnly?)m.BirthDate).FirstOrDefault(),
             subscriptions.Any(s => s.MemberId == attendance.MemberId
                 && s.CancelledAt == null
                 && s.FrozenSince == null

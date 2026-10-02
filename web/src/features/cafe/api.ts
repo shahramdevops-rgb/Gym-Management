@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { attendanceKeys, currentlyInsideRefetchMs } from "@/features/attendance/api";
+import { lockerKeys } from "@/features/lockers/api";
 import { memberKeys } from "@/features/members/api";
 import { paymentKeys, type PaymentMethod } from "@/features/payments/api";
 import { api } from "@/lib/api/client";
@@ -241,6 +242,8 @@ export interface CafeOrderListFilter {
   /** ISO business dates, inclusive. Omitted: no bound. */
   from?: string;
   to?: string;
+  /** Only orders a guest left unpaid (BUSINESS_RULES.md §7 *Guest visit*): «پرداخت‌نشده — مهمان». */
+  unpaidGuest?: boolean;
   page: number;
 }
 
@@ -256,6 +259,7 @@ export function useCafeOrderList(filter: CafeOrderListFilter, { enabled = true }
           query: {
             From: filter.from,
             To: filter.to,
+            UnpaidGuest: filter.unpaidGuest === true ? true : undefined,
             Page: filter.page,
             PageSize: cafeOrdersPageSize,
           },
@@ -326,6 +330,8 @@ function useOrderMutation<TArgs, TResult>(request: (args: TArgs) => Promise<TRes
         queryClient.invalidateQueries({ queryKey: memberKeys.all }),
         queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
         queryClient.invalidateQueries({ queryKey: attendanceKeys.all }),
+        // The map marks a holder who owes money «بدهکار», a guest included.
+        queryClient.invalidateQueries({ queryKey: lockerKeys.all }),
       ]);
     },
   });

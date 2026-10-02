@@ -99,7 +99,7 @@ public sealed class AttendanceConcurrencyTests(DatabaseFixture fixture) : Databa
         (await OpenAttendanceCountAsync(a => a.LockerId == TestLockers.IdOf(1))).ShouldBe(1);
 
         // A refused member's session was rolled back with the rest of their transaction.
-        (await OpenAttendanceCountAsync(a => members.Select(m => m.Id).Contains(a.MemberId))).ShouldBe(1);
+        (await OpenAttendanceCountAsync(a => members.Select(m => m.Id).Contains(a.MemberId!.Value))).ShouldBe(1);
     }
 
     [Fact]

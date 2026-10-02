@@ -23,7 +23,8 @@ import { ProductGrid } from "./ProductGrid";
 
 interface VisitCafeBoxProps {
   attendanceId: string;
-  member: { id: string; fullName: string };
+  /** The visit's holder; `id` is `null` for a guest (BUSINESS_RULES.md §7 *Guest visit*). */
+  member: { id: string | null; fullName: string };
   /** The visit's standing orders, as the board already carries them. */
   orders: CafeOrder[];
 }
@@ -34,11 +35,15 @@ interface VisitCafeBoxProps {
  * this visit, and check-out lists it back to them before they leave. The till ties its own orders
  * for a member who is inside to the same visit, so both show here.
  *
+ * A guest's purchase goes under their name instead, on the visit and on no account, and must be
+ * paid before they leave (§7 *Guest visit*).
+ *
  * Like the هوازی box, the slot holds only a summary and every form opens in a dialog. A purchase
  * ends on a success step that lists what was saved, from the server's answer rather than the cart,
  * so the desk can check it against what was handed over.
  */
 export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps) {
+  const isGuest = member.id === null;
   const [open, setOpen] = useState<"add" | "orders" | "done" | null>(null);
   const [saved, setSaved] = useState<CafeOrder | null>(null);
   const [announcement, setAnnouncement] = useState<string | null>(null);
@@ -86,7 +91,9 @@ export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps
           {open === "done" && saved !== null && (
             <DialogSuccess
               title="خرید بوفه ثبت شد"
-              description={`به حساب ${member.fullName}`}
+              description={
+                isGuest ? `به نام مهمان، ${member.fullName}` : `به حساب ${member.fullName}`
+              }
               onClose={() => setOpen(null)}
             >
               <SavedOrder order={saved} />
@@ -98,7 +105,9 @@ export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps
               <DialogTitle>بوفه — {member.fullName}</DialogTitle>
               <DialogDescription>
                 {open === "add"
-                  ? "خرید به حساب عضو ثبت می‌شود و هنگام خروج به او نشان داده می‌شود."
+                  ? isGuest
+                    ? "خرید به نام مهمان ثبت می‌شود و پیش از خروج باید پرداخت شود."
+                    : "خرید به حساب عضو ثبت می‌شود و هنگام خروج به او نشان داده می‌شود."
                   : `خریدهای این مراجعه: ${formatMoney(total)}`}
               </DialogDescription>
             </DialogHeader>
@@ -154,15 +163,16 @@ function SavedOrder({ order }: { order: CafeOrder }) {
 
 interface VisitPurchaseFormProps {
   attendanceId: string;
-  memberId: string;
+  /** `null` for a guest: the order names the visit only. */
+  memberId: string | null;
   onDone: (order: CafeOrder) => void;
   onCancel: () => void;
 }
 
 /**
- * The till's grid and cart, for one member inside the gym. Nothing is paid here: the order goes
- * on the account (`payment: null`), and the money is taken at check-out or whenever the member
- * settles, like a هوازی charge.
+ * The till's grid and cart, for one member or guest inside the gym. Nothing is paid here: the order
+ * goes on the account (`payment: null`), and the money is taken at check-out or whenever the member
+ * settles, like a هوازی charge. A guest's order goes on the visit and is settled in their box.
  */
 function VisitPurchaseForm({ attendanceId, memberId, onDone, onCancel }: VisitPurchaseFormProps) {
   const products = useSellableProducts();
@@ -225,7 +235,11 @@ function VisitPurchaseForm({ attendanceId, memberId, onDone, onCancel }: VisitPu
             disabled={cart.length === 0 || createOrder.isPending}
             onClick={() => void submit()}
           >
-            {createOrder.isPending ? "در حال ثبت…" : "ثبت به حساب عضو"}
+            {createOrder.isPending
+              ? "در حال ثبت…"
+              : memberId === null
+                ? "ثبت به نام مهمان"
+                : "ثبت به حساب عضو"}
           </Button>
           <Button variant="ghost" onClick={onCancel}>
             انصراف

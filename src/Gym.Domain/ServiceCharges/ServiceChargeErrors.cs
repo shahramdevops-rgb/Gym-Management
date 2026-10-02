@@ -33,6 +33,14 @@ public static class ServiceChargeErrors
         "The visit is closed, so a service charge cannot be recorded or changed.");
 
     /// <summary>
+    /// BUSINESS_RULES.md §7 <i>Gym services</i>, <i>Guest visit</i>: a charge goes on a member's
+    /// account, and a guest has none. A guest uses the treadmill for free.
+    /// </summary>
+    public static readonly Error GuestVisit = Error.BusinessRule(
+        "ServiceCharges.GuestVisit",
+        "A service charge cannot be recorded on a guest's visit.");
+
+    /// <summary>
     /// BUSINESS_RULES.md §7 <i>Gym services</i>: one non-voided charge per visit per kind. The
     /// partial unique index says the same thing, so a race lands here too.
     /// </summary>

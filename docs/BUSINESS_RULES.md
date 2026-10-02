@@ -613,7 +613,7 @@ Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadma
 Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.14.
 - Under the map, on the same screen, a small chart: for each hour of today, how many visits were
   checked in during that hour (by `CheckedInAt` in the gym's time zone, §0). Cancelled check-ins
-  are not counted (§12).
+  are not counted (§12). Nor are guests (§7 *Guest visit*): only members' visits are attendance.
 - Beside each hour, the **average for the same hour on the same weekday over the previous 4 weeks**,
   so the desk and the Owner see whether today is busier or quieter than usual.
 - The average is taken over **only those of the 4 days that had at least one counted check-in**
@@ -799,7 +799,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 - A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed.
 
 ### Guest visit (ورود مهمان)
-Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.11 (**not built yet**). This replaces
+Decided by the developer, 1405/07/07 (2026-09-29). Implemented in roadmap 6.5.11. This replaces
 marking a locker «خارج از سرویس» for someone who takes a key without paying: that recorded no name,
 looked like a broken locker to the next shift, was never freed at midnight, and left no trace in the
 locker's history.
@@ -843,6 +843,23 @@ locker's history.
     «پرداخت‌نشده — مهمان» with the guest's name, and are paid or cancelled with a reason later (§8).
 - **Not counted as attendance** in any attendance report (Phase 9). A guest visit sold nothing and
   used no session; counting it would make the gym look busier than its members make it.
+  - This includes the chart under the map (§6 *Today by hour*): it counts members' check-ins only.
+    The locker usage view (§6 *Locker usage map*) does count a guest's visit, because it is about
+    how much a locker is used, not about attendance, and the guest held the key like anyone else
+    (both confirmed by the developer, 1405/07/10).
+- **«تسویه یکجا» pays everything or nothing.** The desk is shown the total the visit's orders still
+  owe and pays exactly that, one ordinary payment per order. If an order was added, paid or
+  cancelled since the box opened, nothing is paid and the desk is asked to look again
+  (`Settlements.DebtChanged`). A single order can still be paid on its own from the cafe's order
+  list, which is also where an order left unpaid by auto-checkout is settled.
+  *Claude's default, 1405/07/10; pending review.*
+- **Where the guest can be chosen at the till:** the guests inside are listed under the till's
+  member search, narrowed by the name typed. *Claude's default, 1405/07/10; pending review.*
+- **The database cannot tell a guest's order from a member's.** A check constraint sees only the
+  order's own row, so "an order on a member's visit names that member" is kept by the application
+  alone since 6.5.11 (the old `ck_cafe_orders_visit_has_member` refused every guest order). The
+  attendance side is enforced by check constraints, as above (confirmed by the developer,
+  1405/07/10).
 
 ### Opening hours (PENDING — not enforced yet, roadmap 11.4)
 Decided with the developer, 1405/07/04.

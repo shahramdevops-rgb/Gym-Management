@@ -132,7 +132,7 @@ public sealed class CheckInHandler(
         }
         else
         {
-            var reserveSlot = await FreeReserveSlotAsync(cancellationToken);
+            var reserveSlot = await LockerChoice.FreeReserveSlotAsync(db, cancellationToken);
             if (reserveSlot.IsFailure)
             {
                 return Result.Failure<AttendanceResponse>(reserveSlot.Error);
@@ -210,31 +210,6 @@ public sealed class CheckInHandler(
         }
 
         return Result.Success();
-    }
-
-    /// <summary>
-    /// The lowest reserve place not held by an open visit (BUSINESS_RULES.md §6). Which one does
-    /// not matter — its number is never shown — so lowest is simply the easiest to reason about.
-    /// </summary>
-    /// <remarks>
-    /// Two desks asking at once can both read the same place as free. The partial unique index on
-    /// the place refuses the second, which then hears "try again", and the retry reads afresh.
-    /// </remarks>
-    private async Task<Result<int>> FreeReserveSlotAsync(CancellationToken cancellationToken)
-    {
-        if (await LockerChoice.AnyFreeAsync(db, cancellationToken))
-        {
-            return Result.Failure<int>(AttendanceErrors.LockersStillFree);
-        }
-
-        var held = await db.Attendances
-            .Where(a => a.CheckedOutAt == null && a.ReserveSlot != null)
-            .Select(a => a.ReserveSlot!.Value)
-            .ToListAsync(cancellationToken);
-
-        var free = Enumerable.Range(1, Attendance.ReservePlaceCount).Except(held).ToList();
-
-        return free.Count == 0 ? Result.Failure<int>(AttendanceErrors.ReserveFull) : free[0];
     }
 
     /// <summary>

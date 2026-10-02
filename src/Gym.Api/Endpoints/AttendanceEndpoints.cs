@@ -5,11 +5,14 @@ using Gym.Application.Attendances;
 using Gym.Application.Attendances.CancelCheckIn;
 using Gym.Application.Attendances.CheckIn;
 using Gym.Application.Attendances.CheckOut;
+using Gym.Application.Attendances.GuestCheckIn;
 using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Attendances.ListMemberAttendance;
 using Gym.Application.Attendances.MoveLocker;
+using Gym.Application.Attendances.SettleGuestCafe;
 using Gym.Application.Attendances.TodayByHour;
 using Gym.Application.Common.Paging;
+using Gym.Application.Payments.SettleMemberDebt;
 
 namespace Gym.Api.Endpoints;
 
@@ -61,6 +64,31 @@ public static class AttendanceEndpoints
             .RequireAuthorization(Policies.StaffOrOwner)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        // A guest has no member to post under (BUSINESS_RULES.md §7 Guest visit), so the visit is
+        // created here. Both roles, named outright like check-in.
+        attendance.MapPost("/guest-check-in", async (GuestCheckInCommand command, GuestCheckInHandler handler, CancellationToken ct) =>
+                (await handler.Handle(command, ct)).ToHttpResult(visit => Results.Created($"/api/attendance/{visit.Id}", visit)))
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .AddEndpointFilter<ValidationFilter<GuestCheckInCommand>>()
+            .WithName("GuestCheckIn")
+            .Produces<AttendanceResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // «تسویه یکجا» in a guest's box: every unpaid cafe order of the visit, so they can check out.
+        attendance.MapPost("/{id:guid}/settle-guest", async (Guid id, SettleGuestCafeCommand command, SettleGuestCafeHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, command, ct)).ToHttpResult())
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .AddEndpointFilter<ValidationFilter<SettleGuestCafeCommand>>()
+            .WithName("SettleGuestCafe")
+            .Produces<SettlementResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         attendance.MapPost("/{id:guid}/check-out", async (Guid id, CheckOutHandler handler, CancellationToken ct) =>
                 (await handler.Handle(id, ct)).ToHttpResult())

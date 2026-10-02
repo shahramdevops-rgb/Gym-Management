@@ -43,6 +43,10 @@
   --door-border: oklch(0.88 0.005 270);
   --door-held: oklch(0.93 0.04 25);
   --door-hatch: oklch(0.92 0.004 270);
+  /* A guest's door (BUSINESS_RULES.md §6, §7 *Guest visit*): a blue of its own, apart from the free
+     green, the held red, the usage violet and the unused amber, with the same kind of corner tint. */
+  --guest: oklch(0.58 0.13 235);
+  --door-guest: oklch(0.93 0.04 235);
   /* The usage view (BUSINESS_RULES.md §6 *Locker usage map*): the one colour a door is shaded in by
      how often it was used, neither the free green nor the held red, and the amber of a locker
      nobody used in the period. */
@@ -96,6 +100,8 @@
   --door-border: oklch(0.31 0.009 270);
   --door-held: oklch(0.27 0.05 20);
   --door-hatch: oklch(0.255 0.008 270);
+  --guest: oklch(0.72 0.12 235);
+  --door-guest: oklch(0.28 0.05 235);
   --door-use: oklch(0.68 0.16 290);
   --door-unused: oklch(0.82 0.14 85);
 }
@@ -186,6 +192,8 @@
   --color-door: var(--door);
   --color-door-border: var(--door-border);
   --color-door-held: var(--door-held);
+  --color-guest: var(--guest);
+  --color-door-guest: var(--door-guest);
   --color-door-hatch: var(--door-hatch);
   --color-door-use: var(--door-use);
   --color-door-unused: var(--door-unused);

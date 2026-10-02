@@ -75,10 +75,10 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
         // The same test as CheckInHandler's "already inside": an attendance not yet checked out.
         // The partial unique index allows at most one per member.
         var visitByMemberId = await db.Attendances
-            .Where(attendance => pageIds.Contains(attendance.MemberId) && attendance.CheckedOutAt == null)
+            .Where(attendance => attendance.MemberId != null && pageIds.Contains(attendance.MemberId.Value) && attendance.CheckedOutAt == null)
             .Select(attendance => new
             {
-                attendance.MemberId,
+                MemberId = attendance.MemberId!.Value,
                 Visit = new MemberCurrentVisit(
                     attendance.Id,
                     db.Lockers.Where(locker => locker.Id == attendance.LockerId).Select(locker => (int?)locker.Number).FirstOrDefault(),

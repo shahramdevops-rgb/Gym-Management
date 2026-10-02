@@ -6,20 +6,28 @@ using Gym.Domain.Members;
 
 namespace Gym.Application.Lockers;
 
-/// <summary>The member an open attendance holds this locker for, or <c>null</c> when it is free.</summary>
-public sealed record LockerHolder(Guid MemberId, string FullName);
+/// <summary>
+/// Who an open attendance holds this locker for: a member, or a guest by name (BUSINESS_RULES.md §7
+/// <i>Guest visit</i>). <c>null</c> as a whole when the locker is free.
+/// </summary>
+public sealed record LockerHolder(Guid? MemberId, string? FullName, string? GuestName);
 
 /// <param name="OccupiedByMemberId">
 /// Whoever the open attendance against this locker belongs to, or <c>null</c> when nobody holds
-/// it. Derived, never stored (BUSINESS_RULES.md §6), for the same reason occupancy is: the open
-/// attendance already says it, and a second copy could disagree with it.
+/// it or a guest does. Derived, never stored (BUSINESS_RULES.md §6), for the same reason occupancy
+/// is: the open attendance already says it, and a second copy could disagree with it.
+/// </param>
+/// <param name="OccupiedByGuestName">
+/// The guest's name when a guest holds the locker (§6, §7 <i>Guest visit</i>): the map draws the
+/// door in the guest colour and writes the name on it. <c>null</c> otherwise.
 /// </param>
 /// <param name="Version">Sent back with a status change, so a stale request is refused.</param>
-/// <param name="OccupiedByMemberDebt">
-/// What the member holding the locker still owes (BUSINESS_RULES.md §5 <i>Member debt</i>), so the
-/// map can mark their door "بدهکار" (§6). <c>0</c> for a free locker. Computed only by
-/// <see cref="ListLockers.ListLockersHandler"/>, the map's one read; every other path leaves it
-/// <c>0</c>, the way <see cref="Members.MemberResponse.Debt"/> is filled only by the member list.
+/// <param name="HolderDebt">
+/// What the holder still owes, so the map can mark their door "بدهکار" (§6): a member's whole debt
+/// (§5 <i>Member debt</i>), or for a guest what the visit's cafe orders still owe. <c>0</c> for a
+/// free locker. Computed only by <see cref="ListLockers.ListLockersHandler"/>, the map's one read;
+/// every other path leaves it <c>0</c>, the way <see cref="Members.MemberResponse.Debt"/> is
+/// filled only by the member list.
 /// </param>
 public sealed record LockerResponse(
     Guid Id,
@@ -27,16 +35,17 @@ public sealed record LockerResponse(
     bool IsOutOfService,
     Guid? OccupiedByMemberId,
     string? OccupiedByMemberFullName,
+    string? OccupiedByGuestName,
     uint Version,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    decimal OccupiedByMemberDebt = 0)
+    decimal HolderDebt = 0)
 {
     /// <summary>
-    /// A locker is occupied exactly when somebody holds it, so this is read off the holder rather
-    /// than carried beside it, where the two could drift apart.
+    /// A locker is occupied exactly when somebody holds it, a member or a guest, so this is read off
+    /// the holder rather than carried beside it, where the two could drift apart.
     /// </summary>
-    public bool IsOccupied => OccupiedByMemberId is not null;
+    public bool IsOccupied => OccupiedByMemberId is not null || OccupiedByGuestName is not null;
 
     /// <summary>
     /// The same mapping as <see cref="From"/>, as an expression EF Core translates to SQL. Takes
@@ -52,11 +61,15 @@ public sealed record LockerResponse(
             locker.IsOutOfService,
             openAttendances
                 .Where(a => a.LockerId == locker.Id)
-                .Select(a => (Guid?)a.MemberId)
+                .Select(a => a.MemberId)
                 .FirstOrDefault(),
             openAttendances
                 .Where(a => a.LockerId == locker.Id)
                 .SelectMany(a => members.Where(m => m.Id == a.MemberId).Select(m => m.FullName))
+                .FirstOrDefault(),
+            openAttendances
+                .Where(a => a.LockerId == locker.Id)
+                .Select(a => a.GuestName)
                 .FirstOrDefault(),
             locker.Version,
             locker.CreatedAt,
@@ -74,6 +87,7 @@ public sealed record LockerResponse(
             locker.IsOutOfService,
             holder?.MemberId,
             holder?.FullName,
+            holder?.GuestName,
             locker.Version,
             locker.CreatedAt,
             locker.UpdatedAt);

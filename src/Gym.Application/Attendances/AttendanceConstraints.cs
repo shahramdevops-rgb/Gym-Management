@@ -20,4 +20,13 @@ public static class AttendanceConstraints
 
     /// <summary>An open visit holds exactly one of a locker and a reserve place (BUSINESS_RULES.md §6).</summary>
     public const string OpenHoldsOnePlace = "ck_attendances_open_holds_one_place";
+
+    /// <summary>A visit is a member's or a guest's, never both and never neither (BUSINESS_RULES.md §7 <i>Guest visit</i>).</summary>
+    public const string MemberOrGuest = "ck_attendances_member_or_guest";
+
+    /// <summary>A visit has a subscription exactly when it has a member (BUSINESS_RULES.md §7 <i>Guest visit</i>).</summary>
+    public const string SubscriptionWithMember = "ck_attendances_subscription_with_member";
+
+    /// <summary>A guest's name is never blank (BUSINESS_RULES.md §7 <i>Guest visit</i>).</summary>
+    public const string GuestNameNotBlank = "ck_attendances_guest_name_not_blank";
 }

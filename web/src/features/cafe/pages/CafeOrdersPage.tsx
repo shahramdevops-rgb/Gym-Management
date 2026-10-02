@@ -19,7 +19,7 @@ import { CafeOrdersTable } from "../components/CafeOrdersTable";
  * (BUSINESS_RULES.md §8 Order history). The range is of the order's business date and inclusive
  * at both ends; either end may be left open.
  *
- * The filter lives in the URL (`/cafe/orders?from=2026-09-01&to=2026-09-30&page=2`), like the
+ * The filter lives in the URL (`/cafe/orders?from=2026-09-01&to=2026-09-30&unpaidGuest=true&page=2`), like the
  * member search, so a refresh or the back button returns to the same list. The dates in it are
  * the ISO ones the API reads; the boxes show them in Jalali.
  */
@@ -28,17 +28,20 @@ export function CafeOrdersPage() {
   const from = dateFromParams(params, "from");
   const to = dateFromParams(params, "to");
   const page = pageFromParams(params);
+  // What the nightly job left behind on a guest's visit (BUSINESS_RULES.md §7 *Guest visit*).
+  const unpaidGuest = params.get("unpaidGuest") === "true";
   const [notice, setNotice] = useState<string | null>(null);
 
   const rangeIsValid = from === undefined || to === undefined || from <= to;
   // A backwards range is said beside the box rather than sent for the API to refuse.
-  const orders = useCafeOrderList({ from, to, page }, { enabled: rangeIsValid });
+  const orders = useCafeOrderList({ from, to, unpaidGuest, page }, { enabled: rangeIsValid });
 
-  function setFilter(next: { from?: string; to?: string; page?: number }) {
-    const merged = { from, to, ...next };
+  function setFilter(next: { from?: string; to?: string; unpaidGuest?: boolean; page?: number }) {
+    const merged = { from, to, unpaidGuest, ...next };
     const query: Record<string, string> = {};
     if (merged.from) query.from = merged.from;
     if (merged.to) query.to = merged.to;
+    if (merged.unpaidGuest) query.unpaidGuest = "true";
     if (next.page !== undefined && next.page > 1) query.page = String(next.page);
     setParams(query, { replace: next.page === undefined });
   }
@@ -77,6 +80,15 @@ export function CafeOrdersPage() {
               onChange={(iso) => setFilter({ to: iso })}
             />
           </div>
+          <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="size-4 accent-primary"
+              checked={unpaidGuest}
+              onChange={(event) => setFilter({ unpaidGuest: event.target.checked })}
+            />
+            فقط پرداخت‌نشده — مهمان
+          </label>
 
           {notice !== null && (
             <Alert variant="success" role="status">
@@ -90,9 +102,11 @@ export function CafeOrdersPage() {
               {orders.isError && <Alert variant="destructive">{errorMessage(orders.error)}</Alert>}
               {orders.isSuccess && orders.data.items.length === 0 && (
                 <p className="text-muted-foreground">
-                  {from === undefined && to === undefined
-                    ? "هنوز سفارشی ثبت نشده است."
-                    : "در این بازه سفارشی ثبت نشده است."}
+                  {unpaidGuest
+                    ? "سفارش پرداخت‌نشده‌ای از مهمان‌ها نمانده است."
+                    : from === undefined && to === undefined
+                      ? "هنوز سفارشی ثبت نشده است."
+                      : "در این بازه سفارشی ثبت نشده است."}
                 </p>
               )}
               {orders.isSuccess && orders.data.items.length > 0 && (

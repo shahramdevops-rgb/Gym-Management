@@ -6,6 +6,9 @@ using Gym.Domain.Lockers;
 
 namespace Gym.Application.Attendances;
 
+/// <param name="MemberId"><c>null</c> on a guest's visit (BUSINESS_RULES.md §7 <i>Guest visit</i>).</param>
+/// <param name="SubscriptionId"><c>null</c> on a guest's visit, which consumed no session.</param>
+/// <param name="GuestName">The guest's full name on a guest's visit; <c>null</c> on a member's.</param>
 /// <param name="LockerId">
 /// The locker the visit holds, or <c>null</c> when it holds a reserve place
 /// (<paramref name="UsesReservePlace"/>) — or, for a visit closed before roadmap 6.5.5, when no
@@ -42,8 +45,9 @@ namespace Gym.Application.Attendances;
 /// </param>
 public sealed record AttendanceResponse(
     Guid Id,
-    Guid MemberId,
-    Guid SubscriptionId,
+    Guid? MemberId,
+    Guid? SubscriptionId,
+    string? GuestName,
     Guid? LockerId,
     int? LockerNumber,
     bool UsesReservePlace,
@@ -66,6 +70,7 @@ public sealed record AttendanceResponse(
             attendance.Id,
             attendance.MemberId,
             attendance.SubscriptionId,
+            attendance.GuestName,
             attendance.LockerId,
             lockers.Where(l => l.Id == attendance.LockerId).Select(l => (int?)l.Number).FirstOrDefault(),
             attendance.ReserveSlot != null,
@@ -88,6 +93,7 @@ public sealed record AttendanceResponse(
             attendance.Id,
             attendance.MemberId,
             attendance.SubscriptionId,
+            attendance.GuestName,
             attendance.LockerId,
             lockerNumber,
             attendance.UsesReservePlace,

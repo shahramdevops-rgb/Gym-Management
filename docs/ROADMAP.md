@@ -1026,29 +1026,31 @@ Asked by the developer, 1405/07/07 (2026-09-29). BUSINESS_RULES.md §1, §6, §7
 services* and §8, written first (this session). Replaces marking a locker «خارج از سرویس» for a
 relative who takes a key without paying.
 - [x] BUSINESS_RULES.md §1, §6, §7 and §8 written first
-- [ ] Domain: `Attendance` gets `MemberId?`, `SubscriptionId?` and `GuestName?`, with new factories
+- [x] Domain: `Attendance` gets `MemberId?`, `SubscriptionId?` and `GuestName?`, with new factories
       `CheckInGuest` and `CheckInGuestOnReservePlace`. The name is trimmed and required, at most
       `Member.FullNameMaxLength`, and normalized like a member's
-- [ ] Domain: `CafeOrder` may name a guest visit and no member, and stay unpaid. A walk-in with
+- [x] Domain: `CafeOrder` may name a guest visit and no member, and stay unpaid. A walk-in with
       neither a member nor a visit is still paid in full
-- [ ] Migration `GuestVisits`:
+- [x] Migration `GuestVisits`:
       - `member_id` and `subscription_id` become nullable
       - new column `guest_name varchar(200)`
       - checks `(member_id IS NULL) <> (guest_name IS NULL)` and
         `(member_id IS NULL) = (subscription_id IS NULL)`
-      - `ck_cafe_orders_visit_has_member` is replaced so a guest visit's order passes
+      - `ck_cafe_orders_visit_has_member` is dropped, not replaced: a check sees only its own row and
+        cannot tell a guest's visit from a member's (agreed with the developer, 1405/07/10)
+      - also `ck_attendances_guest_name_not_blank`
       - the existing partial unique indexes stay
-- [ ] `POST /api/attendance/guest-check-in` `{ guestName, lockerId? }`, `StaffOrOwner`:
+- [x] `POST /api/attendance/guest-check-in` `{ guestName, lockerId? }`, `StaffOrOwner`:
       - the locker goes through `LockerChoice.CheckAsync`
       - with no locker, a reserve place under §6. Move the reserve-place pick out of
         `CheckInHandler` into a shared helper
       - the same unique-violation mapping as check-in
-- [ ] `POST /api/attendance/{id}/settle-guest` pays every unpaid order of a guest visit in one
+- [x] `POST /api/attendance/{id}/settle-guest` pays every unpaid order of a guest visit in one
       transaction, one payment per order, as `SettleMemberDebt` does
-- [ ] Check-out, and a cancel that leaves an unpaid order unticked, are refused on a guest visit
+- [x] Check-out, and a cancel that leaves an unpaid order unticked, are refused on a guest visit
       with `Attendance.GuestHasUnpaidCafe`. Auto-checkout still closes the visit
-- [ ] هوازی on a guest visit is refused with `ServiceCharges.GuestVisit`
-- [ ] Places that assume a visit has a member or a subscription:
+- [x] هوازی on a guest visit is refused with `ServiceCharges.GuestVisit`
+- [x] Places that assume a visit has a member or a subscription:
       - `AttendanceResponse`: member and subscription become nullable, plus `GuestName`
       - `CurrentlyInsideResponse`: the same; its projection's `.First()` becomes null-safe
       - `LockerResponse`: gains the guest's name. `IsOccupied` counts a member or a guest, and
@@ -1058,25 +1060,25 @@ relative who takes a key without paying.
       - `CancelCheckInHandler`: no member lock and no `RestoreSession` for a guest
       - `CreateCafeOrderHandler`: an open guest visit with no member makes a guest order
       - the cafe order list shows the guest's name and filters unpaid guest orders
-- [ ] Fix `SetLockerOutOfServiceHandler.FindHolderAsync`. Its inner join to members would read a
+- [x] Fix `SetLockerOutOfServiceHandler.FindHolderAsync`. Its inner join to members would read a
       guest-held locker as free and take it out of service
-- [ ] `npm run gen:api`, then the frontend:
+- [x] `npm run gen:api`, then the frontend:
       - `useGuestCheckIn`
       - in `LockerCheckInDialog`, the «ورود مهمان» button leads to a full-name step and then the
         result, for a locker and for a reserve place
       - a `"guest"` state in `lockerState.ts`, drawn in the colour of a new `--guest` token in
         `index.css` (light and dark), with its own legend line and the «بدهکار» ribbon for
         unpaid cafe
-- [ ] A guest variant of `LockerVisitDialog`:
+- [x] A guest variant of `LockerVisitDialog`:
       - the name and «مهمان», with no profile link
       - no sessions and no هوازی
       - the cafe box with «تسویه یکجا»
       - check-out disabled until everything is paid; move and cancel as for a member
-- [ ] `CheckInOutDialog` and `CancelCheckInConfirm` handle a member or a guest. The till can pick a
+- [x] `CheckInOutDialog` and `CancelCheckInConfirm` handle a member or a guest. The till can pick a
       guest who is inside. `CurrentlyInsideTable`, `ReservePlaces` and `LockerTodayHistory` show
       the guest's name without a link. New error codes go in `lib/errors.ts`
-- [ ] Tests (domain): guest factories and name validation; a guest visit's cafe order
-- [ ] Tests (integration, as Staff):
+- [x] Tests (domain): guest factories and name validation; a guest visit's cafe order
+- [x] Tests (integration, as Staff):
       - guest check-in on a locker and on a reserve place
       - refusals: locker taken, out of service, lockers still free, reserve full, blank or long name
       - the database checks
@@ -1086,12 +1088,19 @@ relative who takes a key without paying.
       - an order from the till joins the guest visit
       - the guest shown on the map, the board and today's history
       - out of service refused while a guest holds the locker
-- [ ] Tests (frontend):
+- [x] Tests (frontend):
       - guest check-in from a locker and from a reserve place
       - the guest colour, label and ribbon
       - the guest's box: pay everything, then check out
       - a guest row on the board
       - picking a guest at the till
+- [x] Found on the way (1405/07/10):
+      - `IAppDbContext.LockAttendanceAsync`: a guest has no member row to lock, so the visit's row
+        serializes their check-out, cancel and «تسویه یکجا» against an order or a payment for them
+      - `TodayByHour` leaves guests out and `LockerUsage` counts them (§7 *Guest visit*)
+      - `LockerResponse.OccupiedByMemberDebt` is now `HolderDebt`, since it covers a guest too
+      - the cafe order list's `unpaidGuest` filter, «فقط پرداخت‌نشده — مهمان» on the orders page
+      - a cafe order refreshes the locker map, so «بدهکار» follows it at once
 
 Done when: a relative walks in, the desk clicks a free locker, chooses «ورود مهمان» and types their
 name. The locker turns the guest colour with the name on it. The relative buys a drink from the till

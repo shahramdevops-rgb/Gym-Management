@@ -6,7 +6,13 @@ import { cn } from "@/lib/utils";
 
 import type { Locker } from "../api";
 import { cabinetColumns, columnsPerCabinet, lockerZones } from "../layout";
-import { lockerState, lockerStateLabel, type LockerState } from "../lockerState";
+import {
+  isHeld,
+  lockerHolderName,
+  lockerState,
+  lockerStateLabel,
+  type LockerState,
+} from "../lockerState";
 import { longStayLabel, type StayProgress } from "../longStay";
 import { unusedLabel, usageLevel } from "../usage";
 import { birthdayLabel, Celebration } from "./Celebration";
@@ -36,6 +42,7 @@ const debtorLabel = "بدهکار";
 const changedRingClass: Record<LockerState, string> = {
   free: "ring-success",
   occupied: "ring-destructive",
+  guest: "ring-guest",
   outOfService: "ring-muted-foreground",
 };
 
@@ -262,11 +269,12 @@ function LockerDoor({
   }
 
   const state = lockerState(locker);
-  const holder = locker.occupiedByMemberFullName;
-  // Any money the holder owes, whatever it is for: a plan, هوازی or the cafe (BUSINESS_RULES.md §6).
-  const owes = holder !== null && Number(locker.occupiedByMemberDebt) > 0;
+  const holder = lockerHolderName(locker);
+  // Any money the holder owes, whatever it is for: a plan, هوازی or the cafe (BUSINESS_RULES.md §6);
+  // for a guest, the visit's unpaid cafe (§7 *Guest visit*).
+  const owes = holder !== null && Number(locker.holderDebt) > 0;
   // The visit behind an occupied door, once the list of everyone inside has caught up with it.
-  const stay = state === "occupied" ? stays?.get(locker.id) : undefined;
+  const stay = isHeld(state) ? stays?.get(locker.id) : undefined;
   const celebrates = birthday && holder !== null;
   const holderText = [
     holder,

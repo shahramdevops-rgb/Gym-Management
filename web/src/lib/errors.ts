@@ -177,6 +177,11 @@ export const errorMessages: Record<string, string> = {
   "Attendance.CancelChoiceRequired": "مشخص نشده است با خریدهای این مراجعه چه شود.",
   "Attendance.CafeOrderNotOnVisit":
     "یکی از خریدهای بوفه در این فاصله تغییر کرده است. پنجره را ببندید و دوباره امتحان کنید.",
+  "Attendance.GuestNameRequired": "نام و نام خانوادگی مهمان را وارد کنید.",
+  "Attendance.GuestNameTooLong": "نام مهمان حداکثر ۲۰۰ نویسه است.",
+  "Attendance.GuestHasUnpaidCafe":
+    "مهمان خرید بوفهٔ پرداخت‌نشده دارد. ابتدا با «تسویه یکجا» آن را پرداخت کنید.",
+  "Attendance.NotGuestVisit": "این ورود متعلق به مهمان نیست.",
 
   // Gym services (هوازی)
   "ServiceCharges.NotFound": "هزینهٔ خدمات پیدا نشد.",
@@ -187,6 +192,7 @@ export const errorMessages: Record<string, string> = {
   "ServiceCharges.VisitNotOpen":
     "این ورود بسته شده است؛ برای اصلاح مبلغ باید آن را با ذکر دلیل ابطال کنید.",
   "ServiceCharges.AlreadyCharged": "برای این ورود قبلاً مبلغ هوازی ثبت شده است.",
+  "ServiceCharges.GuestVisit": "برای مهمان هوازی ثبت نمی‌شود.",
   "ServiceCharges.AlreadyVoided": "این مبلغ قبلاً ابطال شده است.",
   "ServiceCharges.AlreadyPaid":
     "برای این مبلغ پرداختی ثبت شده است؛ برای اصلاح آن را با ذکر دلیل ابطال کنید.",

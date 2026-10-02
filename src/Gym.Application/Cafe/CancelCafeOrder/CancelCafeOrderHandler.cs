@@ -48,6 +48,12 @@ public sealed class CancelCafeOrderHandler(IAppDbContext db, TimeProvider time, 
         {
             await db.LockMemberAsync(memberId, cancellationToken);
         }
+        else if (order.AttendanceId is { } guestVisitId)
+        {
+            // An order on a guest's visit is paid later like a member's, so it needs a lock too;
+            // a guest has no member row, and the visit's is the one its payments take.
+            await db.LockAttendanceAsync(guestVisitId, cancellationToken);
+        }
 
         // The endpoint's policy requires an authenticated user, so this is a wiring bug if hit.
         var userId = currentUser.UserId
@@ -80,7 +86,9 @@ public sealed class CancelCafeOrderHandler(IAppDbContext db, TimeProvider time, 
                 .SingleOrDefaultAsync(cancellationToken)
             : null;
 
+        var guestName = await CafeOrderGuests.NameAsync(db, order, cancellationToken);
+
         // Net paid is zero by construction: whatever had been collected was just refunded.
-        return CafeOrderResponse.From(order, memberFullName, netPaid: 0);
+        return CafeOrderResponse.From(order, memberFullName, netPaid: 0, guestName);
     }
 }
