@@ -2,7 +2,12 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 import type { CurrentlyInside } from "@/features/attendance/api";
-import { guestLabel, holderName, isGuestVisit } from "@/features/attendance/holder";
+import {
+  cardioOnlyLabel,
+  guestLabel,
+  holderName,
+  isGuestVisit,
+} from "@/features/attendance/holder";
 import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -103,6 +108,7 @@ export function ReservePlaces({
               const guest = isGuestVisit(visit);
               const extras = [
                 guest ? guestLabel : null,
+                visit.isCardioOnly ? cardioOnlyLabel : null,
                 birthday ? birthdayLabel : null,
                 stay.isLong ? longStayLabel : null,
               ].filter((part) => part !== null);
@@ -119,7 +125,11 @@ export function ReservePlaces({
                       placeSize,
                       doorFace,
                       doorMotion,
-                      guest ? doorStateClass.guest : doorStateClass.occupied,
+                      guest
+                        ? doorStateClass.guest
+                        : visit.isCardioOnly
+                          ? doorStateClass.cardio
+                          : doorStateClass.occupied,
                       "px-2 text-center text-xs leading-tight font-medium",
                       birthday && "shadow-[0_0_18px_-4px_var(--party-pink)]",
                       found &&

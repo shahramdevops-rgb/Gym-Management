@@ -403,8 +403,11 @@ public sealed class Subscription : Entity
         return Result.Success();
     }
 
-    /// <summary>Success when active; otherwise the error that says why not.</summary>
-    private Result EnsureActive(DateOnly today) => GetStatus(today) switch
+    /// <summary>
+    /// Success when active; otherwise the error that says why not. Public so a cardio-only visit
+    /// (BUSINESS_RULES.md §7) can give the same reason a check-in would without consuming a session.
+    /// </summary>
+    public Result EnsureActive(DateOnly today) => GetStatus(today) switch
     {
         SubscriptionStatus.Active => Result.Success(),
         SubscriptionStatus.Cancelled => Result.Failure(SubscriptionErrors.Cancelled),

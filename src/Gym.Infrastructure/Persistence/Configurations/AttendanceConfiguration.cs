@@ -68,6 +68,13 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
             table.HasCheckConstraint(
                 AttendanceConstraints.GuestNameNotBlank,
                 "guest_name IS NULL OR btrim(guest_name) <> ''");
+
+            // BUSINESS_RULES.md §7 Cardio-only visit: a member's visit that consumed no session from
+            // the plan it names. A guest has no plan, so a guest's visit is never one. The column's
+            // migration defaults every earlier visit to false, which passes.
+            table.HasCheckConstraint(
+                AttendanceConstraints.CardioOnlyIsMembers,
+                "NOT is_cardio_only OR member_id IS NOT NULL");
         });
 
         builder.Property(a => a.GuestName).HasMaxLength(Attendance.GuestNameMaxLength);

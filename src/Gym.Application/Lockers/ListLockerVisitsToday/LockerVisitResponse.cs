@@ -9,6 +9,7 @@ namespace Gym.Application.Lockers.ListLockerVisitsToday;
 /// <c>null</c> for a guest (§7 <i>Guest visit</i>), listed by <paramref name="GuestName"/> and marked
 /// «مهمان», with no profile to link to.
 /// </param>
+/// <param name="IsCardioOnly">A member's visit for هوازی only (§7 <i>Cardio-only visit</i>), marked «فقط هوازی».</param>
 /// <param name="CheckedOutAt"><c>null</c> while the visit is still open.</param>
 /// <param name="CancelledAt">
 /// Set when the check-in was cancelled (BUSINESS_RULES.md §7). Such a visit is still listed: the
@@ -19,6 +20,7 @@ public sealed record LockerVisitResponse(
     Guid? MemberId,
     string? MemberFullName,
     string? GuestName,
+    bool IsCardioOnly,
     DateTimeOffset CheckedInAt,
     DateTimeOffset? CheckedOutAt,
     DateTimeOffset? CancelledAt);

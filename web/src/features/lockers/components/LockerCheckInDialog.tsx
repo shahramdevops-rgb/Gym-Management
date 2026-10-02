@@ -1,4 +1,4 @@
-import { CheckCircle2, History, Search, UserPlus, UserRound } from "lucide-react";
+import { CheckCircle2, Footprints, History, Search, UserPlus, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
@@ -12,12 +12,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useCheckIn, useGuestCheckIn, type Attendance } from "@/features/attendance/api";
+import {
+  useCardioOnlyCheckIn,
+  useCheckIn,
+  useGuestCheckIn,
+  type Attendance,
+} from "@/features/attendance/api";
 import type { DeskMember } from "@/features/attendance/components/CheckInOutDialog";
 import { CloseButton, ConfirmButtons, LockerBox } from "@/features/attendance/components/deskParts";
 import { SaleAtCheckInOffer } from "@/features/attendance/components/SaleAtCheckInOffer";
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
-import { guestLabel } from "@/features/attendance/holder";
+import { cardioOnlyLabel, guestLabel } from "@/features/attendance/holder";
 import { canSellPlanForToday, isMissingSubscription } from "@/features/attendance/saleAtCheckIn";
 import { useCreateMember, useMemberList, type Member } from "@/features/members/api";
 import { useCurrentSubscription } from "@/features/subscriptions/api";
@@ -43,8 +48,11 @@ const shownMatches = 8;
 /** Where the visit goes: the locker the desk clicked, or a reserve place (BUSINESS_RULES.md §6). */
 export type CheckInPlace = { kind: "locker"; locker: Locker } | { kind: "reserve" };
 
-/** What was sold with the check-in, if anything; it names the result. */
-type Sold = "nothing" | "singleVisit" | "plan";
+/**
+ * What was sold with the check-in, if anything, or that it was a cardio-only visit, which sells
+ * nothing and consumes no session (BUSINESS_RULES.md §7 *Cardio-only visit*); it names the result.
+ */
+type Sold = "nothing" | "singleVisit" | "plan" | "cardioOnly";
 
 type Step =
   | { kind: "search" }
@@ -53,6 +61,8 @@ type Step =
   | { kind: "guest" }
   | { kind: "guestCheckedIn"; attendance: Attendance }
   | { kind: "confirm"; member: DeskMember }
+  /** «ورود فقط هوازی», asked again before anything is sent, like an ordinary check-in. */
+  | { kind: "confirmCardioOnly"; member: DeskMember }
   | { kind: "checkedIn"; member: DeskMember; attendance: Attendance; sold: Sold }
   | {
       kind: "needsSubscription";
@@ -70,6 +80,7 @@ const checkedInTitle: Record<Sold, string> = {
   nothing: "ورود ثبت شد",
   singleVisit: "ورود تک‌جلسه‌ای ثبت شد",
   plan: "اشتراک فروخته شد و ورود ثبت شد",
+  cardioOnly: "ورود فقط هوازی ثبت شد",
 };
 
 interface LockerCheckInDialogProps {
@@ -94,6 +105,10 @@ interface LockerCheckInDialogProps {
  * A guest the gym lets in for free (BUSINESS_RULES.md §7 *Guest visit*) is the third way in, beside
  * finding and registering a member: «ورود مهمان» asks for their full name and nothing else.
  *
+ * Once a member is chosen, «ورود فقط هوازی» lets them in without a session (BUSINESS_RULES.md §7
+ * *Cardio-only visit*). A refusal is only said: nothing is sold with such a visit, so the box does
+ * not offer a sale the way an ordinary check-in does.
+ *
  * For a locker (not a reserve place), the box also shows who had it today, before a member is
  * chosen (BUSINESS_RULES.md §6 *Who had a locker today*).
  *
@@ -106,10 +121,15 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
 
   const checkIn = useCheckIn();
   const guestCheckIn = useGuestCheckIn();
+  const cardioOnlyCheckIn = useCardioOnlyCheckIn();
   const createMember = useCreateMember();
   const setOutOfService = useSetLockerOutOfService();
   const [outOfServiceError, setOutOfServiceError] = useState<string | null>(null);
-  const busy = checkIn.isPending || guestCheckIn.isPending || setOutOfService.isPending;
+  const busy =
+    checkIn.isPending ||
+    guestCheckIn.isPending ||
+    cardioOnlyCheckIn.isPending ||
+    setOutOfService.isPending;
   // Which request is in flight: the single-visit button shows its own "در حال ثبت…".
   const sellingSingleVisit = checkIn.isPending && checkIn.variables?.sale?.kind === "SingleVisit";
 
@@ -134,6 +154,15 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
             }
           : { kind: "failed", reason },
       );
+    }
+  }
+
+  async function confirmCardioOnly(member: DeskMember) {
+    try {
+      const attendance = await cardioOnlyCheckIn.mutateAsync({ memberId: member.id, lockerId });
+      setStep({ kind: "checkedIn", member, attendance, sold: "cardioOnly" });
+    } catch (problem) {
+      setStep({ kind: "failed", reason: `${member.fullName}: ${errorMessage(problem)}` });
     }
   }
 
@@ -312,6 +341,40 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               onConfirm={() => void confirmCheckIn(step.member)}
               onCancel={() => setStep({ kind: "search" })}
             />
+            <div className="border-t pt-3">
+              <Button
+                variant="outline"
+                className="border-cardio"
+                disabled={checkIn.isPending}
+                onClick={() => setStep({ kind: "confirmCardioOnly", member: step.member })}
+              >
+                <Footprints aria-hidden />
+                ورود فقط هوازی
+              </Button>
+            </div>
+          </>
+        )}
+
+        {step.kind === "confirmCardioOnly" && (
+          <>
+            <DialogHeader>
+              <DialogTitle>ورود فقط هوازی</DialogTitle>
+              <DialogDescription>
+                آیا از ثبت ورود فقط هوازی{" "}
+                <strong className="text-foreground">{step.member.fullName}</strong>{" "}
+                {place.kind === "locker"
+                  ? `با کمد شماره ${toPersianDigits(place.locker.number)}`
+                  : "بدون کمد"}{" "}
+                مطمئن هستید؟ جلسه‌ای از اشتراک او کم نمی‌شود. خروج فقط بعد از ثبت مبلغ هوازی ممکن
+                است.
+              </DialogDescription>
+            </DialogHeader>
+            <ConfirmButtons
+              label="بله، ورود فقط هوازی ثبت شود"
+              pending={cardioOnlyCheckIn.isPending}
+              onConfirm={() => void confirmCardioOnly(step.member)}
+              onCancel={() => setStep({ kind: "confirm", member: step.member })}
+            />
           </>
         )}
 
@@ -339,7 +402,10 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
                 <CheckCircle2 className="size-5" aria-hidden />
                 {checkedInTitle[step.sold]}
               </DialogTitle>
-              <DialogDescription>{step.member.fullName}</DialogDescription>
+              <DialogDescription>
+                {step.member.fullName}
+                {step.sold === "cardioOnly" && ` · ${cardioOnlyLabel}`}
+              </DialogDescription>
             </DialogHeader>
             <LockerBox number={step.attendance.lockerNumber} />
             {step.attendance.unfrozenDays !== undefined &&

@@ -11,6 +11,10 @@ namespace Gym.Application.History.ListAttendance;
 /// <c>null</c> on a reserve place (<paramref name="UsesReservePlace"/>), or on a visit closed
 /// before roadmap 6.5.5 when no locker was free.
 /// </param>
+/// <param name="IsCardioOnly">
+/// A member's visit for هوازی only, which consumed no session (BUSINESS_RULES.md §7 <i>Cardio-only
+/// visit</i>); the screen marks it «فقط هوازی».
+/// </param>
 /// <param name="CheckedOutAt"><c>null</c> while the visit is still open.</param>
 /// <param name="CancelledAt">Set when the check-in was cancelled. The row is listed and marked, never hidden.</param>
 /// <param name="AutoClosedAt">
@@ -27,6 +31,7 @@ public sealed record HistoryAttendanceResponse(
     string? GuestName,
     int? LockerNumber,
     bool UsesReservePlace,
+    bool IsCardioOnly,
     DateTimeOffset CheckedInAt,
     DateTimeOffset? CheckedOutAt,
     DateTimeOffset? CancelledAt,

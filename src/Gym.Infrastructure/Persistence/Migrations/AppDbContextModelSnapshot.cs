@@ -60,6 +60,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("guest_name");
 
+                    b.Property<bool>("IsCardioOnly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_cardio_only");
+
                     b.Property<Guid?>("LockerId")
                         .HasColumnType("uuid")
                         .HasColumnName("locker_id");
@@ -119,6 +123,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_attendances_auto_close", "auto_closed_at IS NULL OR checked_out_at = auto_closed_at");
 
                             t.HasCheckConstraint("ck_attendances_cancellation", "cancelled_at IS NULL OR checked_out_at = cancelled_at");
+
+                            t.HasCheckConstraint("ck_attendances_cardio_only_is_members", "NOT is_cardio_only OR member_id IS NOT NULL");
 
                             t.HasCheckConstraint("ck_attendances_guest_name_not_blank", "guest_name IS NULL OR btrim(guest_name) <> ''");
 

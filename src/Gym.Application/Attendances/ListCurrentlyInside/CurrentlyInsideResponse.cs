@@ -18,6 +18,10 @@ namespace Gym.Application.Attendances.ListCurrentlyInside;
 /// <param name="GuestName">The guest's full name; <c>null</c> on a member's visit.</param>
 /// <param name="LockerNumber"><c>null</c> when the visit holds a reserve place instead (<paramref name="UsesReservePlace"/>).</param>
 /// <param name="UsesReservePlace">The visit holds one of the reserve places (BUSINESS_RULES.md §6); the board shows "رزرو".</param>
+/// <param name="IsCardioOnly">
+/// The member came in only for هوازی and no session was consumed (§7 <i>Cardio-only visit</i>). The
+/// subscription values are the plan they were let in on; the board marks the row «فقط هوازی».
+/// </param>
 /// <param name="SubscriptionEndDate">
 /// Of the subscription this visit consumed from, which the attendance names outright
 /// (<c>Attendance.SubscriptionId</c>). Reading it from there rather than re-deriving "the one in
@@ -55,6 +59,7 @@ public sealed record CurrentlyInsideResponse(
     Guid? LockerId,
     int? LockerNumber,
     bool UsesReservePlace,
+    bool IsCardioOnly,
     DateTimeOffset CheckedInAt,
     Guid? SubscriptionId,
     int? TotalSessions,
@@ -93,6 +98,7 @@ public sealed record CurrentlyInsideResponse(
             attendance.LockerId,
             lockers.Where(l => l.Id == attendance.LockerId).Select(l => (int?)l.Number).FirstOrDefault(),
             attendance.ReserveSlot != null,
+            attendance.IsCardioOnly,
             attendance.CheckedInAt,
             attendance.SubscriptionId,
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => (int?)s.TotalSessions).FirstOrDefault(),

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { cardioOnlyLabel } from "@/features/attendance/holder";
 import { emptyValue, formatDateTime, toPersianDigits } from "@/lib/format";
 
 import type { HistoryAttendance } from "../api";
@@ -28,11 +29,18 @@ export function AttendanceLogTable({ items }: { items: HistoryAttendance[] }) {
           {items.map((item) => (
             <tr key={item.id} className="border-b">
               <td className="py-2">
-                <WhoCell
-                  memberId={item.memberId}
-                  memberFullName={item.memberFullName}
-                  guestName={item.guestName}
-                />
+                <span className="flex flex-wrap items-center gap-2">
+                  <WhoCell
+                    memberId={item.memberId}
+                    memberFullName={item.memberFullName}
+                    guestName={item.guestName}
+                  />
+                  {item.isCardioOnly && (
+                    <Badge variant="outline" className="border-cardio">
+                      {cardioOnlyLabel}
+                    </Badge>
+                  )}
+                </span>
               </td>
               <td className="py-2">{formatDateTime(item.checkedInAt)}</td>
               <td className="py-2">

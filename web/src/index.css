@@ -47,6 +47,11 @@
      green, the held red, the usage violet and the unused amber, with the same kind of corner tint. */
   --guest: oklch(0.58 0.13 235);
   --door-guest: oklch(0.93 0.04 235);
+  /* A cardio-only visit's door (BUSINESS_RULES.md §6, §7 *Cardio-only visit*): a yellow of its own, no
+     session was taken and the treadmill is still to be charged. Lighter and greener than the
+     usage view's unused amber, which is never on the same map. */
+  --cardio: oklch(0.72 0.15 100);
+  --door-cardio: oklch(0.95 0.07 100);
   /* The usage view (BUSINESS_RULES.md §6 *Locker usage map*): the one colour a door is shaded in by
      how often it was used, neither the free green nor the held red, and the amber of a locker
      nobody used in the period. */
@@ -102,6 +107,8 @@
   --door-hatch: oklch(0.255 0.008 270);
   --guest: oklch(0.72 0.12 235);
   --door-guest: oklch(0.28 0.05 235);
+  --cardio: oklch(0.86 0.15 100);
+  --door-cardio: oklch(0.3 0.06 100);
   --door-use: oklch(0.68 0.16 290);
   --door-unused: oklch(0.82 0.14 85);
 }
@@ -194,6 +201,8 @@
   --color-door-held: var(--door-held);
   --color-guest: var(--guest);
   --color-door-guest: var(--door-guest);
+  --color-cardio: var(--cardio);
+  --color-door-cardio: var(--door-cardio);
   --color-door-hatch: var(--door-hatch);
   --color-door-use: var(--door-use);
   --color-door-unused: var(--door-unused);

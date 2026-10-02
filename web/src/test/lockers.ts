@@ -17,6 +17,7 @@ export function locker(number: number, overrides: Partial<Locker> = {}): Locker 
     occupiedByMemberId: null,
     occupiedByMemberFullName: null,
     occupiedByGuestName: null,
+    occupiedOnCardioOnly: false,
     holderDebt: 0,
     version: 1,
     createdAt: "2026-09-27T00:00:00Z",
@@ -43,6 +44,20 @@ export function guestLocker(number: number, guestName: string, debt = 0): Locker
   return locker(number, {
     isOccupied: true,
     occupiedByGuestName: guestName,
+    holderDebt: debt,
+  });
+}
+
+/**
+ * Locker `number` held by a member who came in only for هوازی (BUSINESS_RULES.md §7 *Cardio-only
+ * visit*): no session was consumed, and the map draws the door yellow.
+ */
+export function cardioLocker(number: number, memberId: string, fullName: string, debt = 0): Locker {
+  return locker(number, {
+    isOccupied: true,
+    occupiedByMemberId: memberId,
+    occupiedByMemberFullName: fullName,
+    occupiedOnCardioOnly: true,
     holderDebt: debt,
   });
 }
@@ -86,6 +101,7 @@ export function lockerVisit(overrides: Partial<LockerVisit> = {}): LockerVisit {
     memberId: "0199b000-0000-7000-8000-0000000000aa",
     memberFullName: "رضا احمدی",
     guestName: null,
+    isCardioOnly: false,
     checkedInAt: "2026-09-28T05:30:00Z",
     checkedOutAt: "2026-09-28T07:00:00Z",
     cancelledAt: null,

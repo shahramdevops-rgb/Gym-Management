@@ -62,6 +62,7 @@ public sealed class ListAttendanceHandler(IAppDbContext db, IGymCalendar calenda
                     .Select(locker => (int?)locker.Number)
                     .FirstOrDefault(),
                 UsesReservePlace = attendance.ReserveSlot != null,
+                attendance.IsCardioOnly,
                 attendance.CheckedInAt,
                 attendance.CheckedOutAt,
                 attendance.CancelledAt,
@@ -82,6 +83,7 @@ public sealed class ListAttendanceHandler(IAppDbContext db, IGymCalendar calenda
                 row.GuestName,
                 row.LockerNumber,
                 row.UsesReservePlace,
+                row.IsCardioOnly,
                 row.CheckedInAt,
                 row.CheckedOutAt,
                 row.CancelledAt,

@@ -1304,3 +1304,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **The heading counts the whole handover, not the page.** A filter or a page boundary may hide some rows of a settlement. The total and item count come from the API over all of its rows, so the heading never claims a smaller handover than the desk took.
 - **Group on the client when the rows are already neighbours.** The API keeps a flat list (paging and filters unchanged), and `groupBySettlement` folds neighbouring rows of one settlement into a group. That works because every row of a settlement has the same `PaidAt` and the list is ordered by it.
 - **My notes:**
+
+---
+
+## 6.5.27 — Cardio-only visit (ورود فقط هوازی)
+
+- **A flag on the row, not a new kind of row.** A cardio-only visit is still a member's visit: it holds a locker, buys from the cafe, owes money and is moved and cancelled like any other. One `is_cardio_only` column keeps every one of those paths working and changes only the three that differ: check-in, check-out and the nightly job.
+- **Keep the id, change what it means, and say so.** The visit still names the member's plan, so the board shows the plan's sessions without a second lookup. What the plan id means changed ("the plan they came in on", not "the plan a session came from"), so the cancel handler now asks `IsCardioOnly` before it gives a session back. The doc comment on `SubscriptionId` records the new meaning, because a reader would otherwise assume the old one.
+- **A query that changes nothing next to one that does.** `InEffectToday` may close an exhausted plan and move a queued one forward; it is written for a check-in that consumes a session. `PlanForCardioOnly` answers a different question (does this member hold a plan?) and must touch nothing, so it is its own method, with a test proving the queue does not move.
+- **A default that refuses.** `CheckOut(..., hasCardioCharge = false)`: a caller that forgets to ask about the charge gets a refusal on a cardio-only visit, not a silent close. When a parameter guards a rule, its default should be the safe side.
+- **The same lock as the action you race.** Voiding a charge takes the member's lock. Check-out of a cardio-only visit takes the same lock before it reads "is there a charge?", so a void cannot slip in between the check and the close.
+- **A new column on a table with real data.** `AddColumn(..., defaultValue: false)` gives every existing row a value in the same statement, so nothing is refused and nothing is backfilled by hand. The check constraint (`NOT is_cardio_only OR member_id IS NOT NULL`) passes for all of them by construction.
+- **One more state, everywhere a state is listed.** `LockerState` gained `cardio`, and TypeScript's `Record<LockerState, ...>` made every table of colours, labels and counts fail to compile until it had an entry. The type found the places a search would have missed.
+- **My notes:**

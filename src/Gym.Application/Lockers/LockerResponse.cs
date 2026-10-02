@@ -10,7 +10,7 @@ namespace Gym.Application.Lockers;
 /// Who an open attendance holds this locker for: a member, or a guest by name (BUSINESS_RULES.md §7
 /// <i>Guest visit</i>). <c>null</c> as a whole when the locker is free.
 /// </summary>
-public sealed record LockerHolder(Guid? MemberId, string? FullName, string? GuestName);
+public sealed record LockerHolder(Guid? MemberId, string? FullName, string? GuestName, bool IsCardioOnly);
 
 /// <param name="OccupiedByMemberId">
 /// Whoever the open attendance against this locker belongs to, or <c>null</c> when nobody holds
@@ -20,6 +20,10 @@ public sealed record LockerHolder(Guid? MemberId, string? FullName, string? Gues
 /// <param name="OccupiedByGuestName">
 /// The guest's name when a guest holds the locker (§6, §7 <i>Guest visit</i>): the map draws the
 /// door in the guest colour and writes the name on it. <c>null</c> otherwise.
+/// </param>
+/// <param name="OccupiedOnCardioOnly">
+/// The member holding the locker came in only for هوازی (§7 <i>Cardio-only visit</i>): the map draws
+/// the door in the cardio colour. <c>false</c> for a free locker and a guest's.
 /// </param>
 /// <param name="Version">Sent back with a status change, so a stale request is refused.</param>
 /// <param name="HolderDebt">
@@ -36,6 +40,7 @@ public sealed record LockerResponse(
     Guid? OccupiedByMemberId,
     string? OccupiedByMemberFullName,
     string? OccupiedByGuestName,
+    bool OccupiedOnCardioOnly,
     uint Version,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
@@ -71,6 +76,7 @@ public sealed record LockerResponse(
                 .Where(a => a.LockerId == locker.Id)
                 .Select(a => a.GuestName)
                 .FirstOrDefault(),
+            openAttendances.Any(a => a.LockerId == locker.Id && a.IsCardioOnly),
             locker.Version,
             locker.CreatedAt,
             locker.UpdatedAt,
@@ -88,6 +94,7 @@ public sealed record LockerResponse(
             holder?.MemberId,
             holder?.FullName,
             holder?.GuestName,
+            holder?.IsCardioOnly ?? false,
             locker.Version,
             locker.CreatedAt,
             locker.UpdatedAt);

@@ -211,6 +211,80 @@ public sealed class AttendanceTests
         attendance.CheckedOutAt.ShouldBeNull();
     }
 
+    // ---- Cardio-only visit (BUSINESS_RULES.md §7) ----
+
+    [Fact]
+    public void CheckIn_Ordinary_IsNotCardioOnly() =>
+        OpenAttendance().IsCardioOnly.ShouldBeFalse();
+
+    [Fact]
+    public void CheckInCardioOnly_WithLocker_NamesThePlanAndIsCardioOnly()
+    {
+        var lockerId = Guid.NewGuid();
+
+        var attendance = Attendance.CheckInCardioOnly(MemberId, SubscriptionId, lockerId, CheckedInAt);
+
+        attendance.IsCardioOnly.ShouldBeTrue();
+        attendance.MemberId.ShouldBe(MemberId);
+        attendance.SubscriptionId.ShouldBe(SubscriptionId);
+        attendance.LockerId.ShouldBe(lockerId);
+        attendance.IsGuest.ShouldBeFalse();
+        attendance.CheckedOutAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CheckInCardioOnlyOnReservePlace_ValidSlot_HoldsTheReservePlace()
+    {
+        var attendance = Attendance.CheckInCardioOnlyOnReservePlace(MemberId, SubscriptionId, 2, CheckedInAt);
+
+        attendance.IsCardioOnly.ShouldBeTrue();
+        attendance.ReserveSlot.ShouldBe(2);
+        attendance.LockerId.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(Attendance.ReservePlaceCount + 1)]
+    public void CheckInCardioOnlyOnReservePlace_SlotOutOfRange_Throws(int slot)
+    {
+        Should.Throw<ArgumentOutOfRangeException>(
+            () => Attendance.CheckInCardioOnlyOnReservePlace(MemberId, SubscriptionId, slot, CheckedInAt));
+    }
+
+    [Fact]
+    public void CheckOut_CardioOnlyWithoutACardioCharge_FailsAndStaysOpen()
+    {
+        var attendance = Attendance.CheckInCardioOnly(MemberId, SubscriptionId, Guid.NewGuid(), CheckedInAt);
+
+        var result = attendance.CheckOut(CheckedInAt.AddHours(1), hasCardioCharge: false);
+
+        result.Error.ShouldBe(AttendanceErrors.CardioChargeMissing);
+        attendance.CheckedOutAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CheckOut_CardioOnlyWithACardioCharge_Closes()
+    {
+        var attendance = Attendance.CheckInCardioOnly(MemberId, SubscriptionId, Guid.NewGuid(), CheckedInAt);
+
+        var result = attendance.CheckOut(CheckedInAt.AddHours(1), hasCardioCharge: true);
+
+        result.IsSuccess.ShouldBeTrue();
+        attendance.CheckedOutAt.ShouldBe(CheckedInAt.AddHours(1));
+    }
+
+    [Fact]
+    public void CheckOut_OrdinaryVisitWithoutACardioCharge_Closes() =>
+        OpenAttendance().CheckOut(CheckedInAt.AddHours(1)).IsSuccess.ShouldBeTrue();
+
+    [Fact]
+    public void Cancel_CardioOnlyWithoutACardioCharge_Succeeds()
+    {
+        var attendance = Attendance.CheckInCardioOnly(MemberId, SubscriptionId, Guid.NewGuid(), CheckedInAt);
+
+        attendance.Cancel(CheckedInAt.AddMinutes(5), CancelWindowMinutes).IsSuccess.ShouldBeTrue();
+    }
+
     [Fact]
     public void CheckInGuestOnReservePlace_ValidSlot_HoldsTheReservePlace()
     {

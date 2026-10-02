@@ -19,6 +19,12 @@ interface HolderFields {
 /** «مهمان»: the word beside a guest's name wherever a member would have a link or sessions. */
 export const guestLabel = "مهمان";
 
+/**
+ * «فقط هوازی»: the mark on a member's visit that consumed no session (BUSINESS_RULES.md §7
+ * *Cardio-only visit*), on the board, the map's box and every history.
+ */
+export const cardioOnlyLabel = "فقط هوازی";
+
 /** A guest's visit: no member, a typed name. */
 export function isGuestVisit(visit: { memberId: string | null }): boolean {
   return visit.memberId === null;

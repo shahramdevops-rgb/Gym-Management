@@ -564,6 +564,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/members/{memberId}/attendance/cardio-only-check-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CardioOnlyCheckIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/members/{memberId}/attendance": {
         parameters: {
             query?: never;
@@ -1119,6 +1135,7 @@ export interface components {
             /** Format: int32 */
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
+            isCardioOnly: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: date-time */
@@ -1202,6 +1219,10 @@ export interface components {
         CancelSubscriptionCommand: {
             reason: string;
         };
+        CardioOnlyCheckInCommand: {
+            /** Format: uuid */
+            lockerId: null | string;
+        };
         ChangePasswordCommand: {
             currentPassword: string;
             newPassword: string;
@@ -1267,6 +1288,7 @@ export interface components {
             /** Format: int32 */
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
+            isCardioOnly: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: uuid */
@@ -1358,6 +1380,7 @@ export interface components {
             /** Format: int32 */
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
+            isCardioOnly: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: date-time */
@@ -1434,6 +1457,7 @@ export interface components {
             occupiedByMemberId: null | string;
             occupiedByMemberFullName: null | string;
             occupiedByGuestName: null | string;
+            occupiedOnCardioOnly: boolean;
             /** Format: uint32 */
             version: number | string;
             /** Format: date-time */
@@ -1471,6 +1495,7 @@ export interface components {
             memberId: null | string;
             memberFullName: null | string;
             guestName: null | string;
+            isCardioOnly: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: date-time */
@@ -4228,6 +4253,77 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CardioOnlyCheckIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CardioOnlyCheckInCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceResponse"];
                 };
             };
             /** @description Unauthorized */
