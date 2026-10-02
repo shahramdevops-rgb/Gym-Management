@@ -136,6 +136,7 @@ try
     app.MapCafeOrdersEndpoints();
     app.MapExpenseCategoriesEndpoints();
     app.MapExpensesEndpoints();
+    app.MapHistoryEndpoints();
 
     app.Run();
 }

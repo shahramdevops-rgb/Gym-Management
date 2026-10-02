@@ -49,4 +49,20 @@ public static class PaymentErrors
     public static readonly Error RefundAfterUse = Error.BusinessRule(
         "Payments.RefundAfterUse",
         "A subscription with a used session cannot be refunded.");
+
+    /// <summary>
+    /// BUSINESS_RULES.md §12 <i>History</i>: Staff read payments of today and the
+    /// <see cref="PaymentHistoryWindow.StaffDaysBeforeToday"/> days before it, and nothing earlier.
+    /// </summary>
+    public static readonly Error HistoryTooFarBack = Error.Forbidden(
+        "Payments.HistoryTooFarBack",
+        "Staff can see payments of today and the 3 days before it only.");
+
+    public static readonly Error InvalidDateRange = Error.Validation(
+        "Payments.InvalidDateRange",
+        "'from' must not be after 'to'.");
+
+    public static readonly Error InvalidSource = Error.Validation(
+        "Payments.InvalidSource",
+        "Payment source is not valid.");
 }

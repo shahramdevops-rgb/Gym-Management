@@ -64,4 +64,8 @@ public static class ServiceChargeErrors
     public static readonly Error ChangedConcurrently = Error.Conflict(
         "ServiceCharges.ChangedConcurrently",
         "The service charge changed at the same moment. Try again.");
+
+    public static readonly Error InvalidDateRange = Error.Validation(
+        "ServiceCharges.InvalidDateRange",
+        "'from' must not be after 'to'.");
 }

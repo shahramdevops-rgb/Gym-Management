@@ -92,6 +92,7 @@ public static class DependencyInjection
         services.AddScoped<IUserAuthenticator, UserAuthenticator>();
         services.AddScoped<IStaffAccounts, StaffAccounts>();
         services.AddScoped<IUserAccounts, UserAccounts>();
+        services.AddScoped<IUserNames, UserNames>();
 
         // "Today" in the gym's time zone. A misspelled time zone stops the app at startup instead
         // of silently producing the wrong day.

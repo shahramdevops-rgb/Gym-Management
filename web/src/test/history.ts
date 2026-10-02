@@ -1,0 +1,110 @@
+import type {
+  HistoryAttendance,
+  HistoryPayment,
+  HistoryServiceCharge,
+} from "@/features/history/api";
+
+import { json } from "./mockApi";
+import { ali, reza } from "./members";
+
+/** One page of any history list. */
+export function historyPage<T>(items: T[], totalCount = items.length): Response {
+  return json(200, { items, page: 1, pageSize: 20, totalCount });
+}
+
+export const closedVisit: HistoryAttendance = {
+  id: "0199a000-0000-7000-8000-0000000000d1",
+  memberId: reza.id,
+  memberFullName: reza.fullName,
+  lockerNumber: 12,
+  usesReservePlace: false,
+  checkedInAt: "2026-10-02T06:00:00Z",
+  checkedOutAt: "2026-10-02T07:30:00Z",
+  cancelledAt: null,
+  autoClosedAt: null,
+  checkedInByFullName: "سارا رضایی",
+};
+
+export const autoClosedVisit: HistoryAttendance = {
+  ...closedVisit,
+  id: "0199a000-0000-7000-8000-0000000000d2",
+  memberId: ali.id,
+  memberFullName: ali.fullName,
+  lockerNumber: null,
+  usesReservePlace: true,
+  checkedOutAt: "2026-10-01T20:30:00Z",
+  autoClosedAt: "2026-10-01T20:30:00Z",
+  checkedInByFullName: "مدیر باشگاه",
+};
+
+export const cancelledVisit: HistoryAttendance = {
+  ...closedVisit,
+  id: "0199a000-0000-7000-8000-0000000000d3",
+  checkedOutAt: "2026-10-02T06:05:00Z",
+  cancelledAt: "2026-10-02T06:05:00Z",
+};
+
+export const planPayment: HistoryPayment = {
+  id: "0199a000-0000-7000-8000-0000000000e1",
+  source: "Subscription",
+  targetId: "0199a000-0000-7000-8000-0000000000f1",
+  memberId: reza.id,
+  memberFullName: reza.fullName,
+  subscriptionPlan: { durationDays: 30, totalSessions: 12, isSingleSession: false },
+  serviceKind: null,
+  kind: "Payment",
+  amount: 900000,
+  method: "Card",
+  referenceNumber: null,
+  reason: null,
+  paidAt: "2026-10-02T06:10:00Z",
+  targetUndone: true,
+  receivedByFullName: "سارا رضایی",
+};
+
+export const planRefund: HistoryPayment = {
+  ...planPayment,
+  id: "0199a000-0000-7000-8000-0000000000e2",
+  kind: "Refund",
+  reason: "انصراف عضو",
+  paidAt: "2026-10-02T08:00:00Z",
+  receivedByFullName: "مدیر باشگاه",
+};
+
+export const walkInCafePayment: HistoryPayment = {
+  ...planPayment,
+  id: "0199a000-0000-7000-8000-0000000000e3",
+  source: "CafeOrder",
+  memberId: null,
+  memberFullName: null,
+  subscriptionPlan: null,
+  amount: 30000,
+  method: "Cash",
+  targetUndone: false,
+};
+
+export const liveCardio: HistoryServiceCharge = {
+  id: "0199a000-0000-7000-8000-0000000000c1",
+  memberId: reza.id,
+  memberFullName: reza.fullName,
+  attendanceId: closedVisit.id,
+  kind: "Cardio",
+  amount: 50000,
+  chargedOn: "2026-10-02",
+  createdAt: "2026-10-02T06:30:00Z",
+  recordedByFullName: "سارا رضایی",
+  voidedAt: null,
+  voidReason: null,
+  voidedByFullName: null,
+  netPaid: 0,
+  paymentStatus: "Unpaid",
+};
+
+export const voidedCardio: HistoryServiceCharge = {
+  ...liveCardio,
+  id: "0199a000-0000-7000-8000-0000000000c2",
+  amount: 500000,
+  voidedAt: "2026-10-02T06:20:00Z",
+  voidReason: "صفر اضافه",
+  voidedByFullName: "مدیر باشگاه",
+};

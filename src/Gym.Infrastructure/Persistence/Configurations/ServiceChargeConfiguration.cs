@@ -52,6 +52,10 @@ public sealed class ServiceChargeConfiguration : IEntityTypeConfiguration<Servic
         // The member's debt and its breakdown both filter by this column.
         builder.HasIndex(charge => charge.MemberId);
 
+        // Not a rule, only speed: the gym's هوازی history reads a range of days, newest first
+        // (BUSINESS_RULES.md §12 History).
+        builder.HasIndex(charge => charge.ChargedOn);
+
         builder.Property(charge => charge.Version).IsRowVersion();
     }
 }

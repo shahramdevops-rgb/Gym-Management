@@ -88,6 +88,26 @@ public static class PaymentLedger
             .ToDictionaryAsync(row => row.OrderId, row => row.NetPaid, cancellationToken);
     }
 
+    /// <summary>
+    /// Net paid for several service charges in one query, keyed by charge. A charge with no
+    /// payments at all is missing from the result, so callers read it with a default of zero.
+    /// </summary>
+    public static Task<Dictionary<Guid, decimal>> GetNetPaidForServiceChargesAsync(
+        IAppDbContext db, IReadOnlyCollection<Guid> serviceChargeIds, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+
+        return db.Payments
+            .Where(payment => payment.ServiceChargeId != null && serviceChargeIds.Contains(payment.ServiceChargeId.Value))
+            .GroupBy(payment => payment.ServiceChargeId!.Value)
+            .Select(group => new
+            {
+                ChargeId = group.Key,
+                NetPaid = group.Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
+            })
+            .ToDictionaryAsync(row => row.ChargeId, row => row.NetPaid, cancellationToken);
+    }
+
     private static async Task<IReadOnlyList<MethodNetPaid>> NetPaidByMethodAsync(
         IQueryable<Payment> payments, CancellationToken cancellationToken)
     {

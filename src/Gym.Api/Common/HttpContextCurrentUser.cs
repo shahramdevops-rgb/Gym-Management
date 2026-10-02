@@ -30,5 +30,11 @@ public sealed class HttpContextCurrentUser(IHttpContextAccessor accessor) : ICur
         }
     }
 
+    /// <summary>
+    /// The access token's role claim, which <c>JwtOptions</c> maps so that
+    /// <see cref="System.Security.Claims.ClaimsPrincipal.IsInRole"/> reads it directly.
+    /// </summary>
+    public bool IsOwner => accessor.HttpContext?.User.IsInRole(Roles.Owner) == true;
+
     public string? IpAddress => accessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 }

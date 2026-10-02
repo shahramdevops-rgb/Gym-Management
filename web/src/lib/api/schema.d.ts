@@ -1012,6 +1012,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListAttendance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListPayments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/service-charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListServiceCharges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1260,6 +1308,71 @@ export interface components {
             /** Format: date-time */
             updatedAt: null | string;
         };
+        HistoryAttendanceResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            memberId: string;
+            memberFullName: string;
+            /** Format: int32 */
+            lockerNumber: null | number | string;
+            usesReservePlace: boolean;
+            /** Format: date-time */
+            checkedInAt: string;
+            /** Format: date-time */
+            checkedOutAt: null | string;
+            /** Format: date-time */
+            cancelledAt: null | string;
+            /** Format: date-time */
+            autoClosedAt: null | string;
+            checkedInByFullName: null | string;
+        };
+        HistoryPaymentResponse: {
+            /** Format: uuid */
+            id: string;
+            source: components["schemas"]["PaymentTargetKind"];
+            /** Format: uuid */
+            targetId: string;
+            /** Format: uuid */
+            memberId: null | string;
+            memberFullName: null | string;
+            subscriptionPlan: null | components["schemas"]["PlanSummary"];
+            serviceKind: null | components["schemas"]["ServiceChargeKind"];
+            kind: components["schemas"]["PaymentKind"];
+            /** Format: double */
+            amount: number | string;
+            method: components["schemas"]["PaymentMethod"];
+            referenceNumber: null | string;
+            reason: null | string;
+            /** Format: date-time */
+            paidAt: string;
+            targetUndone: boolean;
+            receivedByFullName: null | string;
+        };
+        HistoryServiceChargeResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            memberId: string;
+            memberFullName: string;
+            /** Format: uuid */
+            attendanceId: string;
+            kind: components["schemas"]["ServiceChargeKind"];
+            /** Format: double */
+            amount: number | string;
+            /** Format: date */
+            chargedOn: string;
+            /** Format: date-time */
+            createdAt: string;
+            recordedByFullName: null | string;
+            /** Format: date-time */
+            voidedAt: null | string;
+            voidReason: null | string;
+            voidedByFullName: null | string;
+            /** Format: double */
+            netPaid: number | string;
+            paymentStatus: components["schemas"]["PaymentStatus"];
+        };
         HourCountResponse: {
             /** Format: int32 */
             hour: number | string;
@@ -1413,6 +1526,33 @@ export interface components {
         };
         PagedResponseOfExpenseCategoryResponse: {
             items: components["schemas"]["ExpenseCategoryResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        PagedResponseOfHistoryAttendanceResponse: {
+            items: components["schemas"]["HistoryAttendanceResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        PagedResponseOfHistoryPaymentResponse: {
+            items: components["schemas"]["HistoryPaymentResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        PagedResponseOfHistoryServiceChargeResponse: {
+            items: components["schemas"]["HistoryServiceChargeResponse"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
@@ -6358,6 +6498,167 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListAttendance: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+                MemberId?: string;
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResponseOfHistoryAttendanceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPayments: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+                MemberId?: string;
+                Method?: components["schemas"]["PaymentMethod"];
+                Source?: components["schemas"]["PaymentTargetKind"];
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResponseOfHistoryPaymentResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListServiceCharges: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+                MemberId?: string;
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResponseOfHistoryServiceChargeResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

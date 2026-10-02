@@ -18,6 +18,13 @@ public interface ICurrentUser
     Guid? UserId { get; }
 
     /// <summary>
+    /// Whether the caller holds the Owner role. For the few rules that read differently per role
+    /// inside one endpoint both roles may call (BUSINESS_RULES.md §12 <i>History</i>: Staff see
+    /// only the last few days of payments). Whole endpoints are still guarded by a policy.
+    /// </summary>
+    bool IsOwner { get; }
+
+    /// <summary>
     /// The caller's IP address, for the audit log. Null outside a request. Behind a reverse
     /// proxy this is the proxy's address until forwarded headers are configured (task 11.2).
     /// </summary>

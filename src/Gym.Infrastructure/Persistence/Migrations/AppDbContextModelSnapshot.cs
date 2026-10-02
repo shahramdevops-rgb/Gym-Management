@@ -1560,6 +1560,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_payments");
 
+                    b.HasIndex("PaidAt")
+                        .HasDatabaseName("ix_payments_paid_at");
+
                     b.HasIndex("ReceivedByUserId")
                         .HasDatabaseName("ix_payments_received_by_user_id");
 
@@ -1707,6 +1710,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_service_charges");
+
+                    b.HasIndex("ChargedOn")
+                        .HasDatabaseName("ix_service_charges_charged_on");
 
                     b.HasIndex("MemberId")
                         .HasDatabaseName("ix_service_charges_member_id");
