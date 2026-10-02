@@ -2,6 +2,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 import type { CurrentlyInside } from "@/features/attendance/api";
+import { guestLabel, holderName, isGuestVisit } from "@/features/attendance/holder";
 import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -99,7 +100,9 @@ export function ReservePlaces({
               const stay = stayProgress(visit.checkedInAt, now);
               const found = foundAttendanceIds?.has(visit.attendanceId) ?? false;
               const birthday = birthdayAttendanceIds?.has(visit.attendanceId) ?? false;
+              const guest = isGuestVisit(visit);
               const extras = [
+                guest ? guestLabel : null,
                 birthday ? birthdayLabel : null,
                 stay.isLong ? longStayLabel : null,
               ].filter((part) => part !== null);
@@ -108,7 +111,7 @@ export function ReservePlaces({
                   <button
                     type="button"
                     aria-label={
-                      extras.length > 0 ? [visit.memberFullName, ...extras].join("، ") : undefined
+                      extras.length > 0 ? [holderName(visit), ...extras].join("، ") : undefined
                     }
                     data-found={found || undefined}
                     data-birthday={birthday || undefined}
@@ -116,7 +119,7 @@ export function ReservePlaces({
                       placeSize,
                       doorFace,
                       doorMotion,
-                      doorStateClass.occupied,
+                      guest ? doorStateClass.guest : doorStateClass.occupied,
                       "px-2 text-center text-xs leading-tight font-medium",
                       birthday && "shadow-[0_0_18px_-4px_var(--party-pink)]",
                       found &&
@@ -126,7 +129,7 @@ export function ReservePlaces({
                   >
                     {birthday && <Celebration />}
                     <span dir="rtl" className="relative line-clamp-2">
-                      {visit.memberFullName}
+                      {holderName(visit)}
                     </span>
                     <StayBar progress={stay} />
                   </button>

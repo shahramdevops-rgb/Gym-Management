@@ -5,6 +5,8 @@ import {
   autoClosedVisit,
   cancelledVisit,
   closedVisit,
+  guestCafePayment,
+  guestVisit,
   historyPage,
   liveCardio,
   planPayment,
@@ -61,6 +63,32 @@ describe("HistoryPage", () => {
 
     expect(within(rowWith("لغو شده")).getByText("سارا رضایی")).toBeInTheDocument();
     expect(within(rowWith("۱۲")).getByText("خارج شده")).toBeInTheDocument();
+  });
+
+  it("Attendance_GuestVisit_ShowsTheNameMarkedAsGuestWithNoProfileLink", async () => {
+    mockApi({
+      ...handlers(),
+      "GET /api/attendance": () => historyPage([guestVisit]),
+    });
+    renderApp("/history", { session: session() });
+
+    await screen.findByText("مریم احمدی");
+    const row = rowWith("مریم احمدی");
+    expect(within(row).getByText("مهمان")).toBeInTheDocument();
+    expect(within(row).queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("Payments_GuestsCafeOrder_ShowsTheGuestsNameNotAWalkIn", async () => {
+    mockApi({
+      ...handlers(),
+      "GET /api/payments": () => historyPage([guestCafePayment]),
+    });
+    renderApp("/history?tab=payments", { session: session() });
+
+    await screen.findByText("مریم احمدی");
+    const row = rowWith("مریم احمدی");
+    expect(within(row).getByText("مهمان")).toBeInTheDocument();
+    expect(within(row).queryByText("مشتری آزاد")).not.toBeInTheDocument();
   });
 
   it("Attendance_NoDatesInTheUrl_AsksForToday", async () => {

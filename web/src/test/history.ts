@@ -16,6 +16,7 @@ export const closedVisit: HistoryAttendance = {
   id: "0199a000-0000-7000-8000-0000000000d1",
   memberId: reza.id,
   memberFullName: reza.fullName,
+  guestName: null,
   lockerNumber: 12,
   usesReservePlace: false,
   checkedInAt: "2026-10-02T06:00:00Z",
@@ -44,12 +45,23 @@ export const cancelledVisit: HistoryAttendance = {
   cancelledAt: "2026-10-02T06:05:00Z",
 };
 
+/** A guest's visit (BUSINESS_RULES.md §7 Guest visit): a name, no member. */
+export const guestVisit: HistoryAttendance = {
+  ...closedVisit,
+  id: "0199a000-0000-7000-8000-0000000000d4",
+  memberId: null,
+  memberFullName: null,
+  guestName: "مریم احمدی",
+  lockerNumber: 7,
+};
+
 export const planPayment: HistoryPayment = {
   id: "0199a000-0000-7000-8000-0000000000e1",
   source: "Subscription",
   targetId: "0199a000-0000-7000-8000-0000000000f1",
   memberId: reza.id,
   memberFullName: reza.fullName,
+  guestName: null,
   subscriptionPlan: { durationDays: 30, totalSessions: 12, isSingleSession: false },
   serviceKind: null,
   kind: "Payment",
@@ -81,6 +93,13 @@ export const walkInCafePayment: HistoryPayment = {
   amount: 30000,
   method: "Cash",
   targetUndone: false,
+};
+
+/** Paid at the till for a guest's order on their visit. */
+export const guestCafePayment: HistoryPayment = {
+  ...walkInCafePayment,
+  id: "0199a000-0000-7000-8000-0000000000e4",
+  guestName: "مریم احمدی",
 };
 
 export const liveCardio: HistoryServiceCharge = {

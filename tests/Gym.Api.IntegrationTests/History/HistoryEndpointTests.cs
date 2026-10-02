@@ -95,6 +95,24 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task ListAttendance_GuestVisit_IsListedUnderTheGuestsNameWithNoMember()
+    {
+        // BUSINESS_RULES.md §12: guests are listed, marked, with no profile to link to.
+        var (staff, token) = await StaffClientAsync();
+        var guest = await TestGuests.CheckInOkAsync(staff, token, guestName: "مریم احمدی", lockerNumber: 5);
+
+        var page = await GetOkAsync<PagedResponse<HistoryAttendanceResponse>>(staff, token, "/api/attendance");
+
+        var row = page.Items.ShouldHaveSingleItem();
+        row.Id.ShouldBe(guest.Id);
+        row.MemberId.ShouldBeNull();
+        row.MemberFullName.ShouldBeNull();
+        row.GuestName.ShouldBe("مریم احمدی");
+        row.LockerNumber.ShouldBe(5);
+        row.CheckedInByFullName.ShouldBe(StaffName);
+    }
+
+    [Fact]
     public async Task ListAttendance_DateRange_FiltersByTheCheckInDayInTheGymsZone()
     {
         var (staff, token) = await StaffClientAsync();
@@ -173,6 +191,21 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         plan.MemberId.ShouldBe(member.Id);
         plan.Amount.ShouldBe(900_000m);
         plan.Method.ShouldBe(PaymentMethod.Card);
+    }
+
+    [Fact]
+    public async Task ListPayments_GuestsCafeOrder_CarriesTheGuestsNameAndNoMember()
+    {
+        var (staff, token) = await StaffClientAsync();
+        var guest = await TestGuests.CheckInOkAsync(staff, token, guestName: "مریم احمدی");
+        var order = await CafeOrderAsync(staff, token, 30_000m, attendanceId: guest.Id);
+
+        var page = await PaymentsOkAsync(staff, token, TodayRange());
+
+        var row = page.Items.ShouldHaveSingleItem();
+        row.TargetId.ShouldBe(order.Id);
+        row.MemberId.ShouldBeNull();
+        row.GuestName.ShouldBe("مریم احمدی");
     }
 
     [Fact]
@@ -486,7 +519,12 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     /// <summary>A walk-in's cafe order, paid in full in cash at the till.</summary>
-    private static async Task<CafeOrderResponse> WalkInOrderAsync(HttpClient client, string token, decimal price)
+    private static Task<CafeOrderResponse> WalkInOrderAsync(HttpClient client, string token, decimal price) =>
+        CafeOrderAsync(client, token, price, attendanceId: null);
+
+    /// <summary>A cafe order of one product, paid in full in cash: a walk-in's, or on a guest's visit.</summary>
+    private static async Task<CafeOrderResponse> CafeOrderAsync(
+        HttpClient client, string token, decimal price, Guid? attendanceId)
     {
         using var category = await SendAsync(client, token, HttpMethod.Post, "/api/cafe/categories", new { name = "نوشیدنی" });
         category.EnsureSuccessStatusCode();
@@ -507,6 +545,7 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
             new
             {
                 memberId = (Guid?)null,
+                attendanceId,
                 items = new[] { new { productId, quantity = 1 } },
                 payment = new { amount = price, method = "Cash", referenceNumber = (string?)null },
             });

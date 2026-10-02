@@ -580,6 +580,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/attendance/guest-check-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["GuestCheckIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/{id}/settle-guest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SettleGuestCafe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/attendance/{id}/check-out": {
         parameters: {
             query?: never;
@@ -1078,9 +1110,10 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            memberId: string;
+            memberId: null | string;
             /** Format: uuid */
-            subscriptionId: string;
+            subscriptionId: null | string;
+            guestName: null | string;
             /** Format: uuid */
             lockerId: null | string;
             /** Format: int32 */
@@ -1136,6 +1169,7 @@ export interface components {
             /** Format: uuid */
             memberId: null | string;
             memberFullName: null | string;
+            guestName: null | string;
             /** Format: uuid */
             attendanceId: null | string;
             /** Format: double */
@@ -1225,8 +1259,9 @@ export interface components {
             /** Format: uuid */
             attendanceId: string;
             /** Format: uuid */
-            memberId: string;
-            memberFullName: string;
+            memberId: null | string;
+            memberFullName: null | string;
+            guestName: null | string;
             /** Format: uuid */
             lockerId: null | string;
             /** Format: int32 */
@@ -1235,15 +1270,15 @@ export interface components {
             /** Format: date-time */
             checkedInAt: string;
             /** Format: uuid */
-            subscriptionId: string;
+            subscriptionId: null | string;
             /** Format: int32 */
-            totalSessions: number | string;
+            totalSessions: null | number | string;
             /** Format: int32 */
-            usedSessions: number | string;
+            usedSessions: null | number | string;
             /** Format: int32 */
-            remainingSessions: number | string;
+            remainingSessions: null | number | string;
             /** Format: date */
-            subscriptionEndDate: string;
+            subscriptionEndDate: null | string;
             isSingleSession: boolean;
             serviceCharges: components["schemas"]["ServiceChargeResponse"][];
             cafeOrders: components["schemas"]["CafeOrderResponse"][];
@@ -1308,12 +1343,18 @@ export interface components {
             /** Format: date-time */
             updatedAt: null | string;
         };
+        GuestCheckInCommand: {
+            guestName: string;
+            /** Format: uuid */
+            lockerId: null | string;
+        };
         HistoryAttendanceResponse: {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            memberId: string;
-            memberFullName: string;
+            memberId: null | string;
+            memberFullName: null | string;
+            guestName: null | string;
             /** Format: int32 */
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
@@ -1336,6 +1377,7 @@ export interface components {
             /** Format: uuid */
             memberId: null | string;
             memberFullName: null | string;
+            guestName: null | string;
             subscriptionPlan: null | components["schemas"]["PlanSummary"];
             serviceKind: null | components["schemas"]["ServiceChargeKind"];
             kind: components["schemas"]["PaymentKind"];
@@ -1390,6 +1432,7 @@ export interface components {
             /** Format: uuid */
             occupiedByMemberId: null | string;
             occupiedByMemberFullName: null | string;
+            occupiedByGuestName: null | string;
             /** Format: uint32 */
             version: number | string;
             /** Format: date-time */
@@ -1400,7 +1443,7 @@ export interface components {
              * Format: double
              * @default 0
              */
-            occupiedByMemberDebt: number | string;
+            holderDebt: number | string;
             isOccupied?: boolean;
         };
         LockerUsageResponse: {
@@ -1424,8 +1467,9 @@ export interface components {
             /** Format: uuid */
             attendanceId: string;
             /** Format: uuid */
-            memberId: string;
-            memberFullName: string;
+            memberId: null | string;
+            memberFullName: null | string;
+            guestName: null | string;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: date-time */
@@ -1785,6 +1829,12 @@ export interface components {
             canChangeAmount: boolean;
             /** Format: date-time */
             createdAt: string;
+        };
+        SettleGuestCafeCommand: {
+            /** Format: double */
+            amount: number | string;
+            method: components["schemas"]["PaymentMethod"];
+            referenceNumber: null | string;
         };
         SettleMemberDebtCommand: {
             /** Format: double */
@@ -4280,6 +4330,164 @@ export interface operations {
             };
         };
     };
+    GuestCheckIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuestCheckInCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SettleGuestCafe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettleGuestCafeCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     CheckOut: {
         parameters: {
             query?: never;
@@ -5624,6 +5832,7 @@ export interface operations {
                 From?: string;
                 To?: string;
                 AttendanceId?: string;
+                UnpaidGuest?: boolean;
                 Page?: number | string;
                 PageSize?: number | string;
             };

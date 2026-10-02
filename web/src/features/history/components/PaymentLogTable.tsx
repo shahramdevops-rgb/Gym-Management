@@ -1,6 +1,3 @@
-import { Link } from "react-router";
-
-import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { paymentMethodLabels } from "@/features/payments/api";
 import { serviceChargeKindLabels } from "@/features/serviceCharges/api";
@@ -8,6 +5,7 @@ import { planLabel } from "@/features/subscriptions/planLabel";
 import { emptyValue, formatDateTime, formatMoney } from "@/lib/format";
 
 import { paymentSourceLabels, type HistoryPayment } from "../api";
+import { WhoCell } from "./WhoCell";
 
 /**
  * Every payment and refund, newest first, with whose money it was and who took it
@@ -35,13 +33,11 @@ export function PaymentLogTable({ items }: { items: HistoryPayment[] }) {
             <tr key={item.id} className="border-b">
               <td className="py-2">{formatDateTime(item.paidAt)}</td>
               <td className="py-2">
-                {item.memberId === null ? (
-                  <span className="text-muted-foreground">مشتری آزاد</span>
-                ) : (
-                  <Link to={paths.member(item.memberId)} className="font-medium hover:underline">
-                    {item.memberFullName ?? emptyValue}
-                  </Link>
-                )}
+                <WhoCell
+                  memberId={item.memberId}
+                  memberFullName={item.memberFullName}
+                  guestName={item.guestName}
+                />
               </td>
               <td className="py-2">
                 <span className="flex flex-wrap items-center gap-2">

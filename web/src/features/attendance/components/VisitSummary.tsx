@@ -24,18 +24,26 @@ import { daysUntil, expiringDaysThreshold, lowSessionsThreshold } from "../renew
  *
  * At check-out it also lists what the visit bought from the cafe (`attendanceId`), so the member
  * hears what is on their account before they leave (BUSINESS_RULES.md §8).
+ *
+ * A guest (`memberId` null) has no plan and no account (§7 *Guest visit*): only the visit's
+ * purchases are listed.
  */
 export function VisitSummary({
   memberId,
   attendanceId,
   withSessions = true,
 }: {
-  memberId: string;
+  /** `null` for a guest. */
+  memberId: string | null;
   /** The visit being closed, whose cafe purchases are listed; omitted at check-in. */
   attendanceId?: string;
   /** False where the caller already shows the sessions (the locker's box, with its bar). */
   withSessions?: boolean;
 }) {
+  if (memberId === null) {
+    return attendanceId === undefined ? null : <VisitPurchases attendanceId={attendanceId} />;
+  }
+
   return (
     <div className="space-y-3">
       <SubscriptionLine memberId={memberId} withSessions={withSessions} />

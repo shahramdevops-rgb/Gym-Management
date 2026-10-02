@@ -39,7 +39,7 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
 
-        using var response = await CreateAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        using var response = await CreateAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var order = (await response.Content.ReadFromJsonAsync<CafeOrderResponse>(
@@ -56,7 +56,7 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
         await PostOkAsync(client, token, $"/api/attendance/{visit.Id}/check-out");
 
-        using var response = await CreateAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        using var response = await CreateAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.ReadErrorCodeAsync()).ShouldBe("CafeOrders.VisitNotOpen");
@@ -100,7 +100,7 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
 
-        var order = await CreateOkAsync(client, token, visit.MemberId, attendanceId: null, water.Id);
+        var order = await CreateOkAsync(client, token, visit.MemberId!.Value, attendanceId: null, water.Id);
 
         order.AttendanceId.ShouldBe(visit.Id);
         var board = await GetOkAsync<PagedResponse<CurrentlyInsideResponse>>(
@@ -116,7 +116,7 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
         await PostOkAsync(client, token, $"/api/attendance/{visit.Id}/check-out");
 
-        var order = await CreateOkAsync(client, token, visit.MemberId, attendanceId: null, water.Id);
+        var order = await CreateOkAsync(client, token, visit.MemberId!.Value, attendanceId: null, water.Id);
 
         order.AttendanceId.ShouldBeNull();
         order.Outstanding.ShouldBe(15_000m);
@@ -128,8 +128,8 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
-        var kept = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
-        var cancelled = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        var kept = await CreateOkAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
+        var cancelled = await CreateOkAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
         await PostOkAsync(client, token, $"{OrdersPath}/{cancelled.Id}/cancel", new { reason = "اشتباه" });
 
         var board = await GetOkAsync<PagedResponse<CurrentlyInsideResponse>>(
@@ -147,8 +147,8 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
         var otherVisit = await CheckedInMemberAsync(client, token);
-        var duringVisit = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
-        await CreateOkAsync(client, token, otherVisit.MemberId, otherVisit.Id, water.Id);
+        var duringVisit = await CreateOkAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
+        await CreateOkAsync(client, token, otherVisit.MemberId!.Value, otherVisit.Id, water.Id);
 
         var page = await GetOkAsync<PagedResponse<CafeOrderResponse>>(
             client, token, $"{OrdersPath}?attendanceId={visit.Id}");
@@ -164,7 +164,7 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
-        var order = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        var order = await CreateOkAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
 
         await PostOkAsync(client, token, CancelPath(visit.Id), CancelCheckInBody.KeepPurchases);
 
@@ -184,8 +184,8 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
-        var ticked = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
-        var kept = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        var ticked = await CreateOkAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
+        var kept = await CreateOkAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
         await PostOkAsync(client, token, $"{OrdersPath}/{ticked.Id}/payments", new { amount = 10_000m, method = "Card" });
 
         await PostOkAsync(client, token, CancelPath(visit.Id), CancelCheckInBody.Cancel(voidCardio: false, ticked.Id));
@@ -211,8 +211,8 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
         var otherVisit = await CheckedInMemberAsync(client, token);
-        var own = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
-        var someoneElses = await CreateOkAsync(client, token, otherVisit.MemberId, otherVisit.Id, water.Id);
+        var own = await CreateOkAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
+        var someoneElses = await CreateOkAsync(client, token, otherVisit.MemberId!.Value, otherVisit.Id, water.Id);
 
         using var response = await SendAsync(
             client, token, HttpMethod.Post, CancelPath(visit.Id), CancelCheckInBody.Cancel(voidCardio: true, own.Id, someoneElses.Id));
@@ -231,7 +231,7 @@ public sealed class VisitCafeOrderEndpointTests(DatabaseFixture fixture) : Datab
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
         var water = await AddProductAsync(client, token, "آب معدنی", 15_000m);
-        var order = await CreateOkAsync(client, token, visit.MemberId, visit.Id, water.Id);
+        var order = await CreateOkAsync(client, token, visit.MemberId!.Value, visit.Id, water.Id);
         await PostOkAsync(client, token, $"{OrdersPath}/{order.Id}/cancel", new { reason = "اشتباه" });
 
         using var response = await SendAsync(

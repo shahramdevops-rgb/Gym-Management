@@ -6,7 +6,11 @@ using Gym.Domain.Payments;
 namespace Gym.Application.Cafe;
 
 /// <param name="MemberId"><c>null</c> for a walk-in customer (BUSINESS_RULES.md §8).</param>
-/// <param name="AttendanceId">The visit it was bought during, or <c>null</c> for an order from the till.</param>
+/// <param name="AttendanceId">The visit it was bought during, or <c>null</c> for a buyer who was not inside.</param>
+/// <param name="GuestName">
+/// The guest's name when the order is on a guest's visit (BUSINESS_RULES.md §7 <i>Guest visit</i>):
+/// no member, and no walk-in either, because it may be unpaid. <c>null</c> otherwise.
+/// </param>
 /// <param name="NetPaid">Payments less refunds, calculated — there is no paid column.</param>
 /// <param name="PaymentStatus">
 /// Unpaid, Partial or Paid, worked out from <see cref="TotalAmount"/> and <see cref="NetPaid"/>
@@ -20,6 +24,7 @@ public sealed record CafeOrderResponse(
     Guid Id,
     Guid? MemberId,
     string? MemberFullName,
+    string? GuestName,
     Guid? AttendanceId,
     decimal TotalAmount,
     DateOnly OrderedOn,
@@ -33,7 +38,7 @@ public sealed record CafeOrderResponse(
     DateTimeOffset CreatedAt,
     IReadOnlyList<CafeOrderItemResponse> Items)
 {
-    public static CafeOrderResponse From(CafeOrder order, string? memberFullName, decimal netPaid)
+    public static CafeOrderResponse From(CafeOrder order, string? memberFullName, decimal netPaid, string? guestName = null)
     {
         ArgumentNullException.ThrowIfNull(order);
 
@@ -41,6 +46,7 @@ public sealed record CafeOrderResponse(
             order.Id,
             order.MemberId,
             memberFullName,
+            guestName,
             order.AttendanceId,
             order.TotalAmount,
             order.OrderedOn,

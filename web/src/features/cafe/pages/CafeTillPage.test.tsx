@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
+import { currentlyInsidePage, guestInsideRow, guestVisit } from "@/test/attendance";
 import { cafePage, orderOnAccount, proteinShake, walkInOrder, water } from "@/test/cafe";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { membersPage, reza } from "@/test/members";
@@ -224,5 +225,43 @@ describe("CafeTillPage", () => {
 
     await waitFor(() => expect(router.state.location.search).toBe(`?member=${reza.id}`));
     expect(await screen.findByRole("button", { name: "مشتری آزاد" })).toBeInTheDocument();
+  });
+
+  it("Till_GuestInsideChosen_PutsTheOrderOnTheirVisitWithNoMember", async () => {
+    // A guest the gym let in (BUSINESS_RULES.md §7 *Guest visit*): listed under the search, and
+    // their order goes on their visit under their name, unpaid until they leave.
+    const visit = guestVisit("مریم احمدی");
+    const api = mockApi({
+      ...menu,
+      "GET /api/attendance/currently-inside": () => currentlyInsidePage([guestInsideRow(visit)]),
+      "POST /api/cafe/orders": () =>
+        json(201, {
+          ...orderOnAccount,
+          memberId: null,
+          memberFullName: null,
+          guestName: "مریم احمدی",
+          attendanceId: visit.id,
+        }),
+    });
+    renderApp("/cafe", { session: session() });
+
+    const guests = await screen.findByRole("region", { name: "مهمان‌های داخل باشگاه" });
+    fireEvent.click(within(guests).getByRole("button", { name: /مریم احمدی/ }));
+    expect(await screen.findByText("مهمان · کمد ۳")).toBeInTheDocument();
+    await screen.findByRole("region", { name: "نوشیدنی" });
+    fireEvent.click(productButton("شیک پروتئین"));
+    fireEvent.change(screen.getByLabelText("مبلغ دریافتی (تومان)"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "ثبت سفارش" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "۱۲۰٬۰۰۰ تومان به نام مریم احمدی ماند و پیش از خروج تسویه می‌شود.",
+    );
+    const [request] = api.requestsTo("POST", "/api/cafe/orders");
+    expect(await request!.json()).toEqual({
+      memberId: null,
+      attendanceId: visit.id,
+      items: [{ productId: proteinShake.id, quantity: 1 }],
+      payment: null,
+    });
   });
 });

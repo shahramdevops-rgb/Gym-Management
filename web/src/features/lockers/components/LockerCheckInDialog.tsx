@@ -1,4 +1,4 @@
-import { CheckCircle2, History, Search, UserPlus } from "lucide-react";
+import { CheckCircle2, History, Search, UserPlus, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
@@ -12,11 +12,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useCheckIn, type Attendance } from "@/features/attendance/api";
+import { useCheckIn, useGuestCheckIn, type Attendance } from "@/features/attendance/api";
 import type { DeskMember } from "@/features/attendance/components/CheckInOutDialog";
 import { CloseButton, ConfirmButtons, LockerBox } from "@/features/attendance/components/deskParts";
 import { SaleAtCheckInOffer } from "@/features/attendance/components/SaleAtCheckInOffer";
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
+import { guestLabel } from "@/features/attendance/holder";
 import { canSellPlanForToday, isMissingSubscription } from "@/features/attendance/saleAtCheckIn";
 import { useCreateMember, useMemberList, type Member } from "@/features/members/api";
 import { useCurrentSubscription } from "@/features/subscriptions/api";
@@ -30,6 +31,7 @@ import { normalizeInput } from "@/lib/normalize";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 
 import { useSetLockerOutOfService, type Locker } from "../api";
+import { GuestNameForm } from "./GuestNameForm";
 import { LockerTodayHistory } from "./LockerTodayHistory";
 
 /** Long enough to skip the keys of one word, short enough to feel immediate (the same as the search screen). */
@@ -47,6 +49,9 @@ type Sold = "nothing" | "singleVisit" | "plan";
 type Step =
   | { kind: "search" }
   | { kind: "register"; text: string }
+  /** «ورود مهمان»: a name and nothing else (BUSINESS_RULES.md §7 *Guest visit*). */
+  | { kind: "guest" }
+  | { kind: "guestCheckedIn"; attendance: Attendance }
   | { kind: "confirm"; member: DeskMember }
   | { kind: "checkedIn"; member: DeskMember; attendance: Attendance; sold: Sold }
   | {
@@ -86,6 +91,9 @@ interface LockerCheckInDialogProps {
  * A member who is already inside is marked in the results, and choosing them shows why not and
  * sends nothing; the API would refuse it anyway (`Attendance.AlreadyCheckedIn`).
  *
+ * A guest the gym lets in for free (BUSINESS_RULES.md §7 *Guest visit*) is the third way in, beside
+ * finding and registering a member: «ورود مهمان» asks for their full name and nothing else.
+ *
  * For a locker (not a reserve place), the box also shows who had it today, before a member is
  * chosen (BUSINESS_RULES.md §6 *Who had a locker today*).
  *
@@ -97,10 +105,11 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
   const lockerId = place.kind === "locker" ? place.locker.id : null;
 
   const checkIn = useCheckIn();
+  const guestCheckIn = useGuestCheckIn();
   const createMember = useCreateMember();
   const setOutOfService = useSetLockerOutOfService();
   const [outOfServiceError, setOutOfServiceError] = useState<string | null>(null);
-  const busy = checkIn.isPending || setOutOfService.isPending;
+  const busy = checkIn.isPending || guestCheckIn.isPending || setOutOfService.isPending;
   // Which request is in flight: the single-visit button shows its own "در حال ثبت…".
   const sellingSingleVisit = checkIn.isPending && checkIn.variables?.sale?.kind === "SingleVisit";
 
@@ -151,6 +160,12 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
     setStep({ kind: "checkedIn", member, attendance, sold: "plan" });
   }
 
+  /** A rejection is left to the name form, which shows it under the field or above its button. */
+  async function letGuestIn(guestName: string) {
+    const attendance = await guestCheckIn.mutateAsync({ guestName, lockerId });
+    setStep({ kind: "guestCheckedIn", attendance });
+  }
+
   async function takeOutOfService(locker: Locker) {
     setOutOfServiceError(null);
     try {
@@ -188,6 +203,12 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               onChoose={(member) => setStep({ kind: "confirm", member })}
               onRegister={(text) => setStep({ kind: "register", text })}
             />
+            <div className="flex">
+              <Button size="sm" variant="outline" onClick={() => setStep({ kind: "guest" })}>
+                <UserRound aria-hidden />
+                ورود مهمان
+              </Button>
+            </div>
             {place.kind === "locker" && (
               <div className="space-y-2 border-t pt-3">
                 {outOfServiceError !== null && (
@@ -240,6 +261,35 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
                 </Button>
               }
             />
+          </>
+        )}
+
+        {step.kind === "guest" && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{title} — ورود مهمان</DialogTitle>
+              <DialogDescription>
+                برای کسی که باشگاه رایگان راه می‌دهد: فقط نام او ثبت می‌شود؛ جلسه‌ای کم نمی‌شود و
+                چیزی فروخته نمی‌شود.
+              </DialogDescription>
+            </DialogHeader>
+            <GuestNameForm onSubmit={letGuestIn} onBack={() => setStep({ kind: "search" })} />
+          </>
+        )}
+
+        {step.kind === "guestCheckedIn" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-success">
+                <CheckCircle2 className="size-5" aria-hidden />
+                ورود مهمان ثبت شد
+              </DialogTitle>
+              <DialogDescription>
+                {step.attendance.guestName} · {guestLabel}
+              </DialogDescription>
+            </DialogHeader>
+            <LockerBox number={step.attendance.lockerNumber} />
+            <CloseButton onClose={onClose} />
           </>
         )}
 

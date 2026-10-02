@@ -39,9 +39,9 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
 
-        using var response = await SettleAsync(client, token, visit.MemberId, Everything, debt.Items, method: "Card");
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, Everything, debt.Items, method: "Card");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var settlement = await ReadAsync(response);
@@ -55,7 +55,7 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
             (PaymentTargetKind.Subscription, PlanPrice, 0m),
         ]);
 
-        (await GetDebtOkAsync(client, token, visit.MemberId)).Total.ShouldBe(0m);
+        (await GetDebtOkAsync(client, token, visit.MemberId!.Value)).Total.ShouldBe(0m);
     }
 
     [Fact]
@@ -63,9 +63,9 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
 
-        using var response = await SettleAsync(client, token, visit.MemberId, Everything, debt.Items, reference: "ref-7");
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, Everything, debt.Items, reference: "ref-7");
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var stored = await StoredPaymentsAsync((await ReadAsync(response)).Payments.Select(payment => payment.PaymentId));
@@ -83,9 +83,9 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
 
-        using var response = await SettleAsync(client, token, visit.MemberId, 100_000m, debt.Items);
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, 100_000m, debt.Items);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var settlement = await ReadAsync(response);
@@ -97,7 +97,7 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
         ]);
         settlement.RemainingDebt.ShouldBe(Everything - 100_000m);
 
-        var after = await GetDebtOkAsync(client, token, visit.MemberId);
+        var after = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
         after.Items.ShouldHaveSingleItem().Kind.ShouldBe(PaymentTargetKind.Subscription);
         after.Items.Single().Outstanding.ShouldBe(PlanPrice - 30_000m);
     }
@@ -107,14 +107,14 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
         var ticked = debt.Items.Where(item => item.Kind != PaymentTargetKind.Subscription).ToList();
 
-        using var response = await SettleAsync(client, token, visit.MemberId, CardioAmount + DrinkPrice, ticked);
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, CardioAmount + DrinkPrice, ticked);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await ReadAsync(response)).RemainingDebt.ShouldBe(PlanPrice);
-        var after = await GetDebtOkAsync(client, token, visit.MemberId);
+        var after = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
         after.Items.ShouldHaveSingleItem().Outstanding.ShouldBe(PlanPrice);
     }
 
@@ -123,14 +123,14 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
         var drinkOnly = debt.Items.Where(item => item.Kind == PaymentTargetKind.CafeOrder).ToList();
 
-        using var response = await SettleAsync(client, token, visit.MemberId, DrinkPrice + 1m, drinkOnly);
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, DrinkPrice + 1m, drinkOnly);
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.ReadErrorCodeAsync()).ShouldBe("Payments.Overpayment");
-        (await GetDebtOkAsync(client, token, visit.MemberId)).Total.ShouldBe(Everything);
+        (await GetDebtOkAsync(client, token, visit.MemberId!.Value)).Total.ShouldBe(Everything);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
-        var shown = await GetDebtOkAsync(client, token, visit.MemberId);
+        var shown = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
         var drink = shown.Items.Single(item => item.Kind == PaymentTargetKind.CafeOrder);
         using (var paid = await SendAsync(client, token, HttpMethod.Post, $"/api/cafe/orders/{drink.Id}/payments",
             new { amount = 10_000m, method = "Cash" }))
@@ -146,11 +146,11 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
             paid.StatusCode.ShouldBe(HttpStatusCode.Created);
         }
 
-        using var response = await SettleAsync(client, token, visit.MemberId, Everything, shown.Items);
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, Everything, shown.Items);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await response.ReadErrorCodeAsync()).ShouldBe("Settlements.DebtChanged");
-        (await GetDebtOkAsync(client, token, visit.MemberId)).Total.ShouldBe(Everything - 10_000m);
+        (await GetDebtOkAsync(client, token, visit.MemberId!.Value)).Total.ShouldBe(Everything - 10_000m);
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
-        var shown = await GetDebtOkAsync(client, token, visit.MemberId);
+        var shown = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
         var cardio = shown.Items.Single(item => item.Kind == PaymentTargetKind.ServiceCharge);
         using (var voided = await SendAsync(client, token, HttpMethod.Post, $"/api/service-charges/{cardio.Id}/void",
             new { reason = "اشتباه" }))
@@ -166,7 +166,7 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
             voided.StatusCode.ShouldBe(HttpStatusCode.OK);
         }
 
-        using var response = await SettleAsync(client, token, visit.MemberId, Everything, shown.Items);
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, Everything, shown.Items);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await response.ReadErrorCodeAsync()).ShouldBe("Settlements.DebtChanged");
@@ -178,13 +178,13 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
         var other = await VisitWithThreeItemsAsync(client, token);
-        var othersDebt = await GetDebtOkAsync(client, token, other.MemberId);
+        var othersDebt = await GetDebtOkAsync(client, token, other.MemberId!.Value);
 
-        using var response = await SettleAsync(client, token, visit.MemberId, Everything, othersDebt.Items);
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, Everything, othersDebt.Items);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await response.ReadErrorCodeAsync()).ShouldBe("Settlements.DebtChanged");
-        (await GetDebtOkAsync(client, token, other.MemberId)).Total.ShouldBe(Everything);
+        (await GetDebtOkAsync(client, token, other.MemberId!.Value)).Total.ShouldBe(Everything);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
 
-        using var response = await SettleAsync(client, token, visit.MemberId, 10_000m, []);
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, 10_000m, []);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
@@ -206,7 +206,7 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
 
         using var response = await SettleAsync(client, token, Guid.CreateVersion7(), Everything, debt.Items);
 
@@ -223,10 +223,10 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
     {
         var (client, token) = await StaffClientAsync();
         var visit = await VisitWithThreeItemsAsync(client, token);
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
 
         var responses = await Task.WhenAll(
-            Enumerable.Range(0, 4).Select(_ => SettleAsync(client, token, visit.MemberId, Everything, debt.Items)));
+            Enumerable.Range(0, 4).Select(_ => SettleAsync(client, token, visit.MemberId!.Value, Everything, debt.Items)));
 
         try
         {
@@ -241,7 +241,7 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
             }
         }
 
-        (await StoredPaymentsForMemberAsync(visit.MemberId)).Sum(payment => payment.Amount).ShouldBe(Everything);
+        (await StoredPaymentsForMemberAsync(visit.MemberId!.Value)).Sum(payment => payment.Amount).ShouldBe(Everything);
     }
 
     // ---- Helpers ----

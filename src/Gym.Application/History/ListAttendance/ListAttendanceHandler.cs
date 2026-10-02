@@ -9,7 +9,8 @@ namespace Gym.Application.History.ListAttendance;
 /// Every check-in in the gym, newest first (BUSINESS_RULES.md §12 <i>History</i>, roadmap 6.5.25),
 /// with who recorded it. No date limit for either role. Cancelled and auto-closed visits are
 /// listed and marked, the same choice a member's own visit history makes: this is the record of
-/// what happened at the desk, not the attendance figure the reports count.
+/// what happened at the desk, not the attendance figure the reports count. Guests' visits are
+/// listed too, under the name typed at the desk; the reports count them nowhere (§7 <i>Guest visit</i>).
 /// </summary>
 public sealed class ListAttendanceHandler(IAppDbContext db, IGymCalendar calendar, IUserNames users)
 {
@@ -51,6 +52,7 @@ public sealed class ListAttendanceHandler(IAppDbContext db, IGymCalendar calenda
             {
                 attendance.Id,
                 attendance.MemberId,
+                attendance.GuestName,
                 MemberFullName = db.Members
                     .Where(member => member.Id == attendance.MemberId)
                     .Select(member => member.FullName)
@@ -76,7 +78,8 @@ public sealed class ListAttendanceHandler(IAppDbContext db, IGymCalendar calenda
             .Select(row => new HistoryAttendanceResponse(
                 row.Id,
                 row.MemberId,
-                row.MemberFullName ?? string.Empty,
+                row.MemberFullName,
+                row.GuestName,
                 row.LockerNumber,
                 row.UsesReservePlace,
                 row.CheckedInAt,

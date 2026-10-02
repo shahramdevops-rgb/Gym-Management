@@ -98,6 +98,14 @@ public sealed class ListPaymentsHandler(
                     .Where(order => order.Id == payment.CafeOrderId)
                     .Select(order => order.MemberId)
                     .FirstOrDefault(),
+                // A guest's cafe order names their visit and no member (§8): the name is on the visit.
+                GuestName = db.CafeOrders
+                    .Where(order => order.Id == payment.CafeOrderId)
+                    .Select(order => db.Attendances
+                        .Where(attendance => attendance.Id == order.AttendanceId)
+                        .Select(attendance => attendance.GuestName)
+                        .FirstOrDefault())
+                    .FirstOrDefault(),
                 SubscriptionPlan = db.Subscriptions
                     .Where(subscription => subscription.Id == payment.SubscriptionId)
                     .Select(subscription => new PlanSummary(
@@ -149,6 +157,7 @@ public sealed class ListPaymentsHandler(
                 row.Payment.SubscriptionId ?? row.Payment.ServiceChargeId ?? row.Payment.CafeOrderId!.Value,
                 row.MemberId,
                 row.MemberId is { } id ? memberNames.GetValueOrDefault(id) : null,
+                row.Payment.GuestName,
                 row.Payment.SubscriptionPlan,
                 row.Payment.ServiceKind,
                 row.Payment.Kind,

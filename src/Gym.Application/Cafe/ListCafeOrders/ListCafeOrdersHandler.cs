@@ -1,6 +1,7 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Paging;
 using Gym.Application.Payments;
+using Gym.Domain.Payments;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +30,20 @@ public sealed class ListCafeOrdersHandler(IAppDbContext db)
         if (query.AttendanceId is { } attendanceId)
         {
             orders = orders.Where(order => order.AttendanceId == attendanceId);
+        }
+
+        // A guest's orders left unpaid when the nightly job closed their visit, still to be paid or
+        // cancelled with a reason (BUSINESS_RULES.md §7 Guest visit). "Unpaid" is payments less
+        // refunds below the total, the same sum PaymentLedger makes, written here so the page and
+        // its count stay one query each.
+        if (query.UnpaidGuest == true)
+        {
+            orders = orders.Where(order => order.MemberId == null
+                && order.AttendanceId != null
+                && order.CancelledAt == null
+                && db.Payments
+                    .Where(payment => payment.CafeOrderId == order.Id)
+                    .Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount) < order.TotalAmount);
         }
 
         // By the business date the order carries, not by the moment it was created: "the orders of
@@ -65,12 +80,14 @@ public sealed class ListCafeOrdersHandler(IAppDbContext db)
             .ToDictionaryAsync(member => member.Id, member => member.FullName, cancellationToken);
 
         var netPaidByOrder = await PaymentLedger.GetNetPaidForCafeOrdersAsync(db, orderIds, cancellationToken);
+        var guestNames = await CafeOrderGuests.NamesByVisitAsync(db, page, cancellationToken);
 
         var items = page
             .Select(order => CafeOrderResponse.From(
                 order,
                 order.MemberId is { } id ? memberNames.GetValueOrDefault(id) : null,
-                netPaidByOrder.GetValueOrDefault(order.Id)))
+                netPaidByOrder.GetValueOrDefault(order.Id),
+                CafeOrderGuests.For(guestNames, order)))
             .ToList();
 
         return new PagedResponse<CafeOrderResponse>(items, query.Page, query.PageSize, totalCount);

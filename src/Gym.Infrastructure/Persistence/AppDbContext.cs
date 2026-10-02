@@ -84,6 +84,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         return Database.ExecuteSqlAsync($"SELECT 1 FROM members WHERE id = {memberId} FOR UPDATE", cancellationToken);
     }
 
+    /// <summary>The same row lock as <see cref="LockMemberAsync"/>, on one visit.</summary>
+    public Task LockAttendanceAsync(Guid attendanceId, CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("A row lock outside a transaction is released at once; begin one first.");
+        }
+
+        return Database.ExecuteSqlAsync($"SELECT 1 FROM attendances WHERE id = {attendanceId} FOR UPDATE", cancellationToken);
+    }
+
     /// <inheritdoc cref="IAppDbContext.DeferSubscriptionOverlapCheckAsync"/>
     public Task DeferSubscriptionOverlapCheckAsync(CancellationToken cancellationToken)
     {

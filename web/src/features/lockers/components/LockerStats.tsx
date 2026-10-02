@@ -6,19 +6,20 @@ import { cn } from "@/lib/utils";
 import type { Locker } from "../api";
 import { lockerState, lockerStateLabel, type LockerState } from "../lockerState";
 
-const states = ["free", "occupied", "outOfService"] as const;
+const states = ["free", "occupied", "guest", "outOfService"] as const;
 
 /** A small door, drawn the way the map draws that state, for the legend. */
 const swatchClass: Record<LockerState, string> = {
   free: "border-e-success",
   occupied: "border-e-destructive bg-door-held",
+  guest: "border-e-guest bg-door-guest",
   outOfService:
     "bg-[repeating-linear-gradient(135deg,var(--door-hatch)_0_2px,var(--door)_2px_4px)]",
 };
 
 /**
  * The strip above the map (BUSINESS_RULES.md §6 *The desk screen's look*): how many lockers are
- * free, occupied and out of service, each beside a small door drawn like the map draws it, and what
+ * free, occupied, held by a guest and out of service, each beside a small door drawn like the map draws it, and what
  * the «بدهکار» tag and the long-stay bar mean.
  *
  * It is the map's legend too. `tools` sits at its other end, on the same row: the page puts the
@@ -35,7 +36,7 @@ export function LockerStats({
   /** Drawn instead of the counts and their legend; absent for the map as usual. */
   legend?: ReactNode;
 }) {
-  const counts: Record<LockerState, number> = { free: 0, occupied: 0, outOfService: 0 };
+  const counts: Record<LockerState, number> = { free: 0, occupied: 0, guest: 0, outOfService: 0 };
   for (const locker of lockers) {
     counts[lockerState(locker)] += 1;
   }
