@@ -42,27 +42,28 @@ public sealed class ListMemberPaymentsHandler(IAppDbContext db)
 
         var totalCount = await payments.CountAsync(cancellationToken);
 
-        var items = await payments
+        var page = await payments
             .OrderByDescending(payment => payment.PaidAt)
             .ThenBy(payment => payment.Id)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(payment => new PaymentHistoryResponse(
+            .Select(payment => new
+            {
                 payment.Id,
-                payment.SubscriptionId != null
+                TargetKind = payment.SubscriptionId != null
                     ? PaymentTargetKind.Subscription
                     : payment.ServiceChargeId != null ? PaymentTargetKind.ServiceCharge : PaymentTargetKind.CafeOrder,
-                payment.SubscriptionId != null
+                TargetId = payment.SubscriptionId != null
                     ? payment.SubscriptionId!.Value
                     : payment.ServiceChargeId != null ? payment.ServiceChargeId!.Value : payment.CafeOrderId!.Value,
                 // A plan has no name (BUSINESS_RULES.md §3): the row carries its numbers and the
                 // frontend labels it.
-                db.Subscriptions
+                SubscriptionPlan = db.Subscriptions
                     .Where(subscription => subscription.Id == payment.SubscriptionId)
                     .Select(subscription => new PlanSummary(
                         subscription.DurationDays, subscription.TotalSessions, subscription.IsSingleSession))
                     .FirstOrDefault(),
-                db.ServiceCharges
+                ServiceKind = db.ServiceCharges
                     .Where(charge => charge.Id == payment.ServiceChargeId)
                     .Select(charge => (Domain.ServiceCharges.ServiceChargeKind?)charge.Kind)
                     .FirstOrDefault(),
@@ -73,8 +74,38 @@ public sealed class ListMemberPaymentsHandler(IAppDbContext db)
                 payment.PaidAt,
                 payment.ReceivedByUserId,
                 payment.Reason,
-                payment.CreatedAt))
+                payment.CreatedAt,
+                payment.SettlementId,
+                // The whole handover's figures, as in the gym's history. A CASE, so a payment taken
+                // on its own never runs the subqueries.
+                SettlementTotal = payment.SettlementId == null
+                    ? (decimal?)null
+                    : db.Payments.Where(other => other.SettlementId == payment.SettlementId).Sum(other => other.Amount),
+                SettlementItemCount = payment.SettlementId == null
+                    ? (int?)null
+                    : db.Payments.Count(other => other.SettlementId == payment.SettlementId),
+            })
             .ToListAsync(cancellationToken);
+
+        var items = page
+            .Select(row => new PaymentHistoryResponse(
+                row.Id,
+                row.TargetKind,
+                row.TargetId,
+                row.SubscriptionPlan,
+                row.ServiceKind,
+                row.Kind,
+                row.Amount,
+                row.Method,
+                row.ReferenceNumber,
+                row.PaidAt,
+                row.ReceivedByUserId,
+                row.Reason,
+                row.CreatedAt,
+                row.SettlementId is { } settlementId
+                    ? new SettlementSummary(settlementId, row.SettlementTotal!.Value, row.SettlementItemCount!.Value)
+                    : null))
+            .ToList();
 
         return new PagedResponse<PaymentHistoryResponse>(items, query.Page, query.PageSize, totalCount);
     }

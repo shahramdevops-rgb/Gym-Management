@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 
+using Gym.Application.Payments;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
@@ -28,6 +29,10 @@ namespace Gym.Application.History.ListPayments;
 /// taken. The row stays, marked, so the refund that gave it back reads beside it.
 /// </param>
 /// <param name="ReceivedByFullName">Who took the money or gave it back.</param>
+/// <param name="Settlement">
+/// The «تسویه یکجا» this payment was one row of, so the screen can show its rows together;
+/// <c>null</c> for money taken on its own and for every refund.
+/// </param>
 public sealed record HistoryPaymentResponse(
     Guid Id,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentTargetKind>))] PaymentTargetKind Source,
@@ -44,4 +49,5 @@ public sealed record HistoryPaymentResponse(
     string? Reason,
     DateTimeOffset PaidAt,
     bool TargetUndone,
-    string? ReceivedByFullName);
+    string? ReceivedByFullName,
+    SettlementSummary? Settlement);

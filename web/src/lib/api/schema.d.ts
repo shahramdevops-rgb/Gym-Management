@@ -1390,6 +1390,7 @@ export interface components {
             paidAt: string;
             targetUndone: boolean;
             receivedByFullName: null | string;
+            settlement: null | components["schemas"]["SettlementSummary"];
         };
         HistoryServiceChargeResponse: {
             /** Format: uuid */
@@ -1687,6 +1688,7 @@ export interface components {
             reason: null | string;
             /** Format: date-time */
             createdAt: string;
+            settlement: null | components["schemas"]["SettlementSummary"];
         };
         /** @enum {unknown} */
         PaymentKind: "Payment" | "Refund";
@@ -1868,6 +1870,14 @@ export interface components {
             payments: components["schemas"]["SettlementPaymentResponse"][];
             /** Format: double */
             remainingDebt: number | string;
+        };
+        SettlementSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            total: number | string;
+            /** Format: int32 */
+            itemCount: number | string;
         };
         StaffResponse: {
             /** Format: uuid */

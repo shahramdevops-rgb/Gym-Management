@@ -1473,6 +1473,34 @@ it, and Staff can see payments from the last 3 days and every check-in and هو�
 Closed 2026-10-03, with the guest rows, after merging 6.5.11: 1363 backend tests and 736 frontend
 tests green, zero warnings (the build's chunk-size note predates this task).
 
+### 6.5.26 A settlement's rows together in the payment history (ردیف‌های تسویه یکجا کنار هم)
+Asked by the developer on 1405/07/11 (2026-10-03), from a screenshot: three payments made by one
+bank transfer read as three unrelated rows. Reviews the open point left by 7.5 (no record ties the
+rows of one settlement together). BUSINESS_RULES.md §5 *Settling several items at once*.
+
+Decided with the developer, same day: a `SettlementId` column rather than grouping on the shared
+moment at read time; a heading row with the total and the items one step in under it; in both
+payment histories.
+- [x] Domain: `Payment.SettlementId` and `JoinSettlement`, which refuses a refund, an empty id and a
+      second settlement (a bug if hit, so it throws)
+- [x] Both settle handlers (member debt, a guest's cafe) give every row of one handover one id
+- [x] Migration `AddPaymentSettlementId`: the nullable column, a partial index on it, the check
+      constraint `ck_payments_settlement_payment_only`, and a backfill for the settlements already
+      written (payments sharing moment, method and staff member, two or more). The backfill's ids
+      come from a `MATERIALIZED` CTE: as a plain subquery Postgres re-ran `gen_random_uuid()` per
+      joined row and gave every row its own id, which the first local run showed
+- [x] `GET /api/payments` and `GET /api/members/{id}/payments`: each row carries `Settlement`
+      (id, the whole handover's total and item count), whatever the filters let through
+- [x] Web: `groupBySettlement` gathers neighbouring rows of one settlement; `PaymentLogTable` and
+      the profile's `PaymentHistoryTable` show a heading row and the items one step in
+- [x] Tests: `JoinSettlement` (domain); one id per handover and a different one per settlement,
+      the constraint, the guest's settlement, both histories with and without a filter
+      (integration); the grouping and both tables (frontend)
+
+Closed 2026-10-03: 1372 backend tests and 741 frontend tests green, zero warnings. Checked on a
+local copy before release: the backfill turned the 4 settlements already written into 4 ids and
+left the 5 payments taken on their own without one.
+
 ---
 
 ## Phase 7 — Cafe / POS
@@ -1624,7 +1652,7 @@ BUSINESS_RULES.md §5 *Settling several items at once*.
 Closed 2026-09-26: 1017 backend tests and 510 frontend tests green, zero warnings (the build's
 chunk-size note predates this task). Two choices are Claude's and wait for review
 (BUSINESS_RULES.md §5): oldest first within one kind, and no `SettlementId` tying the rows of one
-settlement together.
+settlement together. The second was reviewed and reversed in 6.5.26.
 
 ---
 

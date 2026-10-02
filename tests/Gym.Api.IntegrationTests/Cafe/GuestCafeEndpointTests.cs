@@ -200,6 +200,8 @@ public sealed class GuestCafeEndpointTests(DatabaseFixture fixture) : DatabaseTe
             .ShouldBe([(first.Id, 15_000m), (second.Id, 40_000m)], ignoreOrder: true);
         settlement.RemainingDebt.ShouldBe(0m);
         (await GetOkAsync<CafeOrderResponse>(client, token, $"{OrdersPath}/{second.Id}")).PaymentStatus.ShouldBe(PaymentStatus.Paid);
+        (await SettlementIdsAsync(settlement.Payments.Select(payment => payment.PaymentId)))
+            .ShouldHaveSingleItem().ShouldNotBeNull();
 
         using var checkOut = await SendAsync(client, token, HttpMethod.Post, CheckOutPath(visit.Id));
         checkOut.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -301,6 +303,19 @@ public sealed class GuestCafeEndpointTests(DatabaseFixture fixture) : DatabaseTe
 
     private static object PaymentBody(decimal amount, string method = "Cash") =>
         new { amount = amount.ToString(CultureInfo.InvariantCulture), method, referenceNumber = (string?)null };
+
+    /// <summary>The distinct settlement ids of these payments: one, when they were one handover.</summary>
+    private async Task<List<Guid?>> SettlementIdsAsync(IEnumerable<Guid> paymentIds)
+    {
+        var wanted = paymentIds.ToList();
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Payments
+            .Where(payment => wanted.Contains(payment.Id))
+            .Select(payment => payment.SettlementId)
+            .Distinct()
+            .ToListAsync(TestContext.Current.CancellationToken);
+    }
 
     private async Task<bool> IsOpenAsync(Guid attendanceId)
     {

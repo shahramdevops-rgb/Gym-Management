@@ -114,6 +114,53 @@ public sealed class PaymentTests
         Payment.RegisterRefundForSubscription(SubscriptionId, 0m, PaymentMethod.Cash, null, "دلیل", UserId, PaidAt)
             .Error.ShouldBe(PaymentErrors.AmountNotPositive);
     }
+
+    [Fact]
+    public void RegisterForSubscription_OnItsOwn_IsPartOfNoSettlement()
+    {
+        Payment.RegisterForSubscription(SubscriptionId, 100m, PaymentMethod.Cash, null, UserId, PaidAt)
+            .Value.SettlementId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void JoinSettlement_APayment_RecordsTheSettlement()
+    {
+        var payment = Payment.RegisterForSubscription(SubscriptionId, 100m, PaymentMethod.Cash, null, UserId, PaidAt).Value;
+        var settlementId = Guid.CreateVersion7();
+
+        payment.JoinSettlement(settlementId);
+
+        payment.SettlementId.ShouldBe(settlementId);
+    }
+
+    [Fact]
+    public void JoinSettlement_ARefund_Throws()
+    {
+        var refund = Payment.RegisterRefundForSubscription(
+            SubscriptionId, 100m, PaymentMethod.Cash, null, "mistake", UserId, PaidAt).Value;
+
+        Should.Throw<InvalidOperationException>(() => refund.JoinSettlement(Guid.CreateVersion7()));
+        refund.SettlementId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void JoinSettlement_AlreadyInASettlement_Throws()
+    {
+        var payment = Payment.RegisterForSubscription(SubscriptionId, 100m, PaymentMethod.Cash, null, UserId, PaidAt).Value;
+        var first = Guid.CreateVersion7();
+        payment.JoinSettlement(first);
+
+        Should.Throw<InvalidOperationException>(() => payment.JoinSettlement(Guid.CreateVersion7()));
+        payment.SettlementId.ShouldBe(first);
+    }
+
+    [Fact]
+    public void JoinSettlement_EmptyId_Throws()
+    {
+        var payment = Payment.RegisterForSubscription(SubscriptionId, 100m, PaymentMethod.Cash, null, UserId, PaidAt).Value;
+
+        Should.Throw<ArgumentException>(() => payment.JoinSettlement(Guid.Empty));
+    }
 }
 
 public sealed class PaymentStatusCalculatorTests

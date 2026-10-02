@@ -65,8 +65,10 @@ public sealed class SettleGuestCafeHandler(IAppDbContext db, TimeProvider time, 
         var userId = currentUser.UserId
             ?? throw new InvalidOperationException("Settle guest cafe was called without an authenticated user.");
 
-        // One moment for every row, so the history shows them as the one handover they were.
+        // One moment and one settlement id for every row, so the history shows them as the one
+        // handover they were.
         var paidAt = time.GetUtcNow();
+        var settlementId = Guid.CreateVersion7();
         var payments = new List<SettlementPaymentResponse>();
         foreach (var order in unpaid)
         {
@@ -77,6 +79,7 @@ public sealed class SettleGuestCafeHandler(IAppDbContext db, TimeProvider time, 
                 return Result.Failure<SettlementResponse>(registered.Error);
             }
 
+            registered.Value.JoinSettlement(settlementId);
             db.Payments.Add(registered.Value);
             payments.Add(new SettlementPaymentResponse(
                 registered.Value.Id, PaymentTargetKind.CafeOrder, order.Order.Id, order.Outstanding, 0m));

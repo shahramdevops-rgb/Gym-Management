@@ -17,6 +17,8 @@ using Gym.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
+using Npgsql;
+
 namespace Gym.Api.IntegrationTests.Payments;
 
 /// <summary>
@@ -76,6 +78,46 @@ public sealed class SettlementEndpointTests(DatabaseFixture fixture) : DatabaseT
         stored.Count(payment => payment.SubscriptionId != null).ShouldBe(1);
         stored.Count(payment => payment.ServiceChargeId != null).ShouldBe(1);
         stored.Count(payment => payment.CafeOrderId != null).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Settle_TwoHandovers_EachTiesItsRowsToItsOwnSettlement()
+    {
+        var (client, token) = await StaffClientAsync();
+        var first = await VisitWithThreeItemsAsync(client, token);
+        var second = await VisitWithThreeItemsAsync(client, token);
+        var firstDebt = await GetDebtOkAsync(client, token, first.MemberId!.Value);
+        var secondDebt = await GetDebtOkAsync(client, token, second.MemberId!.Value);
+
+        using var firstResponse = await SettleAsync(client, token, first.MemberId!.Value, Everything, firstDebt.Items);
+        using var secondResponse = await SettleAsync(client, token, second.MemberId!.Value, Everything, secondDebt.Items);
+
+        var firstRows = await StoredPaymentsAsync((await ReadAsync(firstResponse)).Payments.Select(payment => payment.PaymentId));
+        var secondRows = await StoredPaymentsAsync((await ReadAsync(secondResponse)).Payments.Select(payment => payment.PaymentId));
+        var firstSettlement = firstRows.Select(payment => payment.SettlementId).Distinct().ShouldHaveSingleItem();
+        var secondSettlement = secondRows.Select(payment => payment.SettlementId).Distinct().ShouldHaveSingleItem();
+        firstSettlement.ShouldNotBeNull();
+        secondSettlement.ShouldNotBeNull();
+        firstSettlement.ShouldNotBe(secondSettlement);
+    }
+
+    [Fact]
+    public async Task Payments_RefundInASettlement_RejectedByACheckConstraint()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await VisitWithThreeItemsAsync(client, token);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
+        using var response = await SettleAsync(client, token, visit.MemberId!.Value, Everything, debt.Items);
+        var paymentId = (await ReadAsync(response)).Payments[0].PaymentId;
+
+        await using var scope = Fixture.CreateScope();
+        var exception = await Should.ThrowAsync<PostgresException>(() =>
+            scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlAsync(
+                $"UPDATE payments SET kind = 'Refund', reason = 'test' WHERE id = {paymentId}",
+                TestContext.Current.CancellationToken));
+
+        exception.SqlState.ShouldBe("23514");
+        exception.ConstraintName.ShouldBe("ck_payments_settlement_payment_only");
     }
 
     [Fact]

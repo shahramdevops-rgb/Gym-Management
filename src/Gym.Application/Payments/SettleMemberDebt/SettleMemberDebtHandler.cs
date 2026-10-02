@@ -66,8 +66,10 @@ public sealed class SettleMemberDebtHandler(IAppDbContext db, TimeProvider time,
         var userId = currentUser.UserId
             ?? throw new InvalidOperationException("Settle member debt was called without an authenticated user.");
 
-        // One moment for every row, so the history shows them as the one handover they were.
+        // One moment and one settlement id for every row, so the history shows them as the one
+        // handover they were.
         var paidAt = time.GetUtcNow();
+        var settlementId = Guid.CreateVersion7();
         var payments = new List<SettlementPaymentResponse>();
         foreach (var share in allocated.Value)
         {
@@ -77,6 +79,7 @@ public sealed class SettleMemberDebtHandler(IAppDbContext db, TimeProvider time,
                 return Result.Failure<SettlementResponse>(registered.Error);
             }
 
+            registered.Value.JoinSettlement(settlementId);
             db.Payments.Add(registered.Value);
             payments.Add(new SettlementPaymentResponse(
                 registered.Value.Id, share.Item.Kind, share.Item.Id, share.Amount, share.Item.Outstanding - share.Amount));

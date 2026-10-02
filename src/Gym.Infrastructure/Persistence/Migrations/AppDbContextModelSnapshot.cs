@@ -1554,6 +1554,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("service_charge_id");
 
+                    b.Property<Guid?>("SettlementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("settlement_id");
+
                     b.Property<Guid?>("SubscriptionId")
                         .HasColumnType("uuid")
                         .HasColumnName("subscription_id");
@@ -1578,6 +1582,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasIndex("ServiceChargeId")
                         .HasDatabaseName("ix_payments_service_charge_id");
 
+                    b.HasIndex("SettlementId")
+                        .HasDatabaseName("ix_payments_settlement_id")
+                        .HasFilter("settlement_id IS NOT NULL");
+
                     b.HasIndex("SubscriptionId")
                         .HasDatabaseName("ix_payments_subscription_id");
 
@@ -1588,6 +1596,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_payments_one_target", "num_nonnulls(subscription_id, cafe_order_id, service_charge_id) = 1");
 
                             t.HasCheckConstraint("ck_payments_refund_reason", "kind = 'Payment' OR reason IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_payments_settlement_payment_only", "settlement_id IS NULL OR kind = 'Payment'");
                         });
                 });
 

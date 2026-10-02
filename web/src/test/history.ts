@@ -72,6 +72,7 @@ export const planPayment: HistoryPayment = {
   paidAt: "2026-10-02T06:10:00Z",
   targetUndone: true,
   receivedByFullName: "سارا رضایی",
+  settlement: null,
 };
 
 export const planRefund: HistoryPayment = {
@@ -126,4 +127,31 @@ export const voidedCardio: HistoryServiceCharge = {
   voidedAt: "2026-10-02T06:20:00Z",
   voidReason: "صفر اضافه",
   voidedByFullName: "مدیر باشگاه",
+};
+
+/** The two rows of one «تسویه یکجا» (BUSINESS_RULES.md §5): a single visit and a drink, one transfer. */
+const transferSettlement = {
+  id: "0199a000-0000-7000-8000-0000000000a9",
+  total: 240000,
+  itemCount: 2,
+};
+
+export const settledVisitPayment: HistoryPayment = {
+  ...planPayment,
+  id: "0199a000-0000-7000-8000-0000000000e5",
+  subscriptionPlan: { durationDays: 1, totalSessions: 1, isSingleSession: true },
+  amount: 180000,
+  method: "BankTransfer",
+  paidAt: "2026-10-02T09:00:00Z",
+  targetUndone: false,
+  settlement: transferSettlement,
+};
+
+export const settledCafePayment: HistoryPayment = {
+  ...settledVisitPayment,
+  id: "0199a000-0000-7000-8000-0000000000e6",
+  source: "CafeOrder",
+  targetId: "0199a000-0000-7000-8000-0000000000f6",
+  subscriptionPlan: null,
+  amount: 60000,
 };

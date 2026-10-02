@@ -29,6 +29,10 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
             // A refund's reason explains what is being undone; a payment has none.
             table.HasCheckConstraint("ck_payments_refund_reason", "kind = 'Payment' OR reason IS NOT NULL");
+
+            // A refund is never part of a «تسویه یکجا» (BUSINESS_RULES.md §5): each row of one is
+            // refunded on its own.
+            table.HasCheckConstraint("ck_payments_settlement_payment_only", "settlement_id IS NULL OR kind = 'Payment'");
         });
 
         builder.Property(payment => payment.Amount).HasPrecision(18, Payment.AmountDecimals);
@@ -52,5 +56,9 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         // Not a rule, only speed: the gym's payment history reads a range of PaidAt moments, newest
         // first (BUSINESS_RULES.md §12 History), and the revenue reports will read the same range.
         builder.HasIndex(payment => payment.PaidAt);
+
+        // The history sums each settlement's rows for its header (§12 History). Most payments are
+        // taken on their own, so only the rows that belong to a settlement are indexed.
+        builder.HasIndex(payment => payment.SettlementId).HasFilter("settlement_id IS NOT NULL");
     }
 }

@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-import { gymToday } from "@/lib/format";
+import { planLabel } from "@/features/subscriptions/planLabel";
+import { formatMoney, gymToday } from "@/lib/format";
 import {
   autoClosedVisit,
   cancelledVisit,
@@ -11,6 +12,8 @@ import {
   liveCardio,
   planPayment,
   planRefund,
+  settledCafePayment,
+  settledVisitPayment,
   voidedCardio,
   walkInCafePayment,
 } from "@/test/history";
@@ -134,6 +137,32 @@ describe("HistoryPage", () => {
     expect(within(walkIn).getByText("بوفه")).toBeInTheDocument();
     expect(within(walkIn).queryByText("لغو شده")).not.toBeInTheDocument();
     expect(within(walkIn).getByText("نقدی")).toBeInTheDocument();
+  });
+
+  it("Payments_OneSettlement_ShowsOneHeadingWithTheTotalAndItsItemsUnderIt", async () => {
+    mockApi({
+      ...handlers(),
+      "GET /api/payments": () =>
+        historyPage([settledVisitPayment, settledCafePayment, walkInCafePayment]),
+    });
+    renderApp("/history?tab=payments", { session: session() });
+
+    await screen.findByText("تسویه یکجا");
+    const heading = rowWith("تسویه یکجا");
+    expect(within(heading).getByText("(۲ قلم)")).toBeInTheDocument();
+    expect(within(heading).getByText(formatMoney(240000))).toBeInTheDocument();
+    expect(within(heading).getByText("انتقال بانکی")).toBeInTheDocument();
+    expect(within(heading).getByText(reza.fullName)).toBeInTheDocument();
+
+    // What the rows share is said once, on the heading (the method filter lists it too).
+    const table = screen.getByRole("table");
+    expect(within(table).getAllByText(reza.fullName)).toHaveLength(1);
+    expect(within(table).getAllByText("انتقال بانکی")).toHaveLength(1);
+
+    const visit = rowWith(planLabel({ durationDays: 1, totalSessions: 1, isSingleSession: true }));
+    expect(within(visit).getByText(formatMoney(180000))).toBeInTheDocument();
+    const cafe = rowWith(formatMoney(60000));
+    expect(within(cafe).getByText("بوفه")).toBeInTheDocument();
   });
 
   it("Payments_FiltersInTheUrl_AreSentAndShown", async () => {
