@@ -1383,6 +1383,43 @@ Done when: no member can be registered or saved without a birth date, by the for
 database.
 Staff can also type a birth date by hand, with or without slashes, instead of picking it.
 
+### 6.5.25 The gym's history (تاریخچه)
+Asked by the developer on 1405/07/10 (2026-10-02). Not started. Each member's own history is
+already on the profile, and the cafe already has its order history (`/cafe/orders`, 7.3). What is
+missing is the history of the whole gym: who came in, what was paid, what هوازی was sold.
+This page is a list of rows, not totals or charts. Those belong to Phase 9.
+
+Decided with the developer, same day. Write these rules into BUSINESS_RULES.md first, in §12 and
+the §1 *Permissions* table:
+- One «تاریخچه» page with three sections: ورود و خروج، پرداخت‌ها، هوازی. The cafe keeps its own
+  page and is linked from here
+- **Who recorded it** is shown on every row: who took the payment (`Payment.ReceivedByUserId`),
+  who recorded the هوازی (`ServiceCharge.RecordedByUserId`), who checked the member in
+  (`CreatedBy`). The nightly auto-checkout has no user and shows as «خودکار»
+- **Staff and payments:** Staff see only today and the 3 days before it (today is 1405/07/10 →
+  07/07 to 07/10), in the gym's time zone. The API enforces it: a range from Staff that reaches
+  earlier is refused with a stable error code. The Owner has no limit
+- **Attendance and هوازی:** no date limit for either role
+- **Filters:** a Jalali date range and a member search in every section. Payments also filter by
+  method and by source (subscription, هوازی, cafe)
+- **Cancelled, voided, refunds:** listed and marked, never hidden, as the cafe's order history does
+- **Guests** (ورود مهمان) are listed in the attendance section, marked «مهمان», with no profile
+  link. They still count nowhere in the Phase 9 reports
+
+Tasks:
+- [ ] API: `GET /api/attendance`, `GET /api/payments`, `GET /api/service-charges`, each with a
+      date range, member, paging, newest first, and the name of the user who recorded the row
+- [ ] Staff's 3-day limit on payments, from `TimeProvider` and the gym's time zone
+- [ ] Indexes for the date-range queries, if the existing ones do not cover them
+- [ ] Web: the «تاریخچه» page with its three sections, filters kept in the URL, Jalali range,
+      member names linked to the profile
+- [ ] Tests (integration): every filter; cancelled, voided and refunded rows marked; a guest row;
+      Staff asking for 4 days ago on payments refused, the Owner allowed; the recorded-by name
+- [ ] Tests (frontend): each section, the filters in the URL, Staff's limited date range
+
+Done when: the Owner can see every check-in, payment and هوازی of any past day with who recorded
+it, and Staff can see payments from the last 3 days and every check-in and هوازی.
+
 ---
 
 ## Phase 7 — Cafe / POS
