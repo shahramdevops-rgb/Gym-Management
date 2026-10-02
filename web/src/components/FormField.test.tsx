@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -115,6 +115,55 @@ describe("JalaliDateField", () => {
     // The month name appears in the header and again in the month list, so count rather than
     // pick: the point is that a Persian month name is on screen at all.
     expect(screen.getAllByText("مرداد").length).toBeGreaterThan(0);
+  });
+
+  it("JalaliDateField_Focus_OpensTheCalendarInPlaceUnderTheBox", () => {
+    // Not a floating popup: inside a scrolling dialog one was clipped and covered the buttons.
+    const { container } = render(<Host initial="1991-08-03" />);
+    const input = screen.getByLabelText(label);
+
+    fireEvent.focus(input);
+
+    const calendar = container.querySelector(".jalali-calendar");
+    expect(calendar).not.toBeNull();
+    expect(input).toHaveAttribute("aria-expanded", "true");
+    expect(document.getElementById(input.getAttribute("aria-controls")!)).toContainElement(
+      calendar as HTMLElement,
+    );
+  });
+
+  it("JalaliDateField_DayPicked_EmitsTheIsoDateAndClosesTheCalendar", () => {
+    const { container } = render(<Host initial="1991-08-03" />);
+    const input = screen.getByLabelText(label);
+    fireEvent.focus(input);
+
+    fireEvent.click(within(container.querySelector(".jalali-calendar")!).getByText("۲۰"));
+
+    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-11");
+    expect(input).toHaveValue("۱۳۷۰/۰۵/۲۰");
+    expect(container.querySelector(".jalali-calendar")).toBeNull();
+  });
+
+  it("JalaliDateField_Blur_ClosesTheCalendar", () => {
+    const { container } = render(<Host initial="1991-08-03" />);
+    const input = screen.getByLabelText(label);
+    fireEvent.focus(input);
+
+    fireEvent.blur(input);
+
+    expect(container.querySelector(".jalali-calendar")).toBeNull();
+    expect(input).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("JalaliDateField_Escape_ClosesTheCalendarAndKeepsTheDate", () => {
+    const { container } = render(<Host initial="1991-08-03" />);
+    const input = screen.getByLabelText(label);
+    fireEvent.focus(input);
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(container.querySelector(".jalali-calendar")).toBeNull();
+    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
   });
 });
 
