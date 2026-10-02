@@ -719,6 +719,9 @@ describe("LockersPage", () => {
     fireEvent.change(within(dialog).getByLabelText("شماره موبایل"), {
       target: { value: "09121110000" },
     });
+    fireEvent.change(within(dialog).getByLabelText("تاریخ تولد"), {
+      target: { value: "۱۳۷۰/۰۵/۱۲" },
+    });
     fireEvent.click(within(dialog).getByRole("button", { name: "ثبت و ادامه" }));
 
     // No check-in to confirm: someone registered a moment ago has nothing it could use.

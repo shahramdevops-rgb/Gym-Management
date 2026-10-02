@@ -27,6 +27,14 @@ public static class MemberRules
             .MaximumLength(30)
             .WithErrorCode(MemberErrors.PhoneInvalid.Code).WithMessage(MemberErrors.PhoneInvalid.Description);
 
+    /// <summary>
+    /// Only presence is checked here. The range ("not in the future", "not over 120 years ago")
+    /// needs the gym's today, so the entity judges it.
+    /// </summary>
+    public static IRuleBuilderOptions<T, DateOnly?> RequiredBirthDate<T>(this IRuleBuilderInitial<T, DateOnly?> rule) =>
+        rule.NotNull()
+            .WithErrorCode(MemberErrors.BirthDateRequired.Code).WithMessage(MemberErrors.BirthDateRequired.Description);
+
     public static IRuleBuilderOptions<T, string?> ValidNotes<T>(this IRuleBuilderInitial<T, string?> rule) =>
         rule.Must(notes => notes is null || notes.Trim().Length <= Member.NotesMaxLength)
             .WithErrorCode(MemberErrors.NotesTooLong.Code).WithMessage(MemberErrors.NotesTooLong.Description);

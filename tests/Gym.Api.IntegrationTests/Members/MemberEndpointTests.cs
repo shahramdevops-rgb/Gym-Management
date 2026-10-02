@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -25,13 +26,16 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
 {
     private const string MembersPath = "/api/members";
 
+    /// <summary>Every member has a birth date (BUSINESS_RULES.md §2); tests about something else send this one.</summary>
+    private const string BirthDate = "1990-06-15";
+
     [Fact]
     public async Task CreateMember_AsStaff_Returns201WithTheNormalizedPhone()
     {
         var (client, token) = await StaffClientAsync();
 
         using var response = await SendAsync(client, token, HttpMethod.Post, MembersPath,
-            new { fullName = "  رضا احمدی ", phoneNumber = "0912 123 4567", notes = "عضو قدیمی" });
+            new { fullName = "  رضا احمدی ", phoneNumber = "0912 123 4567", notes = "عضو قدیمی", birthDate = BirthDate });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var member = (await response.Content.ReadFromJsonAsync<MemberResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
@@ -225,7 +229,7 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
         (await response.ReadErrorCodeAsync()).ShouldBe("Members.NotFound");
     }
 
-    // Birth date (BUSINESS_RULES.md §2). Optional; refused when in the future or over 120 years back.
+    // Birth date (BUSINESS_RULES.md §2). Required; refused when in the future or over 120 years back.
 
     [Fact]
     public async Task CreateMember_WithBirthDate_StoresAndReturnsIt()
@@ -241,13 +245,16 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
     }
 
     [Fact]
-    public async Task CreateMember_WithoutBirthDate_ReturnsNull()
+    public async Task CreateMember_WithoutBirthDate_Returns400BirthDateRequired()
     {
         var (client, token) = await StaffClientAsync();
 
-        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        using var response = await SendAsync(client, token, HttpMethod.Post, MembersPath,
+            new { fullName = "رضا", phoneNumber = "09121234567" });
 
-        member.BirthDate.ShouldBeNull();
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await FieldErrorCodeAsync(response, "birthDate")).ShouldBe("Members.BirthDateRequired");
+        (await CountMembersAsync()).ShouldBe(0);
     }
 
     [Fact]
@@ -278,24 +285,46 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
     }
 
     [Fact]
-    public async Task UpdateMember_SetsAndThenClearsTheBirthDate()
+    public async Task UpdateMember_AnotherBirthDate_StoresAndReturnsIt()
     {
         var (client, token) = await StaffClientAsync();
         var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
 
-        using var set = await UpdateAsync(client, token, member.Id, "رضا", "09121234567", null,
+        using var response = await UpdateAsync(client, token, member.Id, "رضا", "09121234567", null,
             await CurrentVersionAsync(member.Id), birthDate: "1991-08-03");
 
-        set.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await set.Content.ReadFromJsonAsync<MemberResponse>(TestContext.Current.CancellationToken))
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadFromJsonAsync<MemberResponse>(TestContext.Current.CancellationToken))
             .ShouldNotBeNull().BirthDate.ShouldBe(new DateOnly(1991, 8, 3));
+    }
 
-        using var cleared = await UpdateAsync(client, token, member.Id, "رضا", "09121234567", null,
-            await CurrentVersionAsync(member.Id));
+    [Fact]
+    public async Task UpdateMember_BirthDateCleared_Returns400BirthDateRequiredAndKeepsTheOldOne()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
 
-        cleared.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await cleared.Content.ReadFromJsonAsync<MemberResponse>(TestContext.Current.CancellationToken))
-            .ShouldNotBeNull().BirthDate.ShouldBeNull();
+        using var response = await UpdateAsync(client, token, member.Id, "رضا", "09121234567", null,
+            await CurrentVersionAsync(member.Id), birthDate: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await FieldErrorCodeAsync(response, "birthDate")).ShouldBe("Members.BirthDateRequired");
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.Members.SingleAsync(TestContext.Current.CancellationToken)).BirthDate
+            .ShouldBe(DateOnly.Parse(BirthDate, CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public async Task Members_NoBirthDateInsertedDirectly_RejectedByNotNull()
+    {
+        // The validator and the non-nullable DateOnly keep it out through the API; this is the
+        // database's own copy of the rule.
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync(InsertSql("+989121234567", "NULL")));
+
+        exception.SqlState.ShouldBe("23502");
+        exception.ColumnName.ShouldBe("birth_date");
     }
 
     [Fact]
@@ -352,7 +381,7 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
         exception.ConstraintName.ShouldBe("ck_members_phone_number_e164");
     }
 
-    private static string InsertSql(string phone, string birthDate = "NULL") =>
+    private static string InsertSql(string phone, string birthDate = $"DATE '{BirthDate}'") =>
         $"""
         INSERT INTO members (id, full_name, normalized_full_name, phone_number, birth_date, is_active, created_at)
         VALUES ('{Guid.CreateVersion7()}', 'x', 'x', '{phone}', {birthDate}, true, now())
@@ -367,7 +396,14 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
     }
 
     private static Task<HttpResponseMessage> CreateAsync(HttpClient client, string token, string fullName, string phoneNumber) =>
-        SendAsync(client, token, HttpMethod.Post, MembersPath, new { fullName, phoneNumber });
+        SendAsync(client, token, HttpMethod.Post, MembersPath, new { fullName, phoneNumber, birthDate = BirthDate });
+
+    private static async Task<string?> FieldErrorCodeAsync(HttpResponseMessage response, string field)
+    {
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        return body.RootElement.GetProperty("errors").GetProperty(field)[0].GetProperty("code").GetString();
+    }
 
     private static async Task<MemberResponse> CreateMemberAsync(HttpClient client, string token, string fullName, string phoneNumber)
     {
@@ -379,7 +415,7 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
 
     private static Task<HttpResponseMessage> UpdateAsync(
         HttpClient client, string token, Guid id, string fullName, string phoneNumber, string? notes, uint version,
-        string? birthDate = null) =>
+        string? birthDate = BirthDate) =>
         SendAsync(client, token, HttpMethod.Put, $"{MembersPath}/{id}", new { fullName, phoneNumber, notes, birthDate, version });
 
     private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, HttpMethod method, string path, object body)

@@ -105,8 +105,8 @@ export function useMemberDebt(id: string, { refetchInterval }: { refetchInterval
 export interface MemberInput {
   fullName: string;
   phoneNumber: string;
-  /** ISO (`1991-08-03`), or null when the gym has no birth date for this member. */
-  birthDate: string | null;
+  /** ISO (`1991-08-03`). Required: every member has one (BUSINESS_RULES.md §2). */
+  birthDate: string;
   notes: string | null;
 }
 

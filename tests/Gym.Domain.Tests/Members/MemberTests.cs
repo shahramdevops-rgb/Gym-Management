@@ -12,6 +12,9 @@ public sealed class MemberTests
     /// </summary>
     private static readonly DateOnly Today = new(2026, 9, 22);
 
+    /// <summary>A birth date for tests that are about something else: every member has one.</summary>
+    private static readonly DateOnly Born = new(1991, 8, 3);
+
     // Look-alike and invisible characters as code points: on screen they match their Persian twins.
     private const char ArabicYe = (char)0x064A;
     private const char ArabicKaf = (char)0x0643;
@@ -23,7 +26,7 @@ public sealed class MemberTests
         // "Ali" typed with the Arabic ye, then a half-space before the family name.
         var typed = $"  عل{ArabicYe} {HalfSpace}رضایی ";
 
-        var member = Member.Create(typed, Phone, notes: null, birthDate: null, today: Today).Value;
+        var member = Member.Create(typed, Phone, notes: null, birthDate: Born, today: Today).Value;
 
         member.IsActive.ShouldBeTrue();
         member.FullName.ShouldBe(typed.Trim(), "the display name keeps what was typed, trimmed.");
@@ -35,7 +38,7 @@ public sealed class MemberTests
     [Fact]
     public void Create_LatinName_NormalizedColumnIsLowerCase()
     {
-        Member.Create("Sara Smith", Phone, null, birthDate: null, today: Today).Value.NormalizedFullName.ShouldBe("sara smith");
+        Member.Create("Sara Smith", Phone, null, birthDate: Born, today: Today).Value.NormalizedFullName.ShouldBe("sara smith");
     }
 
     [Theory]
@@ -43,25 +46,25 @@ public sealed class MemberTests
     [InlineData("   ")]
     public void Create_BlankName_FailsWithFullNameRequired(string fullName)
     {
-        Member.Create(fullName, Phone, null, birthDate: null, today: Today).Error.ShouldBe(MemberErrors.FullNameRequired);
+        Member.Create(fullName, Phone, null, birthDate: Born, today: Today).Error.ShouldBe(MemberErrors.FullNameRequired);
     }
 
     [Fact]
     public void Create_NameOver200Characters_Fails()
     {
-        Member.Create(new string('ا', 201), Phone, null, birthDate: null, today: Today).Error.ShouldBe(MemberErrors.FullNameTooLong);
+        Member.Create(new string('ا', 201), Phone, null, birthDate: Born, today: Today).Error.ShouldBe(MemberErrors.FullNameTooLong);
     }
 
     [Fact]
     public void Create_NotesOver1000Characters_Fails()
     {
-        Member.Create("رضا", Phone, new string('x', 1001), birthDate: null, today: Today).Error.ShouldBe(MemberErrors.NotesTooLong);
+        Member.Create("رضا", Phone, new string('x', 1001), birthDate: Born, today: Today).Error.ShouldBe(MemberErrors.NotesTooLong);
     }
 
     [Fact]
     public void Create_BlankNotes_AreStoredAsNull()
     {
-        Member.Create("رضا", Phone, "   ", birthDate: null, today: Today).Value.Notes.ShouldBeNull();
+        Member.Create("رضا", Phone, "   ", birthDate: Born, today: Today).Value.Notes.ShouldBeNull();
     }
 
     [Theory]
@@ -70,16 +73,16 @@ public sealed class MemberTests
     public void Create_PhoneNotInE164_Throws(string phone)
     {
         // Normalizing is the caller's job (IPhoneNormalizer); skipping it is a bug, not input.
-        Should.Throw<ArgumentException>(() => Member.Create("رضا", phone, null, birthDate: null, today: Today));
+        Should.Throw<ArgumentException>(() => Member.Create("رضا", phone, null, birthDate: Born, today: Today));
     }
 
     [Fact]
     public void Update_NewName_KeepsTheSearchColumnInStep()
     {
-        var member = Member.Create("رضا", Phone, null, birthDate: null, today: Today).Value;
+        var member = Member.Create("رضا", Phone, null, birthDate: Born, today: Today).Value;
 
         // "Karim" typed with the Arabic kaf and the Arabic ye.
-        member.Update($"{ArabicKaf}ر{ArabicYe}م", "+989351234567", "یادداشت", birthDate: null, today: Today).IsSuccess.ShouldBeTrue();
+        member.Update($"{ArabicKaf}ر{ArabicYe}م", "+989351234567", "یادداشت", birthDate: Born, today: Today).IsSuccess.ShouldBeTrue();
 
         member.NormalizedFullName.ShouldBe("کریم");
         member.PhoneNumber.ShouldBe("+989351234567");
@@ -89,9 +92,9 @@ public sealed class MemberTests
     [Fact]
     public void Update_InvalidName_ChangesNothing()
     {
-        var member = Member.Create("رضا", Phone, "قبلی", birthDate: null, today: Today).Value;
+        var member = Member.Create("رضا", Phone, "قبلی", birthDate: Born, today: Today).Value;
 
-        member.Update(" ", "+989351234567", null, birthDate: null, today: Today).IsFailure.ShouldBeTrue();
+        member.Update(" ", "+989351234567", null, birthDate: Born, today: Today).IsFailure.ShouldBeTrue();
 
         member.FullName.ShouldBe("رضا");
         member.PhoneNumber.ShouldBe(Phone);
@@ -101,7 +104,7 @@ public sealed class MemberTests
     [Fact]
     public void Deactivate_ActiveMember_BecomesInactive()
     {
-        var member = Member.Create("رضا", Phone, null, birthDate: null, today: Today).Value;
+        var member = Member.Create("رضا", Phone, null, birthDate: Born, today: Today).Value;
 
         member.Deactivate();
 
@@ -111,7 +114,7 @@ public sealed class MemberTests
     [Fact]
     public void Deactivate_InactiveMember_StaysInactive()
     {
-        var member = Member.Create("رضا", Phone, null, birthDate: null, today: Today).Value;
+        var member = Member.Create("رضا", Phone, null, birthDate: Born, today: Today).Value;
         member.Deactivate();
 
         member.Deactivate();
@@ -122,7 +125,7 @@ public sealed class MemberTests
     [Fact]
     public void Reactivate_InactiveMember_BecomesActive()
     {
-        var member = Member.Create("رضا", Phone, null, birthDate: null, today: Today).Value;
+        var member = Member.Create("رضا", Phone, null, birthDate: Born, today: Today).Value;
         member.Deactivate();
 
         member.Reactivate();
@@ -133,18 +136,15 @@ public sealed class MemberTests
     [Fact]
     public void Reactivate_ActiveMember_StaysActive()
     {
-        var member = Member.Create("رضا", Phone, null, birthDate: null, today: Today).Value;
+        var member = Member.Create("رضا", Phone, null, birthDate: Born, today: Today).Value;
 
         member.Reactivate();
 
         member.IsActive.ShouldBeTrue();
     }
 
-    // Birth date (BUSINESS_RULES.md §2). Optional, and judged against the gym's today.
-
-    [Fact]
-    public void Create_NoBirthDate_LeavesItNull() =>
-        Member.Create("رضا", Phone, null, birthDate: null, today: Today).Value.BirthDate.ShouldBeNull();
+    // Birth date (BUSINESS_RULES.md §2). Required (the parameter is not nullable), and judged
+    // against the gym's today.
 
     [Fact]
     public void Create_BirthDateInThePast_IsKept()
@@ -193,22 +193,23 @@ public sealed class MemberTests
     }
 
     [Fact]
-    public void Update_BirthDateCleared_SetsItToNull()
+    public void Update_AnotherBirthDate_ReplacesIt()
     {
-        var member = Member.Create("رضا", Phone, null, new DateOnly(1991, 8, 3), Today).Value;
+        var member = Member.Create("رضا", Phone, null, Born, Today).Value;
+        var corrected = new DateOnly(1992, 1, 15);
 
-        member.Update("رضا", Phone, null, birthDate: null, today: Today).IsSuccess.ShouldBeTrue();
+        member.Update("رضا", Phone, null, corrected, Today).IsSuccess.ShouldBeTrue();
 
-        member.BirthDate.ShouldBeNull();
+        member.BirthDate.ShouldBe(corrected);
     }
 
     [Fact]
     public void Update_InactiveMember_SucceedsAndStaysInactive()
     {
-        var member = Member.Create("رضا", Phone, null, birthDate: null, today: Today).Value;
+        var member = Member.Create("رضا", Phone, null, birthDate: Born, today: Today).Value;
         member.Deactivate();
 
-        member.Update("رضا احمدی", "+989351234567", null, birthDate: null, today: Today).IsSuccess.ShouldBeTrue();
+        member.Update("رضا احمدی", "+989351234567", null, birthDate: Born, today: Today).IsSuccess.ShouldBeTrue();
 
         member.FullName.ShouldBe("رضا احمدی");
         member.IsActive.ShouldBeFalse();

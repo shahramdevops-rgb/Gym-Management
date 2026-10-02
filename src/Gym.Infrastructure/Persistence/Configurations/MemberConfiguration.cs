@@ -28,7 +28,9 @@ public sealed class MemberConfiguration : IEntityTypeConfiguration<Member>
             // The moving half of the rule ("not in the future", "not over 120 years ago") stays in
             // Member: it depends on the gym's today, and CURRENT_DATE is not immutable, so Postgres
             // refuses it in a CHECK. The database keeps the fixed floor it can actually enforce.
-            table.HasCheckConstraint("ck_members_birth_date_range", "birth_date IS NULL OR birth_date >= DATE '1900-01-01'");
+            // The column itself is NOT NULL (a non-nullable DateOnly), so "every member has one"
+            // is enforced here too.
+            table.HasCheckConstraint("ck_members_birth_date_range", "birth_date >= DATE '1900-01-01'");
         });
 
         builder.Property(member => member.FullName).HasMaxLength(Member.FullNameMaxLength).IsRequired();

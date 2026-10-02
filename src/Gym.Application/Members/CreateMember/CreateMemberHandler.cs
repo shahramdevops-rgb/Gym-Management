@@ -28,7 +28,13 @@ public sealed class CreateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
 
         // 3. Call the domain. The birth date rules need a today, and the gym's today is the one
         // in its own time zone, so it is passed in rather than read from a clock in the entity.
-        var created = Member.Create(command.FullName, phone.Value, command.Notes, command.BirthDate, calendar.Today());
+        // The validator already refused a missing date; this only turns DateOnly? into DateOnly.
+        if (command.BirthDate is not { } birthDate)
+        {
+            return Result.Failure<MemberResponse>(MemberErrors.BirthDateRequired);
+        }
+
+        var created = Member.Create(command.FullName, phone.Value, command.Notes, birthDate, calendar.Today());
         if (created.IsFailure)
         {
             return Result.Failure<MemberResponse>(created.Error);

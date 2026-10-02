@@ -15,6 +15,7 @@ import {
   toIsoDate,
   toJalaliInput,
   toPersianDigits,
+  withDateSlashes,
 } from "./format";
 
 describe("toPersianDigits", () => {
@@ -272,6 +273,29 @@ describe("toIsoDate", () => {
     expect(toIsoDate("۱۳۷۰/۵/۱۲")).toBe("1991-08-03");
   });
 
+  it.each([
+    "1370-05-12",
+    "1370.05.12",
+    "1370 05 12",
+    "1370\\05\\12",
+    "1370,05,12",
+    "۱۳۷۰÷۰۵÷۱۲",
+    "۱۳۷۰٫۰۵٫۱۲",
+    "۱۳۷۰،۰۵،۱۲",
+    "1370 / 05 / 12",
+  ])("toIsoDate_AnyCommonSeparator_ReturnsTheSameDate (%s)", (typed) => {
+    // A date typed with dots or spaces used to be thrown away on blur, so typing looked broken.
+    expect(toIsoDate(typed)).toBe("1991-08-03");
+  });
+
+  it.each(["13700512", "1370/05-", "1370//05/12", "1370/05/12/"])(
+    "toIsoDate_NoSeparatorsOrBrokenOnes_ReturnsNull (%s)",
+    (typed) => {
+      // Digits alone are the box's job (withDateSlashes adds the slashes as they are typed).
+      expect(toIsoDate(typed)).toBeNull();
+    },
+  );
+
   it("toIsoDate_Nowruz_IsTheTwentyFirstOfMarch", () => {
     expect(toIsoDate("۱۴۰۵/۰۱/۰۱")).toBe("2026-03-21");
   });
@@ -293,6 +317,36 @@ describe("toIsoDate", () => {
       expect(toIsoDate(value)).toBeNull();
     },
   );
+});
+
+describe("withDateSlashes", () => {
+  it.each([
+    ["1370", "1370"],
+    ["13700", "1370/0"],
+    ["137005", "1370/05"],
+    ["1370051", "1370/05/1"],
+    ["13700512", "1370/05/12"],
+    ["۱۳۷۰۰۵۱۲", "۱۳۷۰/۰۵/۱۲"],
+    // The next keystrokes after the first slash went in.
+    ["1370/051", "1370/05/1"],
+    ["۱۳۷۰/۰۵۱۲", "۱۳۷۰/۰۵/۱۲"],
+  ])("withDateSlashes_DigitsAfterTheYear_AddsTheSlashes (%s)", (typed, expected) => {
+    expect(withDateSlashes(typed)).toBe(expected);
+  });
+
+  it.each([
+    "1370",
+    "1370/",
+    "1370/0",
+    "1370/05/1",
+    "1370/5/12",
+    "1370.05.12",
+    "137005121",
+    "abcde",
+    "",
+  ])("withDateSlashes_NothingToAdd_ReturnsItUnchanged (%s)", (typed) => {
+    expect(withDateSlashes(typed)).toBe(typed);
+  });
 });
 
 describe("toJalaliInput", () => {

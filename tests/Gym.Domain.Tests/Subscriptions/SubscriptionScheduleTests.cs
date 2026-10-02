@@ -114,7 +114,7 @@ public sealed class SubscriptionScheduleTests
     [Fact]
     public void EnsureCanReceiveSubscription_InactiveMember_FailsWithMemberInactive()
     {
-        var member = Member.Create("رضا احمدی", "+989121234567", null, birthDate: null, today: Today).Value;
+        var member = Member.Create("رضا احمدی", "+989121234567", null, birthDate: new DateOnly(1991, 8, 3), today: Today).Value;
         member.EnsureCanReceiveSubscription().IsSuccess.ShouldBeTrue();
 
         member.Deactivate();

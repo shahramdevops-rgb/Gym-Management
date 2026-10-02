@@ -43,10 +43,10 @@ public sealed class Member : Entity
     public string? Notes { get; private set; }
 
     /// <summary>
-    /// Optional and usually empty: the gym has no birth date for anyone who joined before this
-    /// field existed, and staff are never made to invent one (BUSINESS_RULES.md §2).
+    /// Required (BUSINESS_RULES.md §2): the gym greets members on their birthday, at the desk now
+    /// and by SMS later, and that only works when every member has one.
     /// </summary>
-    public DateOnly? BirthDate { get; private set; }
+    public DateOnly BirthDate { get; private set; }
 
     public bool IsActive { get; private set; }
 
@@ -60,7 +60,7 @@ public sealed class Member : Entity
     /// The gym's today (Asia/Tehran). A birth date can only be judged against a date, and which
     /// date that is belongs to the application, not to a clock this entity reads for itself.
     /// </param>
-    public static Result<Member> Create(string fullName, string phoneNumber, string? notes, DateOnly? birthDate, DateOnly today)
+    public static Result<Member> Create(string fullName, string phoneNumber, string? notes, DateOnly birthDate, DateOnly today)
     {
         var member = new Member { IsActive = true };
         var result = member.Update(fullName, phoneNumber, notes, birthDate, today);
@@ -73,7 +73,7 @@ public sealed class Member : Entity
     /// before reactivating is a normal thing to do (BUSINESS_RULES.md §2).
     /// </summary>
     /// <param name="today">The gym's today, as in <see cref="Create"/>.</param>
-    public Result Update(string fullName, string phoneNumber, string? notes, DateOnly? birthDate, DateOnly today)
+    public Result Update(string fullName, string phoneNumber, string? notes, DateOnly birthDate, DateOnly today)
     {
         ArgumentNullException.ThrowIfNull(fullName);
         ArgumentException.ThrowIfNullOrWhiteSpace(phoneNumber);
@@ -101,19 +101,16 @@ public sealed class Member : Entity
             return Result.Failure(MemberErrors.NotesTooLong);
         }
 
-        if (birthDate is { } born)
+        if (birthDate > today)
         {
-            if (born > today)
-            {
-                return Result.Failure(MemberErrors.BirthDateInFuture);
-            }
+            return Result.Failure(MemberErrors.BirthDateInFuture);
+        }
 
-            // AddYears moves 29 February to the 28th in a non-leap year, which can only make the
-            // boundary a day more generous. Exactly 120 years ago is still allowed; older is not.
-            if (born < today.AddYears(-MaxAgeYears))
-            {
-                return Result.Failure(MemberErrors.BirthDateTooOld);
-            }
+        // AddYears moves 29 February to the 28th in a non-leap year, which can only make the
+        // boundary a day more generous. Exactly 120 years ago is still allowed; older is not.
+        if (birthDate < today.AddYears(-MaxAgeYears))
+        {
+            return Result.Failure(MemberErrors.BirthDateTooOld);
         }
 
         FullName = name;

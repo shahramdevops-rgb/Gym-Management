@@ -71,22 +71,6 @@ describe("MemberProfilePage", () => {
     );
   });
 
-  it("Profile_MemberWithoutABirthDate_ShowsADash", async () => {
-    // Most members have none (docs/BUSINESS_RULES.md §2), so the empty case is the common one.
-    mockApi({
-      ...signedInHandlers(staffUser),
-      [`GET /api/members/${ali.id}`]: () => json(200, ali),
-      [`GET /api/members/${ali.id}/attendance`]: () => attendanceHistoryPage([]),
-      [`GET /api/members/${ali.id}/subscriptions`]: () => subscriptionsPage([]),
-    });
-
-    renderApp(`/members/${ali.id}`, { session: session() });
-
-    expect(await screen.findByText("علی رضایی")).toBeInTheDocument();
-    const birthDate = screen.getByText("تاریخ تولد").nextElementSibling;
-    expect(birthDate).toHaveTextContent("—");
-  });
-
   it("Profile_Deactivate_CallsTheApiAndShowsTheMemberAsInactive", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),

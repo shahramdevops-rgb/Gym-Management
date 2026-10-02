@@ -8,6 +8,7 @@ public sealed class CreateMemberValidator : AbstractValidator<CreateMemberComman
     {
         RuleFor(command => command.FullName).ValidFullName();
         RuleFor(command => command.PhoneNumber).ValidPhoneInput();
+        RuleFor(command => command.BirthDate).RequiredBirthDate();
         RuleFor(command => command.Notes).ValidNotes();
     }
 }

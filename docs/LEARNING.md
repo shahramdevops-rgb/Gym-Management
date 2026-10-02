@@ -1245,3 +1245,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Fall back to the plain answer when the data is incomplete.** If the plan before it is on another page, the helper says "not queued" and the row shows the stored dates. Those dates are still true for today, so the worst case is the old screen, never a wrong one.
 - **Check what is already stored before planning a migration.** "When was it sold?" sounded like new data, but every entity already has `CreatedAt` and the API already returned it. Showing it was one table column. "Who sold it?" really is new data: a column, a migration, and a value for every old row.
 - **My notes:**
+
+---
+
+## 6.5.24 — Birth date required
+
+- **Let the type carry the rule.** `DateOnly?` became `DateOnly` in the entity, so "a member without a birth date" can't even be written in C#. The domain test for it disappeared, because the compiler now checks it.
+- **Nullable at the edge, not inside.** The command stays `DateOnly?` on purpose. JSON with no `birthDate` would otherwise turn into `0001-01-01` and be refused as "too old", a confusing message. Nullable at the API edge means a missing value is reported as missing.
+- **Read what a migration scaffolds.** Making a column `NOT NULL`, EF added `defaultValue: 0001-01-01` to fill old empty rows. That quietly invents data. Without it, Postgres refuses the change while any row is empty, which is the honest failure.
+- **A silent discard looks like a broken input.** The box threw away anything it could not parse when focus left it. That was by design, but with only `/` accepted, a date typed with dots simply vanished, and "it does nothing" was the honest description. Accept the forms people actually type, and shape what they type (the slash mask), rather than make them guess the one format.
+- **An input mask must not fight backspace.** The slashes are added only when the text grows. Applying the mask on every change would put a deleted slash straight back.
+- **Test what the person does, keystroke by keystroke.** A test that pastes the finished string in one `change` passed, and the mask was still broken. Only adding one digit at a time to what the box actually showed exposed it: after the first slash, the second never appeared.
+- **Changing a rule is cheap before go-live.** With no members anywhere, requiring the field is one `SET NOT NULL`. After go-live the same change would need a decision about every member already registered without one.
+- **My notes:**

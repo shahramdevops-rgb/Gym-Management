@@ -384,8 +384,12 @@ export function formatPhone(value: string | null | undefined): string {
  */
 const midday = 12;
 
-/** A typed Jalali date: four-or-three-digit year, then month and day, `/` or `-`, zeros optional. */
-const jalaliInputPattern = /^(\d{3,4})[/-](\d{1,2})[/-](\d{1,2})$/;
+/**
+ * A typed Jalali date: four-or-three-digit year, then month and day, zeros optional. Between the
+ * parts, any separator people actually type: `/`, `-`, `.`, a backslash, a space, a comma, and
+ * the Persian keyboard's `÷` (U+00F7), Arabic decimal separator `٫` (U+066B) and comma `،` (U+060C).
+ */
+const jalaliInputPattern = /^(\d{3,4})\s*[-/.\\\s,÷٫،]\s*(\d{1,2})\s*[-/.\\\s,÷٫،]\s*(\d{1,2})$/;
 
 function pad(value: number, length = 2): string {
   return String(value).padStart(length, "0");
@@ -420,8 +424,8 @@ export function jalaliToIso(year: number, month: number, day: number): string | 
 
 /**
  * A typed Jalali date as the ISO Gregorian date the API stores: `۱۳۷۰/۰۵/۱۲` → `1991-08-03`.
- * Persian, Arabic and English digits, `/` or `-`, leading zeros optional. Anything that is not
- * one whole, real date is null — a half-typed date is not a date.
+ * Persian, Arabic and English digits, any common separator, leading zeros optional. Anything
+ * that is not one whole, real date is null — a half-typed date is not a date.
  */
 export function toIsoDate(value: string | null | undefined): string | null {
   if (value === null || value === undefined) {
@@ -431,6 +435,28 @@ export function toIsoDate(value: string | null | undefined): string | null {
   const match = jalaliInputPattern.exec(normalizeDigits(value).trim());
 
   return match === null ? null : jalaliToIso(Number(match[1]), Number(match[2]), Number(match[3]));
+}
+
+/** A year and up to four more digits, with or without the slash after the year. */
+const digitsAfterYearPattern = /^\d{4}\/?\d{1,4}$/;
+
+/**
+ * Puts the slashes into a date typed as digits, so `13900509` reads `1390/05/09` as it is typed:
+ * after the 4-digit year and the 2-digit month. Text that already has the year's slash (the one
+ * this added a keystroke ago) carries on: `1390/050` → `1390/05/0`. The digits keep their script.
+ * Anything else (a second slash, another separator, a one-digit month typed as `1390/5/9`, too
+ * many digits) is the person's own format and comes back unchanged.
+ */
+export function withDateSlashes(typed: string): string {
+  if (!digitsAfterYearPattern.test(normalizeDigits(typed))) {
+    return typed;
+  }
+
+  const digits = typed.replace("/", "");
+
+  return [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6)]
+    .filter((part) => part !== "")
+    .join("/");
 }
 
 /** The Jalali year, month (1-12) and day of an ISO business date, for the calendar picker. */
