@@ -40,7 +40,8 @@ public sealed class ListLockerVisitsTodayHandler(IAppDbContext db, IGymCalendar 
             .Select(a => new LockerVisitResponse(
                 a.Id,
                 a.MemberId,
-                members.Where(m => m.Id == a.MemberId).Select(m => m.FullName).First(),
+                members.Where(m => m.Id == a.MemberId).Select(m => m.FullName).FirstOrDefault(),
+                a.GuestName,
                 a.CheckedInAt,
                 a.CheckedOutAt,
                 a.CancelledAt))

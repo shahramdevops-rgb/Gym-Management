@@ -21,7 +21,18 @@ public sealed class CheckOutHandler(IAppDbContext db, TimeProvider time)
             return Result.Failure<AttendanceResponse>(AttendanceErrors.NotFound);
         }
 
-        var checkedOut = attendance.CheckOut(time.GetUtcNow());
+        // A guest cannot leave with the cafe unpaid (BUSINESS_RULES.md §7 Guest visit). The visit's
+        // lock keeps an order or a payment for it from landing between the check and the close; a
+        // member's check-out needs neither, because their debt stays on their account.
+        await using var transaction = await db.BeginTransactionAsync(cancellationToken);
+        var hasUnpaidCafe = false;
+        if (attendance.IsGuest)
+        {
+            await db.LockAttendanceAsync(id, cancellationToken);
+            hasUnpaidCafe = (await GuestCafe.UnpaidOrdersAsync(db, id, cancellationToken)).Count > 0;
+        }
+
+        var checkedOut = attendance.CheckOut(time.GetUtcNow(), hasUnpaidCafe);
         if (checkedOut.IsFailure)
         {
             return Result.Failure<AttendanceResponse>(checkedOut.Error);
@@ -30,6 +41,7 @@ public sealed class CheckOutHandler(IAppDbContext db, TimeProvider time)
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {

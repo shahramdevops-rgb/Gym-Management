@@ -58,7 +58,11 @@ public sealed class TodayByHourHandler(IAppDbContext db, IGymCalendar calendar)
         return new TodayByHourResponse(today, daysAveraged, hours);
     }
 
-    /// <summary>The day's check-ins, cancelled ones left out, counted by their hour in the gym's zone.</summary>
+    /// <summary>
+    /// The day's check-ins, counted by their hour in the gym's zone. Cancelled ones are left out, and so
+    /// are guests: a guest visit is not counted as attendance (BUSINESS_RULES.md §7 <i>Guest visit</i>),
+    /// which would make the gym look busier than its members make it.
+    /// </summary>
     private async Task<int[]> CountByHourAsync(DateOnly day, CancellationToken cancellationToken)
     {
         var start = calendar.StartOfDayUtc(day);
@@ -66,7 +70,7 @@ public sealed class TodayByHourHandler(IAppDbContext db, IGymCalendar calendar)
 
         var moments = await db.Attendances
             .AsNoTracking()
-            .Where(a => a.CheckedInAt >= start && a.CheckedInAt < end && a.CancelledAt == null)
+            .Where(a => a.CheckedInAt >= start && a.CheckedInAt < end && a.CancelledAt == null && a.MemberId != null)
             .Select(a => a.CheckedInAt)
             .ToListAsync(cancellationToken);
 

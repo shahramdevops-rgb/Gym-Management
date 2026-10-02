@@ -15,10 +15,16 @@ namespace Gym.Application.Cafe.ListCafeOrders;
 /// <param name="AttendanceId">
 /// What was bought during one visit — what check-out shows the member before they leave.
 /// </param>
+/// <param name="UnpaidGuest">
+/// Only orders on a guest's visit that still owe money and are not cancelled: what the nightly job
+/// left behind when it closed a guest's visit (BUSINESS_RULES.md §7 <i>Guest visit</i>), shown as
+/// «پرداخت‌نشده — مهمان».
+/// </param>
 public sealed record ListCafeOrdersQuery(
     Guid? MemberId = null,
     DateOnly? From = null,
     DateOnly? To = null,
     Guid? AttendanceId = null,
+    bool? UnpaidGuest = null,
     int Page = 1,
     int PageSize = PagingRules.DefaultPageSize);

@@ -30,6 +30,8 @@ public sealed class GetCafeOrderHandler(IAppDbContext db)
 
         var netPaid = await PaymentLedger.GetNetPaidForCafeOrderAsync(db, id, cancellationToken);
 
-        return CafeOrderResponse.From(order, memberFullName, netPaid);
+        var guestName = await CafeOrderGuests.NameAsync(db, order, cancellationToken);
+
+        return CafeOrderResponse.From(order, memberFullName, netPaid, guestName);
     }
 }

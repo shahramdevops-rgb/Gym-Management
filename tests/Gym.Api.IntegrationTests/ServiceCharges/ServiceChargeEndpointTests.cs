@@ -41,7 +41,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var charge = await ReadChargeAsync(response);
         charge.AttendanceId.ShouldBe(visit.Id);
-        charge.MemberId.ShouldBe(visit.MemberId);
+        charge.MemberId.ShouldBe(visit.MemberId!.Value);
         charge.Kind.ShouldBe(ServiceChargeKind.Cardio);
         charge.Amount.ShouldBe(10_000m);
         charge.NetPaid.ShouldBe(0m);
@@ -349,7 +349,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         (await StoredChargeAsync(charge.Id)).VoidedAt.ShouldBeNull();
         (await StoredPaymentsAsync(charge.Id)).ShouldNotContain(p => p.Kind == PaymentKind.Refund);
 
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
         debt.Items.Single(i => i.Kind == PaymentTargetKind.ServiceCharge).Outstanding.ShouldBe(6_000m);
     }
 
@@ -408,7 +408,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         var charge = await RecordOkAsync(client, token, visit.Id, 10_000m);
         await PayChargeOkAsync(client, token, charge.Id, 10_000m);
 
-        var page = await ListPaymentsOkAsync(client, token, visit.MemberId);
+        var page = await ListPaymentsOkAsync(client, token, visit.MemberId!.Value);
 
         var row = page.Items.ShouldHaveSingleItem();
         row.TargetKind.ShouldBe(PaymentTargetKind.ServiceCharge);
@@ -427,7 +427,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         var visit = await CheckedInMemberAsync(client, token);
         var charge = await RecordOkAsync(client, token, visit.Id, 10_000m);
 
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
 
         // 900,000 for the plan the member was checked in on, plus the treadmill.
         debt.Total.ShouldBe(910_000m);
@@ -450,7 +450,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         var charge = await RecordOkAsync(client, token, visit.Id, 10_000m);
         await PayChargeOkAsync(client, token, charge.Id, 4_000m);
 
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
 
         debt.Items.Single(i => i.Kind == PaymentTargetKind.ServiceCharge).Outstanding.ShouldBe(6_000m);
     }
@@ -464,7 +464,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         var charge = await RecordOkAsync(client, token, visit.Id, 10_000m);
         await VoidOkAsync(client, token, charge.Id, "اشتباه بود");
 
-        var debt = await GetDebtOkAsync(client, token, visit.MemberId);
+        var debt = await GetDebtOkAsync(client, token, visit.MemberId!.Value);
 
         debt.Items.ShouldNotContain(i => i.Kind == PaymentTargetKind.ServiceCharge);
         debt.Total.ShouldBe(900_000m);
@@ -485,7 +485,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
         response.EnsureSuccessStatusCode();
         var page = (await response.Content.ReadFromJsonAsync<MembersPage>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
 
-        page.Items.Single(m => m.Id == visit.MemberId).Debt.ShouldBe(910_000m);
+        page.Items.Single(m => m.Id == visit.MemberId!.Value).Debt.ShouldBe(910_000m);
     }
 
     /// <summary>
@@ -497,12 +497,12 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
     {
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
-        await PaySubscriptionOkAsync(client, token, visit.SubscriptionId, 900_000m);
+        await PaySubscriptionOkAsync(client, token, visit.SubscriptionId!.Value, 900_000m);
         await RecordOkAsync(client, token, visit.Id, 10_000m);
 
         var page = await ListDebtorsOkAsync(client, token);
 
-        page.Items.ShouldHaveSingleItem().Id.ShouldBe(visit.MemberId);
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(visit.MemberId!.Value);
     }
 
     [Fact]
@@ -510,7 +510,7 @@ public sealed class ServiceChargeEndpointTests(DatabaseFixture fixture) : Databa
     {
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
-        await PaySubscriptionOkAsync(client, token, visit.SubscriptionId, 900_000m);
+        await PaySubscriptionOkAsync(client, token, visit.SubscriptionId!.Value, 900_000m);
         var charge = await RecordOkAsync(client, token, visit.Id, 10_000m);
         await VoidOkAsync(client, token, charge.Id, "اشتباه بود");
 

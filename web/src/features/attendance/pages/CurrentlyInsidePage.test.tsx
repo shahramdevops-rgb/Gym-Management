@@ -1,6 +1,13 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-import { cardioCharge, currentlyInsidePage, insideRow, openVisit } from "@/test/attendance";
+import {
+  cardioCharge,
+  currentlyInsidePage,
+  guestInsideRow,
+  guestVisit,
+  insideRow,
+  openVisit,
+} from "@/test/attendance";
 import { orderOnAccount, water } from "@/test/cafe";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { cafeDebtItem, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
@@ -548,5 +555,93 @@ describe("CurrentlyInsidePage", () => {
     expect(await within(dialog).findByRole("alert")).toHaveTextContent(
       "این ورود قبلاً بسته شده است.",
     );
+  });
+
+  // ---- A guest (BUSINESS_RULES.md §7 *Guest visit*) ----
+
+  const maryamDrink = {
+    ...orderOnAccount,
+    id: "0199a000-0000-7000-8000-0000000009f2",
+    memberId: null,
+    memberFullName: null,
+    guestName: "مریم احمدی",
+    attendanceId: guestVisit().id,
+    totalAmount: 25000,
+    netPaid: 0,
+    outstanding: 25000,
+    paymentStatus: "Unpaid" as const,
+    items: [{ ...orderOnAccount.items[0]!, productName: water.name, quantity: 1 }],
+  };
+
+  it("Board_GuestInside_ShowsTheNameUnlinkedAndGuestWhereTheSessionsGo", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([guestInsideRow(guestVisit("مریم احمدی"))]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByText("مریم احمدی")).closest("tr")!;
+    expect(within(row).queryByRole("link")).not.toBeInTheDocument();
+    expect(row).toHaveTextContent("مهمان");
+    expect(within(row).queryByRole("progressbar")).not.toBeInTheDocument();
+    // Never marked as needing attention: a guest has no plan to run out.
+    expect(row.querySelector(".text-warning")).toBeNull();
+  });
+
+  it("Board_CancelGuestLeavingAnUnpaidOrder_WaitsUntilItIsTickedAndSendsNoCardio", async () => {
+    const visit = guestVisit("مریم احمدی");
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([guestInsideRow(visit, [maryamDrink])]),
+      [`POST /api/attendance/${visit.id}/cancel`]: () =>
+        json(200, { ...visit, checkedOutAt: visit.checkedInAt, cancelledAt: visit.checkedInAt }),
+    });
+
+    renderApp("/attendance", { session: session() });
+    const dialog = await openCancelBox();
+
+    // No session to give back, and an order left standing would be a debt with nobody to owe it.
+    await within(dialog).findByRole("region", { name: "خریدهای این مراجعه" });
+    expect(dialog).not.toHaveTextContent("جلسه به اشتراک او بازمی‌گردد");
+    const confirm = within(dialog).getByRole("button", { name: "بله، ورود لغو شود" });
+    expect(confirm).toBeDisabled();
+    expect(dialog).toHaveTextContent("سفارش پرداخت‌نشده‌ی مهمان را تیک بزنید");
+
+    fireEvent.click(within(dialog).getByLabelText(/آب معدنی × ۱/));
+    await waitFor(() => expect(confirm).toBeEnabled());
+    fireEvent.click(confirm);
+    expect(dialog).toHaveTextContent("آن را به مهمان بازگردانید");
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود و این موارد لغو شوند" }));
+
+    expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent("جلسه به اشتراک بازگشت");
+    const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
+    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [maryamDrink.id] });
+  });
+
+  it("Board_CheckOutGuestWithUnpaidCafe_ShowsWhyFromTheApi", async () => {
+    const visit = guestVisit("مریم احمدی");
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([guestInsideRow(visit, [maryamDrink])]),
+      "GET /api/cafe/orders": () =>
+        json(200, { items: [maryamDrink], page: 1, pageSize: 100, totalCount: 1 }),
+      [`POST /api/attendance/${visit.id}/check-out`]: () =>
+        problem(422, "Attendance.GuestHasUnpaidCafe"),
+    });
+
+    renderApp("/attendance", { session: session() });
+    fireEvent.click(await screen.findByRole("button", { name: "ثبت خروج" }));
+    const dialog = await screen.findByRole("dialog");
+    // What the guest bought is listed; there is no plan or account debt to show.
+    expect(await within(dialog).findByRole("region", { name: "خریدهای بوفه" })).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByLabelText("کلید کمد شماره ۳ را تحویل گرفتم"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، خروج ثبت شود" }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("«تسویه یکجا»");
   });
 });

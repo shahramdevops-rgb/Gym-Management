@@ -86,6 +86,30 @@ public static class AttendanceErrors
         "Attendance.CafeOrderNotOnVisit",
         "A cafe order to cancel is not a standing order of this visit.");
 
+    /// <summary>BUSINESS_RULES.md §7 <i>Guest visit</i>: a guest's full name is required.</summary>
+    public static readonly Error GuestNameRequired = Error.Validation(
+        "Attendance.GuestNameRequired",
+        "The guest's full name is required.");
+
+    /// <summary>BUSINESS_RULES.md §7 <i>Guest visit</i>: the same limit as a member's name.</summary>
+    public static readonly Error GuestNameTooLong = Error.Validation(
+        "Attendance.GuestNameTooLong",
+        $"The guest's full name must be at most {Attendance.GuestNameMaxLength} characters.");
+
+    /// <summary>
+    /// BUSINESS_RULES.md §7 <i>Guest visit</i>: a guest has no account to leave a debt on, so the
+    /// visit is not closed (checked out, or cancelled with an order left standing) while a cafe
+    /// order of it is unpaid.
+    /// </summary>
+    public static readonly Error GuestHasUnpaidCafe = Error.BusinessRule(
+        "Attendance.GuestHasUnpaidCafe",
+        "The guest has unpaid cafe orders. Settle them first.");
+
+    /// <summary>Settling a guest's cafe in one step is for a guest's visit only; a member settles their own debt.</summary>
+    public static readonly Error NotGuestVisit = Error.BusinessRule(
+        "Attendance.NotGuestVisit",
+        "This visit is not a guest's.");
+
     /// <summary>The member history filter (BUSINESS_RULES.md §12: date ranges are inclusive).</summary>
     public static readonly Error InvalidDateRange = Error.Validation(
         "Attendance.InvalidDateRange",

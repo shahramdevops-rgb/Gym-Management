@@ -115,4 +115,34 @@ describe("CafeOrdersPage", () => {
     });
     await waitFor(() => expect(api.requestsTo("GET", "/api/cafe/orders")).toHaveLength(2));
   });
+
+  it("Orders_UnpaidGuestFilter_IsSentAndShowsTheGuestByName", async () => {
+    // What the nightly job left on a guest's visit (BUSINESS_RULES.md §7 *Guest visit*).
+    const guestOrder = {
+      ...orderOnAccount,
+      memberId: null,
+      memberFullName: null,
+      guestName: "مریم احمدی",
+      attendanceId: "0199a000-0000-7000-8000-0000000000c9",
+    };
+    const api = mockApi({
+      ...history,
+      "GET /api/cafe/orders": () => cafePage([guestOrder]),
+    });
+    renderApp("/cafe/orders", { session: session() });
+
+    fireEvent.click(await screen.findByLabelText("فقط پرداخت‌نشده — مهمان"));
+
+    await waitFor(() =>
+      expect(
+        api
+          .requestsTo("GET", "/api/cafe/orders")
+          .some((request) => new URL(request.url).searchParams.get("UnpaidGuest") === "true"),
+      ).toBe(true),
+    );
+    const row = rowOf(guestOrder, "مریم احمدی");
+    expect(row).toHaveTextContent("پرداخت‌نشده — مهمان");
+    expect(within(row).queryByRole("link")).not.toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: /ثبت پرداخت/ })).toBeInTheDocument();
+  });
 });

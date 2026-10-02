@@ -48,14 +48,21 @@ public sealed class SetLockerOutOfServiceHandler(IAppDbContext db)
     }
 
     /// <summary>
-    /// The member of the open attendance against this locker, or <c>null</c>. One query rather
-    /// than an existence check followed by a lookup: the caller needs both answers, and a locker
-    /// has at most one open attendance (partial unique index, BUSINESS_RULES.md §7).
+    /// Who holds the locker through its open attendance, a member or a guest, or <c>null</c>. One
+    /// query rather than an existence check followed by a lookup: the caller needs both answers,
+    /// and a locker has at most one open attendance (partial unique index, BUSINESS_RULES.md §7).
     /// </summary>
+    /// <remarks>
+    /// The member is looked up beside the visit rather than joined to it: an inner join would drop
+    /// a guest's visit, which has no member, and read a guest-held locker as free.
+    /// </remarks>
     private Task<LockerHolder?> FindHolderAsync(Guid lockerId, CancellationToken cancellationToken) =>
         db.Attendances
             .Where(a => a.LockerId == lockerId && a.CheckedOutAt == null)
-            .Join(db.Members, a => a.MemberId, m => m.Id, (_, m) => new LockerHolder(m.Id, m.FullName))
+            .Select(a => new LockerHolder(
+                a.MemberId,
+                db.Members.Where(m => m.Id == a.MemberId).Select(m => m.FullName).FirstOrDefault(),
+                a.GuestName))
             .SingleOrDefaultAsync(cancellationToken);
 
     private async Task<Result<LockerResponse>> SaveAsync(Locker locker, LockerHolder? holder, CancellationToken cancellationToken)

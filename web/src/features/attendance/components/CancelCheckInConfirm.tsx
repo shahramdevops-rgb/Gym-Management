@@ -28,6 +28,8 @@ export interface CancelChoice {
 
 interface CancelCheckInConfirmProps {
   memberFullName: string;
+  /** A guest has no session to give back and no account to leave an order on (§7 *Guest visit*). */
+  isGuest?: boolean;
   attendanceId: string;
   pending: boolean;
   onConfirm: (choice: CancelChoice) => void;
@@ -41,11 +43,15 @@ interface CancelCheckInConfirmProps {
  * on the member's account. When anything is ticked, a second question names it and reminds the
  * desk to hand back what was collected for it.
  *
+ * A guest (§7 *Guest visit*) leaves no debt behind: a cafe order left unticked must already be
+ * paid, so the confirm button waits until every unpaid order is ticked or settled in the box.
+ *
  * The purchases come from the "inside" list, which already carries each visit's هوازی and cafe
  * orders with what was paid, so every screen that offers cancel reads them the same way.
  */
 export function CancelCheckInConfirm({
   memberFullName,
+  isGuest = false,
   attendanceId,
   pending,
   onConfirm,
@@ -62,6 +68,12 @@ export function CancelCheckInConfirm({
     ...(visit?.cafeOrders ?? []).map(cafePurchase),
   ];
   const chosen = purchases.filter((purchase) => ticked.has(purchase.id));
+  // What the server would refuse: an order of a guest that stays standing and is not paid.
+  const guestLeavesUnpaid =
+    isGuest &&
+    (visit?.cafeOrders ?? []).some(
+      (order) => !ticked.has(order.id) && isPositiveMoney(order.outstanding),
+    );
 
   function toggle(id: string, checked: boolean) {
     setTicked((current) => {
@@ -106,8 +118,8 @@ export function CancelCheckInConfirm({
         </ul>
         <Alert role="status">
           <p className="font-medium">
-            اگر وجه این موارد را دریافت کرده‌اید، آن را به عضو بازگردانید؛ اگر دریافت نشده، اقدامی
-            لازم نیست.
+            اگر وجه این موارد را دریافت کرده‌اید، آن را به {isGuest ? "مهمان" : "عضو"} بازگردانید؛
+            اگر دریافت نشده، اقدامی لازم نیست.
           </p>
           {isPositiveMoney(collected) && (
             <p className="mt-1 text-muted-foreground">
@@ -133,8 +145,8 @@ export function CancelCheckInConfirm({
       <DialogHeader>
         <DialogTitle>لغو ورود</DialogTitle>
         <DialogDescription>
-          آیا از لغو ورود <strong className="text-foreground">{memberFullName}</strong> مطمئن
-          هستید؟ جلسه به اشتراک او بازمی‌گردد.
+          آیا از لغو ورود <strong className="text-foreground">{memberFullName}</strong> مطمئن هستید؟
+          {isGuest ? "" : " جلسه به اشتراک او بازمی‌گردد."}
         </DialogDescription>
       </DialogHeader>
 
@@ -149,10 +161,15 @@ export function CancelCheckInConfirm({
       )}
 
       {purchases.length > 0 && (
-        <section aria-label="خریدهای این مراجعه" className="space-y-2 rounded-lg border p-3 text-sm">
+        <section
+          aria-label="خریدهای این مراجعه"
+          className="space-y-2 rounded-lg border p-3 text-sm"
+        >
           <p className="font-medium">خریدهای این مراجعه</p>
           <p className="text-muted-foreground">
-            موارد تیک‌خورده همراه ورود لغو می‌شوند؛ بقیه روی حساب عضو می‌ماند.
+            {isGuest
+              ? "موارد تیک‌خورده همراه ورود لغو می‌شوند. مهمان حسابی ندارد: سفارش پرداخت‌نشده‌ای که تیک نخورد، باید پیش از لغو تسویه شود."
+              : "موارد تیک‌خورده همراه ورود لغو می‌شوند؛ بقیه روی حساب عضو می‌ماند."}
           </p>
           <ul className="space-y-2">
             {purchases.map((purchase) => (
@@ -183,10 +200,16 @@ export function CancelCheckInConfirm({
         </section>
       )}
 
+      {guestLeavesUnpaid && (
+        <Alert role="status">
+          سفارش پرداخت‌نشده‌ی مهمان را تیک بزنید تا همراه ورود لغو شود، یا ابتدا آن را تسویه کنید.
+        </Alert>
+      )}
+
       <ConfirmButtons
         label="بله، ورود لغو شود"
         pending={pending}
-        disabled={inside.isPending}
+        disabled={inside.isPending || guestLeavesUnpaid}
         onConfirm={() => (chosen.length > 0 ? setAskingAgain(true) : send())}
         onCancel={onCancel}
       />

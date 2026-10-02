@@ -17,11 +17,14 @@ import { useMoveLocker, type CurrentlyInside } from "@/features/attendance/api";
 import type { DeskAction } from "@/features/attendance/components/CheckInOutDialog";
 import { lowSessionsThreshold } from "@/features/attendance/renewal";
 import { CloseButton, ConfirmButtons, LockerBox } from "@/features/attendance/components/deskParts";
+import { GuestSettleForm } from "@/features/attendance/components/GuestSettleForm";
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
+import { guestLabel, holderOf } from "@/features/attendance/holder";
 import { VisitCafeBox } from "@/features/cafe/components/VisitCafeBox";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { errorMessage } from "@/lib/errors";
-import { formatDateTime, toPersianDigits } from "@/lib/format";
+import { formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
+import { addMoney, isPositiveMoney } from "@/lib/money";
 
 import type { Locker } from "../api";
 import { LockerMap } from "./LockerMap";
@@ -32,6 +35,8 @@ type Step =
   /** Who had the locker today (BUSINESS_RULES.md §6); «بازگشت» goes back to the visit. */
   | { kind: "history"; lockerId: string }
   | { kind: "pick" }
+  /** «تسویه یکجا» for a guest: every unpaid cafe order of the visit (BUSINESS_RULES.md §7 *Guest visit*). */
+  | { kind: "settle" }
   | { kind: "confirmMove"; target: Locker }
   | { kind: "moved"; number: Locker["number"] }
   | { kind: "failed"; reason: string };
@@ -65,7 +70,9 @@ export function LockerVisitDialog({
 }: LockerVisitDialogProps) {
   const [step, setStep] = useState<Step>({ kind: "view" });
   const moveLocker = useMoveLocker();
-  const member = { id: visit.memberId, fullName: visit.memberFullName };
+  const member = holderOf(visit);
+  // Null for a guest (BUSINESS_RULES.md §7 *Guest visit*), whose box has no profile, sessions or هوازی.
+  const memberId = visit.memberId;
   // Null on a reserve place, which has no history of its own.
   const lockerId = visit.lockerId;
 
@@ -96,7 +103,44 @@ export function LockerVisitDialog({
         className={step.kind === "pick" ? "max-w-5xl" : "max-w-2xl"}
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
-        {step.kind === "view" && (
+        {step.kind === "view" && memberId === null && (
+          <GuestView
+            visit={visit}
+            title={title}
+            onSettle={() => setStep({ kind: "settle" })}
+            onCheckOut={() =>
+              onDeskAction({
+                kind: "checkOut",
+                member,
+                visit: { attendanceId: visit.attendanceId, lockerNumber: visit.lockerNumber },
+              })
+            }
+            onMove={() => setStep({ kind: "pick" })}
+            onCancelCheckIn={() =>
+              onDeskAction({ kind: "cancelCheckIn", member, attendanceId: visit.attendanceId })
+            }
+            onHistory={lockerId === null ? null : () => setStep({ kind: "history", lockerId })}
+          />
+        )}
+
+        {step.kind === "settle" && (
+          <>
+            <DialogHeader>
+              <DialogTitle>تسویه یکجا — {member.fullName}</DialogTitle>
+              <DialogDescription>
+                همهٔ خریدهای پرداخت‌نشدهٔ بوفهٔ این مهمان یکجا پرداخت می‌شود.
+              </DialogDescription>
+            </DialogHeader>
+            <GuestSettleForm
+              attendanceId={visit.attendanceId}
+              outstanding={guestOutstanding(visit)}
+              onDone={() => setStep({ kind: "view" })}
+              onCancel={() => setStep({ kind: "view" })}
+            />
+          </>
+        )}
+
+        {step.kind === "view" && memberId !== null && (
           <>
             {/* The sessions sit beside the name, where the header had room to spare; pe-6 keeps them
                 clear of the ✕. */}
@@ -105,10 +149,10 @@ export function LockerVisitDialog({
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription>
                   <Link
-                    to={paths.member(visit.memberId)}
+                    to={paths.member(memberId)}
                     className="font-medium text-foreground underline-offset-4 hover:underline"
                   >
-                    {visit.memberFullName}
+                    {member.fullName}
                   </Link>
                   {" · "}ورود: {formatDateTime(visit.checkedInAt)}
                 </DialogDescription>
@@ -138,7 +182,7 @@ export function LockerVisitDialog({
 
             {/* Without its own sessions line: the header already shows them. */}
             <VisitSummary
-              memberId={visit.memberId}
+              memberId={memberId}
               attendanceId={visit.attendanceId}
               withSessions={false}
             />
@@ -199,7 +243,7 @@ export function LockerVisitDialog({
             <DialogHeader>
               <DialogTitle>جابه‌جایی کمد</DialogTitle>
               <DialogDescription>
-                {visit.memberFullName}: کمد آزاد تازه را انتخاب کنید.
+                {member.fullName}: کمد آزاد تازه را انتخاب کنید.
               </DialogDescription>
             </DialogHeader>
             <LockerMap
@@ -220,7 +264,7 @@ export function LockerVisitDialog({
             <DialogHeader>
               <DialogTitle>جابه‌جایی کمد</DialogTitle>
               <DialogDescription>
-                {visit.memberFullName} از{" "}
+                {member.fullName} از{" "}
                 {visit.lockerNumber === null
                   ? "ورود بدون کمد"
                   : `کمد ${toPersianDigits(visit.lockerNumber)}`}{" "}
@@ -243,7 +287,7 @@ export function LockerVisitDialog({
                 <CheckCircle2 className="size-5" aria-hidden />
                 کمد جابه‌جا شد
               </DialogTitle>
-              <DialogDescription>{visit.memberFullName}</DialogDescription>
+              <DialogDescription>{member.fullName}</DialogDescription>
             </DialogHeader>
             <LockerBox number={step.number} />
             <CloseButton onClose={onClose} />
@@ -254,7 +298,7 @@ export function LockerVisitDialog({
           <>
             <DialogHeader>
               <DialogTitle>انجام نشد</DialogTitle>
-              <DialogDescription>{visit.memberFullName}</DialogDescription>
+              <DialogDescription>{member.fullName}</DialogDescription>
             </DialogHeader>
             <Alert variant="destructive">{step.reason}</Alert>
             <div className="flex gap-2">
@@ -272,6 +316,98 @@ export function LockerVisitDialog({
   );
 }
 
+/** What a guest's visit still owes the cafe: what «تسویه یکجا» pays and what blocks check-out. */
+function guestOutstanding(visit: CurrentlyInside): string {
+  return addMoney(...(visit.cafeOrders ?? []).map((order) => order.outstanding));
+}
+
+interface GuestViewProps {
+  visit: CurrentlyInside;
+  title: string;
+  onSettle: () => void;
+  onCheckOut: () => void;
+  onMove: () => void;
+  onCancelCheckIn: () => void;
+  /** `null` on a reserve place, which has no history of its own. */
+  onHistory: (() => void) | null;
+}
+
+/**
+ * A guest's box (BUSINESS_RULES.md §7 *Guest visit*): the name and «مهمان», with no profile link,
+ * no sessions and no هوازی. The cafe is as for a member, plus «تسویه یکجا» while anything is
+ * unpaid, and check-out waits until it is paid: a guest has no account to leave a debt on. Move
+ * and cancel work as for a member.
+ */
+function GuestView({
+  visit,
+  title,
+  onSettle,
+  onCheckOut,
+  onMove,
+  onCancelCheckIn,
+  onHistory,
+}: GuestViewProps) {
+  const guest = holderOf(visit);
+  const outstanding = guestOutstanding(visit);
+  const owes = isPositiveMoney(outstanding);
+
+  return (
+    <>
+      <DialogHeader className="pe-6">
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>
+          <span className="font-medium text-foreground">{guest.fullName}</span>
+          {" · "}
+          <span className="rounded bg-guest/15 px-1.5 py-0.5 text-xs font-medium text-foreground">
+            {guestLabel}
+          </span>
+          {" · "}ورود: {formatDateTime(visit.checkedInAt)}
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium">بوفه</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <VisitCafeBox
+            attendanceId={visit.attendanceId}
+            member={guest}
+            orders={visit.cafeOrders ?? []}
+          />
+          {owes && (
+            <Button size="sm" onClick={onSettle}>
+              تسویه یکجا ({formatMoney(outstanding)})
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2 border-t pt-3">
+        {owes && (
+          <Alert role="status">مهمان حسابی ندارد: خروج پس از پرداخت خریدهای بوفه ثبت می‌شود.</Alert>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={owes} onClick={onCheckOut}>
+            ثبت خروج
+          </Button>
+          <Button variant="outline" onClick={onMove}>
+            <ArrowLeftRight aria-hidden />
+            جابه‌جایی کمد
+          </Button>
+          <Button variant="outline" onClick={onCancelCheckIn}>
+            لغو ورود
+          </Button>
+          {onHistory !== null && (
+            <Button variant="outline" onClick={onHistory}>
+              <History aria-hidden />
+              تاریخچه امروز این کمد
+            </Button>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 /**
  * The visit's sessions, used of total over a bar, and how many that leaves: the one count the desk
  * reads at the door. A single visit has nothing to count.
@@ -286,13 +422,13 @@ function VisitSessions({ visit }: { visit: CurrentlyInside }) {
         <>
           <SessionsBar
             className="w-full"
-            total={visit.totalSessions}
-            used={visit.usedSessions}
-            remaining={visit.remainingSessions}
+            total={visit.totalSessions ?? 0}
+            used={visit.usedSessions ?? 0}
+            remaining={visit.remainingSessions ?? 0}
             lowThreshold={lowSessionsThreshold}
           />
           <p className="text-xs text-muted-foreground">
-            {toPersianDigits(visit.remainingSessions)} جلسه مانده
+            {toPersianDigits(visit.remainingSessions ?? 0)} جلسه مانده
           </p>
         </>
       )}

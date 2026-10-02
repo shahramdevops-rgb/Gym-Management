@@ -1258,3 +1258,21 @@ The question that started this was whether a gym that is entirely internal — I
 - **Test what the person does, keystroke by keystroke.** A test that pastes the finished string in one `change` passed, and the mask was still broken. Only adding one digit at a time to what the box actually showed exposed it: after the first slash, the second never appeared.
 - **Changing a rule is cheap before go-live.** With no members anywhere, requiring the field is one `SET NOT NULL`. After go-live the same change would need a decision about every member already registered without one.
 - **My notes:**
+
+---
+
+## 6.5.11 — Guest visit (ورود مهمان)
+
+- **One table, two shapes, held apart by check constraints.** A guest's visit is an `attendances` row with a name instead of a member and a subscription. `(member_id IS NULL) <> (guest_name IS NULL)` means "exactly one of the two", and `(member_id IS NULL) = (subscription_id IS NULL)` means "both or neither". A second `guest_visits` table would have needed every locker query to look in two places.
+- **Widening a column is the safe direction.** Making `member_id` nullable and adding a nullable `guest_name` can't refuse a single existing row, so the migration carries the gym's real data forward untouched. The checks hold for every old row because each of them has a member.
+- **NULLs don't collide in a unique index.** The partial unique index "one open visit per member" lets any number of guests in at once, because Postgres treats every NULL `member_id` as different from the others.
+- **A factory per shape.** `CheckInGuest` returns a `Result`, because a typed name can be wrong, while `CheckIn` for a member returns the entity directly, because its inputs were already checked. Each factory says what can fail.
+- **The domain decides, the caller supplies the facts.** "Cafe unpaid" lives in another aggregate (orders and payments), so `CheckOut(now, hasUnpaidCafe)` takes the answer as an argument and the entity applies the rule. It's the same split as `locker.MarkOutOfService(isOccupied)`.
+- **Lock the row the race is about.** A member's purchases are serialized by locking the member's row. A guest has none, so `LockAttendanceAsync` locks the visit instead (`SELECT … FOR UPDATE`). Check-out, settling and a new order on the visit all take that lock, so a drink can't land on a guest who was checked out a moment earlier.
+- **Know what a check constraint can't see.** It reads one row. "An order's member is its visit's member" needs a second table, so the old check was dropped and the rule lives in code and in an integration test. That is a deliberate, written-down gap, not a forgotten one.
+- **An inner join silently drops rows.** `SetLockerOutOfService` joined attendances to members. A guest's visit has no member, so the join returned nothing and a guest-held locker looked free. A correlated lookup (`members.Where(...).FirstOrDefault()`) keeps the row whatever the member side holds.
+- **"Pay what the box showed" as a concurrency check.** `settle-guest` takes the total the desk saw. If an order was added at the till meanwhile, the totals differ and nothing is paid. The request carries its own expectation, the same idea as `xmin`.
+- **Let TypeScript find the assumptions.** After `npm run gen:api`, `memberId: string | null` broke every screen that assumed a visit has a member. The compiler listed them, and a small `holder.ts` (`holderName`, `holderOf`) gave every screen one answer to "whose visit is this?".
+- **Narrow once, then branch.** `const memberId = visit.memberId` and `memberId !== null && …` in JSX let the compiler prove the member view has a member id, with no `!`.
+- **A new state is a new key in every `Record<LockerState, …>`.** Adding `"guest"` made the compiler point at each colour table (doors, legend, change ring) that needed an entry.
+- **My notes:**

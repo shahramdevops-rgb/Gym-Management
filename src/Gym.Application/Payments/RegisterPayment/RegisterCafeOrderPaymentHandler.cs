@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Payments.RegisterPayment;
 
 /// <summary>
-/// Registers a payment against a cafe order left on a member's account, partial or in full
+/// Registers a payment against a cafe order left on a member's account or on a guest's visit, partial or in full
 /// (BUSINESS_RULES.md §5, §8: "settled later with ordinary Payment rows"). Owner and Staff.
 /// </summary>
 /// <remarks>
@@ -33,11 +33,16 @@ public sealed class RegisterCafeOrderPaymentHandler(IAppDbContext db, TimeProvid
         // "Cannot be overpaid" is a sum-across-rows invariant no check constraint can express, so
         // two payments racing for the same order are serialized the same way the other two payment
         // handlers do it. A walk-in order has no member row to lock, but it also cannot be paid
-        // here: it was settled in full at creation, inside its own transaction.
+        // here: it was settled in full at creation, inside its own transaction. An order on a
+        // guest's visit locks the visit instead, the lock the guest's check-out also takes.
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
         if (order.MemberId is { } memberId)
         {
             await db.LockMemberAsync(memberId, cancellationToken);
+        }
+        else if (order.AttendanceId is { } guestVisitId)
+        {
+            await db.LockAttendanceAsync(guestVisitId, cancellationToken);
         }
 
         // A cancelled order owes nothing (§5 Member debt), so there is nothing to pay against it.

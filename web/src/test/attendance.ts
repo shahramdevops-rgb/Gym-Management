@@ -11,6 +11,7 @@ export function openVisit(memberId: string): Attendance {
     id: "0199a000-0000-7000-8000-0000000000c1",
     memberId,
     subscriptionId,
+    guestName: null,
     lockerId,
     lockerNumber: 3,
     usesReservePlace: false,
@@ -31,7 +32,7 @@ export function cardioCharge(
 ): ServiceCharge {
   return {
     id: "0199a000-0000-7000-8000-0000000000f1",
-    memberId: attendance.memberId,
+    memberId: attendance.memberId ?? "",
     attendanceId: attendance.id,
     kind: "Cardio",
     amount: 10000,
@@ -115,6 +116,7 @@ export function insideRow(
     attendanceId: attendance.id,
     memberId: attendance.memberId,
     memberFullName,
+    guestName: null,
     lockerId: attendance.lockerId,
     lockerNumber: attendance.lockerNumber,
     usesReservePlace: attendance.usesReservePlace,
@@ -152,4 +154,38 @@ export function todayByHour(
     average: filled[hour]?.average ?? 0,
   }));
   return json(200, { date, daysAveraged, hours });
+}
+
+/** A guest's open visit on locker 3 (BUSINESS_RULES.md §7 *Guest visit*): a name, no member, no plan. */
+export function guestVisit(
+  guestName = "مریم احمدی",
+  overrides: Partial<Attendance> = {},
+): Attendance {
+  return {
+    ...openVisit(""),
+    id: "0199a000-0000-7000-8000-0000000000c9",
+    memberId: null,
+    subscriptionId: null,
+    guestName,
+    ...overrides,
+  };
+}
+
+/** A guest's row on the board: no member, no subscription, and the cafe orders given. */
+export function guestInsideRow(
+  attendance: Attendance,
+  cafeOrders: CurrentlyInside["cafeOrders"] = [],
+): CurrentlyInside {
+  return {
+    ...insideRow("", attendance),
+    memberId: null,
+    memberFullName: null,
+    guestName: attendance.guestName,
+    subscriptionId: null,
+    totalSessions: null,
+    usedSessions: null,
+    remainingSessions: null,
+    subscriptionEndDate: null,
+    cafeOrders,
+  };
 }

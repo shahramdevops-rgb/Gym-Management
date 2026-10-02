@@ -12,7 +12,7 @@ namespace Gym.Application.Attendances.CancelCheckIn;
 
 /// <summary>
 /// Cancels an open check-in within the allowed window (BUSINESS_RULES.md §7): restores the
-/// session, frees the locker (occupancy is derived from <c>CheckedOutAt</c>, which
+/// session (a guest's visit has none), frees the locker (occupancy is derived from <c>CheckedOutAt</c>, which
 /// <see cref="Attendance.Cancel"/> also sets), and cancels the purchases the desk ticked —
 /// the هوازی, and each cafe order named. Front desk work, so both roles.
 /// </summary>
@@ -47,25 +47,44 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
 
         // One transaction, taking the member's lock, because the purchases below are refunded from
         // what has been paid against them and a payment for this member may be committing right
-        // now — the same lock registering that payment takes.
+        // now — the same lock registering that payment takes. A guest has no member row, so their
+        // visit's own row is the lock, which a guest's order and its payments take too.
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
-        await db.LockMemberAsync(attendance.MemberId, cancellationToken);
+        if (attendance.MemberId is { } memberId)
+        {
+            await db.LockMemberAsync(memberId, cancellationToken);
+        }
+        else
+        {
+            await db.LockAttendanceAsync(id, cancellationToken);
+        }
 
-        var cancelled = attendance.Cancel(now, policy.CancelWindowMinutes);
+        // A guest leaves no debt behind (BUSINESS_RULES.md §7 Guest visit): an order the desk did
+        // not tick stays standing, so it must already be paid.
+        var cafeOrderIds = command.CafeOrderIds ?? [];
+        var leavesUnpaidCafe = attendance.IsGuest
+            && (await GuestCafe.UnpaidOrdersAsync(db, id, cancellationToken))
+                .Any(unpaid => !cafeOrderIds.Contains(unpaid.Order.Id));
+
+        var cancelled = attendance.Cancel(now, policy.CancelWindowMinutes, leavesUnpaidCafe);
         if (cancelled.IsFailure)
         {
             return Result.Failure<AttendanceResponse>(cancelled.Error);
         }
 
-        var subscription = await db.Subscriptions.SingleAsync(s => s.Id == attendance.SubscriptionId, cancellationToken);
-        subscription.RestoreSession();
+        // A guest's visit consumed no session, so there is none to give back.
+        if (attendance.SubscriptionId is { } subscriptionId)
+        {
+            var subscription = await db.Subscriptions.SingleAsync(s => s.Id == subscriptionId, cancellationToken);
+            subscription.RestoreSession();
+        }
 
         if (command.VoidCardio == true)
         {
             await VoidCardioAsync(id, userId, now, cancellationToken);
         }
 
-        var cafeCancelled = await CancelCafeOrdersAsync(id, command.CafeOrderIds ?? [], userId, now, cancellationToken);
+        var cafeCancelled = await CancelCafeOrdersAsync(id, cafeOrderIds, userId, now, cancellationToken);
         if (cafeCancelled.IsFailure)
         {
             // Nothing is saved: the transaction is disposed without a commit.

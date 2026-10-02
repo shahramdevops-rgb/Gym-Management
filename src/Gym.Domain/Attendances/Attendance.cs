@@ -1,10 +1,13 @@
 using Gym.Domain.Common;
+using Gym.Domain.Members;
 
 namespace Gym.Domain.Attendances;
 
 /// <summary>
 /// One visit: a member checked in, consuming a session from a subscription and holding either the
 /// locker the desk chose or, when every locker is full, a reserve place (BUSINESS_RULES.md §6, §7).
+/// A guest's visit (§7 <i>Guest visit</i>) holds a place the same way, but has a typed name instead
+/// of a member and a subscription.
 /// </summary>
 /// <remarks>
 /// Every precondition (member active, subscription active, no open attendance) is a cross-entity
@@ -18,14 +21,29 @@ public sealed class Attendance : Entity
     /// <summary>How many visits can be inside with no locker at once (BUSINESS_RULES.md §6 <i>Reserve places</i>).</summary>
     public const int ReservePlaceCount = 15;
 
+    /// <summary>A guest's name follows a member's limit (BUSINESS_RULES.md §7 <i>Guest visit</i>).</summary>
+    public const int GuestNameMaxLength = Member.FullNameMaxLength;
+
     // For EF Core.
     private Attendance()
     {
     }
 
-    public Guid MemberId { get; private set; }
+    /// <summary><c>null</c> only on a guest's visit, which has <see cref="GuestName"/> instead (a check constraint says so too).</summary>
+    public Guid? MemberId { get; private set; }
 
-    public Guid SubscriptionId { get; private set; }
+    /// <summary>The subscription a session was consumed from; <c>null</c> exactly when <see cref="MemberId"/> is.</summary>
+    public Guid? SubscriptionId { get; private set; }
+
+    /// <summary>
+    /// The full name the desk typed for a guest (BUSINESS_RULES.md §7 <i>Guest visit</i>), trimmed
+    /// and otherwise as typed, like <see cref="Member.FullName"/>. <c>null</c> on a member's visit.
+    /// A guest is never searched for on the server, so there is no normalized copy.
+    /// </summary>
+    public string? GuestName { get; private set; }
+
+    /// <summary>A guest's visit: no member, no subscription, only a name.</summary>
+    public bool IsGuest => MemberId is null;
 
     /// <summary>
     /// The locker this visit holds, or <c>null</c> when it holds a reserve place instead. An open
@@ -104,6 +122,64 @@ public sealed class Attendance : Entity
     }
 
     /// <summary>
+    /// A guest's visit on the locker the desk chose (BUSINESS_RULES.md §7 <i>Guest visit</i>):
+    /// no member, no subscription, no session consumed. The locker's checks are the caller's, as
+    /// for <see cref="CheckIn"/>; the name is checked here.
+    /// </summary>
+    public static Result<Attendance> CheckInGuest(string guestName, Guid lockerId, DateTimeOffset checkedInAt)
+    {
+        var name = CleanGuestName(guestName);
+        if (name.IsFailure)
+        {
+            return Result.Failure<Attendance>(name.Error);
+        }
+
+        return new Attendance
+        {
+            GuestName = name.Value,
+            LockerId = lockerId,
+            CheckedInAt = checkedInAt,
+        };
+    }
+
+    /// <summary>A guest's visit on a reserve place, under the same conditions as a member's (BUSINESS_RULES.md §6).</summary>
+    public static Result<Attendance> CheckInGuestOnReservePlace(string guestName, int reserveSlot, DateTimeOffset checkedInAt)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(reserveSlot, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(reserveSlot, ReservePlaceCount);
+
+        var name = CleanGuestName(guestName);
+        if (name.IsFailure)
+        {
+            return Result.Failure<Attendance>(name.Error);
+        }
+
+        return new Attendance
+        {
+            GuestName = name.Value,
+            ReserveSlot = reserveSlot,
+            CheckedInAt = checkedInAt,
+        };
+    }
+
+    /// <summary>The same trim and limits as a member's name (BUSINESS_RULES.md §2, §7 <i>Guest visit</i>).</summary>
+    private static Result<string> CleanGuestName(string? guestName)
+    {
+        var name = guestName?.Trim() ?? string.Empty;
+        if (name.Length == 0)
+        {
+            return Result.Failure<string>(AttendanceErrors.GuestNameRequired);
+        }
+
+        if (name.Length > GuestNameMaxLength)
+        {
+            return Result.Failure<string>(AttendanceErrors.GuestNameTooLong);
+        }
+
+        return name;
+    }
+
+    /// <summary>
     /// Moves an open visit to another locker (BUSINESS_RULES.md §7 <i>Moving to another locker</i>).
     /// A visit on a reserve place gives it up. Whether the target is in service and free is the
     /// caller's check, the same split as check-in; nothing about the session, هوازی or the cafe
@@ -127,12 +203,25 @@ public sealed class Attendance : Entity
         return Result.Success();
     }
 
-    /// <summary>Only an open attendance can be checked out (BUSINESS_RULES.md §7).</summary>
-    public Result CheckOut(DateTimeOffset checkedOutAt)
+    /// <summary>
+    /// Only an open attendance can be checked out (BUSINESS_RULES.md §7). A guest cannot leave
+    /// while a cafe order of the visit is unpaid: a member's debt stays on their account, but a
+    /// guest has no account to leave it on (§7 <i>Guest visit</i>).
+    /// </summary>
+    /// <param name="hasUnpaidCafe">
+    /// Whether any standing cafe order of this visit still owes money. Orders are another
+    /// aggregate, so the caller answers; it is ignored on a member's visit.
+    /// </param>
+    public Result CheckOut(DateTimeOffset checkedOutAt, bool hasUnpaidCafe = false)
     {
         if (CheckedOutAt is not null)
         {
             return Result.Failure(AttendanceErrors.NotOpen);
+        }
+
+        if (IsGuest && hasUnpaidCafe)
+        {
+            return Result.Failure(AttendanceErrors.GuestHasUnpaidCafe);
         }
 
         CheckedOutAt = checkedOutAt;
@@ -146,7 +235,12 @@ public sealed class Attendance : Entity
     /// aggregate); this only records the cancellation and frees the locker.
     /// </summary>
     /// <param name="cancelWindowMinutes"><c>Gym:CancelCheckInWindowMinutes</c>.</param>
-    public Result Cancel(DateTimeOffset now, int cancelWindowMinutes)
+    /// <param name="leavesUnpaidCafe">
+    /// Whether a cafe order the desk did not tick for cancelling still owes money. On a guest's
+    /// visit that refuses the cancellation, as it refuses a check-out (BUSINESS_RULES.md §7
+    /// <i>Guest visit</i>); ignored on a member's visit.
+    /// </param>
+    public Result Cancel(DateTimeOffset now, int cancelWindowMinutes, bool leavesUnpaidCafe = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(cancelWindowMinutes);
 
@@ -158,6 +252,11 @@ public sealed class Attendance : Entity
         if (now - CheckedInAt > TimeSpan.FromMinutes(cancelWindowMinutes))
         {
             return Result.Failure(AttendanceErrors.CancelWindowExpired);
+        }
+
+        if (IsGuest && leavesUnpaidCafe)
+        {
+            return Result.Failure(AttendanceErrors.GuestHasUnpaidCafe);
         }
 
         CancelledAt = now;

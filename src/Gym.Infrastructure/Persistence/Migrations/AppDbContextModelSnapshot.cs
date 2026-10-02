@@ -55,11 +55,16 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
+                    b.Property<string>("GuestName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("guest_name");
+
                     b.Property<Guid?>("LockerId")
                         .HasColumnType("uuid")
                         .HasColumnName("locker_id");
 
-                    b.Property<Guid>("MemberId")
+                    b.Property<Guid?>("MemberId")
                         .HasColumnType("uuid")
                         .HasColumnName("member_id");
 
@@ -67,7 +72,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("reserve_slot");
 
-                    b.Property<Guid>("SubscriptionId")
+                    b.Property<Guid?>("SubscriptionId")
                         .HasColumnType("uuid")
                         .HasColumnName("subscription_id");
 
@@ -115,11 +120,17 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_attendances_cancellation", "cancelled_at IS NULL OR checked_out_at = cancelled_at");
 
+                            t.HasCheckConstraint("ck_attendances_guest_name_not_blank", "guest_name IS NULL OR btrim(guest_name) <> ''");
+
+                            t.HasCheckConstraint("ck_attendances_member_or_guest", "(member_id IS NULL) <> (guest_name IS NULL)");
+
                             t.HasCheckConstraint("ck_attendances_one_close_reason", "cancelled_at IS NULL OR auto_closed_at IS NULL");
 
                             t.HasCheckConstraint("ck_attendances_open_holds_one_place", "checked_out_at IS NOT NULL OR ((locker_id IS NULL) <> (reserve_slot IS NULL))");
 
                             t.HasCheckConstraint("ck_attendances_reserve_slot_range", "reserve_slot BETWEEN 1 AND 15");
+
+                            t.HasCheckConstraint("ck_attendances_subscription_with_member", "(member_id IS NULL) = (subscription_id IS NULL)");
                         });
                 });
 
@@ -427,8 +438,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_cafe_orders_cancel", "(cancelled_at IS NULL) = (cancel_reason IS NULL) AND (cancelled_at IS NULL) = (cancelled_by_user_id IS NULL)");
 
                             t.HasCheckConstraint("ck_cafe_orders_total_not_negative", "total_amount >= 0");
-
-                            t.HasCheckConstraint("ck_cafe_orders_visit_has_member", "attendance_id IS NULL OR member_id IS NOT NULL");
                         });
                 });
 
@@ -2107,14 +2116,12 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("MemberId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
                         .HasConstraintName("fk_attendances_members_member_id");
 
                     b.HasOne("Gym.Domain.Subscriptions.Subscription", null)
                         .WithMany()
                         .HasForeignKey("SubscriptionId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
                         .HasConstraintName("fk_attendances_subscriptions_subscription_id");
                 });
 
