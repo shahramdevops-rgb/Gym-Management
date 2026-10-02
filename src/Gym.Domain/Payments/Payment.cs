@@ -53,6 +53,13 @@ public sealed class Payment : Entity
     /// <summary>Required for a refund; always null for a payment.</summary>
     public string? Reason { get; private set; }
 
+    /// <summary>
+    /// The «تسویه یکجا» this payment was written by (BUSINESS_RULES.md §5 <i>Settling several items
+    /// at once</i>): every row of one handover of money carries the same id, so the history can
+    /// show them together. <c>null</c> for a payment taken on its own, and always for a refund.
+    /// </summary>
+    public Guid? SettlementId { get; private set; }
+
     public static Result<Payment> RegisterForSubscription(
         Guid subscriptionId, decimal amount, PaymentMethod method, string? referenceNumber,
         Guid receivedByUserId, DateTimeOffset paidAt) =>
@@ -104,6 +111,32 @@ public sealed class Payment : Entity
         Guid serviceChargeId, decimal amount, PaymentMethod method, string? referenceNumber, string reason,
         Guid receivedByUserId, DateTimeOffset paidAt) =>
         CreateRefund(Target.ServiceCharge(serviceChargeId), amount, method, referenceNumber, reason, receivedByUserId, paidAt);
+
+    /// <summary>
+    /// Marks this payment as one row of a «تسویه یکجا». Called by the settle handlers right after
+    /// registering each row, never on input from the desk, so misuse is a bug and throws instead
+    /// of returning a <see cref="Result"/>. A refund is never part of a settlement: correcting one
+    /// refunds each row on its own (§5).
+    /// </summary>
+    public void JoinSettlement(Guid settlementId)
+    {
+        if (settlementId == Guid.Empty)
+        {
+            throw new ArgumentException("A settlement id cannot be empty.", nameof(settlementId));
+        }
+
+        if (Kind != PaymentKind.Payment)
+        {
+            throw new InvalidOperationException("A refund cannot be part of a settlement.");
+        }
+
+        if (SettlementId is not null)
+        {
+            throw new InvalidOperationException("This payment is already part of a settlement.");
+        }
+
+        SettlementId = settlementId;
+    }
 
     /// <summary>
     /// Also used by <c>PaymentRules</c>, so the form hears the same answer as the entity

@@ -10,6 +10,7 @@ using Gym.Application.Common.Paging;
 using Gym.Application.History.ListAttendance;
 using Gym.Application.History.ListPayments;
 using Gym.Application.History.ListServiceCharges;
+using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.ServiceCharges;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
@@ -191,6 +192,9 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         plan.MemberId.ShouldBe(member.Id);
         plan.Amount.ShouldBe(900_000m);
         plan.Method.ShouldBe(PaymentMethod.Card);
+
+        // Each was taken on its own.
+        page.Items.ShouldAllBe(item => item.Settlement == null);
     }
 
     [Fact]
@@ -269,6 +273,36 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         byMethod.Items.Select(item => item.Amount).ShouldBe([30_000m, 200_000m]);
         bySource.Items.ShouldHaveSingleItem().Source.ShouldBe(PaymentTargetKind.CafeOrder);
         byMember.Items.ShouldHaveSingleItem().TargetId.ShouldBe(mine.Id);
+    }
+
+    [Fact]
+    public async Task ListPayments_SettlementRows_CarryTheWholeHandoverEvenWhenFiltered()
+    {
+        var (staff, token) = await StaffClientAsync();
+        var member = await MemberWithPlanAsync(staff, token, "علی رضایی");
+        var visit = await TestLockers.CheckInOkAsync(staff, token, member.Id);
+        await RecordCardioOkAsync(staff, token, visit.Id, 50_000m);
+        var debt = await GetOkAsync<MemberDebtResponse>(staff, token, $"/api/members/{member.Id}/debt");
+        await PostOkAsync(staff, token, $"/api/members/{member.Id}/settlements", new
+        {
+            amount = debt.Total,
+            method = "BankTransfer",
+            items = debt.Items.Select(item => new { kind = item.Kind.ToString(), id = item.Id, outstanding = item.Outstanding }),
+        });
+        await WalkInOrderAsync(staff, token, 30_000m);
+
+        var page = await PaymentsOkAsync(staff, token, TodayRange());
+        var cardioOnly = await PaymentsOkAsync(staff, token, TodayRange() + "&source=ServiceCharge");
+
+        page.TotalCount.ShouldBe(3);
+        page.Items.Single(item => item.Source == PaymentTargetKind.CafeOrder).Settlement.ShouldBeNull();
+        var settled = page.Items.Where(item => item.Source != PaymentTargetKind.CafeOrder).ToList();
+        var settlement = settled.Select(item => item.Settlement).Distinct().ShouldHaveSingleItem().ShouldNotBeNull();
+        settlement.Total.ShouldBe(debt.Total);
+        settlement.ItemCount.ShouldBe(2);
+
+        // The filter leaves one of the two rows; its heading still names the whole handover.
+        cardioOnly.Items.ShouldHaveSingleItem().Settlement.ShouldBe(settlement);
     }
 
     [Fact]

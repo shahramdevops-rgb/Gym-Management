@@ -35,6 +35,7 @@ export const paymentHistoryItem: PaymentHistoryItem = {
   receivedByUserId: "0199a000-0000-7000-8000-000000000002",
   reason: null,
   createdAt: "2026-09-05T09:00:00Z",
+  settlement: null,
 };
 
 /** One page of GET /api/members/{memberId}/payments. */

@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Common.Paging;
+using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.Payments;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
@@ -51,6 +52,28 @@ public sealed class ListMemberPaymentsEndpointTests(DatabaseFixture fixture) : D
             .ShouldAllBe(item => item.SubscriptionPlan == new PlanSummary(45, 12, false));
         page.Items.Single(item => item.TargetId == subscriptionB.Id)
             .SubscriptionPlan.ShouldBe(new PlanSummary(30, 10, false));
+
+        // Each was taken on its own, and a refund is never part of a settlement.
+        page.Items.ShouldAllBe(item => item.Settlement == null);
+    }
+
+    [Fact]
+    public async Task List_SettledTogether_EveryRowCarriesTheSameSettlement()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var planA = await TestPlans.AddAsync(Fixture, sessions: 12, price: 900_000m);
+        await AssignOkAsync(client, token, member.Id, planA);
+        var planB = await TestPlans.AddAsync(Fixture, sessions: 10, price: 500_000m);
+        await AssignOkAsync(client, token, member.Id, planB);
+        await SettleEverythingAsync(client, token, member.Id);
+
+        var page = await ListOkAsync(client, token, member.Id);
+
+        page.Items.Count.ShouldBe(2);
+        var settlement = page.Items.Select(item => item.Settlement).Distinct().ShouldHaveSingleItem().ShouldNotBeNull();
+        settlement.Total.ShouldBe(1_400_000m);
+        settlement.ItemCount.ShouldBe(2);
     }
 
     [Fact]
@@ -146,6 +169,27 @@ public sealed class ListMemberPaymentsEndpointTests(DatabaseFixture fixture) : D
         };
         using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    /// <summary>One «تسویه یکجا» of everything the member owes.</summary>
+    private static async Task SettleEverythingAsync(HttpClient client, string token, Guid memberId)
+    {
+        var debtRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/members/{memberId}/debt");
+        using var debtResponse = await client.SendAsync(debtRequest.WithBearer(token), TestContext.Current.CancellationToken);
+        var debt = (await debtResponse.Content.ReadFromJsonAsync<MemberDebtResponse>(TestContext.Current.CancellationToken))
+            .ShouldNotBeNull();
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/members/{memberId}/settlements")
+        {
+            Content = JsonContent.Create(new
+            {
+                amount = debt.Total,
+                method = "Cash",
+                items = debt.Items.Select(item => new { kind = item.Kind.ToString(), id = item.Id, outstanding = item.Outstanding }),
+            }),
+        };
+        using var response = await client.SendAsync(request.WithBearer(token), TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, Guid memberId)

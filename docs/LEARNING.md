@@ -1290,3 +1290,17 @@ The question that started this was whether a gym that is entirely internal — I
 - **Absent vs empty in the URL.** `?from` missing means "the default, today"; `?from=` present but empty means "the person cleared it". Two states that a single "undefined" could not tell apart, kept apart by `params.has`.
 - **Mark, don't hide.** A cancelled check-in, a voided هوازی, a refund: each stays on the list with a mark. A history that hid them could not explain why the money doesn't add up.
 - **My notes:**
+
+---
+
+## 6.5.26 — A settlement's rows together in the payment history
+
+- **Store a relationship; don't infer it.** The rows of one «تسویه یکجا» already shared an exact moment, so the screen could have grouped them on that. But that rests on an unwritten habit of the handlers. A `SettlementId` column says it outright, survives a later change to how the moment is set, and leaves room for one printed receipt.
+- **A backfill carries old rows forward instead of refusing them.** The migration adds a nullable column, then fills it for the settlements already on the server, using the one fact those rows were known to share. Nothing is deleted or rejected, which is what a database with real data needs.
+- **Volatile functions and query plans.** `gen_random_uuid()` in a plain subquery looked like "one id per group", but Postgres rescanned the subquery for every row it joined and each row got its own id. A `MATERIALIZED` CTE is computed once and stored, so a group's rows all read the same value. A local run against real-looking data caught it; reading the SQL alone did not.
+- **A domain method for a step the system takes, not the user.** `JoinSettlement` is only called by the settle handlers, never with something the desk typed. So misuse (a refund, an empty id, a second settlement) is a bug, and it throws instead of returning a `Result`.
+- **The database repeats the rule.** `ck_payments_settlement_payment_only` refuses a refund with a settlement id, whatever code wrote it. An integration test proves it by trying with raw SQL.
+- **CASE keeps a correlated subquery from running for nothing.** `SettlementId == null ? null : db.Payments.Sum(...)` becomes `CASE WHEN ... THEN (subquery)`, so a payment taken on its own never runs the sum. Without the guard, EF's null semantics would compare `NULL = NULL` as true and sum every loose payment.
+- **The heading counts the whole handover, not the page.** A filter or a page boundary may hide some rows of a settlement. The total and item count come from the API over all of its rows, so the heading never claims a smaller handover than the desk took.
+- **Group on the client when the rows are already neighbours.** The API keeps a flat list (paging and filters unchanged), and `groupBySettlement` folds neighbouring rows of one settlement into a group. That works because every row of a settlement has the same `PaidAt` and the list is ordered by it.
+- **My notes:**

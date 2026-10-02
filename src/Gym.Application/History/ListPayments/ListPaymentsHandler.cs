@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Common.Paging;
+using Gym.Application.Payments;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Common;
 using Gym.Domain.Payments;
@@ -129,6 +130,15 @@ public sealed class ListPaymentsHandler(
                 payment.Reason,
                 payment.PaidAt,
                 payment.ReceivedByUserId,
+                payment.SettlementId,
+                // The whole handover's figures, whatever the filters let through. A CASE, so a
+                // payment taken on its own never runs the subqueries.
+                SettlementTotal = payment.SettlementId == null
+                    ? (decimal?)null
+                    : db.Payments.Where(other => other.SettlementId == payment.SettlementId).Sum(other => other.Amount),
+                SettlementItemCount = payment.SettlementId == null
+                    ? (int?)null
+                    : db.Payments.Count(other => other.SettlementId == payment.SettlementId),
             })
             .ToListAsync(cancellationToken);
 
@@ -167,7 +177,11 @@ public sealed class ListPaymentsHandler(
                 row.Payment.Reason,
                 row.Payment.PaidAt,
                 row.Payment.TargetUndone,
-                userNames.GetValueOrDefault(row.Payment.ReceivedByUserId)))
+                userNames.GetValueOrDefault(row.Payment.ReceivedByUserId),
+                row.Payment.SettlementId is { } settlementId
+                    ? new SettlementSummary(
+                        settlementId, row.Payment.SettlementTotal!.Value, row.Payment.SettlementItemCount!.Value)
+                    : null))
             .ToList();
 
         return new PagedResponse<HistoryPaymentResponse>(items, query.Page, query.PageSize, totalCount);

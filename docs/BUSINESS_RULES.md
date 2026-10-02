@@ -430,9 +430,21 @@ entries for one handover of money.
   cancelled, or another purchase changed the figure — nothing is written and the desk is shown the
   new debt (`Settlements.DebtChanged`). Money is never spread over a list the desk did not see.
 - Front-desk work, both roles, the same as registering a payment (§1).
-- **The history shows one row per item**, all with the same moment, method and staff member. No
-  settlement or receipt record ties them together. *Decided by Claude during task 7.5; pending
-  review: a `SettlementId` on `payments` can be added later if the gym wants one printed receipt.*
+- **One row per item, shown together.** Each item still gets its own ordinary `Payment` row, and
+  every row of one settlement carries the same `SettlementId`. Both payment histories (the gym's
+  and the member's own) show those rows under one heading: the moment, whose money, «تسویه یکجا»
+  with how many items it paid, the one amount the desk took, the method and who took it. Each item
+  sits one step in under it, with only what it was for and its amount. *Asked by the developer,
+  1405/07/11 (2026-10-03), replacing Claude's earlier "no record ties them together" (task 7.5).*
+  - The guest's «تسویه یکجا» (§7 *Guest visit*) is a settlement too, and is shown the same way.
+  - Only payments carry a `SettlementId`. A refund never does: correcting a settlement refunds
+    each row on its own (below). The database refuses a refund with one.
+  - The heading's amount and count are the whole handover's, even when a filter (method, source)
+    lets only some of its rows through. When only one row of it is shown (a filter, or a page
+    boundary), that row reads as a plain row.
+  - Settlements made before the column existed were given one when it was added: payments with
+    exactly the same moment, method and staff member, two or more of them. Only «تسویه یکجا»
+    writes payments like that.
 - Correcting a settlement is the same as correcting any payment: each row is refunded or its item
   voided or cancelled on its own terms (§5, §7, §8).
 

@@ -22,6 +22,10 @@ namespace Gym.Application.Payments;
 /// <param name="ServiceKind">
 /// <c>null</c> unless a service charge. The frontend turns it into Persian.
 /// </param>
+/// <param name="Settlement">
+/// The «تسویه یکجا» this payment was one row of; <c>null</c> for money taken on its own and for
+/// every refund.
+/// </param>
 public sealed record PaymentHistoryResponse(
     Guid Id,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentTargetKind>))] PaymentTargetKind TargetKind,
@@ -35,4 +39,5 @@ public sealed record PaymentHistoryResponse(
     DateTimeOffset PaidAt,
     Guid ReceivedByUserId,
     string? Reason,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    SettlementSummary? Settlement);
