@@ -7,5 +7,7 @@ internal sealed class FakeCurrentUser : ICurrentUser
 {
     public Guid? UserId { get; set; }
 
+    public bool IsOwner { get; set; }
+
     public string? IpAddress { get; set; }
 }

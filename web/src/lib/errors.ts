@@ -146,6 +146,9 @@ export const errorMessages: Record<string, string> = {
   "Payments.RefundReasonTooLong": "دلیل استرداد بیش از حد طولانی است.",
   "Payments.RefundExceedsNetPaid": "این استرداد از مبلغ پرداخت‌شدهٔ این مورد بیشتر است.",
   "Payments.RefundAfterUse": "از این اشتراک استفاده شده است و مبلغ آن قابل استرداد نیست.",
+  "Payments.HistoryTooFarBack": "کارمندان فقط پرداخت‌های امروز و ۳ روز قبل از آن را می‌بینند.",
+  "Payments.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
+  "Payments.InvalidSource": "بابت پرداخت معتبر نیست.",
 
   // Settling several items at once (تسویه یکجا)
   "Settlements.NoItems": "دست‌کم یک مورد را برای تسویه انتخاب کنید.",
@@ -194,6 +197,7 @@ export const errorMessages: Record<string, string> = {
   "ServiceCharges.VoidReasonTooLong": "دلیل ابطال بیش از حد طولانی است.",
   "ServiceCharges.ChangedConcurrently":
     "این مبلغ هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+  "ServiceCharges.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
 
   // Cafe: categories and products (no stock anywhere — BUSINESS_RULES.md §8)
   "ProductCategories.NotFound": "دسته‌بندی پیدا نشد.",

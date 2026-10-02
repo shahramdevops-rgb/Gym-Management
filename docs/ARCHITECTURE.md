@@ -403,6 +403,14 @@ web/src/
 - `ICurrentUser` (Application) is implemented in Gym.Api from the `sub` claim through `IHttpContextAccessor`. It is a
   singleton so the singleton audit interceptor can use it; the accessor resolves the current request on every call.
   Code that builds the lower layers without the Api host (tests) must register its own `ICurrentUser`.
+  `ICurrentUser.IsOwner` is for a rule that reads differently per role inside an endpoint both roles call (Staff
+  see only the last few days of payments, `PaymentHistoryWindow`); a whole endpoint is still guarded by a policy.
+- A list that says who recorded each row gets the names from `IUserNames` (Application; Infrastructure reads
+  `users.full_name`), one call per page, never one per row. Application still never sees the Identity `User`
+  (ADR 0002).
+- An enum in an `[AsParameters]` query record (`ListPaymentsQuery.Method`) binds from its name (`?method=Cash`), and
+  the OpenAPI document points it at the same string-enum schema the responses use, so the generated types are the
+  usual string unions. A number binds too (`?method=7`), so the validator adds `IsInEnum()`.
 - `AuditableEntityInterceptorTests` drive the interceptor without a database. To test a *modified* entity, start from
   `AddAndSaveAsync`, which accepts the changes; otherwise the entity is still `Added` and gets insert stamps again.
 - A use case that saves through both `UserManager` and `IAppDbContext` wraps them in `IAppDbContext.BeginTransactionAsync`;

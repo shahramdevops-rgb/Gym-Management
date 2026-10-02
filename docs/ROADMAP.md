@@ -1401,7 +1401,8 @@ database.
 Staff can also type a birth date by hand, with or without slashes, instead of picking it.
 
 ### 6.5.25 The gym's history (تاریخچه)
-Asked by the developer on 1405/07/10 (2026-10-02). Not started. Each member's own history is
+Asked by the developer on 1405/07/10 (2026-10-02). Built the same day on its own branch
+(`task/6.5.25-gym-history`), except the guest rows, which wait for 6.5.11. Each member's own history is
 already on the profile, and the cafe already has its order history (`/cafe/orders`, 7.3). What is
 missing is the history of the whole gym: who came in, what was paid, what هوازی was sold.
 This page is a list of rows, not totals or charts. Those belong to Phase 9.
@@ -1424,18 +1425,43 @@ the §1 *Permissions* table:
   link. They still count nowhere in the Phase 9 reports
 
 Tasks:
-- [ ] API: `GET /api/attendance`, `GET /api/payments`, `GET /api/service-charges`, each with a
-      date range, member, paging, newest first, and the name of the user who recorded the row
-- [ ] Staff's 3-day limit on payments, from `TimeProvider` and the gym's time zone
-- [ ] Indexes for the date-range queries, if the existing ones do not cover them
-- [ ] Web: the «تاریخچه» page with its three sections, filters kept in the URL, Jalali range,
-      member names linked to the profile
-- [ ] Tests (integration): every filter; cancelled, voided and refunded rows marked; a guest row;
-      Staff asking for 4 days ago on payments refused, the Owner allowed; the recorded-by name
-- [ ] Tests (frontend): each section, the filters in the URL, Staff's limited date range
+- [x] BUSINESS_RULES.md §12 *History* and three rows of the §1 *Permissions* table, written first.
+      Defaults Claude chose are marked there "pending review": every section opens on today, the
+      member filter is a member chosen by name or mobile, 20 rows a page
+- [x] API (`Application/History/`, `Api/Endpoints/HistoryEndpoints.cs`): `GET /api/attendance`,
+      `GET /api/payments`, `GET /api/service-charges`, each with `from`/`to`, `memberId`, paging,
+      newest first, and the recorder's full name. Payments also take `method` and `source`
+      (`PaymentTargetKind`). Who recorded it comes from the new `IUserNames` (Infrastructure reads
+      `users.full_name` for the whole page in one query, ADR 0002)
+- [x] Which day a row belongs to: a check-in by `CheckedInAt`, a payment by `PaidAt` (both turned
+      into a moment range with `IGymCalendar.StartOfDayUtc`), a هوازی by `ChargedOn`
+- [x] Marked, never hidden: cancelled and auto-closed visits; a refund (`Kind`, `Reason`); a payment
+      whose item was later cancelled or voided (`TargetUndone`); a voided هوازی with its reason and
+      who voided it
+- [x] Staff's 3-day limit on payments: `PaymentHistoryWindow` (Domain) against `IGymCalendar.Today()`,
+      the role from the new `ICurrentUser.IsOwner`. A range starting earlier, or with no start, is
+      403 `Payments.HistoryTooFarBack`
+- [x] Indexes: `attendances.checked_in_at` already existed (6.5.14); migration `AddHistoryIndexes`
+      adds `ix_payments_paid_at` and `ix_service_charges_charged_on`. Indexes only, no row is touched
+- [x] Web: `/history` («تاریخچه» in the menu, both roles), three tabs, filters in the URL (`tab`,
+      `from`, `to`, `member`, `method`, `source`, `page`). A date missing from the URL is today; one
+      present but empty was cleared and is no bound. Staff on payments are told the window, and a
+      range outside it is refused under the date box without asking the API. Member names link to
+      the profile; the cafe's order history is linked from the header
+- [x] Tests (domain): the window for Staff and the Owner, and no start for Staff
+- [x] Tests (integration): every filter; cancelled, auto-closed, voided and refunded rows marked;
+      Staff asking for 4 days ago and with no start refused, 3 days ago allowed, the Owner allowed
+      both; the recorded-by and voided-by names; 401 without signing in
+- [x] Tests (frontend): each section, the filters in the URL and sent, a cleared date, a backwards
+      range, Staff's limited range, switching tabs keeps the filters, choosing a member
+- [ ] Guest rows («مهمان», no profile link) and a test for them: a guest visit does not exist on
+      this branch. Once 6.5.11 is merged, `HistoryAttendanceResponse` takes a nullable `MemberId`
+      and the guest's name, and `AttendanceLogTable` shows «مهمان» instead of a link
 
 Done when: the Owner can see every check-in, payment and هوازی of any past day with who recorded
 it, and Staff can see payments from the last 3 days and every check-in and هوازی.
+Built 2026-10-02: 1306 backend tests and 719 frontend tests green, zero warnings (the build's
+chunk-size note predates this task). Open: the guest rows, after 6.5.11.
 
 ---
 

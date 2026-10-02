@@ -135,6 +135,9 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | Refunds, voids (outside the cafe) | ✅ | ❌ |
 | Gym service charges: record, change the amount, void (§7 *Gym services*) | ✅ | ✅ |
 | Cafe: products, categories, orders, and cancelling an order (§8) | ✅ | ✅ |
+| The gym's history (تاریخچه): check-ins and هوازی of any day (§12 *History*) | ✅ | ✅ |
+| The gym's history: payments of today and the 3 days before it (§12 *History*) | ✅ | ✅ |
+| The gym's history: payments of any earlier day | ✅ | ❌ |
 | Expenses, dashboard, reports, audit log, SMS resend | ✅ | ❌ |
 
 ---
@@ -1041,6 +1044,41 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
 - Single-session (تک‌جلسه‌ای) revenue is reported separately from membership sales: they are the same
   kind of record (§4) but not the same business. Until Phase 9 implements the split, the
   subscription-sales figure includes single-session visits.
+
+### History (تاریخچه)
+
+Decided with the developer, 1405/07/10 (2026-10-02). Roadmap 6.5.25. Each member's own history is
+on their profile and the cafe has its own order history (§8); this is the history of the whole gym.
+It is a list of rows, not totals or charts: those are the reports above.
+
+- **One «تاریخچه» page, three sections:** ورود و خروج (check-ins), پرداخت‌ها (payments and refunds)
+  and هوازی. The cafe keeps its own page and is linked from here.
+- **Who recorded it is on every row:** who took the payment or gave the refund
+  (`Payment.ReceivedByUserId`), who recorded the هوازی (`ServiceCharge.RecordedByUserId`) and who
+  voided it, and who checked the member in (the row's `CreatedBy`). A visit the nightly job closed
+  shows its check-out as «خودکار»: no user did it.
+- **Staff and payments:** Staff see payments of today and the 3 days before it, in the gym's time
+  zone (today 1405/07/10 → 07/07 to 07/10). The API enforces it: a payments request from Staff whose
+  range starts earlier, or has no start at all, is refused (`Payments.HistoryTooFarBack`). The Owner
+  has no limit.
+- **Check-ins and هوازی:** no date limit for either role.
+- **Filters:** a Jalali date range and one member, in every section. Payments also filter by method
+  and by source (subscription, هوازی, cafe).
+- **Which day a row belongs to:** a check-in by the moment it began, a payment by the moment it was
+  taken (`PaidAt`), a هوازی by its business date (`ChargedOn`), all in the gym's time zone. Each
+  section lists newest first.
+- **Cancelled, voided, refunds:** listed and marked, never hidden, as the cafe's order history does.
+  A refund is its own row, marked «استرداد» with its reason. A payment whose item was later
+  cancelled or voided keeps its row and is marked, so the refund that followed reads beside it.
+- **Guests** (ورود مهمان, §7) are listed in the check-ins, marked «مهمان», with no profile link.
+  They still count nowhere in the reports above. *Waits for roadmap 6.5.11: a guest visit does not
+  exist yet.*
+- Details. *Decided by Claude during task 6.5.25; pending review.*
+  - Every section opens on today (from and to both today). Widening the range, or clearing it for
+    no bound (Owner, or Staff outside payments), is one change of a date box.
+  - The member filter is a member chosen by name or mobile, the way the cafe's till chooses one,
+    not free text matched against every row.
+  - A page holds 20 rows.
 
 ---
 

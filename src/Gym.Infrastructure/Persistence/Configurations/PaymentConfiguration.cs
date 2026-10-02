@@ -48,5 +48,9 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         // A payment history and a net-paid calculation filter by one of these two columns.
         builder.HasIndex(payment => payment.SubscriptionId);
         builder.HasIndex(payment => payment.ServiceChargeId);
+
+        // Not a rule, only speed: the gym's payment history reads a range of PaidAt moments, newest
+        // first (BUSINESS_RULES.md §12 History), and the revenue reports will read the same range.
+        builder.HasIndex(payment => payment.PaidAt);
     }
 }

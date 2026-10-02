@@ -1258,3 +1258,18 @@ The question that started this was whether a gym that is entirely internal — I
 - **Test what the person does, keystroke by keystroke.** A test that pastes the finished string in one `change` passed, and the mask was still broken. Only adding one digit at a time to what the box actually showed exposed it: after the first slash, the second never appeared.
 - **Changing a rule is cheap before go-live.** With no members anywhere, requiring the field is one `SET NOT NULL`. After go-live the same change would need a decision about every member already registered without one.
 - **My notes:**
+
+---
+
+## 6.5.25 — The gym's history
+
+- **A rule that depends on who asks belongs in the handler, not only in the policy.** An authorization policy answers "may this role call this endpoint at all". "Staff may see payments, but only from the last 3 days" depends on the role *and* on the request *and* on today, so the handler checks it with `ICurrentUser.IsOwner` and `IGymCalendar.Today()`. The policy still guards the endpoint as a whole.
+- **Put the rule in Domain when it can be a pure function.** `PaymentHistoryWindow.Check(from, isOwner, today)` takes everything as parameters, so the "3 days" rule has plain unit tests with no database, no clock and no HTTP. The handler only gathers the inputs.
+- **"No start date" is a range too.** An unbounded request reaches every payment ever taken, so for Staff it is refused exactly like one that starts too early. A check that only looked at a `from` that was present would have let anyone in by leaving it out.
+- **Batch the lookups for a page, never one per row.** A page of 20 payments needs member names and staff names. Two queries with `Contains(ids)` cost the same for 1 row or 100; one query per row is the "N+1" problem that only shows up once there is real data.
+- **Reading another layer's table through an interface.** Staff names live in Identity's `users` table, which Application must not see (ADR 0002). `IUserNames` declares exactly the question Application needs answered, and Infrastructure answers it. That keeps the dependency arrow pointing inward without a generic repository.
+- **A moment range for a business date.** "Payments of 1405/07/07" means midnight to midnight in Tehran, not in UTC. `StartOfDayUtc(from)` and `StartOfDayUtc(to + 1)` turn the dates into two UTC moments, and the filter is `>= start` and `< end`, so the index on `paid_at` can answer it. A visit at 00:10 in Tehran is still the previous day in UTC, and the tests check exactly that edge.
+- **An index is a speed decision, so check what exists first.** `checked_in_at` already had one from 6.5.14. Only `paid_at` and `charged_on` needed new ones, and that migration adds indexes without touching a row, which is what a database with real data needs.
+- **Absent vs empty in the URL.** `?from` missing means "the default, today"; `?from=` present but empty means "the person cleared it". Two states that a single "undefined" could not tell apart, kept apart by `params.has`.
+- **Mark, don't hide.** A cancelled check-in, a voided هوازی, a refund: each stays on the list with a mark. A history that hid them could not explain why the money doesn't add up.
+- **My notes:**
