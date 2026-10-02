@@ -257,6 +257,10 @@ web/src/
 - `UseSnakeCaseNamingConvention()` also rewrites EF's own `__EFMigrationsHistory` columns to `migration_id` and `product_version`. The table name keeps its original casing, so querying it by hand needs `SELECT migration_id ... FROM "__EFMigrationsHistory"`.
 - The `dotnet ef` tool is a global tool with its own version; it must be at least as new as the EF Core packages, otherwise design-time commands fail. `dotnet tool update --global dotnet-ef`.
 - `dotnet ef` reads `src/Gym.Api/Properties/launchSettings.json`. Without an `ASPNETCORE_ENVIRONMENT=Development` profile there, design-time commands run as Production and never load `appsettings.Development.json` or user-secrets.
+- Local ports are 5134 (http) and 5135 (https). The https port used to be 7134, until `dotnet run` failed with
+  `SocketException (10013)`: Hyper-V, WSL and Docker Desktop (the `winnat` service) reserve TCP ranges that change
+  on reboot, and 7071–7170 had swallowed it. `netsh interface ipv4 show excludedportrange protocol=tcp` lists the
+  reserved ranges; `net stop winnat` then `net start winnat` (as Administrator) releases them.
 - Serilog sinks in `appsettings*.json` are keyed objects (`"WriteTo": { "Console": {...} }`), not JSON arrays. Configuration files merge by key and arrays merge by index, so an array would make `appsettings.Development.json` able to add a sink only by counting entries in the base file.
 - Serilog sinks default to the machine's culture. This project runs with `InvariantGlobalization=false` so the app can format Persian dates, so every sink passes `formatProvider` explicitly (`System.Globalization.CultureInfo::InvariantCulture` in configuration) — otherwise a machine set to `fa-IR` writes log timestamps in Persian digits and no log query matches them.
 - `HttpResponseFeature.OnStarting` is a no-op on a plain `DefaultHttpContext`, so a middleware test that asserts on a deferred response header passes whether or not the middleware did anything. Tests use `RecordingResponseFeature` and fire the callbacks explicitly.
