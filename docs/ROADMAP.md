@@ -506,6 +506,23 @@ still available and **swap untouched at 0 B**. No container was killed and resta
 The one item left open is the `ghcr.io` question, which is an optimisation and deliberately not
 a condition of go-live.
 
+#### Real data from 1405/07/10 (2026-10-02): the server is now highly sensitive
+Member registration (عضوگیری) starts with release **`20261002-1941-3059c81`** (previous:
+`20261001-0400-0dc7f27`). Before it, the trial data was backed up (moved to `backups/trial/` on the
+server) and wiped once, with the SQL kept in the README ("The server holds real data"). The Owner
+starts clean: only the Owner account, every locker in service, both prices empty, the eight seeded
+expense categories, no cafe products. The Owner re-enters the prices and the staff accounts, and
+the staff add the cafe products.
+
+From this release on, every member, payment and visit on the server is the gym's real record:
+- **Never** wipe the server, truncate a table, or restore a dump over it
+- **Never** write a migration that refuses or drops existing rows; it carries them forward
+- `./backup.sh run` before **every** release, and check that the gym PC's copy is recent
+- Every server step is written out, explained and confirmed first; nothing is run "to try"
+- `./server.sh rollback` swaps the code only, never the schema. A rollback to a release older than
+  the newest migration runs old code against a newer database, so think before using it. The first
+  real release already includes `MakeMemberBirthDateRequired`, which `20261001-0400-0dc7f27` predates
+
 ### 6.5.0 Panel subdomain and a public placeholder
 
 Decided 2026-09-25, and it has to land **before** the canonical domain moves to the `.ir`. Today
