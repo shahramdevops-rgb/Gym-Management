@@ -137,6 +137,26 @@
   color: var(--muted-foreground);
 }
 
+/*
+ * The calendar under a date field (JalaliDateField) opens in the page's flow, not as a popup, so
+ * it takes the field's width on any screen: the weeks spread across it instead of huddling at one
+ * side. Same reason as above for living outside any layer.
+ */
+.jalali-calendar.rmdp-wrapper,
+.jalali-calendar .rmdp-calendar,
+.jalali-calendar .rmdp-day-picker,
+.jalali-calendar .rmdp-day-picker > div {
+  width: 100%;
+}
+
+.jalali-calendar.rmdp-wrapper {
+  border-radius: var(--radius-md);
+}
+
+.jalali-calendar.rmdp-border {
+  border-color: var(--border);
+}
+
 @theme inline {
   --font-sans: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);

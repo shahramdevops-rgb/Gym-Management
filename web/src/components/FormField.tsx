@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { useId, useState, type ChangeEvent, type ComponentProps } from "react";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import DatePickerModule, { DateObject } from "react-multi-date-picker";
+import { Calendar, DateObject } from "react-multi-date-picker";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,19 +17,6 @@ import {
 } from "@/lib/format";
 import { moneyDigits } from "@/lib/money";
 import { cn } from "@/lib/utils";
-
-/**
- * react-multi-date-picker ships CommonJS only and puts its component on `exports.default`.
- * Vite pre-bundles the package and hands a default import the whole module object, so rendering
- * it directly fails in the browser with "Element type is invalid ... got: object" — while
- * Vitest's own interop hands back the component, so every test passes. Unwrap whichever arrived.
- *
- * `DateObject` and the calendar and locale modules need none of this: they are read as named
- * properties, or exported as a plain `module.exports` object with no `default` to unwrap.
- */
-const DatePicker =
-  (DatePickerModule as unknown as { default?: typeof DatePickerModule }).default ??
-  DatePickerModule;
 
 interface FormFieldProps extends ComponentProps<typeof Input> {
   label: string;
@@ -252,12 +239,18 @@ interface JalaliDateFieldProps {
  * `FormField` for a business date (docs/BUSINESS_RULES.md §13): the box speaks Jalali, the value
  * it holds is the ISO Gregorian date the API stores, and the two never mix.
  *
- * The calendar comes from react-multi-date-picker; the input does not. `render` replaces the
- * library's own input with this app's `Input`, for three reasons: the library's input accepts no
- * `aria-invalid` or `aria-describedby`, which every other field here has and the tests assert;
- * typing is then parsed by `toIsoDate`, the one conversion this app owns and tests, rather than
- * by a second parser that does not know Arabic-Indic digits; and the clear button has somewhere
- * to live.
+ * The calendar comes from react-multi-date-picker; the input does not. It is this app's `Input`,
+ * for three reasons: it carries `aria-invalid` and `aria-describedby` like every other field here;
+ * typing is parsed by `toIsoDate`, the one conversion this app owns and tests, rather than by a
+ * second parser that does not know Arabic-Indic digits; and the clear button has somewhere to live.
+ *
+ * **The calendar opens in place, under the box, not as a floating popup.** Nearly every date
+ * field lives in a dialog, and a dialog scrolls: a popup was clipped at the dialog's edge, landed
+ * over the text and buttons beside it, and in right-to-left lost track of which side "start" was.
+ * In the page's own flow it pushes what follows down, takes the field's width on any screen, and
+ * the dialog simply scrolls to it. It opens when the box is focused or clicked, and closes when a
+ * day is picked, on Escape, or when focus leaves the box. Pressing inside the calendar does not
+ * take focus from the box (its mousedown is cancelled), so turning the month does not close it.
  *
  * What is typed is committed on every keystroke that forms a whole, real date, and the box snaps
  * back to the committed date on blur — so what is on screen is always what will be sent, and a
@@ -280,12 +273,14 @@ export function JalaliDateField({
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const errorId = `${inputId}-error`;
+  const calendarId = `${inputId}-calendar`;
 
   // The text in the box. It follows `value` when the form supplies a new one (an edit form
   // finishing its load, a reset) but not while this field is what changes it, so a half-typed
   // date is never reformatted under the caret.
   const [text, setText] = useState(() => toJalaliInput(value));
   const [committed, setCommitted] = useState(value);
+  const [open, setOpen] = useState(false);
   if (value !== committed) {
     setCommitted(value);
     setText(toJalaliInput(value));
@@ -309,60 +304,75 @@ export function JalaliDateField({
 
     setText(toJalaliInput(iso));
     commit(iso);
+    setOpen(false);
   }
 
   const parts = jalaliPartsOf(value);
+  const showCalendar = open && disabled !== true;
 
   return (
     <div className="space-y-2">
       <Label htmlFor={inputId}>{label}</Label>
-      <DatePicker
-        calendar={persian}
-        locale={persian_fa}
-        format="YYYY/MM/DD"
-        calendarPosition="bottom-start"
-        containerClassName="block w-full"
-        value={
-          parts === null
-            ? null
-            : new DateObject({ ...parts, calendar: persian, locale: persian_fa })
-        }
-        onChange={handlePicked}
-        render={(_value, openCalendar) => (
-          <span className="relative block">
-            <Input
-              id={inputId}
-              name={name}
-              value={text}
-              disabled={disabled}
-              placeholder={placeholder}
-              autoComplete="off"
-              className="pe-9"
-              aria-invalid={error !== undefined}
-              aria-describedby={error !== undefined ? errorId : undefined}
-              onChange={handleTyping}
-              onFocus={openCalendar}
-              onBlur={() => {
-                setText(toJalaliInput(committed));
-                onBlur?.();
-              }}
-            />
-            {text !== "" && disabled !== true && (
-              <button
-                type="button"
-                aria-label="پاک کردن تاریخ"
-                className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setText("");
-                  commit("");
-                }}
-              >
-                <X className="size-4" aria-hidden />
-              </button>
-            )}
-          </span>
+      <span className="relative block">
+        <Input
+          id={inputId}
+          name={name}
+          value={text}
+          disabled={disabled}
+          placeholder={placeholder}
+          autoComplete="off"
+          className="pe-9"
+          aria-invalid={error !== undefined}
+          aria-describedby={error !== undefined ? errorId : undefined}
+          aria-expanded={showCalendar}
+          aria-controls={showCalendar ? calendarId : undefined}
+          onChange={handleTyping}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && open) {
+              // Closes the calendar only, not the dialog around it.
+              event.stopPropagation();
+              setOpen(false);
+            }
+          }}
+          onBlur={() => {
+            setOpen(false);
+            setText(toJalaliInput(committed));
+            onBlur?.();
+          }}
+        />
+        {text !== "" && disabled !== true && (
+          <button
+            type="button"
+            aria-label="پاک کردن تاریخ"
+            className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setText("");
+              commit("");
+            }}
+          >
+            <X className="size-4" aria-hidden />
+          </button>
         )}
-      />
+      </span>
+      {showCalendar && (
+        // Keeps focus in the box while the calendar is used, so the box's blur means "done".
+        <div id={calendarId} onMouseDown={(event) => event.preventDefault()}>
+          <Calendar
+            calendar={persian}
+            locale={persian_fa}
+            shadow={false}
+            className="jalali-calendar rmdp-border"
+            value={
+              parts === null
+                ? null
+                : new DateObject({ ...parts, calendar: persian, locale: persian_fa })
+            }
+            onChange={handlePicked}
+          />
+        </div>
+      )}
       {error !== undefined && (
         <p id={errorId} className="text-sm text-destructive">
           {error}
