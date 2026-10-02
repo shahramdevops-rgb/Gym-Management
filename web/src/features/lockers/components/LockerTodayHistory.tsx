@@ -3,13 +3,15 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { guestLabel } from "@/features/attendance/holder";
 import { errorMessage } from "@/lib/errors";
 import { formatTime } from "@/lib/format";
 
 import { useLockerVisitsToday, type LockerVisit } from "../api";
 
 /**
- * Everyone who had this locker today, oldest first, each name opening that member's profile
+ * Everyone who had this locker today, oldest first, each name opening that member's profile (a
+ * guest is marked «مهمان», with no profile to open)
  * (BUSINESS_RULES.md §6 *Who had a locker today*): the question the desk asks when something is
  * left behind or found broken. Times only, no date: the list is about today and nothing else.
  */
@@ -33,12 +35,20 @@ export function LockerTodayHistory({ lockerId }: { lockerId: string }) {
       {visits.data.map((visit) => (
         <li key={visit.attendanceId} className="flex items-center justify-between gap-3 px-3 py-2">
           <span className="flex flex-wrap items-center gap-2">
-            <Link
-              to={paths.member(visit.memberId)}
-              className="font-medium underline-offset-4 hover:underline"
-            >
-              {visit.memberFullName}
-            </Link>
+            {visit.memberId === null ? (
+              // A guest has no profile to open (BUSINESS_RULES.md §7 *Guest visit*).
+              <>
+                <span className="font-medium">{visit.guestName}</span>
+                <Badge variant="outline">{guestLabel}</Badge>
+              </>
+            ) : (
+              <Link
+                to={paths.member(visit.memberId)}
+                className="font-medium underline-offset-4 hover:underline"
+              >
+                {visit.memberFullName}
+              </Link>
+            )}
             {visit.cancelledAt !== null && visit.cancelledAt !== undefined && (
               <Badge variant="secondary">لغو شده</Badge>
             )}

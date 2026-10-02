@@ -119,8 +119,8 @@ public sealed class LockerMapStaffTests(DatabaseFixture fixture) : DatabaseTestB
 
         var lockers = await ListLockersAsync(client, token);
 
-        lockers.Single(locker => locker.Number == 67).OccupiedByMemberDebt.ShouldBe(900_000m);
-        lockers.Where(locker => locker.Number != 67).ShouldAllBe(locker => locker.OccupiedByMemberDebt == 0);
+        lockers.Single(locker => locker.Number == 67).HolderDebt.ShouldBe(900_000m);
+        lockers.Where(locker => locker.Number != 67).ShouldAllBe(locker => locker.HolderDebt == 0);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public sealed class LockerMapStaffTests(DatabaseFixture fixture) : DatabaseTestB
 
         var held = lockers.Single(locker => locker.Number == 67);
         held.IsOccupied.ShouldBeTrue();
-        held.OccupiedByMemberDebt.ShouldBe(0m);
+        held.HolderDebt.ShouldBe(0m);
     }
 
     // ---- Helpers ----

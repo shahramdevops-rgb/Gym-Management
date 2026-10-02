@@ -34,12 +34,18 @@ public sealed class RecordServiceChargeHandler(
             return Result.Failure<ServiceChargeResponse>(ServiceChargeErrors.VisitNotOpen);
         }
 
+        // A charge goes on a member's account, and a guest has none (§7 Guest visit).
+        if (attendance.MemberId is not { } memberId)
+        {
+            return Result.Failure<ServiceChargeResponse>(ServiceChargeErrors.GuestVisit);
+        }
+
         // The endpoint's policy requires an authenticated user, so this is a wiring bug if hit.
         var userId = currentUser.UserId
             ?? throw new InvalidOperationException("Recording a service charge was called without an authenticated user.");
 
         var recorded = ServiceCharge.Record(
-            attendance.MemberId, attendanceId, command.Kind, command.Amount, calendar.Today(), userId);
+            memberId, attendanceId, command.Kind, command.Amount, calendar.Today(), userId);
         if (recorded.IsFailure)
         {
             return Result.Failure<ServiceChargeResponse>(recorded.Error);

@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { guestLabel } from "@/features/attendance/holder";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { formatDate, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 import { isPositiveMoney } from "@/lib/money";
@@ -91,7 +92,17 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
         <td className="py-2">{formatDate(order.orderedOn)}</td>
         {showCustomer && (
           <td className="py-2">
-            {order.memberId === null ? (
+            {order.guestName !== null ? (
+              // An order on a guest's visit (BUSINESS_RULES.md §7 *Guest visit*): their name, no profile.
+              <span className="flex flex-wrap items-center gap-1">
+                {order.guestName}
+                <Badge variant="outline">
+                  {!cancelled && isPositiveMoney(order.outstanding)
+                    ? "پرداخت‌نشده — مهمان"
+                    : guestLabel}
+                </Badge>
+              </span>
+            ) : order.memberId === null ? (
               <span className="text-muted-foreground">مشتری آزاد</span>
             ) : (
               <Link
@@ -163,7 +174,9 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
           <td colSpan={columns} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">
               برای {context}
-              {order.memberFullName !== null && <> — {order.memberFullName}</>}
+              {(order.memberFullName ?? order.guestName) !== null && (
+                <> — {order.memberFullName ?? order.guestName}</>
+              )}
             </p>
             {action === "payment" && (
               <CafeOrderPaymentForm

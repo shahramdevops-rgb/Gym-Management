@@ -38,11 +38,31 @@ public sealed class CafeOrderTests
     [Fact]
     public void Create_VisitWithoutAMember_IsRefused()
     {
-        // A visit always belongs to a member, so an order bought during one must name them.
+        // A member's visit names its member; an order with none goes through CreateForGuestVisit.
         var result = CafeOrder.Create(
             memberId: null, [(Product("آب معدنی", 15_000m), 1)], Today, StaffId, Guid.CreateVersion7());
 
         result.Error.ShouldBe(CafeOrderErrors.VisitOfAnotherMember);
+    }
+
+    [Fact]
+    public void CreateForGuestVisit_OneLine_NamesTheVisitAndNoMember()
+    {
+        var visitId = Guid.CreateVersion7();
+
+        var order = CafeOrder.CreateForGuestVisit(visitId, [(Product("آب معدنی", 15_000m), 2)], Today, StaffId).Value;
+
+        order.AttendanceId.ShouldBe(visitId);
+        order.MemberId.ShouldBeNull();
+        order.TotalAmount.ShouldBe(30_000m);
+        order.Outstanding(netPaid: 0m).ShouldBe(30_000m);
+    }
+
+    [Fact]
+    public void CreateForGuestVisit_NoLines_FailsWithNoItems()
+    {
+        CafeOrder.CreateForGuestVisit(Guid.CreateVersion7(), [], Today, StaffId)
+            .Error.ShouldBe(CafeOrderErrors.NoItems);
     }
 
     [Fact]

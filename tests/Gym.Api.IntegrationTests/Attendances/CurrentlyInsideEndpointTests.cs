@@ -83,7 +83,7 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         row.TotalSessions.ShouldBe(10);
         row.UsedSessions.ShouldBe(1);
         row.RemainingSessions.ShouldBe(9);
-        row.SubscriptionEndDate.ShouldBe(await SubscriptionEndDateAsync(attendance.SubscriptionId));
+        row.SubscriptionEndDate.ShouldBe(await SubscriptionEndDateAsync(attendance.SubscriptionId!.Value));
     }
 
     [Fact]

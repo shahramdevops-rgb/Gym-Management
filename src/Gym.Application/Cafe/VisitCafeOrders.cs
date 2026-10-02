@@ -48,11 +48,17 @@ public static class VisitCafeOrders
         var netPaidByOrder = await PaymentLedger.GetNetPaidForCafeOrdersAsync(
             db, orders.Select(order => order.Id).ToList(), cancellationToken);
 
-        // Every order with a visit names its member (the domain and a check constraint both say so).
-        var memberIds = orders.Select(order => order.MemberId!.Value).Distinct().ToList();
+        // An order on a member's visit names that member; one on a guest's visit names none and
+        // goes under the guest's name (BUSINESS_RULES.md §7 Guest visit).
+        var memberIds = orders
+            .Where(order => order.MemberId is not null)
+            .Select(order => order.MemberId!.Value)
+            .Distinct()
+            .ToList();
         var memberNames = await db.Members.AsNoTracking()
             .Where(member => memberIds.Contains(member.Id))
             .ToDictionaryAsync(member => member.Id, member => member.FullName, cancellationToken);
+        var guestNames = await CafeOrderGuests.NamesByVisitAsync(db, orders, cancellationToken);
 
         return orders
             .GroupBy(order => order.AttendanceId!.Value)
@@ -61,8 +67,9 @@ public static class VisitCafeOrders
                 group => group
                     .Select(order => CafeOrderResponse.From(
                         order,
-                        memberNames.GetValueOrDefault(order.MemberId!.Value),
-                        netPaidByOrder.GetValueOrDefault(order.Id)))
+                        order.MemberId is { } memberId ? memberNames.GetValueOrDefault(memberId) : null,
+                        netPaidByOrder.GetValueOrDefault(order.Id),
+                        CafeOrderGuests.For(guestNames, order)))
                     .ToList());
     }
 }

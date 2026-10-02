@@ -81,6 +81,14 @@ public interface IAppDbContext
     Task LockMemberAsync(Guid memberId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Locks one visit's row until the current transaction ends. A guest's visit has no member row
+    /// to lock, so this is what serializes its check-out against a cafe order or payment for it
+    /// landing at the same moment (BUSINESS_RULES.md §7 <i>Guest visit</i>). Must be called inside
+    /// <see cref="BeginTransactionAsync"/>.
+    /// </summary>
+    Task LockAttendanceAsync(Guid attendanceId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// For a use case whose writes must all happen or none: changing a password saves through
     /// Identity's <c>UserManager</c> and then revokes refresh tokens here. Both use this same
     /// scoped context, so one transaction covers both saves.

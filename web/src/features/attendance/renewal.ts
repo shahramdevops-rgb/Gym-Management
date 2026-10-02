@@ -28,11 +28,12 @@ export type RenewalDue = { kind: "sessions"; left: number } | { kind: "days"; le
  * panel*), and why. Sessions are named first when both are running out: a session count is what
  * the member feels at the door.
  *
- * Never for a single visit (spent by design and expiring tonight, §7), and never for a member who
- * has already bought the next subscription: they have renewed.
+ * Never for a single visit (spent by design and expiring tonight, §7), never for a member who
+ * has already bought the next subscription: they have renewed, and never for a guest, who has no
+ * plan (§7 *Guest visit*).
  */
 export function renewalDue(visit: CurrentlyInside, today: string): RenewalDue | null {
-  if (visit.isSingleSession || visit.hasQueuedRenewal) {
+  if (visit.isSingleSession || visit.hasQueuedRenewal || visit.subscriptionEndDate === null) {
     return null;
   }
 

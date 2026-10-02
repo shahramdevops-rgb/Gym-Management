@@ -3,6 +3,9 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { CurrentlyInside } from "@/features/attendance/api";
+import { guestLabel } from "@/features/attendance/holder";
+import { nameMatches, nameSearchTerm } from "@/features/lockers/nameSearch";
 import { useMemberList, type Member } from "@/features/members/api";
 import { searchMinLength } from "@/features/members/schemas";
 import { errorMessage } from "@/lib/errors";
@@ -19,6 +22,11 @@ interface CafeMemberPickerProps {
   /** The member the order is for, or null for a walk-in customer. */
   member: Pick<Member, "id" | "fullName" | "phoneNumber"> | null;
   onChange: (member: Member | null) => void;
+  /** The guests inside now, who can be chosen as the buyer (BUSINESS_RULES.md §7 *Guest visit*, §8). */
+  guests?: CurrentlyInside[];
+  /** The guest the order is for, if one was chosen. */
+  guest?: CurrentlyInside | null;
+  onGuestChange?: (guest: CurrentlyInside | null) => void;
 }
 
 /**
@@ -26,10 +34,19 @@ interface CafeMemberPickerProps {
  * same way the home page finds one. Naming a member is what lets the order go on their account
  * (BUSINESS_RULES.md §8), so the choice is always visible above the payment.
  *
+ * A guest who is inside can be chosen too (§7 *Guest visit*): they are listed under the search,
+ * narrowed by what is typed, and their order goes on their visit under their name.
+ *
  * An inactive member is offered too: §2 stops them coming in and taking a new subscription, not
  * buying a bottle of water (decided in task 7.2).
  */
-export function CafeMemberPicker({ member, onChange }: CafeMemberPickerProps) {
+export function CafeMemberPicker({
+  member,
+  onChange,
+  guests = [],
+  guest = null,
+  onGuestChange,
+}: CafeMemberPickerProps) {
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedCallback(
@@ -38,7 +55,39 @@ export function CafeMemberPicker({ member, onChange }: CafeMemberPickerProps) {
   );
 
   const ready = search.length >= searchMinLength;
-  const results = useMemberList({ search, page: 1 }, { enabled: ready && member === null });
+  const results = useMemberList(
+    { search, page: 1 },
+    { enabled: ready && member === null && guest === null },
+  );
+  // The map's name search: the same normalization, and nothing narrowed below its minimum.
+  const term = nameSearchTerm(text);
+  const shownGuests =
+    term === null ? guests : guests.filter((inside) => nameMatches(inside.guestName ?? "", term));
+
+  if (guest !== null) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+        <div>
+          <p className="font-medium">{guest.guestName}</p>
+          <p className="text-sm text-muted-foreground">
+            {guestLabel} · {guestPlace(guest)}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setText("");
+            setSearch("");
+            onGuestChange?.(null);
+          }}
+        >
+          <X aria-hidden />
+          مشتری آزاد
+        </Button>
+      </div>
+    );
+  }
 
   if (member !== null) {
     return (
@@ -115,6 +164,33 @@ export function CafeMemberPicker({ member, onChange }: CafeMemberPickerProps) {
           ))}
         </ul>
       )}
+
+      {shownGuests.length > 0 && onGuestChange !== undefined && (
+        <section aria-label="مهمان‌های داخل باشگاه" className="space-y-1">
+          <p className="text-xs text-muted-foreground">مهمان‌های داخل باشگاه</p>
+          <ul className="divide-y rounded-md border">
+            {shownGuests.map((inside) => (
+              <li key={inside.attendanceId}>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start hover:bg-accent"
+                  onClick={() => onGuestChange(inside)}
+                >
+                  <span>{inside.guestName}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {guestLabel} · {guestPlace(inside)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
+}
+
+/** "کمد ۳", or that the guest is on a reserve place. */
+function guestPlace(inside: CurrentlyInside): string {
+  return inside.lockerNumber === null ? "بدون کمد" : `کمد ${toPersianDigits(inside.lockerNumber)}`;
 }

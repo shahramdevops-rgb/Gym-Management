@@ -26,10 +26,10 @@ public sealed class CafeOrderConfiguration : IEntityTypeConfiguration<CafeOrder>
                 "ck_cafe_orders_cancel",
                 "(cancelled_at IS NULL) = (cancel_reason IS NULL) AND (cancelled_at IS NULL) = (cancelled_by_user_id IS NULL)");
 
-            // A visit always belongs to a member, so an order bought during one names that member:
-            // CafeOrder.Create's rule, repeated where a hand-written INSERT cannot get past it.
-            table.HasCheckConstraint(
-                "ck_cafe_orders_visit_has_member", "attendance_id IS NULL OR member_id IS NOT NULL");
+            // No check that an order on a visit names a member: since roadmap 6.5.11 an order on a
+            // guest's visit names none (BUSINESS_RULES.md §7 Guest visit), and a check sees only
+            // this row, so it cannot tell a guest's visit from a member's. CafeOrder.Create and
+            // CreateForGuestVisit keep the rule, with the handler checking the visit.
         });
 
         builder.Property(order => order.TotalAmount).HasPrecision(18, 2);

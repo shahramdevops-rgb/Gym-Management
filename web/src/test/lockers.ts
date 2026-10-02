@@ -16,7 +16,8 @@ export function locker(number: number, overrides: Partial<Locker> = {}): Locker 
     isOccupied: false,
     occupiedByMemberId: null,
     occupiedByMemberFullName: null,
-    occupiedByMemberDebt: 0,
+    occupiedByGuestName: null,
+    holderDebt: 0,
     version: 1,
     createdAt: "2026-09-27T00:00:00Z",
     updatedAt: null,
@@ -33,7 +34,16 @@ export function heldLocker(number: number, memberId: string, fullName: string, d
     isOccupied: true,
     occupiedByMemberId: memberId,
     occupiedByMemberFullName: fullName,
-    occupiedByMemberDebt: debt,
+    holderDebt: debt,
+  });
+}
+
+/** Locker `number` held by a guest (BUSINESS_RULES.md §7 *Guest visit*), with what their visit owes the cafe. */
+export function guestLocker(number: number, guestName: string, debt = 0): Locker {
+  return locker(number, {
+    isOccupied: true,
+    occupiedByGuestName: guestName,
+    holderDebt: debt,
   });
 }
 
@@ -75,6 +85,7 @@ export function lockerVisit(overrides: Partial<LockerVisit> = {}): LockerVisit {
     attendanceId: "0199b000-0000-7000-8000-000000000001",
     memberId: "0199b000-0000-7000-8000-0000000000aa",
     memberFullName: "رضا احمدی",
+    guestName: null,
     checkedInAt: "2026-09-28T05:30:00Z",
     checkedOutAt: "2026-09-28T07:00:00Z",
     cancelledAt: null,

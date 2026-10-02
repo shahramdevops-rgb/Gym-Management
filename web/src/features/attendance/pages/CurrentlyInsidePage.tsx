@@ -10,6 +10,7 @@ import { pageFromParams } from "@/lib/searchParams";
 import { useCurrentlyInside } from "../api";
 import { CurrentlyInsideTable } from "../components/CurrentlyInsideTable";
 import { useDeskDialog } from "../components/useDeskDialog";
+import { holderOf } from "../holder";
 
 /**
  * The front desk board: everyone inside the gym right now, refreshing on its own
@@ -54,14 +55,14 @@ export function CurrentlyInsidePage() {
                 onCheckOut={(row) =>
                   desk.open({
                     kind: "checkOut",
-                    member: { id: row.memberId, fullName: row.memberFullName },
+                    member: holderOf(row),
                     visit: { attendanceId: row.attendanceId, lockerNumber: row.lockerNumber },
                   })
                 }
                 onCancel={(row) =>
                   desk.open({
                     kind: "cancelCheckIn",
-                    member: { id: row.memberId, fullName: row.memberFullName },
+                    member: holderOf(row),
                     attendanceId: row.attendanceId,
                   })
                 }

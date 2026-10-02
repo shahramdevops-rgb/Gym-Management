@@ -6,6 +6,8 @@ import { FormField, MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEveryoneInside } from "@/features/attendance/api";
+import { isGuestVisit } from "@/features/attendance/holder";
 import { useMember } from "@/features/members/api";
 import type { PaymentMethod } from "@/features/payments/api";
 import { ConfirmPaymentDialog } from "@/features/payments/components/ConfirmPaymentDialog";
@@ -36,8 +38,8 @@ function problemText(problem: unknown): string {
 /**
  * The till (BUSINESS_RULES.md §8). Products on one side, the cart and the payment on the other.
  *
- * Who is buying lives in the URL (`/cafe?member=…`), so the member profile can open the till with
- * its member already chosen. Everything else — the cart, the amount — lives only here until the
+ * Who is buying lives in the URL (`/cafe?member=…`, or `/cafe?guest=…` for a guest's visit), so the
+ * member profile can open the till with its member already chosen. Everything else — the cart, the amount — lives only here until the
  * order is sent: a cart is not a record of anything.
  *
  * The money follows §8:
@@ -45,6 +47,9 @@ function problemText(problem: unknown): string {
  *   cannot be changed;
  * - a member may pay all of it, some of it, or none of it; whatever is not paid stays on their
  *   account. The amount starts at the total and follows it until somebody types in the box.
+ * - a guest who is inside (§7 *Guest visit*) is chosen from the guests listed under the search; the
+ *   order goes on their visit under their name and, like a member's, may be left unpaid, to be
+ *   settled in their locker's box before they leave.
  *
  * Whenever money is taken, the desk picks the method (none is chosen in advance) and answers "was
  * the money received?" before the order is sent (§5). An order left wholly on a member's account
@@ -53,7 +58,11 @@ function problemText(problem: unknown): string {
 export function CafeTillPage() {
   const [params, setParams] = useSearchParams();
   const memberId = params.get("member") ?? "";
+  const guestVisitId = params.get("guest") ?? "";
   const member = useMember(memberId, { enabled: memberId !== "" });
+  const inside = useEveryoneInside();
+  const guestsInside = (inside.data ?? []).filter(isGuestVisit);
+  const guest = guestsInside.find((row) => row.attendanceId === guestVisitId) ?? null;
   const products = useSellableProducts();
   const createOrder = useCreateCafeOrder();
 
@@ -72,13 +81,22 @@ export function CafeTillPage() {
   );
 
   const customer = memberId === "" ? null : (member.data ?? null);
-  const isWalkIn = memberId === "";
+  const isGuest = guestVisitId !== "";
+  const isWalkIn = memberId === "" && !isGuest;
+  // Who an unpaid balance goes under: the member's account, or the guest's visit.
+  const buyerName = isGuest ? (guest?.guestName ?? "مهمان") : (customer?.fullName ?? "عضو");
   const total = cartTotal(cart);
   const shownAmount = isWalkIn || amountText === null ? asTyped(total) : amountText;
   const inCart = new Map(cart.map((line) => [line.productId, line.quantity]));
 
   function chooseMember(id: string | null) {
     setParams(id === null ? {} : { member: id }, { replace: true });
+    setAmountText(null);
+    setAmountError(undefined);
+  }
+
+  function chooseGuest(attendanceId: string | null) {
+    setParams(attendanceId === null ? {} : { guest: attendanceId }, { replace: true });
     setAmountText(null);
     setAmountError(undefined);
   }
@@ -137,13 +155,16 @@ export function CafeTillPage() {
   async function send(payment: PaymentInput | null) {
     try {
       const order = await createOrder.mutateAsync({
-        memberId: isWalkIn ? null : memberId,
+        memberId: isWalkIn || isGuest ? null : memberId,
+        attendanceId: isGuest ? guestVisitId : undefined,
         items: cart.map((line) => ({ productId: line.productId, quantity: line.quantity })),
         payment,
       });
 
       const onAccount = isPositiveMoney(order.outstanding)
-        ? ` ${formatMoney(order.outstanding)} به حساب ${order.memberFullName ?? "عضو"} رفت.`
+        ? order.guestName !== null
+          ? ` ${formatMoney(order.outstanding)} به نام ${order.guestName} ماند و پیش از خروج تسویه می‌شود.`
+          : ` ${formatMoney(order.outstanding)} به حساب ${order.memberFullName ?? "عضو"} رفت.`
         : "";
       setNotice({
         kind: "success",
@@ -222,7 +243,13 @@ export function CafeTillPage() {
             <CafeMemberPicker
               member={customer}
               onChange={(picked) => chooseMember(picked === null ? null : picked.id)}
+              guests={guestsInside}
+              guest={guest}
+              onGuestChange={(picked) => chooseGuest(picked === null ? null : picked.attendanceId)}
             />
+            {isGuest && inside.isSuccess && guest === null && (
+              <Alert variant="destructive">این مهمان دیگر داخل باشگاه نیست.</Alert>
+            )}
             {memberId !== "" && member.isPending && (
               <p className="text-sm text-muted-foreground">در حال بارگذاری عضو…</p>
             )}
@@ -270,7 +297,8 @@ export function CafeTillPage() {
                 ) : (
                   isPositiveMoney(remaining) && (
                     <p className="text-sm">
-                      {formatMoney(remaining)} به حساب {customer?.fullName ?? "عضو"} می‌رود.
+                      {formatMoney(remaining)}{" "}
+                      {isGuest ? `به نام ${buyerName} می‌ماند.` : `به حساب ${buyerName} می‌رود.`}
                     </p>
                   )
                 )}
@@ -295,7 +323,11 @@ export function CafeTillPage() {
                   type="submit"
                   className="w-full"
                   size="lg"
-                  disabled={createOrder.isPending || (!isWalkIn && customer === null)}
+                  disabled={
+                    createOrder.isPending ||
+                    (memberId !== "" && customer === null) ||
+                    (isGuest && guest === null)
+                  }
                 >
                   {createOrder.isPending ? "در حال ثبت…" : "ثبت سفارش"}
                 </Button>

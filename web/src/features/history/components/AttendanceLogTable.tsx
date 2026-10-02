@@ -1,15 +1,14 @@
-import { Link } from "react-router";
-
-import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { emptyValue, formatDateTime, toPersianDigits } from "@/lib/format";
 
 import type { HistoryAttendance } from "../api";
+import { WhoCell } from "./WhoCell";
 
 /**
  * The gym's check-ins, newest first (BUSINESS_RULES.md §12 History): who came, which locker, who
- * let them in. A cancelled check-in stays on the list, marked; a visit the nightly job closed says
- * «خودکار» beside its check-out, because no person did it.
+ * let them in. A guest is listed under their name and marked «مهمان». A cancelled check-in stays
+ * on the list, marked; a visit the nightly job closed says «خودکار» beside its check-out, because
+ * no person did it.
  */
 export function AttendanceLogTable({ items }: { items: HistoryAttendance[] }) {
   return (
@@ -29,9 +28,11 @@ export function AttendanceLogTable({ items }: { items: HistoryAttendance[] }) {
           {items.map((item) => (
             <tr key={item.id} className="border-b">
               <td className="py-2">
-                <Link to={paths.member(item.memberId)} className="font-medium hover:underline">
-                  {item.memberFullName}
-                </Link>
+                <WhoCell
+                  memberId={item.memberId}
+                  memberFullName={item.memberFullName}
+                  guestName={item.guestName}
+                />
               </td>
               <td className="py-2">{formatDateTime(item.checkedInAt)}</td>
               <td className="py-2">

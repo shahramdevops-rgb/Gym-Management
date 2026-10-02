@@ -58,11 +58,12 @@ public sealed class CreateCafeOrderHandler(
         }
 
         var visitId = command.AttendanceId;
+        string? guestName = null;
         if (visitId is { } attendanceId)
         {
             var visit = await db.Attendances.AsNoTracking()
                 .Where(a => a.Id == attendanceId)
-                .Select(a => new { a.MemberId, a.CheckedOutAt })
+                .Select(a => new { a.MemberId, a.GuestName, a.CheckedOutAt })
                 .SingleOrDefaultAsync(cancellationToken);
             if (visit is null)
             {
@@ -70,11 +71,14 @@ public sealed class CreateCafeOrderHandler(
             }
 
             // The member's own visit: a purchase put on the wrong visit would show up at the wrong
-            // person's check-out, and a visit with no member named at all is the same mistake.
+            // person's check-out. A guest's visit has no member, so its order names none either
+            // (BUSINESS_RULES.md §7 Guest visit); a member named on it is the same mistake.
             if (visit.MemberId != command.MemberId)
             {
                 return Result.Failure<CafeOrderResponse>(CafeOrderErrors.VisitOfAnotherMember);
             }
+
+            guestName = visit.GuestName;
 
             // Only while they are inside, the same rule as a هوازی charge (BUSINESS_RULES.md §7).
             // CheckedOutAt covers all three ways a visit closes: check-out, the nightly job and a
@@ -127,7 +131,10 @@ public sealed class CreateCafeOrderHandler(
             lines.Add((row.Product, item.Quantity));
         }
 
-        var created = CafeOrder.Create(command.MemberId, lines, calendar.Today(), userId, visitId);
+        var isGuestVisit = guestName is not null;
+        var created = isGuestVisit
+            ? CafeOrder.CreateForGuestVisit(visitId!.Value, lines, calendar.Today(), userId)
+            : CafeOrder.Create(command.MemberId, lines, calendar.Today(), userId, visitId);
         if (created.IsFailure)
         {
             return Result.Failure<CafeOrderResponse>(created.Error);
@@ -141,13 +148,27 @@ public sealed class CreateCafeOrderHandler(
             return Result.Failure<CafeOrderResponse>(CafeOrderErrors.PaidMoreThanTheOrder);
         }
 
-        if (command.MemberId is null && paid != order.TotalAmount)
+        if (command.MemberId is null && !isGuestVisit && paid != order.TotalAmount)
         {
-            // BUSINESS_RULES.md §8: there is no account to leave a balance on.
+            // BUSINESS_RULES.md §8: there is no account to leave a balance on. A guest who is
+            // inside has none either, but pays before checking out (§7 Guest visit).
             return Result.Failure<CafeOrderResponse>(CafeOrderErrors.WalkInMustBePaidInFull);
         }
 
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
+
+        if (isGuestVisit)
+        {
+            // The guest's check-out takes this lock and refuses while an order is unpaid, so an
+            // order must not land on a visit that closed while this request was on its way. Asked
+            // again under the lock rather than trusted from the read above.
+            await db.LockAttendanceAsync(visitId!.Value, cancellationToken);
+            var stillOpen = await db.Attendances.AnyAsync(a => a.Id == visitId && a.CheckedOutAt == null, cancellationToken);
+            if (!stillOpen)
+            {
+                return Result.Failure<CafeOrderResponse>(CafeOrderErrors.VisitNotOpen);
+            }
+        }
 
         db.CafeOrders.Add(order);
 
@@ -166,6 +187,6 @@ public sealed class CreateCafeOrderHandler(
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return CafeOrderResponse.From(order, memberFullName, paid);
+        return CafeOrderResponse.From(order, memberFullName, paid, guestName);
     }
 }

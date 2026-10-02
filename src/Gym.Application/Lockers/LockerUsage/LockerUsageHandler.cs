@@ -18,6 +18,11 @@ namespace Gym.Application.Lockers.LockerUsage;
 /// visit moved away counts for the locker it went to, which is what the rule says (the same as
 /// <see cref="ListLockerVisitsToday.ListLockerVisitsTodayHandler"/>).
 /// </para>
+/// <para>
+/// A guest's visit counts (BUSINESS_RULES.md §7 <i>Guest visit</i>): this is about how much a locker
+/// is used, not about attendance, and a guest held the key like anyone else (the developer's
+/// decision, 1405/07/10, roadmap 6.5.11).
+/// </para>
 /// </remarks>
 public sealed class LockerUsageHandler(IAppDbContext db, IGymCalendar calendar)
 {

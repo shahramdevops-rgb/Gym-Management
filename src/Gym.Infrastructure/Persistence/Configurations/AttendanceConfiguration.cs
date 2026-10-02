@@ -55,7 +55,23 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
             table.HasCheckConstraint(
                 AttendanceConstraints.OpenHoldsOnePlace,
                 "checked_out_at IS NOT NULL OR ((locker_id IS NULL) <> (reserve_slot IS NULL))");
+
+            // BUSINESS_RULES.md §7 Guest visit: a visit is a member's (with the subscription a
+            // session came from) or a guest's (a name and nothing else), never both and never
+            // neither. Every visit before roadmap 6.5.11 is a member's and passes all three.
+            table.HasCheckConstraint(
+                AttendanceConstraints.MemberOrGuest,
+                "(member_id IS NULL) <> (guest_name IS NULL)");
+            table.HasCheckConstraint(
+                AttendanceConstraints.SubscriptionWithMember,
+                "(member_id IS NULL) = (subscription_id IS NULL)");
+            table.HasCheckConstraint(
+                AttendanceConstraints.GuestNameNotBlank,
+                "guest_name IS NULL OR btrim(guest_name) <> ''");
         });
+
+        builder.Property(a => a.GuestName).HasMaxLength(Attendance.GuestNameMaxLength);
+        builder.Ignore(a => a.IsGuest);
 
         // The number is internal bookkeeping, never shown, and never above 15: smallint says so.
         builder.Property(a => a.ReserveSlot).HasColumnType("smallint");
