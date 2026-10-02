@@ -62,6 +62,7 @@ Keep this section up to date when commands change.
 - Do not add packages that are not listed in docs/ARCHITECTURE.md without asking.
 - Warnings are errors. Fix them; do not suppress them.
 - Never commit secrets. Local secrets use `dotnet user-secrets`; production uses environment variables.
+- IMPORTANT: the production server holds the gym's real data since 2026-10-02. Never wipe it or restore over it, never write a migration that refuses existing rows (carry them forward), and back up (`./backup.sh run`) before every release. Every server step is proposed and confirmed first.
 - Commit messages follow Conventional Commits, e.g. `feat(members): add phone normalization`. Ask before committing.
 - Commit at the end of the session that made the changes, before the developer closes it, so the message comes from what this session already knows.
 - When committing, read `git diff --stat` first and write the message from what you did in this session; re-read the full diff only for parts you did not write. Never read generated files (`Persistence/Migrations/**`, `web/src/lib/api/schema.d.ts`).

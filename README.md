@@ -239,22 +239,35 @@ deploy/release.sh gym@<server-ip> --with-postgres    # --with-postgres on the fi
 It builds the images here, builds the EF migration bundle, copies everything over, runs the
 migrations and starts the new version. `./server.sh rollback` on the server goes back.
 
-**A release whose migrations refuse the old rows** (a roadmap task says "Release step: wipe"). This
-applies only while the server holds trial data; once real members are registered, a migration has
-to carry the rows forward instead. On the server, from `/opt/gym`, before `release.sh`:
+**The server holds real data.** Member registration (عضوگیری) started on 1405/07/10 (2026-10-02),
+after the trial data was wiped. From then on the server is never wiped and nothing is restored
+over it: a migration that meets old rows has to carry them forward, never refuse them. Take
+`./backup.sh run` before every release, and check that the gym PC's copy (`deploy/pull-backup.ps1`)
+is recent.
 
-```bash
-./backup.sh run    # the only way back: after such a release, rollback alone meets a newer schema
-docker compose -f docker-compose.prod.yml exec -T postgres psql -U gym -d gym -v ON_ERROR_STOP=1 \
-  -c "TRUNCATE members, lockers, plans, subscriptions, attendances, service_charges, payments, cafe_orders, cafe_order_items, products, product_categories, expenses, audit_logs CASCADE;"
+The go-live wipe, kept as a record (it must not be run again). Lockers, the price list row and the
+eight expense categories were seeded by migrations, which never run twice, so they were reset in
+place rather than truncated:
+
+```sql
+BEGIN;
+TRUNCATE members, subscriptions, attendances, service_charges, payments, cafe_orders,
+  cafe_order_items, products, product_categories, expenses, audit_logs,
+  refresh_tokens, trusted_devices CASCADE;
+DELETE FROM expense_categories WHERE id NOT IN (
+  '0b3f6685-b1a2-4979-acd9-c1fe848f156b', '5e5cf0e4-0d67-4b55-830a-8d0a6919fd00',
+  'b74beca9-8e56-440f-9a19-e3ab97690134', '627d2be7-d824-422a-ba2c-8d17c98633b5',
+  '270c9d15-6962-4eae-a492-483541b8d516', '97813c23-681f-4e8e-84eb-fa8ecd73c3ac',
+  'c4e2af4c-deb5-420e-8087-a7780b0356fd', '1dfd1cc7-0587-4096-a384-73e0449b23cd');
+UPDATE lockers SET is_out_of_service = false;
+UPDATE price_lists SET session_price = NULL, single_visit_price = NULL;
+DELETE FROM users WHERE id NOT IN (
+  SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE r.name = 'Owner');
+COMMIT;
 ```
 
-Users stay, and so do `expense_categories`, which a migration seeded. Drop a table from the list
-once a migration has removed it. To load the local trial data afterwards: `pg_dump -Fc` it here,
-`scp` it to `/opt/gym/`, then `./backup.sh restore <file> --yes` and `./server.sh rename` /
-`set-password`, since the users come from the dump. Going back after such a release means moving
-`efbundle` aside (restore runs whatever bundle is there), then `./server.sh rollback` and
-`./backup.sh restore backups/<the dump above> --yes`.
+The trial dumps from before that day were moved to `backups/trial/`, so nobody restores one by
+mistake.
 
 Live since 2026-09-25, with Let's Encrypt certificates Caddy obtains and renews by itself. One
 image serves four names, and which is which comes from `/opt/gym/.env`:
