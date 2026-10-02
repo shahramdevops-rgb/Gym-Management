@@ -2,6 +2,7 @@ using Gym.Application.Common;
 using Gym.Application.ServiceCharges;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
+using Gym.Domain.ServiceCharges;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -32,7 +33,19 @@ public sealed class CheckOutHandler(IAppDbContext db, TimeProvider time)
             hasUnpaidCafe = (await GuestCafe.UnpaidOrdersAsync(db, id, cancellationToken)).Count > 0;
         }
 
-        var checkedOut = attendance.CheckOut(time.GetUtcNow(), hasUnpaidCafe);
+        // A cardio-only visit leaves only once its هوازی amount is recorded (BUSINESS_RULES.md §7
+        // Cardio-only visit). The member's lock is the one voiding a charge takes, so a void cannot
+        // land between this check and the close.
+        var hasCardioCharge = false;
+        if (attendance.IsCardioOnly)
+        {
+            await db.LockMemberAsync(attendance.MemberId!.Value, cancellationToken);
+            hasCardioCharge = await db.ServiceCharges.AnyAsync(
+                charge => charge.AttendanceId == id && charge.Kind == ServiceChargeKind.Cardio && charge.VoidedAt == null,
+                cancellationToken);
+        }
+
+        var checkedOut = attendance.CheckOut(time.GetUtcNow(), hasUnpaidCafe, hasCardioCharge);
         if (checkedOut.IsFailure)
         {
             return Result.Failure<AttendanceResponse>(checkedOut.Error);

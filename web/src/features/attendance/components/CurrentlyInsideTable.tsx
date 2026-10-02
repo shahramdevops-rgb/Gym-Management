@@ -2,12 +2,13 @@ import { Link } from "react-router";
 
 import { paths } from "@/app/paths";
 import { SessionsBar } from "@/components/SessionsBar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatDateTime, gymToday, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { CurrentlyInside } from "../api";
-import { guestLabel } from "../holder";
+import { cardioOnlyLabel, guestLabel } from "../holder";
 import { daysUntil, expiringDaysThreshold, lowSessionsThreshold } from "../renewal";
 
 interface CurrentlyInsideTableProps {
@@ -78,6 +79,12 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                   >
                     {row.memberFullName}
                   </Link>
+                  {/* No session came from the plan beside it (BUSINESS_RULES.md §7 *Cardio-only visit*). */}
+                  {row.isCardioOnly && (
+                    <Badge variant="outline" className="ms-2 border-cardio">
+                      {cardioOnlyLabel}
+                    </Badge>
+                  )}
                 </td>
                 <td className="py-2">
                   {/* A reserve place has no number to show (BUSINESS_RULES.md §6, §7). */}

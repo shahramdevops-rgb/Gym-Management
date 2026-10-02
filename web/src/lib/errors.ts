@@ -185,6 +185,8 @@ export const errorMessages: Record<string, string> = {
   "Attendance.GuestHasUnpaidCafe":
     "مهمان خرید بوفهٔ پرداخت‌نشده دارد. ابتدا با «تسویه یکجا» آن را پرداخت کنید.",
   "Attendance.NotGuestVisit": "این ورود متعلق به مهمان نیست.",
+  "Attendance.CardioChargeMissing":
+    "این ورود فقط هوازی است: پیش از ثبت خروج، مبلغ هوازی را ثبت کنید (پرداخت‌نشده هم بدهی عضو می‌شود).",
 
   // Gym services (هوازی)
   "ServiceCharges.NotFound": "هزینهٔ خدمات پیدا نشد.",

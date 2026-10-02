@@ -7,7 +7,8 @@ namespace Gym.Domain.Attendances;
 /// One visit: a member checked in, consuming a session from a subscription and holding either the
 /// locker the desk chose or, when every locker is full, a reserve place (BUSINESS_RULES.md §6, §7).
 /// A guest's visit (§7 <i>Guest visit</i>) holds a place the same way, but has a typed name instead
-/// of a member and a subscription.
+/// of a member and a subscription. A cardio-only visit (§7 <i>Cardio-only visit</i>) is a member's
+/// visit that consumed no session.
 /// </summary>
 /// <remarks>
 /// Every precondition (member active, subscription active, no open attendance) is a cross-entity
@@ -32,8 +33,18 @@ public sealed class Attendance : Entity
     /// <summary><c>null</c> only on a guest's visit, which has <see cref="GuestName"/> instead (a check constraint says so too).</summary>
     public Guid? MemberId { get; private set; }
 
-    /// <summary>The subscription a session was consumed from; <c>null</c> exactly when <see cref="MemberId"/> is.</summary>
+    /// <summary>
+    /// The subscription a session was consumed from, or on a cardio-only visit the plan the member
+    /// was let in on, which gave no session (<see cref="IsCardioOnly"/>). <c>null</c> exactly when
+    /// <see cref="MemberId"/> is.
+    /// </summary>
     public Guid? SubscriptionId { get; private set; }
+
+    /// <summary>
+    /// A member came in only for هوازی (BUSINESS_RULES.md §7 <i>Cardio-only visit</i>): no session was
+    /// consumed, and the visit cannot be checked out until a هوازی amount is recorded on it.
+    /// </summary>
+    public bool IsCardioOnly { get; private set; }
 
     /// <summary>
     /// The full name the desk typed for a guest (BUSINESS_RULES.md §7 <i>Guest visit</i>), trimmed
@@ -122,6 +133,38 @@ public sealed class Attendance : Entity
     }
 
     /// <summary>
+    /// A member's cardio-only visit on the locker the desk chose (BUSINESS_RULES.md §7 <i>Cardio-only
+    /// visit</i>). <paramref name="subscriptionId"/> is the plan the member holds, from which no
+    /// session is consumed; whether the plan allows it is the caller's check, as for
+    /// <see cref="CheckIn"/>.
+    /// </summary>
+    public static Attendance CheckInCardioOnly(Guid memberId, Guid subscriptionId, Guid lockerId, DateTimeOffset checkedInAt) =>
+        new()
+        {
+            MemberId = memberId,
+            SubscriptionId = subscriptionId,
+            LockerId = lockerId,
+            CheckedInAt = checkedInAt,
+            IsCardioOnly = true,
+        };
+
+    /// <summary>A cardio-only visit on a reserve place, under the same conditions as any visit's (BUSINESS_RULES.md §6).</summary>
+    public static Attendance CheckInCardioOnlyOnReservePlace(Guid memberId, Guid subscriptionId, int reserveSlot, DateTimeOffset checkedInAt)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(reserveSlot, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(reserveSlot, ReservePlaceCount);
+
+        return new Attendance
+        {
+            MemberId = memberId,
+            SubscriptionId = subscriptionId,
+            ReserveSlot = reserveSlot,
+            CheckedInAt = checkedInAt,
+            IsCardioOnly = true,
+        };
+    }
+
+    /// <summary>
     /// A guest's visit on the locker the desk chose (BUSINESS_RULES.md §7 <i>Guest visit</i>):
     /// no member, no subscription, no session consumed. The locker's checks are the caller's, as
     /// for <see cref="CheckIn"/>; the name is checked here.
@@ -206,13 +249,19 @@ public sealed class Attendance : Entity
     /// <summary>
     /// Only an open attendance can be checked out (BUSINESS_RULES.md §7). A guest cannot leave
     /// while a cafe order of the visit is unpaid: a member's debt stays on their account, but a
-    /// guest has no account to leave it on (§7 <i>Guest visit</i>).
+    /// guest has no account to leave it on (§7 <i>Guest visit</i>). A cardio-only visit cannot be
+    /// closed before its هوازی amount is recorded (§7 <i>Cardio-only visit</i>).
     /// </summary>
     /// <param name="hasUnpaidCafe">
     /// Whether any standing cafe order of this visit still owes money. Orders are another
     /// aggregate, so the caller answers; it is ignored on a member's visit.
     /// </param>
-    public Result CheckOut(DateTimeOffset checkedOutAt, bool hasUnpaidCafe = false)
+    /// <param name="hasCardioCharge">
+    /// Whether the visit has a هوازی charge that is not voided, paid or not. Charges are another
+    /// aggregate, so the caller answers; it is read only on a cardio-only visit, and left out it
+    /// refuses one, so a caller that forgets to ask cannot let such a visit go uncharged.
+    /// </param>
+    public Result CheckOut(DateTimeOffset checkedOutAt, bool hasUnpaidCafe = false, bool hasCardioCharge = false)
     {
         if (CheckedOutAt is not null)
         {
@@ -222,6 +271,11 @@ public sealed class Attendance : Entity
         if (IsGuest && hasUnpaidCafe)
         {
             return Result.Failure(AttendanceErrors.GuestHasUnpaidCafe);
+        }
+
+        if (IsCardioOnly && !hasCardioCharge)
+        {
+            return Result.Failure(AttendanceErrors.CardioChargeMissing);
         }
 
         CheckedOutAt = checkedOutAt;
@@ -269,7 +323,8 @@ public sealed class Attendance : Entity
     /// The nightly job's own close (BUSINESS_RULES.md §7 Auto-checkout): the session stays
     /// consumed, unlike <see cref="Cancel"/>. No <see cref="Result"/>, the same reasoning as
     /// <see cref="CheckIn"/> — the job only ever loads attendances it already queried as open,
-    /// so there is nothing left here to check.
+    /// and leaves out a cardio-only visit with no هوازی amount, so there is nothing left here to
+    /// check.
     /// </summary>
     public void AutoClose(DateTimeOffset closedAt)
     {

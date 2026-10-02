@@ -4,6 +4,7 @@ using Gym.Application.Accounts.RenameUser;
 using Gym.Application.Accounts.SetPassword;
 using Gym.Application.Accounts.UnlockUser;
 using Gym.Application.Attendances.AutoCheckout;
+using Gym.Application.Attendances.CardioOnlyCheckIn;
 using Gym.Application.Attendances.CancelCheckIn;
 using Gym.Application.Attendances.CheckIn;
 using Gym.Application.Attendances.CheckOut;
@@ -143,6 +144,7 @@ public static class DependencyInjection
         services.AddScoped<CheckOutHandler>();
         services.AddScoped<CancelCheckInHandler>();
         services.AddScoped<GuestCheckInHandler>();
+        services.AddScoped<CardioOnlyCheckInHandler>();
         services.AddScoped<SettleGuestCafeHandler>();
         services.AddScoped<MoveLockerHandler>();
         services.AddScoped<ListCurrentlyInsideHandler>();

@@ -24,8 +24,8 @@ export const doorMotion = [
 
 /**
  * Each state's edge, face and text colour: green when free; tinted red from the top corner with a
- * red edge when held by a member, and the same in blue when held by a guest; hatched when out of
- * service.
+ * red edge when held by a member, the same in blue when held by a guest and in yellow on a
+ * cardio-only visit; hatched when out of service.
  */
 export const doorStateClass: Record<LockerState, string> = {
   free: "border-e-success text-success",
@@ -33,6 +33,8 @@ export const doorStateClass: Record<LockerState, string> = {
     "border-e-destructive text-foreground bg-[linear-gradient(135deg,var(--door-held),var(--door)_70%)]",
   guest:
     "border-e-guest text-foreground bg-[linear-gradient(135deg,var(--door-guest),var(--door)_70%)]",
+  cardio:
+    "border-e-cardio text-foreground bg-[linear-gradient(135deg,var(--door-cardio),var(--door)_70%)]",
   outOfService:
     "text-muted-foreground bg-[repeating-linear-gradient(135deg,var(--door-hatch)_0_6px,var(--door)_6px_12px)]",
 };

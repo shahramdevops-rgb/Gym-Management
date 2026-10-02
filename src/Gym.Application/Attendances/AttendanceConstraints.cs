@@ -29,4 +29,7 @@ public static class AttendanceConstraints
 
     /// <summary>A guest's name is never blank (BUSINESS_RULES.md §7 <i>Guest visit</i>).</summary>
     public const string GuestNameNotBlank = "ck_attendances_guest_name_not_blank";
+
+    /// <summary>Only a member's visit can be cardio-only (BUSINESS_RULES.md §7 <i>Cardio-only visit</i>).</summary>
+    public const string CardioOnlyIsMembers = "ck_attendances_cardio_only_is_members";
 }

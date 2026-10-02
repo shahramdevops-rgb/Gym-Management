@@ -20,6 +20,11 @@ namespace Gym.Application.Attendances;
 /// for the screen to infer from a missing locker, which an old closed visit also has. The place's
 /// own number is internal and never sent.
 /// </param>
+/// <param name="IsCardioOnly">
+/// A member came in only for هوازی and no session was consumed (BUSINESS_RULES.md §7 <i>Cardio-only
+/// visit</i>); <paramref name="SubscriptionId"/> is then the plan they were let in on. The visit cannot
+/// be checked out until its هوازی amount is recorded.
+/// </param>
 /// <param name="CheckedOutAt"><c>null</c> while the visit is still open.</param>
 /// <param name="CancelledAt"><c>null</c> unless the check-in was cancelled (BUSINESS_RULES.md §7).</param>
 /// <param name="AutoClosedAt"><c>null</c> unless the nightly job closed this visit instead of the member checking out (BUSINESS_RULES.md §7 Auto-checkout).</param>
@@ -51,6 +56,7 @@ public sealed record AttendanceResponse(
     Guid? LockerId,
     int? LockerNumber,
     bool UsesReservePlace,
+    bool IsCardioOnly,
     DateTimeOffset CheckedInAt,
     DateTimeOffset? CheckedOutAt,
     DateTimeOffset? CancelledAt,
@@ -74,6 +80,7 @@ public sealed record AttendanceResponse(
             attendance.LockerId,
             lockers.Where(l => l.Id == attendance.LockerId).Select(l => (int?)l.Number).FirstOrDefault(),
             attendance.ReserveSlot != null,
+            attendance.IsCardioOnly,
             attendance.CheckedInAt,
             attendance.CheckedOutAt,
             attendance.CancelledAt,
@@ -97,6 +104,7 @@ public sealed record AttendanceResponse(
             attendance.LockerId,
             lockerNumber,
             attendance.UsesReservePlace,
+            attendance.IsCardioOnly,
             attendance.CheckedInAt,
             attendance.CheckedOutAt,
             attendance.CancelledAt,

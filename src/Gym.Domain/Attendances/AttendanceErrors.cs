@@ -105,6 +105,14 @@ public static class AttendanceErrors
         "Attendance.GuestHasUnpaidCafe",
         "The guest has unpaid cafe orders. Settle them first.");
 
+    /// <summary>
+    /// BUSINESS_RULES.md §7 <i>Cardio-only visit</i>: no session was consumed, so the هوازی is what
+    /// the visit is charged for, and it is recorded (paid or left as debt) before the key comes back.
+    /// </summary>
+    public static readonly Error CardioChargeMissing = Error.BusinessRule(
+        "Attendance.CardioChargeMissing",
+        "Record the cardio amount for this cardio-only visit before checking out.");
+
     /// <summary>Settling a guest's cafe in one step is for a guest's visit only; a member settles their own debt.</summary>
     public static readonly Error NotGuestVisit = Error.BusinessRule(
         "Attendance.NotGuestVisit",

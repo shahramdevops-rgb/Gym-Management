@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { guestLabel } from "@/features/attendance/holder";
+import { cardioOnlyLabel, guestLabel } from "@/features/attendance/holder";
 import { errorMessage } from "@/lib/errors";
 import { formatTime } from "@/lib/format";
 
@@ -48,6 +48,11 @@ export function LockerTodayHistory({ lockerId }: { lockerId: string }) {
               >
                 {visit.memberFullName}
               </Link>
+            )}
+            {visit.isCardioOnly && (
+              <Badge variant="outline" className="border-cardio">
+                {cardioOnlyLabel}
+              </Badge>
             )}
             {visit.cancelledAt !== null && visit.cancelledAt !== undefined && (
               <Badge variant="secondary">لغو شده</Badge>

@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Domain.Attendances;
+using Gym.Domain.ServiceCharges;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +9,9 @@ namespace Gym.Application.Attendances.AutoCheckout;
 /// <summary>
 /// The nightly job (BUSINESS_RULES.md §7 Auto-checkout): closes every attendance still open at
 /// <c>Gym:ClosingTime</c> and marks it auto-closed. The session stays consumed — unlike
-/// <see cref="CancelCheckIn.CancelCheckInHandler"/>, nothing here touches a subscription.
+/// <see cref="CancelCheckIn.CancelCheckInHandler"/>, nothing here touches a subscription. A
+/// cardio-only visit with no هوازی amount is left open (§7 <i>Cardio-only visit</i>): the desk
+/// records its amount and checks it out the next day.
 /// </summary>
 /// <remarks>
 /// No HTTP endpoint calls this; Gym.Infrastructure/Jobs schedules it directly with Hangfire.
@@ -24,7 +27,11 @@ public sealed class AutoCheckoutHandler(IAppDbContext db, TimeProvider time)
 {
     public async Task<int> Handle(CancellationToken cancellationToken)
     {
-        var open = await db.Attendances.Where(a => a.CheckedOutAt == null).ToListAsync(cancellationToken);
+        var open = await db.Attendances
+            .Where(a => a.CheckedOutAt == null)
+            .Where(a => !a.IsCardioOnly || db.ServiceCharges.Any(charge =>
+                charge.AttendanceId == a.Id && charge.Kind == ServiceChargeKind.Cardio && charge.VoidedAt == null))
+            .ToListAsync(cancellationToken);
         if (open.Count == 0)
         {
             return 0;

@@ -44,6 +44,24 @@ describe("CurrentlyInsidePage", () => {
     expect(row).toHaveTextContent("۳");
   });
 
+  /** BUSINESS_RULES.md §7 *Cardio-only visit*: no session came from the plan beside it. */
+  it("Board_CardioOnlyVisit_MarksTheRowAndOnlyThatRow", async () => {
+    const cardio = { ...openVisit(reza.id), isCardioOnly: true };
+    const ordinary = { ...openVisit("0199a000-0000-7000-8000-0000000000b9"), id: "other" };
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([insideRow(reza.fullName, cardio), insideRow("علی کریمی", ordinary)]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).getByText("فقط هوازی")).toBeInTheDocument();
+    const other = screen.getByRole("link", { name: "علی کریمی" }).closest("tr")!;
+    expect(within(other).queryByText("فقط هوازی")).not.toBeInTheDocument();
+  });
+
   it("Board_LimitedSubscription_ShowsSessionsUsedOfTotal", async () => {
     const visit = openVisit(reza.id);
     mockApi({

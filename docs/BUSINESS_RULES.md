@@ -125,6 +125,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | Members: create, update, deactivate, search | ✅ | ✅ |
 | Check-in (from the lockers screen only, §7 *Confirming at the front desk*), check-out, cancel check-in | ✅ | ✅ |
 | Guest visit (ورود مهمان): check in, check out, cancel, settle its cafe (§7 *Guest visit*) | ✅ | ✅ |
+| Cardio-only visit (ورود فقط هوازی): check in without consuming a session (§7 *Cardio-only visit*) | ✅ | ✅ |
 | Assign or renew subscriptions | ✅ | ✅ |
 | Register payments, create cafe orders | ✅ | ✅ |
 | See the two prices (§3) | ✅ | ✅ |
@@ -480,6 +481,9 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
   name, but in **a colour of its own**, distinct from free, occupied and out of service, with
   «مهمان» in its label and its own line in the map's legend. The desk sees at a glance that nobody
   paid for that key.
+- **A locker held on a cardio-only visit** (§7 *Cardio-only visit*) is drawn in yellow, its own
+  colour, with «هوازی» in its label and its own line in the legend: the desk sees that no session
+  was taken and that the treadmill must be charged before the key comes back.
 - **A holder who owes money is marked on the map** (asked by the developer, 1405/07/06): a small
   red «بدهکار» tag hanging from the door's top edge at its top-right corner (changed by the
   developer, 1405/07/07, from a band across the top-left corner), whenever the member holding the locker has any
@@ -716,7 +720,7 @@ step 1 finds (*Confirming at the front desk*).
 - Unique-violation or concurrency errors are returned as a clear 409 conflict, never a 500.
 
 ### Check-out
-- Only an open attendance can be checked out. Sets `CheckedOutAt`, which frees the locker or reserve place.
+- Only an open attendance can be checked out. Sets `CheckedOutAt`, which frees the locker or reserve place. A cardio-only visit also needs its هوازی amount first (*Cardio-only visit*).
 
 ### Moving to another locker
 Decided by the Owner, 1405/07/05. Roadmap 6.5.5.
@@ -811,7 +815,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
     and stays.
 
 ### Auto-checkout
-- A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed.
+- A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed. The one exception is a cardio-only visit with no هوازی amount, which stays open (*Cardio-only visit*).
 
 ### Guest visit (ورود مهمان)
 Decided by the developer, 1405/07/07 (2026-09-29). Implemented in roadmap 6.5.11. This replaces
@@ -876,6 +880,41 @@ locker's history.
   attendance side is enforced by check constraints, as above (confirmed by the developer,
   1405/07/10).
 
+### Cardio-only visit (ورود فقط هوازی)
+Decided by the developer, 1405/07/11 (2026-10-03). Roadmap 6.5.27.
+- **Who it is for:** a member with a plan who comes in on a day they only want the treadmill. They
+  pay for the هوازی, and **no session is consumed**. Once inside they may use everything, like any
+  visit; what makes it different is only that the plan is not charged a session.
+- **Where:** from the box a free locker (or a reserve place, under §6's rules) opens, after
+  choosing the member: «ورود فقط هوازی» beside the ordinary check-in. Both roles (§1); the audit
+  log records who let the member in this way. Nothing can be sold with it (*Confirming at the front
+  desk*): a member who needs a sale comes in the ordinary way.
+- **The member must hold a plan:** a membership (not a single visit) that is `Active` today, or
+  one that is `Frozen`. Anything else is refused with the reason ordinary check-in gives
+  (`Attendance.NoSubscription`, `Subscriptions.Expired`, `Subscriptions.NoSessionsLeft`,
+  `Subscriptions.NotStarted`, ...). Coming in this way **touches the plan in no way**: no session is
+  consumed, a frozen plan stays frozen, and a queued plan is not moved forward over an exhausted
+  one. The same preconditions as any check-in hold too: the member is active, and has no open visit.
+- The visit names the plan it was let in on (`Attendance.SubscriptionId`), so the board and the
+  locker's box show the plan and its sessions as for any visit, marked «فقط هوازی».
+- **Check-out is refused until a هوازی amount is recorded** on the visit
+  (`Attendance.CardioChargeMissing`), and the box's check-out button stays disabled until then. The
+  amount must be recorded, not paid: what is not paid stays on the member's account as debt like any
+  هوازی (§5 *Member debt*, §7 *Gym services*). A charge that is voided leaves the visit without one
+  again. The minutes are not recorded: the desk works the price out, as for every هوازی.
+- **Auto-checkout leaves such a visit open** while it has no هوازی amount: its locker is still held
+  the next morning, and the member cannot check in again (one open visit per member) until the desk
+  records the amount and checks them out. A visit that has its amount is auto-closed like any other.
+- **Cancel check-in** within the usual window needs no amount: the member did not stay. There is
+  no session to give back. Its هوازی, if any, is ticked or not like any visit's (*Cancel check-in*).
+- **On screen:** the locker has **a colour of its own, yellow**, distinct from free, occupied,
+  out of service and a guest's blue, with «هوازی» in its label and its own line in the map's legend
+  (§6). The board, the locker's today history, the member's attendance history and the gym's
+  history (§12) mark the visit «فقط هوازی».
+- **Counted as attendance** like any member's visit, the chart under the map included (§6 *Today
+  by hour*): the member came in and used the gym; only the plan was not charged.
+- Moving to another locker, cafe and the «بدهکار» tag are as for any member's visit.
+
 ### Opening hours (PENDING — not enforced yet, roadmap 11.4)
 Decided with the developer, 1405/07/04.
 - The gym is open from `Gym:OpeningTime` (06:00) to `Gym:ClosingTime` (00:00, midnight), in the gym's
@@ -886,6 +925,8 @@ Decided with the developer, 1405/07/04.
   the gym. Today a check-in after midnight still succeeds and stays open until the next night's job.
 - There is no Owner override. If the gym ever needs to open at night, the hours change as a new
   rule, agreed with the developer and written here first. It is not an exception granted at the desk.
+- A cardio-only visit with no هوازی amount is left open by *Auto-checkout* (*Cardio-only visit*), so it
+  can still be inside after midnight. Task 11.4 has to decide what happens to it.
 - Until task 11.4 is done, **the code must not enforce this rule**. The developer checks in test members
   at night, and enforcing it early would block that work.
 

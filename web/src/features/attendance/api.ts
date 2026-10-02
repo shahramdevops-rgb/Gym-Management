@@ -187,6 +187,29 @@ export function useCheckIn() {
 }
 
 /**
+ * «ورود فقط هوازی» (BUSINESS_RULES.md §7 *Cardio-only visit*): a member with a plan comes in on the
+ * locker the desk clicked, or a reserve place when `lockerId` is `null`, and no session is consumed.
+ * Nothing is sold with it. The visit cannot be checked out until its هوازی amount is recorded.
+ */
+export function useCardioOnlyCheckIn() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ memberId, lockerId }: { memberId: string; lockerId: string | null }) => {
+      const { data, error } = await api.POST(
+        "/api/members/{memberId}/attendance/cardio-only-check-in",
+        { params: { path: { memberId } }, body: { lockerId } },
+      );
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => invalidateAttendance(queryClient),
+  });
+}
+
+/**
  * Lets a guest in on the locker the desk clicked, or a reserve place when `lockerId` is `null`
  * (BUSINESS_RULES.md §7 *Guest visit*): a name and nothing else, no member, no session.
  */

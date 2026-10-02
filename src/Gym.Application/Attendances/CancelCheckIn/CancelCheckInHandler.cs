@@ -72,8 +72,9 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
             return Result.Failure<AttendanceResponse>(cancelled.Error);
         }
 
-        // A guest's visit consumed no session, so there is none to give back.
-        if (attendance.SubscriptionId is { } subscriptionId)
+        // A guest's visit and a cardio-only one consumed no session, so there is none to give back
+        // (BUSINESS_RULES.md §7). A cardio-only visit names its plan all the same.
+        if (attendance.SubscriptionId is { } subscriptionId && !attendance.IsCardioOnly)
         {
             var subscription = await db.Subscriptions.SingleAsync(s => s.Id == subscriptionId, cancellationToken);
             subscription.RestoreSession();

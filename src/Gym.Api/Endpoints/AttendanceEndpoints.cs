@@ -3,6 +3,7 @@ using Gym.Api.Common;
 using Gym.Api.Filters;
 using Gym.Application.Attendances;
 using Gym.Application.Attendances.CancelCheckIn;
+using Gym.Application.Attendances.CardioOnlyCheckIn;
 using Gym.Application.Attendances.CheckIn;
 using Gym.Application.Attendances.CheckOut;
 using Gym.Application.Attendances.GuestCheckIn;
@@ -47,6 +48,16 @@ public static class AttendanceEndpoints
             .WithName("CheckIn")
             .Produces<AttendanceResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // «ورود فقط هوازی» (BUSINESS_RULES.md §7 Cardio-only visit): no session consumed, no sale.
+        memberAttendance.MapPost("/cardio-only-check-in", async (Guid memberId, CardioOnlyCheckInCommand command, CardioOnlyCheckInHandler handler, CancellationToken ct) =>
+                (await handler.Handle(memberId, command, ct)).ToHttpResult(attendance => Results.Created($"/api/attendance/{attendance.Id}", attendance)))
+            .RequireAuthorization(Policies.StaffOrOwner)
+            .WithName("CardioOnlyCheckIn")
+            .Produces<AttendanceResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);

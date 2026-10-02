@@ -62,7 +62,8 @@ public sealed class SetLockerOutOfServiceHandler(IAppDbContext db)
             .Select(a => new LockerHolder(
                 a.MemberId,
                 db.Members.Where(m => m.Id == a.MemberId).Select(m => m.FullName).FirstOrDefault(),
-                a.GuestName))
+                a.GuestName,
+                a.IsCardioOnly))
             .SingleOrDefaultAsync(cancellationToken);
 
     private async Task<Result<LockerResponse>> SaveAsync(Locker locker, LockerHolder? holder, CancellationToken cancellationToken)

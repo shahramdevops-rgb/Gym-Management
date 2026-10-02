@@ -19,7 +19,7 @@ import { lowSessionsThreshold } from "@/features/attendance/renewal";
 import { CloseButton, ConfirmButtons, LockerBox } from "@/features/attendance/components/deskParts";
 import { GuestSettleForm } from "@/features/attendance/components/GuestSettleForm";
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
-import { guestLabel, holderOf } from "@/features/attendance/holder";
+import { cardioOnlyLabel, guestLabel, holderOf } from "@/features/attendance/holder";
 import { VisitCafeBox } from "@/features/cafe/components/VisitCafeBox";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { errorMessage } from "@/lib/errors";
@@ -58,6 +58,9 @@ interface LockerVisitDialogProps {
  * to another locker and who had the locker earlier today. A used reserve place opens the same box,
  * without the locker's history.
  *
+ * A cardio-only visit (BUSINESS_RULES.md §7 *Cardio-only visit*) is marked «فقط هوازی», and its
+ * check-out stays disabled, with the reason said, until a هوازی amount is recorded.
+ *
  * Check-out and cancel go through the same confirming box as every other screen, so the key and the
  * debt are handled the same everywhere. Moving picks the target on the map itself, with only free
  * lockers clickable.
@@ -75,6 +78,10 @@ export function LockerVisitDialog({
   const memberId = visit.memberId;
   // Null on a reserve place, which has no history of its own.
   const lockerId = visit.lockerId;
+  // The visit's standing هوازی (voided charges are never listed). A cardio-only visit cannot be
+  // checked out without one (BUSINESS_RULES.md §7 *Cardio-only visit*); the API refuses it too.
+  const cardioCharge = visit.serviceCharges.find((charge) => charge.kind === "Cardio");
+  const cardioMissing = visit.isCardioOnly && cardioCharge === undefined;
 
   const title =
     visit.lockerNumber === null
@@ -154,6 +161,14 @@ export function LockerVisitDialog({
                   >
                     {member.fullName}
                   </Link>
+                  {visit.isCardioOnly && (
+                    <>
+                      {" · "}
+                      <span className="rounded bg-cardio/25 px-1.5 py-0.5 text-xs font-medium text-foreground">
+                        {cardioOnlyLabel}
+                      </span>
+                    </>
+                  )}
                   {" · "}ورود: {formatDateTime(visit.checkedInAt)}
                 </DialogDescription>
               </DialogHeader>
@@ -166,7 +181,7 @@ export function LockerVisitDialog({
                 <ServiceChargeBox
                   attendanceId={visit.attendanceId}
                   kind="Cardio"
-                  charge={visit.serviceCharges.find((charge) => charge.kind === "Cardio")}
+                  charge={cardioCharge}
                   visitIsOpen
                 />
               </div>
@@ -187,8 +202,15 @@ export function LockerVisitDialog({
               withSessions={false}
             />
 
+            {cardioMissing && (
+              <Alert role="status">
+                ورود فقط هوازی است: خروج پس از ثبت مبلغ هوازی ممکن است (پرداخت‌نشده هم بدهی عضو
+                می‌شود).
+              </Alert>
+            )}
             <div className="flex flex-wrap gap-2 border-t pt-3">
               <Button
+                disabled={cardioMissing}
                 onClick={() =>
                   onDeskAction({
                     kind: "checkOut",

@@ -1,4 +1,5 @@
-﻿using Gym.Domain.Members;
+﻿using Gym.Domain.Attendances;
+using Gym.Domain.Members;
 using Gym.Domain.Subscriptions;
 
 namespace Gym.Domain.Tests.Subscriptions;
@@ -307,6 +308,73 @@ public sealed class SubscriptionScheduleTests
 
         unfrozen.Error.ShouldBe(SubscriptionErrors.NotFrozen);
         queued.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+    }
+
+    // ---- PlanForCardioOnly (BUSINESS_RULES.md §7 Cardio-only visit) ----
+
+    [Fact]
+    public void PlanForCardioOnly_ActivePlan_ReturnsItAndConsumesNoSession()
+    {
+        var active = Sell(new DateOnly(2026, 9, 1));
+
+        var plan = SubscriptionSchedule.PlanForCardioOnly(Today, [active]);
+
+        plan.Value.ShouldBe(active);
+        active.UsedSessions.ShouldBe(0);
+    }
+
+    [Fact]
+    public void PlanForCardioOnly_FrozenPlan_ReturnsItAndLeavesTheFreeze()
+    {
+        var frozen = Sell(new DateOnly(2026, 9, 1));
+        frozen.Freeze(new DateOnly(2026, 9, 5), MaxFreezeDays);
+
+        var plan = SubscriptionSchedule.PlanForCardioOnly(Today, [frozen]);
+
+        plan.Value.ShouldBe(frozen);
+        frozen.FrozenSince.ShouldBe(new DateOnly(2026, 9, 5));
+    }
+
+    [Fact]
+    public void PlanForCardioOnly_NoSubscriptions_FailsWithNoSubscription() =>
+        SubscriptionSchedule.PlanForCardioOnly(Today, []).Error.ShouldBe(AttendanceErrors.NoSubscription);
+
+    [Fact]
+    public void PlanForCardioOnly_OnlyASingleVisit_FailsWithNoSubscription()
+    {
+        var singleVisit = Subscription.CreateSingleVisit(MemberId, 120_000m, Today).Value;
+
+        SubscriptionSchedule.PlanForCardioOnly(Today, [singleVisit]).Error.ShouldBe(AttendanceErrors.NoSubscription);
+    }
+
+    [Fact]
+    public void PlanForCardioOnly_Exhausted_FailsWithNoSessionsLeft()
+    {
+        var exhausted = SellExhausted(new DateOnly(2026, 9, 1), usedOn: new DateOnly(2026, 9, 5));
+
+        SubscriptionSchedule.PlanForCardioOnly(Today, [exhausted]).Error.ShouldBe(SubscriptionErrors.NoSessionsLeft);
+    }
+
+    [Fact]
+    public void PlanForCardioOnly_ExhaustedWithAQueuedPlan_MovesNothing()
+    {
+        // An ordinary check-in would bring the queued plan forward (§4); a cardio-only visit must not.
+        var exhausted = SellExhausted(new DateOnly(2026, 9, 1), usedOn: new DateOnly(2026, 9, 5));
+        var queued = Sell(new DateOnly(2026, 10, 1));
+
+        var plan = SubscriptionSchedule.PlanForCardioOnly(Today, [exhausted, queued]);
+
+        plan.IsFailure.ShouldBeTrue();
+        exhausted.EndDate.ShouldBe(new DateOnly(2026, 9, 30));
+        queued.StartDate.ShouldBe(new DateOnly(2026, 10, 1));
+    }
+
+    [Fact]
+    public void PlanForCardioOnly_Expired_FailsWithExpired()
+    {
+        var expired = Sell(new DateOnly(2026, 7, 1));
+
+        SubscriptionSchedule.PlanForCardioOnly(Today, [expired]).Error.ShouldBe(SubscriptionErrors.Expired);
     }
 
     [Fact]

@@ -3,6 +3,7 @@ import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceCh
 import { emptyValue, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 
 import type { Attendance } from "../api";
+import { cardioOnlyLabel } from "../holder";
 
 /** A member's own visits, most recent first: cancelled and auto-closed ones included, marked. */
 export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
@@ -30,7 +31,15 @@ export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
                 <CardioCell item={item} />
               </td>
               <td className="py-2">
-                <AttendanceStatusBadge item={item} />
+                <span className="flex flex-wrap items-center gap-2">
+                  <AttendanceStatusBadge item={item} />
+                  {/* No session was consumed (BUSINESS_RULES.md §7 *Cardio-only visit*). */}
+                  {item.isCardioOnly && (
+                    <Badge variant="outline" className="border-cardio">
+                      {cardioOnlyLabel}
+                    </Badge>
+                  )}
+                </span>
               </td>
             </tr>
           ))}

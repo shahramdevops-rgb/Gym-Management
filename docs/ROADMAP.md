@@ -1501,6 +1501,32 @@ Closed 2026-10-03: 1372 backend tests and 741 frontend tests green, zero warning
 local copy before release: the backfill turned the 4 settlements already written into 4 ids and
 left the 5 payments taken on their own without one.
 
+### 6.5.27 Cardio-only visit (ورود فقط هوازی)
+Asked by the developer on 1405/07/11 (2026-10-03): a member with a plan comes in only for the
+treadmill. They hold a locker and may use everything, but no session is consumed, and the locker
+is yellow. BUSINESS_RULES.md §7 *Cardio-only visit*, with §1, §6 and the check-out and
+auto-checkout lines.
+
+Decided with the developer, same day: the member must hold an `Active` (or frozen) membership;
+check-out is refused until a هوازی amount is recorded (paid or left as debt), and the nightly job
+leaves such a visit open while it has none; counted as attendance; both roles; no minutes field.
+The visit keeps the plan's id, so the board reads the plan as usual, and a new
+`is_cardio_only` column says no session came from it.
+- [x] Domain: `Attendance.IsCardioOnly`, `CheckInCardioOnly` / `...OnReservePlace`, check-out refused
+      without a cardio charge (`Attendance.CardioChargeMissing`)
+- [x] Migration `AddAttendanceCardioOnly`: the column, default `false` for every existing row
+- [x] `POST /api/members/{id}/attendance/cardio-only-check-in`: the plan rule, the place rule, no sale, no
+      unfreeze, no queue move
+- [x] Check-out and auto-checkout read the visit's cardio charge; cancel check-in gives no session back
+- [x] Responses carry `IsCardioOnly`: the visit, the locker map, the board, the locker's today
+      history, the gym's history
+- [x] Web: the second button in the check-in box, the yellow locker and its legend line, the
+      disabled check-out with its reason, «فقط هوازی» marks on every list
+- [x] Tests: domain, integration (each rule above and the new check constraint), frontend
+
+Closed 2026-10-03: 1408 backend tests and 749 frontend tests green, zero warnings. Not released
+yet: the migration only adds a column (default `false`) and a check every existing row passes.
+
 ---
 
 ## Phase 7 — Cafe / POS
