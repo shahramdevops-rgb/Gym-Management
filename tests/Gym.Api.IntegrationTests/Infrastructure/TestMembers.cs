@@ -10,14 +10,19 @@ internal static class TestMembers
 {
     /// <summary>
     /// The gym's today for a seeded member. <see cref="Member.Create"/> asks for it because a
-    /// birth date can only be judged against a date; these members have none, so the value is
-    /// named once here instead of a dozen tests each reaching for a clock they do not need.
+    /// birth date can only be judged against a date, so the value is named once here instead of a
+    /// dozen tests each reaching for a clock they do not need.
     /// </summary>
     private static readonly DateOnly SeedToday = new(2026, 1, 1);
 
-    /// <summary>An active member with no notes and no birth date.</summary>
+    /// <summary>
+    /// Every member has a birth date (BUSINESS_RULES.md §2). Tests about something else get this one.
+    /// </summary>
+    private static readonly DateOnly SeedBirthDate = new(1990, 6, 15);
+
+    /// <summary>An active member with no notes and the default birth date.</summary>
     internal static Member Seed(string fullName, string phoneNumber) =>
-        Member.Create(fullName, phoneNumber, notes: null, birthDate: null, today: SeedToday).Value;
+        Member.Create(fullName, phoneNumber, notes: null, SeedBirthDate, today: SeedToday).Value;
 
     /// <summary>An active member with no notes and the given birth date.</summary>
     internal static Member Seed(string fullName, string phoneNumber, DateOnly birthDate) =>

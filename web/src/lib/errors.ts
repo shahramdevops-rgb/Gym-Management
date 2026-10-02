@@ -93,6 +93,7 @@ export const errorMessages: Record<string, string> = {
   "Members.FullNameRequired": "نام و نام خانوادگی را وارد کنید.",
   "Members.FullNameTooLong": "نام بیش از حد طولانی است.",
   "Members.NotesTooLong": "یادداشت بیش از حد طولانی است.",
+  "Members.BirthDateRequired": "تاریخ تولد را وارد کنید.",
   "Members.BirthDateInFuture": "تاریخ تولد نمی‌تواند در آینده باشد.",
   "Members.BirthDateTooOld": "تاریخ تولد نمی‌تواند بیش از ۱۲۰ سال پیش باشد.",
   "Members.SearchTooShort": "برای جستجو دست‌کم ۲ حرف وارد کنید.",

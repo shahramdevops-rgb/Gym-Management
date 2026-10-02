@@ -1363,7 +1363,7 @@ export interface components {
             phoneNumber: string;
             notes: null | string;
             /** Format: date */
-            birthDate: null | string;
+            birthDate: string;
             isActive: boolean;
             /** Format: uint32 */
             version: number | string;

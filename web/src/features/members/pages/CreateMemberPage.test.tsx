@@ -4,10 +4,11 @@ import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/
 import { reza } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
 
-function fill({ fullName = "", phoneNumber = "", notes = "", birthDate = "" }) {
+/** Every member has a birth date, so a test about something else gets one typed for it. */
+function fill({ fullName = "", phoneNumber = "", notes = "", birthDate = "۱۳۷۰/۰۵/۱۲" }) {
   fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: fullName } });
   fireEvent.change(screen.getByLabelText("شماره موبایل"), { target: { value: phoneNumber } });
-  fireEvent.change(screen.getByLabelText("تاریخ تولد (اختیاری)"), {
+  fireEvent.change(screen.getByLabelText("تاریخ تولد"), {
     target: { value: birthDate },
   });
   fireEvent.change(screen.getByLabelText("یادداشت (اختیاری)"), { target: { value: notes } });
@@ -64,22 +65,16 @@ describe("CreateMemberPage", () => {
     expect(body.notes).toBeNull();
   });
 
-  it("CreateMember_BlankBirthDate_IsSentAsNull", async () => {
-    const api = mockApi({
-      ...signedInHandlers(staffUser),
-      "POST /api/members": () => json(201, reza),
-      [`GET /api/members/${reza.id}`]: () => json(200, reza),
-    });
+  it("CreateMember_BlankBirthDate_IsRejectedBeforeSending", async () => {
+    // Required (docs/BUSINESS_RULES.md §2): the gym greets members on their birthday.
+    const api = mockApi(signedInHandlers(staffUser));
     renderApp("/members/new", { session: session() });
 
-    fill({ fullName: "رضا", phoneNumber: "09121234567" });
+    fill({ fullName: "رضا", phoneNumber: "09121234567", birthDate: "" });
 
-    await waitFor(() => expect(api.requestsTo("POST", "/api/members")).toHaveLength(1));
-    const body = (await api.requestsTo("POST", "/api/members")[0]!.json()) as Record<
-      string,
-      unknown
-    >;
-    expect(body.birthDate).toBeNull();
+    const message = await screen.findByText("تاریخ تولد را وارد کنید.");
+    expect(screen.getByLabelText("تاریخ تولد")).toHaveAttribute("aria-describedby", message.id);
+    expect(api.requestsTo("POST", "/api/members")).toHaveLength(0);
   });
 
   it.each([
@@ -107,10 +102,7 @@ describe("CreateMemberPage", () => {
     fill({ fullName: "رضا", phoneNumber: "09121234567", birthDate: "۱۳۷۰/۰۵/۱۲" });
 
     const message = await screen.findByText("تاریخ تولد نمی‌تواند در آینده باشد.");
-    expect(screen.getByLabelText("تاریخ تولد (اختیاری)")).toHaveAttribute(
-      "aria-describedby",
-      message.id,
-    );
+    expect(screen.getByLabelText("تاریخ تولد")).toHaveAttribute("aria-describedby", message.id);
   });
 
   it("CreateMember_BlankNameAndPhone_AreRejectedBeforeSending", async () => {

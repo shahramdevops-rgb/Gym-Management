@@ -149,8 +149,8 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 - Only Iranian mobile numbers are accepted. Landlines are rejected (`Members.PhoneNotMobile`): the number receives SMS reminders. Foreign numbers are rejected (`Members.PhoneNotIranian`): the gym has no foreign members, and a visitor can use the gym without being registered as a member.
 - Every member has a phone number (required).
 - Limits: full name at most 200 characters, notes at most 1000.
-- Birth date (decided with the developer, 1405/06/31 — roadmap 2.4).
-  - Optional and expected to stay empty for most members: the gym has no birth date for anyone who joined before this field existed, and staff must never be forced to invent one.
+- Birth date (decided with the developer, 1405/06/31 — roadmap 2.4; made required 1405/07/10 — roadmap 6.5.24).
+  - **Required** (changed by the developer, 1405/07/10, from optional): every member has one, entered when they are registered (the members page and the check-in dialog alike) and corrected, never removed, on edit (`Members.BirthDateRequired`). The gym greets members on their birthday, at the desk now and by SMS once that is turned on, which only works when nobody is missing. No member was registered yet anywhere (the server was still a trial), so no old member is left without one; the database column is `NOT NULL`.
   - A business date (`DateOnly`) like every other date here: stored Gregorian, typed and shown Jalali.
   - It cannot be in the future (`Members.BirthDateInFuture`) and cannot be more than 120 years ago (`Members.BirthDateTooOld`). Both are judged against the gym's today, so the rule lives in the entity and the handler passes the date in.
   - It is not searchable and does not appear in the members list; it is shown on the member's profile.
@@ -1055,7 +1055,7 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
   - Zero-width non-joiner (U+200C) → a normal space, because users type half-space and space interchangeably
   - Remove other zero-width and direction marks (U+200B, U+200D, U+200E, U+200F, U+FEFF)
   - Trim and collapse repeated spaces
-- Dates are shown in the Jalali calendar. They are stored and exchanged as Gregorian `DateOnly` and UTC timestamps. A date is typed into a Jalali calendar picker, never as a Gregorian date, and converted to ISO before it is sent.
+- Dates are shown in the Jalali calendar. They are stored and exchanged as Gregorian `DateOnly` and UTC timestamps. A date is typed into a Jalali calendar picker, never as a Gregorian date, and converted to ISO before it is sent. The box takes **both** picking a day in the calendar and typing the date by hand (asked by the developer, 1405/07/10): digits alone get their slashes as they are typed (۱۳۷۰۰۵۱۲ → ۱۳۷۰/۰۵/۱۲), and `/`, `-`, `.`, a space, a comma, `÷`, `٫` or `،` between the parts are all accepted.
 - **Every amount of money on screen is protected against miscounted zeros** (decided with the developer, 1405/06/31 — roadmap 4.8). Toman amounts are large enough that `500000` and `5000000` look alike at a glance, and a wrong figure here is a wrong figure in the gym's books.
   - Every amount that is **typed** goes through the shared money field: Persian digits, grouped in threes as it is typed (۵۰۰٬۰۰۰), and the same amount written out in words underneath it — «پانصد هزار تومان». The words are the check: nobody miscounts a word.
   - Every amount that is **displayed** goes through one formatter, which groups in threes and appends "تومان".

@@ -24,6 +24,7 @@ const codeFields = {
   "Members.FullNameRequired": "fullName",
   "Members.FullNameTooLong": "fullName",
   "Members.NotesTooLong": "notes",
+  "Members.BirthDateRequired": "birthDate",
   "Members.BirthDateInFuture": "birthDate",
   "Members.BirthDateTooOld": "birthDate",
 } as const;
@@ -61,7 +62,7 @@ export function MemberForm({
         fullName: normalizePersianText(values.fullName),
         // The API accepts Persian digits too; sending English ones keeps logs and audit readable.
         phoneNumber: normalizeDigits(values.phoneNumber).trim(),
-        birthDate: values.birthDate === "" ? null : values.birthDate,
+        birthDate: values.birthDate,
         notes: values.notes === "" ? null : values.notes,
       });
     } catch (problem) {
@@ -99,7 +100,7 @@ export function MemberForm({
           // Not {...field}: this is not a native input, so field.ref has nowhere to go, and this
           // form does not use focus-on-error.
           <JalaliDateField
-            label="تاریخ تولد (اختیاری)"
+            label="تاریخ تولد"
             error={errors.birthDate?.message}
             name={field.name}
             value={field.value}

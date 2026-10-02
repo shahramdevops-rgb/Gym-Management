@@ -139,7 +139,6 @@ public sealed class CurrentlyInsideEndpointTests(DatabaseFixture fixture) : Data
         using var response = await SendAsync(staffClient, staffToken, HttpMethod.Get, "/api/attendance/currently-inside");
 
         var row = (await ReadPageAsync(response)).Items.ShouldHaveSingleItem();
-        row.MemberBirthDate.ShouldBeNull();
         row.HasQueuedRenewal.ShouldBeFalse();
     }
 

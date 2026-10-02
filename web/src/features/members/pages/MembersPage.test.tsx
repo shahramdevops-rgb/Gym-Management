@@ -312,6 +312,7 @@ describe("MembersPage", () => {
     fireEvent.change(screen.getByLabelText("شماره موبایل"), {
       target: { value: "09121110000" },
     });
+    fireEvent.change(screen.getByLabelText("تاریخ تولد"), { target: { value: "۱۳۷۰/۰۵/۱۲" } });
     fireEvent.click(screen.getByRole("button", { name: "ثبت و ادامه" }));
 
     // Registered, then the profile, where a plan is sold. Letting them in is the map's job.

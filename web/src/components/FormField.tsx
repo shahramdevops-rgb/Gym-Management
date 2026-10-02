@@ -14,6 +14,7 @@ import {
   jalaliToIso,
   toIsoDate,
   toJalaliInput,
+  withDateSlashes,
 } from "@/lib/format";
 import { moneyDigits } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -252,6 +253,10 @@ interface JalaliDateFieldProps {
  * day is picked, on Escape, or when focus leaves the box. Pressing inside the calendar does not
  * take focus from the box (its mousedown is cancelled), so turning the month does not close it.
  *
+ * **Typing works as well as picking.** Digits alone get their slashes as they are typed
+ * (`13900509` reads `1390/05/09`, see `withDateSlashes`), and `toIsoDate` takes any common
+ * separator, so a date typed with dots or spaces is not thrown away on blur.
+ *
  * What is typed is committed on every keystroke that forms a whole, real date, and the box snaps
  * back to the committed date on blur — so what is on screen is always what will be sent, and a
  * half-typed date is visibly discarded rather than quietly saved as "no birth date".
@@ -292,8 +297,11 @@ export function JalaliDateField({
   }
 
   function handleTyping(event: ChangeEvent<HTMLInputElement>) {
-    setText(event.target.value);
-    commit(toIsoDate(event.target.value) ?? "");
+    // Slashes are added only while the text grows, so backspace can still delete one.
+    const typed = event.target.value;
+    const shown = typed.length > text.length ? withDateSlashes(typed) : typed;
+    setText(shown);
+    commit(toIsoDate(shown) ?? "");
   }
 
   function handlePicked(picked: DateObject | null) {
@@ -321,6 +329,8 @@ export function JalaliDateField({
           disabled={disabled}
           placeholder={placeholder}
           autoComplete="off"
+          // A phone's number pad has no slash; withDateSlashes adds them, so digits are enough.
+          inputMode="numeric"
           className="pe-9"
           aria-invalid={error !== undefined}
           aria-describedby={error !== undefined ? errorId : undefined}

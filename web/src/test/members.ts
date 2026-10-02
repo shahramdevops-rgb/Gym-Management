@@ -21,7 +21,7 @@ export const ali: Member = {
   fullName: "علی رضایی",
   phoneNumber: "+989351234567",
   notes: null,
-  birthDate: null,
+  birthDate: "1988-01-20",
   isActive: false,
   version: 7,
   createdAt: "2026-09-17T08:00:00Z",

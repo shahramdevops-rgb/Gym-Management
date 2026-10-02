@@ -1405,7 +1405,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateOnly?>("BirthDate")
+                    b.Property<DateOnly>("BirthDate")
                         .HasColumnType("date")
                         .HasColumnName("birth_date");
 
@@ -1479,7 +1479,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                     b.ToTable("members", null, t =>
                         {
-                            t.HasCheckConstraint("ck_members_birth_date_range", "birth_date IS NULL OR birth_date >= DATE '1900-01-01'");
+                            t.HasCheckConstraint("ck_members_birth_date_range", "birth_date >= DATE '1900-01-01'");
 
                             t.HasCheckConstraint("ck_members_full_name_not_blank", "btrim(full_name) <> ''");
 

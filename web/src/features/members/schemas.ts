@@ -35,9 +35,10 @@ export const memberSchema = z.object({
     .min(1, message("Members.PhoneRequired"))
     .max(30, message("Members.PhoneInvalid")),
   /**
-   * An ISO business date or empty: JalaliDateField never produces anything else. Both rules are
-   * the entity's (Members.BirthDateInFuture, Members.BirthDateTooOld), repeated here so the form
-   * can answer before the request, with the same Persian text the API's codes map to.
+   * An ISO business date or empty: JalaliDateField never produces anything else. Empty is refused
+   * (Members.BirthDateRequired: every member has one). The range rules are the entity's
+   * (Members.BirthDateInFuture, Members.BirthDateTooOld), repeated here so the form can answer
+   * before the request, with the same Persian text the API's codes map to.
    *
    * ISO dates are fixed-width and zero-padded, so comparing them as strings is comparing them as
    * dates. gymToday() is called per validation, not captured at import: a tab left open
@@ -45,6 +46,7 @@ export const memberSchema = z.object({
    */
   birthDate: z
     .string()
+    .min(1, message("Members.BirthDateRequired"))
     .refine((value) => value === "" || value <= gymToday(), message("Members.BirthDateInFuture"))
     .refine(
       (value) => value === "" || value >= isoYearsAgo(gymToday(), maxAgeYears),

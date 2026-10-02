@@ -778,7 +778,7 @@ public sealed class CafeOrderEndpointTests(DatabaseFixture fixture) : DatabaseTe
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = Domain.Members.Member.Create(
-            $"عضو {suffix}", $"+98912100{suffix:D4}", notes: null, birthDate: null, new DateOnly(2026, 9, 26)).Value;
+            $"عضو {suffix}", $"+98912100{suffix:D4}", notes: null, birthDate: new DateOnly(1990, 6, 15), new DateOnly(2026, 9, 26)).Value;
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

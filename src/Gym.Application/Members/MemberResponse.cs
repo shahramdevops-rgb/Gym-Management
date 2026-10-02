@@ -6,8 +6,8 @@ namespace Gym.Application.Members;
 
 /// <param name="PhoneNumber">E.164. The frontend formats it for display.</param>
 /// <param name="BirthDate">
-/// Gregorian, as every date the API speaks; the frontend shows it in the Jalali calendar. Null for
-/// most members (BUSINESS_RULES.md §2), and shown on the profile only — never searched or listed.
+/// Gregorian, as every date the API speaks; the frontend shows it in the Jalali calendar. Every
+/// member has one (BUSINESS_RULES.md §2); shown on the profile only — never searched or listed.
 /// </param>
 /// <param name="Version">
 /// Sent back with an update. If someone else saved the member after this was read, the update
@@ -37,7 +37,7 @@ public sealed record MemberResponse(
     string FullName,
     string PhoneNumber,
     string? Notes,
-    DateOnly? BirthDate,
+    DateOnly BirthDate,
     bool IsActive,
     uint Version,
     DateTimeOffset CreatedAt,

@@ -1351,6 +1351,38 @@ forward at the next check-in, a freeze pushes it later).
 Done when: a member with an active plan and a renewal sees the renewal's row read «بعد از پلن
 قبلی» instead of a fixed start and end.
 
+### 6.5.24 Birth date required (تاریخ تولد اجباری)
+Asked by the developer on 1405/07/10 (2026-10-02), for the birthday SMS to come. BUSINESS_RULES.md
+§2 updated (was optional since 2.4). No member existed anywhere yet, so nothing to backfill.
+
+- [x] `Member.BirthDate` is `DateOnly` (not nullable); `Create`/`Update` take a `DateOnly`. The
+      commands keep `DateOnly?` so a missing value is `Members.BirthDateRequired` (validator, and
+      the handler again) instead of 0001-01-01; `MemberResponse.BirthDate` is not nullable
+- [x] Migration `MakeMemberBirthDateRequired`: `birth_date SET NOT NULL`, check constraint without
+      the `IS NULL` branch. EF's scaffolded `defaultValue: 0001-01-01` removed, so a row without a
+      date makes the migration fail instead of getting an invented one
+- [x] Form: label «تاریخ تولد» (no «اختیاری»), empty refused before sending with «تاریخ تولد را
+      وارد کنید.», the same on edit; the check-in dialog's register form is the same form.
+      `CurrentlyInsideResponse.MemberBirthDate` stays nullable: a guest has none
+- [x] Tests: domain (a corrected date replaces the old one); integration (create without a date →
+      400 `Members.BirthDateRequired`, clearing it on edit → 400 and the old date kept, a `NULL`
+      inserted directly → `23502`); frontend (blank on create and on edit is refused before
+      sending, both register-from-search flows type a date)
+
+- [x] Typing in the date box, beside the calendar (same day, after the developer found the box
+      "could not be filled"). Cause: `toIsoDate` accepted only `/` or `-`, so `13700512` or
+      `1370.05.12` was taken while typing and silently emptied on blur. Now `withDateSlashes` adds
+      the slashes to digits as they are typed (only while the text grows, so backspace still
+      deletes one), `toIsoDate` takes any common separator (`.`, space, comma, `÷`, `٫`, `،`,
+      backslash), and the box asks phones for the number pad (`inputMode="numeric"`)
+- [x] Tests (frontend): every separator parses; the slash mask step by step, and what it leaves
+      alone; digits typed one by one end up `۱۳۷۰/۰۵/۱۲` and commit; backspace over a slash does
+      not put it back; a date typed with dots survives blur
+
+Done when: no member can be registered or saved without a birth date, by the form, the API or the
+database.
+Staff can also type a birth date by hand, with or without slashes, instead of picking it.
+
 ---
 
 ## Phase 7 — Cafe / POS

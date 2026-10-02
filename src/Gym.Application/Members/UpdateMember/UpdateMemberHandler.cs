@@ -47,7 +47,13 @@ public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
             return Result.Failure<MemberResponse>(MemberErrors.PhoneAlreadyExists);
         }
 
-        var updated = member.Update(command.FullName, phone.Value, command.Notes, command.BirthDate, calendar.Today());
+        // The validator already refused a missing date; this only turns DateOnly? into DateOnly.
+        if (command.BirthDate is not { } birthDate)
+        {
+            return Result.Failure<MemberResponse>(MemberErrors.BirthDateRequired);
+        }
+
+        var updated = member.Update(command.FullName, phone.Value, command.Notes, birthDate, calendar.Today());
         if (updated.IsFailure)
         {
             return Result.Failure<MemberResponse>(updated.Error);

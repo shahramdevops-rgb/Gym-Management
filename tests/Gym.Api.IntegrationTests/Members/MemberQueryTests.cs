@@ -56,8 +56,8 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
     [Fact]
     public async Task GetMember_MemberWithABirthDate_ReturnsTheSameDateAsCreate()
     {
-        // The record equality above cannot catch a Projection that forgot birth_date: with no
-        // birth date, both sides are null and the comparison passes. This one has a date.
+        // The record equality above compares it too; this says outright that the stored date is
+        // the one that was sent, not a default.
         var (client, token) = await StaffClientAsync();
         var created = await CreateMemberAsync(client, token, "رضا احمدی", "09121234567", birthDate: "1991-08-03");
 
@@ -675,7 +675,7 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
     }
 
     private static async Task<MemberResponse> CreateMemberAsync(
-        HttpClient client, string token, string fullName, string phoneNumber, string? birthDate = null)
+        HttpClient client, string token, string fullName, string phoneNumber, string birthDate = "1990-06-15")
     {
         var request = new HttpRequestMessage(HttpMethod.Post, MembersPath)
         {

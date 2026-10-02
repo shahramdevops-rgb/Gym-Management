@@ -81,6 +81,44 @@ describe("JalaliDateField", () => {
     expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
   });
 
+  it("JalaliDateField_DigitsTypedOneByOne_GetTheirSlashesAndCommit", () => {
+    // Typing must work as well as picking: digits alone, keystroke by keystroke, as a person types.
+    render(<Host />);
+    const input = screen.getByLabelText(label);
+    fireEvent.focus(input);
+
+    // Each keystroke adds to what the box shows now, slashes it added included.
+    for (const digit of "۱۳۷۰۰۵۱۲") {
+      fireEvent.change(input, { target: { value: (input as HTMLInputElement).value + digit } });
+    }
+
+    expect(input).toHaveValue("۱۳۷۰/۰۵/۱۲");
+    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
+  });
+
+  it("JalaliDateField_BackspaceOverASlash_DoesNotPutItBack", () => {
+    render(<Host />);
+    const input = screen.getByLabelText(label);
+    fireEvent.change(input, { target: { value: "13700" } });
+    expect(input).toHaveValue("1370/0");
+
+    fireEvent.change(input, { target: { value: "1370/" } });
+    fireEvent.change(input, { target: { value: "1370" } });
+
+    expect(input).toHaveValue("1370");
+  });
+
+  it("JalaliDateField_TypedWithDots_IsKeptOnBlur", () => {
+    render(<Host />);
+    const input = screen.getByLabelText(label);
+
+    fireEvent.change(input, { target: { value: "1370.05.12" } });
+    fireEvent.blur(input);
+
+    expect(input).toHaveValue("۱۳۷۰/۰۵/۱۲");
+    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
+  });
+
   it("JalaliDateField_Clear_EmptiesTheBoxAndEmitsEmpty", () => {
     render(<Host initial="1991-08-03" />);
 
