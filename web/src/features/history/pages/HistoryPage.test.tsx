@@ -4,6 +4,8 @@ import { planLabel } from "@/features/subscriptions/planLabel";
 import { formatMoney, gymToday } from "@/lib/format";
 import {
   autoClosedVisit,
+  cafeSale,
+  cancelledSingleVisitSale,
   cancelledVisit,
   closedVisit,
   guestCafePayment,
@@ -12,8 +14,10 @@ import {
   liveCardio,
   planPayment,
   planRefund,
+  planSale,
   settledCafePayment,
   settledVisitPayment,
+  shopSale,
   voidedCardio,
   walkInCafePayment,
 } from "@/test/history";
@@ -29,6 +33,7 @@ function handlers(user = owner) {
     "GET /api/attendance": () => historyPage([closedVisit, autoClosedVisit, cancelledVisit]),
     "GET /api/payments": () => historyPage([planRefund, planPayment, walkInCafePayment]),
     "GET /api/service-charges": () => historyPage([liveCardio, voidedCardio]),
+    "GET /api/sales": () => historyPage([cafeSale, shopSale, planSale, cancelledSingleVisitSale]),
     [`GET /api/members/${reza.id}`]: () => json(200, reza),
     "GET /api/members": () => membersPage([reza]),
   };
@@ -271,7 +276,8 @@ describe("HistoryPage", () => {
   });
 
   it("Tabs_Switching_KeepsTheRangeAndTheMember", async () => {
-    const api = mockApi(handlers());
+    // Staff: the combined section is theirs; the Owner has the sales sections instead.
+    const api = mockApi(handlers(staffUser));
     const { router } = renderApp(`/history?from=2026-09-01&member=${reza.id}`, {
       session: session(),
     });
@@ -287,6 +293,119 @@ describe("HistoryPage", () => {
     expect(query.get("From")).toBe("2026-09-01");
     expect(query.get("To")).toBe(gymToday());
     expect(query.get("MemberId")).toBe(reza.id);
+  });
+
+  /** BUSINESS_RULES.md §12 Sales in the history (task 6.5.30). */
+  it("Sales_OwnerTabs_ListEachKindAndReplaceTheCombinedSection", async () => {
+    mockApi(handlers());
+    renderApp("/history", { session: session() });
+
+    const tablist = await screen.findByRole("tablist", { name: "بخش‌های تاریخچه" });
+    await waitFor(() =>
+      expect(
+        within(tablist)
+          .getAllByRole("tab")
+          .map((tab) => tab.textContent),
+      ).toEqual([
+        "ورود و خروج",
+        "پرداخت‌ها",
+        "همهٔ فروش‌ها",
+        "فروش پلن",
+        "هوازی",
+        "فروشگاه",
+        "آنالیز",
+        "بوفه",
+      ]),
+    );
+  });
+
+  it("Sales_Staff_KeepTheirThreeSectionsAndNeverAskForSales", async () => {
+    const api = mockApi(handlers(staffUser));
+    renderApp("/history?tab=sales", { session: session() });
+
+    await screen.findByText("خودکار");
+    const tablist = screen.getByRole("tablist", { name: "بخش‌های تاریخچه" });
+    expect(
+      within(tablist)
+        .getAllByRole("tab")
+        .map((tab) => tab.textContent),
+    ).toEqual(["ورود و خروج", "پرداخت‌ها", "هوازی، فروشگاه و آنالیز"]);
+    expect(screen.getByRole("tab", { name: "ورود و خروج" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(api.requestsTo("GET", "/api/sales")).toHaveLength(0);
+  });
+
+  it("Sales_AllSales_ShowsEveryKindWithWhatItSoldAndMarksTheCancelled", async () => {
+    const api = mockApi(handlers());
+    renderApp("/history?tab=sales", { session: session() });
+
+    await screen.findByText("پلن ۱۲ جلسه - ۳۰ روزه");
+    expect(queryOf(api.requestsTo("GET", "/api/sales")[0]).has("Source")).toBe(false);
+    expect(queryOf(api.requestsTo("GET", "/api/sales")[0]).has("Paid")).toBe(false);
+
+    const plan = rowWith("پلن ۱۲ جلسه - ۳۰ روزه");
+    expect(within(plan).getByText("پرداخت جزئی")).toBeInTheDocument();
+    expect(within(plan).getByText(formatMoney(1200000))).toBeInTheDocument();
+
+    expect(within(rowWith("فروشگاه: دستکش × ۲")).getByText("سارا رضایی")).toBeInTheDocument();
+
+    const cafe = rowWith("بوفه: آب معدنی × ۲، کیک");
+    expect(within(cafe).getByText("مشتری آزاد")).toBeInTheDocument();
+    expect(within(cafe).getByText("پرداخت‌شده")).toBeInTheDocument();
+
+    const cancelled = rowWith("پلن تک‌جلسه‌ای");
+    expect(within(cancelled).getByText("لغو شده")).toBeInTheDocument();
+    expect(within(cancelled).getByText("اشتباه در ثبت")).toBeInTheDocument();
+    expect(within(cancelled).queryByText("پرداخت‌نشده")).not.toBeInTheDocument();
+  });
+
+  it("Sales_EachTab_AsksForItsOwnKind", async () => {
+    const api = mockApi(handlers());
+    renderApp("/history?tab=sales", { session: session() });
+    await screen.findByText("پلن ۱۲ جلسه - ۳۰ روزه");
+
+    const expected: [string, string][] = [
+      ["فروش پلن", "Subscription"],
+      ["هوازی", "Cardio"],
+      ["فروشگاه", "Miscellaneous"],
+      ["آنالیز", "Analysis"],
+      ["بوفه", "CafeOrder"],
+    ];
+    for (const [label, source] of expected) {
+      fireEvent.click(screen.getByRole("tab", { name: label }));
+      await waitFor(() =>
+        expect(queryOf(api.requestsTo("GET", "/api/sales").at(-1)).get("Source")).toBe(source),
+      );
+    }
+  });
+
+  it("Sales_PaidButton_PutsItInTheUrlAndAsksAgain", async () => {
+    const api = mockApi(handlers());
+    const { router } = renderApp("/history?tab=sales-plans", { session: session() });
+    await screen.findByText("پلن ۱۲ جلسه - ۳۰ روزه");
+
+    const group = screen.getByRole("group", { name: "وضعیت پرداخت" });
+    expect(within(group).getByRole("button", { name: "همه" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    fireEvent.click(within(group).getByRole("button", { name: "پرداخت نشده" }));
+
+    await waitFor(() => expect(router.state.location.search).toBe("?tab=sales-plans&paid=Unpaid"));
+    await waitFor(() => {
+      const query = queryOf(api.requestsTo("GET", "/api/sales").at(-1));
+      expect(query.get("Paid")).toBe("Unpaid");
+      expect(query.get("Source")).toBe("Subscription");
+    });
+    expect(within(group).getByRole("button", { name: "پرداخت نشده" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    fireEvent.click(within(group).getByRole("button", { name: "همه" }));
+    await waitFor(() => expect(router.state.location.search).toBe("?tab=sales-plans"));
   });
 
   it("MemberFilter_PickingAMember_PutsItInTheUrlAndAsksForTheirRows", async () => {

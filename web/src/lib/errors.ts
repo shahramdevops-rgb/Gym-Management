@@ -149,6 +149,7 @@ export const errorMessages: Record<string, string> = {
   "Payments.HistoryTooFarBack": "کارمندان فقط پرداخت‌های امروز و ۳ روز قبل از آن را می‌بینند.",
   "Payments.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
   "Payments.InvalidSource": "بابت پرداخت معتبر نیست.",
+  "Payments.InvalidPaidFilter": "فیلتر پرداخت معتبر نیست.",
 
   // Settling several items at once (تسویه یکجا)
   "Settlements.NoItems": "دست‌کم یک مورد را برای تسویه انتخاب کنید.",

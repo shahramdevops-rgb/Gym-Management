@@ -1590,6 +1590,37 @@ with ▲/▼ for the quantity. BUSINESS_RULES.md §7 *Sale at the desk*.
 Closed 2026-10-04: 1454 backend tests (459 domain, 995 integration) and 760 frontend tests green,
 production build clean, zero warnings. Not released yet; no migration.
 
+### 6.5.30 Sales in the history (فروش‌ها در تاریخچه)
+Asked by the developer on 1405/07/12 (2026-10-04): make the history page more useful for the
+Owner. Each kind of sale on its own (هوازی، فروشگاه، آنالیز، plans single-session or long-term), all
+of them together, and one button to split paid from unpaid. Rows only: the income section the
+Owner will get later is Phase 9. BUSINESS_RULES.md §12 *Sales in the history* and a §1 row.
+
+Decided with the developer, same day: cafe orders included, with their own section; a partly paid
+sale is «پرداخت نشده»; Owner only; no totals.
+- [x] BUSINESS_RULES.md §12 *Sales in the history* and the §1 *Permissions* row, written first
+- [x] API (`Application/History/ListSales/`): `GET /api/sales?from&to&memberId&source&paid&page`,
+      Owner policy. `SaleSource` (`Subscription`, `Cardio`, `Miscellaneous`, `Analysis`,
+      `CafeOrder`) and `SalePaidFilter` (`Paid`, `Unpaid`). One `UNION ALL` of five branches
+      (plans, the three charge kinds, cafe orders), each with its net paid as a correlated sum, so
+      the paid filter, the count and the paging all run in the database. What each row says is read
+      afterwards for the page only. A plan by its `CreatedAt`, a charge by `ChargedOn`, a cafe order
+      by `OrderedOn`; cancelled and voided rows only when no paid filter is chosen
+- [x] Migration `AddSubscriptionCreatedAtIndex`: one index, no row touched
+- [x] Web: the Owner's tabs ورود و خروج، پرداخت‌ها، همهٔ فروش‌ها، فروش پلن، هوازی، فروشگاه، آنالیز،
+      بوفه (the combined «هوازی، فروشگاه و آنالیز» stays for Staff only); «وضعیت پرداخت» همه /
+      پرداخت شده / پرداخت نشده in the URL (`paid`); `SalesLogTable` with the plan, the shop item ×
+      quantity or the cafe order's lines, payment status, who recorded it, and cancelled/voided
+      marks with the reason
+- [x] Tests: integration (all five kinds in one list, each source, paid/unpaid with partial, free
+      and cancelled plans, a voided charge in neither, each kind's own day, member, guest cafe
+      order, Staff 403, bad filters 400, 401); frontend (both roles' tabs, Staff never asks, every
+      row type, each tab's source, the paid button in the URL and the request)
+
+Closed 2026-10-04: 1466 backend tests (459 domain, 1007 integration) and 765 frontend tests green,
+lint and production build clean, zero warnings. Not released yet: the migration adds one index and
+touches no row.
+
 ---
 
 ## Phase 7 — Cafe / POS

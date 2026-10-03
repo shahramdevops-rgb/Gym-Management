@@ -9,6 +9,7 @@ using Gym.Application.Common;
 using Gym.Application.Common.Paging;
 using Gym.Application.History.ListAttendance;
 using Gym.Application.History.ListPayments;
+using Gym.Application.History.ListSales;
 using Gym.Application.History.ListServiceCharges;
 using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.ServiceCharges;
@@ -24,8 +25,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gym.Api.IntegrationTests.History;
 
 /// <summary>
-/// The gym's history: <c>GET /api/attendance</c>, <c>/api/payments</c> and
-/// <c>/api/service-charges</c> (BUSINESS_RULES.md §12 <i>History</i>, roadmap 6.5.25).
+/// The gym's history: <c>GET /api/attendance</c>, <c>/api/payments</c>,
+/// <c>/api/service-charges</c> (BUSINESS_RULES.md §12 <i>History</i>, roadmap 6.5.25) and the
+/// Owner's <c>/api/sales</c> (§12 <i>Sales in the history</i>, roadmap 6.5.30).
 /// </summary>
 /// <remarks>
 /// The API stamps everything with the real clock, so a test that needs a row on another day moves
@@ -460,11 +462,214 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
     {
         var client = Fixture.CreateClient();
 
-        foreach (var path in new[] { "/api/attendance", "/api/payments", "/api/service-charges" })
+        foreach (var path in new[] { "/api/attendance", "/api/payments", "/api/service-charges", "/api/sales" })
         {
             using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
             response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         }
+    }
+
+    // ---- Sales ----
+
+    [Fact]
+    public async Task ListSales_AllFiveKinds_NewestFirstWithWhatEachSoldAndWhoRecordedIt()
+    {
+        var (owner, token) = await OwnerClientAsync();
+        var member = await AddMemberAsync("علی رضایی");
+        var subscription = await AssignOkAsync(owner, token, member.Id);
+        var visit = await TestLockers.CheckInOkAsync(owner, token, member.Id);
+        var cardio = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
+        var shop = await RecordShopOkAsync(owner, token, visit.Id, "دستکش", quantity: 2, unitPrice: 300_000m);
+        var analysis = await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 200_000m);
+        var productId = await ProductAsync(owner, token, 30_000m);
+        var walkIn = await OrderAsync(owner, token, productId, quantity: 2, memberId: null, attendanceId: null, payWith: 60_000m);
+
+        var page = await SalesOkAsync(owner, token, TodayRange());
+
+        page.TotalCount.ShouldBe(5);
+        page.Items.Select(item => item.Id).ShouldBe([walkIn.Id, analysis.Id, shop.Id, cardio.Id, subscription.Id]);
+        page.Items.Select(item => item.Source).ShouldBe(
+            [SaleSource.CafeOrder, SaleSource.Analysis, SaleSource.Miscellaneous, SaleSource.Cardio, SaleSource.Subscription]);
+
+        var cafe = page.Items[0];
+        cafe.MemberId.ShouldBeNull();
+        cafe.GuestName.ShouldBeNull();
+        cafe.CafeItems.ShouldNotBeNull().ShouldHaveSingleItem().ShouldBe(new HistorySaleCafeItem("آب معدنی", 2));
+        cafe.Amount.ShouldBe(60_000m);
+        cafe.PaymentStatus.ShouldBe(PaymentStatus.Paid);
+        cafe.RecordedByFullName.ShouldBe(OwnerName);
+
+        var shopRow = page.Items[2];
+        shopRow.Description.ShouldBe("دستکش");
+        shopRow.Quantity.ShouldBe(2);
+        shopRow.Amount.ShouldBe(600_000m);
+        shopRow.MemberFullName.ShouldBe("علی رضایی");
+        shopRow.PaymentStatus.ShouldBe(PaymentStatus.Unpaid);
+
+        page.Items[3].RecordedByFullName.ShouldBe(OwnerName);
+
+        // Who sold a plan is not shown (§4).
+        var plan = page.Items[4];
+        plan.Plan.ShouldBe(new PlanSummary(30, 10, false));
+        plan.MemberId.ShouldBe(member.Id);
+        plan.Amount.ShouldBe(900_000m);
+        plan.RecordedByFullName.ShouldBeNull();
+        plan.UndoneAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ListSales_BySource_ReturnsOnlyThatKindAndPlansOfBothSorts()
+    {
+        var (owner, token) = await OwnerClientAsync();
+        var member = await AddMemberAsync("علی رضایی");
+        var visitor = await AddMemberAsync("مریم کاظمی");
+        var membership = await AssignOkAsync(owner, token, member.Id);
+        await TestPlans.SetPricesAsync(Fixture, singleVisitPrice: 150_000m);
+        var singleVisit = await SellSingleVisitOkAsync(owner, token, visitor.Id);
+        var visit = await TestLockers.CheckInOkAsync(owner, token, member.Id);
+        var cardio = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
+        var shop = await RecordShopOkAsync(owner, token, visit.Id, "دستکش", quantity: 1, unitPrice: 300_000m);
+        var analysis = await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 200_000m);
+        var productId = await ProductAsync(owner, token, 30_000m);
+        var order = await OrderAsync(owner, token, productId, quantity: 1, memberId: member.Id, attendanceId: null, payWith: null);
+
+        var plans = await SalesOkAsync(owner, token, TodayRange() + "&source=Subscription");
+
+        plans.Items.Select(item => item.Id).ShouldBe([singleVisit.Id, membership.Id]);
+        plans.Items[0].Plan.ShouldBe(new PlanSummary(1, 1, true));
+        plans.Items[1].Plan.ShouldBe(new PlanSummary(30, 10, false));
+        (await SalesOkAsync(owner, token, TodayRange() + "&source=Cardio")).Items.ShouldHaveSingleItem().Id.ShouldBe(cardio.Id);
+        (await SalesOkAsync(owner, token, TodayRange() + "&source=Miscellaneous")).Items.ShouldHaveSingleItem().Id.ShouldBe(shop.Id);
+        (await SalesOkAsync(owner, token, TodayRange() + "&source=Analysis")).Items.ShouldHaveSingleItem().Id.ShouldBe(analysis.Id);
+        (await SalesOkAsync(owner, token, TodayRange() + "&source=CafeOrder")).Items.ShouldHaveSingleItem().Id.ShouldBe(order.Id);
+    }
+
+    [Fact]
+    public async Task ListSales_PaidFilter_SplitsFullyPaidFromStillOwedAndLeavesUndoneOut()
+    {
+        var (owner, token) = await OwnerClientAsync();
+        var paidInFull = await AssignOkAsync(owner, token, (await AddMemberAsync("علی رضایی")).Id);
+        await PayOkAsync(owner, token, $"/api/subscriptions/{paidInFull.Id}/payments", 900_000m, "Card");
+        var partlyPaid = await AssignOkAsync(owner, token, (await AddMemberAsync("مریم کاظمی")).Id);
+        await PayOkAsync(owner, token, $"/api/subscriptions/{partlyPaid.Id}/payments", 100_000m, "Cash");
+        var notPaid = await AssignOkAsync(owner, token, (await AddMemberAsync("رضا کریمی")).Id);
+        var cancelled = await AssignOkAsync(owner, token, (await AddMemberAsync("حسن نوری")).Id);
+        await PostOkAsync(owner, token, $"/api/subscriptions/{cancelled.Id}/cancel", new { reason = "انصراف" });
+        var free = await AssignOkAsync(owner, token, (await AddMemberAsync("زهرا امینی")).Id, price: 0m);
+
+        var paid = await SalesOkAsync(owner, token, TodayRange() + "&paid=Paid");
+        var unpaid = await SalesOkAsync(owner, token, TodayRange() + "&paid=Unpaid");
+        var everything = await SalesOkAsync(owner, token, TodayRange());
+
+        // A free plan owes nothing, so it is paid (§4); a partial payment still owes (§12).
+        paid.Items.Select(item => item.Id).ShouldBe([free.Id, paidInFull.Id]);
+        paid.Items.ShouldAllBe(item => item.PaymentStatus == PaymentStatus.Paid);
+        unpaid.Items.Select(item => item.Id).ShouldBe([notPaid.Id, partlyPaid.Id]);
+        unpaid.Items[1].NetPaid.ShouldBe(100_000m);
+        unpaid.Items[1].PaymentStatus.ShouldBe(PaymentStatus.Partial);
+
+        everything.TotalCount.ShouldBe(5);
+        var cancelledRow = everything.Items.Single(item => item.Id == cancelled.Id);
+        cancelledRow.UndoneAt.ShouldNotBeNull();
+        cancelledRow.UndoReason.ShouldBe("انصراف");
+    }
+
+    [Fact]
+    public async Task ListSales_PaidFilter_VoidedChargeIsInNeither()
+    {
+        var (owner, token) = await OwnerClientAsync();
+        var member = await MemberWithPlanAsync(owner, token, "علی رضایی");
+        var visit = await TestLockers.CheckInOkAsync(owner, token, member.Id);
+        var owed = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
+        await PostOkAsync(owner, token, $"/api/service-charges/{owed.Id}/void", new { reason = "مبلغ اشتباه" });
+        var corrected = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 40_000m);
+
+        var unpaid = await SalesOkAsync(owner, token, TodayRange() + "&source=Cardio&paid=Unpaid");
+        var paid = await SalesOkAsync(owner, token, TodayRange() + "&source=Cardio&paid=Paid");
+        var everything = await SalesOkAsync(owner, token, TodayRange() + "&source=Cardio");
+
+        unpaid.Items.ShouldHaveSingleItem().Id.ShouldBe(corrected.Id);
+        paid.TotalCount.ShouldBe(0);
+        var voided = everything.Items.Single(item => item.Id == owed.Id);
+        voided.UndoneAt.ShouldNotBeNull();
+        voided.UndoReason.ShouldBe("مبلغ اشتباه");
+    }
+
+    [Fact]
+    public async Task ListSales_DateRange_UsesEachKindsOwnDay()
+    {
+        var (owner, token) = await OwnerClientAsync();
+        var member = await AddMemberAsync("علی رضایی");
+        var before = await AssignOkAsync(owner, token, member.Id);
+        var inside = await AssignOkAsync(owner, token, member.Id);
+        var visit = await TestLockers.CheckInOkAsync(owner, token, member.Id);
+        var charge = await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 200_000m);
+        var productId = await ProductAsync(owner, token, 30_000m);
+        var order = await OrderAsync(owner, token, productId, quantity: 1, memberId: member.Id, attendanceId: null, payWith: null);
+        // 20:20 UTC on 9/19 is 23:50 on 9/19 in Tehran; 20:40 UTC is 00:10 on 9/20.
+        await MoveSubscriptionSaleAsync(before.Id, new DateTimeOffset(2026, 9, 19, 20, 20, 0, TimeSpan.Zero));
+        await MoveSubscriptionSaleAsync(inside.Id, new DateTimeOffset(2026, 9, 19, 20, 40, 0, TimeSpan.Zero));
+        await MoveChargeAsync(charge.Id, new DateOnly(2026, 9, 20));
+        await MoveOrderAsync(order.Id, new DateOnly(2026, 9, 20));
+
+        var page = await SalesOkAsync(owner, token, "from=2026-09-20&to=2026-09-20");
+
+        page.Items.Select(item => item.Id).ShouldBe([order.Id, charge.Id, inside.Id], ignoreOrder: true);
+    }
+
+    [Fact]
+    public async Task ListSales_ByMember_LeavesOutOtherMembersAndWalkIns()
+    {
+        var (owner, token) = await OwnerClientAsync();
+        var member = await AddMemberAsync("علی رضایی");
+        var mine = await AssignOkAsync(owner, token, member.Id);
+        await AssignOkAsync(owner, token, (await AddMemberAsync("مریم کاظمی")).Id);
+        var productId = await ProductAsync(owner, token, 30_000m);
+        await OrderAsync(owner, token, productId, quantity: 1, memberId: null, attendanceId: null, payWith: 30_000m);
+
+        var page = await SalesOkAsync(owner, token, TodayRange() + $"&memberId={member.Id}");
+
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(mine.Id);
+    }
+
+    [Fact]
+    public async Task ListSales_GuestsCafeOrder_CarriesTheGuestsNameAndNoMember()
+    {
+        var (owner, token) = await OwnerClientAsync();
+        var guest = await TestGuests.CheckInOkAsync(owner, token, guestName: "مریم احمدی");
+        var productId = await ProductAsync(owner, token, 30_000m);
+        var order = await OrderAsync(owner, token, productId, quantity: 1, memberId: null, attendanceId: guest.Id, payWith: null);
+
+        var row = (await SalesOkAsync(owner, token, TodayRange())).Items.ShouldHaveSingleItem();
+
+        row.Id.ShouldBe(order.Id);
+        row.MemberId.ShouldBeNull();
+        row.GuestName.ShouldBe("مریم احمدی");
+        row.PaymentStatus.ShouldBe(PaymentStatus.Unpaid);
+    }
+
+    [Fact]
+    public async Task ListSales_Staff_Returns403()
+    {
+        // The sales sections are the Owner's alone (§1, §12 Sales in the history).
+        var (staff, token) = await StaffClientAsync();
+
+        using var response = await GetAsync(staff, token, $"/api/sales?{TodayRange()}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Theory]
+    [InlineData("paid=Partial")]
+    [InlineData("source=Expense")]
+    [InlineData("from=2026-09-12&to=2026-09-10")]
+    public async Task ListSales_InvalidFilter_Returns400(string query)
+    {
+        var (owner, token) = await OwnerClientAsync();
+
+        using var response = await GetAsync(owner, token, $"/api/sales?{query}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     // ---- Helpers ----
@@ -522,9 +727,10 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         return member;
     }
 
-    private async Task<SubscriptionResponse> AssignOkAsync(HttpClient client, string token, Guid memberId)
+    private async Task<SubscriptionResponse> AssignOkAsync(
+        HttpClient client, string token, Guid memberId, decimal price = 900_000m)
     {
-        var plan = await TestPlans.AddAsync(Fixture);
+        var plan = await TestPlans.AddAsync(Fixture, price: price);
 
         using var response = await SendAsync(client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions", plan.Body);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -541,6 +747,81 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
 
         return (await response.Content.ReadFromJsonAsync<ServiceChargeResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
     }
+
+    private static async Task<ServiceChargeResponse> RecordChargeOkAsync(
+        HttpClient client, string token, Guid attendanceId, string kind, decimal amount)
+    {
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/attendance/{attendanceId}/service-charges", new { kind, amount });
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return (await response.Content.ReadFromJsonAsync<ServiceChargeResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    /// <summary>One فروشگاه line, left owed: a sale takes no money when it is recorded (§7).</summary>
+    private static async Task<ServiceChargeResponse> RecordShopOkAsync(
+        HttpClient client, string token, Guid attendanceId, string description, int quantity, decimal unitPrice)
+    {
+        using var response = await SendAsync(
+            client,
+            token,
+            HttpMethod.Post,
+            $"/api/attendance/{attendanceId}/service-charges/shop",
+            new { items = new[] { new { description, quantity, unitPrice } } });
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        return (await response.Content.ReadFromJsonAsync<List<ServiceChargeResponse>>(TestContext.Current.CancellationToken))
+            .ShouldNotBeNull().ShouldHaveSingleItem();
+    }
+
+    private static async Task<SubscriptionResponse> SellSingleVisitOkAsync(HttpClient client, string token, Guid memberId)
+    {
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/members/{memberId}/subscriptions/single-visit", body: null);
+        response.IsSuccessStatusCode.ShouldBeTrue($"Single visit answered {(int)response.StatusCode}.");
+
+        return (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    /// <summary>A product named «آب معدنی» in a category of its own, for the orders of one test.</summary>
+    private static async Task<Guid> ProductAsync(HttpClient client, string token, decimal price)
+    {
+        using var category = await SendAsync(client, token, HttpMethod.Post, "/api/cafe/categories", new { name = "خوراکی" });
+        category.EnsureSuccessStatusCode();
+        var categoryId = (await category.Content.ReadFromJsonAsync<ProductCategoryResponse>(
+            TestContext.Current.CancellationToken)).ShouldNotBeNull().Id;
+
+        using var product = await SendAsync(
+            client, token, HttpMethod.Post, "/api/cafe/products", new { name = "آب معدنی", categoryId, price });
+        product.EnsureSuccessStatusCode();
+
+        return (await product.Content.ReadFromJsonAsync<ProductResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull().Id;
+    }
+
+    /// <summary>A cafe order of one product, paid in cash when <paramref name="payWith"/> is given, otherwise owed.</summary>
+    private static async Task<CafeOrderResponse> OrderAsync(
+        HttpClient client, string token, Guid productId, int quantity, Guid? memberId, Guid? attendanceId, decimal? payWith)
+    {
+        using var order = await SendAsync(
+            client,
+            token,
+            HttpMethod.Post,
+            "/api/cafe/orders",
+            new
+            {
+                memberId,
+                attendanceId,
+                items = new[] { new { productId, quantity } },
+                payment = payWith is { } amount ? new { amount, method = "Cash", referenceNumber = (string?)null } : null,
+            });
+        order.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return (await order.Content.ReadFromJsonAsync<CafeOrderResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private static async Task<PagedResponse<HistorySaleResponse>> SalesOkAsync(
+        HttpClient client, string token, string query) =>
+        await GetOkAsync<PagedResponse<HistorySaleResponse>>(client, token, $"/api/sales?{query}");
 
     private static async Task<Application.Payments.PaymentResponse> PayOkAsync(
         HttpClient client, string token, string path, decimal amount, string method)
@@ -662,6 +943,22 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         await using var scope = Fixture.CreateScope();
         await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlAsync(
             $"UPDATE service_charges SET charged_on = {chargedOn} WHERE id = {chargeId}",
+            TestContext.Current.CancellationToken);
+    }
+
+    private async Task MoveSubscriptionSaleAsync(Guid subscriptionId, DateTimeOffset createdAt)
+    {
+        await using var scope = Fixture.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlAsync(
+            $"UPDATE subscriptions SET created_at = {createdAt} WHERE id = {subscriptionId}",
+            TestContext.Current.CancellationToken);
+    }
+
+    private async Task MoveOrderAsync(Guid orderId, DateOnly orderedOn)
+    {
+        await using var scope = Fixture.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlAsync(
+            $"UPDATE cafe_orders SET ordered_on = {orderedOn} WHERE id = {orderId}",
             TestContext.Current.CancellationToken);
     }
 }

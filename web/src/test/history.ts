@@ -1,6 +1,7 @@
 import type {
   HistoryAttendance,
   HistoryPayment,
+  HistorySale,
   HistoryServiceCharge,
 } from "@/features/history/api";
 
@@ -159,4 +160,73 @@ export const settledCafePayment: HistoryPayment = {
   targetId: "0199a000-0000-7000-8000-0000000000f6",
   subscriptionPlan: null,
   amount: 60000,
+};
+
+/** A membership sold and partly paid (BUSINESS_RULES.md §12 Sales in the history). */
+export const planSale: HistorySale = {
+  source: "Subscription",
+  id: "0199a000-0000-7000-8000-0000000000b1",
+  memberId: reza.id,
+  memberFullName: reza.fullName,
+  guestName: null,
+  plan: { durationDays: 30, totalSessions: 12, isSingleSession: false },
+  description: null,
+  quantity: null,
+  cafeItems: null,
+  amount: 1200000,
+  soldAt: "2026-10-02T06:00:00Z",
+  recordedByFullName: null,
+  undoneAt: null,
+  undoReason: null,
+  netPaid: 200000,
+  paymentStatus: "Partial",
+};
+
+/** A single visit that was cancelled before it was used. */
+export const cancelledSingleVisitSale: HistorySale = {
+  ...planSale,
+  id: "0199a000-0000-7000-8000-0000000000b2",
+  memberId: ali.id,
+  memberFullName: ali.fullName,
+  plan: { durationDays: 1, totalSessions: 1, isSingleSession: true },
+  amount: 150000,
+  soldAt: "2026-10-02T05:00:00Z",
+  undoneAt: "2026-10-02T05:10:00Z",
+  undoReason: "اشتباه در ثبت",
+  netPaid: 0,
+  paymentStatus: "Unpaid",
+};
+
+/** Two pairs of gloves from the فروشگاه, owed. */
+export const shopSale: HistorySale = {
+  ...planSale,
+  source: "Miscellaneous",
+  id: "0199a000-0000-7000-8000-0000000000b3",
+  plan: null,
+  description: "دستکش",
+  quantity: 2,
+  amount: 600000,
+  soldAt: "2026-10-02T07:00:00Z",
+  recordedByFullName: "سارا رضایی",
+  netPaid: 0,
+  paymentStatus: "Unpaid",
+};
+
+/** A walk-in's cafe order, paid at the till. */
+export const cafeSale: HistorySale = {
+  ...planSale,
+  source: "CafeOrder",
+  id: "0199a000-0000-7000-8000-0000000000b4",
+  memberId: null,
+  memberFullName: null,
+  plan: null,
+  cafeItems: [
+    { productName: "آب معدنی", quantity: 2 },
+    { productName: "کیک", quantity: 1 },
+  ],
+  amount: 90000,
+  soldAt: "2026-10-02T08:00:00Z",
+  recordedByFullName: "سارا رضایی",
+  netPaid: 90000,
+  paymentStatus: "Paid",
 };
