@@ -68,6 +68,26 @@ public static class ServiceChargeErrors
         "ServiceCharges.VoidReasonTooLong",
         "The void reason is too long.");
 
+    public static readonly Error DescriptionRequired = Error.Validation(
+        "ServiceCharges.DescriptionRequired",
+        "The name of what was sold is required.");
+
+    public static readonly Error DescriptionTooLong = Error.Validation(
+        "ServiceCharges.DescriptionTooLong",
+        $"The name of what was sold can be at most {ServiceCharge.DescriptionMaxLength} characters.");
+
+    public static readonly Error QuantityInvalid = Error.Validation(
+        "ServiceCharges.QuantityInvalid",
+        $"Quantity must be between 1 and {ServiceCharge.MaxQuantity}.");
+
+    /// <summary>
+    /// BUSINESS_RULES.md §7 <i>Miscellaneous sale</i>: never edited, voided with a reason and
+    /// entered again, as a cafe order is (§8).
+    /// </summary>
+    public static readonly Error MiscellaneousNotEditable = Error.BusinessRule(
+        "ServiceCharges.MiscellaneousNotEditable",
+        "A miscellaneous sale cannot be changed. Void it and enter it again.");
+
     /// <summary>The <c>xmin</c> backstop: two people changed the same charge at the same moment.</summary>
     public static readonly Error ChangedConcurrently = Error.Conflict(
         "ServiceCharges.ChangedConcurrently",

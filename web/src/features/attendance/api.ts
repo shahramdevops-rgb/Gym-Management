@@ -303,11 +303,12 @@ export function useMoveLocker() {
   });
 }
 
-/** What the desk ticked in the cancel box: the visit's هوازی, and each cafe order on its own. */
+/** What the desk ticked in the cancel box: the visit's هوازی, and each cafe order and miscellaneous sale on its own. */
 export interface CancelCheckInChoice {
   attendanceId: string;
   voidCardio: boolean;
   cafeOrderIds: string[];
+  miscellaneousSaleIds: string[];
 }
 
 /**
@@ -319,10 +320,15 @@ export function useCancelCheckIn() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ attendanceId, voidCardio, cafeOrderIds }: CancelCheckInChoice) => {
+    mutationFn: async ({
+      attendanceId,
+      voidCardio,
+      cafeOrderIds,
+      miscellaneousSaleIds,
+    }: CancelCheckInChoice) => {
       const { data, error } = await api.POST("/api/attendance/{id}/cancel", {
         params: { path: { id: attendanceId } },
-        body: { voidCardio, cafeOrderIds },
+        body: { voidCardio, cafeOrderIds, miscellaneousSaleIds },
       });
       if (error !== undefined) {
         throw error;

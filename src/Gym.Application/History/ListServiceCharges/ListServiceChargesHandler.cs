@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.History.ListServiceCharges;
 
 /// <summary>
-/// Every هوازی charge in the gym, newest first, with who recorded it and who voided it
+/// Every هوازی charge and miscellaneous sale in the gym, newest first, with who recorded it and who voided it
 /// (BUSINESS_RULES.md §12 <i>History</i>, roadmap 6.5.25). No date limit for either role. Voided
 /// charges are listed and marked: the front desk's own lists leave them out, but a history that
 /// hid them could not explain a refund.
@@ -76,6 +76,9 @@ public sealed class ListServiceChargesHandler(IAppDbContext db, IUserNames users
                     memberNames.GetValueOrDefault(charge.MemberId) ?? string.Empty,
                     charge.AttendanceId,
                     charge.Kind,
+                    charge.Description,
+                    charge.Quantity,
+                    charge.UnitPrice,
                     charge.Amount,
                     charge.ChargedOn,
                     charge.CreatedAt,

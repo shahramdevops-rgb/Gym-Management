@@ -43,6 +43,7 @@ public sealed class GetMemberDebtHandler(IAppDbContext db)
                 item.Id,
                 item.Plan,
                 item.ServiceKind,
+                item.Sale,
                 item.StartDate,
                 item.EndDate,
                 item.Price,

@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import type { PaymentMethod } from "@/features/payments/api";
+import type { ServiceChargeKind } from "@/features/serviceCharges/api";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
 
@@ -21,6 +22,42 @@ export const paymentSourceLabels: Record<PaymentSource, string> = {
   CafeOrder: "بوفه",
 };
 
+/**
+ * What the "بابت" filter offers. هوازی and متفرقه are both service charges to the API, but two
+ * sources on screen (BUSINESS_RULES.md §7 *Miscellaneous sale*), so the filter names them apart and
+ * `paymentSourceQuery` turns the choice back into the API's two parameters.
+ */
+export type PaymentSourceFilter = "Subscription" | "Cardio" | "Miscellaneous" | "CafeOrder";
+
+export const paymentSourceFilters: PaymentSourceFilter[] = [
+  "Subscription",
+  "Cardio",
+  "Miscellaneous",
+  "CafeOrder",
+];
+
+export const paymentSourceFilterLabels: Record<PaymentSourceFilter, string> = {
+  Subscription: "اشتراک",
+  Cardio: "هوازی",
+  Miscellaneous: "متفرقه",
+  CafeOrder: "بوفه",
+};
+
+export function paymentSourceQuery(source: PaymentSourceFilter | undefined): {
+  Source?: PaymentSource;
+  ServiceKind?: ServiceChargeKind;
+} {
+  switch (source) {
+    case undefined:
+      return {};
+    case "Cardio":
+    case "Miscellaneous":
+      return { Source: "ServiceCharge", ServiceKind: source };
+    default:
+      return { Source: source };
+  }
+}
+
 /** What every section filters by. A date left out is no bound on that side. */
 export interface HistoryFilter {
   from?: string;
@@ -31,7 +68,7 @@ export interface HistoryFilter {
 
 export interface PaymentHistoryFilter extends HistoryFilter {
   method?: PaymentMethod;
-  source?: PaymentSource;
+  source?: PaymentSourceFilter;
 }
 
 /**
@@ -97,7 +134,7 @@ export function usePaymentHistory(filter: PaymentHistoryFilter, { enabled = true
             To: filter.to,
             MemberId: filter.memberId,
             Method: filter.method,
-            Source: filter.source,
+            ...paymentSourceQuery(filter.source),
             Page: filter.page,
             PageSize: historyPageSize,
           },
@@ -111,7 +148,7 @@ export function usePaymentHistory(filter: PaymentHistoryFilter, { enabled = true
   });
 }
 
-/** Every هوازی charge, voided ones included, newest first. */
+/** Every هوازی charge and miscellaneous sale, voided ones included, newest first. */
 export function useServiceChargeHistory(filter: HistoryFilter, { enabled = true } = {}) {
   return useQuery({
     queryKey: historyKeys.serviceCharges(filter),

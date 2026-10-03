@@ -261,7 +261,7 @@ describe("HistoryPage", () => {
     });
 
     await screen.findByText("خودکار");
-    fireEvent.click(screen.getByRole("tab", { name: "هوازی" }));
+    fireEvent.click(screen.getByRole("tab", { name: "هوازی و متفرقه" }));
 
     await waitFor(() =>
       expect(router.state.location.search).toBe(`?tab=cardio&from=2026-09-01&member=${reza.id}`),

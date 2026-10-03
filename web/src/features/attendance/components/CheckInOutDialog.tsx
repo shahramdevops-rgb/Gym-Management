@@ -92,7 +92,10 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
       await cancelCheckIn.mutateAsync({ attendanceId, ...choice });
       setStep({
         kind: "cancelled",
-        purchasesCancelled: choice.voidCardio || choice.cafeOrderIds.length > 0,
+        purchasesCancelled:
+          choice.voidCardio ||
+          choice.cafeOrderIds.length > 0 ||
+          choice.miscellaneousSaleIds.length > 0,
       });
     } catch (problem) {
       setStep({ kind: "failed", reason: errorMessage(problem) });

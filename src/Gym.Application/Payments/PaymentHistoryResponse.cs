@@ -22,6 +22,7 @@ namespace Gym.Application.Payments;
 /// <param name="ServiceKind">
 /// <c>null</c> unless a service charge. The frontend turns it into Persian.
 /// </param>
+/// <param name="ServiceDescription">What a miscellaneous sale sold (§7); <c>null</c> for anything else.</param>
 /// <param name="Settlement">
 /// The «تسویه یکجا» this payment was one row of; <c>null</c> for money taken on its own and for
 /// every refund.
@@ -32,6 +33,7 @@ public sealed record PaymentHistoryResponse(
     Guid TargetId,
     PlanSummary? SubscriptionPlan,
     [property: JsonConverter(typeof(JsonStringEnumConverter<ServiceChargeKind>))] ServiceChargeKind? ServiceKind,
+    string? ServiceDescription,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentKind>))] PaymentKind Kind,
     decimal Amount,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentMethod>))] PaymentMethod Method,

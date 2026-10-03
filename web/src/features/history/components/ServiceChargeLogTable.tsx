@@ -3,12 +3,13 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
-import { emptyValue, formatDateTime, formatMoney } from "@/lib/format";
+import { serviceChargeLabel } from "@/features/serviceCharges/api";
+import { emptyValue, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 
 import type { HistoryServiceCharge } from "../api";
 
 /**
- * Every هوازی charge, newest first, with who recorded it (BUSINESS_RULES.md §12 History). A voided
+ * Every هوازی charge and miscellaneous sale, newest first, with what it was and who recorded it (BUSINESS_RULES.md §12 History). A voided
  * charge stays on the list, marked, with its reason and who voided it: the desk's own boxes leave
  * voided charges out, which is why this is the place to find one.
  */
@@ -20,6 +21,7 @@ export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[]
           <tr className="border-b text-muted-foreground">
             <th className="py-2 text-start font-medium">زمان</th>
             <th className="py-2 text-start font-medium">عضو</th>
+            <th className="py-2 text-start font-medium">بابت</th>
             <th className="py-2 text-start font-medium">مبلغ</th>
             <th className="py-2 text-start font-medium">پرداخت</th>
             <th className="py-2 text-start font-medium">ثبت توسط</th>
@@ -34,6 +36,12 @@ export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[]
                 <Link to={paths.member(item.memberId)} className="font-medium hover:underline">
                   {item.memberFullName}
                 </Link>
+              </td>
+              <td className="py-2">
+                {serviceChargeLabel(item.kind, item.description)}
+                {item.quantity !== null && Number(item.quantity) > 1 && (
+                  <span className="text-muted-foreground"> × {toPersianDigits(item.quantity)}</span>
+                )}
               </td>
               <td className="py-2">{formatMoney(item.amount)}</td>
               <td className="py-2">

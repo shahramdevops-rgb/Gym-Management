@@ -14,7 +14,8 @@ namespace Gym.Application.Attendances.CancelCheckIn;
 /// Cancels an open check-in within the allowed window (BUSINESS_RULES.md §7): restores the
 /// session (a guest's visit has none), frees the locker (occupancy is derived from <c>CheckedOutAt</c>, which
 /// <see cref="Attendance.Cancel"/> also sets), and cancels the purchases the desk ticked —
-/// the هوازی, and each cafe order named. Front desk work, so both roles.
+/// the هوازی, each miscellaneous sale named and each cafe order named. Front desk work, so both
+/// roles.
 /// </summary>
 /// <remarks>
 /// Before roadmap 6.5.8 the هوازی was always voided and the cafe never touched. The Owner made
@@ -85,6 +86,14 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
             await VoidCardioAsync(id, userId, now, cancellationToken);
         }
 
+        var miscVoided = await VoidMiscellaneousSalesAsync(
+            id, command.MiscellaneousSaleIds ?? [], userId, now, cancellationToken);
+        if (miscVoided.IsFailure)
+        {
+            // Nothing is saved: the transaction is disposed without a commit.
+            return Result.Failure<AttendanceResponse>(miscVoided.Error);
+        }
+
         var cafeCancelled = await CancelCafeOrdersAsync(id, cafeOrderIds, userId, now, cancellationToken);
         if (cafeCancelled.IsFailure)
         {
@@ -138,6 +147,48 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
 
             await ServiceChargeRefunder.RefundNetPaidAsync(db, charge, CancelReason, userId, now, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// BUSINESS_RULES.md §7 <i>Miscellaneous sale</i>: each named sale is voided exactly as from
+    /// its own void button, money going back the way it came. Every one must be a standing sale of
+    /// this visit, or none is voided.
+    /// </summary>
+    private async Task<Result> VoidMiscellaneousSalesAsync(
+        Guid attendanceId, IReadOnlyList<Guid> saleIds, Guid userId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        if (saleIds.Count == 0)
+        {
+            return Result.Success();
+        }
+
+        var sales = await db.ServiceCharges
+            .Where(charge => saleIds.Contains(charge.Id)
+                && charge.AttendanceId == attendanceId
+                && charge.Kind == ServiceChargeKind.Miscellaneous
+                && charge.VoidedAt == null)
+            .ToListAsync(cancellationToken);
+
+        // Another visit's sale, a هوازی id, an unknown id, or one voided since the box opened.
+        if (sales.Count != saleIds.Count)
+        {
+            return Result.Failure(AttendanceErrors.MiscellaneousSaleNotOnVisit);
+        }
+
+        foreach (var sale in sales)
+        {
+            var voided = sale.Void(CancelReason, now, userId);
+            if (voided.IsFailure)
+            {
+                // The query excluded voided sales and the reason is a valid constant.
+                throw new InvalidOperationException(
+                    $"Voiding a miscellaneous sale while cancelling a check-in failed: {voided.Error.Code}.");
+            }
+
+            await ServiceChargeRefunder.RefundNetPaidAsync(db, sale, CancelReason, userId, now, cancellationToken);
+        }
+
+        return Result.Success();
     }
 
     /// <summary>

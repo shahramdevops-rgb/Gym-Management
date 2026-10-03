@@ -17,12 +17,30 @@ export type ServiceCharge = components["schemas"]["ServiceChargeResponse"];
 export type ServiceChargeKind = NonNullable<components["schemas"]["ServiceChargeKind"]>;
 
 /**
- * BUSINESS_RULES.md §7 Gym services: today there is exactly one kind. Sauna or massage would be
- * another entry here and in the API's enum, not another screen.
+ * BUSINESS_RULES.md §7 Gym services. Sauna or massage would be another entry here and in the API's
+ * enum, not another screen.
  */
 export const serviceChargeKindLabels: Record<ServiceChargeKind, string> = {
   Cardio: "هوازی",
+  Miscellaneous: "متفرقه",
 };
+
+/**
+ * What a charge is, for the lists that name an item: «هوازی», or «متفرقه: دستکش» for a
+ * miscellaneous sale, whose name the desk typed (§7 *Miscellaneous sale*). `null` kind is a row
+ * that is a service charge of unknown kind, which the API never sends but the type allows.
+ */
+export function serviceChargeLabel(
+  kind: ServiceChargeKind | null,
+  description: string | null | undefined,
+): string {
+  if (kind === null) {
+    return "خدمات";
+  }
+  const label = serviceChargeKindLabels[kind];
+
+  return description === null || description === undefined ? label : `${label}: ${description}`;
+}
 
 /**
  * There is no query hook here. A charge is never fetched on its own: it arrives attached to the
@@ -62,6 +80,31 @@ export function useRecordServiceCharge() {
     }
     return data;
   });
+}
+
+export interface RecordMiscellaneousSaleInput {
+  attendanceId: string;
+  description: string;
+  quantity: number;
+  unitPrice: string;
+  /** How the whole amount was paid there and then, or `null` to leave it on the member's account. */
+  method: PaymentMethod | null;
+}
+
+/** «متفرقه» (BUSINESS_RULES.md §7 *Miscellaneous sale*): the sale and its payment in one request. */
+export function useRecordMiscellaneousSale() {
+  return useServiceChargeMutation(
+    async ({ attendanceId, ...body }: RecordMiscellaneousSaleInput) => {
+      const { data, error } = await api.POST(
+        "/api/attendance/{attendanceId}/service-charges/miscellaneous",
+        { params: { path: { attendanceId } }, body },
+      );
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  );
 }
 
 export interface ChangeServiceChargeAmountInput {

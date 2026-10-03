@@ -724,6 +724,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/attendance/{attendanceId}/service-charges/miscellaneous": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RecordMiscellaneousSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/service-charges/{id}/amount": {
         parameters: {
             query?: never;
@@ -1215,6 +1231,7 @@ export interface components {
         CancelCheckInCommand: {
             voidCardio: null | boolean;
             cafeOrderIds: null | string[];
+            miscellaneousSaleIds: null | string[];
         };
         CancelSubscriptionCommand: {
             reason: string;
@@ -1403,6 +1420,7 @@ export interface components {
             guestName: null | string;
             subscriptionPlan: null | components["schemas"]["PlanSummary"];
             serviceKind: null | components["schemas"]["ServiceChargeKind"];
+            serviceDescription: null | string;
             kind: components["schemas"]["PaymentKind"];
             /** Format: double */
             amount: number | string;
@@ -1424,6 +1442,11 @@ export interface components {
             /** Format: uuid */
             attendanceId: string;
             kind: components["schemas"]["ServiceChargeKind"];
+            description: null | string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            /** Format: double */
+            unitPrice: null | number | string;
             /** Format: double */
             amount: number | string;
             /** Format: date */
@@ -1522,6 +1545,7 @@ export interface components {
             id: string;
             plan: null | components["schemas"]["PlanSummary"];
             serviceKind: null | components["schemas"]["ServiceChargeKind"];
+            sale: null | components["schemas"]["MiscellaneousSaleSummary"];
             /** Format: date */
             startDate: string;
             /** Format: date */
@@ -1562,6 +1586,13 @@ export interface components {
             currentVisit?: null | components["schemas"]["MemberCurrentVisit"];
             /** @default false */
             isFrozen: boolean;
+        };
+        MiscellaneousSaleSummary: {
+            description: string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: double */
+            unitPrice: number | string;
         };
         MoveLockerCommand: {
             /** Format: uuid */
@@ -1701,6 +1732,7 @@ export interface components {
             targetId: string;
             subscriptionPlan: null | components["schemas"]["PlanSummary"];
             serviceKind: null | components["schemas"]["ServiceChargeKind"];
+            serviceDescription: null | string;
             kind: components["schemas"]["PaymentKind"];
             /** Format: double */
             amount: number | string;
@@ -1810,6 +1842,14 @@ export interface components {
             description: string;
             referenceNumber: null | string;
         };
+        RecordMiscellaneousSaleCommand: {
+            description: string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: double */
+            unitPrice: number | string;
+            method: null | components["schemas"]["PaymentMethod"];
+        };
         RecordServiceChargeCommand: {
             kind: components["schemas"]["ServiceChargeKind"];
             /** Format: double */
@@ -1832,7 +1872,7 @@ export interface components {
             temporaryPassword: string;
         };
         /** @enum {unknown} */
-        ServiceChargeKind: "Cardio" | null;
+        ServiceChargeKind: "Cardio" | "Miscellaneous" | null;
         ServiceChargeResponse: {
             /** Format: uuid */
             id: string;
@@ -1841,6 +1881,11 @@ export interface components {
             /** Format: uuid */
             attendanceId: string;
             kind: components["schemas"]["ServiceChargeKind"];
+            description: null | string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            /** Format: double */
+            unitPrice: null | number | string;
             /** Format: double */
             amount: number | string;
             /** Format: date */
@@ -4989,6 +5034,77 @@ export interface operations {
             };
         };
     };
+    RecordMiscellaneousSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attendanceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordMiscellaneousSaleCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceChargeResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ChangeServiceChargeAmount: {
         parameters: {
             query?: never;
@@ -6883,6 +6999,7 @@ export interface operations {
                 MemberId?: string;
                 Method?: components["schemas"]["PaymentMethod"];
                 Source?: components["schemas"]["PaymentTargetKind"];
+                ServiceKind?: components["schemas"]["ServiceChargeKind"];
                 Page?: number | string;
                 PageSize?: number | string;
             };

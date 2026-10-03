@@ -10,7 +10,7 @@ import { addMoney, isPositiveMoney } from "@/lib/money";
 import { useEveryoneInside, type CurrentlyInside } from "../api";
 import { ConfirmButtons } from "./deskParts";
 
-type CardioCharge = CurrentlyInside["serviceCharges"][number];
+type ServiceCharge = CurrentlyInside["serviceCharges"][number];
 type CafeOrder = CurrentlyInside["cafeOrders"][number];
 
 /** One thing the visit bought, as the box lists it. */
@@ -24,6 +24,7 @@ interface Purchase {
 export interface CancelChoice {
   voidCardio: boolean;
   cafeOrderIds: string[];
+  miscellaneousSaleIds: string[];
 }
 
 interface CancelCheckInConfirmProps {
@@ -39,7 +40,7 @@ interface CancelCheckInConfirmProps {
 /**
  * The questions before a check-in is cancelled (BUSINESS_RULES.md §7 *Cancel check-in*, roadmap
  * 6.5.8). A visit that bought nothing is asked once, as before. One that bought something lists
- * its هوازی and each cafe order with its own tick, all unticked: whatever is left unticked stays
+ * its هوازی, each miscellaneous sale and each cafe order with its own tick, all unticked: whatever is left unticked stays
  * on the member's account. When anything is ticked, a second question names it and reminds the
  * desk to hand back what was collected for it.
  *
@@ -63,8 +64,12 @@ export function CancelCheckInConfirm({
 
   const visit = inside.data?.find((row) => row.attendanceId === attendanceId);
   const cardio = visit?.serviceCharges.find((charge) => charge.kind === "Cardio");
+  const miscellaneous = (visit?.serviceCharges ?? []).filter(
+    (charge) => charge.kind === "Miscellaneous",
+  );
   const purchases = [
     ...(cardio === undefined ? [] : [cardioPurchase(cardio)]),
+    ...miscellaneous.map(miscellaneousPurchase),
     ...(visit?.cafeOrders ?? []).map(cafePurchase),
   ];
   const chosen = purchases.filter((purchase) => ticked.has(purchase.id));
@@ -93,6 +98,9 @@ export function CancelCheckInConfirm({
       cafeOrderIds: (visit?.cafeOrders ?? [])
         .filter((order) => ticked.has(order.id))
         .map((order) => order.id),
+      miscellaneousSaleIds: miscellaneous
+        .filter((sale) => ticked.has(sale.id))
+        .map((sale) => sale.id),
     });
   }
 
@@ -217,8 +225,20 @@ export function CancelCheckInConfirm({
   );
 }
 
-function cardioPurchase(charge: CardioCharge): Purchase {
+function cardioPurchase(charge: ServiceCharge): Purchase {
   return { id: charge.id, label: "هوازی", amount: charge.amount, netPaid: charge.netPaid };
+}
+
+function miscellaneousPurchase(sale: ServiceCharge): Purchase {
+  const quantity = Number(sale.quantity ?? 1);
+  const name = sale.description ?? "";
+
+  return {
+    id: sale.id,
+    label: `متفرقه: ${quantity > 1 ? `${name} × ${toPersianDigits(quantity)}` : name}`,
+    amount: sale.amount,
+    netPaid: sale.netPaid,
+  };
 }
 
 function cafePurchase(order: CafeOrder): Purchase {

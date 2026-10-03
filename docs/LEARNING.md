@@ -1317,3 +1317,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **A new column on a table with real data.** `AddColumn(..., defaultValue: false)` gives every existing row a value in the same statement, so nothing is refused and nothing is backfilled by hand. The check constraint (`NOT is_cardio_only OR member_id IS NOT NULL`) passes for all of them by construction.
 - **One more state, everywhere a state is listed.** `LockerState` gained `cardio`, and TypeScript's `Record<LockerState, ...>` made every table of colours, labels and counts fail to compile until it had an entry. The type found the places a search would have missed.
 - **My notes:**
+
+## 6.5.28 — Miscellaneous sale from the locker (فروش متفرقه)
+
+- **A new kind before a new table.** A sale with a typed name and price is "money owed for something during a visit", which `ServiceCharge` already is. Adding a kind kept payments, debt, «تسویه یکجا», voids with refunds and both histories working unchanged; a new table would have meant a fourth payment target and a wider one-target check constraint on `payments`. The cost is that every place assuming "a charge is هوازی" had to filter by kind, and those were found by reading each `ServiceCharges` query.
+- **Nullable columns tied together by a check constraint.** `description`, `quantity` and `unit_price` belong to one kind only. The constraint says "all three or none, and only for that kind, and the amount is exactly price × quantity", so the database refuses a half-filled row even if the code is bypassed.
+- **A partial unique index can narrow its filter.** "One live هوازی per visit" became `WHERE voided_at IS NULL AND kind = 'Cardio'`: the same index, now silent about miscellaneous sales, which may repeat.
+- **Two entry points, each guarding the other.** `ServiceCharge.Record` refuses `Miscellaneous`, because only `RecordMiscellaneous` takes a name and a quantity. A factory that would build an invalid row for one value of its argument should refuse that value, not trust the caller.
+- **One save for the sale and its payment.** The handler adds both and calls `SaveChangesAsync` once, so EF Core writes them in one transaction. No member lock is needed: nothing else can pay a charge that does not exist yet.
+- **A screen choice that the API sees as two parameters.** The history filter offers هوازی and متفرقه as two sources; the API has one `Source` plus `ServiceKind`. `paymentSourceQuery` is the single place that translates one into the other.
+- **`useWatch` instead of `form.watch`.** The React Compiler cannot memoize a component that calls `watch()`; `useWatch` subscribes to the fields it needs and keeps the live total compatible.
+- **My notes:**
