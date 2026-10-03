@@ -65,4 +65,9 @@ public static class PaymentErrors
     public static readonly Error InvalidSource = Error.Validation(
         "Payments.InvalidSource",
         "Payment source is not valid.");
+
+    /// <summary>The sales history's «پرداخت شده / پرداخت نشده» choice named neither (§12 <i>Sales in the history</i>).</summary>
+    public static readonly Error InvalidPaidFilter = Error.Validation(
+        "Payments.InvalidPaidFilter",
+        "Paid filter is not valid.");
 }

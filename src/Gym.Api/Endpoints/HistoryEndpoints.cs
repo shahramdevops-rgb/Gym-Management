@@ -4,6 +4,7 @@ using Gym.Api.Filters;
 using Gym.Application.Common.Paging;
 using Gym.Application.History.ListAttendance;
 using Gym.Application.History.ListPayments;
+using Gym.Application.History.ListSales;
 using Gym.Application.History.ListServiceCharges;
 
 namespace Gym.Api.Endpoints;
@@ -12,7 +13,8 @@ namespace Gym.Api.Endpoints;
 /// The gym's history (تاریخچه): every check-in, payment and هوازی, newest first, with who recorded
 /// it (BUSINESS_RULES.md §12 <i>History</i>, roadmap 6.5.25). Both roles open all three lists;
 /// how far back Staff may read payments is the handler's rule, because it depends on today and on
-/// who is asking, not only on the role.
+/// who is asking, not only on the role. The sales list (فروش‌ها, roadmap 6.5.30) is the Owner's
+/// alone (§12 <i>Sales in the history</i>).
 /// </summary>
 /// <remarks>
 /// Each list sits at the root of its own resource (<c>/api/attendance</c>, <c>/api/payments</c>,
@@ -56,13 +58,24 @@ public static class HistoryEndpoints
             .Produces<PagedResponse<HistoryServiceChargeResponse>>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
+        Group(app, "/api/sales", Policies.OwnerOnly).MapGet("/", async (
+                [AsParameters] ListSalesQuery query,
+                ListSalesHandler handler,
+                CancellationToken ct) =>
+                    Results.Ok(await handler.Handle(query, ct)))
+            .AddEndpointFilter<ValidationFilter<ListSalesQuery>>()
+            .WithName("ListSales")
+            .Produces<PagedResponse<HistorySaleResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
         return app;
     }
 
-    private static RouteGroupBuilder Group(IEndpointRouteBuilder app, string prefix) =>
+    private static RouteGroupBuilder Group(
+        IEndpointRouteBuilder app, string prefix, string policy = Policies.StaffOrOwner) =>
         app.MapGroup(prefix)
             .WithTags("History")
-            .RequireAuthorization(Policies.StaffOrOwner)
+            .RequireAuthorization(policy)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 }

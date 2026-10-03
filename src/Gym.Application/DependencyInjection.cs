@@ -44,6 +44,7 @@ using Gym.Application.Expenses.UpdateExpenseCategory;
 using Gym.Application.Expenses.VoidExpense;
 using Gym.Application.History.ListAttendance;
 using Gym.Application.History.ListPayments;
+using Gym.Application.History.ListSales;
 using Gym.Application.History.ListServiceCharges;
 using Gym.Application.Lockers.GetLocker;
 using Gym.Application.Lockers.ListLockers;
@@ -178,6 +179,7 @@ public static class DependencyInjection
         services.AddScoped<ListAttendanceHandler>();
         services.AddScoped<ListPaymentsHandler>();
         services.AddScoped<ListServiceChargesHandler>();
+        services.AddScoped<ListSalesHandler>();
 
         services.AddScoped<CreateCafeOrderHandler>();
         services.AddScoped<GetCafeOrderHandler>();

@@ -15,25 +15,72 @@ import { dateFromParams, pageFromParams } from "@/lib/searchParams";
 import {
   paymentSourceFilterLabels,
   paymentSourceFilters,
+  salePaidFilterLabels,
+  salePaidFilters,
   useAttendanceHistory,
   usePaymentHistory,
+  useSalesHistory,
   useServiceChargeHistory,
   type HistoryFilter,
   type PaymentSourceFilter,
+  type SalePaidFilter,
+  type SaleSource,
 } from "../api";
 import { AttendanceLogTable } from "../components/AttendanceLogTable";
 import { MemberFilter } from "../components/MemberFilter";
 import { PaymentLogTable } from "../components/PaymentLogTable";
+import { SalesLogTable } from "../components/SalesLogTable";
 import { ServiceChargeLogTable } from "../components/ServiceChargeLogTable";
 import { staffEarliestPaymentDay, staffPaymentDaysBeforeToday } from "../range";
 
-type Tab = "attendance" | "payments" | "cardio";
+type SalesTab =
+  "sales" | "sales-plans" | "sales-cardio" | "sales-shop" | "sales-analysis" | "sales-cafe";
 
-const tabs: { value: Tab; label: string }[] = [
-  { value: "attendance", label: "ورود و خروج" },
-  { value: "payments", label: "پرداخت‌ها" },
+type Tab = "attendance" | "payments" | "cardio" | SalesTab;
+
+interface TabItem {
+  value: Tab;
+  label: string;
+}
+
+const attendanceTab: TabItem = { value: "attendance", label: "ورود و خروج" };
+const paymentsTab: TabItem = { value: "payments", label: "پرداخت‌ها" };
+
+/** What Staff see: the three sections the page had before the sales sections (BUSINESS_RULES.md §12). */
+const staffTabs: TabItem[] = [
+  attendanceTab,
+  paymentsTab,
   { value: "cardio", label: "هوازی، فروشگاه و آنالیز" },
 ];
+
+/**
+ * Which sale each of the Owner's sales sections lists (§12 Sales in the history). «همهٔ فروش‌ها»
+ * names none, so the API sends every kind.
+ */
+const salesTabSources: Record<SalesTab, SaleSource | undefined> = {
+  sales: undefined,
+  "sales-plans": "Subscription",
+  "sales-cardio": "Cardio",
+  "sales-shop": "Miscellaneous",
+  "sales-analysis": "Analysis",
+  "sales-cafe": "CafeOrder",
+};
+
+/** What the Owner sees: the separate sales sections take the place of the combined one. */
+const ownerTabs: TabItem[] = [
+  attendanceTab,
+  paymentsTab,
+  { value: "sales", label: "همهٔ فروش‌ها" },
+  { value: "sales-plans", label: "فروش پلن" },
+  { value: "sales-cardio", label: "هوازی" },
+  { value: "sales-shop", label: "فروشگاه" },
+  { value: "sales-analysis", label: "آنالیز" },
+  { value: "sales-cafe", label: "بوفه" },
+];
+
+function isSalesTab(tab: Tab): tab is SalesTab {
+  return tab in salesTabSources;
+}
 
 /** Everything the URL holds. Unknown values read as "not set", so a stale link still opens. */
 interface PageState {
@@ -43,13 +90,15 @@ interface PageState {
   memberId: string | undefined;
   method: PaymentMethod | undefined;
   source: PaymentSourceFilter | undefined;
+  paid: SalePaidFilter | undefined;
   page: number;
 }
 
-function tabFrom(params: URLSearchParams): Tab {
+/** A section the signed-in role does not have, or not yet known, opens on the check-ins. */
+function tabFrom(params: URLSearchParams, tabs: TabItem[]): Tab {
   const value = params.get("tab");
 
-  return tabs.some((tab) => tab.value === value) ? (value as Tab) : "attendance";
+  return tabs.find((tab) => tab.value === value)?.value ?? "attendance";
 }
 
 /**
@@ -69,6 +118,9 @@ function oneOf<T extends string>(value: string | null, allowed: readonly T[]): T
  * payment and هوازی, newest first, with who recorded it. The cafe keeps its own order history and
  * is linked from here.
  *
+ * The Owner also has the sales sections (§12 Sales in the history, roadmap 6.5.30): everything
+ * sold in one list, and each kind on its own, with a «پرداخت شده / پرداخت نشده» choice.
+ *
  * Every filter lives in the URL (`/history?tab=payments&from=2026-09-29&member=…&page=2`), like the
  * cafe's order history, so a reload, the back button or a shared link opens the same rows.
  *
@@ -79,15 +131,18 @@ export function HistoryPage() {
   const [params, setParams] = useSearchParams();
   const currentUser = useCurrentUser();
   const isOwner = hasRole(currentUser.data, "Owner");
+  const tabs = isOwner ? ownerTabs : staffTabs;
   const today = gymToday();
 
   const state: PageState = {
-    tab: tabFrom(params),
+    // Until the role is known, any section's link is kept rather than sent back to the check-ins.
+    tab: tabFrom(params, currentUser.isSuccess ? tabs : [...ownerTabs, ...staffTabs]),
     from: dateFrom(params, "from", today),
     to: dateFrom(params, "to", today),
     memberId: params.get("member") || undefined,
     method: oneOf(params.get("method"), paymentMethods),
     source: oneOf(params.get("source"), paymentSourceFilters),
+    paid: oneOf(params.get("paid"), salePaidFilters),
     page: pageFromParams(params),
   };
 
@@ -102,6 +157,7 @@ export function HistoryPage() {
     if (merged.memberId !== undefined) query.member = merged.memberId;
     if (merged.method !== undefined) query.method = merged.method;
     if (merged.source !== undefined) query.source = merged.source;
+    if (merged.paid !== undefined) query.paid = merged.paid;
     if (merged.page > 1) query.page = String(merged.page);
     setParams(query, { replace: next.page === undefined });
   }
@@ -133,9 +189,23 @@ export function HistoryPage() {
     { enabled: canAsk && state.tab === "payments" && currentUser.isSuccess },
   );
   const cardio = useServiceChargeHistory(filter, { enabled: canAsk && state.tab === "cardio" });
+  const sales = useSalesHistory(
+    {
+      ...filter,
+      source: isSalesTab(state.tab) ? salesTabSources[state.tab] : undefined,
+      paid: state.paid,
+    },
+    { enabled: canAsk && isSalesTab(state.tab) && isOwner },
+  );
 
   const active =
-    state.tab === "attendance" ? attendance : state.tab === "payments" ? payments : cardio;
+    state.tab === "attendance"
+      ? attendance
+      : state.tab === "payments"
+        ? payments
+        : state.tab === "cardio"
+          ? cardio
+          : sales;
 
   return (
     <div className="space-y-4">
@@ -148,7 +218,11 @@ export function HistoryPage() {
 
       <Card>
         <CardContent className="space-y-4">
-          <div role="tablist" aria-label="بخش‌های تاریخچه" className="flex gap-1 border-b">
+          <div
+            role="tablist"
+            aria-label="بخش‌های تاریخچه"
+            className="flex flex-wrap gap-1 border-b"
+          >
             {tabs.map((item) => (
               <Button
                 key={item.value}
@@ -214,6 +288,27 @@ export function HistoryPage() {
                 </SelectField>
               </>
             )}
+            {isSalesTab(state.tab) && (
+              <div className="space-y-1 sm:col-span-2">
+                <p id="paid-filter" className="text-sm font-medium">
+                  وضعیت پرداخت
+                </p>
+                <div role="group" aria-labelledby="paid-filter" className="flex gap-1">
+                  {[undefined, ...salePaidFilters].map((paid) => (
+                    <Button
+                      key={paid ?? "all"}
+                      type="button"
+                      size="sm"
+                      aria-pressed={state.paid === paid}
+                      variant={state.paid === paid ? "secondary" : "outline"}
+                      onClick={() => update({ paid })}
+                    >
+                      {paid === undefined ? "همه" : salePaidFilterLabels[paid]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {state.tab === "payments" && currentUser.isSuccess && !isOwner && (
@@ -245,6 +340,9 @@ export function HistoryPage() {
               )}
               {state.tab === "cardio" && cardio.isSuccess && cardio.data.totalCount > 0 && (
                 <ServiceChargeLogTable items={cardio.data.items} />
+              )}
+              {isSalesTab(state.tab) && sales.isSuccess && sales.data.totalCount > 0 && (
+                <SalesLogTable items={sales.data.items} />
               )}
               {active.isSuccess && active.data.totalCount > 0 && (
                 <Pager

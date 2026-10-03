@@ -139,6 +139,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | The gym's history (تاریخچه): check-ins and هوازی of any day (§12 *History*) | ✅ | ✅ |
 | The gym's history: payments of today and the 3 days before it (§12 *History*) | ✅ | ✅ |
 | The gym's history: payments of any earlier day | ✅ | ❌ |
+| The gym's history: sales (فروش‌ها) of any day, paid and unpaid (§12 *Sales*) | ✅ | ❌ |
 | Expenses, dashboard, reports, audit log, SMS resend | ✅ | ❌ |
 
 ---
@@ -1204,6 +1205,32 @@ It is a list of rows, not totals or charts: those are the reports above.
   - A page holds 20 rows.
   - A payment for a guest's cafe order shows the guest's name, marked «مهمان», not «مشتری آزاد»: the
     order is under that name (§8).
+
+### Sales in the history (فروش‌ها)
+
+Asked by the developer, 1405/07/12 (2026-10-04). Roadmap 6.5.30. The Owner wants to see everything
+the gym sold in one place, and each kind on its own, with what is still owed. Still a list of rows,
+not totals: income figures are Phase 9.
+
+- **Owner only.** Staff keep the three sections above, unchanged. The API refuses Staff (403).
+- **For the Owner, the history's sections are:** ورود و خروج، پرداخت‌ها، همهٔ فروش‌ها، فروش پلن،
+  هوازی، فروشگاه، آنالیز، بوفه. The separate هوازی, فروشگاه and آنالیز sections replace the combined
+  «هوازی، فروشگاه و آنالیز» one, which only Staff still see.
+- **What a sale is:** a subscription (single-session and membership together under «فروش پلن», each
+  row saying which), a هوازی charge, a فروشگاه item, an آنالیز, a cafe order. «همهٔ فروش‌ها» lists
+  all five kinds together, cafe orders of walk-ins and guests included. The cafe's own order page
+  stays as it is.
+- **Which day a sale belongs to:** a subscription by when it was sold (`CreatedAt`, «تاریخ فروش»,
+  in the gym's time zone), a هوازی or sale at the desk by its `ChargedOn`, a cafe order by its
+  `OrderedOn`. Newest first, by the moment it was recorded.
+- **Paid or not** (a three-way choice on every sales section: همه / پرداخت شده / پرداخت نشده):
+  - «پرداخت شده»: net paid (payments − refunds) covers the amount. A free plan (`Price = 0`) is paid.
+  - «پرداخت نشده»: anything still owed, a partial payment included.
+  - A cancelled subscription or cafe order and a voided charge are in neither: they owe nothing and
+    were never fully a sale. They are listed under «همه», marked with their reason, never hidden.
+- **Who recorded it:** who placed the cafe order (`PlacedByUserId`) and who recorded the charge
+  (`RecordedByUserId`). A subscription shows none: who sold it is not shown (§4).
+- The filters are the history's own: the date range and one member. A page holds 20 rows.
 
 ---
 

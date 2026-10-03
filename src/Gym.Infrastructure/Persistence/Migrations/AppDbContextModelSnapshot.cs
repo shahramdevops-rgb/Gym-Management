@@ -1859,6 +1859,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_subscriptions");
 
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_subscriptions_created_at");
+
                     b.HasIndex("MemberId", "EndDate")
                         .HasDatabaseName("ix_subscriptions_member_id_end_date");
 

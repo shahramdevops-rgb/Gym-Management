@@ -66,6 +66,27 @@ export function paymentSourceQuery(source: PaymentSourceFilter | undefined): {
   }
 }
 
+export type HistorySale = components["schemas"]["HistorySaleResponse"];
+/** What kind of sale a row is: a plan, هوازی, فروشگاه, آنالیز or the cafe. */
+export type SaleSource = components["schemas"]["SaleSource"];
+/** «پرداخت شده» or «پرداخت نشده»; a partly paid sale is unpaid (BUSINESS_RULES.md §12 Sales). */
+export type SalePaidFilter = "Paid" | "Unpaid";
+
+export const salePaidFilters: SalePaidFilter[] = ["Paid", "Unpaid"];
+
+export const salePaidFilterLabels: Record<SalePaidFilter, string> = {
+  Paid: "پرداخت شده",
+  Unpaid: "پرداخت نشده",
+};
+
+export const saleSourceLabels: Record<SaleSource, string> = {
+  Subscription: "پلن",
+  Cardio: "هوازی",
+  Miscellaneous: "فروشگاه",
+  Analysis: "آنالیز",
+  CafeOrder: "بوفه",
+};
+
 /** What every section filters by. A date left out is no bound on that side. */
 export interface HistoryFilter {
   from?: string;
@@ -79,6 +100,12 @@ export interface PaymentHistoryFilter extends HistoryFilter {
   source?: PaymentSourceFilter;
 }
 
+export interface SalesHistoryFilter extends HistoryFilter {
+  /** Left out for «همهٔ فروش‌ها». */
+  source?: SaleSource;
+  paid?: SalePaidFilter;
+}
+
 /**
  * Query keys. Its own root, not under "payments" or "attendance": nothing on this page changes
  * anything, and a list here is fetched again whenever the page opens (the default `staleTime` of 0).
@@ -89,6 +116,7 @@ export const historyKeys = {
   payments: (filter: PaymentHistoryFilter) => [...historyKeys.all, "payments", filter] as const,
   serviceCharges: (filter: HistoryFilter) =>
     [...historyKeys.all, "service-charges", filter] as const,
+  sales: (filter: SalesHistoryFilter) => [...historyKeys.all, "sales", filter] as const,
 };
 
 function paged<T>(data: { items: T[]; totalCount: number | string }) {
@@ -143,6 +171,37 @@ export function usePaymentHistory(filter: PaymentHistoryFilter, { enabled = true
             MemberId: filter.memberId,
             Method: filter.method,
             ...paymentSourceQuery(filter.source),
+            Page: filter.page,
+            PageSize: historyPageSize,
+          },
+        },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return paged(data);
+    },
+  });
+}
+
+/**
+ * Everything the gym sold, newest first, with what has been paid on it (BUSINESS_RULES.md §12
+ * Sales in the history). The Owner's alone: the API refuses Staff, so the page never asks for them.
+ */
+export function useSalesHistory(filter: SalesHistoryFilter, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: historyKeys.sales(filter),
+    enabled,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/sales", {
+        params: {
+          query: {
+            From: filter.from,
+            To: filter.to,
+            MemberId: filter.memberId,
+            Source: filter.source,
+            Paid: filter.paid,
             Page: filter.page,
             PageSize: historyPageSize,
           },

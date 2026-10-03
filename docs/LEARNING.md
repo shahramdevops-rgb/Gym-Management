@@ -1340,3 +1340,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Colour as design tokens.** Each tile reads `bg-tile-*` and `text-tile-*-ink`, defined once in `index.css` for light and dark, never as raw colours in a component.
 - **One component, two looks.** `ServiceChargeBox` shows a compact one-line summary in a table cell and a large tile in the locker box, chosen by a `tile` prop, so the dialogs and rules behind it exist once.
 - **My notes:**
+
+## 6.5.30 — Sales in the history (فروش‌ها در تاریخچه)
+
+- **One list from three tables: `UNION ALL` in the database.** Sales live in subscriptions, service charges and cafe orders. The list is paged and filtered by "paid or not", so it cannot be merged in memory without loading every sale of the range to show 20. `Concat` on `IQueryable`s becomes `UNION ALL`, and `Where`, `CountAsync`, `OrderBy`, `Skip` and `Take` after it wrap the union in a subquery, all in one SQL statement.
+- **What a set operation needs from each branch.** EF Core matches the branches column by column, so each projects into the same small class (`SaleRow`) with the same members, set with an object initializer. A constant per branch (`Source = SaleSource.Cardio`) is fine; the three charge kinds are three branches for that reason.
+- **Keep the union narrow, describe the page afterwards.** The union carries only what it is sorted and filtered by (id, amount, net paid, moment, undone). The names, plan numbers and cafe lines are read for the 20 rows of the page, one batched query per table. Wide unions with many nullable columns are where set-operation translation gets fragile.
+- **A computed status filtered in SQL.** "Paid" is not stored (§4: it is calculated). Each branch computes net paid as a correlated `SUM` subquery, and the filter `NetPaid >= Amount` runs on it in the database. EF wraps a non-nullable `Sum` in `COALESCE(..., 0)`, so an item with no payments is 0, not NULL.
+- **A filter's meaning is not a status's meaning.** `SalePaidFilter` has two values while `PaymentStatus` has three. "Unpaid" here means "still owes", which takes in `Partial`. Reusing `PaymentStatus` as the filter would have made the API say one thing and mean another.
+- **An enum only seen in a query string.** Response enums get `JsonStringEnumConverter` on the property, which is also what makes OpenAPI describe them as strings. `SalePaidFilter` appears in no response, so the converter goes on the enum type itself; without it the generated TypeScript said `number`.
+- **A policy per endpoint, not per group helper.** The history endpoints shared a `Group(...)` helper hard-wired to `StaffOrOwner`. A parameter with that as its default lets `/api/sales` be `OwnerOnly` without touching the other three.
+- **Role-dependent tabs and links that arrive early.** Until the signed-in user is loaded, the page does not know which tabs exist. It keeps any known tab from the URL meanwhile and only falls back once the role is known, and it asks for sales only when the role is confirmed Owner. A Staff member with an Owner's link sees the check-ins, and the API is never asked.
+- **My notes:**

@@ -1124,6 +1124,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListSales"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1433,6 +1449,36 @@ export interface components {
             receivedByFullName: null | string;
             settlement: null | components["schemas"]["SettlementSummary"];
         };
+        HistorySaleCafeItem: {
+            productName: string;
+            /** Format: int32 */
+            quantity: number | string;
+        };
+        HistorySaleResponse: {
+            source: components["schemas"]["SaleSource"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            memberId: null | string;
+            memberFullName: null | string;
+            guestName: null | string;
+            plan: null | components["schemas"]["PlanSummary"];
+            description: null | string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            cafeItems: null | components["schemas"]["HistorySaleCafeItem"][];
+            /** Format: double */
+            amount: number | string;
+            /** Format: date-time */
+            soldAt: string;
+            recordedByFullName: null | string;
+            /** Format: date-time */
+            undoneAt: null | string;
+            undoReason: null | string;
+            /** Format: double */
+            netPaid: number | string;
+            paymentStatus: components["schemas"]["PaymentStatus"];
+        };
         HistoryServiceChargeResponse: {
             /** Format: uuid */
             id: string;
@@ -1638,6 +1684,15 @@ export interface components {
         };
         PagedResponseOfHistoryPaymentResponse: {
             items: components["schemas"]["HistoryPaymentResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        PagedResponseOfHistorySaleResponse: {
+            items: components["schemas"]["HistorySaleResponse"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
@@ -1859,6 +1914,10 @@ export interface components {
         ResetStaffPasswordCommand: {
             temporaryPassword: string;
         };
+        /** @enum {unknown} */
+        SalePaidFilter: "Paid" | "Unpaid" | null;
+        /** @enum {unknown} */
+        SaleSource: "Subscription" | "Cardio" | "Miscellaneous" | "Analysis" | "CafeOrder";
         SaleSummary: {
             description: string;
             /** Format: int32 */
@@ -7071,6 +7130,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedResponseOfHistoryServiceChargeResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListSales: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+                MemberId?: string;
+                Source?: components["schemas"]["SaleSource"];
+                Paid?: components["schemas"]["SalePaidFilter"];
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResponseOfHistorySaleResponse"];
                 };
             };
             /** @description Bad Request */

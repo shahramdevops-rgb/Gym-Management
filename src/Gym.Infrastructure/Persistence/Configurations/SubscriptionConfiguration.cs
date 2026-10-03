@@ -69,6 +69,10 @@ public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscri
         // A member's subscriptions by date: the sale's calendar lookup and, later, the history.
         builder.HasIndex(s => new { s.MemberId, s.EndDate });
 
+        // Not a rule, only speed: the gym's sales history reads plans by the day they were sold
+        // (BUSINESS_RULES.md §12 Sales in the history).
+        builder.HasIndex(s => s.CreatedAt);
+
         builder.Ignore(s => s.RemainingSessions);
 
         builder.Property(s => s.Version).IsRowVersion();
