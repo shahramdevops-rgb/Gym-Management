@@ -151,9 +151,10 @@ export function LockerVisitDialog({
         {step.kind === "view" && memberId !== null && (
           <>
             {/* The sessions sit beside the name, where the header had room to spare; pe-6 keeps them
-                clear of the ✕. */}
-            <div className="flex flex-wrap items-start justify-between gap-4 pe-6">
-              <DialogHeader>
+                clear of the ✕. From sm up the row never wraps: the header takes what is left and
+                wraps a long name inside itself, so the sessions stay beside it. */}
+            <div className="flex flex-col gap-4 pe-6 sm:flex-row sm:items-start sm:justify-between">
+              <DialogHeader className="min-w-0 flex-1">
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription>
                   <Link
@@ -443,7 +444,7 @@ function GuestView({
  */
 function VisitSessions({ visit }: { visit: CurrentlyInside }) {
   return (
-    <section aria-label="جلسات" className="w-full space-y-1 text-sm sm:w-48">
+    <section aria-label="جلسات" className="w-full shrink-0 space-y-1 text-sm sm:w-48">
       <p className="text-muted-foreground">جلسات</p>
       {visit.isSingleSession ? (
         <p className="font-medium">تک‌جلسه‌ای</p>
