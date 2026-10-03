@@ -136,6 +136,106 @@ public sealed class ServiceChargeTests
         Recorded().Void(reason, Now, UserId).Error.ShouldBe(ServiceChargeErrors.VoidReasonTooLong);
     }
 
+    // ---- Miscellaneous sale ----
+
+    [Fact]
+    public void RecordMiscellaneous_ValidSale_StoresWhatWasSoldAndItsTotal()
+    {
+        var result = RecordMiscellaneous("  دستکش  ", 3, 150_000m);
+
+        result.IsSuccess.ShouldBeTrue();
+        var charge = result.Value;
+        charge.Kind.ShouldBe(ServiceChargeKind.Miscellaneous);
+        charge.Description.ShouldBe("دستکش");
+        charge.Quantity.ShouldBe(3);
+        charge.UnitPrice.ShouldBe(150_000m);
+        charge.Amount.ShouldBe(450_000m);
+        charge.MemberId.ShouldBe(MemberId);
+        charge.AttendanceId.ShouldBe(AttendanceId);
+        charge.ChargedOn.ShouldBe(ChargedOn);
+        charge.RecordedByUserId.ShouldBe(UserId);
+        charge.IsVoided.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void RecordMiscellaneous_BlankName_Fails(string description)
+    {
+        RecordMiscellaneous(description, 1, 10_000m).Error.ShouldBe(ServiceChargeErrors.DescriptionRequired);
+    }
+
+    [Fact]
+    public void RecordMiscellaneous_NameTooLong_Fails()
+    {
+        var description = new string('ا', ServiceCharge.DescriptionMaxLength + 1);
+
+        RecordMiscellaneous(description, 1, 10_000m).Error.ShouldBe(ServiceChargeErrors.DescriptionTooLong);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(ServiceCharge.MaxQuantity + 1)]
+    public void RecordMiscellaneous_QuantityOutOfRange_Fails(int quantity)
+    {
+        RecordMiscellaneous("دستکش", quantity, 10_000m).Error.ShouldBe(ServiceChargeErrors.QuantityInvalid);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void RecordMiscellaneous_UnitPriceNotPositive_Fails(decimal unitPrice)
+    {
+        RecordMiscellaneous("دستکش", 1, unitPrice).Error.ShouldBe(ServiceChargeErrors.AmountNotPositive);
+    }
+
+    [Fact]
+    public void RecordMiscellaneous_UnitPriceWithThreeDecimals_Fails()
+    {
+        RecordMiscellaneous("دستکش", 1, 10_000.001m).Error.ShouldBe(ServiceChargeErrors.AmountTooManyDecimals);
+    }
+
+    /// <summary>Each figure fits the column, but what they make together does not.</summary>
+    [Fact]
+    public void RecordMiscellaneous_TotalAboveTheColumnLimit_Fails()
+    {
+        RecordMiscellaneous("دستکش", 2, ServiceCharge.MaxAmount).Error.ShouldBe(ServiceChargeErrors.AmountTooLarge);
+    }
+
+    /// <summary>The general entry point cannot make a sale without its name and quantity.</summary>
+    [Fact]
+    public void Record_MiscellaneousKind_Fails()
+    {
+        ServiceCharge.Record(MemberId, AttendanceId, ServiceChargeKind.Miscellaneous, 10_000m, ChargedOn, UserId)
+            .Error.ShouldBe(ServiceChargeErrors.KindInvalid);
+    }
+
+    /// <summary>§7 <i>Miscellaneous sale</i>: voided and entered again, never edited, like a cafe order.</summary>
+    [Fact]
+    public void ChangeAmount_MiscellaneousSale_Fails()
+    {
+        var charge = RecordMiscellaneous("دستکش", 1, 10_000m).Value;
+
+        charge.ChangeAmount(25_000m).Error.ShouldBe(ServiceChargeErrors.MiscellaneousNotEditable);
+
+        charge.Amount.ShouldBe(10_000m);
+    }
+
+    [Fact]
+    public void Void_MiscellaneousSale_RecordsWhoWhenAndWhy()
+    {
+        var charge = RecordMiscellaneous("دستکش", 1, 10_000m).Value;
+
+        charge.Void("اشتباه ثبت شد", Now, UserId).IsSuccess.ShouldBeTrue();
+
+        charge.IsVoided.ShouldBeTrue();
+        charge.VoidReason.ShouldBe("اشتباه ثبت شد");
+    }
+
+    private static Result<ServiceCharge> RecordMiscellaneous(string description, int quantity, decimal unitPrice) =>
+        ServiceCharge.RecordMiscellaneous(MemberId, AttendanceId, description, quantity, unitPrice, ChargedOn, UserId);
+
     private static Result<ServiceCharge> Record(decimal amount) =>
         ServiceCharge.Record(MemberId, AttendanceId, ServiceChargeKind.Cardio, amount, ChargedOn, UserId);
 

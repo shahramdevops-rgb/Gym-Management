@@ -68,6 +68,7 @@ public static class VisitServiceCharges
                     .Select(charge => ServiceChargeResponse.From(
                         charge, netPaidById.GetValueOrDefault(charge.Id), openVisitIds.Contains(charge.AttendanceId)))
                     .OrderBy(charge => charge.Kind)
+                    .ThenBy(charge => charge.CreatedAt)
                     .ToList());
     }
 }

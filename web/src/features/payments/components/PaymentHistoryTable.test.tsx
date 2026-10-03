@@ -18,6 +18,7 @@ describe("PaymentHistoryTable", () => {
       targetId: crypto.randomUUID(),
       subscriptionPlan: null,
       serviceKind: null,
+      serviceDescription: null,
       kind: "Payment",
       amount: "15000",
       method: "Cash",

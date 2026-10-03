@@ -1527,6 +1527,39 @@ The visit keeps the plan's id, so the board reads the plan as usual, and a new
 Closed 2026-10-03: 1408 backend tests and 749 frontend tests green, zero warnings. Not released
 yet: the migration only adds a column (default `false`) and a check every existing row passes.
 
+### 6.5.28 Miscellaneous sale from the locker (فروش متفرقه)
+Asked by the developer on 1405/07/11 (2026-10-03), from a screenshot of the locker box: a third
+button beside «مبلغ هوازی» and «خرید بوفه» for something sold that the system does not know, with
+its name, quantity, price and how it was paid. BUSINESS_RULES.md §7 *Miscellaneous sale*.
+
+Decided with the developer, same day: card, transfer, cash or «به حساب عضو»; members only; any
+number per visit; its own source («متفرقه») in the debt, histories and reports. Built as a second
+`ServiceChargeKind` rather than a new table, so payments, debt, «تسویه یکجا», voids and the
+histories needed no fourth payment target.
+- [x] Domain: `ServiceChargeKind.Miscellaneous`, `Description` / `Quantity` / `UnitPrice`,
+      `ServiceCharge.RecordMiscellaneous`; `Record` refuses the kind and `ChangeAmount` refuses a sale
+      (`ServiceCharges.MiscellaneousNotEditable`)
+- [x] Migration `AddMiscellaneousSale`: three nullable columns, the check constraint
+      `ck_service_charges_miscellaneous`, and the one-per-visit index narrowed to `kind = 'Cardio'`.
+      Every existing row is هوازی with the new columns null, so all of them pass
+- [x] `POST /api/attendance/{id}/service-charges/miscellaneous`: the sale and, when a method is
+      given, its full payment in one save
+- [x] Cancel check-in takes `MiscellaneousSaleIds`, ticked one by one like the cafe orders
+      (`Attendance.MiscellaneousSaleNotOnVisit`)
+- [x] Responses: the sale's fields on the charge, the debt item (`Sale`), both payment histories
+      (`ServiceDescription`) and the gym's service-charge history; `GET /api/payments` takes
+      `ServiceKind` to tell هوازی and متفرقه apart
+- [x] Web: «فروش متفرقه» in the locker box with its form (name, quantity, `MoneyField` unit price,
+      total, payment choice, the money confirmation) and its list (pay, void); labels «متفرقه: …» in
+      the debt and both payment histories; the history's «بابت» filter and its «هوازی و متفرقه» tab;
+      a tick per sale in the cancel box
+- [x] Tests: domain, integration (recording each way, each refusal, the constraint, void with
+      refund, cancel check-in, settlement order, history filter, the cardio-only visit), frontend
+
+Closed 2026-10-03: 1444 backend tests (457 domain, 987 integration) and 755 frontend tests green,
+zero warnings. Not released yet: the migration adds three nullable columns and a check that every
+existing row (all هوازی) passes, and narrows an index filter.
+
 ---
 
 ## Phase 7 — Cafe / POS

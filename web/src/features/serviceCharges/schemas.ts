@@ -1,7 +1,10 @@
+import type { DefaultValues } from "react-hook-form";
 import { z } from "zod";
 
+import { paymentMethods } from "@/features/payments/api";
 import { errorMessages } from "@/lib/errors";
 import { normalizeMoney } from "@/lib/money";
+import { normalizeDigits } from "@/lib/normalize";
 
 /** The Persian text for a code. Throws at import if the catalogue lacks it, so a typo fails every test. */
 function message(code: string): string {
@@ -78,3 +81,56 @@ export const voidServiceChargeSchema = z.object({
 export type VoidServiceChargeValues = z.infer<typeof voidServiceChargeSchema>;
 
 export const emptyVoidServiceChargeValues: VoidServiceChargeValues = { reason: "" };
+
+/** BUSINESS_RULES.md §7 *Miscellaneous sale*: the API's ServiceCharge limits. */
+export const miscellaneousSaleLimits = {
+  descriptionMaxLength: 100,
+  maxQuantity: 999,
+} as const;
+
+/** «به حساب عضو»: no money now; the sale goes on the member's account like a cafe purchase. */
+export const onAccount = "OnAccount";
+
+/**
+ * How a miscellaneous sale is paid: one of the usual methods, in the usual order, or left on the
+ * member's account. It starts empty like every money form (§5 *Confirming money at the desk*), so
+ * the desk has to choose, «به حساب عضو» included.
+ */
+export const miscellaneousPaymentChoices = [...paymentMethods, onAccount] as const;
+
+export const miscellaneousSaleSchema = z.object({
+  description: z
+    .string()
+    .trim()
+    .min(1, message("ServiceCharges.DescriptionRequired"))
+    .max(miscellaneousSaleLimits.descriptionMaxLength, message("ServiceCharges.DescriptionTooLong")),
+  // Typed as text, so Persian digits are accepted (BUSINESS_RULES.md §13).
+  quantity: z.string().superRefine((text, context) => {
+    if (parseSaleQuantity(text) === null) {
+      context.addIssue({ code: "custom", message: message("ServiceCharges.QuantityInvalid") });
+    }
+  }),
+  unitPrice: z.string().superRefine((text, context) => {
+    const problem = serviceChargeAmountProblem(text);
+    if (problem !== null) {
+      context.addIssue({ code: "custom", message: problem });
+    }
+  }),
+  payment: z.enum(miscellaneousPaymentChoices, { error: "نوع پرداخت را انتخاب کنید." }),
+});
+
+export type MiscellaneousSaleValues = z.infer<typeof miscellaneousSaleSchema>;
+
+/** Without a payment on purpose: the desk has to pick one, «به حساب عضو» included. */
+export const emptyMiscellaneousSaleValues: DefaultValues<MiscellaneousSaleValues> = {
+  description: "",
+  quantity: "1",
+  unitPrice: "",
+};
+
+/** A typed quantity, Persian or English digits, as a whole number from 1 to 999; null otherwise. */
+export function parseSaleQuantity(text: string): number | null {
+  const normalized = normalizeDigits(text).trim();
+
+  return /^[1-9]\d{0,2}$/.test(normalized) ? Number(normalized) : null;
+}

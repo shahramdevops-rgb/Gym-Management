@@ -1692,6 +1692,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("description");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1702,9 +1707,18 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("member_id");
 
+                    b.Property<int?>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
                     b.Property<Guid>("RecordedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("recorded_by_user_id");
+
+                    b.Property<decimal?>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("unit_price");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1751,11 +1765,13 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasIndex("AttendanceId", "Kind")
                         .IsUnique()
                         .HasDatabaseName("ix_service_charges_one_live_per_visit_and_kind")
-                        .HasFilter("voided_at IS NULL");
+                        .HasFilter("voided_at IS NULL AND kind = 'Cardio'");
 
                     b.ToTable("service_charges", null, t =>
                         {
                             t.HasCheckConstraint("ck_service_charges_amount_positive", "amount > 0");
+
+                            t.HasCheckConstraint("ck_service_charges_miscellaneous", "(kind = 'Miscellaneous') = (description IS NOT NULL) AND (description IS NULL) = (quantity IS NULL) AND (description IS NULL) = (unit_price IS NULL) AND (quantity IS NULL OR (quantity BETWEEN 1 AND 999 AND unit_price > 0 AND amount = unit_price * quantity))");
 
                             t.HasCheckConstraint("ck_service_charges_void", "(voided_at IS NULL) = (void_reason IS NULL) AND (voided_at IS NULL) = (voided_by_user_id IS NULL)");
                         });

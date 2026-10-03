@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 using Gym.Application.Cafe;
+using Gym.Application.ServiceCharges;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
@@ -24,6 +25,7 @@ public sealed record MemberDebtResponse(decimal Total, IReadOnlyList<MemberDebtI
 /// <c>null</c> for a service charge and a cafe order.
 /// </param>
 /// <param name="ServiceKind"><c>null</c> for a subscription. The frontend turns it into Persian.</param>
+/// <param name="Sale">What a miscellaneous sale sold (§7); <c>null</c> for everything else.</param>
 /// <param name="EndDate"><c>null</c> for a service charge: it covers the one day it was charged on.</param>
 /// <param name="Outstanding"><c>Price − NetPaid</c>: what the member still owes on this item.</param>
 /// <param name="CafeItems">
@@ -35,6 +37,7 @@ public sealed record MemberDebtItemResponse(
     Guid Id,
     PlanSummary? Plan,
     [property: JsonConverter(typeof(JsonStringEnumConverter<ServiceChargeKind>))] ServiceChargeKind? ServiceKind,
+    MiscellaneousSaleSummary? Sale,
     DateOnly StartDate,
     DateOnly? EndDate,
     decimal Price,

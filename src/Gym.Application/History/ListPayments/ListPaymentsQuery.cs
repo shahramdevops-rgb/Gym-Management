@@ -1,5 +1,6 @@
 using Gym.Application.Common.Paging;
 using Gym.Domain.Payments;
+using Gym.Domain.ServiceCharges;
 
 namespace Gym.Application.History.ListPayments;
 
@@ -18,12 +19,17 @@ namespace Gym.Application.History.ListPayments;
 /// cafe sales included.
 /// </param>
 /// <param name="Method">Only this payment method.</param>
-/// <param name="Source">Only money for this kind of item: subscription, هوازی or cafe.</param>
+/// <param name="Source">Only money for this kind of item: subscription, a service charge or cafe.</param>
+/// <param name="ServiceKind">
+/// With a service-charge <paramref name="Source"/>, only هوازی or only متفرقه: the screen offers them as
+/// two sources (BUSINESS_RULES.md §7 <i>Miscellaneous sale</i>). Ignored for any other source.
+/// </param>
 public sealed record ListPaymentsQuery(
     DateOnly? From = null,
     DateOnly? To = null,
     Guid? MemberId = null,
     PaymentMethod? Method = null,
     PaymentTargetKind? Source = null,
+    ServiceChargeKind? ServiceKind = null,
     int Page = 1,
     int PageSize = PagingRules.DefaultPageSize);

@@ -13,13 +13,13 @@ import { gymToday, toPersianDigits } from "@/lib/format";
 import { dateFromParams, pageFromParams } from "@/lib/searchParams";
 
 import {
-  paymentSourceLabels,
-  paymentSources,
+  paymentSourceFilterLabels,
+  paymentSourceFilters,
   useAttendanceHistory,
   usePaymentHistory,
   useServiceChargeHistory,
   type HistoryFilter,
-  type PaymentSource,
+  type PaymentSourceFilter,
 } from "../api";
 import { AttendanceLogTable } from "../components/AttendanceLogTable";
 import { MemberFilter } from "../components/MemberFilter";
@@ -32,7 +32,7 @@ type Tab = "attendance" | "payments" | "cardio";
 const tabs: { value: Tab; label: string }[] = [
   { value: "attendance", label: "ورود و خروج" },
   { value: "payments", label: "پرداخت‌ها" },
-  { value: "cardio", label: "هوازی" },
+  { value: "cardio", label: "هوازی و متفرقه" },
 ];
 
 /** Everything the URL holds. Unknown values read as "not set", so a stale link still opens. */
@@ -42,7 +42,7 @@ interface PageState {
   to: string | undefined;
   memberId: string | undefined;
   method: PaymentMethod | undefined;
-  source: PaymentSource | undefined;
+  source: PaymentSourceFilter | undefined;
   page: number;
 }
 
@@ -87,7 +87,7 @@ export function HistoryPage() {
     to: dateFrom(params, "to", today),
     memberId: params.get("member") || undefined,
     method: oneOf(params.get("method"), paymentMethods),
-    source: oneOf(params.get("source"), paymentSources),
+    source: oneOf(params.get("source"), paymentSourceFilters),
     page: pageFromParams(params),
   };
 
@@ -202,13 +202,13 @@ export function HistoryPage() {
                   label="بابت"
                   value={state.source ?? ""}
                   onChange={(event) =>
-                    update({ source: oneOf(event.target.value, paymentSources) })
+                    update({ source: oneOf(event.target.value, paymentSourceFilters) })
                   }
                 >
                   <option value="">همه</option>
-                  {paymentSources.map((source) => (
+                  {paymentSourceFilters.map((source) => (
                     <option key={source} value={source}>
-                      {paymentSourceLabels[source]}
+                      {paymentSourceFilterLabels[source]}
                     </option>
                   ))}
                 </SelectField>

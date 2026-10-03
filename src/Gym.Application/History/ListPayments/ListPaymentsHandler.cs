@@ -59,6 +59,13 @@ public sealed class ListPaymentsHandler(
             _ => payments,
         };
 
+        // هوازی and متفرقه are both service charges, but the screen lists them as two sources.
+        if (query.Source == PaymentTargetKind.ServiceCharge && query.ServiceKind is { } serviceKind)
+        {
+            payments = payments.Where(payment =>
+                db.ServiceCharges.Any(charge => charge.Id == payment.ServiceChargeId && charge.Kind == serviceKind));
+        }
+
         // "Belongs to one of this member's items" rather than a join, because a payment has three
         // possible parents — the same filter as the member's own payment history.
         if (query.MemberId is { } memberId)
@@ -116,6 +123,10 @@ public sealed class ListPaymentsHandler(
                     .Where(charge => charge.Id == payment.ServiceChargeId)
                     .Select(charge => (ServiceChargeKind?)charge.Kind)
                     .FirstOrDefault(),
+                ServiceDescription = db.ServiceCharges
+                    .Where(charge => charge.Id == payment.ServiceChargeId)
+                    .Select(charge => charge.Description)
+                    .FirstOrDefault(),
                 TargetUndone =
                     db.Subscriptions.Any(subscription =>
                         subscription.Id == payment.SubscriptionId && subscription.CancelledAt != null) ||
@@ -170,6 +181,7 @@ public sealed class ListPaymentsHandler(
                 row.Payment.GuestName,
                 row.Payment.SubscriptionPlan,
                 row.Payment.ServiceKind,
+                row.Payment.ServiceDescription,
                 row.Payment.Kind,
                 row.Payment.Amount,
                 row.Payment.Method,

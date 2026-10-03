@@ -223,6 +223,30 @@ public sealed class CardioOnlyVisitEndpointTests(DatabaseFixture fixture) : Data
         (await DebtAsync(client, token, member.Id)).ShouldBe(950_000m);
     }
 
+    /// <summary>
+    /// A miscellaneous sale is a service charge too, but not the هوازی amount this visit is for
+    /// (§7 <i>Miscellaneous sale</i>), so it does not open the door.
+    /// </summary>
+    [Fact]
+    public async Task CheckOut_CardioOnlyWithOnlyAMiscellaneousSale_Returns422AttendanceCardioChargeMissing()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        await InsertMembershipAsync(member.Id);
+        var visit = await CardioOnlyCheckInOkAsync(client, token, member.Id, lockerNumber: 1);
+        using (var sold = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/service-charges/miscellaneous",
+            new { description = "دستکش", quantity = 1, unitPrice = 50_000m, method = (string?)null }))
+        {
+            sold.StatusCode.ShouldBe(HttpStatusCode.Created);
+        }
+
+        using var response = await CheckOutAsync(client, token, visit.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.CardioChargeMissing");
+    }
+
     [Fact]
     public async Task CheckOut_CardioOnlyWhoseCardioWasVoided_Returns422AttendanceCardioChargeMissing()
     {

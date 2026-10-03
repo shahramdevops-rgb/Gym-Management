@@ -382,7 +382,7 @@ describe("CurrentlyInsidePage", () => {
     expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
     expect(dialog).toHaveTextContent("جلسه به اشتراک بازگشت");
     const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
-    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [] });
+    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [], miscellaneousSaleIds: [] });
   });
 
   // ---- Cancel check-in with purchases (BUSINESS_RULES.md §7 Cancel check-in, roadmap 6.5.8) ----
@@ -471,7 +471,7 @@ describe("CurrentlyInsidePage", () => {
 
     expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
     const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
-    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [] });
+    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [], miscellaneousSaleIds: [] });
   });
 
   it("Board_CancelWithTicks_AsksAgainAndSendsOnlyTheTickedOnes", async () => {
@@ -509,7 +509,7 @@ describe("CurrentlyInsidePage", () => {
     expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
     expect(dialog).toHaveTextContent("خریدهای انتخاب‌شده هم لغو شد.");
     const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
-    expect(await request.json()).toEqual({ voidCardio: true, cafeOrderIds: [secondCafeOrder.id] });
+    expect(await request.json()).toEqual({ voidCardio: true, cafeOrderIds: [secondCafeOrder.id], miscellaneousSaleIds: [] });
   });
 
   it("Board_CancelSecondQuestion_BackKeepsTheTicksAndSendsNothing", async () => {
@@ -637,7 +637,7 @@ describe("CurrentlyInsidePage", () => {
     expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent("جلسه به اشتراک بازگشت");
     const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
-    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [maryamDrink.id] });
+    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [maryamDrink.id], miscellaneousSaleIds: [] });
   });
 
   it("Board_CheckOutGuestWithUnpaidCafe_ShowsWhyFromTheApi", async () => {

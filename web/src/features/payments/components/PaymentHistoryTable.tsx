@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { serviceChargeKindLabels } from "@/features/serviceCharges/api";
+import { serviceChargeLabel } from "@/features/serviceCharges/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
 import { formatDateTime, formatMoney } from "@/lib/format";
 
@@ -129,7 +129,7 @@ function paidForLabel(payment: PaymentHistoryItem): string {
     case "Subscription":
       return payment.subscriptionPlan === null ? "—" : planLabel(payment.subscriptionPlan);
     case "ServiceCharge":
-      return payment.serviceKind === null ? "خدمات" : serviceChargeKindLabels[payment.serviceKind];
+      return serviceChargeLabel(payment.serviceKind, payment.serviceDescription);
     case "CafeOrder":
       return "کافه";
   }

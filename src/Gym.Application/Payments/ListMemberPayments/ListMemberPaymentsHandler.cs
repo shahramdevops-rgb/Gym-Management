@@ -67,6 +67,10 @@ public sealed class ListMemberPaymentsHandler(IAppDbContext db)
                     .Where(charge => charge.Id == payment.ServiceChargeId)
                     .Select(charge => (Domain.ServiceCharges.ServiceChargeKind?)charge.Kind)
                     .FirstOrDefault(),
+                ServiceDescription = db.ServiceCharges
+                    .Where(charge => charge.Id == payment.ServiceChargeId)
+                    .Select(charge => charge.Description)
+                    .FirstOrDefault(),
                 payment.Kind,
                 payment.Amount,
                 payment.Method,
@@ -94,6 +98,7 @@ public sealed class ListMemberPaymentsHandler(IAppDbContext db)
                 row.TargetId,
                 row.SubscriptionPlan,
                 row.ServiceKind,
+                row.ServiceDescription,
                 row.Kind,
                 row.Amount,
                 row.Method,

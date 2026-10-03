@@ -21,6 +21,7 @@ import { GuestSettleForm } from "@/features/attendance/components/GuestSettleFor
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
 import { cardioOnlyLabel, guestLabel, holderOf } from "@/features/attendance/holder";
 import { VisitCafeBox } from "@/features/cafe/components/VisitCafeBox";
+import { MiscellaneousSaleBox } from "@/features/serviceCharges/components/MiscellaneousSaleBox";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
@@ -54,7 +55,7 @@ interface LockerVisitDialogProps {
 /**
  * One visit, opened from its locker (BUSINESS_RULES.md §7 *Confirming at the front desk*): who it
  * is (linked to their profile), when they came in, the sessions beside them, the plan and its
- * dates, the debt item by item, هوازی and cafe for the visit, and check-out, cancel check-in, moving
+ * dates, the debt item by item, هوازی, cafe and متفرقه for the visit, and check-out, cancel check-in, moving
  * to another locker and who had the locker earlier today. A used reserve place opens the same box,
  * without the locker's history.
  *
@@ -175,7 +176,7 @@ export function LockerVisitDialog({
               <VisitSessions visit={visit} />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1">
                 <p className="text-sm font-medium">هوازی</p>
                 <ServiceChargeBox
@@ -191,6 +192,14 @@ export function LockerVisitDialog({
                   attendanceId={visit.attendanceId}
                   member={member}
                   orders={visit.cafeOrders ?? []}
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">متفرقه</p>
+                <MiscellaneousSaleBox
+                  attendanceId={visit.attendanceId}
+                  memberName={member.fullName}
+                  sales={visit.serviceCharges.filter((charge) => charge.kind === "Miscellaneous")}
                 />
               </div>
             </div>

@@ -5,7 +5,7 @@ import {
   SettlementItemLabel,
 } from "@/features/payments/components/SettlementCells";
 import { groupBySettlement, type SettlementSummary } from "@/features/payments/settlementGroups";
-import { serviceChargeKindLabels } from "@/features/serviceCharges/api";
+import { serviceChargeLabel } from "@/features/serviceCharges/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
 import { emptyValue, formatDateTime, formatMoney } from "@/lib/format";
 
@@ -170,7 +170,7 @@ function paidForLabel(item: HistoryPayment): string {
     case "ServiceCharge":
       return item.serviceKind === null
         ? paymentSourceLabels.ServiceCharge
-        : serviceChargeKindLabels[item.serviceKind];
+        : serviceChargeLabel(item.serviceKind, item.serviceDescription);
     case "CafeOrder":
       return paymentSourceLabels.CafeOrder;
   }

@@ -23,6 +23,7 @@ namespace Gym.Application.History.ListPayments;
 /// </param>
 /// <param name="SubscriptionPlan">What the subscription sold, which the frontend labels. <c>null</c> unless a subscription.</param>
 /// <param name="ServiceKind"><c>null</c> unless a service charge.</param>
+/// <param name="ServiceDescription">What a miscellaneous sale sold (§7); <c>null</c> for anything else.</param>
 /// <param name="Kind">A payment, or a refund — marked on screen, with its <paramref name="Reason"/>.</param>
 /// <param name="TargetUndone">
 /// The item was cancelled (a subscription or cafe order) or voided (هوازی) after this money was
@@ -42,6 +43,7 @@ public sealed record HistoryPaymentResponse(
     string? GuestName,
     PlanSummary? SubscriptionPlan,
     [property: JsonConverter(typeof(JsonStringEnumConverter<ServiceChargeKind>))] ServiceChargeKind? ServiceKind,
+    string? ServiceDescription,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentKind>))] PaymentKind Kind,
     decimal Amount,
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentMethod>))] PaymentMethod Method,

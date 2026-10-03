@@ -7,8 +7,17 @@ namespace Gym.Api.IntegrationTests.Infrastructure;
 internal static class CancelCheckInBody
 {
     /// <summary>Nothing the visit bought is cancelled: the choice of every test not about purchases.</summary>
-    internal static object KeepPurchases { get; } = new { voidCardio = false, cafeOrderIds = Array.Empty<Guid>() };
+    internal static object KeepPurchases { get; } = new
+    {
+        voidCardio = false,
+        cafeOrderIds = Array.Empty<Guid>(),
+        miscellaneousSaleIds = Array.Empty<Guid>(),
+    };
 
     internal static object Cancel(bool voidCardio, params Guid[] cafeOrderIds) =>
-        new { voidCardio, cafeOrderIds };
+        new { voidCardio, cafeOrderIds, miscellaneousSaleIds = Array.Empty<Guid>() };
+
+    /// <summary>Voids the named miscellaneous sales (task 6.5.28) and keeps everything else.</summary>
+    internal static object VoidMiscellaneous(params Guid[] miscellaneousSaleIds) =>
+        new { voidCardio = false, cafeOrderIds = Array.Empty<Guid>(), miscellaneousSaleIds };
 }

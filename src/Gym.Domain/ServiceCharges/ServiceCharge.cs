@@ -3,8 +3,9 @@ using Gym.Domain.Common;
 namespace Gym.Domain.ServiceCharges;
 
 /// <summary>
-/// Money owed for something the member used during a visit — today only هوازی, the treadmill
-/// (BUSINESS_RULES.md §7 <i>Gym services</i>).
+/// Money owed for something the member used or bought during a visit — هوازی, the treadmill, and
+/// متفرقه, a sale the desk names itself (BUSINESS_RULES.md §7 <i>Gym services</i>,
+/// <i>Miscellaneous sale</i>).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -35,6 +36,12 @@ public sealed class ServiceCharge : Entity
 
     public const int VoidReasonMaxLength = 500;
 
+    /// <summary>A miscellaneous sale's name; the same limit as a cafe product's name.</summary>
+    public const int DescriptionMaxLength = 100;
+
+    /// <summary>The same limit as a cafe order line: nobody buys 1,000 of one thing at the desk.</summary>
+    public const int MaxQuantity = 999;
+
     // For EF Core.
     private ServiceCharge()
     {
@@ -47,7 +54,21 @@ public sealed class ServiceCharge : Entity
 
     public ServiceChargeKind Kind { get; private set; }
 
+    /// <summary>
+    /// What is owed. For a <see cref="ServiceChargeKind.Miscellaneous"/> sale it is
+    /// <see cref="UnitPrice"/> × <see cref="Quantity"/>, stored like a cafe line's total: it is
+    /// what the member was charged, and a stored figure cannot be re-derived differently later.
+    /// </summary>
     public decimal Amount { get; private set; }
+
+    /// <summary>What a miscellaneous sale sold, as the desk typed it; <c>null</c> for هوازی.</summary>
+    public string? Description { get; private set; }
+
+    /// <summary>How many of it a miscellaneous sale sold; <c>null</c> for هوازی.</summary>
+    public int? Quantity { get; private set; }
+
+    /// <summary>The price of one, as the desk typed it; <c>null</c> for هوازی.</summary>
+    public decimal? UnitPrice { get; private set; }
 
     /// <summary>A business date in the gym's time zone: the day of the visit, for reports.</summary>
     public DateOnly ChargedOn { get; private set; }
@@ -75,6 +96,12 @@ public sealed class ServiceCharge : Entity
     public static Result<ServiceCharge> Record(
         Guid memberId, Guid attendanceId, ServiceChargeKind kind, decimal amount, DateOnly chargedOn, Guid recordedByUserId)
     {
+        // A miscellaneous sale needs its name and quantity, which only RecordMiscellaneous takes.
+        if (kind == ServiceChargeKind.Miscellaneous)
+        {
+            return Result.Failure<ServiceCharge>(ServiceChargeErrors.KindInvalid);
+        }
+
         var amountError = CheckAmount(amount);
         if (amountError is not null)
         {
@@ -93,14 +120,72 @@ public sealed class ServiceCharge : Entity
     }
 
     /// <summary>
+    /// Records a miscellaneous sale (BUSINESS_RULES.md §7 <i>Miscellaneous sale</i>): something the
+    /// desk sold that has no product of its own, so the desk types its name, how many and the price
+    /// of one. As with هوازی the system never checks the price against anything.
+    /// </summary>
+    public static Result<ServiceCharge> RecordMiscellaneous(
+        Guid memberId, Guid attendanceId, string description, int quantity, decimal unitPrice,
+        DateOnly chargedOn, Guid recordedByUserId)
+    {
+        ArgumentNullException.ThrowIfNull(description);
+
+        var cleanDescription = description.Trim();
+        if (cleanDescription.Length == 0)
+        {
+            return Result.Failure<ServiceCharge>(ServiceChargeErrors.DescriptionRequired);
+        }
+
+        if (cleanDescription.Length > DescriptionMaxLength)
+        {
+            return Result.Failure<ServiceCharge>(ServiceChargeErrors.DescriptionTooLong);
+        }
+
+        if (quantity is < 1 or > MaxQuantity)
+        {
+            return Result.Failure<ServiceCharge>(ServiceChargeErrors.QuantityInvalid);
+        }
+
+        // The unit price obeys the money rule itself, and so does the total it makes: 999 of a
+        // valid price can still overflow the column.
+        var priceError = CheckAmount(unitPrice) ?? CheckAmount(unitPrice * quantity);
+        if (priceError is not null)
+        {
+            return Result.Failure<ServiceCharge>(priceError);
+        }
+
+        return new ServiceCharge
+        {
+            MemberId = memberId,
+            AttendanceId = attendanceId,
+            Kind = ServiceChargeKind.Miscellaneous,
+            Description = cleanDescription,
+            Quantity = quantity,
+            UnitPrice = unitPrice,
+            Amount = unitPrice * quantity,
+            ChargedOn = chargedOn,
+            RecordedByUserId = recordedByUserId,
+        };
+    }
+
+    /// <summary>
     /// Corrects the amount while nothing has been settled. "Nothing has been paid against it" is
     /// the caller's check; a voided charge is not corrected at all, which this row does know.
     /// </summary>
+    /// <remarks>
+    /// A miscellaneous sale is never edited: it is voided with a reason and entered again, the
+    /// rule a cafe order follows (§7 <i>Miscellaneous sale</i>, §8).
+    /// </remarks>
     public Result ChangeAmount(decimal amount)
     {
         if (IsVoided)
         {
             return Result.Failure(ServiceChargeErrors.AlreadyVoided);
+        }
+
+        if (Kind == ServiceChargeKind.Miscellaneous)
+        {
+            return Result.Failure(ServiceChargeErrors.MiscellaneousNotEditable);
         }
 
         var amountError = CheckAmount(amount);

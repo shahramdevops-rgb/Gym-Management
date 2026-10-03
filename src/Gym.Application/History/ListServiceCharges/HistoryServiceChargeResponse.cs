@@ -5,7 +5,10 @@ using Gym.Domain.ServiceCharges;
 
 namespace Gym.Application.History.ListServiceCharges;
 
-/// <summary>One هوازی charge in the gym's history (BUSINESS_RULES.md §12 <i>History</i>).</summary>
+/// <summary>
+/// One هوازی charge or miscellaneous sale in the gym's history (BUSINESS_RULES.md §12 <i>History</i>).
+/// </summary>
+/// <param name="Description">What a miscellaneous sale sold; <c>null</c> for هوازی, as are the next two.</param>
 /// <param name="ChargedOn">The business date of the visit, which the date range filters by.</param>
 /// <param name="CreatedAt">The moment it was recorded, for the time of day on screen.</param>
 /// <param name="RecordedByFullName">Who recorded it at the desk.</param>
@@ -18,6 +21,9 @@ public sealed record HistoryServiceChargeResponse(
     string MemberFullName,
     Guid AttendanceId,
     [property: JsonConverter(typeof(JsonStringEnumConverter<ServiceChargeKind>))] ServiceChargeKind Kind,
+    string? Description,
+    int? Quantity,
+    decimal? UnitPrice,
     decimal Amount,
     DateOnly ChargedOn,
     DateTimeOffset CreatedAt,

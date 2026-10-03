@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 
 using Gym.Application.Common;
+using Gym.Application.ServiceCharges;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
@@ -34,6 +35,10 @@ public static class MemberDebt
     /// <param name="Id">The subscription's, service charge's or cafe order's id — what a payment is posted against.</param>
     /// <param name="Plan">What the subscription sold; <c>null</c> for anything that is not a subscription.</param>
     /// <param name="ServiceKind"><c>null</c> for anything that is not a service charge.</param>
+    /// <param name="Sale">
+    /// What a miscellaneous sale sold, so the breakdown can say what the money is for; <c>null</c>
+    /// for everything else, هوازی included.
+    /// </param>
     /// <param name="StartDate">
     /// The subscription's start date, the day of the visit that was charged, or the day of the
     /// cafe sale.
@@ -46,6 +51,7 @@ public static class MemberDebt
         Guid Id,
         PlanSummary? Plan,
         ServiceChargeKind? ServiceKind,
+        MiscellaneousSaleSummary? Sale,
         DateOnly StartDate,
         DateOnly? EndDate,
         decimal Price,
@@ -82,6 +88,9 @@ public static class MemberDebt
             {
                 charge.Id,
                 charge.Kind,
+                charge.Description,
+                charge.Quantity,
+                charge.UnitPrice,
                 charge.ChargedOn,
                 charge.Amount,
                 NetPaid = db.Payments
@@ -109,6 +118,7 @@ public static class MemberDebt
                 subscription.Id,
                 subscription.Plan,
                 ServiceKind: null,
+                Sale: null,
                 subscription.StartDate,
                 subscription.EndDate,
                 subscription.Price,
@@ -119,6 +129,7 @@ public static class MemberDebt
                 charge.Id,
                 Plan: null,
                 charge.Kind,
+                MiscellaneousSaleSummary.From(charge.Description, charge.Quantity, charge.UnitPrice),
                 charge.ChargedOn,
                 EndDate: null,
                 charge.Amount,
@@ -129,6 +140,7 @@ public static class MemberDebt
                 order.Id,
                 Plan: null,
                 ServiceKind: null,
+                Sale: null,
                 order.OrderedOn,
                 EndDate: null,
                 order.TotalAmount,

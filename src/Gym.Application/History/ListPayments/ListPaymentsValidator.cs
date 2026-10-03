@@ -27,6 +27,11 @@ public sealed class ListPaymentsValidator : AbstractValidator<ListPaymentsQuery>
             .WithErrorCode(PaymentErrors.InvalidSource.Code)
             .WithMessage(PaymentErrors.InvalidSource.Description);
 
+        RuleFor(query => query.ServiceKind)
+            .IsInEnum()
+            .WithErrorCode(PaymentErrors.InvalidSource.Code)
+            .WithMessage(PaymentErrors.InvalidSource.Description);
+
         // One day before DateOnly.MaxValue: the handler computes an exclusive upper bound with
         // To.AddDays(1), which throws for MaxValue itself rather than returning a Result.
         RuleFor(query => query.To)
