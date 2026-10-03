@@ -224,19 +224,20 @@ public sealed class CardioOnlyVisitEndpointTests(DatabaseFixture fixture) : Data
     }
 
     /// <summary>
-    /// A miscellaneous sale is a service charge too, but not the هوازی amount this visit is for
-    /// (§7 <i>Miscellaneous sale</i>), so it does not open the door.
+    /// A sale (فروشگاه, آنالیز) is a service charge too, but not the هوازی amount this visit is for
+    /// (§7 <i>Sale at the desk</i>), so it does not open the door.
     /// </summary>
     [Fact]
-    public async Task CheckOut_CardioOnlyWithOnlyAMiscellaneousSale_Returns422AttendanceCardioChargeMissing()
+    public async Task CheckOut_CardioOnlyWithOnlyASale_Returns422AttendanceCardioChargeMissing()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
         await InsertMembershipAsync(member.Id);
         var visit = await CardioOnlyCheckInOkAsync(client, token, member.Id, lockerNumber: 1);
+        // آنالیز is a single amount on the same endpoint as هوازی, and still not the هوازی.
         using (var sold = await SendAsync(
-            client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/service-charges/miscellaneous",
-            new { description = "دستکش", quantity = 1, unitPrice = 50_000m, method = (string?)null }))
+            client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/service-charges",
+            new { kind = "Analysis", amount = 50_000m }))
         {
             sold.StatusCode.ShouldBe(HttpStatusCode.Created);
         }

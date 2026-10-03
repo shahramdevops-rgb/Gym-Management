@@ -13,11 +13,11 @@ namespace Gym.Application.Attendances.CancelCheckIn;
 /// The visit's cafe orders to cancel, each ticked on its own; empty keeps them all. Orders not
 /// named stay on the member's account, including one added after the box was opened.
 /// </param>
-/// <param name="MiscellaneousSaleIds">
-/// The visit's miscellaneous sales to void, each ticked on its own, exactly like the cafe orders;
-/// empty keeps them all.
+/// <param name="SaleIds">
+/// The visit's sales to void, فروشگاه and آنالیز alike, each ticked on its own, exactly like the
+/// cafe orders; empty keeps them all.
 /// </param>
 public sealed record CancelCheckInCommand(
     bool? VoidCardio,
     IReadOnlyList<Guid>? CafeOrderIds,
-    IReadOnlyList<Guid>? MiscellaneousSaleIds);
+    IReadOnlyList<Guid>? SaleIds);

@@ -11,13 +11,13 @@ internal static class CancelCheckInBody
     {
         voidCardio = false,
         cafeOrderIds = Array.Empty<Guid>(),
-        miscellaneousSaleIds = Array.Empty<Guid>(),
+        saleIds = Array.Empty<Guid>(),
     };
 
     internal static object Cancel(bool voidCardio, params Guid[] cafeOrderIds) =>
-        new { voidCardio, cafeOrderIds, miscellaneousSaleIds = Array.Empty<Guid>() };
+        new { voidCardio, cafeOrderIds, saleIds = Array.Empty<Guid>() };
 
-    /// <summary>Voids the named miscellaneous sales (task 6.5.28) and keeps everything else.</summary>
-    internal static object VoidMiscellaneous(params Guid[] miscellaneousSaleIds) =>
-        new { voidCardio = false, cafeOrderIds = Array.Empty<Guid>(), miscellaneousSaleIds };
+    /// <summary>Voids the named sales, فروشگاه or آنالیز (tasks 6.5.28, 6.5.29), and keeps everything else.</summary>
+    internal static object VoidSales(params Guid[] saleIds) =>
+        new { voidCardio = false, cafeOrderIds = Array.Empty<Guid>(), saleIds };
 }

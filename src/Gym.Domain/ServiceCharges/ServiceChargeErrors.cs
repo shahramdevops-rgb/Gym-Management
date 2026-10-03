@@ -80,13 +80,21 @@ public static class ServiceChargeErrors
         "ServiceCharges.QuantityInvalid",
         $"Quantity must be between 1 and {ServiceCharge.MaxQuantity}.");
 
+    public static readonly Error ShopItemsRequired = Error.Validation(
+        "ServiceCharges.ShopItemsRequired",
+        "A shop sale needs at least one item.");
+
+    public static readonly Error TooManyShopItems = Error.Validation(
+        "ServiceCharges.TooManyShopItems",
+        $"A shop sale can have at most {ServiceCharge.MaxShopItemsPerSale} items.");
+
     /// <summary>
-    /// BUSINESS_RULES.md §7 <i>Miscellaneous sale</i>: never edited, voided with a reason and
+    /// BUSINESS_RULES.md §7 <i>Sale at the desk</i>: never edited, voided with a reason and
     /// entered again, as a cafe order is (§8).
     /// </summary>
-    public static readonly Error MiscellaneousNotEditable = Error.BusinessRule(
-        "ServiceCharges.MiscellaneousNotEditable",
-        "A miscellaneous sale cannot be changed. Void it and enter it again.");
+    public static readonly Error SaleNotEditable = Error.BusinessRule(
+        "ServiceCharges.SaleNotEditable",
+        "A sale cannot be changed. Void it and enter it again.");
 
     /// <summary>The <c>xmin</c> backstop: two people changed the same charge at the same moment.</summary>
     public static readonly Error ChangedConcurrently = Error.Conflict(

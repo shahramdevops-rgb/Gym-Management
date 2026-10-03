@@ -36,7 +36,7 @@ public static class MemberDebt
     /// <param name="Plan">What the subscription sold; <c>null</c> for anything that is not a subscription.</param>
     /// <param name="ServiceKind"><c>null</c> for anything that is not a service charge.</param>
     /// <param name="Sale">
-    /// What a miscellaneous sale sold, so the breakdown can say what the money is for; <c>null</c>
+    /// What a sale (فروشگاه, آنالیز) sold, so the breakdown can say what the money is for; <c>null</c>
     /// for everything else, هوازی included.
     /// </param>
     /// <param name="StartDate">
@@ -51,7 +51,7 @@ public static class MemberDebt
         Guid Id,
         PlanSummary? Plan,
         ServiceChargeKind? ServiceKind,
-        MiscellaneousSaleSummary? Sale,
+        SaleSummary? Sale,
         DateOnly StartDate,
         DateOnly? EndDate,
         decimal Price,
@@ -129,7 +129,7 @@ public static class MemberDebt
                 charge.Id,
                 Plan: null,
                 charge.Kind,
-                MiscellaneousSaleSummary.From(charge.Description, charge.Quantity, charge.UnitPrice),
+                SaleSummary.From(charge.Description, charge.Quantity, charge.UnitPrice),
                 charge.ChargedOn,
                 EndDate: null,
                 charge.Amount,

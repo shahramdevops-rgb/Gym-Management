@@ -1328,3 +1328,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **A screen choice that the API sees as two parameters.** The history filter offers هوازی and متفرقه as two sources; the API has one `Source` plus `ServiceKind`. `paymentSourceQuery` is the single place that translates one into the other.
 - **`useWatch` instead of `form.watch`.** The React Compiler cannot memoize a component that calls `watch()`; `useWatch` subscribes to the fields it needs and keeps the live total compatible.
 - **My notes:**
+
+## 6.5.29 — Purchase tiles in the locker box, فروشگاه and آنالیز
+
+- **Generalise by what really differs.** The first pass gave آنالیز the shop's name/quantity/price. Once it became "only a price", it turned out to be the هوازی shape (a single amount) with the shop's rules (many per visit, never edited). So the code now asks two separate questions: "single amount or item lines?" (which factory and endpoint) and "is it sold at the desk?" (`ServiceCharge.IsSaleKind`: editing and cancel ticks).
+- **The cheapest migration is the one you delete.** `AddAnalysisSale` was never released, so it was rolled back locally (`dotnet ef database update AddMiscellaneousSale`) and removed (`dotnet ef migrations remove`). With آنالیز carrying no item columns, the 6.5.28 constraint already describes it. `dotnet ef migrations has-pending-model-changes` confirms the model and the last migration agree.
+- **One request, many rows, all or none.** The shop endpoint takes a list of items and calls `SaveChangesAsync` once, so EF Core writes every row in one transaction; the domain checks each item first, and one bad item refuses them all.
+- **No user-defined conversion to an interface.** `Result<IReadOnlyList<T>>` cannot be produced from a `List<T>` by the implicit operator, because C# never applies user-defined conversions to interface types; `Result.Success<IReadOnlyList<T>>(list)` says it outright.
+- **Form errors have the shape of the form.** React Hook Form reads `errors.items[0].description`, a nested object. The hand-written `zodResolver` used flat dotted keys, which worked only while every form was flat; it now builds the nesting from each Zod issue's path.
+- **`useFieldArray` for repeating lines.** It gives each line a stable `id` for React's `key`, and `append` / `remove` that keep the form's values and errors lined up with the right row.
+- **Colour as design tokens.** Each tile reads `bg-tile-*` and `text-tile-*-ink`, defined once in `index.css` for light and dark, never as raw colours in a component.
+- **One component, two looks.** `ServiceChargeBox` shows a compact one-line summary in a table cell and a large tile in the locker box, chosen by a `tile` prop, so the dialogs and rules behind it exist once.
+- **My notes:**

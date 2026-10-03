@@ -95,7 +95,7 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
         purchasesCancelled:
           choice.voidCardio ||
           choice.cafeOrderIds.length > 0 ||
-          choice.miscellaneousSaleIds.length > 0,
+          choice.saleIds.length > 0,
       });
     } catch (problem) {
       setStep({ kind: "failed", reason: errorMessage(problem) });

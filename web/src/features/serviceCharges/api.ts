@@ -22,12 +22,24 @@ export type ServiceChargeKind = NonNullable<components["schemas"]["ServiceCharge
  */
 export const serviceChargeKindLabels: Record<ServiceChargeKind, string> = {
   Cardio: "هوازی",
-  Miscellaneous: "متفرقه",
+  Miscellaneous: "فروشگاه",
+  Analysis: "آنالیز",
 };
 
 /**
- * What a charge is, for the lists that name an item: «هوازی», or «متفرقه: دستکش» for a
- * miscellaneous sale, whose name the desk typed (§7 *Miscellaneous sale*). `null` kind is a row
+ * The kinds the desk records as a sale, with a name, a quantity and a unit price (BUSINESS_RULES.md
+ * §7 *Sale at the desk*). Both follow the same rules; the kind only says which source it is filed
+ * under.
+ */
+export type SaleKind = Extract<ServiceChargeKind, "Miscellaneous" | "Analysis">;
+
+export function isSaleKind(kind: ServiceChargeKind | null): kind is SaleKind {
+  return kind === "Miscellaneous" || kind === "Analysis";
+}
+
+/**
+ * What a charge is, for the lists that name an item: «هوازی», or «فروشگاه: دستکش» for a sale,
+ * whose name the desk typed (§7 *Sale at the desk*). `null` kind is a row
  * that is a service charge of unknown kind, which the API never sends but the type allows.
  */
 export function serviceChargeLabel(
@@ -82,22 +94,28 @@ export function useRecordServiceCharge() {
   });
 }
 
-export interface RecordMiscellaneousSaleInput {
-  attendanceId: string;
+export interface ShopSaleItemInput {
   description: string;
   quantity: number;
   unitPrice: string;
-  /** How the whole amount was paid there and then, or `null` to leave it on the member's account. */
-  method: PaymentMethod | null;
 }
 
-/** «متفرقه» (BUSINESS_RULES.md §7 *Miscellaneous sale*): the sale and its payment in one request. */
-export function useRecordMiscellaneousSale() {
+export interface RecordShopSaleInput {
+  attendanceId: string;
+  items: ShopSaleItemInput[];
+}
+
+/**
+ * «فروشگاه» (BUSINESS_RULES.md §7 *Sale at the desk*): one or more items in one request, each its
+ * own charge, all on the member's account. آنالیز is a single amount and uses
+ * `useRecordServiceCharge`, like هوازی.
+ */
+export function useRecordShopSale() {
   return useServiceChargeMutation(
-    async ({ attendanceId, ...body }: RecordMiscellaneousSaleInput) => {
+    async ({ attendanceId, items }: RecordShopSaleInput) => {
       const { data, error } = await api.POST(
-        "/api/attendance/{attendanceId}/service-charges/miscellaneous",
-        { params: { path: { attendanceId } }, body },
+        "/api/attendance/{attendanceId}/service-charges/shop",
+        { params: { path: { attendanceId } }, body: { items } },
       );
       if (error !== undefined) {
         throw error;

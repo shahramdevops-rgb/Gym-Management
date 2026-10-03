@@ -87,13 +87,13 @@ public static class AttendanceErrors
         "A cafe order to cancel is not a standing order of this visit.");
 
     /// <summary>
-    /// BUSINESS_RULES.md §7 <i>Cancel check-in</i>: a ticked miscellaneous sale is not a standing
-    /// sale of this visit (another visit's, or voided since the box was opened). The whole
+    /// BUSINESS_RULES.md §7 <i>Cancel check-in</i>: a ticked sale (فروشگاه or آنالیز) is not a
+    /// standing sale of this visit (another visit's, or voided since the box was opened). The whole
     /// cancellation is refused so nothing is half done.
     /// </summary>
-    public static readonly Error MiscellaneousSaleNotOnVisit = Error.BusinessRule(
-        "Attendance.MiscellaneousSaleNotOnVisit",
-        "A miscellaneous sale to void is not a standing sale of this visit.");
+    public static readonly Error SaleNotOnVisit = Error.BusinessRule(
+        "Attendance.SaleNotOnVisit",
+        "A sale to void is not a standing sale of this visit.");
 
     /// <summary>BUSINESS_RULES.md §7 <i>Guest visit</i>: a guest's full name is required.</summary>
     public static readonly Error GuestNameRequired = Error.Validation(

@@ -122,7 +122,7 @@ describe("VisitCafeBox in the locker's box", () => {
     renderApp("/", { session: session() });
     const box = await openLocker();
 
-    expect(within(box).getByRole("button", { name: "خرید بوفه" })).toBeInTheDocument();
+    expect(within(box).getByRole("button", { name: "بوفه" })).toBeInTheDocument();
   });
 
   it("Locker_ApiOlderThanTheCafeSlot_StillOffersAPurchase", async () => {
@@ -134,7 +134,7 @@ describe("VisitCafeBox in the locker's box", () => {
     renderApp("/", { session: session() });
     const box = await openLocker();
 
-    expect(within(box).getByRole("button", { name: "خرید بوفه" })).toBeInTheDocument();
+    expect(within(box).getByRole("button", { name: "بوفه" })).toBeInTheDocument();
   });
 
   it("Locker_AddPurchase_PutsItOnTheAccountTiedToTheVisit", async () => {
@@ -146,7 +146,7 @@ describe("VisitCafeBox in the locker's box", () => {
     );
 
     renderApp("/", { session: session() });
-    fireEvent.click(within(await openLocker()).getByRole("button", { name: "خرید بوفه" }));
+    fireEvent.click(within(await openLocker()).getByRole("button", { name: "بوفه" }));
 
     const dialog = await screen.findByRole("dialog", { name: /^بوفه/ });
     const drinks = await within(dialog).findByRole("region", { name: "نوشیدنی" });

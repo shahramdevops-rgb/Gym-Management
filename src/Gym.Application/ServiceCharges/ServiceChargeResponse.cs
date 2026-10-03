@@ -17,9 +17,9 @@ namespace Gym.Application.ServiceCharges;
 /// Whether the amount can still be corrected in place rather than voided and re-entered: the
 /// visit is open, nothing has been paid against it, and it is not already voided. The screen
 /// shows only the actions that are possible, the way the subscription history row does (task 4.7).
-/// Always <c>false</c> for a miscellaneous sale, which is voided and entered again instead.
+/// Always <c>false</c> for a sale, which is voided and entered again instead.
 /// </param>
-/// <param name="Description">What a miscellaneous sale sold; <c>null</c> for هوازی, as are the next two.</param>
+/// <param name="Description">What a sale sold; <c>null</c> for هوازی, as are the next two.</param>
 public sealed record ServiceChargeResponse(
     Guid Id,
     Guid MemberId,
@@ -62,7 +62,7 @@ public sealed record ServiceChargeResponse(
             charge.VoidReason,
             netPaid,
             PaymentStatusCalculator.Calculate(charge.Amount, netPaid),
-            visitIsOpen && !charge.IsVoided && netPaid == 0 && charge.Kind != ServiceChargeKind.Miscellaneous,
+            visitIsOpen && !charge.IsVoided && netPaid == 0 && !charge.IsSale,
             charge.CreatedAt);
     }
 }

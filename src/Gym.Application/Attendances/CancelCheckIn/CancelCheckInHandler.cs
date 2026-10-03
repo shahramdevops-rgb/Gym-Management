@@ -14,7 +14,7 @@ namespace Gym.Application.Attendances.CancelCheckIn;
 /// Cancels an open check-in within the allowed window (BUSINESS_RULES.md §7): restores the
 /// session (a guest's visit has none), frees the locker (occupancy is derived from <c>CheckedOutAt</c>, which
 /// <see cref="Attendance.Cancel"/> also sets), and cancels the purchases the desk ticked —
-/// the هوازی, each miscellaneous sale named and each cafe order named. Front desk work, so both
+/// the هوازی, each sale named (فروشگاه, آنالیز) and each cafe order named. Front desk work, so both
 /// roles.
 /// </summary>
 /// <remarks>
@@ -86,12 +86,12 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
             await VoidCardioAsync(id, userId, now, cancellationToken);
         }
 
-        var miscVoided = await VoidMiscellaneousSalesAsync(
-            id, command.MiscellaneousSaleIds ?? [], userId, now, cancellationToken);
-        if (miscVoided.IsFailure)
+        var salesVoided = await VoidSalesAsync(
+            id, command.SaleIds ?? [], userId, now, cancellationToken);
+        if (salesVoided.IsFailure)
         {
             // Nothing is saved: the transaction is disposed without a commit.
-            return Result.Failure<AttendanceResponse>(miscVoided.Error);
+            return Result.Failure<AttendanceResponse>(salesVoided.Error);
         }
 
         var cafeCancelled = await CancelCafeOrdersAsync(id, cafeOrderIds, userId, now, cancellationToken);
@@ -150,11 +150,15 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
     }
 
     /// <summary>
-    /// BUSINESS_RULES.md §7 <i>Miscellaneous sale</i>: each named sale is voided exactly as from
-    /// its own void button, money going back the way it came. Every one must be a standing sale of
-    /// this visit, or none is voided.
+    /// BUSINESS_RULES.md §7 <i>Sale at the desk</i>: each named sale, فروشگاه or آنالیز, is voided
+    /// exactly as from its own void button, money going back the way it came. Every one must be a
+    /// standing sale of this visit, or none is voided.
     /// </summary>
-    private async Task<Result> VoidMiscellaneousSalesAsync(
+    /// <remarks>
+    /// The kinds are spelled out rather than calling <see cref="ServiceCharge.IsSaleKind"/>: EF Core
+    /// cannot turn a C# method into SQL, but it can turn this comparison into a <c>WHERE</c>.
+    /// </remarks>
+    private async Task<Result> VoidSalesAsync(
         Guid attendanceId, IReadOnlyList<Guid> saleIds, Guid userId, DateTimeOffset now, CancellationToken cancellationToken)
     {
         if (saleIds.Count == 0)
@@ -165,14 +169,14 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
         var sales = await db.ServiceCharges
             .Where(charge => saleIds.Contains(charge.Id)
                 && charge.AttendanceId == attendanceId
-                && charge.Kind == ServiceChargeKind.Miscellaneous
+                && (charge.Kind == ServiceChargeKind.Miscellaneous || charge.Kind == ServiceChargeKind.Analysis)
                 && charge.VoidedAt == null)
             .ToListAsync(cancellationToken);
 
         // Another visit's sale, a هوازی id, an unknown id, or one voided since the box opened.
         if (sales.Count != saleIds.Count)
         {
-            return Result.Failure(AttendanceErrors.MiscellaneousSaleNotOnVisit);
+            return Result.Failure(AttendanceErrors.SaleNotOnVisit);
         }
 
         foreach (var sale in sales)
@@ -182,7 +186,7 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
             {
                 // The query excluded voided sales and the reason is a valid constant.
                 throw new InvalidOperationException(
-                    $"Voiding a miscellaneous sale while cancelling a check-in failed: {voided.Error.Code}.");
+                    $"Voiding a sale while cancelling a check-in failed: {voided.Error.Code}.");
             }
 
             await ServiceChargeRefunder.RefundNetPaidAsync(db, sale, CancelReason, userId, now, cancellationToken);

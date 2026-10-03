@@ -63,7 +63,7 @@ using Gym.Application.Payments.SettleMemberDebt;
 using Gym.Application.Pricing.GetPrices;
 using Gym.Application.Pricing.UpdatePrices;
 using Gym.Application.ServiceCharges.ChangeServiceChargeAmount;
-using Gym.Application.ServiceCharges.RecordMiscellaneousSale;
+using Gym.Application.ServiceCharges.RecordShopSale;
 using Gym.Application.ServiceCharges.RecordServiceCharge;
 using Gym.Application.ServiceCharges.VoidServiceCharge;
 using Gym.Application.Staff.CreateStaff;
@@ -171,7 +171,7 @@ public static class DependencyInjection
         services.AddScoped<SettleMemberDebtHandler>();
 
         services.AddScoped<RecordServiceChargeHandler>();
-        services.AddScoped<RecordMiscellaneousSaleHandler>();
+        services.AddScoped<RecordShopSaleHandler>();
         services.AddScoped<ChangeServiceChargeAmountHandler>();
         services.AddScoped<VoidServiceChargeHandler>();
 
