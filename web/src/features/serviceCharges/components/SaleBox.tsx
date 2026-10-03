@@ -9,19 +9,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PurchaseTile, PurchaseTileSummary } from "@/features/attendance/components/PurchaseTile";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney, subtractMoney } from "@/lib/money";
 
-import type { ServiceCharge } from "../api";
-import { MiscellaneousSaleForm } from "./MiscellaneousSaleForm";
+import { serviceChargeKindLabels, serviceChargeLabel, type SaleKind, type ServiceCharge } from "../api";
+import { ServiceChargeAmountForm } from "./ServiceChargeAmountForm";
 import { ServiceChargePaymentForm } from "./ServiceChargePaymentForm";
+import { ShopSaleForm } from "./ShopSaleForm";
 import { VoidServiceChargeForm } from "./VoidServiceChargeForm";
 
-interface MiscellaneousSaleBoxProps {
+interface SaleBoxProps {
   attendanceId: string;
+  /** فروشگاه or آنالیز: which tile this is and which source its sales are filed under. */
+  kind: SaleKind;
   memberName: string;
-  /** The visit's standing miscellaneous sales (voided ones never arrive). */
+  /** The visit's standing sales of this kind (voided ones never arrive). */
   sales: ServiceCharge[];
 }
 
@@ -33,16 +37,20 @@ type Step =
   | { kind: "done"; title: string; detail?: string };
 
 /**
- * The «متفرقه» slot of one visit, beside هوازی and بوفه (BUSINESS_RULES.md §7 *Miscellaneous
- * sale*): something sold at the desk that has no product of its own. A visit may have any number
- * of them, so the slot shows their total like the cafe's, and the list opens in a dialog.
+ * The «فروشگاه» or «آنالیز» tile of one visit, beside هوازی and بوفه (BUSINESS_RULES.md §7 *Sale at
+ * the desk*): something sold at the desk that has no product of its own. A visit may have any
+ * number of them, so the tile shows their total like the cafe's, and the list opens in a dialog.
+ * فروشگاه takes one or more named items (`ShopSaleForm`); آنالیز is a single price
+ * (`ServiceChargeAmountForm`, the هوازی form). Either way no money is taken when it is recorded:
+ * it goes on the member's account (decided with the developer, 1405/07/12).
  *
  * A sale is never edited. A mistake is voided with a reason, which gives back whatever was paid,
  * and the sale is entered again — the rule a cafe order follows. A sale left on the account can be
  * paid from here, or with everything else in «تسویه یکجا».
  */
-export function MiscellaneousSaleBox({ attendanceId, memberName, sales }: MiscellaneousSaleBoxProps) {
+export function SaleBox({ attendanceId, kind, memberName, sales }: SaleBoxProps) {
   const [step, setStep] = useState<Step | null>(null);
+  const label = serviceChargeKindLabels[kind];
 
   const total = addMoney(...sales.map((sale) => sale.amount));
   const netPaid = addMoney(...sales.map((sale) => sale.netPaid));
@@ -58,21 +66,19 @@ export function MiscellaneousSaleBox({ attendanceId, memberName, sales }: Miscel
 
   return (
     <>
-      {sales.length === 0 ? (
-        <Button size="sm" variant="outline" onClick={() => setStep({ kind: "add" })}>
-          فروش متفرقه
-        </Button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setStep({ kind: "list" })}
-          aria-label={`متفرقه: ${formatMoney(total)}`}
-          className="flex items-center gap-2 rounded-md px-1 py-0.5 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <span>{formatMoney(total)}</span>
-          <PaymentStatusBadge status={status} />
-        </button>
-      )}
+      <PurchaseTile
+        kind={kind === "Analysis" ? "analysis" : "shop"}
+        onClick={() => setStep(sales.length === 0 ? { kind: "add" } : { kind: "list" })}
+        ariaLabel={sales.length === 0 ? label : `${label}: ${formatMoney(total)}`}
+        summary={
+          sales.length > 0 && (
+            <PurchaseTileSummary
+              amount={formatMoney(total)}
+              badge={<PaymentStatusBadge status={status} />}
+            />
+          )
+        }
+      />
 
       <Dialog open={step !== null} onOpenChange={(next) => !next && setStep(null)}>
         <DialogContent>
@@ -82,12 +88,16 @@ export function MiscellaneousSaleBox({ attendanceId, memberName, sales }: Miscel
 
           {step !== null && step.kind !== "done" && (
             <DialogHeader>
-              <DialogTitle>متفرقه — {memberName}</DialogTitle>
+              <DialogTitle>
+                {label} — {memberName}
+              </DialogTitle>
               <DialogDescription>
                 {step.kind === "list"
-                  ? `فروش‌های این مراجعه: ${formatMoney(total)}`
+                  ? `فروش‌های ${label} در این مراجعه: ${formatMoney(total)}`
                   : step.kind === "add"
-                    ? "نام، تعداد و قیمت را وارد کنید و نوع پرداخت را انتخاب کنید."
+                    ? kind === "Analysis"
+                      ? "مبلغ آنالیز را وارد کنید. به حساب عضو ثبت می‌شود."
+                      : "نام، تعداد و قیمت هر کالا را وارد کنید. مبلغ به حساب عضو ثبت می‌شود."
                     : saleLine(step.sale)}
               </DialogDescription>
             </DialogHeader>
@@ -95,7 +105,7 @@ export function MiscellaneousSaleBox({ attendanceId, memberName, sales }: Miscel
 
           {step?.kind === "list" && (
             <div className="space-y-3">
-              <ul className="divide-y rounded-md border" aria-label="فروش‌های متفرقه">
+              <ul className="divide-y rounded-md border" aria-label={`فروش‌های ${label}`}>
                 {sales.map((sale) => (
                   <li key={sale.id} className="flex flex-wrap items-center gap-2 p-3 text-sm">
                     <span className="flex-1">{saleLine(sale)}</span>
@@ -124,14 +134,31 @@ export function MiscellaneousSaleBox({ attendanceId, memberName, sales }: Miscel
             </div>
           )}
 
-          {step?.kind === "add" && (
-            <MiscellaneousSaleForm
-              attendanceId={attendanceId}
-              onDone={(sale) =>
+          {step?.kind === "add" && kind === "Analysis" && (
+            <ServiceChargeAmountForm
+              label={`مبلغ ${label}`}
+              target={{ attendanceId, kind }}
+              onDone={(amount) =>
                 setStep({
                   kind: "done",
-                  title: "فروش متفرقه ثبت شد",
-                  detail: `${saleLine(sale)} — ${formatMoney(sale.amount)}، ${paidHow(sale, memberName)}`,
+                  title: `${label} ثبت شد`,
+                  detail: `${formatMoney(amount)}، به حساب ${memberName}`,
+                })
+              }
+              onCancel={back}
+            />
+          )}
+
+          {step?.kind === "add" && kind === "Miscellaneous" && (
+            <ShopSaleForm
+              attendanceId={attendanceId}
+              onDone={(saved) =>
+                setStep({
+                  kind: "done",
+                  title: `فروش ${label} ثبت شد`,
+                  detail: `${saved.map(saleLine).join("، ")} — ${formatMoney(
+                    addMoney(...saved.map((sale) => sale.amount)),
+                  )}، به حساب ${memberName}`,
                 })
               }
               onCancel={back}
@@ -141,7 +168,7 @@ export function MiscellaneousSaleBox({ attendanceId, memberName, sales }: Miscel
           {step?.kind === "pay" && (
             <ServiceChargePaymentForm
               serviceChargeId={step.sale.id}
-              onDone={() => setStep({ kind: "done", title: "پرداخت متفرقه ثبت شد" })}
+              onDone={() => setStep({ kind: "done", title: `پرداخت ${label} ثبت شد` })}
               onCancel={back}
             />
           )}
@@ -150,7 +177,7 @@ export function MiscellaneousSaleBox({ attendanceId, memberName, sales }: Miscel
             <VoidServiceChargeForm
               serviceChargeId={step.sale.id}
               refundWarning={isPositiveMoney(step.sale.netPaid)}
-              onDone={() => setStep({ kind: "done", title: "فروش متفرقه ابطال شد" })}
+              onDone={() => setStep({ kind: "done", title: `فروش ${label} ابطال شد` })}
               onCancel={back}
             />
           )}
@@ -162,20 +189,11 @@ export function MiscellaneousSaleBox({ attendanceId, memberName, sales }: Miscel
 
 /** «دستکش × ۲ (هر عدد ۱۵۰٬۰۰۰ تومان)». */
 function saleLine(sale: ServiceCharge): string {
-  const name = sale.description ?? "متفرقه";
+  const name = sale.description ?? serviceChargeLabel(sale.kind, null);
   const quantity = sale.quantity === null ? 1 : Number(sale.quantity);
   if (quantity === 1 || sale.unitPrice === null) {
     return name;
   }
 
   return `${name} × ${toPersianDigits(quantity)} (هر عدد ${formatMoney(sale.unitPrice)})`;
-}
-
-/** What the success step says about the money: the method it came in, or the account it went on. */
-function paidHow(sale: ServiceCharge, memberName: string): string {
-  if (!isPositiveMoney(sale.netPaid)) {
-    return `به حساب ${memberName}`;
-  }
-
-  return sale.paymentStatus === "Paid" ? "پرداخت شد" : "بخشی پرداخت شد";
 }

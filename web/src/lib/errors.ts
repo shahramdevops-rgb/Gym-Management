@@ -180,8 +180,8 @@ export const errorMessages: Record<string, string> = {
   "Attendance.CancelChoiceRequired": "مشخص نشده است با خریدهای این مراجعه چه شود.",
   "Attendance.CafeOrderNotOnVisit":
     "یکی از خریدهای بوفه در این فاصله تغییر کرده است. پنجره را ببندید و دوباره امتحان کنید.",
-  "Attendance.MiscellaneousSaleNotOnVisit":
-    "یکی از فروش‌های متفرقه در این فاصله تغییر کرده است. پنجره را ببندید و دوباره امتحان کنید.",
+  "Attendance.SaleNotOnVisit":
+    "یکی از فروش‌های فروشگاه یا آنالیز در این فاصله تغییر کرده است. پنجره را ببندید و دوباره امتحان کنید.",
   "Attendance.GuestNameRequired": "نام و نام خانوادگی مهمان را وارد کنید.",
   "Attendance.GuestNameTooLong": "نام مهمان حداکثر ۲۰۰ نویسه است.",
   "Attendance.GuestHasUnpaidCafe":
@@ -199,7 +199,7 @@ export const errorMessages: Record<string, string> = {
   "ServiceCharges.VisitNotOpen":
     "این ورود بسته شده است؛ برای اصلاح مبلغ باید آن را با ذکر دلیل ابطال کنید.",
   "ServiceCharges.AlreadyCharged": "برای این ورود قبلاً مبلغ هوازی ثبت شده است.",
-  "ServiceCharges.GuestVisit": "برای مهمان هوازی یا متفرقه ثبت نمی‌شود.",
+  "ServiceCharges.GuestVisit": "برای مهمان هوازی، فروشگاه یا آنالیز ثبت نمی‌شود.",
   "ServiceCharges.AlreadyVoided": "این مبلغ قبلاً ابطال شده است.",
   "ServiceCharges.AlreadyPaid":
     "برای این مبلغ پرداختی ثبت شده است؛ برای اصلاح آن را با ذکر دلیل ابطال کنید.",
@@ -211,8 +211,10 @@ export const errorMessages: Record<string, string> = {
   "ServiceCharges.DescriptionRequired": "نام کالا را وارد کنید.",
   "ServiceCharges.DescriptionTooLong": "نام کالا حداکثر ۱۰۰ نویسه است.",
   "ServiceCharges.QuantityInvalid": "تعداد باید عددی از ۱ تا ۹۹۹ باشد.",
-  "ServiceCharges.MiscellaneousNotEditable":
-    "فروش متفرقه ویرایش نمی‌شود؛ آن را با ذکر دلیل ابطال کنید و دوباره ثبت کنید.",
+  "ServiceCharges.ShopItemsRequired": "دست‌کم یک کالا وارد کنید.",
+  "ServiceCharges.TooManyShopItems": "در هر فروش حداکثر ۵۰ کالا ثبت می‌شود.",
+  "ServiceCharges.SaleNotEditable":
+    "فروش فروشگاه یا آنالیز ویرایش نمی‌شود؛ آن را با ذکر دلیل ابطال کنید و دوباره ثبت کنید.",
 
   // Cafe: categories and products (no stock anywhere — BUSINESS_RULES.md §8)
   "ProductCategories.NotFound": "دسته‌بندی پیدا نشد.",

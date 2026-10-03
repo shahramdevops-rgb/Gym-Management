@@ -11,9 +11,15 @@ public enum ServiceChargeKind
     Cardio,
 
     /// <summary>
-    /// متفرقه: something sold at the desk that is neither on the cafe's price list nor a service
-    /// the system knows (§7 <i>Miscellaneous sale</i>). The desk types its name, quantity and unit
+    /// فروشگاه: something sold at the desk that is neither on the cafe's price list nor a service
+    /// the system knows (§7 <i>Sale at the desk</i>). The desk types its name, quantity and unit
     /// price; a visit may have any number of them.
     /// </summary>
     Miscellaneous,
+
+    /// <summary>
+    /// آنالیز: a single typed price, any number per visit, under a source of its own (§7 <i>Sale at
+    /// the desk</i>, task 6.5.29). Otherwise it follows the rules of <see cref="Miscellaneous"/>.
+    /// </summary>
+    Analysis,
 }

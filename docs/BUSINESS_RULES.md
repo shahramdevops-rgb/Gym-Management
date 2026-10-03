@@ -800,7 +800,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 - Cancelled attendances are excluded from attendance reports.
 - **What the visit bought is cancelled only when the desk says so, one purchase at a time**
   (decided by the Owner, 1405/07/06, roadmap 6.5.8). The box lists the visit's هوازی, each of
-  its miscellaneous sales (*Miscellaneous sale*, task 6.5.28) and each of its cafe orders with its
+  its sales (فروشگاه and آنالیز, *Sale at the desk*, tasks 6.5.28 and 6.5.29) and each of its cafe orders with its
   amount, each with its own tick, all unticked. A purchase left unticked
   stays on the member's account and is paid like any other: the member may have used the treadmill
   or taken a drink and still had to leave. The ticked ones are voided (هوازی, §7 *Gym services*) or
@@ -809,7 +809,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
   - When anything is ticked, the box asks a second time before sending, naming what will be
     cancelled and reminding the desk to hand back what was collected for it; nothing collected
     means nothing to hand back. With nothing ticked there is no second question.
-  - The request names the choice outright — void the هوازی or not, which miscellaneous sales, and
+  - The request names the choice outright — void the هوازی or not, which sales, and
     which cafe orders — and the server does not guess: a request without it is refused. An order named that is not a
     standing order of this visit refuses the whole cancellation (`Attendance.CafeOrderNotOnVisit`),
     so nothing is half done. A purchase added after the desk opened the box is simply not named
@@ -935,12 +935,12 @@ Decided with the developer, 1405/07/04.
 
 Decided with the developer, 1405/06/31. Implemented in task 5.7.
 
-- A **service charge** is money owed for something the member used during a visit. There are two kinds: `Cardio` (هوازی, the treadmill) and, since task 6.5.28, `Miscellaneous` (متفرقه, *Miscellaneous sale* below); sauna or massage would be new kinds of the same thing, not new tables.
+- A **service charge** is money owed for something the member used during a visit. There are three kinds: `Cardio` (هوازی, the treadmill) and two things sold at the desk, `Miscellaneous` (فروشگاه, task 6.5.28) and `Analysis` (آنالیز, task 6.5.29) (*Sale at the desk* below); sauna or massage would be new kinds of the same thing, not new tables.
 - **The price is not calculated by the system, on purpose.** The gym's rate (for example 10,000 Toman per 3 minutes) changes without notice and staff already work it out at the desk. The system takes the number they type and never checks it against a rate. There is no rate setting to keep in sync with reality.
 - The amount is per visit, not per member: the same member may use the treadmill today and not tomorrow, so there is no cardio price on the member record.
 - Recorded against an **open** visit (`CheckedOutAt IS NULL`, not cancelled) and only for the member of that visit. Front desk work, so both roles.
 - **Never on a guest visit** (`ServiceCharges.GuestVisit`, §7 *Guest visit*): a charge goes on a member's account, and a guest has none. A guest who uses the treadmill uses it for free.
-- One non-voided هوازی per visit (a visit may have any number of miscellaneous sales). While the visit is open and nothing has been paid against it, staff can change the amount or remove it — nothing has been settled yet. After check-out, or after the first payment, it is a financial record: it is corrected with a **void plus a reason**, and a fresh charge if one is due (§5: financial records are never edited or deleted).
+- One non-voided هوازی per visit (a visit may have any number of sales, *Sale at the desk*). While the visit is open and nothing has been paid against it, staff can change the amount or remove it — nothing has been settled yet. After check-out, or after the first payment, it is a financial record: it is corrected with a **void plus a reason**, and a fresh charge if one is due (§5: financial records are never edited or deleted).
 - Cancelling a check-in voids the visit's هوازی only when the desk ticks it (§7 *Cancel check-in*), with the reason that the check-in was cancelled. Left unticked, the charge stays owed on a visit that is now closed, and is corrected like any closed visit's charge: void plus a reason. *Replaces "cancelling always voids it", decided by Claude in task 5.7; decided by the Owner, 1405/07/06, roadmap 6.5.8.*
 - **Voiding a charge that has been paid gives the money back**, as refunds written in the same transaction, one per payment method that is in credit — cash taken at the desk comes back as cash, a card payment is reversed on the card. §5 says there is no wallet, so the money cannot simply sit against the member's name, and neither the void screen nor cancel check-in has to ask which method to use (decided with the developer, 1405/07/01).
 - **Recording, changing and voiding a charge are all Staff or Owner** (decided with the developer, 1405/07/01). This is a deliberate exception to §1's permissions table, which puts "refunds, voids" with the Owner: the amount is typed at the desk and the desk has to be able to take back its own mistake while the member is still standing there. The controls are that the reason is required and the audit log records who did it.
@@ -950,42 +950,57 @@ Decided with the developer, 1405/06/31. Implemented in task 5.7.
 - A service charge is paid like anything else: it is one of the three things a payment can belong to (§5), it counts toward the member's debt (§5 *Member debt*), and it can be settled later or in instalments.
 - The amount follows the same money rules as every other amount: greater than zero, at most 2 decimal places, `numeric(18,2)`.
 
-### Miscellaneous sale (متفرقه)
+### Sale at the desk (فروشگاه and آنالیز)
 
-Asked by the developer, 1405/07/11 (2026-10-03). Roadmap 6.5.28. Something is sold at the desk that
-is neither on the cafe's price list nor a service the system knows, and the desk still has to
-record the money. The system does not know what it is, so the desk says.
+Asked by the developer, 1405/07/11 (2026-10-03). Roadmap 6.5.28 (فروشگاه, then called متفرقه) and
+6.5.29 (آنالیز, and the changes of 1405/07/12). Something is sold at the desk that is neither on the
+cafe's price list nor a service the system knows, and the desk still has to record the money. The
+system does not know what it is, so the desk says.
 
-- **The desk types four things:** the name of what was sold (required, at most 100 characters), how
-  many (1 to 999), the price of one, and how it was paid. The total is the price of one times how
-  many, stored with the sale. The system never checks the name or the price against anything, the
-  same as the هوازی amount above.
-- **How it was paid: کارت, انتقال بانکی, نقدی, or «به حساب عضو»** (decided with the developer,
-  1405/07/11). The list starts empty and the desk has to choose (§5 *Confirming money at the desk*).
-  - Paid by card, transfer or cash, the whole total is paid there and then, written with the sale in
-    one transaction, after the desk answers "آیا پول دریافت شد؟".
-  - «به حساب عضو» takes no money and asks nothing, like a cafe purchase from the locker. The sale
-    counts toward the member's debt and is paid later, from the sale itself or in «تسویه یکجا».
+- **Two kinds, one set of rules** (decided with the developer, 1405/07/11, task 6.5.29):
+  «فروشگاه» (kind `Miscellaneous`, renamed from «متفرقه» everywhere on screen) and «آنالیز» (kind
+  `Analysis`). Everything below holds for both unless it says otherwise; the kind says which source
+  the sale is filed under.
+- **فروشگاه: one or more items, each with three things typed** (decided with the developer,
+  1405/07/12): the name of what was sold (required, at most 100 characters), how many (1 to 999,
+  typed or stepped with ▲/▼, starting at one) and the price of one. «افزودن کالای دیگر» adds a
+  line when two things were sold together; up to 50 lines are saved in one go, all or none. Each
+  line becomes its own row, so each is paid or voided on its own. A line's total is the price of
+  one times how many, stored with it.
+- **آنالیز: only a price** (decided with the developer, 1405/07/12): one amount, typed in the same
+  field as the هوازی amount. It has no name, quantity or unit price.
+- The system never checks the name or a price against anything, the same as the هوازی amount
+  above.
+- **No money is taken when it is recorded** (decided with the developer, 1405/07/12; replaces "card,
+  transfer, cash or «به حساب عضو», chosen in the form", 1405/07/11). The sale goes on the member's
+  account like a cafe purchase from the locker, and nothing is asked. It counts toward the member's
+  debt and is paid afterwards like any other debt: from «ثبت پرداخت» in the tile's list, which asks
+  "آیا پول دریافت شد؟" as every payment does (§5 *Confirming money at the desk*), or in «تسویه یکجا».
 - **Members only** (decided with the developer, 1405/07/11): it is recorded from a member's locker
   box against their open visit, never on a guest's visit (`ServiceCharges.GuestVisit`).
 - **Any number per visit** (decided with the developer, 1405/07/11), each its own row.
-- **Its own source** (decided with the developer, 1405/07/11): in the debt by source at check-out,
-  the payment histories and the gym's history it is «متفرقه», next to plan, هوازی and cafe, never
-  folded into the cafe. The history's «بابت» filter offers هوازی and متفرقه apart, and its هوازی
-  section lists both, each row saying which. Cafe gross profit (§8) is not touched by it.
-- It is a service charge of kind `Miscellaneous`, so everything above about service charges holds
-  — open visit, Staff or Owner, voiding gives the money back the way it came, auto-checkout changes
-  nothing — with these differences. *Decided by Claude during task 6.5.28; pending review:*
+- **Each kind is its own source** (decided with the developer, 1405/07/11): in the debt by source at
+  check-out, the payment histories and the gym's history a sale reads «فروشگاه: …» or «آنالیز»,
+  next to plan, هوازی and cafe, never folded into the cafe or into each other. The history's «بابت»
+  filter offers هوازی, فروشگاه and آنالیز apart, and its «هوازی، فروشگاه و آنالیز» section lists all
+  three, each row saying which. Cafe gross profit (§8) is not touched by either.
+- **In the locker box each has its own tile** (task 6.5.29): هوازی, بوفه, فروشگاه and آنالیز sit
+  side by side as coloured tiles, each with its icon and name, with no heading above them. Once
+  something is recorded, its total and payment status show on the tile under the name.
+- It is a service charge, so everything above about service charges holds — open visit, Staff or
+  Owner, voiding gives the money back the way it came, auto-checkout changes nothing — with these
+  differences. *Decided by Claude during task 6.5.28; pending review:*
   - **It is never edited.** A mistake is voided with a reason and the sale entered again, the rule a
-    cafe order follows (§8). `ServiceCharges.MiscellaneousNotEditable` refuses a change of amount.
+    cafe order follows (§8). `ServiceCharges.SaleNotEditable` refuses a change of amount.
   - **In «تسویه یکجا» it is paid with the هوازی charges:** after the cafe, before the subscription,
     the oldest first (§5 *Settling several items at once*).
-  - **Cancelling a check-in lists each sale with its own tick,** unticked, exactly like the cafe
-    orders (*Cancel check-in*). A sale named that is not a standing sale of this visit refuses the
-    whole cancellation (`Attendance.MiscellaneousSaleNotOnVisit`).
+  - **Cancelling a check-in lists each sale with its own tick,** فروشگاه and آنالیز alike, unticked,
+    exactly like the cafe orders (*Cancel check-in*). A sale named that is not a standing sale of
+    this visit refuses the whole cancellation (`Attendance.SaleNotOnVisit`).
   - It does not count as the هوازی amount of a cardio-only visit (*Cardio-only visit*).
-- The database enforces the shape: a sale has its name, quantity and unit price, all three, and its
-  amount is exactly what they make; هوازی has none of them (`ck_service_charges_miscellaneous`).
+- The database enforces the shape: a فروشگاه item has its name, quantity and unit price, all three,
+  and its amount is exactly what they make; هوازی and آنالیز have none of them
+  (`ck_service_charges_miscellaneous`).
 
 ---
 
@@ -1160,7 +1175,7 @@ on their profile and the cafe has its own order history (§8); this is the histo
 It is a list of rows, not totals or charts: those are the reports above.
 
 - **One «تاریخچه» page, three sections:** ورود و خروج (check-ins), پرداخت‌ها (payments and refunds)
-  and «هوازی و متفرقه» (renamed from هوازی in task 6.5.28, when miscellaneous sales joined it). The
+  and «هوازی، فروشگاه و آنالیز» (renamed from هوازی when the sales joined it, tasks 6.5.28 and 6.5.29). The
   cafe keeps its own page and is linked from here.
 - **Who recorded it is on every row:** who took the payment or gave the refund
   (`Payment.ReceivedByUserId`), who recorded the هوازی (`ServiceCharge.RecordedByUserId`) and who
@@ -1172,7 +1187,7 @@ It is a list of rows, not totals or charts: those are the reports above.
   has no limit.
 - **Check-ins and هوازی:** no date limit for either role.
 - **Filters:** a Jalali date range and one member, in every section. Payments also filter by method
-  and by source (subscription, هوازی, متفرقه, cafe).
+  and by source (subscription, هوازی, فروشگاه, آنالیز, cafe).
 - **Which day a row belongs to:** a check-in by the moment it began, a payment by the moment it was
   taken (`PaidAt`), a هوازی by its business date (`ChargedOn`), all in the gym's time zone. Each
   section lists newest first.

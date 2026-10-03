@@ -156,7 +156,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
     }
 
     [Fact]
-    public async Task Cancel_WithoutTheMiscellaneousChoice_Returns400()
+    public async Task Cancel_WithoutTheSalesChoice_Returns400()
     {
         var (staffClient, staffToken) = await StaffClientAsync();
 
@@ -164,7 +164,7 @@ public sealed class CancelCheckInEndpointTests(DatabaseFixture fixture) : Databa
             staffClient, staffToken, Guid.CreateVersion7(), new { voidCardio = false, cafeOrderIds = Array.Empty<Guid>() });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await FieldErrorCodeAsync(response, "miscellaneousSaleIds")).ShouldBe("Attendance.CancelChoiceRequired");
+        (await FieldErrorCodeAsync(response, "saleIds")).ShouldBe("Attendance.CancelChoiceRequired");
     }
 
     [Fact]

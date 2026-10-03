@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PurchaseTile, PurchaseTileSummary } from "@/features/attendance/components/PurchaseTile";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
@@ -70,21 +71,19 @@ export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps
     <>
       {announcer}
 
-      {orders.length === 0 ? (
-        <Button size="sm" variant="outline" onClick={() => setOpen("add")}>
-          خرید بوفه
-        </Button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setOpen("orders")}
-          aria-label={`بوفه: ${formatMoney(total)}`}
-          className="flex items-center gap-2 rounded-md px-1 py-0.5 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <span>{formatMoney(total)}</span>
-          <PaymentStatusBadge status={status} />
-        </button>
-      )}
+      <PurchaseTile
+        kind="cafe"
+        onClick={() => setOpen(orders.length === 0 ? "add" : "orders")}
+        ariaLabel={orders.length === 0 ? "بوفه" : `بوفه: ${formatMoney(total)}`}
+        summary={
+          orders.length > 0 && (
+            <PurchaseTileSummary
+              amount={formatMoney(total)}
+              badge={<PaymentStatusBadge status={status} />}
+            />
+          )
+        }
+      />
 
       <Dialog open={open !== null} onOpenChange={(next) => !next && setOpen(null)}>
         <DialogContent className={open === "done" ? undefined : "sm:max-w-3xl"}>

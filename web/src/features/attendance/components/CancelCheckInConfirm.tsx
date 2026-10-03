@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { isSaleKind, serviceChargeLabel } from "@/features/serviceCharges/api";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney } from "@/lib/money";
@@ -24,7 +25,7 @@ interface Purchase {
 export interface CancelChoice {
   voidCardio: boolean;
   cafeOrderIds: string[];
-  miscellaneousSaleIds: string[];
+  saleIds: string[];
 }
 
 interface CancelCheckInConfirmProps {
@@ -40,7 +41,7 @@ interface CancelCheckInConfirmProps {
 /**
  * The questions before a check-in is cancelled (BUSINESS_RULES.md §7 *Cancel check-in*, roadmap
  * 6.5.8). A visit that bought nothing is asked once, as before. One that bought something lists
- * its هوازی, each miscellaneous sale and each cafe order with its own tick, all unticked: whatever is left unticked stays
+ * its هوازی, each sale (فروشگاه, آنالیز) and each cafe order with its own tick, all unticked: whatever is left unticked stays
  * on the member's account. When anything is ticked, a second question names it and reminds the
  * desk to hand back what was collected for it.
  *
@@ -64,12 +65,10 @@ export function CancelCheckInConfirm({
 
   const visit = inside.data?.find((row) => row.attendanceId === attendanceId);
   const cardio = visit?.serviceCharges.find((charge) => charge.kind === "Cardio");
-  const miscellaneous = (visit?.serviceCharges ?? []).filter(
-    (charge) => charge.kind === "Miscellaneous",
-  );
+  const sales = (visit?.serviceCharges ?? []).filter((charge) => isSaleKind(charge.kind));
   const purchases = [
     ...(cardio === undefined ? [] : [cardioPurchase(cardio)]),
-    ...miscellaneous.map(miscellaneousPurchase),
+    ...sales.map(salePurchase),
     ...(visit?.cafeOrders ?? []).map(cafePurchase),
   ];
   const chosen = purchases.filter((purchase) => ticked.has(purchase.id));
@@ -98,7 +97,7 @@ export function CancelCheckInConfirm({
       cafeOrderIds: (visit?.cafeOrders ?? [])
         .filter((order) => ticked.has(order.id))
         .map((order) => order.id),
-      miscellaneousSaleIds: miscellaneous
+      saleIds: sales
         .filter((sale) => ticked.has(sale.id))
         .map((sale) => sale.id),
     });
@@ -229,13 +228,20 @@ function cardioPurchase(charge: ServiceCharge): Purchase {
   return { id: charge.id, label: "هوازی", amount: charge.amount, netPaid: charge.netPaid };
 }
 
-function miscellaneousPurchase(sale: ServiceCharge): Purchase {
+/** «فروشگاه: دستکش × ۲» for a shop item; plain «آنالیز» for an analysis, which has no name. */
+function salePurchase(sale: ServiceCharge): Purchase {
   const quantity = Number(sale.quantity ?? 1);
-  const name = sale.description ?? "";
+  const name = sale.description;
+  const detail =
+    name === null || name === undefined
+      ? null
+      : quantity > 1
+        ? `${name} × ${toPersianDigits(quantity)}`
+        : name;
 
   return {
     id: sale.id,
-    label: `متفرقه: ${quantity > 1 ? `${name} × ${toPersianDigits(quantity)}` : name}`,
+    label: serviceChargeLabel(sale.kind, detail),
     amount: sale.amount,
     netPaid: sale.netPaid,
   };

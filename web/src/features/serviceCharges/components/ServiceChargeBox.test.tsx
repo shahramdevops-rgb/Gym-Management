@@ -88,7 +88,7 @@ describe("ServiceChargeBox", () => {
     const visit = onLocker(openVisit(reza.id));
     await renderLocker(() => visit);
 
-    expect(await screen.findByRole("button", { name: "مبلغ هوازی" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "هوازی" })).toBeInTheDocument();
   });
 
   /**
@@ -102,7 +102,7 @@ describe("ServiceChargeBox", () => {
         json(201, cardioCharge(visit, { amount: 10000 })),
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "مبلغ هوازی" }));
+    fireEvent.click(await screen.findByRole("button", { name: "هوازی" }));
     fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "10000" } });
 
     expect(screen.getByLabelText("مبلغ هوازی")).toHaveValue("۱۰٬۰۰۰");
@@ -130,7 +130,7 @@ describe("ServiceChargeBox", () => {
       },
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "مبلغ هوازی" }));
+    fireEvent.click(await screen.findByRole("button", { name: "هوازی" }));
     fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "50000" } });
     fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
 
@@ -149,7 +149,7 @@ describe("ServiceChargeBox", () => {
         problem(409, "ServiceCharges.AlreadyCharged"),
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "مبلغ هوازی" }));
+    fireEvent.click(await screen.findByRole("button", { name: "هوازی" }));
     fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "10000" } });
     fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
 

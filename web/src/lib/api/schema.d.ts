@@ -724,7 +724,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/attendance/{attendanceId}/service-charges/miscellaneous": {
+    "/api/attendance/{attendanceId}/service-charges/shop": {
         parameters: {
             query?: never;
             header?: never;
@@ -733,7 +733,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["RecordMiscellaneousSale"];
+        post: operations["RecordShopSale"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1231,7 +1231,7 @@ export interface components {
         CancelCheckInCommand: {
             voidCardio: null | boolean;
             cafeOrderIds: null | string[];
-            miscellaneousSaleIds: null | string[];
+            saleIds: null | string[];
         };
         CancelSubscriptionCommand: {
             reason: string;
@@ -1545,7 +1545,7 @@ export interface components {
             id: string;
             plan: null | components["schemas"]["PlanSummary"];
             serviceKind: null | components["schemas"]["ServiceChargeKind"];
-            sale: null | components["schemas"]["MiscellaneousSaleSummary"];
+            sale: null | components["schemas"]["SaleSummary"];
             /** Format: date */
             startDate: string;
             /** Format: date */
@@ -1586,13 +1586,6 @@ export interface components {
             currentVisit?: null | components["schemas"]["MemberCurrentVisit"];
             /** @default false */
             isFrozen: boolean;
-        };
-        MiscellaneousSaleSummary: {
-            description: string;
-            /** Format: int32 */
-            quantity: number | string;
-            /** Format: double */
-            unitPrice: number | string;
         };
         MoveLockerCommand: {
             /** Format: uuid */
@@ -1842,18 +1835,13 @@ export interface components {
             description: string;
             referenceNumber: null | string;
         };
-        RecordMiscellaneousSaleCommand: {
-            description: string;
-            /** Format: int32 */
-            quantity: number | string;
-            /** Format: double */
-            unitPrice: number | string;
-            method: null | components["schemas"]["PaymentMethod"];
-        };
         RecordServiceChargeCommand: {
             kind: components["schemas"]["ServiceChargeKind"];
             /** Format: double */
             amount: number | string;
+        };
+        RecordShopSaleCommand: {
+            items: components["schemas"]["ShopSaleItem"][];
         };
         RegisterPaymentCommand: {
             /** Format: double */
@@ -1871,8 +1859,15 @@ export interface components {
         ResetStaffPasswordCommand: {
             temporaryPassword: string;
         };
+        SaleSummary: {
+            description: string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: double */
+            unitPrice: number | string;
+        };
         /** @enum {unknown} */
-        ServiceChargeKind: "Cardio" | "Miscellaneous" | null;
+        ServiceChargeKind: "Cardio" | "Miscellaneous" | "Analysis" | null;
         ServiceChargeResponse: {
             /** Format: uuid */
             id: string;
@@ -1948,6 +1943,13 @@ export interface components {
             total: number | string;
             /** Format: int32 */
             itemCount: number | string;
+        };
+        ShopSaleItem: {
+            description: string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: double */
+            unitPrice: number | string;
         };
         StaffResponse: {
             /** Format: uuid */
@@ -5034,7 +5036,7 @@ export interface operations {
             };
         };
     };
-    RecordMiscellaneousSale: {
+    RecordShopSale: {
         parameters: {
             query?: never;
             header?: never;
@@ -5045,17 +5047,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RecordMiscellaneousSaleCommand"];
+                "application/json": components["schemas"]["RecordShopSaleCommand"];
             };
         };
         responses: {
-            /** @description Created */
-            201: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ServiceChargeResponse"];
+                    "application/json": components["schemas"]["ServiceChargeResponse"][];
                 };
             };
             /** @description Bad Request */

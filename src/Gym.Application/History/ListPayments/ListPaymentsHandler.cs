@@ -59,7 +59,7 @@ public sealed class ListPaymentsHandler(
             _ => payments,
         };
 
-        // هوازی and متفرقه are both service charges, but the screen lists them as two sources.
+        // هوازی, فروشگاه and آنالیز are all service charges, but the screen lists them as separate sources.
         if (query.Source == PaymentTargetKind.ServiceCharge && query.ServiceKind is { } serviceKind)
         {
             payments = payments.Where(payment =>

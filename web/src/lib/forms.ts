@@ -7,8 +7,10 @@ import { errorMessage, fieldErrors } from "./errors";
  * Lets React Hook Form validate with a Zod schema.
  *
  * The usual package for this (@hookform/resolvers) is not on the approved list in
- * docs/ARCHITECTURE.md, and the part this app needs is these few lines. Forms here are flat,
- * so an issue's path joined with dots is exactly the field name.
+ * docs/ARCHITECTURE.md, and the part this app needs is these few lines. Each issue is put at its
+ * path as nested objects, the shape React Hook Form reads: `description` for a flat form,
+ * `items → 0 → description` for a list of lines (the «فروشگاه» form, task 6.5.29). The first
+ * issue on a field wins.
  */
 export function zodResolver<TValues extends FieldValues>(
   schema: z.ZodType<TValues>,
@@ -19,14 +21,36 @@ export function zodResolver<TValues extends FieldValues>(
       return { values: result.data, errors: {} };
     }
 
-    const errors: Record<string, { type: string; message: string }> = {};
+    const errors: ErrorTree = {};
     for (const issue of result.error.issues) {
-      const path = issue.path.join(".");
-      errors[path] ??= { type: issue.code, message: issue.message };
+      putFirst(errors, issue.path.map(String), { type: issue.code, message: issue.message });
     }
 
     return { values: {}, errors: errors as FieldErrors<TValues> };
   };
+}
+
+interface FieldIssue {
+  type: string;
+  message: string;
+}
+
+interface ErrorTree {
+  [key: string]: ErrorTree | FieldIssue;
+}
+
+/** Puts `issue` at `path` unless something is already there; an empty path is the `""` key. */
+function putFirst(tree: ErrorTree, path: string[], issue: FieldIssue) {
+  const keys = path.length === 0 ? [""] : path;
+  let node = tree;
+  for (const key of keys.slice(0, -1)) {
+    const child = node[key];
+    if (child !== undefined && "message" in child) {
+      return; // The parent already has its own error; that one is shown.
+    }
+    node = (node[key] ??= {}) as ErrorTree;
+  }
+  node[keys.at(-1)!] ??= issue;
 }
 
 /**

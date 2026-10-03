@@ -136,16 +136,17 @@ public sealed class ServiceChargeTests
         Recorded().Void(reason, Now, UserId).Error.ShouldBe(ServiceChargeErrors.VoidReasonTooLong);
     }
 
-    // ---- Miscellaneous sale ----
+    // ---- Sale at the desk: فروشگاه items ----
 
     [Fact]
-    public void RecordMiscellaneous_ValidSale_StoresWhatWasSoldAndItsTotal()
+    public void RecordShopItem_ValidItem_StoresWhatWasSoldAndItsTotal()
     {
-        var result = RecordMiscellaneous("  دستکش  ", 3, 150_000m);
+        var result = RecordShopItem("  دستکش  ", 3, 150_000m);
 
         result.IsSuccess.ShouldBeTrue();
         var charge = result.Value;
         charge.Kind.ShouldBe(ServiceChargeKind.Miscellaneous);
+        charge.IsSale.ShouldBeTrue();
         charge.Description.ShouldBe("دستکش");
         charge.Quantity.ShouldBe(3);
         charge.UnitPrice.ShouldBe(150_000m);
@@ -160,50 +161,50 @@ public sealed class ServiceChargeTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void RecordMiscellaneous_BlankName_Fails(string description)
+    public void RecordShopItem_BlankName_Fails(string description)
     {
-        RecordMiscellaneous(description, 1, 10_000m).Error.ShouldBe(ServiceChargeErrors.DescriptionRequired);
+        RecordShopItem(description, 1, 10_000m).Error.ShouldBe(ServiceChargeErrors.DescriptionRequired);
     }
 
     [Fact]
-    public void RecordMiscellaneous_NameTooLong_Fails()
+    public void RecordShopItem_NameTooLong_Fails()
     {
         var description = new string('ا', ServiceCharge.DescriptionMaxLength + 1);
 
-        RecordMiscellaneous(description, 1, 10_000m).Error.ShouldBe(ServiceChargeErrors.DescriptionTooLong);
+        RecordShopItem(description, 1, 10_000m).Error.ShouldBe(ServiceChargeErrors.DescriptionTooLong);
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
     [InlineData(ServiceCharge.MaxQuantity + 1)]
-    public void RecordMiscellaneous_QuantityOutOfRange_Fails(int quantity)
+    public void RecordShopItem_QuantityOutOfRange_Fails(int quantity)
     {
-        RecordMiscellaneous("دستکش", quantity, 10_000m).Error.ShouldBe(ServiceChargeErrors.QuantityInvalid);
+        RecordShopItem("دستکش", quantity, 10_000m).Error.ShouldBe(ServiceChargeErrors.QuantityInvalid);
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void RecordMiscellaneous_UnitPriceNotPositive_Fails(decimal unitPrice)
+    public void RecordShopItem_UnitPriceNotPositive_Fails(decimal unitPrice)
     {
-        RecordMiscellaneous("دستکش", 1, unitPrice).Error.ShouldBe(ServiceChargeErrors.AmountNotPositive);
+        RecordShopItem("دستکش", 1, unitPrice).Error.ShouldBe(ServiceChargeErrors.AmountNotPositive);
     }
 
     [Fact]
-    public void RecordMiscellaneous_UnitPriceWithThreeDecimals_Fails()
+    public void RecordShopItem_UnitPriceWithThreeDecimals_Fails()
     {
-        RecordMiscellaneous("دستکش", 1, 10_000.001m).Error.ShouldBe(ServiceChargeErrors.AmountTooManyDecimals);
+        RecordShopItem("دستکش", 1, 10_000.001m).Error.ShouldBe(ServiceChargeErrors.AmountTooManyDecimals);
     }
 
     /// <summary>Each figure fits the column, but what they make together does not.</summary>
     [Fact]
-    public void RecordMiscellaneous_TotalAboveTheColumnLimit_Fails()
+    public void RecordShopItem_TotalAboveTheColumnLimit_Fails()
     {
-        RecordMiscellaneous("دستکش", 2, ServiceCharge.MaxAmount).Error.ShouldBe(ServiceChargeErrors.AmountTooLarge);
+        RecordShopItem("دستکش", 2, ServiceCharge.MaxAmount).Error.ShouldBe(ServiceChargeErrors.AmountTooLarge);
     }
 
-    /// <summary>The general entry point cannot make a sale without its name and quantity.</summary>
+    /// <summary>The general entry point cannot make a فروشگاه item without its name and quantity.</summary>
     [Fact]
     public void Record_MiscellaneousKind_Fails()
     {
@@ -211,21 +212,43 @@ public sealed class ServiceChargeTests
             .Error.ShouldBe(ServiceChargeErrors.KindInvalid);
     }
 
-    /// <summary>§7 <i>Miscellaneous sale</i>: voided and entered again, never edited, like a cafe order.</summary>
-    [Fact]
-    public void ChangeAmount_MiscellaneousSale_Fails()
-    {
-        var charge = RecordMiscellaneous("دستکش", 1, 10_000m).Value;
+    // ---- Sale at the desk: آنالیز ----
 
-        charge.ChangeAmount(25_000m).Error.ShouldBe(ServiceChargeErrors.MiscellaneousNotEditable);
+    /// <summary>Task 6.5.29: آنالیز is a single typed price, with no name or quantity.</summary>
+    [Fact]
+    public void Record_Analysis_StoresOnlyTheAmount()
+    {
+        var charge = ServiceCharge.Record(MemberId, AttendanceId, ServiceChargeKind.Analysis, 200_000m, ChargedOn, UserId).Value;
+
+        charge.Kind.ShouldBe(ServiceChargeKind.Analysis);
+        charge.IsSale.ShouldBeTrue();
+        charge.Amount.ShouldBe(200_000m);
+        charge.Description.ShouldBeNull();
+        charge.Quantity.ShouldBeNull();
+        charge.UnitPrice.ShouldBeNull();
+    }
+
+    // ---- Both ----
+
+    /// <summary>§7 <i>Sale at the desk</i>: voided and entered again, never edited, like a cafe order.</summary>
+    [Theory]
+    [InlineData(ServiceChargeKind.Miscellaneous)]
+    [InlineData(ServiceChargeKind.Analysis)]
+    public void ChangeAmount_Sale_Fails(ServiceChargeKind kind)
+    {
+        var charge = (kind == ServiceChargeKind.Analysis
+            ? ServiceCharge.Record(MemberId, AttendanceId, kind, 10_000m, ChargedOn, UserId)
+            : RecordShopItem("دستکش", 1, 10_000m)).Value;
+
+        charge.ChangeAmount(25_000m).Error.ShouldBe(ServiceChargeErrors.SaleNotEditable);
 
         charge.Amount.ShouldBe(10_000m);
     }
 
     [Fact]
-    public void Void_MiscellaneousSale_RecordsWhoWhenAndWhy()
+    public void Void_Sale_RecordsWhoWhenAndWhy()
     {
-        var charge = RecordMiscellaneous("دستکش", 1, 10_000m).Value;
+        var charge = RecordShopItem("دستکش", 1, 10_000m).Value;
 
         charge.Void("اشتباه ثبت شد", Now, UserId).IsSuccess.ShouldBeTrue();
 
@@ -233,8 +256,8 @@ public sealed class ServiceChargeTests
         charge.VoidReason.ShouldBe("اشتباه ثبت شد");
     }
 
-    private static Result<ServiceCharge> RecordMiscellaneous(string description, int quantity, decimal unitPrice) =>
-        ServiceCharge.RecordMiscellaneous(MemberId, AttendanceId, description, quantity, unitPrice, ChargedOn, UserId);
+    private static Result<ServiceCharge> RecordShopItem(string description, int quantity, decimal unitPrice) =>
+        ServiceCharge.RecordShopItem(MemberId, AttendanceId, description, quantity, unitPrice, ChargedOn, UserId);
 
     private static Result<ServiceCharge> Record(decimal amount) =>
         ServiceCharge.Record(MemberId, AttendanceId, ServiceChargeKind.Cardio, amount, ChargedOn, UserId);

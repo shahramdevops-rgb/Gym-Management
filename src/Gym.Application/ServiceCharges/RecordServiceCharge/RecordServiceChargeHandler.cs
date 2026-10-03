@@ -8,8 +8,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.ServiceCharges.RecordServiceCharge;
 
 /// <summary>
-/// Puts an amount on something the member used during an open visit — today only هوازی
-/// (BUSINESS_RULES.md §7 <i>Gym services</i>). Front desk work, so both roles.
+/// Puts an amount on something the member used during an open visit — هوازی, or آنالیز
+/// (BUSINESS_RULES.md §7 <i>Gym services</i>, <i>Sale at the desk</i>). Front desk work, so both
+/// roles. The one-per-visit index covers هوازی only, so a visit may have any number of آنالیز.
 /// </summary>
 public sealed class RecordServiceChargeHandler(
     IAppDbContext db, IGymCalendar calendar, ICurrentUser currentUser)

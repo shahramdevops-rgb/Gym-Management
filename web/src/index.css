@@ -52,6 +52,17 @@
      usage view's unused amber, which is never on the same map. */
   --cardio: oklch(0.72 0.15 100);
   --door-cardio: oklch(0.95 0.07 100);
+  /* The purchase tiles of a visit's locker box (task 6.5.29): one soft background and one strong
+     ink per tile, so each reads at a glance and its text stays readable. هوازی keeps the
+     cardio-only yellow; بوفه is orange, فروشگاه violet and آنالیز teal, all apart from each other. */
+  --tile-cardio: oklch(0.95 0.07 100);
+  --tile-cardio-ink: oklch(0.42 0.1 100);
+  --tile-cafe: oklch(0.94 0.05 55);
+  --tile-cafe-ink: oklch(0.47 0.14 45);
+  --tile-shop: oklch(0.94 0.04 300);
+  --tile-shop-ink: oklch(0.45 0.16 300);
+  --tile-analysis: oklch(0.94 0.045 185);
+  --tile-analysis-ink: oklch(0.42 0.09 190);
   /* The usage view (BUSINESS_RULES.md §6 *Locker usage map*): the one colour a door is shaded in by
      how often it was used, neither the free green nor the held red, and the amber of a locker
      nobody used in the period. */
@@ -109,6 +120,14 @@
   --door-guest: oklch(0.28 0.05 235);
   --cardio: oklch(0.86 0.15 100);
   --door-cardio: oklch(0.3 0.06 100);
+  --tile-cardio: oklch(0.3 0.06 100);
+  --tile-cardio-ink: oklch(0.9 0.12 100);
+  --tile-cafe: oklch(0.3 0.06 50);
+  --tile-cafe-ink: oklch(0.86 0.1 55);
+  --tile-shop: oklch(0.3 0.07 300);
+  --tile-shop-ink: oklch(0.86 0.09 300);
+  --tile-analysis: oklch(0.3 0.05 190);
+  --tile-analysis-ink: oklch(0.88 0.08 185);
   --door-use: oklch(0.68 0.16 290);
   --door-unused: oklch(0.82 0.14 85);
 }
@@ -203,6 +222,14 @@
   --color-door-guest: var(--door-guest);
   --color-cardio: var(--cardio);
   --color-door-cardio: var(--door-cardio);
+  --color-tile-cardio: var(--tile-cardio);
+  --color-tile-cardio-ink: var(--tile-cardio-ink);
+  --color-tile-cafe: var(--tile-cafe);
+  --color-tile-cafe-ink: var(--tile-cafe-ink);
+  --color-tile-shop: var(--tile-shop);
+  --color-tile-shop-ink: var(--tile-shop-ink);
+  --color-tile-analysis: var(--tile-analysis);
+  --color-tile-analysis-ink: var(--tile-analysis-ink);
   --color-door-hatch: var(--door-hatch);
   --color-door-use: var(--door-use);
   --color-door-unused: var(--door-unused);

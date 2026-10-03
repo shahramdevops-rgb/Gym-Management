@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PurchaseTile, PurchaseTileSummary } from "@/features/attendance/components/PurchaseTile";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { formatMoney } from "@/lib/format";
 import { isPositiveMoney, subtractMoney } from "@/lib/money";
@@ -26,6 +27,11 @@ interface ServiceChargeBoxProps {
   /** False once the visit is closed: nothing new can be charged to a visit that is over. */
   visitIsOpen: boolean;
   disabled?: boolean;
+  /**
+   * Shown as the locker box's coloured هوازی tile (task 6.5.29) rather than the one-line summary a
+   * table cell needs.
+   */
+  tile?: boolean;
 }
 
 /** What the success step says once a form has gone through. */
@@ -63,6 +69,7 @@ export function ServiceChargeBox({
   charge,
   visitIsOpen,
   disabled = false,
+  tile = false,
 }: ServiceChargeBoxProps) {
   const [open, setOpen] = useState<"amount" | "payment" | "void" | "actions" | "done" | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
@@ -84,7 +91,22 @@ export function ServiceChargeBox({
 
   return (
     <>
-      {charge === undefined ? (
+      {tile ? (
+        <PurchaseTile
+          kind="cardio"
+          disabled={disabled}
+          onClick={() => setOpen(charge === undefined ? "amount" : "actions")}
+          ariaLabel={charge === undefined ? label : `${label}: ${formatMoney(charge.amount)}`}
+          summary={
+            charge !== undefined && (
+              <PurchaseTileSummary
+                amount={formatMoney(charge.amount)}
+                badge={<PaymentStatusBadge status={charge.paymentStatus} />}
+              />
+            )
+          }
+        />
+      ) : charge === undefined ? (
         visitIsOpen && (
           <Button size="sm" variant="outline" disabled={disabled} onClick={() => setOpen("amount")}>
             مبلغ {label}

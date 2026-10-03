@@ -8,7 +8,8 @@ public sealed class RecordServiceChargeValidator : AbstractValidator<RecordServi
 {
     public RecordServiceChargeValidator()
     {
-        // A miscellaneous sale has its own endpoint, which takes its name and quantity.
+        // هوازی and آنالیز are a single amount. A فروشگاه item has its own endpoint, which takes
+        // its name and quantity.
         RuleFor(command => command.Kind)
             .ValidKind()
             .NotEqual(ServiceChargeKind.Miscellaneous)

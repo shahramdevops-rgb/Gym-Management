@@ -21,7 +21,7 @@ import { GuestSettleForm } from "@/features/attendance/components/GuestSettleFor
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
 import { cardioOnlyLabel, guestLabel, holderOf } from "@/features/attendance/holder";
 import { VisitCafeBox } from "@/features/cafe/components/VisitCafeBox";
-import { MiscellaneousSaleBox } from "@/features/serviceCharges/components/MiscellaneousSaleBox";
+import { SaleBox } from "@/features/serviceCharges/components/SaleBox";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
@@ -55,8 +55,8 @@ interface LockerVisitDialogProps {
 /**
  * One visit, opened from its locker (BUSINESS_RULES.md §7 *Confirming at the front desk*): who it
  * is (linked to their profile), when they came in, the sessions beside them, the plan and its
- * dates, the debt item by item, هوازی, cafe and متفرقه for the visit, and check-out, cancel check-in, moving
- * to another locker and who had the locker earlier today. A used reserve place opens the same box,
+ * dates, the debt item by item, a coloured tile each for هوازی, بوفه, فروشگاه and آنالیز, and
+ * check-out, cancel check-in, moving to another locker and who had the locker earlier today. A used reserve place opens the same box,
  * without the locker's history.
  *
  * A cardio-only visit (BUSINESS_RULES.md §7 *Cardio-only visit*) is marked «فقط هوازی», and its
@@ -176,32 +176,33 @@ export function LockerVisitDialog({
               <VisitSessions visit={visit} />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">هوازی</p>
-                <ServiceChargeBox
-                  attendanceId={visit.attendanceId}
-                  kind="Cardio"
-                  charge={cardioCharge}
-                  visitIsOpen
-                />
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium">بوفه</p>
-                <VisitCafeBox
-                  attendanceId={visit.attendanceId}
-                  member={member}
-                  orders={visit.cafeOrders ?? []}
-                />
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium">متفرقه</p>
-                <MiscellaneousSaleBox
-                  attendanceId={visit.attendanceId}
-                  memberName={member.fullName}
-                  sales={visit.serviceCharges.filter((charge) => charge.kind === "Miscellaneous")}
-                />
-              </div>
+            {/* The purchase tiles (task 6.5.29): each names itself with its icon and colour, so
+                there is no heading above them. */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <ServiceChargeBox
+                attendanceId={visit.attendanceId}
+                kind="Cardio"
+                charge={cardioCharge}
+                visitIsOpen
+                tile
+              />
+              <VisitCafeBox
+                attendanceId={visit.attendanceId}
+                member={member}
+                orders={visit.cafeOrders ?? []}
+              />
+              <SaleBox
+                attendanceId={visit.attendanceId}
+                kind="Miscellaneous"
+                memberName={member.fullName}
+                sales={visit.serviceCharges.filter((charge) => charge.kind === "Miscellaneous")}
+              />
+              <SaleBox
+                attendanceId={visit.attendanceId}
+                kind="Analysis"
+                memberName={member.fullName}
+                sales={visit.serviceCharges.filter((charge) => charge.kind === "Analysis")}
+              />
             </div>
 
             {/* Without its own sessions line: the header already shows them. */}
@@ -396,20 +397,17 @@ function GuestView({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-2">
-        <p className="text-sm font-medium">بوفه</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <VisitCafeBox
-            attendanceId={visit.attendanceId}
-            member={guest}
-            orders={visit.cafeOrders ?? []}
-          />
-          {owes && (
-            <Button size="sm" onClick={onSettle}>
-              تسویه یکجا ({formatMoney(outstanding)})
-            </Button>
-          )}
-        </div>
+      <div className="grid grid-cols-2 items-center gap-2 sm:grid-cols-4">
+        <VisitCafeBox
+          attendanceId={visit.attendanceId}
+          member={guest}
+          orders={visit.cafeOrders ?? []}
+        />
+        {owes && (
+          <Button size="sm" className="sm:col-span-2 sm:justify-self-start" onClick={onSettle}>
+            تسویه یکجا ({formatMoney(outstanding)})
+          </Button>
+        )}
       </div>
 
       <div className="space-y-2 border-t pt-3">

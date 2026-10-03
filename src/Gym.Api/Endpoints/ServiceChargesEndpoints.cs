@@ -5,15 +5,16 @@ using Gym.Application.Payments;
 using Gym.Application.Payments.RegisterPayment;
 using Gym.Application.ServiceCharges;
 using Gym.Application.ServiceCharges.ChangeServiceChargeAmount;
-using Gym.Application.ServiceCharges.RecordMiscellaneousSale;
+using Gym.Application.ServiceCharges.RecordShopSale;
 using Gym.Application.ServiceCharges.RecordServiceCharge;
 using Gym.Application.ServiceCharges.VoidServiceCharge;
 
 namespace Gym.Api.Endpoints;
 
 /// <summary>
-/// Money owed for something used or bought during a visit — هوازی and متفرقه (BUSINESS_RULES.md §7
-/// <i>Gym services</i>, <i>Miscellaneous sale</i>). Front desk work throughout, so both roles.
+/// Money owed for something used or bought during a visit — هوازی, فروشگاه and آنالیز
+/// (BUSINESS_RULES.md §7 <i>Gym services</i>, <i>Sale at the desk</i>). Front desk work
+/// throughout, so both roles.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -54,14 +55,15 @@ public static class ServiceChargesEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
-        // «متفرقه» (§7 Miscellaneous sale): a charge of its own kind, with the payment, if any, in
-        // the same request. Voided through the same /void below as هوازی.
-        visitCharges.MapPost("/miscellaneous", async (Guid attendanceId, RecordMiscellaneousSaleCommand command, RecordMiscellaneousSaleHandler handler, CancellationToken ct) =>
+        // «فروشگاه» (§7 Sale at the desk): one or more items, each its own charge on the member's
+        // account, no money taken. آنالیز is a single amount and goes through "/" above. Each item
+        // is voided through the same /void below as هوازی.
+        visitCharges.MapPost("/shop", async (Guid attendanceId, RecordShopSaleCommand command, RecordShopSaleHandler handler, CancellationToken ct) =>
                 (await handler.Handle(attendanceId, command, ct))
-                    .ToHttpResult(charge => Results.Created($"/api/service-charges/{charge.Id}", charge)))
-            .AddEndpointFilter<ValidationFilter<RecordMiscellaneousSaleCommand>>()
-            .WithName("RecordMiscellaneousSale")
-            .Produces<ServiceChargeResponse>(StatusCodes.Status201Created)
+                    .ToHttpResult(charges => Results.Ok(charges)))
+            .AddEndpointFilter<ValidationFilter<RecordShopSaleCommand>>()
+            .WithName("RecordShopSale")
+            .Produces<IReadOnlyList<ServiceChargeResponse>>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);

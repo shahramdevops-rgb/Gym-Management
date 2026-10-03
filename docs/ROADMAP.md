@@ -1560,6 +1560,36 @@ Closed 2026-10-03: 1444 backend tests (457 domain, 987 integration) and 755 fron
 zero warnings. Not released yet: the migration adds three nullable columns and a check that every
 existing row (all هوازی) passes, and narrows an index filter.
 
+### 6.5.29 Purchase tiles in the locker box, «فروشگاه» and «آنالیز»
+Asked by the developer on 1405/07/11 (2026-10-03), from a screenshot of the locker box: drop the
+headings «هوازی / بوفه / متفرقه» above the buttons, keep one icon-and-name tile per purchase, each
+with a background of its own; rename «مبلغ هوازی» → «هوازی», «خرید بوفه» → «بوفه», «فروش متفرقه»
+→ «فروشگاه» (everywhere, decided with the developer); and add «آنالیز» with the rules of
+«فروشگاه». Corrected by the developer on 1405/07/12, before release: a sale takes no money when it
+is recorded (it is debt, paid afterwards), آنالیز is only a price, and فروشگاه takes several items
+with ▲/▼ for the quantity. BUSINESS_RULES.md §7 *Sale at the desk*.
+- [x] Domain: `ServiceChargeKind.Analysis`, a single amount through `ServiceCharge.Record`;
+      `RecordMiscellaneous` → `RecordShopItem`; `ServiceCharge.IsSaleKind` / `IsSale` (never edited,
+      any number per visit); `ServiceCharges.SaleNotEditable`, `Attendance.SaleNotOnVisit`,
+      `ServiceCharges.ShopItemsRequired`, `ServiceCharges.TooManyShopItems`
+- [x] No migration: آنالیز has no name, quantity or price, so `ck_service_charges_miscellaneous`
+      already describes it and the one-per-visit index already covers only هوازی
+- [x] API: آنالیز through `POST /api/attendance/{id}/service-charges` (kind `Analysis`);
+      `POST …/service-charges/miscellaneous` → `POST …/service-charges/shop` with `Items`, no
+      payment, all items in one save; cancel check-in's `MiscellaneousSaleIds` → `SaleIds`
+- [x] Web: `PurchaseTile` (icon, name, total and status; `--tile-*` colours in light and dark);
+      four tiles in the member's locker box, the cafe tile in the guest's; `SaleBox` for both kinds,
+      `ShopSaleForm` (lines, ▲/▼ quantity, «افزودن کالای دیگر», no payment) and the هوازی amount form
+      for آنالیز; «فروشگاه» and «آنالیز» in labels, the «بابت» filter, the history tab and the cancel
+      box's ticks; `zodResolver` nests errors by path so a list of lines can show its own errors
+- [x] Tests: domain (shop items, آنالیز as an amount, neither editable), integration (one and two
+      shop items, one bad item saves nothing, آنالیز, the constraint, cancelling both, the payment
+      filter for each kind), frontend (tiles, the stepper, adding and removing lines, posting with
+      no payment, آنالیز's single field, each tile's own total, cancel ticks, the history filter)
+
+Closed 2026-10-04: 1454 backend tests (459 domain, 995 integration) and 760 frontend tests green,
+production build clean, zero warnings. Not released yet; no migration.
+
 ---
 
 ## Phase 7 — Cafe / POS

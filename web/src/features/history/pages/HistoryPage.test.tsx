@@ -186,6 +186,22 @@ describe("HistoryPage", () => {
     expect(await screen.findByText(reza.fullName, { selector: "span" })).toBeInTheDocument();
   });
 
+  /** آنالیز is its own «بابت», sent to the API as a service charge of that kind (task 6.5.29). */
+  it("Payments_ChoosingAnalysis_AsksForServiceChargesOfThatKind", async () => {
+    const api = mockApi(handlers());
+    renderApp("/history?tab=payments", { session: session() });
+
+    await screen.findByText("انصراف عضو");
+    fireEvent.change(screen.getByLabelText("بابت"), { target: { value: "Analysis" } });
+
+    await waitFor(() => {
+      const query = queryOf(api.requestsTo("GET", "/api/payments").at(-1));
+      expect(query.get("Source")).toBe("ServiceCharge");
+      expect(query.get("ServiceKind")).toBe("Analysis");
+    });
+    expect(screen.getByLabelText("بابت")).toHaveDisplayValue("آنالیز");
+  });
+
   it("Payments_ChoosingAMethod_PutsItInTheUrlAndAsksAgain", async () => {
     const api = mockApi(handlers());
     const { router } = renderApp("/history?tab=payments", { session: session() });
@@ -261,7 +277,7 @@ describe("HistoryPage", () => {
     });
 
     await screen.findByText("خودکار");
-    fireEvent.click(screen.getByRole("tab", { name: "هوازی و متفرقه" }));
+    fireEvent.click(screen.getByRole("tab", { name: "هوازی، فروشگاه و آنالیز" }));
 
     await waitFor(() =>
       expect(router.state.location.search).toBe(`?tab=cardio&from=2026-09-01&member=${reza.id}`),

@@ -9,7 +9,7 @@ import { emptyValue, formatDateTime, formatMoney, toPersianDigits } from "@/lib/
 import type { HistoryServiceCharge } from "../api";
 
 /**
- * Every هوازی charge and miscellaneous sale, newest first, with what it was and who recorded it (BUSINESS_RULES.md §12 History). A voided
+ * Every هوازی charge and sale (فروشگاه, آنالیز), newest first, with what it was and who recorded it (BUSINESS_RULES.md §12 History). A voided
  * charge stays on the list, marked, with its reason and who voided it: the desk's own boxes leave
  * voided charges out, which is why this is the place to find one.
  */

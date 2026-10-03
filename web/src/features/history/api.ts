@@ -23,23 +23,30 @@ export const paymentSourceLabels: Record<PaymentSource, string> = {
 };
 
 /**
- * What the "بابت" filter offers. هوازی and متفرقه are both service charges to the API, but two
- * sources on screen (BUSINESS_RULES.md §7 *Miscellaneous sale*), so the filter names them apart and
- * `paymentSourceQuery` turns the choice back into the API's two parameters.
+ * What the "بابت" filter offers. هوازی, فروشگاه and آنالیز are all service charges to the API, but
+ * separate sources on screen (BUSINESS_RULES.md §7 *Sale at the desk*), so the filter names them
+ * apart and `paymentSourceQuery` turns the choice back into the API's two parameters.
  */
-export type PaymentSourceFilter = "Subscription" | "Cardio" | "Miscellaneous" | "CafeOrder";
+export type PaymentSourceFilter =
+  | "Subscription"
+  | "Cardio"
+  | "Miscellaneous"
+  | "Analysis"
+  | "CafeOrder";
 
 export const paymentSourceFilters: PaymentSourceFilter[] = [
   "Subscription",
   "Cardio",
   "Miscellaneous",
+  "Analysis",
   "CafeOrder",
 ];
 
 export const paymentSourceFilterLabels: Record<PaymentSourceFilter, string> = {
   Subscription: "اشتراک",
   Cardio: "هوازی",
-  Miscellaneous: "متفرقه",
+  Miscellaneous: "فروشگاه",
+  Analysis: "آنالیز",
   CafeOrder: "بوفه",
 };
 
@@ -52,6 +59,7 @@ export function paymentSourceQuery(source: PaymentSourceFilter | undefined): {
       return {};
     case "Cardio":
     case "Miscellaneous":
+    case "Analysis":
       return { Source: "ServiceCharge", ServiceKind: source };
     default:
       return { Source: source };
@@ -148,7 +156,7 @@ export function usePaymentHistory(filter: PaymentHistoryFilter, { enabled = true
   });
 }
 
-/** Every هوازی charge and miscellaneous sale, voided ones included, newest first. */
+/** Every هوازی charge and sale (فروشگاه, آنالیز), voided ones included, newest first. */
 export function useServiceChargeHistory(filter: HistoryFilter, { enabled = true } = {}) {
   return useQuery({
     queryKey: historyKeys.serviceCharges(filter),

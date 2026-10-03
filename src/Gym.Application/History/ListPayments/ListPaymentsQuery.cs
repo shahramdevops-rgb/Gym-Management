@@ -21,8 +21,8 @@ namespace Gym.Application.History.ListPayments;
 /// <param name="Method">Only this payment method.</param>
 /// <param name="Source">Only money for this kind of item: subscription, a service charge or cafe.</param>
 /// <param name="ServiceKind">
-/// With a service-charge <paramref name="Source"/>, only هوازی or only متفرقه: the screen offers them as
-/// two sources (BUSINESS_RULES.md §7 <i>Miscellaneous sale</i>). Ignored for any other source.
+/// With a service-charge <paramref name="Source"/>, only one kind (هوازی, فروشگاه or آنالیز): the screen offers them as
+/// separate sources (BUSINESS_RULES.md §7 <i>Sale at the desk</i>). Ignored for any other source.
 /// </param>
 public sealed record ListPaymentsQuery(
     DateOnly? From = null,

@@ -32,7 +32,7 @@ type Tab = "attendance" | "payments" | "cardio";
 const tabs: { value: Tab; label: string }[] = [
   { value: "attendance", label: "ورود و خروج" },
   { value: "payments", label: "پرداخت‌ها" },
-  { value: "cardio", label: "هوازی و متفرقه" },
+  { value: "cardio", label: "هوازی، فروشگاه و آنالیز" },
 ];
 
 /** Everything the URL holds. Unknown values read as "not set", so a stale link still opens. */

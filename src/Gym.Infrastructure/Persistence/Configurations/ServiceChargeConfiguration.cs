@@ -27,10 +27,10 @@ public sealed class ServiceChargeConfiguration : IEntityTypeConfiguration<Servic
                 "ck_service_charges_void",
                 "(voided_at IS NULL) = (void_reason IS NULL) AND (voided_at IS NULL) = (voided_by_user_id IS NULL)");
 
-            // BUSINESS_RULES.md §7 Miscellaneous sale: a sale has its name, quantity and unit price,
-            // all three, and its amount is exactly what they make; هوازی has none of them. Rows
-            // written before the kind existed are all هوازی with the three columns null, so they
-            // pass as they are.
+            // BUSINESS_RULES.md §7 Sale at the desk: a فروشگاه item has its name, quantity and
+            // unit price, all three, and its amount is exactly what they make; هوازی and آنالیز
+            // are a single typed amount and have none of them. Rows written before the kind
+            // existed are all هوازی with the three columns null, so they pass as they are.
             table.HasCheckConstraint(
                 "ck_service_charges_miscellaneous",
                 "(kind = 'Miscellaneous') = (description IS NOT NULL) "
@@ -58,7 +58,7 @@ public sealed class ServiceChargeConfiguration : IEntityTypeConfiguration<Servic
 
         // BUSINESS_RULES.md §7: one non-voided هوازی per visit. A voided one is history and does
         // not stand in the way of the replacement charge the rule expects. A visit may have any
-        // number of miscellaneous sales, so they are outside the filter.
+        // number of sales (فروشگاه, آنالیز), so they are outside the filter.
         builder.HasIndex(charge => new { charge.AttendanceId, charge.Kind })
             .IsUnique()
             .HasFilter("voided_at IS NULL AND kind = 'Cardio'")
