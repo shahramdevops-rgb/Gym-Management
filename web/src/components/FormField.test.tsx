@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { moneyOrNull } from "@/lib/money";
+import { chooseBirthDate, pickFrom } from "@/test/birthDate";
 
-import { JalaliDateField, MoneyField } from "./FormField";
+import { BirthDateField, JalaliDateField, MoneyField } from "./FormField";
 
 /**
  * The field is controlled, so the tests drive it through a tiny host that holds the ISO value,
@@ -338,5 +339,150 @@ describe("MoneyField", () => {
     const message = screen.getByText("مبلغ را وارد کنید.");
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(input.getAttribute("aria-describedby")).toContain(message.id);
+  });
+});
+
+function BirthDateHost({ initial = "", error }: { initial?: string; error?: string }) {
+  const [value, setValue] = useState(initial);
+
+  return (
+    <>
+      <BirthDateField label="تاریخ تولد" error={error} value={value} onChange={setValue} />
+      <output data-testid="iso">{value}</output>
+    </>
+  );
+}
+
+function group() {
+  return screen.getByRole("group", { name: label });
+}
+
+function box(name: "روز" | "ماه" | "سال") {
+  return within(group()).getByRole("combobox", { name });
+}
+
+/** The rows a box offers, read with its list open. */
+function rows(name: "روز" | "ماه" | "سال") {
+  fireEvent.click(box(name));
+  const texts = within(group())
+    .getAllByRole("option")
+    .map((option) => option.textContent);
+  fireEvent.click(box(name));
+  return texts;
+}
+
+describe("BirthDateField", () => {
+  it("BirthDateField_IsoValue_ChoosesTheJalaliDayMonthAndYear", () => {
+    render(<BirthDateHost initial="1991-08-03" />);
+
+    expect(box("روز")).toHaveTextContent("۱۲");
+    expect(box("ماه")).toHaveTextContent("مرداد");
+    expect(box("سال")).toHaveTextContent("۱۳۷۰");
+  });
+
+  it("BirthDateField_AllThreeChosen_EmitsTheIsoDate", () => {
+    render(<BirthDateHost />);
+
+    chooseBirthDate("1370/05/12");
+
+    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
+  });
+
+  it("BirthDateField_PartlyChosen_EmitsNothingButKeepsTheChoices", () => {
+    render(<BirthDateHost />);
+
+    pickFrom(group(), "سال", "۱۳۷۰");
+    pickFrom(group(), "ماه", "مرداد");
+
+    expect(screen.getByTestId("iso")).toBeEmptyDOMElement();
+    expect(box("سال")).toHaveTextContent("۱۳۷۰");
+    expect(box("ماه")).toHaveTextContent("مرداد");
+    expect(box("روز")).toHaveTextContent("روز");
+  });
+
+  it("BirthDateField_Years_RunFrom1400BackTo1320", () => {
+    render(<BirthDateHost />);
+
+    const years = rows("سال");
+
+    expect(years[0]).toBe("۱۴۰۰");
+    expect(years.at(-1)).toBe("۱۳۲۰");
+    expect(years).toHaveLength(81);
+  });
+
+  it("BirthDateField_StoredYearOutsideTheRange_IsStillOffered", () => {
+    render(<BirthDateHost initial="2023-05-01" />); // ۱۱ اردیبهشت ۱۴۰۲
+
+    expect(box("سال")).toHaveTextContent("۱۴۰۲");
+    expect(rows("سال")[0]).toBe("۱۴۰۲");
+  });
+
+  it.each([
+    ["فروردین", 31],
+    ["مهر", 30],
+  ])("BirthDateField_Month_OffersItsDays (%s)", (month, days) => {
+    render(<BirthDateHost />);
+
+    pickFrom(group(), "ماه", month);
+
+    expect(rows("روز")).toHaveLength(days);
+  });
+
+  it.each([
+    ["۱۳۹۹", 30],
+    ["۱۴۰۰", 29],
+  ])("BirthDateField_Esfand_HasThirtyDaysOnlyInALeapYear (%s)", (year, days) => {
+    render(<BirthDateHost />);
+
+    pickFrom(group(), "سال", year);
+    pickFrom(group(), "ماه", "اسفند");
+
+    expect(rows("روز")).toHaveLength(days);
+  });
+
+  it("BirthDateField_DayTheNewMonthLacks_BecomesItsLastDay", () => {
+    render(<BirthDateHost initial="1991-04-20" />); // ۳۱ فروردین ۱۳۷۰
+
+    pickFrom(group(), "ماه", "مهر");
+
+    expect(box("روز")).toHaveTextContent("۳۰");
+    expect(screen.getByTestId("iso")).toHaveTextContent("1991-10-22"); // ۳۰ مهر ۱۳۷۰
+  });
+
+  it("BirthDateField_Keyboard_TypesAYearAndPicksIt", () => {
+    render(<BirthDateHost />);
+    const year = box("سال");
+
+    fireEvent.keyDown(year, { key: "Enter" });
+    for (const digit of "1370") {
+      fireEvent.keyDown(year, { key: digit });
+    }
+    fireEvent.keyDown(year, { key: "Enter" });
+
+    expect(year).toHaveTextContent("۱۳۷۰");
+    expect(within(group()).queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("BirthDateField_EscapeInADialog_ClosesTheListOnly", () => {
+    const onKeyDown = vi.fn();
+    render(
+      <div onKeyDown={onKeyDown}>
+        <BirthDateHost />
+      </div>,
+    );
+
+    fireEvent.click(box("روز"));
+    fireEvent.keyDown(box("روز"), { key: "Escape" });
+
+    expect(within(group()).queryByRole("listbox")).not.toBeInTheDocument();
+    expect(onKeyDown).not.toHaveBeenCalled();
+  });
+
+  it("BirthDateField_Error_IsMarkedAndDescribed", () => {
+    render(<BirthDateHost error="تاریخ تولد را وارد کنید." />);
+
+    const message = screen.getByText("تاریخ تولد را وارد کنید.");
+    expect(screen.getByLabelText(label)).toHaveAttribute("aria-describedby", message.id);
+    expect(box("روز")).toHaveAttribute("aria-invalid", "true");
   });
 });

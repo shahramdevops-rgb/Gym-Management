@@ -1,16 +1,17 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 
+import { chooseBirthDate } from "@/test/birthDate";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { reza } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
 
-/** Every member has a birth date, so a test about something else gets one typed for it. */
-function fill({ fullName = "", phoneNumber = "", notes = "", birthDate = "۱۳۷۰/۰۵/۱۲" }) {
+/** Every member has a birth date, so a test about something else gets one chosen for it. */
+function fill({ fullName = "", phoneNumber = "", notes = "", birthDate = "1370/05/12" }) {
   fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), { target: { value: fullName } });
   fireEvent.change(screen.getByLabelText("شماره موبایل"), { target: { value: phoneNumber } });
-  fireEvent.change(screen.getByLabelText("تاریخ تولد"), {
-    target: { value: birthDate },
-  });
+  if (birthDate !== "") {
+    chooseBirthDate(birthDate);
+  }
   fireEvent.change(screen.getByLabelText("یادداشت (اختیاری)"), { target: { value: notes } });
   fireEvent.click(screen.getByRole("button", { name: "ثبت عضو" }));
 }
@@ -28,7 +29,7 @@ describe("CreateMemberPage", () => {
     fill({
       fullName: "  رضا   احمد\u064A ",
       phoneNumber: "۰۹۱۲ ۱۲۳ ۴۵۶۷",
-      birthDate: "۱۳۷۰/۰۵/۱۲",
+      birthDate: "1370/05/12",
       notes: "عضو قدیمی",
     });
 
@@ -77,19 +78,6 @@ describe("CreateMemberPage", () => {
     expect(api.requestsTo("POST", "/api/members")).toHaveLength(0);
   });
 
-  it.each([
-    ["۱۴۵۰/۰۱/۰۱", "تاریخ تولد نمی‌تواند در آینده باشد."],
-    ["۱۲۵۰/۰۱/۰۱", "تاریخ تولد نمی‌تواند بیش از ۱۲۰ سال پیش باشد."],
-  ])("CreateMember_ImpossibleBirthDate_IsRejectedBeforeSending (%s)", async (typed, expected) => {
-    const api = mockApi(signedInHandlers(staffUser));
-    renderApp("/members/new", { session: session() });
-
-    fill({ fullName: "رضا", phoneNumber: "09121234567", birthDate: typed });
-
-    expect(await screen.findByText(expected)).toBeInTheDocument();
-    expect(api.requestsTo("POST", "/api/members")).toHaveLength(0);
-  });
-
   it("CreateMember_ServerRejectsTheBirthDate_ShowsTheReasonUnderTheBirthDate", async () => {
     // The rule is judged against the gym's today, which only the API knows for certain, so the
     // failure arrives as a whole-request error and codeFields puts it under the right box.
@@ -99,7 +87,7 @@ describe("CreateMemberPage", () => {
     });
     renderApp("/members/new", { session: session() });
 
-    fill({ fullName: "رضا", phoneNumber: "09121234567", birthDate: "۱۳۷۰/۰۵/۱۲" });
+    fill({ fullName: "رضا", phoneNumber: "09121234567", birthDate: "1370/05/12" });
 
     const message = await screen.findByText("تاریخ تولد نمی‌تواند در آینده باشد.");
     expect(screen.getByLabelText("تاریخ تولد")).toHaveAttribute("aria-describedby", message.id);
