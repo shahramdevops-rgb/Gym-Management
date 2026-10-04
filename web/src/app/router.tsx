@@ -59,6 +59,22 @@ export const routes: RouteObject[] = [
               { path: paths.cafeMenu, element: <CafeMenuPage /> },
               { path: paths.status, element: <StatusPage /> },
               { path: paths.changePassword, element: <ChangePasswordPage /> },
+              {
+                // Loaded the first time it is opened: it brings Recharts, which nobody at the
+                // desk needs, so the rest of the app stays one smaller download.
+                path: paths.dashboard,
+                lazy: async () => {
+                  const { DashboardPage } =
+                    await import("@/features/dashboard/pages/DashboardPage");
+                  return {
+                    element: (
+                      <RequireRole role="Owner">
+                        <DashboardPage />
+                      </RequireRole>
+                    ),
+                  };
+                },
+              },
               ownerOnly(paths.settings, <SettingsPage />),
               ownerOnly(paths.expenses, <ExpensesPage />),
               ownerOnly(paths.staff, <StaffPage />),

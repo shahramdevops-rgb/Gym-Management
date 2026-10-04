@@ -1418,3 +1418,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **Group a union by a nullable key.** Old debts group `SaleRows` by the new `MemberId` column. Walk-ins and guests share the `null` key, so they come back as one row, which becomes the "without a member" figure beside the list. The list plus that figure equals the receivables' oldest age, and a test checks it.
 - **A query keyword can't be a variable name.** Inside LINQ query syntax, a local named `from` makes the compiler read `>= from &&` as the start of a new `from` clause. The handler names its range `firstDay`/`lastDay` there.
 - **My notes:**
+
+## 9.3 — Dashboard UI (داشبورد)
+
+- **Pure functions under the page.** Preset ranges (`range.ts`), the percent change, the renewal rate and Jalali-month grouping (`figures.ts`) are plain functions with their own unit tests. The page only wires them to queries. Edge cases like a leap Esfand or a month boundary are tested in milliseconds, without rendering anything.
+- **The URL holds the range.** `?from=&to=` is read with `useSearchParams`, as in the history. A reload or a shared link opens the same figures, and the default (this month) leaves the URL clean. The button that looks pressed is worked out from the range (`presetOf`), so state and URL can't disagree.
+- **Check on the page what the API would refuse.** `rangeError` gives the API's own codes (`Reports.*`), and the queries stay disabled (`enabled: false`) until the range is valid. The Owner sees the Persian message at once, and no request is sent that is known to fail.
+- **`keepPreviousData` for a smoother switch.** When the range changes, the old figures stay on screen until the new ones arrive, instead of the page going blank.
+- **SVG and RTL don't mix by themselves.** SVG text anchors depend on text direction, so inside an RTL page Recharts' axis labels slid over the bars. The fix is to draw the chart LTR, reverse the axes so time still runs right to left, and start each label with an invisible right-to-left mark so «۶ میلیون» keeps its word order. Where a chart needed no axis (bar lists), plain HTML was simpler and right by default.
+- **Color is checked, not eyeballed.** The two series colors were run through a colorblind-safety validator for both themes and stored as `--chart-1` / `--chart-2` tokens. A change arrow always comes with a word, so meaning never depends on color alone.
+- **Look at it in a browser.** All jsdom tests passed while the labels overlapped on screen. jsdom draws charts at zero size, so the tests check the figures around the charts, and the geometry had to be checked by eye.
+- **My notes:**

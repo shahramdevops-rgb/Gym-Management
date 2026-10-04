@@ -75,6 +75,11 @@
   --party-mint: oklch(0.8 0.15 165);
   --party-sky: oklch(0.76 0.13 235);
   --party-violet: oklch(0.7 0.17 300);
+  /* The dashboard's charts (BUSINESS_RULES.md §12 *Dashboard*): two series colours checked
+     together for colour-blind readers in both palettes (blue for money in, orange for money out);
+     the first is also the one hue the weekday × hour table is shaded in. */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
 }
 
 /* The party ring's turn. Registered, so the browser can animate an angle inside a gradient. */
@@ -130,6 +135,8 @@
   --tile-analysis-ink: oklch(0.88 0.08 185);
   --door-use: oklch(0.68 0.16 290);
   --door-unused: oklch(0.82 0.14 85);
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
 }
 
 /*
@@ -238,6 +245,8 @@
   --color-party-mint: var(--party-mint);
   --color-party-sky: var(--party-sky);
   --color-party-violet: var(--party-violet);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
 
   /* A birthday door: the ring around it turns, and confetti falls inside it. */
   --animate-party-spin: party-spin 3s linear infinite;

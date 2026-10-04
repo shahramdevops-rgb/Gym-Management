@@ -1304,6 +1304,32 @@ no range. One member can be on more than one list.
   guests owe on such sales is one figure beside the list, since there is nobody to call. The list
   and that figure add up to the receivables' «more than 30 days».
 
+### Dashboard (داشبورد)
+
+Decided with the developer, 1405/07/12 (2026-10-04). Roadmap 9.3. The figures of the reports above,
+on one page.
+
+- **Owner only**, like the reports. Staff have no menu item for it, and the page asks nothing for
+  them. The first screen stays the locker map for everyone (§7).
+- **One range for the whole page**, chosen in one press: «امروز», «این هفته», «این ماه», «ماه
+  قبل», «امسال», or «دلخواه» for two Jalali date boxes. It opens on **this Jalali month**.
+  - "This week", "this month" and "this year" run from their first day **to today**, not to their
+    last day, so the comparison with the range before covers the same number of days (07/01–07/12
+    is compared with 06/19–06/30). The Iranian week starts on **Saturday**; the year on 1 Farvardin.
+  - «ماه قبل» is the whole Jalali month before this one, 29, 30 or 31 days.
+  - A range missing a date, running backwards or longer than 366 days is refused on the page with
+    the API's own messages, before anything is asked.
+- **Compared with the range before**: a card shows the change as a percent with an arrow and a word,
+  green when it is good news and red when it is bad (expenses going up is bad news). When the
+  range before had nothing or a loss, a percent says nothing true, and the card shows the figure
+  before instead. New members and the renewal rate have no comparison: their reports send none.
+- **What does not depend on the range** (plans today, receivables, needs attention) stays the same
+  when the range changes.
+- **Charts read right to left**, like the page: the oldest day or month is on the right. A range
+  longer than 62 days shows revenue and expenses by Jalali month instead of by day. New members and
+  the renewal rate are by Jalali month. The weekday × hour table shows from the earliest hour
+  anyone came to the latest.
+
 ### History (تاریخچه)
 
 Decided with the developer, 1405/07/10 (2026-10-02). Roadmap 6.5.25. Each member's own history is
@@ -1407,7 +1433,7 @@ without adding up the rows.
   - Every amount that is **typed** goes through the shared money field: Persian digits, grouped in threes as it is typed (۵۰۰٬۰۰۰), and the same amount written out in words underneath it — «پانصد هزار تومان». The words are the check: nobody miscounts a word.
   - Every amount that is **displayed** goes through one formatter, which groups in threes and appends "تومان".
   - No screen formats an amount by itself, and no money value is ever held as a JavaScript number: rounding a price is never acceptable.
-- Reports offer Jalali periods (this Jalali month, this Jalali year) that the frontend converts to Gregorian date ranges.
+- Reports offer Jalali periods (today, this week, this Jalali month, last month, this Jalali year; §12 *Dashboard*) that the frontend converts to Gregorian date ranges.
 - SMS messages are Persian. Unicode SMS parts hold fewer characters than Latin ones, so templates are kept short and the part count is calculated before sending.
 
 ## 14. Theme (تم روشن و تیره)
