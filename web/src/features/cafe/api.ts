@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { attendanceKeys, currentlyInsideRefetchMs } from "@/features/attendance/api";
+import { guestDebtKeys } from "@/features/guestDebts/api";
 import { lockerKeys } from "@/features/lockers/api";
 import { memberKeys } from "@/features/members/api";
 import { paymentKeys, type PaymentMethod } from "@/features/payments/api";
@@ -332,6 +333,8 @@ function useOrderMutation<TArgs, TResult>(request: (args: TArgs) => Promise<TRes
         queryClient.invalidateQueries({ queryKey: attendanceKeys.all }),
         // The map marks a holder who owes money «بدهکار», a guest included.
         queryClient.invalidateQueries({ queryKey: lockerKeys.all }),
+        // A guest's order may be on «بدهی مهمان‌ها».
+        queryClient.invalidateQueries({ queryKey: guestDebtKeys.all }),
       ]);
     },
   });

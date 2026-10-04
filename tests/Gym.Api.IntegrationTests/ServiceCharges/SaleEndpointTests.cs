@@ -138,17 +138,19 @@ public sealed class SaleEndpointTests(DatabaseFixture fixture) : DatabaseTestBas
             .Count(item => item.Kind == PaymentTargetKind.ServiceCharge).ShouldBe(5);
     }
 
-    /// <summary>Members only (decided with the developer, 1405/07/11).</summary>
+    /// <summary>A guest's visit too since task 6.5.31: under their name, on no account.</summary>
     [Fact]
-    public async Task Shop_GuestVisit_Returns422ServiceChargesGuestVisit()
+    public async Task Shop_GuestVisit_RecordsTheItemsWithNoMember()
     {
         var (client, token) = await StaffClientAsync();
         var visit = await TestGuests.CheckInOkAsync(client, token);
 
-        using var response = await SellAsync(client, token, visit.Id, Item("دستکش", 1, 150_000m));
+        var sold = await SellOkAsync(client, token, visit.Id, Item("دستکش", 2, 150_000m));
 
-        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("ServiceCharges.GuestVisit");
+        var item = sold.ShouldHaveSingleItem();
+        item.MemberId.ShouldBeNull();
+        item.AttendanceId.ShouldBe(visit.Id);
+        item.Amount.ShouldBe(300_000m);
     }
 
     [Fact]
@@ -215,15 +217,15 @@ public sealed class SaleEndpointTests(DatabaseFixture fixture) : DatabaseTestBas
     }
 
     [Fact]
-    public async Task Analysis_GuestVisit_Returns422ServiceChargesGuestVisit()
+    public async Task Analysis_GuestVisit_RecordsItWithNoMember()
     {
         var (client, token) = await StaffClientAsync();
         var visit = await TestGuests.CheckInOkAsync(client, token);
 
-        using var response = await ChargeAsync(client, token, visit.Id, "Analysis", 200_000m);
+        var analysis = await ChargeOkAsync(client, token, visit.Id, "Analysis", 200_000m);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("ServiceCharges.GuestVisit");
+        analysis.MemberId.ShouldBeNull();
+        analysis.AttendanceId.ShouldBe(visit.Id);
     }
 
     /// <summary>

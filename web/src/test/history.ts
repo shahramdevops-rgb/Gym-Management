@@ -110,6 +110,7 @@ export const liveCardio: HistoryServiceCharge = {
   id: "0199a000-0000-7000-8000-0000000000c1",
   memberId: reza.id,
   memberFullName: reza.fullName,
+  guestName: null,
   attendanceId: closedVisit.id,
   kind: "Cardio",
   description: null,

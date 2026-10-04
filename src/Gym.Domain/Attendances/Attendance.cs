@@ -248,29 +248,29 @@ public sealed class Attendance : Entity
 
     /// <summary>
     /// Only an open attendance can be checked out (BUSINESS_RULES.md §7). A guest cannot leave
-    /// while a cafe order of the visit is unpaid: a member's debt stays on their account, but a
+    /// while anything bought on the visit is unpaid: a member's debt stays on their account, but a
     /// guest has no account to leave it on (§7 <i>Guest visit</i>). A cardio-only visit cannot be
     /// closed before its هوازی amount is recorded (§7 <i>Cardio-only visit</i>).
     /// </summary>
-    /// <param name="hasUnpaidCafe">
-    /// Whether any standing cafe order of this visit still owes money. Orders are another
-    /// aggregate, so the caller answers; it is ignored on a member's visit.
+    /// <param name="hasUnpaidPurchases">
+    /// Whether any standing cafe order or service charge of this visit still owes money. Both are
+    /// other aggregates, so the caller answers; it is ignored on a member's visit.
     /// </param>
     /// <param name="hasCardioCharge">
     /// Whether the visit has a هوازی charge that is not voided, paid or not. Charges are another
     /// aggregate, so the caller answers; it is read only on a cardio-only visit, and left out it
     /// refuses one, so a caller that forgets to ask cannot let such a visit go uncharged.
     /// </param>
-    public Result CheckOut(DateTimeOffset checkedOutAt, bool hasUnpaidCafe = false, bool hasCardioCharge = false)
+    public Result CheckOut(DateTimeOffset checkedOutAt, bool hasUnpaidPurchases = false, bool hasCardioCharge = false)
     {
         if (CheckedOutAt is not null)
         {
             return Result.Failure(AttendanceErrors.NotOpen);
         }
 
-        if (IsGuest && hasUnpaidCafe)
+        if (IsGuest && hasUnpaidPurchases)
         {
-            return Result.Failure(AttendanceErrors.GuestHasUnpaidCafe);
+            return Result.Failure(AttendanceErrors.GuestHasUnpaidPurchases);
         }
 
         if (IsCardioOnly && !hasCardioCharge)
@@ -289,12 +289,12 @@ public sealed class Attendance : Entity
     /// aggregate); this only records the cancellation and frees the locker.
     /// </summary>
     /// <param name="cancelWindowMinutes"><c>Gym:CancelCheckInWindowMinutes</c>.</param>
-    /// <param name="leavesUnpaidCafe">
-    /// Whether a cafe order the desk did not tick for cancelling still owes money. On a guest's
-    /// visit that refuses the cancellation, as it refuses a check-out (BUSINESS_RULES.md §7
+    /// <param name="leavesUnpaidPurchases">
+    /// Whether a cafe order or service charge the desk did not tick for cancelling still owes
+    /// money. On a guest's visit that refuses the cancellation, as it refuses a check-out (BUSINESS_RULES.md §7
     /// <i>Guest visit</i>); ignored on a member's visit.
     /// </param>
-    public Result Cancel(DateTimeOffset now, int cancelWindowMinutes, bool leavesUnpaidCafe = false)
+    public Result Cancel(DateTimeOffset now, int cancelWindowMinutes, bool leavesUnpaidPurchases = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(cancelWindowMinutes);
 
@@ -308,9 +308,9 @@ public sealed class Attendance : Entity
             return Result.Failure(AttendanceErrors.CancelWindowExpired);
         }
 
-        if (IsGuest && leavesUnpaidCafe)
+        if (IsGuest && leavesUnpaidPurchases)
         {
-            return Result.Failure(AttendanceErrors.GuestHasUnpaidCafe);
+            return Result.Failure(AttendanceErrors.GuestHasUnpaidPurchases);
         }
 
         CancelledAt = now;

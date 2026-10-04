@@ -25,7 +25,7 @@ import { SaleBox } from "@/features/serviceCharges/components/SaleBox";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
-import { addMoney, isPositiveMoney } from "@/lib/money";
+import { addMoney, isPositiveMoney, subtractMoney } from "@/lib/money";
 
 import type { Locker } from "../api";
 import { LockerMap } from "./LockerMap";
@@ -36,7 +36,7 @@ type Step =
   /** Who had the locker today (BUSINESS_RULES.md §6); «بازگشت» goes back to the visit. */
   | { kind: "history"; lockerId: string }
   | { kind: "pick" }
-  /** «تسویه یکجا» for a guest: every unpaid cafe order of the visit (BUSINESS_RULES.md §7 *Guest visit*). */
+  /** «تسویه یکجا» for a guest: everything the visit still owes (BUSINESS_RULES.md §7 *Guest visit*). */
   | { kind: "settle" }
   | { kind: "confirmMove"; target: Locker }
   | { kind: "moved"; number: Locker["number"] }
@@ -75,7 +75,7 @@ export function LockerVisitDialog({
   const [step, setStep] = useState<Step>({ kind: "view" });
   const moveLocker = useMoveLocker();
   const member = holderOf(visit);
-  // Null for a guest (BUSINESS_RULES.md §7 *Guest visit*), whose box has no profile, sessions or هوازی.
+  // Null for a guest (BUSINESS_RULES.md §7 *Guest visit*), whose box has no profile or sessions.
   const memberId = visit.memberId;
   // Null on a reserve place, which has no history of its own.
   const lockerId = visit.lockerId;
@@ -136,7 +136,8 @@ export function LockerVisitDialog({
             <DialogHeader>
               <DialogTitle>تسویه یکجا — {member.fullName}</DialogTitle>
               <DialogDescription>
-                همهٔ خریدهای پرداخت‌نشدهٔ بوفهٔ این مهمان یکجا پرداخت می‌شود.
+                همهٔ خریدهای پرداخت‌نشدهٔ این مهمان (بوفه، هوازی، فروشگاه و آنالیز) یکجا پرداخت
+                می‌شود.
               </DialogDescription>
             </DialogHeader>
             <GuestSettleForm
@@ -349,9 +350,15 @@ export function LockerVisitDialog({
   );
 }
 
-/** What a guest's visit still owes the cafe: what «تسویه یکجا» pays and what blocks check-out. */
+/**
+ * What a guest's visit still owes, its cafe orders and its هوازی and sales: what «تسویه یکجا» pays
+ * and what blocks check-out.
+ */
 function guestOutstanding(visit: CurrentlyInside): string {
-  return addMoney(...(visit.cafeOrders ?? []).map((order) => order.outstanding));
+  return addMoney(
+    ...(visit.cafeOrders ?? []).map((order) => order.outstanding),
+    ...visit.serviceCharges.map((charge) => subtractMoney(charge.amount, charge.netPaid)),
+  );
 }
 
 interface GuestViewProps {
@@ -366,10 +373,10 @@ interface GuestViewProps {
 }
 
 /**
- * A guest's box (BUSINESS_RULES.md §7 *Guest visit*): the name and «مهمان», with no profile link,
- * no sessions and no هوازی. The cafe is as for a member, plus «تسویه یکجا» while anything is
- * unpaid, and check-out waits until it is paid: a guest has no account to leave a debt on. Move
- * and cancel work as for a member.
+ * A guest's box (BUSINESS_RULES.md §7 *Guest visit*): the name and «مهمان», with no profile link
+ * and no sessions. The four tiles are a member's (task 6.5.31), under the guest's name, plus
+ * «تسویه یکجا» while anything is unpaid, and check-out waits until it is paid: a guest has no
+ * account to leave a debt on. Move and cancel work as for a member.
  */
 function GuestView({
   visit,
@@ -398,22 +405,43 @@ function GuestView({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="grid grid-cols-2 items-center gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <ServiceChargeBox
+          attendanceId={visit.attendanceId}
+          kind="Cardio"
+          charge={visit.serviceCharges.find((charge) => charge.kind === "Cardio")}
+          visitIsOpen
+          tile
+        />
         <VisitCafeBox
           attendanceId={visit.attendanceId}
           member={guest}
           orders={visit.cafeOrders ?? []}
         />
-        {owes && (
-          <Button size="sm" className="sm:col-span-2 sm:justify-self-start" onClick={onSettle}>
-            تسویه یکجا ({formatMoney(outstanding)})
-          </Button>
-        )}
+        <SaleBox
+          attendanceId={visit.attendanceId}
+          kind="Miscellaneous"
+          memberName={guest.fullName}
+          isGuest
+          sales={visit.serviceCharges.filter((charge) => charge.kind === "Miscellaneous")}
+        />
+        <SaleBox
+          attendanceId={visit.attendanceId}
+          kind="Analysis"
+          memberName={guest.fullName}
+          isGuest
+          sales={visit.serviceCharges.filter((charge) => charge.kind === "Analysis")}
+        />
       </div>
+      {owes && (
+        <Button size="sm" className="justify-self-start" onClick={onSettle}>
+          تسویه یکجا ({formatMoney(outstanding)})
+        </Button>
+      )}
 
       <div className="space-y-2 border-t pt-3">
         {owes && (
-          <Alert role="status">مهمان حسابی ندارد: خروج پس از پرداخت خریدهای بوفه ثبت می‌شود.</Alert>
+          <Alert role="status">مهمان حسابی ندارد: خروج پس از پرداخت همهٔ خریدها ثبت می‌شود.</Alert>
         )}
         <div className="flex flex-wrap gap-2">
           <Button disabled={owes} onClick={onCheckOut}>

@@ -48,6 +48,7 @@ public sealed class ServiceChargeConfiguration : IEntityTypeConfiguration<Servic
 
         // Restrict: a charge is a financial record and must never disappear with the visit or the
         // member it belongs to, the same reasoning PaymentConfiguration uses.
+        // No member on a guest's visit (BUSINESS_RULES.md §7 Guest visit), so the key is optional.
         builder.HasOne<Member>().WithMany().HasForeignKey(charge => charge.MemberId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Attendance>().WithMany().HasForeignKey(charge => charge.AttendanceId).OnDelete(DeleteBehavior.Restrict);
 

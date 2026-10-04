@@ -329,13 +329,13 @@ public sealed class AttendanceTests
     }
 
     [Fact]
-    public void CheckOut_GuestWithUnpaidCafe_FailsAndStaysOpen()
+    public void CheckOut_GuestWithUnpaidPurchase_FailsAndStaysOpen()
     {
         var guest = GuestAttendance();
 
-        var result = guest.CheckOut(CheckedInAt.AddHours(1), hasUnpaidCafe: true);
+        var result = guest.CheckOut(CheckedInAt.AddHours(1), hasUnpaidPurchases: true);
 
-        result.Error.ShouldBe(AttendanceErrors.GuestHasUnpaidCafe);
+        result.Error.ShouldBe(AttendanceErrors.GuestHasUnpaidPurchases);
         guest.CheckedOutAt.ShouldBeNull();
     }
 
@@ -345,28 +345,28 @@ public sealed class AttendanceTests
         var guest = GuestAttendance();
         var at = CheckedInAt.AddHours(1);
 
-        guest.CheckOut(at, hasUnpaidCafe: false).IsSuccess.ShouldBeTrue();
+        guest.CheckOut(at, hasUnpaidPurchases: false).IsSuccess.ShouldBeTrue();
 
         guest.CheckedOutAt.ShouldBe(at);
     }
 
     [Fact]
-    public void CheckOut_MemberWithUnpaidCafe_StillCloses()
+    public void CheckOut_MemberWithUnpaidPurchase_StillCloses()
     {
         // A member's debt stays on their account and is never enforced (BUSINESS_RULES.md §5).
         var attendance = OpenAttendance();
 
-        attendance.CheckOut(CheckedInAt.AddHours(1), hasUnpaidCafe: true).IsSuccess.ShouldBeTrue();
+        attendance.CheckOut(CheckedInAt.AddHours(1), hasUnpaidPurchases: true).IsSuccess.ShouldBeTrue();
     }
 
     [Fact]
-    public void Cancel_GuestLeavingAnUnpaidOrder_FailsAndStaysOpen()
+    public void Cancel_GuestLeavingAnUnpaidPurchase_FailsAndStaysOpen()
     {
         var guest = GuestAttendance();
 
-        var result = guest.Cancel(CheckedInAt.AddMinutes(5), CancelWindowMinutes, leavesUnpaidCafe: true);
+        var result = guest.Cancel(CheckedInAt.AddMinutes(5), CancelWindowMinutes, leavesUnpaidPurchases: true);
 
-        result.Error.ShouldBe(AttendanceErrors.GuestHasUnpaidCafe);
+        result.Error.ShouldBe(AttendanceErrors.GuestHasUnpaidPurchases);
         guest.CheckedOutAt.ShouldBeNull();
         guest.CancelledAt.ShouldBeNull();
     }
@@ -376,7 +376,7 @@ public sealed class AttendanceTests
     {
         var guest = GuestAttendance();
 
-        guest.Cancel(CheckedInAt.AddMinutes(5), CancelWindowMinutes, leavesUnpaidCafe: false).IsSuccess.ShouldBeTrue();
+        guest.Cancel(CheckedInAt.AddMinutes(5), CancelWindowMinutes, leavesUnpaidPurchases: false).IsSuccess.ShouldBeTrue();
 
         guest.CancelledAt.ShouldNotBeNull();
     }

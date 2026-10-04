@@ -10,6 +10,7 @@ using Gym.Application.Attendances.TodayByHour;
 using Gym.Application.Common.Paging;
 using Gym.Application.Lockers;
 using Gym.Application.Lockers.ListLockerVisitsToday;
+using Gym.Application.ServiceCharges;
 using Gym.Domain.Attendances;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -262,8 +263,9 @@ public sealed class GuestVisitEndpointTests(DatabaseFixture fixture) : DatabaseT
         (await ReadAsync<AttendanceResponse>(response)).CancelledAt.ShouldNotBeNull();
     }
 
+    /// <summary>A guest may use every service since task 6.5.31: the هوازی is on the visit, on no account.</summary>
     [Fact]
-    public async Task RecordServiceCharge_OnAGuestVisit_Returns422ServiceChargesGuestVisit()
+    public async Task RecordServiceCharge_OnAGuestVisit_RecordsItWithNoMember()
     {
         var (client, token) = await StaffClientAsync();
         var visit = await TestGuests.CheckInOkAsync(client, token);
@@ -271,8 +273,11 @@ public sealed class GuestVisitEndpointTests(DatabaseFixture fixture) : DatabaseT
         using var response = await SendAsync(
             client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/service-charges", new { kind = "Cardio", amount = 10_000m });
 
-        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("ServiceCharges.GuestVisit");
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var charge = await ReadAsync<ServiceChargeResponse>(response);
+        charge.MemberId.ShouldBeNull();
+        charge.AttendanceId.ShouldBe(visit.Id);
+        charge.CanChangeAmount.ShouldBeTrue();
     }
 
     [Fact]

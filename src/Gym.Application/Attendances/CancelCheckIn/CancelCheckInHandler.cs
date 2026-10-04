@@ -60,14 +60,15 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
             await db.LockAttendanceAsync(id, cancellationToken);
         }
 
-        // A guest leaves no debt behind (BUSINESS_RULES.md §7 Guest visit): an order the desk did
-        // not tick stays standing, so it must already be paid.
+        // A guest leaves no debt behind (BUSINESS_RULES.md §7 Guest visit): an order, a هوازی or a
+        // sale the desk did not tick stays standing, so it must already be paid.
         var cafeOrderIds = command.CafeOrderIds ?? [];
-        var leavesUnpaidCafe = attendance.IsGuest
-            && (await GuestCafe.UnpaidOrdersAsync(db, id, cancellationToken))
-                .Any(unpaid => !cafeOrderIds.Contains(unpaid.Order.Id));
+        var saleIds = command.SaleIds ?? [];
+        var leavesUnpaidPurchases = attendance.IsGuest
+            && LeavesUnpaid(
+                await GuestPurchases.UnpaidAsync(db, id, cancellationToken), command.VoidCardio == true, cafeOrderIds, saleIds);
 
-        var cancelled = attendance.Cancel(now, policy.CancelWindowMinutes, leavesUnpaidCafe);
+        var cancelled = attendance.Cancel(now, policy.CancelWindowMinutes, leavesUnpaidPurchases);
         if (cancelled.IsFailure)
         {
             return Result.Failure<AttendanceResponse>(cancelled.Error);
@@ -87,7 +88,7 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
         }
 
         var salesVoided = await VoidSalesAsync(
-            id, command.SaleIds ?? [], userId, now, cancellationToken);
+            id, saleIds, userId, now, cancellationToken);
         if (salesVoided.IsFailure)
         {
             // Nothing is saved: the transaction is disposed without a commit.
@@ -122,6 +123,17 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
 
         return AttendanceResponse.From(attendance, lockerNumber, charges.GetValueOrDefault(id));
     }
+
+    /// <summary>
+    /// Whether a purchase the desk left unticked still owes money: the هوازی unless it is voided,
+    /// each sale and cafe order not named.
+    /// </summary>
+    private static bool LeavesUnpaid(
+        GuestPurchases.Unpaid unpaid, bool voidCardio, IReadOnlyList<Guid> cafeOrderIds, IReadOnlyList<Guid> saleIds) =>
+        unpaid.Orders.Any(order => !cafeOrderIds.Contains(order.Order.Id))
+        || unpaid.Charges.Any(charge => charge.Charge.Kind == ServiceChargeKind.Cardio
+            ? !voidCardio
+            : !saleIds.Contains(charge.Charge.Id));
 
     /// <summary>
     /// BUSINESS_RULES.md §7 <i>Gym services</i>: voided with the check-in's reason, and anything

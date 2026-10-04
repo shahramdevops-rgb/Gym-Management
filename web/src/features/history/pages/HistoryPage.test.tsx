@@ -278,6 +278,24 @@ describe("HistoryPage", () => {
     expect(within(live).getByText("سارا رضایی")).toBeInTheDocument();
   });
 
+  it("Cardio_GuestsCharge_ShowsTheGuestsNameMarkedAsGuestWithNoProfileLink", async () => {
+    const guestCardio = {
+      ...liveCardio,
+      memberId: null,
+      memberFullName: null,
+      guestName: "مریم احمدی",
+    };
+    mockApi({
+      ...handlers(staffUser),
+      "GET /api/service-charges": () => historyPage([guestCardio]),
+    });
+    renderApp("/history?tab=cardio", { session: session() });
+
+    const row = (await screen.findByText("مریم احمدی")).closest("tr")!;
+    expect(row).toHaveTextContent("مهمان");
+    expect(within(row).queryByRole("link")).not.toBeInTheDocument();
+  });
+
   it("Tabs_Switching_KeepsTheRangeAndTheMember", async () => {
     // Staff: the combined section is theirs; the Owner has the sales sections instead.
     const api = mockApi(handlers(staffUser));

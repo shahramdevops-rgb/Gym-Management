@@ -11,7 +11,7 @@ import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { formatMoney } from "@/lib/format";
 import { normalizeMoney } from "@/lib/money";
 
-import { useSettleGuestCafe } from "../api";
+import { useSettleGuestVisit } from "../api";
 
 const codeFields = {
   "Payments.MethodInvalid": "method",
@@ -20,18 +20,18 @@ const codeFields = {
 
 interface GuestSettleFormProps {
   attendanceId: string;
-  /** Everything the visit's cafe orders still owe, as the box shows it. It is what is paid. */
+  /** Everything the visit's purchases still owe, as the box shows it. It is what is paid. */
   outstanding: number | string;
   onDone: () => void;
   onCancel: () => void;
 }
 
 /**
- * «تسویه یکجا» for a guest (BUSINESS_RULES.md §7 *Guest visit*): every unpaid cafe order of the
- * visit, in one step, so the guest can check out. There is nothing to choose and no amount to
- * type: a guest leaves no debt behind, so the whole of it is paid. Only the method (and a
- * reference number for a card) is asked, then the same "was the money received?" box as every
- * other payment (§5 *Confirming money at the desk*).
+ * «تسویه یکجا» for a guest (BUSINESS_RULES.md §7 *Guest visit*): every unpaid purchase of the
+ * visit, cafe, هوازی and sales, in one step, so the guest can check out. There is nothing to
+ * choose and no amount to type: a guest leaves no debt behind, so the whole of it is paid. Only the
+ * method (and a reference number for a card) is asked, then the same "was the money received?" box
+ * as every other payment (§5 *Confirming money at the desk*).
  */
 export function GuestSettleForm({
   attendanceId,
@@ -39,7 +39,7 @@ export function GuestSettleForm({
   onDone,
   onCancel,
 }: GuestSettleFormProps) {
-  const settle = useSettleGuestCafe();
+  const settle = useSettleGuestVisit();
   const [toConfirm, setToConfirm] = useState<RegisterPaymentValues | null>(null);
   const amount = normalizeMoney(String(outstanding));
 

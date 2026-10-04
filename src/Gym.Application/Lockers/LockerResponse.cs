@@ -28,7 +28,7 @@ public sealed record LockerHolder(Guid? MemberId, string? FullName, string? Gues
 /// <param name="Version">Sent back with a status change, so a stale request is refused.</param>
 /// <param name="HolderDebt">
 /// What the holder still owes, so the map can mark their door "بدهکار" (§6): a member's whole debt
-/// (§5 <i>Member debt</i>), or for a guest what the visit's cafe orders still owe. <c>0</c> for a
+/// (§5 <i>Member debt</i>), or for a guest what the visit's purchases still owe. <c>0</c> for a
 /// free locker. Computed only by <see cref="ListLockers.ListLockersHandler"/>, the map's one read;
 /// every other path leaves it <c>0</c>, the way <see cref="Members.MemberResponse.Debt"/> is
 /// filled only by the member list.

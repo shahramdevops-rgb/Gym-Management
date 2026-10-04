@@ -1703,7 +1703,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("kind");
 
-                    b.Property<Guid>("MemberId")
+                    b.Property<Guid?>("MemberId")
                         .HasColumnType("uuid")
                         .HasColumnName("member_id");
 
@@ -2305,7 +2305,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("MemberId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
                         .HasConstraintName("fk_service_charges_members_member_id");
 
                     b.HasOne("Gym.Infrastructure.Identity.User", null)

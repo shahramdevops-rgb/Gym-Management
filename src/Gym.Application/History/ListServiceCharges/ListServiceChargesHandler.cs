@@ -49,12 +49,20 @@ public sealed class ListServiceChargesHandler(IAppDbContext db, IUserNames users
             .Take(query.PageSize)
             .ToListAsync(cancellationToken);
 
-        // Three batched lookups for the whole page, not one per row: whose charge, what has been
-        // paid on it, and who recorded or voided it.
-        var memberIds = page.Select(charge => charge.MemberId).Distinct().ToList();
+        // Batched lookups for the whole page, not one per row: whose charge (a member's or a guest's),
+        // what has been paid on it, and who recorded or voided it.
+        var memberIds = page.Where(charge => charge.MemberId is not null)
+            .Select(charge => charge.MemberId!.Value).Distinct().ToList();
         var memberNames = await db.Members.AsNoTracking()
             .Where(member => memberIds.Contains(member.Id))
             .ToDictionaryAsync(member => member.Id, member => member.FullName, cancellationToken);
+
+        // A guest's charge names their visit and no member (§7 Guest visit): the name is on the visit.
+        var guestVisitIds = page.Where(charge => charge.MemberId is null)
+            .Select(charge => charge.AttendanceId).Distinct().ToList();
+        var guestNames = await db.Attendances.AsNoTracking()
+            .Where(attendance => guestVisitIds.Contains(attendance.Id) && attendance.GuestName != null)
+            .ToDictionaryAsync(attendance => attendance.Id, attendance => attendance.GuestName!, cancellationToken);
 
         var netPaidByCharge = await PaymentLedger.GetNetPaidForServiceChargesAsync(
             db, page.Select(charge => charge.Id).ToList(), cancellationToken);
@@ -73,7 +81,8 @@ public sealed class ListServiceChargesHandler(IAppDbContext db, IUserNames users
                 return new HistoryServiceChargeResponse(
                     charge.Id,
                     charge.MemberId,
-                    memberNames.GetValueOrDefault(charge.MemberId) ?? string.Empty,
+                    charge.MemberId is { } memberId ? memberNames.GetValueOrDefault(memberId) : null,
+                    charge.MemberId is null ? guestNames.GetValueOrDefault(charge.AttendanceId) : null,
                     charge.AttendanceId,
                     charge.Kind,
                     charge.Description,

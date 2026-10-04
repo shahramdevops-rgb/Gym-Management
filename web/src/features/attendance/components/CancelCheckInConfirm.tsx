@@ -6,7 +6,7 @@ import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/di
 import { isSaleKind, serviceChargeLabel } from "@/features/serviceCharges/api";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
-import { addMoney, isPositiveMoney } from "@/lib/money";
+import { addMoney, isPositiveMoney, subtractMoney } from "@/lib/money";
 
 import { useEveryoneInside, type CurrentlyInside } from "../api";
 import { ConfirmButtons } from "./deskParts";
@@ -30,7 +30,7 @@ export interface CancelChoice {
 
 interface CancelCheckInConfirmProps {
   memberFullName: string;
-  /** A guest has no session to give back and no account to leave an order on (§7 *Guest visit*). */
+  /** A guest has no session to give back and no account to leave a purchase on (§7 *Guest visit*). */
   isGuest?: boolean;
   attendanceId: string;
   pending: boolean;
@@ -45,8 +45,8 @@ interface CancelCheckInConfirmProps {
  * on the member's account. When anything is ticked, a second question names it and reminds the
  * desk to hand back what was collected for it.
  *
- * A guest (§7 *Guest visit*) leaves no debt behind: a cafe order left unticked must already be
- * paid, so the confirm button waits until every unpaid order is ticked or settled in the box.
+ * A guest (§7 *Guest visit*) leaves no debt behind: a purchase left unticked must already be paid,
+ * so the confirm button waits until every unpaid one is ticked or settled in the box.
  *
  * The purchases come from the "inside" list, which already carries each visit's هوازی and cafe
  * orders with what was paid, so every screen that offers cancel reads them the same way.
@@ -72,11 +72,13 @@ export function CancelCheckInConfirm({
     ...(visit?.cafeOrders ?? []).map(cafePurchase),
   ];
   const chosen = purchases.filter((purchase) => ticked.has(purchase.id));
-  // What the server would refuse: an order of a guest that stays standing and is not paid.
+  // What the server would refuse: a guest's purchase that stays standing and is not paid.
   const guestLeavesUnpaid =
     isGuest &&
-    (visit?.cafeOrders ?? []).some(
-      (order) => !ticked.has(order.id) && isPositiveMoney(order.outstanding),
+    purchases.some(
+      (purchase) =>
+        !ticked.has(purchase.id) &&
+        isPositiveMoney(subtractMoney(purchase.amount, purchase.netPaid)),
     );
 
   function toggle(id: string, checked: boolean) {
@@ -175,7 +177,7 @@ export function CancelCheckInConfirm({
           <p className="font-medium">خریدهای این مراجعه</p>
           <p className="text-muted-foreground">
             {isGuest
-              ? "موارد تیک‌خورده همراه ورود لغو می‌شوند. مهمان حسابی ندارد: سفارش پرداخت‌نشده‌ای که تیک نخورد، باید پیش از لغو تسویه شود."
+              ? "موارد تیک‌خورده همراه ورود لغو می‌شوند. مهمان حسابی ندارد: خرید پرداخت‌نشده‌ای که تیک نخورد، باید پیش از لغو تسویه شود."
               : "موارد تیک‌خورده همراه ورود لغو می‌شوند؛ بقیه روی حساب عضو می‌ماند."}
           </p>
           <ul className="space-y-2">
@@ -209,7 +211,7 @@ export function CancelCheckInConfirm({
 
       {guestLeavesUnpaid && (
         <Alert role="status">
-          سفارش پرداخت‌نشده‌ی مهمان را تیک بزنید تا همراه ورود لغو شود، یا ابتدا آن را تسویه کنید.
+          خرید پرداخت‌نشدهٔ مهمان را تیک بزنید تا همراه ورود لغو شود، یا ابتدا آن را تسویه کنید.
         </Alert>
       )}
 

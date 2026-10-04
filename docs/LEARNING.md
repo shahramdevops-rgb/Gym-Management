@@ -1353,6 +1353,18 @@ The question that started this was whether a gym that is entirely internal — I
 - **Role-dependent tabs and links that arrive early.** Until the signed-in user is loaded, the page does not know which tabs exist. It keeps any known tab from the URL meanwhile and only falls back once the role is known, and it asks for sales only when the role is confirmed Owner. A Staff member with an Owner's link sees the check-ins, and the API is never asked.
 - **My notes:**
 
+## 6.5.31 — Services for guests, and the guest debt list (خدمات مهمان، بدهی مهمان‌ها)
+
+- **Widening a rule is a nullable column, not a new table.** A guest's هوازی is still a `ServiceCharge`; only `MemberId` became `Guid?`. The migration is one `ALTER COLUMN ... DROP NOT NULL`: every existing row already satisfies it, so production data is carried forward untouched.
+- **The compiler finds every place that assumed "always a member".** Changing `Guid` to `Guid?` broke the member-debt query (`memberIds.Contains(charge.MemberId)`) and the history's name lookup. Each error was a spot that would otherwise have silently mixed a guest's charge into a member's debt or shown an empty name.
+- **Which row to lock depends on who owns the money.** Payments, voids and amount changes on one charge are serialized by a row lock. A member's charge locks the member (every payment of theirs takes it); a guest's has no member, so it locks the visit, the same lock the guest's check-out and «تسویه یکجا» take. `ServiceChargeLock` makes that choice in one place.
+- **Check, lock, check again.** Recording a purchase on a guest's visit reads the visit as open, but the check-out could close it a moment later. So the handler takes the visit's lock and asks "still open?" again inside the transaction (`GuestVisitLock`). Without the second check, a charge could land on a guest who has already left and owe money nobody can collect.
+- **One helper so three callers agree.** Check-out, cancel and «تسویه یکجا» all ask "what does this guest still owe?". `GuestPurchases.UnpaidAsync` answers once, cafe and charges together, so the box's total, the refusal and the payment can never disagree.
+- **A worklist is a filtered union.** «بدهی مهمان‌ها» uses the 6.5.30 pattern: two `IQueryable`s (charges, cafe orders) concatenated into `UNION ALL`, filtered by "net paid < amount" in SQL, then paged. A row disappears by itself once it is paid; nothing has to remove it.
+- **Renaming an error code is an API change.** `Attendance.GuestHasUnpaidCafe` would have lied once هوازی counts too, so it became `GuestHasUnpaidPurchases`. The frontend maps codes to Persian, so `errors.ts`, the tests and the docs changed with it in the same task.
+- **Cache keys follow the money.** Paying a guest's charge changes the locker's «بدهکار» and the debt list, so the service-charge mutations now invalidate `lockerKeys` and `guestDebtKeys` too. Stale lists are what a desk notices first.
+- **My notes:**
+
 ## 6.5.32 — Totals in the history (جمع در تاریخچه)
 
 - **One query object, two consumers.** The list and its totals must agree on which rows count, or the figure under the table lies. The filtered `IQueryable` moved out of the handlers into `SaleRows` and `PaymentRows`; the list pages it, the totals sum it. Because an `IQueryable` is a description of SQL, not data, sharing it costs nothing: each handler adds its own `Skip/Take` or `SUM` and EF writes one statement each.

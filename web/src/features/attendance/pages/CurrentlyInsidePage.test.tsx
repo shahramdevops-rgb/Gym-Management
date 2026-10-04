@@ -626,7 +626,7 @@ describe("CurrentlyInsidePage", () => {
     expect(dialog).not.toHaveTextContent("جلسه به اشتراک او بازمی‌گردد");
     const confirm = within(dialog).getByRole("button", { name: "بله، ورود لغو شود" });
     expect(confirm).toBeDisabled();
-    expect(dialog).toHaveTextContent("سفارش پرداخت‌نشده‌ی مهمان را تیک بزنید");
+    expect(dialog).toHaveTextContent("خرید پرداخت‌نشدهٔ مهمان را تیک بزنید");
 
     fireEvent.click(within(dialog).getByLabelText(/آب معدنی × ۱/));
     await waitFor(() => expect(confirm).toBeEnabled());
@@ -640,6 +640,34 @@ describe("CurrentlyInsidePage", () => {
     expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [maryamDrink.id], saleIds: [] });
   });
 
+  it("Board_CancelGuestLeavingAnUnpaidCardio_WaitsUntilItIsTickedAndVoidsIt", async () => {
+    const plain = guestVisit("مریم احمدی");
+    const visit = { ...plain, serviceCharges: [cardioCharge(plain, { amount: 30000 })] };
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () => currentlyInsidePage([guestInsideRow(visit)]),
+      [`POST /api/attendance/${visit.id}/cancel`]: () =>
+        json(200, { ...visit, checkedOutAt: visit.checkedInAt, cancelledAt: visit.checkedInAt }),
+    });
+
+    renderApp("/attendance", { session: session() });
+    const dialog = await openCancelBox();
+
+    // A guest's هوازی is under the cafe's guest rule since task 6.5.31: paid, or cancelled with the visit.
+    await within(dialog).findByRole("region", { name: "خریدهای این مراجعه" });
+    const confirm = within(dialog).getByRole("button", { name: "بله، ورود لغو شود" });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.click(within(dialog).getByLabelText(/هوازی/));
+    await waitFor(() => expect(confirm).toBeEnabled());
+    fireEvent.click(confirm);
+    fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود و این موارد لغو شوند" }));
+
+    expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
+    const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
+    expect(await request.json()).toEqual({ voidCardio: true, cafeOrderIds: [], saleIds: [] });
+  });
+
   it("Board_CheckOutGuestWithUnpaidCafe_ShowsWhyFromTheApi", async () => {
     const visit = guestVisit("مریم احمدی");
     mockApi({
@@ -649,7 +677,7 @@ describe("CurrentlyInsidePage", () => {
       "GET /api/cafe/orders": () =>
         json(200, { items: [maryamDrink], page: 1, pageSize: 100, totalCount: 1 }),
       [`POST /api/attendance/${visit.id}/check-out`]: () =>
-        problem(422, "Attendance.GuestHasUnpaidCafe"),
+        problem(422, "Attendance.GuestHasUnpaidPurchases"),
     });
 
     renderApp("/attendance", { session: session() });

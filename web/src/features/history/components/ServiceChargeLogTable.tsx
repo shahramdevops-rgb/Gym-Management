@@ -1,17 +1,16 @@
-import { Link } from "react-router";
-
-import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { serviceChargeLabel } from "@/features/serviceCharges/api";
 import { emptyValue, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 
 import type { HistoryServiceCharge } from "../api";
+import { WhoCell } from "./WhoCell";
 
 /**
- * Every هوازی charge and sale (فروشگاه, آنالیز), newest first, with what it was and who recorded it (BUSINESS_RULES.md §12 History). A voided
- * charge stays on the list, marked, with its reason and who voided it: the desk's own boxes leave
- * voided charges out, which is why this is the place to find one.
+ * Every هوازی charge and sale (فروشگاه, آنالیز), newest first, with what it was and who recorded it
+ * (BUSINESS_RULES.md §12 History); a guest's under their name, marked «مهمان». A voided charge
+ * stays on the list, marked, with its reason and who voided it: the desk's own boxes leave voided
+ * charges out, which is why this is the place to find one.
  */
 export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[] }) {
   return (
@@ -20,7 +19,7 @@ export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[]
         <thead>
           <tr className="border-b text-muted-foreground">
             <th className="py-2 text-start font-medium">زمان</th>
-            <th className="py-2 text-start font-medium">عضو</th>
+            <th className="py-2 text-start font-medium">مشتری</th>
             <th className="py-2 text-start font-medium">بابت</th>
             <th className="py-2 text-start font-medium">مبلغ</th>
             <th className="py-2 text-start font-medium">پرداخت</th>
@@ -33,9 +32,11 @@ export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[]
             <tr key={item.id} className="border-b">
               <td className="py-2">{formatDateTime(item.createdAt)}</td>
               <td className="py-2">
-                <Link to={paths.member(item.memberId)} className="font-medium hover:underline">
-                  {item.memberFullName}
-                </Link>
+                <WhoCell
+                  memberId={item.memberId}
+                  memberFullName={item.memberFullName}
+                  guestName={item.guestName}
+                />
               </td>
               <td className="py-2">
                 {serviceChargeLabel(item.kind, item.description)}

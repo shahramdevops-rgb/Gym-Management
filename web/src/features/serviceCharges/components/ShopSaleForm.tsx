@@ -25,6 +25,8 @@ import {
 
 interface ShopSaleFormProps {
   attendanceId: string;
+  /** A guest's visit: the sale is under their name and paid before they leave (§7 *Guest visit*). */
+  isGuest?: boolean;
   /** Called with every item the server saved, in the order they were typed. */
   onDone: (sales: ServiceCharge[]) => void;
   onCancel: () => void;
@@ -39,7 +41,12 @@ interface ShopSaleFormProps {
  * member's account, like a cafe purchase from the locker, and is paid afterwards from the tile's
  * list or in «تسویه یکجا». So no money moves and there is nothing to confirm.
  */
-export function ShopSaleForm({ attendanceId, onDone, onCancel }: ShopSaleFormProps) {
+export function ShopSaleForm({
+  attendanceId,
+  isGuest = false,
+  onDone,
+  onCancel,
+}: ShopSaleFormProps) {
   const recordSale = useRecordShopSale();
 
   const form = useForm<ShopSaleValues>({
@@ -152,7 +159,9 @@ export function ShopSaleForm({ attendanceId, onDone, onCancel }: ShopSaleFormPro
         <span>{total === "" ? "—" : formatMoney(total)}</span>
       </div>
       <p className="text-sm text-muted-foreground">
-        مبلغ به حساب عضو ثبت می‌شود و بعداً پرداخت می‌شود.
+        {isGuest
+          ? "مبلغ به نام مهمان ثبت می‌شود و پیش از خروج پرداخت می‌شود."
+          : "مبلغ به حساب عضو ثبت می‌شود و بعداً پرداخت می‌شود."}
       </p>
 
       <div className="flex gap-2">

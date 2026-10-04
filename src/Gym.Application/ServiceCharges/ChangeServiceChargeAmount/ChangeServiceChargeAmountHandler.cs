@@ -27,11 +27,11 @@ public sealed class ChangeServiceChargeAmountHandler(IAppDbContext db)
         }
 
         // "Nothing has been paid against it" is a sum across the payments table, so it is read
-        // under the same per-member lock that registering a payment takes. Above the lock it would
-        // be a suggestion: a payment committing between the read and the save would leave a paid
+        // under the same lock that registering a payment takes (ServiceChargeLock). Above the lock it
+        // would be a suggestion: a payment committing between the read and the save would leave a paid
         // charge showing an amount nobody agreed to.
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
-        await db.LockMemberAsync(charge.MemberId, cancellationToken);
+        await ServiceChargeLock.TakeAsync(db, charge, cancellationToken);
 
         var visitIsOpen = await db.Attendances.AsNoTracking()
             .AnyAsync(a => a.Id == charge.AttendanceId && a.CheckedOutAt == null, cancellationToken);

@@ -11,8 +11,13 @@ namespace Gym.Application.History.ListSales;
 /// </summary>
 /// <param name="Source">What kind of sale it is.</param>
 /// <param name="Id">The subscription, service charge or cafe order.</param>
-/// <param name="MemberId">Whose sale. <c>null</c> for a cafe order of a walk-in or of a guest (§8).</param>
-/// <param name="GuestName">For a guest's cafe order, the name typed for their visit; otherwise <c>null</c>.</param>
+/// <param name="MemberId">
+/// Whose sale. <c>null</c> for a cafe order of a walk-in, and for a guest's cafe order or charge
+/// (§7 <i>Guest visit</i>, §8).
+/// </param>
+/// <param name="GuestName">
+/// For a guest's cafe order or charge, the name typed for their visit; otherwise <c>null</c>.
+/// </param>
 /// <param name="Plan">What a subscription sold, which the frontend labels. <c>null</c> unless a subscription.</param>
 /// <param name="Description">What a فروشگاه item was; <c>null</c> for anything else.</param>
 /// <param name="Quantity">How many of a فروشگاه item; <c>null</c> for anything else.</param>

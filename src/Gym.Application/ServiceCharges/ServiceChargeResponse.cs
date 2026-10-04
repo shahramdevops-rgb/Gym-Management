@@ -19,10 +19,11 @@ namespace Gym.Application.ServiceCharges;
 /// shows only the actions that are possible, the way the subscription history row does (task 4.7).
 /// Always <c>false</c> for a sale, which is voided and entered again instead.
 /// </param>
+/// <param name="MemberId">The visit's member; <c>null</c> on a guest's visit (§7 <i>Guest visit</i>).</param>
 /// <param name="Description">What a sale sold; <c>null</c> for هوازی, as are the next two.</param>
 public sealed record ServiceChargeResponse(
     Guid Id,
-    Guid MemberId,
+    Guid? MemberId,
     Guid AttendanceId,
     [property: JsonConverter(typeof(JsonStringEnumConverter<ServiceChargeKind>))] ServiceChargeKind Kind,
     string? Description,

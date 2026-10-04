@@ -10,6 +10,7 @@ import { CafeMenuPage } from "@/features/cafe/pages/CafeMenuPage";
 import { CafeOrdersPage } from "@/features/cafe/pages/CafeOrdersPage";
 import { CafeTillPage } from "@/features/cafe/pages/CafeTillPage";
 import { ExpensesPage } from "@/features/expenses/pages/ExpensesPage";
+import { GuestDebtsPage } from "@/features/guestDebts/pages/GuestDebtsPage";
 import { HistoryPage } from "@/features/history/pages/HistoryPage";
 import { LockersPage } from "@/features/lockers/pages/LockersPage";
 import { CreateMemberPage } from "@/features/members/pages/CreateMemberPage";
@@ -53,6 +54,7 @@ export const routes: RouteObject[] = [
               { path: paths.member(":id"), element: <MemberProfilePage /> },
               { path: paths.editMember(":id"), element: <EditMemberPage /> },
               { path: paths.attendance, element: <CurrentlyInsidePage /> },
+              { path: paths.guestDebts, element: <GuestDebtsPage /> },
               { path: paths.history, element: <HistoryPage /> },
               { path: paths.cafe, element: <CafeTillPage /> },
               { path: paths.cafeOrders, element: <CafeOrdersPage /> },

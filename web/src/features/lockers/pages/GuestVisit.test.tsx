@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import type { CafeOrder } from "@/features/cafe/api";
 import {
+  cardioCharge,
   closedVisit,
   currentlyInsidePage,
   guestInsideRow,
@@ -219,7 +220,7 @@ describe("Guest visit", () => {
 
   // ---- The guest's box ----
 
-  it("GuestBox_Opened_ShowsTheNameWithNoProfileSessionsOrCardio", async () => {
+  it("GuestBox_Opened_ShowsTheNameAndTheFourTilesWithNoProfileOrSessions", async () => {
     mockApi(mapHandlers(allLockers(guestLocker(3, "مریم احمدی")), [guestInsideRow(maryamVisit)]));
     renderMap();
 
@@ -230,9 +231,11 @@ describe("Guest visit", () => {
     expect(dialog).toHaveTextContent("مریم احمدی");
     expect(dialog).toHaveTextContent("مهمان");
     expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
-    expect(within(dialog).queryByText("هوازی")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("جلسات")).not.toBeInTheDocument();
-    expect(within(dialog).getByText("بوفه")).toBeInTheDocument();
+    // A guest may use every service (task 6.5.31): the same four tiles as a member's box.
+    for (const tile of ["هوازی", "بوفه", "فروشگاه", "آنالیز"]) {
+      expect(within(dialog).getByText(tile)).toBeInTheDocument();
+    }
     // Nothing bought, nothing owed: the guest can leave.
     expect(within(dialog).queryByRole("button", { name: /تسویه یکجا/ })).not.toBeInTheDocument();
     for (const action of ["ثبت خروج", "لغو ورود", "جابه‌جایی کمد"]) {
@@ -267,7 +270,7 @@ describe("Guest visit", () => {
     const dialog = await screen.findByRole("dialog");
     // A guest has no account to leave the drink on (BUSINESS_RULES.md §7 *Guest visit*).
     expect(within(dialog).getByRole("button", { name: "ثبت خروج" })).toBeDisabled();
-    expect(dialog).toHaveTextContent("خروج پس از پرداخت خریدهای بوفه ثبت می‌شود.");
+    expect(dialog).toHaveTextContent("خروج پس از پرداخت همهٔ خریدها ثبت می‌شود.");
 
     fireEvent.click(within(dialog).getByRole("button", { name: /تسویه یکجا/ }));
     const form = within(dialog).getByRole("form", { name: "تسویه یکجا" });
@@ -294,6 +297,79 @@ describe("Guest visit", () => {
     fireEvent.click(within(checkOut).getByRole("button", { name: "بله، خروج ثبت شود" }));
 
     expect(await within(checkOut).findByText("کمد شماره ۳ آزاد شد.")).toBeInTheDocument();
+  });
+
+  it("GuestBox_UnpaidCardio_BlocksCheckOutAndTheSettlePaysItWithTheCafe", async () => {
+    const withCardio = {
+      ...maryamVisit,
+      serviceCharges: [cardioCharge(maryamVisit, { amount: 30000 })],
+    };
+    const api = mockApi(
+      mapHandlers(allLockers(guestLocker(3, "مریم احمدی", 70000)), [
+        guestInsideRow(withCardio, [unpaidDrink]),
+      ], {
+        [`POST /api/attendance/${maryamVisit.id}/settle-guest`]: () =>
+          json(200, { amount: 70000, method: "Cash", payments: [], remainingDebt: 0 }),
+      }),
+    );
+    renderMap();
+
+    fireEvent.click(await door("۳"));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("button", { name: "ثبت خروج" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: /^هوازی/ })).toHaveTextContent("۳۰٬۰۰۰");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: /تسویه یکجا/ }));
+    const form = within(dialog).getByRole("form", { name: "تسویه یکجا" });
+    // 40,000 for the drink and 30,000 for the treadmill.
+    expect(form).toHaveTextContent("۷۰٬۰۰۰");
+    fireEvent.change(within(form).getByLabelText("روش پرداخت"), { target: { value: "Cash" } });
+    fireEvent.click(within(form).getByRole("button", { name: "تأیید پرداخت" }));
+    const confirm = await screen.findByRole("dialog", { name: "آیا پول دریافت شد؟" });
+    fireEvent.click(within(confirm).getByRole("button", { name: "بله، پول دریافت شد" }));
+
+    await waitFor(() =>
+      expect(api.requestsTo("POST", `/api/attendance/${maryamVisit.id}/settle-guest`)).toHaveLength(1),
+    );
+    const request = api.requestsTo("POST", `/api/attendance/${maryamVisit.id}/settle-guest`)[0]!;
+    expect(await request.clone().json()).toMatchObject({ amount: "70000.00" });
+  });
+
+  it("GuestBox_RecordingCardio_PostsItOnTheGuestsVisit", async () => {
+    const api = mockApi(
+      mapHandlers(allLockers(guestLocker(3, "مریم احمدی")), [guestInsideRow(maryamVisit)], {
+        [`POST /api/attendance/${maryamVisit.id}/service-charges`]: () =>
+          json(201, cardioCharge(maryamVisit, { amount: 30000 })),
+      }),
+    );
+    renderMap();
+
+    fireEvent.click(await door("۳"));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "هوازی" }));
+    fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "30000" } });
+    fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
+
+    await waitFor(() =>
+      expect(
+        api.requestsTo("POST", `/api/attendance/${maryamVisit.id}/service-charges`),
+      ).toHaveLength(1),
+    );
+    const request = api.requestsTo("POST", `/api/attendance/${maryamVisit.id}/service-charges`)[0]!;
+    expect(await request.clone().json()).toMatchObject({ kind: "Cardio" });
+  });
+
+  it("GuestBox_ShopTile_SaysTheSaleIsUnderTheGuestsNameNotAnAccount", async () => {
+    mockApi(mapHandlers(allLockers(guestLocker(3, "مریم احمدی")), [guestInsideRow(maryamVisit)]));
+    renderMap();
+
+    fireEvent.click(await door("۳"));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "فروشگاه" }));
+
+    const shop = await screen.findByRole("dialog", { name: /فروشگاه — مریم احمدی/ });
+    expect(shop).toHaveTextContent("به نام مهمان ثبت می‌شود و پیش از خروج پرداخت می‌شود.");
+    expect(shop).not.toHaveTextContent("حساب عضو");
   });
 
   it("TodayHistory_GuestHadTheLocker_IsListedByNameAsAGuestWithNoLink", async () => {

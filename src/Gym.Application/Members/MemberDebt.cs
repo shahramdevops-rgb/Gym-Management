@@ -198,8 +198,10 @@ public static class MemberDebt
             .ToDictionaryAsync(row => row.TargetId, row => row.NetPaid, cancellationToken);
 
         var charges = await db.ServiceCharges.AsNoTracking()
-            .Where(charge => memberIds.Contains(charge.MemberId) && charge.VoidedAt == null)
-            .Select(charge => new { charge.Id, charge.MemberId, Price = charge.Amount })
+            .Where(charge => charge.MemberId != null
+                && memberIds.Contains(charge.MemberId!.Value)
+                && charge.VoidedAt == null)
+            .Select(charge => new { charge.Id, MemberId = charge.MemberId!.Value, Price = charge.Amount })
             .ToListAsync(cancellationToken);
 
         var chargeIds = charges.Select(charge => charge.Id).ToList();

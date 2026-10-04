@@ -2,12 +2,12 @@ using FluentValidation;
 
 using Gym.Application.Payments;
 
-namespace Gym.Application.Attendances.SettleGuestCafe;
+namespace Gym.Application.Attendances.SettleGuestVisit;
 
 /// <summary>The same money checks as every other payment form (<see cref="PaymentRules"/>).</summary>
-public sealed class SettleGuestCafeValidator : AbstractValidator<SettleGuestCafeCommand>
+public sealed class SettleGuestVisitValidator : AbstractValidator<SettleGuestVisitCommand>
 {
-    public SettleGuestCafeValidator()
+    public SettleGuestVisitValidator()
     {
         RuleFor(command => command.Amount).ValidAmount();
         RuleFor(command => command.Method).ValidMethod();

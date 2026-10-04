@@ -256,6 +256,32 @@ public sealed class ServiceChargeTests
         charge.VoidReason.ShouldBe("اشتباه ثبت شد");
     }
 
+    /// <summary>
+    /// A guest's visit has no member to copy (BUSINESS_RULES.md §7 <i>Guest visit</i>, task 6.5.31):
+    /// the charge is under the guest's name on the visit, on no account.
+    /// </summary>
+    [Theory]
+    [InlineData(ServiceChargeKind.Cardio)]
+    [InlineData(ServiceChargeKind.Analysis)]
+    public void Record_GuestVisit_HasNoMember(ServiceChargeKind kind)
+    {
+        var result = ServiceCharge.Record(null, AttendanceId, kind, 10_000m, ChargedOn, UserId);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.MemberId.ShouldBeNull();
+        result.Value.AttendanceId.ShouldBe(AttendanceId);
+    }
+
+    [Fact]
+    public void RecordShopItem_GuestVisit_HasNoMember()
+    {
+        var result = ServiceCharge.RecordShopItem(null, AttendanceId, "دستکش", 2, 150_000m, ChargedOn, UserId);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.MemberId.ShouldBeNull();
+        result.Value.Amount.ShouldBe(300_000m);
+    }
+
     private static Result<ServiceCharge> RecordShopItem(string description, int quantity, decimal unitPrice) =>
         ServiceCharge.RecordShopItem(MemberId, AttendanceId, description, quantity, unitPrice, ChargedOn, UserId);
 
