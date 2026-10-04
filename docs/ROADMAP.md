@@ -1621,6 +1621,33 @@ Closed 2026-10-04: 1466 backend tests (459 domain, 1007 integration) and 765 fro
 lint and production build clean, zero warnings. Not released yet: the migration adds one index and
 touches no row.
 
+### 6.5.31 Services for guests, and the guest debt list (خدمات مهمان، بدهی مهمان‌ها)
+Decided by the developer on 1405/07/12 (2026-10-04): a guest may use every service, under the
+cafe's guest rule. هوازی is no longer free for a guest: the desk types its price, or records none.
+No guest account; what midnight leaves unpaid goes to one list, «بدهی مهمان‌ها».
+BUSINESS_RULES.md §7 *Guest visit*, *Gym services*, *Sale at the desk*, §6, §12 and the §1 row.
+- [x] BUSINESS_RULES.md, written first
+- [x] Domain: `ServiceCharge.MemberId` nullable (`Record` / `RecordShopItem` take `null` on a guest's
+      visit); `Attendance.CheckOut`/`Cancel` refuse on any unpaid purchase,
+      `Attendance.GuestHasUnpaidPurchases` replaces `Attendance.GuestHasUnpaidCafe`;
+      `ServiceCharges.GuestVisit` removed
+- [x] Migration `AllowGuestServiceCharges`: `service_charges.member_id` nullable, no row touched
+- [x] Application: هوازی and sales on a guest visit (`GuestVisitLock`: lock, then ask "still
+      open?"); a guest charge's payment, change and void lock the visit instead of a member
+      (`ServiceChargeLock`); `GuestPurchases` (cafe + charges) behind check-out, cancel, the
+      locker's «بدهکار» and «تسویه یکجا» (`SettleGuestVisit`); guest names on charges in the
+      history; `GET /api/guest-debts` (Staff or Owner, paged)
+- [x] Web: the four tiles in a guest's box, «تسویه یکجا» over everything, cancel check-in's guest
+      check, the «بدهی مهمان‌ها» page and menu item, «مهمان» on guest charges in the history; the
+      service-charge mutations also refresh the map and the debt list
+- [x] Tests: domain (a guest's charge has no member), integration (`GuestPurchasesEndpointTests`,
+      `GuestDebtsEndpointTests`, the three old "guest refused" tests now succeed), frontend (the guest
+      box's tiles and full settle, cancel with a guest's هوازی, the debt list, the menu, the history)
+
+Closed 2026-10-04: 1514 backend tests (462 domain, 1052 integration) and 780 frontend tests green,
+lint and production build clean, zero warnings. Not released yet: the migration only drops NOT NULL
+on `service_charges.member_id` and touches no row.
+
 ### 6.5.32 Totals in the history (جمع در تاریخچه)
 Asked by the developer on 1405/07/12 (2026-10-04): every history section where money changes hands
 ends with what it comes to, for everything the filters let through. BUSINESS_RULES.md §12 *Totals

@@ -10,7 +10,7 @@ using Gym.Application.Attendances.GuestCheckIn;
 using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Attendances.ListMemberAttendance;
 using Gym.Application.Attendances.MoveLocker;
-using Gym.Application.Attendances.SettleGuestCafe;
+using Gym.Application.Attendances.SettleGuestVisit;
 using Gym.Application.Attendances.TodayByHour;
 using Gym.Application.Common.Paging;
 using Gym.Application.Payments.SettleMemberDebt;
@@ -89,12 +89,12 @@ public static class AttendanceEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
-        // «تسویه یکجا» in a guest's box: every unpaid cafe order of the visit, so they can check out.
-        attendance.MapPost("/{id:guid}/settle-guest", async (Guid id, SettleGuestCafeCommand command, SettleGuestCafeHandler handler, CancellationToken ct) =>
+        // «تسویه یکجا» in a guest's box: everything the visit still owes, so they can check out.
+        attendance.MapPost("/{id:guid}/settle-guest", async (Guid id, SettleGuestVisitCommand command, SettleGuestVisitHandler handler, CancellationToken ct) =>
                 (await handler.Handle(id, command, ct)).ToHttpResult())
             .RequireAuthorization(Policies.StaffOrOwner)
-            .AddEndpointFilter<ValidationFilter<SettleGuestCafeCommand>>()
-            .WithName("SettleGuestCafe")
+            .AddEndpointFilter<ValidationFilter<SettleGuestVisitCommand>>()
+            .WithName("SettleGuestVisit")
             .Produces<SettlementResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)

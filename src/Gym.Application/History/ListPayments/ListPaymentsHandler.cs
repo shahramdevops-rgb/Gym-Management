@@ -54,14 +54,22 @@ public sealed class ListPaymentsHandler(
                     .FirstOrDefault(),
                 ServiceChargeMemberId = db.ServiceCharges
                     .Where(charge => charge.Id == payment.ServiceChargeId)
-                    .Select(charge => (Guid?)charge.MemberId)
+                    .Select(charge => charge.MemberId)
                     .FirstOrDefault(),
                 CafeOrderMemberId = db.CafeOrders
                     .Where(order => order.Id == payment.CafeOrderId)
                     .Select(order => order.MemberId)
                     .FirstOrDefault(),
-                // A guest's cafe order names their visit and no member (§8): the name is on the visit.
-                GuestName = db.CafeOrders
+                // A guest's cafe order or charge names their visit and no member (§7 Guest visit, §8):
+                // the name is on the visit. At most one of the two finds a row.
+                ChargeGuestName = db.ServiceCharges
+                    .Where(charge => charge.Id == payment.ServiceChargeId && charge.MemberId == null)
+                    .Select(charge => db.Attendances
+                        .Where(attendance => attendance.Id == charge.AttendanceId)
+                        .Select(attendance => attendance.GuestName)
+                        .FirstOrDefault())
+                    .FirstOrDefault(),
+                CafeGuestName = db.CafeOrders
                     .Where(order => order.Id == payment.CafeOrderId)
                     .Select(order => db.Attendances
                         .Where(attendance => attendance.Id == order.AttendanceId)
@@ -132,7 +140,7 @@ public sealed class ListPaymentsHandler(
                 row.Payment.SubscriptionId ?? row.Payment.ServiceChargeId ?? row.Payment.CafeOrderId!.Value,
                 row.MemberId,
                 row.MemberId is { } id ? memberNames.GetValueOrDefault(id) : null,
-                row.Payment.GuestName,
+                row.Payment.CafeGuestName ?? row.Payment.ChargeGuestName,
                 row.Payment.SubscriptionPlan,
                 row.Payment.ServiceKind,
                 row.Payment.ServiceDescription,

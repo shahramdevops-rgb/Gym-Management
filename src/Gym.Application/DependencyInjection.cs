@@ -12,7 +12,7 @@ using Gym.Application.Attendances.GuestCheckIn;
 using Gym.Application.Attendances.ListCurrentlyInside;
 using Gym.Application.Attendances.ListMemberAttendance;
 using Gym.Application.Attendances.MoveLocker;
-using Gym.Application.Attendances.SettleGuestCafe;
+using Gym.Application.Attendances.SettleGuestVisit;
 using Gym.Application.Attendances.TodayByHour;
 using Gym.Application.Auth.ChangePassword;
 using Gym.Application.Auth.GetCurrentUser;
@@ -42,6 +42,7 @@ using Gym.Application.Expenses.RecordExpense;
 using Gym.Application.Expenses.UpdateExpense;
 using Gym.Application.Expenses.UpdateExpenseCategory;
 using Gym.Application.Expenses.VoidExpense;
+using Gym.Application.GuestDebts.ListGuestDebts;
 using Gym.Application.History.ListAttendance;
 using Gym.Application.History.ListPayments;
 using Gym.Application.History.ListSales;
@@ -149,7 +150,7 @@ public static class DependencyInjection
         services.AddScoped<CancelCheckInHandler>();
         services.AddScoped<GuestCheckInHandler>();
         services.AddScoped<CardioOnlyCheckInHandler>();
-        services.AddScoped<SettleGuestCafeHandler>();
+        services.AddScoped<SettleGuestVisitHandler>();
         services.AddScoped<MoveLockerHandler>();
         services.AddScoped<ListCurrentlyInsideHandler>();
         services.AddScoped<ListMemberAttendanceHandler>();
@@ -186,6 +187,7 @@ public static class DependencyInjection
         services.AddScoped<PaymentTotalsHandler>();
         services.AddScoped<SaleRows>();
         services.AddScoped<SalesTotalsHandler>();
+        services.AddScoped<ListGuestDebtsHandler>();
 
         services.AddScoped<CreateCafeOrderHandler>();
         services.AddScoped<GetCafeOrderHandler>();

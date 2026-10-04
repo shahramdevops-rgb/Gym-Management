@@ -16,7 +16,8 @@ namespace Gym.Domain.ServiceCharges;
 /// <para>
 /// <b>It is per visit, not per member.</b> The same member uses the treadmill today and not
 /// tomorrow, which is why this hangs off <see cref="AttendanceId"/> rather than off the member.
-/// <see cref="MemberId"/> is copied from the visit so the debt query does not have to join.
+/// <see cref="MemberId"/> is copied from the visit so the debt query does not have to join; a
+/// guest's visit has none to copy.
 /// </para>
 /// <para>
 /// <b>Editable, then not.</b> While the visit is open and nothing has been paid against it,
@@ -50,8 +51,12 @@ public sealed class ServiceCharge : Entity
     {
     }
 
-    /// <summary>The member of the visit. Copied from the attendance, never chosen separately.</summary>
-    public Guid MemberId { get; private set; }
+    /// <summary>
+    /// The member of the visit. Copied from the attendance, never chosen separately, and <c>null</c>
+    /// on a guest's visit: the charge is then under the guest's name and on no account
+    /// (BUSINESS_RULES.md §7 <i>Guest visit</i>).
+    /// </summary>
+    public Guid? MemberId { get; private set; }
 
     public Guid AttendanceId { get; private set; }
 
@@ -109,7 +114,7 @@ public sealed class ServiceCharge : Entity
     /// <see cref="Attendances.Attendance.CheckIn"/> uses).
     /// </summary>
     public static Result<ServiceCharge> Record(
-        Guid memberId, Guid attendanceId, ServiceChargeKind kind, decimal amount, DateOnly chargedOn, Guid recordedByUserId)
+        Guid? memberId, Guid attendanceId, ServiceChargeKind kind, decimal amount, DateOnly chargedOn, Guid recordedByUserId)
     {
         // A فروشگاه item needs its name and quantity, which only RecordShopItem takes.
         if (kind == ServiceChargeKind.Miscellaneous)
@@ -139,8 +144,9 @@ public sealed class ServiceCharge : Entity
     /// sold that has no product of its own, so the desk types its name, how many and the price of
     /// one. As with هوازی the system never checks the price against anything.
     /// </summary>
+    /// <param name="memberId">The visit's member, or <c>null</c> on a guest's visit.</param>
     public static Result<ServiceCharge> RecordShopItem(
-        Guid memberId, Guid attendanceId, string description, int quantity, decimal unitPrice,
+        Guid? memberId, Guid attendanceId, string description, int quantity, decimal unitPrice,
         DateOnly chargedOn, Guid recordedByUserId)
     {
         ArgumentNullException.ThrowIfNull(description);

@@ -1,3 +1,4 @@
+using Gym.Application.Attendances;
 using Gym.Application.Common;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
@@ -8,9 +9,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.ServiceCharges.RecordServiceCharge;
 
 /// <summary>
-/// Puts an amount on something the member used during an open visit — هوازی, or آنالیز
-/// (BUSINESS_RULES.md §7 <i>Gym services</i>, <i>Sale at the desk</i>). Front desk work, so both
-/// roles. The one-per-visit index covers هوازی only, so a visit may have any number of آنالیز.
+/// Puts an amount on something used during an open visit, a member's or a guest's — هوازی, or
+/// آنالیز (BUSINESS_RULES.md §7 <i>Gym services</i>, <i>Sale at the desk</i>, <i>Guest visit</i>).
+/// Front desk work, so both roles. The one-per-visit index covers هوازی only, so a visit may have
+/// any number of آنالیز.
 /// </summary>
 public sealed class RecordServiceChargeHandler(
     IAppDbContext db, IGymCalendar calendar, ICurrentUser currentUser)
@@ -35,21 +37,23 @@ public sealed class RecordServiceChargeHandler(
             return Result.Failure<ServiceChargeResponse>(ServiceChargeErrors.VisitNotOpen);
         }
 
-        // A charge goes on a member's account, and a guest has none (§7 Guest visit).
-        if (attendance.MemberId is not { } memberId)
-        {
-            return Result.Failure<ServiceChargeResponse>(ServiceChargeErrors.GuestVisit);
-        }
-
         // The endpoint's policy requires an authenticated user, so this is a wiring bug if hit.
         var userId = currentUser.UserId
             ?? throw new InvalidOperationException("Recording a service charge was called without an authenticated user.");
 
+        // On a guest's visit the charge has no member: it is under the guest's name on the visit
+        // (BUSINESS_RULES.md §7 Guest visit).
         var recorded = ServiceCharge.Record(
-            memberId, attendanceId, command.Kind, command.Amount, calendar.Today(), userId);
+            attendance.MemberId, attendanceId, command.Kind, command.Amount, calendar.Today(), userId);
         if (recorded.IsFailure)
         {
             return Result.Failure<ServiceChargeResponse>(recorded.Error);
+        }
+
+        await using var transaction = await db.BeginTransactionAsync(cancellationToken);
+        if (attendance.IsGuest && !await GuestVisitLock.TakeAndCheckOpenAsync(db, attendanceId, cancellationToken))
+        {
+            return Result.Failure<ServiceChargeResponse>(ServiceChargeErrors.VisitNotOpen);
         }
 
         db.ServiceCharges.Add(recorded.Value);
@@ -57,6 +61,7 @@ public sealed class RecordServiceChargeHandler(
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
         catch (UniqueConstraintException exception)
             when (exception.ConstraintName == ServiceChargeConstraints.OneLivePerVisitAndKind)

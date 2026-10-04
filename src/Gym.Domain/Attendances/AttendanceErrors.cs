@@ -107,12 +107,12 @@ public static class AttendanceErrors
 
     /// <summary>
     /// BUSINESS_RULES.md §7 <i>Guest visit</i>: a guest has no account to leave a debt on, so the
-    /// visit is not closed (checked out, or cancelled with an order left standing) while a cafe
-    /// order of it is unpaid.
+    /// visit is not closed (checked out, or cancelled with a purchase left standing) while anything
+    /// bought on it is unpaid: a cafe order, a هوازی or a sale.
     /// </summary>
-    public static readonly Error GuestHasUnpaidCafe = Error.BusinessRule(
-        "Attendance.GuestHasUnpaidCafe",
-        "The guest has unpaid cafe orders. Settle them first.");
+    public static readonly Error GuestHasUnpaidPurchases = Error.BusinessRule(
+        "Attendance.GuestHasUnpaidPurchases",
+        "The guest has unpaid purchases. Settle them first.");
 
     /// <summary>
     /// BUSINESS_RULES.md §7 <i>Cardio-only visit</i>: no session was consumed, so the هوازی is what
@@ -122,7 +122,7 @@ public static class AttendanceErrors
         "Attendance.CardioChargeMissing",
         "Record the cardio amount for this cardio-only visit before checking out.");
 
-    /// <summary>Settling a guest's cafe in one step is for a guest's visit only; a member settles their own debt.</summary>
+    /// <summary>Settling a guest's purchases in one step is for a guest's visit only; a member settles their own debt.</summary>
     public static readonly Error NotGuestVisit = Error.BusinessRule(
         "Attendance.NotGuestVisit",
         "This visit is not a guest's.");

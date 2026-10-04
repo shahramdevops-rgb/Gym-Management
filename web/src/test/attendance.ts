@@ -33,7 +33,7 @@ export function cardioCharge(
 ): ServiceCharge {
   return {
     id: "0199a000-0000-7000-8000-0000000000f1",
-    memberId: attendance.memberId ?? "",
+    memberId: attendance.memberId,
     attendanceId: attendance.id,
     kind: "Cardio",
     description: null,

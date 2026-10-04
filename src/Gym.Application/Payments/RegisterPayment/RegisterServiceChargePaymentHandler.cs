@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.ServiceCharges;
 using Gym.Domain.Common;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
@@ -37,10 +38,10 @@ public sealed class RegisterServiceChargePaymentHandler(IAppDbContext db, TimePr
         }
 
         // "Cannot be overpaid" is a sum-across-rows invariant no check constraint can express, so
-        // two payments racing for the same charge are serialized by the member lock, exactly as
-        // RegisterPaymentHandler does for a subscription.
+        // two payments racing for the same charge are serialized by the charge's lock, the member's
+        // as RegisterPaymentHandler does for a subscription, or a guest's visit.
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
-        await db.LockMemberAsync(charge.MemberId, cancellationToken);
+        await ServiceChargeLock.TakeAsync(db, charge, cancellationToken);
 
         var netPaid = await PaymentLedger.GetNetPaidForServiceChargeAsync(db, serviceChargeId, cancellationToken);
         var updatedNetPaid = netPaid + command.Amount;

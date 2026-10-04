@@ -22,15 +22,16 @@ public sealed class CheckOutHandler(IAppDbContext db, TimeProvider time)
             return Result.Failure<AttendanceResponse>(AttendanceErrors.NotFound);
         }
 
-        // A guest cannot leave with the cafe unpaid (BUSINESS_RULES.md §7 Guest visit). The visit's
-        // lock keeps an order or a payment for it from landing between the check and the close; a
-        // member's check-out needs neither, because their debt stays on their account.
+        // A guest cannot leave with a purchase unpaid, a cafe order, a هوازی or a sale
+        // (BUSINESS_RULES.md §7 Guest visit). The visit's lock keeps a purchase or a payment for it
+        // from landing between the check and the close; a member's check-out needs neither, because
+        // their debt stays on their account.
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
-        var hasUnpaidCafe = false;
+        var hasUnpaidPurchases = false;
         if (attendance.IsGuest)
         {
             await db.LockAttendanceAsync(id, cancellationToken);
-            hasUnpaidCafe = (await GuestCafe.UnpaidOrdersAsync(db, id, cancellationToken)).Count > 0;
+            hasUnpaidPurchases = (await GuestPurchases.UnpaidAsync(db, id, cancellationToken)).Any;
         }
 
         // A cardio-only visit leaves only once its هوازی amount is recorded (BUSINESS_RULES.md §7
@@ -45,7 +46,7 @@ public sealed class CheckOutHandler(IAppDbContext db, TimeProvider time)
                 cancellationToken);
         }
 
-        var checkedOut = attendance.CheckOut(time.GetUtcNow(), hasUnpaidCafe, hasCardioCharge);
+        var checkedOut = attendance.CheckOut(time.GetUtcNow(), hasUnpaidPurchases, hasCardioCharge);
         if (checkedOut.IsFailure)
         {
             return Result.Failure<AttendanceResponse>(checkedOut.Error);

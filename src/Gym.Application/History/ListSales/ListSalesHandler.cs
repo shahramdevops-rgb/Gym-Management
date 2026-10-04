@@ -66,12 +66,28 @@ public sealed class ListSalesHandler(IAppDbContext db, SaleRows saleRows, IUserN
                     subscription.MemberId, null, subscription.Plan, null, null, null, null, subscription.CancellationReason),
                 cancellationToken);
 
+        // A guest's charge, like a guest's cafe order below, has no member: the name is on the visit.
         var charges = await db.ServiceCharges.AsNoTracking()
             .Where(charge => chargeIds.Contains(charge.Id))
+            .Select(charge => new
+            {
+                charge.Id,
+                charge.MemberId,
+                GuestName = charge.MemberId == null
+                    ? db.Attendances
+                        .Where(attendance => attendance.Id == charge.AttendanceId)
+                        .Select(attendance => attendance.GuestName)
+                        .FirstOrDefault()
+                    : null,
+                charge.Description,
+                charge.Quantity,
+                charge.RecordedByUserId,
+                charge.VoidReason,
+            })
             .ToDictionaryAsync(
                 charge => charge.Id,
                 charge => new Detail(
-                    charge.MemberId, null, null, charge.Description, charge.Quantity, null, charge.RecordedByUserId, charge.VoidReason),
+                    charge.MemberId, charge.GuestName, null, charge.Description, charge.Quantity, null, charge.RecordedByUserId, charge.VoidReason),
                 cancellationToken);
 
         // A guest's cafe order names their visit and no member (§8): the name is on the visit.

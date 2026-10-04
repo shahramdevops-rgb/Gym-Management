@@ -4,6 +4,7 @@ import {
   Coffee,
   Contact,
   DoorOpen,
+  HandCoins,
   History,
   KeyRound,
   LockKeyhole,
@@ -40,6 +41,7 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { to: paths.home, label: "ورود با کمد", icon: LockKeyhole },
   { to: paths.attendance, label: "داخل باشگاه", icon: DoorOpen },
+  { to: paths.guestDebts, label: "بدهی مهمان‌ها", icon: HandCoins },
   { to: paths.history, label: "تاریخچه", icon: History },
   { to: paths.members, label: "اعضا", icon: Contact },
   { to: paths.cafe, label: "بوفه", icon: Coffee },

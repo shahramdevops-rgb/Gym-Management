@@ -124,7 +124,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 |---|---|---|
 | Members: create, update, deactivate, search | ✅ | ✅ |
 | Check-in (from the lockers screen only, §7 *Confirming at the front desk*), check-out, cancel check-in | ✅ | ✅ |
-| Guest visit (ورود مهمان): check in, check out, cancel, settle its cafe (§7 *Guest visit*) | ✅ | ✅ |
+| Guest visit (ورود مهمان): check in, check out, cancel, record its هوازی, sales and cafe, settle what it owes, the «بدهی مهمان‌ها» list (§7 *Guest visit*) | ✅ | ✅ |
 | Cardio-only visit (ورود فقط هوازی): check in without consuming a session (§7 *Cardio-only visit*) | ✅ | ✅ |
 | Assign or renew subscriptions | ✅ | ✅ |
 | Register payments, create cafe orders | ✅ | ✅ |
@@ -492,7 +492,8 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
   debt at all (§5 *Member debt*: a subscription, a service such as هوازی, or a cafe order). It is
   information only, like the debt shown at check-in; the amount and what it is for are in the
   locker's box. A holder who owes nothing, and a free locker, carry no label. A guest holder carries
-  the same label while any cafe order of their visit is unpaid (§7 *Guest visit*); for a guest it is
+  the same label while anything bought on their visit is unpaid, a cafe order, a هوازی or a sale
+  (§7 *Guest visit*); for a guest it is
   not only information, because the guest cannot check out until it is paid.
 - A locker cannot be marked out of service while occupied. A locker that breaks while someone
   holds it: move that visit to another locker first (§7 *Moving to another locker*), then take
@@ -831,7 +832,7 @@ locker's history.
 - **A guest visit is an attendance with no member and no subscription**, only the guest's **full
   name**. The name is required, with the same length limit and normalization as a member's name
   (§2, §13). No phone number is asked, no member record is created, no session is consumed and
-  nothing is sold. A guest is not a member: they never appear in the member search, and the same
+  no plan is sold. A guest is not a member: they never appear in the member search, and the same
   person coming again is a new guest visit with their name typed again.
   - The database holds the rule too: an attendance has either a member or a guest name, never
     both and never neither, and it has a subscription exactly when it has a member (check
@@ -848,40 +849,65 @@ locker's history.
 - **Everything else is an ordinary visit:** move to another locker (§7 *Moving to another locker*),
   check-out with «key received», cancel check-in within the same window (nothing to give back:
   there is no session), and auto-checkout at midnight.
-- **هوازی is not recorded** on a guest visit (§7 *Gym services*).
-- **Cafe:** a guest buys on their visit, under their name, from their locker's box or from the till
-  (§8). While they are inside, their orders may stay unpaid, and their locker carries «بدهکار» (§6).
-  **A guest has no account and leaves no debt behind:**
-  - **Check-out is refused while any order of the visit is unpaid**
-    (`Attendance.GuestHasUnpaidCafe`). The guest's box settles all of them in one step
-    («تسویه یکجا»), then checks out. This is the one place money blocks a check-out: a member's
-    debt stays on their account and is shown, never enforced (§5), but a guest has no account to
-    leave it on.
-  - **Cancel check-in** asks about each order, as for a member (*Cancel check-in*). The ticked ones
-    are cancelled; an unticked order that is not fully paid refuses the cancellation with the same
-    error, so it is paid first or ticked.
-  - **Auto-checkout** still closes a guest visit at midnight, even with unpaid orders: the locker
-    must be free the next morning. Those orders stay in the cafe's order history, marked
-    «پرداخت‌نشده — مهمان» with the guest's name, and are paid or cancelled with a reason later (§8).
-- **Not counted as attendance** in any attendance report (Phase 9). A guest visit sold nothing and
-  used no session; counting it would make the gym look busier than its members make it.
+- **A guest may use every service the gym sells** (decided by the developer, 1405/07/12, roadmap
+  6.5.31; replaces "هوازی is not recorded on a guest visit, a guest uses the treadmill for free"
+  and "sales at the desk are for members only"). Their locker box has the same four tiles as a
+  member's: هوازی, بوفه, فروشگاه and آنالیز. Each follows its own rules (*Gym services*, *Sale at the
+  desk*, §8): one standing هوازی per visit, any number of sales and orders, the price typed by the
+  desk and never checked against a rate. Whether a guest is charged for the treadmill, and how
+  much, is the desk's call on the Owner's instructions, exactly as for a member: the system never
+  prices it, and a هوازی left unrecorded costs nothing.
+- **Purchases:** a guest buys on their visit, under their name, from their locker's box, and in the
+  cafe also from the till (§8). While they are inside, what they bought may stay unpaid, and their
+  locker carries «بدهکار» (§6). **A guest has no account and leaves no debt behind:**
+  - **Check-out is refused while anything bought on the visit is unpaid**, a cafe order, a هوازی, a
+    فروشگاه item or an آنالیز (`Attendance.GuestHasUnpaidPurchases`). The guest's box settles all of
+    them in one step («تسویه یکجا»), then checks out. This is the one place money blocks a
+    check-out: a member's debt stays on their account and is shown, never enforced (§5), but a
+    guest has no account to leave it on.
+  - **Cancel check-in** asks about each purchase, as for a member (*Cancel check-in*). The ticked
+    ones are cancelled or voided; an unticked one that is not fully paid refuses the cancellation
+    with the same error, so it is paid first or ticked.
+  - **Auto-checkout** still closes a guest visit at midnight, even with something unpaid: the
+    locker must be free the next morning. What is unpaid stays under the guest's name in
+    «بدهی مهمان‌ها» (below), and is paid or cancelled with a reason later.
+  - There is no guest account (decided by the developer, 1405/07/12): a guest's debt is never
+    carried to their next visit, and the same person coming again starts with nothing owed. If the
+    gym later wants guests to leave owing money, that is a new rule.
+- **«بدهی مهمان‌ها» (guest debts)**: one list of everything bought on a guest's visit that is still
+  owed, cafe orders and service charges together, whether the guest is still inside or left at
+  midnight. Both roles: it is front-desk work, the same as the cafe's «پرداخت‌نشده — مهمان» filter
+  it extends (decided by the developer, 1405/07/12, "exactly like the cafe does it now").
+  - Each row: the day, the guest's name, what it was (the cafe order's lines, هوازی, the فروشگاه
+    item with how many, آنالیز), the amount, what is still owed, its payment status, and «داخل
+    باشگاه» when the visit is still open.
+  - From each row: «ثبت پرداخت» and «ابطال» (a charge) or «لغو سفارش» (a cafe order), the same
+    forms and rules as everywhere else: a payment cannot exceed what is owed, a void or
+    cancellation needs a reason and gives back what was paid the way it came.
+  - Newest first, 20 rows a page, no filters. A row leaves the list once nothing is owed on it.
+  - *Details decided by Claude, 1405/07/12; pending review:* its own page in the menu, under
+    «داخل باشگاه»; the cafe's «پرداخت‌نشده — مهمان» filter stays as it is.
+- **Not counted as attendance** in any attendance report (Phase 9). A guest visit used no
+  session and sold no plan; counting it would make the gym look busier than its members make it.
   - This includes the chart under the map (§6 *Today by hour*): it counts members' check-ins only.
     The locker usage view (§6 *Locker usage map*) does count a guest's visit, because it is about
     how much a locker is used, not about attendance, and the guest held the key like anyone else
     (both confirmed by the developer, 1405/07/10).
-- **«تسویه یکجا» pays everything or nothing.** The desk is shown the total the visit's orders still
-  owe and pays exactly that, one ordinary payment per order. If an order was added, paid or
-  cancelled since the box opened, nothing is paid and the desk is asked to look again
-  (`Settlements.DebtChanged`). A single order can still be paid on its own from the cafe's order
-  list, which is also where an order left unpaid by auto-checkout is settled.
-  *Claude's default, 1405/07/10; pending review.*
+- **«تسویه یکجا» pays everything or nothing.** The desk is shown the total the visit's purchases
+  still owe and pays exactly that, one ordinary payment per item: the cafe orders first, then the
+  هوازی and the sales, each oldest first. If anything was added, paid, voided or cancelled since
+  the box opened, nothing is paid and the desk is asked to look again (`Settlements.DebtChanged`).
+  A single item can still be paid on its own from its tile, or from «بدهی مهمان‌ها», which is also
+  where what auto-checkout left unpaid is settled. *Claude's default, 1405/07/10, widened to every
+  purchase 1405/07/12; pending review.*
 - **Where the guest can be chosen at the till:** the guests inside are listed under the till's
   member search, narrowed by the name typed. *Claude's default, 1405/07/10; pending review.*
 - **The database cannot tell a guest's order from a member's.** A check constraint sees only the
   order's own row, so "an order on a member's visit names that member" is kept by the application
   alone since 6.5.11 (the old `ck_cafe_orders_visit_has_member` refused every guest order). The
   attendance side is enforced by check constraints, as above (confirmed by the developer,
-  1405/07/10).
+  1405/07/10). A service charge is the same since 6.5.31: its member is copied from its visit, and
+  a guest's charge has none, which no check constraint on the charge's own row can compare.
 
 ### Cardio-only visit (ورود فقط هوازی)
 Decided by the developer, 1405/07/11 (2026-10-03). Roadmap 6.5.27.
@@ -940,8 +966,8 @@ Decided with the developer, 1405/06/31. Implemented in task 5.7.
 - A **service charge** is money owed for something the member used during a visit. There are three kinds: `Cardio` (هوازی, the treadmill) and two things sold at the desk, `Miscellaneous` (فروشگاه, task 6.5.28) and `Analysis` (آنالیز, task 6.5.29) (*Sale at the desk* below); sauna or massage would be new kinds of the same thing, not new tables.
 - **The price is not calculated by the system, on purpose.** The gym's rate (for example 10,000 Toman per 3 minutes) changes without notice and staff already work it out at the desk. The system takes the number they type and never checks it against a rate. There is no rate setting to keep in sync with reality.
 - The amount is per visit, not per member: the same member may use the treadmill today and not tomorrow, so there is no cardio price on the member record.
-- Recorded against an **open** visit (`CheckedOutAt IS NULL`, not cancelled) and only for the member of that visit. Front desk work, so both roles.
-- **Never on a guest visit** (`ServiceCharges.GuestVisit`, §7 *Guest visit*): a charge goes on a member's account, and a guest has none. A guest who uses the treadmill uses it for free.
+- Recorded against an **open** visit (`CheckedOutAt IS NULL`, not cancelled), for whoever that visit belongs to. Front desk work, so both roles.
+- **A guest visit too** (decided by the developer, 1405/07/12, roadmap 6.5.31; replaces "never on a guest visit, a guest uses the treadmill for free"): the charge goes under the guest's name on their visit, never on any member's account, and must be paid before the guest checks out (§7 *Guest visit*). Whether the treadmill is charged to a guest at all is the desk's call, as it is for a member.
 - One non-voided هوازی per visit (a visit may have any number of sales, *Sale at the desk*). While the visit is open and nothing has been paid against it, staff can change the amount or remove it — nothing has been settled yet. After check-out, or after the first payment, it is a financial record: it is corrected with a **void plus a reason**, and a fresh charge if one is due (§5: financial records are never edited or deleted).
 - Cancelling a check-in voids the visit's هوازی only when the desk ticks it (§7 *Cancel check-in*), with the reason that the check-in was cancelled. Left unticked, the charge stays owed on a visit that is now closed, and is corrected like any closed visit's charge: void plus a reason. *Replaces "cancelling always voids it", decided by Claude in task 5.7; decided by the Owner, 1405/07/06, roadmap 6.5.8.*
 - **Voiding a charge that has been paid gives the money back**, as refunds written in the same transaction, one per payment method that is in credit — cash taken at the desk comes back as cash, a card payment is reversed on the card. §5 says there is no wallet, so the money cannot simply sit against the member's name, and neither the void screen nor cancel check-in has to ask which method to use (decided with the developer, 1405/07/01).
@@ -978,8 +1004,9 @@ system does not know what it is, so the desk says.
   account like a cafe purchase from the locker, and nothing is asked. It counts toward the member's
   debt and is paid afterwards like any other debt: from «ثبت پرداخت» in the tile's list, which asks
   "آیا پول دریافت شد؟" as every payment does (§5 *Confirming money at the desk*), or in «تسویه یکجا».
-- **Members only** (decided with the developer, 1405/07/11): it is recorded from a member's locker
-  box against their open visit, never on a guest's visit (`ServiceCharges.GuestVisit`).
+- **From the locker box, against the open visit**, a member's or a guest's (decided by the developer,
+  1405/07/12, roadmap 6.5.31; replaces "members only", 1405/07/11). On a guest's visit it goes
+  under their name and is paid before they leave (§7 *Guest visit*), not on an account.
 - **Any number per visit** (decided with the developer, 1405/07/11), each its own row.
 - **Each kind is its own source** (decided with the developer, 1405/07/11): in the debt by source at
   check-out, the payment histories and the gym's history a sale reads «فروشگاه: …» or «آنالیز»,
@@ -1205,7 +1232,8 @@ It is a list of rows, not totals or charts: those are the reports above.
     not free text matched against every row.
   - A page holds 20 rows.
   - A payment for a guest's cafe order shows the guest's name, marked «مهمان», not «مشتری آزاد»: the
-    order is under that name (§8).
+    order is under that name (§8). So does a guest's هوازی or sale, in every section that lists it
+    (since 6.5.31).
 
 ### Sales in the history (فروش‌ها)
 

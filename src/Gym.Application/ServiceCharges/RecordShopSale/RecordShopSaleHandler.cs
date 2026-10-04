@@ -1,3 +1,4 @@
+using Gym.Application.Attendances;
 using Gym.Application.Common;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
@@ -9,7 +10,8 @@ namespace Gym.Application.ServiceCharges.RecordShopSale;
 
 /// <summary>
 /// Sells one or more «فروشگاه» items during an open visit (BUSINESS_RULES.md §7 <i>Sale at the
-/// desk</i>), each its own charge on the member's account. Front desk work, so both roles.
+/// desk</i>), each its own charge: on the member's account, or under a guest's name on their
+/// visit. Front desk work, so both roles.
 /// </summary>
 /// <remarks>
 /// No money is taken here (decided with the developer, 1405/07/12): the items become debt, paid
@@ -37,12 +39,6 @@ public sealed class RecordShopSaleHandler(
             return Result.Failure<IReadOnlyList<ServiceChargeResponse>>(ServiceChargeErrors.VisitNotOpen);
         }
 
-        // Members only (decided with the developer, 1405/07/11): a guest has no account to put it on.
-        if (attendance.MemberId is not { } memberId)
-        {
-            return Result.Failure<IReadOnlyList<ServiceChargeResponse>>(ServiceChargeErrors.GuestVisit);
-        }
-
         // The endpoint's policy requires an authenticated user, so this is a wiring bug if hit.
         var userId = currentUser.UserId
             ?? throw new InvalidOperationException("Recording a shop sale was called without an authenticated user.");
@@ -52,7 +48,7 @@ public sealed class RecordShopSaleHandler(
         foreach (var item in command.Items)
         {
             var recorded = ServiceCharge.RecordShopItem(
-                memberId, attendanceId, item.Description, item.Quantity, item.UnitPrice, today, userId);
+                attendance.MemberId, attendanceId, item.Description, item.Quantity, item.UnitPrice, today, userId);
             if (recorded.IsFailure)
             {
                 return Result.Failure<IReadOnlyList<ServiceChargeResponse>>(recorded.Error);
@@ -61,8 +57,17 @@ public sealed class RecordShopSaleHandler(
             charges.Add(recorded.Value);
         }
 
+        // A guest's visit too since 6.5.31, under their name and on no account (BUSINESS_RULES.md §7
+        // Guest visit), which takes the visit's lock the guest's check-out takes.
+        await using var transaction = await db.BeginTransactionAsync(cancellationToken);
+        if (attendance.IsGuest && !await GuestVisitLock.TakeAndCheckOpenAsync(db, attendanceId, cancellationToken))
+        {
+            return Result.Failure<IReadOnlyList<ServiceChargeResponse>>(ServiceChargeErrors.VisitNotOpen);
+        }
+
         db.ServiceCharges.AddRange(charges);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         // Explicit, because C# applies no implicit conversion to an interface type like IReadOnlyList.
         return Result.Success<IReadOnlyList<ServiceChargeResponse>>(charges

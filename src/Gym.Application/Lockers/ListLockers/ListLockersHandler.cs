@@ -2,6 +2,7 @@ using Gym.Application.Cafe;
 using Gym.Application.Common;
 using Gym.Application.Common.Paging;
 using Gym.Application.Members;
+using Gym.Application.ServiceCharges;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -34,9 +35,9 @@ public sealed class ListLockersHandler(IAppDbContext db)
             .ToList();
         var debtByMemberId = await MemberDebt.GetTotalsAsync(db, holderIds, cancellationToken);
 
-        // A guest has no account: their door is «بدهکار» while their visit's cafe is unpaid
-        // (BUSINESS_RULES.md §6, §7 Guest visit). Few guests are ever inside at once, so this is
-        // one small query, not a batch.
+        // A guest has no account: their door is «بدهکار» while anything bought on their visit is
+        // unpaid (BUSINESS_RULES.md §6, §7 Guest visit). Few guests are ever inside at once, so this
+        // is a few small queries, not a batch per member.
         var guestDebtByLocker = await GuestDebtByLockerAsync(
             items.Where(locker => locker.OccupiedByGuestName is not null).Select(locker => locker.Id).ToList(),
             cancellationToken);
@@ -53,7 +54,7 @@ public sealed class ListLockersHandler(IAppDbContext db)
         return new PagedResponse<LockerResponse>(items, query.Page, query.PageSize, totalCount);
     }
 
-    /// <summary>What each guest-held locker's visit still owes the cafe, keyed by locker.</summary>
+    /// <summary>What each guest-held locker's visit still owes, cafe and charges, keyed by locker.</summary>
     private async Task<Dictionary<Guid, decimal>> GuestDebtByLockerAsync(
         List<Guid> lockerIds, CancellationToken cancellationToken)
     {
@@ -67,10 +68,13 @@ public sealed class ListLockersHandler(IAppDbContext db)
             .Select(a => new { a.Id, LockerId = a.LockerId!.Value })
             .ToListAsync(cancellationToken);
 
-        var ordersByVisit = await VisitCafeOrders.ByAttendanceAsync(db, visits.Select(v => v.Id).ToList(), cancellationToken);
+        var visitIds = visits.Select(v => v.Id).ToList();
+        var ordersByVisit = await VisitCafeOrders.ByAttendanceAsync(db, visitIds, cancellationToken);
+        var chargesByVisit = await VisitServiceCharges.ByAttendanceAsync(db, visitIds, cancellationToken);
 
         return visits.ToDictionary(
             visit => visit.LockerId,
-            visit => ordersByVisit.GetValueOrDefault(visit.Id, []).Sum(order => order.Outstanding));
+            visit => ordersByVisit.GetValueOrDefault(visit.Id, []).Sum(order => order.Outstanding)
+                + chargesByVisit.GetValueOrDefault(visit.Id, []).Sum(charge => charge.Amount - charge.NetPaid));
     }
 }

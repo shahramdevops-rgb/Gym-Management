@@ -12,6 +12,8 @@ export const paths = {
   editMember: (id: string) => `/members/${id}/edit`,
   settings: "/settings",
   attendance: "/attendance",
+  /** «بدهی مهمان‌ها»: what guests' visits still owe (BUSINESS_RULES.md §7 *Guest visit*). */
+  guestDebts: "/guest-debts",
   /** The gym's history, "تاریخچه": check-ins, payments and هوازی (BUSINESS_RULES.md §12). */
   history: "/history",
   cafe: "/cafe",

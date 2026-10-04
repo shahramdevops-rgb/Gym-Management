@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
+import { guestDebtKeys } from "@/features/guestDebts/api";
 import { lockerKeys } from "@/features/lockers/api";
 import { memberKeys } from "@/features/members/api";
 import { paymentKeys, type PaymentMethod } from "@/features/payments/api";
@@ -144,6 +145,8 @@ async function invalidateAttendance(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: lockerKeys.all }),
     queryClient.invalidateQueries({ queryKey: subscriptionKeys.all }),
     queryClient.invalidateQueries({ queryKey: [...memberKeys.all, "list"] }),
+    // A guest's check-out, cancel or «تسویه یکجا» changes what «بدهی مهمان‌ها» lists.
+    queryClient.invalidateQueries({ queryKey: guestDebtKeys.all }),
   ]);
 }
 
@@ -231,11 +234,11 @@ export function useGuestCheckIn() {
 }
 
 /**
- * «تسویه یکجا» for a guest: pays every unpaid cafe order of the visit, one payment per order
- * (BUSINESS_RULES.md §7 *Guest visit*). `amount` is the total the box showed; the API refuses it
- * if the orders changed since.
+ * «تسویه یکجا» for a guest: pays everything the visit still owes, cafe orders, هوازی and sales, one
+ * payment per item (BUSINESS_RULES.md §7 *Guest visit*). `amount` is the total the box showed; the
+ * API refuses it if anything changed since.
  */
-export function useSettleGuestCafe() {
+export function useSettleGuestVisit() {
   const queryClient = useQueryClient();
 
   return useMutation({

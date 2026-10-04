@@ -31,10 +31,10 @@ public sealed class VoidServiceChargeHandler(IAppDbContext db, TimeProvider time
         }
 
         // The refund is written from what the payments add up to, so that sum is read under the
-        // same per-member lock a payment takes — otherwise money arriving at this moment would
-        // stay in the gym's books against a charge that owes nothing.
+        // same lock a payment takes (ServiceChargeLock) — otherwise money arriving at this moment
+        // would stay in the gym's books against a charge that owes nothing.
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
-        await db.LockMemberAsync(charge.MemberId, cancellationToken);
+        await ServiceChargeLock.TakeAsync(db, charge, cancellationToken);
 
         // The endpoint's policy requires an authenticated user, so this is a wiring bug if hit.
         var userId = currentUser.UserId

@@ -130,7 +130,7 @@ public sealed class GuestCafeEndpointTests(DatabaseFixture fixture) : DatabaseTe
         using var response = await SendAsync(client, token, HttpMethod.Post, CheckOutPath(visit.Id));
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.GuestHasUnpaidCafe");
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.GuestHasUnpaidPurchases");
         (await IsOpenAsync(visit.Id)).ShouldBeTrue();
     }
 
@@ -160,7 +160,7 @@ public sealed class GuestCafeEndpointTests(DatabaseFixture fixture) : DatabaseTe
             client, token, HttpMethod.Post, CancelPath(visit.Id), CancelCheckInBody.KeepPurchases);
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.GuestHasUnpaidCafe");
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.GuestHasUnpaidPurchases");
         (await IsOpenAsync(visit.Id)).ShouldBeTrue();
     }
 
