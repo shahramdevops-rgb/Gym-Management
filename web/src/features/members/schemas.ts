@@ -35,7 +35,7 @@ export const memberSchema = z.object({
     .min(1, message("Members.PhoneRequired"))
     .max(30, message("Members.PhoneInvalid")),
   /**
-   * An ISO business date or empty: JalaliDateField never produces anything else. Empty is refused
+   * An ISO business date or empty: BirthDateField never produces anything else. Empty is refused
    * (Members.BirthDateRequired: every member has one). The range rules are the entity's
    * (Members.BirthDateInFuture, Members.BirthDateTooOld), repeated here so the form can answer
    * before the request, with the same Persian text the API's codes map to.

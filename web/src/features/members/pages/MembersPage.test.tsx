@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import type { Member } from "@/features/members/api";
 import { attendanceHistoryPage, closedVisit, openVisit } from "@/test/attendance";
+import { chooseBirthDate } from "@/test/birthDate";
 import { json, mockApi, session, signedInHandlers, staffUser, type Handler } from "@/test/mockApi";
 import { ali, memberDebt, membersPage, queryOf, reza, serviceChargeDebtItem } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
@@ -312,7 +313,7 @@ describe("MembersPage", () => {
     fireEvent.change(screen.getByLabelText("شماره موبایل"), {
       target: { value: "09121110000" },
     });
-    fireEvent.change(screen.getByLabelText("تاریخ تولد"), { target: { value: "۱۳۷۰/۰۵/۱۲" } });
+    chooseBirthDate("1370/05/12");
     fireEvent.click(screen.getByRole("button", { name: "ثبت و ادامه" }));
 
     // Registered, then the profile, where a plan is sold. Letting them in is the map's job.

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { FormField, JalaliDateField, TextareaField } from "@/components/FormField";
+import { BirthDateField, FormField, TextareaField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
@@ -99,10 +99,9 @@ export function MemberForm({
         render={({ field }) => (
           // Not {...field}: this is not a native input, so field.ref has nowhere to go, and this
           // form does not use focus-on-error.
-          <JalaliDateField
+          <BirthDateField
             label="تاریخ تولد"
             error={errors.birthDate?.message}
-            name={field.name}
             value={field.value}
             onChange={field.onChange}
             onBlur={field.onBlur}

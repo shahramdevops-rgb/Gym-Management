@@ -1,5 +1,6 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
+import { chooseBirthDate } from "@/test/birthDate";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { ali, reza } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
@@ -18,8 +19,11 @@ describe("EditMemberPage", () => {
     expect(await screen.findByLabelText("نام و نام خانوادگی")).toHaveValue("رضا احمدی");
     expect(screen.getByLabelText("شماره موبایل")).toHaveValue("+989121234567");
     expect(screen.getByLabelText("یادداشت (اختیاری)")).toHaveValue("عضو قدیمی");
-    // Stored Gregorian, shown Jalali (docs/BUSINESS_RULES.md §13).
-    expect(screen.getByLabelText("تاریخ تولد")).toHaveValue("۱۳۷۰/۰۵/۱۲");
+    // Stored Gregorian, shown Jalali (docs/BUSINESS_RULES.md §13): ۱۲ مرداد ۱۳۷۰.
+    const birthDate = screen.getByRole("group", { name: "تاریخ تولد" });
+    expect(within(birthDate).getByRole("combobox", { name: "روز" })).toHaveTextContent("۱۲");
+    expect(within(birthDate).getByRole("combobox", { name: "ماه" })).toHaveTextContent("مرداد");
+    expect(within(birthDate).getByRole("combobox", { name: "سال" })).toHaveTextContent("۱۳۷۰");
   });
 
   it("EditMember_Saved_SendsTheVersionItWasFilledFromAndOpensTheProfile", async () => {
@@ -52,19 +56,26 @@ describe("EditMemberPage", () => {
     expect(await screen.findByText("رضا احمدی‌نژاد")).toBeInTheDocument();
   });
 
-  it("EditMember_BirthDateCleared_IsRejectedBeforeSending", async () => {
-    // Required (docs/BUSINESS_RULES.md §2): it can be corrected, never removed.
+  it("EditMember_BirthDateCorrected_SendsTheNewDate", async () => {
+    // Required (docs/BUSINESS_RULES.md §2): it can be corrected, never removed, so the boxes offer
+    // no empty choice.
     const api = mockApi({
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`PUT /api/members/${reza.id}`]: () => json(200, reza),
     });
-    renderApp(editPath, { session: session() });
+    const { router } = renderApp(editPath, { session: session() });
 
-    fireEvent.click(await screen.findByRole("button", { name: "پاک کردن تاریخ" }));
+    await screen.findByLabelText("نام و نام خانوادگی");
+    chooseBirthDate("1370/05/13");
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
-    expect(await screen.findByText("تاریخ تولد را وارد کنید.")).toBeInTheDocument();
-    expect(api.requestsTo("PUT", `/api/members/${reza.id}`)).toHaveLength(0);
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/members/${reza.id}`));
+    const body = (await api.requestsTo("PUT", `/api/members/${reza.id}`)[0]!.json()) as Record<
+      string,
+      unknown
+    >;
+    expect(body.birthDate).toBe("1991-08-04");
   });
 
   it("EditMember_SomeoneSavedMeanwhile_ExplainsAndReloadsTheirVersion", async () => {
