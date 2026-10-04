@@ -105,7 +105,7 @@ public sealed class GetFinancialReportHandler(
         return new RangeData(
             payments
                 .Select(payment => new PaymentFact(
-                    DayOf(payment.PaidAt),
+                    calendar.DayOf(payment.PaidAt),
                     payment.Kind == PaymentKind.Payment ? payment.Amount : 0m,
                     payment.Kind == PaymentKind.Refund ? payment.Amount : 0m,
                     payment.Method,
@@ -218,10 +218,6 @@ public sealed class GetFinancialReportHandler(
             (null, null) => RevenueSource.Cafe,
             _ => throw new UnreachableException($"Service charge kind {serviceKind} has no revenue source."),
         };
-
-    /// <summary>The day a moment falls on in the gym's time zone.</summary>
-    private DateOnly DayOf(DateTimeOffset moment) =>
-        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(moment, calendar.TimeZone).DateTime);
 
     private async Task<IReadOnlyDictionary<Guid, string>> CategoryNamesAsync(
         List<Guid> categoryIds, CancellationToken cancellationToken) =>

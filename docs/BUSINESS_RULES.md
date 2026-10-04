@@ -1188,8 +1188,7 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
 - Attendance per day and by hour (cancelled excluded).
 - Active subscriptions, expiring soon, low sessions. Top cafe products.
 - Single-session (تک‌جلسه‌ای) revenue is reported separately from membership sales: they are the same
-  kind of record (§4) but not the same business. Until Phase 9 implements the split, the
-  subscription-sales figure includes single-session visits.
+  kind of record (§4) but not the same business (*Financial report* below, since 9.1).
 
 ### Financial report (گزارش مالی)
 
@@ -1238,6 +1237,72 @@ Decided with the developer, 1405/07/12 (2026-10-04). Roadmap 9.1.
   the history's «مانده»). It includes what a guest still inside owes on their visit.
 - **By age**, by the gym's day the sale was recorded on: 0–7 days, 8–30 days, more than 30 days
   old (today 1405/07/12 → 0–7 is 07/05 to 07/12). An old debt is the one that needs a phone call.
+
+### Operational reports (گزارش‌های عملیاتی)
+
+Decided with the developer, 1405/07/12 (2026-10-04). Roadmap 9.2. The counts behind the Owner's
+dashboard (9.3), beside the money above.
+
+- **Owner only**, like the financial report. A range is the financial report's: required, inclusive,
+  in the gym's time zone, at most 366 days.
+- **"Plan" means a membership plan.** A single visit (تک‌جلسه‌ای, §4) is one day for one visit: it
+  is never counted as an active plan, never runs out, is never renewed and makes nobody a member.
+- **Attendance** (per range): members' check-ins by the moment they began, in the gym's time zone.
+  Cancelled check-ins and guests are left out (§7 *Guest visit*); a cardio-only visit counts (§7
+  *Cardio-only visit*). The total, the total of the range before it (the same length, ending the day
+  before `from`), how many different members came, every day of the range (a day with nothing is a
+  zero), and a table of weekday × hour, Saturday first.
+- **Plans today** (no range): plans active today (in their dates, not frozen, a session left),
+  plans frozen now, and of the active ones those running out by the board's thresholds (§7 *The
+  "currently inside" board*): ending within **5 days**, and **3 sessions** left or fewer. A plan
+  running out counts here even when the member has already bought the next one; that is the
+  «نیاز به اقدام» lists' question.
+- **Top cafe products** (per range): the **10** products sold most by quantity, with what they were
+  sold for, by the order's `OrderedOn`. Cancelled orders are left out; walk-ins' and guests' orders
+  count, since the question is what sells. A product is shown by its name today. *The 10, and quantity
+  before amount, are Claude's defaults, 1405/07/12; pending review.*
+- **Renewal rate** (per range, by the plan's end date):
+  - A plan **ended** when its last day is in the range and before today (a plan still covers its last
+    day). A frozen plan has not ended, whatever its end date says.
+  - It was **renewed** when the member has a later plan, not cancelled, sold no more than **30 days**
+    after its end: before the end (a queued renewal) or after it (the member coming back). A member
+    who comes back after 31 days is a returning member, not a renewal (decided with the developer,
+    1405/07/12).
+  - A plan not renewed yet whose 30 days are not over is **waiting**, and is left out of the rate:
+    rate = renewed ÷ (ended − waiting). Otherwise the last month would always look worse than it is.
+    *Claude's default, 1405/07/12; pending review.*
+- **New members** (per range): a member counts as new on the day their **first membership plan**
+  was sold («تاریخ فروش», §4), cancelled plans left out (decided with the developer, 1405/07/12).
+  Registering a member, or selling them single visits, does not make them a member. While the paper
+  members are being entered, an old member's first plan in the system also counts as new.
+- Renewal and new members come day by day; the dashboard adds the days up into Jalali months. The
+  server keeps to Gregorian dates (§13).
+
+### Needs attention (نیاز به اقدام)
+
+Decided with the developer, 1405/07/12 (2026-10-04). Roadmap 9.2. Who the Owner should call today;
+no range. One member can be on more than one list.
+
+- **The plan lists leave out deactivated members** (the gym has already let them go) and single
+  visits. The debt list does not leave anyone out: money owed is owed. *Including deactivated
+  members in the debt list is Claude's default, 1405/07/12; pending review.*
+- **Running out, not renewed:** a plan in its dates today and not frozen, with **3 sessions left or
+  fewer** (none left included: the sessions are used up before the end date) **or ending within 5
+  days**, and no plan bought after it (§4 `Upcoming`, not cancelled). The board's thresholds (decided
+  with the developer, 1405/07/12, instead of "ending this week"), for every member rather than only
+  those inside (§6 *The desk panel*). The soonest end first.
+- **Left in the last 30 days:** a member whose latest plan ended between 30 days ago and yesterday,
+  with nothing after it. A member with a frozen plan is away on purpose and is not listed. The
+  latest first.
+- **Stopped coming:** a member with a plan usable today (§4 `Active`) and **no visit for 10 days or
+  more** (decided with the developer, 1405/07/12). The days count from the last visit, or from the
+  plan's start when the member has not come since it started: a plan bought three days ago is not a
+  member who stopped coming. A cancelled check-in is not a visit; a cardio-only one is. A frozen plan
+  is not listed. The longest away first.
+- **Old debts:** each member's debt on sales recorded **more than 30 days ago** (the receivables'
+  oldest age, above), with the day of the oldest such sale; the largest first. What walk-ins and
+  guests owe on such sales is one figure beside the list, since there is nobody to call. The list
+  and that figure add up to the receivables' «more than 30 days».
 
 ### History (تاریخچه)
 

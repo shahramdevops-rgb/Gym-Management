@@ -1965,12 +1965,32 @@ now names the seeded «خرید بوفه» id in Domain, and the seed uses it (s
 Next: **9.2 Operational reports API**, in its own session.
 
 ### 9.2 Operational reports API
-- [ ] Attendance per day and by hour
-- [ ] Active, expiring soon, low-session subscriptions
-- [ ] Top cafe products
-- [ ] The «نیاز به اقدام» lists: ending this week with no renewal, ended in the last 30 days with
-      no renewal, a live plan and no visit for a while (the number of days to be decided), old debts
-- [ ] Renewal rate, new members per month
+BUSINESS_RULES.md §12 *Operational reports*, *Needs attention*. Decided with the developer on
+1405/07/12: "ending this week" uses the board's thresholds (3 sessions, 5 days); "no visit for a
+while" is 10 days; a plan is renewed by a plan sold within 30 days of its end; a new member is
+counted on their first membership plan's sale.
+- [x] `GET /api/reports/attendance?from&to`: members' check-ins per day and by weekday × hour,
+      the range before, distinct members
+- [x] `GET /api/reports/subscriptions`: active, frozen, expiring soon, low-session plans today
+- [x] `GET /api/reports/cafe-products?from&to`: the top 10 by quantity
+- [x] `GET /api/reports/needs-attention`: running out with no renewal, left in the last 30 days,
+      a live plan and no visit for 10 days, old debts (members, plus one figure for walk-ins and
+      guests)
+- [x] `GET /api/reports/members?from&to`: ended, renewed and waiting plans and new members, day by
+      day (the dashboard groups them into Jalali months)
+- [x] The range rules shared by every report (`ReportRangeValidator`); the thresholds named once
+      (`ReportThresholds`)
+- [x] Tests: each threshold at its edge; renewed, frozen, single-visit, inactive and cancelled
+      cases left out; a visit either side of the gym's midnight; guests and cancelled check-ins
+      not counted; renewal on day 30 and 31 and waiting; first plan after a cancelled one; top 10
+      and cancelled orders; old debts equal to the receivables' oldest age; Staff refused; bad
+      ranges refused
+
+Closed 2026-10-04: 1555 backend tests (27 new) and 785 frontend tests green, zero warnings, lint
+and production build clean. No migration and no new error code. `SaleRow` carries the buyer's
+`MemberId` now, for the old-debt list. Pending review: the top 10 by quantity, "waiting" plans left
+out of the renewal rate, and deactivated members kept in the old-debt list.
+Next: **9.3 UI: dashboard**, in its own session.
 
 ### 9.3 UI: dashboard
 - [ ] Summary cards and charts (Recharts, listed in ARCHITECTURE.md, not yet installed)
