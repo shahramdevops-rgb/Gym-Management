@@ -1582,6 +1582,7 @@ histories needed no fourth payment target.
 Closed 2026-10-03: 1444 backend tests (457 domain, 987 integration) and 755 frontend tests green,
 zero warnings. Not released yet: the migration adds three nullable columns and a check that every
 existing row (all هوازی) passes, and narrows an index filter.
+Released in `20261004-0511-2793a16` (2026-10-04).
 
 ### 6.5.29 Purchase tiles in the locker box, «فروشگاه» and «آنالیز»
 Asked by the developer on 1405/07/11 (2026-10-03), from a screenshot of the locker box: drop the
@@ -1612,6 +1613,7 @@ with ▲/▼ for the quantity. BUSINESS_RULES.md §7 *Sale at the desk*.
 
 Closed 2026-10-04: 1454 backend tests (459 domain, 995 integration) and 760 frontend tests green,
 production build clean, zero warnings. Not released yet; no migration.
+Released in `20261004-0511-2793a16` (2026-10-04).
 
 ### 6.5.30 Sales in the history (فروش‌ها در تاریخچه)
 Asked by the developer on 1405/07/12 (2026-10-04): make the history page more useful for the
@@ -1643,6 +1645,7 @@ sale is «پرداخت نشده»; Owner only; no totals.
 Closed 2026-10-04: 1466 backend tests (459 domain, 1007 integration) and 765 frontend tests green,
 lint and production build clean, zero warnings. Not released yet: the migration adds one index and
 touches no row.
+Released in `20261004-0511-2793a16` (2026-10-04).
 
 ### 6.5.31 Services for guests, and the guest debt list (خدمات مهمان، بدهی مهمان‌ها)
 Decided by the developer on 1405/07/12 (2026-10-04): a guest may use every service, under the
@@ -1670,6 +1673,7 @@ BUSINESS_RULES.md §7 *Guest visit*, *Gym services*, *Sale at the desk*, §6, §
 Closed 2026-10-04: 1514 backend tests (462 domain, 1052 integration) and 780 frontend tests green,
 lint and production build clean, zero warnings. Not released yet: the migration only drops NOT NULL
 on `service_charges.member_id` and touches no row.
+Released in `20261004-0511-2793a16` (2026-10-04).
 
 ### 6.5.32 Totals in the history (جمع در تاریخچه)
 Asked by the developer on 1405/07/12 (2026-10-04): every history section where money changes hands
@@ -1690,6 +1694,7 @@ Owner only.
 
 Closed 2026-10-04: 1514 backend tests (462 domain, 1052 integration) and 780 frontend tests green,
 lint and production build clean, zero warnings. No migration: nothing to release beyond the code.
+Released in `20261004-0511-2793a16` (2026-10-04).
 
 ### 6.5.33 Remove the guest debt list (حذف بدهی مهمان‌ها)
 Asked by the developer on 1405/07/12 (2026-10-04): the «بدهی مهمان‌ها» page from 6.5.31 is not
