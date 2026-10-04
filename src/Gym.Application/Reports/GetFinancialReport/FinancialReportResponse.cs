@@ -1,0 +1,60 @@
+using System.Text.Json.Serialization;
+
+using Gym.Domain.Payments;
+
+namespace Gym.Application.Reports.GetFinancialReport;
+
+/// <summary>
+/// The figures behind the Owner's dashboard (BUSINESS_RULES.md §12 <i>Financial report</i>).
+/// </summary>
+/// <param name="Current">The range asked for.</param>
+/// <param name="Previous">The range of the same length ending the day before it, to compare with.</param>
+/// <param name="Days">Every day of <paramref name="Current"/>, oldest first; a day with nothing is zeros.</param>
+public sealed record FinancialReportResponse(
+    FinancialPeriodResponse Current,
+    FinancialPeriodResponse Previous,
+    IReadOnlyList<FinancialDayResponse> Days);
+
+/// <summary>One range's money.</summary>
+/// <param name="Revenue">Payments, refunds and their difference, by <c>PaidAt</c>.</param>
+/// <param name="BySource">All six sources, always in the same order, zeros included.</param>
+/// <param name="ByMethod">All three methods in the desk's order: card, bank transfer, cash.</param>
+/// <param name="ByStaff">Everyone who took or gave back money in the range, the largest net first.</param>
+/// <param name="Sales">What was sold in the range, cancelled and voided sales left out.</param>
+/// <param name="Expenses">Expenses by <c>ExpenseDate</c>, voided ones left out.</param>
+/// <param name="ExpensesByCategory">Each category with an expense in the range, the largest first.</param>
+/// <param name="NetProfit">Net revenue minus expenses.</param>
+/// <param name="CafeGrossProfit">The cafe's net revenue minus the «خرید بوفه» expenses.</param>
+public sealed record FinancialPeriodResponse(
+    DateOnly From,
+    DateOnly To,
+    MoneyFlowResponse Revenue,
+    IReadOnlyList<RevenueBySourceResponse> BySource,
+    IReadOnlyList<RevenueByMethodResponse> ByMethod,
+    IReadOnlyList<RevenueByStaffResponse> ByStaff,
+    decimal Sales,
+    decimal Expenses,
+    IReadOnlyList<ExpensesByCategoryResponse> ExpensesByCategory,
+    decimal NetProfit,
+    decimal CafeGrossProfit);
+
+/// <param name="Refunded">The refunds, as a positive figure.</param>
+/// <param name="Net">Received minus refunded.</param>
+public sealed record MoneyFlowResponse(decimal Received, decimal Refunded, decimal Net);
+
+public sealed record RevenueBySourceResponse(
+    [property: JsonConverter(typeof(JsonStringEnumConverter<RevenueSource>))] RevenueSource Source,
+    MoneyFlowResponse Money);
+
+public sealed record RevenueByMethodResponse(
+    [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentMethod>))] PaymentMethod Method,
+    MoneyFlowResponse Money);
+
+/// <param name="UserId">Who took the payments and gave the refunds (<c>ReceivedByUserId</c>).</param>
+public sealed record RevenueByStaffResponse(Guid UserId, string FullName, MoneyFlowResponse Money);
+
+/// <param name="Name">The category's name today: a renamed category is shown by its new name.</param>
+public sealed record ExpensesByCategoryResponse(Guid CategoryId, string Name, decimal Amount);
+
+/// <param name="Revenue">Net revenue of the day.</param>
+public sealed record FinancialDayResponse(DateOnly Date, decimal Revenue, decimal Expenses);

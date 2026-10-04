@@ -137,6 +137,7 @@ try
     app.MapExpenseCategoriesEndpoints();
     app.MapExpensesEndpoints();
     app.MapHistoryEndpoints();
+    app.MapReportsEndpoints();
 
     app.Run();
 }
