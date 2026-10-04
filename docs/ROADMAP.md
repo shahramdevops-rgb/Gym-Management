@@ -1714,6 +1714,23 @@ with no amount. BUSINESS_RULES.md §7 *Auto-checkout*, *Guest visit*, *Opening h
 Closed 2026-10-04: 1509 backend tests and 785 frontend tests green, lint clean, zero warnings. No
 migration: nothing to release beyond the code.
 
+#### Housekeeping before Phase 9 (2026-10-04)
+Phase 6.5 closed with a check of the whole repository, so the next task starts clean:
+- [x] Full suite on `6b3159e`: 1509 backend and 785 frontend tests green, `dotnet build` with zero
+      warnings, lint and production build clean
+- [x] `main` pushed; the merged branches `task/6.5.25-gym-history` (and its worktree
+      `D:/GymManagement-history`) and `task/8.1-expenses-api` (local and on `origin`) deleted. Only
+      `main` is left
+- [x] 6.5.28 to 6.5.32 marked as released in `20261004-0511-2793a16`
+- [ ] 6.5.33 is not released yet (code only, no migration): it goes out with the next release,
+      after `./backup.sh run`
+- [ ] The gym PC has not yet pulled its own copy of the `gym-20261004-050157.dump` backup
+      (`deploy/pull-backup.ps1`); today it exists only on the server and in `D:\GymBackups`
+- Noted for 11.3: the production build warns that the main JS chunk is about 942 kB (Vite's hint
+  is 500 kB); code splitting by route would fix it. Not an error
+
+Next: **9.1 Financial reports API**, in its own session, plan first.
+
 ---
 
 ## Phase 7 — Cafe / POS
