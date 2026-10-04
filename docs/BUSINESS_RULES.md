@@ -140,6 +140,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | The gym's history: payments of today and the 3 days before it (§12 *History*) | ✅ | ✅ |
 | The gym's history: payments of any earlier day | ✅ | ❌ |
 | The gym's history: sales (فروش‌ها) of any day, paid and unpaid (§12 *Sales*) | ✅ | ❌ |
+| The gym's history: the totals of the sales and payments sections (§12 *Totals*) | ✅ | ❌ |
 | Expenses, dashboard, reports, audit log, SMS resend | ✅ | ❌ |
 
 ---
@@ -1209,8 +1210,8 @@ It is a list of rows, not totals or charts: those are the reports above.
 ### Sales in the history (فروش‌ها)
 
 Asked by the developer, 1405/07/12 (2026-10-04). Roadmap 6.5.30. The Owner wants to see everything
-the gym sold in one place, and each kind on its own, with what is still owed. Still a list of rows,
-not totals: income figures are Phase 9.
+the gym sold in one place, and each kind on its own, with what is still owed. Each section ends
+with its totals (roadmap 6.5.32, *Totals in the history* below); reports and charts are Phase 9.
 
 - **Owner only.** Staff keep the three sections above, unchanged. The API refuses Staff (403).
 - **For the Owner, the history's sections are:** ورود و خروج، پرداخت‌ها، همهٔ فروش‌ها، فروش پلن،
@@ -1231,6 +1232,27 @@ not totals: income figures are Phase 9.
 - **Who recorded it:** who placed the cafe order (`PlacedByUserId`) and who recorded the charge
   (`RecordedByUserId`). A subscription shows none: who sold it is not shown (§4).
 - The filters are the history's own: the date range and one member. A page holds 20 rows.
+
+### Totals in the history (جمع)
+
+Asked by the developer, 1405/07/12 (2026-10-04). Roadmap 6.5.32. Each section where money changes
+hands ends with a totals row, so the Owner reads what a day, a member or a kind of sale came to
+without adding up the rows.
+
+- **Owner only**, like the sales sections. Staff see the same rows as before and no totals; the API
+  refuses Staff (403).
+- **Over everything the filters let through**, every page, not only the 20 rows on screen. The
+  totals follow every filter of their section: the date range, the member, the sales section's kind
+  and «وضعیت پرداخت», the payments' «روش پرداخت» and «بابت».
+- **Every sales section** (همهٔ فروش‌ها، فروش پلن، هوازی، فروشگاه، آنالیز، بوفه) shows three figures:
+  - «مبلغ»: what the sales were sold for.
+  - «دریافتی»: net paid on them (payments − refunds).
+  - «مانده»: what is still owed, each sale's `amount − net paid` never below zero (as §5's debt).
+  - A cancelled subscription or cafe order and a voided charge count toward none of the three. Their
+    row stays in the list under «همه», marked; their money already came back as a refund (§5).
+- **«پرداخت‌ها»** shows «دریافتی» (the payments), «بازگشت» (the refunds) and «خالص» (payments −
+  refunds). Every payment and refund counts, a cancelled or voided item's included: the money did
+  move, in and back out.
 
 ---
 

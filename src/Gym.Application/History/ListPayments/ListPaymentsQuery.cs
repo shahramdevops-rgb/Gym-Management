@@ -32,4 +32,4 @@ public sealed record ListPaymentsQuery(
     PaymentTargetKind? Source = null,
     ServiceChargeKind? ServiceKind = null,
     int Page = 1,
-    int PageSize = PagingRules.DefaultPageSize);
+    int PageSize = PagingRules.DefaultPageSize) : IPaymentsFilter;

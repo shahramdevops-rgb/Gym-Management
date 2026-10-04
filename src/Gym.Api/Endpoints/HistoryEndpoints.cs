@@ -6,6 +6,8 @@ using Gym.Application.History.ListAttendance;
 using Gym.Application.History.ListPayments;
 using Gym.Application.History.ListSales;
 using Gym.Application.History.ListServiceCharges;
+using Gym.Application.History.PaymentTotals;
+using Gym.Application.History.SalesTotals;
 
 namespace Gym.Api.Endpoints;
 
@@ -14,7 +16,8 @@ namespace Gym.Api.Endpoints;
 /// it (BUSINESS_RULES.md §12 <i>History</i>, roadmap 6.5.25). Both roles open all three lists;
 /// how far back Staff may read payments is the handler's rule, because it depends on today and on
 /// who is asking, not only on the role. The sales list (فروش‌ها, roadmap 6.5.30) is the Owner's
-/// alone (§12 <i>Sales in the history</i>).
+/// alone (§12 <i>Sales in the history</i>), and so are the totals of sales and payments (§12
+/// <i>Totals in the history</i>, roadmap 6.5.32).
 /// </summary>
 /// <remarks>
 /// Each list sits at the root of its own resource (<c>/api/attendance</c>, <c>/api/payments</c>,
@@ -58,7 +61,20 @@ public static class HistoryEndpoints
             .Produces<PagedResponse<HistoryServiceChargeResponse>>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
-        Group(app, "/api/sales", Policies.OwnerOnly).MapGet("/", async (
+        // The totals under «پرداخت‌ها» are the Owner's alone (§12 Totals in the history), unlike the list.
+        Group(app, "/api/payments", Policies.OwnerOnly).MapGet("/totals", async (
+                [AsParameters] PaymentTotalsQuery query,
+                PaymentTotalsHandler handler,
+                CancellationToken ct) =>
+                    Results.Ok(await handler.Handle(query, ct)))
+            .AddEndpointFilter<ValidationFilter<PaymentTotalsQuery>>()
+            .WithName("GetPaymentTotals")
+            .Produces<PaymentTotalsResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        var sales = Group(app, "/api/sales", Policies.OwnerOnly);
+
+        sales.MapGet("/", async (
                 [AsParameters] ListSalesQuery query,
                 ListSalesHandler handler,
                 CancellationToken ct) =>
@@ -66,6 +82,16 @@ public static class HistoryEndpoints
             .AddEndpointFilter<ValidationFilter<ListSalesQuery>>()
             .WithName("ListSales")
             .Produces<PagedResponse<HistorySaleResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        sales.MapGet("/totals", async (
+                [AsParameters] SalesTotalsQuery query,
+                SalesTotalsHandler handler,
+                CancellationToken ct) =>
+                    Results.Ok(await handler.Handle(query, ct)))
+            .AddEndpointFilter<ValidationFilter<SalesTotalsQuery>>()
+            .WithName("GetSalesTotals")
+            .Produces<SalesTotalsResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
         return app;

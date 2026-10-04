@@ -1352,3 +1352,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **A policy per endpoint, not per group helper.** The history endpoints shared a `Group(...)` helper hard-wired to `StaffOrOwner`. A parameter with that as its default lets `/api/sales` be `OwnerOnly` without touching the other three.
 - **Role-dependent tabs and links that arrive early.** Until the signed-in user is loaded, the page does not know which tabs exist. It keeps any known tab from the URL meanwhile and only falls back once the role is known, and it asks for sales only when the role is confirmed Owner. A Staff member with an Owner's link sees the check-ins, and the API is never asked.
 - **My notes:**
+
+## 6.5.32 — Totals in the history (جمع در تاریخچه)
+
+- **One query object, two consumers.** The list and its totals must agree on which rows count, or the figure under the table lies. The filtered `IQueryable` moved out of the handlers into `SaleRows` and `PaymentRows`; the list pages it, the totals sum it. Because an `IQueryable` is a description of SQL, not data, sharing it costs nothing: each handler adds its own `Skip/Take` or `SUM` and EF writes one statement each.
+- **An interface for a shared filter.** `ListSalesQuery` and `SalesTotalsQuery` both implement `ISalesFilter`, so `SaleRows.Matching(ISalesFilter)` takes either without a mapping step. The records stay separate so the totals endpoint's OpenAPI shows no `page` parameter it would ignore.
+- **Validator rules shared with `Include`.** `SalesFilterValidator` is an `AbstractValidator<ISalesFilter>`; each request's validator calls `Include(new SalesFilterValidator())`. That works because `IValidator<in T>` is contravariant: a validator of the interface is a validator of every type implementing it. The error property names stay `To`, `Source`, `Paid`, as before.
+- **Summing in the database with `GroupBy(x => 1)`.** Several sums in one `SELECT` come from grouping on a constant and projecting `group.Sum(...)` for each figure. No row means no group, so `FirstOrDefaultAsync` returns `null` and the handler answers zeros. Three separate `SumAsync` calls would have run the union three times.
+- **A conditional inside `Sum`.** `Sum(s => s.NetPaid < s.Amount ? s.Amount - s.NetPaid : 0m)` becomes `SUM(CASE WHEN ... END)`. Clamping per row matters: summing `Amount − NetPaid` across rows would let one overpaid sale hide another's debt.
+- **A separate endpoint when the audience differs.** The payments list is Staff-or-Owner; its totals are Owner-only. Putting them on the list's response would have meant a field that is sometimes `null` depending on who asks. `/api/payments/totals` with `OwnerOnly` says the rule in the policy, where it is enforced and tested.
+- **Leave the page out of the cache key.** The totals' query key holds every filter except `page`, so turning a page reuses the cached totals instead of asking again.
+- **My notes:**

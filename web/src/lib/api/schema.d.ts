@@ -1124,6 +1124,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/payments/totals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetPaymentTotals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales": {
         parameters: {
             query?: never;
@@ -1132,6 +1148,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["ListSales"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/totals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetSalesTotals"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1826,6 +1858,14 @@ export interface components {
         PaymentStatus: "Unpaid" | "Partial" | "Paid";
         /** @enum {unknown} */
         PaymentTargetKind: "Subscription" | "ServiceCharge" | "CafeOrder";
+        PaymentTotalsResponse: {
+            /** Format: double */
+            received: number | string;
+            /** Format: double */
+            refunded: number | string;
+            /** Format: double */
+            net: number | string;
+        };
         PlanSummary: {
             /** Format: int32 */
             durationDays: number | string;
@@ -1918,6 +1958,14 @@ export interface components {
         SalePaidFilter: "Paid" | "Unpaid" | null;
         /** @enum {unknown} */
         SaleSource: "Subscription" | "Cardio" | "Miscellaneous" | "Analysis" | "CafeOrder";
+        SalesTotalsResponse: {
+            /** Format: double */
+            amount: number | string;
+            /** Format: double */
+            netPaid: number | string;
+            /** Format: double */
+            remaining: number | string;
+        };
         SaleSummary: {
             description: string;
             /** Format: int32 */
@@ -7161,6 +7209,60 @@ export interface operations {
             };
         };
     };
+    GetPaymentTotals: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+                MemberId?: string;
+                Method?: components["schemas"]["PaymentMethod"];
+                Source?: components["schemas"]["PaymentTargetKind"];
+                ServiceKind?: components["schemas"]["ServiceChargeKind"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentTotalsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListSales: {
         parameters: {
             query?: {
@@ -7185,6 +7287,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedResponseOfHistorySaleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSalesTotals: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+                MemberId?: string;
+                Source?: components["schemas"]["SaleSource"];
+                Paid?: components["schemas"]["SalePaidFilter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesTotalsResponse"];
                 };
             };
             /** @description Bad Request */

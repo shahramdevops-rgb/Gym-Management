@@ -16,7 +16,7 @@ namespace Gym.Application.History.ListPayments;
 /// 3 days before it; the Owner has no limit.
 /// </summary>
 public sealed class ListPaymentsHandler(
-    IAppDbContext db, IGymCalendar calendar, ICurrentUser currentUser, IUserNames users)
+    IAppDbContext db, PaymentRows paymentRows, IGymCalendar calendar, ICurrentUser currentUser, IUserNames users)
 {
     public async Task<Result<PagedResponse<HistoryPaymentResponse>>> Handle(
         ListPaymentsQuery query, CancellationToken cancellationToken)
@@ -31,53 +31,7 @@ public sealed class ListPaymentsHandler(
             return Result.Failure<PagedResponse<HistoryPaymentResponse>>(window.Error);
         }
 
-        var payments = db.Payments.AsNoTracking();
-
-        // A payment belongs to the day it was taken, in the gym's time zone (§5 revenue, §12).
-        if (query.From is { } from)
-        {
-            var start = calendar.StartOfDayUtc(from);
-            payments = payments.Where(payment => payment.PaidAt >= start);
-        }
-
-        if (query.To is { } to)
-        {
-            var end = calendar.StartOfDayUtc(to.AddDays(1));
-            payments = payments.Where(payment => payment.PaidAt < end);
-        }
-
-        if (query.Method is { } method)
-        {
-            payments = payments.Where(payment => payment.Method == method);
-        }
-
-        payments = query.Source switch
-        {
-            PaymentTargetKind.Subscription => payments.Where(payment => payment.SubscriptionId != null),
-            PaymentTargetKind.ServiceCharge => payments.Where(payment => payment.ServiceChargeId != null),
-            PaymentTargetKind.CafeOrder => payments.Where(payment => payment.CafeOrderId != null),
-            _ => payments,
-        };
-
-        // هوازی, فروشگاه and آنالیز are all service charges, but the screen lists them as separate sources.
-        if (query.Source == PaymentTargetKind.ServiceCharge && query.ServiceKind is { } serviceKind)
-        {
-            payments = payments.Where(payment =>
-                db.ServiceCharges.Any(charge => charge.Id == payment.ServiceChargeId && charge.Kind == serviceKind));
-        }
-
-        // "Belongs to one of this member's items" rather than a join, because a payment has three
-        // possible parents — the same filter as the member's own payment history.
-        if (query.MemberId is { } memberId)
-        {
-            payments = payments.Where(payment =>
-                db.Subscriptions.Any(subscription =>
-                    subscription.Id == payment.SubscriptionId && subscription.MemberId == memberId) ||
-                db.ServiceCharges.Any(charge =>
-                    charge.Id == payment.ServiceChargeId && charge.MemberId == memberId) ||
-                db.CafeOrders.Any(order =>
-                    order.Id == payment.CafeOrderId && order.MemberId == memberId));
-        }
+        var payments = paymentRows.Matching(query);
 
         var totalCount = await payments.CountAsync(cancellationToken);
 
