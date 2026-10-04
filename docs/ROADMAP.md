@@ -523,6 +523,29 @@ From this release on, every member, payment and visit on the server is the gym's
   the newest migration runs old code against a newer database, so think before using it. The first
   real release already includes `MakeMemberBirthDateRequired`, which `20261001-0400-0dc7f27` predates
 
+#### First release over real data: `20261004-0511-2793a16` (2026-10-04)
+Previous: `20261002-1941-3059c81`. It carries 6.5.25 to 6.5.32 (the history page, guest visits and
+the guest debt list, settlements kept together, cardio-only visits, the miscellaneous and
+multi-item shop sales) and the birth-date dropdowns, with seven migrations: `GuestVisits`,
+`AddHistoryIndexes`, `AddPaymentSettlementId`, `AddAttendanceCardioOnly`, `AddMiscellaneousSale`,
+`AddSubscriptionCreatedAtIndex`, `AllowGuestServiceCharges`. Each one only adds or loosens: new
+columns are nullable or defaulted, the new checks hold for every old row, and the settlement
+backfill only fills the new column. Tests before release: 214 domain, 1300 integration and 791
+frontend, zero warnings.
+
+How it went, as the procedure for the next one:
+- Server state checked first: right `TAG`, API and Postgres healthy, 50 GB free
+- `./backup.sh run` → `gym-20261004-050157.dump` (131 KB). The gym PC was out of reach, so the
+  dump was copied to the developer's machine (`D:\GymBackups`, outside the repository) with `scp`
+  and both copies' `sha256sum` compared equal. The gym PC's own pull still has to run.
+- Row counts before the release: members 13, subscriptions 14, attendances 12, payments 13,
+  service_charges 0, cafe_orders 0, expenses 0, products 28
+- `deploy/release.sh gym@94.184.45.96` from Git Bash, with the key loaded once into `ssh-agent`
+
+**Rollback warning:** a rollback to `3059c81` is safe only until the first guest visit or
+miscellaneous sale is written. Old code cannot read an attendance or service charge without a
+member, so after that the way out is a fix forward, not `./server.sh rollback`.
+
 ### 6.5.0 Panel subdomain and a public placeholder
 
 Decided 2026-09-25, and it has to land **before** the canonical domain moves to the `.ir`. Today
