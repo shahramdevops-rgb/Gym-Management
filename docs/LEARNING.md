@@ -1387,3 +1387,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **Dependent options are clamped, not cleared.** The day list follows the month, and Esfand follows the leap year (`jalaliToIso(year, 12, 30) !== null`). If 31 Farvardin is chosen and the month becomes Mehr, the day becomes 30 instead of being cleared, so the user does not have to choose the day again.
 - **A group with a label is one field to a screen reader.** `role="group"` with `aria-labelledby` names the three boxes «تاریخ تولد» as a set, and `aria-describedby` points at the error, the same wiring every other field here has.
 - **My notes:**
+
+## 6.5.33 — Remove the guest debt list (حذف بدهی مهمان‌ها)
+
+- **Removing a feature is a vertical slice too.** Because the code is organized by feature, the page went as a few folders (`Application/GuestDebts`, `features/guestDebts`, its endpoints file and its tests) plus one line each where it was wired in: `Program.cs`, `DependencyInjection.cs`, the router, the menu and three `invalidateQueries` calls. A type-organized codebase would have left pieces in every "Handlers" and "DTOs" folder.
+- **Change the rule, not only the screen.** The page existed because auto-checkout closed a guest visit that still owed money, and that money needed somewhere to be paid. Deleting the page alone would have left those debts with no place to settle them. The fix moved upstream: an owing visit stays open, so its locker and box show the debt like any other open visit.
+- **A background job takes the same lock as the desk.** `AutoCheckoutHandler` now opens a transaction and calls `LockAttendanceAsync` before reading `GuestPurchases`, the lock check-out and every guest purchase take. Without it, a cafe order saved between the job's read and its close would land on a visit the job had just closed as "nothing owed".
+- **Regenerate types against the code you changed.** `gen:api` reuses any API already on :5134, which here was an older build, so the old endpoint stayed in `schema.d.ts`. A second copy of the new build on a spare port gave the right document without stopping the developer's own API.
+- **My notes:**

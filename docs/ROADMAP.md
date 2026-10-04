@@ -1691,6 +1691,24 @@ Owner only.
 Closed 2026-10-04: 1514 backend tests (462 domain, 1052 integration) and 780 frontend tests green,
 lint and production build clean, zero warnings. No migration: nothing to release beyond the code.
 
+### 6.5.33 Remove the guest debt list (حذف بدهی مهمان‌ها)
+Asked by the developer on 1405/07/12 (2026-10-04): the «بدهی مهمان‌ها» page from 6.5.31 is not
+worth keeping. A guest pays before leaving, and while inside their locker already shows what they
+owe. Decided with the developer, same day: auto-checkout no longer closes a guest visit that still
+owes anything; it stays open and «بدهکار» for the desk the next morning, like a cardio-only visit
+with no amount. BUSINESS_RULES.md §7 *Auto-checkout*, *Guest visit*, *Opening hours*, and the §1 row.
+- [x] BUSINESS_RULES.md, written first
+- [x] API: `GET /api/guest-debts` and `ListGuestDebts` removed; `AutoCheckoutHandler` runs in a
+      transaction, locks each guest visit and skips it while `GuestPurchases` finds anything unpaid
+- [x] Web: the page, its route, path and menu item removed, and the three mutations no longer
+      refresh its cache
+- [x] Tests: `GuestDebtsEndpointTests` and the menu test removed; integration (an unpaid charge
+      keeps the visit open and the locker owing, a paid guest beside an owing one, settled and
+      checked out the next day; the guest cafe auto-checkout test now expects the visit open)
+
+Closed 2026-10-04: 1509 backend tests and 785 frontend tests green, lint clean, zero warnings. No
+migration: nothing to release beyond the code.
+
 ---
 
 ## Phase 7 — Cafe / POS

@@ -252,7 +252,7 @@ public sealed class GuestCafeEndpointTests(DatabaseFixture fixture) : DatabaseTe
     // ---- Auto-checkout ----
 
     [Fact]
-    public async Task AutoCheckout_GuestWithAnUnpaidOrder_ClosesTheVisitAndTheOrderWaitsInTheHistory()
+    public async Task AutoCheckout_GuestWithAnUnpaidOrder_LeavesTheVisitOpenWithTheOrderUnpaid()
     {
         var (client, token) = await StaffClientAsync();
         var visit = await TestGuests.CheckInOkAsync(client, token, "مریم احمدی");
@@ -264,7 +264,7 @@ public sealed class GuestCafeEndpointTests(DatabaseFixture fixture) : DatabaseTe
             await scope.ServiceProvider.GetRequiredService<AutoCheckoutHandler>().Handle(TestContext.Current.CancellationToken);
         }
 
-        (await IsOpenAsync(visit.Id)).ShouldBeFalse();
+        (await IsOpenAsync(visit.Id)).ShouldBeTrue();
         var unpaid = await GetOkAsync<PagedResponse<CafeOrderResponse>>(client, token, $"{OrdersPath}?unpaidGuest=true");
         var row = unpaid.Items.ShouldHaveSingleItem();
         row.Id.ShouldBe(order.Id);

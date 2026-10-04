@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Attendances;
+using Gym.Application.Attendances.AutoCheckout;
 using Gym.Application.Cafe;
 using Gym.Application.Common.Paging;
 using Gym.Application.History.ListPayments;
@@ -25,8 +26,9 @@ namespace Gym.Api.IntegrationTests.Attendances;
 /// <summary>
 /// A guest's هوازی and sales (BUSINESS_RULES.md §7 <i>Guest visit</i>, roadmap 6.5.31): recorded on
 /// the visit under the guest's name, on no account, and under the cafe's guest rule: check-out and a
-/// cancel that would leave one unpaid are refused, «تسویه یکجا» pays them with the cafe, and the
-/// history names the guest. Run as Staff unless the test says otherwise.
+/// cancel that would leave one unpaid are refused, auto-checkout leaves such a visit open, «تسویه
+/// یکجا» pays them with the cafe, and the history names the guest. Run as Staff unless the test says
+/// otherwise.
 /// </summary>
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class GuestPurchasesEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
@@ -188,6 +190,55 @@ public sealed class GuestPurchasesEndpointTests(DatabaseFixture fixture) : Datab
         (await ReadAsync<AttendanceResponse>(response)).CancelledAt.ShouldNotBeNull();
         (await IsVoidedAsync(cardio.Id)).ShouldBeTrue();
         (await IsVoidedAsync(analysis.Id)).ShouldBeTrue();
+    }
+
+    // ---- Auto-checkout ----
+
+    [Fact]
+    public async Task AutoCheckout_GuestWithAnUnpaidCharge_LeavesTheVisitOpenAndTheLockerOwing()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await TestGuests.CheckInOkAsync(client, token, lockerNumber: 7);
+        await ChargeOkAsync(client, token, visit.Id, "Cardio", 30_000m);
+
+        var closed = await RunAutoCheckoutAsync();
+
+        closed.ShouldBe(0);
+        (await IsOpenAsync(visit.Id)).ShouldBeTrue();
+        var page = await GetOkAsync<PagedResponse<LockerResponse>>(client, token, $"/api/lockers?pageSize={PagingRules.MaxPageSize}");
+        page.Items.Single(locker => locker.Number == 7).HolderDebt.ShouldBe(30_000m);
+    }
+
+    [Fact]
+    public async Task AutoCheckout_GuestWhoPaidBesideOneWhoDidNot_ClosesOnlyThePaidVisit()
+    {
+        var (client, token) = await StaffClientAsync();
+        var paidUp = await TestGuests.CheckInOkAsync(client, token, "مریم احمدی");
+        var owing = await TestGuests.CheckInOkAsync(client, token, "سارا رضایی", lockerNumber: 2);
+        var cardio = await ChargeOkAsync(client, token, paidUp.Id, "Cardio", 30_000m);
+        await PostOkAsync(client, token, ChargePaymentsPath(cardio.Id), PaymentBody(30_000m));
+        await SellOkAsync(client, token, owing.Id, "دستکش", 1, 150_000m);
+
+        var closed = await RunAutoCheckoutAsync();
+
+        closed.ShouldBe(1);
+        (await IsOpenAsync(paidUp.Id)).ShouldBeFalse();
+        (await IsOpenAsync(owing.Id)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AutoCheckout_GuestWhoseDebtWasSettledTheNextDay_ThenChecksOut()
+    {
+        var (client, token) = await StaffClientAsync();
+        var visit = await TestGuests.CheckInOkAsync(client, token);
+        var analysis = await ChargeOkAsync(client, token, visit.Id, "Analysis", 200_000m);
+        await RunAutoCheckoutAsync();
+
+        await PostOkAsync(client, token, ChargePaymentsPath(analysis.Id), PaymentBody(200_000m));
+        using var response = await SendAsync(client, token, HttpMethod.Post, CheckOutPath(visit.Id));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await IsOpenAsync(visit.Id)).ShouldBeFalse();
     }
 
     // ---- تسویه یکجا ----
@@ -365,6 +416,14 @@ public sealed class GuestPurchasesEndpointTests(DatabaseFixture fixture) : Datab
 
         return await scope.ServiceProvider.GetRequiredService<AppDbContext>().Attendances
             .AnyAsync(a => a.Id == attendanceId && a.CheckedOutAt == null, TestContext.Current.CancellationToken);
+    }
+
+    private async Task<int> RunAutoCheckoutAsync()
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AutoCheckoutHandler>()
+            .Handle(TestContext.Current.CancellationToken);
     }
 
     private async Task<bool> IsVoidedAsync(Guid chargeId)

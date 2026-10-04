@@ -137,7 +137,6 @@ try
     app.MapExpenseCategoriesEndpoints();
     app.MapExpensesEndpoints();
     app.MapHistoryEndpoints();
-    app.MapGuestDebtsEndpoints();
 
     app.Run();
 }

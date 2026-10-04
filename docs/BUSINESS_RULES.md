@@ -124,7 +124,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 |---|---|---|
 | Members: create, update, deactivate, search | ✅ | ✅ |
 | Check-in (from the lockers screen only, §7 *Confirming at the front desk*), check-out, cancel check-in | ✅ | ✅ |
-| Guest visit (ورود مهمان): check in, check out, cancel, record its هوازی, sales and cafe, settle what it owes, the «بدهی مهمان‌ها» list (§7 *Guest visit*) | ✅ | ✅ |
+| Guest visit (ورود مهمان): check in, check out, cancel, record its هوازی, sales and cafe, settle what it owes (§7 *Guest visit*) | ✅ | ✅ |
 | Cardio-only visit (ورود فقط هوازی): check in without consuming a session (§7 *Cardio-only visit*) | ✅ | ✅ |
 | Assign or renew subscriptions | ✅ | ✅ |
 | Register payments, create cafe orders | ✅ | ✅ |
@@ -819,7 +819,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
     and stays.
 
 ### Auto-checkout
-- A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed. The one exception is a cardio-only visit with no هوازی amount, which stays open (*Cardio-only visit*).
+- A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed. Two kinds of visit stay open for the desk the next day: a cardio-only visit with no هوازی amount (*Cardio-only visit*), and a guest's visit with anything still unpaid (*Guest visit*).
 
 ### Guest visit (ورود مهمان)
 Decided by the developer, 1405/07/07 (2026-09-29). Implemented in roadmap 6.5.11. This replaces
@@ -848,7 +848,7 @@ locker's history.
   attention.
 - **Everything else is an ordinary visit:** move to another locker (§7 *Moving to another locker*),
   check-out with «key received», cancel check-in within the same window (nothing to give back:
-  there is no session), and auto-checkout at midnight.
+  there is no session), and auto-checkout at midnight (unless something is unpaid, below).
 - **A guest may use every service the gym sells** (decided by the developer, 1405/07/12, roadmap
   6.5.31; replaces "هوازی is not recorded on a guest visit, a guest uses the treadmill for free"
   and "sales at the desk are for members only"). Their locker box has the same four tiles as a
@@ -868,25 +868,19 @@ locker's history.
   - **Cancel check-in** asks about each purchase, as for a member (*Cancel check-in*). The ticked
     ones are cancelled or voided; an unticked one that is not fully paid refuses the cancellation
     with the same error, so it is paid first or ticked.
-  - **Auto-checkout** still closes a guest visit at midnight, even with something unpaid: the
-    locker must be free the next morning. What is unpaid stays under the guest's name in
-    «بدهی مهمان‌ها» (below), and is paid or cancelled with a reason later.
+  - **Auto-checkout leaves a guest visit open while anything bought on it is unpaid** (decided by
+    the developer, 1405/07/12; replaces "auto-checkout closes it anyway and the debt waits in
+    «بدهی مهمان‌ها»"). The locker stays held and «بدهکار» the next morning, and the desk settles it
+    from the guest's box and checks the guest out, exactly as it would have the night before. A
+    guest visit with nothing unpaid is auto-closed like any other. In practice a guest pays before
+    leaving, so this is the rare night the desk missed it.
   - There is no guest account (decided by the developer, 1405/07/12): a guest's debt is never
     carried to their next visit, and the same person coming again starts with nothing owed. If the
     gym later wants guests to leave owing money, that is a new rule.
-- **«بدهی مهمان‌ها» (guest debts)**: one list of everything bought on a guest's visit that is still
-  owed, cafe orders and service charges together, whether the guest is still inside or left at
-  midnight. Both roles: it is front-desk work, the same as the cafe's «پرداخت‌نشده — مهمان» filter
-  it extends (decided by the developer, 1405/07/12, "exactly like the cafe does it now").
-  - Each row: the day, the guest's name, what it was (the cafe order's lines, هوازی, the فروشگاه
-    item with how many, آنالیز), the amount, what is still owed, its payment status, and «داخل
-    باشگاه» when the visit is still open.
-  - From each row: «ثبت پرداخت» and «ابطال» (a charge) or «لغو سفارش» (a cafe order), the same
-    forms and rules as everywhere else: a payment cannot exceed what is owed, a void or
-    cancellation needs a reason and gives back what was paid the way it came.
-  - Newest first, 20 rows a page, no filters. A row leaves the list once nothing is owed on it.
-  - *Details decided by Claude, 1405/07/12; pending review:* its own page in the menu, under
-    «داخل باشگاه»; the cafe's «پرداخت‌نشده — مهمان» filter stays as it is.
+- **No separate guest debt list** (decided by the developer, 1405/07/12, which removed the
+  «بدهی مهمان‌ها» page built in 6.5.31): what a guest owes is always on a visit that is still open,
+  so the locker map shows it («بدهکار» and the guest's box). The cafe's «پرداخت‌نشده — مهمان» filter
+  stays.
 - **Not counted as attendance** in any attendance report (Phase 9). A guest visit used no
   session and sold no plan; counting it would make the gym look busier than its members make it.
   - This includes the chart under the map (§6 *Today by hour*): it counts members' check-ins only.
@@ -897,9 +891,8 @@ locker's history.
   still owe and pays exactly that, one ordinary payment per item: the cafe orders first, then the
   هوازی and the sales, each oldest first. If anything was added, paid, voided or cancelled since
   the box opened, nothing is paid and the desk is asked to look again (`Settlements.DebtChanged`).
-  A single item can still be paid on its own from its tile, or from «بدهی مهمان‌ها», which is also
-  where what auto-checkout left unpaid is settled. *Claude's default, 1405/07/10, widened to every
-  purchase 1405/07/12; pending review.*
+  A single item can still be paid on its own from its tile. *Claude's default, 1405/07/10, widened
+  to every purchase 1405/07/12; pending review.*
 - **Where the guest can be chosen at the till:** the guests inside are listed under the till's
   member search, narrowed by the name typed. *Claude's default, 1405/07/10; pending review.*
 - **The database cannot tell a guest's order from a member's.** A check constraint sees only the
@@ -954,8 +947,9 @@ Decided with the developer, 1405/07/04.
   the gym. Today a check-in after midnight still succeeds and stays open until the next night's job.
 - There is no Owner override. If the gym ever needs to open at night, the hours change as a new
   rule, agreed with the developer and written here first. It is not an exception granted at the desk.
-- A cardio-only visit with no هوازی amount is left open by *Auto-checkout* (*Cardio-only visit*), so it
-  can still be inside after midnight. Task 11.4 has to decide what happens to it.
+- A cardio-only visit with no هوازی amount, and a guest visit with something unpaid, are left open by
+  *Auto-checkout* (*Cardio-only visit*, *Guest visit*), so they can still be inside after midnight.
+  Task 11.4 has to decide what happens to them.
 - Until task 11.4 is done, **the code must not enforce this rule**. The developer checks in test members
   at night, and enforcing it early would block that work.
 
