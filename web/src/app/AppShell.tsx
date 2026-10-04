@@ -1,5 +1,6 @@
 import {
   Activity,
+  ChartColumn,
   ClipboardList,
   Coffee,
   Contact,
@@ -45,6 +46,7 @@ const navigation: NavigationItem[] = [
   { to: paths.cafe, label: "بوفه", icon: Coffee },
   { to: paths.cafeOrders, label: "سفارش‌های بوفه", icon: ReceiptText },
   { to: paths.cafeMenu, label: "منوی بوفه", icon: ClipboardList },
+  { to: paths.dashboard, label: "داشبورد", icon: ChartColumn, role: "Owner" },
   { to: paths.expenses, label: "هزینه‌ها", icon: Wallet, role: "Owner" },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.settings, label: "تنظیمات", icon: Settings, role: "Owner" },

@@ -63,7 +63,7 @@ Versions are pinned centrally in `Directory.Packages.props`. Ask before adding a
 
 Frontend: Vite, React, TypeScript, React Router, TanStack Query, React Hook Form, Zod, shadcn/ui, Tailwind CSS, openapi-typescript + openapi-fetch, Recharts, Vitest + Testing Library, date-fns-jalali (Jalali date math), react-multi-date-picker (Persian calendar picker), Vazirmatn font (self-hosted). Playwright for end-to-end tests (Phase 11).
 
-Frontend supporting packages (dependencies of the tools above, approved in task 0.7): `@radix-ui/react-direction` (Radix `DirectionProvider`), `@radix-ui/react-slot`, `@radix-ui/react-dialog` (the modal dialog, added in task 6.5.2 so a form can open over a table row instead of inside it), `class-variance-authority`, `clsx`, `tailwind-merge` and `lucide-react` (shadcn/ui), `@tailwindcss/vite`, `react-date-object` (the calendar and locale `react-multi-date-picker` is configured with), `jsdom` and `@testing-library/jest-dom` (Vitest), ESLint with `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `eslint-config-prettier` and `globals`, Prettier, `@types/node` (types for `vite.config.ts`).
+Frontend supporting packages (dependencies of the tools above, approved in task 0.7): `@radix-ui/react-direction` (Radix `DirectionProvider`), `@radix-ui/react-slot`, `@radix-ui/react-dialog` (the modal dialog, added in task 6.5.2 so a form can open over a table row instead of inside it), `class-variance-authority`, `clsx`, `tailwind-merge` and `lucide-react` (shadcn/ui), `@tailwindcss/vite`, `react-date-object` (the calendar and locale `react-multi-date-picker` is configured with), `jsdom` and `@testing-library/jest-dom` (Vitest), ESLint with `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `eslint-config-prettier` and `globals`, Prettier, `@types/node` (types for `vite.config.ts`), `react-is` (a required peer dependency of Recharts, approved in task 9.3).
 
 Infrastructure: Docker Compose, GitHub Actions, Caddy.
 
@@ -216,6 +216,13 @@ web/src/
   digits than a float holds exactly, and ASP.NET reads a JSON string into `decimal` directly. Number inputs stay text
   in the form, are validated after digit normalization, and are converted only when sent (`features/plans/schemas.ts`).
 - Phone numbers and other LTR runs inside RTL text are wrapped in `dir="ltr"`, or their digit groups display reversed.
+- Charts (Recharts, task 9.3) are SVG, and SVG reads `text-anchor` against the text's direction: inside the RTL page
+  every tick and label slides over the bars. A Recharts chart sits in a `dir="ltr"` box and is turned to read right to
+  left by its axes (`reversed`, `orientation="right"`); each label goes through `svgText` (a leading RIGHT-TO-LEFT
+  MARK) so «۶ میلیون» keeps its word order. A plain list of named bars is HTML (`BarListChart`), not Recharts: no
+  axis, no hover, and the browser lays out RTL text by itself. Chart colours are the `--chart-*` tokens in
+  `index.css`, checked together for colour-blind readers in both themes. jsdom has no `ResizeObserver`, which
+  `responsive` charts need; `test/setup.ts` supplies an empty one.
 
 ## Gotchas
 - `postgres:18` image: mount the volume at `/var/lib/postgresql`, not `/var/lib/postgresql/data`.

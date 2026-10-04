@@ -6,7 +6,9 @@ import {
   formatLongDate,
   formatMoney,
   formatMoneyDigits,
+  formatMoneyShort,
   formatNumber,
+  formatPercent,
   formatPhone,
   formatTime,
   gymToday,
@@ -452,5 +454,43 @@ describe("isoYearsAgo", () => {
 
   it("isoYearsAgo_LeapDayIntoALeapYear_KeepsTheTwentyNinth", () => {
     expect(isoYearsAgo("2028-02-29", 120)).toBe("1908-02-29");
+  });
+});
+
+describe("formatPercent", () => {
+  it("formatPercent_Fraction_RoundsToAWholePercent", () => {
+    expect(formatPercent(12.4)).toBe("۱۲٪");
+    expect(formatPercent(75)).toBe("۷۵٪");
+  });
+
+  it("formatPercent_SmallNegative_IsZeroWithoutASign", () => {
+    expect(formatPercent(-0.4)).toBe("۰٪");
+  });
+
+  it("formatPercent_Missing_ReturnsEmptyValue", () => {
+    expect(formatPercent(null)).toBe(emptyValue);
+  });
+});
+
+describe("formatMoneyShort", () => {
+  it("formatMoneyShort_Millions_RoundsToOneDecimal", () => {
+    expect(formatMoneyShort(1250000)).toBe("۱٫۳ میلیون");
+    expect(formatMoneyShort("12000000.00")).toBe("۱۲ میلیون");
+  });
+
+  it("formatMoneyShort_EachScale_NamesIt", () => {
+    expect(formatMoneyShort(2_500_000_000)).toBe("۲٫۵ میلیارد");
+    expect(formatMoneyShort(500000)).toBe("۵۰۰ هزار");
+    expect(formatMoneyShort(800)).toBe("۸۰۰");
+    expect(formatMoneyShort(0)).toBe("۰");
+  });
+
+  it("formatMoneyShort_Negative_KeepsTheSignAndTheScale", () => {
+    expect(formatMoneyShort(-2000000)).toMatch(/^[-−‎]*۲ میلیون$/);
+  });
+
+  it("formatMoneyShort_NotANumber_ReturnsEmptyValue", () => {
+    expect(formatMoneyShort("")).toBe(emptyValue);
+    expect(formatMoneyShort("abc")).toBe(emptyValue);
   });
 });

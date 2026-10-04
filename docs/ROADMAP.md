@@ -1993,8 +1993,33 @@ out of the renewal rate, and deactivated members kept in the old-debt list.
 Next: **9.3 UI: dashboard**, in its own session.
 
 ### 9.3 UI: dashboard
-- [ ] Summary cards and charts (Recharts, listed in ARCHITECTURE.md, not yet installed)
-- [ ] Jalali range presets (today, this week, this Jalali month, last month, custom)
+BUSINESS_RULES.md §12 *Dashboard*. Decided with the developer on 1405/07/12: the presets end today
+(«ماه قبل» is the whole month), the page opens on this month, time runs right to left in the
+charts, and a card shows the figure before instead of a percent when the range before had nothing
+or a loss.
+- [x] `/dashboard`, Owner only, with its menu item «داشبورد»
+- [x] Summary cards with the change since the range before: net revenue, expenses, net profit,
+      sales, the cash drawer, cafe gross profit, visits; new members and the renewal rate
+- [x] Today: plans active, frozen, ending soon, low on sessions; receivables by age
+- [x] «نیاز به اقدام»: the four lists, each name linked to the profile, plus what walk-ins and
+      guests owe; cheques wait for 9.4
+- [x] Charts (Recharts 3 and its `react-is` peer): revenue and expenses by day (by Jalali month past
+      62 days), new members and renewal rate by Jalali month; bar lists in HTML for revenue by
+      source and by method, expenses by category and the top 10 cafe products; the weekday × hour
+      table; money by staff member
+- [x] Jalali range presets (today, this week, this Jalali month, last month, this year, custom),
+      kept in the URL
+- [x] Tests: each preset at its edges (Saturday, Friday, Farvardin, a leap Esfand, Nowruz), 366
+      and 367 days, months either side of the 1st and of Nowruz, percent change from zero and from
+      a loss, renewal rate with waiting plans; the page's requests, presets, refused ranges, cards,
+      lists and Staff refused
+
+Closed 2026-10-04: 1555 backend tests and 835 frontend tests (50 new) green, lint and production
+build pass. No backend change, no migration. The dashboard is its own chunk (388 kB, Recharts
+inside), so the desk screens do not download it. The build's "chunk larger than 500 kB" warning
+for the main chunk (942 kB) was already there before this task: splitting the other pages by
+route is left for a housekeeping task, not hidden by raising the limit.
+Next: **9.4 Cheque reminders**, rules first, in its own session.
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its

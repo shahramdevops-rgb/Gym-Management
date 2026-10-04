@@ -71,6 +71,16 @@ export function formatNumber(value: number | null | undefined): string {
   return numberFormatter.format(value);
 }
 
+/** A share as a whole percent with Persian digits: `12.4` → `۱۲٪`. */
+export function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return emptyValue;
+  }
+
+  // `|| 0` turns the -0 that rounding -0.4 gives into 0, which would otherwise read «−۰٪».
+  return `${numberFormatter.format(Math.round(value) || 0)}٪`;
+}
+
 // ---- Money ----
 //
 // Every amount on screen comes through here (docs/BUSINESS_RULES.md §13). Toman amounts run to
@@ -134,6 +144,32 @@ export function formatMoney(value: string | number | null | undefined): string {
   const withoutEmptyFraction = /^0*$/.test(fraction) ? whole : `${whole}.${fraction}`;
 
   return `${formatMoneyDigits(withoutEmptyFraction)} تومان`;
+}
+
+const shortMoneyFormatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+
+const shortMoneyScales = [
+  { size: 1_000_000_000, word: "میلیارد" },
+  { size: 1_000_000, word: "میلیون" },
+  { size: 1_000, word: "هزار" },
+];
+
+/**
+ * An amount rounded to its scale, for a chart's axis only: `1250000` → `۱٫۳ میلیون`. A tick has
+ * room for a few characters, and the exact figure is one hover away in the chart's tooltip, which
+ * uses `formatMoney`. Never for an amount someone reads as the amount.
+ */
+export function formatMoneyShort(value: number | string | null | undefined): string {
+  const amount = Number(value);
+  if (value === null || value === undefined || value === "" || !Number.isFinite(amount)) {
+    return emptyValue;
+  }
+
+  const scale = shortMoneyScales.find(({ size }) => Math.abs(amount) >= size);
+
+  return scale === undefined
+    ? shortMoneyFormatter.format(amount)
+    : `${shortMoneyFormatter.format(amount / scale.size)} ${scale.word}`;
 }
 
 // The amount written out in words, which is the actual protection: a run of zeros can be
@@ -458,6 +494,22 @@ export function withDateSlashes(typed: string): string {
     .filter((part) => part !== "")
     .join("/");
 }
+
+/** The Jalali months by name, فروردین first: index 0 is month 1. */
+export const jalaliMonthNames = [
+  "فروردین",
+  "اردیبهشت",
+  "خرداد",
+  "تیر",
+  "مرداد",
+  "شهریور",
+  "مهر",
+  "آبان",
+  "آذر",
+  "دی",
+  "بهمن",
+  "اسفند",
+] as const;
 
 /** The Jalali year, month (1-12) and day of an ISO business date, for the calendar picker. */
 export function jalaliPartsOf(

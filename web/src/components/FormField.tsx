@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   amountInPersianWords,
   formatMoneyDigits,
+  jalaliMonthNames,
   jalaliPartsOf,
   jalaliToIso,
   toIsoDate,
@@ -403,21 +404,6 @@ export function JalaliDateField({
     </div>
   );
 }
-
-const jalaliMonthNames = [
-  "فروردین",
-  "اردیبهشت",
-  "خرداد",
-  "تیر",
-  "مرداد",
-  "شهریور",
-  "مهر",
-  "آبان",
-  "آذر",
-  "دی",
-  "بهمن",
-  "اسفند",
-];
 
 /** The birth years offered, newest first (asked by the developer, 1405/07/12). */
 const firstBirthYear = 1320;
