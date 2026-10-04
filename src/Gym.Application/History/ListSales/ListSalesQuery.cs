@@ -22,4 +22,4 @@ public sealed record ListSalesQuery(
     SaleSource? Source = null,
     SalePaidFilter? Paid = null,
     int Page = 1,
-    int PageSize = PagingRules.DefaultPageSize);
+    int PageSize = PagingRules.DefaultPageSize) : ISalesFilter;

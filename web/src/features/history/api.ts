@@ -79,6 +79,11 @@ export const salePaidFilterLabels: Record<SalePaidFilter, string> = {
   Unpaid: "پرداخت نشده",
 };
 
+/** «مبلغ»، «دریافتی»، «مانده» of a sales section (BUSINESS_RULES.md §12 Totals in the history). */
+export type SalesTotals = components["schemas"]["SalesTotalsResponse"];
+/** «دریافتی»، «بازگشت»، «خالص» of the payments section (§12 Totals in the history). */
+export type PaymentTotals = components["schemas"]["PaymentTotalsResponse"];
+
 export const saleSourceLabels: Record<SaleSource, string> = {
   Subscription: "پلن",
   Cardio: "هوازی",
@@ -106,6 +111,10 @@ export interface SalesHistoryFilter extends HistoryFilter {
   paid?: SalePaidFilter;
 }
 
+/** The totals follow every filter of their list but the page: they add up all the pages. */
+export type SalesTotalsFilter = Omit<SalesHistoryFilter, "page">;
+export type PaymentTotalsFilter = Omit<PaymentHistoryFilter, "page">;
+
 /**
  * Query keys. Its own root, not under "payments" or "attendance": nothing on this page changes
  * anything, and a list here is fetched again whenever the page opens (the default `staleTime` of 0).
@@ -117,6 +126,9 @@ export const historyKeys = {
   serviceCharges: (filter: HistoryFilter) =>
     [...historyKeys.all, "service-charges", filter] as const,
   sales: (filter: SalesHistoryFilter) => [...historyKeys.all, "sales", filter] as const,
+  salesTotals: (filter: SalesTotalsFilter) => [...historyKeys.all, "sales-totals", filter] as const,
+  paymentTotals: (filter: PaymentTotalsFilter) =>
+    [...historyKeys.all, "payment-totals", filter] as const,
 };
 
 function paged<T>(data: { items: T[]; totalCount: number | string }) {
@@ -211,6 +223,64 @@ export function useSalesHistory(filter: SalesHistoryFilter, { enabled = true } =
         throw error;
       }
       return paged(data);
+    },
+  });
+}
+
+/**
+ * What a sales section comes to over every page its filters let through (BUSINESS_RULES.md §12
+ * Totals in the history). The Owner's alone, like the sales themselves.
+ */
+export function useSalesTotals(filter: SalesTotalsFilter, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: historyKeys.salesTotals(filter),
+    enabled,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/sales/totals", {
+        params: {
+          query: {
+            From: filter.from,
+            To: filter.to,
+            MemberId: filter.memberId,
+            Source: filter.source,
+            Paid: filter.paid,
+          },
+        },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/**
+ * What the payments section comes to over every page its filters let through (§12 Totals in the
+ * history). The Owner's alone: the API refuses Staff even for the days they may list.
+ */
+export function usePaymentTotals(filter: PaymentTotalsFilter, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: historyKeys.paymentTotals(filter),
+    enabled,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/payments/totals", {
+        params: {
+          query: {
+            From: filter.from,
+            To: filter.to,
+            MemberId: filter.memberId,
+            Method: filter.method,
+            ...paymentSourceQuery(filter.source),
+          },
+        },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
     },
   });
 }

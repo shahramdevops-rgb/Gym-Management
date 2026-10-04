@@ -1621,6 +1621,26 @@ Closed 2026-10-04: 1466 backend tests (459 domain, 1007 integration) and 765 fro
 lint and production build clean, zero warnings. Not released yet: the migration adds one index and
 touches no row.
 
+### 6.5.32 Totals in the history (جمع در تاریخچه)
+Asked by the developer on 1405/07/12 (2026-10-04): every history section where money changes hands
+ends with what it comes to, for everything the filters let through. BUSINESS_RULES.md §12 *Totals
+in the history* and a §1 row; the 6.5.30 "no totals" is lifted for these figures only.
+
+Decided with the developer, same day: the sales sections show «مبلغ»، «دریافتی»، «مانده»;
+cancelled and voided sales count toward none; «پرداخت‌ها» shows «دریافتی»، «بازگشت»، «خالص»;
+Owner only.
+- [x] BUSINESS_RULES.md §12 *Totals in the history* and the §1 row, written first
+- [x] API: `GET /api/sales/totals` and `GET /api/payments/totals`, Owner policy, the list's filters
+      without the page. Each list and its totals share one filtered query (`SalesQuery`,
+      `PaymentsQuery`), so the two can never disagree on which rows count; the sums run in the
+      database
+- [x] Web: `HistoryTotals` under the table of every sales section and of «پرداخت‌ها», Owner only
+- [x] Tests: integration (each figure, partial and free plans, cancelled and voided left out, each
+      filter, refunds, Staff 403, bad filters 400); frontend (Owner sees them, Staff never ask)
+
+Closed 2026-10-04: 1514 backend tests (462 domain, 1052 integration) and 780 frontend tests green,
+lint and production build clean, zero warnings. No migration: nothing to release beyond the code.
+
 ---
 
 ## Phase 7 — Cafe / POS

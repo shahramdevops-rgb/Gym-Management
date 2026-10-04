@@ -2,7 +2,6 @@ using Gym.Application.Common;
 using Gym.Application.Common.Paging;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Payments;
-using Gym.Domain.ServiceCharges;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -13,34 +12,18 @@ namespace Gym.Application.History.ListSales;
 /// <i>Sales in the history</i>, roadmap 6.5.30). Owner only; the endpoint's policy says so.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Sales live in three tables (subscriptions, service charges, cafe orders), but the list is paged
-/// and filtered by whether each is paid, so the three are put together in the database as one
-/// <c>UNION ALL</c> and counted, filtered and paged there. Merging them in memory would mean loading
-/// every sale of the range to show 20.
-/// </para>
-/// <para>
-/// The union carries only what it is sorted and filtered by (<see cref="SaleRow"/>). What a row says
-/// on screen is read afterwards for the 20 rows of the page, one batched query per table.
-/// </para>
+/// Which sales match is <see cref="SaleRows"/>' job, shared with the totals. The union carries only
+/// what it is sorted and filtered by (<see cref="SaleRow"/>). What a row says on screen is read
+/// afterwards for the 20 rows of the page, one batched query per table.
 /// </remarks>
-public sealed class ListSalesHandler(IAppDbContext db, IGymCalendar calendar, IUserNames users)
+public sealed class ListSalesHandler(IAppDbContext db, SaleRows saleRows, IUserNames users)
 {
     public async Task<PagedResponse<HistorySaleResponse>> Handle(
         ListSalesQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        var sales = Branches(query)
-            .Aggregate((all, next) => all.Concat(next));
-
-        // Net paid covers the amount: a free plan is paid (§4). Cancelled and voided match neither.
-        sales = query.Paid switch
-        {
-            SalePaidFilter.Paid => sales.Where(sale => sale.UndoneAt == null && sale.NetPaid >= sale.Amount),
-            SalePaidFilter.Unpaid => sales.Where(sale => sale.UndoneAt == null && sale.NetPaid < sale.Amount),
-            _ => sales,
-        };
+        var sales = saleRows.Matching(query);
 
         var totalCount = await sales.CountAsync(cancellationToken);
 
@@ -58,142 +41,6 @@ public sealed class ListSalesHandler(IAppDbContext db, IGymCalendar calendar, IU
             .ToList();
 
         return new PagedResponse<HistorySaleResponse>(items, query.Page, query.PageSize, totalCount);
-    }
-
-    /// <summary>
-    /// One query per kind of sale the request asks for, each already narrowed by date and member.
-    /// The three charge kinds are three branches, so every branch names its source as a constant.
-    /// </summary>
-    private List<IQueryable<SaleRow>> Branches(ListSalesQuery query)
-    {
-        var branches = new List<IQueryable<SaleRow>>();
-
-        if (query.Source is null or SaleSource.Subscription)
-        {
-            branches.Add(Subscriptions(query));
-        }
-
-        foreach (var (source, kind) in ChargeSources)
-        {
-            if (query.Source is null || query.Source == source)
-            {
-                branches.Add(Charges(query, source, kind));
-            }
-        }
-
-        if (query.Source is null or SaleSource.CafeOrder)
-        {
-            branches.Add(CafeOrders(query));
-        }
-
-        return branches;
-    }
-
-    private static readonly (SaleSource Source, ServiceChargeKind Kind)[] ChargeSources =
-    [
-        (SaleSource.Cardio, ServiceChargeKind.Cardio),
-        (SaleSource.Miscellaneous, ServiceChargeKind.Miscellaneous),
-        (SaleSource.Analysis, ServiceChargeKind.Analysis),
-    ];
-
-    private IQueryable<SaleRow> Subscriptions(ListSalesQuery query)
-    {
-        var subscriptions = db.Subscriptions.AsNoTracking();
-
-        // A plan belongs to the day it was sold, in the gym's time zone (§4 «تاریخ فروش», §12).
-        if (query.From is { } from)
-        {
-            var start = calendar.StartOfDayUtc(from);
-            subscriptions = subscriptions.Where(subscription => subscription.CreatedAt >= start);
-        }
-
-        if (query.To is { } to)
-        {
-            var end = calendar.StartOfDayUtc(to.AddDays(1));
-            subscriptions = subscriptions.Where(subscription => subscription.CreatedAt < end);
-        }
-
-        if (query.MemberId is { } memberId)
-        {
-            subscriptions = subscriptions.Where(subscription => subscription.MemberId == memberId);
-        }
-
-        return subscriptions.Select(subscription => new SaleRow
-        {
-            Source = SaleSource.Subscription,
-            Id = subscription.Id,
-            Amount = subscription.Price,
-            NetPaid = db.Payments
-                .Where(payment => payment.SubscriptionId == subscription.Id)
-                .Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
-            SoldAt = subscription.CreatedAt,
-            UndoneAt = subscription.CancelledAt,
-        });
-    }
-
-    private IQueryable<SaleRow> Charges(ListSalesQuery query, SaleSource source, ServiceChargeKind kind)
-    {
-        var charges = db.ServiceCharges.AsNoTracking().Where(charge => charge.Kind == kind);
-
-        // By the business date the charge carries: it already is the gym's day (§12).
-        if (query.From is { } from)
-        {
-            charges = charges.Where(charge => charge.ChargedOn >= from);
-        }
-
-        if (query.To is { } to)
-        {
-            charges = charges.Where(charge => charge.ChargedOn <= to);
-        }
-
-        if (query.MemberId is { } memberId)
-        {
-            charges = charges.Where(charge => charge.MemberId == memberId);
-        }
-
-        return charges.Select(charge => new SaleRow
-        {
-            Source = source,
-            Id = charge.Id,
-            Amount = charge.Amount,
-            NetPaid = db.Payments
-                .Where(payment => payment.ServiceChargeId == charge.Id)
-                .Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
-            SoldAt = charge.CreatedAt,
-            UndoneAt = charge.VoidedAt,
-        });
-    }
-
-    private IQueryable<SaleRow> CafeOrders(ListSalesQuery query)
-    {
-        var orders = db.CafeOrders.AsNoTracking();
-
-        if (query.From is { } from)
-        {
-            orders = orders.Where(order => order.OrderedOn >= from);
-        }
-
-        if (query.To is { } to)
-        {
-            orders = orders.Where(order => order.OrderedOn <= to);
-        }
-
-        if (query.MemberId is { } memberId)
-        {
-            orders = orders.Where(order => order.MemberId == memberId);
-        }
-
-        return orders.Select(order => new SaleRow
-        {
-            Source = SaleSource.CafeOrder,
-            Id = order.Id,
-            Amount = order.TotalAmount,
-            NetPaid = db.Payments
-                .Where(payment => payment.CafeOrderId == order.Id)
-                .Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
-            SoldAt = order.CreatedAt,
-            UndoneAt = order.CancelledAt,
-        });
     }
 
     /// <summary>What the page's rows say on screen: one query per table, then the names.</summary>
@@ -278,25 +125,6 @@ public sealed class ListSalesHandler(IAppDbContext db, IGymCalendar calendar, IU
 
     private static List<Guid> IdsOf(List<SaleRow> page, SaleSource source) =>
         page.Where(sale => sale.Source == source).Select(sale => sale.Id).ToList();
-
-    /// <summary>
-    /// What the union carries: enough to filter by paid, sort and page. A class with settable members,
-    /// not a record, because EF Core matches the branches of a set operation member by member.
-    /// </summary>
-    private sealed class SaleRow
-    {
-        public SaleSource Source { get; init; }
-
-        public Guid Id { get; init; }
-
-        public decimal Amount { get; init; }
-
-        public decimal NetPaid { get; init; }
-
-        public DateTimeOffset SoldAt { get; init; }
-
-        public DateTimeOffset? UndoneAt { get; init; }
-    }
 
     private sealed record Detail(
         Guid? MemberId,

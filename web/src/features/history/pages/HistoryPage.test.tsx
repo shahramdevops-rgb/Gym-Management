@@ -34,6 +34,9 @@ function handlers(user = owner) {
     "GET /api/payments": () => historyPage([planRefund, planPayment, walkInCafePayment]),
     "GET /api/service-charges": () => historyPage([liveCardio, voidedCardio]),
     "GET /api/sales": () => historyPage([cafeSale, shopSale, planSale, cancelledSingleVisitSale]),
+    "GET /api/sales/totals": () =>
+      json(200, { amount: 2160000, netPaid: 1260000, remaining: 900000 }),
+    "GET /api/payments/totals": () => json(200, { received: 960000, refunded: 900000, net: 60000 }),
     [`GET /api/members/${reza.id}`]: () => json(200, reza),
     "GET /api/members": () => membersPage([reza]),
   };
@@ -406,6 +409,61 @@ describe("HistoryPage", () => {
 
     fireEvent.click(within(group).getByRole("button", { name: "همه" }));
     await waitFor(() => expect(router.state.location.search).toBe("?tab=sales-plans"));
+  });
+
+  it("Totals_SalesSection_OwnerSeesAmountPaidAndRemainingForTheSameFilters", async () => {
+    const api = mockApi(handlers());
+    renderApp("/history?tab=sales-cardio&paid=Unpaid", { session: session() });
+
+    const totals = await screen.findByRole("region", { name: "جمع" });
+    expect(within(totals).getByText("جمع همهٔ ردیف‌ها")).toBeInTheDocument();
+    expect(within(totals).getByText("مبلغ").nextSibling).toHaveTextContent(formatMoney(2160000));
+    expect(within(totals).getByText("دریافتی").nextSibling).toHaveTextContent(
+      formatMoney(1260000),
+    );
+    expect(within(totals).getByText("مانده").nextSibling).toHaveTextContent(formatMoney(900000));
+
+    // The list's own filters, and no page: the totals cover every page.
+    const query = queryOf(api.requestsTo("GET", "/api/sales/totals")[0]);
+    expect(query.get("Source")).toBe("Cardio");
+    expect(query.get("Paid")).toBe("Unpaid");
+    expect(query.get("From")).toBe(gymToday());
+    expect(query.get("To")).toBe(gymToday());
+    expect(query.has("Page")).toBe(false);
+  });
+
+  it("Totals_PaymentsSection_OwnerSeesReceivedRefundedAndNet", async () => {
+    const api = mockApi(handlers());
+    renderApp("/history?tab=payments&method=Cash&source=Cardio", { session: session() });
+
+    const totals = await screen.findByRole("region", { name: "جمع" });
+    expect(within(totals).getByText("دریافتی").nextSibling).toHaveTextContent(formatMoney(960000));
+    expect(within(totals).getByText("بازگشت").nextSibling).toHaveTextContent(formatMoney(900000));
+    expect(within(totals).getByText("خالص").nextSibling).toHaveTextContent(formatMoney(60000));
+
+    const query = queryOf(api.requestsTo("GET", "/api/payments/totals")[0]);
+    expect(query.get("Method")).toBe("Cash");
+    expect(query.get("Source")).toBe("ServiceCharge");
+    expect(query.get("ServiceKind")).toBe("Cardio");
+    expect(query.has("Page")).toBe(false);
+  });
+
+  it("Totals_Staff_NeverAskAndSeeNone", async () => {
+    const api = mockApi(handlers(staffUser));
+    renderApp("/history?tab=payments", { session: session() });
+
+    await screen.findAllByText(formatMoney(900000));
+    expect(screen.queryByRole("region", { name: "جمع" })).not.toBeInTheDocument();
+    expect(api.requestsTo("GET", "/api/payments/totals")).toHaveLength(0);
+    expect(api.requestsTo("GET", "/api/sales/totals")).toHaveLength(0);
+  });
+
+  it("Totals_NoRows_ShowsNone", async () => {
+    mockApi({ ...handlers(), "GET /api/sales": () => historyPage([]) });
+    renderApp("/history?tab=sales", { session: session() });
+
+    expect(await screen.findByText("در این بازه چیزی ثبت نشده است.")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "جمع" })).not.toBeInTheDocument();
   });
 
   it("MemberFilter_PickingAMember_PutsItInTheUrlAndAsksForTheirRows", async () => {

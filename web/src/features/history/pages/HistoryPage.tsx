@@ -19,7 +19,9 @@ import {
   salePaidFilters,
   useAttendanceHistory,
   usePaymentHistory,
+  usePaymentTotals,
   useSalesHistory,
+  useSalesTotals,
   useServiceChargeHistory,
   type HistoryFilter,
   type PaymentSourceFilter,
@@ -27,6 +29,7 @@ import {
   type SaleSource,
 } from "../api";
 import { AttendanceLogTable } from "../components/AttendanceLogTable";
+import { HistoryTotals } from "../components/HistoryTotals";
 import { MemberFilter } from "../components/MemberFilter";
 import { PaymentLogTable } from "../components/PaymentLogTable";
 import { SalesLogTable } from "../components/SalesLogTable";
@@ -119,7 +122,9 @@ function oneOf<T extends string>(value: string | null, allowed: readonly T[]): T
  * is linked from here.
  *
  * The Owner also has the sales sections (§12 Sales in the history, roadmap 6.5.30): everything
- * sold in one list, and each kind on its own, with a «پرداخت شده / پرداخت نشده» choice.
+ * sold in one list, and each kind on its own, with a «پرداخت شده / پرداخت نشده» choice. Under the
+ * sales and the payments, the Owner reads what every row of every page comes to (§12 Totals in the
+ * history, roadmap 6.5.32).
  *
  * Every filter lives in the URL (`/history?tab=payments&from=2026-09-29&member=…&page=2`), like the
  * cafe's order history, so a reload, the back button or a shared link opens the same rows.
@@ -189,13 +194,30 @@ export function HistoryPage() {
     { enabled: canAsk && state.tab === "payments" && currentUser.isSuccess },
   );
   const cardio = useServiceChargeHistory(filter, { enabled: canAsk && state.tab === "cardio" });
+  const salesFilter = {
+    from: state.from,
+    to: state.to,
+    memberId: state.memberId,
+    source: isSalesTab(state.tab) ? salesTabSources[state.tab] : undefined,
+    paid: state.paid,
+  };
   const sales = useSalesHistory(
-    {
-      ...filter,
-      source: isSalesTab(state.tab) ? salesTabSources[state.tab] : undefined,
-      paid: state.paid,
-    },
+    { ...salesFilter, page: state.page },
     { enabled: canAsk && isSalesTab(state.tab) && isOwner },
+  );
+  // Totals leave the page out, so turning a page does not ask for them again.
+  const salesTotals = useSalesTotals(salesFilter, {
+    enabled: canAsk && isSalesTab(state.tab) && isOwner,
+  });
+  const paymentTotals = usePaymentTotals(
+    {
+      from: state.from,
+      to: state.to,
+      memberId: state.memberId,
+      method: state.method,
+      source: state.source,
+    },
+    { enabled: canAsk && state.tab === "payments" && isOwner },
   );
 
   const active =
@@ -338,12 +360,37 @@ export function HistoryPage() {
               {state.tab === "payments" && payments.isSuccess && payments.data.totalCount > 0 && (
                 <PaymentLogTable items={payments.data.items} />
               )}
+              {state.tab === "payments" &&
+                isOwner &&
+                payments.isSuccess &&
+                payments.data.totalCount > 0 &&
+                paymentTotals.isSuccess && (
+                  <HistoryTotals
+                    totals={[
+                      { label: "دریافتی", amount: paymentTotals.data.received },
+                      { label: "بازگشت", amount: paymentTotals.data.refunded },
+                      { label: "خالص", amount: paymentTotals.data.net },
+                    ]}
+                  />
+                )}
               {state.tab === "cardio" && cardio.isSuccess && cardio.data.totalCount > 0 && (
                 <ServiceChargeLogTable items={cardio.data.items} />
               )}
               {isSalesTab(state.tab) && sales.isSuccess && sales.data.totalCount > 0 && (
                 <SalesLogTable items={sales.data.items} />
               )}
+              {isSalesTab(state.tab) &&
+                sales.isSuccess &&
+                sales.data.totalCount > 0 &&
+                salesTotals.isSuccess && (
+                  <HistoryTotals
+                    totals={[
+                      { label: "مبلغ", amount: salesTotals.data.amount },
+                      { label: "دریافتی", amount: salesTotals.data.netPaid },
+                      { label: "مانده", amount: salesTotals.data.remaining },
+                    ]}
+                  />
+                )}
               {active.isSuccess && active.data.totalCount > 0 && (
                 <Pager
                   page={state.page}
