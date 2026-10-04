@@ -1191,6 +1191,54 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
   kind of record (§4) but not the same business. Until Phase 9 implements the split, the
   subscription-sales figure includes single-session visits.
 
+### Financial report (گزارش مالی)
+
+Decided with the developer, 1405/07/12 (2026-10-04). Roadmap 9.1. The figures behind the Owner's
+dashboard (9.3).
+
+- **Owner only**, reading included. Staff are refused (403). Staff keep the desk panel and the
+  history; a dashboard of their own is not planned.
+- **A range is required**, `from` and `to`, both inclusive, in the gym's time zone, at most **366
+  days** long (a Jalali leap year), so one request never reads more than a year.
+- **Revenue is money received**: payments − refunds, each by its `PaidAt` in the gym's time zone
+  (§5). Every payment and refund counts, those on a cancelled or voided item included, as in the
+  history's «پرداخت‌ها» totals: the money did move, in and back out.
+  - **By source**, six of them: membership plans, single-session visits (تک‌جلسه‌ای, apart from
+    membership as above), هوازی, فروشگاه, آنالیز, cafe. Each with received, refunded and net.
+  - **By method**: card, bank transfer, cash. The cash net is what the drawer should hold for the
+    range (صندوق).
+  - **By staff member**: who took the payment or gave the refund (`ReceivedByUserId`), with
+    received, refunded and net. The Owner sees who handled how much money, which the developer wants
+    as the gym takes on more staff.
+- **Guests' money is revenue.** A guest pays for nothing at the door, but what a guest buys (§7
+  *Guest visit*) is an ordinary payment and counts in its source like a member's. Guests stay out of
+  every attendance figure (§7), as before.
+- **Sales of the range** («فروش») sit beside revenue: what was sold in the range, by the day each
+  sale belongs to (§12 *Sales in the history*), cancelled and voided sales left out. Sales minus the
+  money received on them is what the range added to what members owe. The two figures answer
+  different questions and neither replaces the other.
+- **Expenses** by `ExpenseDate`, voided ones left out (§9), in total and by category.
+- **Net profit = net revenue − expenses** of the same range. Revenue by when money arrived,
+  expenses by the date the Owner gave them.
+- **Cafe gross profit = the cafe's net revenue − expenses in the «خرید بوفه» category** of the same
+  range (the seeded category, by its fixed id, so a rename does not break it). The cafe counts no
+  stock (§8), so this is the closest the gym gets to a margin, and only over a range long enough for
+  purchases and sales to even out.
+- **Compared with the range before it**: the same figures for the range of the same length ending
+  the day before `from` (1405/07/01–07/12 is compared with 1405/06/19–06/30).
+- **Day by day**: for every day of the range, net revenue and expenses, for the chart. A day with
+  nothing is a zero, not a gap.
+
+### Receivables (مطالبات)
+
+Decided with the developer, 1405/07/12 (2026-10-04). Roadmap 9.1.
+
+- **Owner only.** What everyone owes the gym right now, whatever the dashboard's range: every
+  non-cancelled, non-voided sale's `amount − net paid`, never below zero per sale (§5 *Member debt*,
+  the history's «مانده»). It includes what a guest still inside owes on their visit.
+- **By age**, by the gym's day the sale was recorded on: 0–7 days, 8–30 days, more than 30 days
+  old (today 1405/07/12 → 0–7 is 07/05 to 07/12). An old debt is the one that needs a phone call.
+
 ### History (تاریخچه)
 
 Decided with the developer, 1405/07/10 (2026-10-02). Roadmap 6.5.25. Each member's own history is

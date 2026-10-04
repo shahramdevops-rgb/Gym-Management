@@ -1172,6 +1172,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports/financial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetFinancialReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/receivables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetReceivables"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1430,6 +1462,45 @@ export interface components {
             /** Format: date-time */
             updatedAt: null | string;
         };
+        ExpensesByCategoryResponse: {
+            /** Format: uuid */
+            categoryId: string;
+            name: string;
+            /** Format: double */
+            amount: number | string;
+        };
+        FinancialDayResponse: {
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            revenue: number | string;
+            /** Format: double */
+            expenses: number | string;
+        };
+        FinancialPeriodResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            revenue: components["schemas"]["MoneyFlowResponse"];
+            bySource: components["schemas"]["RevenueBySourceResponse"][];
+            byMethod: components["schemas"]["RevenueByMethodResponse"][];
+            byStaff: components["schemas"]["RevenueByStaffResponse"][];
+            /** Format: double */
+            sales: number | string;
+            /** Format: double */
+            expenses: number | string;
+            expensesByCategory: components["schemas"]["ExpensesByCategoryResponse"][];
+            /** Format: double */
+            netProfit: number | string;
+            /** Format: double */
+            cafeGrossProfit: number | string;
+        };
+        FinancialReportResponse: {
+            current: components["schemas"]["FinancialPeriodResponse"];
+            previous: components["schemas"]["FinancialPeriodResponse"];
+            days: components["schemas"]["FinancialDayResponse"][];
+        };
         GuestCheckInCommand: {
             guestName: string;
             /** Format: uuid */
@@ -1665,6 +1736,14 @@ export interface components {
             currentVisit?: null | components["schemas"]["MemberCurrentVisit"];
             /** @default false */
             isFrozen: boolean;
+        };
+        MoneyFlowResponse: {
+            /** Format: double */
+            received: number | string;
+            /** Format: double */
+            refunded: number | string;
+            /** Format: double */
+            net: number | string;
         };
         MoveLockerCommand: {
             /** Format: uuid */
@@ -1921,6 +2000,16 @@ export interface components {
             updatedAt: null | string;
             isSellable?: boolean;
         };
+        ReceivablesResponse: {
+            /** Format: double */
+            total: number | string;
+            /** Format: double */
+            upTo7Days: number | string;
+            /** Format: double */
+            from8To30Days: number | string;
+            /** Format: double */
+            over30Days: number | string;
+        };
         RecordExpenseCommand: {
             /** Format: double */
             amount: number | string;
@@ -1955,6 +2044,22 @@ export interface components {
         ResetStaffPasswordCommand: {
             temporaryPassword: string;
         };
+        RevenueByMethodResponse: {
+            method: components["schemas"]["PaymentMethod"];
+            money: components["schemas"]["MoneyFlowResponse"];
+        };
+        RevenueBySourceResponse: {
+            source: components["schemas"]["RevenueSource"];
+            money: components["schemas"]["MoneyFlowResponse"];
+        };
+        RevenueByStaffResponse: {
+            /** Format: uuid */
+            userId: string;
+            fullName: string;
+            money: components["schemas"]["MoneyFlowResponse"];
+        };
+        /** @enum {unknown} */
+        RevenueSource: "Membership" | "SingleSession" | "Cardio" | "Miscellaneous" | "Analysis" | "Cafe";
         /** @enum {unknown} */
         SalePaidFilter: "Paid" | "Unpaid" | null;
         /** @enum {unknown} */
@@ -7350,6 +7455,94 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetFinancialReport: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetReceivables: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivablesResponse"];
                 };
             };
             /** @description Unauthorized */

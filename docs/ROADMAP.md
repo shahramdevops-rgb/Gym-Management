@@ -1934,19 +1934,63 @@ second caller.
 
 ## Phase 9 — Dashboard and Reports
 
+Planned with the developer on 1405/07/12 (2026-10-04). The dashboard is the Owner's: summary cards
+compared with the range before, a «نیاز به اقدام» panel (plans ending this week with no renewal,
+members who left in the last 30 days, members with a live plan who stopped coming, old debts,
+cheques coming due), and charts (revenue by source per day with expenses, the cash drawer, expenses
+by category, cafe gross profit, renewal rate, new members per month, attendance by weekday and hour,
+top cafe products). Decided the same day: guests' money is revenue but guests are not attendance;
+sales are shown beside money received; "running out" uses the board's thresholds (3 sessions, 5
+days); a range is at most a year; the Owner sees money by staff member.
+
 ### 9.1 Financial reports API
-- [ ] Date range handling in the gym's time zone
-- [ ] Revenue by source and method; expenses by category; net profit
-- [ ] Indexes for report queries
+BUSINESS_RULES.md §12 *Financial report*, *Receivables*.
+- [x] Date range handling in the gym's time zone: required, inclusive, at most 366 days
+- [x] `GET /api/reports/financial?from&to` (Owner): revenue by source (single-session apart from
+      membership) and by method and by staff member; sales of the range; expenses by category; net
+      profit; cafe gross profit; the same for the range before; day by day
+- [x] `GET /api/reports/receivables` (Owner): what is owed now, by age
+- [x] Indexes for report queries: `payments.paid_at`, `expenses.expense_date`,
+      `subscriptions.created_at`, `service_charges.charged_on` and `cafe_orders.ordered_on` already
+      exist; checked, nothing to add unless a query plan says otherwise
+- [x] Tests: by source with single-session apart, by method in the desk's order, by staff
+      member; a payment either side of the gym's midnight; voided expenses left out; net and
+      cafe gross profit; the previous range; every day listed; sales beside revenue; a range
+      missing, backwards or over 366 days; Staff refused; receivables by age at each edge and equal
+      to the history's «مانده»
+
+Closed 2026-10-04: 1528 backend tests and 785 frontend tests green, zero warnings, lint and
+production build clean. No migration: the indexes were already there. `ExpenseCategory.CafePurchasingId`
+now names the seeded «خرید بوفه» id in Domain, and the seed uses it (same Guid, so no migration).
+Next: **9.2 Operational reports API**, in its own session.
 
 ### 9.2 Operational reports API
 - [ ] Attendance per day and by hour
 - [ ] Active, expiring soon, low-session subscriptions
 - [ ] Top cafe products
+- [ ] The «نیاز به اقدام» lists: ending this week with no renewal, ended in the last 30 days with
+      no renewal, a live plan and no visit for a while (the number of days to be decided), old debts
+- [ ] Renewal rate, new members per month
 
 ### 9.3 UI: dashboard
-- [ ] Summary cards and charts
-- [ ] Jalali range presets (today, this week, this Jalali month, custom)
+- [ ] Summary cards and charts (Recharts, listed in ARCHITECTURE.md, not yet installed)
+- [ ] Jalali range presets (today, this week, this Jalali month, last month, custom)
+
+### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
+The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its
+date the Owner records the expense by hand, in that month (§9). The system only reminds.
+**Members never pay by cheque**, and no payment method changes.
+- [ ] Rules first in BUSINESS_RULES.md. To ask: the fields (amount, due date, payee, cheque
+      number, bank, description?), how many days before the date the reminder goes (one setting or
+      per cheque), who receives the SMS (the Owner's number is not stored anywhere yet), whether a
+      cheque is marked «پاس شد» or simply passes its date, Owner only
+- [ ] A cheque register, Owner only, and the cheques coming due on the dashboard
+- [ ] The SMS itself needs Phase 10's `ISmsSender`; until then the reminder is on the dashboard only
+
+### 9.5 Shift handover (تحویل شیفت) (asked by the developer, 1405/07/12)
+More staff may join, and each will hand over the shift: what they took in, by method, and the cash
+they hand on. 9.1's money by staff member is the first step. Rules to be written with the developer
+before any code.
 
 ---
 

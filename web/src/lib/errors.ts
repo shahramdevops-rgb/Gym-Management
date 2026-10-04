@@ -281,6 +281,11 @@ export const errorMessages: Record<string, string> = {
   "Expenses.ChangedConcurrently":
     "این هزینه هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
+  // Reports
+  "Reports.DateRangeRequired": "تاریخ شروع و پایان گزارش را انتخاب کنید.",
+  "Reports.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
+  "Reports.RangeTooLong": "بازهٔ گزارش حداکثر یک سال (۳۶۶ روز) است.",
+
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",
   "Paging.PageSizeInvalid": "تعداد ردیف‌های هر صفحه نامعتبر است.",

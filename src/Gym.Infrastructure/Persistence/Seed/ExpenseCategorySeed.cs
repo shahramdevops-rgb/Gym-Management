@@ -1,3 +1,5 @@
+using Gym.Domain.Expenses;
+
 namespace Gym.Infrastructure.Persistence.Seed;
 
 /// <summary>
@@ -29,7 +31,7 @@ public static class ExpenseCategorySeed
         new(new Guid("627d2be7-d824-422a-ba2c-8d17c98633b5"), "آب"),
         new(new Guid("270c9d15-6962-4eae-a492-483541b8d516"), "تجهیزات"),
         new(new Guid("97813c23-681f-4e8e-84eb-fa8ecd73c3ac"), "تعمیر و نگهداری"),
-        new(new Guid("c4e2af4c-deb5-420e-8087-a7780b0356fd"), "خرید بوفه"),
+        new(ExpenseCategory.CafePurchasingId, "خرید بوفه"),
         new(new Guid("1dfd1cc7-0587-4096-a384-73e0449b23cd"), "سایر"),
     ];
 }

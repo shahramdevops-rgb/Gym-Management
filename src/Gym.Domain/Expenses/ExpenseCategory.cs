@@ -16,6 +16,13 @@ public sealed class ExpenseCategory : Entity
 {
     public const int NameMaxLength = 100;
 
+    /// <summary>
+    /// The seeded «خرید بوفه» (Cafe Purchasing) category. Its id is fixed by the migration, so the
+    /// cafe's gross profit (BUSINESS_RULES.md §12 <i>Financial report</i>) finds it even after the
+    /// Owner renames it.
+    /// </summary>
+    public static readonly Guid CafePurchasingId = new("c4e2af4c-deb5-420e-8087-a7780b0356fd");
+
     // For EF Core.
     private ExpenseCategory()
     {
