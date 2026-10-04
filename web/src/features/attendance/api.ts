@@ -1,7 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
-import { guestDebtKeys } from "@/features/guestDebts/api";
 import { lockerKeys } from "@/features/lockers/api";
 import { memberKeys } from "@/features/members/api";
 import { paymentKeys, type PaymentMethod } from "@/features/payments/api";
@@ -145,8 +144,6 @@ async function invalidateAttendance(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: lockerKeys.all }),
     queryClient.invalidateQueries({ queryKey: subscriptionKeys.all }),
     queryClient.invalidateQueries({ queryKey: [...memberKeys.all, "list"] }),
-    // A guest's check-out, cancel or «تسویه یکجا» changes what «بدهی مهمان‌ها» lists.
-    queryClient.invalidateQueries({ queryKey: guestDebtKeys.all }),
   ]);
 }
 

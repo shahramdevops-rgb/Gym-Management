@@ -77,19 +77,6 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "اعضا" })).toHaveAttribute("href", "/members");
   });
 
-  it("AppShell_Staff_SeesTheGuestDebtsMenuItem", async () => {
-    mockApi(signedInHandlers(staffUser));
-
-    renderApp("/", { session: session() });
-
-    // Settling what a guest left unpaid is front-desk work (BUSINESS_RULES.md §7 *Guest visit*).
-    await screen.findByText(staffUser.fullName);
-    expect(screen.getByRole("link", { name: "بدهی مهمان‌ها" })).toHaveAttribute(
-      "href",
-      "/guest-debts",
-    );
-  });
-
   it("AppShell_NavigationBeforeContent_SoRtlPlacesItOnTheRight", () => {
     mockApi(signedInHandlers(staffUser));
 

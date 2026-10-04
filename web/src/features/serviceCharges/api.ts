@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { attendanceKeys } from "@/features/attendance/api";
-import { guestDebtKeys } from "@/features/guestDebts/api";
 import { lockerKeys } from "@/features/lockers/api";
 import { memberKeys } from "@/features/members/api";
 import { paymentKeys } from "@/features/payments/api";
@@ -62,7 +61,7 @@ export function serviceChargeLabel(
  * it. Every mutation therefore invalidates the attendance caches — and the member and payment
  * caches with them, because a charge is money the member owes (BUSINESS_RULES.md §5 Member debt).
  * A guest's charge is money owed on their visit instead (§7 *Guest visit*): their locker's
- * «بدهکار» and «بدهی مهمان‌ها» are refreshed too.
+ * «بدهکار» is refreshed too.
  */
 function useServiceChargeMutation<TArgs, TResult>(request: (args: TArgs) => Promise<TResult>) {
   const queryClient = useQueryClient();
@@ -75,7 +74,6 @@ function useServiceChargeMutation<TArgs, TResult>(request: (args: TArgs) => Prom
         queryClient.invalidateQueries({ queryKey: memberKeys.all }),
         queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
         queryClient.invalidateQueries({ queryKey: lockerKeys.all }),
-        queryClient.invalidateQueries({ queryKey: guestDebtKeys.all }),
       ]);
     },
   });

@@ -1172,22 +1172,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/guest-debts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ListGuestDebts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1450,36 +1434,6 @@ export interface components {
             guestName: string;
             /** Format: uuid */
             lockerId: null | string;
-        };
-        GuestDebtCafeItem: {
-            productName: string;
-            /** Format: int32 */
-            quantity: number | string;
-        };
-        GuestDebtResponse: {
-            target: components["schemas"]["PaymentTargetKind"];
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            attendanceId: string;
-            guestName: string;
-            /** Format: date */
-            day: string;
-            /** Format: date-time */
-            recordedAt: string;
-            serviceKind: null | components["schemas"]["ServiceChargeKind"];
-            description: null | string;
-            /** Format: int32 */
-            quantity: null | number | string;
-            cafeItems: null | components["schemas"]["GuestDebtCafeItem"][];
-            /** Format: double */
-            amount: number | string;
-            /** Format: double */
-            netPaid: number | string;
-            /** Format: double */
-            outstanding: number | string;
-            paymentStatus: components["schemas"]["PaymentStatus"];
-            visitIsOpen: boolean;
         };
         HistoryAttendanceResponse: {
             /** Format: uuid */
@@ -1745,15 +1699,6 @@ export interface components {
         };
         PagedResponseOfExpenseCategoryResponse: {
             items: components["schemas"]["ExpenseCategoryResponse"][];
-            /** Format: int32 */
-            page: number | string;
-            /** Format: int32 */
-            pageSize: number | string;
-            /** Format: int32 */
-            totalCount: number | string;
-        };
-        PagedResponseOfGuestDebtResponse: {
-            items: components["schemas"]["GuestDebtResponse"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
@@ -7396,56 +7341,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalesTotalsResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    ListGuestDebts: {
-        parameters: {
-            query?: {
-                Page?: number | string;
-                PageSize?: number | string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedResponseOfGuestDebtResponse"];
                 };
             };
             /** @description Bad Request */
