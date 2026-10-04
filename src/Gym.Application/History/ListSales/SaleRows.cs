@@ -98,6 +98,7 @@ public sealed class SaleRows(IAppDbContext db, IGymCalendar calendar)
         {
             Source = SaleSource.Subscription,
             Id = subscription.Id,
+            MemberId = subscription.MemberId,
             Amount = subscription.Price,
             NetPaid = db.Payments
                 .Where(payment => payment.SubscriptionId == subscription.Id)
@@ -131,6 +132,7 @@ public sealed class SaleRows(IAppDbContext db, IGymCalendar calendar)
         {
             Source = source,
             Id = charge.Id,
+            MemberId = charge.MemberId,
             Amount = charge.Amount,
             NetPaid = db.Payments
                 .Where(payment => payment.ServiceChargeId == charge.Id)
@@ -163,6 +165,7 @@ public sealed class SaleRows(IAppDbContext db, IGymCalendar calendar)
         {
             Source = SaleSource.CafeOrder,
             Id = order.Id,
+            MemberId = order.MemberId,
             Amount = order.TotalAmount,
             NetPaid = db.Payments
                 .Where(payment => payment.CafeOrderId == order.Id)
@@ -182,6 +185,9 @@ public sealed class SaleRow
     public SaleSource Source { get; init; }
 
     public Guid Id { get; init; }
+
+    /// <summary>Who bought it; <c>null</c> for a walk-in at the cafe and for a guest.</summary>
+    public Guid? MemberId { get; init; }
 
     public decimal Amount { get; init; }
 

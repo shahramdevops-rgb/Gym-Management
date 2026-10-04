@@ -20,7 +20,7 @@ public sealed class GetReceivablesHandler(SaleRows saleRows, IGymCalendar calend
     {
         var today = calendar.Today();
         var weekStart = calendar.StartOfDayUtc(today.AddDays(-7));
-        var monthStart = calendar.StartOfDayUtc(today.AddDays(-30));
+        var monthStart = calendar.StartOfDayUtc(today.AddDays(-ReportThresholds.OldDebtDays));
 
         // A cancelled or voided sale owes nothing (§5). Grouping on a constant turns the three sums
         // into one SELECT; nothing owed means no group.

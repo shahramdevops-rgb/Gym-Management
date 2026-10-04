@@ -1204,10 +1204,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetAttendanceReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetSubscriptionsSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/cafe-products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetTopCafeProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/needs-attention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetNeedsAttention"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMembersReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AbsentResponse: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            /** Format: date */
+            lastVisitOn: null | string;
+            /** Format: int32 */
+            daysAway: number | string;
+        };
         AccessTokenResponse: {
             accessToken: string;
             /** Format: date-time */
@@ -1217,6 +1307,26 @@ export interface components {
         AssignSubscriptionCommand: {
             /** Format: int32 */
             sessionCount: number | string;
+        };
+        AttendanceDayResponse: {
+            /** Format: date */
+            date: string;
+            /** Format: int32 */
+            visits: number | string;
+        };
+        AttendanceReportResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            visits: number | string;
+            /** Format: int32 */
+            previousVisits: number | string;
+            /** Format: int32 */
+            members: number | string;
+            days: components["schemas"]["AttendanceDayResponse"][];
+            byWeekday: components["schemas"]["AttendanceWeekdayResponse"][];
         };
         AttendanceResponse: {
             /** Format: uuid */
@@ -1250,6 +1360,10 @@ export interface components {
             memberDebt: number | string;
             /** Format: int32 */
             unfrozenDays?: null | number | string;
+        };
+        AttendanceWeekdayResponse: {
+            weekday: components["schemas"]["DayOfWeek"];
+            hours: (number | string)[];
         };
         CafeOrderItemResponse: {
             /** Format: uuid */
@@ -1413,6 +1527,8 @@ export interface components {
             roles: string[];
             mustChangePassword: boolean;
         };
+        /** @enum {unknown} */
+        DayOfWeek: "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
         ExpenseCategoryResponse: {
             /** Format: uuid */
             id: string;
@@ -1620,6 +1736,14 @@ export interface components {
             /** Format: double */
             average: number | string;
         };
+        LeftResponse: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            /** Format: date */
+            endedOn: string;
+        };
         LockerResponse: {
             /** Format: uuid */
             id: string;
@@ -1737,6 +1861,33 @@ export interface components {
             /** @default false */
             isFrozen: boolean;
         };
+        MembersDayResponse: {
+            /** Format: date */
+            date: string;
+            /** Format: int32 */
+            ended: number | string;
+            /** Format: int32 */
+            renewed: number | string;
+            /** Format: int32 */
+            waiting: number | string;
+            /** Format: int32 */
+            newMembers: number | string;
+        };
+        MembersReportResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            ended: number | string;
+            /** Format: int32 */
+            renewed: number | string;
+            /** Format: int32 */
+            waiting: number | string;
+            /** Format: int32 */
+            newMembers: number | string;
+            days: components["schemas"]["MembersDayResponse"][];
+        };
         MoneyFlowResponse: {
             /** Format: double */
             received: number | string;
@@ -1748,6 +1899,26 @@ export interface components {
         MoveLockerCommand: {
             /** Format: uuid */
             lockerId: string;
+        };
+        NeedsAttentionResponse: {
+            /** Format: date */
+            today: string;
+            runningOut: components["schemas"]["RunningOutResponse"][];
+            left: components["schemas"]["LeftResponse"][];
+            absent: components["schemas"]["AbsentResponse"][];
+            oldDebts: components["schemas"]["OldDebtResponse"][];
+            /** Format: double */
+            oldDebtWithoutMember: number | string;
+        };
+        OldDebtResponse: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            /** Format: double */
+            owed: number | string;
+            /** Format: date */
+            oldestSaleOn: string;
         };
         PagedResponseOfAttendanceResponse: {
             items: components["schemas"]["AttendanceResponse"][];
@@ -2060,6 +2231,16 @@ export interface components {
         };
         /** @enum {unknown} */
         RevenueSource: "Membership" | "SingleSession" | "Cardio" | "Miscellaneous" | "Analysis" | "Cafe";
+        RunningOutResponse: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            /** Format: int32 */
+            sessionsLeft: number | string;
+            /** Format: date */
+            endDate: string;
+        };
         /** @enum {unknown} */
         SalePaidFilter: "Paid" | "Unpaid" | null;
         /** @enum {unknown} */
@@ -2209,6 +2390,18 @@ export interface components {
             netPaid: number | string;
             paymentStatus: components["schemas"]["PaymentStatus"];
         };
+        SubscriptionsSnapshotResponse: {
+            /** Format: date */
+            today: string;
+            /** Format: int32 */
+            active: number | string;
+            /** Format: int32 */
+            frozen: number | string;
+            /** Format: int32 */
+            expiringSoon: number | string;
+            /** Format: int32 */
+            lowSessions: number | string;
+        };
         /** @enum {unknown} */
         SubscriptionStatus: "Cancelled" | "Frozen" | "Upcoming" | "Expired" | "Exhausted" | "Active";
         TodayByHourResponse: {
@@ -2217,6 +2410,15 @@ export interface components {
             /** Format: int32 */
             daysAveraged: number | string;
             hours: components["schemas"]["HourCountResponse"][];
+        };
+        TopCafeProductResponse: {
+            /** Format: uuid */
+            productId: string;
+            name: string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: double */
+            amount: number | string;
         };
         UpdateExpenseCategoryCommand: {
             name: string;
@@ -7543,6 +7745,232 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReceivablesResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetAttendanceReport: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSubscriptionsSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionsSnapshotResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTopCafeProducts: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopCafeProductResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetNeedsAttention: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NeedsAttentionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMembersReport: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembersReportResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */

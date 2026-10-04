@@ -48,8 +48,13 @@ using Gym.Application.History.ListSales;
 using Gym.Application.History.ListServiceCharges;
 using Gym.Application.History.PaymentTotals;
 using Gym.Application.History.SalesTotals;
+using Gym.Application.Reports.GetAttendanceReport;
 using Gym.Application.Reports.GetFinancialReport;
+using Gym.Application.Reports.GetMembersReport;
+using Gym.Application.Reports.GetNeedsAttention;
 using Gym.Application.Reports.GetReceivables;
+using Gym.Application.Reports.GetSubscriptionsSnapshot;
+using Gym.Application.Reports.GetTopCafeProducts;
 using Gym.Application.Lockers.GetLocker;
 using Gym.Application.Lockers.ListLockers;
 using Gym.Application.Lockers.ListLockerVisitsToday;
@@ -191,6 +196,11 @@ public static class DependencyInjection
 
         services.AddScoped<GetFinancialReportHandler>();
         services.AddScoped<GetReceivablesHandler>();
+        services.AddScoped<GetAttendanceReportHandler>();
+        services.AddScoped<GetSubscriptionsSnapshotHandler>();
+        services.AddScoped<GetTopCafeProductsHandler>();
+        services.AddScoped<GetNeedsAttentionHandler>();
+        services.AddScoped<GetMembersReportHandler>();
 
         services.AddScoped<CreateCafeOrderHandler>();
         services.AddScoped<GetCafeOrderHandler>();
