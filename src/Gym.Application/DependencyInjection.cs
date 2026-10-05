@@ -69,6 +69,7 @@ using Gym.Application.Members.UpdateMember;
 using Gym.Application.Payables.CancelPayable;
 using Gym.Application.Payables.GetPayable;
 using Gym.Application.Payables.ListPayables;
+using Gym.Application.Payables.ListPayablesDueSoon;
 using Gym.Application.Payables.MarkPayablePaid;
 using Gym.Application.Payables.RegisterPayable;
 using Gym.Application.Payables.RevertPayable;
@@ -244,6 +245,7 @@ public static class DependencyInjection
         services.AddScoped<CancelPayableHandler>();
         services.AddScoped<GetPayableHandler>();
         services.AddScoped<ListPayablesHandler>();
+        services.AddScoped<ListPayablesDueSoonHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

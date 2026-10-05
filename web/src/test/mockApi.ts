@@ -87,10 +87,16 @@ export const staffUser: CurrentUser = {
   mustChangePassword: false,
 };
 
-/** The two calls every signed-in page makes: who am I, and is the server healthy. */
+/**
+ * The calls every signed-in page makes: who am I, and is the server healthy. The Owner's header
+ * also asks for the cheques and instalments coming due; none, unless a test says otherwise.
+ */
 export function signedInHandlers(user: CurrentUser): Record<string, Handler> {
   return {
     "GET /api/auth/me": () => json(200, user),
     "GET /health": () => new Response("Healthy"),
+    ...(user.roles.includes("Owner")
+      ? { "GET /api/payables/due-soon": () => json(200, { today: "2026-09-18", items: [] }) }
+      : {}),
   };
 }

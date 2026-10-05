@@ -21,6 +21,7 @@ import { NavLink, Outlet, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { hasRole, useCurrentUser, useLogout, type Role } from "@/features/auth/api";
 import { useSessionState } from "@/features/auth/session";
+import { PayablesDueAlert } from "@/features/payables/components/PayablesDueAlert";
 import { cn } from "@/lib/utils";
 
 import { paths } from "./paths";
@@ -76,6 +77,10 @@ export function AppShell() {
     ? []
     : navigation.filter((item) => item.role === undefined || hasRole(user.data, item.role));
 
+  // The Owner reads cheques and instalments (§1); a user who must change their password sees only
+  // that page.
+  const showPayablesAlert = !mustChangePassword && hasRole(user.data, "Owner");
+
   async function signOut() {
     await logout.mutateAsync();
     navigate(paths.login, { replace: true });
@@ -85,6 +90,9 @@ export function AppShell() {
     <div className="flex min-h-screen flex-col">
       <header className="flex h-14 items-center justify-between gap-4 border-b bg-card px-6">
         <h1 className="text-lg font-bold">مدیریت باشگاه</h1>
+        <div className="flex min-w-0 flex-1 justify-center">
+          {showPayablesAlert && <PayablesDueAlert />}
+        </div>
         <div className="flex items-center gap-3">
           {user.data !== undefined && (
             <span className="text-sm text-muted-foreground">{user.data.fullName}</span>

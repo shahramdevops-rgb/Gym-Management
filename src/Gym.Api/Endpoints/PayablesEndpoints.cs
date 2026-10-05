@@ -5,6 +5,7 @@ using Gym.Application.Payables;
 using Gym.Application.Payables.CancelPayable;
 using Gym.Application.Payables.GetPayable;
 using Gym.Application.Payables.ListPayables;
+using Gym.Application.Payables.ListPayablesDueSoon;
 using Gym.Application.Payables.MarkPayablePaid;
 using Gym.Application.Payables.RegisterPayable;
 using Gym.Application.Payables.RevertPayable;
@@ -43,6 +44,13 @@ public static class PayablesEndpoints
             .WithName("ListPayables")
             .Produces<PayableListResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        group.MapGet("/due-soon", async (
+                ListPayablesDueSoonHandler handler,
+                CancellationToken ct) =>
+                    Results.Ok(await handler.Handle(ct)))
+            .WithName("ListPayablesDueSoon")
+            .Produces<PayablesDueSoonResponse>();
 
         group.MapGet("/{id:guid}", async (
                 Guid id,

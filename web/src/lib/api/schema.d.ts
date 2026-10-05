@@ -1092,6 +1092,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/payables/due-soon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListPayablesDueSoon"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/payables/{id}": {
         parameters: {
             query?: never;
@@ -2156,6 +2172,22 @@ export interface components {
             /** Format: int32 */
             installmentCount: null | number | string;
         };
+        PayableDueSoonResponse: {
+            /** Format: uuid */
+            payableId: string;
+            kind: components["schemas"]["PayableKind"];
+            payee: string;
+            /** Format: double */
+            amount: number | string;
+            /** Format: date */
+            dueDate: string;
+            /** Format: int32 */
+            installmentNumber: null | number | string;
+            /** Format: int32 */
+            installmentCount: null | number | string;
+            /** Format: int32 */
+            daysLeft: number | string;
+        };
         /** @enum {unknown} */
         PayableKind: "Cheque" | "Installment";
         PayableListResponse: {
@@ -2210,6 +2242,11 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: null | string;
+        };
+        PayablesDueSoonResponse: {
+            /** Format: date */
+            today: string;
+            items: components["schemas"]["PayableDueSoonResponse"][];
         };
         /** @enum {unknown} */
         PayableStatus: "Pending" | "Paid" | "Cancelled";
@@ -7653,6 +7690,44 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListPayablesDueSoon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayablesDueSoonResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
