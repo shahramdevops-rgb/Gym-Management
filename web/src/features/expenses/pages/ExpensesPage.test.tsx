@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import {
   categoriesPage,
+  chequeExpense,
   electricity,
   expensesPage,
   rent,
@@ -72,6 +73,19 @@ describe("ExpensesPage", () => {
     expect(within(rentRow).getByText("مرجع: TR-4412")).toBeInTheDocument();
     expect(within(rentRow).getByRole("button", { name: /^ویرایش/ })).toBeInTheDocument();
     expect(within(rentRow).getByRole("button", { name: /^ابطال/ })).toBeInTheDocument();
+  });
+
+  it("ExpensesPage_ExpenseOfAPaidCheque_IsMarkedWithoutActions", async () => {
+    mockApi({
+      ...books,
+      "GET /api/expenses": () => expensesPage([chequeExpense, septemberRent], 100000000),
+    });
+    renderApp("/expenses", { session: session() });
+
+    // §9 Cheques and instalments: it changes only by sending the payment back to pending.
+    const row = await waitFor(() => rowWith("تردمیل"));
+    expect(within(row).getByText("از چک و قسط")).toBeInTheDocument();
+    expect(within(row).queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("ExpensesPage_FiltersInTheUrl_AreSentAsFromToAndCategory", async () => {

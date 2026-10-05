@@ -57,7 +57,8 @@ interface ExpenseRowProps {
 
 /**
  * One expense and what can still be done to it. A voided expense is final (§9), so its row
- * offers nothing; a standing one can be corrected or voided.
+ * offers nothing; a standing one can be corrected or voided, unless paying a cheque or an
+ * instalment wrote it.
  */
 function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
   const [action, setAction] = useState<RowAction>(null);
@@ -89,6 +90,7 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
           {formatMoney(expense.amount)}
         </td>
         <td className="py-2">
+          {expense.payableId !== null && <Badge variant="outline">از چک و قسط</Badge>}
           {expense.isVoided && (
             <div className="space-y-1">
               <Badge variant="destructive">باطل شده</Badge>
@@ -99,7 +101,8 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
           )}
         </td>
         <td className="py-2">
-          {!expense.isVoided && (
+          {/* Paying a cheque or an instalment wrote it; it changes only from «چک و قسط» (§9). */}
+          {!expense.isVoided && expense.payableId === null && (
             <div className="flex flex-wrap gap-1">
               <Button
                 size="sm"

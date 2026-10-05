@@ -25,8 +25,8 @@ export const reportThresholds = {
   absentDays: 10,
   /** Both "left in the last 30 days" and "an old debt" (§12 *Needs attention*). */
   windowDays: 30,
-  /** A pending cheque is shown this many days before its date (§9 *Cheques*). */
-  chequeDueWithinDays: 7,
+  /** A pending cheque or instalment is shown this many days before its date (§9 *Cheques and instalments*). */
+  payableDueWithinDays: 7,
 } as const;
 
 /** The six sources in the API's own order, and their names on screen (§12 *Financial report*). */

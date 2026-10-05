@@ -1076,31 +1076,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cheques": {
+    "/api/payables": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["ListCheques"];
+        get: operations["ListPayables"];
         put?: never;
-        post: operations["RegisterCheque"];
+        post: operations["RegisterPayable"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheques/{id}": {
+    "/api/payables/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["GetCheque"];
-        put: operations["UpdateCheque"];
+        get: operations["GetPayable"];
+        put: operations["UpdatePayable"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1108,7 +1108,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cheques/{id}/pass": {
+    "/api/payables/{id}/pay": {
         parameters: {
             query?: never;
             header?: never;
@@ -1117,14 +1117,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["MarkChequePassed"];
+        post: operations["MarkPayablePaid"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheques/{id}/cancel": {
+    "/api/payables/{id}/revert": {
         parameters: {
             query?: never;
             header?: never;
@@ -1133,7 +1133,23 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["CancelCheque"];
+        post: operations["RevertPayable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payables/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CancelPayable"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1491,7 +1507,7 @@ export interface components {
             cafeOrderIds: null | string[];
             saleIds: null | string[];
         };
-        CancelChequeCommand: {
+        CancelPayableCommand: {
             reason: string;
         };
         CancelSubscriptionCommand: {
@@ -1521,57 +1537,6 @@ export interface components {
         };
         /** @enum {unknown} */
         CheckInSaleKind: "SingleVisit" | "Membership";
-        ChequeDueResponse: {
-            /** Format: uuid */
-            chequeId: string;
-            payee: string;
-            /** Format: double */
-            amount: number | string;
-            /** Format: date */
-            dueDate: string;
-            description: string;
-        };
-        ChequeListResponse: {
-            items: components["schemas"]["ChequeResponse"][];
-            /** Format: int32 */
-            page: number | string;
-            /** Format: int32 */
-            pageSize: number | string;
-            /** Format: int32 */
-            totalCount: number | string;
-            /** Format: double */
-            pendingTotal: number | string;
-        };
-        ChequeResponse: {
-            /** Format: uuid */
-            id: string;
-            /** Format: double */
-            amount: number | string;
-            /** Format: date */
-            dueDate: string;
-            payee: string;
-            description: string;
-            status: components["schemas"]["ChequeStatus"];
-            /** Format: uuid */
-            registeredByUserId: string;
-            /** Format: date-time */
-            passedAt: null | string;
-            /** Format: uuid */
-            passedByUserId: null | string;
-            /** Format: date-time */
-            cancelledAt: null | string;
-            cancelReason: null | string;
-            /** Format: uuid */
-            cancelledByUserId: null | string;
-            /** Format: uint32 */
-            version: number | string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: null | string;
-        };
-        /** @enum {unknown} */
-        ChequeStatus: "Pending" | "Passed" | "Cancelled";
         CreateCafeOrderCommand: {
             /** Format: uuid */
             memberId: null | string;
@@ -1683,6 +1648,8 @@ export interface components {
             referenceNumber: null | string;
             /** Format: uuid */
             recordedByUserId: string;
+            /** Format: uuid */
+            payableId: null | string;
             isVoided: boolean;
             /** Format: date-time */
             voidedAt: null | string;
@@ -2027,7 +1994,7 @@ export interface components {
             oldDebts: components["schemas"]["OldDebtResponse"][];
             /** Format: double */
             oldDebtWithoutMember: number | string;
-            chequesDue: components["schemas"]["ChequeDueResponse"][];
+            payablesDue: components["schemas"]["PayableDueResponse"][];
         };
         OldDebtResponse: {
             /** Format: uuid */
@@ -2174,6 +2141,78 @@ export interface components {
             /** Format: int32 */
             totalCount: number | string;
         };
+        PayableDueResponse: {
+            /** Format: uuid */
+            payableId: string;
+            kind: components["schemas"]["PayableKind"];
+            payee: string;
+            /** Format: double */
+            amount: number | string;
+            /** Format: date */
+            dueDate: string;
+            description: string;
+            /** Format: int32 */
+            installmentNumber: null | number | string;
+            /** Format: int32 */
+            installmentCount: null | number | string;
+        };
+        /** @enum {unknown} */
+        PayableKind: "Cheque" | "Installment";
+        PayableListResponse: {
+            items: components["schemas"]["PayableResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+            /** Format: double */
+            pendingTotal: number | string;
+            /** Format: double */
+            pendingChequeTotal: number | string;
+            /** Format: double */
+            pendingInstallmentTotal: number | string;
+        };
+        PayableResponse: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["PayableKind"];
+            /** Format: double */
+            amount: number | string;
+            /** Format: date */
+            dueDate: string;
+            payee: string;
+            description: string;
+            /** Format: uuid */
+            categoryId: string;
+            categoryName: string;
+            /** Format: int32 */
+            installmentNumber: null | number | string;
+            /** Format: int32 */
+            installmentCount: null | number | string;
+            status: components["schemas"]["PayableStatus"];
+            /** Format: uuid */
+            registeredByUserId: string;
+            /** Format: date-time */
+            paidAt: null | string;
+            /** Format: uuid */
+            paidByUserId: null | string;
+            /** Format: uuid */
+            expenseId: null | string;
+            /** Format: date-time */
+            cancelledAt: null | string;
+            cancelReason: null | string;
+            /** Format: uuid */
+            cancelledByUserId: null | string;
+            /** Format: uint32 */
+            version: number | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: null | string;
+        };
+        /** @enum {unknown} */
+        PayableStatus: "Pending" | "Paid" | "Cancelled";
         PaymentHistoryResponse: {
             /** Format: uuid */
             id: string;
@@ -2318,13 +2357,20 @@ export interface components {
         RecordShopSaleCommand: {
             items: components["schemas"]["ShopSaleItem"][];
         };
-        RegisterChequeCommand: {
+        RegisterPayableCommand: {
+            kind: components["schemas"]["PayableKind"];
             /** Format: double */
             amount: number | string;
             /** Format: date */
             dueDate: string;
             payee: string;
             description: string;
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: int32 */
+            installmentNumber?: null | number | string;
+            /** Format: int32 */
+            installmentCount?: null | number | string;
         };
         RegisterPaymentCommand: {
             /** Format: double */
@@ -2358,6 +2404,9 @@ export interface components {
         };
         /** @enum {unknown} */
         RevenueSource: "Membership" | "SingleSession" | "Cardio" | "Miscellaneous" | "Analysis" | "Cafe";
+        RevertPayableCommand: {
+            reason: string;
+        };
         RunningOutResponse: {
             /** Format: uuid */
             memberId: string;
@@ -2547,16 +2596,6 @@ export interface components {
             /** Format: double */
             amount: number | string;
         };
-        UpdateChequeCommand: {
-            /** Format: double */
-            amount: number | string;
-            /** Format: date */
-            dueDate: string;
-            payee: string;
-            description: string;
-            /** Format: uint32 */
-            version: number | string;
-        };
         UpdateExpenseCategoryCommand: {
             name: string;
             /** Format: uint32 */
@@ -2582,6 +2621,23 @@ export interface components {
             birthDate: null | string;
             /** Format: uint32 */
             version: number | string;
+        };
+        UpdatePayableCommand: {
+            kind: components["schemas"]["PayableKind"];
+            /** Format: double */
+            amount: number | string;
+            /** Format: date */
+            dueDate: string;
+            payee: string;
+            description: string;
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: uint32 */
+            version: number | string;
+            /** Format: int32 */
+            installmentNumber?: null | number | string;
+            /** Format: int32 */
+            installmentCount?: null | number | string;
         };
         UpdatePricesCommand: {
             /** Format: double */
@@ -7492,10 +7548,11 @@ export interface operations {
             };
         };
     };
-    ListCheques: {
+    ListPayables: {
         parameters: {
             query?: {
-                Status?: components["schemas"]["ChequeStatus"];
+                Status?: components["schemas"]["PayableStatus"];
+                Kind?: components["schemas"]["PayableKind"];
                 Page?: number | string;
                 PageSize?: number | string;
             };
@@ -7511,7 +7568,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChequeListResponse"];
+                    "application/json": components["schemas"]["PayableListResponse"];
                 };
             };
             /** @description Bad Request */
@@ -7543,7 +7600,7 @@ export interface operations {
             };
         };
     };
-    RegisterCheque: {
+    RegisterPayable: {
         parameters: {
             query?: never;
             header?: never;
@@ -7552,7 +7609,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterChequeCommand"];
+                "application/json": components["schemas"]["RegisterPayableCommand"];
             };
         };
         responses: {
@@ -7562,7 +7619,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChequeResponse"];
+                    "application/json": components["schemas"]["PayableResponse"];
                 };
             };
             /** @description Bad Request */
@@ -7572,46 +7629,6 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    GetCheque: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChequeResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -7643,7 +7660,56 @@ export interface operations {
             };
         };
     };
-    UpdateCheque: {
+    GetPayable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayableResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdatePayable: {
         parameters: {
             query?: never;
             header?: never;
@@ -7654,7 +7720,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateChequeCommand"];
+                "application/json": components["schemas"]["UpdatePayableCommand"];
             };
         };
         responses: {
@@ -7664,7 +7730,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChequeResponse"];
+                    "application/json": components["schemas"]["PayableResponse"];
                 };
             };
             /** @description Bad Request */
@@ -7723,7 +7789,7 @@ export interface operations {
             };
         };
     };
-    MarkChequePassed: {
+    MarkPayablePaid: {
         parameters: {
             query?: never;
             header?: never;
@@ -7740,7 +7806,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChequeResponse"];
+                    "application/json": components["schemas"]["PayableResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -7790,7 +7856,7 @@ export interface operations {
             };
         };
     };
-    CancelCheque: {
+    RevertPayable: {
         parameters: {
             query?: never;
             header?: never;
@@ -7801,7 +7867,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CancelChequeCommand"];
+                "application/json": components["schemas"]["RevertPayableCommand"];
             };
         };
         responses: {
@@ -7811,7 +7877,87 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChequeResponse"];
+                    "application/json": components["schemas"]["PayableResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CancelPayable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelPayableCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayableResponse"];
                 };
             };
             /** @description Bad Request */

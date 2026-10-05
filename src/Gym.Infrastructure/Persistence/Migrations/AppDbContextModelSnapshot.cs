@@ -650,112 +650,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Gym.Domain.Cheques.Cheque", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<string>("CancelReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("cancel_reason");
-
-                    b.Property<DateTimeOffset?>("CancelledAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("cancelled_at");
-
-                    b.Property<Guid?>("CancelledByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("cancelled_by_user_id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
-
-                    b.Property<DateOnly>("DueDate")
-                        .HasColumnType("date")
-                        .HasColumnName("due_date");
-
-                    b.Property<DateTimeOffset?>("PassedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("passed_at");
-
-                    b.Property<Guid?>("PassedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("passed_by_user_id");
-
-                    b.Property<string>("Payee")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("payee");
-
-                    b.Property<Guid>("RegisteredByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("registered_by_user_id");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.Property<uint>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
-                    b.HasKey("Id")
-                        .HasName("pk_cheques");
-
-                    b.HasIndex("CancelledByUserId")
-                        .HasDatabaseName("ix_cheques_cancelled_by_user_id");
-
-                    b.HasIndex("DueDate")
-                        .HasDatabaseName("ix_cheques_due_date");
-
-                    b.HasIndex("PassedByUserId")
-                        .HasDatabaseName("ix_cheques_passed_by_user_id");
-
-                    b.HasIndex("RegisteredByUserId")
-                        .HasDatabaseName("ix_cheques_registered_by_user_id");
-
-                    b.ToTable("cheques", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_cheques_amount_positive", "amount > 0");
-
-                            t.HasCheckConstraint("ck_cheques_cancelled", "(cancelled_at IS NULL) = (cancel_reason IS NULL) AND (cancelled_at IS NULL) = (cancelled_by_user_id IS NULL)");
-
-                            t.HasCheckConstraint("ck_cheques_description_not_blank", "btrim(description) <> ''");
-
-                            t.HasCheckConstraint("ck_cheques_not_passed_and_cancelled", "passed_at IS NULL OR cancelled_at IS NULL");
-
-                            t.HasCheckConstraint("ck_cheques_passed", "(passed_at IS NULL) = (passed_by_user_id IS NULL)");
-
-                            t.HasCheckConstraint("ck_cheques_payee_not_blank", "btrim(payee) <> ''");
-                        });
-                });
-
             modelBuilder.Entity("Gym.Domain.Expenses.Expense", b =>
                 {
                     b.Property<Guid>("Id")
@@ -789,6 +683,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("ExpenseDate")
                         .HasColumnType("date")
                         .HasColumnName("expense_date");
+
+                    b.Property<Guid?>("PayableId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payable_id");
 
                     b.Property<Guid>("RecordedByUserId")
                         .HasColumnType("uuid")
@@ -831,6 +729,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CategoryId")
                         .HasDatabaseName("ix_expenses_category_id");
+
+                    b.HasIndex("PayableId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_expenses_payable_id_standing")
+                        .HasFilter("voided_at IS NULL");
 
                     b.HasIndex("RecordedByUserId")
                         .HasDatabaseName("ix_expenses_recorded_by_user_id");
@@ -1608,6 +1511,137 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Payables.Payable", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("cancel_reason");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cancelled_by_user_id");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date")
+                        .HasColumnName("due_date");
+
+                    b.Property<int?>("InstallmentCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("installment_count");
+
+                    b.Property<int?>("InstallmentNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("installment_number");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTimeOffset?>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<Guid?>("PaidByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("paid_by_user_id");
+
+                    b.Property<string>("Payee")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("payee");
+
+                    b.Property<Guid>("RegisteredByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("registered_by_user_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payables");
+
+                    b.HasIndex("CancelledByUserId")
+                        .HasDatabaseName("ix_payables_cancelled_by_user_id");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_payables_category_id");
+
+                    b.HasIndex("DueDate")
+                        .HasDatabaseName("ix_payables_due_date");
+
+                    b.HasIndex("PaidByUserId")
+                        .HasDatabaseName("ix_payables_paid_by_user_id");
+
+                    b.HasIndex("RegisteredByUserId")
+                        .HasDatabaseName("ix_payables_registered_by_user_id");
+
+                    b.ToTable("payables", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_payables_amount_positive", "amount > 0");
+
+                            t.HasCheckConstraint("ck_payables_cancelled", "(cancelled_at IS NULL) = (cancel_reason IS NULL) AND (cancelled_at IS NULL) = (cancelled_by_user_id IS NULL)");
+
+                            t.HasCheckConstraint("ck_payables_description_not_blank", "btrim(description) <> ''");
+
+                            t.HasCheckConstraint("ck_payables_installment_numbers", "(kind <> 'Installment' AND installment_number IS NULL AND installment_count IS NULL) OR (kind = 'Installment' AND installment_number IS NOT NULL AND installment_count IS NOT NULL AND installment_number >= 1 AND installment_number <= installment_count AND installment_count <= 360)");
+
+                            t.HasCheckConstraint("ck_payables_kind", "kind IN ('Cheque', 'Installment')");
+
+                            t.HasCheckConstraint("ck_payables_not_paid_and_cancelled", "paid_at IS NULL OR cancelled_at IS NULL");
+
+                            t.HasCheckConstraint("ck_payables_paid", "(paid_at IS NULL) = (paid_by_user_id IS NULL)");
+
+                            t.HasCheckConstraint("ck_payables_payee_not_blank", "btrim(payee) <> ''");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Payments.Payment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2353,28 +2387,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_products_product_categories_category_id");
                 });
 
-            modelBuilder.Entity("Gym.Domain.Cheques.Cheque", b =>
-                {
-                    b.HasOne("Gym.Infrastructure.Identity.User", null)
-                        .WithMany()
-                        .HasForeignKey("CancelledByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_cheques_asp_net_users_cancelled_by_user_id");
-
-                    b.HasOne("Gym.Infrastructure.Identity.User", null)
-                        .WithMany()
-                        .HasForeignKey("PassedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_cheques_asp_net_users_passed_by_user_id");
-
-                    b.HasOne("Gym.Infrastructure.Identity.User", null)
-                        .WithMany()
-                        .HasForeignKey("RegisteredByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_cheques_asp_net_users_registered_by_user_id");
-                });
-
             modelBuilder.Entity("Gym.Domain.Expenses.Expense", b =>
                 {
                     b.HasOne("Gym.Domain.Expenses.ExpenseCategory", null)
@@ -2383,6 +2395,12 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_expenses_expense_categories_category_id");
+
+                    b.HasOne("Gym.Domain.Payables.Payable", null)
+                        .WithMany()
+                        .HasForeignKey("PayableId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_expenses_payables_payable_id");
 
                     b.HasOne("Gym.Infrastructure.Identity.User", null)
                         .WithMany()
@@ -2396,6 +2414,35 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasForeignKey("VoidedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_expenses_asp_net_users_voided_by_user_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Payables.Payable", b =>
+                {
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_payables_asp_net_users_cancelled_by_user_id");
+
+                    b.HasOne("Gym.Domain.Expenses.ExpenseCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payables_expense_categories_category_id");
+
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("PaidByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_payables_asp_net_users_paid_by_user_id");
+
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("RegisteredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payables_asp_net_users_registered_by_user_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Payments.Payment", b =>

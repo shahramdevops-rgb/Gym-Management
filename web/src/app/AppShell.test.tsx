@@ -162,22 +162,25 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "هزینه‌ها" })).not.toBeInTheDocument();
   });
 
-  it("AppShell_Owner_SeesTheChequesMenuItem", async () => {
+  it("AppShell_Owner_SeesTheChequeAndInstallmentMenuItem", async () => {
     mockApi(signedInHandlers(owner));
 
     renderApp("/", { session: session() });
 
-    expect(await screen.findByRole("link", { name: "چک‌ها" })).toHaveAttribute("href", "/cheques");
+    expect(await screen.findByRole("link", { name: "چک و قسط" })).toHaveAttribute(
+      "href",
+      "/payables",
+    );
   });
 
-  it("AppShell_Staff_DoesNotSeeTheChequesMenuItem", async () => {
+  it("AppShell_Staff_DoesNotSeeTheChequeAndInstallmentMenuItem", async () => {
     mockApi(signedInHandlers(staffUser));
 
     renderApp("/", { session: session() });
 
-    // Cheques are the Owner's, reading included (docs/BUSINESS_RULES.md §1, §9 *Cheques*).
+    // Cheques and instalments are the Owner's, reading included (docs/BUSINESS_RULES.md §1, §9).
     await screen.findByText(staffUser.fullName);
-    expect(screen.queryByRole("link", { name: "چک‌ها" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "چک و قسط" })).not.toBeInTheDocument();
   });
 
   // ---- The theme (BUSINESS_RULES.md §14) ----

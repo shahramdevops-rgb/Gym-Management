@@ -1439,3 +1439,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **Invalidate what shows the same data.** Passing a cheque changes the register and the dashboard's «نیاز به اقدام». The cheque mutations invalidate both query keys, so going back to the dashboard never shows a cheque that was already passed.
 - **Confirm in the page, not with `window.confirm`.** «پاس شد» opens a row under the cheque that says it's final and links to the expenses page, instead of using a browser dialog. The confirmation can be tested, it can say more than yes/no, and it doesn't block the page.
 - **My notes:**
+
+## 9.4 follow-up — Cheques and instalments (چک و قسط)
+
+- **One entity with a `Kind` instead of two copies.** A cheque and an instalment share every field, the register, the totals and the reminder; only two rules differ (a cheque is not paid before its date, an instalment says «قسط n از N»). `Payable` holds both with `Kind`, and the two differences are an `if` on the kind. Two entities would mean two tables, two lists and two reminders to keep in step.
+- **Renaming while it is cheap.** `Cheque` became `Payable` because an entity named after one kind would mislead once it held two. 9.4 was committed but not released, so the rename cost a new migration and nothing on the server. After a release, a rename costs a data migration.
+- **An entity method that returns another entity.** `payable.MarkPaid(...)` returns the `Expense` it creates, and the handler adds both and saves once. One `SaveChanges` is one transaction, so there is never a paid record without its expense. `Expense.RecordForPayable` is `internal`: only the Domain project can create an expense linked to a payment.
+- **A partial unique index.** `expenses(payable_id) WHERE voided_at IS NULL` allows many voided expenses for one payment (paid, reverted, paid again) but only one standing. It also settles two «پرداخت شد» clicks racing: the second insert fails on the index even if it got past the code.
+- **NULL passes a check constraint.** In Postgres a check that evaluates to NULL counts as satisfied. `installment_number >= 1` on a NULL number is NULL, so the instalment branch needs explicit `IS NOT NULL`s, or an instalment without numbers would slip through.
+- **A linked record locks its partner.** The expense written by a payment refuses edit and void (`Expenses.LinkedToPayable`); the only way to change it is to send the payment back to pending, which voids it with the same reason. One owner for the change keeps the register and the expenses from disagreeing.
+- **`useWatch` instead of `form.watch`.** The React Compiler cannot memoise a component that calls `watch()`; `useWatch({ control, name })` subscribes to one field as a hook, so the form can show «قسط n از N» only for an instalment without the lint warning.
+- **My notes:**

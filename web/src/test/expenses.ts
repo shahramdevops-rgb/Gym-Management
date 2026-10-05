@@ -18,6 +18,14 @@ export const electricity: ExpenseCategory = {
   updatedAt: null,
 };
 
+export const equipment: ExpenseCategory = {
+  id: "0199a000-0000-7000-8000-0000000000a3",
+  name: "تجهیزات",
+  version: 1,
+  createdAt: "2026-09-27T00:00:00Z",
+  updatedAt: null,
+};
+
 export const septemberRent: Expense = {
   id: "0199a000-0000-7000-8000-0000000000b1",
   amount: 50000000,
@@ -27,6 +35,7 @@ export const septemberRent: Expense = {
   description: "اجارهٔ شهریور",
   referenceNumber: "TR-4412",
   recordedByUserId: "0199a000-0000-7000-8000-000000000001",
+  payableId: null,
   isVoided: false,
   voidedAt: null,
   voidReason: null,
@@ -46,6 +55,7 @@ export const voidedBill: Expense = {
   description: "قبض برق",
   referenceNumber: null,
   recordedByUserId: "0199a000-0000-7000-8000-000000000001",
+  payableId: null,
   isVoided: true,
   voidedAt: "2026-09-11T09:00:00Z",
   voidReason: "دو بار ثبت شد",
@@ -53,6 +63,19 @@ export const voidedBill: Expense = {
   version: 3,
   createdAt: "2026-09-10T08:00:00Z",
   updatedAt: "2026-09-11T09:00:00Z",
+};
+
+/** Recorded by paying a cheque: marked, and not edited or voided from the expenses (§9). */
+export const chequeExpense: Expense = {
+  ...septemberRent,
+  id: "0199a000-0000-7000-8000-0000000000b3",
+  categoryId: equipment.id,
+  categoryName: equipment.name,
+  expenseDate: "2026-09-20",
+  description: "تردمیل",
+  referenceNumber: null,
+  payableId: "0199a000-0000-7000-8000-0000000000c1",
+  version: 2,
 };
 
 export function categoriesPage(items: ExpenseCategory[]): Response {
