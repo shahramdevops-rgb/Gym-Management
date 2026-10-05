@@ -1265,7 +1265,11 @@ dashboard (9.3).
   (§5). Every payment and refund counts, those on a cancelled or voided item included, as in the
   history's «پرداخت‌ها» totals: the money did move, in and back out.
   - **By source**, six of them: membership plans, single-session visits (تک‌جلسه‌ای, apart from
-    membership as above), هوازی, فروشگاه, آنالیز, cafe. Each with received, refunded and net.
+    membership as above), هوازی, فروشگاه, آنالیز, cafe. Each with received, refunded and net,
+    and **how many were sold** in the range: counted by the day each sale belongs to, cancelled
+    and voided ones left out, the rule «فروش» below follows (decided with the developer,
+    1405/07/13). The count does not follow the money: a plan sold before the range and paid in it
+    is money of the range, not a sale of it. A cafe order is one sale, however many items it holds.
   - **By method**: card, bank transfer, cash. The cash net is what the drawer should hold for the
     range (صندوق).
   - **By staff member**: who took the payment or gave the refund (`ReceivedByUserId`), with
@@ -1396,6 +1400,12 @@ on one page.
   longer than 62 days shows revenue and expenses by Jalali month instead of by day. New members and
   the renewal rate are by Jalali month. The weekday × hour table shows from the earliest hour
   anyone came to the latest.
+- **Revenue by source** lists پلن, تک‌جلسه‌ای, هوازی, بوفه, فروشگاه, آنالیز: the cafe above
+  فروشگاه. The plan and single-visit bars also say how many were sold in the range («۱۲ پلن فروخته
+  شد»): plans sold matter more to the Owner than new members (asked by the developer, 1405/07/13).
+  The bar's length stays the money received.
+- **New members** are explained on the page as "members whose first membership plan was sold in
+  this range" (this month, on the monthly chart), the rule of *Operational reports* above.
 
 ### History (تاریخچه)
 

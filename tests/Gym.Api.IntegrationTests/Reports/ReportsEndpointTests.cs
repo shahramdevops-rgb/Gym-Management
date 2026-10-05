@@ -101,6 +101,45 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task Financial_Sold_CountsEachSourcesSalesOfTheRangeByTheirOwnDay()
+    {
+        var (owner, token, _) = await OwnerClientAsync();
+        var today = Today();
+
+        // Two plans sold today, one of them still unpaid: a sale counts whether or not it is paid.
+        await AssignOkAsync(owner, token, (await AddMemberAsync("علی رضایی")).Id);
+        await AssignOkAsync(owner, token, (await AddMemberAsync("مریم کاظمی")).Id);
+
+        // A cancelled plan is not a sale (§12, like «فروش»).
+        var cancelled = await AssignOkAsync(owner, token, (await AddMemberAsync("سارا احمدی")).Id);
+        await PostOkAsync(owner, token, $"/api/subscriptions/{cancelled.Id}/cancel", new { reason = "انصراف" });
+
+        // Sold before the range and paid in it: money in the range, not a sale of it.
+        var older = await AssignOkAsync(owner, token, (await AddMemberAsync("رضا کریمی")).Id);
+        await MoveSubscriptionSaleAsync(older.Id, Calendar().StartOfDayUtc(today.AddDays(-1)).AddHours(12));
+        await PayOkAsync(owner, token, $"/api/subscriptions/{older.Id}/payments", 900_000m, "Cash");
+
+        // Single visits are counted apart from plans.
+        await TestPlans.SetPricesAsync(Fixture, singleVisitPrice: 150_000m);
+        await SellSingleVisitOkAsync(owner, token, (await AddMemberAsync("نرگس موسوی")).Id);
+        await SellSingleVisitOkAsync(owner, token, (await AddMemberAsync("حسین نوری")).Id);
+        await SellSingleVisitOkAsync(owner, token, (await AddMemberAsync("زهرا صادقی")).Id);
+
+        await WalkInOrderAsync(owner, token, 60_000m);
+
+        var report = await FinancialOkAsync(owner, token, TodayRange());
+
+        Sold(report.Current, RevenueSource.Membership).ShouldBe(2);
+        Sold(report.Current, RevenueSource.SingleSession).ShouldBe(3);
+        Sold(report.Current, RevenueSource.Cafe).ShouldBe(1);
+        Sold(report.Current, RevenueSource.Cardio).ShouldBe(0);
+        Money(report.Current, RevenueSource.Membership).Net.ShouldBe(900_000m);
+
+        // The plan sold yesterday is yesterday's sale: the range before counts it.
+        Sold(report.Previous, RevenueSource.Membership).ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Financial_PaymentOnACancelledPlan_StillCountsInAndBackOut()
     {
         var (owner, token, _) = await OwnerClientAsync();
@@ -351,6 +390,9 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
 
     private static MoneyFlowResponse Money(FinancialPeriodResponse period, RevenueSource source) =>
         period.BySource.Single(row => row.Source == source).Money;
+
+    private static int Sold(FinancialPeriodResponse period, RevenueSource source) =>
+        period.BySource.Single(row => row.Source == source).Sold;
 
     private async Task<(HttpClient Client, string Token, Guid UserId)> StaffClientAsync()
     {
