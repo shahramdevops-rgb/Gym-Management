@@ -33,7 +33,7 @@ Keep this section up to date when commands change.
 - Use logical CSS utilities (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`), never `ml-`, `mr-`, `pl-`, `pr-`, `left-`, `right-`.
 - The backend stores Gregorian dates only. The frontend displays Jalali dates and converts Jalali input to ISO dates before sending.
 - Show numbers with Persian digits; accept both Persian and English digits in every input.
-- Money is never formatted ad hoc: every typed amount uses the shared `MoneyField` (thousands separators while typing, plus the amount in Persian words underneath) and every displayed amount uses `formatMoney`. Every date is chosen in Jalali day/month/year dropdowns (`JalaliDateField`; a birth date: `BirthDateField`), never typed as raw Gregorian.
+- Money is never formatted ad hoc: every typed amount uses the shared `MoneyField` (thousands separators while typing, plus the amount in Persian words underneath) and every displayed amount uses `formatMoney`. Every date is chosen in Jalali day/month/year dropdowns (`JalaliDateField`; a birth date: `BirthDateField`), except a filter's dates, which use the typed box with a calendar (`JalaliCalendarField`); never raw Gregorian.
 
 ## Architecture rules (non-negotiable)
 - Clean Architecture: Api → Application → Domain. Infrastructure implements Application interfaces. Domain references no other project and no EF Core.

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
-import { JalaliDateField, SelectField } from "@/components/FormField";
+import { JalaliCalendarField, SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -114,12 +114,12 @@ export function ExpensesPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
-              <JalaliDateField
+              <JalaliCalendarField
                 label="از تاریخ"
                 value={from ?? ""}
                 onChange={(iso) => setFilter({ from: iso })}
               />
-              <JalaliDateField
+              <JalaliCalendarField
                 label="تا تاریخ"
                 value={to ?? ""}
                 error={rangeIsValid ? undefined : errorMessages["Expenses.InvalidDateRange"]}

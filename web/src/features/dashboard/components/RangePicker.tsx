@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { JalaliDateField } from "@/components/FormField";
+import { JalaliCalendarField } from "@/components/FormField";
 import { Button } from "@/components/ui/button";
 
 import { presetOf, presetRange, rangePresetLabels, rangePresets, type ReportRange } from "../range";
@@ -61,12 +61,12 @@ export function RangePicker({ range, today, onChange, error }: RangePickerProps)
 
       {showFields && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <JalaliDateField
+          <JalaliCalendarField
             label="از تاریخ"
             value={range.from ?? ""}
             onChange={(iso) => onChange({ ...range, from: iso === "" ? undefined : iso })}
           />
-          <JalaliDateField
+          <JalaliCalendarField
             label="تا تاریخ"
             value={range.to ?? ""}
             error={error}

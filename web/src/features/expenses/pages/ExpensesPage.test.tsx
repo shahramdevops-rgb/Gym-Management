@@ -101,7 +101,7 @@ describe("ExpensesPage", () => {
     expect(url.searchParams.get("To")).toBe("2026-09-30");
     expect(url.searchParams.get("CategoryId")).toBe(rent.id);
     // The boxes speak Jalali.
-    expect(dateShown("از تاریخ")).toBe("۱۰ شهریور ۱۴۰۵");
+    expect(screen.getByLabelText("از تاریخ")).toHaveValue("۱۴۰۵/۰۶/۱۰");
     expect(screen.getByText("جمع هزینه‌ها در این فیلتر")).toBeInTheDocument();
   });
 

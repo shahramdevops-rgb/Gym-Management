@@ -1466,3 +1466,10 @@ The question that started this was whether a gym that is entirely internal — I
 - **Removing a dependency is a cleanup too.** Once nothing typed a date, the calendar library, its companion package, its dark-theme CSS and three conversion helpers had no callers. Leaving them would mean code to maintain and a build that ships unused bytes. Their useful tests (Nowruz, the 30th of Esfand) moved to the functions still in use.
 - **Test helpers follow the UI's contract, not its markup.** Page tests choose a date with `chooseDate(label, "1405/08/15")` and read one with `dateShown(label)`. When the widget changes again, only `test/jalaliDate.ts` changes, not every page test.
 - **My notes:**
+
+## Follow-up — The date filters keep the calendar (تقویم در فیلترها)
+
+- **Consistency is a default, not a law.** Three dropdowns suit a date you set once (a cheque's date). A filter is changed again and again, and there typing `۱۴۰۵۰۶۱۰` or clicking a day beats three lists. So the line runs between *entering* a date (a form) and *searching* by one (a filter), not between pages. The rule now names the exception and says why, so nobody "fixes" it back later.
+- **Git as the source for a revert.** The removed component came back with `git show <commit>~1:<path>` and `git checkout <commit>~1 -- <files>`, exactly as it was tested and released, instead of being rewritten from memory.
+- **A check CI runs belongs in the local routine.** `npm run lint` does not check formatting; CI's `format:check` does, so 13 unformatted files kept the frontend job red while every test passed. Running the same command locally before a commit catches it at the cheap moment.
+- **My notes:**

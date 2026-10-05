@@ -2124,6 +2124,20 @@ it already had.
 Closed 2026-10-05: frontend only, no API or database change. 843 frontend tests green (885
 before: the typed box's and the removed helpers' tests went with them), lint and production build pass.
 
+#### Follow-up: the date filters keep the calendar (asked by the developer, 1405/07/13)
+After trying the dropdowns, the developer found them slow for filters and asked for the previous
+field back there; the cheque, instalment and expense forms keep the dropdowns.
+- [x] Rules first: BUSINESS_RULES.md §13, a filter's date as the exception
+- [x] `JalaliCalendarField` in `FormField.tsx`: the previous typed box with a Persian calendar,
+      restored as it was; used by «از تاریخ» and «تا تاریخ» on the history, expenses and cafe
+      orders pages and in the dashboard's custom range
+- [x] Restored `react-multi-date-picker`, `react-date-object`, the calendar's CSS, and `toIsoDate`,
+      `withDateSlashes`, `toJalaliInput` in `format.ts`, with their tests
+- [x] Housekeeping: 13 files that had missed Prettier formatted, so CI's `format:check` passes;
+      CLAUDE.md now says to run it before a frontend commit
+
+Closed 2026-10-05: frontend only. 896 frontend tests green, lint, `format:check` and production build pass.
+
 ---
 
 ## Phase 10 — SMS Notifications

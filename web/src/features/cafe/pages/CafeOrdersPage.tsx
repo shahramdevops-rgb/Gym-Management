@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
-import { JalaliDateField } from "@/components/FormField";
+import { JalaliCalendarField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -68,12 +68,12 @@ export function CafeOrdersPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid max-w-xl gap-3 sm:grid-cols-2">
-            <JalaliDateField
+            <JalaliCalendarField
               label="از تاریخ"
               value={from ?? ""}
               onChange={(iso) => setFilter({ from: iso })}
             />
-            <JalaliDateField
+            <JalaliCalendarField
               label="تا تاریخ"
               value={to ?? ""}
               error={rangeIsValid ? undefined : errorMessages["CafeOrders.InvalidDateRange"]}
