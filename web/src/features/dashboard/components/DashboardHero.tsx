@@ -25,7 +25,7 @@ export function DashboardHero({ range, children }: DashboardHeroProps) {
   const complete = range.from !== undefined && range.to !== undefined;
 
   return (
-    <div className="relative isolate overflow-hidden rounded-3xl bg-linear-to-l from-(--hero-from) via-(--hero-via) to-(--hero-to) p-6 text-white shadow-lg">
+    <div className="relative isolate overflow-hidden rounded-3xl bg-linear-to-l from-(--hero-from) via-(--hero-via) to-(--hero-to) px-6 py-5 text-white shadow-lg">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -bottom-28 start-1/3 size-64 rounded-full bg-white/10 blur-3xl" />
       </div>
@@ -51,7 +51,7 @@ export function DashboardHero({ range, children }: DashboardHeroProps) {
           <img
             src={logo}
             alt="پاسارگاد"
-            className="h-36 w-32 object-fill drop-shadow-[0_6px_14px_rgb(0_0_0/0.3)] md:h-44 md:w-40"
+            className="h-32 w-32 object-fill drop-shadow-[0_6px_14px_rgb(0_0_0/0.3)] md:h-36 md:w-40"
           />
         </div>
       </div>
