@@ -12,6 +12,15 @@ namespace Gym.Application.Reports.GetMembersReport;
 /// <paramref name="Renewed"/> ÷ (<paramref name="Ended"/> − <paramref name="Waiting"/>).
 /// </param>
 /// <param name="NewMembers">Members whose first plan was sold in the range.</param>
+/// <param name="Trials">
+/// New people who bought a single visit in the range: no membership plan sold to them before it.
+/// Each person once, by their first single visit of the range.
+/// </param>
+/// <param name="TrialsConverted">Of <paramref name="Trials"/>, those sold a membership plan within 30 days of it.</param>
+/// <param name="TrialsWaiting">
+/// Of <paramref name="Trials"/>, those not converted yet whose 30 days are not over. The rate is
+/// <paramref name="TrialsConverted"/> ÷ (<paramref name="Trials"/> − <paramref name="TrialsWaiting"/>).
+/// </param>
 /// <param name="Days">Every day of the range, oldest first; a day with nothing is zeros.</param>
 public sealed record MembersReportResponse(
     DateOnly From,
@@ -20,6 +29,9 @@ public sealed record MembersReportResponse(
     int Renewed,
     int Waiting,
     int NewMembers,
+    int Trials,
+    int TrialsConverted,
+    int TrialsWaiting,
     IReadOnlyList<MembersDayResponse> Days);
 
 /// <param name="Ended">Plans whose last day this was, with their renewals as above.</param>

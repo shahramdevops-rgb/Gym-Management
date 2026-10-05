@@ -2,7 +2,19 @@ import type { CSSProperties } from "react";
 
 /** The dashboard's accent hues, the --tone-* tokens of index.css. */
 export type Tone =
-  "blue" | "orange" | "green" | "violet" | "teal" | "amber" | "pink" | "sky" | "red" | "brown";
+  | "blue"
+  | "orange"
+  | "green"
+  | "violet"
+  | "teal"
+  | "amber"
+  | "pink"
+  | "sky"
+  | "red"
+  | "brown"
+  | "indigo"
+  | "lime"
+  | "cyan";
 
 /**
  * Sets `--tone` on an element, for the `tone-soft`, `tone-ink`, `tone-solid` and `tone-bar`

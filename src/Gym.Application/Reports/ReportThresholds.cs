@@ -24,6 +24,12 @@ public static class ReportThresholds
     /// </summary>
     public const int RenewalWindowDays = 30;
 
+    /// <summary>
+    /// A new person's single visit turned into a plan when a membership plan was sold within this
+    /// many days of it (decided with the developer, 1405/07/14).
+    /// </summary>
+    public const int TrialWindowDays = 30;
+
     /// <summary>A debt on a sale older than this many days is an old debt (§12 <i>Receivables</i>).</summary>
     public const int OldDebtDays = 30;
 

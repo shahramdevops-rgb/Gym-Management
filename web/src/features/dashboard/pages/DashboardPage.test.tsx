@@ -154,6 +154,32 @@ describe("DashboardPage", () => {
     expect(card("نرخ تمدید")).toHaveTextContent("۳ از ۴ پلن تمام‌شده؛ ۱ در انتظار");
   });
 
+  it("DashboardPage_PlansAndSingleVisits_ShowTheirMoneyAndHowManyWereSold", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    // The money received for each (1405/07/14), with the count sold underneath.
+    const plans = card("خرید پلن");
+    expect(plans).toHaveTextContent("۹٬۰۰۰٬۰۰۰ تومان");
+    expect(plans).toHaveTextContent("۱۲ پلن در این بازه فروخته شد");
+    expect(plans).toHaveTextContent("بازهٔ قبل: ۰ تومان");
+    const singleVisits = card("تک‌جلسه‌ای");
+    expect(singleVisits).toHaveTextContent("۶۰۰٬۰۰۰ تومان");
+    expect(singleVisits).toHaveTextContent("۴ تک‌جلسه در این بازه فروخته شد");
+  });
+
+  it("DashboardPage_ConversionRate_LeavesThoseStillWaitingOut", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    // Six new people, two converted, two still inside their 30 days: 2 of 4 (§12).
+    const conversion = card("نرخ تبدیل تک‌جلسه‌ای به پلن");
+    expect(conversion).toHaveTextContent("۵۰٪");
+    expect(conversion).toHaveTextContent("۲ از ۴ نفر تا ۳۰ روز بعد پلن خریدند؛ ۲ در انتظار");
+  });
+
   it("DashboardPage_Profit_IsShownInGreen", async () => {
     mockApi(dashboard);
     renderApp("/dashboard", { session: session() });
