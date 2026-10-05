@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArrowLeftRight,
   Banknote,
   BatteryLow,
   CalendarCheck,
@@ -10,13 +11,16 @@ import {
   CreditCard,
   Footprints,
   Hourglass,
+  IdCard,
   Receipt,
   Repeat,
   ShoppingBag,
   Snowflake,
+  Ticket,
   TrendingUp,
   UserPlus,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { useSearchParams } from "react-router";
 
@@ -39,6 +43,7 @@ import {
   useSubscriptionsSnapshot,
   useTopCafeProducts,
   type FinancialPeriod,
+  type FinancialReport,
 } from "../api";
 import { AttendanceHeatmap } from "../components/AttendanceHeatmap";
 import { BarListChart, type BarListItem } from "../components/BarListChart";
@@ -51,8 +56,9 @@ import { RevenueChart } from "../components/RevenueChart";
 import { SectionHeading } from "../components/SectionHeading";
 import { StaffMoneyTable } from "../components/StaffMoneyTable";
 import { StatCard, StatCardsLoading } from "../components/StatCard";
-import { byJalaliMonth, outcomeOf, renewalRate } from "../figures";
+import { byJalaliMonth, conversionRate, outcomeOf, renewalRate } from "../figures";
 import { defaultRangePreset, presetRange, rangeError, type ReportRange } from "../range";
+import type { Tone } from "../tone";
 
 /**
  * The range from the URL (`?from=2026-09-23&to=2026-10-04`). With neither date the dashboard opens
@@ -237,6 +243,22 @@ export function DashboardPage() {
                     previousLabel: formatMoney(financial.data.previous.cafeGrossProfit),
                   }}
                 />
+                <SourceCard
+                  label="خرید پلن"
+                  tone="indigo"
+                  icon={IdCard}
+                  source="Membership"
+                  what="پلن‌ها"
+                  report={financial.data}
+                />
+                <SourceCard
+                  label="تک‌جلسه‌ای"
+                  tone="lime"
+                  icon={Ticket}
+                  source="SingleSession"
+                  what="تک‌جلسه‌ای"
+                  report={financial.data}
+                />
               </>
             )}
             {attendance.isSuccess && (
@@ -266,6 +288,11 @@ export function DashboardPage() {
                   renewed={Number(members.data.renewed)}
                   ended={Number(members.data.ended)}
                   waiting={Number(members.data.waiting)}
+                />
+                <ConversionCard
+                  converted={Number(members.data.trialsConverted)}
+                  trials={Number(members.data.trials)}
+                  waiting={Number(members.data.trialsWaiting)}
                 />
               </>
             )}
@@ -459,6 +486,82 @@ function RenewalCard({
             ? `${formatNumber(waiting)} پلن تمام‌شده هنوز فرصت تمدید دارد`
             : "در این بازه پلنی تمام نشده است"
           : `${formatNumber(renewed)} از ${formatNumber(decided)} پلن تمام‌شده؛ ${formatNumber(waiting)} در انتظار`
+      }
+    />
+  );
+}
+
+/**
+ * The money received for one kind of sale in the range, by the day it was paid like «درآمد», with
+ * how many were sold underneath (asked by the developer, 1405/07/14: «خرید پلن» and «تک‌جلسه‌ای»).
+ * Both come from the financial report's sources, so they add up with the chart beside them.
+ */
+function SourceCard({
+  label,
+  tone,
+  icon,
+  source,
+  what,
+  report,
+}: {
+  label: string;
+  tone: Tone;
+  icon: LucideIcon;
+  source: "Membership" | "SingleSession";
+  /** What the money was for, in the hint: «پلن‌ها», «تک‌جلسه‌ای». */
+  what: string;
+  report: FinancialReport;
+}) {
+  const current = report.current.bySource.find((row) => row.source === source);
+  const previous = report.previous.bySource.find((row) => row.source === source);
+  const noun = soldCountNouns[source] ?? "";
+
+  return (
+    <StatCard
+      label={label}
+      tone={tone}
+      icon={icon}
+      value={formatMoney(current?.money.net ?? 0)}
+      hint={`پول دریافتی بابت ${what}؛ ${formatNumber(Number(current?.sold ?? 0))} ${noun} در این بازه فروخته شد`}
+      comparison={{
+        current: current?.money.net ?? 0,
+        previous: previous?.money.net ?? 0,
+        previousLabel: formatMoney(previous?.money.net ?? 0),
+      }}
+    />
+  );
+}
+
+/**
+ * Converted ÷ (trials − waiting) of the range (§12 *Operational reports*, decided with the
+ * developer, 1405/07/14): of the new people who came for a single visit, how many bought a plan
+ * within 30 days. Like the renewal rate, those still inside their 30 days are counted apart.
+ */
+function ConversionCard({
+  converted,
+  trials,
+  waiting,
+}: {
+  converted: number;
+  trials: number;
+  waiting: number;
+}) {
+  const rate = conversionRate(converted, trials, waiting);
+  const decided = trials - waiting;
+
+  return (
+    <StatCard
+      label="نرخ تبدیل تک‌جلسه‌ای به پلن"
+      tone="cyan"
+      icon={ArrowLeftRight}
+      value={formatPercent(rate)}
+      progress={rate}
+      hint={
+        rate === null
+          ? waiting > 0
+            ? `${formatNumber(waiting)} نفر هنوز فرصت خرید پلن دارند`
+            : "در این بازه کسی برای اولین بار تک‌جلسه‌ای نخریده است"
+          : `${formatNumber(converted)} از ${formatNumber(decided)} نفر تا ${toPersianDigits(reportThresholds.windowDays)} روز بعد پلن خریدند؛ ${formatNumber(waiting)} در انتظار`
       }
     />
   );

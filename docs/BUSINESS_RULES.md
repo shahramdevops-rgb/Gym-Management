@@ -1349,6 +1349,17 @@ dashboard (9.3), beside the money above.
   - A plan not renewed yet whose 30 days are not over is **waiting**, and is left out of the rate:
     rate = renewed ÷ (ended − waiting). Otherwise the last month would always look worse than it is.
     *Claude's default, 1405/07/12; pending review.*
+- **Single visit to plan conversion rate** («نرخ تبدیل تک‌جلسه‌ای به پلن», per range; decided with
+  the developer, 1405/07/14): of the new people who came for a single visit, how many bought a plan.
+  - **Who counts:** a person sold a single visit in the range, not cancelled, with **no membership
+    plan sold to them before it** (cancelled ones made nobody a member). A former member back for
+    one day is not trying the gym out, and is left out.
+  - **Each person once**, by their first single visit of the range: three single visits and then a
+    plan is one person, converted.
+  - **Converted** when a membership plan, not cancelled, was sold to them from that single visit on
+    and no more than **30 days** after its day, the same day included.
+  - Not converted yet and the 30 days not over is **waiting**, left out like a plan waiting to be
+    renewed: rate = converted ÷ (people − waiting).
 - **New members** (per range): a member counts as new on the day their **first membership plan**
   was sold («تاریخ فروش», §4), cancelled plans left out (decided with the developer, 1405/07/12).
   Registering a member, or selling them single visits, does not make them a member. While the paper
@@ -1406,6 +1417,12 @@ on one page.
   green when it is good news and red when it is bad (expenses going up is bad news). When the
   range before had nothing or a loss, a percent says nothing true, and the card shows the figure
   before instead. New members and the renewal rate have no comparison: their reports send none.
+- **«خرید پلن» and «تک‌جلسه‌ای»** (asked by the developer, 1405/07/14) are two cards of the
+  range's summary: the money received for membership plans and for single visits, by the day it
+  was paid like the revenue (the same figures as their bars in «درآمد به تفکیک منبع»), compared
+  with the range before, with how many were sold in the range underneath. Beside the renewal rate
+  sits the single visit to plan conversion rate (*Operational reports* above), without a
+  comparison, like the renewal rate.
 - **A profit is green, a loss is red** (decided with the developer, 1405/07/14): «سود خالص» and
   «سود ناخالص بوفه» show their figure in green above zero and in red below it, with its minus
   sign («−۳۰٬۵۰۰٬۰۰۰ تومان»). A month without revenue can end in a loss, and the Owner must see

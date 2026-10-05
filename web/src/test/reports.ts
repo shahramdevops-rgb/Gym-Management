@@ -109,7 +109,10 @@ export const attendanceReport: AttendanceReport = {
   ),
 };
 
-/** Five plans ended: three renewed, one still waiting, so the rate is 3 of 4. */
+/**
+ * Five plans ended: three renewed, one still waiting, so the rate is 3 of 4. Six new people came
+ * for a single visit: two bought a plan, two still have time, so that rate is 2 of 4.
+ */
 export const membersReport: MembersReport = {
   from: "2026-09-23",
   to: "2026-10-04",
@@ -117,6 +120,9 @@ export const membersReport: MembersReport = {
   renewed: 3,
   waiting: 1,
   newMembers: 2,
+  trials: 6,
+  trialsConverted: 2,
+  trialsWaiting: 2,
   days: [{ date: "2026-10-01", ended: 5, renewed: 3, waiting: 1, newMembers: 2 }],
 };
 

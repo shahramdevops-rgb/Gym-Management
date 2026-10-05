@@ -5,8 +5,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Reports.GetMembersReport;
 
 /// <summary>
-/// The renewal rate and the new members of a range (BUSINESS_RULES.md §12 <i>Operational
-/// reports</i>, roadmap 9.2). Owner only; the endpoint's policy says so.
+/// The renewal rate, the new members and the single visits that became plans, over a range
+/// (BUSINESS_RULES.md §12 <i>Operational reports</i>, roadmap 9.2). Owner only; the endpoint's
+/// policy says so.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -32,6 +33,7 @@ public sealed class GetMembersReportHandler(IAppDbContext db, IGymCalendar calen
 
         var ended = await EndedAsync(from, to, today, cancellationToken);
         var newMembers = await NewMembersAsync(from, to, cancellationToken);
+        var trials = await TrialsAsync(from, to, today, cancellationToken);
 
         var endedByDay = ended.ToLookup(plan => plan.EndDate);
         var newByDay = newMembers.GroupBy(day => day).ToDictionary(group => group.Key, group => group.Count());
@@ -53,6 +55,9 @@ public sealed class GetMembersReportHandler(IAppDbContext db, IGymCalendar calen
             ended.Count(plan => plan.Renewed),
             ended.Count(plan => plan.Waiting),
             newMembers.Count,
+            trials.Count,
+            trials.Count(trial => trial.Converted),
+            trials.Count(trial => trial.Waiting),
             days);
     }
 
@@ -121,5 +126,53 @@ public sealed class GetMembersReportHandler(IAppDbContext db, IGymCalendar calen
         return firsts.Select(calendar.DayOf).ToList();
     }
 
+    /// <summary>
+    /// New people's single visits and whether they turned into a plan (§12 <i>Operational
+    /// reports</i>, decided with the developer, 1405/07/14).
+    /// <para>
+    /// Each person once, by their first single visit sold in the range, not cancelled. Only people
+    /// with no membership plan sold before it count: a former member back for one day is not
+    /// trying the gym out. They converted when a membership plan, not cancelled, was sold to them
+    /// from that visit on and no more than 30 days after its day. One not converted yet whose 30
+    /// days are not over is waiting, like a plan waiting to be renewed.
+    /// </para>
+    /// </summary>
+    private async Task<List<Trial>> TrialsAsync(
+        DateOnly from, DateOnly to, DateOnly today, CancellationToken cancellationToken)
+    {
+        var start = calendar.StartOfDayUtc(from);
+        var end = calendar.StartOfDayUtc(to.AddDays(1));
+
+        var firsts = await db.Subscriptions
+            .AsNoTracking()
+            .Where(visit => visit.IsSingleSession && visit.CancelledAt == null &&
+                visit.CreatedAt >= start && visit.CreatedAt < end)
+            .GroupBy(visit => visit.MemberId)
+            .Select(visits => new { MemberId = visits.Key, SoldAt = visits.Min(visit => visit.CreatedAt) })
+            .ToListAsync(cancellationToken);
+
+        var memberIds = firsts.Select(first => first.MemberId).ToList();
+        var plans = await db.Subscriptions
+            .AsNoTracking()
+            .Where(plan => !plan.IsSingleSession && plan.CancelledAt == null && memberIds.Contains(plan.MemberId))
+            .Select(plan => new { plan.MemberId, plan.CreatedAt })
+            .ToListAsync(cancellationToken);
+        var plansByMember = plans.ToLookup(plan => plan.MemberId);
+
+        return firsts
+            .Where(first => !plansByMember[first.MemberId].Any(plan => plan.CreatedAt < first.SoldAt))
+            .Select(first =>
+            {
+                var windowEnd = calendar.DayOf(first.SoldAt).AddDays(ReportThresholds.TrialWindowDays);
+                var converted = plansByMember[first.MemberId].Any(plan =>
+                    plan.CreatedAt >= first.SoldAt && calendar.DayOf(plan.CreatedAt) <= windowEnd);
+
+                return new Trial(converted, !converted && today <= windowEnd);
+            })
+            .ToList();
+    }
+
     private sealed record EndedPlan(DateOnly EndDate, bool Renewed, bool Waiting);
+
+    private sealed record Trial(bool Converted, bool Waiting);
 }

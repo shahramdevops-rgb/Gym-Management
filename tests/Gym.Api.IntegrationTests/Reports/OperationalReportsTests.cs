@@ -257,6 +257,61 @@ public sealed class OperationalReportsTests(DatabaseFixture fixture) : DatabaseT
         Day(report, Today.AddDays(-2)).NewMembers.ShouldBe(0);
     }
 
+    [Fact]
+    public async Task Members_Trials_CountNewPeoplesSingleVisitsThatBecamePlansWithin30Days()
+    {
+        var sameDay = await AddMemberAsync("علی همان روز");
+        await AddSingleVisitAsync(sameDay.Id, Today.AddDays(-40));
+        await AddPlanStartingAsync(sameDay.Id, Today.AddDays(-40), soldOn: Today.AddDays(-40));
+        var onDay30 = await AddMemberAsync("مریم روز سی‌ام");
+        await AddSingleVisitAsync(onDay30.Id, Today.AddDays(-50));
+        await AddPlanStartingAsync(onDay30.Id, Today.AddDays(-20), soldOn: Today.AddDays(-20));
+        var onDay31 = await AddMemberAsync("رضا روز سی‌ویکم");
+        await AddSingleVisitAsync(onDay31.Id, Today.AddDays(-50));
+        await AddPlanStartingAsync(onDay31.Id, Today.AddDays(-19), soldOn: Today.AddDays(-19));
+        await AddSingleVisitAsync((await AddMemberAsync("زهرا فقط یک روز")).Id, Today.AddDays(-45));
+        var cancelledPlan = await AddMemberAsync("حسن پلن لغوشده");
+        await AddSingleVisitAsync(cancelledPlan.Id, Today.AddDays(-45));
+        await AddPlanStartingAsync(cancelledPlan.Id, Today.AddDays(-44), soldOn: Today.AddDays(-44), cancelled: true);
+
+        // Three single visits and then a plan: one person, converted.
+        var cameBack = await AddMemberAsync("سارا سه بار آمد");
+        await AddSingleVisitAsync(cameBack.Id, Today.AddDays(-40));
+        await AddSingleVisitAsync(cameBack.Id, Today.AddDays(-38));
+        await AddSingleVisitAsync(cameBack.Id, Today.AddDays(-35));
+        await AddPlanStartingAsync(cameBack.Id, Today.AddDays(-33), soldOn: Today.AddDays(-33));
+
+        // Ten days ago, no plan yet: twenty days are left, so it is waiting.
+        await AddSingleVisitAsync((await AddMemberAsync("نرگس هنوز وقت دارد")).Id, Today.AddDays(-10));
+
+        // A former member back for one day is not trying the gym out.
+        var former = await AddMemberAsync("کاوه عضو قبلی");
+        await AddPlanEndingAsync(former.Id, Today.AddDays(-70), soldOn: Today.AddDays(-100));
+        await AddSingleVisitAsync(former.Id, Today.AddDays(-30));
+        await AddPlanStartingAsync(former.Id, Today.AddDays(-25), soldOn: Today.AddDays(-25));
+
+        var report = await MembersAsync(Today.AddDays(-60), Today);
+
+        report.Trials.ShouldBe(7);
+        report.TrialsConverted.ShouldBe(3);
+        report.TrialsWaiting.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Members_Trials_LeaveACancelledSingleVisitAndOneBeforeTheRangeOut()
+    {
+        var cancelled = await AddMemberAsync("علی تک‌جلسهٔ لغوشده");
+        var visit = await AddSingleVisitAsync(cancelled.Id, Today.AddDays(-5));
+        await CancelAsync(visit);
+        await AddSingleVisitAsync((await AddMemberAsync("مریم قبل از بازه")).Id, Today.AddDays(-15));
+
+        var report = await MembersAsync(Today.AddDays(-10), Today);
+
+        report.Trials.ShouldBe(0);
+        report.TrialsConverted.ShouldBe(0);
+        report.TrialsWaiting.ShouldBe(0);
+    }
+
     // ---- Attendance ----
 
     [Fact]
@@ -395,6 +450,19 @@ public sealed class OperationalReportsTests(DatabaseFixture fixture) : DatabaseT
 
     private async Task<Guid> AddSingleVisitAsync(Guid memberId, DateOnly day) =>
         await SaveAsync(Subscription.CreateSingleVisit(memberId, 150_000m, day).Value, used: 1, day, null, cancelled: false);
+
+    private async Task CancelAsync(Guid subscriptionId)
+    {
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.ExecuteSqlAsync(
+            $"""
+            UPDATE subscriptions
+            SET cancelled_at = created_at, cancellation_reason = {"انصراف"}
+            WHERE id = {subscriptionId}
+            """,
+            TestContext.Current.CancellationToken);
+    }
 
     private async Task<Guid> SaveAsync(
         Subscription plan, int used, DateOnly soldOn, DateOnly? frozenSince, bool cancelled)

@@ -1987,6 +1987,12 @@ export interface components {
             waiting: number | string;
             /** Format: int32 */
             newMembers: number | string;
+            /** Format: int32 */
+            trials: number | string;
+            /** Format: int32 */
+            trialsConverted: number | string;
+            /** Format: int32 */
+            trialsWaiting: number | string;
             days: components["schemas"]["MembersDayResponse"][];
         };
         MoneyFlowResponse: {

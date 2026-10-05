@@ -2056,6 +2056,11 @@ tests.
       keep them
 - [x] «سود خالص» = revenue without فروشگاه and آنالیز − every expense (§12); the revenue card is
       «درآمد ناخالص» and still counts every payment; «سود ناخالص بوفه» is «سود بوفه»
+- [x] Cards «خرید پلن» and «تک‌جلسه‌ای»: the money received for each, compared with the range
+      before, with how many were sold underneath
+- [x] «نرخ تبدیل تک‌جلسه‌ای به پلن» (§12 *Operational reports*): new people only, each once, a plan
+      within 30 days, those still waiting left out; `trials`, `trialsConverted`, `trialsWaiting`
+      on the members report
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its

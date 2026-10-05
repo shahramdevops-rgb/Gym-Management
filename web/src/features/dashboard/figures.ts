@@ -39,6 +39,15 @@ export function renewalRate(renewed: number, ended: number, waiting: number): nu
   return decided > 0 ? (renewed / decided) * 100 : null;
 }
 
+/**
+ * The share of new people's single visits that became a plan within 30 days, in percent (§12
+ * *Operational reports*, decided with the developer, 1405/07/14): converted ÷ (trials − waiting),
+ * the renewal rate's own rule. Null when nobody has had their full 30 days yet.
+ */
+export function conversionRate(converted: number, trials: number, waiting: number): number | null {
+  return renewalRate(converted, trials, waiting);
+}
+
 /** The hours shown when nobody came at all, so the empty table still has the gym's day. */
 const quietDay = { first: 6, last: 23 };
 
