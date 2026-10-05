@@ -245,6 +245,28 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task Financial_NetProfit_LeavesTheShopAndAnalysisMoneyOutButEveryExpenseIn()
+    {
+        var (owner, token, _) = await OwnerClientAsync();
+        var visitor = await AddMemberAsync("رضا کریمی");
+        var plan = await AssignOkAsync(owner, token, visitor.Id);
+        await PayOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/payments", 900_000m, "Card");
+        var visit = await TestLockers.CheckInOkAsync(owner, token, visitor.Id);
+        var shop = await RecordShopOkAsync(owner, token, visit.Id, "دستکش", 200_000m);
+        await PayOkAsync(owner, token, $"/api/service-charges/{shop.Id}/payments", 200_000m, "Cash");
+        var analysis = await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 80_000m);
+        await PayOkAsync(owner, token, $"/api/service-charges/{analysis.Id}/payments", 80_000m, "Cash");
+        await RecordExpenseOkAsync(owner, token, 500_000m, RentId, Today());
+
+        var current = (await FinancialOkAsync(owner, token, TodayRange())).Current;
+
+        // Every payment is still revenue, shop and analysis included.
+        current.Revenue.Net.ShouldBe(1_180_000m);
+        // §12 (1405/07/14): the plan's money minus every expense; the shop and analysis are left out.
+        current.NetProfit.ShouldBe(900_000m - 500_000m);
+    }
+
+    [Fact]
     public async Task Financial_PreviousRange_IsTheSameLengthEndingTheDayBefore()
     {
         var (owner, token, _) = await OwnerClientAsync();
