@@ -34,6 +34,12 @@ using Gym.Application.Cafe.SetProductActive;
 using Gym.Application.Cafe.SetProductCategoryActive;
 using Gym.Application.Cafe.UpdateProduct;
 using Gym.Application.Cafe.UpdateProductCategory;
+using Gym.Application.Cheques.CancelCheque;
+using Gym.Application.Cheques.GetCheque;
+using Gym.Application.Cheques.ListCheques;
+using Gym.Application.Cheques.MarkChequePassed;
+using Gym.Application.Cheques.RegisterCheque;
+using Gym.Application.Cheques.UpdateCheque;
 using Gym.Application.Expenses.CreateExpenseCategory;
 using Gym.Application.Expenses.GetExpense;
 using Gym.Application.Expenses.ListExpenseCategories;
@@ -229,6 +235,13 @@ public static class DependencyInjection
         services.AddScoped<VoidExpenseHandler>();
         services.AddScoped<GetExpenseHandler>();
         services.AddScoped<ListExpensesHandler>();
+
+        services.AddScoped<RegisterChequeHandler>();
+        services.AddScoped<UpdateChequeHandler>();
+        services.AddScoped<MarkChequePassedHandler>();
+        services.AddScoped<CancelChequeHandler>();
+        services.AddScoped<GetChequeHandler>();
+        services.AddScoped<ListChequesHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

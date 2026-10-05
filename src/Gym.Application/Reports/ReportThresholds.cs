@@ -26,4 +26,10 @@ public static class ReportThresholds
 
     /// <summary>A debt on a sale older than this many days is an old debt (§12 <i>Receivables</i>).</summary>
     public const int OldDebtDays = 30;
+
+    /// <summary>
+    /// A pending cheque is on the dashboard this many days before its date (§9 <i>Cheques</i>):
+    /// one number for every cheque, decided with the developer.
+    /// </summary>
+    public const int ChequeDueWithinDays = 7;
 }

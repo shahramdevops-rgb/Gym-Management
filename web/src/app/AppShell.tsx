@@ -1,5 +1,6 @@
 import {
   Activity,
+  BanknoteArrowUp,
   ChartColumn,
   ClipboardList,
   Coffee,
@@ -48,6 +49,7 @@ const navigation: NavigationItem[] = [
   { to: paths.cafeMenu, label: "منوی بوفه", icon: ClipboardList },
   { to: paths.dashboard, label: "داشبورد", icon: ChartColumn, role: "Owner" },
   { to: paths.expenses, label: "هزینه‌ها", icon: Wallet, role: "Owner" },
+  { to: paths.cheques, label: "چک‌ها", icon: BanknoteArrowUp, role: "Owner" },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.settings, label: "تنظیمات", icon: Settings, role: "Owner" },
   { to: paths.status, label: "وضعیت سیستم", icon: Activity },

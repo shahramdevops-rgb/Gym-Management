@@ -9,6 +9,7 @@ import { CurrentlyInsidePage } from "@/features/attendance/pages/CurrentlyInside
 import { CafeMenuPage } from "@/features/cafe/pages/CafeMenuPage";
 import { CafeOrdersPage } from "@/features/cafe/pages/CafeOrdersPage";
 import { CafeTillPage } from "@/features/cafe/pages/CafeTillPage";
+import { ChequesPage } from "@/features/cheques/pages/ChequesPage";
 import { ExpensesPage } from "@/features/expenses/pages/ExpensesPage";
 import { HistoryPage } from "@/features/history/pages/HistoryPage";
 import { LockersPage } from "@/features/lockers/pages/LockersPage";
@@ -77,6 +78,7 @@ export const routes: RouteObject[] = [
               },
               ownerOnly(paths.settings, <SettingsPage />),
               ownerOnly(paths.expenses, <ExpensesPage />),
+              ownerOnly(paths.cheques, <ChequesPage />),
               ownerOnly(paths.staff, <StaffPage />),
             ],
           },

@@ -11,13 +11,18 @@ namespace Gym.Application.Reports.GetNeedsAttention;
 /// <param name="OldDebtWithoutMember">
 /// What walk-ins at the cafe and guests owe on sales more than 30 days old: there is nobody to list.
 /// </param>
+/// <param name="ChequesDue">
+/// Pending cheques the gym gave, dated within 7 days or already past their date, the earliest first
+/// (§9 <i>Cheques</i>).
+/// </param>
 public sealed record NeedsAttentionResponse(
     DateOnly Today,
     IReadOnlyList<RunningOutResponse> RunningOut,
     IReadOnlyList<LeftResponse> Left,
     IReadOnlyList<AbsentResponse> Absent,
     IReadOnlyList<OldDebtResponse> OldDebts,
-    decimal OldDebtWithoutMember);
+    decimal OldDebtWithoutMember,
+    IReadOnlyList<ChequeDueResponse> ChequesDue);
 
 /// <param name="SessionsLeft">Zero when every session is used and the plan has not reached its end date.</param>
 public sealed record RunningOutResponse(
@@ -37,3 +42,6 @@ public sealed record AbsentResponse(
 /// <param name="OldestSaleOn">The day the oldest of those sales was recorded.</param>
 public sealed record OldDebtResponse(
     Guid MemberId, string FullName, string PhoneNumber, decimal Owed, DateOnly OldestSaleOn);
+
+/// <param name="DueDate">Before today means past its date and still not marked «پاس شد».</param>
+public sealed record ChequeDueResponse(Guid ChequeId, string Payee, decimal Amount, DateOnly DueDate, string Description);

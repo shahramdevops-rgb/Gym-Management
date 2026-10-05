@@ -650,6 +650,112 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Cheques.Cheque", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("cancel_reason");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cancelled_by_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date")
+                        .HasColumnName("due_date");
+
+                    b.Property<DateTimeOffset?>("PassedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("passed_at");
+
+                    b.Property<Guid?>("PassedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("passed_by_user_id");
+
+                    b.Property<string>("Payee")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("payee");
+
+                    b.Property<Guid>("RegisteredByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("registered_by_user_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cheques");
+
+                    b.HasIndex("CancelledByUserId")
+                        .HasDatabaseName("ix_cheques_cancelled_by_user_id");
+
+                    b.HasIndex("DueDate")
+                        .HasDatabaseName("ix_cheques_due_date");
+
+                    b.HasIndex("PassedByUserId")
+                        .HasDatabaseName("ix_cheques_passed_by_user_id");
+
+                    b.HasIndex("RegisteredByUserId")
+                        .HasDatabaseName("ix_cheques_registered_by_user_id");
+
+                    b.ToTable("cheques", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_cheques_amount_positive", "amount > 0");
+
+                            t.HasCheckConstraint("ck_cheques_cancelled", "(cancelled_at IS NULL) = (cancel_reason IS NULL) AND (cancelled_at IS NULL) = (cancelled_by_user_id IS NULL)");
+
+                            t.HasCheckConstraint("ck_cheques_description_not_blank", "btrim(description) <> ''");
+
+                            t.HasCheckConstraint("ck_cheques_not_passed_and_cancelled", "passed_at IS NULL OR cancelled_at IS NULL");
+
+                            t.HasCheckConstraint("ck_cheques_passed", "(passed_at IS NULL) = (passed_by_user_id IS NULL)");
+
+                            t.HasCheckConstraint("ck_cheques_payee_not_blank", "btrim(payee) <> ''");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Expenses.Expense", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2245,6 +2351,28 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_products_product_categories_category_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Cheques.Cheque", b =>
+                {
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_cheques_asp_net_users_cancelled_by_user_id");
+
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("PassedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_cheques_asp_net_users_passed_by_user_id");
+
+                    b.HasOne("Gym.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("RegisteredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cheques_asp_net_users_registered_by_user_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Expenses.Expense", b =>

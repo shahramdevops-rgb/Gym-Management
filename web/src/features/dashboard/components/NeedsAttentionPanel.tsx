@@ -11,6 +11,7 @@ const lowSessions = toPersianDigits(reportThresholds.lowSessions);
 const expiringWithinDays = toPersianDigits(reportThresholds.expiringWithinDays);
 const absentDays = toPersianDigits(reportThresholds.absentDays);
 const windowDays = toPersianDigits(reportThresholds.windowDays);
+const chequeDueWithinDays = toPersianDigits(reportThresholds.chequeDueWithinDays);
 
 interface PersonRow {
   memberId: string;
@@ -73,6 +74,56 @@ function AttentionList<T extends PersonRow>({
 }
 
 /**
+ * The gym's own cheques coming due (BUSINESS_RULES.md §9 *Cheques*): not people to call, so not an
+ * AttentionList. A cheque past its date stays here until it is marked «پاس شد» on the cheques page.
+ */
+function ChequesDueList({ rows, today }: { rows: NeedsAttention["chequesDue"]; today: string }) {
+  return (
+    <section aria-labelledby="attention-cheques" className="space-y-2 rounded-md border p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <h4 id="attention-cheques" className="font-medium">
+          چک‌های نزدیک سررسید
+        </h4>
+        <span className="text-sm text-muted-foreground">{formatNumber(rows.length)} چک</span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {`چک‌های در انتظار تا ${chequeDueWithinDays} روز دیگر، و چک‌هایی که تاریخشان گذشته و هنوز پاس نشده‌اند.`}
+      </p>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">چکی در این فهرست نیست.</p>
+      ) : (
+        <ul className="max-h-72 divide-y overflow-y-auto">
+          {rows.map((row) => {
+            const overdue = row.dueDate < today;
+            return (
+              <li
+                key={row.chequeId}
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2 text-sm"
+              >
+                <div className="space-y-0.5">
+                  <p className="font-medium">{row.payee}</p>
+                  <p className="text-xs text-muted-foreground">{row.description}</p>
+                </div>
+                <div className="text-end text-xs">
+                  <p className="font-medium">{formatMoney(row.amount)}</p>
+                  <p className={overdue ? "font-medium text-destructive" : "text-muted-foreground"}>
+                    {overdue ? "سررسید گذشته، " : row.dueDate === today ? "امروز، " : ""}
+                    {formatDate(row.dueDate)}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <Link to={paths.cheques} className="inline-block text-sm font-medium hover:underline">
+        همهٔ چک‌ها
+      </Link>
+    </section>
+  );
+}
+
+/**
  * Who the Owner should call today (BUSINESS_RULES.md §12 *Needs attention*), whatever range the
  * dashboard shows. One member can be on more than one list: each list is its own question.
  */
@@ -83,7 +134,9 @@ export function NeedsAttentionPanel({ data }: { data: NeedsAttention }) {
     <Card>
       <CardHeader>
         <CardTitle>نیاز به اقدام</CardTitle>
-        <CardDescription>کسانی که امروز باید با آن‌ها تماس گرفت.</CardDescription>
+        <CardDescription>
+          کسانی که امروز باید با آن‌ها تماس گرفت، و چک‌هایی که باید پرداخت شوند.
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3 lg:grid-cols-2">
         <AttentionList
@@ -143,6 +196,7 @@ export function NeedsAttentionPanel({ data }: { data: NeedsAttention }) {
             </p>
           )}
         </div>
+        <ChequesDueList rows={data.chequesDue} today={data.today} />
       </CardContent>
     </Card>
   );

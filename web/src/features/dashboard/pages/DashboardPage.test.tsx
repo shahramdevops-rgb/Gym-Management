@@ -197,6 +197,54 @@ describe("DashboardPage", () => {
     expect(absent).toHaveTextContent("از شروع پلن نیامده");
   });
 
+  it("DashboardPage_ChequesDue_ListsEachWithOverdueAndTodayMarked", async () => {
+    mockApi({
+      ...dashboard,
+      "GET /api/reports/needs-attention": () =>
+        json(200, {
+          ...needsAttention,
+          chequesDue: [
+            {
+              chequeId: "0199a000-0000-7000-8000-0000000000e1",
+              payee: "فروشگاه تجهیزات",
+              amount: 50000000,
+              dueDate: "2026-09-28",
+              description: "قسط اول تردمیل",
+            },
+            {
+              chequeId: "0199a000-0000-7000-8000-0000000000e2",
+              payee: "تعمیرگاه",
+              amount: 8000000,
+              dueDate: "2026-10-04",
+              description: "تعمیر دوچرخه",
+            },
+          ],
+        }),
+    });
+    renderApp("/dashboard", { session: session() });
+
+    // §9 Cheques: past its date and not marked stays on the list, marked; the date is Jalali.
+    const cheques = await screen.findByRole("region", { name: "چک‌های نزدیک سررسید" });
+    const [overdue, dueToday] = within(cheques).getAllByRole("listitem");
+    expect(overdue).toHaveTextContent("فروشگاه تجهیزات");
+    expect(overdue).toHaveTextContent("۵۰٬۰۰۰٬۰۰۰ تومان");
+    expect(overdue).toHaveTextContent("سررسید گذشته، ۱۴۰۵/۰۷/۰۶");
+    expect(dueToday).toHaveTextContent("امروز، ۱۴۰۵/۰۷/۱۲");
+    expect(within(cheques).getByRole("link", { name: "همهٔ چک‌ها" })).toHaveAttribute(
+      "href",
+      "/cheques",
+    );
+  });
+
+  it("DashboardPage_NoChequesDue_SaysTheListIsEmpty", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    expect(await screen.findByRole("region", { name: "چک‌های نزدیک سررسید" })).toHaveTextContent(
+      "چکی در این فهرست نیست.",
+    );
+  });
+
   it("DashboardPage_Loaded_ShowsMoneyByStaffMemberAndTheWeekdayHourTable", async () => {
     mockApi(dashboard);
     renderApp("/dashboard", { session: session() });

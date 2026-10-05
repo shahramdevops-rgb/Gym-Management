@@ -2025,12 +2025,35 @@ Next: **9.4 Cheque reminders**, rules first, in its own session.
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its
 date the Owner records the expense by hand, in that month (§9). The system only reminds.
 **Members never pay by cheque**, and no payment method changes.
-- [ ] Rules first in BUSINESS_RULES.md. To ask: the fields (amount, due date, payee, cheque
-      number, bank, description?), how many days before the date the reminder goes (one setting or
-      per cheque), who receives the SMS (the Owner's number is not stored anywhere yet), whether a
-      cheque is marked «پاس شد» or simply passes its date, Owner only
-- [ ] A cheque register, Owner only, and the cheques coming due on the dashboard
+Decided with the developer on 1405/07/12–13: amount, date, payee and description, all required (no
+cheque number, no bank); 7 days before the date, one fixed number; the Owner marks «پاس شد», only
+on or after the date, and an unmarked cheque past its date stays on the dashboard; edited while
+pending, cancelled with a reason, both final, never deleted; Owner only; who gets the SMS is
+decided in Phase 10.
+- [x] Rules first: BUSINESS_RULES.md §9 *Cheques*, §12 *Needs attention* (cheques coming due) and a
+      §1 row
+- [x] `Cheque` entity (Domain) and the `cheques` table: check constraints for the amount, payee,
+      description, the pass and cancel fields and never both, `xmin`, an index on `due_date`.
+      Migration `AddCheques` adds the table only
+- [x] `/api/cheques` (Owner): list by status with the pending total, get, register, edit (with
+      `version`), `pass`, `cancel`; no DELETE
+- [x] `GET /api/reports/needs-attention` gains `chequesDue` (`ReportThresholds.ChequeDueWithinDays`)
+- [x] `/cheques` «چک‌ها», Owner menu only: status tabs in the URL, the pending total, add and edit
+      forms (`MoneyField`, Jalali picker), «پاس شد» with an in-page confirmation that points to the
+      expenses, cancel with a reason; «چک‌های نزدیک سررسید» on the dashboard
+- [x] Tests: every field and limit, pass on the date and not the day before, pass and cancel final,
+      reason required (domain); register, edit, stale version, pass, cancel, pass racing cancel,
+      list order and totals, Staff refused, no DELETE, the database constraints, the dashboard list
+      at day 7 and 8 with overdue, passed and cancelled cases (integration); the page, its forms,
+      tabs, menu and the dashboard list (frontend)
 - [ ] The SMS itself needs Phase 10's `ISmsSender`; until then the reminder is on the dashboard only
+      (the recipient is in BUSINESS_RULES.md §0, to decide before Phase 10)
+
+Closed 2026-10-05: 1632 backend tests (77 new: 32 domain, 45 integration) and 870 frontend tests
+(35 new) green, zero warnings, lint and production build pass. Migration `AddCheques` adds one new
+table and touches no existing row: it is safe over the real data, and the release still starts with
+`./backup.sh run`.
+Next: **9.5 Shift handover**, rules first, in its own session.
 
 ### 9.5 Shift handover (تحویل شیفت) (asked by the developer, 1405/07/12)
 More staff may join, and each will hand over the shift: what they took in, by method, and the cash
