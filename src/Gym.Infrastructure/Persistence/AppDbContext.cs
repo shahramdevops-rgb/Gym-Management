@@ -4,10 +4,10 @@ using Gym.Domain.Attendances;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Cafe;
-using Gym.Domain.Cheques;
 using Gym.Domain.Expenses;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
+using Gym.Domain.Payables;
 using Gym.Domain.Payments;
 using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
@@ -68,7 +68,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Expense> Expenses => Set<Expense>();
 
-    public DbSet<Cheque> Cheques => Set<Cheque>();
+    public DbSet<Payable> Payables => Set<Payable>();
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);

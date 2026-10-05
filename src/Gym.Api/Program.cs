@@ -136,7 +136,7 @@ try
     app.MapCafeOrdersEndpoints();
     app.MapExpenseCategoriesEndpoints();
     app.MapExpensesEndpoints();
-    app.MapChequesEndpoints();
+    app.MapPayablesEndpoints();
     app.MapHistoryEndpoints();
     app.MapReportsEndpoints();
 

@@ -1,5 +1,7 @@
 using Gym.Application.Expenses;
+using Gym.Application.Payables;
 using Gym.Domain.Expenses;
+using Gym.Domain.Payables;
 using Gym.Infrastructure.Identity;
 
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +48,17 @@ public sealed class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         // never disappear.
         builder.HasOne<User>().WithMany().HasForeignKey(expense => expense.RecordedByUserId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<User>().WithMany().HasForeignKey(expense => expense.VoidedByUserId).OnDelete(DeleteBehavior.Restrict);
+
+        // Restrict: a cheque or instalment is never deleted, and its expense must not outlive it.
+        builder.HasOne<Payable>().WithMany().HasForeignKey(expense => expense.PayableId).OnDelete(DeleteBehavior.Restrict);
+
+        // At most one standing expense per cheque or instalment (BUSINESS_RULES.md §9 *Cheques and
+        // instalments*): a payment sent back to pending leaves a voided one, and paying it again
+        // writes a new one, so the index is partial. It also settles two «پرداخت شد» racing.
+        builder.HasIndex(expense => expense.PayableId)
+            .IsUnique()
+            .HasFilter("voided_at IS NULL")
+            .HasDatabaseName(PayableConstraints.OneStandingExpense);
 
         // The list and the Phase 9 reports both filter by date range, and by category within it.
         builder.HasIndex(expense => new { expense.ExpenseDate, expense.CategoryId });

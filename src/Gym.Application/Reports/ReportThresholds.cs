@@ -28,8 +28,8 @@ public static class ReportThresholds
     public const int OldDebtDays = 30;
 
     /// <summary>
-    /// A pending cheque is on the dashboard this many days before its date (§9 <i>Cheques</i>):
-    /// one number for every cheque, decided with the developer.
+    /// A pending cheque or instalment is on the dashboard this many days before its date (§9
+    /// <i>Cheques and instalments</i>): one number for both kinds, decided with the developer.
     /// </summary>
-    public const int ChequeDueWithinDays = 7;
+    public const int PayableDueWithinDays = 7;
 }

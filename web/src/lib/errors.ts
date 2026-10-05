@@ -280,23 +280,34 @@ export const errorMessages: Record<string, string> = {
   "Expenses.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
   "Expenses.ChangedConcurrently":
     "این هزینه هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+  "Expenses.LinkedToPayable":
+    "این هزینه از پرداخت یک چک یا قسط ثبت شده است. برای تغییرش، آن چک یا قسط را در «چک و قسط» به در انتظار برگردانید.",
 
-  // Cheques (BUSINESS_RULES.md §9 *Cheques*)
-  "Cheques.NotFound": "چک پیدا نشد.",
-  "Cheques.AmountNotPositive": "مبلغ باید بزرگ‌تر از صفر باشد.",
-  "Cheques.AmountTooLarge": "مبلغ بیش از حد بزرگ است.",
-  "Cheques.AmountTooManyDecimals": "مبلغ حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
-  "Cheques.PayeeRequired": "نام گیرنده (در وجه) را وارد کنید.",
-  "Cheques.PayeeTooLong": "نام گیرنده بیش از حد طولانی است.",
-  "Cheques.DescriptionRequired": "شرح چک را وارد کنید.",
-  "Cheques.DescriptionTooLong": "شرح چک بیش از حد طولانی است.",
-  "Cheques.NotDueYet": "چک پیش از تاریخش پاس نمی‌شود.",
-  "Cheques.AlreadyPassed": "این چک پاس شده است و دیگر تغییر نمی‌کند.",
-  "Cheques.AlreadyCancelled": "این چک باطل شده است و دیگر تغییر نمی‌کند.",
-  "Cheques.CancelReasonRequired": "دلیل ابطال را وارد کنید.",
-  "Cheques.CancelReasonTooLong": "دلیل ابطال بیش از حد طولانی است.",
-  "Cheques.ChangedConcurrently":
-    "این چک هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+  // Cheques and instalments (BUSINESS_RULES.md §9 *Cheques and instalments*)
+  "Payables.NotFound": "چک یا قسط پیدا نشد.",
+  "Payables.AmountNotPositive": "مبلغ باید بزرگ‌تر از صفر باشد.",
+  "Payables.AmountTooLarge": "مبلغ بیش از حد بزرگ است.",
+  "Payables.AmountTooManyDecimals": "مبلغ حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
+  "Payables.PayeeRequired": "نام گیرنده را وارد کنید.",
+  "Payables.PayeeTooLong": "نام گیرنده بیش از حد طولانی است.",
+  "Payables.DescriptionRequired": "شرح را وارد کنید.",
+  "Payables.DescriptionTooLong": "شرح بیش از حد طولانی است.",
+  "Payables.CategoryRequired": "دسته‌بندی هزینه را انتخاب کنید.",
+  "Payables.CategoryNotFound": "دسته‌بندی انتخاب‌شده پیدا نشد.",
+  "Payables.InstallmentNumbersRequired": "شمارهٔ قسط و تعداد کل قسط‌ها را وارد کنید.",
+  "Payables.InstallmentNumbersOnlyForInstallments": "چک شمارهٔ قسط ندارد.",
+  "Payables.InstallmentCountOutOfRange": "تعداد کل قسط‌ها باید بین ۱ و ۳۶۰ باشد.",
+  "Payables.InstallmentNumberOutOfRange": "شمارهٔ قسط باید بین ۱ و تعداد کل قسط‌ها باشد.",
+  "Payables.ChequeNotDueYet": "چک پیش از تاریخش پاس نمی‌شود.",
+  "Payables.AlreadyPaid": "این مورد پرداخت شده است. برای تغییرش، اول آن را به در انتظار برگردانید.",
+  "Payables.AlreadyCancelled": "این مورد باطل شده است و دیگر تغییر نمی‌کند.",
+  "Payables.NotPaid": "فقط چک یا قسطِ پرداخت‌شده به در انتظار برمی‌گردد.",
+  "Payables.CancelReasonRequired": "دلیل ابطال را وارد کنید.",
+  "Payables.CancelReasonTooLong": "دلیل ابطال بیش از حد طولانی است.",
+  "Payables.RevertReasonRequired": "دلیل برگشت را وارد کنید.",
+  "Payables.RevertReasonTooLong": "دلیل برگشت بیش از حد طولانی است.",
+  "Payables.ChangedConcurrently":
+    "این مورد هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
   // Reports
   "Reports.DateRangeRequired": "تاریخ شروع و پایان گزارش را انتخاب کنید.",

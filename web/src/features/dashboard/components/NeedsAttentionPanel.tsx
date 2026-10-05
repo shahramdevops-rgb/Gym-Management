@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import { paths } from "@/app/paths";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { kindText } from "@/features/payables/api";
 import { formatDate, formatMoney, formatNumber, formatPhone, toPersianDigits } from "@/lib/format";
 
 import { reportThresholds, type NeedsAttention } from "../api";
@@ -11,7 +12,7 @@ const lowSessions = toPersianDigits(reportThresholds.lowSessions);
 const expiringWithinDays = toPersianDigits(reportThresholds.expiringWithinDays);
 const absentDays = toPersianDigits(reportThresholds.absentDays);
 const windowDays = toPersianDigits(reportThresholds.windowDays);
-const chequeDueWithinDays = toPersianDigits(reportThresholds.chequeDueWithinDays);
+const payableDueWithinDays = toPersianDigits(reportThresholds.payableDueWithinDays);
 
 interface PersonRow {
   memberId: string;
@@ -74,35 +75,38 @@ function AttentionList<T extends PersonRow>({
 }
 
 /**
- * The gym's own cheques coming due (BUSINESS_RULES.md §9 *Cheques*): not people to call, so not an
- * AttentionList. A cheque past its date stays here until it is marked «پاس شد» on the cheques page.
+ * The gym's own cheques and instalments coming due (BUSINESS_RULES.md §9 *Cheques and instalments*):
+ * not people to call, so not an AttentionList. One past its date stays here until it is marked paid
+ * on the «چک و قسط» page.
  */
-function ChequesDueList({ rows, today }: { rows: NeedsAttention["chequesDue"]; today: string }) {
+function PayablesDueList({ rows, today }: { rows: NeedsAttention["payablesDue"]; today: string }) {
   return (
-    <section aria-labelledby="attention-cheques" className="space-y-2 rounded-md border p-3">
+    <section aria-labelledby="attention-payables" className="space-y-2 rounded-md border p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h4 id="attention-cheques" className="font-medium">
-          چک‌های نزدیک سررسید
+        <h4 id="attention-payables" className="font-medium">
+          چک و قسط نزدیک سررسید
         </h4>
-        <span className="text-sm text-muted-foreground">{formatNumber(rows.length)} چک</span>
+        <span className="text-sm text-muted-foreground">{formatNumber(rows.length)} مورد</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        {`چک‌های در انتظار تا ${chequeDueWithinDays} روز دیگر، و چک‌هایی که تاریخشان گذشته و هنوز پاس نشده‌اند.`}
+        {`چک و قسطِ در انتظار تا ${payableDueWithinDays} روز دیگر، و آن‌هایی که تاریخشان گذشته و هنوز پرداخت نشده‌اند.`}
       </p>
       {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">چکی در این فهرست نیست.</p>
+        <p className="text-sm text-muted-foreground">چک یا قسطی در این فهرست نیست.</p>
       ) : (
         <ul className="max-h-72 divide-y overflow-y-auto">
           {rows.map((row) => {
             const overdue = row.dueDate < today;
             return (
               <li
-                key={row.chequeId}
+                key={row.payableId}
                 className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2 text-sm"
               >
                 <div className="space-y-0.5">
                   <p className="font-medium">{row.payee}</p>
-                  <p className="text-xs text-muted-foreground">{row.description}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {kindText(row)} — {row.description}
+                  </p>
                 </div>
                 <div className="text-end text-xs">
                   <p className="font-medium">{formatMoney(row.amount)}</p>
@@ -116,8 +120,8 @@ function ChequesDueList({ rows, today }: { rows: NeedsAttention["chequesDue"]; t
           })}
         </ul>
       )}
-      <Link to={paths.cheques} className="inline-block text-sm font-medium hover:underline">
-        همهٔ چک‌ها
+      <Link to={paths.payables} className="inline-block text-sm font-medium hover:underline">
+        همهٔ چک‌ها و قسط‌ها
       </Link>
     </section>
   );
@@ -135,7 +139,7 @@ export function NeedsAttentionPanel({ data }: { data: NeedsAttention }) {
       <CardHeader>
         <CardTitle>نیاز به اقدام</CardTitle>
         <CardDescription>
-          کسانی که امروز باید با آن‌ها تماس گرفت، و چک‌هایی که باید پرداخت شوند.
+          کسانی که امروز باید با آن‌ها تماس گرفت، و چک و قسط‌هایی که باید پرداخت شوند.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3 lg:grid-cols-2">
@@ -196,7 +200,7 @@ export function NeedsAttentionPanel({ data }: { data: NeedsAttention }) {
             </p>
           )}
         </div>
-        <ChequesDueList rows={data.chequesDue} today={data.today} />
+        <PayablesDueList rows={data.payablesDue} today={data.today} />
       </CardContent>
     </Card>
   );

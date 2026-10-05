@@ -16,8 +16,8 @@ namespace Gym.Application.Reports.GetNeedsAttention;
 /// already let go. The debt list does not: money owed is owed whoever owes it.
 /// </para>
 /// <para>
-/// The cheques are the one list that is not about members: they are the gym's own payments coming
-/// due, on the same panel because the panel is what the Owner reads first.
+/// The cheques and instalments are the one list that is not about members: they are the gym's own
+/// payments coming due, on the same panel because the panel is what the Owner reads first.
 /// </para>
 /// <para>
 /// A plan's status is calculated, never stored (§4), so the conditions of
@@ -34,25 +34,34 @@ public sealed class GetNeedsAttentionHandler(IAppDbContext db, IGymCalendar cale
         var left = await LeftAsync(today, cancellationToken);
         var absent = await AbsentAsync(today, cancellationToken);
         var (oldDebts, withoutMember) = await OldDebtsAsync(today, cancellationToken);
-        var chequesDue = await ChequesDueAsync(today, cancellationToken);
+        var payablesDue = await PayablesDueAsync(today, cancellationToken);
 
-        return new NeedsAttentionResponse(today, runningOut, left, absent, oldDebts, withoutMember, chequesDue);
+        return new NeedsAttentionResponse(today, runningOut, left, absent, oldDebts, withoutMember, payablesDue);
     }
 
     /// <summary>
-    /// Pending cheques dated within the next 7 days, today included, and pending cheques past their
-    /// date, which stay until the Owner marks them (§9 <i>Cheques</i>). The earliest date first.
+    /// Pending cheques and instalments dated within the next 7 days, today included, and pending ones
+    /// past their date, which stay until the Owner marks them (§9 <i>Cheques and instalments</i>).
+    /// The earliest date first.
     /// </summary>
-    private async Task<List<ChequeDueResponse>> ChequesDueAsync(DateOnly today, CancellationToken cancellationToken)
+    private async Task<List<PayableDueResponse>> PayablesDueAsync(DateOnly today, CancellationToken cancellationToken)
     {
-        var dueBy = today.AddDays(ReportThresholds.ChequeDueWithinDays);
+        var dueBy = today.AddDays(ReportThresholds.PayableDueWithinDays);
 
-        return await db.Cheques
+        return await db.Payables
             .AsNoTracking()
-            .Where(cheque => cheque.PassedAt == null && cheque.CancelledAt == null && cheque.DueDate <= dueBy)
-            .OrderBy(cheque => cheque.DueDate)
-            .ThenBy(cheque => cheque.Id)
-            .Select(cheque => new ChequeDueResponse(cheque.Id, cheque.Payee, cheque.Amount, cheque.DueDate, cheque.Description))
+            .Where(payable => payable.PaidAt == null && payable.CancelledAt == null && payable.DueDate <= dueBy)
+            .OrderBy(payable => payable.DueDate)
+            .ThenBy(payable => payable.Id)
+            .Select(payable => new PayableDueResponse(
+                payable.Id,
+                payable.Kind,
+                payable.Payee,
+                payable.Amount,
+                payable.DueDate,
+                payable.Description,
+                payable.InstallmentNumber,
+                payable.InstallmentCount))
             .ToListAsync(cancellationToken);
     }
 

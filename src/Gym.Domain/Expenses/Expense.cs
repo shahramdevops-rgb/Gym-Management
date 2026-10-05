@@ -17,6 +17,11 @@ namespace Gym.Domain.Expenses;
 /// are never deleted), and the reports leave voided rows out.
 /// </para>
 /// <para>
+/// <b>An expense a payment wrote belongs to it.</b> Paying a cheque or an instalment records one
+/// (<see cref="PayableId"/>), and only sending that payment back to pending voids it: edited or
+/// voided on its own, it would disagree with the register (§9 <i>Cheques and instalments</i>).
+/// </para>
+/// <para>
 /// Whether <see cref="CategoryId"/> names a real category is a question about another table, so
 /// the handler asks it and the foreign key is the safety net.
 /// </para>
@@ -53,6 +58,12 @@ public sealed class Expense : Entity
 
     public Guid RecordedByUserId { get; private set; }
 
+    /// <summary>
+    /// The cheque or instalment whose payment recorded this expense; <c>null</c> for one the Owner
+    /// typed.
+    /// </summary>
+    public Guid? PayableId { get; private set; }
+
     /// <summary>A moment (UTC); <c>null</c> while the expense still stands.</summary>
     public DateTimeOffset? VoidedAt { get; private set; }
 
@@ -86,6 +97,21 @@ public sealed class Expense : Entity
     }
 
     /// <summary>
+    /// The expense of a cheque or instalment marked paid, dated the day it was marked. Only
+    /// <c>Payable.MarkPaid</c> calls it, with fields it has already checked against the same limits.
+    /// </summary>
+    internal static Expense RecordForPayable(
+        decimal amount, Guid categoryId, DateOnly paidOn, string description, Guid payableId, Guid recordedByUserId)
+    {
+        var expense = new Expense { RecordedByUserId = recordedByUserId, PayableId = payableId };
+        var result = expense.Apply(amount, categoryId, paidOn, description, referenceNumber: null, today: paidOn);
+
+        return result.IsSuccess
+            ? expense
+            : throw new InvalidOperationException($"A payment's expense was refused: {result.Error.Code}.");
+    }
+
+    /// <summary>
     /// Replaces every field the Owner typed. <see cref="RecordedByUserId"/> stays: it says who
     /// entered the expense, and the audit log says who changed it.
     /// </summary>
@@ -95,6 +121,11 @@ public sealed class Expense : Entity
         if (IsVoided)
         {
             return Result.Failure(ExpenseErrors.AlreadyVoided);
+        }
+
+        if (PayableId is not null)
+        {
+            return Result.Failure(ExpenseErrors.LinkedToPayable);
         }
 
         return Apply(amount, categoryId, expenseDate, description, referenceNumber, today);
@@ -110,6 +141,11 @@ public sealed class Expense : Entity
         if (IsVoided)
         {
             return Result.Failure(ExpenseErrors.AlreadyVoided);
+        }
+
+        if (PayableId is not null)
+        {
+            return Result.Failure(ExpenseErrors.LinkedToPayable);
         }
 
         var cleanReason = reason.Trim();
@@ -128,6 +164,17 @@ public sealed class Expense : Entity
         VoidedByUserId = voidedByUserId;
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Voided because its payment went back to pending. Only <c>Payable.RevertToPending</c> calls
+    /// it, with a reason it has already checked.
+    /// </summary>
+    internal void VoidWithPayable(string reason, DateTimeOffset now, Guid voidedByUserId)
+    {
+        VoidedAt = now;
+        VoidReason = reason;
+        VoidedByUserId = voidedByUserId;
     }
 
     /// <summary>

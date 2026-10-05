@@ -197,51 +197,59 @@ describe("DashboardPage", () => {
     expect(absent).toHaveTextContent("از شروع پلن نیامده");
   });
 
-  it("DashboardPage_ChequesDue_ListsEachWithOverdueAndTodayMarked", async () => {
+  it("DashboardPage_PayablesDue_ListsEachWithKindOverdueAndTodayMarked", async () => {
     mockApi({
       ...dashboard,
       "GET /api/reports/needs-attention": () =>
         json(200, {
           ...needsAttention,
-          chequesDue: [
+          payablesDue: [
             {
-              chequeId: "0199a000-0000-7000-8000-0000000000e1",
+              payableId: "0199a000-0000-7000-8000-0000000000e1",
+              kind: "Cheque",
               payee: "فروشگاه تجهیزات",
               amount: 50000000,
               dueDate: "2026-09-28",
-              description: "قسط اول تردمیل",
+              description: "تردمیل",
+              installmentNumber: null,
+              installmentCount: null,
             },
             {
-              chequeId: "0199a000-0000-7000-8000-0000000000e2",
-              payee: "تعمیرگاه",
+              payableId: "0199a000-0000-7000-8000-0000000000e2",
+              kind: "Installment",
+              payee: "بانک ملت",
               amount: 8000000,
               dueDate: "2026-10-04",
-              description: "تعمیر دوچرخه",
+              description: "وام دستگاه",
+              installmentNumber: 2,
+              installmentCount: 12,
             },
           ],
         }),
     });
     renderApp("/dashboard", { session: session() });
 
-    // §9 Cheques: past its date and not marked stays on the list, marked; the date is Jalali.
-    const cheques = await screen.findByRole("region", { name: "چک‌های نزدیک سررسید" });
-    const [overdue, dueToday] = within(cheques).getAllByRole("listitem");
+    // §9: past its date and not marked stays on the list, marked; the date is Jalali.
+    const payables = await screen.findByRole("region", { name: "چک و قسط نزدیک سررسید" });
+    const [overdue, dueToday] = within(payables).getAllByRole("listitem");
     expect(overdue).toHaveTextContent("فروشگاه تجهیزات");
+    expect(overdue).toHaveTextContent("چک — تردمیل");
     expect(overdue).toHaveTextContent("۵۰٬۰۰۰٬۰۰۰ تومان");
     expect(overdue).toHaveTextContent("سررسید گذشته، ۱۴۰۵/۰۷/۰۶");
+    expect(dueToday).toHaveTextContent("قسط ۲ از ۱۲ — وام دستگاه");
     expect(dueToday).toHaveTextContent("امروز، ۱۴۰۵/۰۷/۱۲");
-    expect(within(cheques).getByRole("link", { name: "همهٔ چک‌ها" })).toHaveAttribute(
+    expect(within(payables).getByRole("link", { name: "همهٔ چک‌ها و قسط‌ها" })).toHaveAttribute(
       "href",
-      "/cheques",
+      "/payables",
     );
   });
 
-  it("DashboardPage_NoChequesDue_SaysTheListIsEmpty", async () => {
+  it("DashboardPage_NoPayablesDue_SaysTheListIsEmpty", async () => {
     mockApi(dashboard);
     renderApp("/dashboard", { session: session() });
 
-    expect(await screen.findByRole("region", { name: "چک‌های نزدیک سررسید" })).toHaveTextContent(
-      "چکی در این فهرست نیست.",
+    expect(await screen.findByRole("region", { name: "چک و قسط نزدیک سررسید" })).toHaveTextContent(
+      "چک یا قسطی در این فهرست نیست.",
     );
   });
 

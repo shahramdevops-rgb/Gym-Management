@@ -1,3 +1,7 @@
+using System.Text.Json.Serialization;
+
+using Gym.Domain.Payables;
+
 namespace Gym.Application.Reports.GetNeedsAttention;
 
 /// <summary>
@@ -11,9 +15,9 @@ namespace Gym.Application.Reports.GetNeedsAttention;
 /// <param name="OldDebtWithoutMember">
 /// What walk-ins at the cafe and guests owe on sales more than 30 days old: there is nobody to list.
 /// </param>
-/// <param name="ChequesDue">
-/// Pending cheques the gym gave, dated within 7 days or already past their date, the earliest first
-/// (§9 <i>Cheques</i>).
+/// <param name="PayablesDue">
+/// Pending cheques and instalments, dated within 7 days or already past their date, the earliest
+/// first (§9 <i>Cheques and instalments</i>).
 /// </param>
 public sealed record NeedsAttentionResponse(
     DateOnly Today,
@@ -22,7 +26,7 @@ public sealed record NeedsAttentionResponse(
     IReadOnlyList<AbsentResponse> Absent,
     IReadOnlyList<OldDebtResponse> OldDebts,
     decimal OldDebtWithoutMember,
-    IReadOnlyList<ChequeDueResponse> ChequesDue);
+    IReadOnlyList<PayableDueResponse> PayablesDue);
 
 /// <param name="SessionsLeft">Zero when every session is used and the plan has not reached its end date.</param>
 public sealed record RunningOutResponse(
@@ -43,5 +47,15 @@ public sealed record AbsentResponse(
 public sealed record OldDebtResponse(
     Guid MemberId, string FullName, string PhoneNumber, decimal Owed, DateOnly OldestSaleOn);
 
-/// <param name="DueDate">Before today means past its date and still not marked «پاس شد».</param>
-public sealed record ChequeDueResponse(Guid ChequeId, string Payee, decimal Amount, DateOnly DueDate, string Description);
+/// <param name="DueDate">Before today means past its date and still not marked paid.</param>
+/// <param name="InstallmentNumber">The n of «قسط n از N»; null on a cheque.</param>
+/// <param name="InstallmentCount">The N of «قسط n از N»; null on a cheque.</param>
+public sealed record PayableDueResponse(
+    Guid PayableId,
+    [property: JsonConverter(typeof(JsonStringEnumConverter<PayableKind>))] PayableKind Kind,
+    string Payee,
+    decimal Amount,
+    DateOnly DueDate,
+    string Description,
+    int? InstallmentNumber,
+    int? InstallmentCount);

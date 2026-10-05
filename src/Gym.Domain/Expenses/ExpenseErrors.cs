@@ -57,6 +57,14 @@ public static class ExpenseErrors
         "Expenses.AlreadyVoided",
         "The expense is voided and can no longer be changed.");
 
+    /// <summary>
+    /// BUSINESS_RULES.md §9 <i>Cheques and instalments</i>: the expense of a paid cheque or
+    /// instalment changes only by sending that payment back to pending.
+    /// </summary>
+    public static readonly Error LinkedToPayable = Error.BusinessRule(
+        "Expenses.LinkedToPayable",
+        "This expense was recorded by paying a cheque or an instalment. Send that payment back to pending instead.");
+
     public static readonly Error VoidReasonRequired = Error.Validation(
         "Expenses.VoidReasonRequired",
         "A reason is required to void an expense.");

@@ -2053,6 +2053,43 @@ Closed 2026-10-05: 1632 backend tests (77 new: 32 domain, 45 integration) and 87
 (35 new) green, zero warnings, lint and production build pass. Migration `AddCheques` adds one new
 table and touches no existing row: it is safe over the real data, and the release still starts with
 `./backup.sh run`.
+
+#### 9.4 follow-up: cheques and instalments (چک و قسط) (asked by the developer, 1405/07/13)
+The developer changed the rule after 9.4 was committed and before it was released: a cheque **is**
+an expense, and the system records it on payment; instalments join the same page. Decided with the
+developer on 1405/07/13: the expense category is chosen on the form; the expense is dated the day
+it is marked paid; each instalment is entered on its own like a cheque, with «قسط n از N» (both
+required, N at most 360); an instalment can be paid before its date, a cheque cannot; one shared
+list with a kind filter and the pending total split by kind; a payment marked by mistake goes back
+to pending with a reason, which voids its expense, and that expense is locked on the expenses page.
+- [x] Rules first: BUSINESS_RULES.md §9 *Cheques and instalments* (replaces *Cheques*), the
+      expenses' lock, §12 *Cheques and instalments coming due*, §0 and §1 rows
+- [x] `Cheque` renamed `Payable` with `Kind` (Cheque | Installment), `CategoryId`,
+      `InstallmentNumber`/`InstallmentCount`; `MarkPaid` returns the expense, `RevertToPending`
+      voids it; `Expense.PayableId`, refused edit and void when set (`Expenses.LinkedToPayable`)
+- [x] `payables` table: check constraints for the kind, the instalment numbers by kind, the paid
+      and cancelled fields; FK to the expense category; `expenses.payable_id` with a partial unique
+      index (one standing expense per payment). Migration `AddPayables` drops the empty `cheques`
+      table from `AddCheques` (never released, so no row anywhere to carry) and adds the new table
+      and one nullable column on `expenses`
+- [x] `/api/payables` (Owner): list by status and kind with the pending totals, get, register,
+      edit, `pay`, `revert`, `cancel`; `/api/cheques` is gone. `needs-attention` sends `payablesDue`
+- [x] `/payables` «چک و قسط», Owner menu: kind and status filters in the URL, the totals, the form
+      with kind, category and «قسط n از N», «پاس شد»/«پرداخت شد», «برگشت به در انتظار», cancel;
+      «چک و قسط نزدیک سررسید» on the dashboard; «از چک و قسط» on the expenses page, without edit
+      or void
+- [x] Tests: the instalment numbers, paying an instalment early and a cheque not, the expense
+      written and its date, revert and pay again, the expense's lock (domain); pay writing the
+      expense, racing pays, revert voiding it, the expense endpoints refusing it, list by kind and
+      the split totals, the dashboard with an instalment, the new check constraints and the partial
+      unique index (integration); the page, both forms, revert, the kind filter, the expenses badge
+      and the dashboard list (frontend)
+
+Closed 2026-10-05: 1689 backend tests (521 domain, 1168 integration) and 885 frontend tests green,
+zero warnings, lint and production build pass. Migration `AddPayables` touches no existing row of
+the real data (`cheques` was never released, and the new `expenses` column is nullable); the
+release still starts with `./backup.sh run`.
+
 Next: **9.5 Shift handover**, rules first, in its own session.
 
 ### 9.5 Shift handover (تحویل شیفت) (asked by the developer, 1405/07/12)
