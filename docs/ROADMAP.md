@@ -2036,6 +2036,17 @@ Closed 2026-10-05: 1690 backend tests and 887 frontend tests green, lint and bui
 known main-chunk size warning only). No migration, no new error code. The dashboard test file now
 loads the lazy page once before its tests: its first test had run out of time on a busy machine.
 
+#### 9.3 follow-up: a livelier dashboard (asked by the developer, 1405/07/14)
+The dashboard read as black and white, the top most of all. Look only: the same figures, rules and
+tests.
+- [x] A coloured banner at the top: greeting, today's date, the range in words, the presets as pills
+- [x] Each card, list and chart has its own accent and icon (`--tone-*` tokens with dark variants,
+      `tone-soft` / `tone-ink` / `tone-solid` / `tone-bar` utilities); the change since the range
+      before is a badge, still arrow + word + colour
+- [x] Receivables in one card with a bar split by age; the renewal rate with a progress bar
+- [x] «نیاز به اقدام»: a coloured edge, count badge and initials per list; an overdue cheque tinted
+- [x] Charts: rounded gradient bars on a track; skeleton cards while the figures load
+
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its
 date the Owner records the expense by hand, in that month (§9). The system only reminds.

@@ -1,10 +1,12 @@
+import { ChartColumnBig } from "lucide-react";
+import { useId } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from "recharts";
 
 import { formatMoney, formatMoneyShort } from "@/lib/format";
 
 import { revenueSeries, type FinancialDay, type MoneyPoint } from "../figures";
-import { axisTick, gridStroke, hoveredRow, svgText } from "../chartStyle";
-import { ChartCard, ChartTooltip } from "./ChartCard";
+import { axisTick, gridStroke, hoveredRow, svgId, svgText } from "../chartStyle";
+import { BarGradient, ChartCard, ChartTooltip } from "./ChartCard";
 
 const revenueName = "درآمد خالص";
 const expensesName = "هزینه";
@@ -24,17 +26,24 @@ export function RevenueChart({ days }: { days: FinancialDay[] }) {
   const points = revenueSeries(days);
   const empty = points.every((point) => point.revenue === 0 && point.expenses === 0);
   const byMonth = points.length > 0 && points.length < days.length;
+  const reactId = useId();
+  const revenueFill = svgId(reactId, "revenue");
+  const expensesFill = svgId(reactId, "expenses");
 
   return (
     <ChartCard
       title="درآمد و هزینه"
       description={byMonth ? "به تفکیک ماه، به تومان" : "روزبه‌روز، به تومان"}
+      icon={ChartColumnBig}
+      tone="blue"
       empty={empty}
       className="lg:col-span-2"
     >
       <div dir="ltr">
         <BarChart responsive data={points} style={{ width: "100%", height: 280 }} barGap={2}>
-          <CartesianGrid vertical={false} stroke={gridStroke} />
+          <BarGradient id={revenueFill} color="var(--chart-1)" />
+          <BarGradient id={expensesFill} color="var(--chart-2)" />
+          <CartesianGrid vertical={false} strokeDasharray="4 4" stroke={gridStroke} />
           <XAxis
             dataKey="label"
             reversed
@@ -89,16 +98,16 @@ export function RevenueChart({ days }: { days: FinancialDay[] }) {
           <Bar
             dataKey="revenue"
             name={revenueName}
-            fill="var(--chart-1)"
+            fill={`url(#${revenueFill})`}
             maxBarSize={24}
-            radius={[4, 4, 0, 0]}
+            radius={[6, 6, 0, 0]}
           />
           <Bar
             dataKey="expenses"
             name={expensesName}
-            fill="var(--chart-2)"
+            fill={`url(#${expensesFill})`}
             maxBarSize={24}
-            radius={[4, 4, 0, 0]}
+            radius={[6, 6, 0, 0]}
           />
         </BarChart>
       </div>

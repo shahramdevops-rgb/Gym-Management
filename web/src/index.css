@@ -80,6 +80,23 @@
      the first is also the one hue the weekday × hour table is shaded in. */
   --chart-1: #2a78d6;
   --chart-2: #eb6834;
+  /* The dashboard's accents: one hue per card, list and chart, so each reads at a glance. Only
+     ever decoration beside words: a figure's meaning is never carried by its hue alone. Text in a
+     tone is mixed with the text ink (`tone-ink`), so it stays readable on both palettes. */
+  --tone-blue: oklch(0.58 0.17 255);
+  --tone-orange: oklch(0.66 0.18 45);
+  --tone-green: oklch(0.6 0.15 155);
+  --tone-violet: oklch(0.56 0.2 295);
+  --tone-teal: oklch(0.6 0.11 190);
+  --tone-amber: oklch(0.72 0.16 75);
+  --tone-pink: oklch(0.63 0.2 355);
+  --tone-sky: oklch(0.65 0.13 230);
+  --tone-red: oklch(0.6 0.21 25);
+  --tone-brown: oklch(0.58 0.12 55);
+  /* The dashboard's banner: blue into violet into a warm pink. */
+  --hero-from: oklch(0.55 0.19 260);
+  --hero-via: oklch(0.52 0.22 290);
+  --hero-to: oklch(0.57 0.2 340);
 }
 
 /* The party ring's turn. Registered, so the browser can animate an angle inside a gradient. */
@@ -137,6 +154,45 @@
   --door-unused: oklch(0.82 0.14 85);
   --chart-1: #3987e5;
   --chart-2: #d95926;
+  --tone-blue: oklch(0.7 0.15 255);
+  --tone-orange: oklch(0.74 0.16 50);
+  --tone-green: oklch(0.73 0.15 155);
+  --tone-violet: oklch(0.7 0.17 295);
+  --tone-teal: oklch(0.74 0.11 190);
+  --tone-amber: oklch(0.8 0.15 80);
+  --tone-pink: oklch(0.72 0.17 355);
+  --tone-sky: oklch(0.75 0.12 230);
+  --tone-red: oklch(0.68 0.19 25);
+  --tone-brown: oklch(0.72 0.1 60);
+  --hero-from: oklch(0.36 0.13 260);
+  --hero-via: oklch(0.34 0.15 290);
+  --hero-to: oklch(0.4 0.14 340);
+}
+
+/*
+ * The dashboard's accent utilities. An element sets `--tone` to one of the --tone-* colours (see
+ * `toneStyle` in features/dashboard/tone.ts), and these read it: a soft tint behind, the tone as
+ * text, or a bar that fades in from its start. The bar fades through transparency, not into the
+ * card's colour: mixing in oklch towards the dark card turned the hue purple on the way.
+ */
+@utility tone-soft {
+  background-color: color-mix(in oklch, var(--tone) 14%, transparent);
+}
+
+@utility tone-ink {
+  color: color-mix(in oklch, var(--tone) 72%, var(--foreground));
+}
+
+@utility tone-solid {
+  background-color: var(--tone);
+}
+
+@utility tone-bar {
+  background-image: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--tone) 70%, transparent),
+    var(--tone)
+  );
 }
 
 /*
