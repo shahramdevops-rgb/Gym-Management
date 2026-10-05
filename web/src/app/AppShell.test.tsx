@@ -162,6 +162,24 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "هزینه‌ها" })).not.toBeInTheDocument();
   });
 
+  it("AppShell_Owner_SeesTheChequesMenuItem", async () => {
+    mockApi(signedInHandlers(owner));
+
+    renderApp("/", { session: session() });
+
+    expect(await screen.findByRole("link", { name: "چک‌ها" })).toHaveAttribute("href", "/cheques");
+  });
+
+  it("AppShell_Staff_DoesNotSeeTheChequesMenuItem", async () => {
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+
+    // Cheques are the Owner's, reading included (docs/BUSINESS_RULES.md §1, §9 *Cheques*).
+    await screen.findByText(staffUser.fullName);
+    expect(screen.queryByRole("link", { name: "چک‌ها" })).not.toBeInTheDocument();
+  });
+
   // ---- The theme (BUSINESS_RULES.md §14) ----
 
   it("AppShell_FirstVisit_OpensLightWithTheDarkButtonNotPressed", async () => {

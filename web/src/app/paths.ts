@@ -18,6 +18,8 @@ export const paths = {
   cafeOrders: "/cafe/orders",
   cafeMenu: "/cafe/menu",
   expenses: "/expenses",
+  /** The cheques the gym gave, "چک‌ها" (BUSINESS_RULES.md §9 *Cheques*). */
+  cheques: "/cheques",
   /** The Owner's dashboard, "داشبورد" (BUSINESS_RULES.md §12 *Dashboard*). */
   dashboard: "/dashboard",
 } as const;

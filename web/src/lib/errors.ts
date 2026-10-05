@@ -281,6 +281,23 @@ export const errorMessages: Record<string, string> = {
   "Expenses.ChangedConcurrently":
     "این هزینه هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
+  // Cheques (BUSINESS_RULES.md §9 *Cheques*)
+  "Cheques.NotFound": "چک پیدا نشد.",
+  "Cheques.AmountNotPositive": "مبلغ باید بزرگ‌تر از صفر باشد.",
+  "Cheques.AmountTooLarge": "مبلغ بیش از حد بزرگ است.",
+  "Cheques.AmountTooManyDecimals": "مبلغ حداکثر می‌تواند ۲ رقم اعشار داشته باشد.",
+  "Cheques.PayeeRequired": "نام گیرنده (در وجه) را وارد کنید.",
+  "Cheques.PayeeTooLong": "نام گیرنده بیش از حد طولانی است.",
+  "Cheques.DescriptionRequired": "شرح چک را وارد کنید.",
+  "Cheques.DescriptionTooLong": "شرح چک بیش از حد طولانی است.",
+  "Cheques.NotDueYet": "چک پیش از تاریخش پاس نمی‌شود.",
+  "Cheques.AlreadyPassed": "این چک پاس شده است و دیگر تغییر نمی‌کند.",
+  "Cheques.AlreadyCancelled": "این چک باطل شده است و دیگر تغییر نمی‌کند.",
+  "Cheques.CancelReasonRequired": "دلیل ابطال را وارد کنید.",
+  "Cheques.CancelReasonTooLong": "دلیل ابطال بیش از حد طولانی است.",
+  "Cheques.ChangedConcurrently":
+    "این چک هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+
   // Reports
   "Reports.DateRangeRequired": "تاریخ شروع و پایان گزارش را انتخاب کنید.",
   "Reports.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",

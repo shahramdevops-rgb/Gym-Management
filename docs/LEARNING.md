@@ -1429,3 +1429,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Color is checked, not eyeballed.** The two series colors were run through a colorblind-safety validator for both themes and stored as `--chart-1` / `--chart-2` tokens. A change arrow always comes with a word, so meaning never depends on color alone.
 - **Look at it in a browser.** All jsdom tests passed while the labels overlapped on screen. jsdom draws charts at zero size, so the tests check the figures around the charts, and the geometry had to be checked by eye.
 - **My notes:**
+
+## 9.4 — Cheque reminders (یادآور چک)
+
+- **A status read from the fields, not stored.** A cheque is pending, passed or cancelled depending on whether `PassedAt` or `CancelledAt` is set. A separate status column could disagree with those two, so there isn't one. The enum (`ChequeStatus`) is worked out in Application for the response and the filter. The database guarantees the two moments are never both set (`ck_cheques_not_passed_and_cancelled`).
+- **Final states make the rules short.** Passed and cancelled both end the cheque. One private check (`CheckPending`) guards edit, pass and cancel, and a mistake afterwards is a fresh cheque. The same idea keeps a voided expense final: a row that can still change after it "ended" makes the history arguable.
+- **Rules that need today stay out of check constraints.** "Not passed before its date" depends on the gym's today, which moves, while a check constraint has to hold for the row forever. The entity enforces it with `today` passed in. The database keeps the rules that never change: amount > 0, a reason with every cancel, a user with every mark.
+- **One converter on the type for query and response.** `[JsonConverter(typeof(JsonStringEnumConverter<ChequeStatus>))]` sits on the enum itself. The response then sends `"Pending"`, the query string takes `status=Pending`, and the OpenAPI document (and so the generated TypeScript type) describes it as names in both places.
+- **Invalidate what shows the same data.** Passing a cheque changes the register and the dashboard's «نیاز به اقدام». The cheque mutations invalidate both query keys, so going back to the dashboard never shows a cheque that was already passed.
+- **Confirm in the page, not with `window.confirm`.** «پاس شد» opens a row under the cheque that says it's final and links to the expenses page, instead of using a browser dialog. The confirmation can be tested, it can say more than yes/no, and it doesn't block the page.
+- **My notes:**

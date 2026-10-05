@@ -13,6 +13,7 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 |---|---|---|
 | `Sms:ExpiringDaysBefore`, `Sms:LowSessionsThreshold`, `Sms:MaxAttempts`, quiet hours | Phase 10 | |
 | SMS provider | Phase 10 | An Iranian panel, probably Kavenegar. Ask whether it allows free text or only approved templates — see §10. |
+| Who receives the cheque reminder SMS, and where that number is kept | Phase 10 | The Owner's number is stored nowhere yet. Until then the reminder is on the dashboard only (§9 *Cheques*). |
 
 Decided values:
 - Currency = Toman. There is no `Gym:Currency` setting and no currency column anywhere: the gym
@@ -142,6 +143,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | The gym's history: sales (فروش‌ها) of any day, paid and unpaid (§12 *Sales*) | ✅ | ❌ |
 | The gym's history: the totals of the sales and payments sections (§12 *Totals*) | ✅ | ❌ |
 | Expenses, dashboard, reports, audit log, SMS resend | ✅ | ❌ |
+| Cheques (چک‌ها): see, register, edit, mark passed, cancel (§9 *Cheques*) | ✅ | ❌ |
 
 ---
 
@@ -1144,6 +1146,41 @@ the stock rules that stood here before; roadmap 7.1 was rewritten with them.*
   - A voided expense is final: it cannot be edited or voided again. A correction is a fresh expense.
   - Expenses and their categories are Owner only, reading included (§1).
 
+### Cheques (چک‌ها)
+
+Decided with the developer, 1405/07/12–13 (2026-10-04/05). Roadmap 9.4. The gym pays for equipment
+with dated cheques; the system only reminds the Owner of them.
+
+- **A cheque is not an expense** and not money in any report. On its date the Owner records the
+  expense by hand (above), in that month. Nothing links the two. **Members never pay by cheque**:
+  the payment methods (§0) do not change.
+- Fields: `Amount`, `DueDate` (DateOnly, the date written on the cheque), `Payee` (در وجه),
+  `Description`, `RegisteredByUserId`. All four typed fields are required. `Amount` follows the money
+  rules of every other amount (greater than zero, at most 2 decimals, refused rather than rounded).
+  `Payee` is at most 200 characters, `Description` at most 500. There is no cheque number and no
+  bank field (decided with the developer).
+- `DueDate` has no limit: a cheque written months ago can still be entered late, and one dated a
+  year ahead is normal for instalments.
+- **Status**, from the cheque's own fields, never typed:
+  - «در انتظار» (pending): registered, neither passed nor cancelled.
+  - «پاس شد» (passed): the Owner marks it once the money has left the account. Only **on or after
+    its date** (`Cheques.NotDueYet`): under the Sayad system a bank does not pay a cheque early. The
+    day and the user are kept.
+  - «باطل شده» (cancelled): entered by mistake or taken back from the payee. A reason is required,
+    at most 500 characters.
+  - A cheque past its date is **not** passed on its own: it stays pending until the Owner marks it,
+    so the reminder to record the expense does not disappear by itself (decided with the developer).
+- **Editable while pending**, every edit audited. Passed and cancelled are **final**: no edit, no
+  second mark, no way back (`Cheques.AlreadyPassed`, `Cheques.AlreadyCancelled`). A mistake after
+  that is a fresh cheque. Cheques are **never deleted**.
+- **The register** lists cheques by status: pending ones the earliest date first, with the total of
+  every pending cheque (what the gym still has to pay); passed, cancelled and all, the latest date
+  first.
+- **The reminder** is on the dashboard (§12 *Needs attention*, *Cheques coming due*): 7 days before
+  the date, one fixed number for every cheque (decided with the developer). An SMS waits for Phase
+  10; who receives it, and where that number is kept, is decided there.
+- Owner only, reading included (§1).
+
 ---
 
 ## 10. Notifications (SMS)
@@ -1303,6 +1340,10 @@ no range. One member can be on more than one list.
   oldest age, above), with the day of the oldest such sale; the largest first. What walk-ins and
   guests owe on such sales is one figure beside the list, since there is nobody to call. The list
   and that figure add up to the receivables' «more than 30 days».
+- **Cheques coming due** (چک‌های نزدیک سررسید, roadmap 9.4): every pending cheque (§9 *Cheques*)
+  dated **within the next 7 days**, today included, and every pending cheque **past its date**,
+  marked «سررسید گذشته», until the Owner marks it «پاس شد» or cancels it. The earliest date first.
+  Not a member list: each row is a payee, an amount and a date.
 
 ### Dashboard (داشبورد)
 
