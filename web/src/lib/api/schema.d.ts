@@ -1705,6 +1705,7 @@ export interface components {
             byStaff: components["schemas"]["RevenueByStaffResponse"][];
             /** Format: double */
             sales: number | string;
+            salesPaidByMethod: components["schemas"]["SalesPaidByMethodResponse"][];
             /** Format: double */
             expenses: number | string;
             expensesByCategory: components["schemas"]["ExpensesByCategoryResponse"][];
@@ -2466,6 +2467,11 @@ export interface components {
         SalePaidFilter: "Paid" | "Unpaid" | null;
         /** @enum {unknown} */
         SaleSource: "Subscription" | "Cardio" | "Miscellaneous" | "Analysis" | "CafeOrder";
+        SalesPaidByMethodResponse: {
+            method: components["schemas"]["PaymentMethod"];
+            /** Format: double */
+            amount: number | string;
+        };
         SalesTotalsResponse: {
             /** Format: double */
             amount: number | string;

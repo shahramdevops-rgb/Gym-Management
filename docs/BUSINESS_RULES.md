@@ -1291,12 +1291,18 @@ dashboard (9.3).
     plans, single visits, هوازی and the cafe, and the dashboard says so in its name, «فروش (به غیر
     از آنالیز و فروشگاه)». They are still sales of their own source: each is counted in its
     «sold» above, and the history's sales totals keep them.
+  - **Paid on them, by method** (decided with the developer, 1405/07/14): card, bank transfer and
+    cash, what has been paid so far on those same sales, refunds taken off, whenever it was paid.
+    An unpaid sale has no method, so the three add up to less than «فروش» by what is still owed.
+    The dashboard writes them «کارت», «انتقال», «نقد» inside the «فروش» card, beside the figure.
 - **Expenses** by `ExpenseDate`, voided ones left out (§9), in total and by category.
 - **Net profit («سود خالص») = net revenue without فروشگاه and آنالیز − every expense** of the same
   range (decided with the developer, 1405/07/14, like «فروش» above). Every expense counts,
   whatever its category. Revenue by when money arrived, expenses by the date the Owner gave them.
-  The revenue itself still counts every payment, فروشگاه and آنالیز included; the dashboard
-  calls it «درآمد ناخالص» (1405/07/14).
+  The revenue itself still counts every payment, فروشگاه and آنالیز included; it is drawn in the
+  revenue chart and the revenue breakdowns, but has no card of its own: «درآمد ناخالص» and
+  «صندوق نقدی» were taken off the summary, and «فروش» took the first place (asked by the
+  developer, 1405/07/14).
 - **Cafe gross profit («سود بوفه» on the dashboard, 1405/07/14) = the cafe's net revenue − expenses in the «خرید بوفه» category** of the same
   range (the seeded category, by its fixed id, so a rename does not break it). The cafe counts no
   stock (§8), so this is the closest the gym gets to a margin, and only over a range long enough for

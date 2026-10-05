@@ -129,9 +129,10 @@ describe("DashboardPage", () => {
 
     await screen.findByText("خلاصهٔ بازه");
 
-    const revenue = card("درآمد ناخالص");
-    expect(revenue).toHaveTextContent("۱۲٬۰۰۰٬۰۰۰ تومان");
-    expect(within(revenue).getByText(/۲۰٪ بیشتر از بازهٔ قبل/)).toHaveClass("text-success");
+    // 7,000,000 after 6,000,000: up, and good news.
+    expect(within(card("سود خالص")).getByText(/۱۷٪ بیشتر از بازهٔ قبل/)).toHaveClass(
+      "text-success",
+    );
 
     // Expenses going up is bad news, whatever the arrow's direction.
     expect(within(card("هزینه‌ها")).getByText(/۲۵٪ بیشتر از بازهٔ قبل/)).toHaveClass(
@@ -143,7 +144,6 @@ describe("DashboardPage", () => {
     );
     // Nothing before: a percent would say nothing, so the figure before is shown.
     expect(card("سود بوفه")).toHaveTextContent("بازهٔ قبل: ۰ تومان");
-    expect(card("صندوق نقدی")).toHaveTextContent("۳٬۰۰۰٬۰۰۰ تومان");
 
     expect(within(card("ورود اعضا")).getByText(/۲۰٪ کمتر از بازهٔ قبل/)).toHaveClass(
       "text-destructive",
@@ -152,6 +152,25 @@ describe("DashboardPage", () => {
     // 3 renewed of the 4 decided; the one still waiting is left out (§12).
     expect(card("نرخ تمدید")).toHaveTextContent("۷۵٪");
     expect(card("نرخ تمدید")).toHaveTextContent("۳ از ۴ پلن تمام‌شده؛ ۱ در انتظار");
+  });
+
+  it("DashboardPage_Sales_ComeFirstWithWhatWasPaidOnThemByMethod", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    // 1405/07/14: «فروش» took «درآمد ناخالص»'s place, and «صندوق نقدی» is gone.
+    const terms = screen.getAllByRole("term").map((term) => term.textContent);
+    expect(terms[0]).toBe("فروش (به غیر از آنالیز و فروشگاه)");
+    expect(terms).not.toContain("درآمد ناخالص");
+    expect(terms).not.toContain("صندوق نقدی");
+
+    const sales = card("فروش (به غیر از آنالیز و فروشگاه)");
+    expect(sales).toHaveTextContent("۱۵٬۰۰۰٬۰۰۰ تومان");
+    const methods = within(sales)
+      .getAllByRole("listitem")
+      .map((row) => row.textContent);
+    expect(methods).toEqual(["کارت۹٬۰۰۰٬۰۰۰ تومان", "انتقال۱٬۰۰۰٬۰۰۰ تومان", "نقد۳٬۰۰۰٬۰۰۰ تومان"]);
   });
 
   it("DashboardPage_PlansAndSingleVisits_ShowTheirMoneyAndHowManyWereSold", async () => {

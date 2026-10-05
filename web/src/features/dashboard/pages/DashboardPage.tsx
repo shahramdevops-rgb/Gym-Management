@@ -1,7 +1,6 @@
 import {
   Activity,
   ArrowLeftRight,
-  Banknote,
   BatteryLow,
   CalendarCheck,
   ChartColumn,
@@ -19,13 +18,12 @@ import {
   Ticket,
   TrendingUp,
   UserPlus,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { useSearchParams } from "react-router";
 
 import { Alert } from "@/components/ui/alert";
-import { paymentMethodLabels } from "@/features/payments/api";
+import { paymentMethodLabels, type PaymentMethod } from "@/features/payments/api";
 import { errorMessage, errorMessages } from "@/lib/errors";
 import { formatMoney, formatNumber, formatPercent, gymToday, toPersianDigits } from "@/lib/format";
 import { dateFromParams } from "@/lib/searchParams";
@@ -73,14 +71,20 @@ function rangeFrom(params: URLSearchParams, today: string): RangeDraft {
   return { from: dateFromParams(params, "from"), to: dateFromParams(params, "to") };
 }
 
-function cashNet(period: FinancialPeriod): number | string {
-  return period.byMethod.find((item) => item.method === "Cash")?.money.net ?? 0;
-}
-
 const formatCount = (value: number) => formatNumber(value);
 
 /** «فروش» leaves فروشگاه and آنالیز out, and says so wherever it is shown (§12, 1405/07/14). */
 const salesLabel = "فروش (به غیر از آنالیز و فروشگاه)";
+
+/**
+ * The methods on the «فروش» card, in the developer's own short words (1405/07/14): the card's
+ * corner has room for one word each.
+ */
+const salesMethodLabels: Record<PaymentMethod, string> = {
+  Card: "کارت",
+  BankTransfer: "انتقال",
+  Cash: "نقد",
+};
 
 /**
  * The sources in the dashboard's order (cafe above فروشگاه), each bar the money received, and on
@@ -170,16 +174,20 @@ export function DashboardPage() {
             {financial.isSuccess && (
               <>
                 <StatCard
-                  label="درآمد ناخالص"
-                  tone="blue"
-                  icon={Wallet}
-                  value={formatMoney(financial.data.current.revenue.net)}
-                  hint={`${salesLabel}: ${formatMoney(financial.data.current.sales)}`}
+                  label={salesLabel}
+                  tone="violet"
+                  icon={ShoppingBag}
+                  value={formatMoney(financial.data.current.sales)}
+                  hint="آنچه در بازه فروخته شده، پرداخت شده یا نشده"
                   comparison={{
-                    current: financial.data.current.revenue.net,
-                    previous: financial.data.previous.revenue.net,
-                    previousLabel: formatMoney(financial.data.previous.revenue.net),
+                    current: financial.data.current.sales,
+                    previous: financial.data.previous.sales,
+                    previousLabel: formatMoney(financial.data.previous.sales),
                   }}
+                  breakdown={financial.data.current.salesPaidByMethod.map((row) => ({
+                    label: salesMethodLabels[row.method],
+                    value: formatMoney(row.amount),
+                  }))}
                 />
                 <StatCard
                   label="هزینه‌ها"
@@ -204,30 +212,6 @@ export function DashboardPage() {
                     current: financial.data.current.netProfit,
                     previous: financial.data.previous.netProfit,
                     previousLabel: formatMoney(financial.data.previous.netProfit),
-                  }}
-                />
-                <StatCard
-                  label={salesLabel}
-                  tone="violet"
-                  icon={ShoppingBag}
-                  value={formatMoney(financial.data.current.sales)}
-                  hint="آنچه در بازه فروخته شده، پرداخت شده یا نشده"
-                  comparison={{
-                    current: financial.data.current.sales,
-                    previous: financial.data.previous.sales,
-                    previousLabel: formatMoney(financial.data.previous.sales),
-                  }}
-                />
-                <StatCard
-                  label="صندوق نقدی"
-                  tone="amber"
-                  icon={Banknote}
-                  value={formatMoney(cashNet(financial.data.current))}
-                  hint="دریافت نقدی منهای بازگشت نقدی"
-                  comparison={{
-                    current: cashNet(financial.data.current),
-                    previous: cashNet(financial.data.previous),
-                    previousLabel: formatMoney(cashNet(financial.data.previous)),
                   }}
                 />
                 <StatCard

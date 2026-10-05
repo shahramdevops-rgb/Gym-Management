@@ -122,6 +122,40 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task Financial_SalesPaidByMethod_IsWhatWasPaidOnTheRangesOwnSales()
+    {
+        var (owner, token, _) = await OwnerClientAsync();
+        var visitor = await AddMemberAsync("رضا کریمی");
+        var plan = await AssignOkAsync(owner, token, visitor.Id);
+        await PayOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/payments", 500_000m, "Card");
+        await PayOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/payments", 100_000m, "Cash");
+        await PostOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/refunds",
+            new { amount = 40_000m, method = "Cash", reason = "اشتباه در ثبت" });
+        var visit = await TestLockers.CheckInOkAsync(owner, token, visitor.Id);
+        var cardio = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
+        await PayOkAsync(owner, token, $"/api/service-charges/{cardio.Id}/payments", 50_000m, "BankTransfer");
+        await WalkInOrderAsync(owner, token, 60_000m);
+
+        // Left out: a shop sale (not in «فروش»), and a plan sold yesterday though paid today.
+        var shop = await RecordShopOkAsync(owner, token, visit.Id, "دستکش", 200_000m);
+        await PayOkAsync(owner, token, $"/api/service-charges/{shop.Id}/payments", 200_000m, "Card");
+        var older = await AssignOkAsync(owner, token, (await AddMemberAsync("مریم کاظمی")).Id);
+        await MoveSubscriptionSaleAsync(older.Id, Calendar().StartOfDayUtc(Today().AddDays(-1)).AddHours(12));
+        await PayOkAsync(owner, token, $"/api/subscriptions/{older.Id}/payments", 900_000m, "Card");
+
+        var current = (await FinancialOkAsync(owner, token, TodayRange())).Current;
+
+        // §12 (1405/07/14): the plan's 360,000 still owed has no method, so the three add up to less.
+        current.Sales.ShouldBe(900_000m + 50_000m + 60_000m);
+        current.SalesPaidByMethod.ShouldBe(
+        [
+            new SalesPaidByMethodResponse(PaymentMethod.Card, 500_000m),
+            new SalesPaidByMethodResponse(PaymentMethod.BankTransfer, 50_000m),
+            new SalesPaidByMethodResponse(PaymentMethod.Cash, 60_000m + 60_000m),
+        ]);
+    }
+
+    [Fact]
     public async Task Financial_Sold_CountsEachSourcesSalesOfTheRangeByTheirOwnDay()
     {
         var (owner, token, _) = await OwnerClientAsync();
