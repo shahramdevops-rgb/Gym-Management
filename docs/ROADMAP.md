@@ -2105,13 +2105,6 @@ zero warnings, lint and production build pass. Migration `AddPayables` touches n
 the real data (`cheques` was never released, and the new `expenses` column is nullable); the
 release still starts with `./backup.sh run`.
 
-Next: **9.5 Shift handover**, rules first, in its own session.
-
-### 9.5 Shift handover (تحویل شیفت) (asked by the developer, 1405/07/12)
-More staff may join, and each will hand over the shift: what they took in, by method, and the cash
-they hand on. 9.1's money by staff member is the first step. Rules to be written with the developer
-before any code.
-
 ---
 
 ## Phase 10 — SMS Notifications
