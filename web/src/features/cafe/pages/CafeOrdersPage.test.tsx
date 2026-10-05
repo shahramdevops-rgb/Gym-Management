@@ -5,6 +5,7 @@ import { json, mockApi, session, signedInHandlers, staffUser } from "@/test/mock
 import { reza } from "@/test/members";
 import { confirmMoneyReceived, pickMethod } from "@/test/payments";
 import { renderApp } from "@/test/renderApp";
+import { dateShown } from "@/test/jalaliDate";
 
 const history = {
   ...signedInHandlers(staffUser),
@@ -50,7 +51,7 @@ describe("CafeOrdersPage", () => {
     expect(url.searchParams.get("From")).toBe("2026-09-01");
     expect(url.searchParams.get("To")).toBe("2026-09-30");
     // The boxes speak Jalali.
-    expect(screen.getByLabelText("از تاریخ")).toHaveValue("۱۴۰۵/۰۶/۱۰");
+    expect(dateShown("از تاریخ")).toBe("۱۰ شهریور ۱۴۰۵");
   });
 
   it("Orders_BackwardsDateRange_SaysSoWithoutAskingTheApi", async () => {

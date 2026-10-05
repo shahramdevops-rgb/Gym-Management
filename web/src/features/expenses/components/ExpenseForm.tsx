@@ -103,7 +103,6 @@ export function ExpenseForm({
             <JalaliDateField
               label="تاریخ هزینه"
               error={errors.expenseDate?.message}
-              name={field.name}
               value={field.value}
               onChange={field.onChange}
               onBlur={field.onBlur}

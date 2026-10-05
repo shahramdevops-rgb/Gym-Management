@@ -3,209 +3,98 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { moneyOrNull } from "@/lib/money";
-import { chooseBirthDate, pickFrom } from "@/test/birthDate";
+import { chooseBirthDate, chooseDate, pickFrom } from "@/test/jalaliDate";
 
 import { BirthDateField, JalaliDateField, MoneyField } from "./FormField";
 
+const chequeLabel = "تاریخ چک";
+
 /**
  * The field is controlled, so the tests drive it through a tiny host that holds the ISO value,
- * exactly as `Controller` does in `MemberForm`.
+ * exactly as `Controller` does in `PayableForm`.
  */
 function Host({ initial = "", error }: { initial?: string; error?: string }) {
   const [value, setValue] = useState(initial);
 
   return (
     <>
-      <JalaliDateField label="تاریخ تولد" error={error} value={value} onChange={setValue} />
+      <JalaliDateField label={chequeLabel} error={error} value={value} onChange={setValue} />
       <output data-testid="iso">{value}</output>
     </>
   );
 }
 
-const label = "تاریخ تولد";
-
 describe("JalaliDateField", () => {
-  it("JalaliDateField_IsoValue_ShowsTheJalaliDate", () => {
-    render(<Host initial="1991-08-03" />);
-
-    expect(screen.getByLabelText(label)).toHaveValue("۱۳۷۰/۰۵/۱۲");
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it("JalaliDateField_TypedPersianDigits_EmitsTheIsoDate", () => {
-    render(<Host />);
+  it("JalaliDateField_IsoValue_ChoosesTheJalaliDayMonthAndYear", () => {
+    render(<Host initial="2026-11-06" />); // ۱۵ آبان ۱۴۰۵
 
-    fireEvent.change(screen.getByLabelText(label), { target: { value: "۱۳۷۰/۰۵/۱۲" } });
-
-    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
+    expect(box("روز", chequeLabel)).toHaveTextContent("۱۵");
+    expect(box("ماه", chequeLabel)).toHaveTextContent("آبان");
+    expect(box("سال", chequeLabel)).toHaveTextContent("۱۴۰۵");
   });
 
-  it("JalaliDateField_TypedEnglishDigits_EmitsTheIsoDate", () => {
+  it("JalaliDateField_AllThreeChosen_EmitsTheIsoDate", () => {
     render(<Host />);
 
-    fireEvent.change(screen.getByLabelText(label), { target: { value: "1370/5/12" } });
+    chooseDate(chequeLabel, "1405/08/15");
 
-    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
+    expect(screen.getByTestId("iso")).toHaveTextContent("2026-11-06");
   });
 
-  it("JalaliDateField_HalfTypedDate_EmitsNothingButKeepsTheText", () => {
+  it("JalaliDateField_Years_RunFromThreeYearsAheadBackTo1404", () => {
+    // A cheque can fall due years ahead; nothing in the gym's books is older than ۱۴۰۴.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-05T08:00:00Z")); // ۱۳ مهر ۱۴۰۵
     render(<Host />);
-    const input = screen.getByLabelText(label);
 
-    fireEvent.change(input, { target: { value: "۱۳۷۰/۰۵" } });
+    expect(rows("سال", chequeLabel)).toEqual(["۱۴۰۸", "۱۴۰۷", "۱۴۰۶", "۱۴۰۵", "۱۴۰۴"]);
+  });
 
-    expect(input).toHaveValue("۱۳۷۰/۰۵");
+  it("JalaliDateField_StoredYearOutsideTheRange_IsStillOffered", () => {
+    render(<Host initial="2024-05-01" />); // ۱۲ اردیبهشت ۱۴۰۳
+
+    expect(box("سال", chequeLabel)).toHaveTextContent("۱۴۰۳");
+    expect(rows("سال", chequeLabel).at(-1)).toBe("۱۴۰۳");
+  });
+
+  it("JalaliDateField_Clear_EmptiesTheBoxesAndEmitsEmpty", () => {
+    render(<Host initial="2026-11-06" />);
+
+    fireEvent.click(screen.getByRole("button", { name: `پاک کردن ${chequeLabel}` }));
+
+    expect(box("روز", chequeLabel)).toHaveTextContent("روز");
+    expect(box("ماه", chequeLabel)).toHaveTextContent("ماه");
+    expect(box("سال", chequeLabel)).toHaveTextContent("سال");
     expect(screen.getByTestId("iso")).toBeEmptyDOMElement();
   });
 
-  it("JalaliDateField_BlurAfterAHalfTypedDate_EmptiesTheBox", () => {
-    // Deleting part of a date empties the value straight away, because a form must never hold a
-    // date the box no longer shows. Blur makes that visible instead of leaving stray text that
-    // looks like it will be saved.
-    render(<Host initial="1991-08-03" />);
-    const input = screen.getByLabelText(label);
-
-    fireEvent.change(input, { target: { value: "۱۳۷۰/۰۵" } });
-    fireEvent.blur(input);
-
-    expect(input).toHaveValue("");
-    expect(screen.getByTestId("iso")).toBeEmptyDOMElement();
-  });
-
-  it("JalaliDateField_BlurAfterAWholeDate_ShowsItTheOneWayDatesAreWritten", () => {
-    render(<Host />);
-    const input = screen.getByLabelText(label);
-
-    fireEvent.change(input, { target: { value: "1370/5/12" } });
-    fireEvent.blur(input);
-
-    expect(input).toHaveValue("۱۳۷۰/۰۵/۱۲");
-    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
-  });
-
-  it("JalaliDateField_DigitsTypedOneByOne_GetTheirSlashesAndCommit", () => {
-    // Typing must work as well as picking: digits alone, keystroke by keystroke, as a person types.
-    render(<Host />);
-    const input = screen.getByLabelText(label);
-    fireEvent.focus(input);
-
-    // Each keystroke adds to what the box shows now, slashes it added included.
-    for (const digit of "۱۳۷۰۰۵۱۲") {
-      fireEvent.change(input, { target: { value: (input as HTMLInputElement).value + digit } });
-    }
-
-    expect(input).toHaveValue("۱۳۷۰/۰۵/۱۲");
-    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
-  });
-
-  it("JalaliDateField_BackspaceOverASlash_DoesNotPutItBack", () => {
-    render(<Host />);
-    const input = screen.getByLabelText(label);
-    fireEvent.change(input, { target: { value: "13700" } });
-    expect(input).toHaveValue("1370/0");
-
-    fireEvent.change(input, { target: { value: "1370/" } });
-    fireEvent.change(input, { target: { value: "1370" } });
-
-    expect(input).toHaveValue("1370");
-  });
-
-  it("JalaliDateField_TypedWithDots_IsKeptOnBlur", () => {
-    render(<Host />);
-    const input = screen.getByLabelText(label);
-
-    fireEvent.change(input, { target: { value: "1370.05.12" } });
-    fireEvent.blur(input);
-
-    expect(input).toHaveValue("۱۳۷۰/۰۵/۱۲");
-    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
-  });
-
-  it("JalaliDateField_Clear_EmptiesTheBoxAndEmitsEmpty", () => {
-    render(<Host initial="1991-08-03" />);
-
-    fireEvent.click(screen.getByRole("button", { name: "پاک کردن تاریخ" }));
-
-    expect(screen.getByLabelText(label)).toHaveValue("");
-    expect(screen.getByTestId("iso")).toBeEmptyDOMElement();
-  });
-
-  it("JalaliDateField_Empty_HasNoClearButton", () => {
+  it("JalaliDateField_PartlyChosen_CanBeCleared", () => {
     render(<Host />);
 
-    expect(screen.queryByRole("button", { name: "پاک کردن تاریخ" })).not.toBeInTheDocument();
+    pickFrom(group(chequeLabel), "ماه", "آبان");
+    fireEvent.click(screen.getByRole("button", { name: `پاک کردن ${chequeLabel}` }));
+
+    expect(box("ماه", chequeLabel)).toHaveTextContent("ماه");
   });
 
-  it("JalaliDateField_Error_MarksTheInputInvalidAndPointsAtTheMessage", () => {
-    render(<Host error="تاریخ تولد نمی‌تواند در آینده باشد." />);
+  it("JalaliDateField_NothingChosen_HasNoClearButton", () => {
+    render(<Host />);
 
-    const input = screen.getByLabelText(label);
-    const message = screen.getByText("تاریخ تولد نمی‌تواند در آینده باشد.");
-    expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(input).toHaveAttribute("aria-describedby", message.id);
+    expect(screen.queryByRole("button", { name: /پاک کردن/ })).not.toBeInTheDocument();
   });
 
-  it("JalaliDateField_Focus_OpensThePersianCalendar", () => {
-    // The only test that proves the picker really mounts with calendar={persian}: a Gregorian
-    // one would name the month differently.
-    render(<Host initial="1991-08-03" />);
+  it("JalaliDateField_Error_IsMarkedAndDescribed", () => {
+    render(<Host error="تاریخ چک را وارد کنید." />);
 
-    fireEvent.focus(screen.getByLabelText(label));
-
-    // The month name appears in the header and again in the month list, so count rather than
-    // pick: the point is that a Persian month name is on screen at all.
-    expect(screen.getAllByText("مرداد").length).toBeGreaterThan(0);
-  });
-
-  it("JalaliDateField_Focus_OpensTheCalendarInPlaceUnderTheBox", () => {
-    // Not a floating popup: inside a scrolling dialog one was clipped and covered the buttons.
-    const { container } = render(<Host initial="1991-08-03" />);
-    const input = screen.getByLabelText(label);
-
-    fireEvent.focus(input);
-
-    const calendar = container.querySelector(".jalali-calendar");
-    expect(calendar).not.toBeNull();
-    expect(input).toHaveAttribute("aria-expanded", "true");
-    expect(document.getElementById(input.getAttribute("aria-controls")!)).toContainElement(
-      calendar as HTMLElement,
-    );
-  });
-
-  it("JalaliDateField_DayPicked_EmitsTheIsoDateAndClosesTheCalendar", () => {
-    const { container } = render(<Host initial="1991-08-03" />);
-    const input = screen.getByLabelText(label);
-    fireEvent.focus(input);
-
-    fireEvent.click(within(container.querySelector(".jalali-calendar")!).getByText("۲۰"));
-
-    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-11");
-    expect(input).toHaveValue("۱۳۷۰/۰۵/۲۰");
-    expect(container.querySelector(".jalali-calendar")).toBeNull();
-  });
-
-  it("JalaliDateField_Blur_ClosesTheCalendar", () => {
-    const { container } = render(<Host initial="1991-08-03" />);
-    const input = screen.getByLabelText(label);
-    fireEvent.focus(input);
-
-    fireEvent.blur(input);
-
-    expect(container.querySelector(".jalali-calendar")).toBeNull();
-    expect(input).toHaveAttribute("aria-expanded", "false");
-  });
-
-  it("JalaliDateField_Escape_ClosesTheCalendarAndKeepsTheDate", () => {
-    const { container } = render(<Host initial="1991-08-03" />);
-    const input = screen.getByLabelText(label);
-    fireEvent.focus(input);
-
-    fireEvent.keyDown(input, { key: "Escape" });
-
-    expect(container.querySelector(".jalali-calendar")).toBeNull();
-    expect(screen.getByTestId("iso")).toHaveTextContent("1991-08-03");
+    const message = screen.getByText("تاریخ چک را وارد کنید.");
+    expect(group(chequeLabel)).toHaveAttribute("aria-describedby", message.id);
+    expect(box("سال", chequeLabel)).toHaveAttribute("aria-invalid", "true");
   });
 });
-
 /**
  * The money field is controlled too, so it is driven through a real react-hook-form, the way
  * every form in the app uses it: `Controller` holds the text and the submit handler turns it
@@ -353,21 +242,23 @@ function BirthDateHost({ initial = "", error }: { initial?: string; error?: stri
   );
 }
 
-function group() {
-  return screen.getByRole("group", { name: label });
+const label = "تاریخ تولد";
+
+function group(fieldLabel = label) {
+  return screen.getByRole("group", { name: fieldLabel });
 }
 
-function box(name: "روز" | "ماه" | "سال") {
-  return within(group()).getByRole("combobox", { name });
+function box(name: "روز" | "ماه" | "سال", fieldLabel = label) {
+  return within(group(fieldLabel)).getByRole("combobox", { name });
 }
 
 /** The rows a box offers, read with its list open. */
-function rows(name: "روز" | "ماه" | "سال") {
-  fireEvent.click(box(name));
-  const texts = within(group())
+function rows(name: "روز" | "ماه" | "سال", fieldLabel = label) {
+  fireEvent.click(box(name, fieldLabel));
+  const texts = within(group(fieldLabel))
     .getAllByRole("option")
     .map((option) => option.textContent);
-  fireEvent.click(box(name));
+  fireEvent.click(box(name, fieldLabel));
   return texts;
 }
 
@@ -476,6 +367,12 @@ describe("BirthDateField", () => {
 
     expect(within(group()).queryByRole("listbox")).not.toBeInTheDocument();
     expect(onKeyDown).not.toHaveBeenCalled();
+  });
+
+  it("BirthDateField_Chosen_HasNoClearButton", () => {
+    render(<BirthDateHost initial="1991-08-03" />);
+
+    expect(screen.queryByRole("button", { name: /پاک کردن/ })).not.toBeInTheDocument();
   });
 
   it("BirthDateField_Error_IsMarkedAndDescribed", () => {

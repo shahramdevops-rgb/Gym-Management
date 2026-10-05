@@ -24,6 +24,7 @@ import {
 import { reza, membersPage } from "@/test/members";
 import { json, mockApi, owner, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
+import { dateShown } from "@/test/jalaliDate";
 
 import { isoDaysBefore } from "../range";
 
@@ -188,7 +189,7 @@ describe("HistoryPage", () => {
     expect(query.get("Method")).toBe("Cash");
     expect(query.get("Source")).toBe("CafeOrder");
 
-    expect(screen.getByLabelText("از تاریخ")).toHaveValue("۱۴۰۵/۰۶/۱۰");
+    expect(dateShown("از تاریخ")).toBe("۱۰ شهریور ۱۴۰۵");
     expect(screen.getByLabelText("روش پرداخت")).toHaveValue("Cash");
     expect(screen.getByLabelText("بابت")).toHaveValue("CafeOrder");
     expect(await screen.findByText(reza.fullName, { selector: "span" })).toBeInTheDocument();
@@ -436,9 +437,7 @@ describe("HistoryPage", () => {
     const totals = await screen.findByRole("region", { name: "جمع" });
     expect(within(totals).getByText("جمع همهٔ ردیف‌ها")).toBeInTheDocument();
     expect(within(totals).getByText("مبلغ").nextSibling).toHaveTextContent(formatMoney(2160000));
-    expect(within(totals).getByText("دریافتی").nextSibling).toHaveTextContent(
-      formatMoney(1260000),
-    );
+    expect(within(totals).getByText("دریافتی").nextSibling).toHaveTextContent(formatMoney(1260000));
     expect(within(totals).getByText("مانده").nextSibling).toHaveTextContent(formatMoney(900000));
 
     // The list's own filters, and no page: the totals cover every page.

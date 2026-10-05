@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 
-import { chooseBirthDate } from "@/test/birthDate";
+import { chooseBirthDate } from "@/test/jalaliDate";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { reza } from "@/test/members";
 import { renderApp } from "@/test/renderApp";

@@ -1458,3 +1458,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **Display order belongs to the screen.** Moving the cafe above فروشگاه was a frontend list (`revenueSourceOrder`). The API keeps its fixed order, because other readers and tests rely on it.
 - **A second API on a spare port.** A running `Gym.Api` locked the normal build folder. `dotnet test --artifacts-path <folder>` built everything elsewhere, and the API built there was run on port 5199 just to generate `schema.d.ts`. The developer's own API was left alone.
 - **My notes:**
+
+## Follow-up — Every date chosen like a birth date (همهٔ تاریخ‌ها مثل تاریخ تولد)
+
+- **One component, settings for the differences.** The birth date and every other date had the same three boxes and differed only in the years offered and whether the date can be cleared. Both are now thin wrappers around one private `DropdownDateField` that takes those two things as props. A fix to the boxes lands in every date field at once.
+- **A range that moves on its own.** The business years run from ۱۴۰۴ to "this Jalali year + 3", worked out from `gymToday()` on each render, so no one has to edit a constant every Nowruz. The test pins the clock with `vi.setSystemTime` to check the exact list.
+- **Removing a dependency is a cleanup too.** Once nothing typed a date, the calendar library, its companion package, its dark-theme CSS and three conversion helpers had no callers. Leaving them would mean code to maintain and a build that ships unused bytes. Their useful tests (Nowruz, the 30th of Esfand) moved to the functions still in use.
+- **Test helpers follow the UI's contract, not its markup.** Page tests choose a date with `chooseDate(label, "1405/08/15")` and read one with `dateShown(label)`. When the widget changes again, only `test/jalaliDate.ts` changes, not every page test.
+- **My notes:**

@@ -5,9 +5,9 @@
  * Jalali dates and Persian digits. That translation happens here and nowhere else, so a
  * component never calls toLocaleString() with its own set of options.
  *
- * It goes both ways: `formatDate` and friends are for showing what was stored, and `toIsoDate`
- * and friends are for a date that was typed into a Jalali calendar and has to be sent back as
- * Gregorian (docs/BUSINESS_RULES.md §13).
+ * It goes both ways: `formatDate` and friends are for showing what was stored, and `jalaliToIso`
+ * is for a date that was chosen in Jalali and has to be sent back as Gregorian
+ * (docs/BUSINESS_RULES.md §13).
  */
 
 import {
@@ -18,7 +18,6 @@ import {
 } from "date-fns-jalali";
 
 import { normalizeMoney } from "./money";
-import { normalizeDigits } from "./normalize";
 
 /** Shown instead of a date or amount that is missing or unparseable. */
 export const emptyValue = "—";
@@ -409,23 +408,16 @@ export function formatPhone(value: string | null | undefined): string {
 // ---- Jalali input: the direction the screen sends back ----
 //
 // The formatters above turn what the API stores into what the screen shows. A date that is
-// *typed* has to travel the other way, and that conversion is arithmetic rather than formatting,
+// *chosen* has to travel the other way, and that conversion is arithmetic rather than formatting,
 // so it uses date-fns-jalali rather than Intl.
 
 /**
  * Midday, never midnight. `newDate` and `new Date(y, m, d)` build a local-time value, and Iran
  * moved its clocks at midnight in every year it kept daylight saving (1991–2005, 2008–2022) —
- * exactly the years birth dates fall in. A date built at 00:00 on one of those nights lands on
+ * the years birth dates fall in. A date built at 00:00 on one of those nights lands on
  * the day before. No time zone has ever skipped noon.
  */
 const midday = 12;
-
-/**
- * A typed Jalali date: four-or-three-digit year, then month and day, zeros optional. Between the
- * parts, any separator people actually type: `/`, `-`, `.`, a backslash, a space, a comma, and
- * the Persian keyboard's `÷` (U+00F7), Arabic decimal separator `٫` (U+066B) and comma `،` (U+060C).
- */
-const jalaliInputPattern = /^(\d{3,4})\s*[-/.\\\s,÷٫،]\s*(\d{1,2})\s*[-/.\\\s,÷٫،]\s*(\d{1,2})$/;
 
 function pad(value: number, length = 2): string {
   return String(value).padStart(length, "0");
@@ -447,7 +439,7 @@ export function jalaliToIso(year: number, month: number, day: number): string | 
   }
 
   // newDate rolls an impossible day into the next month (۱۴۰۴/۱۲/۳۰ becomes ۱۴۰۵/۰۱/۰۱) instead
-  // of refusing it. Converting back is what proves the day the user typed actually exists.
+  // of refusing it. Converting back is what proves the day that was chosen actually exists.
   const real =
     getJalaliYear(date) === year &&
     getJalaliMonthIndex(date) === month - 1 &&
@@ -456,43 +448,6 @@ export function jalaliToIso(year: number, month: number, day: number): string | 
   return real
     ? `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
     : null;
-}
-
-/**
- * A typed Jalali date as the ISO Gregorian date the API stores: `۱۳۷۰/۰۵/۱۲` → `1991-08-03`.
- * Persian, Arabic and English digits, any common separator, leading zeros optional. Anything
- * that is not one whole, real date is null — a half-typed date is not a date.
- */
-export function toIsoDate(value: string | null | undefined): string | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  const match = jalaliInputPattern.exec(normalizeDigits(value).trim());
-
-  return match === null ? null : jalaliToIso(Number(match[1]), Number(match[2]), Number(match[3]));
-}
-
-/** A year and up to four more digits, with or without the slash after the year. */
-const digitsAfterYearPattern = /^\d{4}\/?\d{1,4}$/;
-
-/**
- * Puts the slashes into a date typed as digits, so `13900509` reads `1390/05/09` as it is typed:
- * after the 4-digit year and the 2-digit month. Text that already has the year's slash (the one
- * this added a keystroke ago) carries on: `1390/050` → `1390/05/0`. The digits keep their script.
- * Anything else (a second slash, another separator, a one-digit month typed as `1390/5/9`, too
- * many digits) is the person's own format and comes back unchanged.
- */
-export function withDateSlashes(typed: string): string {
-  if (!digitsAfterYearPattern.test(normalizeDigits(typed))) {
-    return typed;
-  }
-
-  const digits = typed.replace("/", "");
-
-  return [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6)]
-    .filter((part) => part !== "")
-    .join("/");
 }
 
 /** The Jalali months by name, فروردین first: index 0 is month 1. */
@@ -511,7 +466,7 @@ export const jalaliMonthNames = [
   "اسفند",
 ] as const;
 
-/** The Jalali year, month (1-12) and day of an ISO business date, for the calendar picker. */
+/** The Jalali year, month (1-12) and day of an ISO business date, for the date fields' dropdowns. */
 export function jalaliPartsOf(
   value: string | null | undefined,
 ): { year: number; month: number; day: number } | null {
@@ -561,21 +516,6 @@ export function isJalaliBirthday(birthDate: string | null | undefined, today: st
     now.day === lastDayOfYear - 1 &&
     jalaliToIso(now.year, esfand, lastDayOfYear) === null
   );
-}
-
-/**
- * An ISO business date as the text a Jalali date box shows: `1991-08-03` → `۱۳۷۰/۰۵/۱۲`.
- * Empty for anything that is not an ISO date, so a blank field stays blank.
- *
- * Built from the parts and run through `toPersianDigits` rather than through date-fns-jalali's
- * own `format`, whose default locale decides the digits for itself.
- */
-export function toJalaliInput(value: string | null | undefined): string {
-  const parts = jalaliPartsOf(value);
-
-  return parts === null
-    ? ""
-    : toPersianDigits(`${pad(parts.year, 4)}/${pad(parts.month)}/${pad(parts.day)}`);
 }
 
 const gymDateParts = new Intl.DateTimeFormat("en-US", {

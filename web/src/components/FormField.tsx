@@ -1,16 +1,5 @@
 import { ChevronDown, X } from "lucide-react";
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type ComponentProps,
-  type KeyboardEvent,
-} from "react";
-import persian from "react-date-object/calendars/persian";
-import persian_fa from "react-date-object/locales/persian_fa";
-import { Calendar, DateObject } from "react-multi-date-picker";
+import { useEffect, useId, useRef, useState, type ComponentProps, type KeyboardEvent } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,13 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   amountInPersianWords,
   formatMoneyDigits,
+  gymToday,
   jalaliMonthNames,
   jalaliPartsOf,
   jalaliToIso,
-  toIsoDate,
-  toJalaliInput,
   toPersianDigits,
-  withDateSlashes,
 } from "@/lib/format";
 import { moneyDigits } from "@/lib/money";
 import { normalizeDigits } from "@/lib/normalize";
@@ -72,7 +59,7 @@ interface SelectFieldProps extends ComponentProps<"select"> {
  * rather than a Radix component: this codebase already prefers a native control over a new
  * dependency for simple cases (the checkbox in `PlanForm`).
  */
-/** The look of a native `<select>` here, shared by `SelectField` and `BirthDateField`. */
+/** The look of a native `<select>` here, shared by `SelectField` and the date fields' boxes. */
 const selectClassName = cn(
   "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
   "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
@@ -142,10 +129,10 @@ interface MoneyFieldProps {
  *   real check: a run of zeros can be miscounted, a word cannot. They are wired into
  *   `aria-describedby` too, so the check is read aloud and not merely seen.
  *
- * Controlled, like `JalaliDateField` below and for the same reason: a field that shows what the
- * amount *means* has to know what the amount is. The value it holds is the text on screen, and
- * `normalizeMoney` turns that into the plain decimal string the API reads when the form is
- * sent — no money value is ever a JavaScript number on the way.
+ * Controlled, because a field that shows what the amount *means* has to know what the amount
+ * is. The value it holds is the text on screen, and `normalizeMoney` turns that into the plain
+ * decimal string the API reads when the form is sent — no money value is ever a JavaScript number
+ * on the way.
  *
  * The caret is not preserved through a reformat (it lands at the end), which fits how an amount
  * is actually typed here: once, left to right, not edited digit-by-digit in the middle.
@@ -236,178 +223,17 @@ export function TextareaField({ label, error, id, ...textareaProps }: TextareaFi
   );
 }
 
-interface JalaliDateFieldProps {
-  label: string;
-  error?: string;
-  id?: string;
-  name?: string;
-  /** The ISO business date the API stores (`1991-08-03`), or `""` when there is none. */
-  value: string;
-  onChange: (iso: string) => void;
-  onBlur?: () => void;
-  disabled?: boolean;
-  placeholder?: string;
-}
-
-/**
- * `FormField` for a business date (docs/BUSINESS_RULES.md §13): the box speaks Jalali, the value
- * it holds is the ISO Gregorian date the API stores, and the two never mix.
- *
- * The calendar comes from react-multi-date-picker; the input does not. It is this app's `Input`,
- * for three reasons: it carries `aria-invalid` and `aria-describedby` like every other field here;
- * typing is parsed by `toIsoDate`, the one conversion this app owns and tests, rather than by a
- * second parser that does not know Arabic-Indic digits; and the clear button has somewhere to live.
- *
- * **The calendar opens in place, under the box, not as a floating popup.** Nearly every date
- * field lives in a dialog, and a dialog scrolls: a popup was clipped at the dialog's edge, landed
- * over the text and buttons beside it, and in right-to-left lost track of which side "start" was.
- * In the page's own flow it pushes what follows down, takes the field's width on any screen, and
- * the dialog simply scrolls to it. It opens when the box is focused or clicked, and closes when a
- * day is picked, on Escape, or when focus leaves the box. Pressing inside the calendar does not
- * take focus from the box (its mousedown is cancelled), so turning the month does not close it.
- *
- * **Typing works as well as picking.** Digits alone get their slashes as they are typed
- * (`13900509` reads `1390/05/09`, see `withDateSlashes`), and `toIsoDate` takes any common
- * separator, so a date typed with dots or spaces is not thrown away on blur.
- *
- * What is typed is committed on every keystroke that forms a whole, real date, and the box snaps
- * back to the committed date on blur — so what is on screen is always what will be sent, and a
- * half-typed date is visibly discarded rather than quietly saved as "no birth date".
- *
- * No `dir="ltr"`, unlike `MoneyField`: the slashes in ۱۳۷۰/۰۵/۱۲ are bidi common separators and
- * hold the digit runs together on their own, which the phone number's spaces do not.
- */
-export function JalaliDateField({
-  label,
-  error,
-  id,
-  name,
-  value,
-  onChange,
-  onBlur,
-  disabled,
-  placeholder = "۱۳۷۰/۰۵/۱۲",
-}: JalaliDateFieldProps) {
-  const generatedId = useId();
-  const inputId = id ?? generatedId;
-  const errorId = `${inputId}-error`;
-  const calendarId = `${inputId}-calendar`;
-
-  // The text in the box. It follows `value` when the form supplies a new one (an edit form
-  // finishing its load, a reset) but not while this field is what changes it, so a half-typed
-  // date is never reformatted under the caret.
-  const [text, setText] = useState(() => toJalaliInput(value));
-  const [committed, setCommitted] = useState(value);
-  const [open, setOpen] = useState(false);
-  if (value !== committed) {
-    setCommitted(value);
-    setText(toJalaliInput(value));
-  }
-
-  function commit(iso: string) {
-    setCommitted(iso);
-    onChange(iso);
-  }
-
-  function handleTyping(event: ChangeEvent<HTMLInputElement>) {
-    // Slashes are added only while the text grows, so backspace can still delete one.
-    const typed = event.target.value;
-    const shown = typed.length > text.length ? withDateSlashes(typed) : typed;
-    setText(shown);
-    commit(toIsoDate(shown) ?? "");
-  }
-
-  function handlePicked(picked: DateObject | null) {
-    // `calendar={persian}` means these are Jalali numbers. format.ts owns the conversion, so the
-    // calendar and the typed box can never disagree about which day was chosen.
-    const iso =
-      picked === null ? "" : (jalaliToIso(picked.year, picked.month.number, picked.day) ?? "");
-
-    setText(toJalaliInput(iso));
-    commit(iso);
-    setOpen(false);
-  }
-
-  const parts = jalaliPartsOf(value);
-  const showCalendar = open && disabled !== true;
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={inputId}>{label}</Label>
-      <span className="relative block">
-        <Input
-          id={inputId}
-          name={name}
-          value={text}
-          disabled={disabled}
-          placeholder={placeholder}
-          autoComplete="off"
-          // A phone's number pad has no slash; withDateSlashes adds them, so digits are enough.
-          inputMode="numeric"
-          className="pe-9"
-          aria-invalid={error !== undefined}
-          aria-describedby={error !== undefined ? errorId : undefined}
-          aria-expanded={showCalendar}
-          aria-controls={showCalendar ? calendarId : undefined}
-          onChange={handleTyping}
-          onFocus={() => setOpen(true)}
-          onClick={() => setOpen(true)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && open) {
-              // Closes the calendar only, not the dialog around it.
-              event.stopPropagation();
-              setOpen(false);
-            }
-          }}
-          onBlur={() => {
-            setOpen(false);
-            setText(toJalaliInput(committed));
-            onBlur?.();
-          }}
-        />
-        {text !== "" && disabled !== true && (
-          <button
-            type="button"
-            aria-label="پاک کردن تاریخ"
-            className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              setText("");
-              commit("");
-            }}
-          >
-            <X className="size-4" aria-hidden />
-          </button>
-        )}
-      </span>
-      {showCalendar && (
-        // Keeps focus in the box while the calendar is used, so the box's blur means "done".
-        <div id={calendarId} onMouseDown={(event) => event.preventDefault()}>
-          <Calendar
-            calendar={persian}
-            locale={persian_fa}
-            shadow={false}
-            className="jalali-calendar rmdp-border"
-            value={
-              parts === null
-                ? null
-                : new DateObject({ ...parts, calendar: persian, locale: persian_fa })
-            }
-            onChange={handlePicked}
-          />
-        </div>
-      )}
-      {error !== undefined && (
-        <p id={errorId} className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
 /** The birth years offered, newest first (asked by the developer, 1405/07/12). */
 const firstBirthYear = 1320;
 const lastBirthYear = 1400;
+
+/**
+ * The years every other date is chosen from (chosen by the developer, 1405/07/13): from ۱۴۰۴ up to
+ * three years past this one, so a cheque due years ahead can still be entered and the list grows
+ * by itself each Nowruz.
+ */
+const firstBusinessYear = 1404;
+const businessYearsAhead = 3;
 
 /** How many days a Jalali month has. Esfand has 30 only in a leap year; with no year yet, 30. */
 function daysInJalaliMonth(year: number | null, month: number): number {
@@ -420,17 +246,19 @@ function daysInJalaliMonth(year: number | null, month: number): number {
   return year === null || jalaliToIso(year, 12, 30) !== null ? 30 : 29;
 }
 
-interface BirthDateParts {
+interface DateParts {
   year: string;
   month: string;
   day: string;
 }
 
-function birthDatePartsOf(value: string): BirthDateParts {
+const noDateParts: DateParts = { year: "", month: "", day: "" };
+
+function datePartsOf(value: string): DateParts {
   const parts = jalaliPartsOf(value);
 
   return parts === null
-    ? { year: "", month: "", day: "" }
+    ? noDateParts
     : { year: String(parts.year), month: String(parts.month), day: String(parts.day) };
 }
 
@@ -454,7 +282,7 @@ interface PickerProps {
 const typeAheadMs = 1000;
 
 /**
- * One of `BirthDateField`'s three boxes. Not a native `<select>`: the browser decides how tall a
+ * One of a date field's three boxes. Not a native `<select>`: the browser decides how tall a
  * native list opens, and on a desktop the day and year lists filled the screen. This one opens a
  * short list (about six rows) that scrolls, the same height for all three boxes.
  *
@@ -615,7 +443,7 @@ function Picker({ name, options, value, onChange, onBlur, invalid, disabled }: P
   );
 }
 
-interface BirthDateFieldProps {
+interface DateFieldProps {
   label: string;
   error?: string;
   id?: string;
@@ -626,22 +454,29 @@ interface BirthDateFieldProps {
   disabled?: boolean;
 }
 
+interface DropdownDateFieldProps extends DateFieldProps {
+  /** The oldest and newest years the year list offers. */
+  firstYear: number;
+  lastYear: number;
+  /** Whether a «پاک کردن» button can take the date away again (a filter left open). */
+  clearable: boolean;
+}
+
 /**
- * A birth date as three dropdowns — day, month by name, year — the way mobile banking apps ask
- * for it (asked by the developer, 1405/07/12). A birth date is decades back, so a month calendar
- * meant paging through hundreds of months; three short lists reach any date in three choices.
+ * A date as three dropdowns — day, month by name, year — the way mobile banking apps ask for it
+ * (asked by the developer, 1405/07/12 for a birth date, 1405/07/13 for every other date). Three
+ * short lists reach any date in three choices, and every date in the app is chosen the same way.
  * The three boxes are the same width and open lists of the same height (see `Picker`).
  *
- * The value is still the ISO Gregorian date the API stores, converted by `jalaliToIso`, the same
- * conversion `JalaliDateField` uses. Until all three are chosen the value is `""`, so a half-chosen
- * date is refused as "no birth date" rather than saved as something else. The day list follows the
- * month (and Esfand follows the year); a day the new month lacks becomes its last day.
+ * The value is the ISO Gregorian date the API stores, converted by `jalaliToIso`. Until all three
+ * are chosen the value is `""`, so a half-chosen date is refused as "no date" rather than saved as
+ * something else. The day list follows the month (and Esfand follows the year); a day the new
+ * month lacks becomes its last day.
  *
- * In reading order (right to left) it is day, month, year — «۱۲ مرداد ۱۳۷۰», the way a birth
- * date is said. The years run from ۱۴۰۰ back to ۱۳۲۰; a stored date outside that range still
- * shows, with its year added to the list.
+ * In reading order (right to left) it is day, month, year — «۱۲ مرداد ۱۳۷۰», the way a date is
+ * said. A stored date outside the year range still shows, with its year added to the list.
  */
-export function BirthDateField({
+function DropdownDateField({
   label,
   error,
   id,
@@ -649,7 +484,10 @@ export function BirthDateField({
   onChange,
   onBlur,
   disabled,
-}: BirthDateFieldProps) {
+  firstYear,
+  lastYear,
+  clearable,
+}: DropdownDateFieldProps) {
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const labelId = `${fieldId}-label`;
@@ -658,20 +496,31 @@ export function BirthDateField({
   // The three choices. They follow `value` when the form supplies a new one (an edit form
   // finishing its load, a reset) but not while this field is what changes it, so a half-chosen
   // date — which sends "" — does not wipe the choices already made.
-  const [parts, setParts] = useState(() => birthDatePartsOf(value));
+  const [parts, setParts] = useState(() => datePartsOf(value));
   const [committed, setCommitted] = useState(value);
   if (value !== committed) {
     setCommitted(value);
-    setParts(birthDatePartsOf(value));
+    setParts(datePartsOf(value));
   }
 
   const chosenYear = parts.year === "" ? null : Number(parts.year);
-  const newest = Math.max(lastBirthYear, chosenYear ?? lastBirthYear);
-  const oldest = Math.min(firstBirthYear, chosenYear ?? firstBirthYear);
+  const newest = Math.max(lastYear, chosenYear ?? lastYear);
+  const oldest = Math.min(firstYear, chosenYear ?? firstYear);
   const years = Array.from({ length: newest - oldest + 1 }, (_, index) => newest - index);
   const dayCount = daysInJalaliMonth(chosenYear, parts.month === "" ? 1 : Number(parts.month));
 
-  function choose(change: Partial<BirthDateParts>) {
+  function commit(next: DateParts) {
+    const iso =
+      next.year === "" || next.month === "" || next.day === ""
+        ? ""
+        : (jalaliToIso(Number(next.year), Number(next.month), Number(next.day)) ?? "");
+
+    setParts(next);
+    setCommitted(iso);
+    onChange(iso);
+  }
+
+  function choose(change: Partial<DateParts>) {
     const next = { ...parts, ...change };
     if (next.month !== "" && next.day !== "") {
       const last = daysInJalaliMonth(
@@ -683,21 +532,30 @@ export function BirthDateField({
       }
     }
 
-    const iso =
-      next.year === "" || next.month === "" || next.day === ""
-        ? ""
-        : (jalaliToIso(Number(next.year), Number(next.month), Number(next.day)) ?? "");
-
-    setParts(next);
-    setCommitted(iso);
-    onChange(iso);
+    commit(next);
   }
 
+  const anythingChosen = parts.year !== "" || parts.month !== "" || parts.day !== "";
   const shared = { onBlur, disabled, invalid: error !== undefined };
 
   return (
     <div className="space-y-2">
-      <Label id={labelId}>{label}</Label>
+      {/* The clear button sits beside the label, not beside the boxes: in a four-column filter
+          row the three boxes need all the width there is to show a month's name. */}
+      <div className="flex items-center justify-between gap-2">
+        <Label id={labelId}>{label}</Label>
+        {clearable && anythingChosen && disabled !== true && (
+          <button
+            type="button"
+            aria-label={`پاک کردن ${label}`}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => commit(noDateParts)}
+          >
+            <X className="size-3.5" aria-hidden />
+            پاک کردن
+          </button>
+        )}
+      </div>
       <div
         role="group"
         aria-labelledby={labelId}
@@ -738,5 +596,36 @@ export function BirthDateField({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * `FormField` for a business date (docs/BUSINESS_RULES.md §13): a cheque's date, an expense's
+ * date, either end of a filter. Chosen the same way as a birth date, with the years running from
+ * three years ahead back to ۱۴۰۴, and a «پاک کردن» button, because an empty date is how a filter
+ * says "no limit".
+ */
+export function JalaliDateField(props: DateFieldProps) {
+  const thisYear = jalaliPartsOf(gymToday())?.year ?? firstBusinessYear;
+
+  return (
+    <DropdownDateField
+      {...props}
+      firstYear={firstBusinessYear}
+      lastYear={thisYear + businessYearsAhead}
+      clearable
+    />
+  );
+}
+
+/** A birth date: the years run from ۱۴۰۰ back to ۱۳۲۰ (the API's rules of §2 still apply). */
+export function BirthDateField(props: DateFieldProps) {
+  return (
+    <DropdownDateField
+      {...props}
+      firstYear={firstBirthYear}
+      lastYear={lastBirthYear}
+      clearable={false}
+    />
   );
 }
