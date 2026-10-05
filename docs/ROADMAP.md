@@ -2138,6 +2138,24 @@ field back there; the cheque, instalment and expense forms keep the dropdowns.
 
 Closed 2026-10-05: frontend only. 896 frontend tests green, lint, `format:check` and production build pass.
 
+#### Follow-up: the header alert for cheques and instalments (asked by the developer, 1405/07/14)
+The dashboard's 7-day list is only seen when the dashboard is opened. The developer asked for an
+alert in the header, on every page, once a payment is 5 days away. Decided with the developer on
+1405/07/14: 5 days, today included; past their date included, in red; in the middle of the top bar.
+- [x] Rules first: BUSINESS_RULES.md §9 *Cheques and instalments*, *The header alert*
+- [x] `GET /api/payables/due-soon` (Owner): pending ones dated within 5 days or past their date,
+      the earliest first, each with `daysLeft` from the gym's today (`ListPayablesDueSoonHandler`)
+- [x] `PayablesDueAlert` in the header for the Owner: the nearest one, its days left and the count
+      of the others; a dialog with every one and a link to «چک و قسط». Asks again every 5 minutes
+      and on window focus; refreshed by every payable change
+- [x] Tests: the 5-day edge, past their date, paid and cancelled left out, empty, the kind's name,
+      Staff refused (integration); the pill, the count, red when overdue, the dialog, nothing when
+      empty, Staff never asking (frontend)
+
+Closed 2026-10-06: 1694 backend tests (521 domain, 1173 integration) and 902 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. No migration; a new read-only
+endpoint only.
+
 ---
 
 ## Phase 10 — SMS Notifications

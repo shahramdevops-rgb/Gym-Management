@@ -9,6 +9,7 @@ import { toPersianDigits } from "@/lib/format";
 export type Payable = components["schemas"]["PayableResponse"];
 export type PayableKind = components["schemas"]["PayableKind"];
 export type PayableStatus = components["schemas"]["PayableStatus"];
+export type PayableDueSoon = components["schemas"]["PayableDueSoonResponse"];
 
 export const payablesPageSize = 20;
 
@@ -63,7 +64,56 @@ export function kindText(payable: {
 export const payableKeys = {
   all: ["payables"] as const,
   list: (filter: PayableListFilter) => [...payableKeys.all, "list", filter] as const,
+  dueSoon: () => [...payableKeys.all, "due-soon"] as const,
 };
+
+/**
+ * The header's alert starts this many days before a date, today included (BUSINESS_RULES.md §9
+ * *Cheques and instalments*). The API owns it (`ListPayablesDueSoonHandler.WithinDays`); this copy
+ * only lets the alert say which rule it follows.
+ */
+export const payableAlertWithinDays = 5;
+
+/** How often the header asks again, so a payment comes into the alert on the day it should. */
+const dueSoonRefreshMs = 5 * 60 * 1000;
+
+/** «امروز», «فردا», «۳ روز دیگر», «۲ روز گذشته»: how far a payment is from today. */
+export function daysLeftText(daysLeft: number): string {
+  if (daysLeft < 0) {
+    return `${toPersianDigits(-daysLeft)} روز گذشته`;
+  }
+  if (daysLeft === 0) {
+    return "امروز";
+  }
+  if (daysLeft === 1) {
+    return "فردا";
+  }
+  return `${toPersianDigits(daysLeft)} روز دیگر`;
+}
+
+/**
+ * Pending cheques and instalments within 5 days or past their date, the earliest first, for the
+ * header on every page. Owner only: the header renders the alert for the Owner alone.
+ * It is one small query, so unlike the rest of the app it also asks again when the window comes
+ * back into focus.
+ */
+export function usePayablesDueSoon() {
+  return useQuery({
+    queryKey: payableKeys.dueSoon(),
+    refetchInterval: dueSoonRefreshMs,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/payables/due-soon");
+      if (error !== undefined) {
+        throw error;
+      }
+      return {
+        today: data.today,
+        items: data.items.map((item) => ({ ...item, daysLeft: Number(item.daysLeft) })),
+      };
+    },
+  });
+}
 
 export interface PayableListFilter {
   /** Omitted: every status. */

@@ -1473,3 +1473,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **Git as the source for a revert.** The removed component came back with `git show <commit>~1:<path>` and `git checkout <commit>~1 -- <files>`, exactly as it was tested and released, instead of being rewritten from memory.
 - **A check CI runs belongs in the local routine.** `npm run lint` does not check formatting; CI's `format:check` does, so 13 unformatted files kept the frontend job red while every test passed. Running the same command locally before a commit catches it at the cheap moment.
 - **My notes:**
+
+## Follow-up — The header alert for cheques and instalments (هشدار چک و قسط در هدر)
+
+- **A small endpoint for a screen that is always on.** The header is on every page, so its query runs often. Reusing `needs-attention` would recompute every member list each time to read one of them. A dedicated `due-soon` query reads one indexed table and nothing else.
+- **The server counts the days.** `daysLeft` is worked out from the gym's own today (`IGymCalendar`), not from the browser's clock, so a PC with the wrong date or time zone cannot move a payment in or out of the alert.
+- **One query key family, one invalidation.** The key is `["payables", "due-soon"]`, under `payableKeys.all`. Every payable change already invalidates `["payables"]`, so marking a cheque paid clears it from the header with no extra code.
+- **Polling where it is cheap.** The app turns off refetch-on-focus by default; this one query turns it back on and adds `refetchInterval`, because a payment can come into the 5-day window while the page sits open, and the query is tiny.
+- **Default handlers in the test router.** `signedInHandlers(owner)` now answers `due-soon` with an empty list, because every Owner page now asks for it. Tests that care override it; tests that check `unexpected` stay green.
+- **My notes:**

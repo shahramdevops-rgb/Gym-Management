@@ -1204,6 +1204,12 @@ one is paid, records the expense itself.
 - **The reminder** is on the dashboard (§12 *Needs attention*, *Cheques and instalments coming
   due*): 7 days before the date, one fixed number for both kinds (decided with the developer). An
   SMS waits for Phase 10; who receives it, and where that number is kept, is decided there.
+- **The header alert** (decided with the developer, 1405/07/14): in the header, on every page, for
+  the Owner only. Every pending cheque and instalment dated **within the next 5 days**, today
+  included, and every pending one past its date (red, until the Owner marks it). It names the
+  nearest one and how many days are left («امروز», «فردا», «۳ روز دیگر», «۲ روز گذشته»), with the
+  count of the others; opening it lists them all. Nothing is shown when there are none. The
+  dashboard's 7-day list stays as it is.
 - Owner only, reading included (§1).
 
 ---

@@ -8,6 +8,7 @@ using Gym.Application.Common;
 using Gym.Application.Expenses;
 using Gym.Application.Payables;
 using Gym.Application.Payables.ListPayables;
+using Gym.Application.Payables.ListPayablesDueSoon;
 using Gym.Application.Reports.GetNeedsAttention;
 using Gym.Domain.Audit;
 using Gym.Domain.Expenses;
@@ -35,6 +36,7 @@ public sealed class PayableEndpointTests(DatabaseFixture fixture) : DatabaseTest
     private const string PayablesPath = "/api/payables";
     private const string ExpensesPath = "/api/expenses";
     private const string NeedsAttentionPath = "/api/reports/needs-attention";
+    private const string DueSoonPath = "/api/payables/due-soon";
 
     private static readonly Guid Equipment = ExpenseCategorySeed.All.Single(seed => seed.Name == "تجهیزات").Id;
     private static readonly Guid Rent = ExpenseCategorySeed.All.Single(seed => seed.Name == "اجاره").Id;
@@ -951,6 +953,73 @@ public sealed class PayableEndpointTests(DatabaseFixture fixture) : DatabaseTest
             new PayableDueResponse(installment.Id, PayableKind.Installment, "بانک ملت", 2_500m, today.AddDays(3), "وام دستگاه", 4, 12),
             new PayableDueResponse(daySeven.Id, PayableKind.Cheque, "روز هفتم", 3_000m, today.AddDays(7), "تردمیل", null, null),
         ]);
+    }
+
+    // ---- The header's alert ----
+
+    [Fact]
+    public async Task ListPayablesDueSoon_ListsPendingWithinFiveDaysAndPastTheirDate()
+    {
+        var (client, owner, _, _) = await ClientsAsync();
+        var today = await TodayAsync();
+        var overdue = await RegisterChequeAsync(client, owner, 1_000m, today.AddDays(-2), "تأخیری");
+        var dueToday = await RegisterChequeAsync(client, owner, 2_000m, today, "امروز");
+        var installment = await RegisterInstallmentAsync(client, owner, 2_500m, today.AddDays(3), 4, 12);
+        var dayFive = await RegisterChequeAsync(client, owner, 3_000m, today.AddDays(5), "روز پنجم");
+        await RegisterChequeAsync(client, owner, 4_000m, today.AddDays(6), "روز ششم");
+        var paid = await RegisterChequeAsync(client, owner, 5_000m, today.AddDays(-1), "پاس شده");
+        await PayPayableAsync(client, owner, paid.Id);
+        var cancelled = await RegisterChequeAsync(client, owner, 6_000m, today.AddDays(2), "باطل");
+        await CancelPayableAsync(client, owner, cancelled.Id);
+
+        using var response = await SendAsync(client, owner, HttpMethod.Get, DueSoonPath, body: null);
+        response.EnsureSuccessStatusCode();
+        var dueSoon = (await response.Content.ReadFromJsonAsync<PayablesDueSoonResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+
+        // Day 5 is in and day 6 is out; past its date stays until marked; the earliest first.
+        dueSoon.Today.ShouldBe(today);
+        dueSoon.Items.ShouldBe(
+        [
+            new PayableDueSoonResponse(overdue.Id, PayableKind.Cheque, "تأخیری", 1_000m, today.AddDays(-2), null, null, -2),
+            new PayableDueSoonResponse(dueToday.Id, PayableKind.Cheque, "امروز", 2_000m, today, null, null, 0),
+            new PayableDueSoonResponse(installment.Id, PayableKind.Installment, "بانک ملت", 2_500m, today.AddDays(3), 4, 12, 3),
+            new PayableDueSoonResponse(dayFive.Id, PayableKind.Cheque, "روز پنجم", 3_000m, today.AddDays(5), null, null, 5),
+        ]);
+    }
+
+    [Fact]
+    public async Task ListPayablesDueSoon_NothingClose_ReturnsAnEmptyList()
+    {
+        var (client, owner, _, _) = await ClientsAsync();
+        await RegisterChequeAsync(client, owner, 1_000m, (await TodayAsync()).AddDays(6));
+
+        using var response = await SendAsync(client, owner, HttpMethod.Get, DueSoonPath, body: null);
+        response.EnsureSuccessStatusCode();
+        var dueSoon = (await response.Content.ReadFromJsonAsync<PayablesDueSoonResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+
+        dueSoon.Items.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ListPayablesDueSoon_KindIsSentAsItsName()
+    {
+        var (client, owner, _, _) = await ClientsAsync();
+        await RegisterChequeAsync(client, owner, 1_000m, await TodayAsync());
+
+        using var response = await SendAsync(client, owner, HttpMethod.Get, DueSoonPath, body: null);
+
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        body.RootElement.GetProperty("items")[0].GetProperty("kind").GetString().ShouldBe("Cheque");
+    }
+
+    [Fact]
+    public async Task ListPayablesDueSoon_AsStaff_Returns403()
+    {
+        var (client, _, staff, _) = await ClientsAsync();
+
+        using var response = await SendAsync(client, staff, HttpMethod.Get, DueSoonPath, body: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
     // ---- The database's own copy of the rules ----
