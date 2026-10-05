@@ -1482,3 +1482,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Polling where it is cheap.** The app turns off refetch-on-focus by default; this one query turns it back on and adds `refetchInterval`, because a payment can come into the 5-day window while the page sits open, and the query is tiny.
 - **Default handlers in the test router.** `signedInHandlers(owner)` now answers `due-soon` with an empty list, because every Owner page now asks for it. Tests that care override it; tests that check `unexpected` stay green.
 - **My notes:**
+
+## 9.3 follow-up — A livelier dashboard (داشبورد زنده‌تر)
+
+- **Colour as a token, not a hex in a component.** Every new hue is a `--tone-*` variable with a light and a dark value in `index.css`. A component only names the tone (`tone="green"`), so the dark theme and any later palette change touch one file.
+- **One custom property, a few utilities.** A card sets `--tone` in its `style`, and four Tailwind `@utility` rules (`tone-soft`, `tone-ink`, `tone-solid`, `tone-bar`) read it. Ten hues need four utilities, not forty classes.
+- **`color-mix()` makes the shades.** The soft background is the tone at 14% over transparent; the text is the tone mixed with the text colour, so it darkens on white and lightens on the dark theme by itself. Mixing *towards a dark colour* in oklch can drift the hue (an orange went purple), so the bar fades through transparency in sRGB instead.
+- **Restyle without breaking the tests.** The tests find a card by its `<dt>`. Keeping `dt`/`dd` as the card's direct children (the icon sits inside the `dt`, positioned absolutely) meant 47 dashboard tests passed unchanged: they test meaning, not markup.
+- **Decoration is hidden from screen readers.** Icons, the age bar and the initials are `aria-hidden`; the words beside them already say the same thing, and colour never carries a meaning alone.
+- **An SVG gradient needs a safe id.** Recharts bars take `fill="url(#id)"`; React's `useId` can contain characters that break a `url(#…)`, so `svgId` keeps only letters, digits, `-` and `_`.
+- **My notes:**

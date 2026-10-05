@@ -1,9 +1,11 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Flame } from "lucide-react";
+
 import { formatNumber, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { AttendanceReport } from "../api";
 import { busyHours } from "../figures";
+import { ChartCard } from "./ChartCard";
 
 type Weekday = AttendanceReport["byWeekday"][number]["weekday"];
 
@@ -30,14 +32,14 @@ export function AttendanceHeatmap({ report }: { report: AttendanceReport }) {
   );
 
   return (
-    <Card className="lg:col-span-2">
-      <CardHeader>
-        <CardTitle>ورود اعضا به تفکیک روز هفته و ساعت</CardTitle>
-        <CardDescription>
-          هر خانه: تعداد ورودها در آن ساعت. مهمان‌ها و ورودهای لغوشده حساب نمی‌شوند.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="overflow-x-auto">
+    <ChartCard
+      title="ورود اعضا به تفکیک روز هفته و ساعت"
+      description="هر خانه: تعداد ورودها در آن ساعت. مهمان‌ها و ورودهای لغوشده حساب نمی‌شوند."
+      icon={Flame}
+      tone="sky"
+      className="lg:col-span-2"
+    >
+      <div className="overflow-x-auto">
         <table className="w-full border-separate border-spacing-0.5 text-xs tabular-nums">
           <thead>
             <tr>
@@ -66,7 +68,7 @@ export function AttendanceHeatmap({ report }: { report: AttendanceReport }) {
                       key={hour}
                       title={`${weekdayLabels[row.weekday]}، ساعت ${toPersianDigits(hour)}: ${formatNumber(count)} ورود`}
                       className={cn(
-                        "h-8 min-w-8 rounded-sm text-center",
+                        "h-8 min-w-8 rounded-md text-center",
                         count === 0 && "bg-muted/60 text-muted-foreground",
                         share > 55 && "text-white",
                       )}
@@ -86,7 +88,7 @@ export function AttendanceHeatmap({ report }: { report: AttendanceReport }) {
             ))}
           </tbody>
         </table>
-      </CardContent>
-    </Card>
+      </div>
+    </ChartCard>
   );
 }
