@@ -73,6 +73,9 @@ function cashNet(period: FinancialPeriod): number | string {
 
 const formatCount = (value: number) => formatNumber(value);
 
+/** «فروش» leaves فروشگاه and آنالیز out, and says so wherever it is shown (§12, 1405/07/14). */
+const salesLabel = "فروش (به غیر از آنالیز و فروشگاه)";
+
 /**
  * The sources in the dashboard's order (cafe above فروشگاه), each bar the money received, and on
  * the plan and single-visit bars how many were sold in the range (§12 *Financial report*).
@@ -165,7 +168,7 @@ export function DashboardPage() {
                   tone="blue"
                   icon={Wallet}
                   value={formatMoney(financial.data.current.revenue.net)}
-                  hint={`فروش بازه: ${formatMoney(financial.data.current.sales)}`}
+                  hint={`${salesLabel}: ${formatMoney(financial.data.current.sales)}`}
                   comparison={{
                     current: financial.data.current.revenue.net,
                     previous: financial.data.previous.revenue.net,
@@ -198,7 +201,7 @@ export function DashboardPage() {
                   }}
                 />
                 <StatCard
-                  label="فروش"
+                  label={salesLabel}
                   tone="violet"
                   icon={ShoppingBag}
                   value={formatMoney(financial.data.current.sales)}

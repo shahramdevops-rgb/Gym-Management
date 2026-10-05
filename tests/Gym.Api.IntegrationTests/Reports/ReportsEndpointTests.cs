@@ -101,6 +101,27 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
+    public async Task Financial_Sales_LeaveTheShopAndAnalysisOut()
+    {
+        var (owner, token, _) = await OwnerClientAsync();
+        var visitor = await AddMemberAsync("رضا کریمی");
+        await AssignOkAsync(owner, token, visitor.Id);
+        var visit = await TestLockers.CheckInOkAsync(owner, token, visitor.Id);
+        await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
+        await RecordShopOkAsync(owner, token, visit.Id, "دستکش", 200_000m);
+        await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 80_000m);
+        await WalkInOrderAsync(owner, token, 60_000m);
+
+        var current = (await FinancialOkAsync(owner, token, TodayRange())).Current;
+
+        // §12: the plan, هوازی and the cafe; not فروشگاه or آنالیز (1405/07/14).
+        current.Sales.ShouldBe(900_000m + 50_000m + 60_000m);
+        // They are still sales of their own source.
+        Sold(current, RevenueSource.Miscellaneous).ShouldBe(1);
+        Sold(current, RevenueSource.Analysis).ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Financial_Sold_CountsEachSourcesSalesOfTheRangeByTheirOwnDay()
     {
         var (owner, token, _) = await OwnerClientAsync();

@@ -93,10 +93,10 @@
   --tone-sky: oklch(0.65 0.13 230);
   --tone-red: oklch(0.6 0.21 25);
   --tone-brown: oklch(0.58 0.12 55);
-  /* The dashboard's banner: blue into violet into a warm pink. */
-  --hero-from: oklch(0.55 0.19 260);
-  --hero-via: oklch(0.52 0.22 290);
-  --hero-to: oklch(0.57 0.2 340);
+  /* The dashboard's banner: a fresh green into emerald into a deep teal (asked by the developer). */
+  --hero-from: oklch(0.52 0.14 150);
+  --hero-via: oklch(0.5 0.13 165);
+  --hero-to: oklch(0.43 0.1 190);
 }
 
 /* The party ring's turn. Registered, so the browser can animate an angle inside a gradient. */
@@ -164,9 +164,9 @@
   --tone-sky: oklch(0.75 0.12 230);
   --tone-red: oklch(0.68 0.19 25);
   --tone-brown: oklch(0.72 0.1 60);
-  --hero-from: oklch(0.36 0.13 260);
-  --hero-via: oklch(0.34 0.15 290);
-  --hero-to: oklch(0.4 0.14 340);
+  --hero-from: oklch(0.4 0.11 150);
+  --hero-via: oklch(0.36 0.1 165);
+  --hero-to: oklch(0.32 0.07 190);
 }
 
 /*
