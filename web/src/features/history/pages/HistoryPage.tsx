@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
-import { JalaliDateField, SelectField } from "@/components/FormField";
+import { JalaliCalendarField, SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -260,13 +260,13 @@ export function HistoryPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <JalaliDateField
+            <JalaliCalendarField
               label="از تاریخ"
               value={state.from ?? ""}
               error={fromError}
               onChange={(iso) => update({ from: iso === "" ? undefined : iso })}
             />
-            <JalaliDateField
+            <JalaliCalendarField
               label="تا تاریخ"
               value={state.to ?? ""}
               error={toError}

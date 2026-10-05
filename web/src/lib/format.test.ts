@@ -14,9 +14,10 @@ import {
   gymToday,
   isJalaliBirthday,
   isoYearsAgo,
-  jalaliPartsOf,
-  jalaliToIso,
+  toIsoDate,
+  toJalaliInput,
   toPersianDigits,
+  withDateSlashes,
 } from "./format";
 
 describe("toPersianDigits", () => {
@@ -257,65 +258,122 @@ describe("formatPhone", () => {
   });
 });
 
-describe("jalaliToIso", () => {
-  it("jalaliToIso_JalaliDate_ReturnsTheIsoDate", () => {
-    expect(jalaliToIso(1370, 5, 12)).toBe("1991-08-03");
+describe("toIsoDate", () => {
+  it("toIsoDate_JalaliDateWithPersianDigits_ReturnsTheIsoDate", () => {
+    expect(toIsoDate("۱۳۷۰/۰۵/۱۲")).toBe("1991-08-03");
   });
 
-  it("jalaliToIso_Nowruz_IsTheTwentyFirstOfMarch", () => {
-    expect(jalaliToIso(1405, 1, 1)).toBe("2026-03-21");
+  it("toIsoDate_EnglishDigits_ReturnsTheSameDate", () => {
+    expect(toIsoDate("1370/05/12")).toBe("1991-08-03");
   });
 
-  it("jalaliToIso_LastDayOfALeapJalaliYear_Exists", () => {
-    // ۱۴۰۳ is a Jalali leap year, so Esfand has 30 days.
-    expect(jalaliToIso(1403, 12, 30)).toBe("2025-03-20");
+  it("toIsoDate_ArabicDigits_ReturnsTheSameDate", () => {
+    expect(toIsoDate("١٣٧٠/٠٥/١٢")).toBe("1991-08-03");
   });
 
-  it("jalaliToIso_ThirtiethOfEsfandInACommonYear_ReturnsNull", () => {
-    // date-fns-jalali would roll it into ۱۴۰۵/۰۱/۰۱; the field must not save a day that is not.
-    expect(jalaliToIso(1404, 12, 30)).toBeNull();
+  it("toIsoDate_WithoutLeadingZeros_ReturnsTheSameDate", () => {
+    expect(toIsoDate("۱۳۷۰/۵/۱۲")).toBe("1991-08-03");
   });
 
   it.each([
-    [1370, 0, 12],
-    [1370, 13, 12],
-    [1370, 5, 0],
-    [1370, 7, 31],
-    [1370.5, 5, 12],
-  ])("jalaliToIso_NotARealJalaliDate_ReturnsNull (%s/%s/%s)", (year, month, day) => {
-    expect(jalaliToIso(year, month, day)).toBeNull();
+    "1370-05-12",
+    "1370.05.12",
+    "1370 05 12",
+    "1370\\05\\12",
+    "1370,05,12",
+    "۱۳۷۰÷۰۵÷۱۲",
+    "۱۳۷۰٫۰۵٫۱۲",
+    "۱۳۷۰،۰۵،۱۲",
+    "1370 / 05 / 12",
+  ])("toIsoDate_AnyCommonSeparator_ReturnsTheSameDate (%s)", (typed) => {
+    // A date typed with dots or spaces used to be thrown away on blur, so typing looked broken.
+    expect(toIsoDate(typed)).toBe("1991-08-03");
+  });
+
+  it.each(["13700512", "1370/05-", "1370//05/12", "1370/05/12/"])(
+    "toIsoDate_NoSeparatorsOrBrokenOnes_ReturnsNull (%s)",
+    (typed) => {
+      // Digits alone are the box's job (withDateSlashes adds the slashes as they are typed).
+      expect(toIsoDate(typed)).toBeNull();
+    },
+  );
+
+  it("toIsoDate_Nowruz_IsTheTwentyFirstOfMarch", () => {
+    expect(toIsoDate("۱۴۰۵/۰۱/۰۱")).toBe("2026-03-21");
+  });
+
+  it("toIsoDate_LastDayOfALeapJalaliYear_Exists", () => {
+    // 1403 is a leap Jalali year, so it has a 30th of Esfand.
+    expect(toIsoDate("۱۴۰۳/۱۲/۳۰")).toBe("2025-03-20");
+  });
+
+  it("toIsoDate_ThirtiethOfEsfandInACommonYear_ReturnsNull", () => {
+    // 1404 has no 30th of Esfand. date-fns-jalali would roll it into the next year; a date
+    // nobody picked must never be what gets saved.
+    expect(toIsoDate("۱۴۰۴/۱۲/۳۰")).toBeNull();
+  });
+
+  it.each(["", "۱۳۷۰/۰۵", "۱۳۷۰/۱۳/۰۱", "۱۳۷۰/۰۵/۳۲", "۱۳۷۰/۰۰/۱۲", "abc", null, undefined])(
+    "toIsoDate_NotAWholeJalaliDate_ReturnsNull (%s)",
+    (value) => {
+      expect(toIsoDate(value)).toBeNull();
+    },
+  );
+});
+
+describe("withDateSlashes", () => {
+  it.each([
+    ["1370", "1370"],
+    ["13700", "1370/0"],
+    ["137005", "1370/05"],
+    ["1370051", "1370/05/1"],
+    ["13700512", "1370/05/12"],
+    ["۱۳۷۰۰۵۱۲", "۱۳۷۰/۰۵/۱۲"],
+    // The next keystrokes after the first slash went in.
+    ["1370/051", "1370/05/1"],
+    ["۱۳۷۰/۰۵۱۲", "۱۳۷۰/۰۵/۱۲"],
+  ])("withDateSlashes_DigitsAfterTheYear_AddsTheSlashes (%s)", (typed, expected) => {
+    expect(withDateSlashes(typed)).toBe(expected);
+  });
+
+  it.each([
+    "1370",
+    "1370/",
+    "1370/0",
+    "1370/05/1",
+    "1370/5/12",
+    "1370.05.12",
+    "137005121",
+    "abcde",
+    "",
+  ])("withDateSlashes_NothingToAdd_ReturnsItUnchanged (%s)", (typed) => {
+    expect(withDateSlashes(typed)).toBe(typed);
   });
 });
 
-describe("jalaliPartsOf", () => {
-  it("jalaliPartsOf_IsoDate_ReturnsTheJalaliYearMonthAndDay", () => {
-    expect(jalaliPartsOf("1991-08-03")).toEqual({ year: 1370, month: 5, day: 12 });
+describe("toJalaliInput", () => {
+  it("toJalaliInput_IsoDate_ReturnsTheJalaliDateWithPersianDigits", () => {
+    expect(toJalaliInput("1991-08-03")).toBe("۱۳۷۰/۰۵/۱۲");
   });
 
-  it("jalaliPartsOf_RoundTripsWithJalaliToIso", () => {
-    const parts = jalaliPartsOf("1991-08-03")!;
-
-    expect(jalaliToIso(parts.year, parts.month, parts.day)).toBe("1991-08-03");
+  it("toJalaliInput_RoundTripsWithToIsoDate", () => {
+    expect(toIsoDate(toJalaliInput("1991-08-03"))).toBe("1991-08-03");
   });
 
-  it("jalaliPartsOf_AgreesWithFormatDate", () => {
-    // Two Jalali implementations run in this app: ICU's calendar behind formatDate (every date
-    // shown) and date-fns-jalali behind jalaliPartsOf (every date field). If a Node or ICU
-    // version ever made them disagree, a page and the form that edits it would show different
-    // dates. This says so here instead of on someone's screen.
-    const pad = (value: number) => String(value).padStart(2, "0");
+  it("toJalaliInput_AgreesWithFormatDate", () => {
+    // Two Jalali implementations now run in this app: ICU's calendar behind formatDate (the
+    // profile page) and date-fns-jalali behind toJalaliInput (the edit box). If a Node or ICU
+    // version ever made them disagree, a member's profile and their edit form would show
+    // different birth dates. This says so here instead of on someone's screen.
     for (const iso of ["1991-08-03", "2026-03-20", "2026-03-21", "2025-03-20", "1900-01-01"]) {
-      const parts = jalaliPartsOf(iso)!;
-      const shown = toPersianDigits(`${parts.year}/${pad(parts.month)}/${pad(parts.day)}`);
-
-      expect(shown).toBe(formatDate(iso));
+      expect(toJalaliInput(iso)).toBe(formatDate(iso));
     }
   });
 
   it.each([null, undefined, "", "not-a-date", "1991-8-3"])(
-    "jalaliPartsOf_NotAnIsoDate_ReturnsNull (%s)",
+    "toJalaliInput_NotAnIsoDate_ReturnsEmpty (%s)",
     (value) => {
-      expect(jalaliPartsOf(value)).toBeNull();
+      expect(toJalaliInput(value)).toBe("");
     },
   );
 });

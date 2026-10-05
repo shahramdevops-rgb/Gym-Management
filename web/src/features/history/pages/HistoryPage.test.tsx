@@ -24,7 +24,6 @@ import {
 import { reza, membersPage } from "@/test/members";
 import { json, mockApi, owner, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
-import { dateShown } from "@/test/jalaliDate";
 
 import { isoDaysBefore } from "../range";
 
@@ -189,7 +188,7 @@ describe("HistoryPage", () => {
     expect(query.get("Method")).toBe("Cash");
     expect(query.get("Source")).toBe("CafeOrder");
 
-    expect(dateShown("از تاریخ")).toBe("۱۰ شهریور ۱۴۰۵");
+    expect(screen.getByLabelText("از تاریخ")).toHaveValue("۱۴۰۵/۰۶/۱۰");
     expect(screen.getByLabelText("روش پرداخت")).toHaveValue("Cash");
     expect(screen.getByLabelText("بابت")).toHaveValue("CafeOrder");
     expect(await screen.findByText(reza.fullName, { selector: "span" })).toBeInTheDocument();
