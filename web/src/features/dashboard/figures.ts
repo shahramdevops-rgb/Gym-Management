@@ -16,6 +16,18 @@ export function percentChange(current: number | string, previous: number | strin
   return ((now - before) / before) * 100;
 }
 
+/** Whether a figure that can go either way (a profit) came out above or below zero; at zero, neither. */
+export type Outcome = "gain" | "loss" | undefined;
+
+/**
+ * A profit is shown green and a loss red, with its minus sign (decided with the developer,
+ * 1405/07/14). Zero, or an amount that is not a number, is neither.
+ */
+export function outcomeOf(value: number | string): Outcome {
+  const amount = Number(value);
+  return amount > 0 ? "gain" : amount < 0 ? "loss" : undefined;
+}
+
 /**
  * The share of ended plans that were renewed, in percent (§12 *Operational reports*): renewed ÷
  * (ended − waiting). Plans still inside their 30 days are left out, or the last month would always

@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, Minus, type LucideIcon } from "lucide-react";
 import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { percentChange } from "../figures";
+import { percentChange, type Outcome } from "../figures";
 import { toneStyle, type Tone } from "../tone";
 
 /** The range before, for a card that compares with it (§12: the same length, ending the day before). */
@@ -27,6 +27,11 @@ interface StatCardProps {
   comparison?: Comparison;
   /** A share out of 100 drawn as a thin bar under the figure (a rate); null draws none. */
   progress?: number | null;
+  /**
+   * The figure in green or red: a profit or a loss (BUSINESS_RULES.md §12 *Dashboard*). The sign
+   * of the figure itself says which, so the colour is never alone.
+   */
+  outcome?: Outcome;
 }
 
 /**
@@ -44,6 +49,7 @@ export function StatCard({
   hint,
   comparison,
   progress,
+  outcome,
 }: StatCardProps) {
   return (
     <div
@@ -59,7 +65,15 @@ export function StatCard({
           <Icon className="size-5" />
         </span>
       </dt>
-      <dd className="pe-12 text-2xl font-extrabold tracking-tight">{value}</dd>
+      <dd
+        className={cn(
+          "pe-12 text-2xl font-extrabold tracking-tight",
+          outcome === "gain" && "text-success",
+          outcome === "loss" && "text-destructive",
+        )}
+      >
+        {value}
+      </dd>
       {progress !== undefined && progress !== null && (
         <dd aria-hidden className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div

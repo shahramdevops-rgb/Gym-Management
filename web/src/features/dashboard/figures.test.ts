@@ -2,11 +2,26 @@ import {
   busyHours,
   byJalaliMonth,
   dailyChartMaxDays,
+  outcomeOf,
   percentChange,
   renewalRate,
   revenueSeries,
 } from "./figures";
 import { isoDaysBefore } from "@/features/history/range";
+
+describe("outcomeOf", () => {
+  it.each([
+    [7000000, "gain"],
+    ["1500000.00", "gain"],
+    [-30500000, "loss"],
+    ["-0.50", "loss"],
+    [0, undefined],
+    ["0.00", undefined],
+    ["abc", undefined],
+  ] as const)("outcomeOf_%j_Is%j", (value, expected) => {
+    expect(outcomeOf(value)).toBe(expected);
+  });
+});
 
 describe("percentChange", () => {
   it("percentChange_Rise_IsPositive", () => {

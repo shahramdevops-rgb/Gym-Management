@@ -93,7 +93,23 @@ describe("formatMoney", () => {
     expect(formatMoney("9999999999999999.99")).toBe("۹٬۹۹۹٬۹۹۹٬۹۹۹٬۹۹۹٬۹۹۹٫۹۹ تومان");
   });
 
-  it.each([null, undefined, "", "abc"])(
+  it("formatMoney_Negative_KeepsTheSignTheWayIntlWritesIt", () => {
+    // A loss on the dashboard (§12): LEFT-TO-RIGHT MARK and MINUS SIGN, as fa-IR writes −1.
+    const sign = new Intl.NumberFormat("fa-IR")
+      .formatToParts(-1)
+      .filter((part) => part.type !== "integer")
+      .map((part) => part.value)
+      .join("");
+
+    expect(formatMoney(-30500000)).toBe(`${sign}۳۰٬۵۰۰٬۰۰۰ تومان`);
+    expect(formatMoney("-1250000.50")).toBe(`${sign}۱٬۲۵۰٬۰۰۰٫۵۰ تومان`);
+  });
+
+  it("formatMoney_NegativeZero_HasNoSign", () => {
+    expect(formatMoney("-0.00")).toBe("۰ تومان");
+  });
+
+  it.each([null, undefined, "", "abc", "-", "--5", "5-"])(
     "formatMoney_MissingOrNotAnAmount_ReturnsEmptyValueWithoutUnit (%s)",
     (value) => {
       expect(formatMoney(value)).toBe(emptyValue);

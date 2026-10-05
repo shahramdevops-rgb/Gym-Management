@@ -121,6 +121,16 @@ export function formatMoneyDigits(digits: string): string {
     : `${groupThousands(whole)}٫${toPersianDigits(fraction)}`;
 }
 
+/** MINUS SIGN, the character `Intl` uses for a negative number, rather than a hyphen. */
+const unicodeMinus = String.fromCodePoint(0x2212);
+
+/**
+ * The sign before a negative amount: LEFT-TO-RIGHT MARK, then MINUS SIGN, exactly what
+ * `Intl.NumberFormat("fa-IR")` puts before a negative number. The mark keeps the sign on the
+ * number's left in a right-to-left line, where a bare minus would drift to its right.
+ */
+const minusSign = `${String.fromCodePoint(0x200e)}${unicodeMinus}`;
+
 /**
  * An amount of money as it is shown: `۱٬۲۵۰٬۰۰۰ تومان`. The unit is Toman
  * (docs/BUSINESS_RULES.md §0) and the value is shown exactly as stored, never divided by
@@ -128,13 +138,19 @@ export function formatMoneyDigits(digits: string): string {
  *
  * A fraction of nothing is dropped, so the `numeric(18,2)` the API sends back as `1500000.00`
  * reads as `۱٬۵۰۰٬۰۰۰ تومان` rather than trailing two zeros nobody typed.
+ *
+ * A report's figure can be below zero: a month with more expenses than revenue is a loss
+ * (BUSINESS_RULES.md §12 *Dashboard*). It keeps its sign, `-30500000` → `−۳۰٬۵۰۰٬۰۰۰ تومان`,
+ * written the way `Intl` writes a negative Persian number (see `minusSign`).
  */
 export function formatMoney(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") {
     return emptyValue;
   }
 
-  const amount = normalizeMoney(String(value));
+  const signed = normalizeMoney(String(value));
+  const negative = signed.startsWith("-") || signed.startsWith(unicodeMinus);
+  const amount = negative ? signed.slice(1) : signed;
   const parts = moneyPattern.exec(amount);
   if (parts === null) {
     return emptyValue;
@@ -142,8 +158,10 @@ export function formatMoney(value: string | number | null | undefined): string {
 
   const [, whole = "", fraction = ""] = parts;
   const withoutEmptyFraction = /^0*$/.test(fraction) ? whole : `${whole}.${fraction}`;
+  // "-0.00" is nothing owed either way, and «−۰ تومان» would read as a loss.
+  const zero = /^0*$/.test(whole) && /^0*$/.test(fraction);
 
-  return `${formatMoneyDigits(withoutEmptyFraction)} تومان`;
+  return `${negative && !zero ? minusSign : ""}${formatMoneyDigits(withoutEmptyFraction)} تومان`;
 }
 
 const shortMoneyFormatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
