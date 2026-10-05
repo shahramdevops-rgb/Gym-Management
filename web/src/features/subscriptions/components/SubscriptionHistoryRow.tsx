@@ -192,8 +192,8 @@ export function SubscriptionHistoryRow({
               {queued
                 ? `بعد از پلن قبلی (فعلاً از ${formatDate(subscription.startDate)})`
                 : `از ${formatDate(subscription.startDate)} تا ${formatDate(subscription.endDate)}`}{" "}
-              — قیمت {formatMoney(subscription.price)}،
-              پرداخت‌شده {formatMoney(subscription.netPaid)}
+              — قیمت {formatMoney(subscription.price)}، پرداخت‌شده{" "}
+              {formatMoney(subscription.netPaid)}
               {isPositiveMoney(remaining) && <> — مانده {formatMoney(remaining)}</>}
             </p>
             {error !== null && <Alert variant="destructive">{error}</Alert>}

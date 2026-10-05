@@ -51,7 +51,13 @@ interface PurchaseTileProps {
  * replacing the heading-and-button pair it used to be. The name stays on the tile once something
  * is recorded, so the amount under it never needs a heading to say what it is.
  */
-export function PurchaseTile({ kind, summary, ariaLabel, disabled = false, onClick }: PurchaseTileProps) {
+export function PurchaseTile({
+  kind,
+  summary,
+  ariaLabel,
+  disabled = false,
+  onClick,
+}: PurchaseTileProps) {
   const { icon: Icon, label, className } = tiles[kind];
 
   return (

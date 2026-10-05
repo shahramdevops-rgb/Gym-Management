@@ -16,7 +16,7 @@ const height = top + plotHeight + bottom;
 /** How many weeks back the average reaches: `TodayByHourHandler.WeeksAveraged`. */
 const weeksAveraged = 4;
 
-const weekdayFormatter =new Intl.DateTimeFormat("fa-IR", { timeZone: "UTC", weekday: "long" });
+const weekdayFormatter = new Intl.DateTimeFormat("fa-IR", { timeZone: "UTC", weekday: "long" });
 
 /** The weekday a business date (`2026-09-30`) falls on, in Persian: «چهارشنبه». */
 function weekdayOf(date: string): string {
@@ -95,7 +95,10 @@ function HourBars({ date, daysAveraged, hours, currentHour }: HourBarsProps) {
     <>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <h3 className="text-sm font-bold">ورود امروز ساعت به ساعت</h3>
-        <ul aria-hidden className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+        <ul
+          aria-hidden
+          className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground"
+        >
           <li className="flex items-center gap-2">
             <span className="inline-block size-3 rounded-[2px] bg-success" />
             امروز
@@ -158,7 +161,14 @@ function Bars({
       viewBox={`0 0 ${width} ${height}`}
       className="h-36 w-full"
     >
-      <line x1={0} x2={width} y1={baseline} y2={baseline} strokeWidth={1} className="stroke-border" />
+      <line
+        x1={0}
+        x2={width}
+        y1={baseline}
+        y2={baseline}
+        strokeWidth={1}
+        className="stroke-border"
+      />
       {hours.map((row, index) => {
         // The first hour on the right: right to left, as time runs along the long-stay bar.
         const x = width - (index + 1) * slot;

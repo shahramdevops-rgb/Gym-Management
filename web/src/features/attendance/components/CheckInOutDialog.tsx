@@ -93,9 +93,7 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
       setStep({
         kind: "cancelled",
         purchasesCancelled:
-          choice.voidCardio ||
-          choice.cafeOrderIds.length > 0 ||
-          choice.saleIds.length > 0,
+          choice.voidCardio || choice.cafeOrderIds.length > 0 || choice.saleIds.length > 0,
       });
     } catch (problem) {
       setStep({ kind: "failed", reason: errorMessage(problem) });

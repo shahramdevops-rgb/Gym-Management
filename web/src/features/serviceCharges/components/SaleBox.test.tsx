@@ -80,7 +80,9 @@ describe("SaleBox", () => {
   function fillLine(form: HTMLElement, line: string, name: string, price: string) {
     const fields = within(form).getByRole("group", { name: line });
     fireEvent.change(within(fields).getByLabelText("نام کالا"), { target: { value: name } });
-    fireEvent.change(within(fields).getByLabelText("قیمت واحد (تومان)"), { target: { value: price } });
+    fireEvent.change(within(fields).getByLabelText("قیمت واحد (تومان)"), {
+      target: { value: price },
+    });
 
     return fields;
   }
@@ -235,7 +237,9 @@ describe("SaleBox", () => {
     const visit = onLocker(openVisit(reza.id));
     await renderLocker({ ...visit, serviceCharges: [analysis(visit)] });
 
-    expect(await screen.findByRole("button", { name: "آنالیز: ۲۰۰٬۰۰۰ تومان" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "آنالیز: ۲۰۰٬۰۰۰ تومان" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "فروشگاه" })).toBeInTheDocument();
   });
 
@@ -247,7 +251,9 @@ describe("SaleBox", () => {
     const cancelPath = `/api/attendance/${visit.id}/cancel`;
     const api = await renderLocker(
       { ...visit, serviceCharges: [shop, scan] },
-      { [`POST ${cancelPath}`]: () => json(200, { ...visit, checkedOutAt: "2026-09-18T07:10:00Z" }) },
+      {
+        [`POST ${cancelPath}`]: () => json(200, { ...visit, checkedOutAt: "2026-09-18T07:10:00Z" }),
+      },
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "لغو ورود" }));

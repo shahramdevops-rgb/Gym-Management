@@ -115,18 +115,16 @@ export interface RecordShopSaleInput {
  * `useRecordServiceCharge`, like هوازی.
  */
 export function useRecordShopSale() {
-  return useServiceChargeMutation(
-    async ({ attendanceId, items }: RecordShopSaleInput) => {
-      const { data, error } = await api.POST(
-        "/api/attendance/{attendanceId}/service-charges/shop",
-        { params: { path: { attendanceId } }, body: { items } },
-      );
-      if (error !== undefined) {
-        throw error;
-      }
-      return data;
-    },
-  );
+  return useServiceChargeMutation(async ({ attendanceId, items }: RecordShopSaleInput) => {
+    const { data, error } = await api.POST("/api/attendance/{attendanceId}/service-charges/shop", {
+      params: { path: { attendanceId } },
+      body: { items },
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  });
 }
 
 export interface ChangeServiceChargeAmountInput {

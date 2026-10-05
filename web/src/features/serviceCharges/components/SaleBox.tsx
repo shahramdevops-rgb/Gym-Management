@@ -14,7 +14,12 @@ import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatus
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney, subtractMoney } from "@/lib/money";
 
-import { serviceChargeKindLabels, serviceChargeLabel, type SaleKind, type ServiceCharge } from "../api";
+import {
+  serviceChargeKindLabels,
+  serviceChargeLabel,
+  type SaleKind,
+  type ServiceCharge,
+} from "../api";
 import { ServiceChargeAmountForm } from "./ServiceChargeAmountForm";
 import { ServiceChargePaymentForm } from "./ServiceChargePaymentForm";
 import { ShopSaleForm } from "./ShopSaleForm";
@@ -94,7 +99,11 @@ export function SaleBox({ attendanceId, kind, memberName, isGuest = false, sales
       <Dialog open={step !== null} onOpenChange={(next) => !next && setStep(null)}>
         <DialogContent>
           {step?.kind === "done" && (
-            <DialogSuccess title={step.title} description={step.detail} onClose={() => setStep(null)} />
+            <DialogSuccess
+              title={step.title}
+              description={step.detail}
+              onClose={() => setStep(null)}
+            />
           )}
 
           {step !== null && step.kind !== "done" && (
