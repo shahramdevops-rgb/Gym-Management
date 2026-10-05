@@ -191,6 +191,12 @@ public sealed class GetFinancialReportHandler(
 
         var expenses = byCategory.Sum(row => row.Amount);
 
+        // «سود خالص» is the gym's own revenue minus every expense: فروشگاه and آنالیز are left
+        // out, as they are out of «فروش» (decided with the developer, 1405/07/14).
+        var ownRevenue = bySource
+            .Where(row => row.Source is not (RevenueSource.Miscellaneous or RevenueSource.Analysis))
+            .Sum(row => row.Money.Net);
+
         // The cafe counts no stock (§8): what was spent restocking it is the nearest thing to its cost.
         var cafeNet = bySource.Single(row => row.Source == RevenueSource.Cafe).Money.Net;
         var cafePurchasing = byCategory
@@ -207,7 +213,7 @@ public sealed class GetFinancialReportHandler(
             data.Sales,
             expenses,
             byCategory,
-            revenue.Net - expenses,
+            ownRevenue - expenses,
             cafeNet - cafePurchasing);
     }
 

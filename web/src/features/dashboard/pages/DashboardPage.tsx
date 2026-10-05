@@ -164,7 +164,7 @@ export function DashboardPage() {
             {financial.isSuccess && (
               <>
                 <StatCard
-                  label="درآمد خالص"
+                  label="درآمد ناخالص"
                   tone="blue"
                   icon={Wallet}
                   value={formatMoney(financial.data.current.revenue.net)}
@@ -193,7 +193,7 @@ export function DashboardPage() {
                   icon={TrendingUp}
                   value={formatMoney(financial.data.current.netProfit)}
                   outcome={outcomeOf(financial.data.current.netProfit)}
-                  hint="درآمد خالص منهای هزینه‌ها"
+                  hint="درآمد به غیر از آنالیز و فروشگاه، منهای همهٔ هزینه‌ها"
                   comparison={{
                     current: financial.data.current.netProfit,
                     previous: financial.data.previous.netProfit,
@@ -225,7 +225,7 @@ export function DashboardPage() {
                   }}
                 />
                 <StatCard
-                  label="سود ناخالص بوفه"
+                  label="سود بوفه"
                   tone="brown"
                   icon={Coffee}
                   value={formatMoney(financial.data.current.cafeGrossProfit)}

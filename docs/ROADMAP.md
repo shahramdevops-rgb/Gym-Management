@@ -2054,6 +2054,8 @@ tests.
 - [x] «فروش» leaves فروشگاه and آنالیز out, and is named «فروش (به غیر از آنالیز و فروشگاه)»
       (BUSINESS_RULES.md §12 *Financial report*); their «sold» counts and the history's totals
       keep them
+- [x] «سود خالص» = revenue without فروشگاه and آنالیز − every expense (§12); the revenue card is
+      «درآمد ناخالص» and still counts every payment; «سود ناخالص بوفه» is «سود بوفه»
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its

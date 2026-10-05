@@ -1252,7 +1252,7 @@ one is paid, records the expense itself.
 
 - Date ranges are inclusive and interpreted in the gym's time zone.
 - Revenue by source (subscriptions, gym services, cafe) and by payment method.
-- Expenses by category (voided excluded). Net profit = revenue − expenses.
+- Expenses by category (voided excluded). Net profit = revenue without فروشگاه and آنالیز − expenses (*Financial report* below).
 - Attendance per day and by hour (cancelled excluded).
 - Active subscriptions, expiring soon, low sessions. Top cafe products.
 - Single-session (تک‌جلسه‌ای) revenue is reported separately from membership sales: they are the same
@@ -1292,9 +1292,12 @@ dashboard (9.3).
     از آنالیز و فروشگاه)». They are still sales of their own source: each is counted in its
     «sold» above, and the history's sales totals keep them.
 - **Expenses** by `ExpenseDate`, voided ones left out (§9), in total and by category.
-- **Net profit = net revenue − expenses** of the same range. Revenue by when money arrived,
-  expenses by the date the Owner gave them.
-- **Cafe gross profit = the cafe's net revenue − expenses in the «خرید بوفه» category** of the same
+- **Net profit («سود خالص») = net revenue without فروشگاه and آنالیز − every expense** of the same
+  range (decided with the developer, 1405/07/14, like «فروش» above). Every expense counts,
+  whatever its category. Revenue by when money arrived, expenses by the date the Owner gave them.
+  The revenue itself still counts every payment, فروشگاه and آنالیز included; the dashboard
+  calls it «درآمد ناخالص» (1405/07/14).
+- **Cafe gross profit («سود بوفه» on the dashboard, 1405/07/14) = the cafe's net revenue − expenses in the «خرید بوفه» category** of the same
   range (the seeded category, by its fixed id, so a rename does not break it). The cafe counts no
   stock (§8), so this is the closest the gym gets to a margin, and only over a range long enough for
   purchases and sales to even out.

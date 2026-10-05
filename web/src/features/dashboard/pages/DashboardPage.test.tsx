@@ -129,7 +129,7 @@ describe("DashboardPage", () => {
 
     await screen.findByText("خلاصهٔ بازه");
 
-    const revenue = card("درآمد خالص");
+    const revenue = card("درآمد ناخالص");
     expect(revenue).toHaveTextContent("۱۲٬۰۰۰٬۰۰۰ تومان");
     expect(within(revenue).getByText(/۲۰٪ بیشتر از بازهٔ قبل/)).toHaveClass("text-success");
 
@@ -142,7 +142,7 @@ describe("DashboardPage", () => {
       "بدون تغییر نسبت به بازهٔ قبل",
     );
     // Nothing before: a percent would say nothing, so the figure before is shown.
-    expect(card("سود ناخالص بوفه")).toHaveTextContent("بازهٔ قبل: ۰ تومان");
+    expect(card("سود بوفه")).toHaveTextContent("بازهٔ قبل: ۰ تومان");
     expect(card("صندوق نقدی")).toHaveTextContent("۳٬۰۰۰٬۰۰۰ تومان");
 
     expect(within(card("ورود اعضا")).getByText(/۲۰٪ کمتر از بازهٔ قبل/)).toHaveClass(
@@ -161,7 +161,7 @@ describe("DashboardPage", () => {
     await screen.findByText("خلاصهٔ بازه");
     // §12: a profit is green, the net one and the cafe's alike.
     expect(within(card("سود خالص")).getByText("۷٬۰۰۰٬۰۰۰ تومان")).toHaveClass("text-success");
-    expect(within(card("سود ناخالص بوفه")).getByText("۸۰۰٬۰۰۰ تومان")).toHaveClass("text-success");
+    expect(within(card("سود بوفه")).getByText("۸۰۰٬۰۰۰ تومان")).toHaveClass("text-success");
   });
 
   it("DashboardPage_LossAndZero_LossIsRedWithItsMinusSignZeroIsNeither", async () => {
@@ -180,7 +180,7 @@ describe("DashboardPage", () => {
     const loss = within(card("سود خالص")).getByText(/۳۰٬۵۰۰٬۰۰۰ تومان$/);
     expect(loss.textContent).toMatch(/^\u200e\u2212۳۰٬۵۰۰٬۰۰۰ تومان$/);
     expect(loss).toHaveClass("text-destructive");
-    const zero = within(card("سود ناخالص بوفه")).getByText("۰ تومان");
+    const zero = within(card("سود بوفه")).getByText("۰ تومان");
     expect(zero).not.toHaveClass("text-success");
     expect(zero).not.toHaveClass("text-destructive");
   });

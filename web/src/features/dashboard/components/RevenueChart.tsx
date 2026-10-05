@@ -8,7 +8,7 @@ import { revenueSeries, type FinancialDay, type MoneyPoint } from "../figures";
 import { axisTick, gridStroke, hoveredRow, svgId, svgText } from "../chartStyle";
 import { BarGradient, ChartCard, ChartTooltip } from "./ChartCard";
 
-const revenueName = "درآمد خالص";
+const revenueName = "درآمد ناخالص";
 const expensesName = "هزینه";
 
 /**

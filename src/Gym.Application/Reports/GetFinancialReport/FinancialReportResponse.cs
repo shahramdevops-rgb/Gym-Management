@@ -26,8 +26,13 @@ public sealed record FinancialReportResponse(
 /// </param>
 /// <param name="Expenses">Expenses by <c>ExpenseDate</c>, voided ones left out.</param>
 /// <param name="ExpensesByCategory">Each category with an expense in the range, the largest first.</param>
-/// <param name="NetProfit">Net revenue minus expenses.</param>
-/// <param name="CafeGrossProfit">The cafe's net revenue minus the «خرید بوفه» expenses.</param>
+/// <param name="NetProfit">
+/// Net revenue without فروشگاه and آنالیز, minus every expense (BUSINESS_RULES.md §12
+/// <i>Financial report</i>).
+/// </param>
+/// <param name="CafeGrossProfit">
+/// The cafe's net revenue minus the «خرید بوفه» expenses; «سود بوفه» on the dashboard.
+/// </param>
 public sealed record FinancialPeriodResponse(
     DateOnly From,
     DateOnly To,
