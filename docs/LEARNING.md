@@ -1450,3 +1450,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **A linked record locks its partner.** The expense written by a payment refuses edit and void (`Expenses.LinkedToPayable`); the only way to change it is to send the payment back to pending, which voids it with the same reason. One owner for the change keeps the register and the expenses from disagreeing.
 - **`useWatch` instead of `form.watch`.** The React Compiler cannot memoise a component that calls `watch()`; `useWatch({ control, name })` subscribes to one field as a hook, so the form can show «قسط n از N» only for an instalment without the lint warning.
 - **My notes:**
+
+## 9.3 follow-up — Plans sold on the dashboard (تعداد پلن فروخته‌شده)
+
+- **A count and an amount can follow different clocks.** The bar's length is money received (by `PaidAt`); the count on it is plans sold (by the sale's own day). A plan sold yesterday and paid today is today's money and yesterday's sale. Both are right, so the count is written on the bar in words rather than drawn as a second bar on the same scale.
+- **Count with the same rule you sum with.** The counts come from the same `SaleRows` query that gives «فروش», grouped by source instead of summed. Only the single-visit split needed its own small query, because the union knows "a plan", not "a single visit", and it repeats the union's rule (sold in the range, not cancelled).
+- **Display order belongs to the screen.** Moving the cafe above فروشگاه was a frontend list (`revenueSourceOrder`). The API keeps its fixed order, because other readers and tests rely on it.
+- **A second API on a spare port.** A running `Gym.Api` locked the normal build folder. `dotnet test --artifacts-path <folder>` built everything elsewhere, and the API built there was run on port 5199 just to generate `schema.d.ts`. The developer's own API was left alone.
+- **My notes:**

@@ -29,6 +29,28 @@ export const reportThresholds = {
   payableDueWithinDays: 7,
 } as const;
 
+/**
+ * The order the dashboard lists the sources in: the API's, with the cafe moved above فروشگاه
+ * (asked by the developer, 1405/07/13). The API keeps its own order for every other reader.
+ */
+export const revenueSourceOrder: RevenueSource[] = [
+  "Membership",
+  "SingleSession",
+  "Cardio",
+  "Cafe",
+  "Miscellaneous",
+  "Analysis",
+];
+
+/**
+ * The sources whose bar says how many were sold in the range (asked by the developer,
+ * 1405/07/13): plans sold matter more to the Owner than new members. What one of them is called.
+ */
+export const soldCountNouns: Partial<Record<RevenueSource, string>> = {
+  Membership: "پلن",
+  SingleSession: "تک‌جلسه",
+};
+
 /** The six sources in the API's own order, and their names on screen (§12 *Financial report*). */
 export const revenueSourceLabels: Record<RevenueSource, string> = {
   Membership: "پلن",

@@ -10,6 +10,8 @@ import { dateFromParams } from "@/lib/searchParams";
 import {
   reportThresholds,
   revenueSourceLabels,
+  revenueSourceOrder,
+  soldCountNouns,
   useAttendanceReport,
   useFinancialReport,
   useMembersReport,
@@ -20,7 +22,7 @@ import {
   type FinancialPeriod,
 } from "../api";
 import { AttendanceHeatmap } from "../components/AttendanceHeatmap";
-import { BarListChart } from "../components/BarListChart";
+import { BarListChart, type BarListItem } from "../components/BarListChart";
 import { MonthlyChart } from "../components/MonthlyChart";
 import { NeedsAttentionPanel } from "../components/NeedsAttentionPanel";
 import { RangePicker, type RangeDraft } from "../components/RangePicker";
@@ -48,6 +50,29 @@ function cashNet(period: FinancialPeriod): number | string {
 }
 
 const formatCount = (value: number) => formatNumber(value);
+
+/**
+ * The sources in the dashboard's order (cafe above فروشگاه), each bar the money received, and on
+ * the plan and single-visit bars how many were sold in the range (§12 *Financial report*).
+ */
+function bySourceItems(period: FinancialPeriod): BarListItem[] {
+  return revenueSourceOrder.flatMap((source) => {
+    const row = period.bySource.find((item) => item.source === source);
+    if (row === undefined) {
+      return [];
+    }
+
+    const noun = soldCountNouns[source];
+    return [
+      {
+        key: source,
+        name: revenueSourceLabels[source],
+        value: Number(row.money.net),
+        sold: noun === undefined ? undefined : { count: Number(row.sold), noun },
+      },
+    ];
+  });
+}
 
 /**
  * The Owner's dashboard, «داشبورد» (BUSINESS_RULES.md §12 *Dashboard*, roadmap 9.3): the range's
@@ -196,7 +221,7 @@ export function DashboardPage() {
                 <StatCard
                   label="اعضای جدید"
                   value={formatNumber(Number(members.data.newMembers))}
-                  hint="با اولین پلن عضویتشان"
+                  hint="عضوهایی که اولین پلن عضویتشان در این بازه فروخته شده"
                 />
                 <RenewalCard
                   renewed={Number(members.data.renewed)}
@@ -265,12 +290,8 @@ export function DashboardPage() {
               <RevenueChart days={financial.data.days} />
               <BarListChart
                 title="درآمد به تفکیک منبع"
-                description="خالص دریافتی، به تومان"
-                items={financial.data.current.bySource.map((item) => ({
-                  key: item.source,
-                  name: revenueSourceLabels[item.source],
-                  value: Number(item.money.net),
-                }))}
+                description="خالص دریافتی به تومان؛ روی پلن و تک‌جلسه‌ای، تعدادی که در این بازه فروخته شده"
+                items={bySourceItems(financial.data.current)}
                 formatValue={formatMoney}
               />
               <BarListChart
@@ -313,7 +334,7 @@ export function DashboardPage() {
             <>
               <MonthlyChart
                 title="اعضای جدید در هر ماه"
-                description="با اولین پلن عضویتشان"
+                description="عضوهایی که اولین پلن عضویتشان در این ماه فروخته شده"
                 valueName="اعضای جدید"
                 points={months.map((month) => ({
                   key: month.key,

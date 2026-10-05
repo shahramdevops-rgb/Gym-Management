@@ -98,9 +98,38 @@ public sealed class GetFinancialReportHandler(
             .Select(group => new ExpenseSum(group.Key.ExpenseDate, group.Key.CategoryId, group.Sum(expense => expense.Amount)))
             .ToListAsync(cancellationToken);
 
-        var sales = await saleRows.Matching(new SalesInRange(from, to))
-            .Where(sale => sale.UndoneAt == null)
-            .SumAsync(sale => sale.Amount, cancellationToken);
+        var liveSales = saleRows.Matching(new SalesInRange(from, to))
+            .Where(sale => sale.UndoneAt == null);
+
+        var sales = await liveSales.SumAsync(sale => sale.Amount, cancellationToken);
+
+        // The same sales, counted per kind (§12 *Financial report*, «تعداد فروش»).
+        var soldByKind = await liveSales
+            .GroupBy(sale => sale.Source)
+            .Select(group => new { Source = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(row => row.Source, row => row.Count, cancellationToken);
+
+        // The union knows a plan, not a single visit, so the single visits among those plans are
+        // counted on their own, with the union's own rule: sold in the range, not cancelled.
+        var singleVisitsSold = await db.Subscriptions
+            .AsNoTracking()
+            .CountAsync(
+                subscription => subscription.IsSingleSession &&
+                    subscription.CancelledAt == null &&
+                    subscription.CreatedAt >= start &&
+                    subscription.CreatedAt < end,
+                cancellationToken);
+
+        var plansSold = soldByKind.GetValueOrDefault(SaleSource.Subscription);
+        var sold = new Dictionary<RevenueSource, int>
+        {
+            [RevenueSource.Membership] = plansSold - singleVisitsSold,
+            [RevenueSource.SingleSession] = singleVisitsSold,
+            [RevenueSource.Cardio] = soldByKind.GetValueOrDefault(SaleSource.Cardio),
+            [RevenueSource.Miscellaneous] = soldByKind.GetValueOrDefault(SaleSource.Miscellaneous),
+            [RevenueSource.Analysis] = soldByKind.GetValueOrDefault(SaleSource.Analysis),
+            [RevenueSource.Cafe] = soldByKind.GetValueOrDefault(SaleSource.CafeOrder),
+        };
 
         return new RangeData(
             payments
@@ -113,7 +142,8 @@ public sealed class GetFinancialReportHandler(
                     SourceOf(payment.IsSingleSession, payment.ServiceKind)))
                 .ToList(),
             expenses,
-            sales);
+            sales,
+            sold);
     }
 
     private static FinancialPeriodResponse Period(
@@ -127,7 +157,9 @@ public sealed class GetFinancialReportHandler(
 
         var bySource = Enum.GetValues<RevenueSource>()
             .Select(source => new RevenueBySourceResponse(
-                source, Flow(data.Payments.Where(payment => payment.Source == source))))
+                source,
+                Flow(data.Payments.Where(payment => payment.Source == source)),
+                data.Sold.GetValueOrDefault(source)))
             .ToList();
 
         var byMethod = MethodOrder
@@ -237,7 +269,11 @@ public sealed class GetFinancialReportHandler(
 
     private sealed record ExpenseSum(DateOnly Date, Guid CategoryId, decimal Amount);
 
-    private sealed record RangeData(List<PaymentFact> Payments, List<ExpenseSum> Expenses, decimal Sales);
+    private sealed record RangeData(
+        List<PaymentFact> Payments,
+        List<ExpenseSum> Expenses,
+        decimal Sales,
+        IReadOnlyDictionary<RevenueSource, int> Sold);
 
     /// <summary>Every sale of a range, whoever bought it and whatever it was (§12 <i>Sales in the history</i>).</summary>
     private sealed record SalesInRange(

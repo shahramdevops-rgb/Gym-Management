@@ -19,12 +19,12 @@ function period(overrides: Partial<FinancialPeriod>): FinancialPeriod {
     to: "2026-10-04",
     revenue: zero,
     bySource: [
-      { source: "Membership", money: zero },
-      { source: "SingleSession", money: zero },
-      { source: "Cardio", money: zero },
-      { source: "Miscellaneous", money: zero },
-      { source: "Analysis", money: zero },
-      { source: "Cafe", money: zero },
+      { source: "Membership", money: zero, sold: 0 },
+      { source: "SingleSession", money: zero, sold: 0 },
+      { source: "Cardio", money: zero, sold: 0 },
+      { source: "Miscellaneous", money: zero, sold: 0 },
+      { source: "Analysis", money: zero, sold: 0 },
+      { source: "Cafe", money: zero, sold: 0 },
     ],
     byMethod: [
       { method: "Card", money: zero },
@@ -48,6 +48,15 @@ function period(overrides: Partial<FinancialPeriod>): FinancialPeriod {
 export const financialReport: FinancialReport = {
   current: period({
     revenue: { received: 13000000, refunded: 1000000, net: 12000000 },
+    // 12 plans and 4 single visits sold in the range; the cafe's orders are counted too, never shown.
+    bySource: [
+      { source: "Membership", money: { received: 9000000, refunded: 0, net: 9000000 }, sold: 12 },
+      { source: "SingleSession", money: { received: 600000, refunded: 0, net: 600000 }, sold: 4 },
+      { source: "Cardio", money: zero, sold: 0 },
+      { source: "Miscellaneous", money: { received: 1200000, refunded: 0, net: 1200000 }, sold: 3 },
+      { source: "Analysis", money: zero, sold: 0 },
+      { source: "Cafe", money: { received: 1200000, refunded: 0, net: 1200000 }, sold: 30 },
+    ],
     byMethod: [
       { method: "Card", money: { received: 9000000, refunded: 0, net: 9000000 } },
       { method: "BankTransfer", money: zero },
@@ -90,18 +99,14 @@ export const attendanceReport: AttendanceReport = {
   previousVisits: 50,
   members: 12,
   days: [{ date: "2026-10-04", visits: 40 }],
-  byWeekday: [
-    "Saturday",
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-  ].map((weekday) => ({
-    weekday: weekday as AttendanceReport["byWeekday"][number]["weekday"],
-    hours: Array.from({ length: 24 }, (_, hour) => (weekday === "Sunday" && hour === 18 ? 40 : 0)),
-  })),
+  byWeekday: ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(
+    (weekday) => ({
+      weekday: weekday as AttendanceReport["byWeekday"][number]["weekday"],
+      hours: Array.from({ length: 24 }, (_, hour) =>
+        weekday === "Sunday" && hour === 18 ? 40 : 0,
+      ),
+    }),
+  ),
 };
 
 /** Five plans ended: three renewed, one still waiting, so the rate is 3 of 4. */
@@ -116,7 +121,12 @@ export const membersReport: MembersReport = {
 };
 
 export const topCafeProducts: TopCafeProduct[] = [
-  { productId: "0199a000-0000-7000-8000-0000000000c1", name: "آب معدنی", quantity: 30, amount: 600000 },
+  {
+    productId: "0199a000-0000-7000-8000-0000000000c1",
+    name: "آب معدنی",
+    quantity: 30,
+    amount: 600000,
+  },
 ];
 
 export const receivables: Receivables = {

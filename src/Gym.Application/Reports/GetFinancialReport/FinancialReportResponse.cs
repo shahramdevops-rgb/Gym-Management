@@ -42,9 +42,18 @@ public sealed record FinancialPeriodResponse(
 /// <param name="Net">Received minus refunded.</param>
 public sealed record MoneyFlowResponse(decimal Received, decimal Refunded, decimal Net);
 
+/// <param name="Money">The money received for this source in the range, by <c>PaidAt</c>.</param>
+/// <param name="Sold">
+/// How many of this source were sold in the range, by the day each sale belongs to, cancelled and
+/// voided sales left out: the rule <see cref="FinancialPeriodResponse.Sales"/> follows, counted
+/// rather than summed. Plans and single visits are counted one by one; a cafe order is one sale
+/// however many items it holds. It does not follow <paramref name="Money"/>: a plan sold before the
+/// range and paid in it adds money here, not a sale.
+/// </param>
 public sealed record RevenueBySourceResponse(
     [property: JsonConverter(typeof(JsonStringEnumConverter<RevenueSource>))] RevenueSource Source,
-    MoneyFlowResponse Money);
+    MoneyFlowResponse Money,
+    int Sold);
 
 public sealed record RevenueByMethodResponse(
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentMethod>))] PaymentMethod Method,

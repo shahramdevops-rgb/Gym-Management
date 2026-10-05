@@ -2395,6 +2395,8 @@ export interface components {
         RevenueBySourceResponse: {
             source: components["schemas"]["RevenueSource"];
             money: components["schemas"]["MoneyFlowResponse"];
+            /** Format: int32 */
+            sold: number | string;
         };
         RevenueByStaffResponse: {
             /** Format: uuid */

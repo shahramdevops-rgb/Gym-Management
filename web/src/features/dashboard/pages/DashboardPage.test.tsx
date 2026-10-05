@@ -31,6 +31,13 @@ function card(label: string) {
 }
 
 describe("DashboardPage", () => {
+  // The route loads the page lazily (router.tsx). Loading it once here, before any test, keeps
+  // that first load out of the tests' own one-second waits: on a busy machine the first test of
+  // the file otherwise ran out of time while the module was still being transformed.
+  beforeAll(async () => {
+    await import("./DashboardPage");
+  });
+
   it("DashboardPage_Staff_SeesNoAccessMessageAndNoRequest", async () => {
     const api = mockApi(signedInHandlers(staffUser));
 
@@ -267,6 +274,44 @@ describe("DashboardPage", () => {
     // Sunday 18:00 is the only busy hour, so it is the only column.
     expect(screen.getByTitle("یکشنبه، ساعت ۱۸: ۴۰ ورود")).toHaveTextContent("۴۰");
     expect(screen.getByTitle("شنبه، ساعت ۱۸: ۰ ورود")).toHaveTextContent("");
+  });
+
+  it("DashboardPage_RevenueBySource_ListsTheCafeAboveTheShopAndCountsPlansAndSingleVisitsSold", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    const chart = (await screen.findByText("درآمد به تفکیک منبع")).closest(
+      "[data-slot=card]",
+    ) as HTMLElement;
+    const rows = within(chart).getAllByRole("listitem");
+
+    // The cafe above فروشگاه (asked by the developer, 1405/07/13).
+    expect(rows.map((row) => row.firstElementChild?.textContent)).toEqual([
+      "پلن",
+      "تک‌جلسه‌ای",
+      "هوازی",
+      "بوفه",
+      "فروشگاه",
+      "آنالیز",
+    ]);
+
+    // How many were sold in the range, on the plan and single-visit bars only.
+    expect(rows[0]).toHaveTextContent("۱۲ پلن فروخته شد");
+    expect(rows[0]).toHaveTextContent("۹٬۰۰۰٬۰۰۰ تومان");
+    expect(rows[1]).toHaveTextContent("۴ تک‌جلسه فروخته شد");
+    expect(rows[3]).not.toHaveTextContent("فروخته شد");
+  });
+
+  it("DashboardPage_NewMembers_SayTheyAreCountedOnTheirFirstPlansSale", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    expect(
+      await screen.findByText("عضوهایی که اولین پلن عضویتشان در این بازه فروخته شده"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("عضوهایی که اولین پلن عضویتشان در این ماه فروخته شده"),
+    ).toBeInTheDocument();
   });
 
   it("DashboardPage_OwnerMenu_LinksToTheDashboard", async () => {
