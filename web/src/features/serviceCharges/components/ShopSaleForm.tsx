@@ -148,7 +148,12 @@ export function ShopSaleForm({
       </ul>
 
       {lines.fields.length < shopSaleLimits.maxItems && (
-        <Button type="button" variant="outline" size="sm" onClick={() => lines.append(emptyShopItem)}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => lines.append(emptyShopItem)}
+        >
           <Plus aria-hidden />
           افزودن کالای دیگر
         </Button>

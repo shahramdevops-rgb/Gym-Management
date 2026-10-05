@@ -28,11 +28,7 @@ export const paymentSourceLabels: Record<PaymentSource, string> = {
  * apart and `paymentSourceQuery` turns the choice back into the API's two parameters.
  */
 export type PaymentSourceFilter =
-  | "Subscription"
-  | "Cardio"
-  | "Miscellaneous"
-  | "Analysis"
-  | "CafeOrder";
+  "Subscription" | "Cardio" | "Miscellaneous" | "Analysis" | "CafeOrder";
 
 export const paymentSourceFilters: PaymentSourceFilter[] = [
   "Subscription",

@@ -82,11 +82,7 @@ export function ConfirmFreezeDialog({
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" disabled={pending} onClick={onConfirm}>
-                {pending
-                  ? "در حال ثبت…"
-                  : freezing
-                    ? "بله، فریز شود"
-                    : "بله، فریز برداشته شود"}
+                {pending ? "در حال ثبت…" : freezing ? "بله، فریز شود" : "بله، فریز برداشته شود"}
               </Button>
               <Button type="button" variant="outline" disabled={pending} onClick={onCancel}>
                 خیر، برگرد

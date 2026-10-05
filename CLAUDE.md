@@ -22,7 +22,7 @@ No public access, no self-registration, no member logins.
 - Release to the server (from Git Bash, key-based ssh): `deploy/release.sh <user@host> [--with-postgres]`; on the server: `./server.sh rollback`
 - Accounts on the server (any user, the Owner included): `./server.sh unlock <user> | set-password <user> | rename <user> <new-user>`; locally: `dotnet run --project src/Gym.Api -- admin unlock <user>`
 - Backups: on the server `./backup.sh run | restore <file> --yes | restore-scratch <file>`; on the gym PC `deploy/pull-backup.ps1` (README, "Backup and restore")
-- Frontend (inside web/): `npm run dev`, `npm run build`, `npm run lint`, `npm test`
+- Frontend (inside web/): `npm run dev`, `npm run build`, `npm run lint`, `npm test`, `npm run format` (CI runs `npm run format:check`; run it before every frontend commit)
 - Regenerate API types after any endpoint change (inside web/): `npm run gen:api`. It uses an API already running on :5134, or starts one (needs `docker compose up -d`), generates, and stops it
 Keep this section up to date when commands change.
 

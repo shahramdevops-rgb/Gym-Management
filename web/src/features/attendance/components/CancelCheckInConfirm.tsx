@@ -99,9 +99,7 @@ export function CancelCheckInConfirm({
       cafeOrderIds: (visit?.cafeOrders ?? [])
         .filter((order) => ticked.has(order.id))
         .map((order) => order.id),
-      saleIds: sales
-        .filter((sale) => ticked.has(sale.id))
-        .map((sale) => sale.id),
+      saleIds: sales.filter((sale) => ticked.has(sale.id)).map((sale) => sale.id),
     });
   }
 

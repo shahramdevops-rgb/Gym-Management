@@ -509,7 +509,11 @@ describe("CurrentlyInsidePage", () => {
     expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
     expect(dialog).toHaveTextContent("خریدهای انتخاب‌شده هم لغو شد.");
     const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
-    expect(await request.json()).toEqual({ voidCardio: true, cafeOrderIds: [secondCafeOrder.id], saleIds: [] });
+    expect(await request.json()).toEqual({
+      voidCardio: true,
+      cafeOrderIds: [secondCafeOrder.id],
+      saleIds: [],
+    });
   });
 
   it("Board_CancelSecondQuestion_BackKeepsTheTicksAndSendsNothing", async () => {
@@ -637,7 +641,11 @@ describe("CurrentlyInsidePage", () => {
     expect(await within(dialog).findByText("ورود لغو شد")).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent("جلسه به اشتراک بازگشت");
     const request = api.requestsTo("POST", `/api/attendance/${visit.id}/cancel`).at(0)!;
-    expect(await request.json()).toEqual({ voidCardio: false, cafeOrderIds: [maryamDrink.id], saleIds: [] });
+    expect(await request.json()).toEqual({
+      voidCardio: false,
+      cafeOrderIds: [maryamDrink.id],
+      saleIds: [],
+    });
   });
 
   it("Board_CancelGuestLeavingAnUnpaidCardio_WaitsUntilItIsTickedAndVoidsIt", async () => {

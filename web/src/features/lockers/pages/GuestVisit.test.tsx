@@ -305,12 +305,14 @@ describe("Guest visit", () => {
       serviceCharges: [cardioCharge(maryamVisit, { amount: 30000 })],
     };
     const api = mockApi(
-      mapHandlers(allLockers(guestLocker(3, "مریم احمدی", 70000)), [
-        guestInsideRow(withCardio, [unpaidDrink]),
-      ], {
-        [`POST /api/attendance/${maryamVisit.id}/settle-guest`]: () =>
-          json(200, { amount: 70000, method: "Cash", payments: [], remainingDebt: 0 }),
-      }),
+      mapHandlers(
+        allLockers(guestLocker(3, "مریم احمدی", 70000)),
+        [guestInsideRow(withCardio, [unpaidDrink])],
+        {
+          [`POST /api/attendance/${maryamVisit.id}/settle-guest`]: () =>
+            json(200, { amount: 70000, method: "Cash", payments: [], remainingDebt: 0 }),
+        },
+      ),
     );
     renderMap();
 
@@ -329,7 +331,9 @@ describe("Guest visit", () => {
     fireEvent.click(within(confirm).getByRole("button", { name: "بله، پول دریافت شد" }));
 
     await waitFor(() =>
-      expect(api.requestsTo("POST", `/api/attendance/${maryamVisit.id}/settle-guest`)).toHaveLength(1),
+      expect(api.requestsTo("POST", `/api/attendance/${maryamVisit.id}/settle-guest`)).toHaveLength(
+        1,
+      ),
     );
     const request = api.requestsTo("POST", `/api/attendance/${maryamVisit.id}/settle-guest`)[0]!;
     expect(await request.clone().json()).toMatchObject({ amount: "70000.00" });
