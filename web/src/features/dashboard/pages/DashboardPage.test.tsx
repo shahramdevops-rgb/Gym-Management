@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import { gymToday } from "@/lib/format";
 import { json, mockApi, owner, session, signedInHandlers, staffUser } from "@/test/mockApi";
-import { ali, needsAttention, reportHandlers } from "@/test/reports";
+import { ali, financialReport, needsAttention, reportHandlers } from "@/test/reports";
 import { renderApp } from "@/test/renderApp";
 
 import { presetRange } from "../range";
@@ -149,6 +149,37 @@ describe("DashboardPage", () => {
     // 3 renewed of the 4 decided; the one still waiting is left out (§12).
     expect(card("نرخ تمدید")).toHaveTextContent("۷۵٪");
     expect(card("نرخ تمدید")).toHaveTextContent("۳ از ۴ پلن تمام‌شده؛ ۱ در انتظار");
+  });
+
+  it("DashboardPage_Profit_IsShownInGreen", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    // §12: a profit is green, the net one and the cafe's alike.
+    expect(within(card("سود خالص")).getByText("۷٬۰۰۰٬۰۰۰ تومان")).toHaveClass("text-success");
+    expect(within(card("سود ناخالص بوفه")).getByText("۸۰۰٬۰۰۰ تومان")).toHaveClass("text-success");
+  });
+
+  it("DashboardPage_LossAndZero_LossIsRedWithItsMinusSignZeroIsNeither", async () => {
+    mockApi({
+      ...dashboard,
+      "GET /api/reports/financial": () =>
+        json(200, {
+          ...financialReport,
+          current: { ...financialReport.current, netProfit: -30500000, cafeGrossProfit: 0 },
+        }),
+    });
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    // §12: a month with more expenses than revenue is a loss, shown as one, not as «—».
+    const loss = within(card("سود خالص")).getByText(/۳۰٬۵۰۰٬۰۰۰ تومان$/);
+    expect(loss.textContent).toMatch(/^\u200e\u2212۳۰٬۵۰۰٬۰۰۰ تومان$/);
+    expect(loss).toHaveClass("text-destructive");
+    const zero = within(card("سود ناخالص بوفه")).getByText("۰ تومان");
+    expect(zero).not.toHaveClass("text-success");
+    expect(zero).not.toHaveClass("text-destructive");
   });
 
   it("DashboardPage_Loaded_ShowsThePlansAndDebtsOfToday", async () => {

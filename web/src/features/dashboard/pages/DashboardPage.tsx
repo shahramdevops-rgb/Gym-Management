@@ -51,7 +51,7 @@ import { RevenueChart } from "../components/RevenueChart";
 import { SectionHeading } from "../components/SectionHeading";
 import { StaffMoneyTable } from "../components/StaffMoneyTable";
 import { StatCard, StatCardsLoading } from "../components/StatCard";
-import { byJalaliMonth, renewalRate } from "../figures";
+import { byJalaliMonth, outcomeOf, renewalRate } from "../figures";
 import { defaultRangePreset, presetRange, rangeError, type ReportRange } from "../range";
 
 /**
@@ -189,6 +189,7 @@ export function DashboardPage() {
                   tone="green"
                   icon={TrendingUp}
                   value={formatMoney(financial.data.current.netProfit)}
+                  outcome={outcomeOf(financial.data.current.netProfit)}
                   hint="درآمد خالص منهای هزینه‌ها"
                   comparison={{
                     current: financial.data.current.netProfit,
@@ -225,6 +226,7 @@ export function DashboardPage() {
                   tone="brown"
                   icon={Coffee}
                   value={formatMoney(financial.data.current.cafeGrossProfit)}
+                  outcome={outcomeOf(financial.data.current.cafeGrossProfit)}
                   hint="درآمد بوفه منهای هزینهٔ «خرید بوفه»"
                   comparison={{
                     current: financial.data.current.cafeGrossProfit,
