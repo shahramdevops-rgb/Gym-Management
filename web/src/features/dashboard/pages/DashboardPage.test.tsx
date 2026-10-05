@@ -4,6 +4,7 @@ import { gymToday } from "@/lib/format";
 import { json, mockApi, owner, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { ali, needsAttention, reportHandlers } from "@/test/reports";
 import { renderApp } from "@/test/renderApp";
+import { dateShown } from "@/test/jalaliDate";
 
 import { presetRange } from "../range";
 
@@ -98,8 +99,8 @@ describe("DashboardPage", () => {
     expect(api.requestsTo("GET", "/api/reports/financial").map(queryOf)).toEqual([
       { from: "2026-09-01", to: "2026-09-15" },
     ]);
-    expect(screen.getByLabelText("از تاریخ")).toHaveValue("۱۴۰۵/۰۶/۱۰");
-    expect(screen.getByLabelText("تا تاریخ")).toHaveValue("۱۴۰۵/۰۶/۲۴");
+    expect(dateShown("از تاریخ")).toBe("۱۰ شهریور ۱۴۰۵");
+    expect(dateShown("تا تاریخ")).toBe("۲۴ شهریور ۱۴۰۵");
     expect(screen.getByRole("button", { name: "دلخواه" })).toHaveAttribute("aria-pressed", "true");
   });
 

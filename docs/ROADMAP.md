@@ -2105,6 +2105,25 @@ zero warnings, lint and production build pass. Migration `AddPayables` touches n
 the real data (`cheques` was never released, and the new `expenses` column is nullable); the
 release still starts with `./backup.sh run`.
 
+#### Follow-up: every date chosen like a birth date (asked by the developer, 1405/07/13)
+Every date field now works like the birth date at registration: three dropdowns (day, month by
+name, year) instead of the typed box with a calendar. Decided with the developer on 1405/07/13: the
+years run from three years after the current one back to ۱۴۰۴; each form keeps the starting value
+it already had.
+- [x] Rules first: BUSINESS_RULES.md §13 (every date in three dropdowns; the two year ranges)
+- [x] `FormField.tsx`: one `DropdownDateField`; `JalaliDateField` (۱۴۰۴ to three years ahead, with
+      «پاک کردن») and `BirthDateField` (۱۳۲۰ to ۱۴۰۰) wrap it. Used by the cheque and instalment
+      form, the expense form, and the date filters of expenses, cafe orders, history and the
+      dashboard's range
+- [x] Removed what only the typed box needed: `react-multi-date-picker`, `react-date-object`, the
+      calendar's CSS, and `toIsoDate`, `withDateSlashes` and `toJalaliInput` in `format.ts`
+- [x] Tests: the field's year range, clear button and error wiring; `jalaliToIso` and
+      `jalaliPartsOf` take over the conversion tests; page tests choose dates through
+      `test/jalaliDate.ts` (renamed from `birthDate.ts`)
+
+Closed 2026-10-05: frontend only, no API or database change. 843 frontend tests green (885
+before: the typed box's and the removed helpers' tests went with them), lint and production build pass.
+
 ---
 
 ## Phase 10 — SMS Notifications

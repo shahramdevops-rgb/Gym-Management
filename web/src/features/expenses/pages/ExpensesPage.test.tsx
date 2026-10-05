@@ -18,8 +18,9 @@ import {
   signedInHandlers,
   staffUser,
 } from "@/test/mockApi";
-import { gymToday } from "@/lib/format";
+import { gymToday, jalaliPartsOf } from "@/lib/format";
 import { renderApp } from "@/test/renderApp";
+import { chooseDate, dateShown } from "@/test/jalaliDate";
 
 const books = {
   ...signedInHandlers(owner),
@@ -100,7 +101,7 @@ describe("ExpensesPage", () => {
     expect(url.searchParams.get("To")).toBe("2026-09-30");
     expect(url.searchParams.get("CategoryId")).toBe(rent.id);
     // The boxes speak Jalali.
-    expect(screen.getByLabelText("از تاریخ")).toHaveValue("۱۴۰۵/۰۶/۱۰");
+    expect(dateShown("از تاریخ")).toBe("۱۰ شهریور ۱۴۰۵");
     expect(screen.getByText("جمع هزینه‌ها در این فیلتر")).toBeInTheDocument();
   });
 
@@ -167,9 +168,8 @@ describe("ExpensesPage", () => {
 
     const form = formOf("شرح");
     fireEvent.change(within(form).getByLabelText("مبلغ (تومان)"), { target: { value: "0" } });
-    fireEvent.change(within(form).getByLabelText("تاریخ هزینه"), {
-      target: { value: "۱۵۰۰/۰۱/۰۱" },
-    });
+    // Next Nowruz: always ahead of today, and always in the year list.
+    chooseDate("تاریخ هزینه", `${jalaliPartsOf(gymToday())!.year + 1}/01/01`, form);
     fireEvent.click(within(form).getByRole("button", { name: "ثبت هزینه" }));
 
     expect(
@@ -195,7 +195,7 @@ describe("ExpensesPage", () => {
     const form = formOf("شرح");
     // The form opens on the expense as it stands.
     expect(within(form).getByLabelText("مبلغ (تومان)")).toHaveValue("۵۰٬۰۰۰٬۰۰۰");
-    expect(within(form).getByLabelText("تاریخ هزینه")).toHaveValue("۱۴۰۵/۰۶/۱۰");
+    expect(dateShown("تاریخ هزینه", form)).toBe("۱۰ شهریور ۱۴۰۵");
     fireEvent.change(within(form).getByLabelText("مبلغ (تومان)"), {
       target: { value: "55,000,000" },
     });

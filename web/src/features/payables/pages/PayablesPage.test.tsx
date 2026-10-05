@@ -19,6 +19,7 @@ import {
   payablesPage,
 } from "@/test/payables";
 import { renderApp } from "@/test/renderApp";
+import { chooseDate } from "@/test/jalaliDate";
 
 const totals = { cheques: 80000000, installments: 5000000 };
 
@@ -164,7 +165,7 @@ describe("PayablesPage", () => {
     fireEvent.change(within(form).getByLabelText("مبلغ (تومان)"), {
       target: { value: "۲۵۰۰۰۰۰۰" },
     });
-    fireEvent.change(within(form).getByLabelText("تاریخ چک"), { target: { value: "۱۴۰۵/۰۸/۱۵" } });
+    chooseDate("تاریخ چک", "1405/08/15", form);
     fireEvent.change(within(form).getByLabelText("در وجه"), { target: { value: " فروشگاه " } });
     fireEvent.change(within(form).getByLabelText("دسته‌بندی هزینه"), {
       target: { value: equipment.id },
@@ -204,9 +205,7 @@ describe("PayablesPage", () => {
     fireEvent.change(within(form).getByLabelText("مبلغ (تومان)"), {
       target: { value: "5000000" },
     });
-    fireEvent.change(within(form).getByLabelText("تاریخ سررسید قسط"), {
-      target: { value: "۱۴۰۵/۰۸/۰۱" },
-    });
+    chooseDate("تاریخ سررسید قسط", "1405/08/01", form);
     fireEvent.change(within(form).getByLabelText("پرداخت به"), { target: { value: "بانک ملت" } });
     fireEvent.change(within(form).getByLabelText("دسته‌بندی هزینه"), {
       target: { value: equipment.id },

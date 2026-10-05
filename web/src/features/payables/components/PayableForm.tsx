@@ -103,7 +103,6 @@ export function PayableForm({
             <JalaliDateField
               label={installment ? "تاریخ سررسید قسط" : "تاریخ چک"}
               error={errors.dueDate?.message}
-              name={field.name}
               value={field.value}
               onChange={field.onChange}
               onBlur={field.onBlur}

@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import type { Member } from "@/features/members/api";
-import { chooseBirthDate } from "@/test/birthDate";
+import { chooseBirthDate } from "@/test/jalaliDate";
 import { cafePage } from "@/test/cafe";
 import {
   closedVisit,

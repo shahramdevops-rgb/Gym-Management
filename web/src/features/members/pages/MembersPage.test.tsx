@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import type { Member } from "@/features/members/api";
 import { attendanceHistoryPage, closedVisit, openVisit } from "@/test/attendance";
-import { chooseBirthDate } from "@/test/birthDate";
+import { chooseBirthDate } from "@/test/jalaliDate";
 import { json, mockApi, session, signedInHandlers, staffUser, type Handler } from "@/test/mockApi";
 import { ali, memberDebt, membersPage, queryOf, reza, serviceChargeDebtItem } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
