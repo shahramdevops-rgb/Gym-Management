@@ -24,6 +24,11 @@ public sealed record FinancialReportResponse(
 /// What was sold in the range, cancelled and voided sales left out: plans, single visits, هوازی and
 /// the cafe. فروشگاه and آنالیز are left out (BUSINESS_RULES.md §12 <i>Financial report</i>).
 /// </param>
+/// <param name="SalesPaidByMethod">
+/// What has been paid so far on the sales counted in <paramref name="Sales"/>, by method, in the
+/// desk's order (card, bank transfer, cash), refunds taken off, whenever it was paid. What is
+/// still owed has no method, so the three can add up to less than <paramref name="Sales"/>.
+/// </param>
 /// <param name="Expenses">Expenses by <c>ExpenseDate</c>, voided ones left out.</param>
 /// <param name="ExpensesByCategory">Each category with an expense in the range, the largest first.</param>
 /// <param name="NetProfit">
@@ -41,6 +46,7 @@ public sealed record FinancialPeriodResponse(
     IReadOnlyList<RevenueByMethodResponse> ByMethod,
     IReadOnlyList<RevenueByStaffResponse> ByStaff,
     decimal Sales,
+    IReadOnlyList<SalesPaidByMethodResponse> SalesPaidByMethod,
     decimal Expenses,
     IReadOnlyList<ExpensesByCategoryResponse> ExpensesByCategory,
     decimal NetProfit,
@@ -66,6 +72,11 @@ public sealed record RevenueBySourceResponse(
 public sealed record RevenueByMethodResponse(
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentMethod>))] PaymentMethod Method,
     MoneyFlowResponse Money);
+
+/// <param name="Amount">Paid on the range's sales by this method, refunds taken off.</param>
+public sealed record SalesPaidByMethodResponse(
+    [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentMethod>))] PaymentMethod Method,
+    decimal Amount);
 
 /// <param name="UserId">Who took the payments and gave the refunds (<c>ReceivedByUserId</c>).</param>
 public sealed record RevenueByStaffResponse(Guid UserId, string FullName, MoneyFlowResponse Money);

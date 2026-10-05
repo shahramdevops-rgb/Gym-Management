@@ -33,6 +33,11 @@ function period(overrides: Partial<FinancialPeriod>): FinancialPeriod {
     ],
     byStaff: [],
     sales: 0,
+    salesPaidByMethod: [
+      { method: "Card", amount: 0 },
+      { method: "BankTransfer", amount: 0 },
+      { method: "Cash", amount: 0 },
+    ],
     expenses: 0,
     expensesByCategory: [],
     netProfit: 0,
@@ -70,6 +75,12 @@ export const financialReport: FinancialReport = {
       },
     ],
     sales: 15000000,
+    // 2,000,000 of the sales are still owed, so these add up to 13,000,000.
+    salesPaidByMethod: [
+      { method: "Card", amount: 9000000 },
+      { method: "BankTransfer", amount: 1000000 },
+      { method: "Cash", amount: 3000000 },
+    ],
     expenses: 5000000,
     expensesByCategory: [
       { categoryId: "0199a000-0000-7000-8000-0000000000a1", name: "اجاره", amount: 5000000 },

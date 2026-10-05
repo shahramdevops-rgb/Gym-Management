@@ -32,6 +32,17 @@ interface StatCardProps {
    * of the figure itself says which, so the colour is never alone.
    */
   outcome?: Outcome;
+  /**
+   * A few figures the main one is made of, listed in the card's empty corner under the icon,
+   * beside the figure rather than under it (asked by the developer, 1405/07/14: «فروش» by method).
+   */
+  breakdown?: BreakdownRow[];
+}
+
+/** One line of a card's breakdown: «کارت ۳۰٬۰۰۰٬۰۰۰ تومان». */
+export interface BreakdownRow {
+  label: string;
+  value: string;
 }
 
 /**
@@ -39,7 +50,8 @@ interface StatCardProps {
  * together, never the colour alone.
  *
  * The label and the figure are the card's own `dt` and `dd`, so the card stays one group of its
- * list; the icon sits inside the `dt`, placed at the card's top corner.
+ * list; the icon sits inside the `dt`, placed at the card's top corner. A breakdown is one more
+ * `dd`, placed in the column under the icon; the figure and its lines keep clear of it.
  */
 export function StatCard({
   label,
@@ -50,11 +62,17 @@ export function StatCard({
   comparison,
   progress,
   outcome,
+  breakdown,
 }: StatCardProps) {
+  const besideBreakdown = breakdown !== undefined && "pe-40";
+
   return (
     <div
       style={toneStyle(tone)}
-      className="relative space-y-1.5 overflow-hidden rounded-2xl border bg-card p-4 shadow-sm transition before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-(--tone) hover:shadow-md motion-safe:hover:-translate-y-0.5"
+      className={cn(
+        "relative space-y-1.5 overflow-hidden rounded-2xl border bg-card p-4 shadow-sm transition before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-(--tone) hover:shadow-md motion-safe:hover:-translate-y-0.5",
+        breakdown !== undefined && "min-h-40",
+      )}
     >
       <dt className="pe-12 text-sm text-muted-foreground">
         {label}
@@ -68,12 +86,25 @@ export function StatCard({
       <dd
         className={cn(
           "pe-12 text-2xl font-extrabold tracking-tight",
+          besideBreakdown,
           outcome === "gain" && "text-success",
           outcome === "loss" && "text-destructive",
         )}
       >
         {value}
       </dd>
+      {breakdown !== undefined && (
+        <dd className="absolute end-4 top-16 bottom-4 w-36">
+          <ul className="flex h-full flex-col justify-evenly text-xs">
+            {breakdown.map((row) => (
+              <li key={row.label} className="flex items-baseline justify-between gap-2">
+                <span className="text-muted-foreground">{row.label}</span>
+                <span className="font-semibold whitespace-nowrap tabular-nums">{row.value}</span>
+              </li>
+            ))}
+          </ul>
+        </dd>
+      )}
       {progress !== undefined && progress !== null && (
         <dd aria-hidden className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div
@@ -83,7 +114,9 @@ export function StatCard({
         </dd>
       )}
       {comparison !== undefined && <ChangeLine comparison={comparison} />}
-      {hint !== undefined && <dd className="text-xs text-muted-foreground">{hint}</dd>}
+      {hint !== undefined && (
+        <dd className={cn("text-xs text-muted-foreground", besideBreakdown)}>{hint}</dd>
+      )}
     </div>
   );
 }

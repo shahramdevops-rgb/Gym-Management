@@ -2061,6 +2061,8 @@ tests.
 - [x] «نرخ تبدیل تک‌جلسه‌ای به پلن» (§12 *Operational reports*): new people only, each once, a plan
       within 30 days, those still waiting left out; `trials`, `trialsConverted`, `trialsWaiting`
       on the members report
+- [x] «فروش» first, with what was paid on its sales by method («کارت», «انتقال», «نقد») in the
+      card's empty corner (`salesPaidByMethod`); «درآمد ناخالص» and «صندوق نقدی» taken off
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its

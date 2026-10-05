@@ -103,9 +103,29 @@ public sealed class GetFinancialReportHandler(
 
         // «فروش» on the dashboard leaves فروشگاه and آنالیز out (decided with the developer,
         // 1405/07/14); they are still counted below, in each source's «sold».
-        var sales = await liveSales
-            .Where(sale => sale.Source != SaleSource.Miscellaneous && sale.Source != SaleSource.Analysis)
-            .SumAsync(sale => sale.Amount, cancellationToken);
+        var gymSales = liveSales
+            .Where(sale => sale.Source != SaleSource.Miscellaneous && sale.Source != SaleSource.Analysis);
+        var sales = await gymSales.SumAsync(sale => sale.Amount, cancellationToken);
+
+        // What has been paid on those same sales so far, by method, refunds taken off (decided with
+        // the developer, 1405/07/14). Whenever it was paid: the question is how these sales were
+        // paid, not what came in during the range. An unpaid sale has no method, so the three can
+        // add up to less than «فروش». The ids are read first: a plan, a charge and a cafe order
+        // each have their own column on a payment, and ids never repeat across them.
+        var saleIds = await gymSales.Select(sale => sale.Id).ToListAsync(cancellationToken);
+        var paidOnSales = await db.Payments
+            .AsNoTracking()
+            .Where(payment =>
+                (payment.SubscriptionId != null && saleIds.Contains(payment.SubscriptionId.Value)) ||
+                (payment.ServiceChargeId != null && saleIds.Contains(payment.ServiceChargeId.Value)) ||
+                (payment.CafeOrderId != null && saleIds.Contains(payment.CafeOrderId.Value)))
+            .GroupBy(payment => payment.Method)
+            .Select(group => new
+            {
+                Method = group.Key,
+                Net = group.Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
+            })
+            .ToDictionaryAsync(row => row.Method, row => row.Net, cancellationToken);
 
         // The same sales, counted per kind (§12 *Financial report*, «تعداد فروش»).
         var soldByKind = await liveSales
@@ -147,6 +167,7 @@ public sealed class GetFinancialReportHandler(
                 .ToList(),
             expenses,
             sales,
+            paidOnSales,
             sold);
     }
 
@@ -211,6 +232,9 @@ public sealed class GetFinancialReportHandler(
             byMethod,
             byStaff,
             data.Sales,
+            MethodOrder
+                .Select(method => new SalesPaidByMethodResponse(method, data.PaidOnSales.GetValueOrDefault(method)))
+                .ToList(),
             expenses,
             byCategory,
             ownRevenue - expenses,
@@ -283,6 +307,7 @@ public sealed class GetFinancialReportHandler(
         List<PaymentFact> Payments,
         List<ExpenseSum> Expenses,
         decimal Sales,
+        IReadOnlyDictionary<PaymentMethod, decimal> PaidOnSales,
         IReadOnlyDictionary<RevenueSource, int> Sold);
 
     /// <summary>Every sale of a range, whoever bought it and whatever it was (§12 <i>Sales in the history</i>).</summary>
