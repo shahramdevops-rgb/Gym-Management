@@ -2046,6 +2046,14 @@ tests.
 - [x] Receivables in one card with a bar split by age; the renewal rate with a progress bar
 - [x] «نیاز به اقدام»: a coloured edge, count badge and initials per list; an overdue cheque tinted
 - [x] Charts: rounded gradient bars on a track; skeleton cards while the figures load
+- [x] A loss is shown with its minus sign instead of «—» (`formatMoney` took no negatives); the
+      profit cards are green above zero and red below
+- [x] The banner is green, with the gym's logo (cut from a photo of its wall, white on
+      transparency); a photo of the gym's athlete was tried and taken out, and the greeting and
+      date line removed
+- [x] «فروش» leaves فروشگاه and آنالیز out, and is named «فروش (به غیر از آنالیز و فروشگاه)»
+      (BUSINESS_RULES.md §12 *Financial report*); their «sold» counts and the history's totals
+      keep them
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its

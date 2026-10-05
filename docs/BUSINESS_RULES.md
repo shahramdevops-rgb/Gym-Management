@@ -1285,9 +1285,12 @@ dashboard (9.3).
   *Guest visit*) is an ordinary payment and counts in its source like a member's. Guests stay out of
   every attendance figure (§7), as before.
 - **Sales of the range** («فروش») sit beside revenue: what was sold in the range, by the day each
-  sale belongs to (§12 *Sales in the history*), cancelled and voided sales left out. Sales minus the
-  money received on them is what the range added to what members owe. The two figures answer
-  different questions and neither replaces the other.
+  sale belongs to (§12 *Sales in the history*), cancelled and voided sales left out. The two figures
+  answer different questions and neither replaces the other.
+  - **فروشگاه and آنالیز are left out of it** (decided with the developer, 1405/07/14): «فروش» is
+    plans, single visits, هوازی and the cafe, and the dashboard says so in its name, «فروش (به غیر
+    از آنالیز و فروشگاه)». They are still sales of their own source: each is counted in its
+    «sold» above, and the history's sales totals keep them.
 - **Expenses** by `ExpenseDate`, voided ones left out (§9), in total and by category.
 - **Net profit = net revenue − expenses** of the same range. Revenue by when money arrived,
   expenses by the date the Owner gave them.

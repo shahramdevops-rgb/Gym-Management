@@ -101,7 +101,11 @@ public sealed class GetFinancialReportHandler(
         var liveSales = saleRows.Matching(new SalesInRange(from, to))
             .Where(sale => sale.UndoneAt == null);
 
-        var sales = await liveSales.SumAsync(sale => sale.Amount, cancellationToken);
+        // «فروش» on the dashboard leaves فروشگاه and آنالیز out (decided with the developer,
+        // 1405/07/14); they are still counted below, in each source's «sold».
+        var sales = await liveSales
+            .Where(sale => sale.Source != SaleSource.Miscellaneous && sale.Source != SaleSource.Analysis)
+            .SumAsync(sale => sale.Amount, cancellationToken);
 
         // The same sales, counted per kind (§12 *Financial report*, «تعداد فروش»).
         var soldByKind = await liveSales

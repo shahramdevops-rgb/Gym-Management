@@ -137,7 +137,10 @@ describe("DashboardPage", () => {
     expect(within(card("هزینه‌ها")).getByText(/۲۵٪ بیشتر از بازهٔ قبل/)).toHaveClass(
       "text-destructive",
     );
-    expect(card("فروش")).toHaveTextContent("بدون تغییر نسبت به بازهٔ قبل");
+    // §12: «فروش» leaves فروشگاه and آنالیز out, and its name says so (1405/07/14).
+    expect(card("فروش (به غیر از آنالیز و فروشگاه)")).toHaveTextContent(
+      "بدون تغییر نسبت به بازهٔ قبل",
+    );
     // Nothing before: a percent would say nothing, so the figure before is shown.
     expect(card("سود ناخالص بوفه")).toHaveTextContent("بازهٔ قبل: ۰ تومان");
     expect(card("صندوق نقدی")).toHaveTextContent("۳٬۰۰۰٬۰۰۰ تومان");

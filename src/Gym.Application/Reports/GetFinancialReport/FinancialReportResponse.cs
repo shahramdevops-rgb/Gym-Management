@@ -20,7 +20,10 @@ public sealed record FinancialReportResponse(
 /// <param name="BySource">All six sources, always in the same order, zeros included.</param>
 /// <param name="ByMethod">All three methods in the desk's order: card, bank transfer, cash.</param>
 /// <param name="ByStaff">Everyone who took or gave back money in the range, the largest net first.</param>
-/// <param name="Sales">What was sold in the range, cancelled and voided sales left out.</param>
+/// <param name="Sales">
+/// What was sold in the range, cancelled and voided sales left out: plans, single visits, هوازی and
+/// the cafe. فروشگاه and آنالیز are left out (BUSINESS_RULES.md §12 <i>Financial report</i>).
+/// </param>
 /// <param name="Expenses">Expenses by <c>ExpenseDate</c>, voided ones left out.</param>
 /// <param name="ExpensesByCategory">Each category with an expense in the range, the largest first.</param>
 /// <param name="NetProfit">Net revenue minus expenses.</param>
