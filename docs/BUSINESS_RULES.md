@@ -1434,9 +1434,14 @@ on one page.
 - **«خرید پلن» and «تک‌جلسه‌ای»** (asked by the developer, 1405/07/14) are two cards of the
   range's summary: what the membership plans and the single visits sold in the range were sold
   for, paid or not, **by the day of the sale**, compared with the range before, with how many
-  were sold underneath. First drawn as the money received for them by the day it was paid, they
+  were sold underneath, and in the card's corner, like «فروش», «پرداخت‌شده» (paid so far on those
+  sales, refunds taken off) and «نسیه» (still owed). First drawn as the money received for them by the day it was paid, they
   showed a single visit sold days earlier and paid today as today's, with nothing sold today;
   today's money is «دریافتی».
+- **The renewal rate in plain words** (asked by the developer, 1405/07/14): the card says what it
+  measures, "of the members whose plan ended in this range, what percent bought a plan again
+  within 30 days", and lists in its corner «تمدید کردند», «تمدید نکردند» and «در انتظار»; the
+  rate is the first over the first two. "Waiting" is explained on the card when there are any.
 - **The summary's order** (1405/07/14): «فروش», «دریافتی», «دریافتی آنالیز و فروشگاه», then
   expenses, net profit and the cafe's profit, then the plans, the single visits and the
   attendance and members' figures. Beside the renewal rate

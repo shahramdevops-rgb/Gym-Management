@@ -30,6 +30,13 @@ function card(label: string) {
   return term.parentElement;
 }
 
+/** The lines in a card's corner, each as its words and its figure run together. */
+function breakdownOf(cardElement: HTMLElement) {
+  return within(cardElement)
+    .getAllByRole("listitem")
+    .map((row) => row.textContent);
+}
+
 describe("DashboardPage", () => {
   // The route loads the page lazily (router.tsx). Loading it once here, before any test, keeps
   // that first load out of the tests' own one-second waits: on a busy machine the first test of
@@ -150,16 +157,19 @@ describe("DashboardPage", () => {
     );
     expect(card("ورود اعضا")).toHaveTextContent("۱۲ عضو مختلف");
     // 3 renewed of the 4 decided; the one still waiting is left out (§12).
-    expect(card("نرخ تمدید")).toHaveTextContent("۷۵٪");
-    expect(card("نرخ تمدید")).toHaveTextContent("۳ از ۴ پلن تمام‌شده؛ ۱ در انتظار");
+    // In plain words (1405/07/14): what it measures, and the counts it is made of in the corner,
+    // 3 renewed ÷ (3 + 1 not renewed); the one still waiting is left out.
+    const renewal = card("نرخ تمدید");
+    expect(renewal).toHaveTextContent("۷۵٪");
+    expect(renewal).toHaveTextContent(
+      "از اعضایی که پلنشان در این بازه تمام شد، چند درصد تا ۳۰ روز بعد دوباره پلن خریدند.",
+    );
+    expect(breakdownOf(renewal)).toEqual([
+      "تمدید کردند۳ پلن",
+      "تمدید نکردند۱ پلن",
+      "در انتظار۱ پلن",
+    ]);
   });
-
-  /** The lines in a card's corner, each as its words and its figure run together. */
-  function breakdownOf(cardElement: HTMLElement) {
-    return within(cardElement)
-      .getAllByRole("listitem")
-      .map((row) => row.textContent);
-  }
 
   it("DashboardPage_Sales_ComeFirstSplitIntoPaidAndOwed", async () => {
     mockApi(dashboard);
@@ -212,9 +222,12 @@ describe("DashboardPage", () => {
     expect(plans).toHaveTextContent("۱۰٬۸۰۰٬۰۰۰ تومان");
     expect(plans).toHaveTextContent("۱۲ پلن در این بازه فروخته شد، پرداخت شده یا نشده");
     expect(plans).toHaveTextContent("بازهٔ قبل: ۰ تومان");
+    // Like «فروش», what of it is paid and what is still owed.
+    expect(breakdownOf(plans)).toEqual(["پرداخت‌شده۹٬۰۰۰٬۰۰۰ تومان", "نسیه۱٬۸۰۰٬۰۰۰ تومان"]);
     const singleVisits = card("تک‌جلسه‌ای");
     expect(singleVisits).toHaveTextContent("۶۰۰٬۰۰۰ تومان");
     expect(singleVisits).toHaveTextContent("۴ تک‌جلسه در این بازه فروخته شد");
+    expect(breakdownOf(singleVisits)).toEqual(["پرداخت‌شده۶۰۰٬۰۰۰ تومان", "نسیه۰ تومان"]);
   });
 
   it("DashboardPage_ConversionRate_LeavesThoseStillWaitingOut", async () => {

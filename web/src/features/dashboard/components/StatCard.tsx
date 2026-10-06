@@ -106,7 +106,13 @@ export function StatCard({
         </dd>
       )}
       {progress !== undefined && progress !== null && (
-        <dd aria-hidden className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <dd
+          aria-hidden
+          className={cn(
+            "h-1.5 overflow-hidden rounded-full bg-muted",
+            breakdown !== undefined && "me-44",
+          )}
+        >
           <div
             className="h-full rounded-full tone-bar"
             style={{ inlineSize: `${Math.min(100, Math.max(0, progress))}%` }}

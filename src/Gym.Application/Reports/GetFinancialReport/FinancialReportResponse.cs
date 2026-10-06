@@ -76,11 +76,18 @@ public sealed record MoneyFlowResponse(decimal Received, decimal Refunded, decim
 /// The price of those same sales, paid or not: the figure of «خرید پلن» and «تک‌جلسه‌ای» on the
 /// dashboard, by the day each was sold (decided with the developer, 1405/07/14).
 /// </param>
+/// <param name="SoldPaid">
+/// What has been paid so far on those same sales, refunds taken off, whenever it was paid
+/// («پرداخت‌شده» on «خرید پلن» and «تک‌جلسه‌ای», 1405/07/14).
+/// </param>
+/// <param name="SoldOwed"><paramref name="SoldAmount"/> minus <paramref name="SoldPaid"/>: still owed («نسیه»).</param>
 public sealed record RevenueBySourceResponse(
     [property: JsonConverter(typeof(JsonStringEnumConverter<RevenueSource>))] RevenueSource Source,
     MoneyFlowResponse Money,
     int Sold,
-    decimal SoldAmount);
+    decimal SoldAmount,
+    decimal SoldPaid,
+    decimal SoldOwed);
 
 public sealed record RevenueByMethodResponse(
     [property: JsonConverter(typeof(JsonStringEnumConverter<PaymentMethod>))] PaymentMethod Method,

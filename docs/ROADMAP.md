@@ -2067,6 +2067,9 @@ tests.
       (`receivedByMethod`); «دریافتی آنالیز و فروشگاه» apart (`shopAndAnalysisByMethod`)
 - [x] «خرید پلن» and «تک‌جلسه‌ای» by the day of the sale (`soldAmount`): a single visit sold
       days before and paid today no longer shows as today's
+- [x] «خرید پلن» and «تک‌جلسه‌ای» list «پرداخت‌شده» and «نسیه» like «فروش» (`soldPaid`, `soldOwed`)
+- [x] «نرخ تمدید» in plain words: a sentence for what it measures, and «تمدید کردند»,
+      «تمدید نکردند», «در انتظار» in its corner
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its
