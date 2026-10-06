@@ -2234,14 +2234,26 @@ separate from the desk's; Kavenegar's template method; the developer's Kavenegar
 release, the Owner's after. Still open: §0.
 
 ### 10.1 Notification model and sender
-- [ ] `ISmsSender`, template-first: a template name plus named values (`token`, `token2`,
-      `token3`, `token10`, `token20`), not "send this string" (§10 *Sending*)
-- [ ] `FakeSmsSender`, which only logs; `Sms:Provider` chooses it, and tests always use it
-- [ ] `Notification` entity: kind, recipient, status (`Pending`, `Sent`, `Failed`, `Unknown`),
-      attempts, the provider's message id, cost (Rial), delivery; a unique index for each kind
-      (per subscription and kind, per member and Jalali year, per cheque or instalment)
-- [ ] `docs/sms-templates.md`: the wording of the four templates, agreed with the developer, their
-      blanks and their part count
+- [x] `ISmsSender`, template-first: a template name plus named values (`token`, `token2`,
+      `token3`, `token10`, `token20`), not "send this string" (§10 *Sending*). It answers one of five
+      outcomes (`SmsSendResult`) and never throws for a failed send
+- [x] `SmsTokens` (Domain): Kavenegar's limits checked when it is built (`%token` required, no space,
+      5 or 8 spaces, 100 characters); `SmsTokens.Fit` cuts a long name or payee short (decided with
+      the developer: simply cut)
+- [x] `FakeSmsSender`, which only logs (the template and the number's last 4 digits); `Sms:Provider`
+      chooses it, `Fake` when missing, an unknown name stops startup; the test host forces it
+- [x] `Notification` entity: kind, recipient, status (`Pending`, `Sent`, `Failed`, `Unknown`),
+      attempts, the provider's message id, cost (Rial), delivery, the template and its values (for
+      the resend in 10.5); a unique index for each kind (per subscription and kind, per member and
+      Jalali year, per cheque or instalment); check constraints for the event's ids per kind,
+      "sent has the provider's id" and "delivery only when sent"; `xmin`
+- [x] `docs/sms-templates.md`: the wording, agreed with the developer on 1405/07/14 («باشگاه
+      پاسارگاد»; the end date, not the days left; two birthday templates, the day itself and
+      «پیشاپیش»), their blanks and their part count
+
+Closed 2026-10-06: 1768 backend tests (562 domain, 1206 integration; 69 new: 41 domain, 28
+integration) and 926 frontend tests green, zero warnings, lint and `format:check` pass. Migration
+`AddNotifications` adds one new table only; nothing sends yet (no job until 10.3).
 
 ### 10.2 SMS settings (تنظیمات پیامک)
 - [ ] One settings row: the on/off switches, numbers, send times, template names and the Owner's
@@ -2264,8 +2276,8 @@ release, the Owner's after. Still open: §0.
 ### 10.4 Kavenegar
 - [ ] `KavenegarSmsSender` (`verify/lookup`); the API key in user secrets locally and
       `Sms__Kavenegar__ApiKey` on the server, never in git
-- [ ] Kavenegar's codes mapped to the statuses above; the blanks' limits (no space, 5 or 8
-      spaces, 100 characters) checked before sending
+- [ ] Kavenegar's codes mapped to the outcomes of `SmsSendResult` (the blanks' limits are already
+      checked by `SmsTokens`, task 10.1)
 - [ ] Cost kept with each message; delivery asked for after sending; the remaining credit
       (`account/info`)
 - [ ] `Sms:AllowedReceptors` for the developer's machine: real sending only to the listed numbers

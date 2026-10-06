@@ -4,6 +4,7 @@ using Gym.Domain.Cafe;
 using Gym.Domain.Expenses;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
+using Gym.Domain.Notifications;
 using Gym.Domain.Payables;
 using Gym.Domain.Payments;
 using Gym.Domain.Pricing;
@@ -68,6 +69,8 @@ public interface IAppDbContext
     DbSet<Expense> Expenses { get; }
 
     DbSet<Payable> Payables { get; }
+
+    DbSet<Notification> Notifications { get; }
 
     /// <summary>
     /// Exposed for the rare handler that must recover from a failed save in the same request:

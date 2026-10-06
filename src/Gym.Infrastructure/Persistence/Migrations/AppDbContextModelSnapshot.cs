@@ -1511,6 +1511,175 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Notifications.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<decimal?>("CostRial")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("cost_rial");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Delivery")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("delivery");
+
+                    b.Property<int?>("ErrorCode")
+                        .HasColumnType("integer")
+                        .HasColumnName("error_code");
+
+                    b.Property<int?>("JalaliYear")
+                        .HasColumnType("integer")
+                        .HasColumnName("jalali_year");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTimeOffset?>("LastAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_attempt_at");
+
+                    b.Property<Guid?>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<Guid?>("PayableId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payable_id");
+
+                    b.Property<long?>("ProviderMessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("provider_message_id");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("recipient");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("SubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subscription_id");
+
+                    b.Property<string>("TemplateName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("template_name");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("token");
+
+                    b.Property<string>("Token10")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("token10");
+
+                    b.Property<string>("Token2")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("token2");
+
+                    b.Property<string>("Token20")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("token20");
+
+                    b.Property<string>("Token3")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("token3");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notifications");
+
+                    b.HasIndex("PayableId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_per_payable")
+                        .HasFilter("payable_id IS NOT NULL");
+
+                    b.HasIndex("MemberId", "JalaliYear")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_birthday_per_member_and_year")
+                        .HasFilter("kind = 'Birthday'");
+
+                    b.HasIndex("SubscriptionId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_per_subscription_and_kind")
+                        .HasFilter("subscription_id IS NOT NULL");
+
+                    b.ToTable("notifications", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_notifications_attempts_not_negative", "attempts >= 0");
+
+                            t.HasCheckConstraint("ck_notifications_cost_not_negative", "cost_rial IS NULL OR cost_rial >= 0");
+
+                            t.HasCheckConstraint("ck_notifications_delivery", "delivery IS NULL OR delivery IN ('Delivered', 'NotDelivered', 'BlockedByReceiver')");
+
+                            t.HasCheckConstraint("ck_notifications_delivery_only_when_sent", "delivery IS NULL OR status = 'Sent'");
+
+                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL)");
+
+                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue')");
+
+                            t.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
+
+                            t.HasCheckConstraint("ck_notifications_sent_has_provider_id", "status <> 'Sent' OR (provider_message_id IS NOT NULL AND sent_at IS NOT NULL AND cost_rial IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_notifications_status", "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
+
+                            t.HasCheckConstraint("ck_notifications_template_name_not_blank", "btrim(template_name) <> ''");
+
+                            t.HasCheckConstraint("ck_notifications_token_not_blank", "btrim(token) <> ''");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Payables.Payable", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2414,6 +2583,27 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasForeignKey("VoidedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_expenses_asp_net_users_voided_by_user_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Notifications.Notification", b =>
+                {
+                    b.HasOne("Gym.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_notifications_members_member_id");
+
+                    b.HasOne("Gym.Domain.Payables.Payable", null)
+                        .WithMany()
+                        .HasForeignKey("PayableId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_notifications_payables_payable_id");
+
+                    b.HasOne("Gym.Domain.Subscriptions.Subscription", null)
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_notifications_subscriptions_subscription_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Payables.Payable", b =>

@@ -499,3 +499,11 @@ web/src/
   result is checked by code point, since grep and the screen cannot tell ي from ی.
 - React 19 builds `FormData` from a submitted form. In tests, `fireEvent.submit` must target the `<form>`
   (`getByRole("search")`), not an input inside it, or jsdom throws an unhandled error.
+- SMS (Phase 10): `Sms:Provider` chooses the `ISmsSender`. `Fake` (the default when the setting is missing) only
+  logs; an unknown name stops the app at startup. The integration test host sets `Sms__Provider=Fake` itself, so a
+  developer's own settings can never make a test run reach the provider. A message is a `notifications` row written
+  as `Pending` **before** it is sent: its unique indexes stop a second run, or a second server, from writing (and so
+  paying for) the same event twice. Template values go through `SmsTokens`, which refuses a value that breaks
+  Kavenegar's limits; free text (a name, a payee) is passed through `SmsTokens.Fit` first.
+- Perl with `-CSD` decodes the files it edits but not its own script: Persian typed inside a `-e` program is written
+  back double-encoded (`Ø¨Ø§...`). Put Persian replacement text in a file and splice it in, or use the Edit tool.

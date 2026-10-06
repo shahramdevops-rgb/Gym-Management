@@ -7,6 +7,7 @@ using Gym.Domain.Cafe;
 using Gym.Domain.Expenses;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
+using Gym.Domain.Notifications;
 using Gym.Domain.Payables;
 using Gym.Domain.Payments;
 using Gym.Domain.Pricing;
@@ -69,6 +70,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Expense> Expenses => Set<Expense>();
 
     public DbSet<Payable> Payables => Set<Payable>();
+
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);

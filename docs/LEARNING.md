@@ -1513,3 +1513,18 @@ The question that started this was whether a gym that is entirely internal — I
 - **Some colour is a rule, some is decoration.** A loss in red with its minus sign is in BUSINESS_RULES.md §12, so it stays in the plain look; the accents, icons and banner were decoration and could go. Check the rules before removing colour.
 - **A mark that expires by itself.** The «جدید» badge carries its own end date and compares it with `gymToday()`, so nobody has to remember to remove it, and the test pins the clock (`vi.setSystemTime`) on the last day and the day after. ISO dates compare correctly as plain strings, which is why `today <= newUntil` needs no date library.
 - **My notes:**
+
+## 10.1 — Notification model and sender (مدل پیامک و فرستنده)
+
+- **Write the row before you pay for the message.** A `Notification` is saved as `Pending` first and sent after. The unique indexes (one per subscription and kind, one birthday per member and Jalali year, one per cheque or instalment) then make "never pay twice" a database fact: a job run twice, or two servers at once, fail on the insert instead of sending again.
+- **The event is columns, not a key string.** Each kind fills the ids that name its event (`SubscriptionId`, `MemberId` + `JalaliYear`, `PayableId`) and a check constraint keeps the others empty. Unique indexes and foreign keys can then be built on real columns, which a single `"birthday:{memberId}:1405"` text could not have.
+- **Partial unique indexes.** `HasFilter("kind = 'Birthday'")` makes the index cover only the rows it is about, so "one birthday per year" says nothing about the other kinds.
+- **Postgres reports one constraint, whichever it tries first.** An unknown kind breaks both the list of kinds and the event check; the test accepts either name instead of depending on the order.
+- **An interface shaped by the business, not by the provider.** `ISmsSender` takes a template name and its values and returns one of five outcomes (`Sent`, `RetryableFailure`, `PermanentFailure`, `CreditExhausted`, `Unknown`). The job decides what to do from the outcome alone; Kavenegar's numeric codes stay inside the Kavenegar sender (task 10.4).
+- **Expected failures are values, not exceptions.** A busy provider or a refused template is part of sending SMS, so it comes back in `SmsSendResult`. Only a bug throws.
+- **Make invalid values unrepresentable.** `SmsTokens` checks Kavenegar's limits (no space, 5 or 8 spaces, 100 characters, `%token` required) in its constructor, so a value that would be refused by the provider cannot even be built, and `Fit` shortens free text to fit before that.
+- **A safe default for a setting that costs money.** `Sms:Provider` defaults to `Fake`, and an unknown name stops the app at startup (`ValidateOnStart`): a typo can neither send real SMS nor silently send none.
+- **A fake at the boundary.** `FakeSmsSender` is a real implementation that only logs, chosen by configuration, and the test host forces it. NSubstitute stays available for the tests that need a scripted failure (task 10.3).
+- **Personal data stays out of logs.** The fake logs the template and the last four digits of the number, never the values (they hold a member's name).
+- **A record with a checked property.** A positional `record` can declare its own property for a parameter (`public string Token { get; } = Check(Token, ...)`), which keeps the short syntax and adds validation.
+- **My notes:**

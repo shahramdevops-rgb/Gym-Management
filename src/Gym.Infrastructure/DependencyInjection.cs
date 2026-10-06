@@ -1,6 +1,7 @@
 using Gym.Application.Accounts;
 using Gym.Application.Common;
 using Gym.Application.Common.Security;
+using Gym.Application.Common.Sms;
 using Gym.Application.Staff;
 using Gym.Domain.Auth;
 using Gym.Infrastructure.Attendances;
@@ -9,6 +10,7 @@ using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Jobs;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Phones;
+using Gym.Infrastructure.Sms;
 using Gym.Infrastructure.Persistence.Interceptors;
 using Gym.Infrastructure.Subscriptions;
 
@@ -131,6 +133,15 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
+
+        // Sms:Provider chooses the sender (BUSINESS_RULES.md §10). An unknown name stops the app at
+        // startup rather than leaving the Owner's messages unsent without a word. The fake one is
+        // the only provider until task 10.4, and a singleton: it holds no request state.
+        services.AddOptions<SmsOptions>()
+            .Bind(configuration.GetSection(SmsOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<SmsOptions>, SmsOptionsValidator>();
+        services.AddSingleton<ISmsSender, FakeSmsSender>();
 
         // Without this, /health would only report that the process is running, and an
         // orchestrator would happily route traffic to an API that cannot reach its database.

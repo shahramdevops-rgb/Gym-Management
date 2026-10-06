@@ -309,6 +309,10 @@ export const errorMessages: Record<string, string> = {
   "Payables.ChangedConcurrently":
     "این مورد هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
+  // SMS
+  "Notifications.NotPending": "این پیامک دیگر در صف ارسال نیست.",
+  "Notifications.NotSent": "وضعیت تحویل فقط برای پیامکِ ارسال‌شده ثبت می‌شود.",
+
   // Reports
   "Reports.DateRangeRequired": "تاریخ شروع و پایان گزارش را انتخاب کنید.",
   "Reports.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
