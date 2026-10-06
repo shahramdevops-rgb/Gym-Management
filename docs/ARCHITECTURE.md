@@ -509,5 +509,15 @@ web/src/
   `sms_settings` row (task 10.2), read through `SmsSettingsRow`; `SmsSettings.For(kind)` hands a kind's columns
   back as one `SmsKindSettings`. A `FluentValidation` validator found by the assembly scan must be buildable by DI:
   a child validator that takes the kind in its constructor broke startup, so the per-kind checks are `Custom` rules.
+  The daily runs (task 10.3) are `SendDailySmsHandler`, one kind per call, run by `Jobs/DailySmsJob` as Hangfire
+  recurring jobs `sms-<Kind>`. They are not scheduled at startup: `ISmsRunSchedule` (`HangfireSmsRunSchedule`)
+  moves or removes them each time the settings page is saved, and Hangfire keeps them in its own tables.
+  `[DisableConcurrentExecution]` locks on the method, so two kinds never run at once, and a `Pending` row found at
+  the start of a run can only be left over from a stopped one. The integration test host replaces the schedule with
+  `RecordingSmsRunSchedule`: its real Hangfire server would otherwise fire a test's run at its real time, in the middle
+  of a later test. `Sms:MaxAttempts` and `Sms:RetryDelays` become the domain's `SmsRetrySchedule` (a singleton);
+  the waits are `Task.Delay(delay, TimeProvider)`, so a test with `FakeTimeProvider` decides when they end. An
+  options list must have no default in code: the configuration binder adds to a list rather than replacing it.
+  Jalali dates on the server come from .NET's own `PersianCalendar`, behind `Domain/Common/JalaliCalendar`.
 - Perl with `-CSD` decodes the files it edits but not its own script: Persian typed inside a `-e` program is written
   back double-encoded (`Ø¨Ø§...`). Put Persian replacement text in a file and splice it in, or use the Edit tool.

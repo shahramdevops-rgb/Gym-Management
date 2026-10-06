@@ -13,6 +13,12 @@ public interface IGymCalendar
     DateOnly Today();
 
     /// <summary>
+    /// The time of day now in <c>Gym:TimeZone</c>: what the SMS runs check against their sending
+    /// hours, 08:00–22:00 (BUSINESS_RULES.md §10).
+    /// </summary>
+    TimeOnly TimeOfDay();
+
+    /// <summary>
     /// Midnight of <paramref name="date"/> in <c>Gym:TimeZone</c>, as a UTC moment. Turns a
     /// business date range into a moment range, for filtering a <c>timestamptz</c> column such as
     /// <c>Attendance.CheckedInAt</c> by day.

@@ -1,5 +1,10 @@
+using Gym.Application.Common.Sms;
+
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Gym.Api.IntegrationTests.Infrastructure;
 
@@ -64,6 +69,10 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.UseEnvironment(TestingEnvironment);
+
+        // No real SMS run is ever scheduled from a test: see RecordingSmsRunSchedule.
+        builder.ConfigureTestServices(services =>
+            services.Replace(ServiceDescriptor.Singleton<ISmsRunSchedule, RecordingSmsRunSchedule>()));
     }
 
     public override async ValueTask DisposeAsync()

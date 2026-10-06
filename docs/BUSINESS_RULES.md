@@ -12,9 +12,6 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 | Setting | Decide before | Notes |
 |---|---|---|
 | Whether Kavenegar accepts the birthday greeting as a template | 10.4 | Ask Kavenegar's support. If not, the birthday alone goes out as free text from a line (§10 *Sending*). |
-| `Sms:MaxAttempts` and the backoff between tries | 10.3 | Not on the settings page (§10). |
-| A run the server missed (it was down at the send time) | 10.3 | Run it when the server is back the same day, before 22:00, or skip the day? |
-| A cheque or instalment whose date is changed after its SMS was sent | 10.3 | Send again for the new date, or not? |
 
 The SMS numbers themselves (days, sessions, send times) are not configuration: the Owner sets them
 on the SMS settings page (§10).
@@ -47,6 +44,16 @@ Decided values:
   succeed with a balance outstanding; the front desk is shown the amount instead of being stopped
   (decided with the developer, 1405/06/31). There is no debt ceiling. *If the gym later wants one,
   it becomes a `Gym:MaxMemberDebt` setting and a refusal, not a change to any of the rules below.*
+- `Sms:MaxAttempts` = 3, and `Sms:RetryDelays` = 1 minute, then 5 minutes: a message that may
+  still pass is tried at most three times, waiting 1 minute before the second try and 5 before
+  the third (decided with the developer, 1405/07/14, task 10.3; §10 *The daily runs*). Not on the
+  settings page.
+- A run the server missed (it was down at the send time) is made when the server is back **the
+  same day, before 22:00**; after 22:00 that day's run is skipped, and the next day's run reaches
+  whoever is still covered (decided with the developer, 1405/07/14, task 10.3).
+- A cheque or instalment whose date is changed after its SMS was sent **gets no second SMS**:
+  one per cheque or instalment, whatever its date becomes (decided with the developer,
+  1405/07/14, task 10.3). The header alert and the dashboard follow the new date.
 - **The gym has two prices, and the Owner sets both in the app** (§3 *Prices*): the price of one
   session of a plan, and the price of a single-session (تک‌جلسه‌ای) visit. They are stored in the
   database, not in configuration, because the Owner changes them with inflation and must not need a
@@ -1235,7 +1242,11 @@ sent that the Owner did not choose, and the same message is never paid for twice
   cancelled later, the member counts as not renewed again, and the next run may send it.
 - **Birthday (`Birthday`)**, to the member: *N days* before the member's birthday by the **Jalali**
   month and day, the same day the desk celebrates (§6 *The desk panel*: someone born on 30 Esfand has
-  their birthday on 29 Esfand in a year without it). **Every member with a birth date gets it**:
+  their birthday on 29 Esfand in a year without it). It works as a window, like the other kinds
+  (decided with the developer, 1405/07/14, task 10.3): with *N* = 0 it goes on the birthday itself;
+  with *N* from 1 to 7 it goes when the birthday is between tomorrow and *N* days ahead, so a missed
+  day or a member registered a few days before still gets it, and the «پیشاپیش» greeting never
+  arrives on the day itself. **Every member with a birth date gets it**:
   active or deactivated, with a plan, frozen, single-session only, or with no subscription at all
   (decided with the developer: the one exception to "deactivated members receive no SMS"). At most
   once per member per Jalali year.
@@ -1245,7 +1256,28 @@ sent that the Owner did not choose, and the same message is never paid for twice
   cancelled one gets none.
 - **Each event is sent once**, enforced by unique indexes in the database: one `SubscriptionExpiring`
   and one `LowSessions` per subscription, one `Birthday` per member and Jalali year, one `PayableDue`
-  per cheque or instalment. Running the job twice sends nothing twice.
+  per cheque or instalment. Running the job twice sends nothing twice. A cheque or instalment whose
+  date is changed after its SMS went out gets no second one (§0).
+
+### The daily runs
+Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
+- **One run per kind, at its own send time**, every day, in Asia/Tehran. Only a kind that is on
+  (with the all-SMS switch on) has a run. Saving the settings page moves the runs: a change of time
+  applies from the next run, and a kind turned off has none.
+- A run reads the settings when it starts, and sends nothing when all SMS or its kind is off, or
+  when it is outside 08:00–22:00. A run the server missed is made when the server is back the same
+  day, before 22:00 (§0).
+- **Each message is written before it is sent**, one at a time: the row is saved as `Pending`,
+  then the request is made, then its outcome is saved. If the run stops between the two (the
+  server restarted), nobody can tell whether the request left, so the next run of that kind marks
+  that row `Unknown`, and it is never sent again by itself (the Owner can resend it, task 10.5).
+- **A failure that may pass** is tried again after the others: at most `Sms:MaxAttempts` tries in
+  all, waiting `Sms:RetryDelays` between them (1 minute, then 5; §0). After the last try, or when the
+  next try would fall after 22:00, it is `Failed`.
+- **Credit used up** stops the run at once: that message is `Failed`, and those not yet written are
+  not written; whoever is still covered the next day is reached by the next day's run. Messages
+  waiting for a retry are `Failed` too, since they would meet the same empty account.
+- The runs of different kinds never overlap: one waits until the other ends.
 
 ### SMS settings (تنظیمات پیامک)
 - One page, **Owner only**. It is **separate from the desk**: the desk keeps its own fixed
