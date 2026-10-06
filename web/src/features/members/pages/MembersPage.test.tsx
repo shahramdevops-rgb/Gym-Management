@@ -18,7 +18,8 @@ function searchRequests(api: ReturnType<typeof mockApi>) {
 }
 
 describe("MembersPage", () => {
-  it("MembersPage_Default_ListsActiveAndInactiveMembersWithTheirStatus", async () => {
+  it("MembersPage_Default_ListsActiveAndInactiveMembersWithNoStatusColumn", async () => {
+    // Roadmap 6.5.34: the status column is gone; the filter above the list splits them.
     const api = mockApi({
       ...signedInHandlers(staffUser),
       "GET /api/members": () => membersPage([ali, reza]),
@@ -27,10 +28,66 @@ describe("MembersPage", () => {
     renderApp("/members", { session: session() });
 
     const aliRow = (await screen.findByRole("link", { name: "علی رضایی" })).closest("tr")!;
-    expect(within(aliRow).getByText("غیرفعال")).toBeInTheDocument();
-    const rezaRow = screen.getByRole("link", { name: "رضا احمدی" }).closest("tr")!;
-    expect(within(rezaRow).getByText("فعال")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "رضا احمدی" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "وضعیت" })).not.toBeInTheDocument();
+    expect(within(aliRow).queryByText("غیرفعال")).not.toBeInTheDocument();
     expect(queryOf(api.requestsTo("GET", "/api/members")[0]!).has("IsActive")).toBe(false);
+  });
+
+  it("MembersPage_ListOrder_KeepsTheOrderTheApiSent", async () => {
+    // The API sorts by the latest visit (BUSINESS_RULES.md §2); the page must not re-sort by name.
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza, ali]),
+    });
+
+    renderApp("/members", { session: session() });
+    await screen.findByRole("link", { name: "رضا احمدی" });
+
+    const names = screen
+      .getAllByRole("link")
+      .map((link) => link.textContent)
+      .filter((name) => name === "رضا احمدی" || name === "علی رضایی");
+    expect(names).toEqual(["رضا احمدی", "علی رضایی"]);
+  });
+
+  it("MembersPage_Tags_ShowsSingleSessionAndPlanEndedOnlyOnTheirRows", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () =>
+        membersPage([
+          { ...reza, lastVisitWasSingleSession: true },
+          { ...ali, planEnded: true },
+        ]),
+    });
+
+    renderApp("/members", { session: session() });
+
+    const rezaRow = (await screen.findByRole("link", { name: "رضا احمدی" })).closest("tr")!;
+    expect(within(rezaRow).getByText("تک‌جلسه")).toBeInTheDocument();
+    expect(within(rezaRow).queryByText("پلن تمام‌شده")).not.toBeInTheDocument();
+    const aliRow = screen.getByRole("link", { name: "علی رضایی" }).closest("tr")!;
+    expect(within(aliRow).getByText("پلن تمام‌شده")).toBeInTheDocument();
+    expect(within(aliRow).queryByText("تک‌جلسه")).not.toBeInTheDocument();
+  });
+
+  it("MembersPage_MemberWithAPlan_ShowsItsSessionsBarAndNoneWithoutAPlan", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () =>
+        membersPage([
+          { ...reza, plan: { totalSessions: 12, usedSessions: 4, remainingSessions: 8 } },
+          ali,
+        ]),
+    });
+
+    renderApp("/members", { session: session() });
+
+    const rezaRow = (await screen.findByRole("link", { name: "رضا احمدی" })).closest("tr")!;
+    expect(within(rezaRow).getByText("۴ از ۱۲")).toBeInTheDocument();
+    expect(within(rezaRow).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "4");
+    const aliRow = screen.getByRole("link", { name: "علی رضایی" }).closest("tr")!;
+    expect(within(aliRow).queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
   it("MembersPage_MemberWhoOwesMoney_ShowsHowMuchNotJustThatTheyOwe", async () => {
@@ -47,22 +104,6 @@ describe("MembersPage", () => {
     expect(within(debtorRow).getByText("۶۰۰٬۰۰۰ تومان")).toBeInTheDocument();
     const aliRow = screen.getByRole("link", { name: "علی رضایی" }).closest("tr")!;
     expect(within(aliRow).queryByText(/تومان/)).not.toBeInTheDocument();
-  });
-
-  it("MembersPage_FrozenMember_ShowsFrozenNextToTheStatusOnlyOnTheirRow", async () => {
-    // BUSINESS_RULES.md §4 Freeze: a member whose subscription is frozen right now.
-    mockApi({
-      ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([{ ...reza, isFrozen: true }, ali]),
-    });
-
-    renderApp("/members", { session: session() });
-
-    const frozenRow = (await screen.findByRole("link", { name: "رضا احمدی" })).closest("tr")!;
-    expect(within(frozenRow).getByText("فعال")).toBeInTheDocument();
-    expect(within(frozenRow).getByText("فریز")).toBeInTheDocument();
-    const aliRow = screen.getByRole("link", { name: "علی رضایی" }).closest("tr")!;
-    expect(within(aliRow).queryByText("فریز")).not.toBeInTheDocument();
   });
 
   it("MembersPage_InactiveFilter_AsksOnlyForInactiveMembers", async () => {
@@ -138,19 +179,58 @@ describe("MembersPage", () => {
     expect(await screen.findByText("عضو بدهکاری نیست.")).toBeInTheDocument();
   });
 
+  it.each([
+    { label: "تک‌جلسه", param: "single", query: "SingleSessionOnly" },
+    { label: "پلن تمام‌شده", param: "ended", query: "PlanEndedOnly" },
+  ])("MembersPage_$query_AsksTheApiAndKeepsItInTheUrl", async ({ label, param, query }) => {
+    // BUSINESS_RULES.md §2: the API filters before paging, so the page only has to ask.
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/members": () => membersPage([reza]),
+    });
+    const { router } = renderApp("/members?status=active", { session: session() });
+    await screen.findByRole("link", { name: "رضا احمدی" });
+    expect(queryOf(api.requestsTo("GET", "/api/members")[0]!).has(query)).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: label }));
+
+    await waitFor(() =>
+      expect(queryOf(api.requestsTo("GET", "/api/members").at(-1)!).get(query)).toBe("true"),
+    );
+    expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "true");
+    expect(router.state.location.search).toBe(`?status=active&${param}=1`);
+    expect(queryOf(api.requestsTo("GET", "/api/members").at(-1)!).get("IsActive")).toBe("true");
+  });
+
+  it("MembersPage_NoSingleSessionVisitors_SaysSo", async () => {
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([]) });
+
+    renderApp("/members?single=1", { session: session() });
+
+    expect(await screen.findByText("عضوی با آخرین ورود تک‌جلسه نیست.")).toBeInTheDocument();
+  });
+
+  it("MembersPage_NoEndedPlans_SaysSo", async () => {
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([]) });
+
+    renderApp("/members?ended=1", { session: session() });
+
+    expect(await screen.findByText("عضوی با پلن تمام‌شده نیست.")).toBeInTheDocument();
+  });
+
   it("MembersPage_ManyMembers_ShowsPersianPageNumbersAndCount", async () => {
-    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([reza], 45) });
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([reza], 125) });
 
     renderApp("/members", { session: session() });
 
     expect(await screen.findByText("صفحهٔ ۱ از ۳")).toBeInTheDocument();
-    expect(screen.getByText("(۴۵)")).toBeInTheDocument();
+    expect(screen.getByText("(۱۲۵)")).toBeInTheDocument();
   });
 
   it("MembersPage_PageInTheUrl_RequestsThatPage", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([reza], 45),
+      "GET /api/members": () => membersPage([reza], 125),
     });
 
     renderApp("/members?page=3", { session: session() });
@@ -267,7 +347,7 @@ describe("MembersPage", () => {
   it("Search_ManyResults_PagesKeepTheSearch", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),
-      "GET /api/members": () => membersPage([reza], 45),
+      "GET /api/members": () => membersPage([reza], 125),
     });
     renderApp(`/members?q=${encodeURIComponent("رضا")}`, { session: session() });
 

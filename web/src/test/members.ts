@@ -14,6 +14,9 @@ export const reza: Member = {
   updatedAt: null,
   debt: 0,
   isFrozen: false,
+  lastVisitWasSingleSession: false,
+  planEnded: false,
+  plan: null,
 };
 
 export const ali: Member = {
@@ -28,11 +31,14 @@ export const ali: Member = {
   updatedAt: null,
   debt: 0,
   isFrozen: false,
+  lastVisitWasSingleSession: false,
+  planEnded: false,
+  plan: null,
 };
 
 /** One page of GET /api/members. */
 export function membersPage(items: Member[], totalCount = items.length): Response {
-  return json(200, { items, page: 1, pageSize: 20, totalCount });
+  return json(200, { items, page: 1, pageSize: 50, totalCount });
 }
 
 /** GET /api/members/{id}/debt: the total and the items it is made of. */

@@ -32,6 +32,21 @@ namespace Gym.Application.Members;
 /// the list can say so next to the member's status. Like <paramref name="Debt"/>, computed only by
 /// <see cref="ListMembers.ListMembersHandler"/>; every other path leaves it <c>false</c>.
 /// </param>
+/// <param name="LastVisitWasSingleSession">
+/// The member's latest visit, cancelled ones left out, used a single-session subscription
+/// (<see cref="ListMembers.MemberListRow.LastVisitWasSingleSession"/>), so the list can tag them «تک‌جلسه». Like <paramref name="Debt"/>, computed
+/// only by <see cref="ListMembers.ListMembersHandler"/>.
+/// </param>
+/// <param name="PlanEnded">
+/// An active member whose plan is over and who has bought nothing after it
+/// (<see cref="ListMembers.MemberListRow.PlanEnded"/>), tagged «پلن تمام‌شده».
+/// Computed only by <see cref="ListMembers.ListMembersHandler"/>.
+/// </param>
+/// <param name="Plan">
+/// The sessions of the plan the list shows a bar for
+/// (<see cref="Domain.Subscriptions.SubscriptionSchedule.CurrentPlan"/>), or <c>null</c> when the
+/// member has no plan. Computed only by <see cref="ListMembers.ListMembersHandler"/>.
+/// </param>
 public sealed record MemberResponse(
     Guid Id,
     string FullName,
@@ -44,7 +59,10 @@ public sealed record MemberResponse(
     DateTimeOffset? UpdatedAt,
     decimal Debt = 0,
     MemberCurrentVisit? CurrentVisit = null,
-    bool IsFrozen = false)
+    bool IsFrozen = false,
+    bool LastVisitWasSingleSession = false,
+    bool PlanEnded = false,
+    MemberPlanSessions? Plan = null)
 {
     /// <summary>
     /// The same mapping as <see cref="From"/>, as an expression EF Core translates to SQL, so a
@@ -77,6 +95,9 @@ public sealed record MemberResponse(
             member.UpdatedAt);
     }
 }
+
+/// <summary>A plan's sessions as the member list's bar shows them: used of total.</summary>
+public sealed record MemberPlanSessions(int TotalSessions, int UsedSessions, int RemainingSessions);
 
 /// <summary>An open visit, as the front-desk search needs it to check the member out.</summary>
 /// <param name="LockerNumber"><c>null</c> when the visit holds a reserve place (<paramref name="UsesReservePlace"/>).</param>

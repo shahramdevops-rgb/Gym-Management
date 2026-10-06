@@ -109,5 +109,10 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
         // Not a rule, only speed: the desk's charts read visits by a range of check-in moments (today
         // by hour, and a locker's use over a period). Nothing reacts to its name.
         builder.HasIndex(a => a.CheckedInAt);
+
+        // Speed only, like the one above: the member list is sorted by each member's latest visit
+        // that was not cancelled (BUSINESS_RULES.md §2), which reads this index per member.
+        builder.HasIndex(a => new { a.MemberId, a.CheckedInAt })
+            .HasFilter("cancelled_at IS NULL");
     }
 }

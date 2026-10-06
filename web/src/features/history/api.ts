@@ -11,7 +11,7 @@ export type HistoryServiceCharge = components["schemas"]["HistoryServiceChargeRe
 /** What a payment was for: a subscription, هوازی or the cafe. */
 export type PaymentSource = components["schemas"]["PaymentTargetKind"];
 
-export const historyPageSize = 20;
+export const historyPageSize = 50;
 
 /** The order the "بابت" filter lists them in, and their names on screen. */
 export const paymentSources: PaymentSource[] = ["Subscription", "ServiceCharge", "CafeOrder"];

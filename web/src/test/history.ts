@@ -10,7 +10,7 @@ import { ali, reza } from "./members";
 
 /** One page of any history list. */
 export function historyPage<T>(items: T[], totalCount = items.length): Response {
-  return json(200, { items, page: 1, pageSize: 20, totalCount });
+  return json(200, { items, page: 1, pageSize: 50, totalCount });
 }
 
 export const closedVisit: HistoryAttendance = {
@@ -176,7 +176,7 @@ export const planSale: HistorySale = {
   cafeItems: null,
   amount: 1200000,
   soldAt: "2026-10-02T06:00:00Z",
-  recordedByFullName: null,
+  recordedByFullName: "مریم کاظمی",
   undoneAt: null,
   undoReason: null,
   netPaid: 200000,

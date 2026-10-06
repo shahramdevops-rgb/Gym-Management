@@ -118,6 +118,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasIndex("SubscriptionId")
                         .HasDatabaseName("ix_attendances_subscription_id");
 
+                    b.HasIndex("MemberId", "CheckedInAt")
+                        .HasDatabaseName("ix_attendances_member_id_checked_in_at")
+                        .HasFilter("cancelled_at IS NULL");
+
                     b.ToTable("attendances", null, t =>
                         {
                             t.HasCheckConstraint("ck_attendances_auto_close", "auto_closed_at IS NULL OR checked_out_at = auto_closed_at");

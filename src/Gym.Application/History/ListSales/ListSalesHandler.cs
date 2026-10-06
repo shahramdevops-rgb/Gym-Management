@@ -14,7 +14,7 @@ namespace Gym.Application.History.ListSales;
 /// <remarks>
 /// Which sales match is <see cref="SaleRows"/>' job, shared with the totals. The union carries only
 /// what it is sorted and filtered by (<see cref="SaleRow"/>). What a row says on screen is read
-/// afterwards for the 20 rows of the page, one batched query per table.
+/// afterwards for the rows of the page, one batched query per table.
 /// </remarks>
 public sealed class ListSalesHandler(IAppDbContext db, SaleRows saleRows, IUserNames users)
 {
@@ -58,12 +58,14 @@ public sealed class ListSalesHandler(IAppDbContext db, SaleRows saleRows, IUserN
                 subscription.Id,
                 subscription.MemberId,
                 Plan = new PlanSummary(subscription.DurationDays, subscription.TotalSessions, subscription.IsSingleSession),
+                // Whoever was logged in when it was sold: the audit column every entity carries (§4).
+                subscription.CreatedBy,
                 subscription.CancellationReason,
             })
             .ToDictionaryAsync(
                 subscription => subscription.Id,
                 subscription => new Detail(
-                    subscription.MemberId, null, subscription.Plan, null, null, null, null, subscription.CancellationReason),
+                    subscription.MemberId, null, subscription.Plan, null, null, null, subscription.CreatedBy, subscription.CancellationReason),
                 cancellationToken);
 
         // A guest's charge, like a guest's cafe order below, has no member: the name is on the visit.

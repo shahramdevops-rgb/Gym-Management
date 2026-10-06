@@ -38,12 +38,44 @@ function statusFromParams(params: URLSearchParams): StatusFilter {
   return status === "active" || status === "inactive" ? status : "all";
 }
 
-function debtorsOnlyFromParams(params: URLSearchParams): boolean {
-  return params.get("debt") === "1";
+/**
+ * Filters that each narrow the list on their own and combine with the status and with each other
+ * (BUSINESS_RULES.md §2). Each is kept in the URL as `<param>=1`.
+ */
+type Toggle = "debtorsOnly" | "singleSessionOnly" | "planEndedOnly";
+
+const toggles: { value: Toggle; param: string; label: string }[] = [
+  { value: "debtorsOnly", param: "debt", label: "بدهکار" },
+  { value: "singleSessionOnly", param: "single", label: "تک‌جلسه" },
+  { value: "planEndedOnly", param: "ended", label: "پلن تمام‌شده" },
+];
+
+type ToggleState = Record<Toggle, boolean>;
+
+function togglesFromParams(params: URLSearchParams): ToggleState {
+  return {
+    debtorsOnly: params.get("debt") === "1",
+    singleSessionOnly: params.get("single") === "1",
+    planEndedOnly: params.get("ended") === "1",
+  };
+}
+
+/** What an empty list says when a toggle is on: the narrowest one names who is missing. */
+function emptyToggleMessage(on: ToggleState): string | null {
+  if (on.singleSessionOnly) {
+    return "عضوی با آخرین ورود تک‌جلسه نیست.";
+  }
+  if (on.planEndedOnly) {
+    return "عضوی با پلن تمام‌شده نیست.";
+  }
+  if (on.debtorsOnly) {
+    return "عضو بدهکاری نیست.";
+  }
+  return null;
 }
 
 /**
- * Every member, by name, a page at a time, with one box above the list for a name or a phone
+ * Every member, whoever came last first, a page at a time, with one box above the list for a name or a phone
  * number. Inactive members are included by default (docs/BUSINESS_RULES.md §2), so staff can find
  * someone to reactivate. This page took over the member search screen: a search nobody matches
  * offers to register the person with what was typed, and someone inside can be checked out from
@@ -55,14 +87,15 @@ function debtorsOnlyFromParams(params: URLSearchParams): boolean {
  * the link all return to the same list. The box updates the URL once typing pauses, and the query
  * reads the URL.
  *
- * «بدهکار» is its own toggle rather than a fourth status, so it combines with the status: inactive
- * members who still owe is a list the desk chases. The API filters before paging (roadmap 6.5.20).
+ * «بدهکار», «تک‌جلسه» and «پلن تمام‌شده» are toggles rather than more statuses, so they combine
+ * with the status and with each other: inactive members who still owe is a list the desk chases.
+ * The API filters before paging (roadmap 6.5.20, 6.5.34).
  */
 export function MembersPage() {
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
   const status = statusFromParams(params);
-  const debtorsOnly = debtorsOnlyFromParams(params);
+  const on = togglesFromParams(params);
   const page = pageFromParams(params);
 
   // What is in the box. It runs ahead of `q` while the user types.
@@ -84,7 +117,9 @@ export function MembersPage() {
   const members = useMemberList({
     search: searching ? search : undefined,
     isActive: status === "all" ? undefined : status === "active",
-    debtorsOnly: debtorsOnly || undefined,
+    debtorsOnly: on.debtorsOnly || undefined,
+    singleSessionOnly: on.singleSessionOnly || undefined,
+    planEndedOnly: on.planEndedOnly || undefined,
     page,
   });
 
@@ -95,12 +130,12 @@ export function MembersPage() {
   const navigate = useNavigate();
 
   function show(
-    next: { q?: string; status?: StatusFilter; debtorsOnly?: boolean; page?: number },
+    next: { q?: string; status?: StatusFilter; toggles?: Partial<ToggleState>; page?: number },
     replace = false,
   ) {
     const nextQ = next.q ?? q;
     const nextStatus = next.status ?? status;
-    const nextDebtorsOnly = next.debtorsOnly ?? debtorsOnly;
+    const nextOn = { ...on, ...next.toggles };
     const nextPage = next.page ?? 1;
 
     const values: Record<string, string> = {};
@@ -110,8 +145,10 @@ export function MembersPage() {
     if (nextStatus !== "all") {
       values.status = nextStatus;
     }
-    if (nextDebtorsOnly) {
-      values.debt = "1";
+    for (const toggle of toggles) {
+      if (nextOn[toggle.value]) {
+        values[toggle.param] = "1";
+      }
     }
     if (nextPage > 1) {
       values.page = String(nextPage);
@@ -219,14 +256,19 @@ export function MembersPage() {
               ))}
             </div>
             <span className="h-5 w-px bg-border" aria-hidden />
-            <Button
-              size="sm"
-              variant={debtorsOnly ? "secondary" : "ghost"}
-              aria-pressed={debtorsOnly}
-              onClick={() => show({ debtorsOnly: !debtorsOnly })}
-            >
-              بدهکار
-            </Button>
+            <div role="group" aria-label="فیلترها" className="flex flex-wrap gap-1">
+              {toggles.map((toggle) => (
+                <Button
+                  key={toggle.value}
+                  size="sm"
+                  variant={on[toggle.value] ? "secondary" : "ghost"}
+                  aria-pressed={on[toggle.value]}
+                  onClick={() => show({ toggles: { [toggle.value]: !on[toggle.value] } })}
+                >
+                  {toggle.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -253,11 +295,8 @@ export function MembersPage() {
 
           {members.isSuccess && members.data.items.length === 0 && !searching && (
             <p className="text-muted-foreground">
-              {debtorsOnly
-                ? "عضو بدهکاری نیست."
-                : status === "all"
-                  ? "هنوز هیچ عضوی ثبت نشده است."
-                  : "عضوی با این وضعیت نیست."}
+              {emptyToggleMessage(on) ??
+                (status === "all" ? "هنوز هیچ عضوی ثبت نشده است." : "عضوی با این وضعیت نیست.")}
             </p>
           )}
 

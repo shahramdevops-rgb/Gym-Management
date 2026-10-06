@@ -2,6 +2,7 @@ using Gym.Application.Common;
 using Gym.Application.Common.Paging;
 using Gym.Domain.Common.Text;
 using Gym.Domain.Members;
+using Gym.Domain.Subscriptions;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -27,7 +28,7 @@ namespace Gym.Application.Members.ListMembers;
 /// a wildcard; the trigram (GIN) indexes in <c>MemberConfiguration</c> can.
 /// </para>
 /// </remarks>
-public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones)
+public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones, IGymCalendar calendar)
 {
     /// <summary>Fewer digits than this would match a large share of all numbers.</summary>
     public const int PhoneFragmentMinDigits = 4;
@@ -38,6 +39,7 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
     {
         ArgumentNullException.ThrowIfNull(query);
 
+        var today = calendar.Today();
         var members = db.Members.AsNoTracking();
 
         if (query.IsActive is { } isActive)
@@ -56,20 +58,38 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
             members = Search(members, PersianText.Normalize(query.Search));
         }
 
-        var totalCount = await members.CountAsync(cancellationToken);
+        // The tags are filters too, so they are worked out in the query, before the count and the
+        // paging (MemberListRows), and the same values are shown on the rows.
+        var rows = MemberListRows.From(members, db, today);
 
-        // Name first for people; Id breaks ties so two members with the same name keep their
-        // order from one page to the next and none is shown twice or skipped.
-        var pageMembers = await members
-            .OrderBy(member => member.NormalizedFullName)
-            .ThenBy(member => member.Id)
+        if (query.SingleSessionOnly)
+        {
+            rows = rows.Where(row => row.LastVisitWasSingleSession);
+        }
+
+        if (query.PlanEndedOnly)
+        {
+            rows = rows.Where(row => row.PlanEnded);
+        }
+
+        var totalCount = await rows.CountAsync(cancellationToken);
+
+        // The latest visit first (BUSINESS_RULES.md §2): the people the desk sees are at the top. A
+        // cancelled check-in was not a visit. Members who never came go last, by name; Id breaks
+        // ties so nobody is shown twice or skipped from one page to the next. Postgres puts nulls
+        // first in a descending order, so "never came" is sorted on explicitly.
+        var pageRows = await rows
+            .OrderBy(row => row.LastCheckInAt == null)
+            .ThenByDescending(row => row.LastCheckInAt)
+            .ThenBy(row => row.Member.NormalizedFullName)
+            .ThenBy(row => row.Member.Id)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(MemberResponse.Projection)
+            .Select(row => new { row.Member, row.LastVisitWasSingleSession, row.PlanEnded })
             .ToListAsync(cancellationToken);
 
         // Batched for the whole page (MemberDebt), not one query per row.
-        var pageIds = pageMembers.Select(member => member.Id).ToList();
+        var pageIds = pageRows.Select(row => row.Member.Id).ToList();
         var debtByMemberId = await MemberDebt.GetTotalsAsync(db, pageIds, cancellationToken);
 
         // The same test as CheckInHandler's "already inside": an attendance not yet checked out.
@@ -97,12 +117,31 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        var items = pageMembers
-            .Select(member => member with
+        // Whole entities, so the domain picks the plan the bar shows (SubscriptionSchedule). A page
+        // holds few members, each with a handful of plans.
+        var membershipsByMemberId = (await db.Subscriptions
+                .AsNoTracking()
+                .Where(subscription => pageIds.Contains(subscription.MemberId)
+                    && subscription.CancelledAt == null
+                    && !subscription.IsSingleSession)
+                .ToListAsync(cancellationToken))
+            .ToLookup(subscription => subscription.MemberId);
+
+        var items = pageRows
+            .Select(row =>
             {
-                Debt = debtByMemberId.GetValueOrDefault(member.Id),
-                CurrentVisit = visitByMemberId.GetValueOrDefault(member.Id),
-                IsFrozen = frozenMemberIds.Contains(member.Id),
+                var member = row.Member;
+                var plan = SubscriptionSchedule.CurrentPlan(today, membershipsByMemberId[member.Id]);
+
+                return MemberResponse.From(member) with
+                {
+                    Debt = debtByMemberId.GetValueOrDefault(member.Id),
+                    CurrentVisit = visitByMemberId.GetValueOrDefault(member.Id),
+                    IsFrozen = frozenMemberIds.Contains(member.Id),
+                    LastVisitWasSingleSession = row.LastVisitWasSingleSession,
+                    PlanEnded = row.PlanEnded,
+                    Plan = plan is null ? null : new MemberPlanSessions(plan.TotalSessions, plan.UsedSessions, plan.RemainingSessions),
+                };
             })
             .ToList();
 

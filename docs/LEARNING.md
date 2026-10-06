@@ -1396,6 +1396,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Regenerate types against the code you changed.** `gen:api` reuses any API already on :5134, which here was an older build, so the old endpoint stayed in `schema.d.ts`. A second copy of the new build on a spare port gave the right document without stopping the developer's own API.
 - **My notes:**
 
+## 6.5.34 — Member list by latest visit, with tags and a sessions column (ترتیب آخرین ورود، برچسب‌ها، ستون جلسات)
+
+- **Sorting on a value from another table.** The list selects each member with a correlated subquery (`Max(CheckedInAt)` over their visits), orders by it, and only then projects to the response. The order is decided in SQL, before `Skip`/`Take`, so page 2 continues where page 1 stopped. Sorting a page in memory would only reorder the 20 rows it happened to fetch.
+- **Nulls in a descending order.** Postgres puts `NULL` first in `ORDER BY … DESC`, so members who never came would have topped the list. `OrderBy(last == null)` first makes "never came" explicit instead of depending on the database's default.
+- **A partial index that matches the query.** `(member_id, checked_in_at) WHERE cancelled_at IS NULL` holds only the visits the subquery reads, already in order, so each member's latest visit is one index lookup. A migration that only adds an index refuses no existing row.
+- **Pick the rule's home by who else needs it.** At first "plan ended" lived in the Domain (`SubscriptionSchedule.HasEndedPlan`), checked on the rows of a page. Then it became a filter, and a filter must run in SQL before the paging, or page 2 would not continue where page 1 stopped. Two copies of one rule (C# for the tag, SQL for the filter) can drift, so the tag moved into `MemberListRows`, one query that both filters on it and shows it. A member never gets both tags: the same query compares which happened later. The trade-off: it is tested by integration tests against Postgres rather than by fast unit tests. Which plan the bar shows stays in the Domain (`CurrentPlan`), because nothing filters on it.
+- **Batch per page, not per row.** The tags and the bar come from one query each for the whole page (`pageIds.Contains(...)`), the same pattern as debt and frozen, so 20 rows cost a fixed number of queries.
+- **My notes:**
+
 ## 9.1 — Financial reports API (گزارش مالی)
 
 - **One read, every breakdown.** Each range is read with one payments query and one expenses query, and the totals by source, method, staff member, category and day are all added up from those same rows in C#. Separate `SUM` queries per breakdown would be shorter to write, but two queries can disagree about which rows counted; one list cannot. The trade-off is sending rows instead of sums: a year of one gym's payments is a few tens of thousands of small rows, which is cheap.
