@@ -150,7 +150,7 @@ describe("DashboardPage", () => {
       "بدون تغییر نسبت به بازهٔ قبل",
     );
     // Nothing before: a percent would say nothing, so the figure before is shown.
-    expect(card("سود بوفه")).toHaveTextContent("بازهٔ قبل: ۰ تومان");
+    expect(card("دریافتی بوفه")).toHaveTextContent("بازهٔ قبل: ۰ تومان");
 
     expect(within(card("ورود اعضا")).getByText(/۲۰٪ کمتر از بازهٔ قبل/)).toHaveClass(
       "text-destructive",
@@ -178,18 +178,26 @@ describe("DashboardPage", () => {
     await screen.findByText("خلاصهٔ بازه");
     // 1405/07/14: «فروش» took «درآمد ناخالص»'s place, and «صندوق نقدی» is gone.
     const terms = screen.getAllByRole("term").map((term) => term.textContent);
-    expect(terms.slice(0, 3)).toEqual([
+    expect(terms.slice(0, 7)).toEqual([
       "فروش (به غیر از آنالیز و فروشگاه)",
       "دریافتی",
       "دریافتی آنالیز و فروشگاه",
+      "دریافتی بوفه",
+      "دریافتی هوازی",
+      "دریافتی پلن",
+      "دریافتی تک‌جلسه‌ای",
     ]);
     expect(terms).not.toContain("درآمد ناخالص");
     expect(terms).not.toContain("صندوق نقدی");
+    // Taken off the summary, 1405/07/14.
+    expect(terms).not.toContain("سود بوفه");
+    // Renamed, 1405/07/14.
+    expect(terms).not.toContain("خرید پلن");
 
     // A sale on credit is in «فروش» but not in the drawer, so it is written apart (§12).
     const sales = card("فروش (به غیر از آنالیز و فروشگاه)");
     expect(sales).toHaveTextContent("۱۵٬۰۰۰٬۰۰۰ تومان");
-    expect(breakdownOf(sales)).toEqual(["پرداخت‌شده۱۳٬۰۰۰٬۰۰۰ تومان", "نسیه۲٬۰۰۰٬۰۰۰ تومان"]);
+    expect(breakdownOf(sales)).toEqual(["پرداخت‌شده۱۳٬۰۰۰٬۰۰۰ تومان", "مانده۲٬۰۰۰٬۰۰۰ تومان"]);
   });
 
   it("DashboardPage_Received_IsWhatCameInByMethodWithTheShopAndAnalysisApart", async () => {
@@ -212,22 +220,63 @@ describe("DashboardPage", () => {
     expect(breakdownOf(shop)).toEqual(["کارت۱٬۲۰۰٬۰۰۰ تومان", "انتقال۰ تومان", "نقد۰ تومان"]);
   });
 
+  it("DashboardPage_CafeReceived_IsOneFigureWithoutTheMethods", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    // The cafe's net money of the range, part of «دریافتی», with nothing in its corner.
+    const cafe = card("دریافتی بوفه");
+    expect(cafe).toHaveTextContent("۱٬۲۰۰٬۰۰۰ تومان");
+    expect(cafe).toHaveTextContent("جزئی از «دریافتی» است");
+    expect(cafe).toHaveTextContent("بازهٔ قبل: ۰ تومان");
+    expect(within(cafe).queryAllByRole("listitem")).toEqual([]);
+  });
+
+  it("DashboardPage_CardioReceived_IsOneFigureAfterTheCafe", async () => {
+    const cardio = { received: 500000, refunded: 100000, net: 400000 };
+    mockApi({
+      ...dashboard,
+      "GET /api/reports/financial": () =>
+        json(200, {
+          ...financialReport,
+          current: {
+            ...financialReport.current,
+            bySource: financialReport.current.bySource.map((row) =>
+              row.source === "Cardio" ? { ...row, money: cardio } : row,
+            ),
+          },
+        }),
+    });
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    const terms = screen.getAllByRole("term").map((term) => term.textContent);
+    expect(terms.indexOf("دریافتی هوازی")).toBe(terms.indexOf("دریافتی بوفه") + 1);
+    // Net of the refund, part of «دریافتی», with nothing in its corner.
+    const cardioCard = card("دریافتی هوازی");
+    expect(cardioCard).toHaveTextContent("۴۰۰٬۰۰۰ تومان");
+    expect(cardioCard).toHaveTextContent("پول هوازی که در بازه آمد");
+    expect(cardioCard).toHaveTextContent("بازهٔ قبل: ۰ تومان");
+    expect(within(cardioCard).queryAllByRole("listitem")).toEqual([]);
+  });
+
   it("DashboardPage_PlansAndSingleVisits_ShowWhatWasSoldByTheDayOfTheSale", async () => {
     mockApi(dashboard);
     renderApp("/dashboard", { session: session() });
 
     await screen.findByText("خلاصهٔ بازه");
     // What they sold for, paid or not (1405/07/14), not the 9,000,000 paid for plans so far.
-    const plans = card("خرید پلن");
+    const plans = card("دریافتی پلن");
     expect(plans).toHaveTextContent("۱۰٬۸۰۰٬۰۰۰ تومان");
     expect(plans).toHaveTextContent("۱۲ پلن در این بازه فروخته شد، پرداخت شده یا نشده");
     expect(plans).toHaveTextContent("بازهٔ قبل: ۰ تومان");
     // Like «فروش», what of it is paid and what is still owed.
-    expect(breakdownOf(plans)).toEqual(["پرداخت‌شده۹٬۰۰۰٬۰۰۰ تومان", "نسیه۱٬۸۰۰٬۰۰۰ تومان"]);
-    const singleVisits = card("تک‌جلسه‌ای");
+    expect(breakdownOf(plans)).toEqual(["پرداخت‌شده۹٬۰۰۰٬۰۰۰ تومان", "مانده۱٬۸۰۰٬۰۰۰ تومان"]);
+    const singleVisits = card("دریافتی تک‌جلسه‌ای");
     expect(singleVisits).toHaveTextContent("۶۰۰٬۰۰۰ تومان");
     expect(singleVisits).toHaveTextContent("۴ تک‌جلسه در این بازه فروخته شد");
-    expect(breakdownOf(singleVisits)).toEqual(["پرداخت‌شده۶۰۰٬۰۰۰ تومان", "نسیه۰ تومان"]);
+    expect(breakdownOf(singleVisits)).toEqual(["پرداخت‌شده۶۰۰٬۰۰۰ تومان", "مانده۰ تومان"]);
   });
 
   it("DashboardPage_ConversionRate_LeavesThoseStillWaitingOut", async () => {
@@ -246,18 +295,17 @@ describe("DashboardPage", () => {
     renderApp("/dashboard", { session: session() });
 
     await screen.findByText("خلاصهٔ بازه");
-    // §12: a profit is green, the net one and the cafe's alike.
+    // §12: a profit is green.
     expect(within(card("سود خالص")).getByText("۷٬۰۰۰٬۰۰۰ تومان")).toHaveClass("text-success");
-    expect(within(card("سود بوفه")).getByText("۸۰۰٬۰۰۰ تومان")).toHaveClass("text-success");
   });
 
-  it("DashboardPage_LossAndZero_LossIsRedWithItsMinusSignZeroIsNeither", async () => {
+  it("DashboardPage_Loss_IsRedWithItsMinusSign", async () => {
     mockApi({
       ...dashboard,
       "GET /api/reports/financial": () =>
         json(200, {
           ...financialReport,
-          current: { ...financialReport.current, netProfit: -30500000, cafeGrossProfit: 0 },
+          current: { ...financialReport.current, netProfit: -30500000 },
         }),
     });
     renderApp("/dashboard", { session: session() });
@@ -267,7 +315,21 @@ describe("DashboardPage", () => {
     const loss = within(card("سود خالص")).getByText(/۳۰٬۵۰۰٬۰۰۰ تومان$/);
     expect(loss.textContent).toMatch(/^\u200e\u2212۳۰٬۵۰۰٬۰۰۰ تومان$/);
     expect(loss).toHaveClass("text-destructive");
-    const zero = within(card("سود بوفه")).getByText("۰ تومان");
+  });
+
+  it("DashboardPage_ZeroProfit_IsNeitherColour", async () => {
+    mockApi({
+      ...dashboard,
+      "GET /api/reports/financial": () =>
+        json(200, {
+          ...financialReport,
+          current: { ...financialReport.current, netProfit: 0 },
+        }),
+    });
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    const zero = within(card("سود خالص")).getByText("۰ تومان");
     expect(zero).not.toHaveClass("text-success");
     expect(zero).not.toHaveClass("text-destructive");
   });

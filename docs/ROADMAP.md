@@ -2070,6 +2070,13 @@ tests.
 - [x] «خرید پلن» and «تک‌جلسه‌ای» list «پرداخت‌شده» and «نسیه» like «فروش» (`soldPaid`, `soldOwed`)
 - [x] «نرخ تمدید» in plain words: a sentence for what it measures, and «تمدید کردند»,
       «تمدید نکردند», «در انتظار» in its corner
+- [x] «دریافتی بوفه» after «دریافتی آنالیز و فروشگاه»: the cafe's net money of the range, one
+      figure without the methods (`bySource` Cafe `money.net`, no API change)
+- [x] «دریافتی هوازی» after «دریافتی بوفه», the same card for هوازی (`bySource` Cardio)
+- [x] «خرید پلن» and «تک‌جلسه‌ای» renamed «دریافتی پلن» and «دریافتی تک‌جلسه‌ای», after
+      «دریافتی هوازی»; «نسیه» is «مانده» on the dashboard
+- [x] «سود بوفه» removed, from the page and from the report (`cafeGrossProfit`; API types
+      regenerated)
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its

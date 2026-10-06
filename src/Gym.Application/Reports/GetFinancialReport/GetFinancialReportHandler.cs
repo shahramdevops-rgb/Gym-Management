@@ -2,7 +2,6 @@ using System.Diagnostics;
 
 using Gym.Application.Common;
 using Gym.Application.History.ListSales;
-using Gym.Domain.Expenses;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
 
@@ -230,12 +229,6 @@ public sealed class GetFinancialReportHandler(
             .Where(row => !IsShopOrAnalysis(row.Source))
             .Sum(row => row.Money.Net);
 
-        // The cafe counts no stock (§8): what was spent restocking it is the nearest thing to its cost.
-        var cafeNet = bySource.Single(row => row.Source == RevenueSource.Cafe).Money.Net;
-        var cafePurchasing = byCategory
-            .Where(row => row.CategoryId == ExpenseCategory.CafePurchasingId)
-            .Sum(row => row.Amount);
-
         return new FinancialPeriodResponse(
             from,
             to,
@@ -250,8 +243,7 @@ public sealed class GetFinancialReportHandler(
             data.Sales - data.SalesPaid,
             expenses,
             byCategory,
-            ownRevenue - expenses,
-            cafeNet - cafePurchasing);
+            ownRevenue - expenses);
     }
 
     /// <summary>The three methods in the desk's order, each with what came in and went back out.</summary>

@@ -42,7 +42,6 @@ function period(overrides: Partial<FinancialPeriod>): FinancialPeriod {
     expenses: 0,
     expensesByCategory: [],
     netProfit: 0,
-    cafeGrossProfit: 0,
     ...overrides,
   };
 }
@@ -123,7 +122,6 @@ export const financialReport: FinancialReport = {
       { categoryId: "0199a000-0000-7000-8000-0000000000a1", name: "اجاره", amount: 5000000 },
     ],
     netProfit: 7000000,
-    cafeGrossProfit: 800000,
   }),
   previous: period({
     from: "2026-09-11",
@@ -132,7 +130,6 @@ export const financialReport: FinancialReport = {
     expenses: 4000000,
     netProfit: 6000000,
     sales: 15000000,
-    cafeGrossProfit: 0,
   }),
   days: [
     { date: "2026-10-03", revenue: 5000000, expenses: 0 },
