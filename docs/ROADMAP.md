@@ -1722,8 +1722,8 @@ Phase 6.5 closed with a check of the whole repository, so the next task starts c
       `D:/GymManagement-history`) and `task/8.1-expenses-api` (local and on `origin`) deleted. Only
       `main` is left
 - [x] 6.5.28 to 6.5.32 marked as released in `20261004-0511-2793a16`
-- [ ] 6.5.33 is not released yet (code only, no migration): it goes out with the next release,
-      after `./backup.sh run`
+- [x] 6.5.33 released in `20261006-0505-73e6c33` (1405/07/14), with 9.1 to 9.4 and their
+      follow-ups
 - [ ] The gym PC has not yet pulled its own copy of the `gym-20261004-050157.dump` backup
       (`deploy/pull-backup.ps1`); today it exists only on the server and in `D:\GymBackups`
 - Noted for 11.3: the production build warns that the main JS chunk is about 942 kB (Vite's hint
@@ -2093,6 +2093,14 @@ kept, not thrown away: it comes back in Phase 13.2 as it is, not redesigned.
 - [x] «داشبورد» and «چک و قسط» first reach the server in the release of 1405/07/14: the menu marks
       both «جدید» through 1405/07/15 (`newUntil` on the menu item, against `gymToday()`), so the
       Owner finds them without being told; from 1405/07/16 the mark is gone by itself
+- [x] Released in `20261006-0505-73e6c33` (previous `20261004-0511-2793a16`), with everything since
+      the last release: 6.5.33, 9.1 to 9.4 and their follow-ups. Before it: the full suite green
+      (109 domain, 1590 integration, 926 frontend tests, zero warnings), `./backup.sh run`
+      (`gym-20261006-050350.dump`, also copied to `D:\gymbackups`), the server checked at
+      `AllowGuestServiceCharges` with no `cheques` table. Migrations `AddCheques` then
+      `AddPayables` (which drops the never-used `cheques` and adds a nullable `payable_id` to
+      `expenses`): no existing row touched. After it: the panel and `/health` answer 200 and the
+      live bundle carries the «جدید» date
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its
