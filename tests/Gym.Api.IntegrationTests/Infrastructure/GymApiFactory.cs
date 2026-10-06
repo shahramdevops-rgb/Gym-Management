@@ -43,6 +43,11 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
     private const string LoginPermitLimitVariable = "RateLimiting__Login__PermitLimit";
     private const string TestLoginPermitLimit = "100000";
 
+    // Tests always use the fake sender (BUSINESS_RULES.md §10), whatever a developer has set for
+    // their own machine: a test run must never reach the SMS provider or spend its credit.
+    private const string SmsProviderVariable = "Sms__Provider";
+    private const string TestSmsProvider = "Fake";
+
     public GymApiFactory(string connectionString)
     {
         // The Testcontainers string already carries the password, so the separate
@@ -51,6 +56,7 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable(EnvironmentVariable, TestingEnvironment);
         Environment.SetEnvironmentVariable(SigningKeyVariable, TestSigningKey);
         Environment.SetEnvironmentVariable(LoginPermitLimitVariable, TestLoginPermitLimit);
+        Environment.SetEnvironmentVariable(SmsProviderVariable, TestSmsProvider);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -68,5 +74,6 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable(EnvironmentVariable, null);
         Environment.SetEnvironmentVariable(SigningKeyVariable, null);
         Environment.SetEnvironmentVariable(LoginPermitLimitVariable, null);
+        Environment.SetEnvironmentVariable(SmsProviderVariable, null);
     }
 }

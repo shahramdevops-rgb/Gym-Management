@@ -15,7 +15,6 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 | `Sms:MaxAttempts` and the backoff between tries | 10.3 | Not on the settings page (§10). |
 | A run the server missed (it was down at the send time) | 10.3 | Run it when the server is back the same day, before 22:00, or skip the day? |
 | A cheque or instalment whose date is changed after its SMS was sent | 10.3 | Send again for the new date, or not? |
-| The wording of the four templates | 10.1 | Written into `docs/sms-templates.md`, then made in Kavenegar. |
 
 The SMS numbers themselves (days, sessions, send times) are not configuration: the Owner sets them
 on the SMS settings page (§10).
@@ -1288,8 +1287,17 @@ sent that the Owner did not choose, and the same message is never paid for twice
   up to 5 spaces and `token20` up to 8; each holds at most 100 characters. A member's name goes in a
   blank that allows spaces. The wording and blanks of every template are kept in
   `docs/sms-templates.md`, so the same templates can be made again in another Kavenegar account.
+  **Every template uses `%token`**: Kavenegar refuses a template message without it. **A value longer
+  than its blank allows is simply cut short** (a long payee, a long name): the words the blank allows
+  are kept, then the first 100 characters (decided with the developer, 1405/07/14).
+- **The wording** (decided with the developer, 1405/07/14, in `docs/sms-templates.md`): the gym is
+  named «باشگاه پاسارگاد»; the subscription message gives the end date, not the days left; the
+  birthday has two templates, one for the day itself and one with «پیشاپیش» for a greeting sent
+  1 to 7 days early, and the Owner picks the one that matches the days set; the Owner's message
+  gives the kind, the amount, the date and the payee.
 - **Length:** a Persian SMS holds 70 characters in one part and 67 in each part of a longer one, and
-  each part is paid for. Templates are kept short.
+  each part is paid for. The four templates run to about two parts each; the developer decided that
+  is fine.
 - **Status:** `Pending`, `Sent`, `Failed`, `Unknown`.
   - A failure that may pass (Kavenegar busy, `409`; the server or the network down before the request
     left) is retried with backoff, up to `Sms:MaxAttempts`, then `Failed`.
