@@ -2256,11 +2256,23 @@ integration) and 926 frontend tests green, zero warnings, lint and `format:check
 `AddNotifications` adds one new table only; nothing sends yet (no job until 10.3).
 
 ### 10.2 SMS settings (تنظیمات پیامک)
-- [ ] One settings row: the on/off switches, numbers, send times, template names and the Owner's
+- [x] One settings row: the on/off switches, numbers, send times, template names and the Owner's
       number; check constraints for every range and for "on means filled"; `xmin`
-- [ ] `GET`/`PUT /api/sms/settings` (Owner), audited; `Sms.SettingsIncomplete` and the range errors
-- [ ] The page «تنظیمات پیامک», Owner menu only: starts empty, everything off; a kind turns on only
+- [x] `GET`/`PUT /api/sms/settings` (Owner), audited; `Sms.SettingsIncomplete` and the range errors
+- [x] The page «تنظیمات پیامک», Owner menu only: starts empty, everything off; a kind turns on only
       when it is filled
+- [x] Rules first: BUSINESS_RULES.md §10, decided with the developer on 1405/07/14: a send time is on a
+      quarter hour (08:00 to 22:00, both included); a kind that is off may be left or made empty
+- [x] Tests: every range edge, the send window and quarters, template names, on means filled, the
+      Owner's number for cheques (domain); get, save, Staff refused, stale version, two saves at once,
+      the number normalized and refused, the audit row, each field error, every check constraint
+      (integration); the page, the locked switches, the time boxes, saving and every refusal (frontend)
+
+Closed 2026-10-06: 1869 backend tests (618 domain, 1251 integration; 101 new: 56 domain, 45
+integration) and 950 frontend tests (24 new) green, zero warnings, lint, `format:check` and production
+build pass. Migration `AddSmsSettings` adds one new table and its one row, everything empty and off;
+no existing row is touched, and the release still starts with `./backup.sh run`. Nothing sends yet
+(the jobs are 10.3).
 
 ### 10.3 The daily jobs
 - [ ] One job per kind at its own send time, read from the settings (a change of time applies from

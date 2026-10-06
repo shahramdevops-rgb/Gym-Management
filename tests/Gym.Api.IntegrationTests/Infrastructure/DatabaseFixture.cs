@@ -1,4 +1,5 @@
 using Gym.Domain.Expenses;
+using Gym.Domain.Notifications;
 using Gym.Domain.Pricing;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Persistence.Seed;
@@ -84,6 +85,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
         ExpenseCategoriesAfterMigration = await ReadExpenseCategoriesAsync(_connection);
         LockersAfterMigration = await ReadLockersAsync(_connection);
         PriceListsAfterMigration = await ReadPriceListsAsync(_connection);
+        SmsSettingsAfterMigration = await ReadSmsSettingsAsync(_connection);
     }
 
     /// <summary>
@@ -167,10 +169,16 @@ public sealed class DatabaseFixture : IAsyncLifetime
     public IReadOnlyList<(Guid Id, decimal? SessionPrice, decimal? SingleVisitPrice)> PriceListsAfterMigration { get; private set; } = [];
 
     /// <summary>
+    /// The SMS settings rows a fresh database gets from its migration: one, with every switch off
+    /// (<c>AnyOn</c>) and no field filled (<c>FilledFields</c>).
+    /// </summary>
+    public IReadOnlyList<(Guid Id, bool AnyOn, int FilledFields)> SmsSettingsAfterMigration { get; private set; } = [];
+
+    /// <summary>
     /// Puts back the rows the migrations seed, which Respawn deleted with everything else. A
     /// test then starts from what a freshly migrated database holds, not from an emptier one that
     /// production never sees. The rows come from <see cref="ExpenseCategorySeed"/>,
-    /// <see cref="LockerSeed"/> and <see cref="PriceList.TheId"/>, the same values the migrations
+    /// <see cref="LockerSeed"/>, <see cref="PriceList.TheId"/> and <see cref="SmsSettings.TheId"/>, the same values the migrations
     /// were generated from.
     /// </summary>
     private static async Task RestoreSeedDataAsync(NpgsqlConnection connection)
@@ -178,6 +186,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
         await RestoreExpenseCategoriesAsync(connection);
         await RestoreLockersAsync(connection);
         await RestorePriceListAsync(connection);
+        await RestoreSmsSettingsAsync(connection);
     }
 
     /// <summary>The one price list, with both prices empty, as the migration seeds it (BUSINESS_RULES.md §3).</summary>
@@ -189,6 +198,46 @@ public sealed class DatabaseFixture : IAsyncLifetime
         command.Parameters.AddWithValue("id", PriceList.TheId);
 
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>The one SMS settings row, everything empty and off, as the migration seeds it (BUSINESS_RULES.md §10).</summary>
+    private static async Task RestoreSmsSettingsAsync(NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand(
+            """
+            INSERT INTO sms_settings (id, created_at, enabled, subscription_expiring_enabled, low_sessions_enabled,
+                birthday_enabled, payable_due_enabled)
+            VALUES (@id, now(), false, false, false, false, false)
+            """,
+            connection);
+
+        command.Parameters.AddWithValue("id", SmsSettings.TheId);
+
+        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<(Guid Id, bool AnyOn, int FilledFields)>> ReadSmsSettingsAsync(NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT id,
+                enabled OR subscription_expiring_enabled OR low_sessions_enabled OR birthday_enabled OR payable_due_enabled,
+                num_nonnulls(subscription_expiring_days_before, subscription_expiring_send_time, subscription_expiring_template_name,
+                    low_sessions_threshold, low_sessions_send_time, low_sessions_template_name,
+                    birthday_days_before, birthday_send_time, birthday_template_name,
+                    payable_due_days_before, payable_due_send_time, payable_due_template_name, owner_phone)
+            FROM sms_settings
+            """,
+            connection);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+
+        var rows = new List<(Guid, bool, int)>();
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            rows.Add((reader.GetGuid(0), reader.GetBoolean(1), reader.GetInt32(2)));
+        }
+
+        return rows;
     }
 
     private static async Task<IReadOnlyList<(Guid Id, decimal? SessionPrice, decimal? SingleVisitPrice)>> ReadPriceListsAsync(

@@ -18,6 +18,7 @@ import { MemberProfilePage } from "@/features/members/pages/MemberProfilePage";
 import { MembersPage } from "@/features/members/pages/MembersPage";
 import { PayablesPage } from "@/features/payables/pages/PayablesPage";
 import { SettingsPage } from "@/features/settings/pages/SettingsPage";
+import { SmsSettingsPage } from "@/features/sms/pages/SmsSettingsPage";
 import { StaffPage } from "@/features/staff/pages/StaffPage";
 import { StatusPage } from "@/features/status/pages/StatusPage";
 
@@ -77,6 +78,7 @@ export const routes: RouteObject[] = [
                 },
               },
               ownerOnly(paths.settings, <SettingsPage />),
+              ownerOnly(paths.smsSettings, <SmsSettingsPage />),
               ownerOnly(paths.expenses, <ExpensesPage />),
               ownerOnly(paths.payables, <PayablesPage />),
               ownerOnly(paths.staff, <StaffPage />),

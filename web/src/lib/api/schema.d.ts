@@ -1172,6 +1172,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sms/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetSmsSettings"];
+        put: operations["UpdateSmsSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/attendance": {
         parameters: {
             query?: never;
@@ -2576,6 +2592,24 @@ export interface components {
             /** Format: double */
             unitPrice: number | string;
         };
+        SmsKindSettings: {
+            enabled: boolean;
+            /** Format: int32 */
+            threshold: null | number | string;
+            /** Format: time */
+            sendTime: null | string;
+            templateName: null | string;
+        };
+        SmsSettingsResponse: {
+            enabled: boolean;
+            subscriptionExpiring: components["schemas"]["SmsKindSettings"];
+            lowSessions: components["schemas"]["SmsKindSettings"];
+            birthday: components["schemas"]["SmsKindSettings"];
+            payableDue: components["schemas"]["SmsKindSettings"];
+            ownerPhone: null | string;
+            /** Format: uint32 */
+            version: number | string;
+        };
         StaffResponse: {
             /** Format: uuid */
             id: string;
@@ -2713,6 +2747,16 @@ export interface components {
             categoryId: string;
             /** Format: double */
             price: number | string;
+            /** Format: uint32 */
+            version: number | string;
+        };
+        UpdateSmsSettingsCommand: {
+            enabled: boolean;
+            subscriptionExpiring: components["schemas"]["SmsKindSettings"];
+            lowSessions: components["schemas"]["SmsKindSettings"];
+            birthday: components["schemas"]["SmsKindSettings"];
+            payableDue: components["schemas"]["SmsKindSettings"];
+            ownerPhone: null | string;
             /** Format: uint32 */
             version: number | string;
         };
@@ -8100,6 +8144,104 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSmsSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSettingsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateSmsSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSmsSettingsCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSettingsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

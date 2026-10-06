@@ -1528,3 +1528,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Personal data stays out of logs.** The fake logs the template and the last four digits of the number, never the values (they hold a member's name).
 - **A record with a checked property.** A positional `record` can declare its own property for a parameter (`public string Token { get; } = Check(Token, ...)`), which keeps the short syntax and adds validation.
 - **My notes:**
+
+## 10.2 — SMS settings (تنظیمات پیامک)
+
+- **One settings row, again.** `SmsSettings` follows `PriceList`: the migration seeds the row with a fixed id, a check constraint on the id keeps a second one out, and `xmin` plus the client's `version` refuse a stale save. A pattern the codebase already has is cheaper to read than a new one.
+- **Store flat, hand out grouped.** Each field is its own column, so every check constraint reads like the rule it repeats (`NOT birthday_enabled OR (... IS NOT NULL ...)`). `For(kind)` returns the four columns of a kind as one `SmsKindSettings` record, which is what the page and the daily jobs want to work with.
+- **"On means filled" in two places.** The entity refuses to turn on a kind with an empty field (`Sms.SettingsIncomplete`), and the database refuses the same row with a check constraint, so a hand-written `UPDATE` cannot get around it either.
+- **One check, three callers.** `CheckThreshold`, `CheckSendTime`, `CheckTemplateName` and `CheckComplete` are static methods on the entity. `Update` uses them, the validator reports each one under its own field (`birthday.threshold`), and the frontend schema repeats the same ranges, so the three can't drift apart.
+- **The assembly scan registers every validator.** `AddValidatorsFromAssembly` registered a child `AbstractValidator<SmsKindSettings>` whose constructor took the kind, and the host couldn't start because DI had no `NotificationKind` to give it. A `Custom` rule per kind that adds failures with nested property paths gives the same field errors with nothing to register.
+- **A control that can only make valid values.** The send time is two selects: hours ۸ to ۲۲, minutes on the quarter. Choosing an hour fills in :00, and ۲۲ offers only :00, so the form can't build a time the server would refuse. The server still checks it, because the API is not only this page.
+- **A switch that locks one way.** A kind's switch is disabled while the kind is off and not filled. One that is already on stays clickable even after a field is emptied, so the Owner can always turn it off; the save then says what is missing.
+- **`TimeOnly` and Postgres `time`.** Npgsql maps `TimeOnly` to `time without time zone`, and JSON carries it as `HH:mm:ss`. A send time is a time of day in the gym's zone, not a moment, so it has no date and no offset.
+- **My notes:**
