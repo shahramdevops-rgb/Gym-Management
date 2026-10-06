@@ -1,17 +1,10 @@
-import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-
-import { toneStyle, type Tone } from "../tone";
 
 interface ChartCardProps {
   title: string;
   description?: string;
-  /** Beside the title, in a tinted square: decoration, so each chart is found at a glance. */
-  icon: LucideIcon;
-  tone: Tone;
   /** Shown instead of the chart when there is nothing to draw: an empty chart reads as broken. */
   empty?: boolean;
   className?: string;
@@ -25,54 +18,24 @@ interface ChartCardProps {
 export function ChartCard({
   title,
   description,
-  icon: Icon,
-  tone,
   empty = false,
   className,
   children,
 }: ChartCardProps) {
   return (
-    <Card
-      style={toneStyle(tone)}
-      className={cn("rounded-2xl transition-shadow hover:shadow-md", className)}
-    >
-      <CardHeader className="grid-cols-[auto_1fr] gap-x-3">
-        <span
-          aria-hidden
-          className="row-span-2 grid size-10 place-items-center rounded-xl tone-soft tone-ink"
-        >
-          <Icon className="size-5" />
-        </span>
-        <CardTitle className="self-end">{title}</CardTitle>
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
         {description !== undefined && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
         {empty ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground">
-            <Icon aria-hidden className="size-8 opacity-40" />
-            <p>در این بازه چیزی نیست.</p>
-          </div>
+          <p className="py-8 text-center text-sm text-muted-foreground">در این بازه چیزی نیست.</p>
         ) : (
           <figure aria-label={title}>{children}</figure>
         )}
       </CardContent>
     </Card>
-  );
-}
-
-/**
- * A Recharts bar's fill that fades from its colour at the top to a lighter one at its foot, put
- * inside the chart and used as `fill={`url(#${id})`}`. The colour goes in `style`, not in the
- * `stop-color` attribute, so a CSS variable is read.
- */
-export function BarGradient({ id, color }: { id: string; color: string }) {
-  return (
-    <defs>
-      <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" style={{ stopColor: color, stopOpacity: 1 }} />
-        <stop offset="100%" style={{ stopColor: color, stopOpacity: 0.55 }} />
-      </linearGradient>
-    </defs>
   );
 }
 
@@ -103,7 +66,7 @@ export function ChartTooltip({ active, title, rows }: ChartTooltipProps) {
   return (
     <div
       dir="rtl"
-      className="space-y-1 rounded-xl border bg-card px-3 py-2 text-sm text-card-foreground shadow-md"
+      className="space-y-1 rounded-md border bg-card px-3 py-2 text-sm text-card-foreground shadow-md"
     >
       <p className="font-medium">{title}</p>
       {rows.map((row) => (

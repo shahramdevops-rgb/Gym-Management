@@ -1,32 +1,7 @@
-import {
-  Activity,
-  ArrowLeftRight,
-  BatteryLow,
-  CalendarCheck,
-  ChartColumn,
-  ChartPie,
-  CircleCheck,
-  Coffee,
-  CreditCard,
-  CupSoda,
-  Footprints,
-  HeartPulse,
-  Hourglass,
-  IdCard,
-  Receipt,
-  Repeat,
-  ShoppingBag,
-  Snowflake,
-  Store,
-  Ticket,
-  TrendingUp,
-  UserPlus,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
 import { useSearchParams } from "react-router";
 
 import { Alert } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 import { paymentMethodLabels, type PaymentMethod } from "@/features/payments/api";
 import { errorMessage, errorMessages } from "@/lib/errors";
 import { formatMoney, formatNumber, formatPercent, gymToday, toPersianDigits } from "@/lib/format";
@@ -49,18 +24,14 @@ import {
 } from "../api";
 import { AttendanceHeatmap } from "../components/AttendanceHeatmap";
 import { BarListChart, type BarListItem } from "../components/BarListChart";
-import { DashboardHero } from "../components/DashboardHero";
 import { MonthlyChart } from "../components/MonthlyChart";
 import { NeedsAttentionPanel } from "../components/NeedsAttentionPanel";
 import { RangePicker, type RangeDraft } from "../components/RangePicker";
-import { ReceivablesCard } from "../components/ReceivablesCard";
 import { RevenueChart } from "../components/RevenueChart";
-import { SectionHeading } from "../components/SectionHeading";
 import { StaffMoneyTable } from "../components/StaffMoneyTable";
-import { StatCard, StatCardsLoading } from "../components/StatCard";
+import { StatCard } from "../components/StatCard";
 import { byJalaliMonth, conversionRate, methodsTotal, outcomeOf, renewalRate } from "../figures";
 import { defaultRangePreset, presetRange, rangeError, type ReportRange } from "../range";
-import type { Tone } from "../tone";
 
 /**
  * The range from the URL (`?from=2026-09-23&to=2026-10-04`). With neither date the dashboard opens
@@ -156,31 +127,33 @@ export function DashboardPage() {
   const months = members.isSuccess ? byJalaliMonth(members.data.days) : [];
 
   return (
-    <div className="space-y-8">
-      <DashboardHero range={draft}>
-        <RangePicker
-          range={draft}
-          today={today}
-          onChange={changeRange}
-          error={errorCode === undefined ? undefined : errorMessages[errorCode]}
-        />
-      </DashboardHero>
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold">داشبورد</h2>
+
+      <Card>
+        <CardContent>
+          <RangePicker
+            range={draft}
+            today={today}
+            onChange={changeRange}
+            error={errorCode === undefined ? undefined : errorMessages[errorCode]}
+          />
+        </CardContent>
+      </Card>
 
       {failed !== undefined && <Alert variant="destructive">{errorMessage(failed.error)}</Alert>}
-      {canAsk && financial.isPending && <StatCardsLoading />}
+      {canAsk && financial.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
 
       {canAsk && (financial.isSuccess || attendance.isSuccess || members.isSuccess) && (
-        <section aria-labelledby="range-summary" className="space-y-3">
-          <SectionHeading id="range-summary" icon={ChartColumn} tone="blue">
+        <section aria-labelledby="range-summary" className="space-y-2">
+          <h3 id="range-summary" className="font-semibold">
             خلاصهٔ بازه
-          </SectionHeading>
-          <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          </h3>
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {financial.isSuccess && (
               <>
                 <StatCard
                   label={salesLabel}
-                  tone="violet"
-                  icon={ShoppingBag}
                   value={formatMoney(financial.data.current.sales)}
                   hint="آنچه در بازه فروخته شده، پرداخت شده یا نشده"
                   comparison={{
@@ -195,50 +168,26 @@ export function DashboardPage() {
                 />
                 <ReceivedCard
                   label="دریافتی"
-                  tone="blue"
-                  icon={Wallet}
                   hint="آنچه در بازه آمد، بدهی‌های قبلی هم، منهای بازگشت‌ها؛ بدون آنالیز و فروشگاه"
                   current={financial.data.current.receivedByMethod}
                   previous={financial.data.previous.receivedByMethod}
                 />
                 <ReceivedCard
                   label="دریافتی آنالیز و فروشگاه"
-                  tone="amber"
-                  icon={Store}
                   hint="پول آنالیز و فروشگاه، جدا از دریافتی باشگاه"
                   current={financial.data.current.shopAndAnalysisByMethod}
                   previous={financial.data.previous.shopAndAnalysisByMethod}
                 />
-                <SourceReceivedCard
-                  tone="brown"
-                  icon={CupSoda}
-                  source="Cafe"
-                  report={financial.data}
-                />
-                <SourceReceivedCard
-                  tone="pink"
-                  icon={HeartPulse}
-                  source="Cardio"
-                  report={financial.data}
-                />
-                <SourceCard
-                  label="دریافتی پلن"
-                  tone="indigo"
-                  icon={IdCard}
-                  source="Membership"
-                  report={financial.data}
-                />
+                <SourceReceivedCard source="Cafe" report={financial.data} />
+                <SourceReceivedCard source="Cardio" report={financial.data} />
+                <SourceCard label="دریافتی پلن" source="Membership" report={financial.data} />
                 <SourceCard
                   label="دریافتی تک‌جلسه‌ای"
-                  tone="lime"
-                  icon={Ticket}
                   source="SingleSession"
                   report={financial.data}
                 />
                 <StatCard
                   label="هزینه‌ها"
-                  tone="orange"
-                  icon={Receipt}
                   value={formatMoney(financial.data.current.expenses)}
                   comparison={{
                     current: financial.data.current.expenses,
@@ -249,8 +198,6 @@ export function DashboardPage() {
                 />
                 <StatCard
                   label="سود خالص"
-                  tone="green"
-                  icon={TrendingUp}
                   value={formatMoney(financial.data.current.netProfit)}
                   outcome={outcomeOf(financial.data.current.netProfit)}
                   hint="درآمد به غیر از آنالیز و فروشگاه، منهای همهٔ هزینه‌ها"
@@ -265,8 +212,6 @@ export function DashboardPage() {
             {attendance.isSuccess && (
               <StatCard
                 label="ورود اعضا"
-                tone="sky"
-                icon={Footprints}
                 value={formatNumber(Number(attendance.data.visits))}
                 hint={`${formatNumber(Number(attendance.data.members))} عضو مختلف`}
                 comparison={{
@@ -280,8 +225,6 @@ export function DashboardPage() {
               <>
                 <StatCard
                   label="اعضای جدید"
-                  tone="pink"
-                  icon={UserPlus}
                   value={formatNumber(Number(members.data.newMembers))}
                   hint="عضوهایی که اولین پلن عضویتشان در این بازه فروخته شده"
                 />
@@ -302,158 +245,137 @@ export function DashboardPage() {
       )}
 
       {(plans.isSuccess || receivables.isSuccess) && (
-        <section aria-labelledby="today-summary" className="space-y-3">
-          <SectionHeading
-            id="today-summary"
-            icon={CalendarCheck}
-            tone="green"
-            aside="پلن‌ها و بدهی‌ها، مستقل از بازهٔ انتخاب‌شده"
-          >
+        <section aria-labelledby="today-summary" className="space-y-2">
+          <h3 id="today-summary" className="font-semibold">
             امروز
-          </SectionHeading>
-          <div className="grid gap-4 xl:grid-cols-2">
+          </h3>
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {plans.isSuccess && (
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <StatCard
-                  label="پلن فعال"
-                  tone="green"
-                  icon={CircleCheck}
-                  value={formatNumber(Number(plans.data.active))}
-                />
-                <StatCard
-                  label="پلن فریز"
-                  tone="sky"
-                  icon={Snowflake}
-                  value={formatNumber(Number(plans.data.frozen))}
-                />
+              <>
+                <StatCard label="پلن فعال" value={formatNumber(Number(plans.data.active))} />
+                <StatCard label="پلن فریز" value={formatNumber(Number(plans.data.frozen))} />
                 <StatCard
                   label="رو به پایان"
-                  tone="amber"
-                  icon={Hourglass}
                   value={formatNumber(Number(plans.data.expiringSoon))}
                   hint={`تا ${toPersianDigits(reportThresholds.expiringWithinDays)} روز دیگر تمام می‌شود`}
                 />
                 <StatCard
                   label="کم‌جلسه"
-                  tone="orange"
-                  icon={BatteryLow}
                   value={formatNumber(Number(plans.data.lowSessions))}
                   hint={`${toPersianDigits(reportThresholds.lowSessions)} جلسه یا کمتر مانده`}
                 />
-              </dl>
+              </>
             )}
-            {receivables.isSuccess && <ReceivablesCard data={receivables.data} />}
-          </div>
+            {receivables.isSuccess && (
+              <>
+                <StatCard
+                  label="کل مطالبات"
+                  value={formatMoney(receivables.data.total)}
+                  hint="آنچه همه تا امروز بدهکارند"
+                />
+                <StatCard
+                  label="مطالبات ۰ تا ۷ روزه"
+                  value={formatMoney(receivables.data.upTo7Days)}
+                />
+                <StatCard
+                  label="مطالبات ۸ تا ۳۰ روزه"
+                  value={formatMoney(receivables.data.from8To30Days)}
+                />
+                <StatCard
+                  label="مطالبات بیش از ۳۰ روز"
+                  value={formatMoney(receivables.data.over30Days)}
+                />
+              </>
+            )}
+          </dl>
         </section>
       )}
 
       {attention.isSuccess && <NeedsAttentionPanel data={attention.data} />}
 
-      {canAsk &&
-        (financial.isSuccess ||
-          members.isSuccess ||
-          attendance.isSuccess ||
-          cafeProducts.isSuccess) && (
-          <section aria-labelledby="charts" className="space-y-3">
-            <SectionHeading id="charts" icon={Activity} tone="violet">
-              نمودارها و جزئیات بازه
-            </SectionHeading>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {financial.isSuccess && (
-                <>
-                  <RevenueChart days={financial.data.days} />
-                  <BarListChart
-                    title="درآمد به تفکیک منبع"
-                    description="خالص دریافتی به تومان؛ روی پلن و تک‌جلسه‌ای، تعدادی که در این بازه فروخته شده"
-                    icon={ChartPie}
-                    tone="blue"
-                    color="var(--chart-1)"
-                    items={bySourceItems(financial.data.current)}
-                    formatValue={formatMoney}
-                  />
-                  <BarListChart
-                    title="درآمد به تفکیک روش پرداخت"
-                    description="خالص دریافتی، به تومان"
-                    icon={CreditCard}
-                    tone="teal"
-                    items={financial.data.current.byMethod.map((item) => ({
-                      key: item.method,
-                      name: paymentMethodLabels[item.method],
-                      value: Number(item.money.net),
-                    }))}
-                    formatValue={formatMoney}
-                  />
-                  <BarListChart
-                    title="هزینه به تفکیک دسته"
-                    description="هزینه‌های باطل‌شده حساب نمی‌شوند، به تومان"
-                    icon={Receipt}
-                    tone="orange"
-                    color="var(--chart-2)"
-                    items={financial.data.current.expensesByCategory.map((item) => ({
-                      key: item.categoryId,
-                      name: item.name,
-                      value: Number(item.amount),
-                    }))}
-                    formatValue={formatMoney}
-                  />
-                </>
-              )}
-              {cafeProducts.isSuccess && (
-                <BarListChart
-                  title="پرفروش‌ترین محصولات بوفه"
-                  description="۱۰ محصول، به تعداد"
-                  icon={Coffee}
-                  tone="brown"
-                  items={cafeProducts.data.map((item) => ({
-                    key: item.productId,
-                    name: item.name,
-                    value: Number(item.quantity),
-                    detail: formatMoney(item.amount),
-                  }))}
-                  formatValue={(value) => `${formatNumber(value)} عدد`}
-                />
-              )}
-              {members.isSuccess && (
-                <>
-                  <MonthlyChart
-                    title="اعضای جدید در هر ماه"
-                    description="عضوهایی که اولین پلن عضویتشان در این ماه فروخته شده"
-                    valueName="اعضای جدید"
-                    icon={UserPlus}
-                    tone="pink"
-                    points={months.map((month) => ({
-                      key: month.key,
-                      label: month.label,
-                      value: month.newMembers,
-                    }))}
-                    formatValue={formatCount}
-                  />
-                  <MonthlyChart
-                    title="نرخ تمدید در هر ماه"
-                    description={`پلن‌های تمام‌شده که تا ${toPersianDigits(reportThresholds.windowDays)} روز بعد تمدید شدند`}
-                    valueName="نرخ تمدید"
-                    icon={Repeat}
-                    tone="teal"
-                    max={100}
-                    points={months.map((month) => ({
-                      key: month.key,
-                      label: month.label,
-                      value: month.renewalRate,
-                      details: [
-                        { name: "تمام‌شده", value: formatNumber(month.ended) },
-                        { name: "تمدیدشده", value: formatNumber(month.renewed) },
-                        { name: "در انتظار", value: formatNumber(month.waiting) },
-                      ],
-                    }))}
-                    formatValue={formatPercent}
-                  />
-                </>
-              )}
-              {attendance.isSuccess && <AttendanceHeatmap report={attendance.data} />}
-              {financial.isSuccess && <StaffMoneyTable rows={financial.data.current.byStaff} />}
-            </div>
-          </section>
-        )}
+      {canAsk && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {financial.isSuccess && (
+            <>
+              <RevenueChart days={financial.data.days} />
+              <BarListChart
+                title="درآمد به تفکیک منبع"
+                description="خالص دریافتی به تومان؛ روی پلن و تک‌جلسه‌ای، تعدادی که در این بازه فروخته شده"
+                items={bySourceItems(financial.data.current)}
+                formatValue={formatMoney}
+              />
+              <BarListChart
+                title="درآمد به تفکیک روش پرداخت"
+                description="خالص دریافتی، به تومان"
+                items={financial.data.current.byMethod.map((item) => ({
+                  key: item.method,
+                  name: paymentMethodLabels[item.method],
+                  value: Number(item.money.net),
+                }))}
+                formatValue={formatMoney}
+              />
+              <BarListChart
+                title="هزینه به تفکیک دسته"
+                description="هزینه‌های باطل‌شده حساب نمی‌شوند، به تومان"
+                color="var(--chart-2)"
+                items={financial.data.current.expensesByCategory.map((item) => ({
+                  key: item.categoryId,
+                  name: item.name,
+                  value: Number(item.amount),
+                }))}
+                formatValue={formatMoney}
+              />
+            </>
+          )}
+          {cafeProducts.isSuccess && (
+            <BarListChart
+              title="پرفروش‌ترین محصولات بوفه"
+              description="۱۰ محصول، به تعداد"
+              items={cafeProducts.data.map((item) => ({
+                key: item.productId,
+                name: item.name,
+                value: Number(item.quantity),
+                detail: formatMoney(item.amount),
+              }))}
+              formatValue={(value) => `${formatNumber(value)} عدد`}
+            />
+          )}
+          {members.isSuccess && (
+            <>
+              <MonthlyChart
+                title="اعضای جدید در هر ماه"
+                description="عضوهایی که اولین پلن عضویتشان در این ماه فروخته شده"
+                valueName="اعضای جدید"
+                points={months.map((month) => ({
+                  key: month.key,
+                  label: month.label,
+                  value: month.newMembers,
+                }))}
+                formatValue={formatCount}
+              />
+              <MonthlyChart
+                title="نرخ تمدید در هر ماه"
+                description={`پلن‌های تمام‌شده که تا ${toPersianDigits(reportThresholds.windowDays)} روز بعد تمدید شدند`}
+                valueName="نرخ تمدید"
+                max={100}
+                points={months.map((month) => ({
+                  key: month.key,
+                  label: month.label,
+                  value: month.renewalRate,
+                  details: [
+                    { name: "تمام‌شده", value: formatNumber(month.ended) },
+                    { name: "تمدیدشده", value: formatNumber(month.renewed) },
+                    { name: "در انتظار", value: formatNumber(month.waiting) },
+                  ],
+                }))}
+                formatValue={formatPercent}
+              />
+            </>
+          )}
+          {attendance.isSuccess && <AttendanceHeatmap report={attendance.data} />}
+          {financial.isSuccess && <StaffMoneyTable rows={financial.data.current.byStaff} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -482,10 +404,7 @@ function RenewalCard({
   return (
     <StatCard
       label="نرخ تمدید"
-      tone="teal"
-      icon={Repeat}
       value={formatPercent(rate)}
-      progress={rate}
       hint={
         ended === 0
           ? "در این بازه پلن هیچ عضوی تمام نشده است."
@@ -512,15 +431,11 @@ function RenewalCard({
  */
 function ReceivedCard({
   label,
-  tone,
-  icon,
   hint,
   current,
   previous,
 }: {
   label: string;
-  tone: Tone;
-  icon: LucideIcon;
   hint: string;
   current: FinancialPeriod["byMethod"];
   previous: FinancialPeriod["byMethod"];
@@ -531,8 +446,6 @@ function ReceivedCard({
   return (
     <StatCard
       label={label}
-      tone={tone}
-      icon={icon}
       value={formatMoney(total)}
       hint={hint}
       comparison={{
@@ -555,13 +468,9 @@ function ReceivedCard({
  * together.
  */
 function SourceReceivedCard({
-  tone,
-  icon,
   source,
   report,
 }: {
-  tone: Tone;
-  icon: LucideIcon;
   source: "Cafe" | "Cardio";
   report: FinancialReport;
 }) {
@@ -574,8 +483,6 @@ function SourceReceivedCard({
   return (
     <StatCard
       label={`دریافتی ${name}`}
-      tone={tone}
-      icon={icon}
       value={formatMoney(total)}
       hint={`پول ${name} که در بازه آمد، منهای بازگشت‌ها؛ جزئی از «دریافتی» است`}
       comparison={{
@@ -596,14 +503,10 @@ function SourceReceivedCard({
  */
 function SourceCard({
   label,
-  tone,
-  icon,
   source,
   report,
 }: {
   label: string;
-  tone: Tone;
-  icon: LucideIcon;
   source: "Membership" | "SingleSession";
   report: FinancialReport;
 }) {
@@ -614,8 +517,6 @@ function SourceCard({
   return (
     <StatCard
       label={label}
-      tone={tone}
-      icon={icon}
       value={formatMoney(current?.soldAmount ?? 0)}
       hint={`${formatNumber(Number(current?.sold ?? 0))} ${noun} در این بازه فروخته شد، پرداخت شده یا نشده`}
       comparison={{
@@ -651,10 +552,7 @@ function ConversionCard({
   return (
     <StatCard
       label="نرخ تبدیل تک‌جلسه‌ای به پلن"
-      tone="cyan"
-      icon={ArrowLeftRight}
       value={formatPercent(rate)}
-      progress={rate}
       hint={
         rate === null
           ? waiting > 0

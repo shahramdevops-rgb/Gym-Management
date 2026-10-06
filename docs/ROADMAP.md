@@ -2078,6 +2078,19 @@ tests.
 - [x] «سود بوفه» removed, from the page and from the report (`cafeGrossProfit`; API types
       regenerated)
 
+#### 9.3 follow-up: the plain dashboard for the handover (asked by the developer, 1405/07/14)
+The dashboard goes to the Owner in its first, plain black-and-white look. The coloured design is
+kept, not thrown away: it comes back in Phase 13.2 as it is, not redesigned.
+- [x] Git tag `dashboard-colour-v1` on `1d08ce2`, pushed; the design and how to bring it back in
+      `docs/design/dashboard-colour.md`
+- [x] Plain again: no banner or logo, no tones, icons, progress bars or skeletons; the receivables
+      as four cards; the chart, list and picker components as before the colour commit
+- [x] Kept: every card, figure and text of the follow-ups above, the breakdown lines beside the
+      figure, a profit green and a loss red with its minus sign (§12)
+- [x] The breakdown takes the card's second half instead of a fixed 160px: «پرداخت‌شده» ran out of
+      the sales card; a figure too wide for its line now drops under its label (checked with
+      12 billion on 245px cards)
+
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its
 date the Owner records the expense by hand, in that month (§9). The system only reminds.
@@ -2312,6 +2325,8 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
 
 ### 13.2 One visual language
 - [ ] Colour, typography and spacing tokens; every screen built from the same components
+- [ ] The dashboard: bring back its coloured design from the tag `dashboard-colour-v1`, as it is,
+      not redesigned (`docs/design/dashboard-colour.md`)
 - [x] Decide whether the whole app gets a dark theme: yes, as a switch in the header, light by
       default (6.5.22)
 - [ ] The Persian font renders numbers and text consistently across screens

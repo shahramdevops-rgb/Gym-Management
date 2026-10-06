@@ -9,6 +9,7 @@ No public access, no self-registration, no member logins.
 - Stack, packages, patterns, gotchas: docs/ARCHITECTURE.md
 - Architecture decisions: docs/adr/
 - Learning journal: docs/LEARNING.md
+- Designs kept for the UI update (Phase 13), to bring back rather than redesign: docs/design/
 
 ## Commands
 - Start local infrastructure: `docker compose up -d`
