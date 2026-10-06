@@ -5,6 +5,10 @@ import { mockApi, owner, session, signedInHandlers, staffUser } from "@/test/moc
 import { renderApp } from "@/test/renderApp";
 
 describe("AppShell", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("AppShell_Rendered_ShowsPersianHeaderAndNavigation", async () => {
     mockApi(signedInHandlers(staffUser));
 
@@ -181,6 +185,34 @@ describe("AppShell", () => {
     // Cheques and instalments are the Owner's, reading included (docs/BUSINESS_RULES.md §1, §9).
     await screen.findByText(staffUser.fullName);
     expect(screen.queryByRole("link", { name: "چک و قسط" })).not.toBeInTheDocument();
+  });
+
+  // ---- The pages released on 1405/07/14, marked new for the Owner ----
+
+  it("AppShell_On15Mehr_MarksTheDashboardAndChequesNew", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-07T17:00:00Z")); // ۱۵ مهر ۱۴۰۵, 20:30 at the gym
+    mockApi(signedInHandlers(owner));
+
+    renderApp("/", { session: session() });
+
+    const dashboard = await screen.findByRole("link", { name: "داشبورد" });
+    expect(within(dashboard).getByText("جدید")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("link", { name: "چک و قسط" })).getByText("جدید"),
+    ).toBeInTheDocument();
+    expect(within(screen.getByRole("link", { name: "هزینه‌ها" })).queryByText("جدید")).toBeNull();
+  });
+
+  it("AppShell_From16Mehr_MarksNothingNew", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-07T21:00:00Z")); // ۱۶ مهر ۱۴۰۵, 00:30 at the gym
+    mockApi(signedInHandlers(owner));
+
+    renderApp("/", { session: session() });
+
+    await screen.findByRole("link", { name: "داشبورد" });
+    expect(screen.queryByText("جدید")).not.toBeInTheDocument();
   });
 
   // ---- The theme (BUSINESS_RULES.md §14) ----

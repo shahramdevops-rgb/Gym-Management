@@ -18,10 +18,12 @@ import {
 } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { hasRole, useCurrentUser, useLogout, type Role } from "@/features/auth/api";
 import { useSessionState } from "@/features/auth/session";
 import { PayablesDueAlert } from "@/features/payables/components/PayablesDueAlert";
+import { gymToday } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { paths } from "./paths";
@@ -34,7 +36,15 @@ interface NavigationItem {
   icon: LucideIcon;
   /** Shown only to this role. Items without one are for every signed-in user. */
   role?: Role;
+  /** Marked «جدید» up to and including this gym day (ISO), then plain again. */
+  newUntil?: string;
 }
+
+/**
+ * The dashboard and «چک و قسط» reach the server in the release of 1405/07/14. They are marked new
+ * through 1405/07/15, so the Owner finds them without being told (asked by the developer).
+ */
+const releasedPagesNewUntil = "2026-10-07";
 
 /**
  * The locker map comes first: it is where every check-in happens, for Staff and the Owner alike
@@ -48,9 +58,21 @@ const navigation: NavigationItem[] = [
   { to: paths.cafe, label: "بوفه", icon: Coffee },
   { to: paths.cafeOrders, label: "سفارش‌های بوفه", icon: ReceiptText },
   { to: paths.cafeMenu, label: "منوی بوفه", icon: ClipboardList },
-  { to: paths.dashboard, label: "داشبورد", icon: ChartColumn, role: "Owner" },
+  {
+    to: paths.dashboard,
+    label: "داشبورد",
+    icon: ChartColumn,
+    role: "Owner",
+    newUntil: releasedPagesNewUntil,
+  },
   { to: paths.expenses, label: "هزینه‌ها", icon: Wallet, role: "Owner" },
-  { to: paths.payables, label: "چک و قسط", icon: BanknoteArrowUp, role: "Owner" },
+  {
+    to: paths.payables,
+    label: "چک و قسط",
+    icon: BanknoteArrowUp,
+    role: "Owner",
+    newUntil: releasedPagesNewUntil,
+  },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.settings, label: "تنظیمات", icon: Settings, role: "Owner" },
   { to: paths.status, label: "وضعیت سیستم", icon: Activity },
@@ -71,6 +93,7 @@ export function AppShell() {
   const user = useCurrentUser();
   const logout = useLogout();
   const navigate = useNavigate();
+  const today = gymToday();
 
   const mustChangePassword = state.status === "signedIn" && state.session.mustChangePassword;
   const items = mustChangePassword
@@ -114,7 +137,7 @@ export function AppShell() {
         <nav aria-label="منوی اصلی" className="w-56 shrink-0 space-y-3 border-e bg-card p-3">
           <SidebarClock />
           <ul className="space-y-1">
-            {items.map(({ to, label, icon: Icon }) => (
+            {items.map(({ to, label, icon: Icon, newUntil }) => (
               <li key={to}>
                 <NavLink
                   to={to}
@@ -130,6 +153,13 @@ export function AppShell() {
                 >
                   <Icon className="size-4" aria-hidden />
                   {label}
+                  {/* Hidden from screen readers: the link keeps its own name, and the mark is gone
+                      in a day or two. */}
+                  {newUntil !== undefined && today <= newUntil && (
+                    <Badge aria-hidden className="ms-auto">
+                      جدید
+                    </Badge>
+                  )}
                 </NavLink>
               </li>
             ))}
