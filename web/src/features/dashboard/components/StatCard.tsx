@@ -34,7 +34,7 @@ interface StatCardProps {
   outcome?: Outcome;
   /**
    * A few figures the main one is made of, listed in the card's empty corner under the icon,
-   * beside the figure rather than under it (asked by the developer, 1405/07/14: «فروش» by method).
+   * beside the figure rather than under it (asked by the developer, 1405/07/14).
    */
   breakdown?: BreakdownRow[];
 }
@@ -64,7 +64,7 @@ export function StatCard({
   outcome,
   breakdown,
 }: StatCardProps) {
-  const besideBreakdown = breakdown !== undefined && "pe-40";
+  const besideBreakdown = breakdown !== undefined && "pe-44";
 
   return (
     <div
@@ -94,7 +94,7 @@ export function StatCard({
         {value}
       </dd>
       {breakdown !== undefined && (
-        <dd className="absolute end-4 top-16 bottom-4 w-36">
+        <dd className="absolute end-4 top-16 bottom-4 w-40">
           <ul className="flex h-full flex-col justify-evenly text-xs">
             {breakdown.map((row) => (
               <li key={row.label} className="flex items-baseline justify-between gap-2">

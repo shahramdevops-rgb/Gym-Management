@@ -122,7 +122,7 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
-    public async Task Financial_SalesPaidByMethod_IsWhatWasPaidOnTheRangesOwnSales()
+    public async Task Financial_SalesPaidOwedAndReceived_SplitWhatWasSoldFromWhatCameIn()
     {
         var (owner, token, _) = await OwnerClientAsync();
         var visitor = await AddMemberAsync("رضا کریمی");
@@ -135,8 +135,11 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var cardio = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
         await PayOkAsync(owner, token, $"/api/service-charges/{cardio.Id}/payments", 50_000m, "BankTransfer");
         await WalkInOrderAsync(owner, token, 60_000m);
+        await TestPlans.SetPricesAsync(Fixture, singleVisitPrice: 150_000m);
+        await SellSingleVisitOkAsync(owner, token, (await AddMemberAsync("نرگس موسوی")).Id);
 
-        // Left out: a shop sale (not in «فروش»), and a plan sold yesterday though paid today.
+        // A shop sale is someone else's money; a plan sold yesterday and paid today is today's
+        // money but not today's sale.
         var shop = await RecordShopOkAsync(owner, token, visit.Id, "دستکش", 200_000m);
         await PayOkAsync(owner, token, $"/api/service-charges/{shop.Id}/payments", 200_000m, "Card");
         var older = await AssignOkAsync(owner, token, (await AddMemberAsync("مریم کاظمی")).Id);
@@ -145,14 +148,28 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
 
         var current = (await FinancialOkAsync(owner, token, TodayRange())).Current;
 
-        // §12 (1405/07/14): the plan's 360,000 still owed has no method, so the three add up to less.
-        current.Sales.ShouldBe(900_000m + 50_000m + 60_000m);
-        current.SalesPaidByMethod.ShouldBe(
+        // §12 (1405/07/14): «فروش», of which paid and still owed («نسیه»).
+        current.Sales.ShouldBe(900_000m + 50_000m + 60_000m + 150_000m);
+        current.SalesPaid.ShouldBe(560_000m + 50_000m + 60_000m);
+        current.SalesOwed.ShouldBe(340_000m + 150_000m);
+
+        // «دریافتی»: everything that came in today, the older plan's payment included, the shop out.
+        current.ReceivedByMethod.Select(row => (row.Method, row.Money.Net)).ShouldBe(
         [
-            new SalesPaidByMethodResponse(PaymentMethod.Card, 500_000m),
-            new SalesPaidByMethodResponse(PaymentMethod.BankTransfer, 50_000m),
-            new SalesPaidByMethodResponse(PaymentMethod.Cash, 60_000m + 60_000m),
+            (PaymentMethod.Card, 500_000m + 900_000m),
+            (PaymentMethod.BankTransfer, 50_000m),
+            (PaymentMethod.Cash, 100_000m - 40_000m + 60_000m),
         ]);
+        current.ShopAndAnalysisByMethod.Select(row => (row.Method, row.Money.Net)).ShouldBe(
+        [
+            (PaymentMethod.Card, 200_000m),
+            (PaymentMethod.BankTransfer, 0m),
+            (PaymentMethod.Cash, 0m),
+        ]);
+
+        // «خرید پلن» and «تک‌جلسه‌ای» by the day they were sold, paid or not.
+        current.BySource.Single(row => row.Source == RevenueSource.Membership).SoldAmount.ShouldBe(900_000m);
+        current.BySource.Single(row => row.Source == RevenueSource.SingleSession).SoldAmount.ShouldBe(150_000m);
     }
 
     [Fact]

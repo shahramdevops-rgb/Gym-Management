@@ -16,6 +16,14 @@ export function percentChange(current: number | string, previous: number | strin
   return ((now - before) / before) * 100;
 }
 
+/**
+ * The three methods' net added up: a «دریافتی» card's figure is the sum of the lines it lists, so
+ * the two can never disagree.
+ */
+export function methodsTotal(rows: readonly { money: { net: number | string } }[]): number {
+  return rows.reduce((sum, row) => sum + Number(row.money.net), 0);
+}
+
 /** Whether a figure that can go either way (a profit) came out above or below zero; at zero, neither. */
 export type Outcome = "gain" | "loss" | undefined;
 

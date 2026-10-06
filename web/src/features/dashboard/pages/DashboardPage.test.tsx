@@ -154,34 +154,63 @@ describe("DashboardPage", () => {
     expect(card("نرخ تمدید")).toHaveTextContent("۳ از ۴ پلن تمام‌شده؛ ۱ در انتظار");
   });
 
-  it("DashboardPage_Sales_ComeFirstWithWhatWasPaidOnThemByMethod", async () => {
+  /** The lines in a card's corner, each as its words and its figure run together. */
+  function breakdownOf(cardElement: HTMLElement) {
+    return within(cardElement)
+      .getAllByRole("listitem")
+      .map((row) => row.textContent);
+  }
+
+  it("DashboardPage_Sales_ComeFirstSplitIntoPaidAndOwed", async () => {
     mockApi(dashboard);
     renderApp("/dashboard", { session: session() });
 
     await screen.findByText("خلاصهٔ بازه");
     // 1405/07/14: «فروش» took «درآمد ناخالص»'s place, and «صندوق نقدی» is gone.
     const terms = screen.getAllByRole("term").map((term) => term.textContent);
-    expect(terms[0]).toBe("فروش (به غیر از آنالیز و فروشگاه)");
+    expect(terms.slice(0, 3)).toEqual([
+      "فروش (به غیر از آنالیز و فروشگاه)",
+      "دریافتی",
+      "دریافتی آنالیز و فروشگاه",
+    ]);
     expect(terms).not.toContain("درآمد ناخالص");
     expect(terms).not.toContain("صندوق نقدی");
 
+    // A sale on credit is in «فروش» but not in the drawer, so it is written apart (§12).
     const sales = card("فروش (به غیر از آنالیز و فروشگاه)");
     expect(sales).toHaveTextContent("۱۵٬۰۰۰٬۰۰۰ تومان");
-    const methods = within(sales)
-      .getAllByRole("listitem")
-      .map((row) => row.textContent);
-    expect(methods).toEqual(["کارت۹٬۰۰۰٬۰۰۰ تومان", "انتقال۱٬۰۰۰٬۰۰۰ تومان", "نقد۳٬۰۰۰٬۰۰۰ تومان"]);
+    expect(breakdownOf(sales)).toEqual(["پرداخت‌شده۱۳٬۰۰۰٬۰۰۰ تومان", "نسیه۲٬۰۰۰٬۰۰۰ تومان"]);
   });
 
-  it("DashboardPage_PlansAndSingleVisits_ShowTheirMoneyAndHowManyWereSold", async () => {
+  it("DashboardPage_Received_IsWhatCameInByMethodWithTheShopAndAnalysisApart", async () => {
     mockApi(dashboard);
     renderApp("/dashboard", { session: session() });
 
     await screen.findByText("خلاصهٔ بازه");
-    // The money received for each (1405/07/14), with the count sold underneath.
+    // What the drawer, the card reader and the account should hold: the three add up to it.
+    const received = card("دریافتی");
+    expect(received).toHaveTextContent("۱۰٬۸۰۰٬۰۰۰ تومان");
+    expect(received).toHaveTextContent("بازهٔ قبل: ۰ تومان");
+    expect(breakdownOf(received)).toEqual([
+      "کارت۷٬۸۰۰٬۰۰۰ تومان",
+      "انتقال۰ تومان",
+      "نقد۳٬۰۰۰٬۰۰۰ تومان",
+    ]);
+
+    const shop = card("دریافتی آنالیز و فروشگاه");
+    expect(shop).toHaveTextContent("۱٬۲۰۰٬۰۰۰ تومان");
+    expect(breakdownOf(shop)).toEqual(["کارت۱٬۲۰۰٬۰۰۰ تومان", "انتقال۰ تومان", "نقد۰ تومان"]);
+  });
+
+  it("DashboardPage_PlansAndSingleVisits_ShowWhatWasSoldByTheDayOfTheSale", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    // What they sold for, paid or not (1405/07/14), not the 9,000,000 paid for plans so far.
     const plans = card("خرید پلن");
-    expect(plans).toHaveTextContent("۹٬۰۰۰٬۰۰۰ تومان");
-    expect(plans).toHaveTextContent("۱۲ پلن در این بازه فروخته شد");
+    expect(plans).toHaveTextContent("۱۰٬۸۰۰٬۰۰۰ تومان");
+    expect(plans).toHaveTextContent("۱۲ پلن در این بازه فروخته شد، پرداخت شده یا نشده");
     expect(plans).toHaveTextContent("بازهٔ قبل: ۰ تومان");
     const singleVisits = card("تک‌جلسه‌ای");
     expect(singleVisits).toHaveTextContent("۶۰۰٬۰۰۰ تومان");

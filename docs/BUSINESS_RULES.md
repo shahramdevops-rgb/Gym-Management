@@ -1291,18 +1291,26 @@ dashboard (9.3).
     plans, single visits, هوازی and the cafe, and the dashboard says so in its name, «فروش (به غیر
     از آنالیز و فروشگاه)». They are still sales of their own source: each is counted in its
     «sold» above, and the history's sales totals keep them.
-  - **Paid on them, by method** (decided with the developer, 1405/07/14): card, bank transfer and
-    cash, what has been paid so far on those same sales, refunds taken off, whenever it was paid.
-    An unpaid sale has no method, so the three add up to less than «فروش» by what is still owed.
-    The dashboard writes them «کارت», «انتقال», «نقد» inside the «فروش» card, beside the figure.
+  - **Paid and still owed** (decided with the developer, 1405/07/14): what has been paid so far
+    on those same sales, refunds taken off, whenever it was paid («پرداخت‌شده»), and the rest of
+    «فروش», still owed («نسیه»). The dashboard writes both inside the «فروش» card, beside the
+    figure. A sale on credit is in «فروش» but not in the drawer, and the Owner checking the drawer
+    at night must not be sent looking for it.
+- **Received («دریافتی»)** (decided with the developer, 1405/07/14): the revenue by method, card,
+  bank transfer and cash, **without فروشگاه and آنالیز**, refunds taken off, by `PaidAt` like all
+  revenue: old debts paid in the range count, a sale on credit does not. It is what the gym's
+  drawer, card reader and account should show for the range, so the nightly check compares with
+  it. **فروشگاه and آنالیز are someone else's business**, run at the gym's desk: their money is
+  its own card, «دریافتی آنالیز و فروشگاه», by method too, and is in neither «دریافتی» nor the
+  net profit.
 - **Expenses** by `ExpenseDate`, voided ones left out (§9), in total and by category.
 - **Net profit («سود خالص») = net revenue without فروشگاه and آنالیز − every expense** of the same
   range (decided with the developer, 1405/07/14, like «فروش» above). Every expense counts,
   whatever its category. Revenue by when money arrived, expenses by the date the Owner gave them.
   The revenue itself still counts every payment, فروشگاه and آنالیز included; it is drawn in the
   revenue chart and the revenue breakdowns, but has no card of its own: «درآمد ناخالص» and
-  «صندوق نقدی» were taken off the summary, and «فروش» took the first place (asked by the
-  developer, 1405/07/14).
+  «صندوق نقدی» were taken off the summary, and «فروش» took the first place, with «دریافتی»
+  beside it in their stead (asked by the developer, 1405/07/14).
 - **Cafe gross profit («سود بوفه» on the dashboard, 1405/07/14) = the cafe's net revenue − expenses in the «خرید بوفه» category** of the same
   range (the seeded category, by its fixed id, so a rename does not break it). The cafe counts no
   stock (§8), so this is the closest the gym gets to a margin, and only over a range long enough for
@@ -1424,9 +1432,14 @@ on one page.
   range before had nothing or a loss, a percent says nothing true, and the card shows the figure
   before instead. New members and the renewal rate have no comparison: their reports send none.
 - **«خرید پلن» and «تک‌جلسه‌ای»** (asked by the developer, 1405/07/14) are two cards of the
-  range's summary: the money received for membership plans and for single visits, by the day it
-  was paid like the revenue (the same figures as their bars in «درآمد به تفکیک منبع»), compared
-  with the range before, with how many were sold in the range underneath. Beside the renewal rate
+  range's summary: what the membership plans and the single visits sold in the range were sold
+  for, paid or not, **by the day of the sale**, compared with the range before, with how many
+  were sold underneath. First drawn as the money received for them by the day it was paid, they
+  showed a single visit sold days earlier and paid today as today's, with nothing sold today;
+  today's money is «دریافتی».
+- **The summary's order** (1405/07/14): «فروش», «دریافتی», «دریافتی آنالیز و فروشگاه», then
+  expenses, net profit and the cafe's profit, then the plans, the single visits and the
+  attendance and members' figures. Beside the renewal rate
   sits the single visit to plan conversion rate (*Operational reports* above), without a
   comparison, like the renewal rate.
 - **A profit is green, a loss is red** (decided with the developer, 1405/07/14): «سود خالص» and

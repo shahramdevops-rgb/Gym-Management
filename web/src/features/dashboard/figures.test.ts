@@ -2,12 +2,25 @@ import {
   busyHours,
   byJalaliMonth,
   dailyChartMaxDays,
+  methodsTotal,
   outcomeOf,
   percentChange,
   renewalRate,
   revenueSeries,
 } from "./figures";
 import { isoDaysBefore } from "@/features/history/range";
+
+describe("methodsTotal", () => {
+  it("methodsTotal_ThreeMethods_AddsTheirNetIncludingARefundedOne", () => {
+    const rows = [
+      { money: { net: "7800000.00" } },
+      { money: { net: 0 } },
+      { money: { net: -40000 } },
+    ];
+
+    expect(methodsTotal(rows)).toBe(7760000);
+  });
+});
 
 describe("outcomeOf", () => {
   it.each([

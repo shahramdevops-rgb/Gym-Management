@@ -2061,8 +2061,12 @@ tests.
 - [x] «نرخ تبدیل تک‌جلسه‌ای به پلن» (§12 *Operational reports*): new people only, each once, a plan
       within 30 days, those still waiting left out; `trials`, `trialsConverted`, `trialsWaiting`
       on the members report
-- [x] «فروش» first, with what was paid on its sales by method («کارت», «انتقال», «نقد») in the
-      card's empty corner (`salesPaidByMethod`); «درآمد ناخالص» and «صندوق نقدی» taken off
+- [x] «فروش» first, with «پرداخت‌شده» and «نسیه» in the card's empty corner (`salesPaid`,
+      `salesOwed`); «درآمد ناخالص» and «صندوق نقدی» taken off
+- [x] «دریافتی» for the nightly drawer check: card, transfer, cash, without فروشگاه and آنالیز
+      (`receivedByMethod`); «دریافتی آنالیز و فروشگاه» apart (`shopAndAnalysisByMethod`)
+- [x] «خرید پلن» and «تک‌جلسه‌ای» by the day of the sale (`soldAmount`): a single visit sold
+      days before and paid today no longer shows as today's
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its

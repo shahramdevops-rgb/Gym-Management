@@ -1702,10 +1702,15 @@ export interface components {
             revenue: components["schemas"]["MoneyFlowResponse"];
             bySource: components["schemas"]["RevenueBySourceResponse"][];
             byMethod: components["schemas"]["RevenueByMethodResponse"][];
+            receivedByMethod: components["schemas"]["RevenueByMethodResponse"][];
+            shopAndAnalysisByMethod: components["schemas"]["RevenueByMethodResponse"][];
             byStaff: components["schemas"]["RevenueByStaffResponse"][];
             /** Format: double */
             sales: number | string;
-            salesPaidByMethod: components["schemas"]["SalesPaidByMethodResponse"][];
+            /** Format: double */
+            salesPaid: number | string;
+            /** Format: double */
+            salesOwed: number | string;
             /** Format: double */
             expenses: number | string;
             expensesByCategory: components["schemas"]["ExpensesByCategoryResponse"][];
@@ -2441,6 +2446,8 @@ export interface components {
             money: components["schemas"]["MoneyFlowResponse"];
             /** Format: int32 */
             sold: number | string;
+            /** Format: double */
+            soldAmount: number | string;
         };
         RevenueByStaffResponse: {
             /** Format: uuid */
@@ -2467,11 +2474,6 @@ export interface components {
         SalePaidFilter: "Paid" | "Unpaid" | null;
         /** @enum {unknown} */
         SaleSource: "Subscription" | "Cardio" | "Miscellaneous" | "Analysis" | "CafeOrder";
-        SalesPaidByMethodResponse: {
-            method: components["schemas"]["PaymentMethod"];
-            /** Format: double */
-            amount: number | string;
-        };
         SalesTotalsResponse: {
             /** Format: double */
             amount: number | string;
