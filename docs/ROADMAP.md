@@ -2090,6 +2090,9 @@ kept, not thrown away: it comes back in Phase 13.2 as it is, not redesigned.
 - [x] The breakdown takes the card's second half instead of a fixed 160px: «پرداخت‌شده» ran out of
       the sales card; a figure too wide for its line now drops under its label (checked with
       12 billion on 245px cards)
+- [x] «داشبورد» and «چک و قسط» first reach the server in the release of 1405/07/14: the menu marks
+      both «جدید» through 1405/07/15 (`newUntil` on the menu item, against `gymToday()`), so the
+      Owner finds them without being told; from 1405/07/16 the mark is gone by itself
 
 ### 9.4 Cheque reminders (یادآور چک) (asked by the developer, 1405/07/12)
 The gym pays for equipment with dated cheques. A cheque is not an expense in the system: on its
