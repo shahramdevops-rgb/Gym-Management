@@ -1714,6 +1714,50 @@ with no amount. BUSINESS_RULES.md §7 *Auto-checkout*, *Guest visit*, *Opening h
 Closed 2026-10-04: 1509 backend tests and 785 frontend tests green, lint clean, zero warnings. No
 migration: nothing to release beyond the code.
 
+### 6.5.34 Member list by latest visit, with tags and a sessions column (ترتیب آخرین ورود، برچسب‌ها، ستون جلسات)
+Asked by the developer on 1405/07/15 (2026-10-07). BUSINESS_RULES.md §2 updated (the rules were
+decided with the developer the same day). One migration, an index only.
+
+- [x] **Order.** `GET /api/members` sorts by each member's latest visit, cancelled check-ins left
+      out, newest first; members who never came last, by name. A partial index
+      `ix_attendances_member_id_checked_in_at` (`WHERE cancelled_at IS NULL`) serves it
+- [x] **Domain.** `SubscriptionSchedule.CurrentPlan` (active, else frozen, else soonest queued, else
+      the one that ended last; single visits left out), for the bar
+- [x] **API.** Each row has `lastVisitWasSingleSession`, `planEnded` (active members only) and
+      `plan` (total, used, remaining), batched for the page. Both tags are expressions in
+      `MemberListRows`, which the filters `singleSessionOnly` and `planEndedOnly` read too, so a filter
+      lists exactly the tagged members
+- [x] **Web.** The «وضعیت» column is removed (asked by the developer during the task); «تک‌جلسه»
+      (red) and «پلن تمام‌شده» sit beside the name, and a «جلسات» column shows the board's
+      `SessionsBar`, «—» with no plan. «تک‌جلسه» and «پلن تمام‌شده» toggles beside «بدهکار», kept in
+      the URL as `single=1` and `ended=1`
+- [x] **50 rows a page** on «اعضا» and on every tab of «تاریخچه» (was 20; asked by the developer)
+- [x] **Never both tags**: a member whose latest visit was a single visit and whose plan has ended
+      shows only the more recent of the two (asked by the developer); the filters follow the tags
+- [x] **History, sales:** «ثبت توسط» shows who sold a plan (its `CreatedBy`, filled for every past
+      sale too); the «وضعیت» column is removed, a cancelled or voided sale is tagged beside what was
+      sold with the reason under it; the «سفارش‌های بوفه» button above the history is removed (the
+      menu and the cafe till keep their links)
+- [x] Tests (domain): `CurrentPlan` for active, frozen, exhausted with a renewal, expired, cancelled
+      and single visits only
+- [x] Tests (integration): order by latest visit with never-visited last by name; a cancelled
+      check-in does not count; the single-visit tag, and not after a later visit on a plan; sessions
+      of an active plan; ended (expired, exhausted), renewed, frozen past its end, deactivated, only
+      single visits; each filter lists and counts only the tagged members; a filter with a search; the
+      more recent tag wins (plan expired then a single visit, plan used up then a single visit, a
+      single visit then a plan that expired unused); a plan sale names who sold it
+- [x] Tests (frontend): no status column, the API's order kept, both tags on their rows only, the bar
+      and none without a plan; each new toggle sends its parameter, keeps the status and writes the
+      URL; their empty messages; paging tests at 50 a page; the sales tab names who sold a plan and has
+      no status column; no «سفارش‌های بوفه» link on the history
+
+Done when: «اعضا» lists whoever came last at the top, 50 to a page, a walk-in reads a red
+«تک‌جلسه», someone whose plan ran out with nothing after it reads «پلن تمام‌شده», each tag is a
+filter, and every member with a plan shows «۴ از ۱۲» over a bar.
+
+Tests not run yet: the developer asked to run them once, when the changes are done. Release needs
+the migration `MemberLastVisitIndex` (an index only).
+
 #### Housekeeping before Phase 9 (2026-10-04)
 Phase 6.5 closed with a check of the whole repository, so the next task starts clean:
 - [x] Full suite on `6b3159e`: 1509 backend and 785 frontend tests green, `dotnet build` with zero

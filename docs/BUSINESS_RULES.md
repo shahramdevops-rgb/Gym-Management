@@ -183,7 +183,13 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
   - A search needs at least 2 characters after normalization (`Members.SearchTooShort`). A blank search lists everyone.
   - The list and search include inactive members by default, so staff can find someone to reactivate or correct. An optional filter shows only active or only inactive members.
   - A second, separate filter shows only members who owe something (§5 *Member debt*: debt above zero, counted the same way as the amount on their row). It combines with the status filter and the search, so "inactive and still owing" is one list. Asked by the developer on 1405/07/07, roadmap 6.5.20.
-  - Results are sorted by name.
+  - Results are sorted by **the latest visit first** (decided with the developer, 1405/07/15, roadmap 6.5.34, replacing "sorted by name"): the members the desk sees are at the top. A cancelled check-in is not a visit; a cardio-only visit is. Members who never came go last, by name.
+  - **No status column** (removed by the developer, 1405/07/15): the «همه / فعال / غیرفعال» filter already splits active from inactive, so «فعال», «غیرفعال» and «فریز» are no longer shown on the rows.
+  - **«تک‌جلسه» tag** (red): the member's latest visit (cancelled ones left out) used a single-session subscription (§4), whatever they had before it.
+  - **Never both tags** (developer, 1405/07/15): a member whose latest visit was a single visit and whose plan has ended shows only what happened more recently. A plan that still had sessions ended with its last day, so it is the more recent when that day is the single visit's day or later; a plan whose sessions ran out ended at its last session, a visit before the single visit, so the single visit is the more recent. The filters follow the tags.
+  - **Each tag is also a filter** («تک‌جلسه», «پلن تمام‌شده»), beside «بدهکار» and working the same way: applied before paging, combined with the status, the search and each other. A filter lists exactly the members its tag is shown on (asked by the developer, 1405/07/15).
+  - **«پلن تمام‌شده» tag:** the member's plan is over, by its dates (`Expired`) or its sessions (`Exhausted`), and they have no active, frozen or queued plan after it. Single visits are not plans: one bought after the plan ended does not clear the tag, and a member who only ever bought single visits never gets it. Deactivated members never get it (the gym has let them go, as in §9 *Needs attention*).
+  - **«جلسات» column:** the sessions bar of the «داخل باشگاه» board (§7: used of total, marked at 3 or fewer left) for the member's plan: the active one, else the frozen one, else the soonest queued one, else the one that ended last. Nothing for a member with no plan.
 - Deactivating an inactive member, or reactivating an active one, succeeds and changes nothing.
 - Member screens (decided with the developer in task 2.3):
   - The home page is the member search. The server status page moved to its own menu item.
@@ -262,7 +268,7 @@ from.** Each member's plan is built for them at the desk, and every session cost
   - The same applies when the sale came first and the sessions ran out afterwards: if the current subscription becomes `Exhausted` while a queued one is waiting, the next check-in closes the exhausted one early and moves the queued one forward to start today, keeping its full duration. The same edge case holds — an exhausted subscription that only started today still covers today, so the queued one starts tomorrow and the member cannot check in until then.
   - Two sales for the same member at the same moment are handled one after the other: the second waits for the first and is queued after it. Both succeed.
   - A queued subscription's stored dates are where it stands today, not a promise: they move earlier if the plan before it runs out of sessions, and later if that plan is frozen. Only its length in days is fixed. So the member's subscription history shows its start as «بعد از پلن قبلی» with the stored date beside it as «فعلاً …», and its end as «N روز از شروع» (decided with the developer, 1405/07/10, roadmap 6.5.23). An upcoming subscription with no live membership right before it (the one it waited for was cancelled) does not move, and shows its plain dates.
-- The history also shows when each subscription was sold («تاریخ فروش», the moment it was created), whether or not anything was paid; each payment keeps its own time (§5). Who sold it is not recorded (developer, 1405/07/10: not needed for now).
+- The history also shows when each subscription was sold («تاریخ فروش», the moment it was created), whether or not anything was paid; each payment keeps its own time (§5). Who sold it is the subscription's `CreatedBy`, whoever was logged in; the sales history shows it as «ثبت توسط» (developer, 1405/07/15, replacing "not needed for now" of 1405/07/10).
   - The no-overlap rule is enforced by the database too: a Postgres exclusion constraint on (member, date range) for non-cancelled subscriptions. If a write ever gets past the application's ordering, it is refused with `Subscriptions.ChangedConcurrently` rather than stored.
 - Status is calculated, never stored. First match wins:
   1. `Cancelled`
@@ -1633,7 +1639,7 @@ It is a list of rows, not totals or charts: those are the reports above.
     no bound (Owner, or Staff outside payments), is one change of a date box.
   - The member filter is a member chosen by name or mobile, the way the cafe's till chooses one,
     not free text matched against every row.
-  - A page holds 20 rows.
+  - A page holds 50 rows (20 until roadmap 6.5.34).
   - A payment for a guest's cafe order shows the guest's name, marked «مهمان», not «مشتری آزاد»: the
     order is under that name (§8). So does a guest's هوازی or sale, in every section that lists it
     (since 6.5.31).
@@ -1660,9 +1666,11 @@ with its totals (roadmap 6.5.32, *Totals in the history* below); reports and cha
   - «پرداخت نشده»: anything still owed, a partial payment included.
   - A cancelled subscription or cafe order and a voided charge are in neither: they owe nothing and
     were never fully a sale. They are listed under «همه», marked with their reason, never hidden.
-- **Who recorded it:** who placed the cafe order (`PlacedByUserId`) and who recorded the charge
-  (`RecordedByUserId`). A subscription shows none: who sold it is not shown (§4).
-- The filters are the history's own: the date range and one member. A page holds 20 rows.
+- **Who recorded it:** who sold the subscription (its `CreatedBy`: whoever was logged in, §4), who
+  placed the cafe order (`PlacedByUserId`) and who recorded the charge (`RecordedByUserId`).
+- **No status column** (developer, 1405/07/15): a cancelled subscription or cafe order reads
+  «لغو شده», a voided charge «ابطال شده», as a tag beside what was sold, with the reason under it.
+- The filters are the history's own: the date range and one member. A page holds 50 rows.
 
 ### Totals in the history (جمع)
 
@@ -1672,7 +1680,7 @@ without adding up the rows.
 
 - **Owner only**, like the sales sections. Staff see the same rows as before and no totals; the API
   refuses Staff (403).
-- **Over everything the filters let through**, every page, not only the 20 rows on screen. The
+- **Over everything the filters let through**, every page, not only the 50 rows on screen. The
   totals follow every filter of their section: the date range, the member, the sales section's kind
   and «وضعیت پرداخت», the payments' «روش پرداخت» and «بابت».
 - **Every sales section** (همهٔ فروش‌ها، فروش پلن، هوازی، فروشگاه، آنالیز، بوفه) shows three figures:

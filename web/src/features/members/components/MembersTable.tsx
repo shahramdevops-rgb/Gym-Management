@@ -1,9 +1,11 @@
 import { Link } from "react-router";
 
 import { paths } from "@/app/paths";
+import { SessionsBar } from "@/components/SessionsBar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatMoney, formatPhone, toPersianDigits } from "@/lib/format";
+import { lowSessionsThreshold } from "@/features/attendance/renewal";
+import { emptyValue, formatMoney, formatPhone, toPersianDigits } from "@/lib/format";
 import { isPositiveMoney } from "@/lib/money";
 
 import type { Member } from "../api";
@@ -21,7 +23,11 @@ interface MembersTableProps {
   };
 }
 
-/** Search results and the member list: name (a link to the profile), phone, status. */
+/**
+ * Search results and the member list: name (a link to the profile) with its tags, phone, the
+ * sessions of their plan, debt. No status column (removed by the developer, roadmap 6.5.34): the
+ * filter above the list already splits active from inactive.
+ */
 export function MembersTable({ members, deskActions }: MembersTableProps) {
   return (
     <div className="overflow-x-auto">
@@ -30,7 +36,7 @@ export function MembersTable({ members, deskActions }: MembersTableProps) {
           <tr className="border-b text-muted-foreground">
             <th className="py-2 text-start font-medium">نام</th>
             <th className="py-2 text-start font-medium">موبایل</th>
-            <th className="py-2 text-start font-medium">وضعیت</th>
+            <th className="py-2 text-start font-medium">جلسات</th>
             <th className="py-2 text-start font-medium">بدهی</th>
             {deskActions !== undefined && (
               <th className="py-2 text-start font-medium">
@@ -43,22 +49,32 @@ export function MembersTable({ members, deskActions }: MembersTableProps) {
           {members.map((member) => (
             <tr key={member.id} className="border-b">
               <td className="py-2">
-                <Link
-                  to={paths.member(member.id)}
-                  className="font-medium underline-offset-4 hover:underline"
-                >
-                  {member.fullName}
-                </Link>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Link
+                    to={paths.member(member.id)}
+                    className="font-medium underline-offset-4 hover:underline"
+                  >
+                    {member.fullName}
+                  </Link>
+                  {/* BUSINESS_RULES.md §2: their latest visit was a single visit. */}
+                  {member.lastVisitWasSingleSession && (
+                    <Badge variant="outline" className="border-destructive text-destructive">
+                      تک‌جلسه
+                    </Badge>
+                  )}
+                  {/* BUSINESS_RULES.md §2: the plan is over and nothing was bought after it. */}
+                  {member.planEnded && (
+                    <Badge variant="outline" className="border-warning text-warning">
+                      پلن تمام‌شده
+                    </Badge>
+                  )}
+                </div>
               </td>
               <td className="py-2">
                 <PhoneNumber value={member.phoneNumber} />
               </td>
               <td className="py-2">
-                <div className="flex flex-wrap items-center gap-1">
-                  <MemberStatusBadge isActive={member.isActive} />
-                  {/* Only the list fills isFrozen, so it is shown here, not in MemberStatusBadge. */}
-                  {member.isFrozen && <Badge variant="secondary">فریز</Badge>}
-                </div>
+                <PlanSessions plan={member.plan ?? null} />
               </td>
               <td className="py-2">
                 <MemberDebt value={member.debt} />
@@ -103,6 +119,27 @@ function DeskButtons({
         خروج
       </Button>
     </div>
+  );
+}
+
+/**
+ * The bar the "currently inside" board shows, for the plan the API picked: the current one, else
+ * the queued one, else the one that ended last (BUSINESS_RULES.md §2). Nothing for a member with no
+ * plan; single visits never have one.
+ */
+function PlanSessions({ plan }: { plan: Member["plan"] }) {
+  if (plan === null || plan === undefined) {
+    return <span className="text-muted-foreground">{emptyValue}</span>;
+  }
+
+  return (
+    <SessionsBar
+      total={plan.totalSessions}
+      used={plan.usedSessions}
+      remaining={plan.remainingSessions}
+      lowThreshold={lowSessionsThreshold}
+      className="max-w-32"
+    />
   );
 }
 

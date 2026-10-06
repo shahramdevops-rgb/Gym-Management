@@ -10,7 +10,8 @@ import { WhoCell } from "./WhoCell";
 /**
  * Everything the gym sold, newest first, with what has been paid on it (BUSINESS_RULES.md §12
  * Sales in the history). A cancelled plan or cafe order and a voided charge stay on the list,
- * marked, with the reason: they owe nothing, so their payment cell is empty.
+ * tagged beside what was sold, with the reason under it: they owe nothing, so their payment cell is
+ * empty. No status column: on every other row it would only say «—» (roadmap 6.5.34).
  */
 export function SalesLogTable({ items }: { items: HistorySale[] }) {
   return (
@@ -24,7 +25,6 @@ export function SalesLogTable({ items }: { items: HistorySale[] }) {
             <th className="py-2 text-start font-medium">مبلغ</th>
             <th className="py-2 text-start font-medium">پرداخت</th>
             <th className="py-2 text-start font-medium">ثبت توسط</th>
-            <th className="py-2 text-start font-medium">وضعیت</th>
           </tr>
         </thead>
         <tbody>
@@ -38,7 +38,21 @@ export function SalesLogTable({ items }: { items: HistorySale[] }) {
                   guestName={item.guestName}
                 />
               </td>
-              <td className="py-2">{saleLabel(item)}</td>
+              <td className="py-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span>{saleLabel(item)}</span>
+                  {item.undoneAt !== null && (
+                    <Badge variant="outline">
+                      {item.source === "Subscription" || item.source === "CafeOrder"
+                        ? "لغو شده"
+                        : "ابطال شده"}
+                    </Badge>
+                  )}
+                </div>
+                {item.undoneAt !== null && item.undoReason !== null && (
+                  <p className="text-muted-foreground">{item.undoReason}</p>
+                )}
+              </td>
               <td className="py-2">{formatMoney(item.amount)}</td>
               <td className="py-2">
                 {item.undoneAt === null ? (
@@ -48,22 +62,6 @@ export function SalesLogTable({ items }: { items: HistorySale[] }) {
                 )}
               </td>
               <td className="py-2">{item.recordedByFullName ?? emptyValue}</td>
-              <td className="py-2">
-                {item.undoneAt === null ? (
-                  emptyValue
-                ) : (
-                  <div className="space-y-1">
-                    <Badge variant="outline">
-                      {item.source === "Subscription" || item.source === "CafeOrder"
-                        ? "لغو شده"
-                        : "ابطال شده"}
-                    </Badge>
-                    {item.undoReason !== null && (
-                      <p className="text-muted-foreground">{item.undoReason}</p>
-                    )}
-                  </div>
-                )}
-              </td>
             </tr>
           ))}
         </tbody>

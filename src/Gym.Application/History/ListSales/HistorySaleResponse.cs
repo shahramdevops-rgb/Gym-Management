@@ -25,8 +25,8 @@ namespace Gym.Application.History.ListSales;
 /// <param name="Amount">What it was sold for.</param>
 /// <param name="SoldAt">The moment it was recorded, for the time on screen.</param>
 /// <param name="RecordedByFullName">
-/// Who placed the cafe order or recorded the charge. Always <c>null</c> for a subscription: who sold
-/// it is not shown (§4).
+/// Who sold the subscription (whoever was logged in when it was created), placed the cafe order or
+/// recorded the charge. <c>null</c> when nobody was logged in, e.g. a row written by a migration.
 /// </param>
 /// <param name="UndoneAt">When it was cancelled (a subscription or cafe order) or voided (a charge).</param>
 /// <param name="UndoReason">Why it was cancelled or voided.</param>

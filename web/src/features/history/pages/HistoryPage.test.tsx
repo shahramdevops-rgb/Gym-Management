@@ -369,6 +369,9 @@ describe("HistoryPage", () => {
     const plan = rowWith("پلن ۱۲ جلسه - ۳۰ روزه");
     expect(within(plan).getByText("پرداخت جزئی")).toBeInTheDocument();
     expect(within(plan).getByText(formatMoney(1200000))).toBeInTheDocument();
+    // Who sold it (roadmap 6.5.34), and no status column: a cancelled sale is tagged instead.
+    expect(within(plan).getByText("مریم کاظمی")).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "وضعیت" })).not.toBeInTheDocument();
 
     expect(within(rowWith("فروشگاه: دستکش × ۲")).getByText("سارا رضایی")).toBeInTheDocument();
 
@@ -510,9 +513,9 @@ describe("HistoryPage", () => {
       "href",
       "/history",
     );
-    // The cafe keeps its own order history, one click away.
+    // The cafe's own order history is reached from the menu, not from a button on this page.
     expect(
-      within(screen.getByRole("main")).getByRole("link", { name: "سفارش‌های بوفه" }),
-    ).toHaveAttribute("href", "/cafe/orders");
+      within(screen.getByRole("main")).queryByRole("link", { name: "سفارش‌های بوفه" }),
+    ).not.toBeInTheDocument();
   });
 });

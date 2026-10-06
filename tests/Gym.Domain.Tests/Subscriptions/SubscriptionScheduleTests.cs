@@ -386,6 +386,54 @@ public sealed class SubscriptionScheduleTests
     }
 
     /// <summary>A 10-session plan, which lasts 30 days.</summary>
+    // ---- The plan the member list shows (BUSINESS_RULES.md §2) ----
+
+    [Fact]
+    public void CurrentPlan_ActiveAndQueued_ReturnsTheActiveOne()
+    {
+        var active = Sell(new DateOnly(2026, 9, 1));
+        var queued = Sell(new DateOnly(2026, 10, 1));
+
+        SubscriptionSchedule.CurrentPlan(Today, [queued, active]).ShouldBe(active);
+    }
+
+    [Fact]
+    public void CurrentPlan_Frozen_ReturnsIt()
+    {
+        var frozen = Sell(new DateOnly(2026, 9, 1));
+        frozen.Freeze(new DateOnly(2026, 9, 5), MaxFreezeDays);
+
+        SubscriptionSchedule.CurrentPlan(Today, [frozen]).ShouldBe(frozen);
+    }
+
+    [Fact]
+    public void CurrentPlan_ExhaustedWithAQueuedRenewal_ReturnsTheQueuedOne()
+    {
+        var exhausted = SellExhausted(new DateOnly(2026, 9, 1), usedOn: new DateOnly(2026, 9, 5));
+        var queued = Sell(new DateOnly(2026, 10, 1));
+
+        SubscriptionSchedule.CurrentPlan(Today, [exhausted, queued]).ShouldBe(queued);
+    }
+
+    [Fact]
+    public void CurrentPlan_TwoExpired_ReturnsTheOneThatEndedLast()
+    {
+        var older = Sell(new DateOnly(2026, 6, 1));
+        var latest = Sell(new DateOnly(2026, 7, 1));
+
+        SubscriptionSchedule.CurrentPlan(Today, [latest, older]).ShouldBe(latest);
+    }
+
+    [Fact]
+    public void CurrentPlan_OnlyACancelledPlanAndASingleVisit_IsNull()
+    {
+        var cancelled = Sell(Today);
+        cancelled.Cancel("اشتباه در ثبت", Today, Now);
+        var singleVisit = Subscription.CreateSingleVisit(MemberId, 120_000m, Today).Value;
+
+        SubscriptionSchedule.CurrentPlan(Today, [cancelled, singleVisit]).ShouldBeNull();
+    }
+
     private static Subscription Sell(DateOnly start) =>
         Subscription.CreateMembership(MemberId, 10, 100_000m, start).Value;
 

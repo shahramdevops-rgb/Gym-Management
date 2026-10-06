@@ -7,7 +7,7 @@ export type Member = components["schemas"]["MemberResponse"];
 export type MemberDebt = components["schemas"]["MemberDebtResponse"];
 export type MemberDebtItem = components["schemas"]["MemberDebtItemResponse"];
 
-export const membersPageSize = 20;
+export const membersPageSize = 50;
 
 /**
  * Query keys. Every key starts with "members", so one invalidation after any change refreshes
@@ -27,6 +27,10 @@ export interface MemberListFilter {
   isActive?: boolean;
   /** Only members who owe something (BUSINESS_RULES.md §5 Member debt). Omitted: everyone. */
   debtorsOnly?: boolean;
+  /** Only members whose latest visit was a single visit (BUSINESS_RULES.md §2, «تک‌جلسه»). */
+  singleSessionOnly?: boolean;
+  /** Only members whose plan is over with nothing after it (BUSINESS_RULES.md §2, «پلن تمام‌شده»). */
+  planEndedOnly?: boolean;
   page: number;
 }
 
@@ -45,6 +49,8 @@ export function useMemberList(filter: MemberListFilter, { enabled = true } = {})
             Search: filter.search,
             IsActive: filter.isActive,
             DebtorsOnly: filter.debtorsOnly,
+            SingleSessionOnly: filter.singleSessionOnly,
+            PlanEndedOnly: filter.planEndedOnly,
             Page: filter.page,
             PageSize: membersPageSize,
           },

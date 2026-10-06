@@ -13,9 +13,19 @@ namespace Gym.Application.Members.ListMembers;
 /// Only members who owe something (BUSINESS_RULES.md §5 <i>Member debt</i>); omitted or
 /// <c>false</c> means everyone. Combines with <paramref name="IsActive"/> and the search.
 /// </param>
+/// <param name="SingleSessionOnly">
+/// Only members tagged «تک‌جلسه»: their latest visit was a single visit (BUSINESS_RULES.md §2,
+/// <see cref="MemberListRow.LastVisitWasSingleSession"/>). Combines with the other filters.
+/// </param>
+/// <param name="PlanEndedOnly">
+/// Only members tagged «پلن تمام‌شده» (BUSINESS_RULES.md §2, <see cref="MemberListRow.PlanEnded"/>).
+/// Combines with the other filters.
+/// </param>
 public sealed record ListMembersQuery(
     string? Search = null,
     bool? IsActive = null,
     bool DebtorsOnly = false,
+    bool SingleSessionOnly = false,
+    bool PlanEndedOnly = false,
     int Page = 1,
     int PageSize = PagingRules.DefaultPageSize);

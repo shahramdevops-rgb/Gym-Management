@@ -224,6 +224,40 @@ public static class SubscriptionSchedule
         return Result.Failure<Subscription>(memberships.MaxBy(subscription => subscription.EndDate)!.EnsureActive(today).Error);
     }
 
+    /// <summary>
+    /// The membership the member list shows a member's sessions from (BUSINESS_RULES.md §2), or
+    /// <c>null</c> when they have none: the active one, else the frozen one, else the soonest queued
+    /// one, else the one that ended last.
+    /// </summary>
+    /// <remarks>
+    /// Single visits are left out: they have no sessions worth a bar, and the list tags them on
+    /// their own.
+    /// </remarks>
+    public static Subscription? CurrentPlan(DateOnly today, IEnumerable<Subscription> memberSubscriptions)
+    {
+        ArgumentNullException.ThrowIfNull(memberSubscriptions);
+
+        var memberships = Memberships(memberSubscriptions);
+
+        // Two memberships never cover the same date, so at most one is active.
+        var active = memberships.Find(subscription => subscription.GetStatus(today) == SubscriptionStatus.Active);
+        if (active is not null)
+        {
+            return active;
+        }
+
+        if (FrozenToResume(memberships) is { } frozen)
+        {
+            return frozen;
+        }
+
+        var queued = memberships
+            .Where(subscription => subscription.GetStatus(today) == SubscriptionStatus.Upcoming)
+            .MinBy(subscription => subscription.StartDate);
+
+        return queued ?? memberships.MaxBy(subscription => subscription.EndDate);
+    }
+
     private static List<Subscription> Memberships(IEnumerable<Subscription> memberSubscriptions) =>
         memberSubscriptions
             .Where(subscription => subscription.CancelledAt is null && !subscription.IsSingleSession)

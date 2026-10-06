@@ -1,6 +1,5 @@
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 
-import { paths } from "@/app/paths";
 import { JalaliCalendarField, SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
@@ -231,12 +230,8 @@ export function HistoryPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">تاریخچه</h2>
-        <Button asChild size="sm" variant="outline">
-          <Link to={paths.cafeOrders}>سفارش‌های بوفه</Link>
-        </Button>
-      </div>
+      {/* No link to «سفارش‌های بوفه» here: the menu and the cafe till already have one. */}
+      <h2 className="text-xl font-bold">تاریخچه</h2>
 
       <Card>
         <CardContent className="space-y-4">

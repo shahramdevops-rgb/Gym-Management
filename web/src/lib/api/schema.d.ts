@@ -1958,6 +1958,14 @@ export interface components {
             total: number | string;
             items: components["schemas"]["MemberDebtItemResponse"][];
         };
+        MemberPlanSessions: {
+            /** Format: int32 */
+            totalSessions: number | string;
+            /** Format: int32 */
+            usedSessions: number | string;
+            /** Format: int32 */
+            remainingSessions: number | string;
+        };
         MemberResponse: {
             /** Format: uuid */
             id: string;
@@ -1981,6 +1989,11 @@ export interface components {
             currentVisit?: null | components["schemas"]["MemberCurrentVisit"];
             /** @default false */
             isFrozen: boolean;
+            /** @default false */
+            lastVisitWasSingleSession: boolean;
+            /** @default false */
+            planEnded: boolean;
+            plan?: null | components["schemas"]["MemberPlanSessions"];
         };
         MembersDayResponse: {
             /** Format: date */
@@ -3343,6 +3356,8 @@ export interface operations {
                 Search?: string;
                 IsActive?: boolean;
                 DebtorsOnly?: boolean;
+                SingleSessionOnly?: boolean;
+                PlanEndedOnly?: boolean;
                 Page?: number | string;
                 PageSize?: number | string;
             };

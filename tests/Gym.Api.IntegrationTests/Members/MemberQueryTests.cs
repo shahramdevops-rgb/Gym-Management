@@ -471,6 +471,283 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         (await SingleAsync(client, token, member.Id)).IsFrozen.ShouldBeFalse();
     }
 
+    // ---- Order: the latest visit first (BUSINESS_RULES.md §2) ----
+
+    [Fact]
+    public async Task ListMembers_SomeMembersVisited_LatestVisitFirstAndNeverVisitedLastByName()
+    {
+        var (client, token) = await StaffClientAsync();
+        var hadi = await CreateMemberAsync(client, token, "هادی", "09121234560");
+        var bahram = await CreateMemberAsync(client, token, "بهرام", "09121234561");
+        var elham = await CreateMemberAsync(client, token, "الهام", "09121234562");
+        var maryam = await CreateMemberAsync(client, token, "مریم", "09121234563");
+        await SellSubscriptionAsync(client, token, hadi.Id, 900_000m);
+        await SellSubscriptionAsync(client, token, maryam.Id, 900_000m);
+        var older = await CheckInAndOutAsync(client, token, hadi.Id);
+        var latest = await CheckInAndOutAsync(client, token, maryam.Id);
+        await SetCheckedInAtAsync(older, daysAgo: 3);
+        await SetCheckedInAtAsync(latest, daysAgo: 1);
+
+        var page = await ListAsync(client, token, "");
+
+        page.Items.Select(member => member.Id).ShouldBe([maryam.Id, hadi.Id, elham.Id, bahram.Id]);
+    }
+
+    [Fact]
+    public async Task ListMembers_LatestCheckInCancelled_SortsByTheVisitBeforeIt()
+    {
+        var (client, token) = await StaffClientAsync();
+        var reza = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var ali = await CreateMemberAsync(client, token, "علی", "09351234567");
+        await SellSubscriptionAsync(client, token, reza.Id, 900_000m);
+        await SellSubscriptionAsync(client, token, ali.Id, 900_000m);
+        await SetCheckedInAtAsync(await CheckInAndOutAsync(client, token, reza.Id), daysAgo: 3);
+        await SetCheckedInAtAsync(await CheckInAndOutAsync(client, token, ali.Id), daysAgo: 2);
+        var mistake = await CheckInAsync(client, token, reza.Id);
+        using var cancelled = await SendAsync(client, token, HttpMethod.Post, $"/api/attendance/{mistake.Id}/cancel", CancelCheckInBody.KeepPurchases);
+        cancelled.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var page = await ListAsync(client, token, "");
+
+        page.Items.Select(member => member.Id).ShouldBe([ali.Id, reza.Id]);
+    }
+
+    // ---- Tags and the sessions bar (BUSINESS_RULES.md §2) ----
+
+    [Fact]
+    public async Task ListMembers_LatestVisitOnASingleVisit_IsTaggedAndOthersAreNot()
+    {
+        var (client, token) = await StaffClientAsync();
+        var walkIn = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var member = await CreateMemberAsync(client, token, "علی", "09351234567");
+        var neverCame = await CreateMemberAsync(client, token, "مریم", "09131234567");
+        await SellSingleVisitAsync(client, token, walkIn.Id);
+        await CheckInAsync(client, token, walkIn.Id);
+        await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await CheckInAsync(client, token, member.Id);
+
+        (await SingleAsync(client, token, walkIn.Id)).LastVisitWasSingleSession.ShouldBeTrue();
+        (await SingleAsync(client, token, member.Id)).LastVisitWasSingleSession.ShouldBeFalse();
+        (await SingleAsync(client, token, neverCame.Id)).LastVisitWasSingleSession.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_SingleVisitThenAVisitOnAPlan_IsNotTagged()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        await SellSingleVisitAsync(client, token, member.Id);
+        await SetCheckedInAtAsync(await CheckInAndOutAsync(client, token, member.Id), daysAgo: 1);
+        await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await CheckInAsync(client, token, member.Id);
+
+        (await SingleAsync(client, token, member.Id)).LastVisitWasSingleSession.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_ActivePlanWithAVisit_ShowsItsSessionsAndHasNotEnded()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await CheckInAsync(client, token, member.Id);
+
+        var row = await SingleAsync(client, token, member.Id);
+
+        row.Plan.ShouldBe(new MemberPlanSessions(TotalSessions: 10, UsedSessions: 1, RemainingSessions: 9));
+        row.PlanEnded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_PlanExpiredAndNothingAfterIt_HasEndedAndShowsThatPlan()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await MoveIntoThePastAsync(sold.Id, days: 60);
+
+        var row = await SingleAsync(client, token, member.Id);
+
+        row.PlanEnded.ShouldBeTrue();
+        row.Plan.ShouldBe(new MemberPlanSessions(TotalSessions: 10, UsedSessions: 0, RemainingSessions: 10));
+    }
+
+    [Fact]
+    public async Task ListMembers_PlanExpiredAndRenewed_HasNotEndedAndShowsTheNewPlan()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var expired = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await MoveIntoThePastAsync(expired.Id, days: 60);
+        await SellSubscriptionAsync(client, token, member.Id, 1_200_000m, sessions: 12);
+
+        var row = await SingleAsync(client, token, member.Id);
+
+        row.PlanEnded.ShouldBeFalse();
+        row.Plan.ShouldNotBeNull().TotalSessions.ShouldBe(12);
+    }
+
+    [Fact]
+    public async Task ListMembers_DeactivatedMemberWithAnExpiredPlan_HasNotEnded()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await MoveIntoThePastAsync(sold.Id, days: 60);
+        await PostOkAsync(client, token, $"{MembersPath}/{member.Id}/deactivate");
+
+        (await SingleAsync(client, token, member.Id)).PlanEnded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_OnlySingleVisits_HasNoPlanAndHasNotEnded()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var visit = await SellSingleVisitAsync(client, token, member.Id);
+        await MoveIntoThePastAsync(visit.Id, days: 10);
+
+        var row = await SingleAsync(client, token, member.Id);
+
+        row.Plan.ShouldBeNull();
+        row.PlanEnded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_PlanExhaustedBeforeItsEndDate_HasEnded()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await ExecuteSqlAsync($"UPDATE subscriptions SET used_sessions = total_sessions WHERE id = '{sold.Id}'");
+
+        (await SingleAsync(client, token, member.Id)).PlanEnded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ListMembers_FrozenPlanPastItsEndDate_HasNotEnded()
+    {
+        var (client, token) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var sold = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{sold.Id}/freeze");
+        await MoveIntoThePastAsync(sold.Id, days: 60);
+
+        (await SingleAsync(client, token, member.Id)).PlanEnded.ShouldBeFalse();
+    }
+
+    // ---- Never both tags: the more recent one (BUSINESS_RULES.md §2) ----
+
+    [Fact]
+    public async Task ListMembers_PlanExpiredThenASingleVisit_IsTaggedSingleSessionOnly()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        await MoveIntoThePastAsync((await SellSubscriptionAsync(client, token, member.Id, 900_000m)).Id, days: 60);
+        await SellSingleVisitAsync(client, token, member.Id);
+        await CheckInAsync(client, token, member.Id);
+
+        var row = await SingleAsync(client, token, member.Id);
+
+        row.LastVisitWasSingleSession.ShouldBeTrue();
+        row.PlanEnded.ShouldBeFalse();
+        (await ListAsync(client, token, "?singleSessionOnly=true")).TotalCount.ShouldBe(1);
+        (await ListAsync(client, token, "?planEndedOnly=true")).TotalCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task ListMembers_PlanUsedUpThenASingleVisit_IsTaggedSingleSessionOnly()
+    {
+        // A plan whose sessions ran out ended at its last session, before the single visit, even
+        // though its end date is still ahead.
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var plan = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await ExecuteSqlAsync($"UPDATE subscriptions SET used_sessions = total_sessions WHERE id = '{plan.Id}'");
+        await SellSingleVisitAsync(client, token, member.Id);
+        await CheckInAsync(client, token, member.Id);
+
+        var row = await SingleAsync(client, token, member.Id);
+
+        row.LastVisitWasSingleSession.ShouldBeTrue();
+        row.PlanEnded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListMembers_SingleVisitThenAPlanThatExpiredUnused_IsTaggedPlanEndedOnly()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var singleVisit = await SellSingleVisitAsync(client, token, member.Id);
+        var visit = await CheckInAndOutAsync(client, token, member.Id);
+        var plan = await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        // The single visit 70 days ago; the plan bought after it, from 60 days ago, never used.
+        await MoveIntoThePastAsync(singleVisit.Id, days: 70);
+        await SetCheckedInAtAsync(visit, daysAgo: 70);
+        await MoveIntoThePastAsync(plan.Id, days: 60);
+
+        var row = await SingleAsync(client, token, member.Id);
+
+        row.PlanEnded.ShouldBeTrue();
+        row.LastVisitWasSingleSession.ShouldBeFalse();
+        (await ListAsync(client, token, "?planEndedOnly=true")).TotalCount.ShouldBe(1);
+        (await ListAsync(client, token, "?singleSessionOnly=true")).TotalCount.ShouldBe(0);
+    }
+
+    // ---- Tag filters (BUSINESS_RULES.md §2) ----
+
+    [Fact]
+    public async Task ListMembers_SingleSessionOnly_ListsOnlyTaggedMembersAndCountsThem()
+    {
+        var (client, token) = await StaffClientAsync();
+        var walkIn = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var member = await CreateMemberAsync(client, token, "علی", "09351234567");
+        await CreateMemberAsync(client, token, "مریم", "09131234567");
+        await SellSingleVisitAsync(client, token, walkIn.Id);
+        await CheckInAsync(client, token, walkIn.Id);
+        await SellSubscriptionAsync(client, token, member.Id, 900_000m);
+        await CheckInAsync(client, token, member.Id);
+
+        var page = await ListAsync(client, token, "?singleSessionOnly=true");
+
+        page.TotalCount.ShouldBe(1);
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(walkIn.Id);
+    }
+
+    [Fact]
+    public async Task ListMembers_PlanEndedOnly_ListsOnlyTaggedMembersAndCountsThem()
+    {
+        var (client, token) = await StaffClientAsync();
+        var ended = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var current = await CreateMemberAsync(client, token, "علی", "09351234567");
+        var deactivated = await CreateMemberAsync(client, token, "مریم", "09131234567");
+        await CreateMemberAsync(client, token, "هادی", "09141234567");
+        await MoveIntoThePastAsync((await SellSubscriptionAsync(client, token, ended.Id, 900_000m)).Id, days: 60);
+        await SellSubscriptionAsync(client, token, current.Id, 900_000m);
+        await MoveIntoThePastAsync((await SellSubscriptionAsync(client, token, deactivated.Id, 900_000m)).Id, days: 60);
+        await PostOkAsync(client, token, $"{MembersPath}/{deactivated.Id}/deactivate");
+
+        var page = await ListAsync(client, token, "?planEndedOnly=true");
+
+        page.TotalCount.ShouldBe(1);
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(ended.Id);
+    }
+
+    [Fact]
+    public async Task ListMembers_PlanEndedOnlyWithSearch_AppliesBoth()
+    {
+        var (client, token) = await StaffClientAsync();
+        var reza = await CreateMemberAsync(client, token, "رضا احمدی", "09121234567");
+        var ali = await CreateMemberAsync(client, token, "علی احمدی", "09351234567");
+        await MoveIntoThePastAsync((await SellSubscriptionAsync(client, token, reza.Id, 900_000m)).Id, days: 60);
+        await MoveIntoThePastAsync((await SellSubscriptionAsync(client, token, ali.Id, 900_000m)).Id, days: 60);
+
+        var page = await ListAsync(client, token, $"?planEndedOnly=true&search={Uri.EscapeDataString("رضا")}");
+
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(reza.Id);
+    }
+
     // ---- Name search ----
 
     [Fact]
@@ -695,12 +972,13 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         return (client, await client.LoginForAccessTokenAsync("owner", TestUsers.Password));
     }
 
-    private Task<TestPlan> AddPlanAsync(decimal price) => TestPlans.AddAsync(Fixture, price: price);
+    private Task<TestPlan> AddPlanAsync(decimal price, int sessions = 10) => TestPlans.AddAsync(Fixture, sessions, price);
 
     /// <summary>Assigns a fresh subscription through the real endpoint, so its price is a plan's real, saved snapshot.</summary>
-    private async Task<SubscriptionResponse> SellSubscriptionAsync(HttpClient client, string token, Guid memberId, decimal price)
+    private async Task<SubscriptionResponse> SellSubscriptionAsync(
+        HttpClient client, string token, Guid memberId, decimal price, int sessions = 10)
     {
-        var plan = await AddPlanAsync(price);
+        var plan = await AddPlanAsync(price, sessions);
         var request = new HttpRequestMessage(HttpMethod.Post, $"{MembersPath}/{memberId}/subscriptions")
         {
             Content = JsonContent.Create(plan.Body),
@@ -727,6 +1005,42 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         return (await response.Content.ReadFromJsonAsync<AttendanceResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    private async Task<SubscriptionResponse> SellSingleVisitAsync(HttpClient client, string token, Guid memberId)
+    {
+        await TestPlans.SetPricesAsync(Fixture, singleVisitPrice: 150_000m);
+        using var response = await SendAsync(client, token, HttpMethod.Post, $"{MembersPath}/{memberId}/subscriptions/single-visit");
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        return (await response.Content.ReadFromJsonAsync<SubscriptionResponse>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    /// <summary>A whole visit, so the member can come in again.</summary>
+    private static async Task<Guid> CheckInAndOutAsync(HttpClient client, string token, Guid memberId)
+    {
+        var attendance = await CheckInAsync(client, token, memberId);
+        await PostOkAsync(client, token, $"/api/attendance/{attendance.Id}/check-out");
+
+        return attendance.Id;
+    }
+
+    /// <summary>
+    /// Check-ins made one after another are microseconds apart; moving one back makes the order a
+    /// test reads from them certain.
+    /// </summary>
+    private Task SetCheckedInAtAsync(Guid attendanceId, int daysAgo) =>
+        ExecuteSqlAsync($"UPDATE attendances SET checked_in_at = checked_in_at - interval '{daysAgo} days' WHERE id = '{attendanceId}'");
+
+    /// <summary>Moves a whole subscription back, its length unchanged, as if it had been sold earlier.</summary>
+    private Task MoveIntoThePastAsync(Guid subscriptionId, int days) =>
+        ExecuteSqlAsync($"UPDATE subscriptions SET start_date = start_date - {days}, end_date = end_date - {days} WHERE id = '{subscriptionId}'");
+
+    private async Task ExecuteSqlAsync(string sql)
+    {
+        await using var scope = Fixture.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database
+            .ExecuteSqlRawAsync(sql, TestContext.Current.CancellationToken);
     }
 
     /// <summary>The one member's row from the list endpoint, filtered by search so paging never hides it.</summary>
@@ -756,6 +1070,11 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
 
     private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, HttpMethod method, string path) =>
         client.SendAsync(new HttpRequestMessage(method, path).WithBearer(token), TestContext.Current.CancellationToken);
+
+    private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, HttpMethod method, string path, object body) =>
+        client.SendAsync(
+            new HttpRequestMessage(method, path) { Content = JsonContent.Create(body) }.WithBearer(token),
+            TestContext.Current.CancellationToken);
 
     private static async Task<string?> FirstFieldErrorCodeAsync(HttpResponseMessage response)
     {

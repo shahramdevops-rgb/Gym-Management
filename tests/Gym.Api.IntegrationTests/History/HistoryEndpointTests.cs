@@ -508,12 +508,12 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
 
         page.Items[3].RecordedByFullName.ShouldBe(OwnerName);
 
-        // Who sold a plan is not shown (§4).
+        // Who sold a plan: whoever was logged in when it was created (§4, roadmap 6.5.34).
         var plan = page.Items[4];
         plan.Plan.ShouldBe(new PlanSummary(30, 10, false));
         plan.MemberId.ShouldBe(member.Id);
         plan.Amount.ShouldBe(900_000m);
-        plan.RecordedByFullName.ShouldBeNull();
+        plan.RecordedByFullName.ShouldBe(OwnerName);
         plan.UndoneAt.ShouldBeNull();
     }
 
