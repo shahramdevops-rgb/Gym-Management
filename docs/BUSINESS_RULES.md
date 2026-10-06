@@ -11,9 +11,14 @@ These values live in configuration (the `Gym` and `Sms` sections). Decide each o
 
 | Setting | Decide before | Notes |
 |---|---|---|
-| `Sms:ExpiringDaysBefore`, `Sms:LowSessionsThreshold`, `Sms:MaxAttempts`, quiet hours | Phase 10 | |
-| SMS provider | Phase 10 | An Iranian panel, probably Kavenegar. Ask whether it allows free text or only approved templates — see §10. |
-| Who receives the cheque and instalment reminder SMS, and where that number is kept | Phase 10 | The Owner's number is stored nowhere yet. Until then the reminder is on the dashboard only (§9 *Cheques and instalments*). |
+| Whether Kavenegar accepts the birthday greeting as a template | 10.4 | Ask Kavenegar's support. If not, the birthday alone goes out as free text from a line (§10 *Sending*). |
+| `Sms:MaxAttempts` and the backoff between tries | 10.3 | Not on the settings page (§10). |
+| A run the server missed (it was down at the send time) | 10.3 | Run it when the server is back the same day, before 22:00, or skip the day? |
+| A cheque or instalment whose date is changed after its SMS was sent | 10.3 | Send again for the new date, or not? |
+| The wording of the four templates | 10.1 | Written into `docs/sms-templates.md`, then made in Kavenegar. |
+
+The SMS numbers themselves (days, sessions, send times) are not configuration: the Owner sets them
+on the SMS settings page (§10).
 
 Decided values:
 - Currency = Toman. There is no `Gym:Currency` setting and no currency column anywhere: the gym
@@ -142,7 +147,8 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | The gym's history: payments of any earlier day | ✅ | ❌ |
 | The gym's history: sales (فروش‌ها) of any day, paid and unpaid (§12 *Sales*) | ✅ | ❌ |
 | The gym's history: the totals of the sales and payments sections (§12 *Totals*) | ✅ | ❌ |
-| Expenses, dashboard, reports, audit log, SMS resend | ✅ | ❌ |
+| Expenses, dashboard, reports, audit log | ✅ | ❌ |
+| SMS: settings, history and cost, resend (§10) | ✅ | ❌ |
 | Cheques and instalments (چک و قسط): see, register, edit, mark paid, send back to pending, cancel (§9 *Cheques and instalments*) | ✅ | ❌ |
 
 ---
@@ -712,9 +718,8 @@ step 1 finds (*Confirming at the front desk*).
 - A row is marked as needing attention when the subscription behind that visit has **3 or fewer
   sessions left**, or **expires within 5 days**. Both are shown to the front desk while the member
   is standing there, which is the only moment renewing costs nobody a phone call.
-  These are the desk's thresholds. Phase 10's SMS reminders (§10) have their own configured ones;
-  they should be set to the same numbers, so what the desk sees and what the member is texted
-  about do not disagree.
+  These are the desk's thresholds. The SMS reminders (§10) have their own, set by the Owner, and
+  they may differ: the desk costs nothing and an SMS does (decided with the developer, 1405/07/14).
 - No status badge here. Check-in refuses a subscription that is not usable today (§7 *Check-in*),
   so every row on this board would read "فعال" — a badge that is always the same tells nobody
   anything. Status belongs where expired and unsubscribed members appear together.
@@ -1202,8 +1207,9 @@ one is paid, records the expense itself.
   earliest date first, with the total of everything pending (what the gym still has to pay), and
   that total split into cheques and instalments; paid, cancelled and all, the latest date first.
 - **The reminder** is on the dashboard (§12 *Needs attention*, *Cheques and instalments coming
-  due*): 7 days before the date, one fixed number for both kinds (decided with the developer). An
-  SMS waits for Phase 10; who receives it, and where that number is kept, is decided there.
+  due*): 7 days before the date, one fixed number for both kinds (decided with the developer). The
+  SMS goes to the Owner's number, kept on the SMS settings page, as many days ahead as the Owner
+  sets there, one for each cheque and instalment (§10).
 - **The header alert** (decided with the developer, 1405/07/14): in the header, on every page, for
   the Owner only. Every pending cheque and instalment dated **within the next 5 days**, today
   included, and every pending one past its date (red, until the Owner marks it). It names the
@@ -1216,21 +1222,101 @@ one is paid, records the expense itself.
 
 ## 10. Notifications (SMS)
 
-- Phone number is the only contact channel. Inactive members receive no SMS.
-- Types: `SubscriptionExpiring`, `LowSessions`.
-- A daily job creates notifications for `Active` subscriptions where:
-  - days until `EndDate` <= `Sms:ExpiringDaysBefore`, or
-  - remaining sessions <= `Sms:LowSessionsThreshold`.
-- Unique index on (`subscription_id`, `type`): the same reminder is never created twice.
-- Status: `Pending`, `Sent`, `Failed`. Sending retries with backoff and becomes `Failed` after `Sms:MaxAttempts`.
-- Nothing is sent during quiet hours; sending is deferred.
-- The Owner can manually resend a failed notification.
-- Development and tests use `FakeSmsSender`, which only logs.
-- The provider will be an Iranian panel. Those generally require a **pre-approved template** for service
-  messages rather than free text: the Persian wording is registered in the panel and the caller sends a
-  template id plus named parameters. So `ISmsSender` is defined template-first from task 10.1, even while
-  only `FakeSmsSender` exists. If the panel chosen at purchase does allow free text, a template-first
-  interface still works; the reverse does not. Confirm this when the panel is bought.
+Decided with the developer on 1405/07/14 (2026-10-06). **Every SMS costs money**, so nothing is
+sent that the Owner did not choose, and the same message is never paid for twice.
+
+### The four kinds
+- **Subscription running out (`SubscriptionExpiring`)**, to the member: an `Active` subscription
+  (not frozen, not queued) whose `EndDate` is at most *N days* away, today included.
+- **Few sessions left (`LowSessions`)**, to the member: an `Active` subscription with at most
+  *N sessions* left.
+- For both: a single-session visit never gets one; a deactivated member never gets one; **a member
+  who has already bought the next subscription** (a queued one, §4 `Upcoming`, not cancelled) never
+  gets one, since they have renewed and the message would only cost money. If that queued one is
+  cancelled later, the member counts as not renewed again, and the next run may send it.
+- **Birthday (`Birthday`)**, to the member: *N days* before the member's birthday by the **Jalali**
+  month and day, the same day the desk celebrates (§6 *The desk panel*: someone born on 30 Esfand has
+  their birthday on 29 Esfand in a year without it). **Every member with a birth date gets it**:
+  active or deactivated, with a plan, frozen, single-session only, or with no subscription at all
+  (decided with the developer: the one exception to "deactivated members receive no SMS"). At most
+  once per member per Jalali year.
+- **Cheque or instalment coming due (`PayableDue`)**, to the **Owner**: a pending cheque or
+  instalment (§9 *Cheques and instalments*) dated between today and *N days* ahead. **One SMS for
+  each cheque and each instalment**, never a daily summary (decided with the developer). A paid or
+  cancelled one gets none.
+- **Each event is sent once**, enforced by unique indexes in the database: one `SubscriptionExpiring`
+  and one `LowSessions` per subscription, one `Birthday` per member and Jalali year, one `PayableDue`
+  per cheque or instalment. Running the job twice sends nothing twice.
+
+### SMS settings (تنظیمات پیامک)
+- One page, **Owner only**. It is **separate from the desk**: the desk keeps its own fixed
+  thresholds (§7 *The "currently inside" board*), and the SMS numbers can differ from them, because
+  the desk costs nothing and an SMS does.
+- **It starts empty and everything starts off.** There are no default values: the Owner fills in a
+  kind's fields and then turns it on. A kind cannot be turned on while one of its fields is empty
+  (`Sms.SettingsIncomplete`), and the database enforces it too (a check constraint: on means filled).
+  Nothing is sent before the Owner decides.
+- The settings:
+
+  | Kind | Fields | Allowed |
+  |---|---|---|
+  | All SMS | on/off | |
+  | Subscription running out | on/off, days before `EndDate`, send time, template name | 1–30 days |
+  | Few sessions left | on/off, sessions left, send time, template name | 1–10 sessions |
+  | Birthday | on/off, days before the birthday, send time, template name | 0–7 days (0 = the day itself) |
+  | Cheques and instalments | on/off, days before the date, send time, template name, the Owner's mobile number | 0–30 days |
+
+  Every send time is between **08:00 and 22:00** (Asia/Tehran). The Owner's number follows the
+  members' phone rules (§2: Iranian mobile only, any digits). A template name follows Kavenegar's
+  rule: English letters and digits only, no space and no `_`.
+- A change applies **from the next run**, never to the past: whoever already got a message does not
+  get it again, and raising a number brings in the people it now covers.
+- Every change is in the audit log (§11).
+- Not on the page: the Kavenegar API key (a secret: an environment variable on the server, user
+  secrets on the developer's machine) and how many times a failed send is retried.
+
+### Sending
+- **Provider: Kavenegar**, through its template method (`verify/lookup`). The Persian wording is a
+  template written and approved in the Kavenegar panel; the system sends the template name and the
+  values for its blanks. So the wording is changed in Kavenegar, not here. It needs no dedicated line
+  and reaches members who have blocked advertising SMS, which the free-text method (`sms/send`) does
+  not.
+  **To confirm with Kavenegar's support:** that the birthday greeting is accepted as a template. If
+  it is not, only the birthday goes out with `sms/send` from a line, and `ISmsSender` (template-first
+  from task 10.1) covers both.
+- **The blanks** (Kavenegar's limits): `token`, `token2` and `token3` hold no space; `token10` holds
+  up to 5 spaces and `token20` up to 8; each holds at most 100 characters. A member's name goes in a
+  blank that allows spaces. The wording and blanks of every template are kept in
+  `docs/sms-templates.md`, so the same templates can be made again in another Kavenegar account.
+- **Length:** a Persian SMS holds 70 characters in one part and 67 in each part of a longer one, and
+  each part is paid for. Templates are kept short.
+- **Status:** `Pending`, `Sent`, `Failed`, `Unknown`.
+  - A failure that may pass (Kavenegar busy, `409`; the server or the network down before the request
+    left) is retried with backoff, up to `Sms:MaxAttempts`, then `Failed`.
+  - A failure that will not pass (template not found or not approved `424`, advanced service off
+    `426`, a bad character `422`/`431`, an invalid number `411`) is `Failed` at once, with its code.
+  - **Credit used up (`418`)**: that message is `Failed`, the rest of the run is not sent, and the
+    Owner is warned on the SMS pages.
+  - **No answer after the request left** (the connection broke while waiting): the message may have
+    gone. It becomes `Unknown` and is **never retried automatically**, because the template method
+    has no duplicate guard on Kavenegar's side and a second try could be paid twice.
+  - Nothing is sent outside 08:00–22:00. A retry that would fall after 22:00 is not made: the message
+    is `Failed`.
+- **Delivery:** after sending, the system asks Kavenegar (which keeps it for 48 hours) whether the
+  message reached the phone: delivered, not delivered, or blocked by the receiver.
+- **Cost:** Kavenegar returns each message's cost in **Rial**. It is kept with the message, and shown
+  in Toman like every amount here (÷ 10). The SMS history shows each month's total. The account's
+  remaining credit is shown on the settings page.
+- **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand. For `Unknown` the page
+  says it may already have arrived.
+- **Development and tests:** tests always use `FakeSmsSender`, which only logs, and never reach
+  Kavenegar. On the developer's machine Kavenegar can be turned on with the developer's own account,
+  and `Sms:AllowedReceptors` then limits real sending to the listed numbers (anything else is only
+  logged). The server has no such list.
+- **Accounts:** development and testing use the developer's Kavenegar account. At release the
+  Owner's API key goes into the server's `.env`, the same templates are made and approved in the
+  Owner's account (a few days ahead: approval takes time), and the Owner fills in the settings page.
+  No code changes.
 
 ---
 
@@ -1574,7 +1660,7 @@ without adding up the rows.
   - Every amount that is **displayed** goes through one formatter, which groups in threes and appends "تومان". A report's figure below zero (a loss, §12 *Dashboard*) keeps its minus sign, on the number's left as Persian number formatting writes it.
   - No screen formats an amount by itself, and no money value is ever held as a JavaScript number: rounding a price is never acceptable.
 - Reports offer Jalali periods (today, this week, this Jalali month, last month, this Jalali year; §12 *Dashboard*) that the frontend converts to Gregorian date ranges.
-- SMS messages are Persian. Unicode SMS parts hold fewer characters than Latin ones, so templates are kept short and the part count is calculated before sending.
+- SMS messages are Persian. A Persian part holds 70 characters (67 in a longer message) against 160 for Latin, so templates are kept short and each one's part count is worked out when it is written (`docs/sms-templates.md`, §10).
 
 ## 14. Theme (تم روشن و تیره)
 

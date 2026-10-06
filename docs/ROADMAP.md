@@ -2127,8 +2127,9 @@ decided in Phase 10.
       list order and totals, Staff refused, no DELETE, the database constraints, the dashboard list
       at day 7 and 8 with overdue, passed and cancelled cases (integration); the page, its forms,
       tabs, menu and the dashboard list (frontend)
-- [ ] The SMS itself needs Phase 10's `ISmsSender`; until then the reminder is on the dashboard only
-      (the recipient is in BUSINESS_RULES.md §0, to decide before Phase 10)
+- [ ] The SMS itself needs Phase 10's `ISmsSender`; until then the reminder is on the dashboard only.
+      Decided on 1405/07/14: it goes to the Owner's number, one SMS per cheque or instalment
+      (BUSINESS_RULES.md §10); built in 10.3
 
 Closed 2026-10-05: 1632 backend tests (77 new: 32 domain, 45 integration) and 870 frontend tests
 (35 new) green, zero warnings, lint and production build pass. Migration `AddCheques` adds one new
@@ -2226,24 +2227,62 @@ endpoint only.
 
 ## Phase 10 — SMS Notifications
 
-### 10.1 Notification model
-- [ ] `ISmsSender`, `FakeSmsSender`. Define it template-first (a template id plus named
-      parameters), not as "send this string": Iranian panels generally require a pre-approved
-      template for service messages, so a free-text signature would have to be rewritten in 10.3.
-      See BUSINESS_RULES.md §10
-- [ ] Notification entity with unique (subscription, type)
-- [ ] Persian message templates; count SMS parts (Unicode messages are shorter per part)
+Decided with the developer on 1405/07/14 (2026-10-06), BUSINESS_RULES.md §10: four kinds
+(subscription running out, few sessions left, birthday for every member, each cheque and instalment
+to the Owner); the numbers and send times on an Owner-only settings page that starts empty and off,
+separate from the desk's; Kavenegar's template method; the developer's Kavenegar account until
+release, the Owner's after. Still open: §0.
 
-### 10.2 Reminder jobs
-- [ ] Daily reminder job with thresholds
-- [ ] Quiet hours
-- [ ] Retry with backoff, Failed status
-- [ ] Tests: running the job twice sends nothing twice
+### 10.1 Notification model and sender
+- [ ] `ISmsSender`, template-first: a template name plus named values (`token`, `token2`,
+      `token3`, `token10`, `token20`), not "send this string" (§10 *Sending*)
+- [ ] `FakeSmsSender`, which only logs; `Sms:Provider` chooses it, and tests always use it
+- [ ] `Notification` entity: kind, recipient, status (`Pending`, `Sent`, `Failed`, `Unknown`),
+      attempts, the provider's message id, cost (Rial), delivery; a unique index for each kind
+      (per subscription and kind, per member and Jalali year, per cheque or instalment)
+- [ ] `docs/sms-templates.md`: the wording of the four templates, agreed with the developer, their
+      blanks and their part count
 
-### 10.3 Real provider and UI
-- [ ] Real SMS provider implementation
-- [ ] Manual resend (Owner)
-- [ ] SMS history screen
+### 10.2 SMS settings (تنظیمات پیامک)
+- [ ] One settings row: the on/off switches, numbers, send times, template names and the Owner's
+      number; check constraints for every range and for "on means filled"; `xmin`
+- [ ] `GET`/`PUT /api/sms/settings` (Owner), audited; `Sms.SettingsIncomplete` and the range errors
+- [ ] The page «تنظیمات پیامک», Owner menu only: starts empty, everything off; a kind turns on only
+      when it is filled
+
+### 10.3 The daily jobs
+- [ ] One job per kind at its own send time, read from the settings (a change of time applies from
+      the next run), nothing outside 08:00–22:00
+- [ ] Who gets what (§10 *The four kinds*): renewed members left out, birthday by the Jalali day
+      for every member, one SMS per cheque and instalment
+- [ ] Retry with backoff up to `Sms:MaxAttempts`; `Failed` at once for the codes that will not
+      pass; `Unknown` never retried; credit used up stops the run
+- [ ] Tests: running a job twice sends nothing twice; each kind's edges (renewed, frozen,
+      single-session, deactivated, 30 Esfand, paid and cancelled cheques); a setting changed between
+      runs
+
+### 10.4 Kavenegar
+- [ ] `KavenegarSmsSender` (`verify/lookup`); the API key in user secrets locally and
+      `Sms__Kavenegar__ApiKey` on the server, never in git
+- [ ] Kavenegar's codes mapped to the statuses above; the blanks' limits (no space, 5 or 8
+      spaces, 100 characters) checked before sending
+- [ ] Cost kept with each message; delivery asked for after sending; the remaining credit
+      (`account/info`)
+- [ ] `Sms:AllowedReceptors` for the developer's machine: real sending only to the listed numbers
+- [ ] A manual test with the developer's account and number, the templates approved there first
+
+### 10.5 SMS history and resend
+- [ ] The page «پیامک‌ها» (Owner): every message with its kind, recipient, status, delivery and
+      cost; the month's total in Toman; the remaining credit; the credit warning
+- [ ] Resend a `Failed` or `Unknown` message (Owner); for `Unknown` the page warns it may have
+      arrived
+
+### 10.6 Go live with the Owner's account
+Every server step is proposed and confirmed first, with `./backup.sh run` before the release.
+- [ ] A few days before: the Owner's Kavenegar account charged, its advanced service on, the four
+      templates made from `docs/sms-templates.md` with the same names and approved
+- [ ] The Owner's API key in the server's `.env`, restricted to the server's IP in Kavenegar
+- [ ] The Owner fills in the settings page and turns on the kinds they want
 
 ---
 
