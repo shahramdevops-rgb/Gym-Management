@@ -113,6 +113,19 @@ export const errorMessages: Record<string, string> = {
   "Pricing.ChangedConcurrently":
     "قیمت‌ها هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
+  // SMS settings (BUSINESS_RULES.md §10 *SMS settings*)
+  "Sms.SubscriptionExpiringDaysOutOfRange": "تعداد روز باید از ۱ تا ۳۰ باشد.",
+  "Sms.LowSessionsOutOfRange": "تعداد جلسه باید از ۱ تا ۱۰ باشد.",
+  "Sms.BirthdayDaysOutOfRange": "تعداد روز باید از ۰ تا ۷ باشد (۰ یعنی خود روز تولد).",
+  "Sms.PayableDueDaysOutOfRange": "تعداد روز باید از ۰ تا ۳۰ باشد (۰ یعنی خود روز سررسید).",
+  "Sms.SendTimeOutOfRange": "ساعت ارسال باید بین ۸:۰۰ و ۲۲:۰۰ و روی ربع ساعت باشد.",
+  "Sms.TemplateNameInvalid":
+    "نام قالب فقط حروف انگلیسی و عدد دارد؛ فاصله، «_» و حروف فارسی پذیرفته نمی‌شود.",
+  "Sms.TemplateNameTooLong": "نام قالب حداکثر ۱۰۰ نویسه است.",
+  "Sms.SettingsIncomplete": "برای روشن کردن این پیامک، همهٔ خانه‌هایش را پر کنید.",
+  "Sms.ChangedConcurrently":
+    "تنظیمات پیامک هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+
   // Subscriptions
   "Subscriptions.NotFound": "اشتراک پیدا نشد.",
   "Subscriptions.SessionCountTooLow": "تعداد جلسات باید حداقل ۵ باشد.",

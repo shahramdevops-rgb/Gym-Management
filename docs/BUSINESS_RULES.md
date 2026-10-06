@@ -1254,7 +1254,9 @@ sent that the Owner did not choose, and the same message is never paid for twice
 - **It starts empty and everything starts off.** There are no default values: the Owner fills in a
   kind's fields and then turns it on. A kind cannot be turned on while one of its fields is empty
   (`Sms.SettingsIncomplete`), and the database enforces it too (a check constraint: on means filled).
-  Nothing is sent before the Owner decides.
+  Nothing is sent before the Owner decides. A kind that is off may have any of its fields empty,
+  and the Owner can empty them again; a filled field must still be within its range (decided with
+  the developer, 1405/07/14, task 10.2).
 - The settings:
 
   | Kind | Fields | Allowed |
@@ -1265,7 +1267,9 @@ sent that the Owner did not choose, and the same message is never paid for twice
   | Birthday | on/off, days before the birthday, send time, template name | 0–7 days (0 = the day itself) |
   | Cheques and instalments | on/off, days before the date, send time, template name, the Owner's mobile number | 0–30 days |
 
-  Every send time is between **08:00 and 22:00** (Asia/Tehran). The Owner's number follows the
+  Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
+  (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,
+  task 10.2; `Sms.SendTimeOutOfRange`). The Owner's number follows the
   members' phone rules (§2: Iranian mobile only, any digits). A template name follows Kavenegar's
   rule: English letters and digits only, no space and no `_`.
 - A change applies **from the next run**, never to the past: whoever already got a message does not

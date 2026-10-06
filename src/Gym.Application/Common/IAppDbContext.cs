@@ -72,6 +72,8 @@ public interface IAppDbContext
 
     DbSet<Notification> Notifications { get; }
 
+    DbSet<SmsSettings> SmsSettings { get; }
+
     /// <summary>
     /// Exposed for the rare handler that must recover from a failed save in the same request:
     /// after a <see cref="DbUpdateConcurrencyException"/> the tracked entities hold stale values,

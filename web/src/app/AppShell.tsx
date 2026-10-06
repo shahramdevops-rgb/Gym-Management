@@ -10,6 +10,7 @@ import {
   KeyRound,
   LockKeyhole,
   LogOut,
+  MessageSquareText,
   ReceiptText,
   Settings,
   Users,
@@ -75,6 +76,7 @@ const navigation: NavigationItem[] = [
   },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.settings, label: "تنظیمات", icon: Settings, role: "Owner" },
+  { to: paths.smsSettings, label: "تنظیمات پیامک", icon: MessageSquareText, role: "Owner" },
   { to: paths.status, label: "وضعیت سیستم", icon: Activity },
   { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },
 ];

@@ -137,6 +137,7 @@ try
     app.MapExpenseCategoriesEndpoints();
     app.MapExpensesEndpoints();
     app.MapPayablesEndpoints();
+    app.MapSmsEndpoints();
     app.MapHistoryEndpoints();
     app.MapReportsEndpoints();
 

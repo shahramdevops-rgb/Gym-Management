@@ -66,6 +66,8 @@ using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.Members.ListMembers;
 using Gym.Application.Members.SetMemberActive;
 using Gym.Application.Members.UpdateMember;
+using Gym.Application.Notifications.GetSmsSettings;
+using Gym.Application.Notifications.UpdateSmsSettings;
 using Gym.Application.Payables.CancelPayable;
 using Gym.Application.Payables.GetPayable;
 using Gym.Application.Payables.ListPayables;
@@ -246,6 +248,9 @@ public static class DependencyInjection
         services.AddScoped<GetPayableHandler>();
         services.AddScoped<ListPayablesHandler>();
         services.AddScoped<ListPayablesDueSoonHandler>();
+
+        services.AddScoped<GetSmsSettingsHandler>();
+        services.AddScoped<UpdateSmsSettingsHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

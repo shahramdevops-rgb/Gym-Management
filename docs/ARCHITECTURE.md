@@ -505,5 +505,9 @@ web/src/
   as `Pending` **before** it is sent: its unique indexes stop a second run, or a second server, from writing (and so
   paying for) the same event twice. Template values go through `SmsTokens`, which refuses a value that breaks
   Kavenegar's limits; free text (a name, a payee) is passed through `SmsTokens.Fit` first.
+  The Owner's choices (each kind's switch, number, send time and template, the Owner's number) are the one
+  `sms_settings` row (task 10.2), read through `SmsSettingsRow`; `SmsSettings.For(kind)` hands a kind's columns
+  back as one `SmsKindSettings`. A `FluentValidation` validator found by the assembly scan must be buildable by DI:
+  a child validator that takes the kind in its constructor broke startup, so the per-kind checks are `Custom` rules.
 - Perl with `-CSD` decodes the files it edits but not its own script: Persian typed inside a `-e` program is written
   back double-encoded (`Ø¨Ø§...`). Put Persian replacement text in a file and splice it in, or use the Edit tool.
