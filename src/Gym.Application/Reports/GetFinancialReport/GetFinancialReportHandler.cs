@@ -107,52 +107,40 @@ public sealed class GetFinancialReportHandler(
             .Where(sale => sale.Source != SaleSource.Miscellaneous && sale.Source != SaleSource.Analysis);
         var sales = await gymSales.SumAsync(sale => sale.Amount, cancellationToken);
 
-        // What has been paid on those same sales so far, by method, refunds taken off (decided with
-        // the developer, 1405/07/14). Whenever it was paid: the question is how these sales were
-        // paid, not what came in during the range. An unpaid sale has no method, so the three can
-        // add up to less than «فروش». The ids are read first: a plan, a charge and a cafe order
-        // each have their own column on a payment, and ids never repeat across them.
-        var saleIds = await gymSales.Select(sale => sale.Id).ToListAsync(cancellationToken);
-        var paidOnSales = await db.Payments
-            .AsNoTracking()
-            .Where(payment =>
-                (payment.SubscriptionId != null && saleIds.Contains(payment.SubscriptionId.Value)) ||
-                (payment.ServiceChargeId != null && saleIds.Contains(payment.ServiceChargeId.Value)) ||
-                (payment.CafeOrderId != null && saleIds.Contains(payment.CafeOrderId.Value)))
-            .GroupBy(payment => payment.Method)
-            .Select(group => new
-            {
-                Method = group.Key,
-                Net = group.Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount),
-            })
-            .ToDictionaryAsync(row => row.Method, row => row.Net, cancellationToken);
+        // How much of those same sales has been paid so far, refunds taken off, whenever it was
+        // paid; the rest of «فروش» is still owed («نسیه»). Decided with the developer, 1405/07/14,
+        // so that «فروش» is never read as money that should be in the drawer.
+        var salesPaid = await gymSales.SumAsync(sale => sale.NetPaid, cancellationToken);
 
-        // The same sales, counted per kind (§12 *Financial report*, «تعداد فروش»).
+        // The same sales, counted and priced per kind (§12 *Financial report*: «تعداد فروش», and
+        // the price behind «خرید پلن» and «تک‌جلسه‌ای», by the day each was sold, 1405/07/14).
         var soldByKind = await liveSales
             .GroupBy(sale => sale.Source)
-            .Select(group => new { Source = group.Key, Count = group.Count() })
-            .ToDictionaryAsync(row => row.Source, row => row.Count, cancellationToken);
+            .Select(group => new { Source = group.Key, Count = group.Count(), Amount = group.Sum(sale => sale.Amount) })
+            .ToDictionaryAsync(row => row.Source, row => new Sold(row.Count, row.Amount), cancellationToken);
 
         // The union knows a plan, not a single visit, so the single visits among those plans are
         // counted on their own, with the union's own rule: sold in the range, not cancelled.
-        var singleVisitsSold = await db.Subscriptions
+        var singleVisits = db.Subscriptions
             .AsNoTracking()
-            .CountAsync(
-                subscription => subscription.IsSingleSession &&
-                    subscription.CancelledAt == null &&
-                    subscription.CreatedAt >= start &&
-                    subscription.CreatedAt < end,
-                cancellationToken);
+            .Where(subscription => subscription.IsSingleSession &&
+                subscription.CancelledAt == null &&
+                subscription.CreatedAt >= start &&
+                subscription.CreatedAt < end);
+        var singleVisitsSold = new Sold(
+            await singleVisits.CountAsync(cancellationToken),
+            await singleVisits.SumAsync(subscription => subscription.Price, cancellationToken));
 
-        var plansSold = soldByKind.GetValueOrDefault(SaleSource.Subscription);
-        var sold = new Dictionary<RevenueSource, int>
+        var plansSold = soldByKind.GetValueOrDefault(SaleSource.Subscription) ?? Sold.None;
+        var sold = new Dictionary<RevenueSource, Sold>
         {
-            [RevenueSource.Membership] = plansSold - singleVisitsSold,
+            [RevenueSource.Membership] = new(
+                plansSold.Count - singleVisitsSold.Count, plansSold.Amount - singleVisitsSold.Amount),
             [RevenueSource.SingleSession] = singleVisitsSold,
-            [RevenueSource.Cardio] = soldByKind.GetValueOrDefault(SaleSource.Cardio),
-            [RevenueSource.Miscellaneous] = soldByKind.GetValueOrDefault(SaleSource.Miscellaneous),
-            [RevenueSource.Analysis] = soldByKind.GetValueOrDefault(SaleSource.Analysis),
-            [RevenueSource.Cafe] = soldByKind.GetValueOrDefault(SaleSource.CafeOrder),
+            [RevenueSource.Cardio] = soldByKind.GetValueOrDefault(SaleSource.Cardio) ?? Sold.None,
+            [RevenueSource.Miscellaneous] = soldByKind.GetValueOrDefault(SaleSource.Miscellaneous) ?? Sold.None,
+            [RevenueSource.Analysis] = soldByKind.GetValueOrDefault(SaleSource.Analysis) ?? Sold.None,
+            [RevenueSource.Cafe] = soldByKind.GetValueOrDefault(SaleSource.CafeOrder) ?? Sold.None,
         };
 
         return new RangeData(
@@ -167,7 +155,7 @@ public sealed class GetFinancialReportHandler(
                 .ToList(),
             expenses,
             sales,
-            paidOnSales,
+            salesPaid,
             sold);
     }
 
@@ -181,16 +169,24 @@ public sealed class GetFinancialReportHandler(
         var revenue = Flow(data.Payments);
 
         var bySource = Enum.GetValues<RevenueSource>()
-            .Select(source => new RevenueBySourceResponse(
-                source,
-                Flow(data.Payments.Where(payment => payment.Source == source)),
-                data.Sold.GetValueOrDefault(source)))
+            .Select(source =>
+            {
+                var sold = data.Sold.GetValueOrDefault(source) ?? Sold.None;
+                return new RevenueBySourceResponse(
+                    source,
+                    Flow(data.Payments.Where(payment => payment.Source == source)),
+                    sold.Count,
+                    sold.Amount);
+            })
             .ToList();
 
-        var byMethod = MethodOrder
-            .Select(method => new RevenueByMethodResponse(
-                method, Flow(data.Payments.Where(payment => payment.Method == method))))
-            .ToList();
+        var byMethod = ByMethod(data.Payments);
+
+        // «دریافتی», what should be in the drawer, the card reader and the account, and apart from
+        // it the money of فروشگاه and آنالیز, which belongs to someone else (decided with the
+        // developer, 1405/07/14).
+        var receivedByMethod = ByMethod(data.Payments.Where(payment => !IsShopOrAnalysis(payment.Source)));
+        var shopAndAnalysisByMethod = ByMethod(data.Payments.Where(payment => IsShopOrAnalysis(payment.Source)));
 
         var byStaff = data.Payments
             .GroupBy(payment => payment.ReceivedByUserId)
@@ -215,7 +211,7 @@ public sealed class GetFinancialReportHandler(
         // «سود خالص» is the gym's own revenue minus every expense: فروشگاه and آنالیز are left
         // out, as they are out of «فروش» (decided with the developer, 1405/07/14).
         var ownRevenue = bySource
-            .Where(row => row.Source is not (RevenueSource.Miscellaneous or RevenueSource.Analysis))
+            .Where(row => !IsShopOrAnalysis(row.Source))
             .Sum(row => row.Money.Net);
 
         // The cafe counts no stock (§8): what was spent restocking it is the nearest thing to its cost.
@@ -230,16 +226,31 @@ public sealed class GetFinancialReportHandler(
             revenue,
             bySource,
             byMethod,
+            receivedByMethod,
+            shopAndAnalysisByMethod,
             byStaff,
             data.Sales,
-            MethodOrder
-                .Select(method => new SalesPaidByMethodResponse(method, data.PaidOnSales.GetValueOrDefault(method)))
-                .ToList(),
+            data.SalesPaid,
+            data.Sales - data.SalesPaid,
             expenses,
             byCategory,
             ownRevenue - expenses,
             cafeNet - cafePurchasing);
     }
+
+    /// <summary>The three methods in the desk's order, each with what came in and went back out.</summary>
+    private static List<RevenueByMethodResponse> ByMethod(IEnumerable<PaymentFact> payments)
+    {
+        var list = payments.ToList();
+
+        return MethodOrder
+            .Select(method => new RevenueByMethodResponse(method, Flow(list.Where(payment => payment.Method == method))))
+            .ToList();
+    }
+
+    /// <summary>فروشگاه and آنالیز: someone else's business, run at the gym's desk (1405/07/14).</summary>
+    private static bool IsShopOrAnalysis(RevenueSource source) =>
+        source is RevenueSource.Miscellaneous or RevenueSource.Analysis;
 
     private static List<FinancialDayResponse> Days(DateOnly from, int length, RangeData data)
     {
@@ -307,8 +318,14 @@ public sealed class GetFinancialReportHandler(
         List<PaymentFact> Payments,
         List<ExpenseSum> Expenses,
         decimal Sales,
-        IReadOnlyDictionary<PaymentMethod, decimal> PaidOnSales,
-        IReadOnlyDictionary<RevenueSource, int> Sold);
+        decimal SalesPaid,
+        IReadOnlyDictionary<RevenueSource, Sold> Sold);
+
+    /// <summary>How many of one kind were sold in a range, and their price.</summary>
+    private sealed record Sold(int Count, decimal Amount)
+    {
+        public static readonly Sold None = new(0, 0m);
+    }
 
     /// <summary>Every sale of a range, whoever bought it and whatever it was (§12 <i>Sales in the history</i>).</summary>
     private sealed record SalesInRange(

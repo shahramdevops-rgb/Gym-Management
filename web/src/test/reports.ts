@@ -13,31 +13,32 @@ import { json } from "./mockApi";
 
 const zero = { received: 0, refunded: 0, net: 0 };
 
+const noMethods: FinancialPeriod["byMethod"] = [
+  { method: "Card", money: zero },
+  { method: "BankTransfer", money: zero },
+  { method: "Cash", money: zero },
+];
+
 function period(overrides: Partial<FinancialPeriod>): FinancialPeriod {
   return {
     from: "2026-09-23",
     to: "2026-10-04",
     revenue: zero,
     bySource: [
-      { source: "Membership", money: zero, sold: 0 },
-      { source: "SingleSession", money: zero, sold: 0 },
-      { source: "Cardio", money: zero, sold: 0 },
-      { source: "Miscellaneous", money: zero, sold: 0 },
-      { source: "Analysis", money: zero, sold: 0 },
-      { source: "Cafe", money: zero, sold: 0 },
+      { source: "Membership", money: zero, sold: 0, soldAmount: 0 },
+      { source: "SingleSession", money: zero, sold: 0, soldAmount: 0 },
+      { source: "Cardio", money: zero, sold: 0, soldAmount: 0 },
+      { source: "Miscellaneous", money: zero, sold: 0, soldAmount: 0 },
+      { source: "Analysis", money: zero, sold: 0, soldAmount: 0 },
+      { source: "Cafe", money: zero, sold: 0, soldAmount: 0 },
     ],
-    byMethod: [
-      { method: "Card", money: zero },
-      { method: "BankTransfer", money: zero },
-      { method: "Cash", money: zero },
-    ],
+    byMethod: noMethods,
+    receivedByMethod: noMethods,
+    shopAndAnalysisByMethod: noMethods,
     byStaff: [],
     sales: 0,
-    salesPaidByMethod: [
-      { method: "Card", amount: 0 },
-      { method: "BankTransfer", amount: 0 },
-      { method: "Cash", amount: 0 },
-    ],
+    salesPaid: 0,
+    salesOwed: 0,
     expenses: 0,
     expensesByCategory: [],
     netProfit: 0,
@@ -54,18 +55,50 @@ export const financialReport: FinancialReport = {
   current: period({
     revenue: { received: 13000000, refunded: 1000000, net: 12000000 },
     // 12 plans and 4 single visits sold in the range; the cafe's orders are counted too, never shown.
+    // The plans sold are worth more than was paid for them so far.
     bySource: [
-      { source: "Membership", money: { received: 9000000, refunded: 0, net: 9000000 }, sold: 12 },
-      { source: "SingleSession", money: { received: 600000, refunded: 0, net: 600000 }, sold: 4 },
-      { source: "Cardio", money: zero, sold: 0 },
-      { source: "Miscellaneous", money: { received: 1200000, refunded: 0, net: 1200000 }, sold: 3 },
-      { source: "Analysis", money: zero, sold: 0 },
-      { source: "Cafe", money: { received: 1200000, refunded: 0, net: 1200000 }, sold: 30 },
+      {
+        source: "Membership",
+        money: { received: 9000000, refunded: 0, net: 9000000 },
+        sold: 12,
+        soldAmount: 10800000,
+      },
+      {
+        source: "SingleSession",
+        money: { received: 600000, refunded: 0, net: 600000 },
+        sold: 4,
+        soldAmount: 600000,
+      },
+      { source: "Cardio", money: zero, sold: 0, soldAmount: 0 },
+      {
+        source: "Miscellaneous",
+        money: { received: 1200000, refunded: 0, net: 1200000 },
+        sold: 3,
+        soldAmount: 1200000,
+      },
+      { source: "Analysis", money: zero, sold: 0, soldAmount: 0 },
+      {
+        source: "Cafe",
+        money: { received: 1200000, refunded: 0, net: 1200000 },
+        sold: 30,
+        soldAmount: 1200000,
+      },
     ],
     byMethod: [
       { method: "Card", money: { received: 9000000, refunded: 0, net: 9000000 } },
       { method: "BankTransfer", money: zero },
       { method: "Cash", money: { received: 4000000, refunded: 1000000, net: 3000000 } },
+    ],
+    // The shop's 1,200,000 came by card: the gym's own card money is the rest.
+    receivedByMethod: [
+      { method: "Card", money: { received: 7800000, refunded: 0, net: 7800000 } },
+      { method: "BankTransfer", money: zero },
+      { method: "Cash", money: { received: 4000000, refunded: 1000000, net: 3000000 } },
+    ],
+    shopAndAnalysisByMethod: [
+      { method: "Card", money: { received: 1200000, refunded: 0, net: 1200000 } },
+      { method: "BankTransfer", money: zero },
+      { method: "Cash", money: zero },
     ],
     byStaff: [
       {
@@ -75,12 +108,8 @@ export const financialReport: FinancialReport = {
       },
     ],
     sales: 15000000,
-    // 2,000,000 of the sales are still owed, so these add up to 13,000,000.
-    salesPaidByMethod: [
-      { method: "Card", amount: 9000000 },
-      { method: "BankTransfer", amount: 1000000 },
-      { method: "Cash", amount: 3000000 },
-    ],
+    salesPaid: 13000000,
+    salesOwed: 2000000,
     expenses: 5000000,
     expensesByCategory: [
       { categoryId: "0199a000-0000-7000-8000-0000000000a1", name: "اجاره", amount: 5000000 },

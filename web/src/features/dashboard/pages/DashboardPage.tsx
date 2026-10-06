@@ -15,9 +15,11 @@ import {
   Repeat,
   ShoppingBag,
   Snowflake,
+  Store,
   Ticket,
   TrendingUp,
   UserPlus,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { useSearchParams } from "react-router";
@@ -54,7 +56,7 @@ import { RevenueChart } from "../components/RevenueChart";
 import { SectionHeading } from "../components/SectionHeading";
 import { StaffMoneyTable } from "../components/StaffMoneyTable";
 import { StatCard, StatCardsLoading } from "../components/StatCard";
-import { byJalaliMonth, conversionRate, outcomeOf, renewalRate } from "../figures";
+import { byJalaliMonth, conversionRate, methodsTotal, outcomeOf, renewalRate } from "../figures";
 import { defaultRangePreset, presetRange, rangeError, type ReportRange } from "../range";
 import type { Tone } from "../tone";
 
@@ -77,10 +79,10 @@ const formatCount = (value: number) => formatNumber(value);
 const salesLabel = "فروش (به غیر از آنالیز و فروشگاه)";
 
 /**
- * The methods on the «فروش» card, in the developer's own short words (1405/07/14): the card's
+ * The methods on the «دریافتی» cards, in the developer's own short words (1405/07/14): the card's
  * corner has room for one word each.
  */
-const salesMethodLabels: Record<PaymentMethod, string> = {
+const methodLabels: Record<PaymentMethod, string> = {
   Card: "کارت",
   BankTransfer: "انتقال",
   Cash: "نقد",
@@ -184,10 +186,26 @@ export function DashboardPage() {
                     previous: financial.data.previous.sales,
                     previousLabel: formatMoney(financial.data.previous.sales),
                   }}
-                  breakdown={financial.data.current.salesPaidByMethod.map((row) => ({
-                    label: salesMethodLabels[row.method],
-                    value: formatMoney(row.amount),
-                  }))}
+                  breakdown={[
+                    { label: "پرداخت‌شده", value: formatMoney(financial.data.current.salesPaid) },
+                    { label: "نسیه", value: formatMoney(financial.data.current.salesOwed) },
+                  ]}
+                />
+                <ReceivedCard
+                  label="دریافتی"
+                  tone="blue"
+                  icon={Wallet}
+                  hint="آنچه در بازه آمد، بدهی‌های قبلی هم، منهای بازگشت‌ها؛ بدون آنالیز و فروشگاه"
+                  current={financial.data.current.receivedByMethod}
+                  previous={financial.data.previous.receivedByMethod}
+                />
+                <ReceivedCard
+                  label="دریافتی آنالیز و فروشگاه"
+                  tone="amber"
+                  icon={Store}
+                  hint="پول آنالیز و فروشگاه، جدا از دریافتی باشگاه"
+                  current={financial.data.current.shopAndAnalysisByMethod}
+                  previous={financial.data.previous.shopAndAnalysisByMethod}
                 />
                 <StatCard
                   label="هزینه‌ها"
@@ -232,7 +250,6 @@ export function DashboardPage() {
                   tone="indigo"
                   icon={IdCard}
                   source="Membership"
-                  what="پلن‌ها"
                   report={financial.data}
                 />
                 <SourceCard
@@ -240,7 +257,6 @@ export function DashboardPage() {
                   tone="lime"
                   icon={Ticket}
                   source="SingleSession"
-                  what="تک‌جلسه‌ای"
                   report={financial.data}
                 />
               </>
@@ -476,24 +492,65 @@ function RenewalCard({
 }
 
 /**
- * The money received for one kind of sale in the range, by the day it was paid like «درآمد», with
- * how many were sold underneath (asked by the developer, 1405/07/14: «خرید پلن» and «تک‌جلسه‌ای»).
- * Both come from the financial report's sources, so they add up with the chart beside them.
+ * Money that came in during the range, by method, refunds taken off, written «کارت», «انتقال»,
+ * «نقد» in the card's corner (asked by the developer, 1405/07/14). The gym's own «دریافتی» is
+ * what the drawer, the card reader and the account should show for the range; فروشگاه and آنالیز
+ * have a card of their own, because their money is someone else's.
+ */
+function ReceivedCard({
+  label,
+  tone,
+  icon,
+  hint,
+  current,
+  previous,
+}: {
+  label: string;
+  tone: Tone;
+  icon: LucideIcon;
+  hint: string;
+  current: FinancialPeriod["byMethod"];
+  previous: FinancialPeriod["byMethod"];
+}) {
+  const total = methodsTotal(current);
+  const totalBefore = methodsTotal(previous);
+
+  return (
+    <StatCard
+      label={label}
+      tone={tone}
+      icon={icon}
+      value={formatMoney(total)}
+      hint={hint}
+      comparison={{
+        current: total,
+        previous: totalBefore,
+        previousLabel: formatMoney(totalBefore),
+      }}
+      breakdown={current.map((row) => ({
+        label: methodLabels[row.method],
+        value: formatMoney(row.money.net),
+      }))}
+    />
+  );
+}
+
+/**
+ * What one kind of sale sold for in the range, paid or not, by the day it was sold, with how many
+ * underneath (asked by the developer, 1405/07/14: «خرید پلن» and «تک‌جلسه‌ای»). By the sale's day,
+ * so a single visit sold last week and paid today is not today's: today's money is «دریافتی».
  */
 function SourceCard({
   label,
   tone,
   icon,
   source,
-  what,
   report,
 }: {
   label: string;
   tone: Tone;
   icon: LucideIcon;
   source: "Membership" | "SingleSession";
-  /** What the money was for, in the hint: «پلن‌ها», «تک‌جلسه‌ای». */
-  what: string;
   report: FinancialReport;
 }) {
   const current = report.current.bySource.find((row) => row.source === source);
@@ -505,12 +562,12 @@ function SourceCard({
       label={label}
       tone={tone}
       icon={icon}
-      value={formatMoney(current?.money.net ?? 0)}
-      hint={`پول دریافتی بابت ${what}؛ ${formatNumber(Number(current?.sold ?? 0))} ${noun} در این بازه فروخته شد`}
+      value={formatMoney(current?.soldAmount ?? 0)}
+      hint={`${formatNumber(Number(current?.sold ?? 0))} ${noun} در این بازه فروخته شد، پرداخت شده یا نشده`}
       comparison={{
-        current: current?.money.net ?? 0,
-        previous: previous?.money.net ?? 0,
-        previousLabel: formatMoney(previous?.money.net ?? 0),
+        current: current?.soldAmount ?? 0,
+        previous: previous?.soldAmount ?? 0,
+        previousLabel: formatMoney(previous?.soldAmount ?? 0),
       }}
     />
   );
