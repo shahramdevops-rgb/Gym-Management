@@ -2448,6 +2448,10 @@ export interface components {
             sold: number | string;
             /** Format: double */
             soldAmount: number | string;
+            /** Format: double */
+            soldPaid: number | string;
+            /** Format: double */
+            soldOwed: number | string;
         };
         RevenueByStaffResponse: {
             /** Format: uuid */

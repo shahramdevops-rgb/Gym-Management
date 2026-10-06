@@ -112,12 +112,19 @@ public sealed class GetFinancialReportHandler(
         // so that «فروش» is never read as money that should be in the drawer.
         var salesPaid = await gymSales.SumAsync(sale => sale.NetPaid, cancellationToken);
 
-        // The same sales, counted and priced per kind (§12 *Financial report*: «تعداد فروش», and
-        // the price behind «خرید پلن» and «تک‌جلسه‌ای», by the day each was sold, 1405/07/14).
+        // The same sales, counted, priced and with what has been paid on them per kind (§12
+        // *Financial report*: «تعداد فروش», and the figures of «خرید پلن» and «تک‌جلسه‌ای» with
+        // their «پرداخت‌شده» and «نسیه», by the day each was sold, 1405/07/14).
         var soldByKind = await liveSales
             .GroupBy(sale => sale.Source)
-            .Select(group => new { Source = group.Key, Count = group.Count(), Amount = group.Sum(sale => sale.Amount) })
-            .ToDictionaryAsync(row => row.Source, row => new Sold(row.Count, row.Amount), cancellationToken);
+            .Select(group => new
+            {
+                Source = group.Key,
+                Count = group.Count(),
+                Amount = group.Sum(sale => sale.Amount),
+                Paid = group.Sum(sale => sale.NetPaid),
+            })
+            .ToDictionaryAsync(row => row.Source, row => new Sold(row.Count, row.Amount, row.Paid), cancellationToken);
 
         // The union knows a plan, not a single visit, so the single visits among those plans are
         // counted on their own, with the union's own rule: sold in the range, not cancelled.
@@ -129,13 +136,20 @@ public sealed class GetFinancialReportHandler(
                 subscription.CreatedAt < end);
         var singleVisitsSold = new Sold(
             await singleVisits.CountAsync(cancellationToken),
-            await singleVisits.SumAsync(subscription => subscription.Price, cancellationToken));
+            await singleVisits.SumAsync(subscription => subscription.Price, cancellationToken),
+            await singleVisits
+                .Select(subscription => db.Payments
+                    .Where(payment => payment.SubscriptionId == subscription.Id)
+                    .Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : -payment.Amount))
+                .SumAsync(cancellationToken));
 
         var plansSold = soldByKind.GetValueOrDefault(SaleSource.Subscription) ?? Sold.None;
         var sold = new Dictionary<RevenueSource, Sold>
         {
             [RevenueSource.Membership] = new(
-                plansSold.Count - singleVisitsSold.Count, plansSold.Amount - singleVisitsSold.Amount),
+                plansSold.Count - singleVisitsSold.Count,
+                plansSold.Amount - singleVisitsSold.Amount,
+                plansSold.Paid - singleVisitsSold.Paid),
             [RevenueSource.SingleSession] = singleVisitsSold,
             [RevenueSource.Cardio] = soldByKind.GetValueOrDefault(SaleSource.Cardio) ?? Sold.None,
             [RevenueSource.Miscellaneous] = soldByKind.GetValueOrDefault(SaleSource.Miscellaneous) ?? Sold.None,
@@ -176,7 +190,9 @@ public sealed class GetFinancialReportHandler(
                     source,
                     Flow(data.Payments.Where(payment => payment.Source == source)),
                     sold.Count,
-                    sold.Amount);
+                    sold.Amount,
+                    sold.Paid,
+                    sold.Amount - sold.Paid);
             })
             .ToList();
 
@@ -322,9 +338,9 @@ public sealed class GetFinancialReportHandler(
         IReadOnlyDictionary<RevenueSource, Sold> Sold);
 
     /// <summary>How many of one kind were sold in a range, and their price.</summary>
-    private sealed record Sold(int Count, decimal Amount)
+    private sealed record Sold(int Count, decimal Amount, decimal Paid)
     {
-        public static readonly Sold None = new(0, 0m);
+        public static readonly Sold None = new(0, 0m, 0m);
     }
 
     /// <summary>Every sale of a range, whoever bought it and whatever it was (§12 <i>Sales in the history</i>).</summary>

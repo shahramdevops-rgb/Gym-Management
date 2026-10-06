@@ -167,9 +167,12 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
             (PaymentMethod.Cash, 0m),
         ]);
 
-        // «خرید پلن» and «تک‌جلسه‌ای» by the day they were sold, paid or not.
-        current.BySource.Single(row => row.Source == RevenueSource.Membership).SoldAmount.ShouldBe(900_000m);
-        current.BySource.Single(row => row.Source == RevenueSource.SingleSession).SoldAmount.ShouldBe(150_000m);
+        // «خرید پلن» and «تک‌جلسه‌ای» by the day they were sold, paid or not, and of it what was
+        // paid and what is still owed: the older plan paid today is not this range's sale.
+        var plans = current.BySource.Single(row => row.Source == RevenueSource.Membership);
+        (plans.SoldAmount, plans.SoldPaid, plans.SoldOwed).ShouldBe((900_000m, 560_000m, 340_000m));
+        var singleVisits = current.BySource.Single(row => row.Source == RevenueSource.SingleSession);
+        (singleVisits.SoldAmount, singleVisits.SoldPaid, singleVisits.SoldOwed).ShouldBe((150_000m, 0m, 150_000m));
     }
 
     [Fact]

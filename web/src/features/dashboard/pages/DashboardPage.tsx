@@ -460,6 +460,10 @@ export function DashboardPage() {
 /**
  * Renewed ÷ (ended − waiting) of the range (§12 *Operational reports*). Plans still inside their
  * 30 days are counted apart, so the Owner sees why the rate rests on fewer plans than ended.
+ *
+ * Said in plain words for the Owner (asked by the developer, 1405/07/14, after «۳ از ۴ پلن
+ * تمام‌شده؛ ۱ در انتظار» read as a riddle): a sentence for what the rate measures, and in the
+ * corner the three counts it is made of, the first divided by the first two.
  */
 function RenewalCard({
   renewed,
@@ -471,7 +475,8 @@ function RenewalCard({
   waiting: number;
 }) {
   const rate = renewalRate(renewed, ended, waiting);
-  const decided = ended - waiting;
+  const notRenewed = ended - waiting - renewed;
+  const windowDays = toPersianDigits(reportThresholds.windowDays);
 
   return (
     <StatCard
@@ -481,12 +486,19 @@ function RenewalCard({
       value={formatPercent(rate)}
       progress={rate}
       hint={
-        rate === null
-          ? waiting > 0
-            ? `${formatNumber(waiting)} پلن تمام‌شده هنوز فرصت تمدید دارد`
-            : "در این بازه پلنی تمام نشده است"
-          : `${formatNumber(renewed)} از ${formatNumber(decided)} پلن تمام‌شده؛ ${formatNumber(waiting)} در انتظار`
+        ended === 0
+          ? "در این بازه پلن هیچ عضوی تمام نشده است."
+          : `از اعضایی که پلنشان در این بازه تمام شد، چند درصد تا ${windowDays} روز بعد دوباره پلن خریدند.${
+              waiting > 0
+                ? ` «در انتظار»: هنوز ${windowDays} روزشان نگذشته و در درصد حساب نشده‌اند.`
+                : ""
+            }`
       }
+      breakdown={[
+        { label: "تمدید کردند", value: `${formatNumber(renewed)} پلن` },
+        { label: "تمدید نکردند", value: `${formatNumber(notRenewed)} پلن` },
+        { label: "در انتظار", value: `${formatNumber(waiting)} پلن` },
+      ]}
     />
   );
 }
@@ -537,8 +549,9 @@ function ReceivedCard({
 
 /**
  * What one kind of sale sold for in the range, paid or not, by the day it was sold, with how many
- * underneath (asked by the developer, 1405/07/14: «خرید پلن» and «تک‌جلسه‌ای»). By the sale's day,
- * so a single visit sold last week and paid today is not today's: today's money is «دریافتی».
+ * underneath and, like «فروش», how much of it is paid and how much still owed (asked by the
+ * developer, 1405/07/14: «خرید پلن» and «تک‌جلسه‌ای»). By the sale's day, so a single visit sold
+ * last week and paid today is not today's: today's money is «دریافتی».
  */
 function SourceCard({
   label,
@@ -569,6 +582,10 @@ function SourceCard({
         previous: previous?.soldAmount ?? 0,
         previousLabel: formatMoney(previous?.soldAmount ?? 0),
       }}
+      breakdown={[
+        { label: "پرداخت‌شده", value: formatMoney(current?.soldPaid ?? 0) },
+        { label: "نسیه", value: formatMoney(current?.soldOwed ?? 0) },
+      ]}
     />
   );
 }
