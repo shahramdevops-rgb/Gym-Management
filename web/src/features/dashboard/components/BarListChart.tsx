@@ -1,9 +1,6 @@
-import type { LucideIcon } from "lucide-react";
-
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { toneColorStyle, type Tone } from "../tone";
 import { ChartCard } from "./ChartCard";
 
 /** How many of a bar's thing were sold in the range, shown on the bar itself. */
@@ -30,15 +27,8 @@ interface BarListChartProps {
   items: BarListItem[];
   /** The exact value, written at the bar's tip. */
   formatValue: (value: number) => string;
-  icon: LucideIcon;
-  /** The chart's accent, its icon's and its bars' colour. */
-  tone: Tone;
-  /**
-   * The bars' colour when it is not the tone's: money in and money out are drawn in the two series
-   * colours of the revenue chart (`var(--chart-1)`, `var(--chart-2)`), so expenses never read as
-   * revenue.
-   */
-  color?: string;
+  /** Money out is drawn in the expenses colour, so it never reads as revenue. */
+  color?: "var(--chart-1)" | "var(--chart-2)";
 }
 
 /**
@@ -76,17 +66,15 @@ export function BarListChart({
   description,
   items,
   formatValue,
-  icon,
-  tone,
-  color = `var(--tone-${tone})`,
+  color = "var(--chart-1)",
 }: BarListChartProps) {
   const largest = Math.max(0, ...items.map((item) => item.value));
   // A range with plans sold and nothing yet paid still has something to say.
   const empty = items.every((item) => item.value === 0 && (item.sold?.count ?? 0) === 0);
 
   return (
-    <ChartCard title={title} description={description} icon={icon} tone={tone} empty={empty}>
-      <ul className="space-y-3" style={toneColorStyle(color)}>
+    <ChartCard title={title} description={description} empty={empty}>
+      <ul className="space-y-2">
         {items.map((item) => {
           const percent = largest > 0 ? Math.max(0, (item.value / largest) * 100) : 0;
           const sold = item.sold;
@@ -99,14 +87,14 @@ export function BarListChart({
               <div className="flex min-w-0 items-center gap-2">
                 <div
                   className={cn(
-                    "flex min-w-0 flex-1 items-center gap-1.5 rounded-full bg-muted/70",
-                    sold === undefined ? "h-4" : "h-6",
+                    "flex min-w-0 flex-1 items-center gap-1.5",
+                    sold === undefined ? "h-5" : "h-6",
                   )}
                 >
                   {percent > 0 && (
                     <div
-                      className="flex h-full items-center rounded-full px-1 tone-bar shadow-xs"
-                      style={{ inlineSize: `${percent}%` }}
+                      className="flex h-full items-center rounded-e-sm px-1"
+                      style={{ inlineSize: `${percent}%`, background: color }}
                     >
                       {sold !== undefined && countInside && <SoldPill sold={sold} />}
                     </div>

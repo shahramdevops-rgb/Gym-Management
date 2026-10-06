@@ -9,14 +9,6 @@ export function hoveredRow<T>(props: TooltipContentProps): T | undefined {
   return props.payload[0]?.payload as T | undefined;
 }
 
-/**
- * An SVG id from React's `useId`, which may hold characters (`:`, `«`) that break a `url(#…)`
- * reference: keeps letters, digits, `-` and `_`.
- */
-export function svgId(reactId: string, name: string): string {
-  return `${name}-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
-}
-
 /** RIGHT-TO-LEFT MARK: invisible, and makes the text after it start as right-to-left text. */
 const rightToLeftMark = String.fromCodePoint(0x200f);
 

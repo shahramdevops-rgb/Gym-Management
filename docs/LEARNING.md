@@ -1504,3 +1504,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **Reuse a figure the API already sends.** «دریافتی بوفه» needed no endpoint change: the cafe's received money was already in `bySource`, behind the revenue-by-source chart. A new card is sometimes only a new view of the same row.
 - **Remove a figure all the way down.** «سود بوفه» could have been hidden on the page alone, but then the API would keep computing and sending a number nobody reads, and the next person would wonder where it is shown. Taking it out of the response record let the compiler point at every place that used it, and the regenerated types did the same on the frontend.
 - **My notes:**
+
+## 9.3 follow-up — The plain dashboard for the handover (داشبورد ساده برای تحویل)
+
+- **An annotated tag keeps a design without keeping dead code.** `git tag -a dashboard-colour-v1` names the last coloured commit for good, with a message, and `git push origin <tag>` puts it on GitHub. A branch would invite more commits; code kept behind a flag would rot unused and confuse readers. The tag costs nothing and the files come back with `git checkout <tag> -- <path>`.
+- **Separate look commits from content commits, and reverting is cheap.** The colour commit said "look only: the same figures, rules and tests", so every chart and list component could be restored whole from the commit before it. Only the two files that later commits changed for content (`StatCard`, `DashboardPage`) needed a hand merge.
+- **Tests that check meaning survive a restyle both ways.** The dashboard tests find cards by their `<dt>` and read text, so they passed on the plain look, on the coloured look, and on the plain look again.
+- **Some colour is a rule, some is decoration.** A loss in red with its minus sign is in BUSINESS_RULES.md §12, so it stays in the plain look; the accents, icons and banner were decoration and could go. Check the rules before removing colour.
+- **My notes:**

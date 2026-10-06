@@ -1,10 +1,7 @@
-import type { LucideIcon } from "lucide-react";
-import { useId } from "react";
 import { Bar, BarChart, CartesianGrid, LabelList, Tooltip, XAxis, YAxis } from "recharts";
 
-import { axisTick, gridStroke, hoveredRow, svgId, svgText } from "../chartStyle";
-import type { Tone } from "../tone";
-import { BarGradient, ChartCard, ChartTooltip, type TooltipRow } from "./ChartCard";
+import { axisTick, gridStroke, hoveredRow, svgText } from "../chartStyle";
+import { ChartCard, ChartTooltip, type TooltipRow } from "./ChartCard";
 
 /** One Jalali month's column. Null is a month with nothing to say (no plan decided yet). */
 export interface MonthlyPoint {
@@ -22,9 +19,6 @@ interface MonthlyChartProps {
   formatValue: (value: number) => string;
   /** A fixed top for the axis, as a rate's 100, so a month at 40٪ never looks full. */
   max?: number;
-  icon: LucideIcon;
-  /** The chart's accent and its one series' colour. */
-  tone: Tone;
 }
 
 /**
@@ -40,14 +34,11 @@ export function MonthlyChart({
   valueName,
   formatValue,
   max,
-  icon,
-  tone,
 }: MonthlyChartProps) {
   const empty = points.every((point) => point.value === null || point.value === 0);
-  const fill = svgId(useId(), "monthly");
 
   return (
-    <ChartCard title={title} description={description} icon={icon} tone={tone} empty={empty}>
+    <ChartCard title={title} description={description} empty={empty}>
       <div dir="ltr">
         <BarChart
           responsive
@@ -55,8 +46,7 @@ export function MonthlyChart({
           style={{ width: "100%", height: 240 }}
           margin={{ top: 20 }}
         >
-          <BarGradient id={fill} color={`var(--tone-${tone})`} />
-          <CartesianGrid vertical={false} strokeDasharray="4 4" stroke={gridStroke} />
+          <CartesianGrid vertical={false} stroke={gridStroke} />
           <XAxis
             dataKey="label"
             reversed
@@ -102,9 +92,9 @@ export function MonthlyChart({
           <Bar
             dataKey="value"
             name={valueName}
-            fill={`url(#${fill})`}
-            maxBarSize={28}
-            radius={[6, 6, 0, 0]}
+            fill="var(--chart-1)"
+            maxBarSize={24}
+            radius={[4, 4, 0, 0]}
           >
             <LabelList
               dataKey="value"
