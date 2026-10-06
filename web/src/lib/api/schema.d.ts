@@ -1716,8 +1716,6 @@ export interface components {
             expensesByCategory: components["schemas"]["ExpensesByCategoryResponse"][];
             /** Format: double */
             netProfit: number | string;
-            /** Format: double */
-            cafeGrossProfit: number | string;
         };
         FinancialReportResponse: {
             current: components["schemas"]["FinancialPeriodResponse"];

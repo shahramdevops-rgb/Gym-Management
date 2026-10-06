@@ -8,7 +8,9 @@ import {
   CircleCheck,
   Coffee,
   CreditCard,
+  CupSoda,
   Footprints,
+  HeartPulse,
   Hourglass,
   IdCard,
   Receipt,
@@ -188,7 +190,7 @@ export function DashboardPage() {
                   }}
                   breakdown={[
                     { label: "پرداخت‌شده", value: formatMoney(financial.data.current.salesPaid) },
-                    { label: "نسیه", value: formatMoney(financial.data.current.salesOwed) },
+                    { label: "مانده", value: formatMoney(financial.data.current.salesOwed) },
                   ]}
                 />
                 <ReceivedCard
@@ -206,6 +208,32 @@ export function DashboardPage() {
                   hint="پول آنالیز و فروشگاه، جدا از دریافتی باشگاه"
                   current={financial.data.current.shopAndAnalysisByMethod}
                   previous={financial.data.previous.shopAndAnalysisByMethod}
+                />
+                <SourceReceivedCard
+                  tone="brown"
+                  icon={CupSoda}
+                  source="Cafe"
+                  report={financial.data}
+                />
+                <SourceReceivedCard
+                  tone="pink"
+                  icon={HeartPulse}
+                  source="Cardio"
+                  report={financial.data}
+                />
+                <SourceCard
+                  label="دریافتی پلن"
+                  tone="indigo"
+                  icon={IdCard}
+                  source="Membership"
+                  report={financial.data}
+                />
+                <SourceCard
+                  label="دریافتی تک‌جلسه‌ای"
+                  tone="lime"
+                  icon={Ticket}
+                  source="SingleSession"
+                  report={financial.data}
                 />
                 <StatCard
                   label="هزینه‌ها"
@@ -231,33 +259,6 @@ export function DashboardPage() {
                     previous: financial.data.previous.netProfit,
                     previousLabel: formatMoney(financial.data.previous.netProfit),
                   }}
-                />
-                <StatCard
-                  label="سود بوفه"
-                  tone="brown"
-                  icon={Coffee}
-                  value={formatMoney(financial.data.current.cafeGrossProfit)}
-                  outcome={outcomeOf(financial.data.current.cafeGrossProfit)}
-                  hint="درآمد بوفه منهای هزینهٔ «خرید بوفه»"
-                  comparison={{
-                    current: financial.data.current.cafeGrossProfit,
-                    previous: financial.data.previous.cafeGrossProfit,
-                    previousLabel: formatMoney(financial.data.previous.cafeGrossProfit),
-                  }}
-                />
-                <SourceCard
-                  label="خرید پلن"
-                  tone="indigo"
-                  icon={IdCard}
-                  source="Membership"
-                  report={financial.data}
-                />
-                <SourceCard
-                  label="تک‌جلسه‌ای"
-                  tone="lime"
-                  icon={Ticket}
-                  source="SingleSession"
-                  report={financial.data}
                 />
               </>
             )}
@@ -548,10 +549,50 @@ function ReceivedCard({
 }
 
 /**
+ * One source's money that came in during the range, old debts included, refunds taken off: one
+ * figure, without the methods (asked by the developer, 1405/07/14: «دریافتی بوفه», then
+ * «دریافتی هوازی»). It is part of «دریافتی», and the card says so, so the two are not added
+ * together.
+ */
+function SourceReceivedCard({
+  tone,
+  icon,
+  source,
+  report,
+}: {
+  tone: Tone;
+  icon: LucideIcon;
+  source: "Cafe" | "Cardio";
+  report: FinancialReport;
+}) {
+  const current = report.current.bySource.find((row) => row.source === source);
+  const previous = report.previous.bySource.find((row) => row.source === source);
+  const total = current?.money.net ?? 0;
+  const totalBefore = previous?.money.net ?? 0;
+  const name = revenueSourceLabels[source];
+
+  return (
+    <StatCard
+      label={`دریافتی ${name}`}
+      tone={tone}
+      icon={icon}
+      value={formatMoney(total)}
+      hint={`پول ${name} که در بازه آمد، منهای بازگشت‌ها؛ جزئی از «دریافتی» است`}
+      comparison={{
+        current: total,
+        previous: totalBefore,
+        previousLabel: formatMoney(totalBefore),
+      }}
+    />
+  );
+}
+
+/**
  * What one kind of sale sold for in the range, paid or not, by the day it was sold, with how many
  * underneath and, like «فروش», how much of it is paid and how much still owed (asked by the
- * developer, 1405/07/14: «خرید پلن» and «تک‌جلسه‌ای»). By the sale's day, so a single visit sold
- * last week and paid today is not today's: today's money is «دریافتی».
+ * developer, 1405/07/14: «خرید پلن» and «تک‌جلسه‌ای», renamed «دریافتی پلن» and «دریافتی
+ * تک‌جلسه‌ای» the same day, the figure unchanged; what is owed is «مانده»). By the sale's day, so
+ * a single visit sold last week and paid today is not today's: today's money is «دریافتی».
  */
 function SourceCard({
   label,
@@ -584,7 +625,7 @@ function SourceCard({
       }}
       breakdown={[
         { label: "پرداخت‌شده", value: formatMoney(current?.soldPaid ?? 0) },
-        { label: "نسیه", value: formatMoney(current?.soldOwed ?? 0) },
+        { label: "مانده", value: formatMoney(current?.soldOwed ?? 0) },
       ]}
     />
   );

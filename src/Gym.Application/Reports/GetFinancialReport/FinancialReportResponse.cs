@@ -40,9 +40,6 @@ public sealed record FinancialReportResponse(
 /// Net revenue without فروشگاه and آنالیز, minus every expense (BUSINESS_RULES.md §12
 /// <i>Financial report</i>).
 /// </param>
-/// <param name="CafeGrossProfit">
-/// The cafe's net revenue minus the «خرید بوفه» expenses; «سود بوفه» on the dashboard.
-/// </param>
 public sealed record FinancialPeriodResponse(
     DateOnly From,
     DateOnly To,
@@ -57,8 +54,7 @@ public sealed record FinancialPeriodResponse(
     decimal SalesOwed,
     decimal Expenses,
     IReadOnlyList<ExpensesByCategoryResponse> ExpensesByCategory,
-    decimal NetProfit,
-    decimal CafeGrossProfit);
+    decimal NetProfit);
 
 /// <param name="Refunded">The refunds, as a positive figure.</param>
 /// <param name="Net">Received minus refunded.</param>

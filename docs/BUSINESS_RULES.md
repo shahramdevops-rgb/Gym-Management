@@ -1293,7 +1293,8 @@ dashboard (9.3).
     «sold» above, and the history's sales totals keep them.
   - **Paid and still owed** (decided with the developer, 1405/07/14): what has been paid so far
     on those same sales, refunds taken off, whenever it was paid («پرداخت‌شده»), and the rest of
-    «فروش», still owed («نسیه»). The dashboard writes both inside the «فروش» card, beside the
+    «فروش», still owed («مانده», first written «نسیه», renamed by the developer, 1405/07/14).
+    The dashboard writes both inside the «فروش» card, beside the
     figure. A sale on credit is in «فروش» but not in the drawer, and the Owner checking the drawer
     at night must not be sent looking for it.
 - **Received («دریافتی»)** (decided with the developer, 1405/07/14): the revenue by method, card,
@@ -1311,10 +1312,10 @@ dashboard (9.3).
   revenue chart and the revenue breakdowns, but has no card of its own: «درآمد ناخالص» and
   «صندوق نقدی» were taken off the summary, and «فروش» took the first place, with «دریافتی»
   beside it in their stead (asked by the developer, 1405/07/14).
-- **Cafe gross profit («سود بوفه» on the dashboard, 1405/07/14) = the cafe's net revenue − expenses in the «خرید بوفه» category** of the same
-  range (the seeded category, by its fixed id, so a rename does not break it). The cafe counts no
-  stock (§8), so this is the closest the gym gets to a margin, and only over a range long enough for
-  purchases and sales to even out.
+- **No cafe profit** (removed by the developer, 1405/07/14). «سود بوفه», the cafe's net revenue
+  minus the «خرید بوفه» expenses, was taken off the dashboard and out of the report. The cafe's
+  money is shown as «دریافتی بوفه» (*Dashboard* below), and «خرید بوفه» stays an ordinary
+  expense category, counted in «هزینه‌ها» and «سود خالص».
 - **Compared with the range before it**: the same figures for the range of the same length ending
   the day before `from` (1405/07/01–07/12 is compared with 1405/06/19–06/30).
 - **Day by day**: for every day of the range, net revenue and expenses, for the chart. A day with
@@ -1431,24 +1432,29 @@ on one page.
   green when it is good news and red when it is bad (expenses going up is bad news). When the
   range before had nothing or a loss, a percent says nothing true, and the card shows the figure
   before instead. New members and the renewal rate have no comparison: their reports send none.
-- **«خرید پلن» and «تک‌جلسه‌ای»** (asked by the developer, 1405/07/14) are two cards of the
+- **«دریافتی پلن» and «دریافتی تک‌جلسه‌ای»** (asked by the developer, 1405/07/14; first named
+  «خرید پلن» and «تک‌جلسه‌ای», renamed the same day, the figure unchanged) are two cards of the
   range's summary: what the membership plans and the single visits sold in the range were sold
   for, paid or not, **by the day of the sale**, compared with the range before, with how many
   were sold underneath, and in the card's corner, like «فروش», «پرداخت‌شده» (paid so far on those
-  sales, refunds taken off) and «نسیه» (still owed). First drawn as the money received for them by the day it was paid, they
+  sales, refunds taken off) and «مانده» (still owed). First drawn as the money received for them by the day it was paid, they
   showed a single visit sold days earlier and paid today as today's, with nothing sold today;
   today's money is «دریافتی».
 - **The renewal rate in plain words** (asked by the developer, 1405/07/14): the card says what it
   measures, "of the members whose plan ended in this range, what percent bought a plan again
   within 30 days", and lists in its corner «تمدید کردند», «تمدید نکردند» and «در انتظار»; the
   rate is the first over the first two. "Waiting" is explained on the card when there are any.
-- **The summary's order** (1405/07/14): «فروش», «دریافتی», «دریافتی آنالیز و فروشگاه», then
-  expenses, net profit and the cafe's profit, then the plans, the single visits and the
-  attendance and members' figures. Beside the renewal rate
+- **«دریافتی بوفه»** (asked by the developer, 1405/07/14): the cafe's money that came in during
+  the range, old tabs included, refunds taken off, compared with the range before. One figure,
+  without card, transfer and cash. It is part of «دریافتی», and the card says so.
+  **«دریافتی هوازی»** beside it (asked by the developer, 1405/07/14) is the same for هوازی.
+- **The summary's order** (1405/07/14): «فروش», «دریافتی», «دریافتی آنالیز و فروشگاه»,
+  «دریافتی بوفه», «دریافتی هوازی», «دریافتی پلن», «دریافتی تک‌جلسه‌ای», then expenses and net
+  profit, then the attendance and members' figures. Beside the renewal rate
   sits the single visit to plan conversion rate (*Operational reports* above), without a
   comparison, like the renewal rate.
-- **A profit is green, a loss is red** (decided with the developer, 1405/07/14): «سود خالص» and
-  «سود ناخالص بوفه» show their figure in green above zero and in red below it, with its minus
+- **A profit is green, a loss is red** (decided with the developer, 1405/07/14): «سود خالص»
+  shows its figure in green above zero and in red below it, with its minus
   sign («−۳۰٬۵۰۰٬۰۰۰ تومان»). A month without revenue can end in a loss, and the Owner must see
   it as one, not as a missing figure. Zero is neither colour.
 - **What does not depend on the range** (plans today, receivables, needs attention) stays the same

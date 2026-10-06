@@ -274,7 +274,7 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
     // ---- Financial report: expenses and profit ----
 
     [Fact]
-    public async Task Financial_Expenses_ByCategoryWithVoidedLeftOut_GiveNetAndCafeGrossProfit()
+    public async Task Financial_Expenses_ByCategoryWithVoidedLeftOut_GiveNetProfit()
     {
         var (owner, token, _) = await OwnerClientAsync();
         var plan = await AssignOkAsync(owner, token, (await AddMemberAsync("علی رضایی")).Id);
@@ -295,7 +295,6 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
             new ExpensesByCategoryResponse(ExpenseCategory.CafePurchasingId, "خرید بوفه", 25_000m),
         ]);
         current.NetProfit.ShouldBe(960_000m - 525_000m);
-        current.CafeGrossProfit.ShouldBe(60_000m - 25_000m);
     }
 
     [Fact]
