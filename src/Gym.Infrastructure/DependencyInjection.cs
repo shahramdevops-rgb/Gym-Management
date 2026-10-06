@@ -4,6 +4,7 @@ using Gym.Application.Common.Security;
 using Gym.Application.Common.Sms;
 using Gym.Application.Staff;
 using Gym.Domain.Auth;
+using Gym.Domain.Notifications;
 using Gym.Infrastructure.Attendances;
 using Gym.Infrastructure.Calendar;
 using Gym.Infrastructure.Identity;
@@ -142,6 +143,17 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<SmsOptions>, SmsOptionsValidator>();
         services.AddSingleton<ISmsSender, FakeSmsSender>();
+
+        // Sms:MaxAttempts and Sms:RetryDelays as the domain's schedule (BUSINESS_RULES.md §0), and the
+        // daily runs as Hangfire recurring jobs, moved whenever the settings page is saved (task 10.3).
+        services.AddSingleton(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<SmsOptions>>().Value;
+
+            return new SmsRetrySchedule(options.MaxAttempts, options.RetryDelays);
+        });
+        services.AddSingleton<ISmsRunSchedule, HangfireSmsRunSchedule>();
+        services.AddScoped<DailySmsJob>();
 
         // Without this, /health would only report that the process is running, and an
         // orchestrator would happily route traffic to an API that cannot reach its database.

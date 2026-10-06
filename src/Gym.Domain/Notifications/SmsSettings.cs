@@ -88,6 +88,10 @@ public sealed class SmsSettings : Entity
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
+    /// <summary>Nothing is sent outside 08:00–22:00, both included (§10 <i>Sending</i>).</summary>
+    public static bool IsWithinSendingHours(TimeOnly localTime) =>
+        localTime >= EarliestSendTime && localTime <= LatestSendTime;
+
     /// <summary>The smallest and largest number each kind accepts (§10, the settings table).</summary>
     public static (int Min, int Max) ThresholdRange(NotificationKind kind) => kind switch
     {
@@ -206,7 +210,7 @@ public sealed class SmsSettings : Entity
             return null;
         }
 
-        var inWindow = time >= EarliestSendTime && time <= LatestSendTime;
+        var inWindow = IsWithinSendingHours(time);
         var onQuarter = time.Minute % SendTimeStepMinutes == 0 && time.Second == 0 && time.Millisecond == 0
             && time.Microsecond == 0 && time.Nanosecond == 0;
 

@@ -195,6 +195,32 @@ public sealed class NotificationTests
         notification.ErrorCode.ShouldBe(409);
     }
 
+    [Fact]
+    public void MarkInterrupted_LeftPendingByAStoppedRun_IsUnknownWithNoAttemptCounted()
+    {
+        // The request may or may not have left: never sent again by itself (§10 The daily runs).
+        var notification = Pending();
+
+        notification.MarkInterrupted().IsSuccess.ShouldBeTrue();
+
+        notification.Status.ShouldBe(NotificationStatus.Unknown);
+        notification.Attempts.ShouldBe(0);
+        notification.LastAttemptAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void MarkInterrupted_AfterARetryableFailure_KeepsItsAttemptsAndCode()
+    {
+        var notification = Pending();
+        notification.RecordRetryableFailure(409, Now);
+
+        notification.MarkInterrupted().IsSuccess.ShouldBeTrue();
+
+        notification.Status.ShouldBe(NotificationStatus.Unknown);
+        notification.Attempts.ShouldBe(1);
+        notification.ErrorCode.ShouldBe(409);
+    }
+
     public static TheoryData<string> Settled => ["Sent", "Failed", "Unknown"];
 
     [Theory]
@@ -209,6 +235,7 @@ public sealed class NotificationTests
         notification.MarkFailed(424, Now).Error.ShouldBe(NotificationErrors.NotPending);
         notification.MarkUnknown(Now).Error.ShouldBe(NotificationErrors.NotPending);
         notification.GiveUp().Error.ShouldBe(NotificationErrors.NotPending);
+        notification.MarkInterrupted().Error.ShouldBe(NotificationErrors.NotPending);
 
         notification.Status.ToString().ShouldBe(status);
         notification.Attempts.ShouldBe(attempts);

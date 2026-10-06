@@ -38,6 +38,8 @@ public sealed class GymCalendar(TimeProvider time, IOptions<GymCalendarOptions> 
 
     public DateOnly Today() => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(time.GetUtcNow(), _timeZone).DateTime);
 
+    public TimeOnly TimeOfDay() => TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(time.GetUtcNow(), _timeZone).DateTime);
+
     public DateTimeOffset StartOfDayUtc(DateOnly date)
     {
         var localMidnight = DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);

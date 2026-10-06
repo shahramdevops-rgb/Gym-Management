@@ -197,6 +197,24 @@ public sealed class Notification : Entity
     }
 
     /// <summary>
+    /// A run stopped between writing this row and saving how its request went (the server restarted):
+    /// whether the request left is not known, so it is <see cref="NotificationStatus.Unknown"/> and
+    /// never sent again by itself (BUSINESS_RULES.md §10 <i>The daily runs</i>). No attempt is counted,
+    /// since none may have been made.
+    /// </summary>
+    public Result MarkInterrupted()
+    {
+        if (Status != NotificationStatus.Pending)
+        {
+            return Result.Failure(NotificationErrors.NotPending);
+        }
+
+        Status = NotificationStatus.Unknown;
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// <see cref="NotificationStatus.Failed"/> without another request: no tries left, or the next
     /// one would fall outside the sending hours. The last failure's code stays.
     /// </summary>

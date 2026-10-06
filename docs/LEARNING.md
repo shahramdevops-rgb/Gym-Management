@@ -1540,3 +1540,18 @@ The question that started this was whether a gym that is entirely internal — I
 - **A switch that locks one way.** A kind's switch is disabled while the kind is off and not filled. One that is already on stays clickable even after a field is emptied, so the Owner can always turn it off; the save then says what is missing.
 - **`TimeOnly` and Postgres `time`.** Npgsql maps `TimeOnly` to `time without time zone`, and JSON carries it as `HH:mm:ss`. A send time is a time of day in the gym's zone, not a moment, so it has no date and no offset.
 - **My notes:**
+
+## 10.3 — The daily jobs (ارسال روزانهٔ پیامک)
+
+- **Write, send, record: one at a time.** Each message is saved `Pending`, then the request is made, then the outcome is saved. If the app dies in between, the next run finds the row still `Pending` and marks it `Unknown` (`MarkInterrupted`) rather than sending it again: when you cannot know whether you already paid, the safe answer is "do not pay again, let a person decide".
+- **The query narrows, the domain decides.** `SmsCandidates` asks the database for the likely rows (with the parts that need other tables: the member is active, has not renewed, has no message yet), then `SmsAudience` has the last word on each. The rule is written once, in the Domain, and unit tested without a database.
+- **A window, not a single day.** "At most N days away, today included" means a missed run, a late sale or a raised number still reach people the next day, and the unique indexes make the overlap between days harmless. "Exactly N days before" would lose them for good.
+- **Retries in rounds.** A busy provider is retried after everyone else has had their turn, all together, waiting 1 minute and then 5. Retrying one message at a time would let a provider outage hold a run for hours.
+- **Check the limit before you wait.** `SmsRetrySchedule.NextDelay` gives up when the next try would land after 22:00, so the run never sleeps only to find it may not send. Adding the delay as a `TimeSpan`, not with `TimeOnly.Add`, stops 23:58 + 5 minutes from wrapping round to "00:03, early".
+- **Waiting on an injected clock.** `Task.Delay(delay, timeProvider)` waits on the `TimeProvider`, so a test with `FakeTimeProvider` ends the wait by calling `Advance` — no real minutes in the test suite.
+- **Scheduling when the data changes, not at startup.** The runs are Hangfire recurring jobs created or removed when the settings page is saved (`ISmsRunSchedule`). Hangfire stores them in Postgres, so they survive a restart, and startup never has to read a table that might not be migrated yet.
+- **One lock for all kinds.** `[DisableConcurrentExecution]` locks on the job method, whatever its arguments, so the four kinds queue behind each other. That is what makes "a `Pending` row at the start of a run is left over" true.
+- **A test host must not run real schedules.** The integration tests' host runs a real Hangfire server, so the factory swaps the schedule for `RecordingSmsRunSchedule` (`ConfigureTestServices`). The real schedule is tested on its own and removes the jobs it wrote.
+- **The configuration binder appends to lists.** A `TimeSpan[]` option with a default in code would get appsettings' values added after it, not instead of it; the default is empty and the validator insists on one wait per retry.
+- **The Jalali calendar is in .NET.** `System.Globalization.PersianCalendar` gives the Jalali year, month and day and leap years, so the server needs no package to find a birthday by the Jalali day or to write `۱۴۰۵/۰۷/۲۰` in an SMS.
+- **My notes:**

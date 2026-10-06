@@ -184,6 +184,18 @@ public sealed class SmsSettingsTests
     public void CheckSendTime_Empty_Passes() =>
         SmsSettings.CheckSendTime(null).ShouldBeNull();
 
+    // ---- Sending hours (task 10.3) ----
+
+    [Theory]
+    [InlineData(8, 0, 0, true)]
+    [InlineData(22, 0, 0, true)]
+    [InlineData(14, 7, 30, true)]
+    [InlineData(7, 59, 59, false)]
+    [InlineData(22, 0, 1, false)]
+    [InlineData(0, 0, 0, false)]
+    public void IsWithinSendingHours_TimeOfDay_IsBetween0800And2200Included(int hour, int minute, int second, bool within) =>
+        SmsSettings.IsWithinSendingHours(new TimeOnly(hour, minute, second)).ShouldBe(within);
+
     // ---- Template names ----
 
     [Theory]

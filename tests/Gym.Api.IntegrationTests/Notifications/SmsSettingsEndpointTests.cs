@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
+using Gym.Application.Common.Sms;
 using Gym.Application.Notifications;
 using Gym.Domain.Audit;
 using Gym.Domain.Notifications;
@@ -240,6 +241,36 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         (await GetOkAsync(client, token)).Enabled.ShouldBeTrue();
     }
 
+    // ---- The daily runs follow the saved times (task 10.3) ----
+
+    [Fact]
+    public async Task Update_Saved_MovesTheRunsToTheSavedSettings()
+    {
+        var schedule = RecordingSchedule();
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        (await UpdateAsync(client, token, FullBody(read.Version))).EnsureSuccessStatusCode().Dispose();
+
+        var applied = schedule.Applied.ShouldHaveSingleItem();
+        applied.Enabled.ShouldBeTrue();
+        applied.For(NotificationKind.SubscriptionExpiring).SendTime.ShouldBe(new TimeOnly(9, 0));
+        applied.For(NotificationKind.PayableDue).SendTime.ShouldBe(new TimeOnly(22, 0));
+    }
+
+    [Fact]
+    public async Task Update_Refused_MovesNoRun()
+    {
+        var schedule = RecordingSchedule();
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, FullBody(read.Version + 1));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        schedule.Applied.ShouldBeEmpty();
+    }
+
     [Fact]
     public async Task Update_TwoSavesAtOnce_OneWinsAndTheOtherIsRefused()
     {
@@ -347,6 +378,15 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     }
 
     // ---- Helpers ----
+
+    /// <summary>The test host's schedule (GymApiFactory), emptied of what earlier tests saved.</summary>
+    private RecordingSmsRunSchedule RecordingSchedule()
+    {
+        var schedule = Fixture.Services.GetRequiredService<ISmsRunSchedule>().ShouldBeOfType<RecordingSmsRunSchedule>();
+        schedule.Clear();
+
+        return schedule;
+    }
 
     private static object Kind(bool enabled, int? threshold, string? sendTime, string? templateName) =>
         new { enabled, threshold, sendTime, templateName };

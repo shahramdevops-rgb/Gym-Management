@@ -2127,7 +2127,7 @@ decided in Phase 10.
       list order and totals, Staff refused, no DELETE, the database constraints, the dashboard list
       at day 7 and 8 with overdue, passed and cancelled cases (integration); the page, its forms,
       tabs, menu and the dashboard list (frontend)
-- [ ] The SMS itself needs Phase 10's `ISmsSender`; until then the reminder is on the dashboard only.
+- [x] The SMS itself needs Phase 10's `ISmsSender`; until then the reminder is on the dashboard only.
       Decided on 1405/07/14: it goes to the Owner's number, one SMS per cheque or instalment
       (BUSINESS_RULES.md §10); built in 10.3
 
@@ -2275,15 +2275,32 @@ no existing row is touched, and the release still starts with `./backup.sh run`.
 (the jobs are 10.3).
 
 ### 10.3 The daily jobs
-- [ ] One job per kind at its own send time, read from the settings (a change of time applies from
-      the next run), nothing outside 08:00–22:00
-- [ ] Who gets what (§10 *The four kinds*): renewed members left out, birthday by the Jalali day
-      for every member, one SMS per cheque and instalment
-- [ ] Retry with backoff up to `Sms:MaxAttempts`; `Failed` at once for the codes that will not
-      pass; `Unknown` never retried; credit used up stops the run
-- [ ] Tests: running a job twice sends nothing twice; each kind's edges (renewed, frozen,
+Decided with the developer on 1405/07/14 (BUSINESS_RULES.md §0 and §10 *The daily runs*): 3 tries,
+waiting 1 minute then 5; a missed run is made the same day before 22:00; the birthday works as a
+window (tomorrow to N days ahead, or the day itself for 0); a cheque whose date changes gets no
+second SMS; a row a stopped run left `Pending` becomes `Unknown`.
+- [x] Rules first: BUSINESS_RULES.md §0 (the three settings decided) and §10 (the birthday window,
+      *The daily runs*)
+- [x] One job per kind at its own send time, read from the settings (a change of time applies from
+      the next run), nothing outside 08:00–22:00: `SendDailySmsHandler`, run by `DailySmsJob` as the
+      Hangfire recurring jobs `sms-<Kind>`; `ISmsRunSchedule` moves or removes them when the settings
+      page is saved; `[DisableConcurrentExecution]` keeps any two runs apart
+- [x] Who gets what (§10 *The four kinds*): renewed members left out, birthday by the Jalali day
+      for every member, one SMS per cheque and instalment (`SmsAudience`, `SmsCandidates`); the
+      blanks written as the app shows them (`SmsValues`, `JalaliCalendar` on .NET's `PersianCalendar`)
+- [x] Retry with backoff up to `Sms:MaxAttempts` (`Sms:RetryDelays`, `SmsRetrySchedule`), in rounds
+      after the others; `Failed` at once for the codes that will not pass; `Unknown` never retried;
+      credit used up stops the run; a leftover `Pending` row becomes `Unknown` (`MarkInterrupted`)
+- [x] Tests: running a job twice sends nothing twice; each kind's edges (renewed, frozen,
       single-session, deactivated, 30 Esfand, paid and cancelled cheques); a setting changed between
-      runs
+      runs; every outcome, the rounds, the wait on the clock, the 22:00 limit, credit used up mid-run
+      and during retries, the leftover row; the real Hangfire schedule; the settings save moving the runs
+
+Closed 2026-10-06: 1991 backend tests (696 domain, 1295 integration; 122 new: 78 domain, 44
+integration) green, zero warnings. Backend only: no endpoint shape changed, so the frontend and
+`schema.d.ts` are untouched. No migration. The runs exist only once the Owner saves the settings page
+with a kind on, and everything starts off, so a release sends nothing by itself; it still starts with
+`./backup.sh run`.
 
 ### 10.4 Kavenegar
 - [ ] `KavenegarSmsSender` (`verify/lookup`); the API key in user secrets locally and

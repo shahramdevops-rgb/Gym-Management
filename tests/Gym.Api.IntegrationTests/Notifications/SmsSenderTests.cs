@@ -51,7 +51,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
     [Fact]
     public void SmsOptionsValidator_FakeProvider_Succeeds()
     {
-        new SmsOptionsValidator().Validate(null, new SmsOptions { Provider = SmsProviders.Fake }).Succeeded.ShouldBeTrue();
+        new SmsOptionsValidator().Validate(null, Valid()).Succeeded.ShouldBeTrue();
     }
 
     [Fact]
@@ -67,9 +67,66 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
     [InlineData("")]
     public void SmsOptionsValidator_UnknownProvider_Fails(string provider)
     {
-        var result = new SmsOptionsValidator().Validate(null, new SmsOptions { Provider = provider });
+        var options = Valid();
+        options.Provider = provider;
+
+        var result = new SmsOptionsValidator().Validate(null, options);
 
         result.Failed.ShouldBeTrue();
         result.FailureMessage.ShouldContain("Sms:Provider");
     }
+
+    // ---- Retries (task 10.3) ----
+
+    [Fact]
+    public void SmsOptions_AppSettings_ThreeTriesWaitingOneThenFiveMinutes()
+    {
+        // BUSINESS_RULES.md §0, as appsettings.json sets it and the run receives it.
+        var schedule = fixture.Services.GetRequiredService<SmsRetrySchedule>();
+
+        schedule.MaxAttempts.ShouldBe(3);
+        schedule.Delays.ShouldBe([TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5)]);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(11)]
+    public void SmsOptionsValidator_MaxAttemptsOutOfRange_Fails(int maxAttempts)
+    {
+        var options = Valid();
+        options.MaxAttempts = maxAttempts;
+
+        var result = new SmsOptionsValidator().Validate(null, options);
+
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain("Sms:MaxAttempts");
+    }
+
+    [Fact]
+    public void SmsOptionsValidator_WaitsNotOneFewerThanTries_Fails()
+    {
+        var options = Valid();
+        options.RetryDelays = [TimeSpan.FromMinutes(1)];
+
+        var result = new SmsOptionsValidator().Validate(null, options);
+
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain("Sms:RetryDelays");
+    }
+
+    [Fact]
+    public void SmsOptionsValidator_NegativeWait_Fails()
+    {
+        var options = Valid();
+        options.RetryDelays = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(-5)];
+
+        new SmsOptionsValidator().Validate(null, options).Failed.ShouldBeTrue();
+    }
+
+    private static SmsOptions Valid() => new()
+    {
+        Provider = SmsProviders.Fake,
+        MaxAttempts = 3,
+        RetryDelays = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5)],
+    };
 }
