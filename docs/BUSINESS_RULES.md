@@ -822,7 +822,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 - Cancelled attendances are excluded from attendance reports.
 - **What the visit bought is cancelled only when the desk says so, one purchase at a time**
   (decided by the Owner, 1405/07/06, roadmap 6.5.8). The box lists the visit's هوازی, each of
-  its sales (فروشگاه and آنالیز, *Sale at the desk*, tasks 6.5.28 and 6.5.29) and each of its cafe orders with its
+  its sales (فروشگاه, آنالیز and متفرقه, *Sale at the desk*, tasks 6.5.28, 6.5.29 and 6.5.36) and each of its cafe orders with its
   amount, each with its own tick, all unticked. A purchase left unticked
   stays on the member's account and is paid like any other: the member may have used the treadmill
   or taken a drink and still had to leave. The ticked ones are voided (هوازی, §7 *Gym services*) or
@@ -870,8 +870,8 @@ locker's history.
   there is no session), and auto-checkout at midnight (unless something is unpaid, below).
 - **A guest may use every service the gym sells** (decided by the developer, 1405/07/12, roadmap
   6.5.31; replaces "هوازی is not recorded on a guest visit, a guest uses the treadmill for free"
-  and "sales at the desk are for members only"). Their locker box has the same four tiles as a
-  member's: هوازی, بوفه, فروشگاه and آنالیز. Each follows its own rules (*Gym services*, *Sale at the
+  and "sales at the desk are for members only"). Their locker box has the same five tiles as a
+  member's: هوازی, بوفه, فروشگاه, آنالیز and متفرقه (since 6.5.36). Each follows its own rules (*Gym services*, *Sale at the
   desk*, §8): one standing هوازی per visit, any number of sales and orders, the price typed by the
   desk and never checked against a rate. Whether a guest is charged for the treadmill, and how
   much, is the desk's call on the Owner's instructions, exactly as for a member: the system never
@@ -880,7 +880,7 @@ locker's history.
   cafe also from the till (§8). While they are inside, what they bought may stay unpaid, and their
   locker carries «بدهکار» (§6). **A guest has no account and leaves no debt behind:**
   - **Check-out is refused while anything bought on the visit is unpaid**, a cafe order, a هوازی, a
-    فروشگاه item or an آنالیز (`Attendance.GuestHasUnpaidPurchases`). The guest's box settles all of
+    فروشگاه item, an آنالیز or a متفرقه (`Attendance.GuestHasUnpaidPurchases`). The guest's box settles all of
     them in one step («تسویه یکجا»), then checks out. This is the one place money blocks a
     check-out: a member's debt stays on their account and is shown, never enforced (§5), but a
     guest has no account to leave it on.
@@ -984,7 +984,7 @@ Decided with the developer, 1405/07/04.
 
 Decided with the developer, 1405/06/31. Implemented in task 5.7.
 
-- A **service charge** is money owed for something the member used during a visit. There are three kinds: `Cardio` (هوازی, the treadmill) and two things sold at the desk, `Miscellaneous` (فروشگاه, task 6.5.28) and `Analysis` (آنالیز, task 6.5.29) (*Sale at the desk* below); sauna or massage would be new kinds of the same thing, not new tables.
+- A **service charge** is money owed for something the member used during a visit. There are four kinds: `Cardio` (هوازی, the treadmill) and three things sold at the desk, `Miscellaneous` (فروشگاه, task 6.5.28), `Analysis` (آنالیز, task 6.5.29) and `Other` (متفرقه, task 6.5.36) (*Sale at the desk* below); sauna or massage would be new kinds of the same thing, not new tables.
 - **The price is not calculated by the system, on purpose.** The gym's rate (for example 10,000 Toman per 3 minutes) changes without notice and staff already work it out at the desk. The system takes the number they type and never checks it against a rate. There is no rate setting to keep in sync with reality.
 - The amount is per visit, not per member: the same member may use the treadmill today and not tomorrow, so there is no cardio price on the member record.
 - Recorded against an **open** visit (`CheckedOutAt IS NULL`, not cancelled), for whoever that visit belongs to. Front desk work, so both roles.
@@ -999,17 +999,17 @@ Decided with the developer, 1405/06/31. Implemented in task 5.7.
 - A service charge is paid like anything else: it is one of the three things a payment can belong to (§5), it counts toward the member's debt (§5 *Member debt*), and it can be settled later or in instalments.
 - The amount follows the same money rules as every other amount: greater than zero, at most 2 decimal places, `numeric(18,2)`.
 
-### Sale at the desk (فروشگاه and آنالیز)
+### Sale at the desk (فروشگاه, آنالیز and متفرقه)
 
-Asked by the developer, 1405/07/11 (2026-10-03). Roadmap 6.5.28 (فروشگاه, then called متفرقه) and
-6.5.29 (آنالیز, and the changes of 1405/07/12). Something is sold at the desk that is neither on the
+Asked by the developer, 1405/07/11 (2026-10-03). Roadmap 6.5.28 (فروشگاه, then called متفرقه),
+6.5.29 (آنالیز, and the changes of 1405/07/12) and 6.5.36 (متفرقه, 1405/07/15). Something is sold at the desk that is neither on the
 cafe's price list nor a service the system knows, and the desk still has to record the money. The
 system does not know what it is, so the desk says.
 
-- **Two kinds, one set of rules** (decided with the developer, 1405/07/11, task 6.5.29):
-  «فروشگاه» (kind `Miscellaneous`, renamed from «متفرقه» everywhere on screen) and «آنالیز» (kind
-  `Analysis`). Everything below holds for both unless it says otherwise; the kind says which source
-  the sale is filed under.
+- **Three kinds, one set of rules** (decided with the developer, 1405/07/11, task 6.5.29; متفرقه
+  1405/07/15, task 6.5.36): «فروشگاه» (kind `Miscellaneous`, renamed from «متفرقه» everywhere on
+  screen), «آنالیز» (kind `Analysis`) and «متفرقه» (kind `Other`). Everything below holds for all
+  three unless it says otherwise; the kind says which source the sale is filed under.
 - **فروشگاه: one or more items, each with three things typed** (decided with the developer,
   1405/07/12): the name of what was sold (required, at most 100 characters), how many (1 to 999,
   typed or stepped with ▲/▼, starting at one) and the price of one. «افزودن کالای دیگر» adds a
@@ -1018,6 +1018,11 @@ system does not know what it is, so the desk says.
   one times how many, stored with it.
 - **آنالیز: only a price** (decided with the developer, 1405/07/12): one amount, typed in the same
   field as the هوازی amount. It has no name, quantity or unit price.
+- **متفرقه: exactly the rules of آنالیز** (decided by the developer, 1405/07/15, task 6.5.36): only
+  a price, any number per visit, never edited, its own tick in cancel check-in, paid before a guest
+  leaves, recorded by both roles. Its money is someone else's, like فروشگاه and آنالیز (§12
+  *Financial report*). The new «متفرقه» is not the old one: the rows written as «متفرقه» before
+  6.5.29 are فروشگاه items (kind `Miscellaneous`) and stay so; the new kind is stored as `Other`.
 - The system never checks the name or a price against anything, the same as the هوازی amount
   above.
 - **No money is taken when it is recorded** (decided with the developer, 1405/07/12; replaces "card,
@@ -1030,12 +1035,13 @@ system does not know what it is, so the desk says.
   under their name and is paid before they leave (§7 *Guest visit*), not on an account.
 - **Any number per visit** (decided with the developer, 1405/07/11), each its own row.
 - **Each kind is its own source** (decided with the developer, 1405/07/11): in the debt by source at
-  check-out, the payment histories and the gym's history a sale reads «فروشگاه: …» or «آنالیز»,
-  next to plan, هوازی and cafe, never folded into the cafe or into each other. The history's «بابت»
-  filter offers هوازی, فروشگاه and آنالیز apart, and its «هوازی، فروشگاه و آنالیز» section lists all
-  three, each row saying which. Cafe gross profit (§8) is not touched by either.
-- **In the locker box each has its own tile** (task 6.5.29): هوازی, بوفه, فروشگاه and آنالیز sit
-  side by side as coloured tiles, each with its icon and name, with no heading above them. Once
+  check-out, the payment histories and the gym's history a sale reads «فروشگاه: …», «آنالیز» or
+  «متفرقه», next to plan, هوازی and cafe, never folded into the cafe or into each other. The
+  history's «بابت» filter offers هوازی, فروشگاه, آنالیز and متفرقه apart, and its «هوازی، فروشگاه،
+  آنالیز و متفرقه» section lists all four, each row saying which. Cafe gross profit (§8) is not
+  touched by any of them.
+- **In the locker box each has its own tile** (task 6.5.29): هوازی, بوفه, فروشگاه, آنالیز and
+  متفرقه (since 6.5.36) sit side by side as coloured tiles, each with its icon and name, with no heading above them. Once
   something is recorded, its total and payment status show on the tile under the name.
 - It is a service charge, so everything above about service charges holds — open visit, Staff or
   Owner, voiding gives the money back the way it came, auto-checkout changes nothing — with these
@@ -1044,12 +1050,12 @@ system does not know what it is, so the desk says.
     cafe order follows (§8). `ServiceCharges.SaleNotEditable` refuses a change of amount.
   - **In «تسویه یکجا» it is paid with the هوازی charges:** after the cafe, before the subscription,
     the oldest first (§5 *Settling several items at once*).
-  - **Cancelling a check-in lists each sale with its own tick,** فروشگاه and آنالیز alike, unticked,
+  - **Cancelling a check-in lists each sale with its own tick,** فروشگاه, آنالیز and متفرقه alike, unticked,
     exactly like the cafe orders (*Cancel check-in*). A sale named that is not a standing sale of
     this visit refuses the whole cancellation (`Attendance.SaleNotOnVisit`).
   - It does not count as the هوازی amount of a cardio-only visit (*Cardio-only visit*).
 - The database enforces the shape: a فروشگاه item has its name, quantity and unit price, all three,
-  and its amount is exactly what they make; هوازی and آنالیز have none of them
+  and its amount is exactly what they make; هوازی, آنالیز and متفرقه have none of them
   (`ck_service_charges_miscellaneous`).
 
 ---
@@ -1396,7 +1402,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 
 - Date ranges are inclusive and interpreted in the gym's time zone.
 - Revenue by source (subscriptions, gym services, cafe) and by payment method.
-- Expenses by category (voided excluded). Net profit = revenue without فروشگاه and آنالیز − expenses (*Financial report* below).
+- Expenses by category (voided excluded). Net profit = revenue without فروشگاه, آنالیز and متفرقه − expenses (*Financial report* below).
 - Attendance per day and by hour (cancelled excluded).
 - Active subscriptions, expiring soon, low sessions. Top cafe products.
 - Single-session (تک‌جلسه‌ای) revenue is reported separately from membership sales: they are the same
@@ -1414,8 +1420,8 @@ dashboard (9.3).
 - **Revenue is money received**: payments − refunds, each by its `PaidAt` in the gym's time zone
   (§5). Every payment and refund counts, those on a cancelled or voided item included, as in the
   history's «پرداخت‌ها» totals: the money did move, in and back out.
-  - **By source**, six of them: membership plans, single-session visits (تک‌جلسه‌ای, apart from
-    membership as above), هوازی, فروشگاه, آنالیز, cafe. Each with received, refunded and net,
+  - **By source**, seven of them: membership plans, single-session visits (تک‌جلسه‌ای, apart from
+    membership as above), هوازی, فروشگاه, آنالیز, متفرقه (since 6.5.36), cafe. Each with received, refunded and net,
     and **how many were sold** in the range: counted by the day each sale belongs to, cancelled
     and voided ones left out, the rule «فروش» below follows (decided with the developer,
     1405/07/13). The count does not follow the money: a plan sold before the range and paid in it
@@ -1431,9 +1437,9 @@ dashboard (9.3).
 - **Sales of the range** («فروش») sit beside revenue: what was sold in the range, by the day each
   sale belongs to (§12 *Sales in the history*), cancelled and voided sales left out. The two figures
   answer different questions and neither replaces the other.
-  - **فروشگاه and آنالیز are left out of it** (decided with the developer, 1405/07/14): «فروش» is
-    plans, single visits, هوازی and the cafe, and the dashboard says so in its name, «فروش (به غیر
-    از آنالیز و فروشگاه)». They are still sales of their own source: each is counted in its
+  - **فروشگاه, آنالیز and متفرقه are left out of it** (decided with the developer, 1405/07/14;
+    متفرقه 1405/07/15): «فروش» is plans, single visits, هوازی and the cafe, and the dashboard says
+    so in its name, «فروش (به غیر از آنالیز، فروشگاه و متفرقه)». They are still sales of their own source: each is counted in its
     «sold» above, and the history's sales totals keep them.
   - **Paid and still owed** (decided with the developer, 1405/07/14): what has been paid so far
     on those same sales, refunds taken off, whenever it was paid («پرداخت‌شده»), and the rest of
@@ -1442,17 +1448,18 @@ dashboard (9.3).
     figure. A sale on credit is in «فروش» but not in the drawer, and the Owner checking the drawer
     at night must not be sent looking for it.
 - **Received («دریافتی»)** (decided with the developer, 1405/07/14): the revenue by method, card,
-  bank transfer and cash, **without فروشگاه and آنالیز**, refunds taken off, by `PaidAt` like all
+  bank transfer and cash, **without فروشگاه, آنالیز and متفرقه**, refunds taken off, by `PaidAt` like all
   revenue: old debts paid in the range count, a sale on credit does not. It is what the gym's
   drawer, card reader and account should show for the range, so the nightly check compares with
-  it. **فروشگاه and آنالیز are someone else's business**, run at the gym's desk: their money is
-  its own card, «دریافتی آنالیز و فروشگاه», by method too, and is in neither «دریافتی» nor the
-  net profit.
+  it. **فروشگاه, آنالیز and متفرقه are someone else's business**, run at the gym's desk: the money
+  of فروشگاه and آنالیز is its own card, «دریافتی آنالیز و فروشگاه», by method too, and متفرقه's
+  another, «دریافتی متفرقه», by method as well (decided by the developer, 1405/07/15: a card of
+  its own rather than joining theirs). None of it is in «دریافتی» or the net profit.
 - **Expenses** by `ExpenseDate`, voided ones left out (§9), in total and by category.
-- **Net profit («سود خالص») = net revenue without فروشگاه and آنالیز − every expense** of the same
-  range (decided with the developer, 1405/07/14, like «فروش» above). Every expense counts,
+- **Net profit («سود خالص») = net revenue without فروشگاه, آنالیز and متفرقه − every expense** of
+  the same range (decided with the developer, 1405/07/14, like «فروش» above; متفرقه 1405/07/15). Every expense counts,
   whatever its category. Revenue by when money arrived, expenses by the date the Owner gave them.
-  The revenue itself still counts every payment, فروشگاه and آنالیز included; it is drawn in the
+  The revenue itself still counts every payment, فروشگاه, آنالیز and متفرقه included; it is drawn in the
   revenue chart and the revenue breakdowns, but has no card of its own: «درآمد ناخالص» and
   «صندوق نقدی» were taken off the summary, and «فروش» took the first place, with «دریافتی»
   beside it in their stead (asked by the developer, 1405/07/14).
@@ -1593,7 +1600,7 @@ on one page.
   without card, transfer and cash. It is part of «دریافتی», and the card says so.
   **«دریافتی هوازی»** beside it (asked by the developer, 1405/07/14) is the same for هوازی.
 - **The summary's order** (1405/07/14): «فروش», «دریافتی», «دریافتی آنالیز و فروشگاه»,
-  «دریافتی بوفه», «دریافتی هوازی», «دریافتی پلن», «دریافتی تک‌جلسه‌ای», then expenses and net
+  «دریافتی متفرقه» (since 6.5.36), «دریافتی بوفه», «دریافتی هوازی», «دریافتی پلن», «دریافتی تک‌جلسه‌ای», then expenses and net
   profit, then the attendance and members' figures. Beside the renewal rate
   sits the single visit to plan conversion rate (*Operational reports* above), without a
   comparison, like the renewal rate.
@@ -1607,8 +1614,8 @@ on one page.
   longer than 62 days shows revenue and expenses by Jalali month instead of by day. New members and
   the renewal rate are by Jalali month. The weekday × hour table shows from the earliest hour
   anyone came to the latest.
-- **Revenue by source** lists پلن, تک‌جلسه‌ای, هوازی, بوفه, فروشگاه, آنالیز: the cafe above
-  فروشگاه. The plan and single-visit bars also say how many were sold in the range («۱۲ پلن فروخته
+- **Revenue by source** lists پلن, تک‌جلسه‌ای, هوازی, بوفه, فروشگاه, آنالیز, متفرقه: the cafe
+  above فروشگاه. The plan and single-visit bars also say how many were sold in the range («۱۲ پلن فروخته
   شد»): plans sold matter more to the Owner than new members (asked by the developer, 1405/07/13).
   The bar's length stays the money received.
 - **New members** are explained on the page as "members whose first membership plan was sold in
@@ -1621,7 +1628,8 @@ on their profile and the cafe has its own order history (§8); this is the histo
 It is a list of rows, not totals or charts: those are the reports above.
 
 - **One «تاریخچه» page, three sections:** ورود و خروج (check-ins), پرداخت‌ها (payments and refunds)
-  and «هوازی، فروشگاه و آنالیز» (renamed from هوازی when the sales joined it, tasks 6.5.28 and 6.5.29). The
+  and «هوازی، فروشگاه، آنالیز و متفرقه» (renamed from هوازی when the sales joined it, tasks 6.5.28,
+  6.5.29 and 6.5.36). The
   cafe keeps its own page and is linked from here.
 - **Who recorded it is on every row:** who took the payment or gave the refund
   (`Payment.ReceivedByUserId`), who recorded the هوازی (`ServiceCharge.RecordedByUserId`) and who
@@ -1633,7 +1641,7 @@ It is a list of rows, not totals or charts: those are the reports above.
   has no limit.
 - **Check-ins and هوازی:** no date limit for either role.
 - **Filters:** a Jalali date range and one member, in every section. Payments also filter by method
-  and by source (subscription, هوازی, فروشگاه, آنالیز, cafe).
+  and by source (subscription, هوازی, فروشگاه, آنالیز, متفرقه, cafe).
 - **Which day a row belongs to:** a check-in by the moment it began, a payment by the moment it was
   taken (`PaidAt`), a هوازی by its business date (`ChargedOn`), all in the gym's time zone. Each
   section lists newest first.
@@ -1660,12 +1668,13 @@ with its totals (roadmap 6.5.32, *Totals in the history* below); reports and cha
 
 - **Owner only.** Staff keep the three sections above, unchanged. The API refuses Staff (403).
 - **For the Owner, the history's sections are:** ورود و خروج، پرداخت‌ها، همهٔ فروش‌ها، فروش پلن،
-  هوازی، فروشگاه، آنالیز، بوفه. The separate هوازی, فروشگاه and آنالیز sections replace the combined
-  «هوازی، فروشگاه و آنالیز» one, which only Staff still see.
+  هوازی، فروشگاه، آنالیز، متفرقه، بوفه («متفرقه» since 6.5.36). The separate هوازی, فروشگاه, آنالیز
+  and متفرقه sections replace the combined «هوازی، فروشگاه، آنالیز و متفرقه» one, which only Staff
+  still see.
 - **What a sale is:** a subscription (single-session and membership together under «فروش پلن», each
-  row saying which), a هوازی charge, a فروشگاه item, an آنالیز, a cafe order. «همهٔ فروش‌ها» lists
-  all five kinds together, cafe orders of walk-ins and guests included. The cafe's own order page
-  stays as it is.
+  row saying which), a هوازی charge, a فروشگاه item, an آنالیز, a متفرقه, a cafe order. «همهٔ
+  فروش‌ها» lists all six kinds together, cafe orders of walk-ins and guests included. The cafe's own
+  order page stays as it is.
 - **Which day a sale belongs to:** a subscription by when it was sold (`CreatedAt`, «تاریخ فروش»,
   in the gym's time zone), a هوازی or sale at the desk by its `ChargedOn`, a cafe order by its
   `OrderedOn`. Newest first, by the moment it was recorded.
@@ -1691,7 +1700,8 @@ without adding up the rows.
 - **Over everything the filters let through**, every page, not only the 50 rows on screen. The
   totals follow every filter of their section: the date range, the member, the sales section's kind
   and «وضعیت پرداخت», the payments' «روش پرداخت» and «بابت».
-- **Every sales section** (همهٔ فروش‌ها، فروش پلن، هوازی، فروشگاه، آنالیز، بوفه) shows three figures:
+- **Every sales section** (همهٔ فروش‌ها، فروش پلن، هوازی، فروشگاه، آنالیز، متفرقه، بوفه) shows three
+  figures:
   - «مبلغ»: what the sales were sold for.
   - «دریافتی»: net paid on them (payments − refunds).
   - «مانده»: what is still owed, each sale's `amount − net paid` never below zero (as §5's debt).

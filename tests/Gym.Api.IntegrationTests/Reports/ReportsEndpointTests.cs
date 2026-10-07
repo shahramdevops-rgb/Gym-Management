@@ -101,7 +101,7 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
-    public async Task Financial_Sales_LeaveTheShopAndAnalysisOut()
+    public async Task Financial_Sales_LeaveTheShopAnalysisAndOtherOut()
     {
         var (owner, token, _) = await OwnerClientAsync();
         var visitor = await AddMemberAsync("رضا کریمی");
@@ -110,15 +110,58 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
         await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
         await RecordShopOkAsync(owner, token, visit.Id, "دستکش", 200_000m);
         await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 80_000m);
+        await RecordChargeOkAsync(owner, token, visit.Id, "Other", 30_000m);
         await WalkInOrderAsync(owner, token, 60_000m);
 
         var current = (await FinancialOkAsync(owner, token, TodayRange())).Current;
 
-        // §12: the plan, هوازی and the cafe; not فروشگاه or آنالیز (1405/07/14).
+        // §12: the plan, هوازی and the cafe; not فروشگاه, آنالیز or متفرقه (1405/07/14, 07/15).
         current.Sales.ShouldBe(900_000m + 50_000m + 60_000m);
         // They are still sales of their own source.
         Sold(current, RevenueSource.Miscellaneous).ShouldBe(1);
         Sold(current, RevenueSource.Analysis).ShouldBe(1);
+        Sold(current, RevenueSource.Other).ShouldBe(1);
+    }
+
+    /// <summary>
+    /// Task 6.5.36: متفرقه is someone else's money like فروشگاه and آنالیز, so it is out of
+    /// «دریافتی», and it has a card of its own rather than joining theirs.
+    /// </summary>
+    [Fact]
+    public async Task Financial_OtherMoney_IsItsOwnSourceOutOfReceivedAndOutOfTheShopCard()
+    {
+        var (owner, token, _) = await OwnerClientAsync();
+        var visitor = await AddMemberAsync("رضا کریمی");
+        await AssignOkAsync(owner, token, visitor.Id);
+        var visit = await TestLockers.CheckInOkAsync(owner, token, visitor.Id);
+        var cardio = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
+        await PayOkAsync(owner, token, $"/api/service-charges/{cardio.Id}/payments", 50_000m, "Cash");
+        var analysis = await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 80_000m);
+        await PayOkAsync(owner, token, $"/api/service-charges/{analysis.Id}/payments", 80_000m, "Card");
+        var other = await RecordChargeOkAsync(owner, token, visit.Id, "Other", 70_000m);
+        await PayOkAsync(owner, token, $"/api/service-charges/{other.Id}/payments", 70_000m, "Cash");
+
+        var current = (await FinancialOkAsync(owner, token, TodayRange())).Current;
+
+        Money(current, RevenueSource.Other).ShouldBe(new MoneyFlowResponse(70_000m, 0m, 70_000m));
+        current.ReceivedByMethod.Select(row => (row.Method, row.Money.Net)).ShouldBe(
+        [
+            (PaymentMethod.Card, 0m),
+            (PaymentMethod.BankTransfer, 0m),
+            (PaymentMethod.Cash, 50_000m),
+        ]);
+        current.ShopAndAnalysisByMethod.Select(row => (row.Method, row.Money.Net)).ShouldBe(
+        [
+            (PaymentMethod.Card, 80_000m),
+            (PaymentMethod.BankTransfer, 0m),
+            (PaymentMethod.Cash, 0m),
+        ]);
+        current.OtherByMethod.Select(row => (row.Method, row.Money.Net)).ShouldBe(
+        [
+            (PaymentMethod.Card, 0m),
+            (PaymentMethod.BankTransfer, 0m),
+            (PaymentMethod.Cash, 70_000m),
+        ]);
     }
 
     [Fact]
@@ -298,7 +341,7 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
     }
 
     [Fact]
-    public async Task Financial_NetProfit_LeavesTheShopAndAnalysisMoneyOutButEveryExpenseIn()
+    public async Task Financial_NetProfit_LeavesTheShopAnalysisAndOtherMoneyOutButEveryExpenseIn()
     {
         var (owner, token, _) = await OwnerClientAsync();
         var visitor = await AddMemberAsync("رضا کریمی");
@@ -309,13 +352,16 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
         await PayOkAsync(owner, token, $"/api/service-charges/{shop.Id}/payments", 200_000m, "Cash");
         var analysis = await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 80_000m);
         await PayOkAsync(owner, token, $"/api/service-charges/{analysis.Id}/payments", 80_000m, "Cash");
+        var other = await RecordChargeOkAsync(owner, token, visit.Id, "Other", 40_000m);
+        await PayOkAsync(owner, token, $"/api/service-charges/{other.Id}/payments", 40_000m, "Card");
         await RecordExpenseOkAsync(owner, token, 500_000m, RentId, Today());
 
         var current = (await FinancialOkAsync(owner, token, TodayRange())).Current;
 
-        // Every payment is still revenue, shop and analysis included.
-        current.Revenue.Net.ShouldBe(1_180_000m);
-        // §12 (1405/07/14): the plan's money minus every expense; the shop and analysis are left out.
+        // Every payment is still revenue, shop, analysis and other included.
+        current.Revenue.Net.ShouldBe(1_220_000m);
+        // §12 (1405/07/14, 07/15): the plan's money minus every expense; the shop, analysis and
+        // other are left out.
         current.NetProfit.ShouldBe(900_000m - 500_000m);
     }
 

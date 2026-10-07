@@ -162,7 +162,7 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
     }
 
     /// <summary>
-    /// BUSINESS_RULES.md §7 <i>Sale at the desk</i>: each named sale, فروشگاه or آنالیز, is voided
+    /// BUSINESS_RULES.md §7 <i>Sale at the desk</i>: each named sale, فروشگاه, آنالیز or متفرقه, is voided
     /// exactly as from its own void button, money going back the way it came. Every one must be a
     /// standing sale of this visit, or none is voided.
     /// </summary>
@@ -181,7 +181,9 @@ public sealed class CancelCheckInHandler(IAppDbContext db, IAttendancePolicy pol
         var sales = await db.ServiceCharges
             .Where(charge => saleIds.Contains(charge.Id)
                 && charge.AttendanceId == attendanceId
-                && (charge.Kind == ServiceChargeKind.Miscellaneous || charge.Kind == ServiceChargeKind.Analysis)
+                && (charge.Kind == ServiceChargeKind.Miscellaneous
+                    || charge.Kind == ServiceChargeKind.Analysis
+                    || charge.Kind == ServiceChargeKind.Other)
                 && charge.VoidedAt == null)
             .ToListAsync(cancellationToken);
 

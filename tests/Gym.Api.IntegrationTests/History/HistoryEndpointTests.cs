@@ -472,7 +472,7 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
     // ---- Sales ----
 
     [Fact]
-    public async Task ListSales_AllFiveKinds_NewestFirstWithWhatEachSoldAndWhoRecordedIt()
+    public async Task ListSales_AllSixKinds_NewestFirstWithWhatEachSoldAndWhoRecordedIt()
     {
         var (owner, token) = await OwnerClientAsync();
         var member = await AddMemberAsync("علی رضایی");
@@ -481,15 +481,19 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var cardio = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
         var shop = await RecordShopOkAsync(owner, token, visit.Id, "دستکش", quantity: 2, unitPrice: 300_000m);
         var analysis = await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 200_000m);
+        var other = await RecordChargeOkAsync(owner, token, visit.Id, "Other", 70_000m);
         var productId = await ProductAsync(owner, token, 30_000m);
         var walkIn = await OrderAsync(owner, token, productId, quantity: 2, memberId: null, attendanceId: null, payWith: 60_000m);
 
         var page = await SalesOkAsync(owner, token, TodayRange());
 
-        page.TotalCount.ShouldBe(5);
-        page.Items.Select(item => item.Id).ShouldBe([walkIn.Id, analysis.Id, shop.Id, cardio.Id, subscription.Id]);
+        page.TotalCount.ShouldBe(6);
+        page.Items.Select(item => item.Id).ShouldBe([walkIn.Id, other.Id, analysis.Id, shop.Id, cardio.Id, subscription.Id]);
         page.Items.Select(item => item.Source).ShouldBe(
-            [SaleSource.CafeOrder, SaleSource.Analysis, SaleSource.Miscellaneous, SaleSource.Cardio, SaleSource.Subscription]);
+        [
+            SaleSource.CafeOrder, SaleSource.Other, SaleSource.Analysis, SaleSource.Miscellaneous, SaleSource.Cardio,
+            SaleSource.Subscription,
+        ]);
 
         var cafe = page.Items[0];
         cafe.MemberId.ShouldBeNull();
@@ -499,17 +503,17 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         cafe.PaymentStatus.ShouldBe(PaymentStatus.Paid);
         cafe.RecordedByFullName.ShouldBe(OwnerName);
 
-        var shopRow = page.Items[2];
+        var shopRow = page.Items[3];
         shopRow.Description.ShouldBe("دستکش");
         shopRow.Quantity.ShouldBe(2);
         shopRow.Amount.ShouldBe(600_000m);
         shopRow.MemberFullName.ShouldBe("علی رضایی");
         shopRow.PaymentStatus.ShouldBe(PaymentStatus.Unpaid);
 
-        page.Items[3].RecordedByFullName.ShouldBe(OwnerName);
+        page.Items[4].RecordedByFullName.ShouldBe(OwnerName);
 
         // Who sold a plan: whoever was logged in when it was created (§4, roadmap 6.5.34).
-        var plan = page.Items[4];
+        var plan = page.Items[5];
         plan.Plan.ShouldBe(new PlanSummary(30, 10, false));
         plan.MemberId.ShouldBe(member.Id);
         plan.Amount.ShouldBe(900_000m);
@@ -530,6 +534,7 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var cardio = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
         var shop = await RecordShopOkAsync(owner, token, visit.Id, "دستکش", quantity: 1, unitPrice: 300_000m);
         var analysis = await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 200_000m);
+        var other = await RecordChargeOkAsync(owner, token, visit.Id, "Other", 70_000m);
         var productId = await ProductAsync(owner, token, 30_000m);
         var order = await OrderAsync(owner, token, productId, quantity: 1, memberId: member.Id, attendanceId: null, payWith: null);
 
@@ -541,6 +546,7 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         (await SalesOkAsync(owner, token, TodayRange() + "&source=Cardio")).Items.ShouldHaveSingleItem().Id.ShouldBe(cardio.Id);
         (await SalesOkAsync(owner, token, TodayRange() + "&source=Miscellaneous")).Items.ShouldHaveSingleItem().Id.ShouldBe(shop.Id);
         (await SalesOkAsync(owner, token, TodayRange() + "&source=Analysis")).Items.ShouldHaveSingleItem().Id.ShouldBe(analysis.Id);
+        (await SalesOkAsync(owner, token, TodayRange() + "&source=Other")).Items.ShouldHaveSingleItem().Id.ShouldBe(other.Id);
         (await SalesOkAsync(owner, token, TodayRange() + "&source=CafeOrder")).Items.ShouldHaveSingleItem().Id.ShouldBe(order.Id);
     }
 

@@ -1573,3 +1573,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Keep one constraint name, change its meaning.** The name `ck_attendances_subscription_with_member` and the C# constant stay, so the existing guest test still finds it; only the SQL changes, and a new test covers the new half.
 - **Building past a locked DLL.** A running `dotnet run` locks `bin/Debug`. `-c Release` (and `dotnet ef … --configuration Release`) builds into `bin/Release`, so the API can keep running while you build and test.
 - **My notes:**
+
+## 6.5.36 — A third sale at the desk, «متفرقه» (فروش متفرقه)
+
+- **A new enum value can need no migration.** The kind is stored as text (`HasConversion<string>()`), and no check constraint lists the allowed kinds, so `Other` fits the existing column. `dotnet ef migrations has-pending-model-changes` is the proof, not a guess.
+- **Don't reuse a name that already means something in the data.** «متفرقه» was فروشگاه's old name, and its rows are stored as `Miscellaneous`. The new kind is `Other`, so old rows never change meaning.
+- **When a rule lives in one place, a new case is cheap.** `IsSaleKind`, the sale-source table in `SaleRows` and `SourceOf` in the report are each one line to extend. The single-amount endpoint, debts, settling and guest check-out needed nothing new because they already asked "is this a sale?", not "is this آنالیز?".
+- **Say why the code spells it out.** In `CancelCheckInHandler` the kinds are written out again instead of calling `IsSaleKind`, because EF Core cannot turn a C# method into SQL. The comment there is what reminds you to add the new kind in that place too.
+- **Naming a helper by what it means.** `IsShopOrAnalysis` became `IsSomeoneElses`: the question is "whose money is this?", not "which two kinds?". The by-method figures keep their own explicit lists, because متفرقه has a card of its own.
+- **Regex delimiters matter.** In `perl -pe 's|a\|b|…|'`, `\|` stands for the delimiter, so in the pattern it becomes `|`, which means "or". The empty alternative then matched at the start of the file. Pick a delimiter the text never contains (`s{…}{…}`), or use an exact-string edit.
+- **My notes:**

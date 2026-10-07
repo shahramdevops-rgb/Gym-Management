@@ -194,20 +194,26 @@ describe("HistoryPage", () => {
     expect(await screen.findByText(reza.fullName, { selector: "span" })).toBeInTheDocument();
   });
 
-  /** آنالیز is its own «بابت», sent to the API as a service charge of that kind (task 6.5.29). */
-  it("Payments_ChoosingAnalysis_AsksForServiceChargesOfThatKind", async () => {
+  /**
+   * آنالیز and متفرقه are each their own «بابت», sent to the API as a service charge of that kind
+   * (tasks 6.5.29 and 6.5.36).
+   */
+  it.each([
+    ["Analysis", "آنالیز"],
+    ["Other", "متفرقه"],
+  ])("Payments_Choosing%s_AsksForServiceChargesOfThatKind", async (kind, label) => {
     const api = mockApi(handlers());
     renderApp("/history?tab=payments", { session: session() });
 
     await screen.findByText("انصراف عضو");
-    fireEvent.change(screen.getByLabelText("بابت"), { target: { value: "Analysis" } });
+    fireEvent.change(screen.getByLabelText("بابت"), { target: { value: kind } });
 
     await waitFor(() => {
       const query = queryOf(api.requestsTo("GET", "/api/payments").at(-1));
       expect(query.get("Source")).toBe("ServiceCharge");
-      expect(query.get("ServiceKind")).toBe("Analysis");
+      expect(query.get("ServiceKind")).toBe(kind);
     });
-    expect(screen.getByLabelText("بابت")).toHaveDisplayValue("آنالیز");
+    expect(screen.getByLabelText("بابت")).toHaveDisplayValue(label);
   });
 
   it("Payments_ChoosingAMethod_PutsItInTheUrlAndAsksAgain", async () => {
@@ -304,7 +310,7 @@ describe("HistoryPage", () => {
     });
 
     await screen.findByText("خودکار");
-    fireEvent.click(screen.getByRole("tab", { name: "هوازی، فروشگاه و آنالیز" }));
+    fireEvent.click(screen.getByRole("tab", { name: "هوازی، فروشگاه، آنالیز و متفرقه" }));
 
     await waitFor(() =>
       expect(router.state.location.search).toBe(`?tab=cardio&from=2026-09-01&member=${reza.id}`),
@@ -335,6 +341,7 @@ describe("HistoryPage", () => {
         "هوازی",
         "فروشگاه",
         "آنالیز",
+        "متفرقه",
         "بوفه",
       ]),
     );
@@ -350,7 +357,7 @@ describe("HistoryPage", () => {
       within(tablist)
         .getAllByRole("tab")
         .map((tab) => tab.textContent),
-    ).toEqual(["ورود و خروج", "پرداخت‌ها", "هوازی، فروشگاه و آنالیز"]);
+    ).toEqual(["ورود و خروج", "پرداخت‌ها", "هوازی، فروشگاه، آنالیز و متفرقه"]);
     expect(screen.getByRole("tab", { name: "ورود و خروج" })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -395,6 +402,7 @@ describe("HistoryPage", () => {
       ["هوازی", "Cardio"],
       ["فروشگاه", "Miscellaneous"],
       ["آنالیز", "Analysis"],
+      ["متفرقه", "Other"],
       ["بوفه", "CafeOrder"],
     ];
     for (const [label, source] of expected) {

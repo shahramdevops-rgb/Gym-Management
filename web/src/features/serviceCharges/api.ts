@@ -25,17 +25,18 @@ export const serviceChargeKindLabels: Record<ServiceChargeKind, string> = {
   Cardio: "هوازی",
   Miscellaneous: "فروشگاه",
   Analysis: "آنالیز",
+  Other: "متفرقه",
 };
 
 /**
- * The kinds the desk records as a sale, with a name, a quantity and a unit price (BUSINESS_RULES.md
- * §7 *Sale at the desk*). Both follow the same rules; the kind only says which source it is filed
- * under.
+ * The kinds the desk records as a sale (BUSINESS_RULES.md §7 *Sale at the desk*): فروشگاه with a
+ * name, a quantity and a unit price, آنالیز and متفرقه (task 6.5.36) with a price alone. All follow
+ * the same rules; the kind only says which source it is filed under.
  */
-export type SaleKind = Extract<ServiceChargeKind, "Miscellaneous" | "Analysis">;
+export type SaleKind = Extract<ServiceChargeKind, "Miscellaneous" | "Analysis" | "Other">;
 
 export function isSaleKind(kind: ServiceChargeKind | null): kind is SaleKind {
-  return kind === "Miscellaneous" || kind === "Analysis";
+  return kind === "Miscellaneous" || kind === "Analysis" || kind === "Other";
 }
 
 /**
@@ -111,7 +112,7 @@ export interface RecordShopSaleInput {
 
 /**
  * «فروشگاه» (BUSINESS_RULES.md §7 *Sale at the desk*): one or more items in one request, each its
- * own charge, all on the member's account. آنالیز is a single amount and uses
+ * own charge, all on the member's account. آنالیز and متفرقه are a single amount and use
  * `useRecordServiceCharge`, like هوازی.
  */
 export function useRecordShopSale() {

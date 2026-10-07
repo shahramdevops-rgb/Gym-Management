@@ -48,8 +48,11 @@ function rangeFrom(params: URLSearchParams, today: string): RangeDraft {
 
 const formatCount = (value: number) => formatNumber(value);
 
-/** «فروش» leaves فروشگاه and آنالیز out, and says so wherever it is shown (§12, 1405/07/14). */
-const salesLabel = "فروش (به غیر از آنالیز و فروشگاه)";
+/**
+ * «فروش» leaves فروشگاه, آنالیز and متفرقه out, and says so wherever it is shown (§12, 1405/07/14;
+ * متفرقه 1405/07/15).
+ */
+const salesLabel = "فروش (به غیر از آنالیز، فروشگاه و متفرقه)";
 
 /**
  * The methods on the «دریافتی» cards, in the developer's own short words (1405/07/14): the card's
@@ -168,7 +171,7 @@ export function DashboardPage() {
                 />
                 <ReceivedCard
                   label="دریافتی"
-                  hint="آنچه در بازه آمد، بدهی‌های قبلی هم، منهای بازگشت‌ها؛ بدون آنالیز و فروشگاه"
+                  hint="آنچه در بازه آمد، بدهی‌های قبلی هم، منهای بازگشت‌ها؛ بدون آنالیز، فروشگاه و متفرقه"
                   current={financial.data.current.receivedByMethod}
                   previous={financial.data.previous.receivedByMethod}
                 />
@@ -177,6 +180,12 @@ export function DashboardPage() {
                   hint="پول آنالیز و فروشگاه، جدا از دریافتی باشگاه"
                   current={financial.data.current.shopAndAnalysisByMethod}
                   previous={financial.data.previous.shopAndAnalysisByMethod}
+                />
+                <ReceivedCard
+                  label="دریافتی متفرقه"
+                  hint="پول متفرقه، جدا از دریافتی باشگاه"
+                  current={financial.data.current.otherByMethod}
+                  previous={financial.data.previous.otherByMethod}
                 />
                 <SourceReceivedCard source="Cafe" report={financial.data} />
                 <SourceReceivedCard source="Cardio" report={financial.data} />
@@ -200,7 +209,7 @@ export function DashboardPage() {
                   label="سود خالص"
                   value={formatMoney(financial.data.current.netProfit)}
                   outcome={outcomeOf(financial.data.current.netProfit)}
-                  hint="درآمد به غیر از آنالیز و فروشگاه، منهای همهٔ هزینه‌ها"
+                  hint="درآمد به غیر از آنالیز، فروشگاه و متفرقه، منهای همهٔ هزینه‌ها"
                   comparison={{
                     current: financial.data.current.netProfit,
                     previous: financial.data.previous.netProfit,
@@ -427,7 +436,7 @@ function RenewalCard({
  * Money that came in during the range, by method, refunds taken off, written «کارت», «انتقال»,
  * «نقد» in the card's corner (asked by the developer, 1405/07/14). The gym's own «دریافتی» is
  * what the drawer, the card reader and the account should show for the range; فروشگاه and آنالیز
- * have a card of their own, because their money is someone else's.
+ * have a card of their own, and متفرقه another, because their money is someone else's.
  */
 function ReceivedCard({
   label,

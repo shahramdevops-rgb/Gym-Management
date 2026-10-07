@@ -192,46 +192,53 @@ public sealed class SaleEndpointTests(DatabaseFixture fixture) : DatabaseTestBas
         (await FieldErrorCodeAsync(response, "kind")).ShouldBe("ServiceCharges.KindInvalid");
     }
 
-    // ---- Recording آنالیز ----
+    // ---- Recording آنالیز and متفرقه ----
 
-    /// <summary>Task 6.5.29: آنالیز is only a price, put on the member's debt.</summary>
-    [Fact]
-    public async Task Analysis_Price_CreatesAnUnpaidChargeWithNoNameOrQuantity()
+    /// <summary>
+    /// Task 6.5.29: آنالیز is only a price, put on the member's debt. Task 6.5.36: متفرقه is the same,
+    /// under its own kind.
+    /// </summary>
+    [Theory]
+    [InlineData(ServiceChargeKind.Analysis)]
+    [InlineData(ServiceChargeKind.Other)]
+    public async Task PriceOnlySale_Price_CreatesAnUnpaidChargeWithNoNameOrQuantity(ServiceChargeKind kind)
     {
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
 
-        var analysis = await ChargeOkAsync(client, token, visit.Id, "Analysis", 200_000m);
+        var sale = await ChargeOkAsync(client, token, visit.Id, kind.ToString(), 200_000m);
 
-        analysis.Kind.ShouldBe(ServiceChargeKind.Analysis);
-        analysis.Amount.ShouldBe(200_000m);
-        analysis.Description.ShouldBeNull();
-        analysis.Quantity.ShouldBeNull();
-        analysis.PaymentStatus.ShouldBe(PaymentStatus.Unpaid);
-        analysis.CanChangeAmount.ShouldBeFalse();
+        sale.Kind.ShouldBe(kind);
+        sale.Amount.ShouldBe(200_000m);
+        sale.Description.ShouldBeNull();
+        sale.Quantity.ShouldBeNull();
+        sale.PaymentStatus.ShouldBe(PaymentStatus.Unpaid);
+        sale.CanChangeAmount.ShouldBeFalse();
         var debtItem = (await GetDebtOkAsync(client, token, visit.MemberId!.Value)).Items
-            .Single(item => item.Id == analysis.Id);
-        debtItem.ServiceKind.ShouldBe(ServiceChargeKind.Analysis);
+            .Single(item => item.Id == sale.Id);
+        debtItem.ServiceKind.ShouldBe(kind);
         debtItem.Sale.ShouldBeNull();
         debtItem.Outstanding.ShouldBe(200_000m);
     }
 
-    [Fact]
-    public async Task Analysis_GuestVisit_RecordsItWithNoMember()
+    [Theory]
+    [InlineData(ServiceChargeKind.Analysis)]
+    [InlineData(ServiceChargeKind.Other)]
+    public async Task PriceOnlySale_GuestVisit_RecordsItWithNoMember(ServiceChargeKind kind)
     {
         var (client, token) = await StaffClientAsync();
         var visit = await TestGuests.CheckInOkAsync(client, token);
 
-        var analysis = await ChargeOkAsync(client, token, visit.Id, "Analysis", 200_000m);
+        var sale = await ChargeOkAsync(client, token, visit.Id, kind.ToString(), 200_000m);
 
-        analysis.MemberId.ShouldBeNull();
-        analysis.AttendanceId.ShouldBe(visit.Id);
+        sale.MemberId.ShouldBeNull();
+        sale.AttendanceId.ShouldBe(visit.Id);
     }
 
     /// <summary>
     /// The database refuses a فروشگاه item with no name, or one whose total is not what its
-    /// quantity and unit price make, and an آنالیز that carries a name, even if the code above it
-    /// were bypassed.
+    /// quantity and unit price make, and an آنالیز or a متفرقه that carries a name, even if the code
+    /// above it were bypassed.
     /// </summary>
     [Theory]
     [InlineData("Miscellaneous", "description = NULL")]
@@ -239,12 +246,13 @@ public sealed class SaleEndpointTests(DatabaseFixture fixture) : DatabaseTestBas
     [InlineData("Miscellaneous", "quantity = 0, amount = 0")]
     [InlineData("Miscellaneous", "kind = 'Analysis'")]
     [InlineData("Analysis", "description = 'x', quantity = 1, unit_price = 200000")]
+    [InlineData("Other", "description = 'x', quantity = 1, unit_price = 200000")]
     public async Task ServiceCharge_SaleBrokenByHand_RejectedByACheckConstraint(string kind, string change)
     {
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
-        var sale = kind == "Analysis"
-            ? await ChargeOkAsync(client, token, visit.Id, "Analysis", 200_000m)
+        var sale = kind != "Miscellaneous"
+            ? await ChargeOkAsync(client, token, visit.Id, kind, 200_000m)
             : (await SellOkAsync(client, token, visit.Id, Item("دستکش", 2, 150_000m))).Single();
         var exception = await Should.ThrowAsync<PostgresException>(
             () => ExecuteSqlAsync($"UPDATE service_charges SET {change} WHERE id = '{sale.Id}'"));
@@ -256,12 +264,13 @@ public sealed class SaleEndpointTests(DatabaseFixture fixture) : DatabaseTestBas
     [Theory]
     [InlineData("Miscellaneous")]
     [InlineData("Analysis")]
+    [InlineData("Other")]
     public async Task ChangeAmount_Sale_Returns422NotEditable(string kind)
     {
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
-        var sale = kind == "Analysis"
-            ? await ChargeOkAsync(client, token, visit.Id, "Analysis", 150_000m)
+        var sale = kind != "Miscellaneous"
+            ? await ChargeOkAsync(client, token, visit.Id, kind, 150_000m)
             : (await SellOkAsync(client, token, visit.Id, Item("دستکش", 1, 150_000m))).Single();
 
         using var response = await SendAsync(
@@ -313,24 +322,31 @@ public sealed class SaleEndpointTests(DatabaseFixture fixture) : DatabaseTestBas
         (await StoredChargeAsync(kept.Id)).IsVoided.ShouldBeFalse();
     }
 
-    /// <summary>One list of ticks covers both kinds: a فروشگاه item and an آنالیز go together.</summary>
+    /// <summary>
+    /// One list of ticks covers every kind: a فروشگاه item, an آنالیز and a متفرقه go together.
+    /// </summary>
     [Fact]
-    public async Task CancelCheckIn_SaleOfEachKindTicked_VoidsBoth()
+    public async Task CancelCheckIn_SaleOfEachKindTicked_VoidsThemAll()
     {
         var (client, token) = await StaffClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
         var shop = (await SellOkAsync(client, token, visit.Id, Item("دستکش", 1, 150_000m))).Single();
         var analysis = await ChargeOkAsync(client, token, visit.Id, "Analysis", 200_000m);
+        var other = await ChargeOkAsync(client, token, visit.Id, "Other", 70_000m);
         await PayOkAsync(client, token, analysis.Id, 200_000m, "Cash");
+        await PayOkAsync(client, token, other.Id, 70_000m, "Card");
 
         using var response = await SendAsync(
-            client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/cancel", CancelCheckInBody.VoidSales(shop.Id, analysis.Id));
+            client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/cancel",
+            CancelCheckInBody.VoidSales(shop.Id, analysis.Id, other.Id));
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await ReadAttendanceAsync(response)).ServiceCharges.ShouldBeEmpty();
         (await StoredChargeAsync(shop.Id)).IsVoided.ShouldBeTrue();
         (await StoredChargeAsync(analysis.Id)).IsVoided.ShouldBeTrue();
+        (await StoredChargeAsync(other.Id)).IsVoided.ShouldBeTrue();
         (await StoredPaymentsAsync(analysis.Id)).Sum(p => p.Kind == PaymentKind.Payment ? p.Amount : -p.Amount).ShouldBe(0m);
+        (await StoredPaymentsAsync(other.Id)).Sum(p => p.Kind == PaymentKind.Payment ? p.Amount : -p.Amount).ShouldBe(0m);
     }
 
     [Fact]
@@ -380,19 +396,25 @@ public sealed class SaleEndpointTests(DatabaseFixture fixture) : DatabaseTestBas
         paid.Outstanding.ShouldBe(0m);
     }
 
-    /// <summary>The history lists هوازی, فروشگاه and آنالیز as separate sources (decided with the developer, 1405/07/11).</summary>
+    /// <summary>
+    /// The history lists هوازی, فروشگاه, آنالیز and متفرقه as separate sources (decided with the
+    /// developer, 1405/07/11; متفرقه 1405/07/15).
+    /// </summary>
     [Theory]
     [InlineData(ServiceChargeKind.Miscellaneous)]
     [InlineData(ServiceChargeKind.Analysis)]
+    [InlineData(ServiceChargeKind.Other)]
     public async Task ListPayments_SaleSource_ListsOnlyThatKindsPayments(ServiceChargeKind kind)
     {
         var (client, token) = await OwnerClientAsync();
         var visit = await CheckedInMemberAsync(client, token);
         var shop = (await SellOkAsync(client, token, visit.Id, Item("دستکش", 1, 150_000m))).Single();
         var analysis = await ChargeOkAsync(client, token, visit.Id, "Analysis", 200_000m);
+        var other = await ChargeOkAsync(client, token, visit.Id, "Other", 70_000m);
         var cardio = await ChargeOkAsync(client, token, visit.Id, "Cardio", 40_000m);
         await PayOkAsync(client, token, shop.Id, 150_000m, "Cash");
         await PayOkAsync(client, token, analysis.Id, 200_000m, "Card");
+        await PayOkAsync(client, token, other.Id, 70_000m, "Cash");
         await PayOkAsync(client, token, cardio.Id, 40_000m, "Cash");
 
         using var response = await SendAsync(
@@ -402,9 +424,14 @@ public sealed class SaleEndpointTests(DatabaseFixture fixture) : DatabaseTestBas
         var page = (await response.Content.ReadFromJsonAsync<PagedResponse<HistoryPaymentResponse>>(
             TestContext.Current.CancellationToken)).ShouldNotBeNull();
         var row = page.Items.ShouldHaveSingleItem();
-        row.TargetId.ShouldBe(kind == ServiceChargeKind.Analysis ? analysis.Id : shop.Id);
+        row.TargetId.ShouldBe(kind switch
+        {
+            ServiceChargeKind.Analysis => analysis.Id,
+            ServiceChargeKind.Other => other.Id,
+            _ => shop.Id,
+        });
         row.ServiceKind.ShouldBe(kind);
-        row.ServiceDescription.ShouldBe(kind == ServiceChargeKind.Analysis ? null : "دستکش");
+        row.ServiceDescription.ShouldBe(kind == ServiceChargeKind.Miscellaneous ? "دستکش" : null);
     }
 
     // ---- Helpers ----

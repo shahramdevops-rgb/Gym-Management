@@ -36,7 +36,13 @@ import { ServiceChargeLogTable } from "../components/ServiceChargeLogTable";
 import { staffEarliestPaymentDay, staffPaymentDaysBeforeToday } from "../range";
 
 type SalesTab =
-  "sales" | "sales-plans" | "sales-cardio" | "sales-shop" | "sales-analysis" | "sales-cafe";
+  | "sales"
+  | "sales-plans"
+  | "sales-cardio"
+  | "sales-shop"
+  | "sales-analysis"
+  | "sales-other"
+  | "sales-cafe";
 
 type Tab = "attendance" | "payments" | "cardio" | SalesTab;
 
@@ -52,7 +58,7 @@ const paymentsTab: TabItem = { value: "payments", label: "پرداخت‌ها" }
 const staffTabs: TabItem[] = [
   attendanceTab,
   paymentsTab,
-  { value: "cardio", label: "هوازی، فروشگاه و آنالیز" },
+  { value: "cardio", label: "هوازی، فروشگاه، آنالیز و متفرقه" },
 ];
 
 /**
@@ -65,6 +71,7 @@ const salesTabSources: Record<SalesTab, SaleSource | undefined> = {
   "sales-cardio": "Cardio",
   "sales-shop": "Miscellaneous",
   "sales-analysis": "Analysis",
+  "sales-other": "Other",
   "sales-cafe": "CafeOrder",
 };
 
@@ -77,6 +84,7 @@ const ownerTabs: TabItem[] = [
   { value: "sales-cardio", label: "هوازی" },
   { value: "sales-shop", label: "فروشگاه" },
   { value: "sales-analysis", label: "آنالیز" },
+  { value: "sales-other", label: "متفرقه" },
   { value: "sales-cafe", label: "بوفه" },
 ];
 

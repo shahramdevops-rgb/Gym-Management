@@ -40,6 +40,7 @@ export const revenueSourceOrder: RevenueSource[] = [
   "Cafe",
   "Miscellaneous",
   "Analysis",
+  "Other",
 ];
 
 /**
@@ -51,13 +52,14 @@ export const soldCountNouns: Partial<Record<RevenueSource, string>> = {
   SingleSession: "تک‌جلسه",
 };
 
-/** The six sources in the API's own order, and their names on screen (§12 *Financial report*). */
+/** The seven sources in the API's own order, and their names on screen (§12 *Financial report*). */
 export const revenueSourceLabels: Record<RevenueSource, string> = {
   Membership: "پلن",
   SingleSession: "تک‌جلسه‌ای",
   Cardio: "هوازی",
   Miscellaneous: "فروشگاه",
   Analysis: "آنالیز",
+  Other: "متفرقه",
   Cafe: "بوفه",
 };
 

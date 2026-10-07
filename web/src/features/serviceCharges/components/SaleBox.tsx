@@ -9,7 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PurchaseTile, PurchaseTileSummary } from "@/features/attendance/components/PurchaseTile";
+import {
+  PurchaseTile,
+  PurchaseTileSummary,
+  type PurchaseTileKind,
+} from "@/features/attendance/components/PurchaseTile";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney, subtractMoney } from "@/lib/money";
@@ -27,7 +31,7 @@ import { VoidServiceChargeForm } from "./VoidServiceChargeForm";
 
 interface SaleBoxProps {
   attendanceId: string;
-  /** فروشگاه or آنالیز: which tile this is and which source its sales are filed under. */
+  /** فروشگاه, آنالیز or متفرقه: which tile this is and which source its sales are filed under. */
   kind: SaleKind;
   memberName: string;
   /**
@@ -46,11 +50,17 @@ type Step =
   | { kind: "void"; sale: ServiceCharge }
   | { kind: "done"; title: string; detail?: string };
 
+const tileKinds: Record<SaleKind, PurchaseTileKind> = {
+  Miscellaneous: "shop",
+  Analysis: "analysis",
+  Other: "other",
+};
+
 /**
- * The «فروشگاه» or «آنالیز» tile of one visit, beside هوازی and بوفه (BUSINESS_RULES.md §7 *Sale at
- * the desk*): something sold at the desk that has no product of its own. A visit may have any
- * number of them, so the tile shows their total like the cafe's, and the list opens in a dialog.
- * فروشگاه takes one or more named items (`ShopSaleForm`); آنالیز is a single price
+ * The «فروشگاه», «آنالیز» or «متفرقه» tile of one visit, beside هوازی and بوفه (BUSINESS_RULES.md §7
+ * *Sale at the desk*): something sold at the desk that has no product of its own. A visit may have
+ * any number of them, so the tile shows their total like the cafe's, and the list opens in a dialog.
+ * فروشگاه takes one or more named items (`ShopSaleForm`); آنالیز and متفرقه are a single price
  * (`ServiceChargeAmountForm`, the هوازی form). Either way no money is taken when it is recorded:
  * it goes on the member's account (decided with the developer, 1405/07/12), or on a guest's visit
  * under their name, to be paid before they leave (task 6.5.31).
@@ -83,7 +93,7 @@ export function SaleBox({ attendanceId, kind, memberName, isGuest = false, sales
   return (
     <>
       <PurchaseTile
-        kind={kind === "Analysis" ? "analysis" : "shop"}
+        kind={tileKinds[kind]}
         onClick={() => setStep(sales.length === 0 ? { kind: "add" } : { kind: "list" })}
         ariaLabel={sales.length === 0 ? label : `${label}: ${formatMoney(total)}`}
         summary={
@@ -115,8 +125,8 @@ export function SaleBox({ attendanceId, kind, memberName, isGuest = false, sales
                 {step.kind === "list"
                   ? `فروش‌های ${label} در این مراجعه: ${formatMoney(total)}`
                   : step.kind === "add"
-                    ? kind === "Analysis"
-                      ? `مبلغ آنالیز را وارد کنید. ${where}`
+                    ? kind !== "Miscellaneous"
+                      ? `مبلغ ${label} را وارد کنید. ${where}`
                       : `نام، تعداد و قیمت هر کالا را وارد کنید. مبلغ ${where}`
                     : saleLine(step.sale)}
               </DialogDescription>
@@ -154,7 +164,7 @@ export function SaleBox({ attendanceId, kind, memberName, isGuest = false, sales
             </div>
           )}
 
-          {step?.kind === "add" && kind === "Analysis" && (
+          {step?.kind === "add" && kind !== "Miscellaneous" && (
             <ServiceChargeAmountForm
               label={`مبلغ ${label}`}
               target={{ attendanceId, kind }}

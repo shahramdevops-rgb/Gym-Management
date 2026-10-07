@@ -1792,6 +1792,36 @@ and leaves once the amount is recorded.
 
 Release needs the migration `CardioOnlyWithoutPlan` (a check constraint only).
 
+### 6.5.36 A third sale at the desk, «متفرقه» (فروش متفرقه)
+Asked by the developer on 1405/07/15 (2026-10-07): a copy of «آنالیز» under its own name, with
+exactly its rules, recorded by both roles, its money someone else's. Its own tab in the history and
+its own card on the dashboard. BUSINESS_RULES.md §7 *Sale at the desk* and §12 updated.
+
+- [x] **Domain.** `ServiceChargeKind.Other`, a sale kind (`IsSaleKind`). Named `Other`, not
+      `Miscellaneous`: that is فروشگاه, whose rows were written as «متفرقه» before 6.5.29
+- [x] **No migration.** The kind is stored as text; `ck_service_charges_miscellaneous` already gives
+      it no name, quantity or unit price, and the one-per-visit index is for هوازی alone.
+      `has-pending-model-changes` confirms it
+- [x] **API.** Recorded through `POST /api/attendance/{id}/service-charges` (kind `Other`); voided in
+      cancel check-in; `SaleSource.Other` and `RevenueSource.Other`; the financial report keeps it
+      out of «فروش», «دریافتی» and «سود خالص» and sends it alone as `otherByMethod`
+- [x] **Web.** A fifth tile «متفرقه» (rose, `Package`) in the member's and the guest's box, the
+      آنالیز form; the history's «متفرقه» tab, «بابت» option and the Staff section «هوازی، فروشگاه،
+      آنالیز و متفرقه»; the dashboard's «دریافتی متفرقه» card, its bar in revenue by source, and
+      «فروش (به غیر از آنالیز، فروشگاه و متفرقه)»
+- [x] Tests (domain): price only, never edited, on a guest's visit
+- [x] Tests (integration): recorded unpaid with no name, on a guest's visit, refused a name by the
+      constraint, never edited, voided by cancel check-in with its money back, blocks a guest's
+      check-out while unpaid, its own payments source, its own sales section and totals, out of
+      «فروش» and «سود خالص», its own `otherByMethod` apart from «دریافتی» and the shop's card
+- [x] Tests (frontend): five tiles, the price-only form posts `Other`, the tile's own total, its
+      cancel tick, the history tab and «بابت», the dashboard card and bar
+
+Done when: the desk records a «متفرقه» from the locker's box like an «آنالیز», and the Owner finds
+it on its own tab of the history and its own card on the dashboard.
+
+Release needs no migration.
+
 #### Housekeeping before Phase 9 (2026-10-04)
 Phase 6.5 closed with a check of the whole repository, so the next task starts clean:
 - [x] Full suite on `6b3159e`: 1509 backend and 785 frontend tests green, `dotnet build` with zero

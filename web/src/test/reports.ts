@@ -30,11 +30,13 @@ function period(overrides: Partial<FinancialPeriod>): FinancialPeriod {
       { source: "Cardio", money: zero, sold: 0, soldAmount: 0, soldPaid: 0, soldOwed: 0 },
       { source: "Miscellaneous", money: zero, sold: 0, soldAmount: 0, soldPaid: 0, soldOwed: 0 },
       { source: "Analysis", money: zero, sold: 0, soldAmount: 0, soldPaid: 0, soldOwed: 0 },
+      { source: "Other", money: zero, sold: 0, soldAmount: 0, soldPaid: 0, soldOwed: 0 },
       { source: "Cafe", money: zero, sold: 0, soldAmount: 0, soldPaid: 0, soldOwed: 0 },
     ],
     byMethod: noMethods,
     receivedByMethod: noMethods,
     shopAndAnalysisByMethod: noMethods,
+    otherByMethod: noMethods,
     byStaff: [],
     sales: 0,
     salesPaid: 0,
@@ -82,6 +84,7 @@ export const financialReport: FinancialReport = {
         soldOwed: 0,
       },
       { source: "Analysis", money: zero, sold: 0, soldAmount: 0, soldPaid: 0, soldOwed: 0 },
+      { source: "Other", money: zero, sold: 0, soldAmount: 0, soldPaid: 0, soldOwed: 0 },
       {
         source: "Cafe",
         money: { received: 1200000, refunded: 0, net: 1200000 },
@@ -106,6 +109,12 @@ export const financialReport: FinancialReport = {
       { method: "Card", money: { received: 1200000, refunded: 0, net: 1200000 } },
       { method: "BankTransfer", money: zero },
       { method: "Cash", money: zero },
+    ],
+    // متفرقه's 300,000 came in cash, on a card of its own (task 6.5.36).
+    otherByMethod: [
+      { method: "Card", money: zero },
+      { method: "BankTransfer", money: zero },
+      { method: "Cash", money: { received: 300000, refunded: 0, net: 300000 } },
     ],
     byStaff: [
       {

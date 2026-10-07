@@ -100,10 +100,12 @@ public sealed class GetFinancialReportHandler(
         var liveSales = saleRows.Matching(new SalesInRange(from, to))
             .Where(sale => sale.UndoneAt == null);
 
-        // «فروش» on the dashboard leaves فروشگاه and آنالیز out (decided with the developer,
-        // 1405/07/14); they are still counted below, in each source's «sold».
+        // «فروش» on the dashboard leaves فروشگاه, آنالیز and متفرقه out (decided with the developer,
+        // 1405/07/14 and 1405/07/15); they are still counted below, in each source's «sold».
         var gymSales = liveSales
-            .Where(sale => sale.Source != SaleSource.Miscellaneous && sale.Source != SaleSource.Analysis);
+            .Where(sale => sale.Source != SaleSource.Miscellaneous
+                && sale.Source != SaleSource.Analysis
+                && sale.Source != SaleSource.Other);
         var sales = await gymSales.SumAsync(sale => sale.Amount, cancellationToken);
 
         // How much of those same sales has been paid so far, refunds taken off, whenever it was
@@ -153,6 +155,7 @@ public sealed class GetFinancialReportHandler(
             [RevenueSource.Cardio] = soldByKind.GetValueOrDefault(SaleSource.Cardio) ?? Sold.None,
             [RevenueSource.Miscellaneous] = soldByKind.GetValueOrDefault(SaleSource.Miscellaneous) ?? Sold.None,
             [RevenueSource.Analysis] = soldByKind.GetValueOrDefault(SaleSource.Analysis) ?? Sold.None,
+            [RevenueSource.Other] = soldByKind.GetValueOrDefault(SaleSource.Other) ?? Sold.None,
             [RevenueSource.Cafe] = soldByKind.GetValueOrDefault(SaleSource.CafeOrder) ?? Sold.None,
         };
 
@@ -198,10 +201,12 @@ public sealed class GetFinancialReportHandler(
         var byMethod = ByMethod(data.Payments);
 
         // «دریافتی», what should be in the drawer, the card reader and the account, and apart from
-        // it the money of فروشگاه and آنالیز, which belongs to someone else (decided with the
-        // developer, 1405/07/14).
-        var receivedByMethod = ByMethod(data.Payments.Where(payment => !IsShopOrAnalysis(payment.Source)));
-        var shopAndAnalysisByMethod = ByMethod(data.Payments.Where(payment => IsShopOrAnalysis(payment.Source)));
+        // it the money of فروشگاه and آنالیز, and of متفرقه on its own card, which belongs to someone
+        // else (decided with the developer, 1405/07/14 and 1405/07/15).
+        var receivedByMethod = ByMethod(data.Payments.Where(payment => !IsSomeoneElses(payment.Source)));
+        var shopAndAnalysisByMethod = ByMethod(data.Payments.Where(payment =>
+            payment.Source is RevenueSource.Miscellaneous or RevenueSource.Analysis));
+        var otherByMethod = ByMethod(data.Payments.Where(payment => payment.Source == RevenueSource.Other));
 
         var byStaff = data.Payments
             .GroupBy(payment => payment.ReceivedByUserId)
@@ -223,10 +228,10 @@ public sealed class GetFinancialReportHandler(
 
         var expenses = byCategory.Sum(row => row.Amount);
 
-        // «سود خالص» is the gym's own revenue minus every expense: فروشگاه and آنالیز are left
-        // out, as they are out of «فروش» (decided with the developer, 1405/07/14).
+        // «سود خالص» is the gym's own revenue minus every expense: فروشگاه, آنالیز and متفرقه are
+        // left out, as they are out of «فروش» (decided with the developer, 1405/07/14 and 1405/07/15).
         var ownRevenue = bySource
-            .Where(row => !IsShopOrAnalysis(row.Source))
+            .Where(row => !IsSomeoneElses(row.Source))
             .Sum(row => row.Money.Net);
 
         return new FinancialPeriodResponse(
@@ -237,6 +242,7 @@ public sealed class GetFinancialReportHandler(
             byMethod,
             receivedByMethod,
             shopAndAnalysisByMethod,
+            otherByMethod,
             byStaff,
             data.Sales,
             data.SalesPaid,
@@ -256,9 +262,12 @@ public sealed class GetFinancialReportHandler(
             .ToList();
     }
 
-    /// <summary>فروشگاه and آنالیز: someone else's business, run at the gym's desk (1405/07/14).</summary>
-    private static bool IsShopOrAnalysis(RevenueSource source) =>
-        source is RevenueSource.Miscellaneous or RevenueSource.Analysis;
+    /// <summary>
+    /// فروشگاه, آنالیز and متفرقه: someone else's business, run at the gym's desk (1405/07/14,
+    /// متفرقه 1405/07/15).
+    /// </summary>
+    private static bool IsSomeoneElses(RevenueSource source) =>
+        source is RevenueSource.Miscellaneous or RevenueSource.Analysis or RevenueSource.Other;
 
     private static List<FinancialDayResponse> Days(DateOnly from, int length, RangeData data)
     {
@@ -300,6 +309,7 @@ public sealed class GetFinancialReportHandler(
             (null, ServiceChargeKind.Cardio) => RevenueSource.Cardio,
             (null, ServiceChargeKind.Miscellaneous) => RevenueSource.Miscellaneous,
             (null, ServiceChargeKind.Analysis) => RevenueSource.Analysis,
+            (null, ServiceChargeKind.Other) => RevenueSource.Other,
             (null, null) => RevenueSource.Cafe,
             _ => throw new UnreachableException($"Service charge kind {serviceKind} has no revenue source."),
         };

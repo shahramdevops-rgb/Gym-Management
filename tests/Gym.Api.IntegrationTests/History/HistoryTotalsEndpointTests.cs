@@ -65,12 +65,14 @@ public sealed class HistoryTotalsEndpointTests(DatabaseFixture fixture) : Databa
         await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
         await RecordShopOkAsync(owner, token, visit.Id, "دستکش", quantity: 1, unitPrice: 300_000m);
         await RecordChargeOkAsync(owner, token, visit.Id, "Analysis", 200_000m);
+        await RecordChargeOkAsync(owner, token, visit.Id, "Other", 70_000m);
         await WalkInOrderAsync(owner, token, 60_000m);
 
         (await SalesTotalsOkAsync(owner, token, TodayRange() + "&source=Subscription")).Amount.ShouldBe(900_000m);
         (await SalesTotalsOkAsync(owner, token, TodayRange() + "&source=Cardio")).Amount.ShouldBe(50_000m);
         (await SalesTotalsOkAsync(owner, token, TodayRange() + "&source=Miscellaneous")).Amount.ShouldBe(300_000m);
         (await SalesTotalsOkAsync(owner, token, TodayRange() + "&source=Analysis")).Amount.ShouldBe(200_000m);
+        (await SalesTotalsOkAsync(owner, token, TodayRange() + "&source=Other")).Amount.ShouldBe(70_000m);
         (await SalesTotalsOkAsync(owner, token, TodayRange() + "&source=CafeOrder"))
             .ShouldBe(new SalesTotalsResponse(60_000m, 60_000m, 0m));
     }

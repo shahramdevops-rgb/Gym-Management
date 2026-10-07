@@ -41,7 +41,7 @@ interface CancelCheckInConfirmProps {
 /**
  * The questions before a check-in is cancelled (BUSINESS_RULES.md §7 *Cancel check-in*, roadmap
  * 6.5.8). A visit that bought nothing is asked once, as before. One that bought something lists
- * its هوازی, each sale (فروشگاه, آنالیز) and each cafe order with its own tick, all unticked: whatever is left unticked stays
+ * its هوازی, each sale (فروشگاه, آنالیز, متفرقه) and each cafe order with its own tick, all unticked: whatever is left unticked stays
  * on the member's account. When anything is ticked, a second question names it and reminds the
  * desk to hand back what was collected for it.
  *
@@ -228,7 +228,7 @@ function cardioPurchase(charge: ServiceCharge): Purchase {
   return { id: charge.id, label: "هوازی", amount: charge.amount, netPaid: charge.netPaid };
 }
 
-/** «فروشگاه: دستکش × ۲» for a shop item; plain «آنالیز» for an analysis, which has no name. */
+/** «فروشگاه: دستکش × ۲» for a shop item; plain «آنالیز» or «متفرقه», which have no name. */
 function salePurchase(sale: ServiceCharge): Purchase {
   const quantity = Number(sale.quantity ?? 1);
   const name = sale.description;

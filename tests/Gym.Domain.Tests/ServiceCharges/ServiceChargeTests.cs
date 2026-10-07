@@ -212,15 +212,20 @@ public sealed class ServiceChargeTests
             .Error.ShouldBe(ServiceChargeErrors.KindInvalid);
     }
 
-    // ---- Sale at the desk: آنالیز ----
+    // ---- Sale at the desk: آنالیز and متفرقه ----
 
-    /// <summary>Task 6.5.29: آنالیز is a single typed price, with no name or quantity.</summary>
-    [Fact]
-    public void Record_Analysis_StoresOnlyTheAmount()
+    /// <summary>
+    /// Task 6.5.29: آنالیز is a single typed price, with no name or quantity. Task 6.5.36: متفرقه
+    /// follows exactly the same rules.
+    /// </summary>
+    [Theory]
+    [InlineData(ServiceChargeKind.Analysis)]
+    [InlineData(ServiceChargeKind.Other)]
+    public void Record_PriceOnlySale_StoresOnlyTheAmount(ServiceChargeKind kind)
     {
-        var charge = ServiceCharge.Record(MemberId, AttendanceId, ServiceChargeKind.Analysis, 200_000m, ChargedOn, UserId).Value;
+        var charge = ServiceCharge.Record(MemberId, AttendanceId, kind, 200_000m, ChargedOn, UserId).Value;
 
-        charge.Kind.ShouldBe(ServiceChargeKind.Analysis);
+        charge.Kind.ShouldBe(kind);
         charge.IsSale.ShouldBeTrue();
         charge.Amount.ShouldBe(200_000m);
         charge.Description.ShouldBeNull();
@@ -228,15 +233,16 @@ public sealed class ServiceChargeTests
         charge.UnitPrice.ShouldBeNull();
     }
 
-    // ---- Both ----
+    // ---- Every sale ----
 
     /// <summary>§7 <i>Sale at the desk</i>: voided and entered again, never edited, like a cafe order.</summary>
     [Theory]
     [InlineData(ServiceChargeKind.Miscellaneous)]
     [InlineData(ServiceChargeKind.Analysis)]
+    [InlineData(ServiceChargeKind.Other)]
     public void ChangeAmount_Sale_Fails(ServiceChargeKind kind)
     {
-        var charge = (kind == ServiceChargeKind.Analysis
+        var charge = (kind != ServiceChargeKind.Miscellaneous
             ? ServiceCharge.Record(MemberId, AttendanceId, kind, 10_000m, ChargedOn, UserId)
             : RecordShopItem("دستکش", 1, 10_000m)).Value;
 
@@ -263,6 +269,7 @@ public sealed class ServiceChargeTests
     [Theory]
     [InlineData(ServiceChargeKind.Cardio)]
     [InlineData(ServiceChargeKind.Analysis)]
+    [InlineData(ServiceChargeKind.Other)]
     public void Record_GuestVisit_HasNoMember(ServiceChargeKind kind)
     {
         var result = ServiceCharge.Record(null, AttendanceId, kind, 10_000m, ChargedOn, UserId);

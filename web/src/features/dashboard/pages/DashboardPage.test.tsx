@@ -145,8 +145,8 @@ describe("DashboardPage", () => {
     expect(within(card("هزینه‌ها")).getByText(/۲۵٪ بیشتر از بازهٔ قبل/)).toHaveClass(
       "text-destructive",
     );
-    // §12: «فروش» leaves فروشگاه and آنالیز out, and its name says so (1405/07/14).
-    expect(card("فروش (به غیر از آنالیز و فروشگاه)")).toHaveTextContent(
+    // §12: «فروش» leaves فروشگاه, آنالیز and متفرقه out, and its name says so (1405/07/14, 07/15).
+    expect(card("فروش (به غیر از آنالیز، فروشگاه و متفرقه)")).toHaveTextContent(
       "بدون تغییر نسبت به بازهٔ قبل",
     );
     // Nothing before: a percent would say nothing, so the figure before is shown.
@@ -178,10 +178,11 @@ describe("DashboardPage", () => {
     await screen.findByText("خلاصهٔ بازه");
     // 1405/07/14: «فروش» took «درآمد ناخالص»'s place, and «صندوق نقدی» is gone.
     const terms = screen.getAllByRole("term").map((term) => term.textContent);
-    expect(terms.slice(0, 7)).toEqual([
-      "فروش (به غیر از آنالیز و فروشگاه)",
+    expect(terms.slice(0, 8)).toEqual([
+      "فروش (به غیر از آنالیز، فروشگاه و متفرقه)",
       "دریافتی",
       "دریافتی آنالیز و فروشگاه",
+      "دریافتی متفرقه",
       "دریافتی بوفه",
       "دریافتی هوازی",
       "دریافتی پلن",
@@ -195,12 +196,12 @@ describe("DashboardPage", () => {
     expect(terms).not.toContain("خرید پلن");
 
     // A sale on credit is in «فروش» but not in the drawer, so it is written apart (§12).
-    const sales = card("فروش (به غیر از آنالیز و فروشگاه)");
+    const sales = card("فروش (به غیر از آنالیز، فروشگاه و متفرقه)");
     expect(sales).toHaveTextContent("۱۵٬۰۰۰٬۰۰۰ تومان");
     expect(breakdownOf(sales)).toEqual(["پرداخت‌شده۱۳٬۰۰۰٬۰۰۰ تومان", "مانده۲٬۰۰۰٬۰۰۰ تومان"]);
   });
 
-  it("DashboardPage_Received_IsWhatCameInByMethodWithTheShopAndAnalysisApart", async () => {
+  it("DashboardPage_Received_IsWhatCameInByMethodWithTheShopAnalysisAndOtherApart", async () => {
     mockApi(dashboard);
     renderApp("/dashboard", { session: session() });
 
@@ -218,6 +219,11 @@ describe("DashboardPage", () => {
     const shop = card("دریافتی آنالیز و فروشگاه");
     expect(shop).toHaveTextContent("۱٬۲۰۰٬۰۰۰ تومان");
     expect(breakdownOf(shop)).toEqual(["کارت۱٬۲۰۰٬۰۰۰ تومان", "انتقال۰ تومان", "نقد۰ تومان"]);
+
+    // Task 6.5.36: متفرقه is someone else's money too, on a card of its own.
+    const other = card("دریافتی متفرقه");
+    expect(other).toHaveTextContent("۳۰۰٬۰۰۰ تومان");
+    expect(breakdownOf(other)).toEqual(["کارت۰ تومان", "انتقال۰ تومان", "نقد۳۰۰٬۰۰۰ تومان"]);
   });
 
   it("DashboardPage_CafeReceived_IsOneFigureWithoutTheMethods", async () => {
@@ -476,6 +482,7 @@ describe("DashboardPage", () => {
       "بوفه",
       "فروشگاه",
       "آنالیز",
+      "متفرقه",
     ]);
 
     // How many were sold in the range, on the plan and single-visit bars only.

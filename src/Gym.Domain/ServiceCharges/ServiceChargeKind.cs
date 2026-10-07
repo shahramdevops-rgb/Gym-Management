@@ -22,4 +22,12 @@ public enum ServiceChargeKind
     /// the desk</i>, task 6.5.29). Otherwise it follows the rules of <see cref="Miscellaneous"/>.
     /// </summary>
     Analysis,
+
+    /// <summary>
+    /// متفرقه: a single typed price, any number per visit, under a source of its own (§7 <i>Sale at
+    /// the desk</i>, task 6.5.36). Exactly the rules of <see cref="Analysis"/>. Named <c>Other</c>,
+    /// not «متفرقه» in English, because <see cref="Miscellaneous"/> was called متفرقه on screen until
+    /// 6.5.29 and its rows are still stored under that name.
+    /// </summary>
+    Other,
 }
