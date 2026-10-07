@@ -2580,3 +2580,48 @@ until then each visitor buys their own single visit under their own name.
 - [ ] Check the whole group out in one action. With no names, the locker number is the desk's only
       handle, so a friend who leaves without checking out has to be findable by locker
 
+
+---
+
+## Future — Absence SMS (پیامک غیبت)
+Planned by the developer on 1405/07/15 (2026-10-07): a member who has not come for N days gets a
+friendly SMS («جای شما در باشگاه خالی است»), with no offer in it. A fifth SMS kind on Phase 10's
+design: the settings page row (on/off, days, send time, template), a unique index so it is sent once,
+and the daily run; the last visit is already in `attendances`. The migration only adds new columns,
+off and empty, so it is safe on the server's real data. Nothing is decided yet; BUSINESS_RULES.md §10
+gets the rule once these are answered:
+
+- [ ] Ask Kavenegar's support whether it is accepted as a service template (no discount, no offer)
+- [ ] Who gets it: only a member with an active plan who stops coming, or also one whose plan has
+      ended (to bring them back)? Frozen plans and deactivated members presumably not (§10)
+- [ ] How often: once per absence, so nothing more until they come again?
+- [ ] A member who bought a plan and never came at all: counted from the plan's start?
+- [ ] The wording, added to `docs/sms-templates.md`
+
+## Future — Free entry on the birthday (ورود رایگان روز تولد)
+Planned by the developer on 1405/07/15 (2026-10-07). Two separate parts. The gym's rule: a member
+gets a free visit on their birthday; the desk already knows whose birthday it is (BUSINESS_RULES.md
+§6 *The desk panel*), so the desk can offer it at check-in, and no discount code is needed. And the
+SMS telling them, which may count as advertising.
+
+- [ ] Ask Kavenegar's support whether «امروز ورودت رایگان است» is accepted in a service template. If
+      not, it goes out as free text from a line (`sms/send`): advertising rules apply, and members who
+      blocked advertising SMS do not get it. A line may have to be bought
+- [ ] Who: only a member with an active plan, or any member?
+- [ ] Does the visit use a session of their plan, or none?
+- [ ] How it shows in the money: a single visit at zero with the reason «تولد», never a record
+      deleted, so the financial report can count them
+- [ ] Only on the day itself, or within some days of it?
+
+## Future — Discount codes (کد تخفیف)
+Planned by the developer on 1405/07/15 (2026-10-07), for later. Its own phase, because it touches
+every sale and the financial report. Sending a code by SMS is advertising: the free-text method from
+a line, not a template (see the birthday entry above).
+
+- [ ] What it applies to: plans, single visits, the cafe?
+- [ ] A percentage or a fixed amount?
+- [ ] Single use or many; one member's or anyone's; an expiry date
+- [ ] Who makes them (presumably the Owner only), and the audit log
+- [ ] How a sale with a discount is recorded: the full price and a discount line, or the final price
+      only; the financial report's figures follow from that
+- [ ] A code used twice refused by the database too (a unique index), not only by the code
