@@ -2411,14 +2411,28 @@ with a kind on, and everything starts off, so a release sends nothing by itself;
 `./backup.sh run`.
 
 ### 10.4 Kavenegar
-- [ ] `KavenegarSmsSender` (`verify/lookup`); the API key in user secrets locally and
-      `Sms__Kavenegar__ApiKey` on the server, never in git
-- [ ] Kavenegar's codes mapped to the outcomes of `SmsSendResult` (the blanks' limits are already
-      checked by `SmsTokens`, task 10.1)
-- [ ] Cost kept with each message; delivery asked for after sending; the remaining credit
-      (`account/info`)
-- [ ] `Sms:AllowedReceptors` for the developer's machine: real sending only to the listed numbers
-- [ ] A manual test with the developer's account and number, the templates approved there first
+Decided with the developer on 1405/07/15 (2026-10-07): nothing may really be sent yet, since the
+local database holds made-up numbers that may belong to real people; the developer has no API key
+yet, and has not asked Kavenegar's support about the birthday template (§0 stays open).
+- [x] `KavenegarSmsSender` (`verify/lookup`); the API key in user secrets locally and
+      `Sms__Kavenegar__ApiKey` on the server, never in git. `Sms:Provider` stays `Fake` in
+      appsettings.json; Kavenegar with no key stops the app at startup
+- [x] Kavenegar's codes mapped to the outcomes of `SmsSendResult` (the blanks' limits are already
+      checked by `SmsTokens`, task 10.1): 409 retry, 418 credit, any other code `Failed`; no
+      connection is a retry, a request that left with no usable answer is `Unknown`
+- [x] Cost kept with each message (already in 10.3's run); delivery asked for once a night at 23:30
+      (`CheckSmsDeliveryHandler`, Hangfire job `notifications-delivery-check`, §10); the remaining
+      credit (`account/info`, `GET /api/sms/credit`, a line on the settings page, «حالت آزمایشی» with
+      the fake provider)
+- [x] `Sms:AllowedReceptors`: in every environment but Production, real sending only to the listed
+      numbers (`AllowListSmsSender`), and none when the list is empty; Production refuses a list
+- [x] The API key never in the logs: the HTTP client's own loggers removed (`RemoveAllLoggers`), with
+      a test that fails without it
+- [ ] A manual test with the developer's account and number, the templates approved there first.
+      Waiting for the API key: `account/info` first (it sends nothing), then one message to the
+      developer's own number through `Sms:AllowedReceptors`. Kavenegar's documentation could not be
+      reached from the development machine, so the codes and statuses come from §10 and are checked
+      in this test
 
 ### 10.5 SMS history and resend
 - [ ] The page «پیامک‌ها» (Owner): every message with its kind, recipient, status, delivery and
@@ -2430,7 +2444,9 @@ with a kind on, and everything starts off, so a release sends nothing by itself;
 Every server step is proposed and confirmed first, with `./backup.sh run` before the release.
 - [ ] A few days before: the Owner's Kavenegar account charged, its advanced service on, the four
       templates made from `docs/sms-templates.md` with the same names and approved
-- [ ] The Owner's API key in the server's `.env`, restricted to the server's IP in Kavenegar
+- [ ] The Owner's API key in the server's `.env`, restricted to the server's IP in Kavenegar;
+      `docker-compose.prod.yml` passes `Sms__Provider` and `Sms__Kavenegar__ApiKey` to the API
+      (not yet: until then the server keeps appsettings' `Fake`), and `deploy/env.example` lists them
 - [ ] The Owner fills in the settings page and turns on the kinds they want
 
 ---

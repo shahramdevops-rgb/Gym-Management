@@ -17,8 +17,9 @@ namespace Gym.Application.Common.Sms;
 /// <see cref="SmsSendResult"/> the caller records on the <c>Notification</c>. Only a bug throws.
 /// </para>
 /// <para>
-/// <c>Sms:Provider</c> chooses the implementation: <c>FakeSmsSender</c>, which only logs, or the
-/// real provider (task 10.4). Tests always use the fake one.
+/// <c>Sms:Provider</c> chooses the implementation: <c>FakeSmsSender</c>, which only logs, or
+/// <c>KavenegarSmsSender</c> (task 10.4). Outside Production the real one only reaches the numbers in
+/// <c>Sms:AllowedReceptors</c>. Tests always use the fake one.
 /// </para>
 /// </remarks>
 public interface ISmsSender

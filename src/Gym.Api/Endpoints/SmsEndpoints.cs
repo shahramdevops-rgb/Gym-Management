@@ -2,6 +2,7 @@ using Gym.Api.Authorization;
 using Gym.Api.Common;
 using Gym.Api.Filters;
 using Gym.Application.Notifications;
+using Gym.Application.Notifications.GetSmsCredit;
 using Gym.Application.Notifications.GetSmsSettings;
 using Gym.Application.Notifications.UpdateSmsSettings;
 
@@ -41,6 +42,13 @@ public static class SmsEndpoints
             .Produces<SmsSettingsResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
+
+        // Always 200: a provider that does not answer is a null credit, not an error (§10).
+        sms.MapGet("/credit", async (GetSmsCreditHandler handler, CancellationToken ct) =>
+                Results.Ok(await handler.Handle(ct)))
+            .RequireAuthorization(Policies.OwnerOnly)
+            .WithName("GetSmsCredit")
+            .Produces<SmsCreditResponse>();
 
         return app;
     }

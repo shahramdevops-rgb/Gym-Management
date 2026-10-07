@@ -11,7 +11,7 @@ import {
 } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
 
-import type { SmsKindSettings, SmsSettings } from "../api";
+import type { SmsCredit, SmsKindSettings, SmsSettings } from "../api";
 
 const off: SmsKindSettings = {
   enabled: false,
@@ -50,9 +50,13 @@ function ownerWith(settings: SmsSettings, extra: Parameters<typeof mockApi>[0] =
   return mockApi({
     ...signedInHandlers(owner),
     "GET /api/sms/settings": () => json(200, settings),
+    "GET /api/sms/credit": () => json(200, testMode),
     ...extra,
   });
 }
+
+/** `Sms:Provider` is `Fake`: nothing is really sent, so there is no credit (BUSINESS_RULES.md §10). */
+const testMode: SmsCredit = { isTestMode: true, remainingToman: null };
 
 function group(name: string) {
   return within(screen.getByRole("group", { name }));
@@ -71,6 +75,39 @@ function fillKind(name: string, threshold: string, hour: string, template: strin
 }
 
 describe("SmsSettingsPage", () => {
+  // ---- The credit (task 10.4) ----
+
+  it("SmsSettingsPage_TestMode_SaysNothingIsReallySent", async () => {
+    ownerWith(empty);
+
+    renderApp("/sms-settings", { session: session() });
+
+    expect(
+      await screen.findByText("حالت آزمایشی: پیامکی واقعاً فرستاده نمی‌شود و فقط ثبت می‌شود."),
+    ).toBeInTheDocument();
+  });
+
+  it("SmsSettingsPage_KavenegarAnswers_ShowsTheRemainingCreditInToman", async () => {
+    ownerWith(empty, {
+      "GET /api/sms/credit": () => json(200, { isTestMode: false, remainingToman: 125000 }),
+    });
+
+    renderApp("/sms-settings", { session: session() });
+
+    expect(await screen.findByText(/اعتبار باقی‌ماندهٔ پنل پیامک/)).toBeInTheDocument();
+    expect(screen.getByText("۱۲۵٬۰۰۰ تومان")).toBeInTheDocument();
+  });
+
+  it("SmsSettingsPage_KavenegarNotAnswering_SaysTheCreditIsUnavailable", async () => {
+    ownerWith(empty, {
+      "GET /api/sms/credit": () => json(200, { isTestMode: false, remainingToman: null }),
+    });
+
+    renderApp("/sms-settings", { session: session() });
+
+    expect(await screen.findByText("اعتبار پنل پیامک الان در دسترس نیست.")).toBeInTheDocument();
+  });
+
   // ---- Who sees it ----
 
   it("SmsSettingsPage_StaffUser_SeesNoAccessMessage", async () => {

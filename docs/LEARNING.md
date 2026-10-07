@@ -1583,3 +1583,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Naming a helper by what it means.** `IsShopOrAnalysis` became `IsSomeoneElses`: the question is "whose money is this?", not "which two kinds?". The by-method figures keep their own explicit lists, because متفرقه has a card of its own.
 - **Regex delimiters matter.** In `perl -pe 's|a\|b|…|'`, `\|` stands for the delimiter, so in the pattern it becomes `|`, which means "or". The empty alternative then matched at the start of the file. Pick a delimiter the text never contains (`s{…}{…}`), or use an exact-string edit.
 - **My notes:**
+
+## 10.4 — Kavenegar (اتصال به کاوه‌نگار)
+
+- **A typed HttpClient.** `AddHttpClient<KavenegarSmsSender>` gives the class its own `HttpClient`, with the base address and timeout set once. The factory pools the connections underneath, which a `new HttpClient()` per request would not.
+- **Testing HTTP without a network.** An `HttpClient` hands every request to its last `HttpMessageHandler`. Put a hand-written handler there (`StubKavenegar`) and the real sender code runs end to end: the form it posts, the address, and how it reads every kind of answer, with nothing leaving the machine and no mocking package.
+- **"Did the request leave?" decides the outcome.** If no connection was made (`HttpRequestError.ConnectionError`, a name that does not resolve, TLS failing), nothing was sent and it is safe to try again. Once the request has left, a timeout or a dropped connection means it may have been sent and paid for, so it becomes `Unknown` and a person decides.
+- **Two interfaces for two kinds of call.** Sending costs money and reaches a person; asking about delivery or the credit costs nothing and reaches nobody. `ISmsSender` and `ISmsAccount` keep them apart, so the safety guard wraps only the first.
+- **A guard that cannot be forgotten.** The allow-list is not a switch to turn on: it is there in every environment except Production, and an empty list sends nothing. The safe state is the one you get by doing nothing.
+- **A decorator.** `AllowListSmsSender` implements `ISmsSender` and wraps the real one: it decides per message whether to pass it on or hand it to the fake sender. Nothing that sends SMS knows it is there.
+- **Secrets can leak through logs.** Kavenegar puts the API key in the URL, and the HTTP client factory logs every URL by default. `RemoveAllLoggers()` stops that, and a test that records every log line proves it. The test was run once without the fix to make sure it fails.
+- **Validating options with the environment.** `SmsOptionsValidator` takes `IHostEnvironment` from DI, so it can refuse a setting that only makes sense on one machine (an allow-list in Production) when the app starts, not when the first message is sent.
+- **A daily job when timing matters only loosely.** Kavenegar remembers delivery for 48 hours, so one check a night (23:30) asks about every message at least once and an unanswered night costs nothing. Polling every few minutes would add load for information nobody acts on.
+- **My notes:**

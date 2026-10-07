@@ -1,5 +1,6 @@
 using Gym.Application.Attendances.AutoCheckout;
 using Gym.Application.Common;
+using Gym.Application.Notifications.CheckSmsDelivery;
 
 using Hangfire;
 
@@ -15,6 +16,14 @@ namespace Gym.Infrastructure.Jobs;
 public static class RecurringJobScheduler
 {
     public const string AutoCheckoutJobId = "attendance-auto-checkout";
+
+    public const string SmsDeliveryCheckJobId = "notifications-delivery-check";
+
+    /// <summary>
+    /// When the nightly delivery check runs, in <c>Gym:TimeZone</c> (BUSINESS_RULES.md §10 <i>Sending</i>):
+    /// after the last send of the day (22:00), and every 24 hours, inside the provider's 48.
+    /// </summary>
+    public static readonly TimeOnly SmsDeliveryCheckTime = new(23, 30);
 
     public static void ScheduleRecurringJobs(IServiceProvider services)
     {
@@ -34,6 +43,13 @@ public static class RecurringJobScheduler
             AutoCheckoutJobId,
             handler => handler.Handle(CancellationToken.None),
             cronExpression,
+            new RecurringJobOptions { TimeZone = calendar.TimeZone });
+
+        // Every night, whatever the SMS settings: with nothing sent in the last 48 hours it asks nothing.
+        recurringJobs.AddOrUpdate<CheckSmsDeliveryHandler>(
+            SmsDeliveryCheckJobId,
+            handler => handler.Handle(CancellationToken.None),
+            $"{SmsDeliveryCheckTime.Minute} {SmsDeliveryCheckTime.Hour} * * *",
             new RecurringJobOptions { TimeZone = calendar.TimeZone });
     }
 }
