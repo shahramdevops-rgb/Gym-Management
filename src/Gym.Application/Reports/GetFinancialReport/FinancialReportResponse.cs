@@ -17,17 +17,21 @@ public sealed record FinancialReportResponse(
 
 /// <summary>One range's money.</summary>
 /// <param name="Revenue">Payments, refunds and their difference, by <c>PaidAt</c>.</param>
-/// <param name="BySource">All six sources, always in the same order, zeros included.</param>
+/// <param name="BySource">All seven sources, always in the same order, zeros included.</param>
 /// <param name="ByMethod">All three methods in the desk's order: card, bank transfer, cash.</param>
 /// <param name="ReceivedByMethod">
-/// «دریافتی»: <paramref name="ByMethod"/> without فروشگاه and آنالیز, what should be in the gym's
+/// «دریافتی»: <paramref name="ByMethod"/> without فروشگاه, آنالیز and متفرقه, what should be in the gym's
 /// drawer, card reader and account for the range (BUSINESS_RULES.md §12 <i>Financial report</i>).
 /// </param>
 /// <param name="ShopAndAnalysisByMethod">The money of فروشگاه and آنالیز alone, by method.</param>
+/// <param name="OtherByMethod">
+/// The money of متفرقه alone, by method: someone else's like فروشگاه and آنالیز, on a card of its own
+/// (task 6.5.36).
+/// </param>
 /// <param name="ByStaff">Everyone who took or gave back money in the range, the largest net first.</param>
 /// <param name="Sales">
 /// What was sold in the range, cancelled and voided sales left out: plans, single visits, هوازی and
-/// the cafe. فروشگاه and آنالیز are left out (BUSINESS_RULES.md §12 <i>Financial report</i>).
+/// the cafe. فروشگاه, آنالیز and متفرقه are left out (BUSINESS_RULES.md §12 <i>Financial report</i>).
 /// </param>
 /// <param name="SalesPaid">
 /// What has been paid so far on the sales counted in <paramref name="Sales"/>, refunds taken off,
@@ -37,7 +41,7 @@ public sealed record FinancialReportResponse(
 /// <param name="Expenses">Expenses by <c>ExpenseDate</c>, voided ones left out.</param>
 /// <param name="ExpensesByCategory">Each category with an expense in the range, the largest first.</param>
 /// <param name="NetProfit">
-/// Net revenue without فروشگاه and آنالیز, minus every expense (BUSINESS_RULES.md §12
+/// Net revenue without فروشگاه, آنالیز and متفرقه, minus every expense (BUSINESS_RULES.md §12
 /// <i>Financial report</i>).
 /// </param>
 public sealed record FinancialPeriodResponse(
@@ -48,6 +52,7 @@ public sealed record FinancialPeriodResponse(
     IReadOnlyList<RevenueByMethodResponse> ByMethod,
     IReadOnlyList<RevenueByMethodResponse> ReceivedByMethod,
     IReadOnlyList<RevenueByMethodResponse> ShopAndAnalysisByMethod,
+    IReadOnlyList<RevenueByMethodResponse> OtherByMethod,
     IReadOnlyList<RevenueByStaffResponse> ByStaff,
     decimal Sales,
     decimal SalesPaid,

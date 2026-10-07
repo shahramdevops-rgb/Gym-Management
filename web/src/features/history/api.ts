@@ -23,18 +23,19 @@ export const paymentSourceLabels: Record<PaymentSource, string> = {
 };
 
 /**
- * What the "بابت" filter offers. هوازی, فروشگاه and آنالیز are all service charges to the API, but
- * separate sources on screen (BUSINESS_RULES.md §7 *Sale at the desk*), so the filter names them
- * apart and `paymentSourceQuery` turns the choice back into the API's two parameters.
+ * What the "بابت" filter offers. هوازی, فروشگاه, آنالیز and متفرقه are all service charges to the
+ * API, but separate sources on screen (BUSINESS_RULES.md §7 *Sale at the desk*), so the filter names
+ * them apart and `paymentSourceQuery` turns the choice back into the API's two parameters.
  */
 export type PaymentSourceFilter =
-  "Subscription" | "Cardio" | "Miscellaneous" | "Analysis" | "CafeOrder";
+  "Subscription" | "Cardio" | "Miscellaneous" | "Analysis" | "Other" | "CafeOrder";
 
 export const paymentSourceFilters: PaymentSourceFilter[] = [
   "Subscription",
   "Cardio",
   "Miscellaneous",
   "Analysis",
+  "Other",
   "CafeOrder",
 ];
 
@@ -43,6 +44,7 @@ export const paymentSourceFilterLabels: Record<PaymentSourceFilter, string> = {
   Cardio: "هوازی",
   Miscellaneous: "فروشگاه",
   Analysis: "آنالیز",
+  Other: "متفرقه",
   CafeOrder: "بوفه",
 };
 
@@ -56,6 +58,7 @@ export function paymentSourceQuery(source: PaymentSourceFilter | undefined): {
     case "Cardio":
     case "Miscellaneous":
     case "Analysis":
+    case "Other":
       return { Source: "ServiceCharge", ServiceKind: source };
     default:
       return { Source: source };
@@ -63,7 +66,7 @@ export function paymentSourceQuery(source: PaymentSourceFilter | undefined): {
 }
 
 export type HistorySale = components["schemas"]["HistorySaleResponse"];
-/** What kind of sale a row is: a plan, هوازی, فروشگاه, آنالیز or the cafe. */
+/** What kind of sale a row is: a plan, هوازی, فروشگاه, آنالیز, متفرقه or the cafe. */
 export type SaleSource = components["schemas"]["SaleSource"];
 /** «پرداخت شده» or «پرداخت نشده»; a partly paid sale is unpaid (BUSINESS_RULES.md §12 Sales). */
 export type SalePaidFilter = "Paid" | "Unpaid";
@@ -85,6 +88,7 @@ export const saleSourceLabels: Record<SaleSource, string> = {
   Cardio: "هوازی",
   Miscellaneous: "فروشگاه",
   Analysis: "آنالیز",
+  Other: "متفرقه",
   CafeOrder: "بوفه",
 };
 
@@ -281,7 +285,7 @@ export function usePaymentTotals(filter: PaymentTotalsFilter, { enabled = true }
   });
 }
 
-/** Every هوازی charge and sale (فروشگاه, آنالیز), voided ones included, newest first. */
+/** Every هوازی charge and sale (فروشگاه, آنالیز, متفرقه), voided ones included, newest first. */
 export function useServiceChargeHistory(filter: HistoryFilter, { enabled = true } = {}) {
   return useQuery({
     queryKey: historyKeys.serviceCharges(filter),

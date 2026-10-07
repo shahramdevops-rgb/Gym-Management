@@ -5,7 +5,7 @@ import type { MemberDebtItem } from "./api";
 
 /**
  * What a debt row is for, in Persian: a subscription reads as its plan («اشتراک ۱۲ جلسه - ۳۰ روزه»),
- * a service charge as its kind (هوازی), a sale with its source and name («فروشگاه: دستکش», «آنالیز: …»), a cafe order as بوفه. The API sends kinds and numbers, never
+ * a service charge as its kind (هوازی), a sale with its source and name («فروشگاه: دستکش», «آنالیز», «متفرقه»), a cafe order as بوفه. The API sends kinds and numbers, never
  * Persian text.
  */
 export function debtItemLabel(item: MemberDebtItem): string {

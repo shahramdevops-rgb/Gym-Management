@@ -195,7 +195,7 @@ export const errorMessages: Record<string, string> = {
   "Attendance.CafeOrderNotOnVisit":
     "یکی از خریدهای بوفه در این فاصله تغییر کرده است. پنجره را ببندید و دوباره امتحان کنید.",
   "Attendance.SaleNotOnVisit":
-    "یکی از فروش‌های فروشگاه یا آنالیز در این فاصله تغییر کرده است. پنجره را ببندید و دوباره امتحان کنید.",
+    "یکی از فروش‌های فروشگاه، آنالیز یا متفرقه در این فاصله تغییر کرده است. پنجره را ببندید و دوباره امتحان کنید.",
   "Attendance.GuestNameRequired": "نام و نام خانوادگی مهمان را وارد کنید.",
   "Attendance.GuestNameTooLong": "نام مهمان حداکثر ۲۰۰ نویسه است.",
   "Attendance.GuestHasUnpaidPurchases":
@@ -227,7 +227,7 @@ export const errorMessages: Record<string, string> = {
   "ServiceCharges.ShopItemsRequired": "دست‌کم یک کالا وارد کنید.",
   "ServiceCharges.TooManyShopItems": "در هر فروش حداکثر ۵۰ کالا ثبت می‌شود.",
   "ServiceCharges.SaleNotEditable":
-    "فروش فروشگاه یا آنالیز ویرایش نمی‌شود؛ آن را با ذکر دلیل ابطال کنید و دوباره ثبت کنید.",
+    "فروش فروشگاه، آنالیز یا متفرقه ویرایش نمی‌شود؛ آن را با ذکر دلیل ابطال کنید و دوباره ثبت کنید.",
 
   // Cafe: categories and products (no stock anywhere — BUSINESS_RULES.md §8)
   "ProductCategories.NotFound": "دسته‌بندی پیدا نشد.",

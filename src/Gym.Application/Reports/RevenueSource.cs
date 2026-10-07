@@ -3,7 +3,7 @@ namespace Gym.Application.Reports;
 /// <summary>
 /// What money was received for (BUSINESS_RULES.md §12 <i>Financial report</i>). A payment points at
 /// a subscription, a service charge or a cafe order; the report splits the first by whether it is a
-/// single visit and the second by its kind, so the Owner reads six figures, not three.
+/// single visit and the second by its kind, so the Owner reads seven figures, not three.
 /// </summary>
 public enum RevenueSource
 {
@@ -21,6 +21,9 @@ public enum RevenueSource
 
     /// <summary>آنالیز.</summary>
     Analysis,
+
+    /// <summary>متفرقه (task 6.5.36).</summary>
+    Other,
 
     /// <summary>بوفه.</summary>
     Cafe,

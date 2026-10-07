@@ -70,6 +70,7 @@ public sealed class SaleRows(IAppDbContext db, IGymCalendar calendar)
         (SaleSource.Cardio, ServiceChargeKind.Cardio),
         (SaleSource.Miscellaneous, ServiceChargeKind.Miscellaneous),
         (SaleSource.Analysis, ServiceChargeKind.Analysis),
+        (SaleSource.Other, ServiceChargeKind.Other),
     ];
 
     private IQueryable<SaleRow> Subscriptions(ISalesFilter filter)

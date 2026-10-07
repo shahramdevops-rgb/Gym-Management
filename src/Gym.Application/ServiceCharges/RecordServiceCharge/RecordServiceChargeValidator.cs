@@ -8,7 +8,7 @@ public sealed class RecordServiceChargeValidator : AbstractValidator<RecordServi
 {
     public RecordServiceChargeValidator()
     {
-        // هوازی and آنالیز are a single amount. A فروشگاه item has its own endpoint, which takes
+        // هوازی, آنالیز and متفرقه are a single amount. A فروشگاه item has its own endpoint, which takes
         // its name and quantity.
         RuleFor(command => command.Kind)
             .ValidKind()

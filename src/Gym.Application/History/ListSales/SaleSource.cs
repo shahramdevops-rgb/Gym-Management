@@ -1,9 +1,9 @@
 namespace Gym.Application.History.ListSales;
 
 /// <summary>
-/// What kind of sale a row is (BUSINESS_RULES.md §12 <i>Sales in the history</i>). هوازی, فروشگاه and
-/// آنالیز are all service charges in the database, but each is its own section on screen, so each is
-/// its own source here; the names match <c>ServiceChargeKind</c>.
+/// What kind of sale a row is (BUSINESS_RULES.md §12 <i>Sales in the history</i>). هوازی, فروشگاه,
+/// آنالیز and متفرقه are all service charges in the database, but each is its own section on screen,
+/// so each is its own source here; the names match <c>ServiceChargeKind</c>.
 /// </summary>
 public enum SaleSource
 {
@@ -18,6 +18,9 @@ public enum SaleSource
 
     /// <summary>آنالیز.</summary>
     Analysis,
+
+    /// <summary>متفرقه (task 6.5.36).</summary>
+    Other,
 
     /// <summary>بوفه.</summary>
     CafeOrder,

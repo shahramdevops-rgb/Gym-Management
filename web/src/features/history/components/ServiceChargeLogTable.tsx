@@ -7,8 +7,8 @@ import type { HistoryServiceCharge } from "../api";
 import { WhoCell } from "./WhoCell";
 
 /**
- * Every هوازی charge and sale (فروشگاه, آنالیز), newest first, with what it was and who recorded it
- * (BUSINESS_RULES.md §12 History); a guest's under their name, marked «مهمان». A voided charge
+ * Every هوازی charge and sale (فروشگاه, آنالیز, متفرقه), newest first, with what it was and who
+ * recorded it (BUSINESS_RULES.md §12 History); a guest's under their name, marked «مهمان». A voided charge
  * stays on the list, marked, with its reason and who voided it: the desk's own boxes leave voided
  * charges out, which is why this is the place to find one.
  */

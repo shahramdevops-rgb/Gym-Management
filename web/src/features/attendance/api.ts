@@ -303,7 +303,7 @@ export function useMoveLocker() {
   });
 }
 
-/** What the desk ticked in the cancel box: the visit's هوازی, and each cafe order and sale (فروشگاه, آنالیز) on its own. */
+/** What the desk ticked in the cancel box: the visit's هوازی, and each cafe order and sale (فروشگاه, آنالیز, متفرقه) on its own. */
 export interface CancelCheckInChoice {
   attendanceId: string;
   voidCardio: boolean;

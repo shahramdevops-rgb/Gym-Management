@@ -1720,6 +1720,7 @@ export interface components {
             byMethod: components["schemas"]["RevenueByMethodResponse"][];
             receivedByMethod: components["schemas"]["RevenueByMethodResponse"][];
             shopAndAnalysisByMethod: components["schemas"]["RevenueByMethodResponse"][];
+            otherByMethod: components["schemas"]["RevenueByMethodResponse"][];
             byStaff: components["schemas"]["RevenueByStaffResponse"][];
             /** Format: double */
             sales: number | string;
@@ -2487,7 +2488,7 @@ export interface components {
             money: components["schemas"]["MoneyFlowResponse"];
         };
         /** @enum {unknown} */
-        RevenueSource: "Membership" | "SingleSession" | "Cardio" | "Miscellaneous" | "Analysis" | "Cafe";
+        RevenueSource: "Membership" | "SingleSession" | "Cardio" | "Miscellaneous" | "Analysis" | "Other" | "Cafe";
         RevertPayableCommand: {
             reason: string;
         };
@@ -2504,7 +2505,7 @@ export interface components {
         /** @enum {unknown} */
         SalePaidFilter: "Paid" | "Unpaid" | null;
         /** @enum {unknown} */
-        SaleSource: "Subscription" | "Cardio" | "Miscellaneous" | "Analysis" | "CafeOrder";
+        SaleSource: "Subscription" | "Cardio" | "Miscellaneous" | "Analysis" | "Other" | "CafeOrder";
         SalesTotalsResponse: {
             /** Format: double */
             amount: number | string;
@@ -2521,7 +2522,7 @@ export interface components {
             unitPrice: number | string;
         };
         /** @enum {unknown} */
-        ServiceChargeKind: "Cardio" | "Miscellaneous" | "Analysis" | null;
+        ServiceChargeKind: "Cardio" | "Miscellaneous" | "Analysis" | "Other" | null;
         ServiceChargeResponse: {
             /** Format: uuid */
             id: string;

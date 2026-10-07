@@ -100,13 +100,13 @@ public sealed class ServiceCharge : Entity
     public bool IsSale => IsSaleKind(Kind);
 
     /// <summary>
-    /// The kinds sold at the desk (BUSINESS_RULES.md §7 <i>Sale at the desk</i>): فروشگاه and
-    /// آنالیز. Any number per visit, and voided and entered again rather than edited. Only a
+    /// The kinds sold at the desk (BUSINESS_RULES.md §7 <i>Sale at the desk</i>): فروشگاه, آنالیز
+    /// and متفرقه. Any number per visit, and voided and entered again rather than edited. Only a
     /// فروشگاه item carries a name, a quantity and a unit price (<see cref="RecordShopItem"/>);
-    /// آنالیز is a single typed amount, like هوازی.
+    /// آنالیز and متفرقه are a single typed amount, like هوازی.
     /// </summary>
     public static bool IsSaleKind(ServiceChargeKind kind) =>
-        kind is ServiceChargeKind.Miscellaneous or ServiceChargeKind.Analysis;
+        kind is ServiceChargeKind.Miscellaneous or ServiceChargeKind.Analysis or ServiceChargeKind.Other;
 
     /// <summary>
     /// Records a charge against a visit. Whether that visit is open, and whether it already has a

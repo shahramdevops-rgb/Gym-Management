@@ -1,10 +1,10 @@
-import { Coffee, HeartPulse, ScanLine, ShoppingBag, type LucideIcon } from "lucide-react";
+import { Coffee, HeartPulse, Package, ScanLine, ShoppingBag, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
 /** What a visit can buy from its locker box (BUSINESS_RULES.md §7, §8). */
-export type PurchaseTileKind = "cardio" | "cafe" | "shop" | "analysis";
+export type PurchaseTileKind = "cardio" | "cafe" | "shop" | "analysis" | "other";
 
 /**
  * Each tile's look: its icon, its name, and a soft background with a strong ink of its own
@@ -30,6 +30,11 @@ const tiles: Record<PurchaseTileKind, { icon: LucideIcon; label: string; classNa
     icon: ScanLine,
     label: "آنالیز",
     className: "bg-tile-analysis text-tile-analysis-ink border-tile-analysis-ink/25",
+  },
+  other: {
+    icon: Package,
+    label: "متفرقه",
+    className: "bg-tile-other text-tile-other-ink border-tile-other-ink/25",
   },
 };
 

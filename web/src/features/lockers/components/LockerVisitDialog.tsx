@@ -55,7 +55,7 @@ interface LockerVisitDialogProps {
 /**
  * One visit, opened from its locker (BUSINESS_RULES.md §7 *Confirming at the front desk*): who it
  * is (linked to their profile), when they came in, the sessions beside them, the plan and its
- * dates, the debt item by item, a coloured tile each for هوازی, بوفه, فروشگاه and آنالیز, and
+ * dates, the debt item by item, a coloured tile each for هوازی, بوفه, فروشگاه, آنالیز and متفرقه, and
  * check-out, cancel check-in, moving to another locker and who had the locker earlier today. A used reserve place opens the same box,
  * without the locker's history.
  *
@@ -136,8 +136,8 @@ export function LockerVisitDialog({
             <DialogHeader>
               <DialogTitle>تسویه یکجا — {member.fullName}</DialogTitle>
               <DialogDescription>
-                همهٔ خریدهای پرداخت‌نشدهٔ این مهمان (بوفه، هوازی، فروشگاه و آنالیز) یکجا پرداخت
-                می‌شود.
+                همهٔ خریدهای پرداخت‌نشدهٔ این مهمان (بوفه، هوازی، فروشگاه، آنالیز و متفرقه) یکجا
+                پرداخت می‌شود.
               </DialogDescription>
             </DialogHeader>
             <GuestSettleForm
@@ -180,7 +180,7 @@ export function LockerVisitDialog({
 
             {/* The purchase tiles (task 6.5.29): each names itself with its icon and colour, so
                 there is no heading above them. */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               <ServiceChargeBox
                 attendanceId={visit.attendanceId}
                 kind="Cardio"
@@ -204,6 +204,12 @@ export function LockerVisitDialog({
                 kind="Analysis"
                 memberName={member.fullName}
                 sales={visit.serviceCharges.filter((charge) => charge.kind === "Analysis")}
+              />
+              <SaleBox
+                attendanceId={visit.attendanceId}
+                kind="Other"
+                memberName={member.fullName}
+                sales={visit.serviceCharges.filter((charge) => charge.kind === "Other")}
               />
             </div>
 
@@ -405,7 +411,7 @@ function GuestView({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         <ServiceChargeBox
           attendanceId={visit.attendanceId}
           kind="Cardio"
@@ -431,6 +437,13 @@ function GuestView({
           memberName={guest.fullName}
           isGuest
           sales={visit.serviceCharges.filter((charge) => charge.kind === "Analysis")}
+        />
+        <SaleBox
+          attendanceId={visit.attendanceId}
+          kind="Other"
+          memberName={guest.fullName}
+          isGuest
+          sales={visit.serviceCharges.filter((charge) => charge.kind === "Other")}
         />
       </div>
       {owes && (

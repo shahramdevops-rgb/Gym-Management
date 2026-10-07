@@ -53,9 +53,10 @@ Each card's tone and icon, as the page used them:
 
 | Card | Tone | Icon |
 | --- | --- | --- |
-| فروش (به غیر از آنالیز و فروشگاه) | violet | ShoppingBag |
+| فروش (به غیر از آنالیز، فروشگاه و متفرقه) | violet | ShoppingBag |
 | دریافتی | blue | Wallet |
 | دریافتی آنالیز و فروشگاه | amber | Store |
+| دریافتی متفرقه (added in 6.5.36, after this design) | rose | Package |
 | دریافتی بوفه | brown | CupSoda |
 | دریافتی هوازی | pink | HeartPulse |
 | دریافتی پلن | indigo | IdCard |

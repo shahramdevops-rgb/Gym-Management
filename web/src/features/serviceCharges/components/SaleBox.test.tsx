@@ -11,10 +11,10 @@ import type { Attendance } from "@/features/attendance/api";
 import type { ServiceCharge } from "@/features/serviceCharges/api";
 
 /**
- * «فروشگاه» and «آنالیز» in a visit's locker box (BUSINESS_RULES.md §7 *Sale at the desk*, tasks
- * 6.5.28 and 6.5.29), each on a coloured tile of its own beside هوازی and بوفه. فروشگاه takes one
- * or more named items, with ▲/▼ for the quantity; آنالیز takes only a price. Neither takes money
- * when it is recorded: both go on the member's account.
+ * «فروشگاه», «آنالیز» and «متفرقه» in a visit's locker box (BUSINESS_RULES.md §7 *Sale at the
+ * desk*, tasks 6.5.28, 6.5.29 and 6.5.36), each on a coloured tile of its own beside هوازی and بوفه.
+ * فروشگاه takes one or more named items, with ▲/▼ for the quantity; آنالیز and متفرقه take only a
+ * price. None takes money when it is recorded: all go on the member's account.
  */
 describe("SaleBox", () => {
   const shopPath = (visit: Attendance) => `/api/attendance/${visit.id}/service-charges/shop`;
@@ -45,6 +45,17 @@ describe("SaleBox", () => {
       id: "0199a000-0000-7000-8000-0000000000f8",
       kind: "Analysis",
       amount: 200000,
+      canChangeAmount: false,
+      ...overrides,
+    };
+  }
+
+  function other(visit: Attendance, overrides: Partial<ServiceCharge> = {}): ServiceCharge {
+    return {
+      ...cardioCharge(visit),
+      id: "0199a000-0000-7000-8000-0000000000f9",
+      kind: "Other",
+      amount: 70000,
       canChangeAmount: false,
       ...overrides,
     };
@@ -87,15 +98,14 @@ describe("SaleBox", () => {
     return fields;
   }
 
-  /** Task 6.5.29: four tiles that name themselves, with no heading above them. */
-  it("Box_OpenVisit_OffersFourTilesWithoutHeadings", async () => {
+  /** Tasks 6.5.29 and 6.5.36: five tiles that name themselves, with no heading above them. */
+  it("Box_OpenVisit_OffersFiveTilesWithoutHeadings", async () => {
     await renderLocker(onLocker(openVisit(reza.id)));
 
     const box = await screen.findByRole("dialog");
-    for (const tile of ["هوازی", "بوفه", "فروشگاه", "آنالیز"]) {
+    for (const tile of ["هوازی", "بوفه", "فروشگاه", "آنالیز", "متفرقه"]) {
       expect(within(box).getByRole("button", { name: tile })).toBeInTheDocument();
     }
-    expect(within(box).queryByText("متفرقه")).not.toBeInTheDocument();
     expect(within(box).queryByRole("button", { name: "مبلغ هوازی" })).not.toBeInTheDocument();
   });
 
@@ -220,6 +230,27 @@ describe("SaleBox", () => {
     expect(await screen.findByText("آنالیز ثبت شد")).toBeInTheDocument();
   });
 
+  /** Task 6.5.36: متفرقه follows آنالیز exactly, only a price, under its own kind. */
+  it("Other_OnlyAPrice_PostsItUnderOther", async () => {
+    const visit = onLocker(openVisit(reza.id));
+    const api = await renderLocker(visit, {
+      [`POST ${chargePath(visit)}`]: () => json(201, other(visit)),
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "متفرقه" }));
+    const form = await screen.findByRole("dialog", { name: /^متفرقه/ });
+    expect(within(form).queryByLabelText("نام کالا")).not.toBeInTheDocument();
+    fireEvent.change(within(form).getByLabelText("مبلغ متفرقه"), { target: { value: "70000" } });
+    fireEvent.click(within(form).getByRole("button", { name: "ثبت" }));
+
+    await waitFor(() => expect(api.requestsTo("POST", chargePath(visit))).toHaveLength(1));
+    expect(await api.requestsTo("POST", chargePath(visit))[0]!.json()).toEqual({
+      kind: "Other",
+      amount: "70000",
+    });
+    expect(await screen.findByText("متفرقه ثبت شد")).toBeInTheDocument();
+  });
+
   it("Box_WithAShopItem_ShowsItsTotalAndListsItWithItsQuantity", async () => {
     const visit = onLocker(openVisit(reza.id));
     await renderLocker({ ...visit, serviceCharges: [shopItem(visit)] });
@@ -241,16 +272,26 @@ describe("SaleBox", () => {
       await screen.findByRole("button", { name: "آنالیز: ۲۰۰٬۰۰۰ تومان" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "فروشگاه" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "متفرقه" })).toBeInTheDocument();
+  });
+
+  it("Box_WithAnOther_ShowsItOnTheOtherTileOnly", async () => {
+    const visit = onLocker(openVisit(reza.id));
+    await renderLocker({ ...visit, serviceCharges: [other(visit)] });
+
+    expect(await screen.findByRole("button", { name: "متفرقه: ۷۰٬۰۰۰ تومان" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "آنالیز" })).toBeInTheDocument();
   });
 
   /** §7 *Cancel check-in*: each sale has its own tick, sent by id, whichever tile it came from. */
-  it("CancelCheckIn_SaleOfEachKindTicked_SendsBothIds", async () => {
+  it("CancelCheckIn_SaleOfEachKindTicked_SendsEveryId", async () => {
     const visit = onLocker(openVisit(reza.id));
     const shop = shopItem(visit);
     const scan = analysis(visit);
+    const extra = other(visit);
     const cancelPath = `/api/attendance/${visit.id}/cancel`;
     const api = await renderLocker(
-      { ...visit, serviceCharges: [shop, scan] },
+      { ...visit, serviceCharges: [shop, scan, extra] },
       {
         [`POST ${cancelPath}`]: () => json(200, { ...visit, checkedOutAt: "2026-09-18T07:10:00Z" }),
       },
@@ -259,6 +300,7 @@ describe("SaleBox", () => {
     fireEvent.click(await screen.findByRole("button", { name: "لغو ورود" }));
     fireEvent.click(await screen.findByRole("checkbox", { name: /فروشگاه: دستکش × ۲/ }));
     fireEvent.click(screen.getByRole("checkbox", { name: /^آنالیز/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /^متفرقه/ }));
     fireEvent.click(screen.getByRole("button", { name: "بله، ورود لغو شود" }));
     fireEvent.click(await screen.findByRole("button", { name: "بله، ورود و این موارد لغو شوند" }));
 
@@ -266,7 +308,7 @@ describe("SaleBox", () => {
     expect(await api.requestsTo("POST", cancelPath)[0]!.json()).toEqual({
       voidCardio: false,
       cafeOrderIds: [],
-      saleIds: [shop.id, scan.id],
+      saleIds: [shop.id, scan.id, extra.id],
     });
   });
 });

@@ -97,6 +97,7 @@ public sealed class GuestPurchasesEndpointTests(DatabaseFixture fixture) : Datab
     [Theory]
     [InlineData("Cardio")]
     [InlineData("Analysis")]
+    [InlineData("Other")]
     public async Task CheckOut_GuestWithAnUnpaidCharge_Returns422AndStaysInside(string kind)
     {
         var (client, token) = await StaffClientAsync();
