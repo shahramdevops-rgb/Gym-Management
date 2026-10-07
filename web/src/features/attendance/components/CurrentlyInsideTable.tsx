@@ -65,10 +65,15 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
 
             const daysLeft = daysUntil(row.subscriptionEndDate ?? today, today);
 
+            // A cardio-only visit may name no plan (BUSINESS_RULES.md §7 *Cardio-only visit*):
+            // nothing to count and nothing running out.
+            const hasPlan = row.subscriptionId !== null;
+
             // A single visit is spent by design and expires tonight, so both marks would fire on
             // every such row and mean nothing. What the desk needs to see is that it was a single
             // visit (BUSINESS_RULES.md §4, §7).
-            const expiringSoon = !row.isSingleSession && daysLeft <= expiringDaysThreshold;
+            const expiringSoon =
+              hasPlan && !row.isSingleSession && daysLeft <= expiringDaysThreshold;
 
             return (
               <tr key={row.attendanceId} className="border-b">
@@ -96,7 +101,9 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                 </td>
                 <td className="py-2">{formatDateTime(row.checkedInAt)}</td>
                 <td className="py-2">
-                  {row.isSingleSession ? (
+                  {!hasPlan ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : row.isSingleSession ? (
                     // No bar: "۱ از ۱" on every single-visit row is a denominator with nothing to
                     // say.
                     <span className="whitespace-nowrap text-muted-foreground">تک‌جلسه‌ای</span>

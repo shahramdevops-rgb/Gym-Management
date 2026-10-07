@@ -140,7 +140,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_attendances_reserve_slot_range", "reserve_slot BETWEEN 1 AND 15");
 
-                            t.HasCheckConstraint("ck_attendances_subscription_with_member", "(member_id IS NULL) = (subscription_id IS NULL)");
+                            t.HasCheckConstraint("ck_attendances_subscription_with_member", "(member_id IS NULL AND subscription_id IS NULL) OR (member_id IS NOT NULL AND (subscription_id IS NOT NULL OR is_cardio_only))");
                         });
                 });
 

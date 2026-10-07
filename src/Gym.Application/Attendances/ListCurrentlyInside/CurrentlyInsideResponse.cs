@@ -20,7 +20,8 @@ namespace Gym.Application.Attendances.ListCurrentlyInside;
 /// <param name="UsesReservePlace">The visit holds one of the reserve places (BUSINESS_RULES.md §6); the board shows "رزرو".</param>
 /// <param name="IsCardioOnly">
 /// The member came in only for هوازی and no session was consumed (§7 <i>Cardio-only visit</i>). The
-/// subscription values are the plan they were let in on; the board marks the row «فقط هوازی».
+/// subscription values are the plan the member held, all <c>null</c> when they held none (no plan is
+/// needed for this); the board marks the row «فقط هوازی».
 /// </param>
 /// <param name="SubscriptionEndDate">
 /// Of the subscription this visit consumed from, which the attendance names outright

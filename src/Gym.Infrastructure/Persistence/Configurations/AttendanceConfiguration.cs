@@ -59,12 +59,15 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
             // BUSINESS_RULES.md §7 Guest visit: a visit is a member's (with the subscription a
             // session came from) or a guest's (a name and nothing else), never both and never
             // neither. Every visit before roadmap 6.5.11 is a member's and passes all three.
+            // §7 Cardio-only visit: such a visit needs no plan (roadmap 6.5.35), so a member's
+            // visit may lack a subscription only when it is cardio-only. Every earlier visit had
+            // one exactly when it had a member, which passes.
             table.HasCheckConstraint(
                 AttendanceConstraints.MemberOrGuest,
                 "(member_id IS NULL) <> (guest_name IS NULL)");
             table.HasCheckConstraint(
                 AttendanceConstraints.SubscriptionWithMember,
-                "(member_id IS NULL) = (subscription_id IS NULL)");
+                "(member_id IS NULL AND subscription_id IS NULL) OR (member_id IS NOT NULL AND (subscription_id IS NOT NULL OR is_cardio_only))");
             table.HasCheckConstraint(
                 AttendanceConstraints.GuestNameNotBlank,
                 "guest_name IS NULL OR btrim(guest_name) <> ''");

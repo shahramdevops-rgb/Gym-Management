@@ -62,6 +62,32 @@ describe("CurrentlyInsidePage", () => {
     expect(within(other).queryByText("فقط هوازی")).not.toBeInTheDocument();
   });
 
+  /** Roadmap 6.5.35: a cardio-only visit needs no plan, so there is nothing to count or to expire. */
+  it("Board_CardioOnlyVisitWithNoPlan_ShowsADashAndNoExpiry", async () => {
+    const cardio = { ...openVisit(reza.id), isCardioOnly: true, subscriptionId: null };
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([
+          insideRow(reza.fullName, cardio, {
+            subscriptionId: null,
+            totalSessions: null,
+            usedSessions: null,
+            remainingSessions: null,
+            subscriptionEndDate: null,
+          }),
+        ]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).getByText("فقط هوازی")).toBeInTheDocument();
+    expect(within(row).getByText("—")).toBeInTheDocument();
+    expect(within(row).queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(within(row).queryByText("(امروز)")).not.toBeInTheDocument();
+  });
+
   it("Board_LimitedSubscription_ShowsSessionsUsedOfTotal", async () => {
     const visit = openVisit(reza.id);
     mockApi({

@@ -468,13 +468,16 @@ function GuestView({
 
 /**
  * The visit's sessions, used of total over a bar, and how many that leaves: the one count the desk
- * reads at the door. A single visit has nothing to count.
+ * reads at the door. A single visit has nothing to count, and a cardio-only visit by a member with
+ * no plan has nothing at all (BUSINESS_RULES.md §7 *Cardio-only visit*).
  */
 function VisitSessions({ visit }: { visit: CurrentlyInside }) {
   return (
     <section aria-label="جلسات" className="w-full shrink-0 space-y-1 text-sm sm:w-48">
       <p className="text-muted-foreground">جلسات</p>
-      {visit.isSingleSession ? (
+      {visit.subscriptionId === null ? (
+        <p className="font-medium">بدون اشتراک</p>
+      ) : visit.isSingleSession ? (
         <p className="font-medium">تک‌جلسه‌ای</p>
       ) : (
         <>

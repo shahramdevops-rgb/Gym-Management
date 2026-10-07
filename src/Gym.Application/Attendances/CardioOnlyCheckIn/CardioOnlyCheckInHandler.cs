@@ -10,9 +10,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Attendances.CardioOnlyCheckIn;
 
 /// <summary>
-/// Lets a member in only for هوازی (BUSINESS_RULES.md §7 <i>Cardio-only visit</i>): the member must
-/// hold a membership that is active today or frozen, no session is consumed, and the plan is not
-/// changed in any way. The visit holds the locker the desk chose or a reserve place, like any visit.
+/// Lets a member in only for هوازی (BUSINESS_RULES.md §7 <i>Cardio-only visit</i>): no plan is
+/// needed, no session is consumed, and a plan the member holds is not changed in any way, only named
+/// on the visit. The visit holds the locker the desk chose or a reserve place, like any visit.
 /// Front desk work, so both roles; the audit log records who let the member in this way.
 /// </summary>
 /// <remarks>
@@ -53,11 +53,8 @@ public sealed class CardioOnlyCheckInHandler(IAppDbContext db, IGymCalendar cale
             .Where(s => s.MemberId == memberId && s.CancelledAt == null)
             .ToListAsync(cancellationToken);
 
-        var plan = SubscriptionSchedule.PlanForCardioOnly(calendar.Today(), subscriptions);
-        if (plan.IsFailure)
-        {
-            return Result.Failure<AttendanceResponse>(plan.Error);
-        }
+        // Only for showing: a member with no plan in effect comes in all the same, on no plan.
+        var planId = SubscriptionSchedule.PlanForCardioOnly(calendar.Today(), subscriptions)?.Id;
 
         var now = time.GetUtcNow();
         int? lockerNumber = null;
@@ -71,7 +68,7 @@ public sealed class CardioOnlyCheckInHandler(IAppDbContext db, IGymCalendar cale
             }
 
             lockerNumber = locker.Value;
-            attendance = Attendance.CheckInCardioOnly(memberId, plan.Value.Id, lockerId, now);
+            attendance = Attendance.CheckInCardioOnly(memberId, planId, lockerId, now);
         }
         else
         {
@@ -81,7 +78,7 @@ public sealed class CardioOnlyCheckInHandler(IAppDbContext db, IGymCalendar cale
                 return Result.Failure<AttendanceResponse>(reserveSlot.Error);
             }
 
-            attendance = Attendance.CheckInCardioOnlyOnReservePlace(memberId, plan.Value.Id, reserveSlot.Value, now);
+            attendance = Attendance.CheckInCardioOnlyOnReservePlace(memberId, planId, reserveSlot.Value, now);
         }
 
         db.Attendances.Add(attendance);

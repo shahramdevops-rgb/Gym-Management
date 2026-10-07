@@ -1756,7 +1756,41 @@ Done when: «اعضا» lists whoever came last at the top, 50 to a page, a walk
 filter, and every member with a plan shows «۴ از ۱۲» over a bar.
 
 Tests not run yet: the developer asked to run them once, when the changes are done. Release needs
-the migration `MemberLastVisitIndex` (an index only).
+the migration `MemberLastVisitIndex` (an index only). Committed as `6242691`; its tests ran with
+6.5.35's full suite.
+
+### 6.5.35 Cardio-only without a plan (ورود فقط هوازی بدون اشتراک)
+Reported by the developer on 1405/07/15 (2026-10-07) as a bug: someone whose sessions or plan had
+run out, or who never had one, could not come in for هوازی. It was the rule of 6.5.27 ("the member
+must hold a plan"); the developer replaced it the same day. BUSINESS_RULES.md §1 and §7
+*Cardio-only visit* updated. One migration, a check constraint only.
+
+- [x] **Domain.** `SubscriptionSchedule.PlanForCardioOnly` returns `Subscription?`: the plan active
+      today, else a frozen one, else `null`; it never refuses. `Attendance.CheckInCardioOnly*` take a
+      `Guid?` plan
+- [x] **Database.** `ck_attendances_subscription_with_member` becomes "a guest's visit has no plan; a
+      member's has one unless it is cardio-only" (migration `CardioOnlyWithoutPlan`). Every existing
+      row passes. Its `Down` would fail once a visit with no plan exists; a rollback leaves it
+- [x] **Web.** «ورود فقط هوازی» under the sale offered after a refused check-in and after
+      registering a new member, its «انصراف» back to that offer; the confirmation reads «جلسه‌ای کم
+      نمی‌شود و اشتراک لازم نیست». The board shows «—» and no end date or expiry mark for a visit
+      with no plan; the locker's box says «بدون اشتراک»
+- [x] Tests (domain): no subscriptions, only a single visit, exhausted, exhausted with a queued plan
+      (nothing moved), expired, only a queued plan all name no plan; a cardio-only visit with no plan
+      is a member's and still needs its amount to check out
+- [x] Tests (integration): no plan, only a single visit (left unused), no sessions left (left at
+      10), expired, not started (start date kept) all come in on no plan; an inactive member is still
+      refused, and one already inside; a no-plan visit needs its amount, then checks out leaving the
+      debt; it can be cancelled; the board shows it with no plan values; an ordinary member's visit
+      without a plan is rejected by the check constraint
+- [x] Tests (frontend): after `NoSubscription`, `Expired` and `NoSessionsLeft` the offer has
+      «ورود فقط هوازی» and it lets the member in with nothing sold; «انصراف» goes back to the offer;
+      a newly registered member is offered it; the board's dash and no expiry; the box's «بدون اشتراک»
+
+Done when: a member with no plan, or whose plan ran out, comes in for هوازی from the locker's box,
+and leaves once the amount is recorded.
+
+Release needs the migration `CardioOnlyWithoutPlan` (a check constraint only).
 
 #### Housekeeping before Phase 9 (2026-10-04)
 Phase 6.5 closed with a check of the whole repository, so the next task starts clean:
