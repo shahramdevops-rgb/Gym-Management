@@ -233,6 +233,24 @@ public sealed class AttendanceTests
     }
 
     [Fact]
+    public void CheckInCardioOnly_NoPlan_IsAMembersVisitWithNoSubscription()
+    {
+        // No plan is needed to come in for هوازی (BUSINESS_RULES.md §7 Cardio-only visit).
+        var attendance = Attendance.CheckInCardioOnly(MemberId, subscriptionId: null, Guid.NewGuid(), CheckedInAt);
+
+        attendance.IsCardioOnly.ShouldBeTrue();
+        attendance.MemberId.ShouldBe(MemberId);
+        attendance.SubscriptionId.ShouldBeNull();
+        attendance.IsGuest.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CheckOut_CardioOnlyNoPlanWithoutACardioCharge_Fails() =>
+        Attendance.CheckInCardioOnly(MemberId, subscriptionId: null, Guid.NewGuid(), CheckedInAt)
+            .CheckOut(CheckedInAt.AddHours(1))
+            .Error.ShouldBe(AttendanceErrors.CardioChargeMissing);
+
+    [Fact]
     public void CheckInCardioOnlyOnReservePlace_ValidSlot_HoldsTheReservePlace()
     {
         var attendance = Attendance.CheckInCardioOnlyOnReservePlace(MemberId, SubscriptionId, 2, CheckedInAt);

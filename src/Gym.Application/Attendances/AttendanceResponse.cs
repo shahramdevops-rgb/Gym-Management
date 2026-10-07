@@ -7,7 +7,10 @@ using Gym.Domain.Lockers;
 namespace Gym.Application.Attendances;
 
 /// <param name="MemberId"><c>null</c> on a guest's visit (BUSINESS_RULES.md §7 <i>Guest visit</i>).</param>
-/// <param name="SubscriptionId"><c>null</c> on a guest's visit, which consumed no session.</param>
+/// <param name="SubscriptionId">
+/// <c>null</c> on a guest's visit, which consumed no session, and on a cardio-only visit by a member
+/// with no plan active or frozen (<paramref name="IsCardioOnly"/>).
+/// </param>
 /// <param name="GuestName">The guest's full name on a guest's visit; <c>null</c> on a member's.</param>
 /// <param name="LockerId">
 /// The locker the visit holds, or <c>null</c> when it holds a reserve place
@@ -22,7 +25,7 @@ namespace Gym.Application.Attendances;
 /// </param>
 /// <param name="IsCardioOnly">
 /// A member came in only for هوازی and no session was consumed (BUSINESS_RULES.md §7 <i>Cardio-only
-/// visit</i>); <paramref name="SubscriptionId"/> is then the plan they were let in on. The visit cannot
+/// visit</i>); <paramref name="SubscriptionId"/> is then the plan they held, if any. The visit cannot
 /// be checked out until its هوازی amount is recorded.
 /// </param>
 /// <param name="CheckedOutAt"><c>null</c> while the visit is still open.</param>

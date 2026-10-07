@@ -8,7 +8,7 @@ namespace Gym.Domain.Attendances;
 /// locker the desk chose or, when every locker is full, a reserve place (BUSINESS_RULES.md §6, §7).
 /// A guest's visit (§7 <i>Guest visit</i>) holds a place the same way, but has a typed name instead
 /// of a member and a subscription. A cardio-only visit (§7 <i>Cardio-only visit</i>) is a member's
-/// visit that consumed no session.
+/// visit that consumed no session, and needs no plan.
 /// </summary>
 /// <remarks>
 /// Every precondition (member active, subscription active, no open attendance) is a cross-entity
@@ -35,8 +35,8 @@ public sealed class Attendance : Entity
 
     /// <summary>
     /// The subscription a session was consumed from, or on a cardio-only visit the plan the member
-    /// was let in on, which gave no session (<see cref="IsCardioOnly"/>). <c>null</c> exactly when
-    /// <see cref="MemberId"/> is.
+    /// held, which gave no session (<see cref="IsCardioOnly"/>). <c>null</c> on a guest's visit, and
+    /// on a cardio-only visit by a member with no plan active or frozen (a check constraint says so too).
     /// </summary>
     public Guid? SubscriptionId { get; private set; }
 
@@ -135,10 +135,10 @@ public sealed class Attendance : Entity
     /// <summary>
     /// A member's cardio-only visit on the locker the desk chose (BUSINESS_RULES.md §7 <i>Cardio-only
     /// visit</i>). <paramref name="subscriptionId"/> is the plan the member holds, from which no
-    /// session is consumed; whether the plan allows it is the caller's check, as for
-    /// <see cref="CheckIn"/>.
+    /// session is consumed, or <c>null</c> when they hold none: no plan is needed to come in for
+    /// هوازی. Which plan that is, is the caller's question, as for <see cref="CheckIn"/>.
     /// </summary>
-    public static Attendance CheckInCardioOnly(Guid memberId, Guid subscriptionId, Guid lockerId, DateTimeOffset checkedInAt) =>
+    public static Attendance CheckInCardioOnly(Guid memberId, Guid? subscriptionId, Guid lockerId, DateTimeOffset checkedInAt) =>
         new()
         {
             MemberId = memberId,
@@ -149,7 +149,7 @@ public sealed class Attendance : Entity
         };
 
     /// <summary>A cardio-only visit on a reserve place, under the same conditions as any visit's (BUSINESS_RULES.md §6).</summary>
-    public static Attendance CheckInCardioOnlyOnReservePlace(Guid memberId, Guid subscriptionId, int reserveSlot, DateTimeOffset checkedInAt)
+    public static Attendance CheckInCardioOnlyOnReservePlace(Guid memberId, Guid? subscriptionId, int reserveSlot, DateTimeOffset checkedInAt)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(reserveSlot, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(reserveSlot, ReservePlaceCount);

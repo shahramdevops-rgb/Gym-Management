@@ -1564,3 +1564,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **The configuration binder appends to lists.** A `TimeSpan[]` option with a default in code would get appsettings' values added after it, not instead of it; the default is empty and the validator insists on one wait per retry.
 - **The Jalali calendar is in .NET.** `System.Globalization.PersianCalendar` gives the Jalali year, month and day and leap years, so the server needs no package to find a birthday by the Jalali day or to write `۱۴۰۵/۰۷/۲۰` in an SMS.
 - **My notes:**
+
+## 6.5.35 — Cardio-only without a plan (ورود فقط هوازی بدون اشتراک)
+
+- **A "bug" that is a rule.** The code did exactly what BUSINESS_RULES.md said; the rule was wrong for the gym. The fix starts in the rules document, and the old rule is kept there as "replaces …", so the next reader knows it was a decision and not an accident.
+- **From `Result<T>` to `T?`.** `PlanForCardioOnly` used to answer "the plan, or why not". Once "no plan" stopped being a refusal, a nullable return says the new truth: `null` is a normal answer, not a failure, so it is no longer an `Error`.
+- **Relaxing a check constraint safely.** The database rule "a member's visit has a plan" becomes "… unless it is cardio-only". Loosening a constraint never refuses existing rows, so the migration is safe on the server's real data. Its `Down` tightens it again and would fail once a visit with no plan exists; that is why a rollback leaves the database as it is.
+- **Keep one constraint name, change its meaning.** The name `ck_attendances_subscription_with_member` and the C# constant stay, so the existing guest test still finds it; only the SQL changes, and a new test covers the new half.
+- **Building past a locked DLL.** A running `dotnet run` locks `bin/Debug`. `-c Release` (and `dotnet ef … --configuration Release`) builds into `bin/Release`, so the API can keep running while you build and test.
+- **My notes:**

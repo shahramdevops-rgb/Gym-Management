@@ -24,7 +24,10 @@ public static class AttendanceConstraints
     /// <summary>A visit is a member's or a guest's, never both and never neither (BUSINESS_RULES.md §7 <i>Guest visit</i>).</summary>
     public const string MemberOrGuest = "ck_attendances_member_or_guest";
 
-    /// <summary>A visit has a subscription exactly when it has a member (BUSINESS_RULES.md §7 <i>Guest visit</i>).</summary>
+    /// <summary>
+    /// A guest's visit has no subscription; a member's has one, unless it is cardio-only, which needs
+    /// no plan (BUSINESS_RULES.md §7 <i>Guest visit</i>, <i>Cardio-only visit</i>).
+    /// </summary>
     public const string SubscriptionWithMember = "ck_attendances_subscription_with_member";
 
     /// <summary>A guest's name is never blank (BUSINESS_RULES.md §7 <i>Guest visit</i>).</summary>

@@ -729,6 +729,8 @@ describe("LockersPage", () => {
       await within(dialog).findByRole("button", { name: /ورود تک‌جلسه‌ای/ }),
     ).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "فروش اشتراک" })).toBeInTheDocument();
+    // Or in only for هوازی, which needs no plan (BUSINESS_RULES.md §7 *Cardio-only visit*).
+    expect(within(dialog).getByRole("button", { name: "ورود فقط هوازی" })).toBeInTheDocument();
     expect(api.requestsTo("POST", "/api/members")).toHaveLength(1);
     expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
   });

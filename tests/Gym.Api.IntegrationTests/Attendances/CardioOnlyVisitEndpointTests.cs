@@ -24,8 +24,9 @@ using Npgsql;
 namespace Gym.Api.IntegrationTests.Attendances;
 
 /// <summary>
-/// «ورود فقط هوازی» (BUSINESS_RULES.md §7 <i>Cardio-only visit</i>): a member with a plan comes in
-/// without a session being consumed, and leaves only once a هوازی amount is recorded. Every test
+/// «ورود فقط هوازی» (BUSINESS_RULES.md §7 <i>Cardio-only visit</i>): any active member, with a plan
+/// or without one, comes in without a session being consumed, and leaves only once a هوازی amount
+/// is recorded. Every test
 /// runs as Staff, the desk.
 /// </summary>
 [Collection(DatabaseCollectionDefinition.Name)]
@@ -51,57 +52,172 @@ public sealed class CardioOnlyVisitEndpointTests(DatabaseFixture fixture) : Data
         (await StoredSubscriptionAsync(planId)).UsedSessions.ShouldBe(0);
     }
 
+    // No plan is needed to come in for هوازی (roadmap 6.5.35, replacing "the member must hold a
+    // plan"): each of these comes in on no plan, and whatever the member holds is left as it was.
+
     [Fact]
-    public async Task CardioOnlyCheckIn_NoSubscription_Returns422AttendanceNoSubscription()
+    public async Task CardioOnlyCheckIn_NoSubscription_Returns201OnNoPlan()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
 
         using var response = await CardioOnlyCheckInAsync(client, token, member.Id, lockerNumber: 1);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.NoSubscription");
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var visit = await ReadAsync(response);
+        visit.IsCardioOnly.ShouldBeTrue();
+        visit.MemberId.ShouldBe(member.Id);
+        visit.SubscriptionId.ShouldBeNull();
+        visit.LockerNumber.ShouldBe(1);
     }
 
     [Fact]
-    public async Task CardioOnlyCheckIn_OnlyASingleVisitHeld_Returns422AttendanceNoSubscription()
-    {
-        // A single visit is not a plan (§7 Cardio-only visit): the member comes in the ordinary way.
-        var (client, token) = await StaffClientAsync();
-        var member = await AddMemberAsync();
-        await InsertSingleVisitAsync(member.Id);
-
-        using var response = await CardioOnlyCheckInAsync(client, token, member.Id, lockerNumber: 1);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.NoSubscription");
-    }
-
-    [Fact]
-    public async Task CardioOnlyCheckIn_NoSessionsLeft_Returns422SubscriptionsNoSessionsLeft()
+    public async Task CardioOnlyCheckIn_OnlyASingleVisitHeld_Returns201AndLeavesTheSingleVisitUnused()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
-        await InsertMembershipAsync(member.Id, usedSessions: 10);
+        var singleVisitId = await InsertSingleVisitAsync(member.Id);
 
         using var response = await CardioOnlyCheckInAsync(client, token, member.Id, lockerNumber: 1);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.NoSessionsLeft");
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await ReadAsync(response)).SubscriptionId.ShouldBeNull();
+        (await StoredSubscriptionAsync(singleVisitId)).UsedSessions.ShouldBe(0);
     }
 
     [Fact]
-    public async Task CardioOnlyCheckIn_PlanExpired_Returns422SubscriptionsExpired()
+    public async Task CardioOnlyCheckIn_NoSessionsLeft_Returns201OnNoPlan()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var planId = await InsertMembershipAsync(member.Id, usedSessions: 10);
+
+        using var response = await CardioOnlyCheckInAsync(client, token, member.Id, lockerNumber: 1);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await ReadAsync(response)).SubscriptionId.ShouldBeNull();
+        (await StoredSubscriptionAsync(planId)).UsedSessions.ShouldBe(10);
+    }
+
+    [Fact]
+    public async Task CardioOnlyCheckIn_PlanExpired_Returns201OnNoPlan()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
         var today = Today();
-        await InsertMembershipAsync(member.Id, start: today.AddDays(-40), end: today.AddDays(-11));
+        var planId = await InsertMembershipAsync(member.Id, start: today.AddDays(-40), end: today.AddDays(-11));
+
+        using var response = await CardioOnlyCheckInAsync(client, token, member.Id, lockerNumber: 1);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await ReadAsync(response)).SubscriptionId.ShouldBeNull();
+        (await StoredSubscriptionAsync(planId)).EndDate.ShouldBe(today.AddDays(-11));
+    }
+
+    [Fact]
+    public async Task CardioOnlyCheckIn_PlanNotStarted_Returns201AndLeavesItsStartDate()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var today = Today();
+        var planId = await InsertMembershipAsync(member.Id, start: today.AddDays(3), end: today.AddDays(32));
+
+        using var response = await CardioOnlyCheckInAsync(client, token, member.Id, lockerNumber: 1);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await ReadAsync(response)).SubscriptionId.ShouldBeNull();
+        (await StoredSubscriptionAsync(planId)).StartDate.ShouldBe(today.AddDays(3));
+    }
+
+    [Fact]
+    public async Task CardioOnlyCheckIn_InactiveMember_Returns422MembersInactive()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync(active: false);
 
         using var response = await CardioOnlyCheckInAsync(client, token, member.Id, lockerNumber: 1);
 
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await response.ReadErrorCodeAsync()).ShouldBe("Subscriptions.Expired");
+        (await response.ReadErrorCodeAsync()).ShouldBe("Members.Inactive");
+    }
+
+    [Fact]
+    public async Task CardioOnlyCheckIn_NoPlanAlreadyInside_Returns422AttendanceAlreadyCheckedIn()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        await CardioOnlyCheckInOkAsync(client, token, member.Id, lockerNumber: 1);
+
+        using var response = await CardioOnlyCheckInAsync(client, token, member.Id, lockerNumber: 2);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Attendance.AlreadyCheckedIn");
+    }
+
+    [Fact]
+    public async Task CheckOut_CardioOnlyNoPlan_NeedsTheAmountThenClosesAndLeavesTheDebt()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var visit = await CardioOnlyCheckInOkAsync(client, token, member.Id, lockerNumber: 1);
+        using (var refused = await CheckOutAsync(client, token, visit.Id))
+        {
+            (await refused.ReadErrorCodeAsync()).ShouldBe("Attendance.CardioChargeMissing");
+        }
+
+        await RecordCardioOkAsync(client, token, visit.Id, 50_000m);
+        using var response = await CheckOutAsync(client, token, visit.Id);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await DebtAsync(client, token, member.Id)).ShouldBe(50_000m);
+    }
+
+    [Fact]
+    public async Task CancelCheckIn_CardioOnlyNoPlan_ClosesIt()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        var visit = await CardioOnlyCheckInOkAsync(client, token, member.Id, lockerNumber: 1);
+
+        using var response = await SendAsync(
+            client, token, HttpMethod.Post, $"/api/attendance/{visit.Id}/cancel", CancelCheckInBody.Cancel(voidCardio: false));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await ReadAsync(response)).CancelledAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task ListCurrentlyInside_CardioOnlyNoPlan_ShowsTheMarkAndNoPlan()
+    {
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        await CardioOnlyCheckInOkAsync(client, token, member.Id, lockerNumber: 1);
+
+        using var response = await SendAsync(client, token, HttpMethod.Get, "/api/attendance/currently-inside");
+
+        var inside = (await response.Content.ReadFromJsonAsync<PagedResponse<CurrentlyInsideResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        var row = inside.Items.ShouldHaveSingleItem();
+        row.IsCardioOnly.ShouldBeTrue();
+        row.MemberId.ShouldBe(member.Id);
+        row.SubscriptionId.ShouldBeNull();
+        row.TotalSessions.ShouldBeNull();
+        row.IsSingleSession.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Attendance_OrdinaryVisitWithoutAPlan_RejectedByACheckConstraint()
+    {
+        // Only a cardio-only visit may name no plan: an ordinary one always consumed a session from one.
+        var (client, token) = await StaffClientAsync();
+        var member = await AddMemberAsync();
+        await InsertMembershipAsync(member.Id);
+        var visit = await TestLockers.CheckInOkAsync(client, token, member.Id, lockerNumber: 1);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE attendances SET subscription_id = NULL WHERE id = '{visit.Id}'"));
+
+        exception.SqlState.ShouldBe("23514");
+        exception.ConstraintName.ShouldBe(AttendanceConstraints.SubscriptionWithMember);
     }
 
     [Fact]
@@ -378,10 +494,14 @@ public sealed class CardioOnlyVisitEndpointTests(DatabaseFixture fixture) : Data
         return scope.ServiceProvider.GetRequiredService<IGymCalendar>().Today();
     }
 
-    private async Task<Member> AddMemberAsync()
+    private async Task<Member> AddMemberAsync(bool active = true)
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed("سارا کریمی", $"+98917{suffix:D7}");
+        if (!active)
+        {
+            member.Deactivate();
+        }
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -416,19 +536,22 @@ public sealed class CardioOnlyVisitEndpointTests(DatabaseFixture fixture) : Data
         return id;
     }
 
-    private async Task InsertSingleVisitAsync(Guid memberId)
+    private async Task<Guid> InsertSingleVisitAsync(Guid memberId)
     {
         var today = Today();
+        var id = Guid.CreateVersion7();
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlAsync(
             $"""
             INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions, is_single_session,
                                        start_date, end_date, used_sessions, total_frozen_days, created_at)
-            VALUES ({Guid.CreateVersion7()}, {memberId}, 120000, 1, 1, true,
+            VALUES ({id}, {memberId}, 120000, 1, 1, true,
                     {today}, {today}, 0, 0, now())
             """,
             TestContext.Current.CancellationToken);
+
+        return id;
     }
 
     private static Task<HttpResponseMessage> CardioOnlyCheckInAsync(HttpClient client, string token, Guid memberId, int? lockerNumber)

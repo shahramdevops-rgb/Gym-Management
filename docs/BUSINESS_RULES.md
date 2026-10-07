@@ -137,7 +137,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | Members: create, update, deactivate, search | ✅ | ✅ |
 | Check-in (from the lockers screen only, §7 *Confirming at the front desk*), check-out, cancel check-in | ✅ | ✅ |
 | Guest visit (ورود مهمان): check in, check out, cancel, record its هوازی, sales and cafe, settle what it owes (§7 *Guest visit*) | ✅ | ✅ |
-| Cardio-only visit (ورود فقط هوازی): check in without consuming a session (§7 *Cardio-only visit*) | ✅ | ✅ |
+| Cardio-only visit (ورود فقط هوازی): check in without consuming a session, with or without a plan (§7 *Cardio-only visit*) | ✅ | ✅ |
 | Assign or renew subscriptions | ✅ | ✅ |
 | Register payments, create cafe orders | ✅ | ✅ |
 | See the two prices (§3) | ✅ | ✅ |
@@ -922,22 +922,30 @@ locker's history.
   a guest's charge has none, which no check constraint on the charge's own row can compare.
 
 ### Cardio-only visit (ورود فقط هوازی)
-Decided by the developer, 1405/07/11 (2026-10-03). Roadmap 6.5.27.
-- **Who it is for:** a member with a plan who comes in on a day they only want the treadmill. They
-  pay for the هوازی, and **no session is consumed**. Once inside they may use everything, like any
-  visit; what makes it different is only that the plan is not charged a session.
+Decided by the developer, 1405/07/11 (2026-10-03). Roadmap 6.5.27. *No plan needed* decided by the
+developer, 1405/07/15 (2026-10-07), roadmap 6.5.35.
+- **Who it is for:** a member who comes in on a day they only want the treadmill. They pay for the
+  هوازی, and **no session is consumed**. Once inside they may use everything, like any visit; what
+  makes it different is only that no plan is charged a session.
 - **Where:** from the box a free locker (or a reserve place, under §6's rules) opens, after
-  choosing the member: «ورود فقط هوازی» beside the ordinary check-in. Both roles (§1); the audit
+  choosing the member: «ورود فقط هوازی» beside the ordinary check-in. It is offered again **under
+  the sale** (single visit, plan) that the box shows when an ordinary check-in is refused for want
+  of a usable plan, and right after a new member is registered there. Both roles (§1); the audit
   log records who let the member in this way. Nothing can be sold with it (*Confirming at the front
   desk*): a member who needs a sale comes in the ordinary way.
-- **The member must hold a plan:** a membership (not a single visit) that is `Active` today, or
-  one that is `Frozen`. Anything else is refused with the reason ordinary check-in gives
-  (`Attendance.NoSubscription`, `Subscriptions.Expired`, `Subscriptions.NoSessionsLeft`,
-  `Subscriptions.NotStarted`, ...). Coming in this way **touches the plan in no way**: no session is
-  consumed, a frozen plan stays frozen, and a queued plan is not moved forward over an exhausted
-  one. The same preconditions as any check-in hold too: the member is active, and has no open visit.
-- The visit names the plan it was let in on (`Attendance.SubscriptionId`), so the board and the
-  locker's box show the plan and its sessions as for any visit, marked «فقط هوازی».
+- **No plan is needed** (roadmap 6.5.35; *replaces "the member must hold a membership that is
+  `Active` today or `Frozen`, anything else refused", 6.5.27*). A member with no plan at all, only
+  single visits, a plan that expired, ran out of sessions or has not started, comes in all the same.
+  Coming in this way **touches no plan in any way**: no session is consumed, a single visit stays
+  unused, a frozen plan stays frozen, and a queued plan is not moved forward over an exhausted one.
+  The preconditions of any check-in still hold: the member is active (`Members.Inactive`), and has
+  no open visit (`Attendance.AlreadyCheckedIn`).
+- **The plan the visit names** (`Attendance.SubscriptionId`): the membership `Active` today, else a
+  `Frozen` one, so the board and the locker's box show the plan and its sessions as for any visit,
+  marked «فقط هوازی». With neither, the visit names **no plan**: the board shows «—» where the
+  sessions go and no end date, the locker's box says «بدون اشتراک». An expired or exhausted plan is
+  not named: it says nothing the desk needs at the door. The database allows a member's visit
+  without a plan only when it is cardio-only (`ck_attendances_subscription_with_member`).
 - **Check-out is refused until a هوازی amount is recorded** on the visit
   (`Attendance.CardioChargeMissing`), and the box's check-out button stays disabled until then. The
   amount must be recorded, not paid: what is not paid stays on the member's account as debt like any

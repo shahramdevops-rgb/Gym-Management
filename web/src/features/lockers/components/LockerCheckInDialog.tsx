@@ -54,6 +54,15 @@ export type CheckInPlace = { kind: "locker"; locker: Locker } | { kind: "reserve
  */
 type Sold = "nothing" | "singleVisit" | "plan" | "cardioOnly";
 
+type NeedsSubscription = {
+  kind: "needsSubscription";
+  member: DeskMember;
+  heading: string;
+  reason: string;
+  /** Whether a plan sold now would start today, so it can be sold here (roadmap 6.5.7). */
+  planHere: boolean;
+};
+
 type Step =
   | { kind: "search" }
   | { kind: "register"; text: string }
@@ -61,17 +70,13 @@ type Step =
   | { kind: "guest" }
   | { kind: "guestCheckedIn"; attendance: Attendance }
   | { kind: "confirm"; member: DeskMember }
-  /** «ورود فقط هوازی», asked again before anything is sent, like an ordinary check-in. */
-  | { kind: "confirmCardioOnly"; member: DeskMember }
+  /**
+   * «ورود فقط هوازی», asked again before anything is sent, like an ordinary check-in. «انصراف»
+   * goes back to where it was chosen: the confirm step, or the offer after a refusal.
+   */
+  | { kind: "confirmCardioOnly"; member: DeskMember; back: "confirm" | NeedsSubscription }
   | { kind: "checkedIn"; member: DeskMember; attendance: Attendance; sold: Sold }
-  | {
-      kind: "needsSubscription";
-      member: DeskMember;
-      heading: string;
-      reason: string;
-      /** Whether a plan sold now would start today, so it can be sold here (roadmap 6.5.7). */
-      planHere: boolean;
-    }
+  | NeedsSubscription
   | { kind: "failed"; reason: string }
   /** Who had the locker today (BUSINESS_RULES.md §6); «بازگشت» goes back to the search. */
   | { kind: "history"; locker: Locker };
@@ -106,8 +111,9 @@ interface LockerCheckInDialogProps {
  * finding and registering a member: «ورود مهمان» asks for their full name and nothing else.
  *
  * Once a member is chosen, «ورود فقط هوازی» lets them in without a session (BUSINESS_RULES.md §7
- * *Cardio-only visit*). A refusal is only said: nothing is sold with such a visit, so the box does
- * not offer a sale the way an ordinary check-in does.
+ * *Cardio-only visit*). No plan is needed for it (roadmap 6.5.35), so it is offered again under the
+ * sale when an ordinary check-in is refused or a member was just registered: someone with no plan,
+ * or one that ran out, who only wants the treadmill comes in without buying anything.
  *
  * For a locker (not a reserve place), the box also shows who had it today, before a member is
  * chosen (BUSINESS_RULES.md §6 *Who had a locker today*).
@@ -342,15 +348,12 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               onCancel={() => setStep({ kind: "search" })}
             />
             <div className="border-t pt-3">
-              <Button
-                variant="outline"
-                className="border-cardio"
+              <CardioOnlyButton
                 disabled={checkIn.isPending}
-                onClick={() => setStep({ kind: "confirmCardioOnly", member: step.member })}
-              >
-                <Footprints aria-hidden />
-                ورود فقط هوازی
-              </Button>
+                onClick={() =>
+                  setStep({ kind: "confirmCardioOnly", member: step.member, back: "confirm" })
+                }
+              />
             </div>
           </>
         )}
@@ -365,15 +368,19 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
                 {place.kind === "locker"
                   ? `با کمد شماره ${toPersianDigits(place.locker.number)}`
                   : "بدون کمد"}{" "}
-                مطمئن هستید؟ جلسه‌ای از اشتراک او کم نمی‌شود. خروج فقط بعد از ثبت مبلغ هوازی ممکن
-                است.
+                مطمئن هستید؟ جلسه‌ای کم نمی‌شود و اشتراک لازم نیست. خروج فقط بعد از ثبت مبلغ هوازی
+                ممکن است.
               </DialogDescription>
             </DialogHeader>
             <ConfirmButtons
               label="بله، ورود فقط هوازی ثبت شود"
               pending={cardioOnlyCheckIn.isPending}
               onConfirm={() => void confirmCardioOnly(step.member)}
-              onCancel={() => setStep({ kind: "confirm", member: step.member })}
+              onCancel={() =>
+                setStep(
+                  step.back === "confirm" ? { kind: "confirm", member: step.member } : step.back,
+                )
+              }
             />
           </>
         )}
@@ -430,6 +437,14 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               onSellSingleVisit={() => void sellSingleVisit(step.member)}
               onSellPlan={(plan) => sellPlan(step.member, plan)}
             />
+            <div className="border-t pt-3">
+              <CardioOnlyButton
+                disabled={checkIn.isPending}
+                onClick={() =>
+                  setStep({ kind: "confirmCardioOnly", member: step.member, back: step })
+                }
+              />
+            </div>
           </>
         )}
 
@@ -473,6 +488,19 @@ function TodayHistoryButton({ onClick }: { onClick: () => void }) {
     <Button size="sm" variant="ghost" onClick={onClick}>
       <History aria-hidden />
       تاریخچه امروز این کمد
+    </Button>
+  );
+}
+
+/**
+ * «ورود فقط هوازی» (BUSINESS_RULES.md §7 *Cardio-only visit*), in its own colour, both beside the
+ * ordinary check-in and under the sale offered after a refusal.
+ */
+function CardioOnlyButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
+  return (
+    <Button variant="outline" className="border-cardio" disabled={disabled} onClick={onClick}>
+      <Footprints aria-hidden />
+      ورود فقط هوازی
     </Button>
   );
 }

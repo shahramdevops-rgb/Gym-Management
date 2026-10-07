@@ -1,4 +1,3 @@
-using Gym.Domain.Attendances;
 using Gym.Domain.Common;
 
 namespace Gym.Domain.Subscriptions;
@@ -184,44 +183,25 @@ public static class SubscriptionSchedule
     }
 
     /// <summary>
-    /// The member's subscriptions that take part in the calendar: not cancelled, and not a single
-    /// visit. Cancelled ones cover no dates; single visits are outside the ordering entirely.
-    /// </summary>
-    /// <summary>
-    /// The plan a cardio-only visit is let in on (BUSINESS_RULES.md §7 <i>Cardio-only visit</i>): the
-    /// membership active today, or else a frozen one. Nothing is changed: no session is consumed, a
-    /// freeze is not ended and a queued plan is not moved forward, so unlike
-    /// <see cref="InEffectToday"/> this mutates none of the entities it reads.
+    /// The plan a cardio-only visit names (BUSINESS_RULES.md §7 <i>Cardio-only visit</i>), so the
+    /// board and the locker's box can show it: the membership active today, or else a frozen one.
+    /// Nothing is changed: no session is consumed, a freeze is not ended and a queued plan is not
+    /// moved forward, so unlike <see cref="InEffectToday"/> this mutates none of the entities it reads.
     /// </summary>
     /// <returns>
-    /// The plan, or the reason the member cannot come in: <c>Attendance.NoSubscription</c> with no
-    /// membership at all, otherwise what the membership that ends last says about today (expired,
-    /// no sessions left, not started yet), the same reason an ordinary check-in would give.
+    /// The plan, or <c>null</c> when the member holds neither (no plan at all, only single visits,
+    /// one that expired, ran out of sessions or has not started). That is not a refusal: anyone may
+    /// come in for هوازی, and such a visit simply names no plan.
     /// </returns>
-    public static Result<Subscription> PlanForCardioOnly(DateOnly today, IEnumerable<Subscription> memberSubscriptions)
+    public static Subscription? PlanForCardioOnly(DateOnly today, IEnumerable<Subscription> memberSubscriptions)
     {
         ArgumentNullException.ThrowIfNull(memberSubscriptions);
 
         var memberships = Memberships(memberSubscriptions);
 
         // Two memberships never cover the same date, so at most one is active.
-        var active = memberships.Find(subscription => subscription.GetStatus(today) == SubscriptionStatus.Active);
-        if (active is not null)
-        {
-            return active;
-        }
-
-        if (FrozenToResume(memberships) is { } frozen)
-        {
-            return frozen;
-        }
-
-        if (memberships.Count == 0)
-        {
-            return Result.Failure<Subscription>(AttendanceErrors.NoSubscription);
-        }
-
-        return Result.Failure<Subscription>(memberships.MaxBy(subscription => subscription.EndDate)!.EnsureActive(today).Error);
+        return memberships.Find(subscription => subscription.GetStatus(today) == SubscriptionStatus.Active)
+            ?? FrozenToResume(memberships);
     }
 
     /// <summary>
@@ -258,6 +238,10 @@ public static class SubscriptionSchedule
         return queued ?? memberships.MaxBy(subscription => subscription.EndDate);
     }
 
+    /// <summary>
+    /// The member's subscriptions that take part in the calendar: not cancelled, and not a single
+    /// visit. Cancelled ones cover no dates; single visits are outside the ordering entirely.
+    /// </summary>
     private static List<Subscription> Memberships(IEnumerable<Subscription> memberSubscriptions) =>
         memberSubscriptions
             .Where(subscription => subscription.CancelledAt is null && !subscription.IsSingleSession)
