@@ -2429,10 +2429,12 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
 - [x] The API key never in the logs: the HTTP client's own loggers removed (`RemoveAllLoggers`), with
       a test that fails without it
 - [ ] A manual test with the developer's account and number, the templates approved there first.
-      Waiting for the API key: `account/info` first (it sends nothing), then one message to the
-      developer's own number through `Sms:AllowedReceptors`. Kavenegar's documentation could not be
-      reached from the development machine, so the codes and statuses come from §10 and are checked
-      in this test
+      `account/info` checked on 1405/07/16 (2026-10-08) with the developer's key: the settings page
+      showed the account's 1,050,000 Rial as ۱۰۵٬۰۰۰ تومان. Still to do once the templates are
+      approved: one message to the developer's own number through `Sms:AllowedReceptors`, with
+      Kavenegar's Debug mode on (it accepts requests and sends nothing). Kavenegar's documentation
+      could not be reached from the development machine, so the codes and statuses come from §10 and
+      are checked in this test
 
 ### 10.5 SMS history and resend
 - [ ] The page «پیامک‌ها» (Owner): every message with its kind, recipient, status, delivery and
