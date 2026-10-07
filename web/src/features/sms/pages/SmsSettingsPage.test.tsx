@@ -261,7 +261,8 @@ describe("SmsSettingsPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
-    expect(await screen.findByText("تنظیمات پیامک ذخیره شد.")).toBeInTheDocument();
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    expect(saveRow().getByText("تغییرها ثبت شد.")).toBeInTheDocument();
     const saves = api.requestsTo("PUT", "/api/sms/settings");
     expect(saves).toHaveLength(1);
     expect(await saves[0]!.clone().json()).toEqual({
@@ -338,6 +339,7 @@ describe("SmsSettingsPage", () => {
     renderApp("/sms-settings", { session: session() });
     await screen.findByRole("group", { name: "جلسات رو به اتمام" });
 
+    fireEvent.click(screen.getByRole("checkbox", { name: "ارسال پیامک روشن باشد" }));
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
     expect(
@@ -352,11 +354,81 @@ describe("SmsSettingsPage", () => {
     renderApp("/sms-settings", { session: session() });
     await waitFor(() => expect(switchOf("پایان اشتراک")).toBeChecked());
 
+    fireEvent.click(switchOf("پایان اشتراک"));
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
     expect(
-      await screen.findByText(/تنظیمات پیامک هم‌زمان توسط شخص دیگری تغییر کرد/),
+      await saveRow().findByText(/تنظیمات پیامک هم‌زمان توسط شخص دیگری تغییر کرد/),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "بارگذاری اطلاعات تازه" })).toBeInTheDocument();
+    expect(saveRow().getByRole("button", { name: "بارگذاری اطلاعات تازه" })).toBeInTheDocument();
+  });
+
+  it("SmsSettingsPage_ReloadAfterSomeoneSaved_LoadsTheirSettingsWithoutSavingAgain", async () => {
+    const api = ownerWith(filled, {
+      "PUT /api/sms/settings": () => problem(409, "Sms.ChangedConcurrently"),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await waitFor(() => expect(switchOf("پایان اشتراک")).toBeChecked());
+    fireEvent.click(switchOf("پایان اشتراک"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+    const reload = await screen.findByRole("button", { name: "بارگذاری اطلاعات تازه" });
+
+    fireEvent.click(reload);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "بارگذاری اطلاعات تازه" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(api.requestsTo("GET", "/api/sms/settings")).toHaveLength(2);
+    expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(1);
+  });
+
+  // ---- Saving with nothing changed (asked by the developer, 1405/07/16) ----
+
+  it("SmsSettingsPage_SaveWithNothingChanged_SendsNothingAndSaysSoBesideTheButton", async () => {
+    const api = ownerWith(filled);
+    renderApp("/sms-settings", { session: session() });
+    await waitFor(() => expect(switchOf("پایان اشتراک")).toBeChecked());
+
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await saveRow().findByText("تغییری نداده‌اید؛ چیزی ذخیره نشد.")).toBeInTheDocument();
+    expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);
+  });
+
+  it("SmsSettingsPage_ChangedAndPutBack_CountsAsNothingChanged", async () => {
+    const api = ownerWith(filled);
+    renderApp("/sms-settings", { session: session() });
+    await waitFor(() => expect(switchOf("پایان اشتراک")).toBeChecked());
+
+    fireEvent.click(switchOf("پایان اشتراک"));
+    fireEvent.click(switchOf("پایان اشتراک"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await saveRow().findByText("تغییری نداده‌اید؛ چیزی ذخیره نشد.")).toBeInTheDocument();
+    expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);
+  });
+
+  it("SmsSettingsPage_EditAfterSaving_ClearsTheMessage", async () => {
+    ownerWith(filled, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, enabled: false, version: 6 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await waitFor(() => expect(switchOf("پایان اشتراک")).toBeChecked());
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "ارسال پیامک روشن باشد" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    expect(saveRow().getByText("تغییرها ثبت شد.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "ارسال پیامک روشن باشد" }));
+
+    await waitFor(() => expect(screen.queryByText("تغییرها ثبت شد.")).not.toBeInTheDocument());
   });
 });
+
+/** The row of «ذخیره»: every outcome of a save is shown there, where the Owner is looking. */
+function saveRow() {
+  return within(screen.getByRole("button", { name: /^(ذخیره|در حال ذخیره…)$/ }).parentElement!);
+}
