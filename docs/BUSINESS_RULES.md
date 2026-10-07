@@ -1367,7 +1367,13 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   - Nothing is sent outside 08:00–22:00. A retry that would fall after 22:00 is not made: the message
     is `Failed`.
 - **Delivery:** after sending, the system asks Kavenegar (which keeps it for 48 hours) whether the
-  message reached the phone: delivered, not delivered, or blocked by the receiver.
+  message reached the phone: delivered, not delivered, or blocked by the receiver. It asks **once a
+  day, at 23:30** (Asia/Tehran), about every message sent in the last 48 hours that is not yet
+  delivered or blocked, so each one is asked about at least once before Kavenegar forgets it, and a
+  "not delivered" (the phone was off) can still become "delivered" the next night. A message still on
+  its way gets nothing yet. If Kavenegar does not answer, it is only logged: the messages keep no
+  delivery, and nothing else depends on it (decided with the developer, 1405/07/15, task 10.4: these
+  messages are information, not something the gym must be sure arrived).
 - **Cost:** Kavenegar returns each message's cost in **Rial**. It is kept with the message, and shown
   in Toman like every amount here (÷ 10). The SMS history shows each month's total. The account's
   remaining credit is shown on the settings page.
@@ -1376,7 +1382,14 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - **Development and tests:** tests always use `FakeSmsSender`, which only logs, and never reach
   Kavenegar. On the developer's machine Kavenegar can be turned on with the developer's own account,
   and `Sms:AllowedReceptors` then limits real sending to the listed numbers (anything else is only
-  logged). The server has no such list.
+  logged). The server has no such list. The limit holds in **every environment but Production**, and
+  an empty or missing list means nothing is really sent, so forgetting the list can never reach a
+  member (decided with the developer, 1405/07/15, task 10.4: the local database holds made-up
+  numbers that may belong to real people). Asking about delivery or the credit sends nothing, so the
+  list does not limit those.
+- **Kavenegar answers it does not describe:** an answer that is not Kavenegar's own (a proxy's error
+  page, a broken reply) to a send that may have left is `Unknown`, never retried by itself, because a
+  second try could be paid twice. A Kavenegar code not named above is `Failed`, with its code.
 - **Accounts:** development and testing use the developer's Kavenegar account. At release the
   Owner's API key goes into the server's `.env`, the same templates are made and approved in the
   Owner's account (a few days ahead: approval takes time), and the Owner fills in the settings page.

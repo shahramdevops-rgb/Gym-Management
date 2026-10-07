@@ -499,9 +499,18 @@ web/src/
   result is checked by code point, since grep and the screen cannot tell ي from ی.
 - React 19 builds `FormData` from a submitted form. In tests, `fireEvent.submit` must target the `<form>`
   (`getByRole("search")`), not an input inside it, or jsdom throws an unhandled error.
-- SMS (Phase 10): `Sms:Provider` chooses the `ISmsSender`. `Fake` (the default when the setting is missing) only
-  logs; an unknown name stops the app at startup. The integration test host sets `Sms__Provider=Fake` itself, so a
-  developer's own settings can never make a test run reach the provider. A message is a `notifications` row written
+- SMS (Phase 10): `Sms:Provider` chooses the `ISmsSender` and the `ISmsAccount` (delivery and credit), all in
+  `Infrastructure/Sms/SmsRegistration.AddSms`. `Fake` (the default when the setting is missing) only logs; an unknown
+  name, or `Kavenegar` with no `Sms:Kavenegar:ApiKey`, stops the app at startup. Outside Production the Kavenegar
+  sender is wrapped in `AllowListSmsSender`, so only `Sms:AllowedReceptors` are really sent (none when empty);
+  questions (`ISmsAccount`) are never held back. Kavenegar puts the API key in the request address, and
+  IHttpClientFactory's own loggers write that address at Information, so the typed client calls `RemoveAllLoggers()`;
+  `SmsSenderTests` fails if it is dropped. Tests reach Kavenegar only through `StubKavenegar`, an `HttpMessageHandler`
+  set as the client's primary handler: no package, no network. "Did the request leave?" is
+  `HttpRequestException.HttpRequestError`: name resolution, connection and TLS errors are a retry, anything after
+  (`ResponseEnded`, a timeout's `TaskCanceledException`, a body that is not Kavenegar's JSON) is `Unknown`.
+  The integration test host sets `Sms__Provider=Fake` itself, so a developer's own settings can never make a test run
+  reach the provider. A message is a `notifications` row written
   as `Pending` **before** it is sent: its unique indexes stop a second run, or a second server, from writing (and so
   paying for) the same event twice. Template values go through `SmsTokens`, which refuses a value that breaks
   Kavenegar's limits; free text (a name, a payee) is passed through `SmsTokens.Fit` first.

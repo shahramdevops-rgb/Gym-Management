@@ -8,6 +8,8 @@ using Gym.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Options;
 
 namespace Gym.Api.IntegrationTests.Configuration;
@@ -37,6 +39,9 @@ public sealed class DependencyInjectionTests
         // Gym.Api supplies ICurrentUser from the HTTP request; these tests build the lower
         // layers without a host, so they supply their own.
         services.AddSingleton<ICurrentUser>(new FakeCurrentUser());
+
+        // The host also supplies its environment, which the SMS options are checked against (§10).
+        services.AddSingleton<IHostEnvironment>(new HostingEnvironment { EnvironmentName = Environments.Production });
         services.AddApplication();
         services.AddInfrastructure(configuration);
 

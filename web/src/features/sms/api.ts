@@ -11,9 +11,30 @@ export type SmsKindSettings = components["schemas"]["SmsKindSettings"];
 
 export type SmsSettingsInput = components["schemas"]["UpdateSmsSettingsCommand"];
 
+/** The SMS account's credit in Toman; `remainingToman` is null in test mode or when Kavenegar does not answer. */
+export type SmsCredit = components["schemas"]["SmsCreditResponse"];
+
 export const smsSettingsKeys = {
   all: ["sms-settings"] as const,
 };
+
+export const smsCreditKeys = {
+  all: ["sms-credit"] as const,
+};
+
+/** Asks Kavenegar each time the page opens (BUSINESS_RULES.md §10 *Sending*): free, and the page is opened rarely. */
+export function useSmsCredit() {
+  return useQuery({
+    queryKey: smsCreditKeys.all,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/sms/credit");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
 
 /** Owner only, like every SMS page: every SMS costs money, and the Owner is the one who pays. */
 export function useSmsSettings() {

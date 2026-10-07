@@ -135,23 +135,9 @@ public static class DependencyInjection
         services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
 
-        // Sms:Provider chooses the sender (BUSINESS_RULES.md §10). An unknown name stops the app at
-        // startup rather than leaving the Owner's messages unsent without a word. The fake one is
-        // the only provider until task 10.4, and a singleton: it holds no request state.
-        services.AddOptions<SmsOptions>()
-            .Bind(configuration.GetSection(SmsOptions.SectionName))
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<SmsOptions>, SmsOptionsValidator>();
-        services.AddSingleton<ISmsSender, FakeSmsSender>();
-
-        // Sms:MaxAttempts and Sms:RetryDelays as the domain's schedule (BUSINESS_RULES.md §0), and the
-        // daily runs as Hangfire recurring jobs, moved whenever the settings page is saved (task 10.3).
-        services.AddSingleton(provider =>
-        {
-            var options = provider.GetRequiredService<IOptions<SmsOptions>>().Value;
-
-            return new SmsRetrySchedule(options.MaxAttempts, options.RetryDelays);
-        });
+        // Sms:Provider chooses the sender and the account (BUSINESS_RULES.md §10): see SmsRegistration.
+        // The daily runs are Hangfire recurring jobs, moved whenever the settings page is saved (task 10.3).
+        services.AddSms(configuration);
         services.AddSingleton<ISmsRunSchedule, HangfireSmsRunSchedule>();
         services.AddScoped<DailySmsJob>();
 

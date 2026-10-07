@@ -1,3 +1,6 @@
+using System.Text.RegularExpressions;
+
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace Gym.Infrastructure.Sms;
@@ -31,6 +34,25 @@ public sealed class SmsOptions
     /// default here would be doubled by appsettings.json.
     /// </summary>
     public TimeSpan[] RetryDelays { get; set; } = [];
+
+    /// <summary>
+    /// Outside Production, the only numbers the real provider may reach, in E.164 (<c>+989…</c>), as a
+    /// member's number is stored (§10 <i>Development and tests</i>). Empty, the default, means nothing
+    /// is really sent. Production has no such list, and refuses one.
+    /// </summary>
+    public string[] AllowedReceptors { get; set; } = [];
+
+    public KavenegarOptions Kavenegar { get; set; } = new();
+}
+
+/// <summary>The <c>Sms:Kavenegar</c> section. Only the key: the address and the methods are Kavenegar's own.</summary>
+public sealed class KavenegarOptions
+{
+    /// <summary>
+    /// A secret: user-secrets on the developer's machine, <c>Sms__Kavenegar__ApiKey</c> on the server,
+    /// never in git. Kavenegar puts it in the address of every request, so the address is never logged.
+    /// </summary>
+    public string ApiKey { get; set; } = string.Empty;
 }
 
 /// <summary>The values <see cref="SmsOptions.Provider"/> accepts.</summary>
@@ -38,21 +60,31 @@ public static class SmsProviders
 {
     /// <summary>Only logs. What tests always use, and what runs until the real provider is chosen.</summary>
     public const string Fake = "Fake";
+
+    /// <summary>Kavenegar's REST API (task 10.4).</summary>
+    public const string Kavenegar = "Kavenegar";
 }
 
 /// <summary>
-/// Refuses to start with a provider it does not know, instead of silently sending nothing, or with a
-/// retry schedule that does not add up. The real provider joins the list in task 10.4.
+/// Refuses to start with a provider it does not know, instead of silently sending nothing, with the
+/// real provider and no key, with a retry schedule that does not add up, or with a number list that
+/// could not match a member's number.
 /// </summary>
-public sealed class SmsOptionsValidator : IValidateOptions<SmsOptions>
+public sealed partial class SmsOptionsValidator(IHostEnvironment environment) : IValidateOptions<SmsOptions>
 {
     public ValidateOptionsResult Validate(string? name, SmsOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (options.Provider != SmsProviders.Fake)
+        if (options.Provider is not (SmsProviders.Fake or SmsProviders.Kavenegar))
         {
-            return ValidateOptionsResult.Fail($"Sms:Provider '{options.Provider}' is unknown; the only provider is '{SmsProviders.Fake}'.");
+            return ValidateOptionsResult.Fail(
+                $"Sms:Provider '{options.Provider}' is unknown; use '{SmsProviders.Fake}' or '{SmsProviders.Kavenegar}'.");
+        }
+
+        if (options.Provider == SmsProviders.Kavenegar && string.IsNullOrWhiteSpace(options.Kavenegar.ApiKey))
+        {
+            return ValidateOptionsResult.Fail("Sms:Kavenegar:ApiKey is required when Sms:Provider is Kavenegar.");
         }
 
         if (options.MaxAttempts < 1 || options.MaxAttempts > SmsOptions.MaxAttemptsLimit)
@@ -65,8 +97,22 @@ public sealed class SmsOptionsValidator : IValidateOptions<SmsOptions>
             return ValidateOptionsResult.Fail("Sms:RetryDelays needs one wait before each try after the first: one fewer than Sms:MaxAttempts.");
         }
 
-        return options.RetryDelays.Any(delay => delay < TimeSpan.Zero)
-            ? ValidateOptionsResult.Fail("Sms:RetryDelays cannot hold a negative wait.")
-            : ValidateOptionsResult.Success;
+        if (options.RetryDelays.Any(delay => delay < TimeSpan.Zero))
+        {
+            return ValidateOptionsResult.Fail("Sms:RetryDelays cannot hold a negative wait.");
+        }
+
+        if (environment.IsProduction() && options.AllowedReceptors.Length > 0)
+        {
+            // §10: the server has no such list. One left there would quietly keep members' messages back.
+            return ValidateOptionsResult.Fail("Sms:AllowedReceptors is for the developer's machine; Production has no such list.");
+        }
+
+        return options.AllowedReceptors.All(receptor => IranianMobile().IsMatch(receptor))
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail("Sms:AllowedReceptors holds numbers in E.164, as members' are stored: +989xxxxxxxxx.");
     }
+
+    [GeneratedRegex(@"^\+989\d{9}$")]
+    private static partial Regex IranianMobile();
 }
