@@ -91,7 +91,7 @@ export function SmsSettingsPage() {
   const [stale, setStale] = useState(false);
   const [reloading, setReloading] = useState(false);
   // Held here, not in the form: a save changes the version, which rebuilds the form below.
-  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState<SaveNotice>(null);
 
   if (settings.isPending) {
     return <PageMessage>در حال بارگذاری…</PageMessage>;
@@ -122,36 +122,45 @@ export function SmsSettingsPage() {
 
         <SmsCreditLine />
 
-        {stale && (
-          <Alert
-            variant="destructive"
-            className="flex flex-wrap items-center justify-between gap-3"
-          >
-            <span>{errorMessage({ code: changedConcurrently })}</span>
-            <Button size="sm" variant="outline" disabled={reloading} onClick={() => void reload()}>
-              بارگذاری اطلاعات تازه
-            </Button>
-          </Alert>
-        )}
-
-        {saved && (
-          <Alert variant="success" role="status">
-            تنظیمات پیامک ذخیره شد.
-          </Alert>
-        )}
-
         {/* Keyed by version, so fresh settings rebuild the form with their values. */}
         <SmsSettingsForm
           key={String(settings.data.version)}
           current={settings.data}
-          onSaving={() => setSaved(false)}
-          onSaved={() => setSaved(true)}
+          onNotice={setNotice}
           onStale={() => setStale(true)}
+          status={
+            stale ? (
+              <Alert
+                variant="destructive"
+                className="flex flex-wrap items-center justify-between gap-3"
+              >
+                <span>{errorMessage({ code: changedConcurrently })}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={reloading}
+                  onClick={() => void reload()}
+                >
+                  بارگذاری اطلاعات تازه
+                </Button>
+              </Alert>
+            ) : notice === "saved" ? (
+              <Alert variant="success" role="status">
+                تغییرها ثبت شد.
+              </Alert>
+            ) : notice === "unchanged" ? (
+              <Alert role="status">تغییری نداده‌اید؛ چیزی ذخیره نشد.</Alert>
+            ) : null
+          }
         />
       </CardContent>
     </Card>
   );
 }
+
+/** What the last press of «ذخیره» did, shown beside the button where the Owner is looking. */
+type SaveNotice = "saved" | "unchanged" | null;
 
 /**
  * The Kavenegar account's remaining credit (BUSINESS_RULES.md §10 *Sending*). In test mode
@@ -184,23 +193,39 @@ function SmsCreditLine() {
 
 interface SmsSettingsFormProps {
   current: SmsSettings;
-  onSaving: () => void;
-  onSaved: () => void;
+  onNotice: (notice: SaveNotice) => void;
   onStale: () => void;
+  /** The outcome of the last save, shown beside the button: the page may be scrolled far from its top. */
+  status: ReactNode;
 }
 
-function SmsSettingsForm({ current, onSaving, onSaved, onStale }: SmsSettingsFormProps) {
+/**
+ * «ذخیره» is always enabled. Pressed with nothing changed, it sends nothing and says so; "nothing
+ * changed" means the request would carry exactly what is saved, so typing a value and putting it
+ * back counts as no change. Any edit clears the last message, so «ثبت شد» never sits beside fields
+ * that were changed after it.
+ */
+function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsFormProps) {
   const updateSettings = useUpdateSmsSettings();
+  const [savedInput] = useState(() =>
+    JSON.stringify(toInput(toFormValues(current), current.version)),
+  );
   const form = useForm<SmsSettingsValues>({
     resolver: zodResolver(smsSettingsSchema),
     defaultValues: toFormValues(current),
   });
 
   const submit = form.handleSubmit(async (values) => {
-    onSaving();
+    const input = toInput(values, current.version);
+    if (JSON.stringify(input) === savedInput) {
+      onNotice("unchanged");
+      return;
+    }
+
+    onNotice(null);
     try {
-      await updateSettings.mutateAsync(toInput(values, current.version));
-      onSaved();
+      await updateSettings.mutateAsync(input);
+      onNotice("saved");
     } catch (problem) {
       if (isCode(problem, changedConcurrently)) {
         onStale();
@@ -213,11 +238,8 @@ function SmsSettingsForm({ current, onSaving, onSaved, onStale }: SmsSettingsFor
   const { errors, isSubmitting } = form.formState;
 
   return (
-    <form className="grid gap-4" onSubmit={submit} noValidate>
-      {errors.root?.server !== undefined && (
-        <Alert variant="destructive">{errors.root.server.message}</Alert>
-      )}
-
+    // Every field is a native input, select or checkbox, and their change events bubble up to here.
+    <form className="grid gap-4" onSubmit={submit} onChange={() => onNotice(null)} noValidate>
       <Controller
         control={form.control}
         name="enabled"
@@ -256,10 +278,17 @@ function SmsSettingsForm({ current, onSaving, onSaved, onStale }: SmsSettingsFor
         />
       </KindFieldset>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "در حال ذخیره…" : "ذخیره"}
         </Button>
+        {errors.root?.server !== undefined ? (
+          <Alert variant="destructive" className="w-auto flex-1">
+            {errors.root.server.message}
+          </Alert>
+        ) : (
+          status !== null && <div className="flex-1 [&>[data-slot=alert]]:py-2">{status}</div>
+        )}
       </div>
     </form>
   );

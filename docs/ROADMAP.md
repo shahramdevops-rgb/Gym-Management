@@ -2548,6 +2548,11 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
       default (6.5.22)
 - [ ] The Persian font renders numbers and text consistently across screens
 - [ ] Empty states, loading states and error states that look deliberate
+- [ ] Every edit form saves the way «تنظیمات پیامک» does since 1405/07/16 (asked by the developer):
+      «ذخیره» always enabled; pressed with nothing changed it sends nothing and says «تغییری
+      نداده‌اید»; every outcome (saved, nothing changed, someone else saved, a server error) is shown
+      beside the button, not at the top of a page the user has scrolled away from; an edit clears it.
+      Forms that add something keep their own messages
 
 ### 13.3 The public site
 - [ ] Replace the placeholder on the apex with a real page for the gym: hours, address, contact,
