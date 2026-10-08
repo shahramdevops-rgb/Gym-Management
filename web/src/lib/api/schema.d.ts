@@ -1204,6 +1204,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sms/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListSmsMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sms/messages/{id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ResendSms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/attendance": {
         parameters: {
             query?: never;
@@ -2068,6 +2100,10 @@ export interface components {
             oldDebtWithoutMember: number | string;
             payablesDue: components["schemas"]["PayableDueResponse"][];
         };
+        /** @enum {unknown} */
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue";
+        /** @enum {unknown} */
+        NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
             /** Format: uuid */
             memberId: string;
@@ -2626,7 +2662,10 @@ export interface components {
             isTestMode: boolean;
             /** Format: double */
             remainingToman: null | number | string;
+            creditUsedUp: boolean;
         };
+        /** @enum {unknown} */
+        SmsDelivery: "Delivered" | "NotDelivered" | "BlockedByReceiver" | null;
         SmsKindSettings: {
             enabled: boolean;
             /** Format: int32 */
@@ -2634,6 +2673,48 @@ export interface components {
             /** Format: time */
             sendTime: null | string;
             templateName: null | string;
+        };
+        SmsMessageListResponse: {
+            items: components["schemas"]["SmsMessageResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+            /** Format: double */
+            totalCostToman: number | string;
+        };
+        SmsMessageResponse: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["NotificationKind"];
+            status: components["schemas"]["NotificationStatus"];
+            recipient: string;
+            /** Format: uuid */
+            memberId: null | string;
+            memberName: null | string;
+            /** Format: uuid */
+            payableId: null | string;
+            templateName: string;
+            token: string;
+            token2: null | string;
+            token3: null | string;
+            token10: null | string;
+            token20: null | string;
+            /** Format: int32 */
+            attempts: number | string;
+            /** Format: int32 */
+            errorCode: null | number | string;
+            /** Format: double */
+            costToman: null | number | string;
+            delivery: null | components["schemas"]["SmsDelivery"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastAttemptAt: null | string;
+            /** Format: date-time */
+            sentAt: null | string;
         };
         SmsSettingsResponse: {
             enabled: boolean;
@@ -8317,6 +8398,127 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListSmsMessages: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+                Kind?: components["schemas"]["NotificationKind"];
+                Status?: components["schemas"]["NotificationStatus"];
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsMessageListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ResendSms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsMessageResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

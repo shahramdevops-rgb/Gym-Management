@@ -1376,9 +1376,25 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   messages are information, not something the gym must be sure arrived).
 - **Cost:** Kavenegar returns each message's cost in **Rial**. It is kept with the message, and shown
   in Toman like every amount here (÷ 10). The SMS history shows each month's total. The account's
-  remaining credit is shown on the settings page.
+  remaining credit is shown on the settings page and on the history.
+- **The SMS history (پیامک‌ها)**, Owner only (task 10.5): every message, the latest first, with its
+  kind, recipient, status, delivery, cost and the provider's code for a failure; filtered by date,
+  kind and status. A message's date is the day it was written (Asia/Tehran). The page opens on the
+  current Jalali month, and the total is the cost of the messages the filter shows.
+- **The credit warning** (decided with the developer, 1405/07/16, task 10.5): shown on both SMS pages
+  while the latest message that failed for credit used up (`418`) is newer than the latest one sent.
+  It goes away by itself once a message is sent again, by a run or a resend.
 - **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand. For `Unknown` the page
-  says it may already have arrived.
+  says it may already have arrived. Decided with the developer on 1405/07/16 (task 10.5):
+  - It sends **exactly the same message**: the same number, template name and values that were
+    written, even if the member's number or the template's name has changed since.
+  - **One request, no retries:** a failure that may pass makes it `Failed` at once with its code, and
+    the Owner can resend again. Credit used up is `Failed` too, and `Unknown` as in a run.
+  - It is allowed **while all SMS or that kind is off**: the switches stop the daily runs, and a resend
+    is the Owner's own choice. It is not allowed outside 08:00–22:00 (`Notifications.OutsideSendingHours`).
+  - Only a `Failed` or `Unknown` message can be resent (`Notifications.NotResendable`); two resends of
+    one message at once send it once. Like a run, the message is saved as `Pending` before the request,
+    so a resend the server stopped in the middle becomes `Unknown` at that kind's next run.
 - **Development and tests:** tests always use `FakeSmsSender`, which only logs, and never reach
   Kavenegar. On the developer's machine Kavenegar can be turned on with the developer's own account,
   and `Sms:AllowedReceptors` then limits real sending to the listed numbers (anything else is only

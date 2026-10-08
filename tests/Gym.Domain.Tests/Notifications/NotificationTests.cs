@@ -247,6 +247,83 @@ public sealed class NotificationTests
         Should.Throw<ArgumentOutOfRangeException>(() => Pending().MarkSent(1, -1m, Now));
     }
 
+    // ---- Resend (task 10.5) ----
+
+    [Theory]
+    [InlineData("Failed")]
+    [InlineData("Unknown")]
+    public void PrepareResend_FailedOrUnknown_IsPendingAgainWithItsAttemptsKept(string status)
+    {
+        var notification = Settle(status);
+
+        notification.PrepareResend().IsSuccess.ShouldBeTrue();
+
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.Attempts.ShouldBe(1);
+        notification.LastAttemptAt.ShouldBe(Now);
+    }
+
+    [Fact]
+    public void PrepareResend_Always_KeepsExactlyTheSameMessage()
+    {
+        var notification = Settle("Failed");
+
+        notification.PrepareResend();
+
+        notification.Recipient.ShouldBe(Phone);
+        notification.TemplateName.ShouldBe(Template);
+        notification.Tokens.ShouldBe(Tokens);
+    }
+
+    [Fact]
+    public void PrepareResend_Failed_ClearsTheOldCode()
+    {
+        var notification = Settle("Failed");
+
+        notification.PrepareResend();
+
+        notification.ErrorCode.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("Pending")]
+    [InlineData("Sent")]
+    public void PrepareResend_PendingOrSent_IsRefusedAndChangesNothing(string status)
+    {
+        var notification = Settle(status);
+
+        notification.PrepareResend().Error.ShouldBe(NotificationErrors.NotResendable);
+
+        notification.Status.ToString().ShouldBe(status);
+    }
+
+    [Fact]
+    public void PrepareResend_ThenSent_IsSentWithBothAttemptsCounted()
+    {
+        var notification = Settle("Unknown");
+        var later = Now.AddDays(1);
+
+        notification.PrepareResend();
+        notification.MarkSent(7, 1_350m, later).IsSuccess.ShouldBeTrue();
+
+        notification.Status.ShouldBe(NotificationStatus.Sent);
+        notification.Attempts.ShouldBe(2);
+        notification.SentAt.ShouldBe(later);
+        notification.CostRial.ShouldBe(1_350m);
+    }
+
+    [Fact]
+    public void PrepareResend_StoppedBeforeItsOutcome_BecomesUnknownAtTheNextRun()
+    {
+        var notification = Settle("Failed");
+        notification.PrepareResend();
+
+        notification.MarkInterrupted().IsSuccess.ShouldBeTrue();
+
+        notification.Status.ShouldBe(NotificationStatus.Unknown);
+        notification.ErrorCode.ShouldBeNull();
+    }
+
     // ---- Delivery ----
 
     [Theory]
