@@ -730,27 +730,4 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, Tehran), TimeSpan.Zero);
     }
-
-    /// <summary>
-    /// Answers each request with the next scripted result, then "sent" once the script runs out, and
-    /// keeps every request it was given. Never reaches a provider.
-    /// </summary>
-    private sealed class ScriptedSmsSender(params SmsSendResult[] script) : ISmsSender
-    {
-        public const decimal Cost = 1_350m;
-
-        private readonly Queue<SmsSendResult> _script = new(script);
-        private long _lastMessageId;
-
-        public List<SmsTemplateMessage> Requests { get; } = [];
-
-        public Task<SmsSendResult> SendTemplateAsync(SmsTemplateMessage message, CancellationToken cancellationToken)
-        {
-            Requests.Add(message);
-
-            return Task.FromResult(_script.Count > 0
-                ? _script.Dequeue()
-                : SmsSendResult.Sent(Interlocked.Increment(ref _lastMessageId), Cost));
-        }
-    }
 }

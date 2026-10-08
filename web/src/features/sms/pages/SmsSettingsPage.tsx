@@ -7,10 +7,11 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
-import { formatMoney, toPersianDigits } from "@/lib/format";
+import { toPersianDigits } from "@/lib/format";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 
-import { useSmsCredit, useSmsSettings, useUpdateSmsSettings, type SmsSettings } from "../api";
+import { useSmsSettings, useUpdateSmsSettings, type SmsSettings } from "../api";
+import { SmsCreditLine } from "../components/SmsCreditLine";
 import {
   isKindFilled,
   lastSendHour,
@@ -161,35 +162,6 @@ export function SmsSettingsPage() {
 
 /** What the last press of «ذخیره» did, shown beside the button where the Owner is looking. */
 type SaveNotice = "saved" | "unchanged" | null;
-
-/**
- * The Kavenegar account's remaining credit (BUSINESS_RULES.md §10 *Sending*). In test mode
- * (`Sms:Provider` is `Fake`) nothing is really sent, and the page says so instead.
- */
-function SmsCreditLine() {
-  const credit = useSmsCredit();
-
-  if (credit.isPending) {
-    return null;
-  }
-
-  if (credit.isError || (!credit.data.isTestMode && credit.data.remainingToman === null)) {
-    return <p className="text-sm text-muted-foreground">اعتبار پنل پیامک الان در دسترس نیست.</p>;
-  }
-
-  if (credit.data.isTestMode) {
-    return (
-      <Alert role="status">حالت آزمایشی: پیامکی واقعاً فرستاده نمی‌شود و فقط ثبت می‌شود.</Alert>
-    );
-  }
-
-  return (
-    <p className="text-sm">
-      اعتبار باقی‌ماندهٔ پنل پیامک:{" "}
-      <span className="font-medium">{formatMoney(credit.data.remainingToman)}</span>
-    </p>
-  );
-}
 
 interface SmsSettingsFormProps {
   current: SmsSettings;

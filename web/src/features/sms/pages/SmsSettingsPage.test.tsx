@@ -56,7 +56,7 @@ function ownerWith(settings: SmsSettings, extra: Parameters<typeof mockApi>[0] =
 }
 
 /** `Sms:Provider` is `Fake`: nothing is really sent, so there is no credit (BUSINESS_RULES.md §10). */
-const testMode: SmsCredit = { isTestMode: true, remainingToman: null };
+const testMode: SmsCredit = { isTestMode: true, remainingToman: null, creditUsedUp: false };
 
 function group(name: string) {
   return within(screen.getByRole("group", { name }));
@@ -89,7 +89,8 @@ describe("SmsSettingsPage", () => {
 
   it("SmsSettingsPage_KavenegarAnswers_ShowsTheRemainingCreditInToman", async () => {
     ownerWith(empty, {
-      "GET /api/sms/credit": () => json(200, { isTestMode: false, remainingToman: 125000 }),
+      "GET /api/sms/credit": () =>
+        json(200, { isTestMode: false, remainingToman: 125000, creditUsedUp: false }),
     });
 
     renderApp("/sms-settings", { session: session() });
@@ -100,12 +101,37 @@ describe("SmsSettingsPage", () => {
 
   it("SmsSettingsPage_KavenegarNotAnswering_SaysTheCreditIsUnavailable", async () => {
     ownerWith(empty, {
-      "GET /api/sms/credit": () => json(200, { isTestMode: false, remainingToman: null }),
+      "GET /api/sms/credit": () =>
+        json(200, { isTestMode: false, remainingToman: null, creditUsedUp: false }),
     });
 
     renderApp("/sms-settings", { session: session() });
 
     expect(await screen.findByText("اعتبار پنل پیامک الان در دسترس نیست.")).toBeInTheDocument();
+  });
+
+  it("SmsSettingsPage_CreditUsedUp_WarnsEvenWhenKavenegarDoesNotAnswer", async () => {
+    ownerWith(empty, {
+      "GET /api/sms/credit": () =>
+        json(200, { isTestMode: false, remainingToman: null, creditUsedUp: true }),
+    });
+
+    renderApp("/sms-settings", { session: session() });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/اعتبار پنل پیامک تمام شده/);
+    expect(screen.getByText("اعتبار پنل پیامک الان در دسترس نیست.")).toBeInTheDocument();
+  });
+
+  it("SmsSettingsPage_CreditNotUsedUp_NoWarning", async () => {
+    ownerWith(empty, {
+      "GET /api/sms/credit": () =>
+        json(200, { isTestMode: false, remainingToman: 125000, creditUsedUp: false }),
+    });
+
+    renderApp("/sms-settings", { session: session() });
+
+    expect(await screen.findByText("۱۲۵٬۰۰۰ تومان")).toBeInTheDocument();
+    expect(screen.queryByText(/اعتبار پنل پیامک تمام شده/)).not.toBeInTheDocument();
   });
 
   // ---- Who sees it ----

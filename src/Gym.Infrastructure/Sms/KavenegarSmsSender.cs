@@ -47,7 +47,7 @@ public sealed partial class KavenegarSmsSender(
 
     public const int Accepted = 200;
     public const int Busy = 409;
-    public const int CreditUsedUp = 418;
+    public const int CreditUsedUp = SmsProviderCodes.CreditUsedUp;
 
     private const string LookupMethod = "verify/lookup";
     private const string StatusMethod = "sms/status";

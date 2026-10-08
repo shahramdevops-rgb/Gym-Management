@@ -230,6 +230,31 @@ public sealed class Notification : Entity
         return Result.Success();
     }
 
+    /// <summary>
+    /// The Owner resends a message that failed, or whose fate is not known, by hand
+    /// (BUSINESS_RULES.md §10 <i>Sending</i>, task 10.5): it is <see cref="NotificationStatus.Pending"/>
+    /// again, to be saved before the request like any other, and the request's outcome is then
+    /// recorded with the same methods a run uses. The template, number and values do not change: it
+    /// is exactly the same message.
+    /// </summary>
+    /// <remarks>
+    /// The last failure's code is cleared: if the server stops before the outcome is saved, the row
+    /// becomes <see cref="NotificationStatus.Unknown"/> at the next run, and an old code would then
+    /// describe a request that is not the last one.
+    /// </remarks>
+    public Result PrepareResend()
+    {
+        if (Status is not (NotificationStatus.Failed or NotificationStatus.Unknown))
+        {
+            return Result.Failure(NotificationErrors.NotResendable);
+        }
+
+        Status = NotificationStatus.Pending;
+        ErrorCode = null;
+
+        return Result.Success();
+    }
+
     /// <summary>What the provider said about reaching the phone. It can change while the provider still knows.</summary>
     public Result RecordDelivery(SmsDelivery delivery)
     {

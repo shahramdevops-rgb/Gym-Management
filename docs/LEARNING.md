@@ -1596,3 +1596,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Validating options with the environment.** `SmsOptionsValidator` takes `IHostEnvironment` from DI, so it can refuse a setting that only makes sense on one machine (an allow-list in Production) when the app starts, not when the first message is sent.
 - **A daily job when timing matters only loosely.** Kavenegar remembers delivery for 48 hours, so one check a night (23:30) asks about every message at least once and an unanswered night costs nothing. Polling every few minutes would add load for information nobody acts on.
 - **My notes:**
+
+## 10.5 — SMS history and resend (پیامک‌ها و ارسال دوباره)
+
+- **Reusing a state machine instead of copying it.** A resend only moves the row back to `Pending` (`PrepareResend`); the outcome is recorded with the same `MarkSent`, `MarkFailed` and `MarkUnknown` the daily run uses. One set of rules for "how a send went" means the run and the resend can never disagree about it.
+- **The unique index shaped the design.** One row per event is what stops a second payment, so a resend cannot write a new row: it changes the old one. The row's `Attempts` keeps the count, and the audit log keeps who resent it.
+- **Two guards against a double click.** If the second click arrives while the first is sending, the row is already `Pending` and the domain refuses it. If both read `Failed` at the same moment, `xmin` lets only one save through. Each guard has its own test, because each catches a case the other cannot see.
+- **The order of checks is a design choice.** The handler asks "can this message be resent?" before "is it within the sending hours?". The Owner learns what is wrong with the message first, and the endpoint tests for 404 and 409 no longer depend on the time the test suite runs.
+- **Don't let a test depend on the wall clock.** The API stamps rows with the real time, so the history tests move `created_at` with SQL after saving, and the resend tests build the handler with a `FakeTimeProvider`. Run at 1 a.m. or 3 p.m., they give the same result.
+- **A warning computed from data, not stored.** "Credit used up" is the latest `418` failure compared with the latest message sent. Nothing has to clear it: the next successful send makes it false by itself. A stored flag would need someone to remember to reset it.
+- **A converter on the response, not on the Domain enum.** `[property: JsonConverter(...)]` on `SmsMessageResponse` sends the enums by name, and OpenAPI reuses that schema for the list's `kind` and `status` filters. The Domain enums stay free of JSON.
+- **A default filter that does not stick.** With no dates in the URL, the page shows the current Jalali month. The month's first day is written into the URL only when the Owner touches a date box, so choosing a kind or a page keeps "this month" and its label.
+- **My notes:**

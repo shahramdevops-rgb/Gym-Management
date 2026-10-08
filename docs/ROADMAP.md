@@ -2437,10 +2437,32 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
       are checked in this test
 
 ### 10.5 SMS history and resend
-- [ ] The page «پیامک‌ها» (Owner): every message with its kind, recipient, status, delivery and
-      cost; the month's total in Toman; the remaining credit; the credit warning
-- [ ] Resend a `Failed` or `Unknown` message (Owner); for `Unknown` the page warns it may have
-      arrived
+Decided with the developer on 1405/07/16 (2026-10-08), BUSINESS_RULES.md §10 *The SMS history*,
+*The credit warning* and *Resend*: exactly the same message (number, template, values); one request,
+a failure that may pass is `Failed` at once; allowed while the switches are off, never outside
+08:00–22:00; the warning while the latest `418` is newer than the latest message sent.
+- [x] Rules first: BUSINESS_RULES.md §10, the four decisions above
+- [x] `GET /api/sms/messages` (Owner): the latest first, filtered by date (the day it was written,
+      Tehran), kind and status, paged, with the filter's cost in Toman (`ListSmsMessagesHandler`)
+- [x] `POST /api/sms/messages/{id}/resend` (Owner): `Notification.PrepareResend` back to `Pending`,
+      saved before the request like a run, the outcome recorded with the run's own methods
+      (`ResendSmsHandler`); `Notifications.NotResendable`, `OutsideSendingHours`, `ChangedConcurrently`
+- [x] The credit warning in `GET /api/sms/credit` (`creditUsedUp`), on both SMS pages
+      (`SmsCreditLine`, moved out of the settings page)
+- [x] The page «پیامک‌ها» (Owner menu, `/sms`): opens on the current Jalali month with its cost;
+      each message with its kind, recipient, status, delivery, cost, Kavenegar's code in Persian,
+      the template and its values; «ارسال دوباره» with a confirmation, which for `Unknown` warns it
+      may have arrived
+- [x] Tests: `PrepareResend` from every status (domain); the list's order, names, Tehran day edges,
+      filters, the total across pages, the range error, Staff refused; each resend outcome, the
+      number changed since, the switches off, the hours' edges, a second click while sending, two
+      saves at once, a run starting mid-resend; the warning's cases (integration); the page, the
+      filters keeping the month, the resend and its refusals, the warning, the menu (frontend)
+
+Closed 2026-10-08: 2140 backend tests (715 domain, 1425 integration; 44 new: 8 domain, 36
+integration) and 987 frontend tests (16 new) green, zero warnings, lint, `format:check` and production
+build pass. No migration: the history reads the `notifications` table as 10.1 built it. A release
+still starts with `./backup.sh run`.
 
 ### 10.6 Go live with the Owner's account
 Every server step is proposed and confirmed first, with `./backup.sh run` before the release.

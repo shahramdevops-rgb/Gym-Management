@@ -22,6 +22,8 @@ export const paths = {
   payables: "/payables",
   /** Which SMS the gym sends, when and with which template, "تنظیمات پیامک" (BUSINESS_RULES.md §10). */
   smsSettings: "/sms-settings",
+  /** Every SMS sent, its cost and its resend, "پیامک‌ها" (BUSINESS_RULES.md §10 *The SMS history*). */
+  smsMessages: "/sms",
   /** The Owner's dashboard, "داشبورد" (BUSINESS_RULES.md §12 *Dashboard*). */
   dashboard: "/dashboard",
 } as const;

@@ -325,6 +325,13 @@ export const errorMessages: Record<string, string> = {
   // SMS
   "Notifications.NotPending": "این پیامک دیگر در صف ارسال نیست.",
   "Notifications.NotSent": "وضعیت تحویل فقط برای پیامکِ ارسال‌شده ثبت می‌شود.",
+  "Notifications.NotFound": "این پیامک پیدا نشد.",
+  "Notifications.NotResendable":
+    "فقط پیامکی که ناموفق بوده یا وضعیتش نامعلوم است دوباره فرستاده می‌شود. فهرست را تازه کنید.",
+  "Notifications.OutsideSendingHours": "پیامک فقط بین ساعت ۸:۰۰ تا ۲۲:۰۰ فرستاده می‌شود.",
+  "Notifications.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
+  "Notifications.ChangedConcurrently":
+    "این پیامک هم‌زمان تغییر کرد. فهرست را تازه کنید و دوباره امتحان کنید.",
 
   // Reports
   "Reports.DateRangeRequired": "تاریخ شروع و پایان گزارش را انتخاب کنید.",

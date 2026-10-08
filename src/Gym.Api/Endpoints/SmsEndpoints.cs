@@ -4,6 +4,8 @@ using Gym.Api.Filters;
 using Gym.Application.Notifications;
 using Gym.Application.Notifications.GetSmsCredit;
 using Gym.Application.Notifications.GetSmsSettings;
+using Gym.Application.Notifications.ListSmsMessages;
+using Gym.Application.Notifications.ResendSms;
 using Gym.Application.Notifications.UpdateSmsSettings;
 
 namespace Gym.Api.Endpoints;
@@ -14,8 +16,7 @@ namespace Gym.Api.Endpoints;
 /// </summary>
 /// <remarks>
 /// Each endpoint names its own policy rather than inheriting one from the group, so a new endpoint
-/// here cannot quietly get the wrong one (the lesson of task 6.5.1). The history and resend join
-/// this group in task 10.5.
+/// here cannot quietly get the wrong one (the lesson of task 6.5.1).
 /// </remarks>
 public static class SmsEndpoints
 {
@@ -49,6 +50,27 @@ public static class SmsEndpoints
             .RequireAuthorization(Policies.OwnerOnly)
             .WithName("GetSmsCredit")
             .Produces<SmsCreditResponse>();
+
+        sms.MapGet("/messages", async (
+                [AsParameters] ListSmsMessagesQuery query,
+                ListSmsMessagesHandler handler,
+                CancellationToken ct) =>
+                    Results.Ok(await handler.Handle(query, ct)))
+            .RequireAuthorization(Policies.OwnerOnly)
+            .AddEndpointFilter<ValidationFilter<ListSmsMessagesQuery>>()
+            .WithName("ListSmsMessages")
+            .Produces<SmsMessageListResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        // No body: a resend sends exactly the message that was written (§10).
+        sms.MapPost("/messages/{id:guid}/resend", async (Guid id, ResendSmsHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, ct)).ToHttpResult())
+            .RequireAuthorization(Policies.OwnerOnly)
+            .WithName("ResendSms")
+            .Produces<SmsMessageResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         return app;
     }
