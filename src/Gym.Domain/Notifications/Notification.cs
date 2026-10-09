@@ -242,7 +242,11 @@ public sealed class Notification : Entity
         return Result.Success();
     }
 
-    /// <summary>What the provider said about reaching the phone. It can change while the provider still knows.</summary>
+    /// <summary>
+    /// What the provider said about reaching the phone. It can change while the provider still knows,
+    /// until the provider gives the cost back (blocked or cancelled, §10 <i>Sending</i>): the cost then
+    /// becomes 0, so the history's totals are what the gym really paid, and the delivery stays.
+    /// </summary>
     public Result RecordDelivery(SmsDelivery delivery)
     {
         if (!Enum.IsDefined(delivery))
@@ -255,10 +259,23 @@ public sealed class Notification : Entity
             return Result.Failure(NotificationErrors.NotSent);
         }
 
+        if (Delivery is { } current && IsRefunded(current))
+        {
+            return Result.Failure(NotificationErrors.DeliveryRefunded);
+        }
+
         Delivery = delivery;
+        if (IsRefunded(delivery))
+        {
+            CostRial = 0m;
+        }
 
         return Result.Success();
     }
+
+    /// <summary>The deliveries for which the provider gives the cost back (§10 <i>Sending</i>).</summary>
+    public static bool IsRefunded(SmsDelivery delivery) =>
+        delivery is SmsDelivery.BlockedByReceiver or SmsDelivery.Cancelled;
 
     private static Notification ForSubscription(
         NotificationKind kind, Guid memberId, Guid subscriptionId, string recipient, string text)

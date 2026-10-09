@@ -332,6 +332,7 @@ public sealed class NotificationTests
     [InlineData(SmsDelivery.Delivered)]
     [InlineData(SmsDelivery.NotDelivered)]
     [InlineData(SmsDelivery.BlockedByReceiver)]
+    [InlineData(SmsDelivery.Cancelled)]
     public void RecordDelivery_Sent_KeepsIt(SmsDelivery delivery)
     {
         var notification = Settle("Sent");
@@ -339,6 +340,59 @@ public sealed class NotificationTests
         notification.RecordDelivery(delivery).IsSuccess.ShouldBeTrue();
 
         notification.Delivery.ShouldBe(delivery);
+    }
+
+    [Theory]
+    [InlineData(SmsDelivery.Delivered)]
+    [InlineData(SmsDelivery.NotDelivered)]
+    public void RecordDelivery_NotRefunded_KeepsTheCost(SmsDelivery delivery)
+    {
+        var notification = Settle("Sent");
+
+        notification.RecordDelivery(delivery);
+
+        notification.CostRial.ShouldBe(1_200m);
+    }
+
+    [Theory]
+    [InlineData(SmsDelivery.BlockedByReceiver)]
+    [InlineData(SmsDelivery.Cancelled)]
+    public void RecordDelivery_Refunded_MakesTheCostZero(SmsDelivery delivery)
+    {
+        // §10: the provider gives the cost back for these, so the history's totals leave them out.
+        var notification = Settle("Sent");
+
+        notification.RecordDelivery(delivery);
+
+        notification.CostRial.ShouldBe(0m);
+        Notification.IsRefunded(delivery).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void RecordDelivery_NotDeliveredThenCancelled_MakesTheCostZero()
+    {
+        var notification = Settle("Sent");
+        notification.RecordDelivery(SmsDelivery.NotDelivered);
+
+        notification.RecordDelivery(SmsDelivery.Cancelled).IsSuccess.ShouldBeTrue();
+
+        notification.CostRial.ShouldBe(0m);
+    }
+
+    [Theory]
+    [InlineData(SmsDelivery.BlockedByReceiver, SmsDelivery.Delivered)]
+    [InlineData(SmsDelivery.Cancelled, SmsDelivery.NotDelivered)]
+    [InlineData(SmsDelivery.Cancelled, SmsDelivery.BlockedByReceiver)]
+    public void RecordDelivery_AfterARefund_IsRefused(SmsDelivery refunded, SmsDelivery later)
+    {
+        // A cost of 0 beside "delivered" would be a message the gym got for free.
+        var notification = Settle("Sent");
+        notification.RecordDelivery(refunded);
+
+        notification.RecordDelivery(later).Error.ShouldBe(NotificationErrors.DeliveryRefunded);
+
+        notification.Delivery.ShouldBe(refunded);
+        notification.CostRial.ShouldBe(0m);
     }
 
     [Fact]

@@ -17,8 +17,9 @@ namespace Gym.Infrastructure.Sms;
 /// <remarks>
 /// <para>
 /// <b>Every answer becomes an outcome; nothing throws for a failed send.</b> Kavenegar answers with
-/// its own code in <c>return.status</c> (the HTTP status is the same number): 200 sent, 409 busy
-/// (may pass), 418 credit used up, anything else a failure that will not pass, kept with its code.
+/// its own code in <c>return.status</c> (the HTTP status is the same number): 200 sent, 409 busy and
+/// 451 too many requests from this IP (both may pass), 418 credit used up, anything else a failure that
+/// will not pass, kept with its code.
 /// </para>
 /// <para>
 /// <b>Did the request leave?</b> That decides between a retry and <c>Unknown</c>. No connection at
@@ -48,6 +49,7 @@ public sealed partial class KavenegarSmsSender(
 
     public const int Accepted = 200;
     public const int Busy = 409;
+    public const int TooManyRequests = 451;
     public const int CreditUsedUp = SmsProviderCodes.CreditUsedUp;
 
     private const string SendMethod = "sms/send";
@@ -103,7 +105,7 @@ public sealed partial class KavenegarSmsSender(
                     LogNoAnswer(logger, SendMethod, "accepted with no message");
                     return NoAnswer;
 
-                case Busy:
+                case Busy or TooManyRequests:
                     LogRefused(logger, SendMethod, result.Status);
                     return new SmsSendResult(SmsSendOutcome.RetryableFailure, ErrorCode: result.Status);
 
@@ -149,14 +151,16 @@ public sealed partial class KavenegarSmsSender(
     }
 
     /// <summary>
-    /// Kavenegar's message statuses: 10 delivered, 11 not delivered (phone off or out of reach),
-    /// 6 and 13 failed or cancelled on the way (charge refunded), 14 blocked by the receiver. Queued
-    /// and sent-to-the-operator (1, 2, 4, 5) are still on their way, and 100 is an id it does not know.
+    /// Kavenegar's message statuses: 10 delivered, 11 not delivered (phone off or out of reach), 6 the
+    /// carrier's error (not delivered), 13 cancelled (cost given back), 14 blocked by the receiver (cost
+    /// given back). Queued and sent-to-the-carrier (1, 2, 4, 5) are still on their way, and 100 is an
+    /// id it does not know.
     /// </summary>
     internal static SmsDelivery? ToDelivery(int status) => status switch
     {
         10 => SmsDelivery.Delivered,
-        11 or 6 or 13 => SmsDelivery.NotDelivered,
+        11 or 6 => SmsDelivery.NotDelivered,
+        13 => SmsDelivery.Cancelled,
         14 => SmsDelivery.BlockedByReceiver,
         _ => null,
     };

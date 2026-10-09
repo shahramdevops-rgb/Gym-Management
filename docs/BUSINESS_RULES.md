@@ -1340,7 +1340,8 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   licence); a line needs no template, and Kavenegar's support said to send with `sms/send` (decided
   with the developer, 1405/07/16). The system writes the whole text and sends it.
   **To confirm with Kavenegar's support:** whether a member who has blocked advertising SMS still
-  gets messages from the line. If not, their messages show it in the delivery.
+  gets messages from the line. If not, their messages show it in the delivery: Kavenegar's
+  documentation says its "blocked" status (14) means the receiver turned off advertising lines.
 - **The wording is fixed in the code** (decided with the developer, 1405/07/16), as agreed on
   1405/07/14 and kept in `docs/sms-texts.md`. Changing it is a release, not a setting. The values in
   it are written the way the app shows them: Persian digits, a Jalali date as `۱۴۰۵/۰۷/۲۰`, an amount
@@ -1358,10 +1359,18 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   each part is paid for. The four texts run to about two parts each; the developer decided that
   is fine.
 - **Status:** `Pending`, `Sent`, `Failed`, `Unknown`.
-  - A failure that may pass (Kavenegar busy, `409`; the server or the network down before the request
-    left) is retried with backoff, up to `Sms:MaxAttempts`, then `Failed`.
-  - A failure that will not pass (an invalid number `411`, the line not valid for the account `412`,
-    the text empty or too long `413`, a bad character `422`) is `Failed` at once, with its code.
+  - A failure that may pass (Kavenegar busy, `409`; too many requests from the server's IP for a
+    while, `451`, decided with the developer on 1405/07/17; the server or the network down before
+    the request left) is retried with backoff, up to `Sms:MaxAttempts`, then `Failed`. Kavenegar
+    refused the request, so a second try cannot be paid twice.
+  - A failure that will not pass is `Failed` at once, with its code. The codes named here, from
+    Kavenegar's documentation (read on 1405/07/17), each with its meaning in Persian on the history:
+    the account disabled `401`, the API key not valid `403`, the server's IP not set in Kavenegar's
+    security settings `407`, an invalid number `411`, the line not valid for the account `412`, the
+    text empty or too long `413`, the server's IP not the one the key is restricted to `416`, links
+    not allowed in the text `420`, a bad character `422`, the line needing an access level the
+    account does not have `427`, the server's IP blocked `429`, and test messages allowed only to the
+    account owner's number `501`.
   - **Credit used up (`418`)**: that message is `Failed`, the rest of the run is not sent, and the
     Owner is warned on the SMS pages.
   - **No answer after the request left** (the connection broke while waiting): the message may have
@@ -1370,16 +1379,21 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   - Nothing is sent outside 08:00–22:00. A retry that would fall after 22:00 is not made: the message
     is `Failed`.
 - **Delivery:** after sending, the system asks Kavenegar (which keeps it for 48 hours) whether the
-  message reached the phone: delivered, not delivered, or blocked by the receiver. It asks **once a
-  day, at 23:30** (Asia/Tehran), about every message sent in the last 48 hours that is not yet
-  delivered or blocked, so each one is asked about at least once before Kavenegar forgets it, and a
+  message reached the phone: delivered (`10`), not delivered (`11` the phone off or out of reach,
+  `6` the carrier's error), blocked by the receiver (`14`), or cancelled by Kavenegar (`13`, a
+  sending error on its side). It asks **once a day, at 23:30** (Asia/Tehran), about every message
+  sent in the last 48 hours that is not yet delivered, blocked or cancelled, so each one is asked about at least once before Kavenegar forgets it, and a
   "not delivered" (the phone was off) can still become "delivered" the next night. A message still on
   its way gets nothing yet. If Kavenegar does not answer, it is only logged: the messages keep no
   delivery, and nothing else depends on it (decided with the developer, 1405/07/15, task 10.4: these
   messages are information, not something the gym must be sure arrived).
 - **Cost:** Kavenegar returns each message's cost in **Rial**. It is kept with the message, and shown
-  in Toman like every amount here (÷ 10). The SMS history shows each month's total. The account's
-  remaining credit is shown on the settings page and on the history.
+  in Toman like every amount here (÷ 10). **Kavenegar gives back the cost of a blocked or cancelled
+  message** (its documentation), so once the delivery check hears either, that message's cost becomes
+  0 and its delivery no longer changes, and the history says the cost was given back: the month's
+  total is what the gym really paid (decided with the developer, 1405/07/17).
+  The SMS history shows each month's total. The account's remaining credit is shown on the settings
+  page and on the history.
 - **The SMS history (پیامک‌ها)**, Owner only (task 10.5): every message, the latest first, with its
   kind, recipient, status, delivery, cost and the provider's code for a failure; filtered by date,
   kind and status. A message's date is the day it was written (Asia/Tehran). The page opens on the
@@ -1410,8 +1424,9 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   page, a broken reply) to a send that may have left is `Unknown`, never retried by itself, because a
   second try could be paid twice. A Kavenegar code not named above is `Failed`, with its code.
 - **Accounts:** development and testing use the developer's Kavenegar account. At release the API key
-  of the account that holds the dedicated line, and the line's number, go into the server's `.env`,
-  and the Owner fills in the settings page. Nothing waits for an approval, and no code changes.
+  of the account that holds the dedicated line, and the line's number, go into the server's `.env`
+  (`SMS_PROVIDER`, `SMS_KAVENEGAR_API_KEY`, `SMS_KAVENEGAR_SENDER`; left out, the server stays on the
+  fake provider), and the Owner fills in the settings page. Nothing waits for an approval, and no code changes.
 
 ---
 

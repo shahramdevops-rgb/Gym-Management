@@ -142,6 +142,38 @@ describe("SmsMessagesPage", () => {
     expect(within(row).getByText("به گوشی رسید")).toBeInTheDocument();
     expect(within(row).getByText("۱۳۵ تومان")).toBeInTheDocument();
     expect(within(row).queryByRole("button", { name: /ارسال دوباره/ })).not.toBeInTheDocument();
+    expect(within(row).queryByText("هزینه برگشت داده شد")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["BlockedByReceiver", "گیرنده مسدود کرده"],
+    ["Cancelled", "کاوه‌نگار لغو کرد"],
+  ] as const)("SmsMessagesPage_%sMessage_SaysTheCostWasGivenBack", async (delivery, label) => {
+    // §10: Kavenegar gives the cost back, and the API keeps it as 0.
+    ownerWith({
+      "GET /api/sms/messages": () => messagesPage([{ ...sentCheque, delivery, costToman: 0 }], 0),
+    });
+
+    renderApp("/sms", { session: session() });
+
+    await screen.findByText("مالک");
+    const row = rowOf("مالک");
+    expect(within(row).getByText(label)).toBeInTheDocument();
+    expect(within(row).getByText("۰ تومان")).toBeInTheDocument();
+    expect(within(row).getByText("هزینه برگشت داده شد")).toBeInTheDocument();
+  });
+
+  it("SmsMessagesPage_LineWithoutAccess_ShowsWhatKavenegarsCodeMeans", async () => {
+    ownerWith({
+      "GET /api/sms/messages": () => messagesPage([{ ...failedBirthday, errorCode: 427 }], 0),
+    });
+
+    renderApp("/sms", { session: session() });
+
+    await screen.findByText("سارا محمدی");
+    expect(
+      within(rowOf("سارا محمدی")).getByText("کد ۴۲۷ — این خط برای حساب دسترسی ندارد"),
+    ).toBeInTheDocument();
   });
 
   it("SmsMessagesPage_KindAndStatus_AreSentAndTheMonthStays", async () => {

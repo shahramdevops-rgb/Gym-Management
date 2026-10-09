@@ -23,4 +23,7 @@ public static class NotificationConstraints
 
     /// <summary>Only a sent message has a delivery.</summary>
     public const string DeliveryOnlyWhenSent = "ck_notifications_delivery_only_when_sent";
+
+    /// <summary>A blocked or cancelled message costs nothing: the provider gave the cost back (BUSINESS_RULES.md §10).</summary>
+    public const string RefundedHasNoCost = "ck_notifications_refunded_has_no_cost";
 }

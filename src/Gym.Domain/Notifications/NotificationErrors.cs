@@ -17,6 +17,14 @@ public static class NotificationErrors
         "Only a sent message has a delivery.");
 
     /// <summary>
+    /// BUSINESS_RULES.md §10 <i>Sending</i>: once the provider has given a message's cost back (blocked or
+    /// cancelled), the cost is 0 and the delivery is final.
+    /// </summary>
+    public static readonly Error DeliveryRefunded = Error.Conflict(
+        "Notifications.DeliveryRefunded",
+        "The provider gave this message's cost back; its delivery no longer changes.");
+
+    /// <summary>
     /// BUSINESS_RULES.md §10 <i>Sending</i>: only a <c>Failed</c> or <c>Unknown</c> message is resent.
     /// A sent one would be paid for twice, and a pending one is being sent right now.
     /// </summary>

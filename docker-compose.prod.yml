@@ -27,6 +27,11 @@ x-api-environment: &api-environment
   Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env (at least 32 random bytes)}
   Seed__OwnerUserName: ${SEED_OWNER_USERNAME:?set SEED_OWNER_USERNAME in .env}
   Seed__OwnerPassword: ${SEED_OWNER_PASSWORD:?set SEED_OWNER_PASSWORD in .env}
+  # SMS (BUSINESS_RULES.md §10). Left out of .env, the provider stays Fake and nothing is sent.
+  # Kavenegar with no key, or no line in digits, stops the API at startup.
+  Sms__Provider: ${SMS_PROVIDER:-Fake}
+  Sms__Kavenegar__ApiKey: ${SMS_KAVENEGAR_API_KEY:-}
+  Sms__Kavenegar__Sender: ${SMS_KAVENEGAR_SENDER:-}
 
 services:
   postgres:
