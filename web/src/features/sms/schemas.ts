@@ -28,9 +28,6 @@ export const thresholdRanges: Record<SmsKind, { min: number; max: number; code: 
   payableDue: { min: 0, max: 30, code: "Sms.PayableDueDaysOutOfRange" },
 };
 
-/** The same limit as the API's `SmsSettings.TemplateNameMaxLength`. */
-const templateNameMaxLength = 100;
-
 /** The hours a send time can start in: 08 to 22 (Asia/Tehran). */
 export const sendHours = Array.from({ length: 15 }, (_, index) =>
   String(index + 8).padStart(2, "0"),
@@ -48,7 +45,6 @@ const kindSchema = z.object({
   threshold: z.string(),
   /** `HH:mm`, or empty. The hour and minute boxes can only make a valid time. */
   sendTime: z.string(),
-  templateName: z.string(),
 });
 
 export type SmsKindValues = z.infer<typeof kindSchema>;
@@ -59,10 +55,9 @@ function wholeNumber(text: string): number | null {
   return /^\d{1,3}$/.test(normalized) ? Number(normalized) : null;
 }
 
-/** Whether a kind has its number, time and template, so its switch may be turned on. */
+/** Whether a kind has its number and time, so its switch may be turned on. */
 export function isKindFilled(kind: SmsKind, values: SmsKindValues, ownerPhone: string): boolean {
-  const filled =
-    values.threshold.trim() !== "" && values.sendTime !== "" && values.templateName.trim() !== "";
+  const filled = values.threshold.trim() !== "" && values.sendTime !== "";
 
   // The cheque and instalment reminders go to the Owner, so they also need the Owner's number.
   return filled && (kind !== "payableDue" || ownerPhone.trim() !== "");
@@ -70,8 +65,7 @@ export function isKindFilled(kind: SmsKind, values: SmsKindValues, ownerPhone: s
 
 /**
  * The whole page, saved at once. The checks are the API's, each under its own field: a filled
- * number in its kind's range, a template name of English letters and digits, and a kind turned on
- * only when it is filled (§10). Whether the Owner's number is a real Iranian mobile only the
+ * number in its kind's range, and a kind turned on only when it is filled (§10). Whether the Owner's number is a real Iranian mobile only the
  * server can say (libphonenumber); its answer is shown under the number.
  */
 export const smsSettingsSchema = z
@@ -99,21 +93,6 @@ export const smsSettingsSchema = z
         }
       }
 
-      const name = settings.templateName.trim();
-      if (name.length > templateNameMaxLength) {
-        context.addIssue({
-          code: "custom",
-          path: [kind, "templateName"],
-          message: message("Sms.TemplateNameTooLong"),
-        });
-      } else if (name !== "" && !/^[A-Za-z0-9]+$/.test(name)) {
-        context.addIssue({
-          code: "custom",
-          path: [kind, "templateName"],
-          message: message("Sms.TemplateNameInvalid"),
-        });
-      }
-
       if (settings.enabled && !isKindFilled(kind, settings, values.ownerPhone)) {
         context.addIssue({
           code: "custom",
@@ -135,7 +114,6 @@ function kindValues(settings: SmsKindSettings): SmsKindValues {
         : String(settings.threshold),
     // The API sends `HH:mm:ss`; the boxes choose hours and minutes.
     sendTime: settings.sendTime?.slice(0, 5) ?? "",
-    templateName: settings.templateName ?? "",
   };
 }
 
@@ -154,13 +132,11 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
 
 function kindInput(values: SmsKindValues): SmsKindSettings {
   const threshold = values.threshold.trim();
-  const templateName = values.templateName.trim();
 
   return {
     enabled: values.enabled,
     threshold: threshold === "" ? null : Number(normalizeDigits(threshold)),
     sendTime: values.sendTime === "" ? null : `${values.sendTime}:00`,
-    templateName: templateName === "" ? null : templateName,
   };
 }
 

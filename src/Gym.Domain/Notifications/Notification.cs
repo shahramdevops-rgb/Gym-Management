@@ -3,8 +3,8 @@ using Gym.Domain.Common;
 namespace Gym.Domain.Notifications;
 
 /// <summary>
-/// One SMS: who it is for, which event it is about, the template and values it carries, and how
-/// sending it went (BUSINESS_RULES.md §10).
+/// One SMS: who it is for, which event it is about, the text it carries, and how sending it went
+/// (BUSINESS_RULES.md §10).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -19,8 +19,8 @@ namespace Gym.Domain.Notifications;
 /// the others empty; a check constraint holds that, and the unique indexes are built on those ids.
 /// </para>
 /// <para>
-/// <b>The template and its values are kept.</b> A resend (task 10.5) sends exactly the same message,
-/// and the history can show what was sent.
+/// <b>The text is kept.</b> A resend (task 10.5) sends exactly the same message, and the history
+/// shows what was sent.
 /// </para>
 /// </remarks>
 public sealed class Notification : Entity
@@ -28,7 +28,7 @@ public sealed class Notification : Entity
     /// <summary>An E.164 number such as <c>+989121234567</c> is at most 16 characters.</summary>
     public const int RecipientMaxLength = 20;
 
-    public const int TemplateNameMaxLength = 100;
+    public const int TextMaxLength = SmsText.MaxLength;
 
     // For EF Core.
     private Notification()
@@ -52,18 +52,8 @@ public sealed class Notification : Entity
     /// <summary>Set for <see cref="NotificationKind.Birthday"/>: the Jalali year of the birthday, e.g. 1405.</summary>
     public int? JalaliYear { get; private set; }
 
-    /// <summary>The template's name in the provider's panel, as the Owner set it for this kind.</summary>
-    public string TemplateName { get; private set; } = string.Empty;
-
-    public string Token { get; private set; } = string.Empty;
-
-    public string? Token2 { get; private set; }
-
-    public string? Token3 { get; private set; }
-
-    public string? Token10 { get; private set; }
-
-    public string? Token20 { get; private set; }
+    /// <summary>The whole text, as <see cref="SmsText"/> wrote it when the message was written.</summary>
+    public string Text { get; private set; } = string.Empty;
 
     public NotificationStatus Status { get; private set; }
 
@@ -91,27 +81,24 @@ public sealed class Notification : Entity
     /// <summary>Postgres <c>xmin</c>: two senders cannot both record an outcome for one message.</summary>
     public uint Version { get; private set; }
 
-    /// <summary>The template's values, as one object to hand to the sender.</summary>
-    public SmsTokens Tokens => new(Token, Token2, Token3, Token10, Token20);
-
     /// <summary>The member's subscription is running out (<see cref="NotificationKind.SubscriptionExpiring"/>).</summary>
     public static Notification ForSubscriptionExpiring(
-        Guid memberId, Guid subscriptionId, string recipient, string templateName, SmsTokens tokens) =>
-        ForSubscription(NotificationKind.SubscriptionExpiring, memberId, subscriptionId, recipient, templateName, tokens);
+        Guid memberId, Guid subscriptionId, string recipient, string text) =>
+        ForSubscription(NotificationKind.SubscriptionExpiring, memberId, subscriptionId, recipient, text);
 
     /// <summary>The member's subscription has few sessions left (<see cref="NotificationKind.LowSessions"/>).</summary>
     public static Notification ForLowSessions(
-        Guid memberId, Guid subscriptionId, string recipient, string templateName, SmsTokens tokens) =>
-        ForSubscription(NotificationKind.LowSessions, memberId, subscriptionId, recipient, templateName, tokens);
+        Guid memberId, Guid subscriptionId, string recipient, string text) =>
+        ForSubscription(NotificationKind.LowSessions, memberId, subscriptionId, recipient, text);
 
     /// <param name="jalaliYear">The Jalali year the birthday falls in: at most one per member and year.</param>
     public static Notification ForBirthday(
-        Guid memberId, int jalaliYear, string recipient, string templateName, SmsTokens tokens)
+        Guid memberId, int jalaliYear, string recipient, string text)
     {
         CheckId(memberId, nameof(memberId));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(jalaliYear);
 
-        var notification = Create(NotificationKind.Birthday, recipient, templateName, tokens);
+        var notification = Create(NotificationKind.Birthday, recipient, text);
         notification.MemberId = memberId;
         notification.JalaliYear = jalaliYear;
 
@@ -120,11 +107,11 @@ public sealed class Notification : Entity
 
     /// <param name="ownerRecipient">The Owner's number from the SMS settings.</param>
     public static Notification ForPayableDue(
-        Guid payableId, string ownerRecipient, string templateName, SmsTokens tokens)
+        Guid payableId, string ownerRecipient, string text)
     {
         CheckId(payableId, nameof(payableId));
 
-        var notification = Create(NotificationKind.PayableDue, ownerRecipient, templateName, tokens);
+        var notification = Create(NotificationKind.PayableDue, ownerRecipient, text);
         notification.PayableId = payableId;
 
         return notification;
@@ -234,8 +221,8 @@ public sealed class Notification : Entity
     /// The Owner resends a message that failed, or whose fate is not known, by hand
     /// (BUSINESS_RULES.md §10 <i>Sending</i>, task 10.5): it is <see cref="NotificationStatus.Pending"/>
     /// again, to be saved before the request like any other, and the request's outcome is then
-    /// recorded with the same methods a run uses. The template, number and values do not change: it
-    /// is exactly the same message.
+    /// recorded with the same methods a run uses. The number and the text do not change: it is exactly
+    /// the same message.
     /// </summary>
     /// <remarks>
     /// The last failure's code is cleared: if the server stops before the outcome is saved, the row
@@ -274,12 +261,12 @@ public sealed class Notification : Entity
     }
 
     private static Notification ForSubscription(
-        NotificationKind kind, Guid memberId, Guid subscriptionId, string recipient, string templateName, SmsTokens tokens)
+        NotificationKind kind, Guid memberId, Guid subscriptionId, string recipient, string text)
     {
         CheckId(memberId, nameof(memberId));
         CheckId(subscriptionId, nameof(subscriptionId));
 
-        var notification = Create(kind, recipient, templateName, tokens);
+        var notification = Create(kind, recipient, text);
         notification.MemberId = memberId;
         notification.SubscriptionId = subscriptionId;
 
@@ -287,35 +274,30 @@ public sealed class Notification : Entity
     }
 
     /// <summary>
-    /// The number and the template come from a member row and the settings page, which already
-    /// checked them, so anything wrong here is a bug in the caller, not a business failure.
+    /// The number comes from a member row or the settings page, which already checked it, and the
+    /// text from <see cref="SmsText"/>, so anything wrong here is a bug in the caller, not a business
+    /// failure.
     /// </summary>
-    private static Notification Create(NotificationKind kind, string recipient, string templateName, SmsTokens tokens)
+    private static Notification Create(NotificationKind kind, string recipient, string text)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(recipient);
-        ArgumentException.ThrowIfNullOrWhiteSpace(templateName);
-        ArgumentNullException.ThrowIfNull(tokens);
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         if (recipient.Length > RecipientMaxLength)
         {
             throw new ArgumentException("The number is too long to be a phone number.", nameof(recipient));
         }
 
-        if (templateName.Length > TemplateNameMaxLength)
+        if (text.Length > TextMaxLength)
         {
-            throw new ArgumentException("The template name is too long.", nameof(templateName));
+            throw new ArgumentException("The text is too long for an SMS.", nameof(text));
         }
 
         return new Notification
         {
             Kind = kind,
             Recipient = recipient,
-            TemplateName = templateName,
-            Token = tokens.Token,
-            Token2 = tokens.Token2,
-            Token3 = tokens.Token3,
-            Token10 = tokens.Token10,
-            Token20 = tokens.Token20,
+            Text = text,
             Status = NotificationStatus.Pending,
         };
     }

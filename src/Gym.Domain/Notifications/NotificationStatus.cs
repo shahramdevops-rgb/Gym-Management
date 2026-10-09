@@ -14,7 +14,7 @@ public enum NotificationStatus
 
     /// <summary>
     /// The request left but no answer came back, so it may have gone and been paid for. Never
-    /// retried by itself: the template method has no duplicate guard on the provider's side.
+    /// retried by itself: the request carries no duplicate guard for the provider to check.
     /// </summary>
     Unknown,
 }

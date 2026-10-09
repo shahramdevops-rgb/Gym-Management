@@ -119,9 +119,6 @@ export const errorMessages: Record<string, string> = {
   "Sms.BirthdayDaysOutOfRange": "تعداد روز باید از ۰ تا ۷ باشد (۰ یعنی خود روز تولد).",
   "Sms.PayableDueDaysOutOfRange": "تعداد روز باید از ۰ تا ۳۰ باشد (۰ یعنی خود روز سررسید).",
   "Sms.SendTimeOutOfRange": "ساعت ارسال باید بین ۸:۰۰ و ۲۲:۰۰ و روی ربع ساعت باشد.",
-  "Sms.TemplateNameInvalid":
-    "نام قالب فقط حروف انگلیسی و عدد دارد؛ فاصله، «_» و حروف فارسی پذیرفته نمی‌شود.",
-  "Sms.TemplateNameTooLong": "نام قالب حداکثر ۱۰۰ نویسه است.",
   "Sms.SettingsIncomplete": "برای روشن کردن این پیامک، همهٔ خانه‌هایش را پر کنید.",
   "Sms.ChangedConcurrently":
     "تنظیمات پیامک هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",

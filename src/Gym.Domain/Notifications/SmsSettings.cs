@@ -3,8 +3,7 @@ using Gym.Domain.Common;
 namespace Gym.Domain.Notifications;
 
 /// <summary>
-/// What the gym sends by SMS, when, and with which template (BUSINESS_RULES.md §10 <i>SMS
-/// settings</i>). The Owner sets it on «تنظیمات پیامک»; the daily jobs (task 10.3) read it.
+/// What the gym sends by SMS, and when (BUSINESS_RULES.md §10 <i>SMS settings</i>). The Owner sets it on «تنظیمات پیامک»; the daily jobs (task 10.3) read it.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -23,9 +22,6 @@ namespace Gym.Domain.Notifications;
 /// </remarks>
 public sealed class SmsSettings : Entity
 {
-    /// <summary>The same limit as a message's template name, so whatever is saved here can be sent.</summary>
-    public const int TemplateNameMaxLength = Notification.TemplateNameMaxLength;
-
     /// <summary>Send times fall on a quarter hour (decided with the developer, task 10.2).</summary>
     public const int SendTimeStepMinutes = 15;
 
@@ -53,16 +49,12 @@ public sealed class SmsSettings : Entity
 
     public TimeOnly? SubscriptionExpiringSendTime { get; private set; }
 
-    public string? SubscriptionExpiringTemplateName { get; private set; }
-
     public bool LowSessionsEnabled { get; private set; }
 
     /// <summary>Sent once the sessions left are at most this.</summary>
     public int? LowSessionsThreshold { get; private set; }
 
     public TimeOnly? LowSessionsSendTime { get; private set; }
-
-    public string? LowSessionsTemplateName { get; private set; }
 
     public bool BirthdayEnabled { get; private set; }
 
@@ -71,16 +63,12 @@ public sealed class SmsSettings : Entity
 
     public TimeOnly? BirthdaySendTime { get; private set; }
 
-    public string? BirthdayTemplateName { get; private set; }
-
     public bool PayableDueEnabled { get; private set; }
 
     /// <summary>Days before the cheque's or instalment's date; 0 is the day itself.</summary>
     public int? PayableDueDaysBefore { get; private set; }
 
     public TimeOnly? PayableDueSendTime { get; private set; }
-
-    public string? PayableDueTemplateName { get; private set; }
 
     /// <summary>Where the cheque and instalment reminders go, in E.164 (<c>+989…</c>).</summary>
     public string? OwnerPhone { get; private set; }
@@ -106,19 +94,19 @@ public sealed class SmsSettings : Entity
     public SmsKindSettings For(NotificationKind kind) => kind switch
     {
         NotificationKind.SubscriptionExpiring => new(
-            SubscriptionExpiringEnabled, SubscriptionExpiringDaysBefore, SubscriptionExpiringSendTime, SubscriptionExpiringTemplateName),
+            SubscriptionExpiringEnabled, SubscriptionExpiringDaysBefore, SubscriptionExpiringSendTime),
         NotificationKind.LowSessions => new(
-            LowSessionsEnabled, LowSessionsThreshold, LowSessionsSendTime, LowSessionsTemplateName),
+            LowSessionsEnabled, LowSessionsThreshold, LowSessionsSendTime),
         NotificationKind.Birthday => new(
-            BirthdayEnabled, BirthdayDaysBefore, BirthdaySendTime, BirthdayTemplateName),
+            BirthdayEnabled, BirthdayDaysBefore, BirthdaySendTime),
         NotificationKind.PayableDue => new(
-            PayableDueEnabled, PayableDueDaysBefore, PayableDueSendTime, PayableDueTemplateName),
+            PayableDueEnabled, PayableDueDaysBefore, PayableDueSendTime),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown notification kind."),
     };
 
     /// <summary>
     /// Saves the whole page at once. Every field is checked first and nothing changes on a refusal, so
-    /// a half-saved page never exists. A template name is kept trimmed; a blank one counts as empty.
+    /// a half-saved page never exists.
     /// </summary>
     /// <param name="ownerPhone">Already normalized to E.164 by the caller, or <c>null</c>.</param>
     public Result Update(
@@ -155,22 +143,18 @@ public sealed class SmsSettings : Entity
         SubscriptionExpiringEnabled = subscriptionExpiring.Enabled;
         SubscriptionExpiringDaysBefore = subscriptionExpiring.Threshold;
         SubscriptionExpiringSendTime = subscriptionExpiring.SendTime;
-        SubscriptionExpiringTemplateName = CleanTemplateName(subscriptionExpiring.TemplateName);
 
         LowSessionsEnabled = lowSessions.Enabled;
         LowSessionsThreshold = lowSessions.Threshold;
         LowSessionsSendTime = lowSessions.SendTime;
-        LowSessionsTemplateName = CleanTemplateName(lowSessions.TemplateName);
 
         BirthdayEnabled = birthday.Enabled;
         BirthdayDaysBefore = birthday.Threshold;
         BirthdaySendTime = birthday.SendTime;
-        BirthdayTemplateName = CleanTemplateName(birthday.TemplateName);
 
         PayableDueEnabled = payableDue.Enabled;
         PayableDueDaysBefore = payableDue.Threshold;
         PayableDueSendTime = payableDue.SendTime;
-        PayableDueTemplateName = CleanTemplateName(payableDue.TemplateName);
 
         OwnerPhone = phone;
 
@@ -217,23 +201,6 @@ public sealed class SmsSettings : Entity
         return inWindow && onQuarter ? null : SmsSettingsErrors.SendTimeOutOfRange;
     }
 
-    /// <summary>Kavenegar's rule for a template name: English letters and digits only.</summary>
-    public static Error? CheckTemplateName(string? templateName)
-    {
-        var name = CleanTemplateName(templateName);
-        if (name is null)
-        {
-            return null;
-        }
-
-        if (name.Length > TemplateNameMaxLength)
-        {
-            return SmsSettingsErrors.TemplateNameTooLong;
-        }
-
-        return name.All(char.IsAsciiLetterOrDigit) ? null : SmsSettingsErrors.TemplateNameInvalid;
-    }
-
     /// <summary>A kind that is on has every field filled; the cheque reminders also need the Owner's number.</summary>
     public static Error? CheckComplete(NotificationKind kind, SmsKindSettings settings, string? ownerPhone)
     {
@@ -250,14 +217,9 @@ public sealed class SmsSettings : Entity
         return filled ? null : SmsSettingsErrors.SettingsIncomplete;
     }
 
-    /// <summary>Surrounding spaces from a paste are dropped; a blank name is no name.</summary>
-    public static string? CleanTemplateName(string? templateName) =>
-        string.IsNullOrWhiteSpace(templateName) ? null : templateName.Trim();
-
     private static Error? Check(NotificationKind kind, SmsKindSettings settings, string? ownerPhone) =>
         CheckThreshold(kind, settings.Threshold)
         ?? CheckSendTime(settings.SendTime)
-        ?? CheckTemplateName(settings.TemplateName)
         ?? CheckComplete(kind, settings, ownerPhone);
 
     /// <summary>What <c>IPhoneNormalizer</c> makes of an Iranian mobile: <c>+989</c> and nine digits.</summary>

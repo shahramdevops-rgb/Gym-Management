@@ -25,14 +25,6 @@ public static class SmsSettingsErrors
         "Sms.SendTimeOutOfRange",
         "The send time must be between 08:00 and 22:00, on a quarter hour.");
 
-    public static readonly Error TemplateNameInvalid = Error.Validation(
-        "Sms.TemplateNameInvalid",
-        "A template name has English letters and digits only, with no space and no '_'.");
-
-    public static readonly Error TemplateNameTooLong = Error.Validation(
-        "Sms.TemplateNameTooLong",
-        $"A template name is at most {SmsSettings.TemplateNameMaxLength} characters.");
-
     /// <summary>A kind was turned on while one of its fields is empty (§10: on means filled).</summary>
     public static readonly Error SettingsIncomplete = Error.Validation(
         "Sms.SettingsIncomplete",

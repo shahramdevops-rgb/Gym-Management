@@ -29,14 +29,9 @@ const failedBirthday: SmsMessage = {
   memberId: "01990000-0000-7000-8000-0000000000a1",
   memberName: "سارا محمدی",
   payableId: null,
-  templateName: "gymBirthday",
-  token: "۱۴۰۵",
-  token2: null,
-  token3: null,
-  token10: "سارا محمدی",
-  token20: null,
+  text: "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد",
   attempts: 1,
-  errorCode: 424,
+  errorCode: 411,
   costToman: null,
   delivery: null,
   createdAt: "2026-10-08T06:30:00Z",
@@ -50,7 +45,7 @@ const unknownExpiring: SmsMessage = {
   kind: "SubscriptionExpiring",
   status: "Unknown",
   memberName: "مینا کریمی",
-  templateName: "gymExpiring",
+  text: "مینا کریمی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.",
   errorCode: null,
 };
 
@@ -63,7 +58,7 @@ const sentCheque: SmsMessage = {
   memberId: null,
   memberName: null,
   payableId: "01990000-0000-7000-8000-0000000000b1",
-  templateName: "gymPayableDue",
+  text: "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی",
   errorCode: null,
   costToman: 135,
   delivery: "Delivered",
@@ -126,9 +121,13 @@ describe("SmsMessagesPage", () => {
     const row = rowOf("سارا محمدی");
     expect(within(row).getByText("تولد")).toBeInTheDocument();
     expect(within(row).getByText("ناموفق")).toBeInTheDocument();
-    expect(within(row).getByText("کد ۴۲۴ — قالب پیدا نشد یا تأیید نشده")).toBeInTheDocument();
+    expect(within(row).getByText("کد ۴۱۱ — شماره نامعتبر است")).toBeInTheDocument();
     expect(within(row).getByText("۰۹۱۲ ۱۲۳ ۴۵۶۷")).toBeInTheDocument();
-    expect(within(row).getByText(/۱۴۰۵، سارا محمدی/)).toBeInTheDocument();
+    expect(
+      within(row).getByText(
+        "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("SmsMessagesPage_ChequesMessage_IsTheOwnersWithItsCostAndDelivery", async () => {

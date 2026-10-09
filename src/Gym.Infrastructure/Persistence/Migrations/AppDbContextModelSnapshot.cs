@@ -1594,37 +1594,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("subscription_id");
 
-                    b.Property<string>("TemplateName")
+                    b.Property<string>("Text")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("template_name");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("token");
-
-                    b.Property<string>("Token10")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("token10");
-
-                    b.Property<string>("Token2")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("token2");
-
-                    b.Property<string>("Token20")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("token20");
-
-                    b.Property<string>("Token3")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("token3");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("text");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1678,9 +1652,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_notifications_status", "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
 
-                            t.HasCheckConstraint("ck_notifications_template_name_not_blank", "btrim(template_name) <> ''");
-
-                            t.HasCheckConstraint("ck_notifications_token_not_blank", "btrim(token) <> ''");
+                            t.HasCheckConstraint("ck_notifications_text_not_blank", "btrim(text) <> ''");
                         });
                 });
 
@@ -1703,11 +1675,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("time without time zone")
                         .HasColumnName("birthday_send_time");
 
-                    b.Property<string>("BirthdayTemplateName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("birthday_template_name");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1727,11 +1694,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.Property<TimeOnly?>("LowSessionsSendTime")
                         .HasColumnType("time without time zone")
                         .HasColumnName("low_sessions_send_time");
-
-                    b.Property<string>("LowSessionsTemplateName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("low_sessions_template_name");
 
                     b.Property<int?>("LowSessionsThreshold")
                         .HasColumnType("integer")
@@ -1754,11 +1716,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("time without time zone")
                         .HasColumnName("payable_due_send_time");
 
-                    b.Property<string>("PayableDueTemplateName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("payable_due_template_name");
-
                     b.Property<int?>("SubscriptionExpiringDaysBefore")
                         .HasColumnType("integer")
                         .HasColumnName("subscription_expiring_days_before");
@@ -1770,11 +1727,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.Property<TimeOnly?>("SubscriptionExpiringSendTime")
                         .HasColumnType("time without time zone")
                         .HasColumnName("subscription_expiring_send_time");
-
-                    b.Property<string>("SubscriptionExpiringTemplateName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("subscription_expiring_template_name");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1797,9 +1749,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_sms_settings_birthday_days", "birthday_days_before IS NULL OR birthday_days_before BETWEEN 0 AND 7");
 
-                            t.HasCheckConstraint("ck_sms_settings_birthday_on_means_filled", "NOT birthday_enabled OR (birthday_days_before IS NOT NULL AND birthday_send_time IS NOT NULL AND birthday_template_name IS NOT NULL)");
+                            t.HasCheckConstraint("ck_sms_settings_birthday_on_means_filled", "NOT birthday_enabled OR (birthday_days_before IS NOT NULL AND birthday_send_time IS NOT NULL)");
 
-                            t.HasCheckConstraint("ck_sms_settings_low_sessions_on_means_filled", "NOT low_sessions_enabled OR (low_sessions_threshold IS NOT NULL AND low_sessions_send_time IS NOT NULL AND low_sessions_template_name IS NOT NULL)");
+                            t.HasCheckConstraint("ck_sms_settings_low_sessions_on_means_filled", "NOT low_sessions_enabled OR (low_sessions_threshold IS NOT NULL AND low_sessions_send_time IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_sms_settings_low_sessions_threshold", "low_sessions_threshold IS NULL OR low_sessions_threshold BETWEEN 1 AND 10");
 
@@ -1807,7 +1759,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_sms_settings_payable_due_days", "payable_due_days_before IS NULL OR payable_due_days_before BETWEEN 0 AND 30");
 
-                            t.HasCheckConstraint("ck_sms_settings_payable_due_on_means_filled", "NOT payable_due_enabled OR (payable_due_days_before IS NOT NULL AND payable_due_send_time IS NOT NULL AND payable_due_template_name IS NOT NULL AND owner_phone IS NOT NULL)");
+                            t.HasCheckConstraint("ck_sms_settings_payable_due_on_means_filled", "NOT payable_due_enabled OR (payable_due_days_before IS NOT NULL AND payable_due_send_time IS NOT NULL AND owner_phone IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_sms_settings_send_times", "(subscription_expiring_send_time IS NULL OR (subscription_expiring_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM subscription_expiring_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM subscription_expiring_send_time) = 0)) AND (low_sessions_send_time IS NULL OR (low_sessions_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM low_sessions_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM low_sessions_send_time) = 0)) AND (birthday_send_time IS NULL OR (birthday_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM birthday_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM birthday_send_time) = 0)) AND (payable_due_send_time IS NULL OR (payable_due_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM payable_due_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM payable_due_send_time) = 0))");
 
@@ -1815,9 +1767,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_sms_settings_subscription_expiring_days", "subscription_expiring_days_before IS NULL OR subscription_expiring_days_before BETWEEN 1 AND 30");
 
-                            t.HasCheckConstraint("ck_sms_settings_subscription_expiring_on_means_filled", "NOT subscription_expiring_enabled OR (subscription_expiring_days_before IS NOT NULL AND subscription_expiring_send_time IS NOT NULL AND subscription_expiring_template_name IS NOT NULL)");
-
-                            t.HasCheckConstraint("ck_sms_settings_template_names", "(subscription_expiring_template_name IS NULL OR subscription_expiring_template_name ~ '^[A-Za-z0-9]+$') AND (low_sessions_template_name IS NULL OR low_sessions_template_name ~ '^[A-Za-z0-9]+$') AND (birthday_template_name IS NULL OR birthday_template_name ~ '^[A-Za-z0-9]+$') AND (payable_due_template_name IS NULL OR payable_due_template_name ~ '^[A-Za-z0-9]+$')");
+                            t.HasCheckConstraint("ck_sms_settings_subscription_expiring_on_means_filled", "NOT subscription_expiring_enabled OR (subscription_expiring_days_before IS NOT NULL AND subscription_expiring_send_time IS NOT NULL)");
                         });
 
                     b.HasData(

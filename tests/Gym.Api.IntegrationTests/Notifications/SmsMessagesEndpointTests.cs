@@ -31,7 +31,6 @@ namespace Gym.Api.IntegrationTests.Notifications;
 public sealed class SmsMessagesEndpointTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
     private const string Path = "/api/sms/messages";
-    private const string Template = "gymBirthday";
 
     private static readonly TimeZoneInfo Tehran = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
 
@@ -58,8 +57,7 @@ public sealed class SmsMessagesEndpointTests(DatabaseFixture fixture) : Database
         sent.Kind.ShouldBe(NotificationKind.Birthday);
         sent.Status.ShouldBe(NotificationStatus.Sent);
         sent.MemberName.ShouldBe("سارا محمدی");
-        sent.TemplateName.ShouldBe(Template);
-        sent.Token10.ShouldBe("سارا محمدی");
+        sent.Text.ShouldBe(SmsText.ForBirthday("سارا محمدی", Day, Day));
         sent.CostToman.ShouldBe(135m);
         sent.Attempts.ShouldBe(1);
         var failed = list.Items[0];
@@ -258,7 +256,7 @@ public sealed class SmsMessagesEndpointTests(DatabaseFixture fixture) : Database
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed(name, $"+98913{suffix:D7}");
-        var notification = Notification.ForBirthday(member.Id, 1405, member.PhoneNumber, Template, new SmsTokens("۱۴۰۵", Token10: name));
+        var notification = Notification.ForBirthday(member.Id, 1405, member.PhoneNumber, SmsText.ForBirthday(name, Day, Day));
         Settle(notification, createdAt, sentCostRial, failedCode);
 
         await using (var scope = Fixture.CreateScope())
@@ -281,7 +279,8 @@ public sealed class SmsMessagesEndpointTests(DatabaseFixture fixture) : Database
         var cheque = Payable.Register(
             PayableKind.Cheque, 12_500_000m, Day.AddDays(3), "فروشگاه تجهیزات ورزشی", "تردمیل",
             ExpenseCategory.CafePurchasingId, null, null, userId).Value;
-        var notification = Notification.ForPayableDue(cheque.Id, "+989351112233", "gymPayableDue", new SmsTokens("چک"));
+        var notification = Notification.ForPayableDue(
+            cheque.Id, "+989351112233", SmsText.ForPayableDue(cheque.Kind, cheque.Amount, cheque.DueDate, cheque.Payee));
         Settle(notification, createdAt, sentCostRial: null, failedCode);
 
         await using (var scope = Fixture.CreateScope())

@@ -1,7 +1,7 @@
 import type { SmsSettings } from "./api";
 import { isKindFilled, smsSettingsSchema, toFormValues, toInput } from "./schemas";
 
-const off = { enabled: false, threshold: null, sendTime: null, templateName: null };
+const off = { enabled: false, threshold: null, sendTime: null };
 
 const settings: SmsSettings = {
   enabled: true,
@@ -9,10 +9,9 @@ const settings: SmsSettings = {
     enabled: true,
     threshold: 7,
     sendTime: "09:15:00",
-    templateName: "gymExpiring",
   },
   lowSessions: off,
-  birthday: { enabled: false, threshold: 0, sendTime: null, templateName: null },
+  birthday: { enabled: false, threshold: 0, sendTime: null },
   payableDue: off,
   ownerPhone: "+989121234567",
   version: 3,
@@ -27,7 +26,7 @@ describe("sms schemas", () => {
 
   it("toInput_PersianDigitsAndBlankFields_BecomeNumbersAndNulls", () => {
     const values = toFormValues({ ...settings, ownerPhone: null });
-    values.birthday = { enabled: false, threshold: "۳", sendTime: "", templateName: "  " };
+    values.birthday = { enabled: false, threshold: "۳", sendTime: "" };
 
     const input = toInput(values, 3);
 
@@ -35,7 +34,6 @@ describe("sms schemas", () => {
       enabled: false,
       threshold: 3,
       sendTime: null,
-      templateName: null,
     });
     expect(input.ownerPhone).toBeNull();
   });
@@ -45,7 +43,6 @@ describe("sms schemas", () => {
       enabled: false,
       threshold: "3",
       sendTime: "10:00",
-      templateName: "gymPayableDue",
     };
 
     expect(isKindFilled("payableDue", kind, "")).toBe(false);
@@ -62,7 +59,7 @@ describe("sms schemas", () => {
     ["payableDue", "31", false],
   ] as const)("smsSettingsSchema_%s_%s_Valid_%s", (kind, threshold, valid) => {
     const values = toFormValues({ ...settings, enabled: false });
-    values[kind] = { enabled: false, threshold, sendTime: "", templateName: "" };
+    values[kind] = { enabled: false, threshold, sendTime: "" };
 
     expect(smsSettingsSchema.safeParse(values).success).toBe(valid);
   });

@@ -97,7 +97,7 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
 
         settings.Update(
             enabled,
-            new SmsKindSettings(expiringOn, 3, sendTime, "gymExpiring"),
+            new SmsKindSettings(expiringOn, 3, sendTime),
             SmsKindSettings.Off,
             SmsKindSettings.Off,
             SmsKindSettings.Off,

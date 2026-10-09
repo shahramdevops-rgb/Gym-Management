@@ -501,7 +501,9 @@ web/src/
   (`getByRole("search")`), not an input inside it, or jsdom throws an unhandled error.
 - SMS (Phase 10): `Sms:Provider` chooses the `ISmsSender` and the `ISmsAccount` (delivery and credit), all in
   `Infrastructure/Sms/SmsRegistration.AddSms`. `Fake` (the default when the setting is missing) only logs; an unknown
-  name, or `Kavenegar` with no `Sms:Kavenegar:ApiKey`, stops the app at startup. Outside Production the Kavenegar
+  name, or `Kavenegar` with no `Sms:Kavenegar:ApiKey` or no `Sms:Kavenegar:Sender` (the dedicated line's number,
+  digits only), stops the app at startup. Kavenegar is called with `sms/send` (the whole text from the line):
+  the templates of `verify/lookup` were refused, 1405/07/16. Outside Production the Kavenegar
   sender is wrapped in `AllowListSmsSender`, so only `Sms:AllowedReceptors` are really sent (none when empty);
   questions (`ISmsAccount`) are never held back. Kavenegar puts the API key in the request address, and
   IHttpClientFactory's own loggers write that address at Information, so the typed client calls `RemoveAllLoggers()`;
@@ -512,9 +514,10 @@ web/src/
   The integration test host sets `Sms__Provider=Fake` itself, so a developer's own settings can never make a test run
   reach the provider. A message is a `notifications` row written
   as `Pending` **before** it is sent: its unique indexes stop a second run, or a second server, from writing (and so
-  paying for) the same event twice. Template values go through `SmsTokens`, which refuses a value that breaks
-  Kavenegar's limits; free text (a name, a payee) is passed through `SmsTokens.Fit` first.
-  The Owner's choices (each kind's switch, number, send time and template, the Owner's number) are the one
+  paying for) the same event twice. The text is written once, by `SmsText` in the Domain (the wording of
+  `docs/sms-texts.md`, a long name or payee cut short by `SmsText.Fit`), and kept on the row, so a resend and the
+  history use exactly what was written. The Owner's choices (each kind's switch, number and send time, the Owner's
+  number) are the one
   `sms_settings` row (task 10.2), read through `SmsSettingsRow`; `SmsSettings.For(kind)` hands a kind's columns
   back as one `SmsKindSettings`. A `FluentValidation` validator found by the assembly scan must be buildable by DI:
   a child validator that takes the kind in its constructor broke startup, so the per-kind checks are `Custom` rules.

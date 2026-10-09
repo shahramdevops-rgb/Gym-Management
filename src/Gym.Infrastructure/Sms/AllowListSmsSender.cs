@@ -20,19 +20,19 @@ public sealed partial class AllowListSmsSender(
     IReadOnlyCollection<string> allowedReceptors,
     ILogger<AllowListSmsSender> logger) : ISmsSender
 {
-    public Task<SmsSendResult> SendTemplateAsync(SmsTemplateMessage message, CancellationToken cancellationToken)
+    public Task<SmsSendResult> SendAsync(SmsMessage message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
 
         if (allowedReceptors.Contains(message.Receptor))
         {
-            return real.SendTemplateAsync(message, cancellationToken);
+            return real.SendAsync(message, cancellationToken);
         }
 
         var maskedReceptor = FakeSmsSender.Mask(message.Receptor);
         LogKeptBack(logger, maskedReceptor);
 
-        return fake.SendTemplateAsync(message, cancellationToken);
+        return fake.SendAsync(message, cancellationToken);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "SMS to {Receptor} kept back: not in Sms:AllowedReceptors")]

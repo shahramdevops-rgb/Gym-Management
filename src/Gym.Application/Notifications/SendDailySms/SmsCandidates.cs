@@ -32,19 +32,16 @@ internal static class SmsCandidates
         // The database holds "on means filled" (task 10.2), and a run only starts for a kind that is on.
         var threshold = kindSettings.Threshold
             ?? throw new InvalidOperationException($"SMS kind {kind} is on with no number.");
-        var template = kindSettings.TemplateName
-            ?? throw new InvalidOperationException($"SMS kind {kind} is on with no template.");
 
         return kind switch
         {
-            NotificationKind.SubscriptionExpiring => RunningOutAsync(db, today, threshold, template, cancellationToken),
-            NotificationKind.LowSessions => FewSessionsLeftAsync(db, today, threshold, template, cancellationToken),
-            NotificationKind.Birthday => BirthdaysAsync(db, today, threshold, template, cancellationToken),
+            NotificationKind.SubscriptionExpiring => RunningOutAsync(db, today, threshold, cancellationToken),
+            NotificationKind.LowSessions => FewSessionsLeftAsync(db, today, threshold, cancellationToken),
+            NotificationKind.Birthday => BirthdaysAsync(db, today, threshold, cancellationToken),
             NotificationKind.PayableDue => PayablesComingDueAsync(
                 db,
                 today,
                 threshold,
-                template,
                 settings.OwnerPhone ?? throw new InvalidOperationException("Cheque reminders are on with no Owner number."),
                 cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown notification kind."),
@@ -52,7 +49,7 @@ internal static class SmsCandidates
     }
 
     private static async Task<List<Notification>> RunningOutAsync(
-        IAppDbContext db, DateOnly today, int daysBefore, string template, CancellationToken cancellationToken)
+        IAppDbContext db, DateOnly today, int daysBefore, CancellationToken cancellationToken)
     {
         var dueBy = today.AddDays(daysBefore);
 
@@ -68,13 +65,12 @@ internal static class SmsCandidates
                 row.Subscription.MemberId,
                 row.Subscription.Id,
                 row.PhoneNumber,
-                template,
-                SmsValues.ForRunningOut(row.FullName, row.Subscription.EndDate)))
+                SmsText.ForRunningOut(row.FullName, row.Subscription.EndDate)))
             .ToList();
     }
 
     private static async Task<List<Notification>> FewSessionsLeftAsync(
-        IAppDbContext db, DateOnly today, int threshold, string template, CancellationToken cancellationToken)
+        IAppDbContext db, DateOnly today, int threshold, CancellationToken cancellationToken)
     {
         var rows = await ActivePlansOfActiveMembers(db, today, NotificationKind.LowSessions)
             .Where(row => row.Subscription.TotalSessions - row.Subscription.UsedSessions <= threshold)
@@ -88,8 +84,7 @@ internal static class SmsCandidates
                 row.Subscription.MemberId,
                 row.Subscription.Id,
                 row.PhoneNumber,
-                template,
-                SmsValues.ForFewSessionsLeft(row.FullName, row.Subscription.RemainingSessions)))
+                SmsText.ForFewSessionsLeft(row.FullName, row.Subscription.RemainingSessions)))
             .ToList();
     }
 
@@ -99,7 +94,7 @@ internal static class SmsCandidates
     /// be asked of a Gregorian column, and a gym's members fit in memory.
     /// </summary>
     private static async Task<List<Notification>> BirthdaysAsync(
-        IAppDbContext db, DateOnly today, int daysBefore, string template, CancellationToken cancellationToken)
+        IAppDbContext db, DateOnly today, int daysBefore, CancellationToken cancellationToken)
     {
         var (thisYear, _, _) = JalaliCalendar.Parts(today);
 
@@ -134,7 +129,7 @@ internal static class SmsCandidates
             }
 
             notifications.Add(Notification.ForBirthday(
-                member.Id, year, member.PhoneNumber, template, SmsValues.ForBirthday(member.FullName, birthday)));
+                member.Id, year, member.PhoneNumber, SmsText.ForBirthday(member.FullName, birthday, today)));
         }
 
         return notifications;
@@ -142,7 +137,7 @@ internal static class SmsCandidates
 
     /// <summary>One SMS for each cheque and each instalment, to the Owner (§10), never a summary.</summary>
     private static async Task<List<Notification>> PayablesComingDueAsync(
-        IAppDbContext db, DateOnly today, int daysBefore, string template, string ownerPhone, CancellationToken cancellationToken)
+        IAppDbContext db, DateOnly today, int daysBefore, string ownerPhone, CancellationToken cancellationToken)
     {
         var dueBy = today.AddDays(daysBefore);
 
@@ -160,8 +155,7 @@ internal static class SmsCandidates
             .Select(payable => Notification.ForPayableDue(
                 payable.Id,
                 ownerPhone,
-                template,
-                SmsValues.ForPayableDue(payable.Kind, payable.Amount, payable.DueDate, payable.Payee)))
+                SmsText.ForPayableDue(payable.Kind, payable.Amount, payable.DueDate, payable.Payee)))
             .ToList();
     }
 

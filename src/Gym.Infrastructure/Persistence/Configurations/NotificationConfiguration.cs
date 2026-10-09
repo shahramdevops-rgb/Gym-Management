@@ -30,8 +30,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
                 "ck_notifications_delivery",
                 "delivery IS NULL OR delivery IN ('Delivered', 'NotDelivered', 'BlockedByReceiver')");
             table.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
-            table.HasCheckConstraint("ck_notifications_template_name_not_blank", "btrim(template_name) <> ''");
-            table.HasCheckConstraint("ck_notifications_token_not_blank", "btrim(token) <> ''");
+            table.HasCheckConstraint("ck_notifications_text_not_blank", "btrim(text) <> ''");
             table.HasCheckConstraint("ck_notifications_attempts_not_negative", "attempts >= 0");
             table.HasCheckConstraint("ck_notifications_cost_not_negative", "cost_rial IS NULL OR cost_rial >= 0");
 
@@ -60,18 +59,10 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.Property(notification => notification.Delivery).HasConversion<string>().HasMaxLength(20);
 
         builder.Property(notification => notification.Recipient).HasMaxLength(Notification.RecipientMaxLength).IsRequired();
-        builder.Property(notification => notification.TemplateName).HasMaxLength(Notification.TemplateNameMaxLength).IsRequired();
-        builder.Property(notification => notification.Token).HasMaxLength(SmsTokens.MaxLength).IsRequired();
-        builder.Property(notification => notification.Token2).HasMaxLength(SmsTokens.MaxLength);
-        builder.Property(notification => notification.Token3).HasMaxLength(SmsTokens.MaxLength);
-        builder.Property(notification => notification.Token10).HasMaxLength(SmsTokens.MaxLength);
-        builder.Property(notification => notification.Token20).HasMaxLength(SmsTokens.MaxLength);
+        builder.Property(notification => notification.Text).HasMaxLength(Notification.TextMaxLength).IsRequired();
 
         // Rial as the provider reports it, in a money column like every other amount.
         builder.Property(notification => notification.CostRial).HasPrecision(18, 2);
-
-        // Built from the five token columns; not a column of its own.
-        builder.Ignore(notification => notification.Tokens);
 
         // Restrict: members, subscriptions and payables are never deleted, and a message about one
         // must not disappear with it.

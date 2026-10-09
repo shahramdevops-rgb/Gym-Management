@@ -30,14 +30,13 @@ export const smsDeliveryLabels: Record<NonNullable<SmsMessage["delivery"]>, stri
 const kavenegarCodeMeanings: Record<number, string> = {
   409: "کاوه‌نگار مشغول بود",
   411: "شماره نامعتبر است",
+  412: "خط ارسال برای این حساب معتبر نیست",
+  413: "متن پیامک خالی یا بیش از حد بلند است",
   418: "اعتبار پنل تمام شده",
   422: "نویسهٔ نامعتبر در متن",
-  424: "قالب پیدا نشد یا تأیید نشده",
-  426: "سرویس پیشرفته فعال نیست",
-  431: "نویسهٔ نامعتبر در متن",
 };
 
-/** `۴۲۴ — قالب پیدا نشد یا تأیید نشده`, or just the code when its meaning is not known here. */
+/** `۴۱۱ — شماره نامعتبر است`, or just the code when its meaning is not known here. */
 export function describeSmsError(code: SmsMessage["errorCode"]): string | null {
   if (code === null) {
     return null;

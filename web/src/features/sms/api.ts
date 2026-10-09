@@ -6,7 +6,7 @@ import type { components } from "@/lib/api/schema";
 /** The SMS settings page (BUSINESS_RULES.md §10 *SMS settings*): empty and off until the Owner fills it. */
 export type SmsSettings = components["schemas"]["SmsSettingsResponse"];
 
-/** One kind's row: on/off, its number, its send time (`HH:mm:ss`) and its Kavenegar template. */
+/** One kind's row: on/off, its number and its send time (`HH:mm:ss`). */
 export type SmsKindSettings = components["schemas"]["SmsKindSettings"];
 
 export type SmsSettingsInput = components["schemas"]["UpdateSmsSettingsCommand"];

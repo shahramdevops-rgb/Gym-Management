@@ -65,7 +65,7 @@ public sealed class ErrorCatalogTests
                              method.DeclaringType != typeof(Error) &&
                              method.GetParameters() is [{ ParameterType: var parameter }] && parameter == typeof(string)))
             {
-                // A check shaped like a factory (SmsSettings.CheckTemplateName) answers null for a
+                // A check shaped like a factory (one string in, an Error out) may answer null for a
                 // valid value; the errors it can return are public fields, collected above.
                 if (method.Invoke(null, ["description"]) is Error error)
                 {

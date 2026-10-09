@@ -44,7 +44,6 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
 
         Report(context, nameof(SmsKindSettings.Threshold), SmsSettings.CheckThreshold(kind, settings.Threshold));
         Report(context, nameof(SmsKindSettings.SendTime), SmsSettings.CheckSendTime(settings.SendTime));
-        Report(context, nameof(SmsKindSettings.TemplateName), SmsSettings.CheckTemplateName(settings.TemplateName));
 
         // Under the switch: it is the switch that cannot be on yet.
         Report(

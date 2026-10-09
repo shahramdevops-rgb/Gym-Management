@@ -32,18 +32,18 @@ public sealed class SmsSettingsTests
 
         var result = settings.Update(
             enabled: true,
-            subscriptionExpiring: new(true, 7, new TimeOnly(9, 0), "gymExpiring"),
-            lowSessions: new(true, 2, new TimeOnly(9, 15), "gymLowSessions"),
-            birthday: new(true, 0, new TimeOnly(10, 30), "gymBirthday"),
-            payableDue: new(true, 3, new TimeOnly(21, 45), "gymPayableDue"),
+            subscriptionExpiring: new(true, 7, new TimeOnly(9, 0)),
+            lowSessions: new(true, 2, new TimeOnly(9, 15)),
+            birthday: new(true, 0, new TimeOnly(10, 30)),
+            payableDue: new(true, 3, new TimeOnly(21, 45)),
             ownerPhone: Phone);
 
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
-        settings.For(NotificationKind.SubscriptionExpiring).ShouldBe(new SmsKindSettings(true, 7, new TimeOnly(9, 0), "gymExpiring"));
-        settings.For(NotificationKind.LowSessions).ShouldBe(new SmsKindSettings(true, 2, new TimeOnly(9, 15), "gymLowSessions"));
-        settings.For(NotificationKind.Birthday).ShouldBe(new SmsKindSettings(true, 0, new TimeOnly(10, 30), "gymBirthday"));
-        settings.For(NotificationKind.PayableDue).ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(21, 45), "gymPayableDue"));
+        settings.For(NotificationKind.SubscriptionExpiring).ShouldBe(new SmsKindSettings(true, 7, new TimeOnly(9, 0)));
+        settings.For(NotificationKind.LowSessions).ShouldBe(new SmsKindSettings(true, 2, new TimeOnly(9, 15)));
+        settings.For(NotificationKind.Birthday).ShouldBe(new SmsKindSettings(true, 0, new TimeOnly(10, 30)));
+        settings.For(NotificationKind.PayableDue).ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(21, 45)));
         settings.OwnerPhone.ShouldBe(Phone);
     }
 
@@ -52,7 +52,7 @@ public sealed class SmsSettingsTests
     {
         var settings = Empty();
 
-        var result = Save(settings, birthday: new(false, 3, null, null));
+        var result = Save(settings, birthday: new(false, 3, null));
 
         result.IsSuccess.ShouldBeTrue();
         settings.BirthdayDaysBefore.ShouldBe(3);
@@ -63,7 +63,7 @@ public sealed class SmsSettingsTests
     public void Update_KindOff_CanBeEmptiedAgain()
     {
         var settings = Empty();
-        Save(settings, birthday: new(true, 3, Ten, "gymBirthday")).IsSuccess.ShouldBeTrue();
+        Save(settings, birthday: new(true, 3, Ten)).IsSuccess.ShouldBeTrue();
 
         Save(settings, birthday: SmsKindSettings.Off).IsSuccess.ShouldBeTrue();
 
@@ -75,39 +75,19 @@ public sealed class SmsSettingsTests
     {
         var settings = Empty();
 
-        Save(settings, enabled: false, birthday: new(true, 3, Ten, "gymBirthday")).IsSuccess.ShouldBeTrue();
+        Save(settings, enabled: false, birthday: new(true, 3, Ten)).IsSuccess.ShouldBeTrue();
 
         settings.Enabled.ShouldBeFalse();
         settings.BirthdayEnabled.ShouldBeTrue();
     }
 
     [Fact]
-    public void Update_TemplateNameWithSurroundingSpaces_IsKeptTrimmed()
-    {
-        var settings = Empty();
-
-        Save(settings, birthday: new(false, null, null, "  gymBirthday ")).IsSuccess.ShouldBeTrue();
-
-        settings.BirthdayTemplateName.ShouldBe("gymBirthday");
-    }
-
-    [Fact]
-    public void Update_BlankTemplateName_IsEmpty()
-    {
-        var settings = Empty();
-
-        Save(settings, birthday: new(false, null, null, "   ")).IsSuccess.ShouldBeTrue();
-
-        settings.BirthdayTemplateName.ShouldBeNull();
-    }
-
-    [Fact]
     public void Update_Refused_ChangesNothing()
     {
         var settings = Empty();
-        Save(settings, birthday: new(true, 3, Ten, "gymBirthday")).IsSuccess.ShouldBeTrue();
+        Save(settings, birthday: new(true, 3, Ten)).IsSuccess.ShouldBeTrue();
 
-        var result = Save(settings, enabled: true, birthday: new(true, 8, Ten, "gymBirthday"));
+        var result = Save(settings, enabled: true, birthday: new(true, 8, Ten));
 
         result.Error.ShouldBe(SmsSettingsErrors.BirthdayDaysOutOfRange);
         settings.Enabled.ShouldBeFalse();
@@ -196,55 +176,26 @@ public sealed class SmsSettingsTests
     public void IsWithinSendingHours_TimeOfDay_IsBetween0800And2200Included(int hour, int minute, int second, bool within) =>
         SmsSettings.IsWithinSendingHours(new TimeOnly(hour, minute, second)).ShouldBe(within);
 
-    // ---- Template names ----
-
-    [Theory]
-    [InlineData("gymBirthday")]
-    [InlineData("Birthday2")]
-    [InlineData("A")]
-    public void CheckTemplateName_EnglishLettersAndDigits_Passes(string name) =>
-        SmsSettings.CheckTemplateName(name).ShouldBeNull();
-
-    [Theory]
-    [InlineData("gym_birthday")]
-    [InlineData("gym birthday")]
-    [InlineData("gym-birthday")]
-    [InlineData("تولد")]
-    [InlineData("gym۲")]
-    public void CheckTemplateName_AnythingElse_FailsWithTemplateNameInvalid(string name) =>
-        SmsSettings.CheckTemplateName(name).ShouldBe(SmsSettingsErrors.TemplateNameInvalid);
-
-    [Fact]
-    public void CheckTemplateName_AtTheLimit_Passes() =>
-        SmsSettings.CheckTemplateName(new string('a', SmsSettings.TemplateNameMaxLength)).ShouldBeNull();
-
-    [Fact]
-    public void CheckTemplateName_OverTheLimit_FailsWithTemplateNameTooLong() =>
-        SmsSettings.CheckTemplateName(new string('a', SmsSettings.TemplateNameMaxLength + 1))
-            .ShouldBe(SmsSettingsErrors.TemplateNameTooLong);
-
     // ---- On means filled ----
 
     [Theory]
-    [InlineData(null, 10, "gymBirthday")]
-    [InlineData(3, null, "gymBirthday")]
-    [InlineData(3, 10, null)]
-    [InlineData(3, 10, " ")]
-    public void Update_KindOnWithAFieldEmpty_FailsWithSettingsIncomplete(int? days, int? hour, string? template)
+    [InlineData(null, 10)]
+    [InlineData(3, null)]
+    public void Update_KindOnWithAFieldEmpty_FailsWithSettingsIncomplete(int? days, int? hour)
     {
         TimeOnly? sendTime = hour is null ? null : new TimeOnly(hour.Value, 0);
 
-        Save(Empty(), birthday: new(true, days, sendTime, template)).Error.ShouldBe(SmsSettingsErrors.SettingsIncomplete);
+        Save(Empty(), birthday: new(true, days, sendTime)).Error.ShouldBe(SmsSettingsErrors.SettingsIncomplete);
     }
 
     [Fact]
     public void Update_ChequesOnWithoutTheOwnersNumber_FailsWithSettingsIncomplete() =>
-        Save(Empty(), payableDue: new(true, 3, Ten, "gymPayableDue"), ownerPhone: null)
+        Save(Empty(), payableDue: new(true, 3, Ten), ownerPhone: null)
             .Error.ShouldBe(SmsSettingsErrors.SettingsIncomplete);
 
     [Fact]
     public void Update_ChequesOffWithoutTheOwnersNumber_Succeeds() =>
-        Save(Empty(), payableDue: new(false, 3, Ten, "gymPayableDue"), ownerPhone: null).IsSuccess.ShouldBeTrue();
+        Save(Empty(), payableDue: new(false, 3, Ten), ownerPhone: null).IsSuccess.ShouldBeTrue();
 
     [Fact]
     public void Update_TheOwnersNumberWithChequesOff_IsKept()
