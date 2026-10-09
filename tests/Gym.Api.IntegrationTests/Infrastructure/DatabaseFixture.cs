@@ -222,10 +222,10 @@ public sealed class DatabaseFixture : IAsyncLifetime
             """
             SELECT id,
                 enabled OR subscription_expiring_enabled OR low_sessions_enabled OR birthday_enabled OR payable_due_enabled,
-                num_nonnulls(subscription_expiring_days_before, subscription_expiring_send_time, subscription_expiring_template_name,
-                    low_sessions_threshold, low_sessions_send_time, low_sessions_template_name,
-                    birthday_days_before, birthday_send_time, birthday_template_name,
-                    payable_due_days_before, payable_due_send_time, payable_due_template_name, owner_phone)
+                num_nonnulls(subscription_expiring_days_before, subscription_expiring_send_time,
+                    low_sessions_threshold, low_sessions_send_time,
+                    birthday_days_before, birthday_send_time,
+                    payable_due_days_before, payable_due_send_time, owner_phone)
             FROM sms_settings
             """,
             connection);

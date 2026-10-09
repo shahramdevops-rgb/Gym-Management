@@ -21,10 +21,11 @@ namespace Gym.Api.IntegrationTests.Notifications;
 public sealed class SmsSenderTests(DatabaseFixture fixture)
 {
     private const string ApiKey = "secret-kavenegar-key";
+    private const string Line = "2000500666";
     private const string Listed = "+989121234567";
     private const string NotListed = "+989359876543";
 
-    private static readonly SmsTemplateMessage Message = To(Listed);
+    private static readonly SmsMessage Message = To(Listed);
 
     // ---- The test host ----
 
@@ -40,11 +41,11 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
     // ---- The fake sender ----
 
     [Fact]
-    public async Task SendTemplateAsync_FakeSender_AnswersSentFreeOfCharge()
+    public async Task SendAsync_FakeSender_AnswersSentFreeOfCharge()
     {
         var sender = new FakeSmsSender(NullLogger<FakeSmsSender>.Instance);
 
-        var result = await sender.SendTemplateAsync(Message, TestContext.Current.CancellationToken);
+        var result = await sender.SendAsync(Message, TestContext.Current.CancellationToken);
 
         result.Outcome.ShouldBe(SmsSendOutcome.Sent);
         result.ProviderMessageId.ShouldNotBeNull();
@@ -53,12 +54,12 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task SendTemplateAsync_FakeSenderTwice_GivesEachMessageItsOwnId()
+    public async Task SendAsync_FakeSenderTwice_GivesEachMessageItsOwnId()
     {
         var sender = new FakeSmsSender(NullLogger<FakeSmsSender>.Instance);
 
-        var first = await sender.SendTemplateAsync(Message, TestContext.Current.CancellationToken);
-        var second = await sender.SendTemplateAsync(Message, TestContext.Current.CancellationToken);
+        var first = await sender.SendAsync(Message, TestContext.Current.CancellationToken);
+        var second = await sender.SendAsync(Message, TestContext.Current.CancellationToken);
 
         second.ProviderMessageId.ShouldNotBe(first.ProviderMessageId);
     }
@@ -106,12 +107,12 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task SendTemplateAsync_KavenegarOutsideProductionWithNoList_SendsNothing()
+    public async Task SendAsync_KavenegarOutsideProductionWithNoList_SendsNothing()
     {
         // The developer's database holds made-up numbers: forgetting the list must never reach anyone.
         using var app = Build("Development", SmsProviders.Kavenegar);
 
-        var result = await app.Sender.SendTemplateAsync(Message, TestContext.Current.CancellationToken);
+        var result = await app.Sender.SendAsync(Message, TestContext.Current.CancellationToken);
 
         app.Kavenegar.Requests.ShouldBeEmpty();
         result.Outcome.ShouldBe(SmsSendOutcome.Sent);
@@ -119,12 +120,12 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task SendTemplateAsync_KavenegarOutsideProduction_ReachesOnlyTheListedNumbers()
+    public async Task SendAsync_KavenegarOutsideProduction_ReachesOnlyTheListedNumbers()
     {
         using var app = Build("Development", SmsProviders.Kavenegar, allowed: [Listed]);
 
-        var listed = await app.Sender.SendTemplateAsync(To(Listed), TestContext.Current.CancellationToken);
-        var notListed = await app.Sender.SendTemplateAsync(To(NotListed), TestContext.Current.CancellationToken);
+        var listed = await app.Sender.SendAsync(To(Listed), TestContext.Current.CancellationToken);
+        var notListed = await app.Sender.SendAsync(To(NotListed), TestContext.Current.CancellationToken);
 
         Fields(app.Kavenegar.Requests.ShouldHaveSingleItem().Body).ShouldContain("receptor=09121234567");
         listed.ProviderMessageId.ShouldBe(StubMessageId);
@@ -148,7 +149,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
         // The key is in the address of every request; the HTTP client's own loggers would log it.
         using var app = Build("Production", SmsProviders.Kavenegar);
 
-        await app.Sender.SendTemplateAsync(Message, TestContext.Current.CancellationToken);
+        await app.Sender.SendAsync(Message, TestContext.Current.CancellationToken);
         await app.Account.GetDeliveriesAsync([1], TestContext.Current.CancellationToken);
         await app.Account.GetCreditAsync(TestContext.Current.CancellationToken);
 
@@ -209,6 +210,32 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
 
         result.Failed.ShouldBeTrue();
         result.FailureMessage.ShouldContain("Sms:Kavenegar:ApiKey");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("+982000500666")]
+    [InlineData("2000 500 666")]
+    public void SmsOptionsValidator_KavenegarWithNoLineOrNotDigits_Fails(string line)
+    {
+        var options = Valid();
+        options.Provider = SmsProviders.Kavenegar;
+        options.Kavenegar.Sender = line;
+
+        var result = Validate(options);
+
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain("Sms:Kavenegar:Sender");
+    }
+
+    [Fact]
+    public void SmsOptionsValidator_KavenegarWithKeyAndLine_Succeeds()
+    {
+        var options = Valid();
+        options.Provider = SmsProviders.Kavenegar;
+
+        Validate(options).Succeeded.ShouldBeTrue();
     }
 
     [Fact]
@@ -309,15 +336,14 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
 
     private const long StubMessageId = 8792343;
 
-    private static SmsTemplateMessage To(string receptor) =>
-        new(receptor, "gymExpiring", new SmsTokens("۱۴۰۵/۰۷/۲۰", Token10: "سارا محمدی"));
+    private static SmsMessage To(string receptor) => new(receptor, "سارا محمدی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.");
 
     private static SmsOptions Valid() => new()
     {
         Provider = SmsProviders.Fake,
         MaxAttempts = 3,
         RetryDelays = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5)],
-        Kavenegar = { ApiKey = ApiKey },
+        Kavenegar = { ApiKey = ApiKey, Sender = Line },
     };
 
     private static Microsoft.Extensions.Options.ValidateOptionsResult Validate(SmsOptions options, string environment = "Development") =>
@@ -338,6 +364,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
             ["Sms:RetryDelays:0"] = "00:01:00",
             ["Sms:RetryDelays:1"] = "00:05:00",
             ["Sms:Kavenegar:ApiKey"] = ApiKey,
+            ["Sms:Kavenegar:Sender"] = Line,
         };
         for (var i = 0; i < (allowed ?? []).Length; i++)
         {
@@ -349,7 +376,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
         // The delivery question is refused, so the sender itself writes a line the key could be in.
         var kavenegar = new StubKavenegar(request => request.RequestUri!.AbsolutePath switch
         {
-            var path when path.EndsWith("/verify/lookup.json", StringComparison.Ordinal) =>
+            var path when path.EndsWith("/sms/send.json", StringComparison.Ordinal) =>
                 StubKavenegar.Answer(200, $$"""[{"messageid":{{StubMessageId}},"cost":1350}]"""),
             var path when path.EndsWith("/sms/status.json", StringComparison.Ordinal) => StubKavenegar.Answer(409),
             _ => StubKavenegar.Answer(200, """{"remaincredit":1250000}"""),

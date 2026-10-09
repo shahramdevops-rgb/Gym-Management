@@ -12,7 +12,7 @@ public enum SmsSendOutcome
     /// <summary>A failure that may pass (provider busy, network down before the request left): try again later.</summary>
     RetryableFailure,
 
-    /// <summary>A failure that will not pass (template not approved, invalid number…): <c>Failed</c> at once.</summary>
+    /// <summary>A failure that will not pass (invalid number, the line not valid…): <c>Failed</c> at once.</summary>
     PermanentFailure,
 
     /// <summary>The account's credit is used up: this one fails and the rest of the run is not sent.</summary>

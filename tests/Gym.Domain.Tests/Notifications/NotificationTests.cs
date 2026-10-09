@@ -6,19 +6,18 @@ namespace Gym.Domain.Tests.Notifications;
 public sealed class NotificationTests
 {
     private const string Phone = "+989121234567";
-    private const string Template = "gymExpiring";
+    private const string Text = "سارا محمدی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.";
     private static readonly Guid MemberId = Guid.NewGuid();
     private static readonly Guid SubscriptionId = Guid.NewGuid();
     private static readonly Guid PayableId = Guid.NewGuid();
     private static readonly DateTimeOffset Now = new(2026, 10, 6, 7, 0, 0, TimeSpan.Zero);
-    private static readonly SmsTokens Tokens = new("۱۴۰۵/۰۷/۲۰", Token10: "سارا محمدی");
 
     // ---- Creating ----
 
     [Fact]
     public void ForSubscriptionExpiring_Valid_IsPendingWithItsSubscription()
     {
-        var notification = Notification.ForSubscriptionExpiring(MemberId, SubscriptionId, Phone, Template, Tokens);
+        var notification = Notification.ForSubscriptionExpiring(MemberId, SubscriptionId, Phone, Text);
 
         notification.Kind.ShouldBe(NotificationKind.SubscriptionExpiring);
         notification.Recipient.ShouldBe(Phone);
@@ -26,7 +25,7 @@ public sealed class NotificationTests
         notification.SubscriptionId.ShouldBe(SubscriptionId);
         notification.PayableId.ShouldBeNull();
         notification.JalaliYear.ShouldBeNull();
-        notification.TemplateName.ShouldBe(Template);
+        notification.Text.ShouldBe(Text);
         notification.Status.ShouldBe(NotificationStatus.Pending);
         notification.Attempts.ShouldBe(0);
         notification.LastAttemptAt.ShouldBeNull();
@@ -39,7 +38,7 @@ public sealed class NotificationTests
     [Fact]
     public void ForLowSessions_Valid_IsPendingWithItsSubscription()
     {
-        var notification = Notification.ForLowSessions(MemberId, SubscriptionId, Phone, "gymLowSessions", new SmsTokens("۲"));
+        var notification = Notification.ForLowSessions(MemberId, SubscriptionId, Phone, Text);
 
         notification.Kind.ShouldBe(NotificationKind.LowSessions);
         notification.MemberId.ShouldBe(MemberId);
@@ -50,7 +49,7 @@ public sealed class NotificationTests
     [Fact]
     public void ForBirthday_Valid_KeepsTheJalaliYearAndNoSubscription()
     {
-        var notification = Notification.ForBirthday(MemberId, 1405, Phone, "gymBirthday", Tokens);
+        var notification = Notification.ForBirthday(MemberId, 1405, Phone, Text);
 
         notification.Kind.ShouldBe(NotificationKind.Birthday);
         notification.MemberId.ShouldBe(MemberId);
@@ -62,7 +61,7 @@ public sealed class NotificationTests
     [Fact]
     public void ForPayableDue_Valid_NamesThePayableAndNoMember()
     {
-        var notification = Notification.ForPayableDue(PayableId, Phone, "gymPayableDue", new SmsTokens("چک"));
+        var notification = Notification.ForPayableDue(PayableId, Phone, Text);
 
         notification.Kind.ShouldBe(NotificationKind.PayableDue);
         notification.PayableId.ShouldBe(PayableId);
@@ -72,14 +71,18 @@ public sealed class NotificationTests
     }
 
     [Fact]
-    public void Create_Always_KeepsTheTemplateValues()
+    public void Create_TextAtTheLimit_IsKept()
     {
-        // A resend sends exactly what was sent before (task 10.5).
-        var tokens = new SmsTokens("چک", "۱۲٬۵۰۰٬۰۰۰", "۱۴۰۵/۰۷/۲۰", Token20: "بانک ملت شعبه مرکزی");
+        var text = new string('x', Notification.TextMaxLength);
 
-        var notification = Notification.ForPayableDue(PayableId, Phone, "gymPayableDue", tokens);
+        Notification.ForPayableDue(PayableId, Phone, text).Text.ShouldBe(text);
+    }
 
-        notification.Tokens.ShouldBe(tokens);
+    [Fact]
+    public void Create_TextOverTheLimit_Throws()
+    {
+        Should.Throw<ArgumentException>(
+            () => Notification.ForPayableDue(PayableId, Phone, new string('x', Notification.TextMaxLength + 1)));
     }
 
     [Theory]
@@ -88,30 +91,30 @@ public sealed class NotificationTests
     public void Create_BlankRecipient_Throws(string recipient)
     {
         Should.Throw<ArgumentException>(
-            () => Notification.ForSubscriptionExpiring(MemberId, SubscriptionId, recipient, Template, Tokens));
+            () => Notification.ForSubscriptionExpiring(MemberId, SubscriptionId, recipient, Text));
     }
 
     [Fact]
-    public void Create_BlankTemplateName_Throws()
+    public void Create_BlankText_Throws()
     {
         Should.Throw<ArgumentException>(
-            () => Notification.ForSubscriptionExpiring(MemberId, SubscriptionId, Phone, " ", Tokens));
+            () => Notification.ForSubscriptionExpiring(MemberId, SubscriptionId, Phone, " "));
     }
 
     [Fact]
     public void Create_EmptyEventId_Throws()
     {
         Should.Throw<ArgumentException>(
-            () => Notification.ForSubscriptionExpiring(MemberId, Guid.Empty, Phone, Template, Tokens));
+            () => Notification.ForSubscriptionExpiring(MemberId, Guid.Empty, Phone, Text));
         Should.Throw<ArgumentException>(
-            () => Notification.ForPayableDue(Guid.Empty, Phone, Template, Tokens));
+            () => Notification.ForPayableDue(Guid.Empty, Phone, Text));
     }
 
     [Fact]
     public void ForBirthday_YearNotPositive_Throws()
     {
         Should.Throw<ArgumentOutOfRangeException>(
-            () => Notification.ForBirthday(MemberId, 0, Phone, Template, Tokens));
+            () => Notification.ForBirthday(MemberId, 0, Phone, Text));
     }
 
     // ---- Sending ----
@@ -271,8 +274,7 @@ public sealed class NotificationTests
         notification.PrepareResend();
 
         notification.Recipient.ShouldBe(Phone);
-        notification.TemplateName.ShouldBe(Template);
-        notification.Tokens.ShouldBe(Tokens);
+        notification.Text.ShouldBe(Text);
     }
 
     [Fact]
@@ -367,7 +369,7 @@ public sealed class NotificationTests
     // ---- Helpers ----
 
     private static Notification Pending() =>
-        Notification.ForSubscriptionExpiring(MemberId, SubscriptionId, Phone, Template, Tokens);
+        Notification.ForSubscriptionExpiring(MemberId, SubscriptionId, Phone, Text);
 
     private static Notification Settle(string status)
     {

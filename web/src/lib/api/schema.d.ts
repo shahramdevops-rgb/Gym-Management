@@ -2672,7 +2672,6 @@ export interface components {
             threshold: null | number | string;
             /** Format: time */
             sendTime: null | string;
-            templateName: null | string;
         };
         SmsMessageListResponse: {
             items: components["schemas"]["SmsMessageResponse"][];
@@ -2696,12 +2695,7 @@ export interface components {
             memberName: null | string;
             /** Format: uuid */
             payableId: null | string;
-            templateName: string;
-            token: string;
-            token2: null | string;
-            token3: null | string;
-            token10: null | string;
-            token20: null | string;
+            text: string;
             /** Format: int32 */
             attempts: number | string;
             /** Format: int32 */

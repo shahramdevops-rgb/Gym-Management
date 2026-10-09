@@ -33,13 +33,12 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     public async Task Save_OneOfEachKind_ReadsBackAsWritten()
     {
         var (member, subscription, payable) = await SeedAsync();
-        var payableTokens = new SmsTokens("چک", "۱۲٬۵۰۰٬۰۰۰", "۱۴۰۵/۰۷/۲۰", Token20: "فروشگاه تجهیزات ورزشی");
 
         await SaveAsync(
-            Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, "gymExpiring", ExpiringTokens),
-            Notification.ForLowSessions(member.Id, subscription.Id, Phone, "gymLowSessions", new SmsTokens("۲", Token10: "سارا محمدی")),
-            Notification.ForBirthday(member.Id, 1405, Phone, "gymBirthday", new SmsTokens("۱۴۰۵/۰۷/۲۰", Token10: "سارا محمدی")),
-            Notification.ForPayableDue(payable.Id, OwnerPhone, "gymPayableDue", payableTokens));
+            Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, ExpiringText),
+            Notification.ForLowSessions(member.Id, subscription.Id, Phone, LowSessionsText),
+            Notification.ForBirthday(member.Id, 1405, Phone, BirthdayText),
+            Notification.ForPayableDue(payable.Id, OwnerPhone, ChequeText));
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -51,7 +50,7 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
         var payableDue = saved.Single(notification => notification.Kind == NotificationKind.PayableDue);
         payableDue.PayableId.ShouldBe(payable.Id);
         payableDue.Recipient.ShouldBe(OwnerPhone);
-        payableDue.Tokens.ShouldBe(payableTokens);
+        payableDue.Text.ShouldBe(ChequeText);
 
         var birthday = saved.Single(notification => notification.Kind == NotificationKind.Birthday);
         birthday.MemberId.ShouldBe(member.Id);
@@ -62,7 +61,7 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     public async Task Save_SentWithItsCostAndDelivery_ReadsBackAsWritten()
     {
         var (member, subscription, _) = await SeedAsync();
-        var notification = Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, "gymExpiring", ExpiringTokens);
+        var notification = Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, ExpiringText);
         var now = new DateTimeOffset(2026, 10, 6, 6, 30, 0, TimeSpan.Zero);
         notification.MarkSent(8_792_343_210, 1_350.5m, now);
         notification.RecordDelivery(SmsDelivery.Delivered);
@@ -86,10 +85,10 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     public async Task Save_SecondExpiringForOneSubscription_RejectedByTheUniqueIndex()
     {
         var (member, subscription, _) = await SeedAsync();
-        await SaveAsync(Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, "gymExpiring", ExpiringTokens));
+        await SaveAsync(Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, ExpiringText));
 
         var exception = await SaveRejectedAsync(
-            Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, "gymExpiring", ExpiringTokens));
+            Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, ExpiringText));
 
         exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
         exception.ConstraintName.ShouldBe(NotificationConstraints.OnePerSubscriptionAndKind);
@@ -99,10 +98,10 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     public async Task Save_SecondLowSessionsForOneSubscription_RejectedByTheUniqueIndex()
     {
         var (member, subscription, _) = await SeedAsync();
-        await SaveAsync(Notification.ForLowSessions(member.Id, subscription.Id, Phone, "gymLowSessions", new SmsTokens("۲")));
+        await SaveAsync(Notification.ForLowSessions(member.Id, subscription.Id, Phone, LowSessionsText));
 
         var exception = await SaveRejectedAsync(
-            Notification.ForLowSessions(member.Id, subscription.Id, Phone, "gymLowSessions", new SmsTokens("۱")));
+            Notification.ForLowSessions(member.Id, subscription.Id, Phone, LowSessionsText));
 
         exception.ConstraintName.ShouldBe(NotificationConstraints.OnePerSubscriptionAndKind);
     }
@@ -114,8 +113,8 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
         var (member, subscription, _) = await SeedAsync();
 
         await SaveAsync(
-            Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, "gymExpiring", ExpiringTokens),
-            Notification.ForLowSessions(member.Id, subscription.Id, Phone, "gymLowSessions", new SmsTokens("۲")));
+            Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, ExpiringText),
+            Notification.ForLowSessions(member.Id, subscription.Id, Phone, LowSessionsText));
 
         (await CountAsync()).ShouldBe(2);
     }
@@ -124,9 +123,9 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     public async Task Save_SecondBirthdayInOneJalaliYear_RejectedByTheUniqueIndex()
     {
         var (member, _, _) = await SeedAsync();
-        await SaveAsync(Notification.ForBirthday(member.Id, 1405, Phone, "gymBirthday", BirthdayTokens));
+        await SaveAsync(Notification.ForBirthday(member.Id, 1405, Phone, BirthdayText));
 
-        var exception = await SaveRejectedAsync(Notification.ForBirthday(member.Id, 1405, Phone, "gymBirthday", BirthdayTokens));
+        var exception = await SaveRejectedAsync(Notification.ForBirthday(member.Id, 1405, Phone, BirthdayText));
 
         exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
         exception.ConstraintName.ShouldBe(NotificationConstraints.OneBirthdayPerMemberAndYear);
@@ -136,9 +135,9 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     public async Task Save_BirthdayInTheNextJalaliYear_IsAllowed()
     {
         var (member, _, _) = await SeedAsync();
-        await SaveAsync(Notification.ForBirthday(member.Id, 1405, Phone, "gymBirthday", BirthdayTokens));
+        await SaveAsync(Notification.ForBirthday(member.Id, 1405, Phone, BirthdayText));
 
-        await SaveAsync(Notification.ForBirthday(member.Id, 1406, Phone, "gymBirthday", BirthdayTokens));
+        await SaveAsync(Notification.ForBirthday(member.Id, 1406, Phone, BirthdayText));
 
         (await CountAsync()).ShouldBe(2);
     }
@@ -147,10 +146,10 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     public async Task Save_SecondPayableDueForOneCheque_RejectedByTheUniqueIndex()
     {
         var (_, _, payable) = await SeedAsync();
-        await SaveAsync(Notification.ForPayableDue(payable.Id, OwnerPhone, "gymPayableDue", new SmsTokens("چک")));
+        await SaveAsync(Notification.ForPayableDue(payable.Id, OwnerPhone, ChequeText));
 
         var exception = await SaveRejectedAsync(
-            Notification.ForPayableDue(payable.Id, OwnerPhone, "gymPayableDue", new SmsTokens("چک")));
+            Notification.ForPayableDue(payable.Id, OwnerPhone, ChequeText));
 
         exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
         exception.ConstraintName.ShouldBe(NotificationConstraints.OnePerPayable);
@@ -185,7 +184,7 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     public async Task Notification_PayableDueCarryingAMember_RejectedByACheckConstraint()
     {
         var (member, _, payable) = await SeedAsync();
-        var notification = Notification.ForPayableDue(payable.Id, OwnerPhone, "gymPayableDue", new SmsTokens("چک"));
+        var notification = Notification.ForPayableDue(payable.Id, OwnerPhone, ChequeText);
         await SaveAsync(notification);
 
         var exception = await Should.ThrowAsync<PostgresException>(
@@ -234,8 +233,7 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     [InlineData("status = 'Lost'", "ck_notifications_status")]
     [InlineData("attempts = -1", "ck_notifications_attempts_not_negative")]
     [InlineData("cost_rial = -1", "ck_notifications_cost_not_negative")]
-    [InlineData("template_name = ' '", "ck_notifications_template_name_not_blank")]
-    [InlineData("token = ''", "ck_notifications_token_not_blank")]
+    [InlineData("text = ' '", "ck_notifications_text_not_blank")]
     public async Task Notification_InvalidColumn_RejectedByACheckConstraint(string assignment, string constraint)
     {
         var id = await SaveExpiringAsync();
@@ -272,9 +270,13 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
 
     // ---- Helpers ----
 
-    private static SmsTokens ExpiringTokens => new("۱۴۰۵/۰۷/۲۰", Token10: "سارا محمدی");
+    private const string ExpiringText = "سارا محمدی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.";
 
-    private static SmsTokens BirthdayTokens => new("۱۴۰۵/۰۷/۲۰", Token10: "سارا محمدی");
+    private const string LowSessionsText = "سارا محمدی عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.";
+
+    private const string BirthdayText = "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۲۰ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد";
+
+    private const string ChequeText = "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی";
 
     /// <summary>A member with a subscription, and a pending cheque: one event of every kind can point at them.</summary>
     private async Task<(Member Member, Subscription Subscription, Payable Payable)> SeedAsync()
@@ -306,7 +308,7 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     private async Task<Guid> SaveExpiringAsync()
     {
         var (member, subscription, _) = await SeedAsync();
-        var notification = Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, "gymExpiring", ExpiringTokens);
+        var notification = Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, ExpiringText);
         await SaveAsync(notification);
 
         return notification.Id;

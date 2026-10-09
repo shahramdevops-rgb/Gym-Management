@@ -17,7 +17,6 @@ const off: SmsKindSettings = {
   enabled: false,
   threshold: null,
   sendTime: null,
-  templateName: null,
 };
 
 /** What a fresh database holds until the Owner fills the page (BUSINESS_RULES.md §10). */
@@ -37,11 +36,10 @@ const filled: SmsSettings = {
     enabled: true,
     threshold: 7,
     sendTime: "09:15:00",
-    templateName: "gymExpiring",
   },
   lowSessions: off,
-  birthday: { enabled: false, threshold: 0, sendTime: null, templateName: null },
-  payableDue: { enabled: true, threshold: 3, sendTime: "22:00:00", templateName: "gymPayableDue" },
+  birthday: { enabled: false, threshold: 0, sendTime: null },
+  payableDue: { enabled: true, threshold: 3, sendTime: "22:00:00" },
   ownerPhone: "+989121234567",
   version: 5,
 };
@@ -66,12 +64,11 @@ function switchOf(name: string) {
   return group(name).getByRole("checkbox", { name: "روشن" });
 }
 
-/** Fills one kind's number, hour and template, as the Owner would. */
-function fillKind(name: string, threshold: string, hour: string, template: string) {
+/** Fills one kind's number and hour, as the Owner would. */
+function fillKind(name: string, threshold: string, hour: string) {
   const kind = group(name);
   fireEvent.change(kind.getByLabelText(/^(چند روز|تعداد جلسه)/), { target: { value: threshold } });
   fireEvent.change(kind.getByLabelText("ساعت ارسال"), { target: { value: hour } });
-  fireEvent.change(kind.getByLabelText("نام قالب در کاوه‌نگار"), { target: { value: template } });
 }
 
 describe("SmsSettingsPage", () => {
@@ -179,7 +176,7 @@ describe("SmsSettingsPage", () => {
     for (const name of ["پایان اشتراک", "جلسات رو به اتمام", "تولد", "چک و قسط"]) {
       expect(switchOf(name)).not.toBeChecked();
       expect(switchOf(name)).toBeDisabled();
-      expect(group(name).getByLabelText("نام قالب در کاوه‌نگار")).toHaveValue("");
+      expect(group(name).getByLabelText("ساعت ارسال")).toHaveValue("");
     }
     expect(
       screen.getAllByText("برای روشن کردن، اول همهٔ خانه‌های این بخش را پر کنید."),
@@ -191,7 +188,7 @@ describe("SmsSettingsPage", () => {
     renderApp("/sms-settings", { session: session() });
     await screen.findByRole("group", { name: "تولد" });
 
-    fillKind("تولد", "۲", "10", "gymBirthdayEarly");
+    fillKind("تولد", "۲", "10");
 
     expect(switchOf("تولد")).toBeEnabled();
     expect(switchOf("پایان اشتراک")).toBeDisabled();
@@ -202,7 +199,7 @@ describe("SmsSettingsPage", () => {
     renderApp("/sms-settings", { session: session() });
     await screen.findByRole("group", { name: "چک و قسط" });
 
-    fillKind("چک و قسط", "3", "09", "gymPayableDue");
+    fillKind("چک و قسط", "3", "09");
     expect(switchOf("چک و قسط")).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("شماره موبایل مدیر"), {
@@ -264,7 +261,6 @@ describe("SmsSettingsPage", () => {
     expect(expiring.getByLabelText(/^چند روز/)).toHaveValue("7");
     expect(expiring.getByLabelText("ساعت ارسال")).toHaveValue("09");
     expect(expiring.getByLabelText("دقیقه")).toHaveValue("15");
-    expect(expiring.getByLabelText("نام قالب در کاوه‌نگار")).toHaveValue("gymExpiring");
     expect(group("تولد").getByLabelText(/^چند روز/)).toHaveValue("0");
     expect(screen.getByLabelText("شماره موبایل مدیر")).toHaveValue("۰۹۱۲ ۱۲۳ ۴۵۶۷");
   });
@@ -279,7 +275,7 @@ describe("SmsSettingsPage", () => {
     await screen.findByRole("group", { name: "تولد" });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "ارسال پیامک روشن باشد" }));
-    fillKind("تولد", "۰", "10", " gymBirthday ");
+    fillKind("تولد", "۰", "10");
     fireEvent.change(group("تولد").getByLabelText("دقیقه"), { target: { value: "30" } });
     fireEvent.click(switchOf("تولد"));
     fireEvent.change(screen.getByLabelText("شماره موبایل مدیر"), {
@@ -295,26 +291,22 @@ describe("SmsSettingsPage", () => {
       enabled: true,
       subscriptionExpiring: off,
       lowSessions: off,
-      birthday: { enabled: true, threshold: 0, sendTime: "10:30:00", templateName: "gymBirthday" },
+      birthday: { enabled: true, threshold: 0, sendTime: "10:30:00" },
       payableDue: off,
       ownerPhone: "0912 123 4567",
       version: empty.version,
     });
   });
 
-  it("SmsSettingsPage_NumberOutOfRangeOrBadTemplate_IsRefusedBeforeAnythingIsSent", async () => {
+  it("SmsSettingsPage_NumberOutOfRange_IsRefusedBeforeAnythingIsSent", async () => {
     const api = ownerWith(empty);
     renderApp("/sms-settings", { session: session() });
     await screen.findByRole("group", { name: "تولد" });
 
     fireEvent.change(group("تولد").getByLabelText(/^چند روز/), { target: { value: "8" } });
-    fireEvent.change(group("جلسات رو به اتمام").getByLabelText("نام قالب در کاوه‌نگار"), {
-      target: { value: "gym_low" },
-    });
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
     expect(await screen.findByText(/تعداد روز باید از ۰ تا ۷ باشد/)).toBeInTheDocument();
-    expect(screen.getByText(/نام قالب فقط حروف انگلیسی و عدد دارد/)).toBeInTheDocument();
     expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);
   });
 
@@ -323,7 +315,7 @@ describe("SmsSettingsPage", () => {
     renderApp("/sms-settings", { session: session() });
     await waitFor(() => expect(switchOf("پایان اشتراک")).toBeChecked());
 
-    fireEvent.change(group("پایان اشتراک").getByLabelText("نام قالب در کاوه‌نگار"), {
+    fireEvent.change(group("پایان اشتراک").getByLabelText(/^چند روز/), {
       target: { value: "" },
     });
     expect(switchOf("پایان اشتراک")).toBeEnabled();

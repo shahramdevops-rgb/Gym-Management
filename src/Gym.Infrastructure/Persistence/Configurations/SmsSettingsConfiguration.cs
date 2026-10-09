@@ -37,11 +37,6 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
                 "ck_sms_settings_send_times",
                 string.Join(" AND ", Kinds.Select(kind => SendTime($"{kind}_send_time"))));
 
-            // Kavenegar's rule: English letters and digits only.
-            table.HasCheckConstraint(
-                "ck_sms_settings_template_names",
-                string.Join(" AND ", Kinds.Select(kind => $"({kind}_template_name IS NULL OR {kind}_template_name ~ '^[A-Za-z0-9]+$')")));
-
             table.HasCheckConstraint("ck_sms_settings_owner_phone", "owner_phone IS NULL OR owner_phone ~ '^\\+989[0-9]{9}$'");
 
             // On means filled (§10): a kind cannot be on with an empty field.
@@ -53,10 +48,6 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
                 OnMeansFilled("payable_due", "payable_due_days_before", "owner_phone IS NOT NULL"));
         });
 
-        builder.Property(settings => settings.SubscriptionExpiringTemplateName).HasMaxLength(SmsSettings.TemplateNameMaxLength);
-        builder.Property(settings => settings.LowSessionsTemplateName).HasMaxLength(SmsSettings.TemplateNameMaxLength);
-        builder.Property(settings => settings.BirthdayTemplateName).HasMaxLength(SmsSettings.TemplateNameMaxLength);
-        builder.Property(settings => settings.PayableDueTemplateName).HasMaxLength(SmsSettings.TemplateNameMaxLength);
         builder.Property(settings => settings.OwnerPhone).HasMaxLength(PhoneMaxLength);
 
         builder.Property(settings => settings.Version).IsRowVersion();
@@ -90,5 +81,5 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
 
     private static string OnMeansFilled(string kind, string thresholdColumn, string? extra = null) =>
         $"NOT {kind}_enabled OR ({thresholdColumn} IS NOT NULL AND {kind}_send_time IS NOT NULL"
-        + $" AND {kind}_template_name IS NOT NULL{(extra is null ? string.Empty : " AND " + extra)})";
+        + $"{(extra is null ? string.Empty : " AND " + extra)})";
 }

@@ -1608,3 +1608,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **A converter on the response, not on the Domain enum.** `[property: JsonConverter(...)]` on `SmsMessageResponse` sends the enums by name, and OpenAPI reuses that schema for the list's `kind` and `status` filters. The Domain enums stay free of JSON.
 - **A default filter that does not stick.** With no dates in the URL, the page shows the current Jalali month. The month's first day is written into the URL only when the Owner touches a date box, so choosing a kind or a page keeps "this month" and its label.
 - **My notes:**
+
+## 10.4 (continued) — From templates to free text (ارسال متن از خط اختصاصی)
+
+- **An interface shaped by the business pays off when the provider changes.** `ISmsSender` was built "template-first", but its callers only cared about the outcome. Switching to `sms/send` changed what one message carries (a text instead of a template and values) and nothing about how a run or a resend records what happened.
+- **Store what was sent, not how to rebuild it.** `Notification.Text` keeps the finished text. The history shows it as it was, and a resend sends exactly it, even if the wording in the code changes in a later release.
+- **A migration that rewrites data carries the old rows forward.** `SendSmsAsText` adds the new column, fills it with SQL from each row's kind and values, and only then drops the old columns. Dropping first would have lost the values the text is built from.
+- **Test a data migration by stopping one step short.** The test migrates a fresh database to the migration before, writes rows the old way, migrates the rest of the way, and compares the result with what the code writes today (`SmsText`). It runs in its own database, so the shared test database is never migrated backwards.
+- **Fail at startup, not at the first message.** With Kavenegar chosen and no line number, the options validator stops the app. The developer's own machine hit it at once, which is the point: a missing setting shows up the day it is missing, not the first night a message should have gone out.
+- **Let the data choose, not a person.** The two birthday texts used to be two templates, and the Owner had to pick the one that matched the days set. Now `SmsText.ForBirthday` compares the birthday with today, so the text can never disagree with the date.
+- **My notes:**

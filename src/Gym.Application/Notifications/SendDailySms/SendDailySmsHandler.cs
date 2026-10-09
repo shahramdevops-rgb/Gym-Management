@@ -17,7 +17,7 @@ namespace Gym.Application.Notifications.SendDailySms;
 /// and saved again with the outcome after it. The unique indexes refuse a second row for the same
 /// event, so a second run, or a run racing this one, cannot pay for it again. If the app stops between
 /// the two saves, the next run of the kind finds the row still <c>Pending</c> and marks it
-/// <c>Unknown</c>: the request may have left, and the template method has no duplicate guard.
+/// <c>Unknown</c>: the request may have left, and it carries no duplicate guard.
 /// </para>
 /// <para>
 /// <b>Retries come after everyone else.</b> A failure that may pass waits for the round of retries,
@@ -127,10 +127,10 @@ public sealed partial class SendDailySmsHandler(
     /// <summary>One request, and its outcome saved on the row.</summary>
     private async Task<SmsSendOutcome> SendAsync(Notification notification, Tally tally, CancellationToken cancellationToken)
     {
-        var message = new SmsTemplateMessage(notification.Recipient, notification.TemplateName, notification.Tokens);
+        var message = new SmsMessage(notification.Recipient, notification.Text);
 
         // Not the run's token: once the request may have left, its outcome is recorded whatever happens.
-        var result = await sender.SendTemplateAsync(message, CancellationToken.None);
+        var result = await sender.SendAsync(message, CancellationToken.None);
         var now = time.GetUtcNow();
 
         switch (result.Outcome)

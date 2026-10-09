@@ -54,13 +54,6 @@ const statusBadges = {
   Pending: "secondary",
 } as const;
 
-/** The values it carried, in the template's order, so the Owner can see what was sent. */
-function sentValues(message: SmsMessage): string {
-  return [message.token, message.token2, message.token3, message.token10, message.token20]
-    .filter((value) => value !== null && value !== "")
-    .join("، ");
-}
-
 interface SmsMessageRowProps {
   message: SmsMessage;
   onDone: (message: string) => void;
@@ -99,9 +92,7 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
         <td className="py-2 whitespace-nowrap">{formatDateTime(message.createdAt)}</td>
         <td className="py-2">
           <p>{smsKindLabels[message.kind]}</p>
-          <p className="text-xs text-muted-foreground">
-            قالب <span dir="ltr">{message.templateName}</span>: {sentValues(message)}
-          </p>
+          <p className="text-xs text-muted-foreground">{message.text}</p>
         </td>
         <td className="py-2">
           <p>{recipient}</p>

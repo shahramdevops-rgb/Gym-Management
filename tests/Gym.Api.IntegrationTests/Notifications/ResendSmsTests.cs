@@ -25,14 +25,13 @@ namespace Gym.Api.IntegrationTests.Notifications;
 public sealed class ResendSmsTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
     private const string Name = "سارا محمدی";
-    private const string Template = "gymBirthday";
 
     /// <summary>1405/07/16.</summary>
     private static readonly DateOnly Today = new(2026, 10, 8);
 
     private static readonly TimeZoneInfo Tehran = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
 
-    private static readonly SmsTokens Tokens = new("۱۴۰۵", Token10: Name);
+    private const string Text = "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۲۰ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد";
 
     private static int _phoneSuffix;
 
@@ -49,7 +48,7 @@ public sealed class ResendSmsTests(DatabaseFixture fixture) : DatabaseTestBase(f
         var result = await ResendAsync(id, sender);
 
         var request = sender.Requests.ShouldHaveSingleItem();
-        request.ShouldBe(new SmsTemplateMessage(phone, Template, Tokens));
+        request.ShouldBe(new SmsMessage(phone, Text));
         var message = result.Value;
         message.Status.ShouldBe(NotificationStatus.Sent);
         message.MemberName.ShouldBe(Name);
@@ -276,7 +275,7 @@ public sealed class ResendSmsTests(DatabaseFixture fixture) : DatabaseTestBase(f
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed(Name, $"+98914{suffix:D7}");
-        var notification = Notification.ForBirthday(member.Id, 1405, member.PhoneNumber, Template, Tokens);
+        var notification = Notification.ForBirthday(member.Id, 1405, member.PhoneNumber, Text);
         var yesterday = At(Today.AddDays(-1), 10, 0);
         switch (status)
         {
@@ -319,7 +318,7 @@ public sealed class ResendSmsTests(DatabaseFixture fixture) : DatabaseTestBase(f
     /// <summary>Runs <paramref name="during"/> while the request is "in flight", then answers "sent".</summary>
     private sealed class DuringSendSmsSender(Func<Task> during) : ISmsSender
     {
-        public async Task<SmsSendResult> SendTemplateAsync(SmsTemplateMessage message, CancellationToken cancellationToken)
+        public async Task<SmsSendResult> SendAsync(SmsMessage message, CancellationToken cancellationToken)
         {
             await during();
 

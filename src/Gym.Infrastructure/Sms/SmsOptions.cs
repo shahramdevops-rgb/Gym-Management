@@ -7,7 +7,7 @@ namespace Gym.Infrastructure.Sms;
 
 /// <summary>
 /// The <c>Sms</c> configuration section (BUSINESS_RULES.md §10). Only what is not the Owner's to
-/// choose lives here; the numbers, send times and templates are on the SMS settings page (task 10.2).
+/// choose lives here; the numbers and send times are on the SMS settings page (task 10.2).
 /// </summary>
 public sealed class SmsOptions
 {
@@ -45,7 +45,7 @@ public sealed class SmsOptions
     public KavenegarOptions Kavenegar { get; set; } = new();
 }
 
-/// <summary>The <c>Sms:Kavenegar</c> section. Only the key: the address and the methods are Kavenegar's own.</summary>
+/// <summary>The <c>Sms:Kavenegar</c> section: the account's key and line. The address and the methods are Kavenegar's own.</summary>
 public sealed class KavenegarOptions
 {
     /// <summary>
@@ -53,6 +53,13 @@ public sealed class KavenegarOptions
     /// never in git. Kavenegar puts it in the address of every request, so the address is never logged.
     /// </summary>
     public string ApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The gym's dedicated line, the number every SMS is sent from, digits only (e.g. <c>2000500666</c>).
+    /// Not a secret, but it belongs to the account like the key: <c>Sms__Kavenegar__Sender</c> on the
+    /// server (BUSINESS_RULES.md §10 <i>Sending</i>).
+    /// </summary>
+    public string Sender { get; set; } = string.Empty;
 }
 
 /// <summary>The values <see cref="SmsOptions.Provider"/> accepts.</summary>
@@ -67,7 +74,7 @@ public static class SmsProviders
 
 /// <summary>
 /// Refuses to start with a provider it does not know, instead of silently sending nothing, with the
-/// real provider and no key, with a retry schedule that does not add up, or with a number list that
+/// real provider and no key or line, with a retry schedule that does not add up, or with a number list that
 /// could not match a member's number.
 /// </summary>
 public sealed partial class SmsOptionsValidator(IHostEnvironment environment) : IValidateOptions<SmsOptions>
@@ -85,6 +92,12 @@ public sealed partial class SmsOptionsValidator(IHostEnvironment environment) : 
         if (options.Provider == SmsProviders.Kavenegar && string.IsNullOrWhiteSpace(options.Kavenegar.ApiKey))
         {
             return ValidateOptionsResult.Fail("Sms:Kavenegar:ApiKey is required when Sms:Provider is Kavenegar.");
+        }
+
+        if (options.Provider == SmsProviders.Kavenegar && !LineNumber().IsMatch(options.Kavenegar.Sender))
+        {
+            return ValidateOptionsResult.Fail(
+                "Sms:Kavenegar:Sender, the dedicated line's number in digits, is required when Sms:Provider is Kavenegar.");
         }
 
         if (options.MaxAttempts < 1 || options.MaxAttempts > SmsOptions.MaxAttemptsLimit)
@@ -115,4 +128,7 @@ public sealed partial class SmsOptionsValidator(IHostEnvironment environment) : 
 
     [GeneratedRegex(@"^\+989\d{9}$")]
     private static partial Regex IranianMobile();
+
+    [GeneratedRegex("^[0-9]+$")]
+    private static partial Regex LineNumber();
 }

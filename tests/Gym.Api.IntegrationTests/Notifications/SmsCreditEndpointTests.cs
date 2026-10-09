@@ -134,7 +134,7 @@ public sealed class SmsCreditEndpointTests(DatabaseFixture fixture) : DatabaseTe
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed("سارا محمدی", $"+98915{suffix:D7}");
-        var notification = Notification.ForBirthday(member.Id, 1405, member.PhoneNumber, "gymBirthday", new SmsTokens("۱۴۰۵"));
+        var notification = Notification.ForBirthday(member.Id, 1405, member.PhoneNumber, "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۲۰ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
         if (sentAt is { } sent)
         {
             notification.MarkSent(suffix, 1_350m, sent);

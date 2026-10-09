@@ -13,7 +13,7 @@ namespace Gym.Infrastructure.Sms;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The log names the template and the last four digits of the number, never the values: they hold
+/// The log gives the text's length and the last four digits of the number, never the text: it holds
 /// a member's name, and logs are kept longer and read by more people than the database.
 /// </para>
 /// <para>
@@ -26,13 +26,13 @@ public sealed partial class FakeSmsSender(ILogger<FakeSmsSender> logger) : ISmsS
 
     private long _lastMessageId;
 
-    public Task<SmsSendResult> SendTemplateAsync(SmsTemplateMessage message, CancellationToken cancellationToken)
+    public Task<SmsSendResult> SendAsync(SmsMessage message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
 
         var messageId = Interlocked.Increment(ref _lastMessageId);
         var maskedReceptor = Mask(message.Receptor);
-        LogFakeSend(logger, message.Template, maskedReceptor, messageId);
+        LogFakeSend(logger, message.Text.Length, maskedReceptor, messageId);
 
         return Task.FromResult(SmsSendResult.Sent(messageId, costRial: 0m));
     }
@@ -49,6 +49,6 @@ public sealed partial class FakeSmsSender(ILogger<FakeSmsSender> logger) : ISmsS
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "SMS not sent (fake sender): template {Template} to {Receptor}, fake message id {MessageId}")]
-    private static partial void LogFakeSend(ILogger logger, string template, string receptor, long messageId);
+        Message = "SMS not sent (fake sender): {Length} characters to {Receptor}, fake message id {MessageId}")]
+    private static partial void LogFakeSend(ILogger logger, int length, string receptor, long messageId);
 }

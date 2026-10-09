@@ -56,8 +56,8 @@ public sealed class ResendSmsHandler(IAppDbContext db, IGymCalendar calendar, Ti
         }
 
         // Not the request's token: once the SMS may have left, its outcome is recorded whatever happens.
-        var message = new SmsTemplateMessage(notification.Recipient, notification.TemplateName, notification.Tokens);
-        var result = await sender.SendTemplateAsync(message, CancellationToken.None);
+        var message = new SmsMessage(notification.Recipient, notification.Text);
+        var result = await sender.SendAsync(message, CancellationToken.None);
         Record(notification, result, time.GetUtcNow());
 
         try

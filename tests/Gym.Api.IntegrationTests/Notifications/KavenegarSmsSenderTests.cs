@@ -17,13 +17,16 @@ public sealed class KavenegarSmsSenderTests
 {
     private const string ApiKey = "test-api-key";
 
-    private static readonly SmsTemplateMessage Message =
-        new("+989121234567", "gymExpiring", new SmsTokens("۱۴۰۵/۰۷/۲۰", Token10: "سارا محمدی"));
+    private const string Line = "2000500666";
+
+    private const string Text = "سارا محمدی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.";
+
+    private static readonly SmsMessage Message = new("+989121234567", Text);
 
     // ---- Sending ----
 
     [Fact]
-    public async Task SendTemplateAsync_Accepted_IsSentWithKavenegarsIdAndCost()
+    public async Task SendAsync_Accepted_IsSentWithKavenegarsIdAndCost()
     {
         var stub = new StubKavenegar(_ => StubKavenegar.Answer(200, """[{"messageid":8792343,"status":5,"cost":1350}]"""));
 
@@ -36,7 +39,7 @@ public sealed class KavenegarSmsSenderTests
     }
 
     [Fact]
-    public async Task SendTemplateAsync_Request_PostsTheTemplateAndItsValuesToLookupWithALocalNumber()
+    public async Task SendAsync_Request_PostsTheTextFromTheLineToSendWithALocalNumber()
     {
         var stub = new StubKavenegar(_ => StubKavenegar.Answer(200, """[{"messageid":1,"cost":0}]"""));
 
@@ -44,14 +47,12 @@ public sealed class KavenegarSmsSenderTests
 
         var request = stub.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Post);
-        request.Uri.AbsolutePath.ShouldBe($"/v1/{ApiKey}/verify/lookup.json");
+        request.Uri.AbsolutePath.ShouldBe($"/v1/{ApiKey}/sms/send.json");
         var fields = Fields(request.Body);
+        fields.Keys.ShouldBe(["receptor", "sender", "message"], ignoreOrder: true);
         fields["receptor"].ShouldBe("09121234567");
-        fields["template"].ShouldBe("gymExpiring");
-        fields["token"].ShouldBe("۱۴۰۵/۰۷/۲۰");
-        fields["token10"].ShouldBe("سارا محمدی");
-        fields.Keys.ShouldNotContain("token2");
-        fields.Keys.ShouldNotContain("token20");
+        fields["sender"].ShouldBe(Line);
+        fields["message"].ShouldBe(Text);
     }
 
     [Theory]
@@ -64,7 +65,7 @@ public sealed class KavenegarSmsSenderTests
     [InlineData(431, SmsSendOutcome.PermanentFailure)]
     [InlineData(403, SmsSendOutcome.PermanentFailure)]
     [InlineData(501, SmsSendOutcome.PermanentFailure)]
-    public async Task SendTemplateAsync_KavenegarsCode_BecomesItsOutcomeAndIsKept(int code, SmsSendOutcome outcome)
+    public async Task SendAsync_KavenegarsCode_BecomesItsOutcomeAndIsKept(int code, SmsSendOutcome outcome)
     {
         var result = await SendAsync(new StubKavenegar(_ => StubKavenegar.Answer(code)));
 
@@ -78,7 +79,7 @@ public sealed class KavenegarSmsSenderTests
     [InlineData(HttpStatusCode.GatewayTimeout, "")]
     [InlineData(HttpStatusCode.OK, "<html>ok</html>")]
     [InlineData(HttpStatusCode.OK, "{}")]
-    public async Task SendTemplateAsync_AnAnswerThatIsNotKavenegars_IsUnknown(HttpStatusCode status, string body)
+    public async Task SendAsync_AnAnswerThatIsNotKavenegars_IsUnknown(HttpStatusCode status, string body)
     {
         // The request left: it may have been sent and paid for, so it must never be tried again by itself.
         var result = await SendAsync(new StubKavenegar(_ => StubKavenegar.Raw(status, body)));
@@ -87,7 +88,7 @@ public sealed class KavenegarSmsSenderTests
     }
 
     [Fact]
-    public async Task SendTemplateAsync_AcceptedWithNoMessage_IsUnknown()
+    public async Task SendAsync_AcceptedWithNoMessage_IsUnknown()
     {
         var result = await SendAsync(new StubKavenegar(_ => StubKavenegar.Answer(200, "[]")));
 
@@ -98,7 +99,7 @@ public sealed class KavenegarSmsSenderTests
     [InlineData(HttpRequestError.NameResolutionError)]
     [InlineData(HttpRequestError.ConnectionError)]
     [InlineData(HttpRequestError.SecureConnectionError)]
-    public async Task SendTemplateAsync_NoConnection_MayBeTriedAgain(HttpRequestError error)
+    public async Task SendAsync_NoConnection_MayBeTriedAgain(HttpRequestError error)
     {
         var result = await SendAsync(new StubKavenegar(_ => throw new HttpRequestException(error, "no connection")));
 
@@ -110,7 +111,7 @@ public sealed class KavenegarSmsSenderTests
     [InlineData(HttpRequestError.ResponseEnded)]
     [InlineData(HttpRequestError.InvalidResponse)]
     [InlineData(HttpRequestError.Unknown)]
-    public async Task SendTemplateAsync_ConnectionLostAfterTheRequestLeft_IsUnknown(HttpRequestError error)
+    public async Task SendAsync_ConnectionLostAfterTheRequestLeft_IsUnknown(HttpRequestError error)
     {
         var result = await SendAsync(new StubKavenegar(_ => throw new HttpRequestException(error, "dropped")));
 
@@ -118,7 +119,7 @@ public sealed class KavenegarSmsSenderTests
     }
 
     [Fact]
-    public async Task SendTemplateAsync_NoAnswerInTime_IsUnknown()
+    public async Task SendAsync_NoAnswerInTime_IsUnknown()
     {
         var stub = new StubKavenegar(async (_, cancellationToken) =>
         {
@@ -127,7 +128,7 @@ public sealed class KavenegarSmsSenderTests
         });
         using var client = StubKavenegar.Client(stub, TimeSpan.FromMilliseconds(50));
 
-        var result = await Sender(client).SendTemplateAsync(Message, TestContext.Current.CancellationToken);
+        var result = await Sender(client).SendAsync(Message, TestContext.Current.CancellationToken);
 
         result.Outcome.ShouldBe(SmsSendOutcome.Unknown);
     }
@@ -227,12 +228,12 @@ public sealed class KavenegarSmsSenderTests
     {
         using var client = StubKavenegar.Client(stub);
 
-        return await Sender(client).SendTemplateAsync(Message, TestContext.Current.CancellationToken);
+        return await Sender(client).SendAsync(Message, TestContext.Current.CancellationToken);
     }
 
     private static KavenegarSmsSender Sender(HttpClient client) => new(
         client,
-        Options.Create(new SmsOptions { Provider = SmsProviders.Kavenegar, Kavenegar = { ApiKey = ApiKey } }),
+        Options.Create(new SmsOptions { Provider = SmsProviders.Kavenegar, Kavenegar = { ApiKey = ApiKey, Sender = Line } }),
         NullLogger<KavenegarSmsSender>.Instance);
 
     private static Dictionary<string, string> Fields(string body) => body

@@ -27,7 +27,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 {
     private const string Path = "/api/sms/settings";
 
-    private static readonly object Off = new { enabled = false, threshold = (int?)null, sendTime = (string?)null, templateName = (string?)null };
+    private static readonly object Off = new { enabled = false, threshold = (int?)null, sendTime = (string?)null };
 
     // ---- The seeded row ----
 
@@ -68,15 +68,13 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [InlineData("birthday_send_time = '22:15'", "ck_sms_settings_send_times")]
     [InlineData("low_sessions_send_time = '10:10'", "ck_sms_settings_send_times")]
     [InlineData("payable_due_send_time = '10:00:30'", "ck_sms_settings_send_times")]
-    [InlineData("birthday_template_name = 'gym_birthday'", "ck_sms_settings_template_names")]
-    [InlineData("subscription_expiring_template_name = 'gym birthday'", "ck_sms_settings_template_names")]
     [InlineData("owner_phone = '09121234567'", "ck_sms_settings_owner_phone")]
     [InlineData("owner_phone = '+982112345678'", "ck_sms_settings_owner_phone")]
     [InlineData("subscription_expiring_enabled = true", "ck_sms_settings_subscription_expiring_on_means_filled")]
     [InlineData("low_sessions_enabled = true", "ck_sms_settings_low_sessions_on_means_filled")]
     [InlineData("birthday_enabled = true", "ck_sms_settings_birthday_on_means_filled")]
     [InlineData(
-        "payable_due_enabled = true, payable_due_days_before = 3, payable_due_send_time = '10:00', payable_due_template_name = 'gymPayableDue'",
+        "payable_due_enabled = true, payable_due_days_before = 3, payable_due_send_time = '10:00'",
         "ck_sms_settings_payable_due_on_means_filled")]
     public async Task Database_RuleBroken_IsRefused(string assignments, string constraint)
     {
@@ -91,7 +89,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         await ExecuteAsync(
             """
             UPDATE sms_settings SET birthday_enabled = true, birthday_days_before = 0,
-                birthday_send_time = '22:00', birthday_template_name = 'gymBirthday'
+                birthday_send_time = '22:00'
             """);
 
     // ---- Get ----
@@ -148,10 +146,10 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
         var reread = await GetOkAsync(client, token);
         reread.Enabled.ShouldBeTrue();
-        reread.SubscriptionExpiring.ShouldBe(new SmsKindSettings(true, 7, new TimeOnly(9, 0), "gymExpiring"));
-        reread.LowSessions.ShouldBe(new SmsKindSettings(true, 2, new TimeOnly(9, 15), "gymLowSessions"));
-        reread.Birthday.ShouldBe(new SmsKindSettings(true, 0, new TimeOnly(10, 30), "gymBirthday"));
-        reread.PayableDue.ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(22, 0), "gymPayableDue"));
+        reread.SubscriptionExpiring.ShouldBe(new SmsKindSettings(true, 7, new TimeOnly(9, 0)));
+        reread.LowSessions.ShouldBe(new SmsKindSettings(true, 2, new TimeOnly(9, 15)));
+        reread.Birthday.ShouldBe(new SmsKindSettings(true, 0, new TimeOnly(10, 30)));
+        reread.PayableDue.ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(22, 0)));
         reread.OwnerPhone.ShouldBe("+989121234567");
     }
 
@@ -200,7 +198,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         var (client, token, ownerId) = await OwnerClientAsync();
         var first = await ReadAsync(await UpdateAsync(client, token, FullBody((await GetOkAsync(client, token)).Version)));
 
-        (await UpdateAsync(client, token, Body(first.Version, birthday: Kind(false, 3, "10:30:00", "gymBirthday"))))
+        (await UpdateAsync(client, token, Body(first.Version, birthday: Kind(false, 3, "10:30:00"))))
             .EnsureSuccessStatusCode().Dispose();
 
         await using var scope = Fixture.CreateScope();
@@ -303,7 +301,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         var (client, token, _) = await OwnerClientAsync();
         var read = await GetOkAsync(client, token);
 
-        using var response = await UpdateAsync(client, token, Body(read.Version, birthday: Kind(true, 3, null, "gymBirthday")));
+        using var response = await UpdateAsync(client, token, Body(read.Version, birthday: Kind(true, 3, null)));
 
         await ShouldHaveFieldErrorAsync(response, "birthday.enabled", "Sms.SettingsIncomplete");
     }
@@ -315,7 +313,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         var read = await GetOkAsync(client, token);
 
         using var response = await UpdateAsync(
-            client, token, Body(read.Version, payableDue: Kind(true, 3, "10:00:00", "gymPayableDue"), ownerPhone: null));
+            client, token, Body(read.Version, payableDue: Kind(true, 3, "10:00:00"), ownerPhone: null));
 
         await ShouldHaveFieldErrorAsync(response, "payableDue.enabled", "Sms.SettingsIncomplete");
     }
@@ -340,19 +338,18 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     }
 
     [Theory]
-    [InlineData("subscriptionExpiring", 31, null, null, "subscriptionExpiring.threshold", "Sms.SubscriptionExpiringDaysOutOfRange")]
-    [InlineData("lowSessions", 11, null, null, "lowSessions.threshold", "Sms.LowSessionsOutOfRange")]
-    [InlineData("birthday", 8, null, null, "birthday.threshold", "Sms.BirthdayDaysOutOfRange")]
-    [InlineData("payableDue", 31, null, null, "payableDue.threshold", "Sms.PayableDueDaysOutOfRange")]
-    [InlineData("birthday", null, "22:15:00", null, "birthday.sendTime", "Sms.SendTimeOutOfRange")]
-    [InlineData("lowSessions", null, "09:10:00", null, "lowSessions.sendTime", "Sms.SendTimeOutOfRange")]
-    [InlineData("payableDue", null, null, "gym_payable", "payableDue.templateName", "Sms.TemplateNameInvalid")]
+    [InlineData("subscriptionExpiring", 31, null, "subscriptionExpiring.threshold", "Sms.SubscriptionExpiringDaysOutOfRange")]
+    [InlineData("lowSessions", 11, null, "lowSessions.threshold", "Sms.LowSessionsOutOfRange")]
+    [InlineData("birthday", 8, null, "birthday.threshold", "Sms.BirthdayDaysOutOfRange")]
+    [InlineData("payableDue", 31, null, "payableDue.threshold", "Sms.PayableDueDaysOutOfRange")]
+    [InlineData("birthday", null, "22:15:00", "birthday.sendTime", "Sms.SendTimeOutOfRange")]
+    [InlineData("lowSessions", null, "09:10:00", "lowSessions.sendTime", "Sms.SendTimeOutOfRange")]
     public async Task Update_FieldOutOfItsRange_Returns400WithTheFieldsCode(
-        string kind, int? threshold, string? sendTime, string? templateName, string field, string code)
+        string kind, int? threshold, string? sendTime, string field, string code)
     {
         var (client, token, _) = await OwnerClientAsync();
         var read = await GetOkAsync(client, token);
-        var refused = Kind(false, threshold, sendTime, templateName);
+        var refused = Kind(false, threshold, sendTime);
 
         using var response = await UpdateAsync(client, token, kind switch
         {
@@ -363,18 +360,6 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         });
 
         await ShouldHaveFieldErrorAsync(response, field, code);
-    }
-
-    [Fact]
-    public async Task Update_TemplateNameTooLong_Returns400TemplateNameTooLong()
-    {
-        var (client, token, _) = await OwnerClientAsync();
-        var read = await GetOkAsync(client, token);
-
-        using var response = await UpdateAsync(
-            client, token, Body(read.Version, birthday: Kind(false, null, null, new string('a', SmsSettings.TemplateNameMaxLength + 1))));
-
-        await ShouldHaveFieldErrorAsync(response, "birthday.templateName", "Sms.TemplateNameTooLong");
     }
 
     // ---- Helpers ----
@@ -388,8 +373,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         return schedule;
     }
 
-    private static object Kind(bool enabled, int? threshold, string? sendTime, string? templateName) =>
-        new { enabled, threshold, sendTime, templateName };
+    private static object Kind(bool enabled, int? threshold, string? sendTime) =>
+        new { enabled, threshold, sendTime };
 
     private static object Body(
         uint version,
@@ -413,10 +398,10 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     private static object FullBody(uint version) => Body(
         version,
         enabled: true,
-        subscriptionExpiring: Kind(true, 7, "09:00:00", "gymExpiring"),
-        lowSessions: Kind(true, 2, "09:15:00", "gymLowSessions"),
-        birthday: Kind(true, 0, "10:30:00", "gymBirthday"),
-        payableDue: Kind(true, 3, "22:00:00", "gymPayableDue"),
+        subscriptionExpiring: Kind(true, 7, "09:00:00"),
+        lowSessions: Kind(true, 2, "09:15:00"),
+        birthday: Kind(true, 0, "10:30:00"),
+        payableDue: Kind(true, 3, "22:00:00"),
         ownerPhone: "09121234567");
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()

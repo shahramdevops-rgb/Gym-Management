@@ -20,7 +20,7 @@ export const paths = {
   expenses: "/expenses",
   /** The cheques the gym gave and its instalments, "چک و قسط" (BUSINESS_RULES.md §9 *Cheques and instalments*). */
   payables: "/payables",
-  /** Which SMS the gym sends, when and with which template, "تنظیمات پیامک" (BUSINESS_RULES.md §10). */
+  /** Which SMS the gym sends and when, "تنظیمات پیامک" (BUSINESS_RULES.md §10). */
   smsSettings: "/sms-settings",
   /** Every SMS sent, its cost and its resend, "پیامک‌ها" (BUSINESS_RULES.md §10 *The SMS history*). */
   smsMessages: "/sms",

@@ -2428,13 +2428,28 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
       numbers (`AllowListSmsSender`), and none when the list is empty; Production refuses a list
 - [x] The API key never in the logs: the HTTP client's own loggers removed (`RemoveAllLoggers`), with
       a test that fails without it
-- [ ] A manual test with the developer's account and number, the templates approved there first.
-      `account/info` checked on 1405/07/16 (2026-10-08) with the developer's key: the settings page
-      showed the account's 1,050,000 Rial as ۱۰۵٬۰۰۰ تومان. Still to do once the templates are
-      approved: one message to the developer's own number through `Sms:AllowedReceptors`, with
-      Kavenegar's Debug mode on (it accepts requests and sends nothing). Kavenegar's documentation
-      could not be reached from the development machine, so the codes and statuses come from §10 and
-      are checked in this test
+- [x] Free text from the gym's dedicated line instead of templates (1405/07/16, 2026-10-08):
+      Kavenegar refused every template because the gym's site was not up yet, so a line was bought
+      and its support said to send with `sms/send`. Decided with the developer: the wording fixed in
+      the code (`SmsText`, `docs/sms-texts.md`), the line's number in `Sms:Kavenegar:Sender`
+      (configuration, not the settings page). `ISmsSender.SendAsync(SmsMessage(Receptor, Text))`;
+      `Notification.Text` replaces the template name and the five values; the settings page loses
+      the template name; the birthday text is picked by the date (the day itself or «پیشاپیش»); a
+      long name or payee is still cut short. Kavenegar with no line, or one that is not digits, stops
+      the app at startup. Codes named in §10 now: 411, 412, 413, 422 (424, 426 and 431 were the
+      template method's). Migration `SendSmsAsText`: every message already written gets its text from
+      its kind and values, then the old columns go; a kind that is on stays on. 2120 backend tests
+      (695 domain, 1425 integration) and 987 frontend tests green, zero warnings, lint and
+      `format:check` pass; the release still starts with `./backup.sh run`
+- [ ] A manual test with the developer's account and number. `account/info` checked on 1405/07/16
+      (2026-10-08) with the developer's key: the settings page showed the account's 1,050,000 Rial as
+      ۱۰۵٬۰۰۰ تومان. Still to do: the line's number in user secrets (`Sms:Kavenegar:Sender`; with
+      `Sms:Provider` = Kavenegar the API does not start without it), then one message to the
+      developer's own number through `Sms:AllowedReceptors`, with Kavenegar's Debug mode on (it
+      accepts requests and sends nothing). Kavenegar's documentation could not be reached from the
+      development machine, so the codes and statuses come from §10 and are checked in this test
+- [ ] Ask Kavenegar's support whether a member who blocked advertising SMS still gets the line's
+      messages (§10 *Sending*)
 
 ### 10.5 SMS history and resend
 Decided with the developer on 1405/07/16 (2026-10-08), BUSINESS_RULES.md §10 *The SMS history*,
@@ -2466,11 +2481,11 @@ still starts with `./backup.sh run`.
 
 ### 10.6 Go live with the Owner's account
 Every server step is proposed and confirmed first, with `./backup.sh run` before the release.
-- [ ] A few days before: the Owner's Kavenegar account charged, its advanced service on, the four
-      templates made from `docs/sms-templates.md` with the same names and approved
-- [ ] The Owner's API key in the server's `.env`, restricted to the server's IP in Kavenegar;
-      `docker-compose.prod.yml` passes `Sms__Provider` and `Sms__Kavenegar__ApiKey` to the API
-      (not yet: until then the server keeps appsettings' `Fake`), and `deploy/env.example` lists them
+- [ ] The account that holds the dedicated line charged (no templates to wait for since 1405/07/16)
+- [ ] Its API key and the line's number in the server's `.env`, the key restricted to the server's IP
+      in Kavenegar; `docker-compose.prod.yml` passes `Sms__Provider`, `Sms__Kavenegar__ApiKey` and
+      `Sms__Kavenegar__Sender` to the API (not yet: until then the server keeps appsettings' `Fake`),
+      and `deploy/env.example` lists them
 - [ ] The Owner fills in the settings page and turns on the kinds they want
 
 ---
@@ -2615,17 +2630,16 @@ until then each visitor buys their own single visit under their own name.
 ## Future — Absence SMS (پیامک غیبت)
 Planned by the developer on 1405/07/15 (2026-10-07): a member who has not come for N days gets a
 friendly SMS («جای شما در باشگاه خالی است»), with no offer in it. A fifth SMS kind on Phase 10's
-design: the settings page row (on/off, days, send time, template), a unique index so it is sent once,
+design: the settings page row (on/off, days, send time), a unique index so it is sent once,
 and the daily run; the last visit is already in `attendances`. The migration only adds new columns,
 off and empty, so it is safe on the server's real data. Nothing is decided yet; BUSINESS_RULES.md §10
 gets the rule once these are answered:
 
-- [ ] Ask Kavenegar's support whether it is accepted as a service template (no discount, no offer)
 - [ ] Who gets it: only a member with an active plan who stops coming, or also one whose plan has
       ended (to bring them back)? Frozen plans and deactivated members presumably not (§10)
 - [ ] How often: once per absence, so nothing more until they come again?
 - [ ] A member who bought a plan and never came at all: counted from the plan's start?
-- [ ] The wording, added to `docs/sms-templates.md`
+- [ ] The wording, added to `docs/sms-texts.md` and `SmsText`
 
 ## Future — Free entry on the birthday (ورود رایگان روز تولد)
 Planned by the developer on 1405/07/15 (2026-10-07). Two separate parts. The gym's rule: a member
@@ -2633,9 +2647,9 @@ gets a free visit on their birthday; the desk already knows whose birthday it is
 §6 *The desk panel*), so the desk can offer it at check-in, and no discount code is needed. And the
 SMS telling them, which may count as advertising.
 
-- [ ] Ask Kavenegar's support whether «امروز ورودت رایگان است» is accepted in a service template. If
-      not, it goes out as free text from a line (`sms/send`): advertising rules apply, and members who
-      blocked advertising SMS do not get it. A line may have to be bought
+- [ ] Every SMS now goes out as free text from the gym's line (`sms/send`, 1405/07/16). Ask
+      Kavenegar's support whether «امروز ورودت رایگان است» counts as advertising there, and whether
+      members who blocked advertising SMS then do not get it
 - [ ] Who: only a member with an active plan, or any member?
 - [ ] Does the visit use a session of their plan, or none?
 - [ ] How it shows in the money: a single visit at zero with the reason «تولد», never a record
@@ -2644,8 +2658,8 @@ SMS telling them, which may count as advertising.
 
 ## Future — Discount codes (کد تخفیف)
 Planned by the developer on 1405/07/15 (2026-10-07), for later. Its own phase, because it touches
-every sale and the financial report. Sending a code by SMS is advertising: the free-text method from
-a line, not a template (see the birthday entry above).
+every sale and the financial report. Sending a code by SMS is advertising, from the gym's line like
+every SMS since 1405/07/16 (see the birthday entry above).
 
 - [ ] What it applies to: plans, single visits, the cafe?
 - [ ] A percentage or a fixed amount?

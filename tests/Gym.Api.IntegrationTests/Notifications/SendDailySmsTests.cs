@@ -31,7 +31,6 @@ namespace Gym.Api.IntegrationTests.Notifications;
 public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
 {
     private const string Name = "سارا محمدی";
-    private const string Template = "gymTest";
     private const string OwnerPhone = "+989351112233";
     private const int Sessions = 10;
     private const int PlanDays = 30;
@@ -123,8 +122,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         result.ShouldBe(new SmsRunResult(Ran: true, Sent: 1));
         var request = sender.Requests.ShouldHaveSingleItem();
         request.Receptor.ShouldBe(inside.PhoneNumber);
-        request.Template.ShouldBe(Template);
-        request.Tokens.ShouldBe(new SmsTokens(SmsValues.Date(plan.EndDate), Token10: Name));
+        request.Text.ShouldBe(SmsText.ForRunningOut(Name, plan.EndDate));
 
         var stored = (await NotificationsAsync()).ShouldHaveSingleItem();
         stored.Kind.ShouldBe(NotificationKind.SubscriptionExpiring);
@@ -228,20 +226,6 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         sender.Requests.Select(request => request.Receptor).ShouldBe([near.PhoneNumber, far.PhoneNumber]);
     }
 
-    [Fact]
-    public async Task Handle_TemplateChangedBetweenRuns_NextMessagesUseTheNewOne()
-    {
-        await TurnOnAsync(NotificationKind.SubscriptionExpiring, 3);
-        var sender = new ScriptedSmsSender();
-        await RunAsync(NotificationKind.SubscriptionExpiring, sender);
-
-        await TurnOnAsync(NotificationKind.SubscriptionExpiring, 3, template: "gymExpiringNew");
-        await AddPlanEndingInAsync(await AddMemberAsync(), daysLeft: 1);
-        await RunAsync(NotificationKind.SubscriptionExpiring, sender);
-
-        sender.Requests.ShouldHaveSingleItem().Template.ShouldBe("gymExpiringNew");
-    }
-
     // ---- Few sessions left ----
 
     [Fact]
@@ -258,7 +242,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         var request = sender.Requests.ShouldHaveSingleItem();
         request.Receptor.ShouldBe(atTheNumber.PhoneNumber);
-        request.Tokens.ShouldBe(new SmsTokens("۲", Token10: Name));
+        request.Text.ShouldBe(SmsText.ForFewSessionsLeft(Name, 2));
     }
 
     [Fact]
@@ -292,7 +276,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         await RunAsync(NotificationKind.Birthday, sender);
 
         sender.Requests.Select(request => request.Receptor).ShouldBe([active.PhoneNumber, deactivated.PhoneNumber], ignoreOrder: true);
-        sender.Requests[0].Tokens.ShouldBe(new SmsTokens("۱۴۰۵/۰۷/۱۴", Token10: Name));
+        sender.Requests[0].Text.ShouldBe($"{Name} عزیز، امروز ۱۴۰۵/۰۷/۱۴ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
         (await NotificationsAsync()).ShouldAllBe(notification => notification.JalaliYear == 1405);
     }
 
@@ -306,7 +290,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         await RunAsync(NotificationKind.Birthday, sender);
         await RunAsync(NotificationKind.Birthday, sender, at: At(Today.AddDays(1), 10, 0));
 
-        sender.Requests.ShouldHaveSingleItem().Tokens.Token.ShouldBe("۱۴۰۵/۰۷/۱۶");
+        sender.Requests.ShouldHaveSingleItem().Text
+            .ShouldBe($"{Name} عزیز، تولدتان در ۱۴۰۵/۰۷/۱۶ را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد");
     }
 
     [Fact]
@@ -318,7 +303,9 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         await RunAsync(NotificationKind.Birthday, sender, at: At(JalaliCalendar.ToDate(1404, 12, 29), 10, 0));
 
-        sender.Requests.ShouldHaveSingleItem().Tokens.Token.ShouldBe("۱۴۰۴/۱۲/۲۹");
+        // The day itself, so the «تولدتان مبارک» text, not the «پیشاپیش» one.
+        sender.Requests.ShouldHaveSingleItem().Text
+            .ShouldBe($"{Name} عزیز، امروز ۱۴۰۴/۱۲/۲۹ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
     }
 
     // ---- Cheques and instalments ----
@@ -338,8 +325,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         sender.Requests.Count.ShouldBe(2);
         sender.Requests.ShouldAllBe(request => request.Receptor == OwnerPhone);
-        sender.Requests[0].Tokens.ShouldBe(new SmsTokens("قسط", "۲٬۰۰۰٬۰۰۰", "۱۴۰۵/۰۷/۱۴", Token20: "بانک ملت"));
-        sender.Requests[1].Tokens.ShouldBe(new SmsTokens("چک", "۱۲٬۵۰۰٬۰۰۰", "۱۴۰۵/۰۷/۱۷", Token20: "فروشگاه تجهیزات ورزشی"));
+        sender.Requests[0].Text.ShouldBe("یادآوری قسط: ۲٬۰۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۴، به بانک ملت");
+        sender.Requests[1].Text.ShouldBe("یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۷، به فروشگاه تجهیزات ورزشی");
     }
 
     [Fact]
@@ -572,7 +559,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Notifications.Add(Notification.ForSubscriptionExpiring(
-                member.Id, plan.Id, member.PhoneNumber, Template, SmsValues.ForRunningOut(Name, plan.EndDate)));
+                member.Id, plan.Id, member.PhoneNumber, SmsText.ForRunningOut(Name, plan.EndDate)));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
@@ -597,7 +584,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Notifications.Add(Notification.ForLowSessions(
-                member.Id, plan.Id, member.PhoneNumber, Template, SmsValues.ForFewSessionsLeft(Name, 1)));
+                member.Id, plan.Id, member.PhoneNumber, SmsText.ForFewSessionsLeft(Name, 1)));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
@@ -625,9 +612,9 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
     }
 
     /// <summary>Turns on one kind at 10:00 and leaves the others off, as the Owner would on the page.</summary>
-    private async Task TurnOnAsync(NotificationKind kind, int threshold, bool allSms = true, string template = Template)
+    private async Task TurnOnAsync(NotificationKind kind, int threshold, bool allSms = true)
     {
-        var on = new SmsKindSettings(Enabled: true, threshold, new TimeOnly(10, 0), template);
+        var on = new SmsKindSettings(Enabled: true, threshold, new TimeOnly(10, 0));
 
         await SaveSettingsAsync(settings => settings.Update(
             allSms,
@@ -640,8 +627,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
     private Task TurnOnBothSubscriptionKindsAsync() => SaveSettingsAsync(settings => settings.Update(
         enabled: true,
-        new SmsKindSettings(true, 3, new TimeOnly(10, 0), Template),
-        new SmsKindSettings(true, 2, new TimeOnly(10, 0), Template),
+        new SmsKindSettings(true, 3, new TimeOnly(10, 0)),
+        new SmsKindSettings(true, 2, new TimeOnly(10, 0)),
         SmsKindSettings.Off,
         SmsKindSettings.Off,
         OwnerPhone));

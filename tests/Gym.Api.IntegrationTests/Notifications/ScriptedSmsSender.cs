@@ -13,9 +13,9 @@ internal sealed class ScriptedSmsSender(params SmsSendResult[] script) : ISmsSen
     private readonly Queue<SmsSendResult> _script = new(script);
     private long _lastMessageId;
 
-    public List<SmsTemplateMessage> Requests { get; } = [];
+    public List<SmsMessage> Requests { get; } = [];
 
-    public Task<SmsSendResult> SendTemplateAsync(SmsTemplateMessage message, CancellationToken cancellationToken)
+    public Task<SmsSendResult> SendAsync(SmsMessage message, CancellationToken cancellationToken)
     {
         Requests.Add(message);
 

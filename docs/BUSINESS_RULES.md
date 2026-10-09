@@ -9,9 +9,9 @@ If code and this file disagree, this file wins. If this file is silent, ask befo
 
 These values live in configuration (the `Gym` and `Sms` sections). Decide each one before the phase listed.
 
-| Setting | Decide before | Notes |
-|---|---|---|
-| Whether Kavenegar accepts the birthday greeting as a template | 10.4 | Ask Kavenegar's support. If not, the birthday alone goes out as free text from a line (§10 *Sending*). |
+Nothing is open at the moment. (The last one, whether Kavenegar accepts the birthday greeting as a
+template, was closed on 1405/07/16: Kavenegar refused every template, and all SMS now go out as free
+text from the gym's dedicated line, §10 *Sending*.)
 
 The SMS numbers themselves (days, sessions, send times) are not configuration: the Owner sets them
 on the SMS settings page (§10).
@@ -1314,56 +1314,58 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Kind | Fields | Allowed |
   |---|---|---|
   | All SMS | on/off | |
-  | Subscription running out | on/off, days before `EndDate`, send time, template name | 1–30 days |
-  | Few sessions left | on/off, sessions left, send time, template name | 1–10 sessions |
-  | Birthday | on/off, days before the birthday, send time, template name | 0–7 days (0 = the day itself) |
-  | Cheques and instalments | on/off, days before the date, send time, template name, the Owner's mobile number | 0–30 days |
+  | Subscription running out | on/off, days before `EndDate`, send time | 1–30 days |
+  | Few sessions left | on/off, sessions left, send time | 1–10 sessions |
+  | Birthday | on/off, days before the birthday, send time | 0–7 days (0 = the day itself) |
+  | Cheques and instalments | on/off, days before the date, send time, the Owner's mobile number | 0–30 days |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,
   task 10.2; `Sms.SendTimeOutOfRange`). The Owner's number follows the
-  members' phone rules (§2: Iranian mobile only, any digits). A template name follows Kavenegar's
-  rule: English letters and digits only, no space and no `_`.
+  members' phone rules (§2: Iranian mobile only, any digits). There is no template name any more
+  (1405/07/16, *Sending*): the wording is fixed in the code.
 - A change applies **from the next run**, never to the past: whoever already got a message does not
   get it again, and raising a number brings in the people it now covers.
 - Every change is in the audit log (§11).
 - Not on the page: the Kavenegar API key (a secret: an environment variable on the server, user
-  secrets on the developer's machine) and how many times a failed send is retried.
+  secrets on the developer's machine), the dedicated line's number (`Sms:Kavenegar:Sender`, an
+  environment variable on the server: it belongs to the account, like the key) and how many times a
+  failed send is retried.
 
 ### Sending
-- **Provider: Kavenegar**, through its template method (`verify/lookup`). The Persian wording is a
-  template written and approved in the Kavenegar panel; the system sends the template name and the
-  values for its blanks. So the wording is changed in Kavenegar, not here. It needs no dedicated line
-  and reaches members who have blocked advertising SMS, which the free-text method (`sms/send`) does
-  not.
-  **To confirm with Kavenegar's support:** that the birthday greeting is accepted as a template. If
-  it is not, only the birthday goes out with `sms/send` from a line, and `ISmsSender` (template-first
-  from task 10.1) covers both.
-- **The blanks** (Kavenegar's limits): `token`, `token2` and `token3` hold no space; `token10` holds
-  up to 5 spaces and `token20` up to 8; each holds at most 100 characters. A member's name goes in a
-  blank that allows spaces. The wording and blanks of every template are kept in
-  `docs/sms-templates.md`, so the same templates can be made again in another Kavenegar account.
-  **Every template uses `%token`**: Kavenegar refuses a template message without it. **A value longer
-  than its blank allows is simply cut short** (a long payee, a long name): the words the blank allows
-  are kept, then the first 100 characters (decided with the developer, 1405/07/14).
-- **The wording** (decided with the developer, 1405/07/14, in `docs/sms-templates.md`): the gym is
+- **Provider: Kavenegar**, through its free-text method (`sms/send`), **from the gym's dedicated line**
+  (خط اختصاصی). The template method (`verify/lookup`) was the first plan, but Kavenegar refused every
+  template because the gym's site was not up yet when it checked them, so a dedicated line was
+  bought; a line needs no template, and Kavenegar's support said to send with `sms/send` (decided
+  with the developer, 1405/07/16). The system writes the whole text and sends it.
+  **To confirm with Kavenegar's support:** whether a member who has blocked advertising SMS still
+  gets messages from the line. If not, their messages show it in the delivery.
+- **The wording is fixed in the code** (decided with the developer, 1405/07/16), as agreed on
+  1405/07/14 and kept in `docs/sms-texts.md`. Changing it is a release, not a setting. The values in
+  it are written the way the app shows them: Persian digits, a Jalali date as `۱۴۰۵/۰۷/۲۰`, an amount
+  with thousands separators.
+- **A long name or payee is cut short**, as it was in the templates' blanks (decided with the
+  developer, 1405/07/14), so one long name cannot make a message cost several parts: a member's name
+  keeps its first 6 words and a payee its first 9, then the first 100 characters.
+- **The wording** (decided with the developer, 1405/07/14, in `docs/sms-texts.md`): the gym is
   named «باشگاه پاسارگاد»; the subscription message gives the end date, not the days left; the
-  birthday has two templates, one for the day itself and one with «پیشاپیش» for a greeting sent
-  1 to 7 days early, and the Owner picks the one that matches the days set; the Owner's message
-  gives the kind, the amount, the date and the payee.
+  birthday has two texts, one for the day itself and one with «پیشاپیش» for a greeting sent 1 to 7
+  days early, and the system picks the one that matches the birthday's date (the Owner picked it
+  while there were templates); the Owner's message gives the kind, the amount, the date and the
+  payee.
 - **Length:** a Persian SMS holds 70 characters in one part and 67 in each part of a longer one, and
-  each part is paid for. The four templates run to about two parts each; the developer decided that
+  each part is paid for. The four texts run to about two parts each; the developer decided that
   is fine.
 - **Status:** `Pending`, `Sent`, `Failed`, `Unknown`.
   - A failure that may pass (Kavenegar busy, `409`; the server or the network down before the request
     left) is retried with backoff, up to `Sms:MaxAttempts`, then `Failed`.
-  - A failure that will not pass (template not found or not approved `424`, advanced service off
-    `426`, a bad character `422`/`431`, an invalid number `411`) is `Failed` at once, with its code.
+  - A failure that will not pass (an invalid number `411`, the line not valid for the account `412`,
+    the text empty or too long `413`, a bad character `422`) is `Failed` at once, with its code.
   - **Credit used up (`418`)**: that message is `Failed`, the rest of the run is not sent, and the
     Owner is warned on the SMS pages.
   - **No answer after the request left** (the connection broke while waiting): the message may have
-    gone. It becomes `Unknown` and is **never retried automatically**, because the template method
-    has no duplicate guard on Kavenegar's side and a second try could be paid twice.
+    gone. It becomes `Unknown` and is **never retried automatically**, because the request carries no
+    duplicate guard for Kavenegar to check and a second try could be paid twice.
   - Nothing is sent outside 08:00–22:00. A retry that would fall after 22:00 is not made: the message
     is `Failed`.
 - **Delivery:** after sending, the system asks Kavenegar (which keeps it for 48 hours) whether the
@@ -1386,8 +1388,8 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   It goes away by itself once a message is sent again, by a run or a resend.
 - **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand. For `Unknown` the page
   says it may already have arrived. Decided with the developer on 1405/07/16 (task 10.5):
-  - It sends **exactly the same message**: the same number, template name and values that were
-    written, even if the member's number or the template's name has changed since.
+  - It sends **exactly the same message**: the same number and text that were written, even if the
+    member's number or name has changed since.
   - **One request, no retries:** a failure that may pass makes it `Failed` at once with its code, and
     the Owner can resend again. Credit used up is `Failed` too, and `Unknown` as in a run.
   - It is allowed **while all SMS or that kind is off**: the switches stop the daily runs, and a resend
@@ -1406,10 +1408,9 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - **Kavenegar answers it does not describe:** an answer that is not Kavenegar's own (a proxy's error
   page, a broken reply) to a send that may have left is `Unknown`, never retried by itself, because a
   second try could be paid twice. A Kavenegar code not named above is `Failed`, with its code.
-- **Accounts:** development and testing use the developer's Kavenegar account. At release the
-  Owner's API key goes into the server's `.env`, the same templates are made and approved in the
-  Owner's account (a few days ahead: approval takes time), and the Owner fills in the settings page.
-  No code changes.
+- **Accounts:** development and testing use the developer's Kavenegar account. At release the API key
+  of the account that holds the dedicated line, and the line's number, go into the server's `.env`,
+  and the Owner fills in the settings page. Nothing waits for an approval, and no code changes.
 
 ---
 
@@ -1759,7 +1760,7 @@ without adding up the rows.
   - Every amount that is **displayed** goes through one formatter, which groups in threes and appends "تومان". A report's figure below zero (a loss, §12 *Dashboard*) keeps its minus sign, on the number's left as Persian number formatting writes it.
   - No screen formats an amount by itself, and no money value is ever held as a JavaScript number: rounding a price is never acceptable.
 - Reports offer Jalali periods (today, this week, this Jalali month, last month, this Jalali year; §12 *Dashboard*) that the frontend converts to Gregorian date ranges.
-- SMS messages are Persian. A Persian part holds 70 characters (67 in a longer message) against 160 for Latin, so templates are kept short and each one's part count is worked out when it is written (`docs/sms-templates.md`, §10).
+- SMS messages are Persian. A Persian part holds 70 characters (67 in a longer message) against 160 for Latin, so texts are kept short and each one's part count is worked out when it is written (`docs/sms-texts.md`, §10).
 
 ## 14. Theme (تم روشن و تیره)
 

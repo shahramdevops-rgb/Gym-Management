@@ -43,44 +43,39 @@ interface KindText {
   title: string;
   description: string;
   thresholdLabel: string;
-  templatePlaceholder: string;
   hint?: string;
 }
 
-/** Each kind's words on the page (BUSINESS_RULES.md §10 *The four kinds*; templates in docs/sms-templates.md). */
+/** Each kind's words on the page (BUSINESS_RULES.md §10 *The four kinds*; the texts in docs/sms-texts.md). */
 const kindText: Record<SmsKind, KindText> = {
   subscriptionExpiring: {
     title: "پایان اشتراک",
     description:
       "به عضو، وقتی تا پایان اشتراک فعالش این تعداد روز یا کمتر مانده باشد. عضوی که اشتراک بعدی را خریده پیامک نمی‌گیرد.",
     thresholdLabel: "چند روز قبل از پایان (۱ تا ۳۰)",
-    templatePlaceholder: "gymExpiring",
   },
   lowSessions: {
     title: "جلسات رو به اتمام",
     description:
       "به عضو، وقتی جلسات باقی‌ماندهٔ اشتراک فعالش به این تعداد یا کمتر برسد. عضوی که اشتراک بعدی را خریده پیامک نمی‌گیرد.",
     thresholdLabel: "تعداد جلسهٔ باقی‌مانده (۱ تا ۱۰)",
-    templatePlaceholder: "gymLowSessions",
   },
   birthday: {
     title: "تولد",
     description: "به هر عضوی که تاریخ تولد دارد، حتی عضو غیرفعال؛ سالی یک بار، به تاریخ شمسی.",
     thresholdLabel: "چند روز قبل از تولد (۰ تا ۷؛ ۰ یعنی خود روز)",
-    templatePlaceholder: "gymBirthday",
-    hint: "برای خود روز تولد قالب gymBirthday و برای تبریک پیشاپیش (۱ تا ۷ روز قبل) قالب gymBirthdayEarly را بنویسید.",
+    hint: "روز تولد «تولدتان مبارک» فرستاده می‌شود و ۱ تا ۷ روز قبل از آن «پیشاپیش تبریک می‌گوییم».",
   },
   payableDue: {
     title: "چک و قسط",
     description: "به شما (مدیر)، برای هر چک و هر قسطِ در انتظار، یک پیامک جدا.",
     thresholdLabel: "چند روز قبل از سررسید (۰ تا ۳۰؛ ۰ یعنی خود روز)",
-    templatePlaceholder: "gymPayableDue",
   },
 };
 
 /**
  * Owner only (the route is wrapped in RequireRole). «تنظیمات پیامک» (BUSINESS_RULES.md §10 *SMS
- * settings*): which SMS the gym sends, when, and with which Kavenegar template. It starts empty and
+ * settings*): which SMS the gym sends, and when; the texts are fixed in the API. It starts empty and
  * everything off; a kind can be turned on only once its fields are filled, because every SMS costs
  * money and nothing is sent that the Owner did not choose.
  *
@@ -274,7 +269,7 @@ interface KindFieldsetProps {
 }
 
 /**
- * One kind: its switch, number, send time and template name. The switch cannot be turned on while
+ * One kind: its switch, number and send time. The switch cannot be turned on while
  * a field is empty; one that is already on can always be turned off, even after a field is emptied
  * (the save then says what is missing).
  */
@@ -339,16 +334,6 @@ function KindFieldset({ kind, form, children }: KindFieldsetProps) {
               error={errors?.sendTime?.message}
             />
           )}
-        />
-
-        <FormField
-          label="نام قالب در کاوه‌نگار"
-          placeholder={text.templatePlaceholder}
-          dir="ltr"
-          className="text-end"
-          autoComplete="off"
-          error={errors?.templateName?.message}
-          {...form.register(`${kind}.templateName`)}
         />
 
         {children}

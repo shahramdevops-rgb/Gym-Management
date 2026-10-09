@@ -22,7 +22,7 @@ public static class SmsRegistration
     /// <item><c>Kavenegar</c> anywhere else: questions go to Kavenegar, but each message goes through
     /// <see cref="AllowListSmsSender"/>, so only the numbers in <c>Sms:AllowedReceptors</c> are really sent.</item>
     /// </list>
-    /// An unknown provider, or Kavenegar with no key, stops the app at startup rather than leaving the
+    /// An unknown provider, or Kavenegar with no key or line, stops the app at startup rather than leaving the
     /// Owner's messages unsent without a word.
     /// </remarks>
     public static IServiceCollection AddSms(this IServiceCollection services, IConfiguration configuration)

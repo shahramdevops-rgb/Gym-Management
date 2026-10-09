@@ -160,7 +160,7 @@ public sealed class CheckSmsDeliveryTests(DatabaseFixture fixture) : DatabaseTes
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed("سارا محمدی", $"+98913{suffix:D7}", new DateOnly(1990, 10, 9));
         var notification = Notification.ForBirthday(
-            member.Id, 1405, member.PhoneNumber, "gymBirthday", SmsValues.ForBirthday(member.FullName, new DateOnly(2026, 10, 9)));
+            member.Id, 1405, member.PhoneNumber, SmsText.ForBirthday(member.FullName, new DateOnly(2026, 10, 9), new DateOnly(2026, 10, 9)));
         outcome(notification).IsSuccess.ShouldBeTrue();
 
         await using var scope = Fixture.CreateScope();

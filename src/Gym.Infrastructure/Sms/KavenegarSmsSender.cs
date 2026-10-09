@@ -10,8 +10,9 @@ using Microsoft.Extensions.Options;
 namespace Gym.Infrastructure.Sms;
 
 /// <summary>
-/// Kavenegar's REST API (BUSINESS_RULES.md §10 <i>Sending</i>): the template method
-/// (<c>verify/lookup</c>) to send, <c>sms/status</c> for delivery, <c>account/info</c> for the credit.
+/// Kavenegar's REST API (BUSINESS_RULES.md §10 <i>Sending</i>): <c>sms/send</c> to send the text from
+/// the gym's dedicated line (<c>Sms:Kavenegar:Sender</c>), <c>sms/status</c> for delivery,
+/// <c>account/info</c> for the credit.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -24,10 +25,10 @@ namespace Gym.Infrastructure.Sms;
 /// all (the name not found, the connection refused, TLS failing) means nothing reached Kavenegar, so
 /// it may be tried again. A request that left and got no usable answer (a timeout, a dropped
 /// connection, a proxy's error page, a reply that is not Kavenegar's) may have been sent and paid
-/// for: <c>Unknown</c>, never retried by itself, because the template method has no duplicate guard.
+/// for: <c>Unknown</c>, never retried by itself, because the request carries no duplicate guard.
 /// </para>
 /// <para>
-/// <b>The API key is in the address of every request</b> (<c>/v1/{key}/verify/lookup.json</c>).
+/// <b>The API key is in the address of every request</b> (<c>/v1/{key}/sms/send.json</c>).
 /// IHttpClientFactory would log that address at Information, so this client's loggers are removed
 /// where it is registered, and nothing here ever logs an address.
 /// </para>
@@ -49,7 +50,7 @@ public sealed partial class KavenegarSmsSender(
     public const int Busy = 409;
     public const int CreditUsedUp = SmsProviderCodes.CreditUsedUp;
 
-    private const string LookupMethod = "verify/lookup";
+    private const string SendMethod = "sms/send";
     private const string StatusMethod = "sms/status";
     private const string AccountMethod = "account/info";
 
@@ -57,37 +58,37 @@ public sealed partial class KavenegarSmsSender(
 
     private static readonly SmsSendResult NoAnswer = new(SmsSendOutcome.Unknown);
 
-    public async Task<SmsSendResult> SendTemplateAsync(SmsTemplateMessage message, CancellationToken cancellationToken)
+    public async Task<SmsSendResult> SendAsync(SmsMessage message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
 
-        using var content = new FormUrlEncodedContent(LookupFields(message));
+        using var content = new FormUrlEncodedContent(SendFields(message));
 
         HttpResponseMessage response;
         try
         {
-            response = await http.PostAsync(PathOf(LookupMethod), content, cancellationToken);
+            response = await http.PostAsync(PathOf(SendMethod), content, cancellationToken);
         }
         catch (HttpRequestException exception) when (NeverLeft(exception))
         {
-            LogNotReached(logger, LookupMethod, exception.HttpRequestError);
+            LogNotReached(logger, SendMethod, exception.HttpRequestError);
             return new SmsSendResult(SmsSendOutcome.RetryableFailure);
         }
         catch (HttpRequestException exception)
         {
-            LogNoAnswer(logger, LookupMethod, exception.HttpRequestError.ToString());
+            LogNoAnswer(logger, SendMethod, exception.HttpRequestError.ToString());
             return NoAnswer;
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             // HttpClient.Timeout: the request left and the answer did not come back in time.
-            LogNoAnswer(logger, LookupMethod, "timeout");
+            LogNoAnswer(logger, SendMethod, "timeout");
             return NoAnswer;
         }
 
         using (response)
         {
-            var answer = await ReadAsync<SendEntry[]>(response, LookupMethod, cancellationToken);
+            var answer = await ReadAsync<SendEntry[]>(response, SendMethod, cancellationToken);
             if (answer?.Return is not { } result)
             {
                 return NoAnswer;
@@ -99,19 +100,19 @@ public sealed partial class KavenegarSmsSender(
                     return SmsSendResult.Sent(entry.MessageId, entry.Cost);
 
                 case Accepted:
-                    LogNoAnswer(logger, LookupMethod, "accepted with no message");
+                    LogNoAnswer(logger, SendMethod, "accepted with no message");
                     return NoAnswer;
 
                 case Busy:
-                    LogRefused(logger, LookupMethod, result.Status);
+                    LogRefused(logger, SendMethod, result.Status);
                     return new SmsSendResult(SmsSendOutcome.RetryableFailure, ErrorCode: result.Status);
 
                 case CreditUsedUp:
-                    LogRefused(logger, LookupMethod, result.Status);
+                    LogRefused(logger, SendMethod, result.Status);
                     return new SmsSendResult(SmsSendOutcome.CreditExhausted, ErrorCode: result.Status);
 
                 default:
-                    LogRefused(logger, LookupMethod, result.Status);
+                    LogRefused(logger, SendMethod, result.Status);
                     return new SmsSendResult(SmsSendOutcome.PermanentFailure, ErrorCode: result.Status);
             }
         }
@@ -164,32 +165,13 @@ public sealed partial class KavenegarSmsSender(
     internal static string ToReceptor(string e164) =>
         e164.StartsWith("+98", StringComparison.Ordinal) ? string.Concat("0", e164.AsSpan(3)) : e164;
 
-    private static IEnumerable<KeyValuePair<string, string>> LookupFields(SmsTemplateMessage message)
+    /// <summary>Posted as a form, so the Persian text needs no escaping of its own.</summary>
+    private Dictionary<string, string> SendFields(SmsMessage message) => new()
     {
-        yield return new("receptor", ToReceptor(message.Receptor));
-        yield return new("template", message.Template);
-        yield return new("token", message.Tokens.Token);
-
-        if (message.Tokens.Token2 is { } token2)
-        {
-            yield return new("token2", token2);
-        }
-
-        if (message.Tokens.Token3 is { } token3)
-        {
-            yield return new("token3", token3);
-        }
-
-        if (message.Tokens.Token10 is { } token10)
-        {
-            yield return new("token10", token10);
-        }
-
-        if (message.Tokens.Token20 is { } token20)
-        {
-            yield return new("token20", token20);
-        }
-    }
+        ["receptor"] = ToReceptor(message.Receptor),
+        ["sender"] = options.Value.Kavenegar.Sender,
+        ["message"] = message.Text,
+    };
 
     /// <summary>No connection was made, so the request cannot have reached Kavenegar.</summary>
     private static bool NeverLeft(HttpRequestException exception) => exception.HttpRequestError
