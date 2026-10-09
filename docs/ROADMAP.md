@@ -2429,8 +2429,8 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
 - [x] The API key never in the logs: the HTTP client's own loggers removed (`RemoveAllLoggers`), with
       a test that fails without it
 - [x] Free text from the gym's dedicated line instead of templates (1405/07/16, 2026-10-08):
-      Kavenegar refused every template because the gym's site was not up yet, so a line was bought
-      and its support said to send with `sms/send`. Decided with the developer: the wording fixed in
+      Kavenegar refused every template because the gym's site was not up yet, so a line is being
+      bought (not yet on 1405/07/17) and its support said to send with `sms/send`. Decided with the developer: the wording fixed in
       the code (`SmsText`, `docs/sms-texts.md`), the line's number in `Sms:Kavenegar:Sender`
       (configuration, not the settings page). `ISmsSender.SendAsync(SmsMessage(Receptor, Text))`;
       `Notification.Text` replaces the template name and the five values; the settings page loses
@@ -2447,7 +2447,16 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
       `Sms:Provider` = Kavenegar the API does not start without it), then one message to the
       developer's own number through `Sms:AllowedReceptors`, with Kavenegar's Debug mode on (it
       accepts requests and sends nothing). Kavenegar's documentation could not be reached from the
-      development machine, so the codes and statuses come from §10 and are checked in this test
+      development machine, so the codes and statuses come from §10 and are checked in this test.
+      First try, 1405/07/17 (2026-10-09), Debug mode off, from the developer's account with the only
+      line it has, the shared international line `0018018949161`: Kavenegar answered **412** (the
+      line not valid for the account), so nothing was sent and nothing charged. What it proved: the
+      request with the key and the line reaches Kavenegar, 412 becomes `Failed` with its code and is
+      not retried, and `Sms:AllowedReceptors` let only the developer's number through. Note for the
+      repeat: on startup Hangfire makes the day's missed runs at once, for every kind the local
+      settings page has on. Waits for the dedicated line (to be bought from 1405/07/18; it needs
+      identity verification and a business licence), then the same test with that account's key
+      and line
 - [ ] Ask Kavenegar's support whether a member who blocked advertising SMS still gets the line's
       messages (§10 *Sending*)
 
