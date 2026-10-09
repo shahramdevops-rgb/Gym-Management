@@ -28,7 +28,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
             table.HasCheckConstraint(
                 "ck_notifications_delivery",
-                "delivery IS NULL OR delivery IN ('Delivered', 'NotDelivered', 'BlockedByReceiver')");
+                "delivery IS NULL OR delivery IN ('Delivered', 'NotDelivered', 'BlockedByReceiver', 'Cancelled')");
             table.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
             table.HasCheckConstraint("ck_notifications_text_not_blank", "btrim(text) <> ''");
             table.HasCheckConstraint("ck_notifications_attempts_not_negative", "attempts >= 0");
@@ -52,6 +52,11 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             table.HasCheckConstraint(
                 NotificationConstraints.DeliveryOnlyWhenSent,
                 "delivery IS NULL OR status = 'Sent'");
+
+            // §10 Sending: the provider gives the cost back for a blocked or cancelled message.
+            table.HasCheckConstraint(
+                NotificationConstraints.RefundedHasNoCost,
+                "delivery IS NULL OR delivery NOT IN ('BlockedByReceiver', 'Cancelled') OR cost_rial = 0");
         });
 
         builder.Property(notification => notification.Kind).HasConversion<string>().HasMaxLength(30);

@@ -2665,7 +2665,7 @@ export interface components {
             creditUsedUp: boolean;
         };
         /** @enum {unknown} */
-        SmsDelivery: "Delivered" | "NotDelivered" | "BlockedByReceiver" | null;
+        SmsDelivery: "Delivered" | "NotDelivered" | "BlockedByReceiver" | "Cancelled" | null;
         SmsKindSettings: {
             enabled: boolean;
             /** Format: int32 */

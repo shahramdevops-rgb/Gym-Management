@@ -322,6 +322,8 @@ export const errorMessages: Record<string, string> = {
   // SMS
   "Notifications.NotPending": "این پیامک دیگر در صف ارسال نیست.",
   "Notifications.NotSent": "وضعیت تحویل فقط برای پیامکِ ارسال‌شده ثبت می‌شود.",
+  "Notifications.DeliveryRefunded":
+    "هزینهٔ این پیامک برگشت داده شده و وضعیت تحویلش دیگر تغییر نمی‌کند.",
   "Notifications.NotFound": "این پیامک پیدا نشد.",
   "Notifications.NotResendable":
     "فقط پیامکی که ناموفق بوده یا وضعیتش نامعلوم است دوباره فرستاده می‌شود. فهرست را تازه کنید.",

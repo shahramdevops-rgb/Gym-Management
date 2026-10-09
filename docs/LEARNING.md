@@ -1618,3 +1618,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Fail at startup, not at the first message.** With Kavenegar chosen and no line number, the options validator stops the app. The developer's own machine hit it at once, which is the point: a missing setting shows up the day it is missing, not the first night a message should have gone out.
 - **Let the data choose, not a person.** The two birthday texts used to be two templates, and the Owner had to pick the one that matched the days set. Now `SmsText.ForBirthday` compares the birthday with today, so the text can never disagree with the date.
 - **My notes:**
+
+## 10.4 (continued) — Kavenegar's documentation and refunded messages (کدهای کاوه‌نگار و هزینهٔ برگشتی)
+
+- **Check guesses against the source once it is reachable.** The codes had come from memory and from tests against a stub. Reading Kavenegar's own table found two things the stub could never show: `451` (a rate limit, which can pass) and the refund on `13` and `14`.
+- **Retry only what can pass and cannot be paid twice.** `451` joins `409` as a retry because Kavenegar refused the request outright: nothing was sent, so a second try costs at most one message. A request that left with no answer is still `Unknown` and is never retried.
+- **One enum value per meaning, not per screen.** "Cancelled" (13) used to be folded into "not delivered". It looked the same on screen, but it behaves differently: the cost comes back and it will never arrive. When two cases need different rules, they need different values.
+- **A rule in the entity, with the database as a second guard.** `RecordDelivery` sets the cost to 0 for a refunded delivery and refuses to change it afterwards. The check `ck_notifications_refunded_has_no_cost` makes the same promise in Postgres, so a hand-written `UPDATE` cannot break it either.
+- **A new check constraint must fit the rows already there.** The migration first sets the cost of any old blocked message to 0, then adds the check. The other order would fail on the server's data (CLAUDE.md: carry existing rows forward, never refuse them).
+- **Defaults in Compose keep a release harmless.** `${SMS_PROVIDER:-Fake}` means a server whose `.env` has not been touched stays on the fake sender, so the code that can send for real ships before anyone decides to send. Turning it on is a configuration change, not a release.
+- **My notes:**

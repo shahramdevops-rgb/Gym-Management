@@ -19,7 +19,8 @@ namespace Gym.Api.IntegrationTests.Notifications;
 
 /// <summary>
 /// The nightly delivery check (BUSINESS_RULES.md §10 <i>Sending</i>, task 10.4): asks about every
-/// message sent in the last 48 hours that is not yet delivered or blocked, and keeps the answer. The
+/// message sent in the last 48 hours that is not yet delivered, blocked or cancelled, and keeps the
+/// answer; a blocked or cancelled one costs nothing. The
 /// provider is <see cref="ScriptedAccount"/>, which answers what each test scripts.
 /// </summary>
 [Collection(DatabaseCollectionDefinition.Name)]
@@ -78,9 +79,27 @@ public sealed class CheckSmsDeliveryTests(DatabaseFixture fixture) : DatabaseTes
     }
 
     [Theory]
+    [InlineData(SmsDelivery.BlockedByReceiver)]
+    [InlineData(SmsDelivery.Cancelled)]
+    public async Task Handle_BlockedOrCancelled_KeepsACostOfZero(SmsDelivery refunded)
+    {
+        // §10: Kavenegar gives the cost back for these, so the history's totals must not count it.
+        var message = await AddSentAsync(Now.AddHours(-3));
+        var cheaper = await AddSentAsync(Now.AddHours(-3));
+
+        var changed = await CheckAsync(new ScriptedAccount { [message] = refunded, [cheaper] = SmsDelivery.Delivered });
+
+        changed.ShouldBe(2);
+        (await DeliveryOfAsync(message)).ShouldBe(refunded);
+        (await CostOfAsync(message)).ShouldBe(0m);
+        (await CostOfAsync(cheaper)).ShouldBe(1_350m);
+    }
+
+    [Theory]
     [InlineData(SmsDelivery.Delivered)]
     [InlineData(SmsDelivery.BlockedByReceiver)]
-    public async Task Handle_DeliveredOrBlocked_IsNotAskedAgain(SmsDelivery final)
+    [InlineData(SmsDelivery.Cancelled)]
+    public async Task Handle_DeliveredBlockedOrCancelled_IsNotAskedAgain(SmsDelivery final)
     {
         await AddSentAsync(Now.AddHours(-3), final);
         var account = new ScriptedAccount();
@@ -178,6 +197,17 @@ public sealed class CheckSmsDeliveryTests(DatabaseFixture fixture) : DatabaseTes
         return await db.Notifications
             .Where(notification => notification.ProviderMessageId == providerId)
             .Select(notification => notification.Delivery)
+            .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<decimal?> CostOfAsync(long providerId)
+    {
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        return await db.Notifications
+            .Where(notification => notification.ProviderMessageId == providerId)
+            .Select(notification => notification.CostRial)
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 

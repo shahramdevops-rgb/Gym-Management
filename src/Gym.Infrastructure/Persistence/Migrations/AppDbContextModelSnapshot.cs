@@ -1638,7 +1638,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_notifications_cost_not_negative", "cost_rial IS NULL OR cost_rial >= 0");
 
-                            t.HasCheckConstraint("ck_notifications_delivery", "delivery IS NULL OR delivery IN ('Delivered', 'NotDelivered', 'BlockedByReceiver')");
+                            t.HasCheckConstraint("ck_notifications_delivery", "delivery IS NULL OR delivery IN ('Delivered', 'NotDelivered', 'BlockedByReceiver', 'Cancelled')");
 
                             t.HasCheckConstraint("ck_notifications_delivery_only_when_sent", "delivery IS NULL OR status = 'Sent'");
 
@@ -1647,6 +1647,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue')");
 
                             t.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
+
+                            t.HasCheckConstraint("ck_notifications_refunded_has_no_cost", "delivery IS NULL OR delivery NOT IN ('BlockedByReceiver', 'Cancelled') OR cost_rial = 0");
 
                             t.HasCheckConstraint("ck_notifications_sent_has_provider_id", "status <> 'Sent' OR (provider_message_id IS NOT NULL AND sent_at IS NOT NULL AND cost_rial IS NOT NULL)");
 

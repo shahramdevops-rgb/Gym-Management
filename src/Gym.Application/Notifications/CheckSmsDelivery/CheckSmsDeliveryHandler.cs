@@ -9,13 +9,15 @@ namespace Gym.Application.Notifications.CheckSmsDelivery;
 
 /// <summary>
 /// The nightly delivery check (BUSINESS_RULES.md §10 <i>Sending</i>): asks the provider whether each
-/// message sent in the last 48 hours reached the phone, and keeps the answer on the message.
+/// message sent in the last 48 hours reached the phone, and keeps the answer on the message. A blocked
+/// or cancelled message's cost becomes 0: the provider gives it back.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <b>Once a day is enough.</b> The provider remembers a message for 48 hours, so a check every 24
 /// asks about each one at least once, and a "not delivered" (the phone was off) is asked about again
-/// the next night, when it may have arrived. Delivered and blocked do not change, so they are left.
+/// the next night, when it may have arrived. Delivered, blocked and cancelled do not change, so they
+/// are left.
 /// </para>
 /// <para>
 /// No HTTP endpoint calls this; Gym.Infrastructure/Jobs schedules it directly with Hangfire. A

@@ -216,6 +216,22 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
         exception.ConstraintName.ShouldBe(NotificationConstraints.DeliveryOnlyWhenSent);
     }
 
+    [Theory]
+    [InlineData("BlockedByReceiver")]
+    [InlineData("Cancelled")]
+    public async Task Notification_RefundedWithACost_RejectedByACheckConstraint(string delivery)
+    {
+        var id = await SaveExpiringAsync();
+        await ExecuteSqlAsync(
+            $"UPDATE notifications SET status = 'Sent', provider_message_id = 1, sent_at = now(), cost_rial = 0, delivery = '{delivery}' WHERE id = '{id}'");
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET cost_rial = 1350 WHERE id = '{id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.RefundedHasNoCost);
+    }
+
     [Fact]
     public async Task Notification_UnknownKind_RejectedByACheckConstraint()
     {

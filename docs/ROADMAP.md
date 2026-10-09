@@ -2456,9 +2456,29 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
       repeat: on startup Hangfire makes the day's missed runs at once, for every kind the local
       settings page has on. Waits for the dedicated line (to be bought from 1405/07/18; it needs
       identity verification and a business licence), then the same test with that account's key
-      and line
+      and line. Second try the same evening, Debug off, with `2000660110` (the line in the sample
+      code of Kavenegar's panel, not one the account owns): three resends from «پیامک‌ها», each one
+      request and each answered **427**, which §10 did not name yet; nothing sent. The resend
+      behaved as §10 says: one request per click, `Failed` with the code, never retried by itself.
+      Kavenegar's documentation, reached on 1405/07/17: 427 is "this line needs an access level",
+      as expected for a line the account does not own. The developer says the first line,
+      `0018018949161`, shows as active in their panel, yet it got 412; the documentation's 407 says
+      sending through international lines needs the server's IP in the account's security settings,
+      so that may be the reason. Not looked into further: the test waits for the dedicated line
 - [ ] Ask Kavenegar's support whether a member who blocked advertising SMS still gets the line's
-      messages (§10 *Sending*)
+      messages (§10 *Sending*). The documentation says status 14 is a receiver who turned off
+      advertising lines, and gives the cost back; whether a dedicated line counts is still the question
+- [x] Kavenegar's codes and statuses checked against its documentation (1405/07/17, 2026-10-09; it
+      could not be reached before). Decided with the developer: `451` (too many requests from the IP)
+      may pass like `409`; status `13` becomes its own delivery, `Cancelled` («کاوه‌نگار لغو کرد»),
+      instead of «به گوشی نرسید»; a blocked or cancelled message's cost becomes 0, since Kavenegar
+      gives it back, and its delivery is final (`Notification.RecordDelivery`,
+      `Notifications.DeliveryRefunded`, check `ck_notifications_refunded_has_no_cost`); the history
+      says «هزینه برگشت داده شد». §10 names 401, 403, 407, 416, 420, 427, 429, 451 and 501 now, each
+      with its Persian meaning on «پیامک‌ها». Migration `AddSmsDeliveryCancelled`: a blocked message
+      recorded before costs 0 (carried forward, not refused). 2139 backend tests (704 domain, 1435
+      integration) and 990 frontend tests green, zero warnings, lint, `format:check` and production
+      build pass; the release still starts with `./backup.sh run`
 
 ### 10.5 SMS history and resend
 Decided with the developer on 1405/07/16 (2026-10-08), BUSINESS_RULES.md §10 *The SMS history*,
@@ -2491,10 +2511,12 @@ still starts with `./backup.sh run`.
 ### 10.6 Go live with the Owner's account
 Every server step is proposed and confirmed first, with `./backup.sh run` before the release.
 - [ ] The account that holds the dedicated line charged (no templates to wait for since 1405/07/16)
+- [x] `docker-compose.prod.yml` passes `Sms__Provider`, `Sms__Kavenegar__ApiKey` and
+      `Sms__Kavenegar__Sender` to the API from `SMS_PROVIDER`, `SMS_KAVENEGAR_API_KEY` and
+      `SMS_KAVENEGAR_SENDER`; left out of `.env`, the provider stays `Fake`, so a release sends
+      nothing. `deploy/env.example` lists them (1405/07/17)
 - [ ] Its API key and the line's number in the server's `.env`, the key restricted to the server's IP
-      in Kavenegar; `docker-compose.prod.yml` passes `Sms__Provider`, `Sms__Kavenegar__ApiKey` and
-      `Sms__Kavenegar__Sender` to the API (not yet: until then the server keeps appsettings' `Fake`),
-      and `deploy/env.example` lists them
+      in Kavenegar
 - [ ] The Owner fills in the settings page and turns on the kinds they want
 
 ---

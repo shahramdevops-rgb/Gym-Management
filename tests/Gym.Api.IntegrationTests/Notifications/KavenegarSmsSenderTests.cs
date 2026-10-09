@@ -57,6 +57,7 @@ public sealed class KavenegarSmsSenderTests
 
     [Theory]
     [InlineData(409, SmsSendOutcome.RetryableFailure)]
+    [InlineData(451, SmsSendOutcome.RetryableFailure)]
     [InlineData(418, SmsSendOutcome.CreditExhausted)]
     [InlineData(411, SmsSendOutcome.PermanentFailure)]
     [InlineData(422, SmsSendOutcome.PermanentFailure)]
@@ -65,6 +66,9 @@ public sealed class KavenegarSmsSenderTests
     [InlineData(431, SmsSendOutcome.PermanentFailure)]
     [InlineData(403, SmsSendOutcome.PermanentFailure)]
     [InlineData(501, SmsSendOutcome.PermanentFailure)]
+    [InlineData(412, SmsSendOutcome.PermanentFailure)]
+    [InlineData(416, SmsSendOutcome.PermanentFailure)]
+    [InlineData(427, SmsSendOutcome.PermanentFailure)]
     public async Task SendAsync_KavenegarsCode_BecomesItsOutcomeAndIsKept(int code, SmsSendOutcome outcome)
     {
         var result = await SendAsync(new StubKavenegar(_ => StubKavenegar.Answer(code)));
@@ -153,7 +157,7 @@ public sealed class KavenegarSmsSenderTests
             [2] = SmsDelivery.NotDelivered,
             [3] = SmsDelivery.BlockedByReceiver,
             [4] = SmsDelivery.NotDelivered,
-            [5] = SmsDelivery.NotDelivered,
+            [5] = SmsDelivery.Cancelled,
         });
         var request = stub.Requests.ShouldHaveSingleItem();
         request.Method.ShouldBe(HttpMethod.Get);

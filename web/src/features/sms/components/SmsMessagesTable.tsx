@@ -13,7 +13,13 @@ import {
 } from "@/lib/format";
 
 import { useResendSms, type SmsMessage } from "../api";
-import { describeSmsError, smsDeliveryLabels, smsKindLabels, smsStatusLabels } from "../labels";
+import {
+  describeSmsError,
+  isRefunded,
+  smsDeliveryLabels,
+  smsKindLabels,
+  smsStatusLabels,
+} from "../labels";
 
 const columns = 6;
 
@@ -112,8 +118,11 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
             </p>
           )}
         </td>
-        <td className="py-2">
-          {message.costToman === null ? emptyValue : formatMoney(message.costToman)}
+        <td className="py-2 space-y-1">
+          <p>{message.costToman === null ? emptyValue : formatMoney(message.costToman)}</p>
+          {isRefunded(message.delivery) && (
+            <p className="text-xs text-muted-foreground">هزینه برگشت داده شد</p>
+          )}
         </td>
         <td className="py-2">
           {canResend && (

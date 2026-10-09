@@ -8,8 +8,12 @@ public enum SmsDelivery
 {
     Delivered,
 
+    /// <summary>The phone was off or out of reach, or the carrier failed: it may still arrive later.</summary>
     NotDelivered,
 
-    /// <summary>The receiver has blocked messages from this sender.</summary>
+    /// <summary>The receiver has blocked messages from this sender. The provider gives the cost back.</summary>
     BlockedByReceiver,
+
+    /// <summary>The provider cancelled it (a sending error on its side) and gave the cost back.</summary>
+    Cancelled,
 }
