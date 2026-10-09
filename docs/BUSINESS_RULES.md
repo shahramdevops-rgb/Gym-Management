@@ -1335,8 +1335,9 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 ### Sending
 - **Provider: Kavenegar**, through its free-text method (`sms/send`), **from the gym's dedicated line**
   (خط اختصاصی). The template method (`verify/lookup`) was the first plan, but Kavenegar refused every
-  template because the gym's site was not up yet when it checked them, so a dedicated line was
-  bought; a line needs no template, and Kavenegar's support said to send with `sms/send` (decided
+  template because the gym's site was not up yet when it checked them, so the gym is buying a
+  dedicated line (not bought yet on 1405/07/17: it needs identity verification and a business
+  licence); a line needs no template, and Kavenegar's support said to send with `sms/send` (decided
   with the developer, 1405/07/16). The system writes the whole text and sends it.
   **To confirm with Kavenegar's support:** whether a member who has blocked advertising SMS still
   gets messages from the line. If not, their messages show it in the delivery.

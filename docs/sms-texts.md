@@ -6,7 +6,8 @@ The wording of every SMS the gym sends (BUSINESS_RULES.md §10). Agreed with the
 The wording lives **in the code** (`SmsText` in `Gym.Domain/Notifications`), and the system sends
 the whole text with Kavenegar's `sms/send` from the gym's dedicated line. These were first written
 as Kavenegar templates, but Kavenegar refused every template (the gym's site was not up yet), so the
-gym bought a dedicated line, which needs none (1405/07/16). Changing a text is a release: change it
+gym is buying a dedicated line, which needs none (decided 1405/07/16; not bought yet on
+1405/07/17, since buying it needs identity verification and a business licence). Changing a text is a release: change it
 here and in `SmsText` together, and the domain tests that hold each text.
 
 ## The values
