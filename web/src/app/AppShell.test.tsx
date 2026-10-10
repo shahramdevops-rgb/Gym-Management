@@ -187,32 +187,56 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "چک و قسط" })).not.toBeInTheDocument();
   });
 
-  // ---- The pages released on 1405/07/14, marked new for the Owner ----
+  // ---- The pages released on 1405/07/18, marked for the Owner and the desk ----
 
-  it("AppShell_On15Mehr_MarksTheDashboardAndChequesNew", async () => {
+  it("AppShell_On25Mehr_MarksMembersUpdatedAuditNewAndSmsInTesting", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-07T17:00:00Z")); // ۱۵ مهر ۱۴۰۵, 20:30 at the gym
+    vi.setSystemTime(new Date("2026-10-17T17:00:00Z")); // ۲۵ مهر ۱۴۰۵, 20:30 at the gym
     mockApi(signedInHandlers(owner));
 
     renderApp("/", { session: session() });
 
-    const dashboard = await screen.findByRole("link", { name: "داشبورد" });
-    expect(within(dashboard).getByText("جدید")).toBeInTheDocument();
+    const audit = await screen.findByRole("link", { name: "گزارش تغییرات" });
+    expect(within(audit).getByText("جدید")).toBeInTheDocument();
     expect(
-      within(screen.getByRole("link", { name: "چک و قسط" })).getByText("جدید"),
+      within(screen.getByRole("link", { name: "اعضا" })).getByText("به‌روز شد"),
     ).toBeInTheDocument();
-    expect(within(screen.getByRole("link", { name: "هزینه‌ها" })).queryByText("جدید")).toBeNull();
+    expect(
+      within(screen.getByRole("link", { name: "پیامک‌ها" })).getByText("آزمایشی"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("link", { name: "تنظیمات پیامک" })).getByText("آزمایشی"),
+    ).toBeInTheDocument();
+    expect(within(screen.getByRole("link", { name: "داشبورد" })).queryByText("جدید")).toBeNull();
   });
 
-  it("AppShell_From16Mehr_MarksNothingNew", async () => {
+  it("AppShell_From26Mehr_KeepsOnlyTheSmsMarks", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-07T21:00:00Z")); // ۱۶ مهر ۱۴۰۵, 00:30 at the gym
+    vi.setSystemTime(new Date("2026-10-17T21:00:00Z")); // ۲۶ مهر ۱۴۰۵, 00:30 at the gym
     mockApi(signedInHandlers(owner));
 
     renderApp("/", { session: session() });
 
-    await screen.findByRole("link", { name: "داشبورد" });
+    await screen.findByRole("link", { name: "گزارش تغییرات" });
+    expect(screen.queryByText("به‌روز شد")).not.toBeInTheDocument();
     expect(screen.queryByText("جدید")).not.toBeInTheDocument();
+    // Until SMS goes live (task 10.6), not until a date.
+    expect(screen.getAllByText("آزمایشی")).toHaveLength(2);
+  });
+
+  it("AppShell_Staff_SeesMembersUpdatedButNoOwnerMarks", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-10T17:00:00Z")); // ۱۸ مهر ۱۴۰۵
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+
+    // The Owner's items wait for the user; once the name shows, the menu is complete.
+    await screen.findByText(staffUser.fullName);
+    expect(
+      within(screen.getByRole("link", { name: "اعضا" })).getByText("به‌روز شد"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("آزمایشی")).not.toBeInTheDocument();
   });
 
   // ---- The theme (BUSINESS_RULES.md §14) ----

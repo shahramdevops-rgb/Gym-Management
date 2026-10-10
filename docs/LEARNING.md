@@ -1678,3 +1678,7 @@ The question that started this was whether a gym that is entirely internal — I
 - **Ask the cost question before building.** The open question in the roadmap ("how does night-time development stay unblocked?") was the one that showed the rule was not worth it. Writing down what a rule would cost the people who work with it is part of deciding it.
 - **A dropped decision stays in the documents.** BUSINESS_RULES.md §7 *Opening hours* now says the system has none, why, and that a new rule would be written there first. Deleting the section would leave nothing to stop the next person who asks "why can anyone check in at 3 a.m.?" from building it again.
 - **My notes:**
+
+### Menu marks after the 1405/07/18 release
+- **One field instead of two special cases.** The «جدید» mark had a fixed text and a date; three new marks needed other words, and one has no end date at all. A small `badge` object (`text`, optional `until`) covers all of them, and the render is one condition: no `until`, or today is not past it.
+- **Measure the layout instead of guessing it.** «جدید آزمایشی» passed every test but broke «تنظیمات پیامک» onto two lines in a 224 px menu. jsdom has no layout, so only a real browser shows this; the fix was the developer's choice between a wider menu for every page and a shorter word.
