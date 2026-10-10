@@ -1671,3 +1671,10 @@ The question that started this was whether a gym that is entirely internal — I
 - **A warning that is noise still gets fixed at its source.** `GroupBy(x => 1)…FirstOrDefault()` returns one group or none, so "first by which order?" has no answer that matters, but `SingleOrDefault` says what is meant and the warning goes away. Suppressing EF's warning would have hidden the next real one.
 - **Read production read-only, and prove it.** The server was read over ssh with `logs`, `grep` and `SELECT`s in a session with `default_transaction_read_only=on`, so even a mistyped query could not write. Nothing was saved on the server, not even a temporary file.
 - **My notes:**
+
+## 11.4 — Opening hours, dropped (ساعت کاری، حذف شد)
+
+- **A rule nobody breaks still costs something.** Refusing check-in at night guards against something the desk never does: nobody checks a member in while the gym is shut. Building it would have added a setting to keep right, a startup check, an error message, and a way around it for every night of development and every test run on the real clock. Asked what that way around should be, the developer dropped the rule instead.
+- **Ask the cost question before building.** The open question in the roadmap ("how does night-time development stay unblocked?") was the one that showed the rule was not worth it. Writing down what a rule would cost the people who work with it is part of deciding it.
+- **A dropped decision stays in the documents.** BUSINESS_RULES.md §7 *Opening hours* now says the system has none, why, and that a new rule would be written there first. Deleting the section would leave nothing to stop the next person who asks "why can anyone check in at 3 a.m.?" from building it again.
+- **My notes:**

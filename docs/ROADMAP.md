@@ -2614,15 +2614,18 @@ passes. One migration, `AddPaymentsCafeOrderForeignKey` (an index and a foreign 
 had no payment without its order, so it refuses no row). A release still starts with
 `./backup.sh run`.
 
-### 11.4 Opening hours: no check-in while the gym is closed (PENDING)
-Rule decided on 2026-09-26 (BUSINESS_RULES.md §0, §7 *Opening hours*), deliberately left until here
-because the developer builds and tests at night. Do not start it earlier unless asked.
-- [ ] `Gym:OpeningTime` = 06:00 setting next to `Gym:ClosingTime`
-- [ ] Check-in between `Gym:ClosingTime` and `Gym:OpeningTime` (gym time zone, window crosses midnight) is refused with a stable error code, mapped to a Persian message
-- [ ] Decide with the developer before coding: how local development at night stays unblocked (no Owner override: §7 *Opening hours*)
-- [ ] Tests: domain tests for the window edges (23:59, 00:00, 05:59, 06:00) with `FakeTimeProvider`; an integration test for the refusal
+### 11.4 Opening hours: no check-in while the gym is closed (DROPPED)
+**Dropped by the developer** on 1405/07/18 (2026-10-10), when asked how night-time development would
+stay unblocked: nobody checks a member in while the gym is shut, so the rule is not needed.
+BUSINESS_RULES.md §0 and §7 *Opening hours* now say the system has no opening hours. Check-out is
+unchanged: by hand, or by *Auto-checkout* at `Gym:ClosingTime` (an unpaid guest and a cardio-only
+visit with no amount stay open, as before). The items below were never built and stay as the record.
+- `Gym:OpeningTime` = 06:00 setting next to `Gym:ClosingTime`
+- Check-in between `Gym:ClosingTime` and `Gym:OpeningTime` refused with a stable error code, mapped
+  to a Persian message
+- Domain tests for the window edges and an integration test for the refusal
 
-Done when: a check-in at 00:30 Tehran time is refused, one at 06:00 succeeds, and the front desk shows the Persian message.
+Nothing to release: no code changed, only the two documents.
 
 ### 11.5 Password policy after NIST (asked by the developer, 1405/07/04)
 The old rule (8 characters, a letter and a digit) was too weak for a panel on the public internet.
