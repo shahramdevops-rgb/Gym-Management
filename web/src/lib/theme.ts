@@ -4,7 +4,7 @@ export type Theme = "light" | "dark";
 
 /**
  * Where the choice is kept: in this browser, on this device (BUSINESS_RULES.md §14). The script in
- * `index.html` reads the same key before the page is drawn, so the two must not drift apart.
+ * `public/theme-init.js` reads the same key before the page is drawn, so the two must not drift apart.
  */
 export const themeStorageKey = "gym.theme";
 
@@ -35,7 +35,7 @@ export function applyTheme(theme: Theme): void {
 
 /** The current theme and a switch between the two. */
 export function useTheme(): { theme: Theme; toggle: () => void } {
-  // index.html has already applied the saved theme, so <html> is the truth on first render.
+  // public/theme-init.js has already applied the saved theme, so <html> is the truth on first render.
   const [theme, setTheme] = useState<Theme>(() =>
     document.documentElement.classList.contains("dark") ? "dark" : "light",
   );

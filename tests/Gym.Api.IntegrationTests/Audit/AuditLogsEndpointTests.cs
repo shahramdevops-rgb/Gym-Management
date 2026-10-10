@@ -197,8 +197,11 @@ public sealed class AuditLogsEndpointTests(DatabaseFixture fixture) : DatabaseTe
         var pageTwo = await ListAsync(DayFilter + "&pageSize=2&page=2");
 
         pageOne.TotalCount.ShouldBe(3);
-        // The same moment for all three: the id, a version 7 Guid, keeps them apart and in order.
-        pageOne.Items.Concat(pageTwo.Items).Select(item => item.Id).ShouldBe([third, second, first]);
+        // The same moment for all three: the id keeps them apart, so every row is on exactly one
+        // page. Not in creation order, though: a version 7 Guid is ordered by the millisecond only,
+        // and rows written within one millisecond get random bits after it.
+        pageOne.Items.Count.ShouldBe(2);
+        pageOne.Items.Concat(pageTwo.Items).Select(item => item.Id).ShouldBe([first, second, third], ignoreOrder: true);
     }
 
     [Fact]

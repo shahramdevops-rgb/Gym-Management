@@ -68,19 +68,5 @@ public sealed class AuditFieldLabelsTests(DatabaseFixture fixture) : DatabaseTes
     }
 
     private static JsonDocument ReadLabels() =>
-        JsonDocument.Parse(File.ReadAllText(Path.Combine(FindRepositoryRoot(), LabelsFile)));
-
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "GymManagement.sln")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName
-            ?? throw new InvalidOperationException(
-                $"Could not find GymManagement.sln in any directory above '{AppContext.BaseDirectory}'.");
-    }
+        JsonDocument.Parse(RepositoryFiles.ReadAllText(LabelsFile));
 }

@@ -1641,3 +1641,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Tests that write the rows themselves.** The table refuses `UPDATE`, so a row cannot be moved to a chosen day after saving, as the SMS tests do. These tests `INSERT` the rows directly, on a day long past, so the rows written by the test's own login fall outside the filter.
 - **A default that gives way.** The page opens on today, but choosing a member or one record drops that default, because their history is what the Owner asked for. The default is computed from the URL, never written into it, so the URL only holds what the Owner chose.
 - **My notes:**
+
+## 11.2 — Security review (بازبینی امنیتی)
+
+- **Defence in depth: ask what stops the attack when one layer fails.** React already escapes everything it renders, so XSS should not happen. The Content-Security-Policy is there for the day it does: the browser refuses any script the panel did not serve, so an injected one cannot read the access token held in memory.
+- **A CSP is only as strict as its weakest exception.** `script-src 'unsafe-inline'` would have made the policy decorative, because an injected `<script>` is exactly an inline script. Moving the theme snippet into `public/theme-init.js` removed the only reason to allow it. `style-src` keeps the exception, because a style cannot run code and Radix's dialog needs it.
+- **A header set by the proxy is invisible until production.** The CSP lives in the Caddyfile, so development and the tests never send it. `ContentSecurityPolicyTests` reads the Caddyfile and `index.html` together, and the policy was proven in a real browser against the production images on `https://localhost`: the app works, and an injected inline script is refused (`script-src-elem`).
+- **Allow nothing speculative.** `img-src 'self' data:` went in "just in case", the build turned out to have no `data:` images, so it came out. Every exception in a policy is something to defend later.
+- **Rate-limit what a stranger can reach.** Refresh and logout check no password but are anonymous, so each request reaches the database for free. They got their own per-IP bucket (60 a minute, one policy, so they share it), separate from login's 10, so a busy desk's tabs never cost anyone a login.
+- **Accepted risk is a decision, written down.** `Auth.LockedOut` reveals that a name exists. Hiding it costs either a pretend counter per typed name or misleading real users; the other layers (guessable names refused, device-split lockout, login limit) make it cheap to accept. It is now in BUSINESS_RULES.md §1 and `docs/security-review.md`, so the next reviewer does not rediscover it as a bug.
+- **A checklist turns "it looks secure" into evidence.** `docs/security-review.md` walks the OWASP Top 10 (2025) and names the test or setting behind each claim, plus what is still open (alerting, 11.3).
+- **Dev-only advisories still get fixed, but rank them right.** `source-map-js` never reaches the bundle (`npm audit --omit=dev` was already clean); `npm audit fix` only touched the lockfile.
+- **My notes:**
