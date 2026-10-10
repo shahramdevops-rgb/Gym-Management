@@ -7,16 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>مدیریت باشگاه</title>
     <!-- The saved theme goes on before anything is drawn, so a dark choice never flashes white
-         on load. Same key as src/lib/theme.ts; blocked storage just leaves the page light. -->
-    <script>
-      try {
-        if (localStorage.getItem("gym.theme") === "dark") {
-          document.documentElement.classList.add("dark");
-        }
-      } catch {
-        // Storage blocked: open light.
-      }
-    </script>
+         on load. A file, not an inline script, so the Content-Security-Policy can refuse every
+         inline script (public/theme-init.js). -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

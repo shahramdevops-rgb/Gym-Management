@@ -23,6 +23,18 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		# Only what the panel itself serves may run, load or be framed (task 11.2). If a bug ever
+		# let someone's text into the page as HTML, the browser still refuses to run it, so it
+		# cannot read the access token held in memory. script-src has no 'unsafe-inline': the
+		# theme script is a file (web/public/theme-init.js) and web/src/securityHeaders.test.ts
+		# keeps it that way. style-src needs it: the dialogs inject a <style> tag to lock scrolling,
+		# and a style cannot run code. frame-ancestors is X-Frame-Options' modern form; both stay
+		# for old browsers (the backup tablet).
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		# The panel uses no camera, microphone or location; nothing on it may ask for them.
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		# A window this page opens cannot reach back into it.
+		Cross-Origin-Opener-Policy "same-origin"
 		# A staff login form has no business in a search index. This is tidiness, not a defence:
 		# it asks well-behaved crawlers to stay away and stops nobody else.
 		X-Robots-Tag "noindex, nofollow"
@@ -68,7 +80,11 @@
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		# One page with its own <style> and font, and no script at all, so none may run.
+		Content-Security-Policy "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		-Server
 	}
 

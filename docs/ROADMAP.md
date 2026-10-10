@@ -2548,7 +2548,31 @@ Closed 2026-10-10: 2160 backend tests (704 domain, 1456 integration; 21 new) and
 indexes on `audit_logs` were built in task 1.6. A release still starts with `./backup.sh run`.
 
 ### 11.2 Security review
-- [ ] CORS, security headers, rate limits, cookie settings, secrets, OWASP checklist
+Decided with the developer on 1405/07/18 (2026-10-10), BUSINESS_RULES.md §1: refresh and logout
+limited to 60 a minute per IP, together; user-name discovery through `Auth.LockedOut` accepted.
+The review itself, item by item with its evidence: `docs/security-review.md`.
+- [x] CORS (Development only), cookie settings, JWT validation, the 500 response, forwarded
+      headers, Postgres and the API's user checked: nothing to change
+- [x] Security headers: a Content-Security-Policy on the panel (`script-src 'self'`, no inline
+      script; the theme snippet moved to `web/public/theme-init.js`), Permissions-Policy and
+      Cross-Origin-Opener-Policy; a CSP, `X-Frame-Options` and Permissions-Policy on the public page
+- [x] Rate limits: refresh and logout get the `session` policy (`RateLimiting:Session`, 60 a minute
+      per IP, one bucket), separate from login's
+- [x] Secrets: no key, password or `.env` anywhere in the git history; `npm audit fix` for the
+      dev-only `source-map-js`; NuGet has no known vulnerabilities
+- [x] The Hangfire dashboard stays Development-only (the stale comment in `Program.cs` corrected)
+- [x] OWASP Top 10 (2025) checklist with the accepted risks: `docs/security-review.md`
+- [x] Tests: the refresh limit, logout sharing its bucket, login keeping its own
+      (`SessionRateLimitTests`); the policy's `script-src` and `frame-ancestors`, no inline script
+      or handler in `index.html` (`ContentSecurityPolicyTests`); in Chrome against the production
+      images on `https://localhost`, the app works with no violation and an injected script is refused
+- [ ] Released: the headers reach the server only with the next release (`./backup.sh run` first)
+
+Closed 2026-10-10: 2167 backend tests (704 domain, 1463 integration; 7 new) and 1013 frontend tests
+green, zero warnings, lint, `format:check` and production build pass. No migration. Fixed on the way:
+`AuditLogsEndpointTests.List_Paging_…` from 11.1 assumed rows written in one millisecond get
+increasing ids, which a version 7 Guid does not promise; it now checks the total and that no row is
+on two pages. A release still starts with `./backup.sh run`.
 
 ### 11.3 Performance and logging review
 - [ ] N+1 queries, missing indexes

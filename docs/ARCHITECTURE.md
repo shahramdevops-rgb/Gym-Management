@@ -385,9 +385,16 @@ web/src/
   missing. It must run under Windows PowerShell 5.1, the version on the gym's computer: no `&&`, no `?:`.
 - `cygpath`, `stat -c` and `chmod` behave differently under Git Bash on NTFS. The bash scripts are for the Linux
   server; a rehearsal on Windows runs them through Git Bash with the same caveats noted above for `server.sh`.
-- The integration test host raises the login rate limit (`RateLimiting__Login__PermitLimit`), because every test
-  client shares one address. A test that needs different settings uses `DatabaseFixture.CreateClient(settings)`,
+- The integration test host raises both rate limits (`RateLimiting__Login__PermitLimit` and
+  `RateLimiting__Session__PermitLimit`, the second for refresh and logout), because every test client shares one
+  address. A test that needs different settings uses `DatabaseFixture.CreateClient(settings)`,
   which builds a separate host with its own singletons.
+- The panel's Content-Security-Policy lives in `deploy/Caddyfile`, so only production sends it: an inline
+  `<script>` or `onclick=` in `web/index.html` works in development and the tests, and is blocked on the server.
+  Scripts are files (`web/public/theme-init.js`); `ContentSecurityPolicyTests` reads both files and fails on
+  either. `style-src` keeps `'unsafe-inline'` because Radix's dialog injects a `<style>` tag to lock scrolling.
+  A new third-party origin (a CDN, a font host, an analytics script) needs its own entry in the policy, and is a
+  question for the developer first.
 - Identity's `UserManager` methods take no `CancellationToken`. Check the token once before starting the work.
 - The refresh token cookie is `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/api/auth`, written only through
   `Gym.Api/Common/RefreshTokenCookie`. Clearing a cookie needs the same name and path it was set with. In development

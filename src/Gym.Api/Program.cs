@@ -88,8 +88,8 @@ try
         // fallback policy those set up — the same reasoning as Scalar being a development
         // convenience gated on the environment rather than a real per-Owner login, because the
         // JWT bearer scheme this API otherwise uses has no way to authenticate a plain browser
-        // navigation. Restricting it to Owner in every environment is task 11.2 or deployment's
-        // problem, once there is a production host to reach it from.
+        // navigation. It stays Development-only (decided in task 11.2): in production nothing
+        // maps it and Caddy proxies no path to it, so there is no login to get wrong.
         app.UseHangfireDashboard("/hangfire");
     }
 

@@ -252,7 +252,7 @@ describe("AppShell", () => {
   });
 
   it("AppShell_OpenedDark_ShowsTheDarkButtonPressed", async () => {
-    // What index.html does on load when the device saved «تیره».
+    // What public/theme-init.js does on load when the device saved «تیره».
     document.documentElement.classList.add("dark");
     mockApi(signedInHandlers(staffUser));
 

@@ -104,10 +104,12 @@ Decided values:
   - Refreshing as an inactive user is rejected (`Auth.UserInactive`) and revokes that token family.
   - Refresh ignores account lockout: lockout stops password guessing, and a refresh involves no password.
   - Logout revokes the presented refresh token and always succeeds, with or without a valid token.
+  - Refresh and logout are rate-limited per IP address: 60 requests per minute, counted together (decided with the developer, 1405/07/18, task 11.2). They need no password, so they do not share login's 10, but they are anonymous, so a flood from one address is turned away before it reaches the database. Each open tab refreshes about every 15 minutes, so a front desk behind one IP never comes near it.
 - Login has account lockout after repeated failures and per-IP rate limiting.
   - Lockout: 5 consecutive wrong passwords lock for 15 minutes, counted separately for each trusted device and for all untrusted devices together (*Lockout* below). A successful login resets the count. The Owner can be locked out too.
   - Rate limit: 10 login attempts per minute per IP address. Front-desk staff share one IP, so the limit allows several people to log in at once.
   - Failure responses: an unknown user name and a wrong password return the same error (`Auth.InvalidCredentials`), so user names cannot be discovered. A locked account returns `Auth.LockedOut`. An inactive account returns `Auth.UserInactive`, but only when the password was correct; otherwise `Auth.InvalidCredentials`.
+  - Accepted (decided with the developer, 1405/07/18, task 11.2): `Auth.LockedOut` tells whoever reaches it that the user name exists, since an unknown name is never locked. Hiding it would mean a pretend counter for every name typed, or telling a real user "wrong password" while their right one is refused. Guessable names are refused (*Lockout* below), the lock only closes the untrusted door, and the login rate limit makes collecting names slow.
 
 ### Lockout
 

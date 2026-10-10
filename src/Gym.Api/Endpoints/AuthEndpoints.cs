@@ -34,13 +34,16 @@ public static class AuthEndpoints
             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         // Anonymous because the access token has usually expired by the time this is called;
-        // the refresh cookie is the credential here.
+        // the refresh cookie is the credential here. Anonymous, so rate-limited per address, in
+        // one bucket with logout (BUSINESS_RULES.md §1).
         group.MapPost("/refresh", async (RefreshHandler handler, HttpRequest request, HttpResponse response, CancellationToken ct) =>
                 ToSessionResult(await handler.Handle(new RefreshCommand(RefreshTokenCookie.Read(request), TrustedDeviceCookie.Read(request)), ct), response))
+            .RequireRateLimiting(RateLimitingConfiguration.SessionPolicy)
             .AllowAnonymous()
             .WithName("Refresh")
             .Produces<AccessTokenResponse>()
-            .ProducesProblem(StatusCodes.Status401Unauthorized);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         // Anonymous for the same reason, and because a user with MustChangePassword may always
         // log out (BUSINESS_RULES.md §1). Clears the cookie whatever state it was in.
@@ -51,9 +54,11 @@ public static class AuthEndpoints
 
                 return result.ToHttpResult();
             })
+            .RequireRateLimiting(RateLimitingConfiguration.SessionPolicy)
             .AllowAnonymous()
             .WithName("Logout")
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         // The one endpoint a user with a temporary password may call besides logout, which is
         // why it uses PasswordChangeAllowed, the only policy without the gate. Rate-limited like
