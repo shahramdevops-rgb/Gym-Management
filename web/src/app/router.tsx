@@ -6,6 +6,7 @@ import { RequireRole } from "@/features/auth/components/RequireRole";
 import { ChangePasswordPage } from "@/features/auth/pages/ChangePasswordPage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { CurrentlyInsidePage } from "@/features/attendance/pages/CurrentlyInsidePage";
+import { AuditLogsPage } from "@/features/audit/pages/AuditLogsPage";
 import { CafeMenuPage } from "@/features/cafe/pages/CafeMenuPage";
 import { CafeOrdersPage } from "@/features/cafe/pages/CafeOrdersPage";
 import { CafeTillPage } from "@/features/cafe/pages/CafeTillPage";
@@ -81,6 +82,7 @@ export const routes: RouteObject[] = [
               ownerOnly(paths.settings, <SettingsPage />),
               ownerOnly(paths.smsSettings, <SmsSettingsPage />),
               ownerOnly(paths.smsMessages, <SmsMessagesPage />),
+              ownerOnly(paths.auditLogs, <AuditLogsPage />),
               ownerOnly(paths.expenses, <ExpensesPage />),
               ownerOnly(paths.payables, <PayablesPage />),
               ownerOnly(paths.staff, <StaffPage />),

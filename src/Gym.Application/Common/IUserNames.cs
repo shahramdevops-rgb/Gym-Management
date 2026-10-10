@@ -16,4 +16,13 @@ public interface IUserNames
     /// </summary>
     Task<IReadOnlyDictionary<Guid, string>> FullNamesAsync(
         IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Every account, the Owner and deactivated staff included, by full name: for a filter that asks
+    /// "who did it" (the audit screen, task 11.1). A handful of rows, so not paged.
+    /// </summary>
+    Task<IReadOnlyList<UserFullName>> ListAllAsync(CancellationToken cancellationToken);
 }
+
+/// <summary>One account's id and full name, as <see cref="IUserNames.ListAllAsync"/> lists it.</summary>
+public sealed record UserFullName(Guid Id, string FullName);

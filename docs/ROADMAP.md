@@ -2524,8 +2524,28 @@ Every server step is proposed and confirmed first, with `./backup.sh run` before
 ## Phase 11 — Audit UI and Hardening
 
 ### 11.1 Audit UI
-- [ ] Audit query endpoint (entity, user, date filters)
-- [ ] Audit log screen
+Decided with the developer on 1405/07/18 (2026-10-10), BUSINESS_RULES.md §11 *The audit screen*:
+sign-in rows hidden behind a switch; the changes in Persian, formatted; the member's name wherever the
+record belongs to one; the page is «گزارش تغییرات».
+- [x] Rules first: BUSINESS_RULES.md §11 *The audit screen*
+- [x] `GET /api/audit-logs` (Owner): the latest first, paged; filtered by Tehran day, user or «سیستم»,
+      kind of record, one record, action and member; `RefreshToken` and `TrustedDevice` left out unless
+      `IncludeSignIns` or chosen as the kind (`ListAuditLogsHandler`); the member found through the
+      record, a payment's subscription, charge or order, an order line's order (`AuditMembers`);
+      `Audit.InvalidDateRange`, `Audit.ConflictingUserFilter`
+- [x] `GET /api/audit-logs/users` (Owner): every account, the Owner and deactivated staff included
+      (`IUserNames.ListAllAsync`)
+- [x] `IAppDbContext.AuditLogs` as an untracked `IQueryable`, so Application can only read the log
+- [x] The page «گزارش تغییرات» (Owner menu, `/audit-logs`): opens on today; a member or a record shows
+      their whole history; each row opens to its fields in Persian (`auditFields.json`, `labels.ts`)
+- [x] Tests: each filter, Tehran day edges, paging, the member through every link, insert and delete
+      values, reading changes nothing, Staff refused, 400 codes; every audited entity and field has a
+      label in `auditFields.json` (integration); the value formats, the hidden fields, the page, its
+      filters, the record and member links, the menu (frontend)
+
+Closed 2026-10-10: 2160 backend tests (704 domain, 1456 integration; 21 new) and 1013 frontend tests
+(23 new) green, zero warnings, lint, `format:check` and production build pass. No migration: the
+indexes on `audit_logs` were built in task 1.6. A release still starts with `./backup.sh run`.
 
 ### 11.2 Security review
 - [ ] CORS, security headers, rate limits, cookie settings, secrets, OWASP checklist

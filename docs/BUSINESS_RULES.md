@@ -1442,6 +1442,29 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   - Everything else is audited, including refresh tokens: every login and every refresh adds rows. That volume is the price of "every insert, update and delete"; the audit screen (task 11.1) can filter it out.
   - Append-only is enforced by a database trigger that rejects UPDATE and DELETE.
 
+### The audit screen (گزارش تغییرات)
+Decided with the developer on 1405/07/18 (2026-10-10), task 11.1.
+- **Owner only** (§1, permissions). It is a page in the Owner's menu, «گزارش تغییرات», separate
+  from «تاریخچه» (§12), which is the desk's view of payments, visits and sales.
+- **The latest first**, paged. It opens on **today**; a date range reaches further back. Dates are
+  the day the change happened in the gym's time zone, both ends included. Choosing a member or one
+  record drops the "today" default, so their whole history shows.
+- **Filters:** dates; who did it (one user, or «سیستم» for rows with no user: logins, seeding,
+  background jobs); the kind of record; insert, update or delete; one member; one record.
+- **Sign-in rows hidden by default.** Refresh tokens and trusted devices (`RefreshToken`,
+  `TrustedDevice`) are about half the log and say only that someone logged in or stayed logged in.
+  They are left out unless the Owner turns on «نمایش ورودها و دستگاه‌ها», or chooses one of those
+  kinds of record as the filter.
+- **The member's name beside the row** wherever the record belongs to a member: the member itself,
+  a subscription, a visit, a service charge, a cafe order and its lines, an SMS, and a payment
+  through the subscription, charge or order it pays for. The member filter finds the same rows.
+- **The changes in Persian:** each field under a Persian label, money with `formatMoney`, dates in
+  Jalali, yes/no and the kinds (payment method, charge kind, …) in Persian. A field with no label
+  yet shows its English name, so a new field never breaks the page. Not shown, because they say
+  nothing to the Owner: the record's own id, the `Normalized…` copies, and internal links (token
+  family, settlement). Another record's id shows as a short code; a user's id shows as the name.
+- **Read-only.** The screen changes nothing; the log stays append-only.
+
 ---
 
 ## 12. Reports

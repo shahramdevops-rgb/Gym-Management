@@ -1,4 +1,5 @@
 using Gym.Domain.Attendances;
+using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Cafe;
 using Gym.Domain.Expenses;
@@ -73,6 +74,13 @@ public interface IAppDbContext
     DbSet<Notification> Notifications { get; }
 
     DbSet<SmsSettings> SmsSettings { get; }
+
+    /// <summary>
+    /// The audit log, for reading only (BUSINESS_RULES.md §11, task 11.1). A query, not a
+    /// <see cref="DbSet{TEntity}"/>: only the audit interceptor writes it, so Application is given
+    /// nothing it could add, change or delete with, and the rows come back untracked.
+    /// </summary>
+    IQueryable<AuditLog> AuditLogs { get; }
 
     /// <summary>
     /// Exposed for the rare handler that must recover from a failed save in the same request:

@@ -447,6 +447,10 @@ web/src/
 - `audit_logs` is append-only through a trigger created with `migrationBuilder.Sql` in the `AddAuditLog` migration. EF
   has no model API for triggers, so it is not in the snapshot: a later migration will not see it, and dropping or
   renaming the table must handle the trigger by hand.
+- Application reads the log through `IAppDbContext.AuditLogs`, an untracked `IQueryable<AuditLog>` (task 11.1), never a
+  `DbSet`: nothing outside the interceptor can add to it. The audit screen's Persian names for every entity and field
+  are in `web/src/features/audit/auditFields.json`; `AuditFieldLabelsTests` compares that file with the EF Core model,
+  so a new entity or property needs a label there (or `"format": "hidden"`).
 - Respawn empties tables with `TRUNCATE`, which row-level triggers ignore, so the append-only trigger does not break the
   test reset. `AuditLogTests.Reset_BetweenTests_EmptiesTheAuditLogDespiteTheTrigger` guards that.
 - The audit log records keys generated in C#. An entity with a database-generated key makes `AuditLogInterceptor` throw

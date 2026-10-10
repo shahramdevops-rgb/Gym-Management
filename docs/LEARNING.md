@@ -1628,3 +1628,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **A new check constraint must fit the rows already there.** The migration first sets the cost of any old blocked message to 0, then adds the check. The other order would fail on the server's data (CLAUDE.md: carry existing rows forward, never refuse them).
 - **Defaults in Compose keep a release harmless.** `${SMS_PROVIDER:-Fake}` means a server whose `.env` has not been touched stays on the fake sender, so the code that can send for real ships before anyone decides to send. Turning it on is a configuration change, not a release.
 - **My notes:**
+
+## 11.1 — The audit screen (گزارش تغییرات)
+
+- **Read-only access through the type.** `IAppDbContext.AuditLogs` is an `IQueryable<AuditLog>`, not a `DbSet`. Application can filter and page it but has no `Add` or `Remove` to call, so "only the interceptor writes the log" is now said by the compiler as well as by the trigger. `AppDbContext` implements it explicitly, with `AsNoTracking()`, so the rows come back untracked too.
+- **Explicit interface implementation.** `IQueryable<AuditLog> IAppDbContext.AuditLogs => ...` gives the interface its own version of the property, while code inside Infrastructure still sees the full `DbSet`. One class, two views, each with the power its caller needs.
+- **The same rule in two shapes.** `AuditMembers` answers "whose row is this?" once as a database filter (`OfMember`, subqueries that run in Postgres) and once for one page in memory (`ForPageAsync`). Both follow the same links, so the member filter finds exactly the rows that show the member's name.
+- **A few queries per page, never one per row.** The member names and the user names are fetched for the whole page at once, grouped by kind of record. Twenty rows cost the same handful of queries as two.
+- **jsonb does not keep key order.** Postgres stores a jsonb object's keys sorted its own way, so the order the interceptor wrote them in is gone. The page orders the fields itself, by the order of the labels file.
+- **The log stores facts; the screen decides what they mean.** The API returns each value exactly as stored, and the frontend turns it into Toman, a Jalali date or a Persian kind. A wording or format change is a frontend change and never touches the log.
+- **One file read by both sides.** The Persian labels live in `auditFields.json`. The page imports it, and a backend test reads it next to the EF Core model, so a new entity or field fails a test instead of showing up in English on the Owner's screen. On its first run it found three Identity tables nobody had thought of.
+- **Tests that write the rows themselves.** The table refuses `UPDATE`, so a row cannot be moved to a chosen day after saving, as the SMS tests do. These tests `INSERT` the rows directly, on a day long past, so the rows written by the test's own login fall outside the filter.
+- **A default that gives way.** The page opens on today, but choosing a member or one record drops that default, because their history is what the Owner asked for. The default is computed from the URL, never written into it, so the URL only holds what the Owner chose.
+- **My notes:**

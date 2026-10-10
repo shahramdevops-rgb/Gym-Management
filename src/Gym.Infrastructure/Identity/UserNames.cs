@@ -26,4 +26,11 @@ public sealed class UserNames(AppDbContext db) : IUserNames
             .Where(user => userIds.Contains(user.Id))
             .ToDictionaryAsync(user => user.Id, user => user.FullName, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<UserFullName>> ListAllAsync(CancellationToken cancellationToken) =>
+        await db.Users.AsNoTracking()
+            .OrderBy(user => user.FullName)
+            .ThenBy(user => user.Id)
+            .Select(user => new UserFullName(user.Id, user.FullName))
+            .ToListAsync(cancellationToken);
 }
