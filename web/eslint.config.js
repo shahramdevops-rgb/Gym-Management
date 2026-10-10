@@ -37,7 +37,7 @@ export default tseslint.config([
   },
   {
     // The end-to-end tests and their configuration run in Node, not in the browser.
-    files: ["e2e/**/*.ts", "playwright.config.ts"],
+    files: ["e2e/**/*.ts", "playwright.config.ts", "playwright.screenshots.config.ts"],
     languageOptions: { globals: globals.node },
   },
 ]);

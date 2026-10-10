@@ -3,7 +3,7 @@
   Pulls the newest database backup from the server onto this computer and a flash drive.
 
 .DESCRIPTION
-  Runs on the gym's Windows computer (Task Scheduler, see README "Backup and restore").
+  Runs on the gym's Windows computer (Task Scheduler, see docs/DEPLOYMENT.md, "Backup and restore").
   It PULLS: this computer sits behind the gym's router, so the server cannot reach it, and the
   key it uses belongs to a read-only account that can do nothing but read the backups.
 

@@ -79,6 +79,25 @@ export function startStack() {
   run("docker", [...compose, "up", "--detach", "--wait", "--wait-timeout", "180"]);
 }
 
+/**
+ * Fills the stack's empty database with the made-up gym of `admin seed-demo` (roadmap Phase 12),
+ * for the screenshots. `Demo__Allowed` is given to this one command only: the image runs as
+ * Production, where the demo is refused without it, and the gym's server never sets it.
+ */
+export function seedDemo() {
+  run("docker", [
+    ...compose,
+    "run",
+    "--rm",
+    "-T",
+    "-e",
+    "Demo__Allowed=true",
+    "api",
+    "admin",
+    "seed-demo",
+  ]);
+}
+
 /** Stops the stack and deletes its database. */
 export function stopStack() {
   run("docker", [...compose, "down", "--volumes", "--remove-orphans"]);

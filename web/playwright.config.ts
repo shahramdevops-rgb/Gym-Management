@@ -9,6 +9,8 @@ import { baseURL } from "./e2e/stack";
  */
 export default defineConfig({
   testDir: "./e2e",
+  // The README's pictures have their own run: playwright.screenshots.config.ts.
+  testIgnore: "screenshots/**",
   globalSetup: "./e2e/globalSetup.ts",
   globalTeardown: "./e2e/globalTeardown.ts",
   // One stack, one database: the tests share both, so they run one at a time.

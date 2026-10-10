@@ -6,8 +6,8 @@ the first one, and again if the server is ever lost and has to be rebuilt.
 Already done it once and just need the commands? Use
 [SERVER-SETUP-QUICK.md](SERVER-SETUP-QUICK.md) instead — same steps, no explanations.
 
-It stops where `deploy/release.sh` starts. Releasing, backups and restoring are in the README
-("Deployment", "Backup and restore"); going live is roadmap task 6.4.
+It stops where `deploy/release.sh` starts. Releasing, backups and restoring are in
+[DEPLOYMENT.md](DEPLOYMENT.md); going live is roadmap task 6.4.
 
 Every command below was run on the real server on 2026-09-24. Where reality differed from the
 plan, the plan was corrected rather than the note left out.

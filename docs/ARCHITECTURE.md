@@ -190,6 +190,13 @@ their own compose project, `gym-e2e`, with an empty database migrated by the sam
 Chrome installed on the machine. They create their data through the API and test one flow in the browser. Run
 locally before a release; not in CI, because building the images takes minutes. Ports 80 and 443 must be free.
 
+`npm run screenshots` (`playwright.screenshots.config.ts`, `web/e2e/screenshots/`) uses the same stack, but fills it
+with `admin seed-demo` (`src/Gym.Api/Admin/Demo/`, ADR 0009) and saves the README's pictures to `docs/screenshots/`.
+The seeder calls the real handlers on a `DemoClock` it moves day by day, as a `DemoActor` it switches between the
+Owner and two staff accounts, with the fake SMS sender; `Program.cs` swaps those three services in for that command
+only. A business rule that refuses something the seeder does shows up in `DemoSeederTests`, which runs the whole
+ninety days.
+
 ## Frontend (Persian, RTL)
 
 ```

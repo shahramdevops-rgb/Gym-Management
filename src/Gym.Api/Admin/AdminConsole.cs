@@ -1,3 +1,4 @@
+using Gym.Api.Admin.Demo;
 using Gym.Application.Accounts.RenameUser;
 using Gym.Application.Accounts.SetPassword;
 using Gym.Application.Accounts.UnlockUser;
@@ -21,13 +22,17 @@ namespace Gym.Api.Admin;
 /// no background jobs, no seeding. The new password is read from standard input, never from the
 /// command line, where it would sit in the shell history and in the process list.
 /// </para>
+/// <para>
+/// <c>admin seed-demo</c> is the one command that is not about accounts: it fills an empty
+/// database with a made-up gym (<see cref="DemoSeeder"/>), for trying the app and for screenshots.
+/// </para>
 /// </remarks>
 public static partial class AdminConsole
 {
     public const string Command = "admin";
 
     public const string Usage =
-        "usage: admin unlock <user> | admin set-password <user> (password on standard input) | admin rename <user> <new-user>";
+        "usage: admin unlock <user> | admin set-password <user> (password on standard input) | admin rename <user> <new-user> | admin seed-demo";
 
     public static bool IsAdminCommand(string[] args) => args is [Command, ..];
 
@@ -48,6 +53,20 @@ public static partial class AdminConsole
         await using var scope = services.CreateAsyncScope();
         var provider = scope.ServiceProvider;
         var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(AdminConsole).FullName!);
+
+        if (args is [DemoSeeder.Command])
+        {
+            var seeded = await DemoSeeder.RunAsync(services, DemoSeeder.DefaultDays, cancellationToken);
+            if (seeded.IsFailure)
+            {
+                await output.WriteLineAsync($"error: {seeded.Error.Code}: {seeded.Error.Description}");
+                return 1;
+            }
+
+            LogDemoSeeded(logger, seeded.Value);
+            await output.WriteLineAsync(seeded.Value);
+            return 0;
+        }
 
         Result result;
         string done;
@@ -97,4 +116,7 @@ public static partial class AdminConsole
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Server console: {Command} for user {UserName}.")]
     private static partial void LogCommandDone(ILogger logger, string command, string userName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Server console: seed-demo. {Summary}")]
+    private static partial void LogDemoSeeded(ILogger logger, string summary);
 }
