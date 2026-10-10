@@ -22,9 +22,11 @@ No public access, no self-registration, no member logins.
 - Build the production images: `docker compose -f docker-compose.prod.yml --env-file <env file> build` (settings: `deploy/env.example`)
 - Release to the server (from Git Bash, key-based ssh): `deploy/release.sh <user@host> [--with-postgres]`; on the server: `./server.sh rollback`
 - Accounts on the server (any user, the Owner included): `./server.sh unlock <user> | set-password <user> | rename <user> <new-user>`; locally: `dotnet run --project src/Gym.Api -- admin unlock <user>`
-- Backups: on the server `./backup.sh run | restore <file> --yes | restore-scratch <file>`; on the gym PC `deploy/pull-backup.ps1` (README, "Backup and restore")
+- Backups: on the server `./backup.sh run | restore <file> --yes | restore-scratch <file>`; on the gym PC `deploy/pull-backup.ps1` (docs/DEPLOYMENT.md, "Backup and restore")
 - Frontend (inside web/): `npm run dev`, `npm run build`, `npm run lint`, `npm test`, `npm run format` (CI runs `npm run format:check`; run it before every frontend commit)
 - End-to-end (inside web/, before a release): `npm run e2e` builds the production images, runs them on https://localhost with an empty database (compose project `gym-e2e`), tests the front desk in the installed Chrome, and removes the stack. Needs Docker and free ports 80 and 443
+- Screenshots (inside web/, before every release): `npm run screenshots` runs the same throwaway stack as `npm run e2e`, fills it with `admin seed-demo` and saves the README's pictures to `docs/screenshots/` (light and dark). Commit the new images with the release
+- Demo data in an empty local database: `dotnet run --project src/Gym.Api -- admin seed-demo` (needs the Owner seeded first; refuses a database that holds anything; never on the server)
 - Regenerate API types after any endpoint change (inside web/): `npm run gen:api`. It uses an API already running on :5134, or starts one (needs `docker compose up -d`), generates, and stops it
 Keep this section up to date when commands change.
 

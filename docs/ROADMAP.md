@@ -456,7 +456,7 @@ first deploy, so the "Done when" line is confirmed there, not here.
 ### 6.3 Backups
 - [x] Nightly `pg_dump -Fc` on the server into `/opt/gym/backups`, 120 daily copies kept
       (`deploy/backup.sh run`; each dump is checked with `pg_restore --list` before it is kept).
-      Installing the cron line is a server step (README, "Backup and restore")
+      Installing the cron line is a server step (docs/DEPLOYMENT.md, "Backup and restore")
 - [x] The gym's computer **pulls** the newest dump on a schedule (Windows Task Scheduler, `scp`,
       a read-only SSH key) onto its own disk and onto an attached flash drive. Pull, not push:
       the gym machine is behind NAT and the server cannot reach it (`deploy/pull-backup.ps1`).
@@ -1339,7 +1339,7 @@ building; every screen, through `planLabel`).
 
 **Released** from `0514e28` on 2026-09-29, together with everything since `7644b75` (the expenses
 screen, released 2026-09-27 but not recorded here): 6.5.5 to 6.5.18 and four migrations. The
-server's trial data was wiped first (README, *Deployment*), the wipe and all migrations were
+server's trial data was wiped first (docs/DEPLOYMENT.md, *Record: the go-live wipe*), the wipe and all migrations were
 rehearsed on a throwaway Postgres beforehand, and the local trial data was then restored onto the
 server.
 
@@ -2711,10 +2711,39 @@ unknown browsers only, the front-desk PC still logs in, and `./server.sh unlock`
 ---
 
 ## Phase 12 — Portfolio Polish
-- [ ] README with architecture diagram and screenshots
-- [ ] Complete ADRs
-- [ ] Demo seed data
-- [ ] Deployment guide
+
+Done 1405/07/19 (2026-10-11), all four in one session at the developer's request. The developer
+chose the seeding approach (a console command through the real handlers, not seeding through the
+API) and screenshots on desktop in both themes; phone screenshots wait for Phase 13's mobile work.
+**New screenshots with every release** (asked by the developer): step 3 of the release checklist in
+docs/DEPLOYMENT.md.
+
+- [x] **Demo seed data.** `admin seed-demo` (`src/Gym.Api/Admin/Demo/`, ADR 0009): ninety days of a
+      made-up gym written through the real handlers and validators, on a `DemoClock` the seeder moves
+      day by day, as a `DemoActor` (the Owner for office work, two staff accounts at the desk, nobody
+      for the nightly jobs), with the fake SMS sender whatever the configuration says. About sixty
+      members, members inside right now, guests, cafe orders, هوازی, debts mostly paid on the next
+      visit, a plan sold by mistake then refunded and cancelled, a freeze, a deactivation, a price
+      rise, expenses, cheques and instalments, SMS from the day it was turned on. Seeded randomness.
+      Refuses a database holding anything but the Owner and what the migrations add
+      (`Demo.DatabaseNotEmpty`), a missing Owner (`Demo.NoOwner`), and on Production anything without
+      `Demo:Allowed=true` (`Demo.NotAllowedHere`), which only the screenshot run passes, to that one
+      command. No `server.sh` command for it
+- [x] **README with architecture diagram and screenshots.** The diagram was there. Added what the
+      system does, what is worth a look in the code, and the screenshots; the long deployment and
+      backup sections moved to docs/DEPLOYMENT.md. `npm run screenshots` (in web/) builds the
+      production images, runs them empty, runs `seed-demo`, and saves nine screens in the light and
+      the dark theme to `docs/screenshots/`
+- [x] **Complete ADRs.** 0005 Result values, 0006 Gregorian storage and Jalali display, 0007
+      invariants in the database, 0008 money never deleted and debt calculated, 0009 the demo. 0005 to
+      0008 record earlier decisions, with reasons taken from BUSINESS_RULES.md and LEARNING.md
+- [x] **Deployment guide.** docs/DEPLOYMENT.md: the release checklist as releases have actually been
+      done (tests, `npm run e2e`, screenshots, late at night, look at the server, read-only checks for
+      new migrations, backup with matching `sha256sum`, release, checks after, record it), going back
+      and when a rollback is not safe, domains, server accounts, backup and restore, the go-live wipe
+      record. SERVER-SETUP.md stays the guide for a new server
+- [x] Tests: `DemoSeederTests` (a full ninety-day run and what it made, the empty-database, Owner and
+      missing-services guards, `IsAllowedHere` per environment)
 
 ---
 

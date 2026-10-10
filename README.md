@@ -6,12 +6,79 @@ Internal management system for a single gym: members, plans, subscriptions, paym
 lockers, attendance, cafe and reporting. Closed system — no public access and no member
 logins. The API is .NET 10 / PostgreSQL; the frontend is a Persian, right-to-left React app.
 
+It runs a real gym: in use at the front desk since 2026-10-02, on one rented server in Iran.
+
 | Document | What it answers |
 |---|---|
 | [docs/ROADMAP.md](docs/ROADMAP.md) | What is built and what is next |
 | [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) | How the gym works — the source of truth for every rule |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack, packages, patterns and gotchas |
 | [docs/adr/](docs/adr/README.md) | Why the big decisions were made |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Releasing, going back, server accounts, backups |
+
+## What it does
+
+- **The front desk.** A map of the 72 lockers: a free one opens check-in, a taken one shows who is
+  inside, for how long and whether they owe anything. A plan or a single visit can be sold in the
+  same box as the check-in. Guests, cardio-only visits, the cafe and small sales at the desk all
+  hang off the visit.
+- **Plans and money.** A plan is a number of sessions; its days and price follow from it. Payments
+  can be partial, debt is calculated from named items and shown item by item, several items can be
+  settled with one handover, and nothing about money is ever edited or deleted: mistakes are
+  refunded or voided with a reason.
+- **The office.** Expenses, cheques and instalments with reminders, staff accounts, the audit log
+  of every change, a dashboard and a financial report, and SMS reminders (plan running out, few
+  sessions left, birthdays, a cheque coming due).
+
+## What is worth a look in the code
+
+- **Rules in the domain, and again in the database.** Entities hold the rules
+  (`subscription.ConsumeSession(today)`), and the database repeats every one it can state: unique
+  and partial indexes, check constraints, an exclusion constraint so two plans never cover one day,
+  `xmin` concurrency ([ADR 0007](docs/adr/0007-invariants-enforced-by-the-database.md)).
+- **Failures are values.** Handlers return `Result`; each error has a stable code that the frontend
+  turns into Persian, and a test fails if a code has no message
+  ([ADR 0005](docs/adr/0005-business-failures-as-result-values.md)).
+- **Two calendars, one storage.** Gregorian dates and UTC moments in the database, Jalali only in
+  the browser, "today" from an injected clock in the gym's time zone
+  ([ADR 0006](docs/adr/0006-gregorian-storage-jalali-display.md)).
+- **Tests at every level.** Domain unit tests with no database; integration tests that boot the
+  real app against a real Postgres in a container (never the EF Core InMemory provider); frontend
+  tests; and a Playwright run of the front desk against the production images.
+- **A demo made by the real code.** The screenshots below come from `admin seed-demo`, which
+  replays three months of a made-up gym through the same handlers the desk uses, on a clock it
+  moves itself ([ADR 0009](docs/adr/0009-demo-data-through-the-real-handlers.md)).
+
+## Screenshots
+
+From the made-up gym of `admin seed-demo`, never from the real one. `npm run screenshots` (in
+`web/`) takes them again; they are refreshed before each release.
+
+| | |
+|---|---|
+| ![The locker map at the front desk](docs/screenshots/desk-light.png) | ![Inside the gym](docs/screenshots/inside-light.png) |
+| The front desk: the locker map, who is inside and who owes, birthdays and renewals | Who is inside right now, with their sessions |
+| ![The dashboard](docs/screenshots/dashboard-light.png) | ![The dashboard's charts](docs/screenshots/dashboard-charts-light.png) |
+| The dashboard, for the Owner: the month's money | Its charts |
+| ![Members](docs/screenshots/members-light.png) | ![A member's profile](docs/screenshots/member-light.png) |
+| Members, with their sessions and debt | A member's profile |
+| ![History](docs/screenshots/history-light.png) | ![Cafe orders](docs/screenshots/cafe-light.png) |
+| History: visits, payments and sales | Cafe orders |
+| ![Cheques and instalments](docs/screenshots/payables-light.png) | |
+| Cheques and instalments | |
+
+<details>
+<summary>The same screens in the dark theme</summary>
+
+| | |
+|---|---|
+| ![The locker map, dark](docs/screenshots/desk-dark.png) | ![Inside the gym, dark](docs/screenshots/inside-dark.png) |
+| ![The dashboard, dark](docs/screenshots/dashboard-dark.png) | ![The dashboard's charts, dark](docs/screenshots/dashboard-charts-dark.png) |
+| ![Members, dark](docs/screenshots/members-dark.png) | ![A member's profile, dark](docs/screenshots/member-dark.png) |
+| ![History, dark](docs/screenshots/history-dark.png) | ![Cafe orders, dark](docs/screenshots/cafe-dark.png) |
+| ![Cheques and instalments, dark](docs/screenshots/payables-dark.png) | |
+
+</details>
 
 ## Architecture
 
@@ -167,6 +234,21 @@ CorrelationId = 'cc8367be7ab726497ac6a73977b0aac5'
 If the frontend sends a `traceparent` header, its trace id is reused rather than replaced, so
 one id covers both sides of the call.
 
+### Demo data
+
+An empty local database can be filled with three months of a made-up gym: about sixty members,
+visits, sales, debts, expenses, cheques and SMS, ending with people inside right now.
+
+```bash
+dotnet run --project src/Gym.Api                          # once, so the Owner is seeded (Seed:* in user-secrets)
+dotnet run --project src/Gym.Api -- admin seed-demo       # then fill the database
+```
+
+It refuses a database that already holds anything, and in Production it also needs
+`Demo:Allowed=true`, which only the screenshot run passes
+([ADR 0009](docs/adr/0009-demo-data-through-the-real-handlers.md)). To start again:
+`docker compose down -v`, `docker compose up -d`, apply the migrations, and run both commands again.
+
 ### Log levels
 
 Levels live in `appsettings.json` (`Serilog` section), not in code, so they can be changed
@@ -220,171 +302,17 @@ A mismatch between the frontend and the API then shows up as a type error in `np
 
 ## Deployment
 
-One Docker Compose stack (API, Postgres, Caddy) on a single rented Iranian VPS, reachable over a
-real domain with an automatically issued certificate, with images built here and transferred
-rather than built on the server. The reasoning, the alternatives and what the choice costs are in
-[ADR 0003](docs/adr/0003-deployment-topology.md).
+One Docker Compose stack (API, Postgres, Caddy) on a single rented Iranian VPS, with images built
+on the development machine and copied over ([ADR 0003](docs/adr/0003-deployment-topology.md)).
 
-**Preparing a server** — everything from a bare VPS to a host that can take a release: user and
-SSH key, firewall, `fail2ban`, swap, clock, Docker, DNS, `/opt/gym/.env` — is in
-[docs/SERVER-SETUP.md](docs/SERVER-SETUP.md), with the reason for each step. Run it once per
-server, and again if one is ever rebuilt.
-
-**Releasing** to a prepared server is one command from the development machine:
+- **Preparing a server**, once: [docs/SERVER-SETUP.md](docs/SERVER-SETUP.md).
+- **Releasing, going back, server accounts, domains, backup and restore**:
+  [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), including the step-by-step release checklist.
 
 ```bash
-deploy/release.sh gym@<server-ip> --with-postgres    # --with-postgres on the first release only
+deploy/release.sh gym@<server-ip>       # from the development machine
+./server.sh rollback                    # on the server
 ```
 
-It builds the images here, builds the EF migration bundle, copies everything over, runs the
-migrations and starts the new version. `./server.sh rollback` on the server goes back.
-
-**The server holds real data.** Member registration (عضوگیری) started on 1405/07/10 (2026-10-02),
-after the trial data was wiped. From then on the server is never wiped and nothing is restored
-over it: a migration that meets old rows has to carry them forward, never refuse them. Take
-`./backup.sh run` before every release, and check that the gym PC's copy (`deploy/pull-backup.ps1`)
-is recent.
-
-The go-live wipe, kept as a record (it must not be run again). Lockers, the price list row and the
-eight expense categories were seeded by migrations, which never run twice, so they were reset in
-place rather than truncated:
-
-```sql
-BEGIN;
-TRUNCATE members, subscriptions, attendances, service_charges, payments, cafe_orders,
-  cafe_order_items, products, product_categories, expenses, audit_logs,
-  refresh_tokens, trusted_devices CASCADE;
-DELETE FROM expense_categories WHERE id NOT IN (
-  '0b3f6685-b1a2-4979-acd9-c1fe848f156b', '5e5cf0e4-0d67-4b55-830a-8d0a6919fd00',
-  'b74beca9-8e56-440f-9a19-e3ab97690134', '627d2be7-d824-422a-ba2c-8d17c98633b5',
-  '270c9d15-6962-4eae-a492-483541b8d516', '97813c23-681f-4e8e-84eb-fa8ecd73c3ac',
-  'c4e2af4c-deb5-420e-8087-a7780b0356fd', '1dfd1cc7-0587-4096-a384-73e0449b23cd');
-UPDATE lockers SET is_out_of_service = false;
-UPDATE price_lists SET session_price = NULL, single_visit_price = NULL;
-DELETE FROM users WHERE id NOT IN (
-  SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE r.name = 'Owner');
-COMMIT;
-```
-
-The trial dumps from before that day were moved to `backups/trial/`, so nobody restores one by
-mistake.
-
-Live since 2026-09-25, with Let's Encrypt certificates Caddy obtains and renews by itself. One
-image serves four names, and which is which comes from `/opt/gym/.env`:
-
-| Variable | Serves |
-|---|---|
-| `DOMAIN` | the application, and nothing else. Also the API's `AllowedHosts` |
-| `PUBLIC_DOMAIN` | the gym's public page: static files from `web/public-site`, no API |
-| `www.$PUBLIC_DOMAIN` | redirects to the public page |
-| `REDIRECT_DOMAIN` | redirects to the public page |
-
-The application lives on its own host (`panel.…`) rather than the bare domain. The refresh cookie
-is scoped to a single host, so one canonical name is not a preference — two names would sign
-staff out whenever they typed the other. Giving the application its own host also keeps the staff
-login form from being what a visitor sees first, and lets only that host carry
-`X-Robots-Tag: noindex`. That is separation, not security: the login rate limit, lockout,
-`fail2ban` and the firewall are what protect the application.
-
-**Changing any of those names** is one edit to `/opt/gym/.env` followed by
-`docker compose -f docker-compose.prod.yml up -d`. No release, no rebuild; Caddy gets the new
-certificate on its own. Changing `DOMAIN` signs every user out, so do it before opening time and
-tell staff the new address first.
-
-**Accounts from the server.** The web app cannot unlock, reset or rename the Owner, so these run
-on the server itself (over SSH, from `/opt/gym`), for any account:
-
-```bash
-./server.sh unlock <user>                # clear a lockout; the password stays
-./server.sh set-password <user>          # asks twice, never on the command line; ends every session
-./server.sh rename <user> <new-user>     # e.g. away from a guessable "Owner"
-```
-
-They run the API's own image once with `admin …` instead of the web server
-(`src/Gym.Api/Admin/AdminConsole.cs`); the rules are in BUSINESS_RULES.md §1 *Lockout*.
-
-**After a reboot** nothing has to be done by hand: every container carries
-`restart: unless-stopped`, and the stack came back on its own from a deliberate `sudo reboot`.
-
-## Backup and restore
-
-Two copies, no cloud (ADR 0003). Every night the server dumps the database to
-`/opt/gym/backups` (`gym-YYYYmmdd-HHMMSS.dump`, the newest 120 kept, about four months). The gym's Windows computer
-then **pulls** the newest dump onto its own disk and onto a flash drive (the newest 30 kept).
-The dumps contain members' names and phone numbers: keep the flash drive somewhere safe, and
-consider BitLocker To Go on it.
-
-The database dump does not contain `/opt/gym/.env` (database password, token signing key). The
-Owner keeps one copy of that file, **not** on the flash drive with the dumps.
-
-### One-time setup on the server
-
-Both scripts arrive with every release (`deploy/release.sh` copies them to `/opt/gym`).
-
-```bash
-# 1. Nightly dump at 03:00 Tehran time, as the user that owns /opt/gym.
-crontab -e
-#   CRON_TZ=Asia/Tehran
-#   0 3 * * * cd /opt/gym && ./backup.sh run >> /opt/gym/backups/backup.log 2>&1
-
-# 2. A read-only account for the gym's computer. It is not in the docker group and cannot read .env.
-sudo adduser --disabled-password --gecos "" gymbackup
-sudo install -d -m 700 -o gymbackup -g gymbackup /home/gymbackup/.ssh
-echo 'restrict <the public key from the gym computer>' | sudo tee /home/gymbackup/.ssh/authorized_keys
-sudo chown gymbackup:gymbackup /home/gymbackup/.ssh/authorized_keys
-sudo chmod 600 /home/gymbackup/.ssh/authorized_keys
-sudo chmod o+x /opt/gym          # lets it reach backups/ only; .env stays mode 600
-
-# 3. /opt/gym and .env must belong to the user you deploy as (the one deploy/release.sh ssh's
-#    in as). Compose reads .env as that user, and a release rewrites its TAG line.
-sudo chown -R "$USER" /opt/gym && chmod 600 /opt/gym/.env
-./backup.sh run                  # the first dump also fixes the group of backups/
-```
-
-### One-time setup on the gym's computer (Windows)
-
-```powershell
-# Copy deploy\pull-backup.ps1 to C:\GymBackup\, then:
-ssh-keygen -t ed25519 -N '""' -f C:\GymBackup\id_ed25519      # press Enter; no passphrase, it runs unattended
-icacls C:\GymBackup\id_ed25519 /inheritance:r /grant:r "$($env:USERNAME):R"   # ssh refuses a key others can read
-# Put the contents of id_ed25519.pub in the server's authorized_keys (above), then accept the
-# server's host key once, by hand:
-ssh -i C:\GymBackup\id_ed25519 gymbackup@gym.example.ir exit
-
-$arguments = '-NoProfile -ExecutionPolicy Bypass -File C:\GymBackup\pull-backup.ps1 ' +
-  '-RemoteHost gymbackup@gym.example.ir -KeyFile C:\GymBackup\id_ed25519 ' +
-  '-LocalDir C:\GymBackups -FlashDir E:\GymBackups'
-$action   = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arguments
-# This computer may be switched off at night, so it also runs at every log-on, and a missed run starts when it can.
-$triggers = @((New-ScheduledTaskTrigger -Daily -At 4:30am), (New-ScheduledTaskTrigger -AtLogOn))
-$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAvailable
-Register-ScheduledTask -TaskName 'Gym backup pull' -Action $action -Trigger $triggers -Settings $settings
-Start-ScheduledTask -TaskName 'Gym backup pull'               # try it now
-```
-
-Read the result in Task Scheduler ("Last Run Result") or in `C:\GymBackups\pull-backup.log`:
-`0` fine, `1` failed or the server's newest backup is over 36 hours old (the nightly job has
-stopped), `2` saved on the computer but the flash drive was not attached.
-
-### Restore
-
-Do this once, before you need it. A dump is only a backup if it has been restored.
-
-```bash
-# On the server, with the dump copied next to the scripts (scp it from the gym computer if needed):
-
-# A. Check a dump in a scratch database. The live database is not touched.
-./backup.sh restore-scratch gym-20260924-030001.dump      # prints the rows per table
-
-# B. Replace the live database with a dump (the app is stopped while it runs).
-./backup.sh restore gym-20260924-030001.dump --yes
-```
-
-`restore` first saves the current database as `backups/pre-restore-*.dump`, stops the API and
-Caddy, recreates the database from the dump, applies any migrations the dump does not have
-(`efbundle`), and starts everything again. Users, members, payments and the audit log all come
-back as they were in the dump; anything after the dump's time is lost.
-
-If the whole server is lost: provision a new one (task 6.0), put `.env` back, run
-`deploy/release.sh <user@host> --with-postgres` from the development machine, then restore the
-newest dump as in B.
+**The server holds real data** since 2026-10-02: it is never wiped and nothing is restored over it,
+and `./backup.sh run` comes before every release.

@@ -65,18 +65,21 @@ async function send(
     : ((await response.json()) as { id: string; version?: number });
 }
 
+/** The Owner's password after their first login, when the seeded one has to be changed. */
+export const ownerPassword = `${owner.password} changed`;
+
+/** The Owner's first login: the seeded password is changed to {@link ownerPassword}. */
+export async function changeOwnerPassword(api: APIRequestContext) {
+  const first = await login(api, owner.userName, owner.password);
+  return changePassword(api, first.accessToken, owner.password, ownerPassword);
+}
+
 /**
  * The Owner's first login (the seeded password must be changed), the gym's prices, a staff
  * account past its own first login, and a member holding a 10-session plan.
  */
 export async function seedFrontDesk(api: APIRequestContext) {
-  const first = await login(api, owner.userName, owner.password);
-  const ownerToken = await changePassword(
-    api,
-    first.accessToken,
-    owner.password,
-    `${owner.password} changed`,
-  );
+  const ownerToken = await changeOwnerPassword(api);
 
   const pricesResponse = await api.get("/api/pricing", {
     headers: { Authorization: `Bearer ${ownerToken}` },

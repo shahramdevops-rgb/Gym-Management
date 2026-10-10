@@ -1,4 +1,5 @@
 using Gym.Api.Admin;
+using Gym.Api.Admin.Demo;
 using Gym.Api.Configuration;
 using Gym.Api.Endpoints;
 using Gym.Api.Middleware;
@@ -48,9 +49,16 @@ try
         builder.Services.AddVitePolicy(builder.Configuration);
     }
 
+    // `admin seed-demo` runs the real handlers on a clock it moves itself, as the users it chooses,
+    // with the fake SMS sender. Only that command gets these (Admin/Demo/DemoServices.cs).
+    if (DemoServices.IsDemoSeedCommand(args))
+    {
+        builder.Services.AddDemoSeedServices();
+    }
+
     var app = builder.Build();
 
-    // `dotnet Gym.Api.dll admin …` runs one account command against the database and exits,
+    // `dotnet Gym.Api.dll admin …` runs one console command against the database and exits,
     // without starting the web server, the jobs or seeding (Admin/AdminConsole.cs).
     if (AdminConsole.IsAdminCommand(args))
     {
