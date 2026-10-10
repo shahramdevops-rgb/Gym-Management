@@ -576,6 +576,12 @@ The way out of a problem in this release is a fix forward.
       removed
 - [x] Tests: the marks on 25 Mehr, only the SMS marks from 26 Mehr, Staff sees «به‌روز شد» and no
       Owner mark. 1018 frontend tests green, lint, `format:check` and production build pass
+- [x] Released in `20261010-2339-7ebfb0d` (previous `20261010-2323-3428fa7`), the same night.
+      `./backup.sh run` first → `gym-20261010-233932.dump`, copied to `D:\GymBackups`, both
+      `sha256sum` equal. No migration. After it: the panel and `/health` answer 200, the live bundle
+      carries the three marks and the 1405/07/25 date, no error in the API log, row counts unchanged
+      but one new payment recorded between the two releases, the SMS switch off. A rollback to
+      `3428fa7` is safe: the schema did not change between them
 
 ### 6.5.0 Panel subdomain and a public placeholder
 
