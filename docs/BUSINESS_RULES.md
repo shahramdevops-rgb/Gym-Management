@@ -1332,13 +1332,15 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 ### Sending
 - **Provider: Kavenegar**, through its free-text method (`sms/send`), **from the gym's dedicated line**
   (خط اختصاصی). The template method (`verify/lookup`) was the first plan, but Kavenegar refused every
-  template because the gym's site was not up yet when it checked them, so the gym is buying a
-  dedicated line (not bought yet on 1405/07/17: it needs identity verification and a business
-  licence); a line needs no template, and Kavenegar's support said to send with `sms/send` (decided
-  with the developer, 1405/07/16). The system writes the whole text and sends it.
-  **To confirm with Kavenegar's support:** whether a member who has blocked advertising SMS still
-  gets messages from the line. If not, their messages show it in the delivery: Kavenegar's
-  documentation says its "blocked" status (14) means the receiver turned off advertising lines.
+  template because the gym's site was not up yet when it checked them, so the gym bought a
+  dedicated line (1405/07/18; Kavenegar's registration of it, with identity verification and a
+  business licence, may take about a week); a line needs no template, and Kavenegar's support said
+  to send with `sms/send` (decided with the developer, 1405/07/16). The system writes the whole
+  text and sends it.
+  **Members who blocked advertising SMS still get it** (settled by the developer, 1405/07/18): the
+  gym's messages go to its own members through `sms/send` on the dedicated line, with no limit and
+  no block from the receiver's advertising setting. Should one still come back blocked, its
+  delivery shows it as before (status 14, the cost given back).
 - **The wording is fixed in the code** (decided with the developer, 1405/07/16), as agreed on
   1405/07/14 and kept in `docs/sms-texts.md`. Changing it is a release, not a setting. The values in
   it are written the way the app shows them: Persian digits, a Jalali date as `۱۴۰۵/۰۷/۲۰`, an amount

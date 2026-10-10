@@ -2465,10 +2465,13 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
       as expected for a line the account does not own. The developer says the first line,
       `0018018949161`, shows as active in their panel, yet it got 412; the documentation's 407 says
       sending through international lines needs the server's IP in the account's security settings,
-      so that may be the reason. Not looked into further: the test waits for the dedicated line
-- [ ] Ask Kavenegar's support whether a member who blocked advertising SMS still gets the line's
-      messages (§10 *Sending*). The documentation says status 14 is a receiver who turned off
-      advertising lines, and gives the cost back; whether a dedicated line counts is still the question
+      so that may be the reason. Not looked into further: the test waits for the dedicated line.
+      The dedicated line was bought on 1405/07/18 (2026-10-10); Kavenegar's registration of it may
+      take about a week, then this test runs with that account's key and line
+- [x] Whether a member who blocked advertising SMS still gets the line's messages (§10 *Sending*):
+      settled by the developer on 1405/07/18 — `sms/send` from the dedicated line reaches the gym's
+      members with no limit and no block. No code change: a status 14 that still comes back shows
+      in the delivery with its cost given back, as 10.4 built it
 - [x] Kavenegar's codes and statuses checked against its documentation (1405/07/17, 2026-10-09; it
       could not be reached before). Decided with the developer: `451` (too many requests from the IP)
       may pass like `409`; status `13` becomes its own delivery, `Cancelled` («کاوه‌نگار لغو کرد»),
