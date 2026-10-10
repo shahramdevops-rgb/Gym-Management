@@ -27,10 +27,8 @@ Decided values:
 - `Gym:MaxFreezeDaysPerSubscription` = 30 (decided in task 4.1).
 - `Gym:ClosingTime` = 00:00, midnight (Asia/Tehran). Local time the nightly auto-checkout job runs at
   (decided as 23:00 in task 5.5; moved to midnight by the developer on 1405/07/04, 2026-09-26).
-- `Gym:OpeningTime` = 06:00 (Asia/Tehran). The gym is open 06:00–00:00 (midnight), and with `Gym:ClosingTime`
-  this bounds the hours a member can check in (§7 *Opening hours*). **Pending:** decided with the
-  developer on 1405/07/04 (2026-09-26), but deliberately not enforced until roadmap task 11.4,
-  because the developer builds and tests the system at night and must not be blocked by it.
+- There is no `Gym:OpeningTime`. The system does not limit check-in to opening hours (§7 *Opening
+  hours*; dropped by the developer on 1405/07/18, 2026-10-10).
 - **The gym has no closed days.** It is open every day of the year, holidays included, with the same
   hours. There is no holiday calendar and no per-weekday schedule (decided with the developer,
   1405/07/04).
@@ -966,21 +964,18 @@ developer, 1405/07/15 (2026-10-07), roadmap 6.5.35.
   by hour*): the member came in and used the gym; only the plan was not charged.
 - Moving to another locker, cafe and the «بدهکار» tag are as for any member's visit.
 
-### Opening hours (PENDING — not enforced yet, roadmap 11.4)
-Decided with the developer, 1405/07/04.
-- The gym is open from `Gym:OpeningTime` (06:00) to `Gym:ClosingTime` (00:00, midnight), in the gym's
-  time zone, every day (§0: no closed days). Outside those hours there is no check-in and no check-out.
-  Check-in is refused with a clear error, not recorded. Check-out has nothing to close, because
-  *Auto-checkout* has already closed every visit at midnight.
-- Together with *Auto-checkout*, this means that from midnight to 06:00, nobody is recorded as inside
-  the gym. Today a check-in after midnight still succeeds and stays open until the next night's job.
-- There is no Owner override. If the gym ever needs to open at night, the hours change as a new
-  rule, agreed with the developer and written here first. It is not an exception granted at the desk.
-- A cardio-only visit with no هوازی amount, and a guest visit with something unpaid, are left open by
-  *Auto-checkout* (*Cardio-only visit*, *Guest visit*), so they can still be inside after midnight.
-  Task 11.4 has to decide what happens to them.
-- Until task 11.4 is done, **the code must not enforce this rule**. The developer checks in test members
-  at night, and enforcing it early would block that work.
+### Opening hours (none in the system)
+Decided with the developer, 1405/07/18 (2026-10-10, roadmap 11.4). This drops the rule decided on
+1405/07/04, which would have refused check-in from `Gym:ClosingTime` until a `Gym:OpeningTime` of 06:00.
+- **The system has no opening hours.** Check-in, check-out and everything else at the desk work at
+  any time of day. Nobody checks a member in while the gym is shut, so a rule against it would only
+  add a setting to keep right and block the developer, who tests at night.
+- Leaving works as it always has: staff (Owner or Staff) check a visit out by hand, and
+  *Auto-checkout* closes the rest at `Gym:ClosingTime`, except a cardio-only visit with no هوازی
+  amount and a guest visit with something unpaid, which stay open for the desk (*Cardio-only visit*,
+  *Guest visit*).
+- If the gym ever wants check-in refused at certain hours, that is a new rule, agreed with the
+  developer and written here first.
 
 ### Gym services (هوازی and anything else sold during a visit)
 
