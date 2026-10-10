@@ -39,15 +39,27 @@ interface NavigationItem {
   icon: LucideIcon;
   /** Shown only to this role. Items without one are for every signed-in user. */
   role?: Role;
-  /** Marked «جدید» up to and including this gym day (ISO), then plain again. */
-  newUntil?: string;
+  /** A mark beside the label, so a changed or new page is found without being told. */
+  badge?: NavigationBadge;
+}
+
+interface NavigationBadge {
+  text: string;
+  /** Shown up to and including this gym day (ISO), then gone. Without it, shown until removed here. */
+  until?: string;
 }
 
 /**
- * The dashboard and «چک و قسط» reach the server in the release of 1405/07/14. They are marked new
- * through 1405/07/15, so the Owner finds them without being told (asked by the developer).
+ * Released on 1405/07/18: «اعضا» lists by latest visit (6.5.34) and «گزارش تغییرات» is new (11.1).
+ * Marked through 1405/07/25 (asked by the developer).
  */
-const releasedPagesNewUntil = "2026-10-07";
+const releasedOn18MehrUntil = "2026-10-17";
+
+/**
+ * The SMS pages are on the server, but nothing is really sent until the gym's line is registered
+ * with Kavenegar. Marked until SMS goes live; remove it in task 10.6 (asked by the developer).
+ */
+const smsTestBadge: NavigationBadge = { text: "آزمایشی" };
 
 /**
  * The locker map comes first: it is where every check-in happens, for Staff and the Owner alike
@@ -57,30 +69,41 @@ const navigation: NavigationItem[] = [
   { to: paths.home, label: "ورود با کمد", icon: LockKeyhole },
   { to: paths.attendance, label: "داخل باشگاه", icon: DoorOpen },
   { to: paths.history, label: "تاریخچه", icon: History },
-  { to: paths.members, label: "اعضا", icon: Contact },
+  {
+    to: paths.members,
+    label: "اعضا",
+    icon: Contact,
+    badge: { text: "به‌روز شد", until: releasedOn18MehrUntil },
+  },
   { to: paths.cafe, label: "بوفه", icon: Coffee },
   { to: paths.cafeOrders, label: "سفارش‌های بوفه", icon: ReceiptText },
   { to: paths.cafeMenu, label: "منوی بوفه", icon: ClipboardList },
-  {
-    to: paths.dashboard,
-    label: "داشبورد",
-    icon: ChartColumn,
-    role: "Owner",
-    newUntil: releasedPagesNewUntil,
-  },
+  { to: paths.dashboard, label: "داشبورد", icon: ChartColumn, role: "Owner" },
   { to: paths.expenses, label: "هزینه‌ها", icon: Wallet, role: "Owner" },
-  {
-    to: paths.payables,
-    label: "چک و قسط",
-    icon: BanknoteArrowUp,
-    role: "Owner",
-    newUntil: releasedPagesNewUntil,
-  },
+  { to: paths.payables, label: "چک و قسط", icon: BanknoteArrowUp, role: "Owner" },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.settings, label: "تنظیمات", icon: Settings, role: "Owner" },
-  { to: paths.smsMessages, label: "پیامک‌ها", icon: MessagesSquare, role: "Owner" },
-  { to: paths.smsSettings, label: "تنظیمات پیامک", icon: MessageSquareText, role: "Owner" },
-  { to: paths.auditLogs, label: "گزارش تغییرات", icon: ScrollText, role: "Owner" },
+  {
+    to: paths.smsMessages,
+    label: "پیامک‌ها",
+    icon: MessagesSquare,
+    role: "Owner",
+    badge: smsTestBadge,
+  },
+  {
+    to: paths.smsSettings,
+    label: "تنظیمات پیامک",
+    icon: MessageSquareText,
+    role: "Owner",
+    badge: smsTestBadge,
+  },
+  {
+    to: paths.auditLogs,
+    label: "گزارش تغییرات",
+    icon: ScrollText,
+    role: "Owner",
+    badge: { text: "جدید", until: releasedOn18MehrUntil },
+  },
   { to: paths.status, label: "وضعیت سیستم", icon: Activity },
   { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },
 ];
@@ -143,7 +166,7 @@ export function AppShell() {
         <nav aria-label="منوی اصلی" className="w-56 shrink-0 space-y-3 border-e bg-card p-3">
           <SidebarClock />
           <ul className="space-y-1">
-            {items.map(({ to, label, icon: Icon, newUntil }) => (
+            {items.map(({ to, label, icon: Icon, badge }) => (
               <li key={to}>
                 <NavLink
                   to={to}
@@ -160,10 +183,10 @@ export function AppShell() {
                   <Icon className="size-4" aria-hidden />
                   {label}
                   {/* Hidden from screen readers: the link keeps its own name, and the mark is gone
-                      in a day or two. */}
-                  {newUntil !== undefined && today <= newUntil && (
+                      when its page is no longer new. */}
+                  {badge !== undefined && (badge.until === undefined || today <= badge.until) && (
                     <Badge aria-hidden className="ms-auto">
-                      جدید
+                      {badge.text}
                     </Badge>
                   )}
                 </NavLink>

@@ -567,6 +567,16 @@ switching SMS on later is an `.env` change, not a release (10.6).
 **Rollback warning:** `./server.sh rollback` to `73e6c33` would run old code against the new schema.
 The way out of a problem in this release is a fix forward.
 
+#### Menu marks for that release (asked by the developer the same night)
+- [x] A menu item carries its own mark (`badge` with its text and an optional last day, replacing
+      `newUntil`): «اعضا» «به‌روز شد» and «گزارش تغییرات» «جدید» through 1405/07/25 (2026-10-17);
+      «پیامک‌ها» and «تنظیمات پیامک» «آزمایشی» with no date, until SMS goes live (10.6). The
+      developer asked for «جدید آزمایشی»; measured in the real menu, «تنظیمات پیامک» then broke onto
+      two lines, so the developer chose «آزمایشی». The expired marks on the dashboard and «چک و قسط»
+      removed
+- [x] Tests: the marks on 25 Mehr, only the SMS marks from 26 Mehr, Staff sees «به‌روز شد» and no
+      Owner mark. 1018 frontend tests green, lint, `format:check` and production build pass
+
 ### 6.5.0 Panel subdomain and a public placeholder
 
 Decided 2026-09-25, and it has to land **before** the canonical domain moves to the `.ir`. Today
@@ -2536,7 +2546,9 @@ still starts with `./backup.sh run`.
 ### 10.6 Go live with the Owner's account
 Every server step is proposed and confirmed first, with `./backup.sh run` before the release.
 The code of 10.1 to 10.5 is on the server since `20261010-2323-3428fa7` (1405/07/18), with the
-provider `Fake` and every kind off; what is left here needs no release.
+provider `Fake` and every kind off. Switching it on needs no release, but taking the menu's
+«آزمایشی» mark off does (`smsTestBadge` in `AppShell.tsx`), so plan a small frontend release for
+the same night.
 - [ ] The account that holds the dedicated line charged (no templates to wait for since 1405/07/16)
 - [x] `docker-compose.prod.yml` passes `Sms__Provider`, `Sms__Kavenegar__ApiKey` and
       `Sms__Kavenegar__Sender` to the API from `SMS_PROVIDER`, `SMS_KAVENEGAR_API_KEY` and
@@ -2545,6 +2557,7 @@ provider `Fake` and every kind off; what is left here needs no release.
 - [ ] Its API key and the line's number in the server's `.env`, the key restricted to the server's IP
       in Kavenegar
 - [ ] The Owner fills in the settings page and turns on the kinds they want
+- [ ] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed and released
 
 ---
 
