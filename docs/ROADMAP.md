@@ -546,6 +546,27 @@ How it went, as the procedure for the next one:
 miscellaneous sale is written. Old code cannot read an attendance or service charge without a
 member, so after that the way out is a fix forward, not `./server.sh rollback`.
 
+#### Release `20261010-2323-3428fa7` (1405/07/18, 2026-10-10, late at night)
+Previous: `20261006-0505-73e6c33`. It carries 6.5.34 to 6.5.36, Phase 10's code (10.1 to 10.5, the
+provider still `Fake`, so nothing can be sent), 11.1, 11.2 and 11.3, with seven migrations:
+`AddNotifications`, `AddSmsSettings`, `MemberLastVisitIndex`, `CardioOnlyWithoutPlan`,
+`SendSmsAsText`, `AddSmsDeliveryCancelled`, `AddPaymentsCafeOrderForeignKey`. Released while the
+SMS line waits for Kavenegar's registration, so seven migrations do not pile up for another week;
+switching SMS on later is an `.env` change, not a release (10.6).
+- Tests before it: 704 domain, 1480 integration, 1017 frontend, `npm run e2e` green; zero warnings
+- Server checked first: `TAG` `73e6c33`, API and Postgres healthy, 50 GB free, 2.8 GiB available
+- Read-only checks: no payment pointing to a missing cafe order (the new foreign key's condition),
+  last migration `AddPayables`. Rows: members 78, subscriptions 78, attendances 176, payments 108,
+  service_charges 9, cafe_orders 26, expenses 0, products 28, audit_logs 2590
+- `./backup.sh run` → `gym-20261010-232136.dump` (335 KB), copied to `D:\GymBackups` with `scp`,
+  both `sha256sum` equal
+- After it: the panel and `/health` answer 200, the CSP, Permissions-Policy and
+  Cross-Origin-Opener-Policy headers are served, no error in the API log, the seven migrations
+  listed, every row count unchanged (audit_logs 2596: sign-ins), every SMS switch off
+
+**Rollback warning:** `./server.sh rollback` to `73e6c33` would run old code against the new schema.
+The way out of a problem in this release is a fix forward.
+
 ### 6.5.0 Panel subdomain and a public placeholder
 
 Decided 2026-09-25, and it has to land **before** the canonical domain moves to the `.ir`. Today
@@ -1757,7 +1778,7 @@ filter, and every member with a plan shows «۴ از ۱۲» over a bar.
 
 Tests not run yet: the developer asked to run them once, when the changes are done. Release needs
 the migration `MemberLastVisitIndex` (an index only). Committed as `6242691`; its tests ran with
-6.5.35's full suite.
+6.5.35's full suite. Released in `20261010-2323-3428fa7` (1405/07/18).
 
 ### 6.5.35 Cardio-only without a plan (ورود فقط هوازی بدون اشتراک)
 Reported by the developer on 1405/07/15 (2026-10-07) as a bug: someone whose sessions or plan had
@@ -1790,7 +1811,7 @@ must hold a plan"); the developer replaced it the same day. BUSINESS_RULES.md §
 Done when: a member with no plan, or whose plan ran out, comes in for هوازی from the locker's box,
 and leaves once the amount is recorded.
 
-Release needs the migration `CardioOnlyWithoutPlan` (a check constraint only).
+Release needs the migration `CardioOnlyWithoutPlan` (a check constraint only). Released in `20261010-2323-3428fa7` (1405/07/18).
 
 ### 6.5.36 A third sale at the desk, «متفرقه» (فروش متفرقه)
 Asked by the developer on 1405/07/15 (2026-10-07): a copy of «آنالیز» under its own name, with
@@ -1820,7 +1841,7 @@ its own card on the dashboard. BUSINESS_RULES.md §7 *Sale at the desk* and §12
 Done when: the desk records a «متفرقه» from the locker's box like an «آنالیز», and the Owner finds
 it on its own tab of the history and its own card on the dashboard.
 
-Release needs no migration.
+Release needs no migration. Released in `20261010-2323-3428fa7` (1405/07/18).
 
 #### Housekeeping before Phase 9 (2026-10-04)
 Phase 6.5 closed with a check of the whole repository, so the next task starts clean:
@@ -2514,6 +2535,8 @@ still starts with `./backup.sh run`.
 
 ### 10.6 Go live with the Owner's account
 Every server step is proposed and confirmed first, with `./backup.sh run` before the release.
+The code of 10.1 to 10.5 is on the server since `20261010-2323-3428fa7` (1405/07/18), with the
+provider `Fake` and every kind off; what is left here needs no release.
 - [ ] The account that holds the dedicated line charged (no templates to wait for since 1405/07/16)
 - [x] `docker-compose.prod.yml` passes `Sms__Provider`, `Sms__Kavenegar__ApiKey` and
       `Sms__Kavenegar__Sender` to the API from `SMS_PROVIDER`, `SMS_KAVENEGAR_API_KEY` and
@@ -2570,7 +2593,7 @@ The review itself, item by item with its evidence: `docs/security-review.md`.
       (`SessionRateLimitTests`); the policy's `script-src` and `frame-ancestors`, no inline script
       or handler in `index.html` (`ContentSecurityPolicyTests`); in Chrome against the production
       images on `https://localhost`, the app works with no violation and an injected script is refused
-- [ ] Released: the headers reach the server only with the next release (`./backup.sh run` first)
+- [x] Released in `20261010-2323-3428fa7` (1405/07/18); the headers checked on the live panel
 
 Closed 2026-10-10: 2167 backend tests (704 domain, 1463 integration; 7 new) and 1013 frontend tests
 green, zero warnings, lint, `format:check` and production build pass. No migration. Fixed on the way:
@@ -2608,8 +2631,8 @@ hundred rows. The review, its method and its numbers: `docs/performance-review.m
       still downloading shows «در حال بارگذاری…»; the jsdom tests render the pages already
       loaded (`renderApp`)
 - [x] `artifacts/` (a 147 MB migration bundle) left out of the Docker build context
-- [ ] Released: the index, the foreign key and the log changes reach the server only with the
-      next release (`./backup.sh run` first)
+- [x] Released in `20261010-2323-3428fa7` (1405/07/18), after checking that no payment pointed to
+      a missing cafe order
 
 Closed 2026-10-10: 2184 backend tests (704 domain, 1480 integration; 17 new) and 1017 frontend
 tests (4 new) green, zero warnings, lint, `format:check` and production build pass; `npm run e2e`
