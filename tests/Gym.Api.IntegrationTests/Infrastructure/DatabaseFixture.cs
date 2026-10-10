@@ -6,6 +6,7 @@ using Gym.Infrastructure.Persistence.Seed;
 
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -116,6 +117,21 @@ public sealed class DatabaseFixture : IAsyncLifetime
                 configure?.Invoke(builder);
             })
             .CreateClient(ClientOptions);
+    }
+
+    /// <summary>
+    /// A separate host with test services added, for a test that has to look inside it afterwards
+    /// (the <see cref="QueryCounter"/>, say). Clients come from <see cref="CreateClient(WebApplicationFactory{Program})"/>.
+    /// </summary>
+    public WebApplicationFactory<Program> CreateHost(Action<IServiceCollection> configureServices) =>
+        Factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(configureServices));
+
+    /// <summary>A client for a host from <see cref="CreateHost"/>, with the same options as <see cref="CreateClient()"/>.</summary>
+    public static HttpClient CreateClient(WebApplicationFactory<Program> host)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+
+        return host.CreateClient(ClientOptions);
     }
 
     private static WebApplicationFactoryClientOptions ClientOptions => new() { HandleCookies = false };

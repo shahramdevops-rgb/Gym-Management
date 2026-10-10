@@ -67,17 +67,33 @@ public static class SerilogConfiguration
         };
     }
 
-    private static LogEventLevel GetLevel(HttpContext httpContext, double elapsed, Exception? exception)
+    /// <summary>
+    /// The board's own refreshes (task 11.3): each open board asks for these every few seconds.
+    /// Four days of production logs were 79% these lines, which pushed everything else out of the
+    /// 30 MB Docker keeps.
+    /// </summary>
+    private static readonly string[] PolledPaths =
+    [
+        "/api/attendance/currently-inside",
+        "/api/attendance/today-by-hour",
+        "/api/lockers",
+        "/api/payables/due-soon",
+    ];
+
+    internal static LogEventLevel GetLevel(HttpContext httpContext, double elapsed, Exception? exception)
     {
+        // A request the browser cancelled is answered with 499 by the exception handler and lands
+        // below at Information: the server did nothing wrong.
         if (exception is not null || httpContext.Response.StatusCode >= StatusCodes.Status500InternalServerError)
         {
             return LogEventLevel.Error;
         }
 
-        // A health probe polled every ten seconds is 8,640 events a day that say nothing.
-        // Logging has a cost, so deciding what not to log is part of setting logging up.
-        // Debug rather than off: the events still exist when something is actually wrong.
-        if (IsHealthCheck(httpContext))
+        // A health probe polled every ten seconds is 8,640 events a day that say nothing, and so
+        // is a board refreshing itself. Logging has a cost, so deciding what not to log is part
+        // of setting logging up. Debug rather than off: the events still exist when something is
+        // actually wrong, and a refresh that fails is logged like any other request.
+        if (IsHealthCheck(httpContext) || IsSuccessfulPoll(httpContext))
         {
             return LogEventLevel.Debug;
         }
@@ -87,4 +103,9 @@ public static class SerilogConfiguration
 
     private static bool IsHealthCheck(HttpContext httpContext) =>
         httpContext.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSuccessfulPoll(HttpContext httpContext) =>
+        HttpMethods.IsGet(httpContext.Request.Method)
+        && httpContext.Response.StatusCode < StatusCodes.Status400BadRequest
+        && PolledPaths.Contains(httpContext.Request.Path.Value, StringComparer.OrdinalIgnoreCase);
 }

@@ -100,8 +100,9 @@ file. The checklist is the OWASP Top 10, 2025 edition.
   «گزارش تغییرات» (task 11.1).
 - Refresh-token reuse is logged as a warning. Request logs carry a correlation id.
 - The Kavenegar API key never reaches the logs (`RemoveAllLoggers`, with a test).
-- Gap: nothing alerts anyone. Logs are read when someone looks. Task 11.3 reviews the real
-  production logs.
+- Gap: nothing alerts anyone. Logs are read when someone looks. Task 11.3 read four days of
+  production logs (`docs/performance-review.md`): two errors, both a cancelled request wrongly
+  logged as a 500, now fixed.
 
 ### A10 Mishandling of exceptional conditions
 - Business failures are `Result`/`Error` values with stable codes. An unexpected exception
@@ -130,5 +131,6 @@ file. The checklist is the OWASP Top 10, 2025 edition.
 
 ## Still open
 
-- Alerting on failed logins or 5xx errors (11.3, after reading the real logs).
+- Alerting on failed logins or 5xx errors: left for later by the developer after 11.3 read the
+  logs (`docs/performance-review.md`, *Still open*).
 - The Kavenegar API key restricted to the server's IP (10.6).

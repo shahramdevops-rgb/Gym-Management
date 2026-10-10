@@ -1,3 +1,4 @@
+using Gym.Domain.Cafe;
 using Gym.Domain.Payments;
 using Gym.Domain.ServiceCharges;
 using Gym.Domain.Subscriptions;
@@ -46,12 +47,21 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.HasOne<Subscription>().WithMany().HasForeignKey(payment => payment.SubscriptionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ServiceCharge>().WithMany().HasForeignKey(payment => payment.ServiceChargeId).OnDelete(DeleteBehavior.Restrict);
 
+        // Missing until task 11.3: the cafe orders of Phase 7 came after this configuration, and
+        // only the code checked that a cafe payment's order exists. Production had no payment
+        // without its order when it was added, so the migration refused no row.
+        builder.HasOne<CafeOrder>().WithMany().HasForeignKey(payment => payment.CafeOrderId).OnDelete(DeleteBehavior.Restrict);
+
         // Users are deactivated, never deleted, so a user who received payments can never disappear.
         builder.HasOne<User>().WithMany().HasForeignKey(payment => payment.ReceivedByUserId).OnDelete(DeleteBehavior.Restrict);
 
-        // A payment history and a net-paid calculation filter by one of these two columns.
+        // A payment history and a net-paid calculation filter by one of these three columns.
+        // CafeOrderId's came only in task 11.3: without it, every member's debt read the whole
+        // payments table once per cafe order, 18 seconds with three years of data
+        // (docs/performance-review.md).
         builder.HasIndex(payment => payment.SubscriptionId);
         builder.HasIndex(payment => payment.ServiceChargeId);
+        builder.HasIndex(payment => payment.CafeOrderId);
 
         // Not a rule, only speed: the gym's payment history reads a range of PaidAt moments, newest
         // first (BUSINESS_RULES.md §12 History), and the revenue reports will read the same range.

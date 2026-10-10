@@ -17,9 +17,10 @@ namespace Gym.Api.Middleware;
 /// it anyway. They get the correlation id instead, which finds the full exception in Seq.
 /// </para>
 /// <para>
-/// Nothing is logged here on purpose. ASP.NET Core's exception handler middleware already
-/// logs the exception at <c>Error</c> before calling this handler, and Serilog's request log
-/// records the failed request; a third line would be the same event three times in Seq.
+/// Nothing is logged here on purpose. ASP.NET Core's exception handler middleware logs the
+/// exception at <c>Error</c> (Program.cs turns that on: since .NET 10 it is off by default for an
+/// exception a handler like this one handled), and Serilog's request log records the failed
+/// request; a third line would be the same event three times in Seq.
 /// </para>
 /// </remarks>
 public sealed class GlobalExceptionHandler(IProblemDetailsService problemDetailsService) : IExceptionHandler

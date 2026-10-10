@@ -38,7 +38,9 @@ public sealed class GetSubscriptionsSnapshotHandler(IAppDbContext db, IGymCalend
                     plan.EndDate >= today && plan.UsedSessions < plan.TotalSessions &&
                     plan.TotalSessions - plan.UsedSessions <= ReportThresholds.LowSessions),
             })
-            .FirstOrDefaultAsync(cancellationToken);
+            // Single, not First: there is one group or none, and EF warns about a First with no order
+            // (task 11.3, production logs).
+            .SingleOrDefaultAsync(cancellationToken);
 
         return counts is null
             ? new SubscriptionsSnapshotResponse(today, 0, 0, 0, 0)

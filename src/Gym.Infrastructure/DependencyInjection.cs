@@ -184,6 +184,28 @@ public static class DependencyInjection
                 "In production, supply Postgres__Password or a full ConnectionStrings__Postgres.");
         }
 
+        builder.Options = string.IsNullOrWhiteSpace(builder.Options) ? JitOff : $"{builder.Options} {JitOff}";
+
+        // Npgsql first tries Kerberos (GSS) encryption, which this Postgres does not offer. The
+        // Linux images have no Kerberos library, so every start of the API and every migration
+        // logged "Cannot load library libgssapi_krb5.so.2", which reads like a fault and is not
+        // one (task 11.3, production logs).
+        builder.GssEncryptionMode = GssEncryptionMode.Disable;
+
         return builder.ConnectionString;
     }
+
+    /// <summary>
+    /// Turns Postgres's JIT compiler off for this application's sessions (task 11.3,
+    /// docs/performance-review.md).
+    /// </summary>
+    /// <remarks>
+    /// JIT compiles a query to machine code when the planner's cost estimate is high. That pays
+    /// off for analytical queries that run for seconds; this app's queries run for milliseconds.
+    /// The debt queries' correlated sub-selects have a high <i>estimated</i> cost, so with three
+    /// years of data Postgres spent 410 ms compiling a query that then ran in 60 ms. Set here, on
+    /// the connection, it holds the same in development, the tests and production, and needs no
+    /// change to the server's Postgres.
+    /// </remarks>
+    private const string JitOff = "-c jit=off";
 }

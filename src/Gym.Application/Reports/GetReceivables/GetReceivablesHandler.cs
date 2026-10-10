@@ -34,7 +34,9 @@ public sealed class GetReceivablesHandler(SaleRows saleRows, IGymCalendar calend
                     sale.SoldAt < weekStart && sale.SoldAt >= monthStart ? sale.Amount - sale.NetPaid : 0m),
                 Older = sales.Sum(sale => sale.SoldAt < monthStart ? sale.Amount - sale.NetPaid : 0m),
             })
-            .FirstOrDefaultAsync(cancellationToken);
+            // Single, not First: there is one group or none, and EF warns about a First with no order
+            // (task 11.3, production logs).
+            .SingleOrDefaultAsync(cancellationToken);
 
         return ages is null
             ? new ReceivablesResponse(0m, 0m, 0m, 0m)

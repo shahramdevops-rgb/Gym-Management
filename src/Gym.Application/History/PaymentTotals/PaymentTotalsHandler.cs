@@ -27,7 +27,9 @@ public sealed class PaymentTotalsHandler(PaymentRows paymentRows)
                 Received = payments.Sum(payment => payment.Kind == PaymentKind.Payment ? payment.Amount : 0m),
                 Refunded = payments.Sum(payment => payment.Kind == PaymentKind.Refund ? payment.Amount : 0m),
             })
-            .FirstOrDefaultAsync(cancellationToken);
+            // Single, not First: there is one group or none, and EF warns about a First with no order
+            // (task 11.3, production logs).
+            .SingleOrDefaultAsync(cancellationToken);
 
         return sums is null
             ? new PaymentTotalsResponse(0m, 0m, 0m)
