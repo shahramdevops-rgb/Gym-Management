@@ -1835,7 +1835,8 @@ Phase 6.5 closed with a check of the whole repository, so the next task starts c
 - [ ] The gym PC has not yet pulled its own copy of the `gym-20261004-050157.dump` backup
       (`deploy/pull-backup.ps1`); today it exists only on the server and in `D:\GymBackups`
 - Noted for 11.3: the production build warns that the main JS chunk is about 942 kB (Vite's hint
-  is 500 kB); code splitting by route would fix it. Not an error
+  is 500 kB); code splitting by route would fix it. Not an error. Done in 11.3: pages load when
+  first opened, the main file is 436 kB
 
 Next: **9.1 Financial reports API**, in its own session, plan first.
 
@@ -2575,9 +2576,43 @@ increasing ids, which a version 7 Guid does not promise; it now checks the total
 on two pages. A release still starts with `./backup.sh run`.
 
 ### 11.3 Performance and logging review
-- [ ] N+1 queries, missing indexes
-- [ ] Review real production logs and error handling
-- [ ] Playwright end-to-end test for the front desk flow
+Measured with three years of a busy gym's data in a throwaway database, not with production's few
+hundred rows. The review, its method and its numbers: `docs/performance-review.md`.
+- [x] N+1 queries: none. `QueryCountTests` calls 44 read endpoints with 1 row and with 25 behind
+      them and fails if one sends more SQL commands for 25 (`QueryCounter`, test project only)
+- [x] Missing indexes: `payments.cafe_order_id` (migration `AddPaymentsCafeOrderForeignKey`). Every
+      member's debt read the whole payments table once per cafe order: 18 to 23 s for «بدهکاران»,
+      the receivables report, the dashboard and a year's financial report; now 0.06 to 0.15 s
+- [x] Postgres JIT off on the app's connections (`-c jit=off`): 410 ms of compiling for a debt
+      query that runs in 60 ms (`DatabaseTuningTests`)
+- [x] Foreign key on `payments.cafe_order_id`, in the same migration (production had no payment
+      without its order; `PaymentConstraintTests`)
+- [x] Review real production logs and error handling: four days read over ssh with read-only
+      commands (2 errors, 12 warnings). A cancelled request was logged as a 500 error (the
+      request log moved outside the exception handler); .NET 10 had stopped logging a handled
+      500's exception (`SuppressDiagnosticsCallback`); four totals queries warned about
+      `FirstOrDefault` (now `SingleOrDefault`); the Kerberos message at every start (GSS off);
+      the board's successful refreshes, 79% of the log, now at Debug
+- [x] Alerting on errors (open since 11.2): decided with the developer to leave it for later
+- [x] Playwright end-to-end test for the front desk flow: `npm run e2e` runs the production images on
+      `https://localhost` (compose project `gym-e2e`, empty database, the release's migration
+      bundle); a staff member signs in, checks a member in from a free locker, sees the locker
+      taken on the board and checks them out, then a reload on `/members` loads a lazy page.
+      Local, before a release; not in CI
+- [x] The 942 kB bundle note (6.4): every page but the login and the locker board loads when first
+      opened (main file 1,015 kB → 436 kB, first download 280 → 252 kB gzipped); a tab opened
+      before a release reloads once when a page file is gone (`staleChunkReload.ts`); a page
+      still downloading shows «در حال بارگذاری…»; the jsdom tests render the pages already
+      loaded (`renderApp`)
+- [x] `artifacts/` (a 147 MB migration bundle) left out of the Docker build context
+- [ ] Released: the index, the foreign key and the log changes reach the server only with the
+      next release (`./backup.sh run` first)
+
+Closed 2026-10-10: 2184 backend tests (704 domain, 1480 integration; 17 new) and 1017 frontend
+tests (4 new) green, zero warnings, lint, `format:check` and production build pass; `npm run e2e`
+passes. One migration, `AddPaymentsCafeOrderForeignKey` (an index and a foreign key; production
+had no payment without its order, so it refuses no row). A release still starts with
+`./backup.sh run`.
 
 ### 11.4 Opening hours: no check-in while the gym is closed (PENDING)
 Rule decided on 2026-09-26 (BUSINESS_RULES.md §0, §7 *Opening hours*), deliberately left until here

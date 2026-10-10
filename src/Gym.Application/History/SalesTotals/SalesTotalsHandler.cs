@@ -30,7 +30,9 @@ public sealed class SalesTotalsHandler(SaleRows saleRows)
                 // Never below zero per sale, as a member's debt (§5): an overpaid sale owes nothing
                 // and does not cancel out what another still owes.
                 sales.Sum(sale => sale.NetPaid < sale.Amount ? sale.Amount - sale.NetPaid : 0m)))
-            .FirstOrDefaultAsync(cancellationToken);
+            // Single, not First: there is one group or none, and EF warns about a First with no order
+            // (task 11.3, production logs).
+            .SingleOrDefaultAsync(cancellationToken);
 
         return totals ?? new SalesTotalsResponse(0m, 0m, 0m);
     }

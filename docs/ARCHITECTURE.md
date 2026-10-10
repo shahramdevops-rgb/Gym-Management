@@ -133,7 +133,11 @@ Validators are FluentValidation `AbstractValidator<T>` classes in Application, r
 Gym.Api, because `IEndpointFilter` is an ASP.NET Core type and Application must stay host-free.
 
 Unhandled exceptions → 500 ProblemDetails (`GlobalExceptionHandler`) with the correlation id and no internal
-details — no message, no type name, no stack trace.
+details — no message, no type name, no stack trace. The exception itself is logged at Error by the exception handler
+middleware: since .NET 10 that is off for an exception an `IExceptionHandler` handled, so `Program.cs` sets
+`SuppressDiagnosticsCallback = _ => false`. The request log (`UseSerilogRequestLogging`) sits *outside* the exception
+handler, so its line has the status the client got: 500 for a fault, 499 for a request the browser cancelled, which
+is not an error (task 11.3). The board's successful refreshes and `/health` are logged at Debug (`GetLevel`).
 `DbUpdateConcurrencyException` and Postgres unique violations (SQLSTATE 23505) are translated to 409 where they are expected.
 
 ### Persistence
@@ -142,6 +146,9 @@ details — no message, no type name, no stack trace.
 - Base entity fields `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy` are set by an interceptor, not by handlers.
 - Money: `HasPrecision(18, 2)` (large enough for Rial and Toman amounts).
 - Read queries use `AsNoTracking()` and project straight to response records.
+- Every column a query looks rows up by has an index, a foreign key included: Postgres does not index foreign keys by
+  itself. A missing one is invisible with a few hundred rows; `payments.cafe_order_id` cost 18 seconds with three
+  years of data (task 11.3, `docs/performance-review.md`). Check new queries against `docs/performance-volume.sql`.
 - Lists are paged (`page`, `pageSize`, max 100), ordered by a column plus `Id` as a tie-breaker so no row repeats or disappears between pages.
 - "Today" comes from `IGymCalendar.Today()` (`Gym:TimeZone`, validated at startup). Domain methods take that
   `DateOnly` as a parameter and never read a clock.
@@ -173,6 +180,16 @@ validation filter, the middleware) never wait for Docker; the container starts w
 and is removed when the collection finishes. Tests inside the collection run serially, which is required
 rather than incidental: they share one database, and a reset would delete a parallel test's rows.
 
+`QueryCountTests` (task 11.3) guards against N+1 queries: it calls every read endpoint with 1 row and with 25 rows
+behind it and fails if one sends more SQL commands for 25. Its `QueryCounter` is a `DbCommandInterceptor` added to a
+separate host (`DatabaseFixture.CreateHost`); it counts only requests that carry its header, so Hangfire's own
+queries are left out. A new read endpoint belongs in its list.
+
+End-to-end tests (Playwright, `web/e2e/`, `npm run e2e`) run the production images on `https://localhost` under
+their own compose project, `gym-e2e`, with an empty database migrated by the same bundle a release uses, in the
+Chrome installed on the machine. They create their data through the API and test one flow in the browser. Run
+locally before a release; not in CI, because building the images takes minutes. Ports 80 and 443 must be free.
+
 ## Frontend (Persian, RTL)
 
 ```
@@ -200,6 +217,12 @@ web/src/
 - Auth lives in `features/auth/`: `session.ts` holds the access token in a module (read with `useSessionState`),
   `lib/api/authFetch.ts` adds the bearer token to every `api` call and, on a 401, runs one shared refresh and retries
   once. `restoreSession()` in `main.tsx` turns the refresh cookie back into a session after a reload.
+- Pages are loaded when first opened (`lazyPage` in `app/router.tsx`); only the login page and the locker board come
+  with the app. A release replaces the hashed files, so a tab opened earlier can ask for one that is gone:
+  `app/staleChunkReload.ts` reloads the page once on Vite's `vite:preloadError`. A new page goes through `lazyPage`.
+  Opened straight from the address bar, a lazy page shows the `hydrateFallbackElement` («در حال بارگذاری…») until its
+  file arrives. The jsdom tests are written for pages that render at once, so `test/renderApp.tsx` loads every lazy
+  route before the tests and renders the same elements synchronously; the real lazy loading is covered by `npm run e2e`.
 - Route guards: `RequireAuth` (signed in; users with a temporary password are sent to change-password) and
   `RequireRole` (for Owner-only pages). The navigation in `AppShell` lists only items the user's roles allow. The API
   enforces all of this again; the guards only avoid showing screens that would fail.
@@ -261,6 +284,10 @@ web/src/
 - The API logs a Data Protection warning in the container (keys stored in an ephemeral directory). Nothing here uses
   protected payloads that must survive a restart (tokens are JWTs and hashed refresh tokens), so it is harmless today.
   Revisit it if a feature ever depends on `IDataProtector`.
+- Postgres's JIT compiler is off for the app's connections (`-c jit=off` in `BuildConnectionString`). It compiles a
+  query when the planner's cost estimate is high, and the debt queries' correlated sub-selects are estimated high:
+  410 ms of compiling for a query that ran in 60 ms (task 11.3). In `psql` JIT is still on, so a plan read there
+  can show a `JIT:` section the app never pays for.
 - Hangfire's default is 20 workers and each holds a Postgres connection. `WorkerCount = 2` in `HangfireSetup` keeps the
   production database's `max_connections=50` for the API's own pool.
 - The .NET 10 SDK no longer runs Microsoft.Testing.Platform tests through VSTest. xunit.v3 hosts its own runner, so test projects set `OutputType=Exe` and `TestingPlatformDotnetTestSupport=true`, `global.json` carries `"test": { "runner": "Microsoft.Testing.Platform" }`, and neither `Microsoft.NET.Test.Sdk` nor `xunit.runner.visualstudio` is referenced. Without the `global.json` opt-in, `dotnet test` fails with "Testing with VSTest target is no longer supported".
@@ -350,7 +377,8 @@ web/src/
 - A **migration bundle boots the application host**, like `dotnet ef` does, to find the `DbContext`. So the `migrate`
   service needs the API's whole configuration (database password, `Jwt__SigningKey`), not just a connection string,
   and fails on the same missing setting the API would. `docker-compose.prod.yml` shares one `x-api-environment` block
-  between the two. The bundle is about 140 MB and Npgsql prints a harmless "Cannot load library libgssapi_krb5.so.2".
+  between the two. The bundle is about 140 MB. (It printed a harmless "Cannot load library libgssapi_krb5.so.2" until
+  task 11.3 turned GSS encryption off in `BuildConnectionString`.)
 - A rollback (`deploy/server.sh rollback`) changes the running code, never the database. A release whose migration is
   not compatible with the previous code cannot be rolled back by the script; that case is a restore from backup.
   Prefer migrations that add before they remove, so one release of overlap is safe.

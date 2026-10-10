@@ -24,6 +24,7 @@ No public access, no self-registration, no member logins.
 - Accounts on the server (any user, the Owner included): `./server.sh unlock <user> | set-password <user> | rename <user> <new-user>`; locally: `dotnet run --project src/Gym.Api -- admin unlock <user>`
 - Backups: on the server `./backup.sh run | restore <file> --yes | restore-scratch <file>`; on the gym PC `deploy/pull-backup.ps1` (README, "Backup and restore")
 - Frontend (inside web/): `npm run dev`, `npm run build`, `npm run lint`, `npm test`, `npm run format` (CI runs `npm run format:check`; run it before every frontend commit)
+- End-to-end (inside web/, before a release): `npm run e2e` builds the production images, runs them on https://localhost with an empty database (compose project `gym-e2e`), tests the front desk in the installed Chrome, and removes the stack. Needs Docker and free ports 80 and 443
 - Regenerate API types after any endpoint change (inside web/): `npm run gen:api`. It uses an API already running on :5134, or starts one (needs `docker compose up -d`), generates, and stops it
 Keep this section up to date when commands change.
 

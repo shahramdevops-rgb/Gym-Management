@@ -32,6 +32,11 @@ try
     builder.Services.AddApiProblemDetails();
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
+    // Since .NET 10 the exception handler middleware does not log an exception that an
+    // IExceptionHandler handled, unless told to. GlobalExceptionHandler handles every one, so
+    // without this a 500's exception would reach no log at all (task 11.3).
+    builder.Services.Configure<ExceptionHandlerOptions>(options => options.SuppressDiagnosticsCallback = _ => false);
+
     builder.Services.AddJwtAuthentication();
     builder.Services.AddApiRateLimiting(builder.Configuration);
     builder.Services.AddApiForwardedHeaders(builder.Configuration);
@@ -74,11 +79,16 @@ try
     // later middleware.
     app.UseMiddleware<CorrelationIdMiddleware>();
 
+    // Outside the exception handler, so the line records the status the client actually got
+    // (task 11.3). Inside it, the request log saw the raw exception and wrote "500" at Error even
+    // for a request the browser had cancelled, which the exception handler answers with 499. A
+    // real failure is still at Error: its status is 500, and the exception handler logs the
+    // exception itself, with the same correlation id.
+    app.UseSerilogRequestLogging(SerilogConfiguration.ConfigureRequestLogging);
+
     // After the correlation id, so a failed request still returns the id in its header and
     // its ProblemDetails body; before everything else, so it catches what those throw.
     app.UseExceptionHandler();
-
-    app.UseSerilogRequestLogging(SerilogConfiguration.ConfigureRequestLogging);
 
     if (app.Environment.IsDevelopment())
     {

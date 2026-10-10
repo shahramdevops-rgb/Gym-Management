@@ -12,3 +12,8 @@ web/dist
 TestResults
 tests
 docs
+# Build output: the migration bundle (deploy/release.sh, web/e2e/stack.ts) and the end-to-end
+# test reports. No image needs them, and the bundle alone is over 100 MB of build context.
+artifacts
+web/playwright-report
+web/test-results

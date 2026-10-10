@@ -1993,6 +1993,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_payments");
 
+                    b.HasIndex("CafeOrderId")
+                        .HasDatabaseName("ix_payments_cafe_order_id");
+
                     b.HasIndex("PaidAt")
                         .HasDatabaseName("ix_payments_paid_at");
 
@@ -2742,6 +2745,12 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Gym.Domain.Payments.Payment", b =>
                 {
+                    b.HasOne("Gym.Domain.Cafe.CafeOrder", null)
+                        .WithMany()
+                        .HasForeignKey("CafeOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_payments_cafe_orders_cafe_order_id");
+
                     b.HasOne("Gym.Infrastructure.Identity.User", null)
                         .WithMany()
                         .HasForeignKey("ReceivedByUserId")

@@ -6,7 +6,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config([
-  { ignores: ["dist", "coverage", "src/lib/api/schema.d.ts"] },
+  { ignores: ["dist", "coverage", "playwright-report", "test-results", "src/lib/api/schema.d.ts"] },
   {
     files: ["**/*.{ts,tsx}"],
     extends: [
@@ -34,5 +34,10 @@ export default tseslint.config([
         },
       ],
     },
+  },
+  {
+    // The end-to-end tests and their configuration run in Node, not in the browser.
+    files: ["e2e/**/*.ts", "playwright.config.ts"],
+    languageOptions: { globals: globals.node },
   },
 ]);

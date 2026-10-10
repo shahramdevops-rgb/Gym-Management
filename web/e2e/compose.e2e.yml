@@ -1,0 +1,12 @@
+# Layered over docker-compose.prod.yml for the end-to-end tests (web/e2e/stack.ts). On the server
+# the migration bundle sits next to the compose file; here it is built into artifacts/, which git
+# ignores. Relative paths resolve from the repository root, where the first compose file lives.
+services:
+  migrate:
+    volumes: !override
+      - type: bind
+        source: ./artifacts/efbundle
+        target: /efbundle
+        read_only: true
+        bind:
+          create_host_path: false
