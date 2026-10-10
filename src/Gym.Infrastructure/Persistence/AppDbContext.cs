@@ -38,10 +38,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<TrustedDevice> TrustedDevices => Set<TrustedDevice>();
 
     /// <summary>
-    /// Not on <c>IAppDbContext</c> yet: nothing in Application reads the audit log until the
-    /// audit screen (task 11.1), and only the interceptor writes it.
+    /// Written only by the audit interceptor. Application sees it through
+    /// <c>IAppDbContext.AuditLogs</c>, a read-only query (task 11.1).
     /// </summary>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    IQueryable<AuditLog> IAppDbContext.AuditLogs => AuditLogs.AsNoTracking();
 
     public DbSet<Member> Members => Set<Member>();
 

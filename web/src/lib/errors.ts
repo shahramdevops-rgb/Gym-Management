@@ -337,6 +337,10 @@ export const errorMessages: Record<string, string> = {
   "Reports.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
   "Reports.RangeTooLong": "بازهٔ گزارش حداکثر یک سال (۳۶۶ روز) است.",
 
+  // Audit
+  "Audit.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
+  "Audit.ConflictingUserFilter": "یا یک کاربر را انتخاب کنید یا «سیستم» را، نه هر دو را.",
+
   // Paging
   "Paging.PageInvalid": "شمارهٔ صفحه نامعتبر است.",
   "Paging.PageSizeInvalid": "تعداد ردیف‌های هر صفحه نامعتبر است.",

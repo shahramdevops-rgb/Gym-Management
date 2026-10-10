@@ -14,6 +14,8 @@ using Gym.Application.Attendances.ListMemberAttendance;
 using Gym.Application.Attendances.MoveLocker;
 using Gym.Application.Attendances.SettleGuestVisit;
 using Gym.Application.Attendances.TodayByHour;
+using Gym.Application.Audit.ListAuditLogs;
+using Gym.Application.Audit.ListAuditUsers;
 using Gym.Application.Auth.ChangePassword;
 using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
@@ -261,6 +263,9 @@ public static class DependencyInjection
         services.AddScoped<GetSmsCreditHandler>();
         services.AddScoped<ListSmsMessagesHandler>();
         services.AddScoped<ResendSmsHandler>();
+
+        services.AddScoped<ListAuditLogsHandler>();
+        services.AddScoped<ListAuditUsersHandler>();
 
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();

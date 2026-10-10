@@ -140,6 +140,7 @@ try
     app.MapSmsEndpoints();
     app.MapHistoryEndpoints();
     app.MapReportsEndpoints();
+    app.MapAuditEndpoints();
 
     app.Run();
 }

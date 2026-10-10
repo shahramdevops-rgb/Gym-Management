@@ -13,6 +13,7 @@ import {
   MessageSquareText,
   MessagesSquare,
   ReceiptText,
+  ScrollText,
   Settings,
   Users,
   Wallet,
@@ -79,6 +80,7 @@ const navigation: NavigationItem[] = [
   { to: paths.settings, label: "تنظیمات", icon: Settings, role: "Owner" },
   { to: paths.smsMessages, label: "پیامک‌ها", icon: MessagesSquare, role: "Owner" },
   { to: paths.smsSettings, label: "تنظیمات پیامک", icon: MessageSquareText, role: "Owner" },
+  { to: paths.auditLogs, label: "گزارش تغییرات", icon: ScrollText, role: "Owner" },
   { to: paths.status, label: "وضعیت سیستم", icon: Activity },
   { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },
 ];
