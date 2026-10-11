@@ -51,6 +51,16 @@ describe("LoginPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("موقتاً قفل شده است");
   });
 
+  it("Login_ApiRestarting_SaysToTryAgainInAMoment", async () => {
+    // Caddy's empty 502 while the API restarts during a release.
+    mockApi({ "POST /api/auth/login": () => new Response(null, { status: 502 }) });
+    renderApp("/login");
+
+    fillAndSubmit("sara", "Pass1234");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("سرور در حال راه‌اندازی دوباره است");
+  });
+
   it("Login_TemporaryPassword_GoesToTheChangePasswordPage", async () => {
     mockApi({ "POST /api/auth/login": () => json(200, session({ mustChangePassword: true })) });
     renderApp("/login");

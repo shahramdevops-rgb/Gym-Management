@@ -1,6 +1,7 @@
+import { CircleCheck } from "lucide-react";
 import { useState } from "react";
 
-import { LoadingState } from "@/components/States";
+import { EmptyState, LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,7 +88,7 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
           )}
         </div>
       ) : (
-        <p className="text-muted-foreground">این عضو بدهی ندارد.</p>
+        <EmptyState icon={CircleCheck}>این عضو بدهی ندارد.</EmptyState>
       )}
 
       <SettleDebt memberId={memberId} items={debt.data.items} />

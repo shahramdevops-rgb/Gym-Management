@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import { createBrowserRouter, Navigate, type RouteObject } from "react-router";
 
-import { PageMessage } from "@/features/auth/components/PageMessage";
+import { PageLoading } from "@/features/auth/components/PageMessage";
 import { RequireAuth } from "@/features/auth/components/RequireAuth";
 import { RequireRole } from "@/features/auth/components/RequireRole";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
@@ -50,7 +50,7 @@ export const routes: RouteObject[] = [
     element: <RequireAuth />,
     // Shown while the page asked for is still downloading, when the app opens straight on it
     // (a reload on /members). Without it the window would stay blank until the file arrived.
-    hydrateFallbackElement: <PageMessage>در حال بارگذاری…</PageMessage>,
+    hydrateFallbackElement: <PageLoading />,
     children: [
       {
         element: <AppShell />,

@@ -229,7 +229,10 @@ web/src/
   `tone-soft`/`tone-ink` fall back to grey without a `--tone`, so shared pieces (`EmptyState`'s icon, `StatTile`,
   a page's totals as tiles inside a `<dl>`) use them anywhere. The frame (13.2f): the menu is a floating panel
   (`sidebar-panel`, its edge and glow are tokens per theme) holding the logo, the clock and the menu; the header
-  sits over the content column only.
+  sits over the content column only. Outside the frame (13.2g): the sign-in page reuses the frame's logo square and
+  `shadow-raised`; the app-level guards show `PageLoading` while they wait and `PageMessage` (an icon and a line)
+  when they refuse. A 502, 503 or 504 with no known code reads «سرور در حال راه‌اندازی دوباره است…» through
+  `errorMessage` (`serverRestartingMessage`), not the general error.
 - An edit form saves one way (roadmap 13.2c): its buttons sit in `SaveRow` (`components/SaveRow.tsx`), which shows
   the outcome of the last press beside them — `StaleAlert` when someone else saved first, a server error, «تغییری
   نداده‌اید» or «تغییرها ثبت شد» — one at a time. «ذخیره» is never disabled; `useUnchanged` (`lib/forms.ts`) compares

@@ -1,6 +1,7 @@
+import { IdCard } from "lucide-react";
 import { useState } from "react";
 
-import { LoadingState } from "@/components/States";
+import { EmptyState, LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,7 +87,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
         )}
 
         {current === null ? (
-          <p className="text-muted-foreground">این عضو هنوز اشتراکی ندارد.</p>
+          <EmptyState icon={IdCard}>این عضو هنوز اشتراکی ندارد.</EmptyState>
         ) : (
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
             <dt className="text-muted-foreground">پلن</dt>

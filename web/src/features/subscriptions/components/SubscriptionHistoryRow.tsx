@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { RegisterPaymentForm } from "@/features/payments/components/RegisterPaymentForm";
 import { RegisterRefundForm } from "@/features/payments/components/RegisterRefundForm";
@@ -95,39 +96,39 @@ export function SubscriptionHistoryRow({
 
   return (
     <>
-      <tr className="border-b">
-        <td className="py-2">{label}</td>
+      <TableRow>
+        <TableCell>{label}</TableCell>
         {/* When it was sold, paid or not: payments carry their own times in «پرداخت‌ها». */}
-        <td className="py-2">{formatDateTime(subscription.createdAt)}</td>
+        <TableCell>{formatDateTime(subscription.createdAt)}</TableCell>
         {queued ? (
           // A queued plan's dates move if the plan before it ends early or is frozen (§4); only
           // its length is fixed. The stored start is still shown, as where it stands today.
           <>
-            <td className="py-2">
+            <TableCell>
               <div>بعد از پلن قبلی</div>
               <div className="text-xs text-muted-foreground">
                 فعلاً {formatDate(subscription.startDate)}
               </div>
-            </td>
-            <td className="py-2">{`${formatNumber(Number(subscription.durationDays))} روز از شروع`}</td>
+            </TableCell>
+            <TableCell>{`${formatNumber(Number(subscription.durationDays))} روز از شروع`}</TableCell>
           </>
         ) : (
           <>
-            <td className="py-2">{formatDate(subscription.startDate)}</td>
-            <td className="py-2">{formatDate(subscription.endDate)}</td>
+            <TableCell>{formatDate(subscription.startDate)}</TableCell>
+            <TableCell>{formatDate(subscription.endDate)}</TableCell>
           </>
         )}
-        <td className="py-2">{`${formatNumber(Number(subscription.usedSessions))} / ${formatNumber(Number(subscription.totalSessions))}`}</td>
-        <td className="py-2">
+        <TableCell className="whitespace-nowrap">{`${formatNumber(Number(subscription.usedSessions))} / ${formatNumber(Number(subscription.totalSessions))}`}</TableCell>
+        <TableCell>
           <SubscriptionStatusBadge status={subscription.status} />
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           <div className="flex items-center gap-2">
             <PaymentStatusBadge status={subscription.paymentStatus} />
             <span className="text-muted-foreground">{formatMoney(subscription.netPaid)}</span>
           </div>
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           <div className="flex flex-wrap gap-1">
             {canPay && (
               <Button
@@ -182,11 +183,11 @@ export function SubscriptionHistoryRow({
               </Button>
             )}
           </div>
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {hasPanel && (
-        <tr className="border-b bg-muted/30">
-          <td colSpan={8} className="space-y-2 py-2">
+        <TableRow className="bg-muted/30 hover:bg-muted/30">
+          <TableCell colSpan={8} className="space-y-2">
             <p className="text-xs text-muted-foreground">
               برای «{label}» —{" "}
               {queued
@@ -218,8 +219,8 @@ export function SubscriptionHistoryRow({
                 onCancel={() => setAction(null)}
               />
             )}
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
       <ConfirmFreezeDialog
         action={confirming}

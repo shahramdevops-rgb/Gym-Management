@@ -349,6 +349,16 @@ export const errorMessages: Record<string, string> = {
 /** Shown when the server could not be reached at all. */
 export const networkErrorMessage = "ارتباط با سرور برقرار نشد. اتصال را بررسی کنید.";
 
+/**
+ * Shown when the proxy answered for an API that is not up (roadmap 13.2g): Caddy's 502 while the
+ * API restarts during a release, or a 503 or 504 on the way there. It passes in a minute, so the
+ * desk is told to wait and try again rather than that something unexpected went wrong.
+ */
+export const serverRestartingMessage =
+  "سرور در حال راه‌اندازی دوباره است؛ چند لحظه دیگر دوباره امتحان کنید.";
+
+const serverRestartingStatuses = new Set([502, 503, 504]);
+
 function isProblem(value: unknown): value is ApiProblem {
   return typeof value === "object" && value !== null;
 }
@@ -367,6 +377,10 @@ export function errorMessage(problem: unknown): string {
     if (message !== undefined) {
       return message;
     }
+  }
+
+  if (isProblem(problem) && serverRestartingStatuses.has(Number(problem.status))) {
+    return serverRestartingMessage;
   }
 
   const correlationId = isProblem(problem) ? problem.correlationId : undefined;

@@ -1,7 +1,8 @@
+import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { hasRole, useCurrentUser, type Role } from "../api";
-import { PageMessage } from "./PageMessage";
+import { PageLoading, PageMessage } from "./PageMessage";
 
 /**
  * Shows the page only to users with the role. The API refuses the requests anyway
@@ -12,11 +13,11 @@ export function RequireRole({ role, children }: { role: Role; children: ReactNod
   const user = useCurrentUser();
 
   if (user.isPending) {
-    return <PageMessage>در حال بارگذاری…</PageMessage>;
+    return <PageLoading />;
   }
 
   if (!hasRole(user.data, role)) {
-    return <PageMessage>اجازهٔ دسترسی به این بخش را ندارید.</PageMessage>;
+    return <PageMessage icon={Lock}>اجازهٔ دسترسی به این بخش را ندارید.</PageMessage>;
   }
 
   return children;

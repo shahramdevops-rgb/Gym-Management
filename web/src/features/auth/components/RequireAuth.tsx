@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router";
 import { paths } from "@/app/paths";
 
 import { useSessionState } from "../session";
-import { PageMessage } from "./PageMessage";
+import { PageLoading } from "./PageMessage";
 
 /**
  * The gate in front of every page except login.
@@ -20,7 +20,7 @@ export function RequireAuth() {
   const location = useLocation();
 
   if (state.status === "restoring") {
-    return <PageMessage>در حال بارگذاری…</PageMessage>;
+    return <PageLoading />;
   }
 
   if (state.status === "signedOut") {

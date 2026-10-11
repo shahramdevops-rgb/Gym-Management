@@ -496,7 +496,7 @@ Live since 2026-09-25 on `pasargadgymplus.com`, certificate issued by Let's Encr
 try. The Owner walked the Persian checklist on the deployed system and found nothing wrong. A
 deliberate `sudo reboot` brought the whole stack back with no manual step — the browser shows
 its own "site can't be reached" while the machine is down, which nothing on the machine can fix;
-a friendly page during an API-only restart is a Phase 13 item.
+a friendly page during an API-only restart is a Phase 13 item (done as a message in 13.2g).
 
 Memory after 15 hours of real use, on 4 GB: Caddy 60.7 MiB of its 128 MiB limit (47%, down from
 47.4% at boot — the limit stays), API 318 MiB of 768 MiB, Postgres 112 MiB of 1.5 GiB, 3.0 GiB
@@ -2850,6 +2850,23 @@ every screen, rather than the gym's green or a neutral black.
       colour; the active item a brand-blue gradient with a faint ring and a bar on its start edge.
       The header covers only the content column. The whole menu still fits a 900px-tall window
       (it needs about 860px, as before). No package added, no API change
+- [x] **13.2g The sign-in page and the last loose ends** (asked by the developer, 1405/07/19, after
+      a look for what 13.2 had left; mobile and the public site put aside for now). The sign-in page,
+      untouched since Phase 1, takes the frame's look: the logo in the menu's blue-to-violet square
+      over «باشگاه پاسارگاد», a soft blue and violet glow behind the card, the card raised with a
+      blue-to-violet top edge. The app-level guards: «در حال بارگذاری…» with the turning circle
+      (`PageLoading`), «اجازهٔ دسترسی به این بخش را ندارید.» under a lock in a circle (`PageMessage`).
+      The member's profile, the one working page without `PageHeader`: the name is its title, the
+      active/inactive badge (and, when inactive, why it matters) the line under it, «ویرایش» and
+      «غیرفعال‌سازی» its buttons, the details in a card «مشخصات»; its three empty lines (no visit,
+      no subscription, no debt) are `EmptyState`s. Found while looking: the profile's «اشتراک‌ها»
+      table, the one list whose rows were still bare `<td>`s, ran its start date, end date and
+      sessions together with no space between them; its rows now use `TableRow` and `TableCell`
+      like every other list. The friendly message during an API-only restart
+      (Phase 5's note): a 502, 503 or 504 now reads «سرور در حال راه‌اندازی دوباره است؛ چند لحظه
+      دیگر دوباره امتحان کنید.» on every form and page, the sign-in page included, instead of the
+      general error. Unchanged: a session whose refresh hits the restart still goes to the sign-in
+      page. No package added, no API change
 
 #### 13.2e plan
 

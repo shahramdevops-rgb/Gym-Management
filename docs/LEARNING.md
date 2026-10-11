@@ -1750,3 +1750,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Keep accessible names when the look changes.** The payables totals kept their `aria-label`s and the history totals their `section`/`dt`/`dd`, so the tests that read the amounts passed untouched; only one test changed, the one that checked a class (`border-e`) the new design no longer has. That is why tests should not look for class names.
 - **Measure a layout promise, do not eyeball it.** "The menu fits a 900px window" was checked in the browser by reading where the last group ends; the first version needed 875px, so the padding was trimmed back to about 860px, what the old frame needed.
 - **My notes:**
+
+## 13.2g — The sign-in page and the last loose ends (صفحهٔ ورود و آخرین ناهماهنگی‌ها)
+
+- **The first screen is part of the design too.** The sign-in page sits outside the frame, so none of the frame's work reached it; it now borrows the frame's pieces (the logo in the blue-to-violet square, `shadow-raised`) instead of inventing its own look.
+- **Absolutely positioned children are not flex items.** The card's coloured top edge is an `absolute` `<span>`, so the card's `gap-6` does not push it around; `overflow-hidden` is safe here because the sign-in card has no dropdown to clip (on working pages the strip is a background for exactly that reason, 13.2e).
+- **One component, one job.** `PageMessage` used to say both "loading" and "not allowed" in the same grey line; now `PageLoading` reuses `LoadingState` and `PageMessage` takes an icon, so each state looks like what it is.
+- **Map the failure once, where every screen reads it.** A 502, 503 or 504 means the proxy answered for an API that is not up (a restart during a release). Putting that in `errorMessage` changed the message on every form and page at once, the sign-in page included, with no component touched. A known error code still wins over the status, so a real API error is never hidden.
+- **A heading is structure, not size.** The member's name was a big `CardTitle` (a `div`); as `PageHeader`'s title it is the page's `h2`, like every other page, so a screen reader's list of headings and the tests find it the same way.
+- **A shared component only helps where it is used all the way down.** 13.2a put the plans table on the shared `Table`, but its rows were drawn by another file with bare `<td>`s, so they never got the cells' padding and three columns ran together. A grep for `<td` outside `components/ui` found it was the only one; a look in the browser is what showed it.
+- **My notes:**

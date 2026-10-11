@@ -1,4 +1,10 @@
-import { errorMessage, errorMessages, fieldErrors, networkErrorMessage } from "./errors";
+import {
+  errorMessage,
+  errorMessages,
+  fieldErrors,
+  networkErrorMessage,
+  serverRestartingMessage,
+} from "./errors";
 
 describe("errorMessage", () => {
   it("ErrorMessage_KnownCode_ReturnsPersianMessage", () => {
@@ -16,6 +22,21 @@ describe("errorMessage", () => {
 
   it("ErrorMessage_NetworkFailure_SaysTheServerCouldNotBeReached", () => {
     expect(errorMessage(new TypeError("Failed to fetch"))).toBe(networkErrorMessage);
+  });
+
+  it.each([502, 503, 504])("ErrorMessage_ProxyStatus%s_SaysTheServerIsRestarting", (status) => {
+    // What emptyFailureAsProblem makes of Caddy's empty 502 while the API restarts.
+    expect(errorMessage({ status, title: "Bad Gateway" })).toBe(serverRestartingMessage);
+  });
+
+  it("ErrorMessage_ServerError_StaysTheUnexpectedMessage", () => {
+    expect(errorMessage({ status: 500 })).toBe(errorMessages["General.Unexpected"]);
+  });
+
+  it("ErrorMessage_KnownCodeWithProxyStatus_PrefersTheCode", () => {
+    expect(errorMessage({ status: 503, code: "Auth.InvalidCredentials" })).toBe(
+      "نام کاربری یا رمز عبور اشتباه است.",
+    );
   });
 
   it("ErrorMessages_EveryMessage_IsPersianNotEnglish", () => {

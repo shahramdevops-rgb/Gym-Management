@@ -60,7 +60,8 @@ describe("MemberProfilePage", () => {
 
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    expect(await screen.findByText("رضا احمدی")).toBeInTheDocument();
+    // The member's name is the page's title, the same heading level as every page's (13.2g).
+    expect(await screen.findByRole("heading", { level: 2, name: "رضا احمدی" })).toBeInTheDocument();
     expect(screen.getByText("۰۹۱۲ ۱۲۳ ۴۵۶۷")).toHaveAttribute("dir", "ltr");
     expect(screen.getByText("عضو قدیمی")).toBeInTheDocument();
     expect(screen.getByText("۱۳۷۰/۰۵/۱۲")).toBeInTheDocument();

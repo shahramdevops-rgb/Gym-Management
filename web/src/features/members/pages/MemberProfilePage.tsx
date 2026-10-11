@@ -1,9 +1,10 @@
-import { Pencil } from "lucide-react";
+import { Footprints, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 
 import { paths } from "@/app/paths";
-import { LoadingState } from "@/components/States";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +72,37 @@ export function MemberProfilePage() {
 
   return (
     <div className="max-w-4xl space-y-4">
+      {/* The member's name is the page's title, like every other page's (roadmap 13.2g); the
+          line under it says whether they may come in. */}
+      <PageHeader
+        title={current.fullName}
+        description={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <MemberStatusBadge isActive={current.isActive} />
+            {!current.isActive && (
+              <span>عضو غیرفعال نمی‌تواند وارد باشگاه شود یا اشتراک تازه بگیرد.</span>
+            )}
+          </span>
+        }
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link to={paths.editMember(id)}>
+                <Pencil aria-hidden />
+                ویرایش
+              </Link>
+            </Button>
+            <Button
+              variant={current.isActive ? "destructive" : "secondary"}
+              disabled={setActive.isPending}
+              onClick={() => void toggleActive()}
+            >
+              {current.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
+            </Button>
+          </>
+        }
+      />
+
       {notice !== null && (
         <Alert variant={notice.kind} role={notice.kind === "success" ? "status" : "alert"}>
           {notice.text}
@@ -78,27 +110,8 @@ export function MemberProfilePage() {
       )}
 
       <Card>
-        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <CardTitle className="text-xl">{current.fullName}</CardTitle>
-            <MemberStatusBadge isActive={current.isActive} />
-          </div>
-          <div className="flex gap-2">
-            <Button asChild size="sm" variant="outline">
-              <Link to={paths.editMember(id)}>
-                <Pencil aria-hidden />
-                ویرایش
-              </Link>
-            </Button>
-            <Button
-              size="sm"
-              variant={current.isActive ? "destructive" : "secondary"}
-              disabled={setActive.isPending}
-              onClick={() => void toggleActive()}
-            >
-              {current.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
-            </Button>
-          </div>
+        <CardHeader>
+          <CardTitle>مشخصات</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
@@ -118,12 +131,6 @@ export function MemberProfilePage() {
           </dl>
         </CardContent>
       </Card>
-
-      {!current.isActive && (
-        <p className="text-sm text-muted-foreground">
-          عضو غیرفعال نمی‌تواند وارد باشگاه شود یا اشتراک تازه بگیرد.
-        </p>
-      )}
 
       <MemberDebtCard memberId={id} />
 
@@ -201,7 +208,7 @@ export function MemberProfilePage() {
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-muted-foreground">تاریخچه ورود و خروج</h3>
               {history.data.items.length === 0 ? (
-                <p className="text-muted-foreground">هنوز ورودی ثبت نشده است.</p>
+                <EmptyState icon={Footprints}>هنوز ورودی ثبت نشده است.</EmptyState>
               ) : (
                 <>
                   <AttendanceHistoryTable items={history.data.items} />
