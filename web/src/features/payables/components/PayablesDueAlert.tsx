@@ -65,11 +65,13 @@ export function PayablesDueAlert() {
     <Dialog>
       <DialogTrigger
         className={cn(
-          "inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-full border px-3 text-sm",
-          "shadow-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+          // Edged like the banner and a locker door (13.2h, asked by the developer): a faint frame
+          // and a thick start edge, orange while close, red once past its date.
+          "inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-lg border border-s-[3px] bg-card px-3 text-sm",
+          "transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
           tone === "overdue"
-            ? "border-destructive/40 bg-destructive/10 hover:bg-destructive/15"
-            : "border-warning/40 bg-warning/10 hover:bg-warning/15",
+            ? "border-destructive/40 border-s-destructive"
+            : "border-warning/40 border-s-warning",
         )}
       >
         <span className="relative flex size-4 shrink-0 items-center justify-center">

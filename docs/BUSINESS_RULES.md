@@ -507,10 +507,11 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
   colour, with «هوازی» in its label and its own line in the legend: the desk sees that no session
   was taken and that the treadmill must be charged before the key comes back.
 - **A holder who owes money is marked on the map** (asked by the developer, 1405/07/06): a small
-  red «بدهکار» tag hanging from the door's top edge at its top-right corner (changed by the
-  developer, 1405/07/07, from a band across the top-left corner), whenever the member holding the locker has any
-  debt at all (§5 *Member debt*: a subscription, a service such as هوازی, or a cafe order). It is
-  information only, like the debt shown at check-in; the amount and what it is for are in the
+  «بدهکار» tag in red letters on a faint red ground (the ground was solid red until 1405/07/20,
+  softened by the developer) hanging from the door's top edge at its top-right corner (changed by
+  the developer, 1405/07/07, from a band across the top-left corner), whenever the member holding
+  the locker has any debt at all (§5 *Member debt*: a subscription, a service such as هوازی, or a
+  cafe order). It is information only, like the debt shown at check-in; the amount and what it is for are in the
   locker's box. A holder who owes nothing, and a free locker, carry no label. A guest holder carries
   the same label while anything bought on their visit is unpaid, a cafe order, a هوازی or a sale
   (§7 *Guest visit*); for a guest it is
@@ -634,9 +635,14 @@ Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.16.
 Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadmap 6.5.16.
 - The screen has no theme of its own: it is light or dark with the rest of the app (§14). (It was
   always dark from 1405/07/07 until the developer turned it light on 1405/07/08, roadmap 6.5.21.)
-- A free door is a plain tile with a green number and a green edge down its right side. An occupied
-  door is tinted red from its top corner, with a red edge, the number in the text colour and the
-  holder's name under it. An out-of-service door is hatched, with a grey number and a lock under it.
+- A free door is tinted green from its top corner, like an occupied one in red, with a green edge
+  down its right side and the number a soft grey, lighter than an out-of-service door's (changed by
+  the developer, 1405/07/20: the face was plain and the number green, then white was too bright).
+  An occupied door is tinted red from its top corner, with a red edge, the number in the text
+  colour and the holder's name under it. An out-of-service door is hatched, with a grey number and
+  a lock under it.
+- No door has a frame or a face of its own: it is the page's own colour, and only its edge and its
+  tint mark it (changed by the developer, 1405/07/20: it was a tile in a thin frame).
 - A door rises a little under the mouse, so the map feels alive. A door whose state changed since
   the last refresh pulses once in its new colour. Neither moves for anyone who has asked their
   system for less motion.

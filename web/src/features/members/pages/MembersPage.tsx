@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { EmptyState, LoadingState } from "@/components/States";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
@@ -167,9 +167,9 @@ export function MembersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      {/* The search on the banner, like the name search on the locker map's (13.2h). */}
+      <PageHero
         title="اعضا"
-        description="جستجو، فهرست و پروندهٔ اعضای باشگاه."
         actions={
           <Button asChild>
             <Link to={paths.newMember}>
@@ -178,40 +178,41 @@ export function MembersPage() {
             </Link>
           </Button>
         }
-      />
-
-      <form
-        role="search"
-        className="relative max-w-xl"
-        onSubmit={(event) => {
-          event.preventDefault();
-          debouncedCommit.cancel();
-          commit(text);
-        }}
       >
-        <Search
-          className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden
-        />
-        <Input
-          type="search"
-          aria-label="نام یا شماره موبایل"
-          placeholder="نام، بخشی از نام یا شماره موبایل عضو…"
-          className="h-11 ps-9 text-base"
-          autoFocus
-          value={text}
-          onChange={(event) => {
-            setText(event.target.value);
-            debouncedCommit.run(event.target.value);
+        <form
+          role="search"
+          className="relative max-w-xl"
+          onSubmit={(event) => {
+            event.preventDefault();
+            debouncedCommit.cancel();
+            commit(text);
           }}
-        />
-      </form>
+        >
+          <Search
+            className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            type="search"
+            aria-label="نام یا شماره موبایل"
+            placeholder="نام، بخشی از نام یا شماره موبایل عضو…"
+            // `!`: the field's own `border-input` comes later in the stylesheet and would win.
+            className="h-10 border-s-[3px] tone-edge! bg-background ps-9 text-base"
+            autoFocus
+            value={text}
+            onChange={(event) => {
+              setText(event.target.value);
+              debouncedCommit.run(event.target.value);
+            }}
+          />
+        </form>
+      </PageHero>
 
       {registering && (
         // Registering here rather than on another screen: the search already holds the name or
         // the phone. The new member's profile opens next, where a plan is sold; letting them in
         // happens on the locker map, from the locker they are given (roadmap 6.5.5).
-        <Card>
+        <Card edge>
           <CardHeader>
             <CardTitle>عضو جدید</CardTitle>
           </CardHeader>
@@ -236,7 +237,7 @@ export function MembersPage() {
         </Card>
       )}
 
-      <Card>
+      <Card edge>
         <CardHeader className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle>
             {searching ? "نتیجه جستجو" : "فهرست اعضا"}

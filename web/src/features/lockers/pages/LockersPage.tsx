@@ -207,7 +207,8 @@ export function LockersPage() {
                 size="sm"
                 aria-pressed={usageView}
                 onClick={toggleUsageView}
-                className="h-9 rounded-lg"
+                // Edged like the banner around it while off; pressed, the brand fill says it is on.
+                className={cn("h-9 rounded-lg", !usageView && "border-s-[3px] tone-edge")}
               >
                 <ChartColumn aria-hidden />
                 نقشهٔ استفاده
@@ -300,8 +301,8 @@ export function LockersPage() {
 }
 
 /**
- * The screen's banner (13.2h): the title, and under it the lockers' counts and legend on a card
- * with the name search and the usage switch at its end. The clock is in the side menu.
+ * The screen's banner (13.2h): the title, and beside it in the same box the lockers' counts and
+ * legend with the name search and the usage switch at their end. The clock is in the side menu.
  */
 function PageFrame({ stats, children }: { stats?: ReactNode; children: ReactNode }) {
   return (
@@ -360,7 +361,8 @@ function NameSearch({
               onChange("");
             }
           }}
-          className="h-9 rounded-lg bg-background ps-9"
+          // `!`: the field's own `border-input` comes later in the stylesheet and would win.
+          className="h-9 rounded-lg border-s-[3px] tone-edge! bg-background ps-9"
         />
       </div>
     </div>

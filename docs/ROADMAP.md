@@ -2552,9 +2552,9 @@ still starts with `./backup.sh run`.
 ### 10.6 Go live with the Owner's account
 Every server step is proposed and confirmed first, with `./backup.sh run` before the release.
 The code of 10.1 to 10.5 is on the server since `20261010-2323-3428fa7` (1405/07/18), with the
-provider `Fake` and every kind off. Switching it on needs no release, but taking the menu's
-«آزمایشی» mark off does (`smsTestBadge` in `AppShell.tsx`), so plan a small frontend release for
-the same night.
+provider `Fake` and every kind off. Switching it on needs no release: the menu's «آزمایشی» mark
+was taken off with every other menu mark in 13.2h (asked by the developer, 1405/07/20), and the
+settings page says «حالت آزمایشی» on its own while the provider is `Fake`.
 - [ ] The account that holds the dedicated line charged (no templates to wait for since 1405/07/16)
 - [x] `docker-compose.prod.yml` passes `Sms__Provider`, `Sms__Kavenegar__ApiKey` and
       `Sms__Kavenegar__Sender` to the API from `SMS_PROVIDER`, `SMS_KAVENEGAR_API_KEY` and
@@ -2563,7 +2563,7 @@ the same night.
 - [ ] Its API key and the line's number in the server's `.env`, the key restricted to the server's IP
       in Kavenegar
 - [ ] The Owner fills in the settings page and turns on the kinds they want
-- [ ] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed and released
+- [x] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed (13.2h, released with it)
 
 ---
 
@@ -2877,7 +2877,26 @@ every screen, rather than the gym's green or a neutral black.
       inside it with the name search and «نقشهٔ استفاده» at that card's end; under each menu group's
       title a line in its colour that drops from the dot and runs straight to the far edge; a 48px
       header and less room above the page; the desk panel's top line in the banner's gradient.
-      Left: the rest of the pages. No package added, no API change
+      Then, the same day (the menu "did not belong to the page beside it"): the side menu lost its
+      floating panel, edge and glow and sits on the page's own colour with no line beside it, its
+      logo row as tall as the header so the header's line runs under it; group titles and icons
+      grey, the colour only on each group's dot and line; the menu's marks («به‌روز شد»,
+      «آزمایشی», «جدید») and the user's initial removed. One edge for everything, like a locker
+      door's (`tone-edge`): a faint frame and a thick start edge in the page's tone, on the active
+      menu item, the banner (now one slim card-coloured row, no fill or glow, the logo masked in the
+      tone; `hero-tone` removed), the name search, «نقشهٔ استفاده», «ورود بدون کمد» and the hourly
+      chart's legend (now beside its title). Frameless on the page's colour with only that edge: the
+      doors (BUSINESS_RULES.md §6: no frame or face of their own), the desk panel, the open «ورود
+      بدون کمد» box, the hourly chart, and a `Card` with `edge`. A free door tinted faintly green
+      from its corner and its number a soft grey; the «بدهکار» tag red letters on a faint red (§6).
+      The header: the cheque alert at the end, edged orange (red past its date), then the user, the
+      theme and «خروج» in one box. «داخل باشگاه», «تاریخچه» and «اعضا» take the banner (the
+      members' search and «عضو جدید» on it) and `Card edge`; `StatTile` is edged too (so «چک و
+      قسط»'s totals as well). Found, not yet fixed: the hourly chart's screen-reader table (`sr-only`
+      on a `<table>`, which does not collapse) makes the page about 685px taller than the layout, so
+      the sticky menu is pushed up at the bottom of the locker page; and its average's label
+      («میانگین ۱ دوشنبه باز در ۴ هفتهٔ گذشته») reads unclearly. Left: those two, and the rest of
+      the pages. No package added, no API change
 
 #### 13.2e plan
 

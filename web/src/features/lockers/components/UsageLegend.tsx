@@ -5,8 +5,7 @@ import { unusedLabel, usageLevels, usagePeriods, type UsagePeriod } from "../usa
 import { usageDoorClass } from "./doorStyle";
 
 /** The swatch every door-shaped legend mark shares with the stats strip's. */
-const swatch =
-  "inline-block size-3.5 rounded-[3px] border border-e-[3px] border-door-border bg-door";
+const swatch = "inline-block size-3.5 rounded-[3px] border-e-[3px] border-door-border bg-door";
 
 /**
  * The legend's row while the map shows how often each locker was used (BUSINESS_RULES.md §6

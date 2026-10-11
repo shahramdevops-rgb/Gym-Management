@@ -31,7 +31,8 @@ export function StatTile({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border bg-card p-3 shadow-card transition-shadow hover:shadow-raised",
+        // Edged like the page's banner (13.2h): a faint frame and a thick start edge in its tone.
+        "flex items-center gap-3 rounded-xl border border-s-[3px] tone-edge bg-card p-3",
         className,
       )}
     >

@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router";
 
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { EmptyState, LoadingState } from "@/components/States";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
@@ -29,12 +29,9 @@ export function CurrentlyInsidePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="داخل باشگاه"
-        description="هر کس که الان داخل باشگاه است، با کمد و زمان ورودش."
-      />
+      <PageHero title="داخل باشگاه" />
 
-      <Card>
+      <Card edge>
         <CardHeader>
           <CardTitle>
             حاضرین

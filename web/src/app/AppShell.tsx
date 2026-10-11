@@ -4,12 +4,10 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 
 import logo from "@/assets/brand/pasargad-logo.png";
 import { PageSectionContext } from "@/components/pageSection";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { hasRole, useCurrentUser, useLogout } from "@/features/auth/api";
 import { useSessionState } from "@/features/auth/session";
 import { PayablesDueAlert } from "@/features/payables/components/PayablesDueAlert";
-import { gymToday } from "@/lib/format";
 import { toneStyle } from "@/lib/tone";
 import { cn } from "@/lib/utils";
 
@@ -19,9 +17,11 @@ import { SidebarClock } from "./SidebarClock";
 import { ThemeToggle } from "./ThemeToggle";
 
 /**
- * The page frame: the side menu on the right as a floating panel (the gym's logo, the clock and the
- * menu, roadmap 13.2f), and beside it the content with its header (the cheque alert, the user, the
- * theme and «خروج») on top.
+ * The page frame: the side menu on the right (the gym's logo, the clock and the menu), and beside it
+ * the content under its header (the cheque alert, the user, the theme and «خروج»). No frame and no
+ * glow (13.2h, asked by the developer: the floating menu did not belong to the page beside it): the
+ * menu sits on the page's own background with no line beside it, and the header's bottom line runs on
+ * under the logo, so the two read as one frame.
  *
  * Nothing here says "right". The menu is simply first in a row, and the document is
  * right-to-left, so it lands on the right; every spacing in it is logical (`ps-`, `start-`).
@@ -31,14 +31,14 @@ import { ThemeToggle } from "./ThemeToggle";
  *
  * Each menu group has a colour (roadmap 13.2e). The frame sets it on the page as `--tone`, and
  * hands the page its menu item's icon, so every page wears its group's colour without saying which
- * group it is in. The active item stays in the brand blue, so "where am I" is one colour.
+ * group it is in. The menu itself stays grey but for each group's dot and line; the active item takes
+ * its group's colour, the same as the page's banner, so the menu points at the page it opened.
  */
 export function AppShell() {
   const state = useSessionState();
   const user = useCurrentUser();
   const logout = useLogout();
   const navigate = useNavigate();
-  const today = gymToday();
   const { pathname } = useLocation();
   const section = useMemo(() => {
     const found = sectionFor(pathname);
@@ -68,24 +68,25 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen">
-      {/* The panel stays put while the page scrolls; its menu scrolls on its own only on a
-          window too short for it. */}
-      <aside className="sticky top-0 h-screen w-70 shrink-0 px-3 py-2.5 short:p-2">
-        <div className="flex h-full flex-col rounded-2xl sidebar-panel">
-          <div className="flex shrink-0 items-center gap-3 px-4 pt-3 pb-2.5 short:pt-2.5 short:pb-2">
+      {/* The menu stays put while the page scrolls; it scrolls on its own only on a window too
+          short for it. */}
+      <aside className="sticky top-0 h-screen w-70 shrink-0">
+        <div className="flex h-full flex-col">
+          {/* As tall as the header beside it, so the header's bottom line runs on under it. */}
+          <div className="flex h-12 shrink-0 items-center gap-2.5 border-b px-4">
             {/* White lines on transparency, so it sits on the brand blue in both themes. */}
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-primary to-(--tone-violet) p-1 shadow-md shadow-primary/30">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary p-0.5">
               <img src={logo} alt="" className="size-full object-contain" />
             </span>
             <div className="min-w-0 leading-tight">
-              <h1 className="text-base font-extrabold">مدیریت باشگاه</h1>
-              <p className="text-xs text-muted-foreground">باشگاه پاسارگاد</p>
+              <h1 className="text-sm font-extrabold">مدیریت باشگاه</h1>
+              <p className="text-[0.7rem] text-muted-foreground">باشگاه پاسارگاد</p>
             </div>
           </div>
 
           <nav
             aria-label="منوی اصلی"
-            className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-2 [scrollbar-color:var(--input)_transparent] [scrollbar-width:thin] short:space-y-2 short:pb-2"
+            className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pt-3 pb-2 [scrollbar-color:var(--input)_transparent] [scrollbar-width:thin] short:space-y-2 short:pb-2"
           >
             <SidebarClock />
             {groups.map((group, index) => (
@@ -98,20 +99,17 @@ export function AppShell() {
                   id={`nav-group-${index}`}
                   className={cn(
                     "relative flex items-center gap-1.5 px-3 text-[0.7rem] leading-5 font-bold short:leading-4",
-                    group.tone === undefined ? "text-muted-foreground/80" : "tone-ink",
+                    group.tone === undefined ? "text-muted-foreground/80" : "text-muted-foreground",
                   )}
                 >
                   {group.tone !== undefined && (
-                    <span
-                      aria-hidden
-                      className="size-1.5 shrink-0 rounded-full tone-solid shadow-[0_0_6px_var(--tone)]"
-                    />
+                    <span aria-hidden className="size-1.5 shrink-0 rounded-full tone-solid" />
                   )}
                   {group.title}
                   <GroupSwoosh muted={group.tone === undefined} />
                 </p>
                 <ul aria-labelledby={`nav-group-${index}`} className="space-y-px">
-                  {group.items.map(({ to, label, icon: Icon, badge }) => (
+                  {group.items.map(({ to, label, icon: Icon }) => (
                     <li key={to}>
                       <NavLink
                         to={to}
@@ -120,12 +118,12 @@ export function AppShell() {
                         end={to === paths.home || to === paths.cafe}
                         className={({ isActive }) =>
                           cn(
-                            "relative flex h-8 items-center gap-2.5 rounded-lg px-3 text-sm leading-5 font-medium transition-colors short:h-7",
+                            "flex h-8 items-center gap-2.5 rounded-lg border border-s-[3px] px-3 text-sm leading-5 font-medium transition-colors short:h-7",
                             isActive
-                              ? // The brand blue, stronger at the start, a faint ring and a bar on
-                                // the start edge: "you are here" in one colour on every page.
-                                "bg-linear-to-l from-(--sidebar-active-from) to-(--sidebar-active-to) font-semibold text-primary ring-1 ring-primary/25 ring-inset before:absolute before:inset-y-1.5 before:start-0 before:w-[3px] before:rounded-e-full before:bg-primary"
-                              : "text-foreground/75 hover:bg-accent hover:text-foreground",
+                              ? // The group's colour (grey in «حساب و سیستم») as text, and edged like a locker
+                                // door: a faint frame and a thick start edge in that colour (`tone-edge`).
+                                "font-semibold tone-ink tone-edge"
+                              : "border-transparent text-foreground/75 hover:bg-accent hover:text-foreground",
                           )
                         }
                       >
@@ -134,19 +132,11 @@ export function AppShell() {
                             <Icon
                               className={cn(
                                 "size-4 shrink-0",
-                                !isActive && group.tone !== undefined && "tone-ink",
+                                !isActive && "text-muted-foreground",
                               )}
                               aria-hidden
                             />
                             {label}
-                            {/* Hidden from screen readers: the link keeps its own name, and the
-                                mark is gone when its page is no longer new. */}
-                            {badge !== undefined &&
-                              (badge.until === undefined || today <= badge.until) && (
-                                <Badge aria-hidden className="ms-auto px-1.5 text-[0.65rem]">
-                                  {badge.text}
-                                </Badge>
-                              )}
                           </>
                         )}
                       </NavLink>
@@ -160,21 +150,13 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center justify-between gap-4 border-b bg-background/80 px-6 backdrop-blur-md">
-          <div className="flex min-w-0 flex-1 justify-center">
-            {showPayablesAlert && <PayablesDueAlert />}
-          </div>
-          <div className="flex items-center gap-1">
+        {/* Everything at the end (the left), asked by the developer (13.2h): the cheque alert, moved
+            from the middle, and at the far left the user, the theme and «خروج» in one box. */}
+        <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center justify-end gap-3 border-b bg-background/80 px-6 backdrop-blur-md">
+          {showPayablesAlert && <PayablesDueAlert />}
+          <div className="flex h-9 shrink-0 items-center gap-1 rounded-lg border bg-card ps-3">
             {user.data !== undefined && (
-              <span className="flex items-center gap-2 pe-2 text-sm font-medium">
-                <span
-                  aria-hidden
-                  className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary"
-                >
-                  {user.data.fullName.trim().charAt(0)}
-                </span>
-                <span>{user.data.fullName}</span>
-              </span>
+              <span className="pe-2 text-sm font-medium">{user.data.fullName}</span>
             )}
             <ThemeToggle />
             <Button

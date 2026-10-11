@@ -46,7 +46,9 @@ export function TodayByHourChart({ now }: { now: Date }) {
   return (
     <section
       aria-label="ورود امروز ساعت به ساعت"
-      className="space-y-3 rounded-xl border bg-card px-4 py-3"
+      // Like the desk panel and a locker door (13.2h): no frame, the page's own colour, a thick
+      // start edge in the page's tone.
+      className="space-y-3 rounded-xl border-s-[3px] tone-edge px-4 py-3"
     >
       {byHour.isError ? (
         <p className="text-sm text-muted-foreground">نمودار ورود امروز بارگذاری نشد.</p>
@@ -93,11 +95,13 @@ function HourBars({ date, daysAveraged, hours, currentHour }: HourBarsProps) {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+      {/* The legend in a box right beside the title, not at the far end (asked by the developer,
+          13.2h), edged like the page's other boxes. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <h3 className="text-sm font-bold">ورود امروز ساعت به ساعت</h3>
         <ul
           aria-hidden
-          className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground"
+          className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border border-s-[3px] tone-edge bg-card px-3 py-1 text-xs text-muted-foreground"
         >
           <li className="flex items-center gap-2">
             <span className="inline-block size-3 rounded-[2px] bg-success" />

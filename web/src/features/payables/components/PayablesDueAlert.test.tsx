@@ -81,7 +81,7 @@ describe("PayablesDueAlert", () => {
 
     const alert = await findAlert();
     expect(alert).toHaveTextContent("۲ روز گذشته");
-    expect(alert.className).toContain("bg-destructive/10");
+    expect(alert.className).toContain("border-s-destructive");
   });
 
   it("PayablesDueAlert_Clicked_ListsEveryOneWithAmountAndALinkToTheRegister", async () => {

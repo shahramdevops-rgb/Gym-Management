@@ -47,23 +47,16 @@
   --border: oklch(0.918 0.008 258);
   --input: oklch(0.88 0.012 258);
   --ring: oklch(0.62 0.15 263);
-  /* The side menu: a panel floating beside the page (13.2f), a shade apart from both the page and
-     its cards, with an edge that runs from the brand blue into violet and a soft light around it. */
-  --sidebar: oklch(0.995 0.002 255);
-  --sidebar-edge-from: oklch(0.5 0.19 263 / 0.45);
-  --sidebar-edge-to: oklch(0.56 0.2 295 / 0.35);
-  --sidebar-glow:
-    0 1px 2px oklch(0.2 0.03 263 / 0.05), 0 16px 40px -12px oklch(0.5 0.19 263 / 0.22);
-  /* The active menu item: the brand blue, stronger at its start. */
-  --sidebar-active-from: oklch(0.5 0.19 263 / 0.16);
-  --sidebar-active-to: oklch(0.5 0.19 263 / 0.04);
   /* Soft, layered shadows: a card sits on the page, a dialog floats above it. */
   --shadow-color: 222 47% 11%;
   /* A locker door on the map (BUSINESS_RULES.md §6 *The desk screen's look*): its face, its frame,
      the red tint an occupied door takes from its top corner, and the hatching of one out of service. */
-  --door: oklch(0.985 0.002 270);
+  /* The face is the page itself (13.2h, asked by the developer): no frame, only the state's edge. */
+  --door: var(--background);
   --door-border: oklch(0.88 0.005 270);
   --door-held: oklch(0.93 0.04 25);
+  /* A free door's green tint from the same corner (asked by the developer, 1405/07/20). */
+  --door-free: oklch(0.97 0.018 155);
   --door-hatch: oklch(0.92 0.004 270);
   /* A guest's door (BUSINESS_RULES.md §6, §7 *Guest visit*): a blue of its own, apart from the free
      green, the held red, the usage violet and the unused amber, with the same kind of corner tint. */
@@ -131,11 +124,6 @@
   --hero-from: oklch(0.52 0.19 305);
   --hero-via: oklch(0.48 0.18 290);
   --hero-to: oklch(0.41 0.15 275);
-  /* A page's banner (`hero-tone`, 13.2h): its menu group's own colour, the one on the menu's dot
-     and line (asked by the developer), only darker, so white text reads on it. Mixing in black
-     made it grey and a deep blue moved its hue, so the lightness alone is scaled. */
-  --hero-tone-from: 0.85;
-  --hero-tone-to: 0.68;
 }
 
 /* The party ring's turn. Registered, so the browser can animate an angle inside a gradient. */
@@ -173,17 +161,11 @@
   --border: oklch(0.29 0.01 268);
   --input: oklch(0.34 0.012 268);
   --ring: oklch(0.62 0.13 263);
-  --sidebar: oklch(0.18 0.014 272);
-  --sidebar-edge-from: oklch(0.68 0.16 263 / 0.7);
-  --sidebar-edge-to: oklch(0.7 0.17 295 / 0.6);
-  --sidebar-glow:
-    0 0 32px -6px oklch(0.62 0.17 263 / 0.4), 0 0 90px -20px oklch(0.62 0.19 295 / 0.35);
-  --sidebar-active-from: oklch(0.68 0.16 263 / 0.32);
-  --sidebar-active-to: oklch(0.68 0.16 263 / 0.08);
   --shadow-color: 0 0% 0%;
-  --door: oklch(0.225 0.008 270);
+  --door: var(--background);
   --door-border: oklch(0.31 0.009 270);
   --door-held: oklch(0.27 0.05 20);
+  --door-free: oklch(0.21 0.022 155);
   --door-hatch: oklch(0.255 0.008 270);
   --guest: oklch(0.72 0.12 235);
   --door-guest: oklch(0.28 0.05 235);
@@ -220,8 +202,6 @@
   --hero-from: oklch(0.42 0.15 305);
   --hero-via: oklch(0.38 0.14 290);
   --hero-to: oklch(0.33 0.11 275);
-  --hero-tone-from: 0.8;
-  --hero-tone-to: 0.64;
 }
 
 /*
@@ -230,27 +210,6 @@
  * that fades in from its start. The bar fades through transparency, not into the card's colour:
  * mixing in oklch towards the dark card turned the hue purple on the way.
  */
-/*
- * The side menu's floating panel (13.2f). The edge is a gradient: the panel's own colour on the
- * padding box over a gradient on the border box, behind a transparent border, so only the 1px
- * border shows the gradient. The light around it is a token per theme: a soft shadow by day, a
- * blue and violet glow at night.
- */
-@utility sidebar-panel {
-  border: 1px solid transparent;
-  background:
-    linear-gradient(var(--sidebar), var(--sidebar)) padding-box,
-    linear-gradient(
-        160deg,
-        var(--sidebar-edge-from),
-        var(--border) 45%,
-        var(--border) 60%,
-        var(--sidebar-edge-to)
-      )
-      border-box;
-  box-shadow: var(--sidebar-glow);
-}
-
 /* `tone-soft` and `tone-ink` fall back to grey without a `--tone` (a dialog, a page in «حساب و
    سیستم»), so a shared component can use them on any page (13.2e). */
 @utility tone-soft {
@@ -279,12 +238,20 @@
   border-top-color: var(--tone, var(--border));
 }
 
-/* A page's banner in its tone, lighter at the start (13.2h). Without a `--tone`, the brand blue. */
-@utility hero-tone {
-  background-image: linear-gradient(
-    to left,
-    oklch(from var(--tone, var(--primary)) calc(l* var(--hero-tone-from)) c h),
-    oklch(from var(--tone, var(--primary)) calc(l* var(--hero-tone-to)) c h)
+/* A box edged in the page's tone like a locker door is in its state's colour (13.2h, asked by the
+   developer): on an element with `border border-s-[3px]`, a faint frame (the `tone-ink` colour at
+   40%) and the thick start edge in the full colour. The active menu item, the page's banner and
+   the desk panel share it. Grey without a `--tone`. */
+@utility tone-edge {
+  border-color: color-mix(
+    in oklch,
+    color-mix(in oklch, var(--tone, var(--muted-foreground)) 72%, var(--foreground)) 40%,
+    transparent
+  );
+  border-inline-start-color: color-mix(
+    in oklch,
+    var(--tone, var(--muted-foreground)) 72%,
+    var(--foreground)
   );
 }
 
@@ -379,7 +346,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-sidebar: var(--sidebar);
   --shadow-card:
     0 1px 2px hsl(var(--shadow-color) / 0.04), 0 1px 3px hsl(var(--shadow-color) / 0.05);
   --shadow-raised:
@@ -389,6 +355,7 @@
   --color-door: var(--door);
   --color-door-border: var(--door-border);
   --color-door-held: var(--door-held);
+  --color-door-free: var(--door-free);
   --color-guest: var(--guest);
   --color-door-guest: var(--door-guest);
   --color-cardio: var(--cardio);

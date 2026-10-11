@@ -1,7 +1,7 @@
 import { BanknoteArrowDown, Hourglass, ReceiptText, Sigma, Undo2 } from "lucide-react";
 import { useSearchParams } from "react-router";
 
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { LoadingState } from "@/components/States";
 import { JalaliCalendarField, SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
@@ -242,9 +242,9 @@ export function HistoryPage() {
   return (
     <div className="space-y-6">
       {/* No link to «سفارش‌های بوفه» here: the menu and the cafe till already have one. */}
-      <PageHeader title="تاریخچه" description="سابقهٔ کارهای ثبت‌شده در باشگاه، بخش به بخش." />
+      <PageHero title="تاریخچه" />
 
-      <Card>
+      <Card edge>
         <CardContent className="space-y-4">
           <div
             role="tablist"

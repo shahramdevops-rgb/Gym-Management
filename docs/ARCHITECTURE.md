@@ -225,11 +225,13 @@ web/src/
   `PageHeader` through `PageSectionContext`. A page never names its colour. Every `Card` draws its top strip in that
   tone (`tone-strip`, a background, so no `overflow-hidden` cuts a dropdown); `accent={false}` for a card with
   colours of its own (the dashboard's). A page's tone is decoration only: never green, red or amber; the active menu
-  item stays in the brand blue. Tone helpers live in `lib/tone.ts`; a new menu item goes in `navigation.ts` only.
+  item takes its group's tone (13.2h). Tone helpers live in `lib/tone.ts`; a new menu item goes in `navigation.ts` only.
   `tone-soft`/`tone-ink` fall back to grey without a `--tone`, so shared pieces (`EmptyState`'s icon, `StatTile`,
-  a page's totals as tiles inside a `<dl>`) use them anywhere. The frame (13.2f): the menu is a floating panel
-  (`sidebar-panel`, its edge and glow are tokens per theme) holding the logo, the clock and the menu; the header
-  sits over the content column only. Outside the frame (13.2g): the sign-in page reuses the frame's logo square and
+  a page's totals as tiles inside a `<dl>`) use them anywhere. The frame (13.2h): the menu sits on the page's own colour with no frame, glow or line,
+  holding the logo, the clock and the menu; the header sits over the content column only. One edge for boxes, like a
+  locker door's: `tone-edge` on `border border-s-[3px]` (a faint frame, a thick start edge in the tone), or on
+  `border-s-[3px]` alone for a frameless box on the page's colour (`Card edge`, the desk panel). `PageHero` is a
+  page's banner in that look. Outside the frame (13.2g): the sign-in page reuses the frame's logo square and
   `shadow-raised`; the app-level guards show `PageLoading` while they wait and `PageMessage` (an icon and a line)
   when they refuse. A 502, 503 or 504 with no known code reads «سرور در حال راه‌اندازی دوباره است…» through
   `errorMessage` (`serverRestartingMessage`), not the general error.

@@ -30,14 +30,6 @@ export interface NavigationItem {
   icon: LucideIcon;
   /** Shown only to this role. Items without one are for every signed-in user. */
   role?: Role;
-  /** A mark beside the label, so a changed or new page is found without being told. */
-  badge?: NavigationBadge;
-}
-
-export interface NavigationBadge {
-  text: string;
-  /** Shown up to and including this gym day (ISO), then gone. Without it, shown until removed here. */
-  until?: string;
 }
 
 /** A titled part of the menu. A part with nothing the user may open is not shown at all. */
@@ -51,18 +43,6 @@ export interface NavigationGroup {
   tone?: Tone;
   items: NavigationItem[];
 }
-
-/**
- * Released on 1405/07/18: «اعضا» lists by latest visit (6.5.34) and «گزارش تغییرات» is new (11.1).
- * Marked through 1405/07/25 (asked by the developer).
- */
-const releasedOn18MehrUntil = "2026-10-17";
-
-/**
- * The SMS pages are on the server, but nothing is really sent until the gym's line is registered
- * with Kavenegar. Marked until SMS goes live; remove it in task 10.6 (asked by the developer).
- */
-const smsTestBadge: NavigationBadge = { text: "آزمایشی" };
 
 /**
  * The locker map comes first: it is where every check-in happens, for Staff and the Owner alike
@@ -83,7 +63,6 @@ export const navigation: NavigationGroup[] = [
         to: paths.members,
         label: "اعضا",
         icon: Contact,
-        badge: { text: "به‌روز شد", until: releasedOn18MehrUntil },
       },
     ],
   },
@@ -116,21 +95,18 @@ export const navigation: NavigationGroup[] = [
         label: "پیامک‌ها",
         icon: MessagesSquare,
         role: "Owner",
-        badge: smsTestBadge,
       },
       {
         to: paths.smsSettings,
         label: "تنظیمات پیامک",
         icon: MessageSquareText,
         role: "Owner",
-        badge: smsTestBadge,
       },
       {
         to: paths.auditLogs,
         label: "گزارش تغییرات",
         icon: ScrollText,
         role: "Owner",
-        badge: { text: "جدید", until: releasedOn18MehrUntil },
       },
     ],
   },

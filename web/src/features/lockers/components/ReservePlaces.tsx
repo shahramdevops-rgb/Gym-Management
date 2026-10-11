@@ -73,8 +73,9 @@ export function ReservePlaces({
         aria-expanded={expanded}
         onClick={() => setOpen(!expanded)}
         className={cn(
-          "inline-flex items-center gap-2.5 rounded-full border bg-card py-1.5 ps-2 pe-3.5 text-sm",
-          "transition-[translate,border-color] duration-200 hover:-translate-y-0.5 hover:border-foreground/30",
+          // Edged like the banner and «نقشهٔ استفاده» (13.2h): a faint frame, a thick start edge.
+          "inline-flex items-center gap-2.5 rounded-lg border border-s-[3px] tone-edge bg-card py-1.5 ps-2 pe-3.5 text-sm",
+          "transition-[translate,background-color] duration-200 hover:-translate-y-0.5 hover:bg-accent",
           "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:hover:translate-y-0",
         )}
       >
@@ -88,7 +89,8 @@ export function ReservePlaces({
       </button>
 
       {expanded && (
-        <div className="space-y-2 rounded-xl border bg-card p-3">
+        // Open, like the desk panel (13.2h): no frame, the page's own colour, a thick start edge.
+        <div className="space-y-2 rounded-xl border-s-[3px] tone-edge p-3">
           {anyLockerFree && (
             <p className="text-sm text-muted-foreground">
               تا وقتی کمد آزادی هست، ورود بدون کمد ممکن نیست؛ کمد آزاد را از نقشه انتخاب کنید.

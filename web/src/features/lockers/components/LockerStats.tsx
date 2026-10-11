@@ -10,7 +10,7 @@ const states = ["free", "occupied", "guest", "cardio", "outOfService"] as const;
 
 /** A small door, drawn the way the map draws that state, for the legend. */
 const swatchClass: Record<LockerState, string> = {
-  free: "border-e-success",
+  free: "border-e-success bg-door-free",
   occupied: "border-e-destructive bg-door-held",
   guest: "border-e-guest bg-door-guest",
   cardio: "border-e-cardio bg-door-cardio",
@@ -23,8 +23,8 @@ const swatchClass: Record<LockerState, string> = {
  * free, occupied, held by a guest, held on a cardio-only visit and out of service, each beside a small door drawn like the map draws it, and what
  * the «بدهکار» tag and the long-stay bar mean.
  *
- * It is the map's legend too, and sits on the page's banner (13.2h) as a card of its own, so its
- * door colours read as they do on the map. `tools` sits at its other end, on the same row: the page
+ * It is the map's legend too, and sits in the page's banner beside the title (13.2h), on no colour
+ * of its own, so its door colours read as they do on the map. `tools` sits at its other end, on the same row: the page
  * puts the name search there, and the usage view's switch beside it (moved back from the banner's
  * title row, asked by the developer on the canvas). While the map shows how often each locker was
  * used (§6 *Locker usage map*), `legend` takes the place of the counts.
@@ -53,7 +53,7 @@ export function LockerStats({
   return (
     <section
       aria-label="وضعیت کمدها"
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-2xl bg-card px-4 py-3 text-card-foreground shadow-card"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3"
     >
       {legend ?? (
         <ul aria-label="راهنمای کمدها" className="flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -62,7 +62,7 @@ export function LockerStats({
               <span
                 aria-hidden
                 className={cn(
-                  "inline-block size-3.5 rounded-[3px] border border-e-[3px] border-door-border bg-door",
+                  "inline-block size-3.5 rounded-[3px] border-e-[3px] border-door-border bg-door",
                   swatchClass[state],
                 )}
               />
@@ -75,7 +75,7 @@ export function LockerStats({
           <li className="flex items-center gap-2 text-xs text-muted-foreground">
             <span
               aria-hidden
-              className="rounded-es-sm bg-destructive px-1 text-[9px] leading-snug font-bold text-destructive-foreground"
+              className="rounded-es-sm bg-destructive/20 px-1 text-[9px] leading-snug font-bold text-destructive"
             >
               بدهکار
             </span>

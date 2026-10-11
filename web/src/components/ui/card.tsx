@@ -8,15 +8,21 @@ interface CardProps extends React.ComponentProps<"div"> {
    * dashboard's). A card outside a coloured page draws no strip either way.
    */
   accent?: boolean;
+  /**
+   * Drawn like a locker door and the desk panel instead (13.2h, asked by the developer): no frame,
+   * the page's own colour, a thick start edge in the page's tone. No strip on top.
+   */
+  edge?: boolean;
 }
 
-function Card({ className, accent = true, ...props }: CardProps) {
+function Card({ className, accent = true, edge = false, ...props }: CardProps) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-card",
-        accent && "tone-strip",
+        "flex flex-col gap-6 rounded-xl py-6 text-card-foreground",
+        edge ? "border-s-[3px] tone-edge" : "border bg-card shadow-card",
+        accent && !edge && "tone-strip",
         className,
       )}
       {...props}

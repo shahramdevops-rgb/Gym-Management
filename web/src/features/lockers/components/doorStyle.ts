@@ -2,12 +2,12 @@ import type { LockerState } from "../lockerState";
 
 /**
  * The look every locker door shares, and every reserve place with it, so the two can never drift
- * apart (BUSINESS_RULES.md §6 *The desk screen's look*): a plain tile in a thin frame, with a thicker
- * edge down its right side (`border-e`, the right inside the map's `dir="ltr"`) that the state
- * colours.
+ * apart (BUSINESS_RULES.md §6 *The desk screen's look*): a tile in the page's own colour with no
+ * frame (13.2h, asked by the developer), only a thick edge down its right side (`border-e`, the
+ * right inside the map's `dir="ltr"`) that the state colours.
  */
 export const doorFace =
-  "relative overflow-hidden rounded-lg border border-e-[3px] border-door-border bg-door shadow-sm shadow-black/20";
+  "relative overflow-hidden rounded-lg border-e-[3px] border-door-border bg-door";
 
 /**
  * The door rises a little under the mouse and sinks back when pressed; a disabled one does
@@ -23,12 +23,13 @@ export const doorMotion = [
 ].join(" ");
 
 /**
- * Each state's edge, face and text colour: green when free; tinted red from the top corner with a
- * red edge when held by a member, the same in blue when held by a guest and in yellow on a
- * cardio-only visit; hatched when out of service.
+ * Each state's edge, face and text colour: tinted green from the top corner with a green edge when
+ * free, the number a soft grey, lighter than an out-of-service door's (both changed by the
+ * developer, 1405/07/20: the number was green, the face plain); tinted red from the top corner with a red edge when held by a member, the same in blue when held
+ * by a guest and in yellow on a cardio-only visit; hatched when out of service.
  */
 export const doorStateClass: Record<LockerState, string> = {
-  free: "border-e-success text-success",
+  free: "border-e-success text-foreground/75 bg-[linear-gradient(135deg,var(--door-free),var(--door)_70%)]",
   occupied:
     "border-e-destructive text-foreground bg-[linear-gradient(135deg,var(--door-held),var(--door)_70%)]",
   guest:
@@ -46,7 +47,7 @@ export const doorStateClass: Record<LockerState, string> = {
  * white once the colour is deep enough to need it.
  */
 export const usageDoorClass: readonly string[] = [
-  "border-dashed border-door-unused text-door-unused",
+  "border border-dashed border-door-unused text-door-unused",
   "border-e-door-use text-foreground bg-[color-mix(in_oklch,var(--door-use)_14%,var(--door))]",
   "border-e-door-use text-foreground bg-[color-mix(in_oklch,var(--door-use)_30%,var(--door))]",
   "border-e-door-use text-foreground bg-[color-mix(in_oklch,var(--door-use)_46%,var(--door))]",

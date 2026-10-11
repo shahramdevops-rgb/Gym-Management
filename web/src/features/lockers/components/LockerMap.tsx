@@ -404,7 +404,9 @@ function UsageDoor({
 }
 
 /**
- * A small red tag hanging from the door's top edge, in its top-right corner (BUSINESS_RULES.md §6).
+ * A small tag in red letters on a faint red ground (the ground was solid red until the developer
+ * softened it, 1405/07/20), hanging from the door's top edge, in its top-right corner
+ * (BUSINESS_RULES.md §6).
  * `end-0` is the right inside the map (`dir="ltr"`), and the one rounded corner is the one that
  * hangs free, bottom-left. A single Persian word reads correctly without a `dir` of its own.
  */
@@ -412,7 +414,7 @@ function DebtorTag() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute end-0 top-0 rounded-es-md bg-destructive px-1.5 pb-0.5 text-[10px] leading-snug font-bold whitespace-nowrap text-destructive-foreground"
+      className="pointer-events-none absolute end-0 top-0 rounded-es-md bg-destructive/20 px-1.5 pb-0.5 text-[10px] leading-snug font-bold whitespace-nowrap text-destructive"
     >
       {debtorLabel}
     </span>
