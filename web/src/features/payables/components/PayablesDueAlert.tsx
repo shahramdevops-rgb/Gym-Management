@@ -18,7 +18,7 @@ import { daysLeftText, kindText, payableAlertWithinDays, usePayablesDueSoon } fr
 
 const withinDays = toPersianDigits(payableAlertWithinDays);
 
-/** Red once a payment is past its date, amber while it is only close. */
+/** Red once a payment is past its date, yellow while it is only close. */
 function toneOf(daysLeft: number) {
   return daysLeft < 0 ? "overdue" : "soon";
 }
@@ -31,7 +31,7 @@ function DaysLeftChip({ daysLeft }: { daysLeft: number }) {
         "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
         toneOf(daysLeft) === "overdue"
           ? "bg-destructive/15 text-destructive"
-          : "bg-warning/15 text-warning",
+          : "bg-(--tone-yellow)/15 text-(--tone-yellow)",
       )}
     >
       {daysLeftText(daysLeft)}
@@ -66,12 +66,13 @@ export function PayablesDueAlert() {
       <DialogTrigger
         className={cn(
           // Edged like the banner and a locker door (13.2h, asked by the developer): a faint frame
-          // and a thick start edge, orange while close, red once past its date.
+          // and a thick start edge, yellow while close (apart from «فروش بوفه»'s orange, asked by the
+          // developer in 13.2i), red once past its date.
           "inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-lg border border-s-[3px] bg-card px-3 text-sm",
           "transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
           tone === "overdue"
             ? "border-destructive/40 border-s-destructive"
-            : "border-warning/40 border-s-warning",
+            : "border-(--tone-yellow)/40 border-s-(--tone-yellow)",
         )}
       >
         <span className="relative flex size-4 shrink-0 items-center justify-center">
@@ -85,7 +86,7 @@ export function PayablesDueAlert() {
             aria-hidden
             className={cn(
               "relative size-4",
-              tone === "overdue" ? "text-destructive" : "text-warning",
+              tone === "overdue" ? "text-destructive" : "text-(--tone-yellow)",
             )}
           />
         </span>

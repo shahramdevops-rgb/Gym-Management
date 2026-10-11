@@ -15,7 +15,8 @@ export type Tone =
   | "indigo"
   | "lime"
   | "cyan"
-  | "rose";
+  | "rose"
+  | "yellow";
 
 /**
  * Sets `--tone` on an element, for the `tone-soft`, `tone-ink`, `tone-solid` and `tone-bar`

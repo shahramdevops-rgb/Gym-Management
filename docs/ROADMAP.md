@@ -2936,7 +2936,11 @@ every screen, rather than the gym's green or a neutral black.
       product's box edged like the cards. A banner's tools sit at its far end, beside the logo, on
       every page (asked by the developer for «بازگشت به بوفه»). The menu's
       group line and dot are now drawn in the edges' colour (`tone-ink`) instead of the raw tone,
-      so «فروش بوفه»'s line matches its pages (asked by the developer). No package added, no API
+      so «فروش بوفه»'s line matches its pages (asked by the developer). The tone and the text colour
+      are now mixed in `oklab` instead of `oklch`, which had pulled the orange towards pink; every
+      group's edges keep their own hue. The header's cheque alert, while a payment is only close, is
+      a new `--tone-yellow` instead of the amber `--warning`, so it is not read as the cafe's orange
+      (both asked by the developer; `--warning` itself is unchanged). No package added, no API
       change
 
 #### 13.2e plan
