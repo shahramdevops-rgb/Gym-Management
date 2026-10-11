@@ -1,9 +1,11 @@
+import { CalendarClock, Hourglass, ScrollText } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState, LoadingState } from "@/components/States";
 import { Pager } from "@/components/Pager";
+import { StatTile } from "@/components/StatTile";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -184,27 +186,28 @@ export function PayablesPage() {
           {payables.isPending && <LoadingState />}
           {payables.isError && <Alert variant="destructive">{errorMessage(payables.error)}</Alert>}
           {payables.isSuccess && (
-            <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-              <div className="flex flex-wrap gap-x-8 gap-y-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">جمع در انتظار</p>
-                  <p className="text-lg font-bold" aria-label="جمع در انتظار">
-                    {formatMoney(payables.data.pendingTotal)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">چک‌ها</p>
-                  <p className="font-medium" aria-label="جمع چک‌های در انتظار">
-                    {formatMoney(payables.data.pendingChequeTotal)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">قسط‌ها</p>
-                  <p className="font-medium" aria-label="جمع قسط‌های در انتظار">
-                    {formatMoney(payables.data.pendingInstallmentTotal)}
-                  </p>
-                </div>
-              </div>
+            <div className="space-y-2">
+              <dl className="grid gap-3 sm:grid-cols-3">
+                <StatTile
+                  label="جمع در انتظار"
+                  valueLabel="جمع در انتظار"
+                  value={formatMoney(payables.data.pendingTotal)}
+                  icon={Hourglass}
+                  primary
+                />
+                <StatTile
+                  label="چک‌ها"
+                  valueLabel="جمع چک‌های در انتظار"
+                  value={formatMoney(payables.data.pendingChequeTotal)}
+                  icon={ScrollText}
+                />
+                <StatTile
+                  label="قسط‌ها"
+                  valueLabel="جمع قسط‌های در انتظار"
+                  value={formatMoney(payables.data.pendingInstallmentTotal)}
+                  icon={CalendarClock}
+                />
+              </dl>
               <p className="text-xs text-muted-foreground">
                 آنچه باشگاه هنوز باید بپردازد. چک و قسط هزینه است: بعد از پاس شدن یا پرداخت، سیستم
                 خودش آن را در هزینه‌ها ثبت می‌کند.

@@ -1741,3 +1741,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **An invalid `var()` is a feature.** With no `--tone` (a page outside the menu, «حساب و سیستم», the sign-in page) the gradient is invalid at computed time, so the browser drops it and the card looks as before; `var(--tone, var(--border))` gives the top border a fallback. No JavaScript decides whether to draw.
 - **Colour that means something is reserved.** Green, red and amber already mean paid, owed and attention, so no page may use them as decoration; a test checks the menu's tones. The active menu item stays in the brand blue so "you are here" is one colour everywhere.
 - **My notes:**
+
+## 13.2f — Level 2 and a modern side menu (سطح ۲ و منوی کناری تازه)
+
+- **A fallback in the utility, not a condition in every component.** `var(--tone, var(--muted-foreground))` inside `tone-soft` and `tone-ink` means `EmptyState` and `StatTile` just use the utilities: coloured on a coloured page, grey in a dialog or «حساب و سیستم», with no prop and no `if`.
+- **A gradient border without an extra element.** A transparent 1px border, the panel's colour painted on the `padding-box` and a gradient on the `border-box`: only the border's pixel shows the gradient, and it follows the rounded corners.
+- **Light per theme belongs in a token.** The day shadow and the night glow are one `--sidebar-glow` with a value in `:root` and one in `.dark`; the utility never asks which theme is on.
+- **Keep accessible names when the look changes.** The payables totals kept their `aria-label`s and the history totals their `section`/`dt`/`dd`, so the tests that read the amounts passed untouched; only one test changed, the one that checked a class (`border-e`) the new design no longer has. That is why tests should not look for class names.
+- **Measure a layout promise, do not eyeball it.** "The menu fits a 900px window" was checked in the browser by reading where the last group ends; the first version needed 875px, so the padding was trimmed back to about 860px, what the old frame needed.
+- **My notes:**

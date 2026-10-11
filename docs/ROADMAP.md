@@ -2838,6 +2838,18 @@ every screen, rather than the gym's green or a neutral black.
       a card is cut off), the dashboard's two own-coloured cards opted out (`accent={false}`). Asked
       by the developer while looking: the dashboard's banner and range pills from green to violet,
       the colour of «مالی» beside it. Tones moved to `lib/tone.ts`. No package added, no API change
+- [x] **13.2f Level 2 and a modern side menu** (asked by the developer, 1405/07/19, with a picture
+      of a glowing menu to take ideas from, not to copy). Level 2 of the 13.2e plan: `EmptyState`'s
+      icon circle in the page's colour (`tone-soft` and `tone-ink` now fall back to grey without a
+      `--tone`), and a shared `StatTile` (`components/StatTile.tsx`) for the totals of «چک و قسط»
+      (three tiles over the line that explains them) and of «تاریخچه» (each tab's totals), with
+      the same accessible names as before. The side menu became a floating panel: the gym's logo
+      and name moved from the header into it, above the clock and the menu; a 1px edge from the
+      brand blue into violet, a soft shadow by day and a blue and violet glow at night (tokens
+      `--sidebar-edge-*`, `--sidebar-glow`, utility `sidebar-panel`); group titles in their own
+      colour; the active item a brand-blue gradient with a faint ring and a bar on its start edge.
+      The header covers only the content column. The whole menu still fits a 900px-tall window
+      (it needs about 860px, as before). No package added, no API change
 
 #### 13.2e plan
 

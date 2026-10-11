@@ -13,7 +13,7 @@ export function SidebarClock() {
   return (
     <div
       data-testid="sidebar-clock"
-      className="flex items-baseline justify-between gap-2 rounded-xl border bg-card px-3 py-2 shadow-card"
+      className="flex items-baseline justify-between gap-2 rounded-xl border border-primary/20 bg-linear-to-l from-primary/10 via-(--tone-violet)/5 to-transparent px-3 py-2"
     >
       <p className="text-xl leading-tight font-extrabold tabular-nums">
         {formatTime(now.toISOString())}

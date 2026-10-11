@@ -204,7 +204,7 @@ web/src/
 ├── app/            Router, providers (QueryClient, DirectionProvider), layout shell
 ├── features/       One folder per feature: members/, subscriptions/, attendance/...
 │   └── members/    api.ts (queries/mutations), components/, pages/, schemas.ts (Zod)
-├── components/     Shared building blocks: PageHeader, States (LoadingState, EmptyState), FormField, SaveRow, Pager
+├── components/     Shared building blocks: PageHeader, States (LoadingState, EmptyState), StatTile, FormField, SaveRow, Pager
 ├── components/ui/  shadcn/ui components (adjusted for RTL), Table among them
 ├── lib/
 │   ├── api/        Generated types (do not edit) and the openapi-fetch client
@@ -226,6 +226,10 @@ web/src/
   tone (`tone-strip`, a background, so no `overflow-hidden` cuts a dropdown); `accent={false}` for a card with
   colours of its own (the dashboard's). A page's tone is decoration only: never green, red or amber; the active menu
   item stays in the brand blue. Tone helpers live in `lib/tone.ts`; a new menu item goes in `navigation.ts` only.
+  `tone-soft`/`tone-ink` fall back to grey without a `--tone`, so shared pieces (`EmptyState`'s icon, `StatTile`,
+  a page's totals as tiles inside a `<dl>`) use them anywhere. The frame (13.2f): the menu is a floating panel
+  (`sidebar-panel`, its edge and glow are tokens per theme) holding the logo, the clock and the menu; the header
+  sits over the content column only.
 - An edit form saves one way (roadmap 13.2c): its buttons sit in `SaveRow` (`components/SaveRow.tsx`), which shows
   the outcome of the last press beside them — `StaleAlert` when someone else saved first, a server error, «تغییری
   نداده‌اید» or «تغییرها ثبت شد» — one at a time. «ذخیره» is never disabled; `useUnchanged` (`lib/forms.ts`) compares

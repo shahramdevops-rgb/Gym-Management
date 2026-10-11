@@ -87,13 +87,13 @@ describe("AppShell", () => {
     renderApp("/", { session: session() });
 
     // In a right-to-left row the first child sits on the right. The layout depends on this
-    // order (and on logical classes), not on any "right" utility.
+    // order (and on logical classes), not on any "right" utility. The menu is a floating panel
+    // since 13.2f, so it no longer has a border on its end to check.
     const navigation = screen.getByRole("navigation");
     const main = screen.getByRole("main");
     expect(
       navigation.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(navigation).toHaveClass("border-e");
   });
 
   it("AppShell_Owner_SeesTheStaffMenuItem", async () => {

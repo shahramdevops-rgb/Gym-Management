@@ -1,3 +1,4 @@
+import { BanknoteArrowDown, Hourglass, ReceiptText, Sigma, Undo2 } from "lucide-react";
 import { useSearchParams } from "react-router";
 
 import { PageHeader } from "@/components/PageHeader";
@@ -372,9 +373,13 @@ export function HistoryPage() {
                 paymentTotals.isSuccess && (
                   <HistoryTotals
                     totals={[
-                      { label: "دریافتی", amount: paymentTotals.data.received },
-                      { label: "بازگشت", amount: paymentTotals.data.refunded },
-                      { label: "خالص", amount: paymentTotals.data.net },
+                      {
+                        label: "دریافتی",
+                        amount: paymentTotals.data.received,
+                        icon: BanknoteArrowDown,
+                      },
+                      { label: "بازگشت", amount: paymentTotals.data.refunded, icon: Undo2 },
+                      { label: "خالص", amount: paymentTotals.data.net, icon: Sigma },
                     ]}
                   />
                 )}
@@ -390,9 +395,13 @@ export function HistoryPage() {
                 salesTotals.isSuccess && (
                   <HistoryTotals
                     totals={[
-                      { label: "مبلغ", amount: salesTotals.data.amount },
-                      { label: "دریافتی", amount: salesTotals.data.netPaid },
-                      { label: "مانده", amount: salesTotals.data.remaining },
+                      { label: "مبلغ", amount: salesTotals.data.amount, icon: ReceiptText },
+                      {
+                        label: "دریافتی",
+                        amount: salesTotals.data.netPaid,
+                        icon: BanknoteArrowDown,
+                      },
+                      { label: "مانده", amount: salesTotals.data.remaining, icon: Hourglass },
                     ]}
                   />
                 )}

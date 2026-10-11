@@ -25,7 +25,8 @@ export function LoadingState({
 
 /**
  * A list with nothing in it, said plainly in a quiet box rather than a stray line of grey text
- * (roadmap 13.2). An action can follow, such as the button that adds the first item.
+ * (roadmap 13.2). An action can follow, such as the button that adds the first item. The icon's
+ * circle is in the page's colour (13.2e), grey on a page without one.
  */
 export function EmptyState({
   children,
@@ -45,7 +46,7 @@ export function EmptyState({
         className,
       )}
     >
-      <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <span className="flex size-10 items-center justify-center rounded-full tone-soft tone-ink">
         <Icon className="size-5" aria-hidden />
       </span>
       <p className="text-sm text-muted-foreground">{children}</p>

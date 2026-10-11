@@ -47,8 +47,16 @@
   --border: oklch(0.918 0.008 258);
   --input: oklch(0.88 0.012 258);
   --ring: oklch(0.62 0.15 263);
-  /* The side menu: a shade apart from both the page and its cards. */
-  --sidebar: oklch(0.99 0.002 255);
+  /* The side menu: a panel floating beside the page (13.2f), a shade apart from both the page and
+     its cards, with an edge that runs from the brand blue into violet and a soft light around it. */
+  --sidebar: oklch(0.995 0.002 255);
+  --sidebar-edge-from: oklch(0.5 0.19 263 / 0.45);
+  --sidebar-edge-to: oklch(0.56 0.2 295 / 0.35);
+  --sidebar-glow:
+    0 1px 2px oklch(0.2 0.03 263 / 0.05), 0 16px 40px -12px oklch(0.5 0.19 263 / 0.22);
+  /* The active menu item: the brand blue, stronger at its start. */
+  --sidebar-active-from: oklch(0.5 0.19 263 / 0.16);
+  --sidebar-active-to: oklch(0.5 0.19 263 / 0.04);
   /* Soft, layered shadows: a card sits on the page, a dialog floats above it. */
   --shadow-color: 222 47% 11%;
   /* A locker door on the map (BUSINESS_RULES.md §6 *The desk screen's look*): its face, its frame,
@@ -160,7 +168,13 @@
   --border: oklch(0.29 0.01 268);
   --input: oklch(0.34 0.012 268);
   --ring: oklch(0.62 0.13 263);
-  --sidebar: oklch(0.185 0.009 268);
+  --sidebar: oklch(0.18 0.014 272);
+  --sidebar-edge-from: oklch(0.68 0.16 263 / 0.7);
+  --sidebar-edge-to: oklch(0.7 0.17 295 / 0.6);
+  --sidebar-glow:
+    0 0 32px -6px oklch(0.62 0.17 263 / 0.4), 0 0 90px -20px oklch(0.62 0.19 295 / 0.35);
+  --sidebar-active-from: oklch(0.68 0.16 263 / 0.32);
+  --sidebar-active-to: oklch(0.68 0.16 263 / 0.08);
   --shadow-color: 0 0% 0%;
   --door: oklch(0.225 0.008 270);
   --door-border: oklch(0.31 0.009 270);
@@ -209,12 +223,35 @@
  * that fades in from its start. The bar fades through transparency, not into the card's colour:
  * mixing in oklch towards the dark card turned the hue purple on the way.
  */
+/*
+ * The side menu's floating panel (13.2f). The edge is a gradient: the panel's own colour on the
+ * padding box over a gradient on the border box, behind a transparent border, so only the 1px
+ * border shows the gradient. The light around it is a token per theme: a soft shadow by day, a
+ * blue and violet glow at night.
+ */
+@utility sidebar-panel {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--sidebar), var(--sidebar)) padding-box,
+    linear-gradient(
+        160deg,
+        var(--sidebar-edge-from),
+        var(--border) 45%,
+        var(--border) 60%,
+        var(--sidebar-edge-to)
+      )
+      border-box;
+  box-shadow: var(--sidebar-glow);
+}
+
+/* `tone-soft` and `tone-ink` fall back to grey without a `--tone` (a dialog, a page in «حساب و
+   سیستم»), so a shared component can use them on any page (13.2e). */
 @utility tone-soft {
-  background-color: color-mix(in oklch, var(--tone) 14%, transparent);
+  background-color: color-mix(in oklch, var(--tone, var(--muted-foreground)) 14%, transparent);
 }
 
 @utility tone-ink {
-  color: color-mix(in oklch, var(--tone) 72%, var(--foreground));
+  color: color-mix(in oklch, var(--tone, var(--muted-foreground)) 72%, var(--foreground));
 }
 
 @utility tone-solid {
