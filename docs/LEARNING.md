@@ -1706,3 +1706,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **Decoration is hidden from screen readers; meaning never rests on colour alone.** The logo has an empty `alt`, the spinner and the alert icons are `aria-hidden`, and the words beside them carry the meaning.
 - **Motion respects the user.** The dialog's fade and the spinner run only under `motion-safe:`, so someone who asked their system for less motion gets neither.
 - **My notes:**
+
+## 13.2b — The coloured dashboard (داشبورد رنگی)
+
+- **Restoring from a tag is two different jobs.** Files nobody touched since the tag (the banner, the tones, the charts) come back whole with `git checkout <tag> -- <path>`. Files whose content changed since (the page gained «دریافتی متفرقه», the staff table moved to `Table`) are merged by hand: the look from the tag, the content from now. `git log <tag>..HEAD -- <folder>` tells which job each file is.
+- **A colour carried in a custom property keeps the utilities few.** A card sets `--tone` once (`toneStyle`), and four utilities (`tone-soft`, `tone-ink`, `tone-solid`, `tone-bar`) read it. Adding the fourteenth hue, rose, was one token per theme and one word in a type, with no new class.
+- **A shared token beats a copied value.** The tagged cards had their own Tailwind shadows; swapping them for 13.2a's `shadow-card` and `shadow-raised` makes them sit on the page like every other card, and a later change to the shadows reaches them too.
+- **Check screenshots against the DOM.** The browser forced its own dark rendering, so a page whose computed background was light still showed dark. Reading `getComputedStyle` showed the screenshot was lying, not the CSS.
+- **My notes:**

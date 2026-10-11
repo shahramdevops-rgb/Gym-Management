@@ -1,5 +1,9 @@
 # The coloured dashboard (kept for Phase 13)
 
+> **Live again since 13.2b (1405/07/19, 2026-10-11).** Brought back as described below; the banner
+> stays green (the developer's choice over the brand blue), and «دریافتی متفرقه» took the new
+> `--tone-rose`. This note stays as the record of the design.
+
 **Instruction for whoever does the UI update (Phase 13.2): do not redesign the dashboard. Bring
 this design back from the git tag `dashboard-colour-v1` and apply it to the dashboard's content as
 it is then.**

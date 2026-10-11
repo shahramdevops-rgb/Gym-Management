@@ -2787,8 +2787,14 @@ every screen, rather than the gym's green or a neutral black.
       lists, `LoadingState`, `EmptyState`, and `Alert` with an icon per kind. The locker map's look
       (§6) is untouched. No package added, no API change
 - [x] Colour, typography and spacing tokens; every screen built from the same components (13.2a)
-- [ ] The dashboard: bring back its coloured design from the tag `dashboard-colour-v1`, as it is,
-      not redesigned (`docs/design/dashboard-colour.md`)
+- [x] **13.2b The coloured dashboard** (1405/07/19). Brought back from the tag
+      `dashboard-colour-v1` as it is, not redesigned (`docs/design/dashboard-colour.md`): the green
+      banner with the logo and the range pills (kept green, not the brand blue: chosen by the
+      developer the same day), a tone and an icon per card, list and chart, the receivables in one
+      card with a bar by age, the skeleton cards while loading. The content made since the tag
+      stays: «دریافتی متفرقه» gets a new `--tone-rose` and the Package icon, and the staff table
+      keeps the shared `Table` of 13.2a. The cards use 13.2a's `shadow-card` and `shadow-raised`
+      instead of their own shadows. No package added, no API change
 - [x] Decide whether the whole app gets a dark theme: yes, as a switch in the header, light by
       default (6.5.22)
 - [ ] The Persian font renders numbers and text consistently across screens
