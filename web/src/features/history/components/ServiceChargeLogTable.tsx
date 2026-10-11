@@ -37,7 +37,7 @@ export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[]
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.id}>
-            <TableCell>{formatDateTime(item.createdAt)}</TableCell>
+            <TableCell className="tone-row-edge">{formatDateTime(item.createdAt)}</TableCell>
             <TableCell>
               <WhoCell
                 memberId={item.memberId}
@@ -54,7 +54,7 @@ export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[]
             <TableCell>{formatMoney(item.amount)}</TableCell>
             <TableCell>
               {item.voidedAt === null ? (
-                <PaymentStatusBadge status={item.paymentStatus} />
+                <PaymentStatusBadge status={item.paymentStatus} edged />
               ) : (
                 emptyValue
               )}

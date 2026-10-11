@@ -9,7 +9,9 @@ import { searchMinLength } from "@/features/members/schemas";
 import { errorMessage } from "@/lib/errors";
 import { formatPhone, toPersianDigits } from "@/lib/format";
 import { normalizeInput } from "@/lib/normalize";
+import { filterEdge } from "@/lib/edges";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
+import { cn } from "@/lib/utils";
 
 const searchDelayMs = 300;
 
@@ -43,7 +45,12 @@ export function MemberFilter({ memberId, onChange }: MemberFilterProps) {
     return (
       <div className="space-y-2">
         <Label>عضو</Label>
-        <div className="flex h-9 items-center justify-between gap-3 rounded-md border px-3">
+        <div
+          className={cn(
+            "flex h-9 items-center justify-between gap-3 rounded-md border px-3",
+            filterEdge,
+          )}
+        >
           <span className="truncate font-medium">
             {chosen.isSuccess ? chosen.data.fullName : chosen.isError ? "عضو پیدا نشد" : "…"}
           </span>
@@ -76,7 +83,7 @@ export function MemberFilter({ memberId, onChange }: MemberFilterProps) {
           id="history-member"
           type="search"
           placeholder="همهٔ اعضا — یا نام یا موبایل…"
-          className="ps-9"
+          className={cn("ps-9", filterEdge)}
           value={text}
           onChange={(event) => {
             setText(event.target.value);

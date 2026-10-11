@@ -15,7 +15,9 @@ import {
 import { groupBySettlement, type SettlementSummary } from "@/features/payments/settlementGroups";
 import { serviceChargeLabel } from "@/features/serviceCharges/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
+import { stateEdge } from "@/lib/edges";
 import { emptyValue, formatDateTime, formatMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import { paymentSourceLabels, type HistoryPayment } from "../api";
 import { WhoCell } from "./WhoCell";
@@ -61,7 +63,7 @@ export function PaymentLogTable({ items }: { items: HistoryPayment[] }) {
 function PaymentRow({ item }: { item: HistoryPayment }) {
   return (
     <TableRow>
-      <TableCell>{formatDateTime(item.paidAt)}</TableCell>
+      <TableCell className="tone-row-edge">{formatDateTime(item.paidAt)}</TableCell>
       <TableCell>
         <WhoCell
           memberId={item.memberId}
@@ -104,7 +106,10 @@ function SettlementRows({
   return (
     <>
       <TableRow>
-        <TableCell className="pt-2 pb-1">{formatDateTime(first.paidAt)}</TableCell>
+        {/* The moment spans the heading and its items, so one start edge marks one handover. */}
+        <TableCell rowSpan={items.length + 1} className="pt-2 pb-1 align-top tone-row-edge">
+          {formatDateTime(first.paidAt)}
+        </TableCell>
         <TableCell className="pt-2 pb-1">
           <WhoCell
             memberId={first.memberId}
@@ -130,7 +135,6 @@ function SettlementRows({
 
         return (
           <TableRow key={item.id} className={last ? undefined : "border-b-0"}>
-            <TableCell />
             <TableCell />
             <TableCell className={last ? "pt-1 pb-2" : "py-1"}>
               <SettlementItemLabel>
@@ -160,9 +164,16 @@ function PaidFor({ item }: { item: HistoryPayment }) {
   );
 }
 
+/**
+ * Edged like the payment status tags (asked by the developer, 13.2i): no fill, a faint frame and a
+ * thick end edge, green for money in, red for money given back.
+ */
 function KindBadge({ kind }: { kind: HistoryPayment["kind"] }) {
   return (
-    <Badge variant={kind === "Refund" ? "destructive" : "success"}>
+    <Badge
+      variant="ghost"
+      className={cn(kind === "Refund" ? stateEdge.destructive : stateEdge.success, "font-semibold")}
+    >
       {kind === "Refund" ? "استرداد" : "پرداخت"}
     </Badge>
   );

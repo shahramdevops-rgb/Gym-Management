@@ -13,8 +13,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { lowSessionsThreshold } from "@/features/attendance/renewal";
+import { stateEdge } from "@/lib/edges";
 import { emptyValue, formatMoney, formatPhone, toPersianDigits } from "@/lib/format";
 import { isPositiveMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import type { Member } from "../api";
 
@@ -55,7 +57,8 @@ export function MembersTable({ members, deskActions }: MembersTableProps) {
       <TableBody>
         {members.map((member) => (
           <TableRow key={member.id}>
-            <TableCell>
+            {/* Edged at its start in the page's tone, like a locker door (`tone-row-edge`). */}
+            <TableCell className="tone-row-edge">
               <div className="flex flex-wrap items-center gap-1.5">
                 <Link
                   to={paths.member(member.id)}
@@ -65,13 +68,13 @@ export function MembersTable({ members, deskActions }: MembersTableProps) {
                 </Link>
                 {/* BUSINESS_RULES.md §2: their latest visit was a single visit. */}
                 {member.lastVisitWasSingleSession && (
-                  <Badge variant="outline" className="border-destructive text-destructive">
+                  <Badge variant="ghost" className={stateEdge.destructive}>
                     تک‌جلسه
                   </Badge>
                 )}
                 {/* BUSINESS_RULES.md §2: the plan is over and nothing was bought after it. */}
                 {member.planEnded && (
-                  <Badge variant="outline" className="border-warning text-warning">
+                  <Badge variant="ghost" className={stateEdge.warning}>
                     پلن تمام‌شده
                   </Badge>
                 )}
@@ -117,11 +120,17 @@ function DeskButtons({
 
   return (
     <div className="flex items-center justify-end gap-2">
-      <Badge variant="secondary">
+      {/* Green like «داخل باشگاه» in the history, and «خروج» like «ثبت خروج» on the board. */}
+      <Badge variant="ghost" className={cn(stateEdge.success, "font-semibold")}>
         داخل باشگاه —{" "}
         {visit.lockerNumber === null ? "بدون کمد" : `کمد ${toPersianDigits(visit.lockerNumber)}`}
       </Badge>
-      <Button size="sm" variant="outline" onClick={() => onCheckOut(member)}>
+      <Button
+        size="sm"
+        variant="ghost"
+        className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success")}
+        onClick={() => onCheckOut(member)}
+      >
         خروج
       </Button>
     </div>
@@ -155,7 +164,12 @@ function PlanSessions({ plan }: { plan: Member["plan"] }) {
  * before opening the profile (BUSINESS_RULES.md §5 Member debt).
  */
 function MemberDebt({ value }: { value: Member["debt"] }) {
-  return isPositiveMoney(value) ? <Badge variant="destructive">{formatMoney(value)}</Badge> : null;
+  // Red and edged like «پرداخت‌نشده» in the history (13.2i).
+  return isPositiveMoney(value) ? (
+    <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
+      {formatMoney(value)}
+    </Badge>
+  ) : null;
 }
 
 export function MemberStatusBadge({ isActive }: { isActive: boolean }) {

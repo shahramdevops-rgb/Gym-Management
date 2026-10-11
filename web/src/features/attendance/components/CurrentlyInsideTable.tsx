@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { stateEdge } from "@/lib/edges";
 import { formatDate, formatDateTime, gymToday, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -26,13 +27,6 @@ interface CurrentlyInsideTableProps {
   /** Opens the "cancel this check-in?" box. */
   onCancel: (row: CurrentlyInside) => void;
 }
-
-/**
- * The first cell of a row, edged at its start in the page's tone like a locker door (asked by the
- * developer): a curved bar, so the eye follows one visit across the line.
- */
-const rowEdge =
-  "relative before:absolute before:inset-y-1.5 before:start-0 before:w-3 before:rounded-s-lg before:border-s-[3px] before:border-current before:tone-ink";
 
 /**
  * The front desk board: who is inside right now, which locker, since when, and how much of their
@@ -90,7 +84,8 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
 
           return (
             <TableRow key={row.attendanceId}>
-              <TableCell className={rowEdge}>
+              {/* Edged at its start in the page's tone, like a locker door (`tone-row-edge`). */}
+              <TableCell className="tone-row-edge">
                 <Link
                   to={paths.member(row.memberId)}
                   className="font-medium underline-offset-4 hover:underline"
@@ -164,7 +159,7 @@ function GuestRow({
 } & Pick<CurrentlyInsideTableProps, "onCheckOut" | "onCancel">) {
   return (
     <TableRow>
-      <TableCell className={cn(rowEdge, "font-medium")}>{row.guestName}</TableCell>
+      <TableCell className="font-medium tone-row-edge">{row.guestName}</TableCell>
       <TableCell>
         {row.lockerNumber !== null
           ? toPersianDigits(row.lockerNumber)
@@ -201,7 +196,7 @@ function RowActions({
       <Button
         size="sm"
         variant="ghost"
-        className="border border-e-[3px] border-destructive/40 border-e-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+        className={cn(stateEdge.destructive, "hover:bg-destructive/10 hover:text-destructive")}
         onClick={() => onCancel(row)}
       >
         لغو ورود
@@ -209,7 +204,7 @@ function RowActions({
       <Button
         size="sm"
         variant="ghost"
-        className="border border-e-[3px] border-success/40 border-e-success text-success hover:bg-success/10 hover:text-success"
+        className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success")}
         onClick={() => onCheckOut(row)}
       >
         ثبت خروج

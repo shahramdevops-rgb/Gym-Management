@@ -75,7 +75,8 @@ interface SelectFieldProps extends ComponentProps<"select"> {
  */
 /** The look of a native `<select>` here, shared by `SelectField` and the date fields' boxes. */
 const selectClassName = cn(
-  "h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+  // `select-box`: the open list in the panel's look where the browser allows it (index.css).
+  "select-box h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
   "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30",
   "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
   // The browser draws the open list on its own white, whatever the box's colour; the
@@ -248,6 +249,8 @@ interface JalaliCalendarFieldProps {
   onBlur?: () => void;
   disabled?: boolean;
   placeholder?: string;
+  /** Extra classes for the box itself, e.g. the history's door-like edge (`tone-edge`). */
+  inputClassName?: string;
 }
 
 /**
@@ -291,6 +294,7 @@ export function JalaliCalendarField({
   onBlur,
   disabled,
   placeholder = "۱۳۷۰/۰۵/۱۲",
+  inputClassName,
 }: JalaliCalendarFieldProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
@@ -348,7 +352,7 @@ export function JalaliCalendarField({
           autoComplete="off"
           // A phone's number pad has no slash; withDateSlashes adds them, so digits are enough.
           inputMode="numeric"
-          className="pe-9"
+          className={cn("pe-9", inputClassName)}
           aria-invalid={error !== undefined}
           aria-describedby={error !== undefined ? errorId : undefined}
           aria-expanded={showCalendar}
@@ -382,24 +386,30 @@ export function JalaliCalendarField({
             <X className="size-4" aria-hidden />
           </button>
         )}
+        {showCalendar && (
+          // Keeps focus in the box while the calendar is used, so the box's blur means "done".
+          // It floats over what is below, as wide as the box (asked by the developer, 13.2i: in
+          // the page's flow it pushed the table down every time it opened).
+          <div
+            id={calendarId}
+            className="absolute inset-x-0 top-full z-30 mt-1 rounded-md shadow-raised"
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            <Calendar
+              calendar={persian}
+              locale={persian_fa}
+              shadow={false}
+              className="jalali-calendar rmdp-border"
+              value={
+                parts === null
+                  ? null
+                  : new DateObject({ ...parts, calendar: persian, locale: persian_fa })
+              }
+              onChange={handlePicked}
+            />
+          </div>
+        )}
       </span>
-      {showCalendar && (
-        // Keeps focus in the box while the calendar is used, so the box's blur means "done".
-        <div id={calendarId} onMouseDown={(event) => event.preventDefault()}>
-          <Calendar
-            calendar={persian}
-            locale={persian_fa}
-            shadow={false}
-            className="jalali-calendar rmdp-border"
-            value={
-              parts === null
-                ? null
-                : new DateObject({ ...parts, calendar: persian, locale: persian_fa })
-            }
-            onChange={handlePicked}
-          />
-        </div>
-      )}
       {error !== undefined && (
         <p id={errorId} className="text-sm text-destructive">
           {error}

@@ -11,11 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
+import { choiceClass, filterEdge } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 import { normalizeInput } from "@/lib/normalize";
 import { pageFromParams } from "@/lib/searchParams";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
+import { cn } from "@/lib/utils";
 
 import { useCreateMember, useMemberList } from "../api";
 import { MemberForm } from "../components/MemberForm";
@@ -171,7 +173,13 @@ export function MembersPage() {
       <PageHero
         title="اعضا"
         actions={
-          <Button asChild>
+          // Edged in the page's tone like the search beside it, with no fill (13.2i, asked by the
+          // developer).
+          <Button
+            asChild
+            variant="ghost"
+            className="h-10 border border-e-[3px] font-semibold tone-ink tone-edge-end hover:tone-soft hover:tone-ink"
+          >
             <Link to={paths.newMember}>
               <UserPlus aria-hidden />
               عضو جدید
@@ -181,7 +189,8 @@ export function MembersPage() {
       >
         <form
           role="search"
-          className="relative max-w-xl"
+          // As wide as a name or a number needs (asked by the developer, 13.2i).
+          className="relative max-w-sm"
           onSubmit={(event) => {
             event.preventDefault();
             debouncedCommit.cancel();
@@ -196,8 +205,8 @@ export function MembersPage() {
             type="search"
             aria-label="نام یا شماره موبایل"
             placeholder="نام، بخشی از نام یا شماره موبایل عضو…"
-            // `!`: the field's own `border-input` comes later in the stylesheet and would win.
-            className="h-10 border-s-[3px] tone-edge! bg-background ps-9 text-base"
+            // Edged like every filter box, the thick edge at its end (13.2i).
+            className={cn(filterEdge, "h-10 ps-9 text-base")}
             autoFocus
             value={text}
             onChange={(event) => {
@@ -253,7 +262,8 @@ export function MembersPage() {
                 <Button
                   key={filter.value}
                   size="sm"
-                  variant={status === filter.value ? "secondary" : "ghost"}
+                  variant="ghost"
+                  className={choiceClass(status === filter.value, "end")}
                   aria-pressed={status === filter.value}
                   onClick={() => show({ status: filter.value })}
                 >
@@ -267,7 +277,8 @@ export function MembersPage() {
                 <Button
                   key={toggle.value}
                   size="sm"
-                  variant={on[toggle.value] ? "secondary" : "ghost"}
+                  variant="ghost"
+                  className={choiceClass(on[toggle.value], "end")}
                   aria-pressed={on[toggle.value]}
                   onClick={() => show({ toggles: { [toggle.value]: !on[toggle.value] } })}
                 >

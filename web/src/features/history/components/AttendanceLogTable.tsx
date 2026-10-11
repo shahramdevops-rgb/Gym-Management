@@ -8,7 +8,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cardioOnlyLabel } from "@/features/attendance/holder";
+import { stateEdge } from "@/lib/edges";
 import { emptyValue, formatDateTime, toPersianDigits } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import type { HistoryAttendance } from "../api";
 import { WhoCell } from "./WhoCell";
@@ -35,7 +37,7 @@ export function AttendanceLogTable({ items }: { items: HistoryAttendance[] }) {
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.id}>
-            <TableCell>
+            <TableCell className="tone-row-edge">
               <span className="flex flex-wrap items-center gap-2">
                 <WhoCell
                   memberId={item.memberId}
@@ -84,9 +86,20 @@ function StatusBadge({ item }: { item: HistoryAttendance }) {
   if (item.cancelledAt !== null) {
     return <Badge variant="outline">لغو شده</Badge>;
   }
+  // Edged like a locker door, with no fill (asked by the developer): a faint frame and the thick
+  // edge at the end, closing the row its start edge opens, as on the «داخل باشگاه» board's buttons.
+  // Green for someone still inside, grey for a finished visit.
   if (item.checkedOutAt === null) {
-    return <Badge variant="success">داخل باشگاه</Badge>;
+    return (
+      <Badge variant="ghost" className={cn(stateEdge.success, "font-semibold")}>
+        داخل باشگاه
+      </Badge>
+    );
   }
 
-  return <Badge variant="secondary">خارج شده</Badge>;
+  return (
+    <Badge variant="ghost" className={stateEdge.muted}>
+      خارج شده
+    </Badge>
+  );
 }

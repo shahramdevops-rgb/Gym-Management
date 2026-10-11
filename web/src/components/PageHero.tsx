@@ -51,10 +51,11 @@ export function PageHero({ title, actions, children, icon, className }: PageHero
       {children !== undefined && <div className="min-w-0 flex-1">{children}</div>}
       {actions !== undefined && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       {/* The logo is white lines on transparency, so it is drawn as a mask in the group's colour:
-          it reads on the card in both themes. */}
+          it reads on the card in both themes. `ms-auto` keeps it at the far end even on a page
+          with nothing beside the title (asked by the developer, 13.2i). */}
       <span
         aria-hidden
-        className="hidden h-10 w-12 shrink-0 bg-current tone-ink lg:block"
+        className="ms-auto hidden h-10 w-12 shrink-0 bg-current tone-ink lg:block"
         style={logoMask}
       />
     </div>

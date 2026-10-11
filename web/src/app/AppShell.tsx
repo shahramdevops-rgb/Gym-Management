@@ -67,10 +67,13 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    // The window itself never scrolls: the page's column does (13.2i, asked by the developer).
+    // Chrome draws the window's scrollbar on the right even on a right-to-left page, beside the
+    // menu; a box that scrolls inside a right-to-left page has it on its left, at the far edge.
+    <div className="flex h-screen overflow-hidden">
       {/* The menu stays put while the page scrolls; it scrolls on its own only on a window too
           short for it. */}
-      <aside className="sticky top-0 h-screen w-70 shrink-0">
+      <aside className="h-screen w-70 shrink-0">
         <div className="flex h-full flex-col">
           {/* As tall as the header beside it, so the header's bottom line runs on under it. */}
           <div className="flex h-12 shrink-0 items-center gap-2.5 border-b px-4">
@@ -149,7 +152,10 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* `relative`: anything absolutely placed inside the page (such as a chart's text for screen
+          readers) is placed in this column, so it scrolls with it and never makes the window
+          taller, which would bring back the window's own scrollbar beside the menu. */}
+      <div className="relative flex h-screen min-w-0 flex-1 flex-col overflow-y-auto">
         {/* Everything at the end (the left), asked by the developer (13.2h): the cheque alert, moved
             from the middle, and at the far left the user, the theme and «خروج» in one box. */}
         <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center justify-end gap-3 border-b bg-background/80 px-6 backdrop-blur-md">

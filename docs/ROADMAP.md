@@ -2898,6 +2898,30 @@ every screen, rather than the gym's green or a neutral black.
       hidden `<div>`. The average's label («میانگین ۱ دوشنبه باز در ۴ هفتهٔ گذشته») stays as it is,
       once explained (the developer's choice). Left: the rest of the pages. No package added, no API
       change
+- [ ] **13.2i Pages in the panel's look: «داخل باشگاه», «تاریخچه», «اعضا»** (asked by the
+      developer, 1405/07/20–21, from marked-up screenshots). The rules, now in `web/src/lib/edges.ts`
+      so every page draws them the same way: a table row is edged at its start in the page's tone
+      (`tone-row-edge`, a curved bar on the first cell; a history settlement spans its items with
+      one); a row's buttons and tags have no fill and a thick edge at their end in a state's colour
+      (`stateEdge`: green for «ثبت خروج», «داخل باشگاه», «پرداخت»/«پرداخت‌شده»; red for «لغو ورود»,
+      «پرداخت‌نشده», «استرداد», a member's debt and «تک‌جلسه»; amber for «پلن تمام‌شده»; grey for
+      «خارج شده» and «پرداخت جزئی»); filter boxes (dates, member, the dropdowns, the members'
+      search) sit on the page's colour, edged in the tone with the thick edge at their end
+      (`filterEdge`, `tone-edge-end`), each as wide as what it holds; the chosen tab looks like the
+      active menu item (start edge) and the chosen choice of a filter group like a filter box (end
+      edge, `choiceClass`). The history's payment-status tag is edged there only (`edged`), the
+      cafe, profile and locker box keep the filled one for now. «عضو جدید» is edged in the tone on
+      the banner. Shared changes: the date calendar floats over the page instead of pushing the
+      table down, on the page's colour with the tone's edge; a `<select>`'s open list is styled
+      where Chrome allows it (customizable select, 135 and later: the page's colour, the tone's end
+      edge, the chosen row in the tone; older browsers keep their own list); the banner's logo
+      sits at its far end on every page; the page column scrolls instead of the window, so the
+      scrollbar is on the left, away from the menu (the column is `relative`, so the hourly chart's
+      hidden text cannot make the window taller). Kept as asked: «لغو ورود» stays on every row
+      (the 30-minute window is checked by the API only). Left: the member profile and the other
+      pages, then the light theme, which this work was not checked in: the tone's edge, mixed with
+      the near-black text colour, turns almost black there, and the page and the cards are nearly
+      the same white. No package added, no API change
 
 #### 13.2e plan
 

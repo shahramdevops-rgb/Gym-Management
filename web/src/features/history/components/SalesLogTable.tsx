@@ -37,7 +37,7 @@ export function SalesLogTable({ items }: { items: HistorySale[] }) {
       <TableBody>
         {items.map((item) => (
           <TableRow key={`${item.source}-${item.id}`}>
-            <TableCell>{formatDateTime(item.soldAt)}</TableCell>
+            <TableCell className="tone-row-edge">{formatDateTime(item.soldAt)}</TableCell>
             <TableCell>
               <WhoCell
                 memberId={item.memberId}
@@ -63,7 +63,7 @@ export function SalesLogTable({ items }: { items: HistorySale[] }) {
             <TableCell>{formatMoney(item.amount)}</TableCell>
             <TableCell>
               {item.undoneAt === null ? (
-                <PaymentStatusBadge status={item.paymentStatus} />
+                <PaymentStatusBadge status={item.paymentStatus} edged />
               ) : (
                 emptyValue
               )}

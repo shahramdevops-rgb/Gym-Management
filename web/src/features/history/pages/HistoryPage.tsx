@@ -12,6 +12,7 @@ import { hasRole, useCurrentUser } from "@/features/auth/api";
 import { paymentMethodLabels, paymentMethods, type PaymentMethod } from "@/features/payments/api";
 import { errorMessage, errorMessages } from "@/lib/errors";
 import { gymToday, toPersianDigits } from "@/lib/format";
+import { choiceClass, filterEdge } from "@/lib/edges";
 import { dateFromParams, pageFromParams } from "@/lib/searchParams";
 
 import {
@@ -246,18 +247,15 @@ export function HistoryPage() {
 
       <Card edge>
         <CardContent className="space-y-4">
-          <div
-            role="tablist"
-            aria-label="بخش‌های تاریخچه"
-            className="flex flex-wrap gap-1 border-b"
-          >
+          <div role="tablist" aria-label="بخش‌های تاریخچه" className="flex flex-wrap gap-1">
             {tabs.map((item) => (
               <Button
                 key={item.value}
                 role="tab"
                 aria-selected={state.tab === item.value}
                 size="sm"
-                variant={state.tab === item.value ? "secondary" : "ghost"}
+                variant="ghost"
+                className={choiceClass(state.tab === item.value)}
                 onClick={() => update({ tab: item.value })}
               >
                 {item.label}
@@ -265,155 +263,177 @@ export function HistoryPage() {
             ))}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <JalaliCalendarField
-              label="از تاریخ"
-              value={state.from ?? ""}
-              error={fromError}
-              onChange={(iso) => update({ from: iso === "" ? undefined : iso })}
-            />
-            <JalaliCalendarField
-              label="تا تاریخ"
-              value={state.to ?? ""}
-              error={toError}
-              onChange={(iso) => update({ to: iso === "" ? undefined : iso })}
-            />
-            <div className="sm:col-span-2">
-              <MemberFilter
-                memberId={state.memberId}
-                onChange={(memberId) => update({ memberId })}
-              />
+          {/* What the open tab shows. No frame around it (tried in 13.2i and taken off, asked by
+              the developer). */}
+          <div className="space-y-4">
+            {/* One row that wraps, each box as wide as what it holds (13.2i, asked by the developer:
+              the member box took half the row). A date box is wide enough for its calendar, which
+              opens under it. On a phone every box takes the whole line. */}
+            <div className="flex flex-wrap items-start gap-3">
+              <div className="w-full sm:w-64">
+                <JalaliCalendarField
+                  label="از تاریخ"
+                  inputClassName={filterEdge}
+                  value={state.from ?? ""}
+                  error={fromError}
+                  onChange={(iso) => update({ from: iso === "" ? undefined : iso })}
+                />
+              </div>
+              <div className="w-full sm:w-64">
+                <JalaliCalendarField
+                  label="تا تاریخ"
+                  inputClassName={filterEdge}
+                  value={state.to ?? ""}
+                  error={toError}
+                  onChange={(iso) => update({ to: iso === "" ? undefined : iso })}
+                />
+              </div>
+              <div className="w-full sm:w-80">
+                <MemberFilter
+                  memberId={state.memberId}
+                  onChange={(memberId) => update({ memberId })}
+                />
+              </div>
+              {state.tab === "payments" && (
+                <>
+                  <div className="w-full sm:w-48">
+                    <SelectField
+                      label="روش پرداخت"
+                      className={filterEdge}
+                      value={state.method ?? ""}
+                      onChange={(event) =>
+                        update({ method: oneOf(event.target.value, paymentMethods) })
+                      }
+                    >
+                      <option value="">همه</option>
+                      {paymentMethods.map((method) => (
+                        <option key={method} value={method}>
+                          {paymentMethodLabels[method]}
+                        </option>
+                      ))}
+                    </SelectField>
+                  </div>
+                  <div className="w-full sm:w-48">
+                    <SelectField
+                      label="بابت"
+                      className={filterEdge}
+                      value={state.source ?? ""}
+                      onChange={(event) =>
+                        update({ source: oneOf(event.target.value, paymentSourceFilters) })
+                      }
+                    >
+                      <option value="">همه</option>
+                      {paymentSourceFilters.map((source) => (
+                        <option key={source} value={source}>
+                          {paymentSourceFilterLabels[source]}
+                        </option>
+                      ))}
+                    </SelectField>
+                  </div>
+                </>
+              )}
+              {isSalesTab(state.tab) && (
+                <div className="space-y-1">
+                  <p id="paid-filter" className="text-sm font-medium">
+                    وضعیت پرداخت
+                  </p>
+                  <div role="group" aria-labelledby="paid-filter" className="flex gap-1">
+                    {[undefined, ...salePaidFilters].map((paid) => (
+                      <Button
+                        key={paid ?? "all"}
+                        type="button"
+                        size="sm"
+                        aria-pressed={state.paid === paid}
+                        variant="ghost"
+                        className={choiceClass(state.paid === paid, "end")}
+                        onClick={() => update({ paid })}
+                      >
+                        {paid === undefined ? "همه" : salePaidFilterLabels[paid]}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            {state.tab === "payments" && (
+
+            {state.tab === "payments" && currentUser.isSuccess && !isOwner && (
+              <p className="text-sm text-muted-foreground">
+                پرداخت‌های امروز و {toPersianDigits(staffPaymentDaysBeforeToday)} روز قبل از آن را
+                می‌بینید.
+              </p>
+            )}
+
+            {canAsk && (
               <>
-                <SelectField
-                  label="روش پرداخت"
-                  value={state.method ?? ""}
-                  onChange={(event) =>
-                    update({ method: oneOf(event.target.value, paymentMethods) })
-                  }
-                >
-                  <option value="">همه</option>
-                  {paymentMethods.map((method) => (
-                    <option key={method} value={method}>
-                      {paymentMethodLabels[method]}
-                    </option>
-                  ))}
-                </SelectField>
-                <SelectField
-                  label="بابت"
-                  value={state.source ?? ""}
-                  onChange={(event) =>
-                    update({ source: oneOf(event.target.value, paymentSourceFilters) })
-                  }
-                >
-                  <option value="">همه</option>
-                  {paymentSourceFilters.map((source) => (
-                    <option key={source} value={source}>
-                      {paymentSourceFilterLabels[source]}
-                    </option>
-                  ))}
-                </SelectField>
+                {active.isPending && <LoadingState />}
+                {active.isError && (
+                  <Alert variant="destructive">{errorMessage(active.error)}</Alert>
+                )}
+                {active.isSuccess && (
+                  <p className="text-sm text-muted-foreground">
+                    {toPersianDigits(active.data.totalCount)} ردیف
+                  </p>
+                )}
+                {active.isSuccess && active.data.totalCount === 0 && (
+                  <p className="text-muted-foreground">در این بازه چیزی ثبت نشده است.</p>
+                )}
+                {state.tab === "attendance" &&
+                  attendance.isSuccess &&
+                  attendance.data.totalCount > 0 && (
+                    <AttendanceLogTable items={attendance.data.items} />
+                  )}
+                {state.tab === "payments" && payments.isSuccess && payments.data.totalCount > 0 && (
+                  <PaymentLogTable items={payments.data.items} />
+                )}
+                {state.tab === "payments" &&
+                  isOwner &&
+                  payments.isSuccess &&
+                  payments.data.totalCount > 0 &&
+                  paymentTotals.isSuccess && (
+                    <HistoryTotals
+                      totals={[
+                        {
+                          label: "دریافتی",
+                          amount: paymentTotals.data.received,
+                          icon: BanknoteArrowDown,
+                        },
+                        { label: "بازگشت", amount: paymentTotals.data.refunded, icon: Undo2 },
+                        { label: "خالص", amount: paymentTotals.data.net, icon: Sigma },
+                      ]}
+                    />
+                  )}
+                {state.tab === "cardio" && cardio.isSuccess && cardio.data.totalCount > 0 && (
+                  <ServiceChargeLogTable items={cardio.data.items} />
+                )}
+                {isSalesTab(state.tab) && sales.isSuccess && sales.data.totalCount > 0 && (
+                  <SalesLogTable items={sales.data.items} />
+                )}
+                {isSalesTab(state.tab) &&
+                  sales.isSuccess &&
+                  sales.data.totalCount > 0 &&
+                  salesTotals.isSuccess && (
+                    <HistoryTotals
+                      totals={[
+                        { label: "مبلغ", amount: salesTotals.data.amount, icon: ReceiptText },
+                        {
+                          label: "دریافتی",
+                          amount: salesTotals.data.netPaid,
+                          icon: BanknoteArrowDown,
+                        },
+                        { label: "مانده", amount: salesTotals.data.remaining, icon: Hourglass },
+                      ]}
+                    />
+                  )}
+                {active.isSuccess && active.data.totalCount > 0 && (
+                  <Pager
+                    page={state.page}
+                    pageCount={active.data.pageCount}
+                    onPageChange={(page) => update({ page })}
+                  />
+                )}
               </>
             )}
-            {isSalesTab(state.tab) && (
-              <div className="space-y-1 sm:col-span-2">
-                <p id="paid-filter" className="text-sm font-medium">
-                  وضعیت پرداخت
-                </p>
-                <div role="group" aria-labelledby="paid-filter" className="flex gap-1">
-                  {[undefined, ...salePaidFilters].map((paid) => (
-                    <Button
-                      key={paid ?? "all"}
-                      type="button"
-                      size="sm"
-                      aria-pressed={state.paid === paid}
-                      variant={state.paid === paid ? "secondary" : "outline"}
-                      onClick={() => update({ paid })}
-                    >
-                      {paid === undefined ? "همه" : salePaidFilterLabels[paid]}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
-
-          {state.tab === "payments" && currentUser.isSuccess && !isOwner && (
-            <p className="text-sm text-muted-foreground">
-              پرداخت‌های امروز و {toPersianDigits(staffPaymentDaysBeforeToday)} روز قبل از آن را
-              می‌بینید.
-            </p>
-          )}
-
-          {canAsk && (
-            <>
-              {active.isPending && <LoadingState />}
-              {active.isError && <Alert variant="destructive">{errorMessage(active.error)}</Alert>}
-              {active.isSuccess && (
-                <p className="text-sm text-muted-foreground">
-                  {toPersianDigits(active.data.totalCount)} ردیف
-                </p>
-              )}
-              {active.isSuccess && active.data.totalCount === 0 && (
-                <p className="text-muted-foreground">در این بازه چیزی ثبت نشده است.</p>
-              )}
-              {state.tab === "attendance" &&
-                attendance.isSuccess &&
-                attendance.data.totalCount > 0 && (
-                  <AttendanceLogTable items={attendance.data.items} />
-                )}
-              {state.tab === "payments" && payments.isSuccess && payments.data.totalCount > 0 && (
-                <PaymentLogTable items={payments.data.items} />
-              )}
-              {state.tab === "payments" &&
-                isOwner &&
-                payments.isSuccess &&
-                payments.data.totalCount > 0 &&
-                paymentTotals.isSuccess && (
-                  <HistoryTotals
-                    totals={[
-                      {
-                        label: "دریافتی",
-                        amount: paymentTotals.data.received,
-                        icon: BanknoteArrowDown,
-                      },
-                      { label: "بازگشت", amount: paymentTotals.data.refunded, icon: Undo2 },
-                      { label: "خالص", amount: paymentTotals.data.net, icon: Sigma },
-                    ]}
-                  />
-                )}
-              {state.tab === "cardio" && cardio.isSuccess && cardio.data.totalCount > 0 && (
-                <ServiceChargeLogTable items={cardio.data.items} />
-              )}
-              {isSalesTab(state.tab) && sales.isSuccess && sales.data.totalCount > 0 && (
-                <SalesLogTable items={sales.data.items} />
-              )}
-              {isSalesTab(state.tab) &&
-                sales.isSuccess &&
-                sales.data.totalCount > 0 &&
-                salesTotals.isSuccess && (
-                  <HistoryTotals
-                    totals={[
-                      { label: "مبلغ", amount: salesTotals.data.amount, icon: ReceiptText },
-                      {
-                        label: "دریافتی",
-                        amount: salesTotals.data.netPaid,
-                        icon: BanknoteArrowDown,
-                      },
-                      { label: "مانده", amount: salesTotals.data.remaining, icon: Hourglass },
-                    ]}
-                  />
-                )}
-              {active.isSuccess && active.data.totalCount > 0 && (
-                <Pager
-                  page={state.page}
-                  pageCount={active.data.pageCount}
-                  onPageChange={(page) => update({ page })}
-                />
-              )}
-            </>
-          )}
         </CardContent>
       </Card>
     </div>
