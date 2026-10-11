@@ -1,147 +1,22 @@
-import {
-  Activity,
-  BanknoteArrowUp,
-  ChartColumn,
-  ClipboardList,
-  Coffee,
-  Contact,
-  DoorOpen,
-  History,
-  KeyRound,
-  LockKeyhole,
-  LogOut,
-  MessageSquareText,
-  MessagesSquare,
-  ReceiptText,
-  ScrollText,
-  Settings,
-  Users,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
-import { NavLink, Outlet, useNavigate } from "react-router";
+import { LogOut } from "lucide-react";
+import { useMemo } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 
 import logo from "@/assets/brand/pasargad-logo.png";
+import { PageSectionContext } from "@/components/pageSection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { hasRole, useCurrentUser, useLogout, type Role } from "@/features/auth/api";
+import { hasRole, useCurrentUser, useLogout } from "@/features/auth/api";
 import { useSessionState } from "@/features/auth/session";
 import { PayablesDueAlert } from "@/features/payables/components/PayablesDueAlert";
 import { gymToday } from "@/lib/format";
+import { toneStyle } from "@/lib/tone";
 import { cn } from "@/lib/utils";
 
+import { navigation, sectionFor } from "./navigation";
 import { paths } from "./paths";
 import { SidebarClock } from "./SidebarClock";
 import { ThemeToggle } from "./ThemeToggle";
-
-interface NavigationItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-  /** Shown only to this role. Items without one are for every signed-in user. */
-  role?: Role;
-  /** A mark beside the label, so a changed or new page is found without being told. */
-  badge?: NavigationBadge;
-}
-
-interface NavigationBadge {
-  text: string;
-  /** Shown up to and including this gym day (ISO), then gone. Without it, shown until removed here. */
-  until?: string;
-}
-
-/** A titled part of the menu. A part with nothing the user may open is not shown at all. */
-interface NavigationGroup {
-  title: string;
-  items: NavigationItem[];
-}
-
-/**
- * Released on 1405/07/18: «اعضا» lists by latest visit (6.5.34) and «گزارش تغییرات» is new (11.1).
- * Marked through 1405/07/25 (asked by the developer).
- */
-const releasedOn18MehrUntil = "2026-10-17";
-
-/**
- * The SMS pages are on the server, but nothing is really sent until the gym's line is registered
- * with Kavenegar. Marked until SMS goes live; remove it in task 10.6 (asked by the developer).
- */
-const smsTestBadge: NavigationBadge = { text: "آزمایشی" };
-
-/**
- * The locker map comes first: it is where every check-in happens, for Staff and the Owner alike
- * (BUSINESS_RULES.md §6, §7). Finding a member is on the member list, which checks nobody in.
- *
- * The items are grouped by the work they belong to (roadmap 13.2), so sixteen links read as five
- * short lists; the order inside each group is the order the menu always had.
- */
-const navigation: NavigationGroup[] = [
-  {
-    title: "پذیرش",
-    items: [
-      { to: paths.home, label: "ورود با کمد", icon: LockKeyhole },
-      { to: paths.attendance, label: "داخل باشگاه", icon: DoorOpen },
-      { to: paths.history, label: "تاریخچه", icon: History },
-      {
-        to: paths.members,
-        label: "اعضا",
-        icon: Contact,
-        badge: { text: "به‌روز شد", until: releasedOn18MehrUntil },
-      },
-    ],
-  },
-  {
-    title: "فروش بوفه",
-    items: [
-      { to: paths.cafe, label: "بوفه", icon: Coffee },
-      { to: paths.cafeOrders, label: "سفارش‌های بوفه", icon: ReceiptText },
-      { to: paths.cafeMenu, label: "منوی بوفه", icon: ClipboardList },
-    ],
-  },
-  {
-    title: "مالی",
-    items: [
-      { to: paths.dashboard, label: "داشبورد", icon: ChartColumn, role: "Owner" },
-      { to: paths.expenses, label: "هزینه‌ها", icon: Wallet, role: "Owner" },
-      { to: paths.payables, label: "چک و قسط", icon: BanknoteArrowUp, role: "Owner" },
-    ],
-  },
-  {
-    title: "مدیریت",
-    items: [
-      { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
-      { to: paths.settings, label: "تنظیمات", icon: Settings, role: "Owner" },
-      {
-        to: paths.smsMessages,
-        label: "پیامک‌ها",
-        icon: MessagesSquare,
-        role: "Owner",
-        badge: smsTestBadge,
-      },
-      {
-        to: paths.smsSettings,
-        label: "تنظیمات پیامک",
-        icon: MessageSquareText,
-        role: "Owner",
-        badge: smsTestBadge,
-      },
-      {
-        to: paths.auditLogs,
-        label: "گزارش تغییرات",
-        icon: ScrollText,
-        role: "Owner",
-        badge: { text: "جدید", until: releasedOn18MehrUntil },
-      },
-    ],
-  },
-  {
-    title: "حساب و سیستم",
-    items: [
-      { to: paths.status, label: "وضعیت سیستم", icon: Activity },
-      { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },
-    ],
-  },
-];
 
 /**
  * The page frame: header across the top, navigation on the right, content beside it.
@@ -152,6 +27,10 @@ const navigation: NavigationGroup[] = [
  *
  * The menu shows only what the user may open. A user who must change their password sees
  * no menu at all: there is nowhere else they can go yet. The clock above it is always there.
+ *
+ * Each menu group has a colour (roadmap 13.2e). The frame sets it on the page as `--tone`, and
+ * hands the page its menu item's icon, so every page wears its group's colour without saying which
+ * group it is in. The active item stays in the brand blue, so "where am I" is one colour.
  */
 export function AppShell() {
   const state = useSessionState();
@@ -159,6 +38,11 @@ export function AppShell() {
   const logout = useLogout();
   const navigate = useNavigate();
   const today = gymToday();
+  const { pathname } = useLocation();
+  const section = useMemo(() => {
+    const found = sectionFor(pathname);
+    return found === undefined ? undefined : { icon: found.item.icon, tone: found.group.tone };
+  }, [pathname]);
 
   const mustChangePassword = state.status === "signedIn" && state.session.mustChangePassword;
   const groups = mustChangePassword
@@ -231,11 +115,18 @@ export function AppShell() {
         >
           <SidebarClock />
           {groups.map((group, index) => (
-            <div key={group.title} className="space-y-0.5">
+            <div
+              key={group.title}
+              className="space-y-0.5"
+              style={group.tone === undefined ? undefined : toneStyle(group.tone)}
+            >
               <p
                 id={`nav-group-${index}`}
-                className="px-3 text-[0.7rem] leading-5 font-semibold text-muted-foreground/80 short:leading-4"
+                className="flex items-center gap-1.5 px-3 text-[0.7rem] leading-5 font-semibold text-muted-foreground/80 short:leading-4"
               >
+                {group.tone !== undefined && (
+                  <span aria-hidden className="size-1.5 shrink-0 rounded-full tone-solid" />
+                )}
                 {group.title}
               </p>
               <ul aria-labelledby={`nav-group-${index}`} className="space-y-px">
@@ -255,16 +146,26 @@ export function AppShell() {
                         )
                       }
                     >
-                      <Icon className="size-4 shrink-0" aria-hidden />
-                      {label}
-                      {/* Hidden from screen readers: the link keeps its own name, and the mark is
-                          gone when its page is no longer new. */}
-                      {badge !== undefined &&
-                        (badge.until === undefined || today <= badge.until) && (
-                          <Badge aria-hidden className="ms-auto px-1.5 text-[0.65rem]">
-                            {badge.text}
-                          </Badge>
-                        )}
+                      {({ isActive }) => (
+                        <>
+                          <Icon
+                            className={cn(
+                              "size-4 shrink-0",
+                              !isActive && group.tone !== undefined && "tone-ink",
+                            )}
+                            aria-hidden
+                          />
+                          {label}
+                          {/* Hidden from screen readers: the link keeps its own name, and the mark
+                              is gone when its page is no longer new. */}
+                          {badge !== undefined &&
+                            (badge.until === undefined || today <= badge.until) && (
+                              <Badge aria-hidden className="ms-auto px-1.5 text-[0.65rem]">
+                                {badge.text}
+                              </Badge>
+                            )}
+                        </>
+                      )}
                     </NavLink>
                   </li>
                 ))}
@@ -273,9 +174,14 @@ export function AppShell() {
           ))}
         </nav>
 
-        <main className="min-w-0 flex-1 p-6 lg:p-8">
+        <main
+          className="min-w-0 flex-1 p-6 lg:p-8"
+          style={section?.tone === undefined ? undefined : toneStyle(section.tone)}
+        >
           <div className="mx-auto w-full max-w-screen-2xl">
-            <Outlet />
+            <PageSectionContext value={section}>
+              <Outlet />
+            </PageSectionContext>
           </div>
         </main>
       </div>

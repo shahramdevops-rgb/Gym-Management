@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { toneColorStyle, type Tone } from "../tone";
+import { toneColorStyle, type Tone } from "@/lib/tone";
 import { ChartCard } from "./ChartCard";
 
 /** How many of a bar's thing were sold in the range, shown on the bar itself. */

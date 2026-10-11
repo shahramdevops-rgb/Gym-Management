@@ -219,6 +219,13 @@ web/src/
   `LoadingState`, an empty one `EmptyState`, a failure an `Alert variant="destructive"`. Colours are tokens in
   `index.css` with a dark value each (`--sidebar`, `shadow-card`, `shadow-raised`, `shadow-overlay` among them); a
   screen never writes a raw colour. The brand is a deep blue, kept apart from the green and red of the states.
+- A page's colour comes from the frame (roadmap 13.2e): each menu group in `app/navigation.ts` has a `tone` (پذیرش sky,
+  فروش بوفه orange, مالی violet, مدیریت teal, حساب و سیستم none), and `AppShell` finds the page's group with
+  `sectionFor(pathname)` (longest whole-segment prefix), sets `--tone` on `<main>` and hands the menu item's icon to
+  `PageHeader` through `PageSectionContext`. A page never names its colour. Every `Card` draws its top strip in that
+  tone (`tone-strip`, a background, so no `overflow-hidden` cuts a dropdown); `accent={false}` for a card with
+  colours of its own (the dashboard's). A page's tone is decoration only: never green, red or amber; the active menu
+  item stays in the brand blue. Tone helpers live in `lib/tone.ts`; a new menu item goes in `navigation.ts` only.
 - An edit form saves one way (roadmap 13.2c): its buttons sit in `SaveRow` (`components/SaveRow.tsx`), which shows
   the outcome of the last press beside them — `StaleAlert` when someone else saved first, a server error, «تغییری
   نداده‌اید» or «تغییرها ثبت شد» — one at a time. «ذخیره» is never disabled; `useUnchanged` (`lib/forms.ts`) compares

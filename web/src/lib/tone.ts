@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-/** The dashboard's accent hues, the --tone-* tokens of index.css. */
+/** The panel's accent hues, the --tone-* tokens of index.css. */
 export type Tone =
   | "blue"
   | "orange"

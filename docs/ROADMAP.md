@@ -2826,10 +2826,18 @@ every screen, rather than the gym's green or a neutral black.
       day); «تغییرها ثبت شد» beside the button is for the two settings pages, which stay open. A
       form shared by adding and editing takes `editing`; adding is unchanged. No package added, no
       API change
-- [ ] **13.2e Colour on every page** (asked by the developer, 1405/07/19: only the dashboard is in
+- [x] **13.2e Colour on every page** (asked by the developer, 1405/07/19: only the dashboard is in
       colour). Its own session, on `task/13.2-visual-language`, before 13.2 is released, so the panel
-      changes once. Plan below, written the same day; the first step of that session is to confirm
-      the decisions marked *Confirm* with the developer, then present the final plan.
+      changes once. Confirmed by the developer the same day: level 1 (level 2 asked after seeing
+      it), the tones of the table below, the brand blue for the active item, and the strip on
+      **every** card (not only the main ones). Built: the menu in `app/navigation.ts` with a tone
+      per group and `sectionFor`; `AppShell` sets `--tone` on `<main>` and hands the menu item's
+      icon to `PageHeader` (`PageSectionContext`); the menu's icons in their group's tone with a dot
+      by each group's title; `PageHeader`'s icon in a tinted square (grey in «حساب و سیستم»); every
+      `Card` with a 4px strip in the page's tone (`tone-strip`, a background, so no dropdown inside
+      a card is cut off), the dashboard's two own-coloured cards opted out (`accent={false}`). Asked
+      by the developer while looking: the dashboard's banner and range pills from green to violet,
+      the colour of «مالی» beside it. Tones moved to `lib/tone.ts`. No package added, no API change
 
 #### 13.2e plan
 

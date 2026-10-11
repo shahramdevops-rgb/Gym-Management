@@ -18,7 +18,7 @@ import { formatDate, formatMoney, formatNumber, formatPhone, toPersianDigits } f
 import { cn } from "@/lib/utils";
 
 import { reportThresholds, type NeedsAttention } from "../api";
-import { toneStyle, type Tone } from "../tone";
+import { toneStyle, type Tone } from "@/lib/tone";
 import { Initial } from "./Initial";
 
 const lowSessions = toPersianDigits(reportThresholds.lowSessions);
@@ -199,7 +199,11 @@ export function NeedsAttentionPanel({ data }: { data: NeedsAttention }) {
   const withoutMember = Number(data.oldDebtWithoutMember);
 
   return (
-    <Card style={toneStyle("red")} className="rounded-2xl bg-linear-to-b from-(--tone)/6 to-card">
+    <Card
+      accent={false}
+      style={toneStyle("red")}
+      className="rounded-2xl bg-linear-to-b from-(--tone)/6 to-card"
+    >
       <CardHeader className="grid-cols-[auto_1fr] gap-x-3">
         <span
           aria-hidden

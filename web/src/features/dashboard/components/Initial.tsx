@@ -1,4 +1,4 @@
-import { toneStyle, type Tone } from "../tone";
+import { toneStyle, type Tone } from "@/lib/tone";
 
 /**
  * A person's first letter in a tinted circle, beside their name in a list: it gives the rows a

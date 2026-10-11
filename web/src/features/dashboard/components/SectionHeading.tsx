@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-import { toneStyle, type Tone } from "../tone";
+import { toneStyle, type Tone } from "@/lib/tone";
 
 interface SectionHeadingProps {
   id: string;

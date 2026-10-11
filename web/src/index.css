@@ -97,9 +97,11 @@
      the first is also the one hue the weekday × hour table is shaded in. */
   --chart-1: #2a78d6;
   --chart-2: #eb6834;
-  /* The dashboard's accents: one hue per card, list and chart, so each reads at a glance. Only
-     ever decoration beside words: a figure's meaning is never carried by its hue alone. Text in a
-     tone is mixed with the text ink (`tone-ink`), so it stays readable on both palettes. */
+  /* The panel's accents: one hue per dashboard card, list and chart, and one per menu group for
+     its pages (roadmap 13.2e), so each reads at a glance. Only ever decoration beside words: a
+     figure's meaning is never carried by its hue alone, and a page's hue is never green, red or
+     amber, which mean something on every screen. Text in a tone is mixed with the text ink
+     (`tone-ink`), so it stays readable on both palettes. */
   --tone-blue: oklch(0.58 0.17 255);
   --tone-orange: oklch(0.66 0.18 45);
   --tone-green: oklch(0.6 0.15 155);
@@ -116,10 +118,11 @@
   --tone-cyan: oklch(0.62 0.11 210);
   /* «دریافتی متفرقه» (13.2b): between the pink and the red, apart from both. */
   --tone-rose: oklch(0.6 0.19 10);
-  /* The dashboard's banner: a fresh green into emerald into a deep teal (asked by the developer). */
-  --hero-from: oklch(0.52 0.14 150);
-  --hero-via: oklch(0.5 0.13 165);
-  --hero-to: oklch(0.43 0.1 190);
+  /* The dashboard's banner: violet into a deep indigo, the colour of its menu group «مالی» (13.2e,
+     asked by the developer; it was green from 1405/07/14). White text stays readable on all of it. */
+  --hero-from: oklch(0.52 0.19 305);
+  --hero-via: oklch(0.48 0.18 290);
+  --hero-to: oklch(0.41 0.15 275);
 }
 
 /* The party ring's turn. Registered, so the browser can animate an angle inside a gradient. */
@@ -195,16 +198,16 @@
   --tone-lime: oklch(0.8 0.15 130);
   --tone-cyan: oklch(0.76 0.1 210);
   --tone-rose: oklch(0.72 0.16 10);
-  --hero-from: oklch(0.4 0.11 150);
-  --hero-via: oklch(0.36 0.1 165);
-  --hero-to: oklch(0.32 0.07 190);
+  --hero-from: oklch(0.42 0.15 305);
+  --hero-via: oklch(0.38 0.14 290);
+  --hero-to: oklch(0.33 0.11 275);
 }
 
 /*
- * The dashboard's accent utilities. An element sets `--tone` to one of the --tone-* colours (see
- * `toneStyle` in features/dashboard/tone.ts), and these read it: a soft tint behind, the tone as
- * text, or a bar that fades in from its start. The bar fades through transparency, not into the
- * card's colour: mixing in oklch towards the dark card turned the hue purple on the way.
+ * The panel's accent utilities. An element sets `--tone` to one of the --tone-* colours (see
+ * `toneStyle` in lib/tone.ts), and these read it: a soft tint behind, the tone as text, or a bar
+ * that fades in from its start. The bar fades through transparency, not into the card's colour:
+ * mixing in oklch towards the dark card turned the hue purple on the way.
  */
 @utility tone-soft {
   background-color: color-mix(in oklch, var(--tone) 14%, transparent);
@@ -216,6 +219,20 @@
 
 @utility tone-solid {
   background-color: var(--tone);
+}
+
+/*
+ * A card's 4px strip on top in the page's tone (13.2e). Drawn as a background, not a positioned
+ * child: the background follows the card's rounded corners without `overflow: hidden`, which would
+ * cut off a dropdown that opens inside the card. Without a `--tone` the gradient is invalid, so no
+ * strip is drawn and the top border keeps its usual colour.
+ */
+@utility tone-strip {
+  background-image: linear-gradient(var(--tone), var(--tone));
+  background-size: 100% 4px;
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  border-top-color: var(--tone, var(--border));
 }
 
 @utility tone-bar {

@@ -61,7 +61,7 @@ import { StaffMoneyTable } from "../components/StaffMoneyTable";
 import { StatCard, StatCardsLoading } from "../components/StatCard";
 import { byJalaliMonth, conversionRate, methodsTotal, outcomeOf, renewalRate } from "../figures";
 import { defaultRangePreset, presetRange, rangeError, type ReportRange } from "../range";
-import type { Tone } from "../tone";
+import type { Tone } from "@/lib/tone";
 
 /**
  * The range from the URL (`?from=2026-09-23&to=2026-10-04`). With neither date the dashboard opens

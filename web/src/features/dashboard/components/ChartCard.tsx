@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-import { toneStyle, type Tone } from "../tone";
+import { toneStyle, type Tone } from "@/lib/tone";
 
 interface ChartCardProps {
   title: string;
@@ -33,6 +33,7 @@ export function ChartCard({
 }: ChartCardProps) {
   return (
     <Card
+      accent={false}
       style={toneStyle(tone)}
       className={cn("rounded-2xl transition-shadow hover:shadow-raised", className)}
     >

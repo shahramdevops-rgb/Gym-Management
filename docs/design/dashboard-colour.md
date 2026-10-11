@@ -27,7 +27,8 @@ throwing it away. The figures, cards and rules are the same in both looks; only 
 ## What the design is
 
 - **Banner** (`components/DashboardHero.tsx`): a green gradient (`--hero-from`, `--hero-via`,
-  `--hero-to`, light and dark values), rounded, about 160px tall. The title «داشبورد» and the
+  `--hero-to`, light and dark values; violet since 13.2e, the colour of its menu group «مالی»,
+  asked by the developer), rounded, about 160px tall. The title «داشبورد» and the
   range in words («گزارش از … تا …») at the start, the range presets as white pills on it, and the
   logo large at the far end (128px, 144px from `md`) on a soft white glow. The logo is hidden below
   `sm`.

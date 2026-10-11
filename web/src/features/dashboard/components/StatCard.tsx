@@ -4,7 +4,7 @@ import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { percentChange, type Outcome } from "../figures";
-import { toneStyle, type Tone } from "../tone";
+import { toneStyle, type Tone } from "@/lib/tone";
 
 /** The range before, for a card that compares with it (§12: the same length, ending the day before). */
 export interface Comparison {

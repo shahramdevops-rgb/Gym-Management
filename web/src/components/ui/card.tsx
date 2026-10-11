@@ -1,12 +1,22 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+interface CardProps extends React.ComponentProps<"div"> {
+  /**
+   * The strip on top in the page's colour, `--tone` (roadmap 13.2e). On by default, so every card
+   * on a page wears its menu group's colour; off for a card that brings its own colours (the
+   * dashboard's). A card outside a coloured page draws no strip either way.
+   */
+  accent?: boolean;
+}
+
+function Card({ className, accent = true, ...props }: CardProps) {
   return (
     <div
       data-slot="card"
       className={cn(
         "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-card",
+        accent && "tone-strip",
         className,
       )}
       {...props}

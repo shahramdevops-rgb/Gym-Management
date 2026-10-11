@@ -3,7 +3,7 @@ import { useId } from "react";
 import { Bar, BarChart, CartesianGrid, LabelList, Tooltip, XAxis, YAxis } from "recharts";
 
 import { axisTick, gridStroke, hoveredRow, svgId, svgText } from "../chartStyle";
-import type { Tone } from "../tone";
+import type { Tone } from "@/lib/tone";
 import { BarGradient, ChartCard, ChartTooltip, type TooltipRow } from "./ChartCard";
 
 /** One Jalali month's column. Null is a month with nothing to say (no plan decided yet). */

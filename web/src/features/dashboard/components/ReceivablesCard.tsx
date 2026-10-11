@@ -3,7 +3,7 @@ import { HandCoins } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 
 import type { Receivables } from "../api";
-import { toneStyle, type Tone } from "../tone";
+import { toneStyle, type Tone } from "@/lib/tone";
 
 interface Bucket {
   label: string;

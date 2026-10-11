@@ -12,9 +12,9 @@ interface DashboardHeroProps {
 }
 
 /**
- * The top of the dashboard: the gym's logo and the page's title on a green banner, the range the
- * figures below are for, and the range picker (the logo and the green asked by the developer,
- * 1405/07/14).
+ * The top of the dashboard: the gym's logo and the page's title on a violet banner, the range the
+ * figures below are for, and the range picker (the logo asked by the developer, 1405/07/14; the
+ * banner green until 13.2e, then violet like its menu group «مالی», asked by the developer).
  *
  * The logo is white lines on transparency, cut from a photo of the gym's wall, so it sits on the
  * banner's colour in both themes. It stands at the banner's far end, the left, large and on a soft
