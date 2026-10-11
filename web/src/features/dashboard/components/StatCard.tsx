@@ -119,7 +119,9 @@ export function StatCard({
           />
         </dd>
       )}
-      {comparison !== undefined && <ChangeLine comparison={comparison} />}
+      {comparison !== undefined && (
+        <ChangeLine comparison={comparison} className={breakdown !== undefined && "me-44"} />
+      )}
       {hint !== undefined && (
         <dd className={cn("text-xs text-muted-foreground", besideBreakdown)}>{hint}</dd>
       )}
@@ -152,17 +154,32 @@ export function StatCardsLoading() {
 
 const badge = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium";
 
-function ChangeLine({ comparison }: { comparison: Comparison }) {
+/**
+ * The change since the range before. Beside a breakdown it keeps clear of that column (a margin,
+ * not padding, so a pill wraps its words instead of growing into the column): «بدون تغییر نسبت به
+ * بازهٔ قبل» ran into «انتقال» on a 1440px screen (13.2d).
+ */
+function ChangeLine({
+  comparison,
+  className,
+}: {
+  comparison: Comparison;
+  className?: string | false;
+}) {
   const change = percentChange(comparison.current, comparison.previous);
 
   if (change === null) {
-    return <dd className="text-xs text-muted-foreground">بازهٔ قبل: {comparison.previousLabel}</dd>;
+    return (
+      <dd className={cn("text-xs text-muted-foreground", className)}>
+        بازهٔ قبل: {comparison.previousLabel}
+      </dd>
+    );
   }
 
   const rounded = Math.round(change);
   if (rounded === 0) {
     return (
-      <dd className={cn(badge, "bg-muted text-muted-foreground")}>
+      <dd className={cn(badge, "bg-muted text-muted-foreground", className)}>
         <Minus className="size-3.5" aria-hidden />
         بدون تغییر نسبت به بازهٔ قبل
       </dd>
@@ -178,6 +195,7 @@ function ChangeLine({ comparison }: { comparison: Comparison }) {
       className={cn(
         badge,
         good ? "bg-success/12 text-success" : "bg-destructive/10 text-destructive",
+        className,
       )}
     >
       <Icon className="size-3.5" aria-hidden />

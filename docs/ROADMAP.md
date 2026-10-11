@@ -2797,8 +2797,19 @@ every screen, rather than the gym's green or a neutral black.
       instead of their own shadows. No package added, no API change
 - [x] Decide whether the whole app gets a dark theme: yes, as a switch in the header, light by
       default (6.5.22)
-- [ ] The Persian font renders numbers and text consistently across screens
-- [ ] Empty states, loading states and error states that look deliberate
+- [x] The Persian font renders numbers and text consistently across screens (13.2d)
+- [x] Empty states, loading states and error states that look deliberate (13.2a, 13.2d)
+- [x] **13.2d Font, figures and a last look** (1405/07/19). Every page read in the browser for digits
+      that reach the screen unformatted: two did, the sessions column of a member's plans («1 / 21»,
+      now through `formatNumber`) and the four threshold boxes of «تنظیمات پیامک» (now filled with
+      `toPersianDigits`, like the instalment boxes). Every thousands separator is the Persian «٬»,
+      no Arabic-Indic digit anywhere, and every element is set in Vazirmatn, charts included. The
+      four pages that still said «در حال بارگذاری…» or their error as grey page text (ویرایش عضو,
+      پروفایل عضو, تنظیمات قیمت, تنظیمات پیامک) use `LoadingState` and a red `Alert` like every
+      other page; the app-level guards keep `PageMessage`. The light screenshots showed one fault in
+      the restored dashboard: on a 1440px screen «بدون تغییر نسبت به بازهٔ قبل» ran into the
+      breakdown's «انتقال»; the change line now keeps clear of the breakdown column like the figure
+      and the hint do. New README screenshots in both themes
 - [x] Every edit form saves the way «تنظیمات پیامک» does since 1405/07/16 (asked by the developer):
       «ذخیره» always enabled; pressed with nothing changed it sends nothing and says «تغییری
       نداده‌اید»; every outcome (saved, nothing changed, someone else saved, a server error) is shown

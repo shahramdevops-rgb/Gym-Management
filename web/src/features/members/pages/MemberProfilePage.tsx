@@ -4,7 +4,6 @@ import { Link, useParams } from "react-router";
 
 import { paths } from "@/app/paths";
 import { LoadingState } from "@/components/States";
-import { PageMessage } from "@/features/auth/components/PageMessage";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,11 +42,11 @@ export function MemberProfilePage() {
   const desk = useDeskDialog();
 
   if (member.isPending) {
-    return <PageMessage>در حال بارگذاری…</PageMessage>;
+    return <LoadingState />;
   }
 
   if (member.isError) {
-    return <PageMessage>{errorMessage(member.error)}</PageMessage>;
+    return <Alert variant="destructive">{errorMessage(member.error)}</Alert>;
   }
 
   const current = member.data;

@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { paths } from "@/app/paths";
-import { PageMessage } from "@/features/auth/components/PageMessage";
+import { LoadingState } from "@/components/States";
 import { PageHeader } from "@/components/PageHeader";
 import { StaleAlert } from "@/components/SaveRow";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
@@ -36,11 +37,11 @@ export function EditMemberPage() {
   const [reloading, setReloading] = useState(false);
 
   if (member.isPending) {
-    return <PageMessage>در حال بارگذاری…</PageMessage>;
+    return <LoadingState />;
   }
 
   if (member.isError) {
-    return <PageMessage>{errorMessage(member.error)}</PageMessage>;
+    return <Alert variant="destructive">{errorMessage(member.error)}</Alert>;
   }
 
   const current = member.data;

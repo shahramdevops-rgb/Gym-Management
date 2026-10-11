@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { PageMessage } from "@/features/auth/components/PageMessage";
+import { LoadingState } from "@/components/States";
 import { PageHeader } from "@/components/PageHeader";
 import { MoneyField } from "@/components/FormField";
 import { SaveRow, StaleAlert, type SaveNotice } from "@/components/SaveRow";
@@ -45,11 +45,11 @@ export function SettingsPage() {
   const [notice, setNotice] = useState<SaveNotice>(null);
 
   if (prices.isPending) {
-    return <PageMessage>در حال بارگذاری…</PageMessage>;
+    return <LoadingState />;
   }
 
   if (prices.isError) {
-    return <PageMessage>{errorMessage(prices.error)}</PageMessage>;
+    return <Alert variant="destructive">{errorMessage(prices.error)}</Alert>;
   }
 
   async function reload() {

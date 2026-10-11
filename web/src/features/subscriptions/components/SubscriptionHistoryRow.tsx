@@ -117,7 +117,7 @@ export function SubscriptionHistoryRow({
             <td className="py-2">{formatDate(subscription.endDate)}</td>
           </>
         )}
-        <td className="py-2">{`${subscription.usedSessions} / ${subscription.totalSessions}`}</td>
+        <td className="py-2">{`${formatNumber(Number(subscription.usedSessions))} / ${formatNumber(Number(subscription.totalSessions))}`}</td>
         <td className="py-2">
           <SubscriptionStatusBadge status={subscription.status} />
         </td>

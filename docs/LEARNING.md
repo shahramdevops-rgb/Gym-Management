@@ -1724,3 +1724,10 @@ The question that started this was whether a gym that is entirely internal — I
 - **An opt-in prop protects the other use of a shared form.** The expense, payable, product and member forms also add things, where the roadmap keeps the old messages; `editing` turns the new behaviour on only where it belongs, so no add-form test had to change.
 - **A test helper names the place, not the markup.** `saveRowOf("ذخیره")` finds the row through the button's role and name (or «در حال ذخیره…» while saving), so tests say "beside the button" and survive layout changes.
 - **My notes:**
+## 13.2d — Font, figures and a last look (فونت، اعداد و نگاه آخر)
+
+- **Audit the rendered page, not the source.** Grepping JSX for numbers finds hundreds of candidates, most already formatted somewhere upstream. A few lines of JavaScript in the running app (walk every text node and input value, flag `[0-9]`) visited every route and found the only two that reached the screen in English digits.
+- **A form's default value is display too.** `String(threshold)` put `3` in a box the user reads; `toPersianDigits` shows `۳` and the schema's `normalizeDigits` turns it back before sending, the round trip the instalment boxes already made.
+- **One rule for a page's own states.** A page that loads its record itself now shows `LoadingState` and a red `Alert` like every list does, so a failure looks like a failure. `PageMessage` stays only where there is no page yet: the router's fallback and the sign-in and role guards.
+- **Screenshots from a clean browser.** The developer's Chrome forced its own dark rendering on light pages, so the light theme was checked in the screenshot run's own browser, which has no such setting.
+- **My notes:**

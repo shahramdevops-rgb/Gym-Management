@@ -258,10 +258,10 @@ describe("SmsSettingsPage", () => {
     await waitFor(() => expect(switchOf("پایان اشتراک")).toBeChecked());
     expect(screen.getByRole("checkbox", { name: "ارسال پیامک روشن باشد" })).toBeChecked();
     const expiring = group("پایان اشتراک");
-    expect(expiring.getByLabelText(/^چند روز/)).toHaveValue("7");
+    expect(expiring.getByLabelText(/^چند روز/)).toHaveValue("۷");
     expect(expiring.getByLabelText("ساعت ارسال")).toHaveValue("09");
     expect(expiring.getByLabelText("دقیقه")).toHaveValue("15");
-    expect(group("تولد").getByLabelText(/^چند روز/)).toHaveValue("0");
+    expect(group("تولد").getByLabelText(/^چند روز/)).toHaveValue("۰");
     expect(screen.getByLabelText("شماره موبایل مدیر")).toHaveValue("۰۹۱۲ ۱۲۳ ۴۵۶۷");
   });
 

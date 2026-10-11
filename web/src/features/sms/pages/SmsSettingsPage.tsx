@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { Controller, useForm, useWatch, type UseFormReturn } from "react-hook-form";
 
-import { PageMessage } from "@/features/auth/components/PageMessage";
+import { LoadingState } from "@/components/States";
 import { PageHeader } from "@/components/PageHeader";
 import { FormField, SelectField } from "@/components/FormField";
 import { SaveRow, StaleAlert, type SaveNotice } from "@/components/SaveRow";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
@@ -91,11 +92,11 @@ export function SmsSettingsPage() {
   const [notice, setNotice] = useState<SaveNotice>(null);
 
   if (settings.isPending) {
-    return <PageMessage>در حال بارگذاری…</PageMessage>;
+    return <LoadingState />;
   }
 
   if (settings.isError) {
-    return <PageMessage>{errorMessage(settings.error)}</PageMessage>;
+    return <Alert variant="destructive">{errorMessage(settings.error)}</Alert>;
   }
 
   async function reload() {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { errorMessages } from "@/lib/errors";
-import { formatPhone } from "@/lib/format";
+import { formatPhone, toPersianDigits } from "@/lib/format";
 import { normalizeDigits } from "@/lib/normalize";
 
 import type { SmsKindSettings, SmsSettings, SmsSettingsInput } from "./api";
@@ -111,7 +111,7 @@ function kindValues(settings: SmsKindSettings): SmsKindValues {
     threshold:
       settings.threshold === null || settings.threshold === undefined
         ? ""
-        : String(settings.threshold),
+        : toPersianDigits(settings.threshold),
     // The API sends `HH:mm:ss`; the boxes choose hours and minutes.
     sendTime: settings.sendTime?.slice(0, 5) ?? "",
   };
