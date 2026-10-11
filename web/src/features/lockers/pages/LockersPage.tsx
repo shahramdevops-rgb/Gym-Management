@@ -1,7 +1,7 @@
 import { ChartColumn, Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -189,40 +189,43 @@ export function LockersPage() {
   const openVisit = box === null ? undefined : visitFor(box.open);
 
   return (
-    <PageFrame>
-      <LockerStats
-        lockers={lockers.data}
-        legend={
-          usageView ? (
-            <UsageLegend
-              period={usagePeriod}
-              onPeriodChange={setUsagePeriod}
-              mostUses={usesByLocker === null ? null : Math.max(0, ...usesByLocker.values())}
-            />
-          ) : undefined
-        }
-        tools={
-          <div className="flex flex-wrap items-center gap-3">
-            {!usageView && (
-              <NameSearch
-                value={nameQuery}
-                onChange={setNameQuery}
-                result={term === null ? null : foundCount}
+    <PageFrame
+      stats={
+        <LockerStats
+          lockers={lockers.data}
+          tools={
+            <div className="flex flex-wrap items-center gap-3">
+              {!usageView && (
+                <NameSearch
+                  value={nameQuery}
+                  onChange={setNameQuery}
+                  result={term === null ? null : foundCount}
+                />
+              )}
+              <Button
+                variant={usageView ? "default" : "outline"}
+                size="sm"
+                aria-pressed={usageView}
+                onClick={toggleUsageView}
+                className="h-9 rounded-lg"
+              >
+                <ChartColumn aria-hidden />
+                نقشهٔ استفاده
+              </Button>
+            </div>
+          }
+          legend={
+            usageView ? (
+              <UsageLegend
+                period={usagePeriod}
+                onPeriodChange={setUsagePeriod}
+                mostUses={usesByLocker === null ? null : Math.max(0, ...usesByLocker.values())}
               />
-            )}
-            <Button
-              variant={usageView ? "default" : "outline"}
-              size="sm"
-              aria-pressed={usageView}
-              onClick={toggleUsageView}
-              className="h-9 rounded-lg"
-            >
-              <ChartColumn aria-hidden />
-              نقشهٔ استفاده
-            </Button>
-          </div>
-        }
-      />
+            ) : undefined
+          }
+        />
+      }
+    >
       {usageView ? (
         usage.isError ? (
           <Alert variant="destructive">{errorMessage(usage.error)}</Alert>
@@ -296,11 +299,14 @@ export function LockersPage() {
   );
 }
 
-/** The screen's title. The clock is in the side menu, the name search on the legend's row. */
-function PageFrame({ children }: { children: ReactNode }) {
+/**
+ * The screen's banner (13.2h): the title, and under it the lockers' counts and legend on a card
+ * with the name search and the usage switch at its end. The clock is in the side menu.
+ */
+function PageFrame({ stats, children }: { stats?: ReactNode; children: ReactNode }) {
   return (
     <div className="space-y-5">
-      <PageHeader title="ورود با کمد" />
+      <PageHero title="ورود با کمد">{stats}</PageHero>
       {children}
     </div>
   );
@@ -308,7 +314,7 @@ function PageFrame({ children }: { children: ReactNode }) {
 
 /**
  * The search field on the legend's row above the map (BUSINESS_RULES.md §6 *Finding a member on
- * the map*): a name only, among who is inside now. Escape clears it. Beside it, once there is
+ * the map*), on the legend's card: a name only, among who is inside now. Escape clears it. Beside it, once there is
  * something to search for, how many were found or that nobody was; a screen reader hears it as it
  * changes. Kept to one line, so the row stays as tall as the legend.
  */

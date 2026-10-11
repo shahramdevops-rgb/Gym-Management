@@ -244,7 +244,7 @@ describe("LockersPage", () => {
       expect(await door("۶۷")).toHaveAttribute("data-found", "false");
       expect(await door("۱")).toHaveAttribute("data-found", "false");
       expect(screen.getByText("۱ نفر پیدا شد")).toBeInTheDocument();
-      // On the legend's row, not in the page's header.
+      // On the legend's card, not beside the page's title.
       expect(
         within(screen.getByRole("region", { name: "وضعیت کمدها" })).getByRole("searchbox"),
       ).toBeInTheDocument();

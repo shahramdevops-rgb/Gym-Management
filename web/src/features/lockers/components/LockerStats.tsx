@@ -23,9 +23,11 @@ const swatchClass: Record<LockerState, string> = {
  * free, occupied, held by a guest, held on a cardio-only visit and out of service, each beside a small door drawn like the map draws it, and what
  * the «بدهکار» tag and the long-stay bar mean.
  *
- * It is the map's legend too. `tools` sits at its other end, on the same row: the page puts the
- * name search there, and the usage view's switch beside it. While the map shows how often each
- * locker was used (§6 *Locker usage map*), `legend` takes the place of the counts.
+ * It is the map's legend too, and sits on the page's banner (13.2h) as a card of its own, so its
+ * door colours read as they do on the map. `tools` sits at its other end, on the same row: the page
+ * puts the name search there, and the usage view's switch beside it (moved back from the banner's
+ * title row, asked by the developer on the canvas). While the map shows how often each locker was
+ * used (§6 *Locker usage map*), `legend` takes the place of the counts.
  */
 export function LockerStats({
   lockers,
@@ -51,7 +53,7 @@ export function LockerStats({
   return (
     <section
       aria-label="وضعیت کمدها"
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-xl border bg-card px-4 py-3"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-2xl bg-card px-4 py-3 text-card-foreground shadow-card"
     >
       {legend ?? (
         <ul aria-label="راهنمای کمدها" className="flex flex-wrap items-center gap-x-6 gap-y-2">

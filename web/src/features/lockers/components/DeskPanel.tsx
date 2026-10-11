@@ -63,8 +63,9 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
       aria-label="پنل پذیرش"
       dir="rtl"
       // As tall as the three doors of the cabinets beside it, and scrolling inside beyond that,
-      // so a busy day never pushes the map down. The line across its top is drawn by `before:`.
-      className="relative flex max-h-[calc(3*var(--door-size)+1.25rem)] w-80 max-w-full flex-col gap-4 overflow-y-auto rounded-xl border bg-card p-3 pt-4 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-linear-to-l before:from-success before:to-primary before:content-['']"
+      // so a busy day never pushes the map down. The line across its top is drawn by `before:`, in
+      // the page banner's own gradient (`hero-tone`, asked by the developer, 13.2h).
+      className="relative flex max-h-[calc(3*var(--door-size)+1.25rem)] w-80 max-w-full flex-col gap-4 overflow-y-auto rounded-xl border bg-card p-3 pt-4 before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:hero-tone before:content-['']"
     >
       {birthdays.length > 0 && (
         // A plain list, like the renewals: the party is drawn on the member's door, not here.

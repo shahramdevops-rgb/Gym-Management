@@ -131,6 +131,11 @@
   --hero-from: oklch(0.52 0.19 305);
   --hero-via: oklch(0.48 0.18 290);
   --hero-to: oklch(0.41 0.15 275);
+  /* A page's banner (`hero-tone`, 13.2h): its menu group's own colour, the one on the menu's dot
+     and line (asked by the developer), only darker, so white text reads on it. Mixing in black
+     made it grey and a deep blue moved its hue, so the lightness alone is scaled. */
+  --hero-tone-from: 0.85;
+  --hero-tone-to: 0.68;
 }
 
 /* The party ring's turn. Registered, so the browser can animate an angle inside a gradient. */
@@ -215,6 +220,8 @@
   --hero-from: oklch(0.42 0.15 305);
   --hero-via: oklch(0.38 0.14 290);
   --hero-to: oklch(0.33 0.11 275);
+  --hero-tone-from: 0.8;
+  --hero-tone-to: 0.64;
 }
 
 /*
@@ -270,6 +277,15 @@
   background-repeat: no-repeat;
   background-origin: border-box;
   border-top-color: var(--tone, var(--border));
+}
+
+/* A page's banner in its tone, lighter at the start (13.2h). Without a `--tone`, the brand blue. */
+@utility hero-tone {
+  background-image: linear-gradient(
+    to left,
+    oklch(from var(--tone, var(--primary)) calc(l* var(--hero-tone-from)) c h),
+    oklch(from var(--tone, var(--primary)) calc(l* var(--hero-tone-to)) c h)
+  );
 }
 
 @utility tone-bar {

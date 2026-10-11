@@ -97,7 +97,7 @@ export function AppShell() {
                 <p
                   id={`nav-group-${index}`}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 text-[0.7rem] leading-5 font-bold short:leading-4",
+                    "relative flex items-center gap-1.5 px-3 text-[0.7rem] leading-5 font-bold short:leading-4",
                     group.tone === undefined ? "text-muted-foreground/80" : "tone-ink",
                   )}
                 >
@@ -108,6 +108,7 @@ export function AppShell() {
                     />
                   )}
                   {group.title}
+                  <GroupSwoosh muted={group.tone === undefined} />
                 </p>
                 <ul aria-labelledby={`nav-group-${index}`} className="space-y-px">
                   {group.items.map(({ to, label, icon: Icon, badge }) => (
@@ -159,7 +160,7 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between gap-4 border-b bg-background/80 px-6 backdrop-blur-md">
+        <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center justify-between gap-4 border-b bg-background/80 px-6 backdrop-blur-md">
           <div className="flex min-w-0 flex-1 justify-center">
             {showPayablesAlert && <PayablesDueAlert />}
           </div>
@@ -168,7 +169,7 @@ export function AppShell() {
               <span className="flex items-center gap-2 pe-2 text-sm font-medium">
                 <span
                   aria-hidden
-                  className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary"
+                  className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary"
                 >
                   {user.data.fullName.trim().charAt(0)}
                 </span>
@@ -189,7 +190,8 @@ export function AppShell() {
         </header>
 
         <main
-          className="min-w-0 flex-1 p-6 lg:p-8"
+          // A slim header and little room above the page's banner (asked by the developer, 13.2h).
+          className="min-w-0 flex-1 p-6 pt-4 lg:p-8 lg:pt-4"
           style={section?.tone === undefined ? undefined : toneStyle(section.tone)}
         >
           <div className="mx-auto w-full max-w-screen-2xl">
@@ -200,5 +202,37 @@ export function AppShell() {
         </main>
       </div>
     </div>
+  );
+}
+
+/**
+ * A line under a menu group's title, in the group's colour (13.2h, asked by the developer with a
+ * sketch, then on the canvas: "not curved, and not all straight"): it leaves the title's dot,
+ * bends down once, and from in front of the group's first item runs straight to the far edge,
+ * fading out at the very end, so the groups read as parts without a hard rule.
+ * Absolutely placed in the title's own line, so it adds no height and the menu still fits a
+ * 900px-tall window. Decoration only.
+ */
+function GroupSwoosh({ muted }: { muted: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 200 12"
+      preserveAspectRatio="none"
+      className={cn(
+        "pointer-events-none absolute inset-x-3 top-[calc(50%+3px)] h-3 [mask-image:linear-gradient(to_left,black_75%,transparent)]",
+        muted ? "text-muted-foreground/50" : "text-(--tone)",
+      )}
+    >
+      {/* Drawn from the right, where the dot is in a right-to-left menu. */}
+      <path
+        d="M197 0.5 C186 0.5 178 9 164 9 L0 9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
   );
 }

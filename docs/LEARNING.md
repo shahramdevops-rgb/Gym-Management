@@ -1760,3 +1760,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **A heading is structure, not size.** The member's name was a big `CardTitle` (a `div`); as `PageHeader`'s title it is the page's `h2`, like every other page, so a screen reader's list of headings and the tests find it the same way.
 - **A shared component only helps where it is used all the way down.** 13.2a put the plans table on the shared `Table`, but its rows were drawn by another file with bare `<td>`s, so they never got the cells' padding and three columns ran together. A grep for `<td` outside `components/ui` found it was the only one; a look in the browser is what showed it.
 - **My notes:**
+
+## 13.2h — Page by page, from the developer's notes (صفحه به صفحه، از روی یادداشت‌ها)
+
+- **Design from a picture, not from words.** Seven sessions of "add colour here" each made sense alone and still did not read as one design. Notes written on a screenshot of the real page left nothing to guess: each note became one small change, shown back as a new screenshot.
+- **Darken a colour without changing it.** Mixing a tone with black (`color-mix`) also took its chroma and turned it grey; mixing with a deep blue moved its hue. CSS relative colour syntax, `oklch(from var(--tone) calc(l * 0.8) c h)`, scales only the lightness, so the banner stays the exact colour of the menu group's dot. The factor is a token per theme, because the dark palette's tones are lighter.
+- **A custom utility works with variants too.** `hero-tone` is a Tailwind `@utility`, so `before:hero-tone` draws the same gradient on a pseudo-element; the desk panel's top line and the banner can never drift apart.
+- **Decoration that takes no room.** The menu's group lines are `absolute` SVGs inside the title's own line, so they add no height and the whole menu still fits a 900px window; `preserveAspectRatio="none"` with `vector-effect: non-scaling-stroke` lets the path stretch to any width without fattening the stroke.
+- **A frame change is an every-page change.** The header's height and the room above the page live in `AppShell`, so making them smaller for the locker page changed every page at once, which is what the developer wanted here.
+- **My notes:**

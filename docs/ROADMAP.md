@@ -2867,6 +2867,17 @@ every screen, rather than the gym's green or a neutral black.
       دیگر دوباره امتحان کنید.» on every form and page, the sign-in page included, instead of the
       general error. Unchanged: a session whose refresh hits the restart still goes to the sign-in
       page. No package added, no API change
+- [ ] **13.2h Page by page, from the developer's notes** (asked by the developer, 1405/07/20: the
+      panel did not read as one design). Three mock-ups of the locker page were drawn first and all
+      turned down; the developer then marked up screenshots on a canvas instead, and each note is
+      applied in the code and shown back as a new screenshot. One or two pages done together this
+      way, then the rest follow the same rules. Done so far, on «ورود با کمد» and the frame:
+      a banner like the dashboard's (`PageHero`) in the page's menu-group colour, darkened only in
+      lightness (`hero-tone`), slim, the gym's logo at its far end, the lockers' counts on a card
+      inside it with the name search and «نقشهٔ استفاده» at that card's end; under each menu group's
+      title a line in its colour that drops from the dot and runs straight to the far edge; a 48px
+      header and less room above the page; the desk panel's top line in the banner's gradient.
+      Left: the rest of the pages. No package added, no API change
 
 #### 13.2e plan
 
