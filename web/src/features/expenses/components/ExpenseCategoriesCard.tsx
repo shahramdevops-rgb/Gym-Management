@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { LoadingState } from "@/components/States";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export function ExpenseCategoriesCard() {
           </Alert>
         )}
 
-        {categories.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+        {categories.isPending && <LoadingState />}
         {categories.isError && (
           <Alert variant="destructive">{errorMessage(categories.error)}</Alert>
         )}

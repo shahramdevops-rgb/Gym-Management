@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,7 +52,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
           <CardTitle>اشتراک فعلی</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">در حال بارگذاری…</p>
+          <LoadingState />
         </CardContent>
       </Card>
     );

@@ -4,6 +4,14 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { guestLabel } from "@/features/attendance/holder";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { formatDate, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
@@ -25,32 +33,30 @@ export function CafeOrdersTable({ orders, showCustomer = true, onDone }: CafeOrd
   const columns = showCustomer ? 7 : 6;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">تاریخ</th>
-            {showCustomer && <th className="py-2 text-start font-medium">مشتری</th>}
-            <th className="py-2 text-start font-medium">اقلام</th>
-            <th className="py-2 text-start font-medium">مبلغ</th>
-            <th className="py-2 text-start font-medium">پرداخت</th>
-            <th className="py-2 text-start font-medium">وضعیت</th>
-            <th className="py-2 text-start font-medium">عملیات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => (
-            <CafeOrderRow
-              key={order.id}
-              order={order}
-              showCustomer={showCustomer}
-              columns={columns}
-              onDone={onDone}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>تاریخ</TableHead>
+          {showCustomer && <TableHead>مشتری</TableHead>}
+          <TableHead>اقلام</TableHead>
+          <TableHead>مبلغ</TableHead>
+          <TableHead>پرداخت</TableHead>
+          <TableHead>وضعیت</TableHead>
+          <TableHead>عملیات</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {orders.map((order) => (
+          <CafeOrderRow
+            key={order.id}
+            order={order}
+            showCustomer={showCustomer}
+            columns={columns}
+            onDone={onDone}
+          />
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -88,10 +94,10 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
 
   return (
     <>
-      <tr className="border-b align-top">
-        <td className="py-2">{formatDate(order.orderedOn)}</td>
+      <TableRow className="align-top">
+        <TableCell>{formatDate(order.orderedOn)}</TableCell>
         {showCustomer && (
-          <td className="py-2">
+          <TableCell>
             {order.guestName !== null ? (
               // An order on a guest's visit (BUSINESS_RULES.md §7 *Guest visit*): their name, no profile.
               <span className="flex flex-wrap items-center gap-1">
@@ -112,9 +118,9 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
                 {order.memberFullName}
               </Link>
             )}
-          </td>
+          </TableCell>
         )}
-        <td className="py-2">
+        <TableCell>
           <ul>
             {order.items.map((item) => (
               <li key={item.id}>
@@ -122,15 +128,15 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
               </li>
             ))}
           </ul>
-        </td>
-        <td className="py-2">{formatMoney(order.totalAmount)}</td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>{formatMoney(order.totalAmount)}</TableCell>
+        <TableCell>
           <div className="flex flex-wrap items-center gap-2">
             {!cancelled && <PaymentStatusBadge status={order.paymentStatus} />}
             <span className="text-muted-foreground">{formatMoney(order.netPaid)}</span>
           </div>
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           {cancelled ? (
             <div className="space-y-1">
               <Badge variant="destructive">لغو شده</Badge>
@@ -143,8 +149,8 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
               <span className="text-destructive">مانده {formatMoney(order.outstanding)}</span>
             )
           )}
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           <div className="flex flex-wrap gap-1">
             {canPay && (
               <Button
@@ -167,11 +173,11 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
               </Button>
             )}
           </div>
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {action !== null && (
-        <tr className="border-b bg-muted/30">
-          <td colSpan={columns} className="space-y-2 py-2">
+        <TableRow className="bg-muted/30">
+          <TableCell colSpan={columns} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">
               برای {context}
               {(order.memberFullName ?? order.guestName) !== null && (
@@ -201,8 +207,8 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
                 onCancel={() => setAction(null)}
               />
             )}
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
     </>
   );

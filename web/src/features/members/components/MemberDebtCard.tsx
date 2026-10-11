@@ -1,8 +1,17 @@
 import { useState } from "react";
 
+import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { SettleDebt } from "@/features/payments/components/SettleDebt";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, toPersianDigits } from "@/lib/format";
@@ -25,7 +34,7 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
   if (debt.isPending) {
     return (
       <DebtCard>
-        <p className="text-muted-foreground">در حال بارگذاری…</p>
+        <LoadingState />
       </DebtCard>
     );
   }
@@ -59,24 +68,22 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
           </div>
 
           {showItems && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="py-2 text-start font-medium">بابت</th>
-                    <th className="py-2 text-start font-medium">تاریخ</th>
-                    <th className="py-2 text-start font-medium">مبلغ</th>
-                    <th className="py-2 text-start font-medium">پرداخت‌شده</th>
-                    <th className="py-2 text-start font-medium">مانده</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {debt.data.items.map((item) => (
-                    <DebtRow key={item.id} item={item} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>بابت</TableHead>
+                  <TableHead>تاریخ</TableHead>
+                  <TableHead>مبلغ</TableHead>
+                  <TableHead>پرداخت‌شده</TableHead>
+                  <TableHead>مانده</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {debt.data.items.map((item) => (
+                  <DebtRow key={item.id} item={item} />
+                ))}
+              </TableBody>
+            </Table>
           )}
         </div>
       ) : (
@@ -98,25 +105,25 @@ function DebtRow({ item }: { item: MemberDebtItem }) {
 
   return (
     <>
-      <tr className={cn(lines.length === 0 && "border-b")}>
-        <td className="py-2">{debtItemLabel(item)}</td>
-        <td className="py-2">{formatDate(item.startDate)}</td>
-        <td className="py-2">{formatMoney(item.price)}</td>
-        <td className="py-2">{formatMoney(item.netPaid)}</td>
-        <td className="py-2">{formatMoney(item.outstanding)}</td>
-      </tr>
+      <TableRow className={cn(lines.length > 0 && "border-b-0")}>
+        <TableCell>{debtItemLabel(item)}</TableCell>
+        <TableCell>{formatDate(item.startDate)}</TableCell>
+        <TableCell>{formatMoney(item.price)}</TableCell>
+        <TableCell>{formatMoney(item.netPaid)}</TableCell>
+        <TableCell>{formatMoney(item.outstanding)}</TableCell>
+      </TableRow>
       {lines.map((line, index) => {
         const last = index === lines.length - 1;
         return (
-          <tr key={line.id} className={cn("text-muted-foreground", last && "border-b")}>
-            <td className={cn("ps-4", last ? "pb-2" : "pb-1")}>
+          <TableRow key={line.id} className={cn("text-muted-foreground", !last && "border-b-0")}>
+            <TableCell className={cn("ps-4", last ? "pb-2" : "pb-1")}>
               {line.productName} × {toPersianDigits(line.quantity)}
-            </td>
-            <td />
-            <td className={last ? "pb-2" : "pb-1"}>{formatMoney(line.lineTotal)}</td>
-            <td />
-            <td />
-          </tr>
+            </TableCell>
+            <TableCell />
+            <TableCell className={last ? "pb-2" : "pb-1"}>{formatMoney(line.lineTotal)}</TableCell>
+            <TableCell />
+            <TableCell />
+          </TableRow>
         );
       })}
     </>

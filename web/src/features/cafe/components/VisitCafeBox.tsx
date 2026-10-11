@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { LoadingState } from "@/components/States";
 import { DialogSuccess } from "@/components/DialogSuccess";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -200,7 +201,7 @@ function VisitPurchaseForm({ attendanceId, memberId, onDone, onCancel }: VisitPu
   return (
     <div className="grid gap-4 md:grid-cols-[1fr_16rem]">
       <div>
-        {products.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+        {products.isPending && <LoadingState />}
         {products.isError && <Alert variant="destructive">{errorMessage(products.error)}</Alert>}
         {products.isSuccess && (
           <ProductGrid

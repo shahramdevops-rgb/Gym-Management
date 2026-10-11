@@ -1,10 +1,20 @@
 import { Fragment, useState } from "react";
 
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, LoadingState } from "@/components/States";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { errorMessage } from "@/lib/errors";
 
 import { useSetStaffActive, useStaffList, useUnlockStaff, type StaffMember } from "../api";
@@ -55,7 +65,7 @@ export function StaffPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold">کارمندان</h2>
+      <PageHeader title="کارمندان" description="حساب‌های کاربری کارمندان پذیرش." />
 
       <CreateStaffForm />
 
@@ -70,96 +80,92 @@ export function StaffPage() {
             </Alert>
           )}
 
-          {staff.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+          {staff.isPending && <LoadingState />}
           {staff.isError && <Alert variant="destructive">{errorMessage(staff.error)}</Alert>}
 
           {staff.isSuccess && staff.data.items.length === 0 && (
-            <p className="text-muted-foreground">هنوز هیچ کارمندی ثبت نشده است.</p>
+            <EmptyState>هنوز هیچ کارمندی ثبت نشده است.</EmptyState>
           )}
 
           {staff.isSuccess && staff.data.items.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="py-2 text-start font-medium">نام</th>
-                    <th className="py-2 text-start font-medium">نام کاربری</th>
-                    <th className="py-2 text-start font-medium">وضعیت</th>
-                    <th className="py-2 text-start font-medium">
-                      <span className="sr-only">عملیات</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {staff.data.items.map((member) => (
-                    <Fragment key={member.id}>
-                      <tr className="border-b">
-                        <td className="py-2">{member.fullName}</td>
-                        <td className="py-2" dir="ltr">
-                          <span className="block text-end">{member.userName}</span>
-                        </td>
-                        <td className="py-2">
-                          <div className="flex flex-wrap gap-1">
-                            <Badge variant={member.isActive ? "success" : "secondary"}>
-                              {member.isActive ? "فعال" : "غیرفعال"}
-                            </Badge>
-                            {member.mustChangePassword && (
-                              <Badge variant="secondary">رمز موقت</Badge>
-                            )}
-                            {member.isLockedOut && <Badge variant="destructive">قفل‌شده</Badge>}
-                          </div>
-                        </td>
-                        <td className="py-2">
-                          <div className="flex justify-end gap-2">
-                            {member.isLockedOut && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={unlock.isPending}
-                                onClick={() => void unlockAccount(member)}
-                              >
-                                باز کردن قفل
-                              </Button>
-                            )}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>نام</TableHead>
+                  <TableHead>نام کاربری</TableHead>
+                  <TableHead>وضعیت</TableHead>
+                  <TableHead>
+                    <span className="sr-only">عملیات</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {staff.data.items.map((member) => (
+                  <Fragment key={member.id}>
+                    <TableRow>
+                      <TableCell>{member.fullName}</TableCell>
+                      <TableCell dir="ltr">
+                        <span className="block text-end">{member.userName}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant={member.isActive ? "success" : "secondary"}>
+                            {member.isActive ? "فعال" : "غیرفعال"}
+                          </Badge>
+                          {member.mustChangePassword && <Badge variant="secondary">رمز موقت</Badge>}
+                          {member.isLockedOut && <Badge variant="destructive">قفل‌شده</Badge>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          {member.isLockedOut && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                setResettingId(resettingId === member.id ? null : member.id)
-                              }
+                              disabled={unlock.isPending}
+                              onClick={() => void unlockAccount(member)}
                             >
-                              بازنشانی رمز
+                              باز کردن قفل
                             </Button>
-                            <Button
-                              size="sm"
-                              variant={member.isActive ? "destructive" : "secondary"}
-                              disabled={setActive.isPending}
-                              onClick={() => void toggleActive(member)}
-                            >
-                              {member.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                      {resettingId === member.id && (
-                        <tr className="border-b bg-muted/40">
-                          <td colSpan={4} className="p-3">
-                            <ResetPasswordForm
-                              staff={member}
-                              onCancel={() => setResettingId(null)}
-                              onDone={(text) => {
-                                setResettingId(null);
-                                setNotice({ kind: "success", text });
-                              }}
-                            />
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setResettingId(resettingId === member.id ? null : member.id)
+                            }
+                          >
+                            بازنشانی رمز
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={member.isActive ? "destructive" : "secondary"}
+                            disabled={setActive.isPending}
+                            onClick={() => void toggleActive(member)}
+                          >
+                            {member.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {resettingId === member.id && (
+                      <TableRow className="bg-muted/40">
+                        <TableCell colSpan={4} className="p-3">
+                          <ResetPasswordForm
+                            staff={member}
+                            onCancel={() => setResettingId(null)}
+                            onDone={(text) => {
+                              setResettingId(null);
+                              setNotice({ kind: "success", text });
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                ))}
+              </TableBody>
+            </Table>
           )}
 
           {staff.isSuccess && (

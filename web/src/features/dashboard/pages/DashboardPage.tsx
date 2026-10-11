@@ -1,5 +1,7 @@
 import { useSearchParams } from "react-router";
 
+import { PageHeader } from "@/components/PageHeader";
+import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { paymentMethodLabels, type PaymentMethod } from "@/features/payments/api";
@@ -130,8 +132,8 @@ export function DashboardPage() {
   const months = members.isSuccess ? byJalaliMonth(members.data.days) : [];
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold">داشبورد</h2>
+    <div className="space-y-6">
+      <PageHeader title="داشبورد" />
 
       <Card>
         <CardContent>
@@ -145,7 +147,7 @@ export function DashboardPage() {
       </Card>
 
       {failed !== undefined && <Alert variant="destructive">{errorMessage(failed.error)}</Alert>}
-      {canAsk && financial.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+      {canAsk && financial.isPending && <LoadingState />}
 
       {canAsk && (financial.isSuccess || attendance.isSuccess || members.isSuccess) && (
         <section aria-labelledby="range-summary" className="space-y-2">

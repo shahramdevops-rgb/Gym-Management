@@ -1,8 +1,10 @@
-import { Search, UserPlus } from "lucide-react";
+import { Search, SearchX, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, LoadingState } from "@/components/States";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -165,15 +167,18 @@ export function MembersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">اعضا</h2>
-        <Button asChild>
-          <Link to={paths.newMember}>
-            <UserPlus aria-hidden />
-            عضو جدید
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="اعضا"
+        description="جستجو، فهرست و پروندهٔ اعضای باشگاه."
+        actions={
+          <Button asChild>
+            <Link to={paths.newMember}>
+              <UserPlus aria-hidden />
+              عضو جدید
+            </Link>
+          </Button>
+        }
+      />
 
       <form
         role="search"
@@ -278,26 +283,30 @@ export function MembersPage() {
             </p>
           )}
 
-          {members.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+          {members.isPending && <LoadingState />}
           {members.isError && <Alert variant="destructive">{errorMessage(members.error)}</Alert>}
 
           {members.isSuccess && members.data.items.length === 0 && searching && (
-            <div className="space-y-3">
-              <p className="text-muted-foreground">عضوی با این مشخصات پیدا نشد.</p>
-              {!registering && (
-                <Button onClick={() => setRegistering(true)}>
-                  <UserPlus aria-hidden />
-                  ثبت این شخص
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              icon={SearchX}
+              action={
+                !registering && (
+                  <Button onClick={() => setRegistering(true)}>
+                    <UserPlus aria-hidden />
+                    ثبت این شخص
+                  </Button>
+                )
+              }
+            >
+              عضوی با این مشخصات پیدا نشد.
+            </EmptyState>
           )}
 
           {members.isSuccess && members.data.items.length === 0 && !searching && (
-            <p className="text-muted-foreground">
+            <EmptyState>
               {emptyToggleMessage(on) ??
                 (status === "all" ? "هنوز هیچ عضوی ثبت نشده است." : "عضوی با این وضعیت نیست.")}
-            </p>
+            </EmptyState>
           )}
 
           {members.isSuccess && members.data.items.length > 0 && (

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, LoadingState } from "@/components/States";
 import { JalaliCalendarField, SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
@@ -62,22 +64,25 @@ export function ExpensesPage() {
   const filtered = from !== undefined || to !== undefined || categoryId !== undefined;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">هزینه‌ها</h2>
-        {!adding && (
-          <Button
-            size="sm"
-            disabled={!categories.isSuccess}
-            onClick={() => {
-              setNotice(null);
-              setAdding(true);
-            }}
-          >
-            ثبت هزینه
-          </Button>
-        )}
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="هزینه‌ها"
+        description="هزینه‌های باشگاه. هزینهٔ اشتباه باطل می‌شود، پاک نمی‌شود."
+        actions={
+          !adding && (
+            <Button
+              size="sm"
+              disabled={!categories.isSuccess}
+              onClick={() => {
+                setNotice(null);
+                setAdding(true);
+              }}
+            >
+              ثبت هزینه
+            </Button>
+          )
+        }
+      />
 
       {adding && categories.isSuccess && (
         <Card>
@@ -147,7 +152,7 @@ export function ExpensesPage() {
 
             {rangeIsValid && (
               <>
-                {expenses.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+                {expenses.isPending && <LoadingState />}
                 {expenses.isError && (
                   <Alert variant="destructive">{errorMessage(expenses.error)}</Alert>
                 )}
@@ -165,11 +170,11 @@ export function ExpensesPage() {
                   </div>
                 )}
                 {expenses.isSuccess && expenses.data.items.length === 0 && (
-                  <p className="text-muted-foreground">
+                  <EmptyState>
                     {filtered
                       ? "در این فیلتر هزینه‌ای ثبت نشده است."
                       : "هنوز هزینه‌ای ثبت نشده است."}
-                  </p>
+                  </EmptyState>
                 )}
                 {expenses.isSuccess && expenses.data.items.length > 0 && (
                   <>

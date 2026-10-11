@@ -75,10 +75,10 @@ interface SelectFieldProps extends ComponentProps<"select"> {
  */
 /** The look of a native `<select>` here, shared by `SelectField` and the date fields' boxes. */
 const selectClassName = cn(
-  "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-  "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+  "h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+  "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30",
   "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
-  // The box is transparent, so the browser draws the open list on its own white; the
+  // The browser draws the open list on its own white, whatever the box's colour; the
   // options inherit the theme's text colour, which is light in the dark theme and was
   // unreadable. Giving the options the card colours keeps the list readable in both.
   "[&_option]:bg-card [&_option]:text-card-foreground",

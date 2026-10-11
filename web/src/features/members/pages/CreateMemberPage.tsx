@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "react-router";
 
 import { paths } from "@/app/paths";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 import { useCreateMember } from "../api";
 import { MemberForm } from "../components/MemberForm";
@@ -13,25 +14,25 @@ export function CreateMemberPage() {
   const navigate = useNavigate();
 
   return (
-    <Card className="max-w-2xl">
-      <CardHeader>
-        <CardTitle>عضو جدید</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <MemberForm
-          submitLabel="ثبت عضو"
-          submittingLabel="در حال ثبت…"
-          onSubmit={async (input) => {
-            const member = await createMember.mutateAsync(input);
-            navigate(paths.member(member.id));
-          }}
-          actions={
-            <Button asChild variant="ghost">
-              <Link to={paths.members}>انصراف</Link>
-            </Button>
-          }
-        />
-      </CardContent>
-    </Card>
+    <div className="max-w-2xl space-y-6">
+      <PageHeader title="عضو جدید" />
+      <Card>
+        <CardContent>
+          <MemberForm
+            submitLabel="ثبت عضو"
+            submittingLabel="در حال ثبت…"
+            onSubmit={async (input) => {
+              const member = await createMember.mutateAsync(input);
+              navigate(paths.member(member.id));
+            }}
+            actions={
+              <Button asChild variant="ghost">
+                <Link to={paths.members}>انصراف</Link>
+              </Button>
+            }
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 }

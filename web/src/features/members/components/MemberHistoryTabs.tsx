@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { EmptyState, LoadingState } from "@/components/States";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -66,12 +67,12 @@ export function MemberHistoryTabs({ memberId }: { memberId: string }) {
                 {notice}
               </Alert>
             )}
-            {subscriptions.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+            {subscriptions.isPending && <LoadingState />}
             {subscriptions.isError && (
               <Alert variant="destructive">{errorMessage(subscriptions.error)}</Alert>
             )}
             {subscriptions.isSuccess && subscriptions.data.items.length === 0 && (
-              <p className="text-muted-foreground">این عضو هنوز اشتراکی نداشته است.</p>
+              <EmptyState>این عضو هنوز اشتراکی نداشته است.</EmptyState>
             )}
             {subscriptions.isSuccess && subscriptions.data.items.length > 0 && (
               <>
@@ -92,12 +93,12 @@ export function MemberHistoryTabs({ memberId }: { memberId: string }) {
 
         {tab === "payments" && (
           <div className="space-y-4">
-            {payments.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+            {payments.isPending && <LoadingState />}
             {payments.isError && (
               <Alert variant="destructive">{errorMessage(payments.error)}</Alert>
             )}
             {payments.isSuccess && payments.data.items.length === 0 && (
-              <p className="text-muted-foreground">هنوز پرداختی برای این عضو ثبت نشده است.</p>
+              <EmptyState>هنوز پرداختی برای این عضو ثبت نشده است.</EmptyState>
             )}
             {payments.isSuccess && payments.data.items.length > 0 && (
               <>
@@ -119,12 +120,12 @@ export function MemberHistoryTabs({ memberId }: { memberId: string }) {
                 {notice}
               </Alert>
             )}
-            {cafeOrders.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+            {cafeOrders.isPending && <LoadingState />}
             {cafeOrders.isError && (
               <Alert variant="destructive">{errorMessage(cafeOrders.error)}</Alert>
             )}
             {cafeOrders.isSuccess && cafeOrders.data.items.length === 0 && (
-              <p className="text-muted-foreground">این عضو هنوز از بوفه خریدی نداشته است.</p>
+              <EmptyState>این عضو هنوز از بوفه خریدی نداشته است.</EmptyState>
             )}
             {cafeOrders.isSuccess && cafeOrders.data.items.length > 0 && (
               <>

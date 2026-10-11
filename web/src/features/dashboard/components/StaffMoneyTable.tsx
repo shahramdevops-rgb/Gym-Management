@@ -1,4 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatMoney } from "@/lib/format";
 
 import type { FinancialPeriod } from "../api";
@@ -18,28 +26,26 @@ export function StaffMoneyTable({ rows }: { rows: FinancialPeriod["byStaff"] }) 
         {rows.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">در این بازه چیزی نیست.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-muted-foreground">
-                  <th className="py-2 text-start font-medium">کارمند</th>
-                  <th className="py-2 text-start font-medium">دریافتی</th>
-                  <th className="py-2 text-start font-medium">بازگشت</th>
-                  <th className="py-2 text-start font-medium">خالص</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.userId} className="border-b">
-                    <td className="py-2">{row.fullName}</td>
-                    <td className="py-2">{formatMoney(row.money.received)}</td>
-                    <td className="py-2">{formatMoney(row.money.refunded)}</td>
-                    <td className="py-2 font-medium">{formatMoney(row.money.net)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>کارمند</TableHead>
+                <TableHead>دریافتی</TableHead>
+                <TableHead>بازگشت</TableHead>
+                <TableHead>خالص</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.userId}>
+                  <TableCell>{row.fullName}</TableCell>
+                  <TableCell>{formatMoney(row.money.received)}</TableCell>
+                  <TableCell>{formatMoney(row.money.refunded)}</TableCell>
+                  <TableCell className="font-medium">{formatMoney(row.money.net)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </CardContent>
     </Card>

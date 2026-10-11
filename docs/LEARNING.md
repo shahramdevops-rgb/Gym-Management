@@ -1694,3 +1694,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **An ADR written later says so.** 0005 to 0008 record decisions made weeks before. Each gives the date of the decision and the date it was written, and takes its reasons from where they were first written down; an alternative nobody recorded considering was left out rather than invented.
 - **A release checklist is written from the releases.** docs/DEPLOYMENT.md lists the steps the roadmap's release records show were actually taken, in their order, so the document describes practice instead of intention.
 - **My notes:**
+
+## 13.2a — One visual language: foundation and frame (یکدست‌سازی ظاهر: پایه و قاب)
+
+- **Design tokens make a redesign one file.** Every colour on screen is a CSS variable in `index.css` with a light and a dark value, so a deeper brand blue, a tinted page background and softer greys changed every screen at once without touching a component, and the dark theme followed for free.
+- **Page background apart from card background.** A white card on a white page needs a heavy border to be seen; a slightly tinted page lets a white card stand out with a faint border and a soft shadow. That one change is most of the "modern" look.
+- **Shared components are where consistency lives.** Eighteen tables, about thirty loading lines and a dozen empty lists were each written by hand, slightly differently. `Table`, `LoadingState`, `EmptyState` and `PageHeader` make the next page consistent by default instead of by care.
+- **A uniform codebase can be changed by script, then checked by the compiler and the tests.** The hand-written tables all used the same classes, so a small transform rewrote them; `tsc`, ESLint and 1018 tests then confirmed nothing else moved. Odd cases (grouped rows that draw a border only under the last line) were found by reading what the script left behind.
+- **Tests that look for roles and text survive a restyle.** The tests ask for "the heading named اعضا" or "the link named ورود با کمد", not for a class name, so moving every title into `PageHeader` and every table into `Table` broke none of them.
+- **A brand colour must not collide with a meaning.** Green already means free, paid and profit and red means held, debt and loss here, so a green brand would make every primary button look like a status. The brand took the one hue no status uses.
+- **Decoration is hidden from screen readers; meaning never rests on colour alone.** The logo has an empty `alt`, the spinner and the alert icons are `aria-hidden`, and the words beside them carry the meaning.
+- **Motion respects the user.** The dialog's fade and the spinner run only under `motion-safe:`, so someone who asked their system for less motion gets neither.
+- **My notes:**

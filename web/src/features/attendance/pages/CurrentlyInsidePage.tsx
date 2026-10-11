@@ -1,5 +1,7 @@
 import { useSearchParams } from "react-router";
 
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, LoadingState } from "@/components/States";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +29,10 @@ export function CurrentlyInsidePage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold">داخل باشگاه</h2>
+      <PageHeader
+        title="داخل باشگاه"
+        description="هر کس که الان داخل باشگاه است، با کمد و زمان ورودش."
+      />
 
       <Card>
         <CardHeader>
@@ -41,11 +46,11 @@ export function CurrentlyInsidePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {inside.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+          {inside.isPending && <LoadingState />}
           {inside.isError && <Alert variant="destructive">{errorMessage(inside.error)}</Alert>}
 
           {inside.isSuccess && inside.data.items.length === 0 && (
-            <p className="text-muted-foreground">در حال حاضر کسی داخل باشگاه نیست.</p>
+            <EmptyState>در حال حاضر کسی داخل باشگاه نیست.</EmptyState>
           )}
 
           {inside.isSuccess && inside.data.items.length > 0 && (

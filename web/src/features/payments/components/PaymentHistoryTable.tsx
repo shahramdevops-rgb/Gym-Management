@@ -1,4 +1,12 @@
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { serviceChargeLabel } from "@/features/serviceCharges/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
 import { formatDateTime, formatMoney } from "@/lib/format";
@@ -15,50 +23,48 @@ import { SettlementHeading, SettlementItemLabel } from "./SettlementCells";
  */
 export function PaymentHistoryTable({ payments }: { payments: PaymentHistoryItem[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">تاریخ</th>
-            <th className="py-2 text-start font-medium">بابت</th>
-            <th className="py-2 text-start font-medium">نوع</th>
-            <th className="py-2 text-start font-medium">مبلغ</th>
-            <th className="py-2 text-start font-medium">روش</th>
-            <th className="py-2 text-start font-medium">توضیح</th>
-          </tr>
-        </thead>
-        <tbody>
-          {groupBySettlement(payments).map((group) =>
-            group.kind === "single" ? (
-              <PaymentRow key={group.item.id} payment={group.item} />
-            ) : (
-              <SettlementRows
-                key={`${group.settlement.id}-${group.items[0]?.id}`}
-                settlement={group.settlement}
-                payments={group.items}
-              />
-            ),
-          )}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>تاریخ</TableHead>
+          <TableHead>بابت</TableHead>
+          <TableHead>نوع</TableHead>
+          <TableHead>مبلغ</TableHead>
+          <TableHead>روش</TableHead>
+          <TableHead>توضیح</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {groupBySettlement(payments).map((group) =>
+          group.kind === "single" ? (
+            <PaymentRow key={group.item.id} payment={group.item} />
+          ) : (
+            <SettlementRows
+              key={`${group.settlement.id}-${group.items[0]?.id}`}
+              settlement={group.settlement}
+              payments={group.items}
+            />
+          ),
+        )}
+      </TableBody>
+    </Table>
   );
 }
 
 function PaymentRow({ payment }: { payment: PaymentHistoryItem }) {
   return (
-    <tr className="border-b">
-      <td className="py-2">{formatDateTime(payment.paidAt)}</td>
-      <td className="py-2">{paidForLabel(payment)}</td>
-      <td className="py-2">
+    <TableRow>
+      <TableCell>{formatDateTime(payment.paidAt)}</TableCell>
+      <TableCell>{paidForLabel(payment)}</TableCell>
+      <TableCell>
         <KindBadge kind={payment.kind} />
-      </td>
-      <td className="py-2">{formatMoney(payment.amount)}</td>
-      <td className="py-2">{paymentMethodLabels[payment.method]}</td>
-      <td className="py-2 text-muted-foreground">
+      </TableCell>
+      <TableCell>{formatMoney(payment.amount)}</TableCell>
+      <TableCell>{paymentMethodLabels[payment.method]}</TableCell>
+      <TableCell className="text-muted-foreground">
         {payment.reason ?? payment.referenceNumber ?? "—"}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -80,32 +86,36 @@ function SettlementRows({
 
   return (
     <>
-      <tr>
-        <td className="pt-2 pb-1">{formatDateTime(first.paidAt)}</td>
-        <td className="pt-2 pb-1">
+      <TableRow>
+        <TableCell className="pt-2 pb-1">{formatDateTime(first.paidAt)}</TableCell>
+        <TableCell className="pt-2 pb-1">
           <SettlementHeading settlement={settlement} />
-        </td>
-        <td className="pt-2 pb-1">
+        </TableCell>
+        <TableCell className="pt-2 pb-1">
           <KindBadge kind={first.kind} />
-        </td>
-        <td className="pt-2 pb-1 font-medium">{formatMoney(settlement.total)}</td>
-        <td className="pt-2 pb-1">{paymentMethodLabels[first.method]}</td>
-        <td className="pt-2 pb-1 text-muted-foreground">{first.referenceNumber ?? "—"}</td>
-      </tr>
+        </TableCell>
+        <TableCell className="pt-2 pb-1 font-medium">{formatMoney(settlement.total)}</TableCell>
+        <TableCell className="pt-2 pb-1">{paymentMethodLabels[first.method]}</TableCell>
+        <TableCell className="pt-2 pb-1 text-muted-foreground">
+          {first.referenceNumber ?? "—"}
+        </TableCell>
+      </TableRow>
       {payments.map((payment, index) => {
         const last = index === payments.length - 1;
 
         return (
-          <tr key={payment.id} className={last ? "border-b" : undefined}>
-            <td />
-            <td className={last ? "pt-1 pb-2" : "py-1"}>
+          <TableRow key={payment.id} className={last ? undefined : "border-b-0"}>
+            <TableCell />
+            <TableCell className={last ? "pt-1 pb-2" : "py-1"}>
               <SettlementItemLabel>{paidForLabel(payment)}</SettlementItemLabel>
-            </td>
-            <td />
-            <td className="py-1 text-muted-foreground">{formatMoney(payment.amount)}</td>
-            <td />
-            <td />
-          </tr>
+            </TableCell>
+            <TableCell />
+            <TableCell className="py-1 text-muted-foreground">
+              {formatMoney(payment.amount)}
+            </TableCell>
+            <TableCell />
+            <TableCell />
+          </TableRow>
         );
       })}
     </>

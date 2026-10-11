@@ -1,4 +1,12 @@
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { serviceChargeLabel } from "@/features/serviceCharges/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
@@ -15,58 +23,56 @@ import { WhoCell } from "./WhoCell";
  */
 export function SalesLogTable({ items }: { items: HistorySale[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">زمان</th>
-            <th className="py-2 text-start font-medium">مشتری</th>
-            <th className="py-2 text-start font-medium">بابت</th>
-            <th className="py-2 text-start font-medium">مبلغ</th>
-            <th className="py-2 text-start font-medium">پرداخت</th>
-            <th className="py-2 text-start font-medium">ثبت توسط</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={`${item.source}-${item.id}`} className="border-b">
-              <td className="py-2">{formatDateTime(item.soldAt)}</td>
-              <td className="py-2">
-                <WhoCell
-                  memberId={item.memberId}
-                  memberFullName={item.memberFullName}
-                  guestName={item.guestName}
-                />
-              </td>
-              <td className="py-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span>{saleLabel(item)}</span>
-                  {item.undoneAt !== null && (
-                    <Badge variant="outline">
-                      {item.source === "Subscription" || item.source === "CafeOrder"
-                        ? "لغو شده"
-                        : "ابطال شده"}
-                    </Badge>
-                  )}
-                </div>
-                {item.undoneAt !== null && item.undoReason !== null && (
-                  <p className="text-muted-foreground">{item.undoReason}</p>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>زمان</TableHead>
+          <TableHead>مشتری</TableHead>
+          <TableHead>بابت</TableHead>
+          <TableHead>مبلغ</TableHead>
+          <TableHead>پرداخت</TableHead>
+          <TableHead>ثبت توسط</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow key={`${item.source}-${item.id}`}>
+            <TableCell>{formatDateTime(item.soldAt)}</TableCell>
+            <TableCell>
+              <WhoCell
+                memberId={item.memberId}
+                memberFullName={item.memberFullName}
+                guestName={item.guestName}
+              />
+            </TableCell>
+            <TableCell>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span>{saleLabel(item)}</span>
+                {item.undoneAt !== null && (
+                  <Badge variant="outline">
+                    {item.source === "Subscription" || item.source === "CafeOrder"
+                      ? "لغو شده"
+                      : "ابطال شده"}
+                  </Badge>
                 )}
-              </td>
-              <td className="py-2">{formatMoney(item.amount)}</td>
-              <td className="py-2">
-                {item.undoneAt === null ? (
-                  <PaymentStatusBadge status={item.paymentStatus} />
-                ) : (
-                  emptyValue
-                )}
-              </td>
-              <td className="py-2">{item.recordedByFullName ?? emptyValue}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+              </div>
+              {item.undoneAt !== null && item.undoReason !== null && (
+                <p className="text-muted-foreground">{item.undoReason}</p>
+              )}
+            </TableCell>
+            <TableCell>{formatMoney(item.amount)}</TableCell>
+            <TableCell>
+              {item.undoneAt === null ? (
+                <PaymentStatusBadge status={item.paymentStatus} />
+              ) : (
+                emptyValue
+              )}
+            </TableCell>
+            <TableCell>{item.recordedByFullName ?? emptyValue}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 

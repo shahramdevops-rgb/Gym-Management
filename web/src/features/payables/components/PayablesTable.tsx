@@ -4,6 +4,14 @@ import { Link } from "react-router";
 import { paths } from "@/app/paths";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { ExpenseCategory } from "@/features/expenses/api";
 import { formatDate, formatDateTime, formatMoney, gymToday, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -34,32 +42,30 @@ export function PayablesTable({ payables, categories, onDone }: PayablesTablePro
   const today = gymToday();
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">نوع</th>
-            <th className="py-2 text-start font-medium">تاریخ</th>
-            <th className="py-2 text-start font-medium">گیرنده</th>
-            <th className="py-2 text-start font-medium">شرح</th>
-            <th className="py-2 text-start font-medium">مبلغ</th>
-            <th className="py-2 text-start font-medium">وضعیت</th>
-            <th className="py-2 text-start font-medium">عملیات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payables.map((payable) => (
-            <PayableRow
-              key={payable.id}
-              payable={payable}
-              categories={categories}
-              today={today}
-              onDone={onDone}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>نوع</TableHead>
+          <TableHead>تاریخ</TableHead>
+          <TableHead>گیرنده</TableHead>
+          <TableHead>شرح</TableHead>
+          <TableHead>مبلغ</TableHead>
+          <TableHead>وضعیت</TableHead>
+          <TableHead>عملیات</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {payables.map((payable) => (
+          <PayableRow
+            key={payable.id}
+            payable={payable}
+            categories={categories}
+            today={today}
+            onDone={onDone}
+          />
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -98,18 +104,18 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
 
   return (
     <>
-      <tr className={cn("border-b align-top", !pending && "text-muted-foreground")}>
-        <td className="py-2">{kindText(payable)}</td>
-        <td className="py-2">{formatDate(payable.dueDate)}</td>
-        <td className="py-2">{payable.payee}</td>
-        <td className="py-2">
+      <TableRow className={cn("align-top", !pending && "text-muted-foreground")}>
+        <TableCell>{kindText(payable)}</TableCell>
+        <TableCell>{formatDate(payable.dueDate)}</TableCell>
+        <TableCell>{payable.payee}</TableCell>
+        <TableCell>
           <p className="whitespace-pre-line">{payable.description}</p>
           <p className="text-xs text-muted-foreground">{payable.categoryName}</p>
-        </td>
-        <td className={cn("py-2", payable.status === "Cancelled" && "line-through")}>
+        </TableCell>
+        <TableCell className={cn("", payable.status === "Cancelled" && "line-through")}>
           {formatMoney(payable.amount)}
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           <div className="space-y-1">
             {payable.status === "Pending" && (
               <Badge variant={overdue ? "destructive" : "outline"}>
@@ -134,8 +140,8 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
               </>
             )}
           </div>
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           {pending && (
             <div className="flex flex-wrap gap-1">
               {canPay && (
@@ -175,11 +181,11 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
               برگشت به در انتظار
             </Button>
           )}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {action !== null && (
-        <tr className="border-b bg-muted/30">
-          <td colSpan={columns} className="space-y-2 py-2">
+        <TableRow className="bg-muted/30">
+          <TableCell colSpan={columns} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">برای {context}</p>
             {action === "edit" && (
               <PayableForm
@@ -235,8 +241,8 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
                 onCancel={() => setAction(null)}
               />
             )}
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
     </>
   );

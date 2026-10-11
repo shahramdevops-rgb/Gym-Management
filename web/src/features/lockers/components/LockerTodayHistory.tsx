@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 
 import { paths } from "@/app/paths";
+import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { cardioOnlyLabel, guestLabel } from "@/features/attendance/holder";
@@ -19,7 +20,7 @@ export function LockerTodayHistory({ lockerId }: { lockerId: string }) {
   const visits = useLockerVisitsToday(lockerId);
 
   if (visits.isPending) {
-    return <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>;
+    return <LoadingState className="py-2">در حال بارگذاری…</LoadingState>;
   }
 
   if (visits.isError) {

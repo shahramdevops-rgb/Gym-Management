@@ -1,6 +1,8 @@
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 
 import { paths } from "@/app/paths";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 
 import { CategoriesCard } from "../components/CategoriesCard";
@@ -13,13 +15,19 @@ import { ProductsCard } from "../components/ProductsCard";
  */
 export function CafeMenuPage() {
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">منوی بوفه</h2>
-        <Button asChild size="sm">
-          <Link to={paths.cafe}>بازگشت به بوفه</Link>
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="منوی بوفه"
+        description="دسته‌بندی‌ها، محصولات و قیمت‌های بوفه."
+        actions={
+          <Button asChild variant="outline">
+            <Link to={paths.cafe}>
+              <ArrowRight aria-hidden />
+              بازگشت به بوفه
+            </Link>
+          </Button>
+        }
+      />
 
       <div className="grid items-start gap-4 xl:grid-cols-[22rem_1fr]">
         <CategoriesCard />

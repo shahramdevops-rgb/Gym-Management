@@ -4,6 +4,14 @@ import { paths } from "@/app/paths";
 import { SessionsBar } from "@/components/SessionsBar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDate, formatDateTime, gymToday, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -36,115 +44,109 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
   const today = gymToday();
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">عضو</th>
-            <th className="py-2 text-start font-medium">کمد</th>
-            <th className="py-2 text-start font-medium">ساعت ورود</th>
-            <th className="py-2 text-start font-medium">جلسات</th>
-            <th className="py-2 text-start font-medium">انقضا</th>
-            <th className="py-2 text-start font-medium">
-              <span className="sr-only">عملیات</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            if (row.memberId === null) {
-              return (
-                <GuestRow
-                  key={row.attendanceId}
-                  row={row}
-                  onCheckOut={onCheckOut}
-                  onCancel={onCancel}
-                />
-              );
-            }
-
-            const daysLeft = daysUntil(row.subscriptionEndDate ?? today, today);
-
-            // A cardio-only visit may name no plan (BUSINESS_RULES.md §7 *Cardio-only visit*):
-            // nothing to count and nothing running out.
-            const hasPlan = row.subscriptionId !== null;
-
-            // A single visit is spent by design and expires tonight, so both marks would fire on
-            // every such row and mean nothing. What the desk needs to see is that it was a single
-            // visit (BUSINESS_RULES.md §4, §7).
-            const expiringSoon =
-              hasPlan && !row.isSingleSession && daysLeft <= expiringDaysThreshold;
-
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>عضو</TableHead>
+          <TableHead>کمد</TableHead>
+          <TableHead>ساعت ورود</TableHead>
+          <TableHead>جلسات</TableHead>
+          <TableHead>انقضا</TableHead>
+          <TableHead>
+            <span className="sr-only">عملیات</span>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => {
+          if (row.memberId === null) {
             return (
-              <tr key={row.attendanceId} className="border-b">
-                <td className="py-2">
-                  <Link
-                    to={paths.member(row.memberId)}
-                    className="font-medium underline-offset-4 hover:underline"
-                  >
-                    {row.memberFullName}
-                  </Link>
-                  {/* No session came from the plan beside it (BUSINESS_RULES.md §7 *Cardio-only visit*). */}
-                  {row.isCardioOnly && (
-                    <Badge variant="outline" className="ms-2 border-cardio">
-                      {cardioOnlyLabel}
-                    </Badge>
-                  )}
-                </td>
-                <td className="py-2">
-                  {/* A reserve place has no number to show (BUSINESS_RULES.md §6, §7). */}
-                  {row.lockerNumber !== null
-                    ? toPersianDigits(row.lockerNumber)
-                    : row.usesReservePlace
-                      ? "رزرو"
-                      : "—"}
-                </td>
-                <td className="py-2">{formatDateTime(row.checkedInAt)}</td>
-                <td className="py-2">
-                  {!hasPlan ? (
-                    <span className="text-muted-foreground">—</span>
-                  ) : row.isSingleSession ? (
-                    // No bar: "۱ از ۱" on every single-visit row is a denominator with nothing to
-                    // say.
-                    <span className="whitespace-nowrap text-muted-foreground">تک‌جلسه‌ای</span>
-                  ) : (
-                    <SessionsBar
-                      total={row.totalSessions ?? 0}
-                      used={row.usedSessions ?? 0}
-                      remaining={row.remainingSessions ?? 0}
-                      lowThreshold={lowSessionsThreshold}
-                    />
-                  )}
-                </td>
-                <td
-                  className={cn(
-                    "py-2 whitespace-nowrap",
-                    expiringSoon && "font-medium text-warning",
-                  )}
-                >
-                  {row.subscriptionEndDate !== null && formatDate(row.subscriptionEndDate)}
-                  {expiringSoon && (
-                    <span className="ms-1 text-xs">
-                      {daysLeft <= 0 ? "(امروز)" : `(${toPersianDigits(daysLeft)} روز)`}
-                    </span>
-                  )}
-                </td>
-                <td className="py-2">
-                  <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="outline" onClick={() => onCancel(row)}>
-                      لغو ورود
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => onCheckOut(row)}>
-                      ثبت خروج
-                    </Button>
-                  </div>
-                </td>
-              </tr>
+              <GuestRow
+                key={row.attendanceId}
+                row={row}
+                onCheckOut={onCheckOut}
+                onCancel={onCancel}
+              />
             );
-          })}
-        </tbody>
-      </table>
-    </div>
+          }
+
+          const daysLeft = daysUntil(row.subscriptionEndDate ?? today, today);
+
+          // A cardio-only visit may name no plan (BUSINESS_RULES.md §7 *Cardio-only visit*):
+          // nothing to count and nothing running out.
+          const hasPlan = row.subscriptionId !== null;
+
+          // A single visit is spent by design and expires tonight, so both marks would fire on
+          // every such row and mean nothing. What the desk needs to see is that it was a single
+          // visit (BUSINESS_RULES.md §4, §7).
+          const expiringSoon = hasPlan && !row.isSingleSession && daysLeft <= expiringDaysThreshold;
+
+          return (
+            <TableRow key={row.attendanceId}>
+              <TableCell>
+                <Link
+                  to={paths.member(row.memberId)}
+                  className="font-medium underline-offset-4 hover:underline"
+                >
+                  {row.memberFullName}
+                </Link>
+                {/* No session came from the plan beside it (BUSINESS_RULES.md §7 *Cardio-only visit*). */}
+                {row.isCardioOnly && (
+                  <Badge variant="outline" className="ms-2 border-cardio">
+                    {cardioOnlyLabel}
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                {/* A reserve place has no number to show (BUSINESS_RULES.md §6, §7). */}
+                {row.lockerNumber !== null
+                  ? toPersianDigits(row.lockerNumber)
+                  : row.usesReservePlace
+                    ? "رزرو"
+                    : "—"}
+              </TableCell>
+              <TableCell>{formatDateTime(row.checkedInAt)}</TableCell>
+              <TableCell>
+                {!hasPlan ? (
+                  <span className="text-muted-foreground">—</span>
+                ) : row.isSingleSession ? (
+                  // No bar: "۱ از ۱" on every single-visit row is a denominator with nothing to
+                  // say.
+                  <span className="whitespace-nowrap text-muted-foreground">تک‌جلسه‌ای</span>
+                ) : (
+                  <SessionsBar
+                    total={row.totalSessions ?? 0}
+                    used={row.usedSessions ?? 0}
+                    remaining={row.remainingSessions ?? 0}
+                    lowThreshold={lowSessionsThreshold}
+                  />
+                )}
+              </TableCell>
+              <TableCell
+                className={cn("py-2 whitespace-nowrap", expiringSoon && "font-medium text-warning")}
+              >
+                {row.subscriptionEndDate !== null && formatDate(row.subscriptionEndDate)}
+                {expiringSoon && (
+                  <span className="ms-1 text-xs">
+                    {daysLeft <= 0 ? "(امروز)" : `(${toPersianDigits(daysLeft)} روز)`}
+                  </span>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => onCancel(row)}>
+                    لغو ورود
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => onCheckOut(row)}>
+                    ثبت خروج
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -161,21 +163,21 @@ function GuestRow({
   row: CurrentlyInside;
 } & Pick<CurrentlyInsideTableProps, "onCheckOut" | "onCancel">) {
   return (
-    <tr className="border-b">
-      <td className="py-2 font-medium">{row.guestName}</td>
-      <td className="py-2">
+    <TableRow>
+      <TableCell className="font-medium">{row.guestName}</TableCell>
+      <TableCell>
         {row.lockerNumber !== null
           ? toPersianDigits(row.lockerNumber)
           : row.usesReservePlace
             ? "رزرو"
             : "—"}
-      </td>
-      <td className="py-2">{formatDateTime(row.checkedInAt)}</td>
-      <td className="py-2">
+      </TableCell>
+      <TableCell>{formatDateTime(row.checkedInAt)}</TableCell>
+      <TableCell>
         <span className="whitespace-nowrap text-muted-foreground">{guestLabel}</span>
-      </td>
-      <td className="py-2 text-muted-foreground">—</td>
-      <td className="py-2">
+      </TableCell>
+      <TableCell className="text-muted-foreground">—</TableCell>
+      <TableCell>
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => onCancel(row)}>
             لغو ورود
@@ -184,7 +186,7 @@ function GuestRow({
             ثبت خروج
           </Button>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

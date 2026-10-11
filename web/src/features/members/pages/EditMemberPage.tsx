@@ -3,9 +3,10 @@ import { Link, useNavigate, useParams } from "react-router";
 
 import { paths } from "@/app/paths";
 import { PageMessage } from "@/features/auth/components/PageMessage";
+import { PageHeader } from "@/components/PageHeader";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
 
 import { useMember, useUpdateMember } from "../api";
@@ -52,55 +53,59 @@ export function EditMemberPage() {
   }
 
   return (
-    <Card className="max-w-2xl">
-      <CardHeader>
-        <CardTitle>ویرایش «{current.fullName}»</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {stale && (
-          <Alert
-            variant="destructive"
-            className="flex flex-wrap items-center justify-between gap-3"
-          >
-            <span>{errorMessage({ code: changedConcurrently })}</span>
-            <Button size="sm" variant="outline" disabled={reloading} onClick={() => void reload()}>
-              بارگذاری اطلاعات تازه
-            </Button>
-          </Alert>
-        )}
+    <div className="max-w-2xl space-y-6">
+      <PageHeader title={<>ویرایش «{current.fullName}»</>} />
+      <Card>
+        <CardContent className="space-y-4">
+          {stale && (
+            <Alert variant="destructive">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>{errorMessage({ code: changedConcurrently })}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={reloading}
+                  onClick={() => void reload()}
+                >
+                  بارگذاری اطلاعات تازه
+                </Button>
+              </div>
+            </Alert>
+          )}
 
-        {/*
+          {/*
           Keyed by version: once the fresh member is loaded, React builds a new form with its
           values, instead of keeping the fields filled from the old one.
         */}
-        <MemberForm
-          key={String(current.version)}
-          defaultValues={{
-            fullName: current.fullName,
-            phoneNumber: current.phoneNumber,
-            birthDate: current.birthDate,
-            notes: current.notes ?? "",
-          }}
-          submitLabel="ذخیره"
-          submittingLabel="در حال ذخیره…"
-          onSubmit={async (input) => {
-            try {
-              await updateMember.mutateAsync({ id, version: current.version, ...input });
-              navigate(paths.member(id));
-            } catch (problem) {
-              if (!isCode(problem, changedConcurrently)) {
-                throw problem;
+          <MemberForm
+            key={String(current.version)}
+            defaultValues={{
+              fullName: current.fullName,
+              phoneNumber: current.phoneNumber,
+              birthDate: current.birthDate,
+              notes: current.notes ?? "",
+            }}
+            submitLabel="ذخیره"
+            submittingLabel="در حال ذخیره…"
+            onSubmit={async (input) => {
+              try {
+                await updateMember.mutateAsync({ id, version: current.version, ...input });
+                navigate(paths.member(id));
+              } catch (problem) {
+                if (!isCode(problem, changedConcurrently)) {
+                  throw problem;
+                }
+                setStale(true);
               }
-              setStale(true);
+            }}
+            actions={
+              <Button asChild variant="ghost">
+                <Link to={paths.member(id)}>انصراف</Link>
+              </Button>
             }
-          }}
-          actions={
-            <Button asChild variant="ghost">
-              <Link to={paths.member(id)}>انصراف</Link>
-            </Button>
-          }
-        />
-      </CardContent>
-    </Card>
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 }

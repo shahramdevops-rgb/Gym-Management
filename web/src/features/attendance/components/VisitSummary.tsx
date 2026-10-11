@@ -1,3 +1,4 @@
+import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { useVisitCafeOrders, type CafeOrderItem } from "@/features/cafe/api";
 import { useMemberDebt, type MemberDebt } from "@/features/members/api";
@@ -115,7 +116,7 @@ function SubscriptionLine({ memberId, withSessions }: { memberId: string; withSe
   const subscription = useCurrentSubscription(memberId);
 
   if (subscription.isPending) {
-    return <p className="text-sm text-muted-foreground">در حال بارگذاری اشتراک…</p>;
+    return <LoadingState className="py-2">در حال بارگذاری اشتراک…</LoadingState>;
   }
   if (subscription.isError) {
     return <Alert variant="destructive">{errorMessage(subscription.error)}</Alert>;
@@ -218,7 +219,7 @@ function DebtBox({ memberId, itemized }: { memberId: string; itemized: boolean }
   const debt = useMemberDebt(memberId, { refetchInterval: currentlyInsideRefetchMs });
 
   if (debt.isPending) {
-    return <p className="text-sm text-muted-foreground">در حال بارگذاری بدهی…</p>;
+    return <LoadingState className="py-2">در حال بارگذاری بدهی…</LoadingState>;
   }
   if (debt.isError) {
     return <Alert variant="destructive">{errorMessage(debt.error)}</Alert>;

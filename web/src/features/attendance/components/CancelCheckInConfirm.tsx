@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -158,7 +159,7 @@ export function CancelCheckInConfirm({
       </DialogHeader>
 
       {inside.isPending && (
-        <p className="text-sm text-muted-foreground">در حال بارگذاری خریدهای این مراجعه…</p>
+        <LoadingState className="py-2">در حال بارگذاری خریدهای این مراجعه…</LoadingState>
       )}
       {inside.isError && (
         // Sending with nothing ticked is still safe: every purchase stays on the account.

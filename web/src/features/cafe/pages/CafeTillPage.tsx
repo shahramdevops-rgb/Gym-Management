@@ -1,7 +1,10 @@
+import { ClipboardList, ReceiptText } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
+import { PageHeader } from "@/components/PageHeader";
+import { LoadingState } from "@/components/States";
 import { FormField, MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -190,18 +193,27 @@ export function CafeTillPage() {
       : "";
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">بوفه</h2>
-        <div className="flex gap-2">
-          <Button asChild size="sm" variant="outline">
-            <Link to={paths.cafeOrders}>سفارش‌ها</Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link to={paths.cafeMenu}>منوی بوفه</Link>
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="بوفه"
+        description="فروش از منوی بوفه به اعضا و مشتریان."
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link to={paths.cafeOrders}>
+                <ReceiptText aria-hidden />
+                سفارش‌ها
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to={paths.cafeMenu}>
+                <ClipboardList aria-hidden />
+                منوی بوفه
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {notice !== null && (
         <Alert variant={notice.kind} role={notice.kind === "success" ? "status" : "alert"}>
@@ -212,7 +224,7 @@ export function CafeTillPage() {
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_24rem]">
         <Card>
           <CardContent>
-            {products.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+            {products.isPending && <LoadingState />}
             {products.isError && (
               <Alert variant="destructive">{errorMessage(products.error)}</Alert>
             )}
@@ -251,7 +263,7 @@ export function CafeTillPage() {
               <Alert variant="destructive">این مهمان دیگر داخل باشگاه نیست.</Alert>
             )}
             {memberId !== "" && member.isPending && (
-              <p className="text-sm text-muted-foreground">در حال بارگذاری عضو…</p>
+              <LoadingState className="py-2">در حال بارگذاری عضو…</LoadingState>
             )}
             {memberId !== "" && member.isError && (
               <Alert variant="destructive">{errorMessage(member.error)}</Alert>

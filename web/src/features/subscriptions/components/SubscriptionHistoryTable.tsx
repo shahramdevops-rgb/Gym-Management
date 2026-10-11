@@ -1,3 +1,4 @@
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Subscription } from "../api";
 import { isQueuedBehindAnother } from "../queue";
 import { SubscriptionHistoryRow } from "./SubscriptionHistoryRow";
@@ -20,34 +21,32 @@ export function SubscriptionHistoryTable({
   onActionDone,
 }: SubscriptionHistoryTableProps) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">پلن</th>
-            <th className="py-2 text-start font-medium">تاریخ فروش</th>
-            <th className="py-2 text-start font-medium">شروع</th>
-            <th className="py-2 text-start font-medium">پایان</th>
-            <th className="py-2 text-start font-medium">جلسات</th>
-            <th className="py-2 text-start font-medium">وضعیت</th>
-            <th className="py-2 text-start font-medium">پرداخت</th>
-            <th className="py-2 text-start font-medium">
-              <span className="sr-only">عملیات</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {subscriptions.map((subscription) => (
-            <SubscriptionHistoryRow
-              key={subscription.id}
-              subscription={subscription}
-              queued={isQueuedBehindAnother(subscription, subscriptions)}
-              isOwner={isOwner}
-              onDone={onActionDone}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>پلن</TableHead>
+          <TableHead>تاریخ فروش</TableHead>
+          <TableHead>شروع</TableHead>
+          <TableHead>پایان</TableHead>
+          <TableHead>جلسات</TableHead>
+          <TableHead>وضعیت</TableHead>
+          <TableHead>پرداخت</TableHead>
+          <TableHead>
+            <span className="sr-only">عملیات</span>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {subscriptions.map((subscription) => (
+          <SubscriptionHistoryRow
+            key={subscription.id}
+            subscription={subscription}
+            queued={isQueuedBehindAnother(subscription, subscriptions)}
+            isOwner={isOwner}
+            onDone={onActionDone}
+          />
+        ))}
+      </TableBody>
+    </Table>
   );
 }

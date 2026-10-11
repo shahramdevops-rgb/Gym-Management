@@ -3,6 +3,14 @@ import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { emptyValue, formatDateTime } from "@/lib/format";
 
 import type { AuditLog } from "../api";
@@ -27,32 +35,30 @@ interface AuditLogTableProps {
 /** The audit log's rows, the latest first, as the API sends them (BUSINESS_RULES.md §11). */
 export function AuditLogTable({ rows, userNames, onMember, onRecord }: AuditLogTableProps) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">زمان</th>
-            <th className="py-2 text-start font-medium">کاربر</th>
-            <th className="py-2 text-start font-medium">تغییر</th>
-            <th className="py-2 text-start font-medium">مربوط به</th>
-            <th className="py-2 text-start font-medium">
-              <span className="sr-only">جزئیات</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <AuditLogRow
-              key={row.id}
-              row={row}
-              userNames={userNames}
-              onMember={onMember}
-              onRecord={onRecord}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>زمان</TableHead>
+          <TableHead>کاربر</TableHead>
+          <TableHead>تغییر</TableHead>
+          <TableHead>مربوط به</TableHead>
+          <TableHead>
+            <span className="sr-only">جزئیات</span>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => (
+          <AuditLogRow
+            key={row.id}
+            row={row}
+            userNames={userNames}
+            onMember={onMember}
+            onRecord={onRecord}
+          />
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -76,23 +82,23 @@ function AuditLogRow({ row, userNames, onMember, onRecord }: AuditLogRowProps) {
 
   return (
     <>
-      <tr className="border-b align-top">
-        <td className="py-2 whitespace-nowrap">{formatDateTime(row.occurredAt)}</td>
-        <td className="py-2">
+      <TableRow className="align-top">
+        <TableCell className="whitespace-nowrap">{formatDateTime(row.occurredAt)}</TableCell>
+        <TableCell>
           <p>{who}</p>
           {row.ipAddress !== null && (
             <p className="text-xs text-muted-foreground" dir="ltr">
               {row.ipAddress}
             </p>
           )}
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           <span className="flex flex-wrap items-center gap-2">
             <Badge variant={actionBadges[row.action]}>{auditActionLabels[row.action]}</Badge>
             <span>{entityLabel(row.entityType)}</span>
           </span>
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           {memberId !== null && row.memberFullName !== null ? (
             <button
               type="button"
@@ -105,8 +111,8 @@ function AuditLogRow({ row, userNames, onMember, onRecord }: AuditLogRowProps) {
           ) : (
             <span className="text-muted-foreground">{emptyValue}</span>
           )}
-        </td>
-        <td className="py-2 text-end">
+        </TableCell>
+        <TableCell className="text-end">
           <Button
             size="sm"
             variant="ghost"
@@ -117,48 +123,50 @@ function AuditLogRow({ row, userNames, onMember, onRecord }: AuditLogRowProps) {
             {open ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}
             جزئیات
           </Button>
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {open && (
-        <tr className="border-b bg-muted/30">
-          <td colSpan={columns} className="space-y-3 py-3">
+        <TableRow className="bg-muted/30">
+          <TableCell colSpan={columns} className="space-y-3 py-3">
             {changes.length === 0 ? (
               <p className="text-sm text-muted-foreground">جزئیات دیگری ثبت نشده است.</p>
             ) : (
-              <table className="w-full text-sm" aria-label={`فیلدهای ${what}`}>
-                <thead>
-                  <tr className="text-muted-foreground">
-                    <th className="pb-1 text-start font-medium">فیلد</th>
+              <Table aria-label={`فیلدهای ${what}`}>
+                <TableHeader>
+                  <TableRow className="text-muted-foreground">
+                    <TableHead className="pb-1 text-start font-medium">فیلد</TableHead>
                     {row.action === "Update" ? (
                       <>
-                        <th className="pb-1 text-start font-medium">قبل</th>
-                        <th className="pb-1 text-start font-medium">بعد</th>
+                        <TableHead className="pb-1 text-start font-medium">قبل</TableHead>
+                        <TableHead className="pb-1 text-start font-medium">بعد</TableHead>
                       </>
                     ) : (
-                      <th className="pb-1 text-start font-medium">
+                      <TableHead className="pb-1 text-start font-medium">
                         {row.action === "Insert" ? "مقدار" : "مقدار پیش از حذف"}
-                      </th>
+                      </TableHead>
                     )}
-                  </tr>
-                </thead>
-                <tbody>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {changes.map((change) => (
-                    <tr key={change.field}>
-                      <td className="py-1 pe-3 text-muted-foreground">{change.label}</td>
+                    <TableRow key={change.field}>
+                      <TableCell className="py-1 pe-3 text-muted-foreground">
+                        {change.label}
+                      </TableCell>
                       {row.action === "Update" ? (
                         <>
-                          <td className="py-1 pe-3">{change.before}</td>
-                          <td className="py-1 font-medium">{change.after}</td>
+                          <TableCell className="py-1 pe-3">{change.before}</TableCell>
+                          <TableCell className="py-1 font-medium">{change.after}</TableCell>
                         </>
                       ) : (
-                        <td className="py-1">
+                        <TableCell className="py-1">
                           {row.action === "Insert" ? change.after : change.before}
-                        </td>
+                        </TableCell>
                       )}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
             <Button
               size="sm"
@@ -167,8 +175,8 @@ function AuditLogRow({ row, userNames, onMember, onRecord }: AuditLogRowProps) {
             >
               همهٔ تغییرهای این {entityLabel(row.entityType)}
             </Button>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
     </>
   );

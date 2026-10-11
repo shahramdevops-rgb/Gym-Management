@@ -2765,7 +2765,28 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
 - [ ] Touch targets, and the Jalali date picker and MoneyField on a real phone keyboard
 
 ### 13.2 One visual language
-- [ ] Colour, typography and spacing tokens; every screen built from the same components
+Split into four sessions with the developer on 1405/07/19 (2026-10-11), in this order: (a) the
+foundation and the frame, every page on the shared components; (b) the coloured dashboard; (c) the
+edit forms' save behaviour; (d) the font and figures, a last look at every screen in both themes,
+new README screenshots. The brand colour, chosen by the developer the same day: a deeper blue, kept
+apart from the green (free, paid, profit) and the red (held, debt, loss) that mean something on
+every screen, rather than the gym's green or a neutral black.
+
+- [x] **13.2a Foundation and frame** (1405/07/19). Tokens in `index.css` for both themes: a cool
+      off-white page with white cards, greys leaning to the brand blue, the deep blue brand
+      (`--primary`), `--sidebar`, three shadows (`shadow-card`, `shadow-raised`, `shadow-overlay`),
+      a larger radius, a dialog that fades in (not for anyone who asked for less motion). The frame:
+      a sticky header with the gym's logo on the brand blue, «مدیریت باشگاه» and «باشگاه پاسارگاد»,
+      the user's initial; the side menu in five titled groups (پذیرش، فروش بوفه، مالی، مدیریت، حساب
+      و سیستم) in the order it always had, sticky beside the page; compact enough (rows 32px, the
+      clock on one row) that the whole menu fits a 900px-tall screen with no scrollbar (asked by
+      the developer). A window under 820px packs it tighter (the `short:` variant, rows 28px), so
+      a small laptop or a zoomed page still fits it; one shorter still shows a thin scrollbar
+      beside the menu (hiding the bar was tried and dropped: nothing showed there was more below). Shared components: `PageHeader`
+      on every page (title, a line on what the page is for, its buttons), `Table` for all eighteen
+      lists, `LoadingState`, `EmptyState`, and `Alert` with an icon per kind. The locker map's look
+      (§6) is untouched. No package added, no API change
+- [x] Colour, typography and spacing tokens; every screen built from the same components (13.2a)
 - [ ] The dashboard: bring back its coloured design from the tag `dashboard-colour-v1`, as it is,
       not redesigned (`docs/design/dashboard-colour.md`)
 - [x] Decide whether the whole app gets a dark theme: yes, as a switch in the header, light by

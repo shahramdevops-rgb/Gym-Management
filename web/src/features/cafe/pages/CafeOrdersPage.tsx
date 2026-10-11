@@ -1,7 +1,10 @@
+import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, LoadingState } from "@/components/States";
 import { JalaliCalendarField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
@@ -47,13 +50,19 @@ export function CafeOrdersPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">سفارش‌های بوفه</h2>
-        <Button asChild size="sm">
-          <Link to={paths.cafe}>بازگشت به بوفه</Link>
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="سفارش‌های بوفه"
+        description="همهٔ سفارش‌های ثبت‌شدهٔ بوفه."
+        actions={
+          <Button asChild variant="outline">
+            <Link to={paths.cafe}>
+              <ArrowRight aria-hidden />
+              بازگشت به بوفه
+            </Link>
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -98,16 +107,16 @@ export function CafeOrdersPage() {
 
           {rangeIsValid && (
             <>
-              {orders.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+              {orders.isPending && <LoadingState />}
               {orders.isError && <Alert variant="destructive">{errorMessage(orders.error)}</Alert>}
               {orders.isSuccess && orders.data.items.length === 0 && (
-                <p className="text-muted-foreground">
+                <EmptyState>
                   {unpaidGuest
                     ? "سفارش پرداخت‌نشده‌ای از مهمان‌ها نمانده است."
                     : from === undefined && to === undefined
                       ? "هنوز سفارشی ثبت نشده است."
                       : "در این بازه سفارشی ثبت نشده است."}
-                </p>
+                </EmptyState>
               )}
               {orders.isSuccess && orders.data.items.length > 0 && (
                 <>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 
 import { paths } from "@/app/paths";
+import { LoadingState } from "@/components/States";
 import { PageMessage } from "@/features/auth/components/PageMessage";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,7 @@ export function MemberProfilePage() {
           <CardTitle>ورود و خروج</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {history.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+          {history.isPending && <LoadingState />}
           {history.isError && <Alert variant="destructive">{errorMessage(history.error)}</Alert>}
 
           {history.isSuccess &&

@@ -1,5 +1,7 @@
 import { useSearchParams } from "react-router";
 
+import { PageHeader } from "@/components/PageHeader";
+import { LoadingState } from "@/components/States";
 import { JalaliCalendarField, SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
@@ -237,9 +239,9 @@ export function HistoryPage() {
           : sales;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* No link to «سفارش‌های بوفه» here: the menu and the cafe till already have one. */}
-      <h2 className="text-xl font-bold">تاریخچه</h2>
+      <PageHeader title="تاریخچه" description="سابقهٔ کارهای ثبت‌شده در باشگاه، بخش به بخش." />
 
       <Card>
         <CardContent className="space-y-4">
@@ -345,7 +347,7 @@ export function HistoryPage() {
 
           {canAsk && (
             <>
-              {active.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+              {active.isPending && <LoadingState />}
               {active.isError && <Alert variant="destructive">{errorMessage(active.error)}</Alert>}
               {active.isSuccess && (
                 <p className="text-sm text-muted-foreground">

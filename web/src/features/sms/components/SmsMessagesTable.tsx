@@ -3,6 +3,14 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { errorMessage } from "@/lib/errors";
 import {
   emptyValue,
@@ -31,25 +39,23 @@ interface SmsMessagesTableProps {
 /** The SMS history's rows, the latest first, as the API sends them (BUSINESS_RULES.md §10). */
 export function SmsMessagesTable({ messages, onDone }: SmsMessagesTableProps) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">زمان</th>
-            <th className="py-2 text-start font-medium">نوع</th>
-            <th className="py-2 text-start font-medium">گیرنده</th>
-            <th className="py-2 text-start font-medium">وضعیت</th>
-            <th className="py-2 text-start font-medium">هزینه</th>
-            <th className="py-2 text-start font-medium">عملیات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {messages.map((message) => (
-            <SmsMessageRow key={message.id} message={message} onDone={onDone} />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>زمان</TableHead>
+          <TableHead>نوع</TableHead>
+          <TableHead>گیرنده</TableHead>
+          <TableHead>وضعیت</TableHead>
+          <TableHead>هزینه</TableHead>
+          <TableHead>عملیات</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {messages.map((message) => (
+          <SmsMessageRow key={message.id} message={message} onDone={onDone} />
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -94,19 +100,19 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
 
   return (
     <>
-      <tr className="border-b align-top">
-        <td className="py-2 whitespace-nowrap">{formatDateTime(message.createdAt)}</td>
-        <td className="py-2">
+      <TableRow className="align-top">
+        <TableCell className="whitespace-nowrap">{formatDateTime(message.createdAt)}</TableCell>
+        <TableCell>
           <p>{smsKindLabels[message.kind]}</p>
           <p className="text-xs text-muted-foreground">{message.text}</p>
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           <p>{recipient}</p>
           <p className="text-xs text-muted-foreground" dir="ltr">
             {formatPhone(message.recipient)}
           </p>
-        </td>
-        <td className="py-2 space-y-1">
+        </TableCell>
+        <TableCell className="space-y-1">
           <Badge variant={statusBadges[message.status]}>{smsStatusLabels[message.status]}</Badge>
           {message.delivery !== null && (
             <p className="text-xs text-muted-foreground">{smsDeliveryLabels[message.delivery]}</p>
@@ -117,14 +123,14 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
               {toPersianDigits(message.attempts)} بار تلاش
             </p>
           )}
-        </td>
-        <td className="py-2 space-y-1">
+        </TableCell>
+        <TableCell className="space-y-1">
           <p>{message.costToman === null ? emptyValue : formatMoney(message.costToman)}</p>
           {isRefunded(message.delivery) && (
             <p className="text-xs text-muted-foreground">هزینه برگشت داده شد</p>
           )}
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           {canResend && (
             <Button
               size="sm"
@@ -138,11 +144,11 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
               ارسال دوباره
             </Button>
           )}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {confirming && (
-        <tr className="border-b bg-muted/30">
-          <td colSpan={columns} className="space-y-2 py-2">
+        <TableRow className="bg-muted/30">
+          <TableCell colSpan={columns} className="space-y-2 py-2">
             {message.status === "Unknown" ? (
               <Alert variant="destructive">
                 معلوم نیست این پیامک رسیده یا نه: ممکن است رسیده باشد. با ارسال دوباره ممکن است
@@ -167,8 +173,8 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
                 انصراف
               </Button>
             </div>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
     </>
   );

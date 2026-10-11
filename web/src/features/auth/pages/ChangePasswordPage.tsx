@@ -2,9 +2,10 @@ import { useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router";
 
 import { paths } from "@/app/paths";
+import { PageHeader } from "@/components/PageHeader";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 
 import { useChangePassword } from "../api";
@@ -52,51 +53,53 @@ export function ChangePasswordPage() {
   const newPassword = useWatch({ control: form.control, name: "newPassword" });
 
   return (
-    <Card className="max-w-md">
-      <CardHeader>
-        <CardTitle role="heading" aria-level={2}>
-          تغییر رمز عبور
-        </CardTitle>
-        <CardDescription>
-          {mustChange
-            ? "رمز عبور فعلی شما موقت است یا با قوانین تازهٔ امنیتی جور نیست. برای ادامه، رمز عبور تازه‌ای انتخاب کنید."
-            : "رمز عبور تازه‌ای انتخاب کنید."}{" "}
-          یک جملهٔ کوتاه انگلیسی، مثل my gym opens at 6، رمز خوب و به‌یادماندنی است.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form className="space-y-4" onSubmit={onSubmit} noValidate>
-          {errors.root?.server !== undefined && (
-            <Alert variant="destructive">{errors.root.server.message}</Alert>
-          )}
+    <div className="max-w-md space-y-6">
+      <PageHeader
+        title="تغییر رمز عبور"
+        description={
+          <>
+            {mustChange
+              ? "رمز عبور فعلی شما موقت است یا با قوانین تازهٔ امنیتی جور نیست. برای ادامه، رمز عبور تازه‌ای انتخاب کنید."
+              : "رمز عبور تازه‌ای انتخاب کنید."}{" "}
+            یک جملهٔ کوتاه انگلیسی، مثل my gym opens at 6، رمز خوب و به‌یادماندنی است.
+          </>
+        }
+      />
+      <Card>
+        <CardContent>
+          <form className="space-y-4" onSubmit={onSubmit} noValidate>
+            {errors.root?.server !== undefined && (
+              <Alert variant="destructive">{errors.root.server.message}</Alert>
+            )}
 
-          <PasswordField
-            label="رمز عبور فعلی"
-            autoComplete="current-password"
-            error={errors.currentPassword?.message}
-            {...form.register("currentPassword")}
-          />
+            <PasswordField
+              label="رمز عبور فعلی"
+              autoComplete="current-password"
+              error={errors.currentPassword?.message}
+              {...form.register("currentPassword")}
+            />
 
-          <PasswordField
-            label="رمز عبور جدید"
-            autoComplete="new-password"
-            error={errors.newPassword?.message}
-            {...form.register("newPassword")}
-          />
-          <PasswordChecklist value={newPassword} userName={userName} />
+            <PasswordField
+              label="رمز عبور جدید"
+              autoComplete="new-password"
+              error={errors.newPassword?.message}
+              {...form.register("newPassword")}
+            />
+            <PasswordChecklist value={newPassword} userName={userName} />
 
-          <PasswordField
-            label="تکرار رمز عبور جدید"
-            autoComplete="new-password"
-            error={errors.confirmPassword?.message}
-            {...form.register("confirmPassword")}
-          />
+            <PasswordField
+              label="تکرار رمز عبور جدید"
+              autoComplete="new-password"
+              error={errors.confirmPassword?.message}
+              {...form.register("confirmPassword")}
+            />
 
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "در حال ذخیره…" : "ذخیرهٔ رمز عبور"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "در حال ذخیره…" : "ذخیرهٔ رمز عبور"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

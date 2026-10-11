@@ -2,6 +2,14 @@ import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -20,30 +28,23 @@ interface ExpensesTableProps {
 /** Expenses newest first, as the API sends them; voided ones stay in the list, marked (§9). */
 export function ExpensesTable({ expenses, categories, onDone }: ExpensesTableProps) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">تاریخ</th>
-            <th className="py-2 text-start font-medium">دسته‌بندی</th>
-            <th className="py-2 text-start font-medium">شرح</th>
-            <th className="py-2 text-start font-medium">مبلغ</th>
-            <th className="py-2 text-start font-medium">وضعیت</th>
-            <th className="py-2 text-start font-medium">عملیات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {expenses.map((expense) => (
-            <ExpenseRow
-              key={expense.id}
-              expense={expense}
-              categories={categories}
-              onDone={onDone}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>تاریخ</TableHead>
+          <TableHead>دسته‌بندی</TableHead>
+          <TableHead>شرح</TableHead>
+          <TableHead>مبلغ</TableHead>
+          <TableHead>وضعیت</TableHead>
+          <TableHead>عملیات</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {expenses.map((expense) => (
+          <ExpenseRow key={expense.id} expense={expense} categories={categories} onDone={onDone} />
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -77,19 +78,19 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
 
   return (
     <>
-      <tr className={cn("border-b align-top", expense.isVoided && "text-muted-foreground")}>
-        <td className="py-2">{formatDate(expense.expenseDate)}</td>
-        <td className="py-2">{expense.categoryName}</td>
-        <td className="py-2">
+      <TableRow className={cn("align-top", expense.isVoided && "text-muted-foreground")}>
+        <TableCell>{formatDate(expense.expenseDate)}</TableCell>
+        <TableCell>{expense.categoryName}</TableCell>
+        <TableCell>
           <p className="whitespace-pre-line">{expense.description}</p>
           {expense.referenceNumber !== null && (
             <p className="text-xs text-muted-foreground">مرجع: {expense.referenceNumber}</p>
           )}
-        </td>
-        <td className={cn("py-2", expense.isVoided && "line-through")}>
+        </TableCell>
+        <TableCell className={cn("", expense.isVoided && "line-through")}>
           {formatMoney(expense.amount)}
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           {expense.payableId !== null && <Badge variant="outline">از چک و قسط</Badge>}
           {expense.isVoided && (
             <div className="space-y-1">
@@ -99,8 +100,8 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
               </p>
             </div>
           )}
-        </td>
-        <td className="py-2">
+        </TableCell>
+        <TableCell>
           {/* Paying a cheque or an instalment wrote it; it changes only from «چک و قسط» (§9). */}
           {!expense.isVoided && expense.payableId === null && (
             <div className="flex flex-wrap gap-1">
@@ -122,11 +123,11 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
               </Button>
             </div>
           )}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {action !== null && (
-        <tr className="border-b bg-muted/30">
-          <td colSpan={columns} className="space-y-2 py-2">
+        <TableRow className="bg-muted/30">
+          <TableCell colSpan={columns} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">برای {context}</p>
             {action === "edit" && (
               <ExpenseForm
@@ -158,8 +159,8 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
                 onCancel={() => setAction(null)}
               />
             )}
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
     </>
   );

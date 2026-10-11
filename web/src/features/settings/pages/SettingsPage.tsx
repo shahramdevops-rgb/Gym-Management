@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { PageMessage } from "@/features/auth/components/PageMessage";
+import { PageHeader } from "@/components/PageHeader";
 import { MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { normalizeMoney } from "@/lib/money";
@@ -58,45 +59,49 @@ export function SettingsPage() {
   }
 
   return (
-    <Card className="max-w-2xl">
-      <CardHeader>
-        <CardTitle>تنظیمات قیمت</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          قیمت هر پلن برابر است با تعداد جلسات ضرب در «قیمت هر جلسه»؛ تعداد روزها روی قیمت اثری
-          ندارد. تغییر قیمت‌ها فقط روی فروش‌های بعدی اثر دارد و اشتراک‌هایی که قبلاً فروخته شده‌اند
-          همان قیمت خودشان را نگه می‌دارند.
-        </p>
+    <div className="max-w-2xl space-y-6">
+      <PageHeader title="تنظیمات قیمت" />
+      <Card>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            قیمت هر پلن برابر است با تعداد جلسات ضرب در «قیمت هر جلسه»؛ تعداد روزها روی قیمت اثری
+            ندارد. تغییر قیمت‌ها فقط روی فروش‌های بعدی اثر دارد و اشتراک‌هایی که قبلاً فروخته
+            شده‌اند همان قیمت خودشان را نگه می‌دارند.
+          </p>
 
-        {stale && (
-          <Alert
-            variant="destructive"
-            className="flex flex-wrap items-center justify-between gap-3"
-          >
-            <span>{errorMessage({ code: changedConcurrently })}</span>
-            <Button size="sm" variant="outline" disabled={reloading} onClick={() => void reload()}>
-              بارگذاری اطلاعات تازه
-            </Button>
-          </Alert>
-        )}
+          {stale && (
+            <Alert variant="destructive">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>{errorMessage({ code: changedConcurrently })}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={reloading}
+                  onClick={() => void reload()}
+                >
+                  بارگذاری اطلاعات تازه
+                </Button>
+              </div>
+            </Alert>
+          )}
 
-        {saved && (
-          <Alert variant="success" role="status">
-            قیمت‌ها ذخیره شد.
-          </Alert>
-        )}
+          {saved && (
+            <Alert variant="success" role="status">
+              قیمت‌ها ذخیره شد.
+            </Alert>
+          )}
 
-        {/* Keyed by version, so fresh prices rebuild the form with their values. */}
-        <PricesForm
-          key={String(prices.data.version)}
-          current={prices.data}
-          onSaving={() => setSaved(false)}
-          onSaved={() => setSaved(true)}
-          onStale={() => setStale(true)}
-        />
-      </CardContent>
-    </Card>
+          {/* Keyed by version, so fresh prices rebuild the form with their values. */}
+          <PricesForm
+            key={String(prices.data.version)}
+            current={prices.data}
+            onSaving={() => setSaved(false)}
+            onSaved={() => setSaved(true)}
+            onStale={() => setStale(true)}
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

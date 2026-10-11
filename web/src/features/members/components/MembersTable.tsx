@@ -4,6 +4,14 @@ import { paths } from "@/app/paths";
 import { SessionsBar } from "@/components/SessionsBar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { lowSessionsThreshold } from "@/features/attendance/renewal";
 import { emptyValue, formatMoney, formatPhone, toPersianDigits } from "@/lib/format";
 import { isPositiveMoney } from "@/lib/money";
@@ -30,65 +38,63 @@ interface MembersTableProps {
  */
 export function MembersTable({ members, deskActions }: MembersTableProps) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">نام</th>
-            <th className="py-2 text-start font-medium">موبایل</th>
-            <th className="py-2 text-start font-medium">جلسات</th>
-            <th className="py-2 text-start font-medium">بدهی</th>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>نام</TableHead>
+          <TableHead>موبایل</TableHead>
+          <TableHead>جلسات</TableHead>
+          <TableHead>بدهی</TableHead>
+          {deskActions !== undefined && (
+            <TableHead>
+              <span className="sr-only">عملیات</span>
+            </TableHead>
+          )}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {members.map((member) => (
+          <TableRow key={member.id}>
+            <TableCell>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Link
+                  to={paths.member(member.id)}
+                  className="font-medium underline-offset-4 hover:underline"
+                >
+                  {member.fullName}
+                </Link>
+                {/* BUSINESS_RULES.md §2: their latest visit was a single visit. */}
+                {member.lastVisitWasSingleSession && (
+                  <Badge variant="outline" className="border-destructive text-destructive">
+                    تک‌جلسه
+                  </Badge>
+                )}
+                {/* BUSINESS_RULES.md §2: the plan is over and nothing was bought after it. */}
+                {member.planEnded && (
+                  <Badge variant="outline" className="border-warning text-warning">
+                    پلن تمام‌شده
+                  </Badge>
+                )}
+              </div>
+            </TableCell>
+            <TableCell>
+              <PhoneNumber value={member.phoneNumber} />
+            </TableCell>
+            <TableCell>
+              <PlanSessions plan={member.plan ?? null} />
+            </TableCell>
+            <TableCell>
+              <MemberDebt value={member.debt} />
+            </TableCell>
             {deskActions !== undefined && (
-              <th className="py-2 text-start font-medium">
-                <span className="sr-only">عملیات</span>
-              </th>
+              <TableCell>
+                <DeskButtons member={member} {...deskActions} />
+              </TableCell>
             )}
-          </tr>
-        </thead>
-        <tbody>
-          {members.map((member) => (
-            <tr key={member.id} className="border-b">
-              <td className="py-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Link
-                    to={paths.member(member.id)}
-                    className="font-medium underline-offset-4 hover:underline"
-                  >
-                    {member.fullName}
-                  </Link>
-                  {/* BUSINESS_RULES.md §2: their latest visit was a single visit. */}
-                  {member.lastVisitWasSingleSession && (
-                    <Badge variant="outline" className="border-destructive text-destructive">
-                      تک‌جلسه
-                    </Badge>
-                  )}
-                  {/* BUSINESS_RULES.md §2: the plan is over and nothing was bought after it. */}
-                  {member.planEnded && (
-                    <Badge variant="outline" className="border-warning text-warning">
-                      پلن تمام‌شده
-                    </Badge>
-                  )}
-                </div>
-              </td>
-              <td className="py-2">
-                <PhoneNumber value={member.phoneNumber} />
-              </td>
-              <td className="py-2">
-                <PlanSessions plan={member.plan ?? null} />
-              </td>
-              <td className="py-2">
-                <MemberDebt value={member.debt} />
-              </td>
-              {deskActions !== undefined && (
-                <td className="py-2">
-                  <DeskButtons member={member} {...deskActions} />
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 

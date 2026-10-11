@@ -2,10 +2,11 @@ import { useState, type ReactNode } from "react";
 import { Controller, useForm, useWatch, type UseFormReturn } from "react-hook-form";
 
 import { PageMessage } from "@/features/auth/components/PageMessage";
+import { PageHeader } from "@/components/PageHeader";
 import { FormField, SelectField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
@@ -105,53 +106,52 @@ export function SmsSettingsPage() {
   }
 
   return (
-    <Card className="max-w-3xl">
-      <CardHeader>
-        <CardTitle>تنظیمات پیامک</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          هر پیامک هزینه دارد. تا وقتی شما نوعی را روشن نکنید، هیچ پیامکی فرستاده نمی‌شود. تغییرها
-          از اجرای بعدی اعمال می‌شوند و به کسی که پیامکش را گرفته دوباره فرستاده نمی‌شود. متن
-          پیامک‌ها در پنل کاوه‌نگار نوشته و تأیید می‌شود؛ اینجا فقط نام قالب آن وارد می‌شود.
-        </p>
+    <div className="max-w-3xl space-y-6">
+      <PageHeader title="تنظیمات پیامک" />
+      <Card>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            هر پیامک هزینه دارد. تا وقتی شما نوعی را روشن نکنید، هیچ پیامکی فرستاده نمی‌شود. تغییرها
+            از اجرای بعدی اعمال می‌شوند و به کسی که پیامکش را گرفته دوباره فرستاده نمی‌شود. متن
+            پیامک‌ها در پنل کاوه‌نگار نوشته و تأیید می‌شود؛ اینجا فقط نام قالب آن وارد می‌شود.
+          </p>
 
-        <SmsCreditLine />
+          <SmsCreditLine />
 
-        {/* Keyed by version, so fresh settings rebuild the form with their values. */}
-        <SmsSettingsForm
-          key={String(settings.data.version)}
-          current={settings.data}
-          onNotice={setNotice}
-          onStale={() => setStale(true)}
-          status={
-            stale ? (
-              <Alert
-                variant="destructive"
-                className="flex flex-wrap items-center justify-between gap-3"
-              >
-                <span>{errorMessage({ code: changedConcurrently })}</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={reloading}
-                  onClick={() => void reload()}
-                >
-                  بارگذاری اطلاعات تازه
-                </Button>
-              </Alert>
-            ) : notice === "saved" ? (
-              <Alert variant="success" role="status">
-                تغییرها ثبت شد.
-              </Alert>
-            ) : notice === "unchanged" ? (
-              <Alert role="status">تغییری نداده‌اید؛ چیزی ذخیره نشد.</Alert>
-            ) : null
-          }
-        />
-      </CardContent>
-    </Card>
+          {/* Keyed by version, so fresh settings rebuild the form with their values. */}
+          <SmsSettingsForm
+            key={String(settings.data.version)}
+            current={settings.data}
+            onNotice={setNotice}
+            onStale={() => setStale(true)}
+            status={
+              stale ? (
+                <Alert variant="destructive">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span>{errorMessage({ code: changedConcurrently })}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={reloading}
+                      onClick={() => void reload()}
+                    >
+                      بارگذاری اطلاعات تازه
+                    </Button>
+                  </div>
+                </Alert>
+              ) : notice === "saved" ? (
+                <Alert variant="success" role="status">
+                  تغییرها ثبت شد.
+                </Alert>
+              ) : notice === "unchanged" ? (
+                <Alert role="status">تغییری نداده‌اید؛ چیزی ذخیره نشد.</Alert>
+              ) : null
+            }
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

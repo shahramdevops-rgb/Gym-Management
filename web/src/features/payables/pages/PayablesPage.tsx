@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, LoadingState } from "@/components/States";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -88,21 +90,24 @@ export function PayablesPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">چک و قسط</h2>
-        {!adding && (
-          <Button
-            size="sm"
-            onClick={() => {
-              setNotice(null);
-              setAdding(true);
-            }}
-          >
-            ثبت چک یا قسط
-          </Button>
-        )}
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="چک و قسط"
+        description="چک‌ها و قسط‌هایی که باشگاه باید بپردازد."
+        actions={
+          !adding && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setNotice(null);
+                setAdding(true);
+              }}
+            >
+              ثبت چک یا قسط
+            </Button>
+          )
+        }
+      />
 
       {adding && (
         <Card>
@@ -176,7 +181,7 @@ export function PayablesPage() {
             </Alert>
           )}
 
-          {payables.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+          {payables.isPending && <LoadingState />}
           {payables.isError && <Alert variant="destructive">{errorMessage(payables.error)}</Alert>}
           {payables.isSuccess && (
             <div className="space-y-2 rounded-md border bg-muted/30 p-3">
@@ -207,7 +212,7 @@ export function PayablesPage() {
             </div>
           )}
           {payables.isSuccess && payables.data.items.length === 0 && (
-            <p className="text-muted-foreground">{emptyMessages[tab]}</p>
+            <EmptyState>{emptyMessages[tab]}</EmptyState>
           )}
           {payables.isSuccess && payables.data.items.length > 0 && (
             <>

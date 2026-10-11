@@ -2,6 +2,8 @@ import { X } from "lucide-react";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router";
 
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, LoadingState } from "@/components/States";
 import { JalaliCalendarField, SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
@@ -116,8 +118,11 @@ export function AuditLogsPage() {
   );
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold">گزارش تغییرات</h2>
+    <div className="space-y-6">
+      <PageHeader
+        title="گزارش تغییرات"
+        description="چه کسی، کی و چه چیزی را در سیستم تغییر داده است."
+      />
 
       <Card>
         <CardHeader>
@@ -213,10 +218,10 @@ export function AuditLogsPage() {
 
           {rangeIsValid && (
             <>
-              {logs.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+              {logs.isPending && <LoadingState />}
               {logs.isError && <Alert variant="destructive">{errorMessage(logs.error)}</Alert>}
               {logs.isSuccess && logs.data.items.length === 0 && (
-                <p className="text-muted-foreground">تغییری با این فیلتر نیست.</p>
+                <EmptyState>تغییری با این فیلتر نیست.</EmptyState>
               )}
               {logs.isSuccess && logs.data.items.length > 0 && (
                 <>

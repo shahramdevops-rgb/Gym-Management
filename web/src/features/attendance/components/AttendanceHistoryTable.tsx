@@ -1,4 +1,12 @@
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
 import { emptyValue, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 
@@ -8,44 +16,42 @@ import { cardioOnlyLabel } from "../holder";
 /** A member's own visits, most recent first: cancelled and auto-closed ones included, marked. */
 export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="py-2 text-start font-medium">ورود</th>
-            <th className="py-2 text-start font-medium">خروج</th>
-            <th className="py-2 text-start font-medium">کمد</th>
-            <th className="py-2 text-start font-medium">هوازی</th>
-            <th className="py-2 text-start font-medium">وضعیت</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.id} className="border-b">
-              <td className="py-2">{formatDateTime(item.checkedInAt)}</td>
-              <td className="py-2">{formatDateTime(item.checkedOutAt)}</td>
-              <td className="py-2">
-                {item.lockerNumber === null ? emptyValue : toPersianDigits(item.lockerNumber)}
-              </td>
-              <td className="py-2">
-                <CardioCell item={item} />
-              </td>
-              <td className="py-2">
-                <span className="flex flex-wrap items-center gap-2">
-                  <AttendanceStatusBadge item={item} />
-                  {/* No session was consumed (BUSINESS_RULES.md §7 *Cardio-only visit*). */}
-                  {item.isCardioOnly && (
-                    <Badge variant="outline" className="border-cardio">
-                      {cardioOnlyLabel}
-                    </Badge>
-                  )}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>ورود</TableHead>
+          <TableHead>خروج</TableHead>
+          <TableHead>کمد</TableHead>
+          <TableHead>هوازی</TableHead>
+          <TableHead>وضعیت</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow key={item.id}>
+            <TableCell>{formatDateTime(item.checkedInAt)}</TableCell>
+            <TableCell>{formatDateTime(item.checkedOutAt)}</TableCell>
+            <TableCell>
+              {item.lockerNumber === null ? emptyValue : toPersianDigits(item.lockerNumber)}
+            </TableCell>
+            <TableCell>
+              <CardioCell item={item} />
+            </TableCell>
+            <TableCell>
+              <span className="flex flex-wrap items-center gap-2">
+                <AttendanceStatusBadge item={item} />
+                {/* No session was consumed (BUSINESS_RULES.md §7 *Cardio-only visit*). */}
+                {item.isCardioOnly && (
+                  <Badge variant="outline" className="border-cardio">
+                    {cardioOnlyLabel}
+                  </Badge>
+                )}
+              </span>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 

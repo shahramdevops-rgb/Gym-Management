@@ -11,8 +11,11 @@ export function SidebarClock() {
   const now = useNow(1_000);
 
   return (
-    <div data-testid="sidebar-clock" className="rounded-lg border bg-background/40 px-3 py-2">
-      <p className="text-2xl leading-tight font-extrabold tabular-nums">
+    <div
+      data-testid="sidebar-clock"
+      className="flex items-baseline justify-between gap-2 rounded-xl border bg-card px-3 py-2 shadow-card"
+    >
+      <p className="text-xl leading-tight font-extrabold tabular-nums">
         {formatTime(now.toISOString())}
       </p>
       <p className="text-xs text-muted-foreground">{formatLongDate(now)}</p>

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, LoadingState } from "@/components/States";
 import { JalaliCalendarField, SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
@@ -84,8 +86,11 @@ export function SmsMessagesPage() {
   const filtered = kind !== undefined || status !== undefined;
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold">پیامک‌ها</h2>
+    <div className="space-y-6">
+      <PageHeader
+        title="پیامک‌ها"
+        description="پیامک‌های فرستاده‌شده برای اعضا و وضعیت رسیدنشان."
+      />
 
       <SmsCreditLine />
 
@@ -147,7 +152,7 @@ export function SmsMessagesPage() {
 
           {rangeIsValid && (
             <>
-              {messages.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+              {messages.isPending && <LoadingState />}
               {messages.isError && (
                 <Alert variant="destructive">{errorMessage(messages.error)}</Alert>
               )}
@@ -164,7 +169,7 @@ export function SmsMessagesPage() {
                 </div>
               )}
               {messages.isSuccess && messages.data.items.length === 0 && (
-                <p className="text-muted-foreground">در این بازه پیامکی نیست.</p>
+                <EmptyState>در این بازه پیامکی نیست.</EmptyState>
               )}
               {messages.isSuccess && messages.data.items.length > 0 && (
                 <>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { EmptyState, LoadingState } from "@/components/States";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -59,12 +60,12 @@ export function CategoriesCard() {
           </Alert>
         )}
 
-        {categories.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+        {categories.isPending && <LoadingState />}
         {categories.isError && (
           <Alert variant="destructive">{errorMessage(categories.error)}</Alert>
         )}
         {categories.isSuccess && categories.data.length === 0 && (
-          <p className="text-muted-foreground">هنوز دسته‌بندی‌ای تعریف نشده است.</p>
+          <EmptyState>هنوز دسته‌بندی‌ای تعریف نشده است.</EmptyState>
         )}
 
         {categories.isSuccess && categories.data.length > 0 && (

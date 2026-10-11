@@ -1,6 +1,8 @@
 import { ChartColumn, Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
+import { PageHeader } from "@/components/PageHeader";
+import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +95,7 @@ export function LockersPage() {
   if (lockers.isPending || inside.isPending) {
     return (
       <PageFrame>
-        <p className="text-muted-foreground">در حال بارگذاری…</p>
+        <LoadingState />
       </PageFrame>
     );
   }
@@ -225,7 +227,7 @@ export function LockersPage() {
         usage.isError ? (
           <Alert variant="destructive">{errorMessage(usage.error)}</Alert>
         ) : usesByLocker === null ? (
-          <p className="text-muted-foreground">در حال بارگذاری…</p>
+          <LoadingState />
         ) : (
           <LockerMap lockers={lockers.data} onSelect={select} usage={usesByLocker} />
         )
@@ -298,7 +300,7 @@ export function LockersPage() {
 function PageFrame({ children }: { children: ReactNode }) {
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-extrabold">ورود با کمد</h2>
+      <PageHeader title="ورود با کمد" />
       {children}
     </div>
   );

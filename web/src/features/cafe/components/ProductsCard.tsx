@@ -1,11 +1,20 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
 
+import { EmptyState, LoadingState } from "@/components/States";
 import { SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { normalizeMoney } from "@/lib/money";
@@ -136,102 +145,100 @@ export function ProductsCard() {
           </SelectField>
         </div>
 
-        {products.isPending && <p className="text-muted-foreground">در حال بارگذاری…</p>}
+        {products.isPending && <LoadingState />}
         {products.isError && <Alert variant="destructive">{errorMessage(products.error)}</Alert>}
         {products.isSuccess && products.data.items.length === 0 && (
-          <p className="text-muted-foreground">محصولی در این فهرست نیست.</p>
+          <EmptyState>محصولی در این فهرست نیست.</EmptyState>
         )}
 
         {products.isSuccess && products.data.items.length > 0 && (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="py-2 text-start font-medium">نام</th>
-                    <th className="py-2 text-start font-medium">دسته‌بندی</th>
-                    <th className="py-2 text-start font-medium">قیمت</th>
-                    <th className="py-2 text-start font-medium">وضعیت</th>
-                    <th className="py-2 text-start font-medium">عملیات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.data.items.map((product) =>
-                    editing === product.id ? (
-                      <tr key={product.id} className="border-b bg-muted/30">
-                        <td colSpan={5} className="py-2">
-                          <ProductForm
-                            defaultValues={{
-                              name: product.name,
-                              categoryId: product.categoryId,
-                              price: String(product.price),
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>نام</TableHead>
+                  <TableHead>دسته‌بندی</TableHead>
+                  <TableHead>قیمت</TableHead>
+                  <TableHead>وضعیت</TableHead>
+                  <TableHead>عملیات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {products.data.items.map((product) =>
+                  editing === product.id ? (
+                    <TableRow key={product.id} className="bg-muted/30">
+                      <TableCell colSpan={5} className="py-2">
+                        <ProductForm
+                          defaultValues={{
+                            name: product.name,
+                            categoryId: product.categoryId,
+                            price: String(product.price),
+                          }}
+                          categories={categoryList}
+                          submitLabel="ذخیره"
+                          onSubmit={async (values) => {
+                            // The version read with the list, so an edit that crossed
+                            // somebody else's is refused rather than silently winning.
+                            await updateProduct.mutateAsync({
+                              id: product.id,
+                              name: values.name,
+                              categoryId: values.categoryId,
+                              price: normalizeMoney(values.price),
+                              version: product.version,
+                            });
+                            setEditing(null);
+                            setNotice({ kind: "success", text: `«${values.name}» ذخیره شد.` });
+                          }}
+                          onCancel={() => setEditing(null)}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{product.categoryName}</TableCell>
+                      <TableCell>{formatMoney(product.price)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StockBadge inStock={product.isActive} />
+                          {product.isActive && !product.categoryIsActive && (
+                            // Switched on, but its shelf is off: the till will not offer it,
+                            // and the screen says why instead of showing a موجود it cannot sell.
+                            <span className="text-xs text-muted-foreground">
+                              دسته‌بندی ناموجود است؛ در بوفه نمایش داده نمی‌شود.
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`ویرایش ${product.name}`}
+                            onClick={() => {
+                              setNotice(null);
+                              setEditing(product.id);
                             }}
-                            categories={categoryList}
-                            submitLabel="ذخیره"
-                            onSubmit={async (values) => {
-                              // The version read with the list, so an edit that crossed
-                              // somebody else's is refused rather than silently winning.
-                              await updateProduct.mutateAsync({
-                                id: product.id,
-                                name: values.name,
-                                categoryId: values.categoryId,
-                                price: normalizeMoney(values.price),
-                                version: product.version,
-                              });
-                              setEditing(null);
-                              setNotice({ kind: "success", text: `«${values.name}» ذخیره شد.` });
-                            }}
-                            onCancel={() => setEditing(null)}
-                          />
-                        </td>
-                      </tr>
-                    ) : (
-                      <tr key={product.id} className="border-b">
-                        <td className="py-2 font-medium">{product.name}</td>
-                        <td className="py-2">{product.categoryName}</td>
-                        <td className="py-2">{formatMoney(product.price)}</td>
-                        <td className="py-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <StockBadge inStock={product.isActive} />
-                            {product.isActive && !product.categoryIsActive && (
-                              // Switched on, but its shelf is off: the till will not offer it,
-                              // and the screen says why instead of showing a موجود it cannot sell.
-                              <span className="text-xs text-muted-foreground">
-                                دسته‌بندی ناموجود است؛ در بوفه نمایش داده نمی‌شود.
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-2">
-                          <div className="flex flex-wrap gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              aria-label={`ویرایش ${product.name}`}
-                              onClick={() => {
-                                setNotice(null);
-                                setEditing(product.id);
-                              }}
-                            >
-                              ویرایش
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={setActive.isPending}
-                              aria-label={`${product.isActive ? "ناموجود کردن" : "موجود کردن"} ${product.name}`}
-                              onClick={() => void toggleActive(product)}
-                            >
-                              {product.isActive ? "ناموجود" : "موجود"}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ),
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          >
+                            ویرایش
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={setActive.isPending}
+                            aria-label={`${product.isActive ? "ناموجود کردن" : "موجود کردن"} ${product.name}`}
+                            onClick={() => void toggleActive(product)}
+                          >
+                            {product.isActive ? "ناموجود" : "موجود"}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ),
+                )}
+              </TableBody>
+            </Table>
             <Pager page={page} pageCount={products.data.pageCount} onPageChange={setPage} />
           </>
         )}
