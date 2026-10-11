@@ -2826,6 +2826,76 @@ every screen, rather than the gym's green or a neutral black.
       day); «تغییرها ثبت شد» beside the button is for the two settings pages, which stay open. A
       form shared by adding and editing takes `editing`; adding is unchanged. No package added, no
       API change
+- [ ] **13.2e Colour on every page** (asked by the developer, 1405/07/19: only the dashboard is in
+      colour). Its own session, on `task/13.2-visual-language`, before 13.2 is released, so the panel
+      changes once. Plan below, written the same day; the first step of that session is to confirm
+      the decisions marked *Confirm* with the developer, then present the final plan.
+
+#### 13.2e plan
+
+**The level.** Three were discussed: (1) a colour per menu group, carried into each page's header
+and main cards, tables and forms left calm; (2) also the summary boxes as dashboard-style stat
+cards and tinted empty states; (3) a banner on every page like the dashboard. Recommended: **1,
+with the two parts of 2 as optional steps at the end**; 3 is too much for working screens (the
+desk must stay fast, a 160px banner only takes room). *Confirm the level.*
+
+**The rule that bounds it.** Green and red mean something on every screen (free / paid / profit,
+held / debt / loss), amber means attention (`--warning`), and the brand is the deep blue. A page's
+colour is decoration only: never green, red or amber, always beside words, `aria-hidden` on every
+tinted icon. The locker map's look (BUSINESS_RULES.md §6) is untouched; the dashboard keeps its
+own tone per card.
+
+**Tones per menu group**, from the dashboard's `--tone-*` (each already has a dark value).
+*Confirm:*
+
+| Group | Tone | Why |
+| --- | --- | --- |
+| پذیرش | sky | apart from the brand blue, calm for the screen used all day |
+| فروش بوفه | orange | the same hue as the «بوفه» tile in the locker box |
+| مالی | violet | the dashboard's charts section is violet already |
+| مدیریت | teal | |
+| حساب و سیستم | none (muted grey) | two utility pages |
+
+**Steps**
+
+1. *Shared tones.* Move `features/dashboard/tone.ts` to `src/lib/tone.ts` (`Tone`, `toneStyle`,
+   `toneColorStyle`) and update the dashboard's imports; move the tone tokens' comment in
+   `index.css` from "the dashboard's accents" to "the panel's accents". No new token.
+2. *One source for the menu.* Move `navigation` (groups, items, icons, roles, badges) out of
+   `AppShell.tsx` into `src/app/navigation.ts`, add `tone?: Tone` to `NavigationGroup`, and a
+   `sectionFor(pathname)` that returns the group and item a path belongs to by its longest
+   matching prefix (`/members/new` and `/members/:id/edit` → «اعضا»; `/` matches only itself).
+   Unit tests for `sectionFor`.
+3. *The page's tone from the frame.* `AppShell` sets `--tone` on `<main>` with `toneStyle` from
+   `sectionFor(location.pathname)`, so every page inherits its group's colour without each page
+   saying it. A page outside the menu, or in «حساب و سیستم», gets no tone, and everything below
+   falls back to the muted look.
+4. *Menu.* Each group's icons in its tone (`tone-ink`), its title with a small tinted dot. The
+   active item keeps the brand highlight it has now, so "where am I" stays one colour.
+   *Confirm: brand highlight for the active item, or the group's tone.*
+5. *PageHeader.* An icon in a tinted square (`tone-soft tone-ink`, `aria-hidden`) before the
+   title, the same shape as the dashboard's `SectionHeading`. The icon comes from the menu item
+   by default (`sectionFor`), so the menu and the page cannot disagree; a page can pass its own.
+   The locker page gets it too, above the map, which is not touched. *Confirm.*
+6. *Cards.* An `accent` prop on `Card` draws the 4px strip on top in `var(--tone)`, as the
+   dashboard's stat cards do. Given to each page's main card(s) only (the list or the form the
+   page is for), not to cards inside dialogs or the member profile's smaller cards.
+   *Confirm: main cards only, or every card on the page.*
+7. *Optional (level 2).* `EmptyState`'s icon circle in `tone-soft tone-ink`; the summary boxes
+   (چک و قسط's totals, the history's totals) as dashboard-style stat cards. Each its own step,
+   done only if the developer wants it after seeing 1 to 6.
+8. *Look and record.* Every page in both themes in the browser (the developer's Chrome forces
+   its own dark mode on light pages; check light through `npm run screenshots`), a phone width
+   glance, `npm run screenshots` for the README, ROADMAP, ARCHITECTURE's one-visual-language
+   rule (the page's tone comes from the frame), LEARNING 13.2e.
+
+**Tests.** `sectionFor` (each route, the nested member routes, `/` not matching everything); the
+menu still lists the same items per role (the existing AppShell tests); PageHeader's icon is
+hidden from screen readers; no test may look for a class name. Frontend suite, `format:check`,
+lint. No package, no API change, no backend file.
+
+**Known limit.** The backup tablet's Chrome 109 cannot show `oklch` or `color-mix` (already true
+of the whole app; the fix agreed is a newer browser, not code); the tints simply do not show there.
 
 ### 13.3 The public site
 - [ ] Replace the placeholder on the apex with a real page for the gym: hours, address, contact,
