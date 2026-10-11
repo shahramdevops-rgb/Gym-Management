@@ -119,25 +119,29 @@ function HourBars({ date, daysAveraged, hours, currentHour }: HourBarsProps) {
       ) : (
         <>
           <Bars hours={shown} currentHour={currentHour} hasAverage={hasAverage} />
-          <table className="sr-only">
-            <caption>ورود امروز ساعت به ساعت، و {averageLabel}</caption>
-            <thead>
-              <tr>
-                <th scope="col">ساعت</th>
-                <th scope="col">امروز</th>
-                {hasAverage && <th scope="col">میانگین</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((row) => (
-                <tr key={row.hour}>
-                  <th scope="row">{hourRange(row.hour)}</th>
-                  <td>{formatNumber(row.today)}</td>
-                  {hasAverage && <td>{formatNumber(row.average)}</td>}
+          {/* Hidden in a box, not on the table itself: a table ignores `sr-only`'s 1px height and
+              still took its full height below the page, which pushed the sticky menu up. */}
+          <div className="sr-only">
+            <table>
+              <caption>ورود امروز ساعت به ساعت، و {averageLabel}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">ساعت</th>
+                  <th scope="col">امروز</th>
+                  {hasAverage && <th scope="col">میانگین</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {shown.map((row) => (
+                  <tr key={row.hour}>
+                    <th scope="row">{hourRange(row.hour)}</th>
+                    <td>{formatNumber(row.today)}</td>
+                    {hasAverage && <td>{formatNumber(row.average)}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </>

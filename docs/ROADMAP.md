@@ -2892,11 +2892,12 @@ every screen, rather than the gym's green or a neutral black.
       The header: the cheque alert at the end, edged orange (red past its date), then the user, the
       theme and «خروج» in one box. «داخل باشگاه», «تاریخچه» and «اعضا» take the banner (the
       members' search and «عضو جدید» on it) and `Card edge`; `StatTile` is edged too (so «چک و
-      قسط»'s totals as well). Found, not yet fixed: the hourly chart's screen-reader table (`sr-only`
-      on a `<table>`, which does not collapse) makes the page about 685px taller than the layout, so
-      the sticky menu is pushed up at the bottom of the locker page; and its average's label
-      («میانگین ۱ دوشنبه باز در ۴ هفتهٔ گذشته») reads unclearly. Left: those two, and the rest of
-      the pages. No package added, no API change
+      قسط»'s totals as well). Found and fixed: the hourly chart's screen-reader table (`sr-only`
+      on a `<table>`, which does not collapse) made the page about 685px taller than the layout, so
+      the sticky menu was pushed up at the bottom of the locker page; the table is now inside a
+      hidden `<div>`. The average's label («میانگین ۱ دوشنبه باز در ۴ هفتهٔ گذشته») stays as it is,
+      once explained (the developer's choice). Left: the rest of the pages. No package added, no API
+      change
 
 #### 13.2e plan
 

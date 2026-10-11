@@ -28,6 +28,13 @@ interface CurrentlyInsideTableProps {
 }
 
 /**
+ * The first cell of a row, edged at its start in the page's tone like a locker door (asked by the
+ * developer): a curved bar, so the eye follows one visit across the line.
+ */
+const rowEdge =
+  "relative before:absolute before:inset-y-1.5 before:start-0 before:w-3 before:rounded-s-lg before:border-s-[3px] before:border-current before:tone-ink";
+
+/**
  * The front desk board: who is inside right now, which locker, since when, and how much of their
  * subscription is left. Every row is exactly one line: the desk reads this board while somebody
  * is standing in front of them.
@@ -83,7 +90,7 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
 
           return (
             <TableRow key={row.attendanceId}>
-              <TableCell>
+              <TableCell className={rowEdge}>
                 <Link
                   to={paths.member(row.memberId)}
                   className="font-medium underline-offset-4 hover:underline"
@@ -133,14 +140,7 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                 )}
               </TableCell>
               <TableCell>
-                <div className="flex justify-end gap-2">
-                  <Button size="sm" variant="outline" onClick={() => onCancel(row)}>
-                    لغو ورود
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => onCheckOut(row)}>
-                    ثبت خروج
-                  </Button>
-                </div>
+                <RowActions row={row} onCheckOut={onCheckOut} onCancel={onCancel} />
               </TableCell>
             </TableRow>
           );
@@ -164,7 +164,7 @@ function GuestRow({
 } & Pick<CurrentlyInsideTableProps, "onCheckOut" | "onCancel">) {
   return (
     <TableRow>
-      <TableCell className="font-medium">{row.guestName}</TableCell>
+      <TableCell className={cn(rowEdge, "font-medium")}>{row.guestName}</TableCell>
       <TableCell>
         {row.lockerNumber !== null
           ? toPersianDigits(row.lockerNumber)
@@ -178,15 +178,42 @@ function GuestRow({
       </TableCell>
       <TableCell className="text-muted-foreground">—</TableCell>
       <TableCell>
-        <div className="flex justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={() => onCancel(row)}>
-            لغو ورود
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => onCheckOut(row)}>
-            ثبت خروج
-          </Button>
-        </div>
+        <RowActions row={row} onCheckOut={onCheckOut} onCancel={onCancel} />
       </TableCell>
     </TableRow>
+  );
+}
+
+/**
+ * The row's two buttons, frameless with a thick edge like a locker door's (asked by the
+ * developer): red for «لغو ورود», which undoes the visit, green for «ثبت خروج», which ends it.
+ * The thick edge sits at the end, closing the row its start edge opens.
+ */
+function RowActions({
+  row,
+  onCheckOut,
+  onCancel,
+}: {
+  row: CurrentlyInside;
+} & Pick<CurrentlyInsideTableProps, "onCheckOut" | "onCancel">) {
+  return (
+    <div className="flex justify-end gap-2">
+      <Button
+        size="sm"
+        variant="ghost"
+        className="border border-e-[3px] border-destructive/40 border-e-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={() => onCancel(row)}
+      >
+        لغو ورود
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="border border-e-[3px] border-success/40 border-e-success text-success hover:bg-success/10 hover:text-success"
+        onClick={() => onCheckOut(row)}
+      >
+        ثبت خروج
+      </Button>
+    </div>
   );
 }
