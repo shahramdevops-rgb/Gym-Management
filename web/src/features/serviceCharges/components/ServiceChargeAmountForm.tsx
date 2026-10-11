@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { MoneyField } from "@/components/FormField";
+import { SaveRow, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
 import { normalizeMoney } from "@/lib/money";
 
 import {
@@ -40,6 +42,9 @@ interface ServiceChargeAmountFormProps {
  * Types the amount for a gym service (BUSINESS_RULES.md §7). The gym's rate is not in the system
  * on purpose — staff work the figure out at the desk and this takes what they type — so the guard
  * against a miscounted zero is the shared `MoneyField` and the amount in words underneath it.
+ *
+ * Correcting an amount is an edit (roadmap 13.2c): the same amount again sends nothing and says so,
+ * and a refusal is shown beside the button.
  */
 export function ServiceChargeAmountForm({
   label,
@@ -51,6 +56,10 @@ export function ServiceChargeAmountForm({
   const record = useRecordServiceCharge();
   const changeAmount = useChangeServiceChargeAmount();
 
+  const editing = "id" in target;
+  const isUnchanged = useUnchanged(() => normalizeMoney(initialAmount ?? ""));
+  const [notice, setNotice] = useState<SaveNotice>(null);
+
   const form = useForm({
     resolver: zodResolver(serviceChargeAmountSchema),
     defaultValues:
@@ -59,6 +68,12 @@ export function ServiceChargeAmountForm({
 
   const onSubmit = form.handleSubmit(async (values) => {
     const amount = normalizeMoney(values.amount);
+    if (editing && isUnchanged(amount)) {
+      setNotice("unchanged");
+      return;
+    }
+
+    setNotice(null);
     try {
       if ("id" in target) {
         await changeAmount.mutateAsync({ id: target.id, amount });
@@ -74,8 +89,14 @@ export function ServiceChargeAmountForm({
   const { errors, isSubmitting } = form.formState;
 
   return (
-    <form className="flex flex-wrap items-end gap-3" onSubmit={onSubmit} noValidate>
-      {errors.root?.server !== undefined && (
+    // The amount box is a native input, and its change events bubble up to here.
+    <form
+      className="flex flex-wrap items-end gap-3"
+      onSubmit={onSubmit}
+      onChange={() => setNotice(null)}
+      noValidate
+    >
+      {!editing && errors.root?.server !== undefined && (
         <Alert variant="destructive">{errors.root.server.message}</Alert>
       )}
 
@@ -96,12 +117,14 @@ export function ServiceChargeAmountForm({
           )}
         />
       </div>
-      <Button type="submit" size="sm" disabled={isSubmitting}>
-        ثبت
-      </Button>
-      <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-        انصراف
-      </Button>
+      <SaveRow error={editing ? errors.root?.server?.message : undefined} notice={notice}>
+        <Button type="submit" size="sm" disabled={isSubmitting}>
+          ثبت
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          انصراف
+        </Button>
+      </SaveRow>
     </form>
   );
 }

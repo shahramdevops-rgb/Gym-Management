@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import {
@@ -7,9 +8,10 @@ import {
   SelectField,
   TextareaField,
 } from "@/components/FormField";
+import { SaveRow, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
 import { normalizeMoney } from "@/lib/money";
 
 import type { ExpenseCategory, ExpenseInput } from "../api";
@@ -28,6 +30,22 @@ interface ExpenseFormProps {
   /** Sends the form; a rejection is a server problem and lands on the form's fields. */
   onSubmit: (input: ExpenseInput) => Promise<void>;
   onCancel: () => void;
+  /**
+   * Correcting an expense rather than recording one (roadmap 13.2c): «ذخیره» with nothing changed
+   * sends nothing and says so, and every outcome is shown beside the button.
+   */
+  editing?: boolean;
+}
+
+function toInput(values: ExpenseValues): ExpenseInput {
+  return {
+    amount: normalizeMoney(values.amount),
+    categoryId: values.categoryId,
+    expenseDate: values.expenseDate,
+    description: values.description,
+    // An empty box means "no reference", which the API spells null.
+    referenceNumber: values.referenceNumber === "" ? null : values.referenceNumber,
+  };
 }
 
 /**
@@ -42,19 +60,22 @@ export function ExpenseForm({
   submitLabel,
   onSubmit,
   onCancel,
+  editing = false,
 }: ExpenseFormProps) {
   const form = useForm({ resolver: zodResolver(expenseSchema), defaultValues });
+  const isUnchanged = useUnchanged(() => toInput(defaultValues));
+  const [notice, setNotice] = useState<SaveNotice>(null);
 
   const submit = form.handleSubmit(async (values) => {
+    const input = toInput(values);
+    if (editing && isUnchanged(input)) {
+      setNotice("unchanged");
+      return;
+    }
+
+    setNotice(null);
     try {
-      await onSubmit({
-        amount: normalizeMoney(values.amount),
-        categoryId: values.categoryId,
-        expenseDate: values.expenseDate,
-        description: values.description,
-        // An empty box means "no reference", which the API spells null.
-        referenceNumber: values.referenceNumber === "" ? null : values.referenceNumber,
-      });
+      await onSubmit(input);
     } catch (problem) {
       applyServerErrors(problem, form.setError, codeFields);
     }
@@ -63,8 +84,9 @@ export function ExpenseForm({
   const { errors, isSubmitting } = form.formState;
 
   return (
-    <form className="space-y-3" onSubmit={submit} noValidate>
-      {errors.root?.server !== undefined && (
+    // Every field is a native input, select or textarea, and their change events bubble up to here.
+    <form className="space-y-3" onSubmit={submit} onChange={() => setNotice(null)} noValidate>
+      {!editing && errors.root?.server !== undefined && (
         <Alert variant="destructive">{errors.root.server.message}</Alert>
       )}
 
@@ -127,14 +149,14 @@ export function ExpenseForm({
         />
       </div>
 
-      <div className="flex gap-2">
+      <SaveRow error={editing ? errors.root?.server?.message : undefined} notice={notice}>
         <Button type="submit" size="sm" disabled={isSubmitting}>
           {submitLabel}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
           انصراف
         </Button>
-      </div>
+      </SaveRow>
     </form>
   );
 }

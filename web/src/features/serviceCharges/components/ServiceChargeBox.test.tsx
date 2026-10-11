@@ -22,6 +22,7 @@ import {
 import { memberDebt, reza } from "@/test/members";
 import { confirmMoneyReceived, pickMethod } from "@/test/payments";
 import { renderApp } from "@/test/renderApp";
+import { nothingChanged, saveRowOf } from "@/test/saveRow";
 import { subscriptionsPage } from "@/test/subscriptions";
 import type { Attendance } from "@/features/attendance/api";
 import type { ServiceCharge } from "@/features/serviceCharges/api";
@@ -294,5 +295,38 @@ describe("ServiceChargeBox", () => {
 
     expect(await screen.findByText("تاریخچه ورود و خروج")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "مبلغ هوازی" })).not.toBeInTheDocument();
+  });
+
+  // ---- Correcting the amount saves the way every edit form does (roadmap 13.2c) ----
+
+  it("Box_SameAmountAgain_SendsNothingAndSaysSoBesideTheButton", async () => {
+    const visit = onLocker(openVisit(reza.id));
+    const charge = cardioCharge(visit);
+    const api = await renderLocker(() => withCharge(visit));
+
+    await openChargeDialog();
+    fireEvent.click(await screen.findByRole("button", { name: "ویرایش مبلغ" }));
+    fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "۱۰٬۰۰۰" } });
+    fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
+
+    expect(await saveRowOf("ثبت").findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", `/api/service-charges/${charge.id}/amount`)).toHaveLength(0);
+  });
+
+  it("Box_NewAmount_SendsIt", async () => {
+    const visit = onLocker(openVisit(reza.id));
+    const charge = cardioCharge(visit);
+    const amountPath = `/api/service-charges/${charge.id}/amount`;
+    const api = await renderLocker(() => withCharge(visit), {
+      [`PUT ${amountPath}`]: () => json(200, { ...charge, amount: 12000 }),
+    });
+
+    await openChargeDialog();
+    fireEvent.click(await screen.findByRole("button", { name: "ویرایش مبلغ" }));
+    fireEvent.change(screen.getByLabelText("مبلغ هوازی"), { target: { value: "12000" } });
+    fireEvent.click(screen.getByRole("button", { name: "ثبت" }));
+
+    await waitFor(() => expect(api.requestsTo("PUT", amountPath)).toHaveLength(1));
+    expect(await api.requestsTo("PUT", amountPath)[0]!.json()).toEqual({ amount: "12000" });
   });
 });

@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 
 import { EmptyState, LoadingState } from "@/components/States";
 import { FormField } from "@/components/FormField";
+import { SaveNoticeAlert, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -185,12 +186,20 @@ interface RenameCategoryFormProps {
 
 function RenameCategoryForm({ category, onDone, onCancel }: RenameCategoryFormProps) {
   const rename = useRenameProductCategory();
+  const [notice, setNotice] = useState<SaveNotice>(null);
   const form = useForm<CategoryValues>({
     resolver: zodResolver(categorySchema),
     defaultValues: { name: category.name },
   });
 
   const submit = form.handleSubmit(async (values) => {
+    // The same name again would save nothing new (roadmap 13.2c).
+    if (values.name.trim() === category.name) {
+      setNotice("unchanged");
+      return;
+    }
+
+    setNotice(null);
     try {
       // The version read with the list: a rename that crossed somebody else's is refused.
       await rename.mutateAsync({ id: category.id, name: values.name, version: category.version });
@@ -203,7 +212,12 @@ function RenameCategoryForm({ category, onDone, onCancel }: RenameCategoryFormPr
   const { errors, isSubmitting } = form.formState;
 
   return (
-    <form className="flex items-start gap-2" onSubmit={submit} noValidate>
+    <form
+      className="flex flex-wrap items-start gap-2"
+      onSubmit={submit}
+      onChange={() => setNotice(null)}
+      noValidate
+    >
       <div className="flex-1">
         <FormField
           label={`نام تازهٔ ${category.name}`}
@@ -219,6 +233,11 @@ function RenameCategoryForm({ category, onDone, onCancel }: RenameCategoryFormPr
       <Button type="button" size="sm" variant="ghost" className="mt-[1.375rem]" onClick={onCancel}>
         انصراف
       </Button>
+      {notice !== null && (
+        <div className="w-full [&>[data-slot=alert]]:py-2">
+          <SaveNoticeAlert notice={notice} />
+        </div>
+      )}
     </form>
   );
 }

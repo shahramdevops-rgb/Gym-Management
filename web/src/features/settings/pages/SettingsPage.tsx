@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { PageMessage } from "@/features/auth/components/PageMessage";
 import { PageHeader } from "@/components/PageHeader";
 import { MoneyField } from "@/components/FormField";
+import { SaveRow, StaleAlert, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
-import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
 import { normalizeMoney } from "@/lib/money";
 
 import { usePrices, useUpdatePrices, type Prices } from "../api";
@@ -41,7 +42,7 @@ export function SettingsPage() {
   const [reloading, setReloading] = useState(false);
   // Held here, not in the form: a save changes the version, which rebuilds the form below, and the
   // "saved" line has to outlive that rebuild to be seen at all.
-  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState<SaveNotice>(null);
 
   if (prices.isPending) {
     return <PageMessage>در حال بارگذاری…</PageMessage>;
@@ -69,35 +70,22 @@ export function SettingsPage() {
             شده‌اند همان قیمت خودشان را نگه می‌دارند.
           </p>
 
-          {stale && (
-            <Alert variant="destructive">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>{errorMessage({ code: changedConcurrently })}</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={reloading}
-                  onClick={() => void reload()}
-                >
-                  بارگذاری اطلاعات تازه
-                </Button>
-              </div>
-            </Alert>
-          )}
-
-          {saved && (
-            <Alert variant="success" role="status">
-              قیمت‌ها ذخیره شد.
-            </Alert>
-          )}
-
           {/* Keyed by version, so fresh prices rebuild the form with their values. */}
           <PricesForm
             key={String(prices.data.version)}
             current={prices.data}
-            onSaving={() => setSaved(false)}
-            onSaved={() => setSaved(true)}
+            notice={notice}
+            onNotice={setNotice}
             onStale={() => setStale(true)}
+            stale={
+              stale ? (
+                <StaleAlert
+                  code={changedConcurrently}
+                  reloading={reloading}
+                  onReload={() => void reload()}
+                />
+              ) : undefined
+            }
           />
         </CardContent>
       </Card>
@@ -107,30 +95,45 @@ export function SettingsPage() {
 
 interface PricesFormProps {
   current: Prices;
-  onSaving: () => void;
-  onSaved: () => void;
+  notice: SaveNotice;
+  onNotice: (notice: SaveNotice) => void;
   onStale: () => void;
+  stale: ReactNode;
 }
 
-function PricesForm({ current, onSaving, onSaved, onStale }: PricesFormProps) {
+/** The request these values make: what a save sends, and what "nothing changed" compares. */
+function toInput(values: PricesValues, version: Prices["version"]) {
+  return {
+    sessionPrice: normalizeMoney(values.sessionPrice),
+    singleVisitPrice: normalizeMoney(values.singleVisitPrice),
+    version,
+  };
+}
+
+/**
+ * «ذخیره» is always enabled; pressed with the prices as they were, it sends nothing and says so
+ * beside the button, where every outcome of a save is shown (roadmap 13.2c). Any edit clears it.
+ */
+function PricesForm({ current, notice, onNotice, onStale, stale }: PricesFormProps) {
   const updatePrices = useUpdatePrices();
-  const form = useForm<PricesValues>({
-    resolver: zodResolver(pricesSchema),
-    defaultValues: {
-      sessionPrice: priceText(current.sessionPrice),
-      singleVisitPrice: priceText(current.singleVisitPrice),
-    },
-  });
+  const defaultValues: PricesValues = {
+    sessionPrice: priceText(current.sessionPrice),
+    singleVisitPrice: priceText(current.singleVisitPrice),
+  };
+  const isUnchanged = useUnchanged(() => toInput(defaultValues, current.version));
+  const form = useForm<PricesValues>({ resolver: zodResolver(pricesSchema), defaultValues });
 
   const submit = form.handleSubmit(async (values) => {
-    onSaving();
+    const input = toInput(values, current.version);
+    if (isUnchanged(input)) {
+      onNotice("unchanged");
+      return;
+    }
+
+    onNotice(null);
     try {
-      await updatePrices.mutateAsync({
-        sessionPrice: normalizeMoney(values.sessionPrice),
-        singleVisitPrice: normalizeMoney(values.singleVisitPrice),
-        version: current.version,
-      });
-      onSaved();
+      await updatePrices.mutateAsync(input);
+      onNotice("saved");
     } catch (problem) {
       if (isCode(problem, changedConcurrently)) {
         onStale();
@@ -144,10 +147,13 @@ function PricesForm({ current, onSaving, onSaved, onStale }: PricesFormProps) {
   const neverSet = current.sessionPrice === null || current.singleVisitPrice === null;
 
   return (
-    <form className="grid max-w-xl gap-4" onSubmit={submit} noValidate>
-      {errors.root?.server !== undefined && (
-        <Alert variant="destructive">{errors.root.server.message}</Alert>
-      )}
+    // Both boxes are native inputs, and their change events bubble up to here.
+    <form
+      className="grid max-w-xl gap-4"
+      onSubmit={submit}
+      onChange={() => onNotice(null)}
+      noValidate
+    >
       {neverSet && (
         <Alert>
           تا وقتی هر دو قیمت وارد نشده‌اند، پذیرش نمی‌تواند پلن یا ورود تک‌جلسه‌ای بفروشد.
@@ -186,11 +192,11 @@ function PricesForm({ current, onSaving, onSaved, onStale }: PricesFormProps) {
         )}
       />
 
-      <div className="flex gap-2">
+      <SaveRow error={errors.root?.server?.message} notice={notice} stale={stale}>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "در حال ذخیره…" : "ذخیره"}
         </Button>
-      </div>
+      </SaveRow>
     </form>
   );
 }

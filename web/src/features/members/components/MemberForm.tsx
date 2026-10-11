@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { BirthDateField, FormField, TextareaField } from "@/components/FormField";
+import { SaveRow, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
 import { normalizeDigits, normalizePersianText } from "@/lib/normalize";
 
 import type { MemberInput } from "../api";
@@ -40,31 +41,54 @@ interface MemberFormProps {
   onSubmit: (input: MemberInput) => Promise<void>;
   /** Extra buttons beside submit, such as "cancel". */
   actions?: ReactNode;
+  /**
+   * Editing a member rather than adding one (roadmap 13.2c): «ذخیره» with nothing changed sends
+   * nothing and says so, and every outcome is shown beside the button.
+   */
+  editing?: boolean;
+  /** While editing: someone else saved first (a `StaleAlert`), shown beside the button. */
+  stale?: ReactNode;
 }
 
-/** The create and edit form. Values are normalized before they are sent, never while typing. */
+/** Values are normalized before they are sent, never while typing. */
+function toInput(values: MemberValues): MemberInput {
+  return {
+    // ي/ك → ی/ک and spaces, so the stored name looks the same whichever keyboard typed it.
+    fullName: normalizePersianText(values.fullName),
+    // The API accepts Persian digits too; sending English ones keeps logs and audit readable.
+    phoneNumber: normalizeDigits(values.phoneNumber).trim(),
+    birthDate: values.birthDate,
+    notes: values.notes === "" ? null : values.notes,
+  };
+}
+
+/** The create and edit form. */
 export function MemberForm({
   defaultValues = { fullName: "", phoneNumber: "", birthDate: "", notes: "" },
   submitLabel,
   submittingLabel,
   onSubmit,
   actions,
+  editing = false,
+  stale,
 }: MemberFormProps) {
   const form = useForm<MemberValues>({
     resolver: zodResolver(memberSchema),
     defaultValues,
   });
+  const isUnchanged = useUnchanged(() => toInput(defaultValues));
+  const [notice, setNotice] = useState<SaveNotice>(null);
 
   const submit = form.handleSubmit(async (values) => {
+    const input = toInput(values);
+    if (editing && isUnchanged(input)) {
+      setNotice("unchanged");
+      return;
+    }
+
+    setNotice(null);
     try {
-      await onSubmit({
-        // ي/ك → ی/ک and spaces, so the stored name looks the same whichever keyboard typed it.
-        fullName: normalizePersianText(values.fullName),
-        // The API accepts Persian digits too; sending English ones keeps logs and audit readable.
-        phoneNumber: normalizeDigits(values.phoneNumber).trim(),
-        birthDate: values.birthDate,
-        notes: values.notes === "" ? null : values.notes,
-      });
+      await onSubmit(input);
     } catch (problem) {
       applyServerErrors(problem, form.setError, codeFields);
     }
@@ -73,8 +97,14 @@ export function MemberForm({
   const { errors, isSubmitting } = form.formState;
 
   return (
-    <form className="grid max-w-xl gap-4" onSubmit={submit} noValidate>
-      {errors.root?.server !== undefined && (
+    // Every field is a native input, select or textarea, and their change events bubble up to here.
+    <form
+      className="grid max-w-xl gap-4"
+      onSubmit={submit}
+      onChange={() => setNotice(null)}
+      noValidate
+    >
+      {!editing && errors.root?.server !== undefined && (
         <Alert variant="destructive">{errors.root.server.message}</Alert>
       )}
 
@@ -115,12 +145,16 @@ export function MemberForm({
         {...form.register("notes")}
       />
 
-      <div className="flex gap-2">
+      <SaveRow
+        error={editing ? errors.root?.server?.message : undefined}
+        notice={notice}
+        stale={stale}
+      >
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? submittingLabel : submitLabel}
         </Button>
         {actions}
-      </div>
+      </SaveRow>
     </form>
   );
 }

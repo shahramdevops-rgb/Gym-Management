@@ -4,6 +4,7 @@ import { chooseBirthDate } from "@/test/jalaliDate";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { ali, reza } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
+import { nothingChanged, saveRowOf } from "@/test/saveRow";
 
 const editPath = `/members/${reza.id}/edit`;
 
@@ -95,7 +96,9 @@ describe("EditMemberPage", () => {
     current = theirs;
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
-    expect(await screen.findByText(/هم‌زمان توسط شخص دیگری ویرایش شد/)).toBeInTheDocument();
+    expect(
+      await saveRowOf("ذخیره").findByText(/هم‌زمان توسط شخص دیگری ویرایش شد/),
+    ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe(editPath);
 
     fireEvent.click(screen.getByRole("button", { name: "بارگذاری اطلاعات تازه" }));
@@ -121,6 +124,70 @@ describe("EditMemberPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe(`/members/${ali.id}`));
+  });
+
+  // ---- Saving the way every edit form does (roadmap 13.2c) ----
+
+  it("EditMember_SaveWithNothingChanged_SendsNothingAndSaysSoBesideTheButton", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+    });
+    const { router } = renderApp(editPath, { session: session() });
+    await screen.findByLabelText("نام و نام خانوادگی");
+
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await saveRowOf("ذخیره").findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", `/api/members/${reza.id}`)).toHaveLength(0);
+    expect(router.state.location.pathname).toBe(editPath);
+  });
+
+  it("EditMember_ChangedAndPutBack_CountsAsNothingChanged", async () => {
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+    });
+    renderApp(editPath, { session: session() });
+    const name = await screen.findByLabelText("نام و نام خانوادگی");
+
+    fireEvent.change(name, { target: { value: "کسی دیگر" } });
+    fireEvent.change(name, { target: { value: "رضا احمدی" } });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", `/api/members/${reza.id}`)).toHaveLength(0);
+  });
+
+  it("EditMember_EditAfterNothingChanged_ClearsTheMessage", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+    });
+    renderApp(editPath, { session: session() });
+    const name = await screen.findByLabelText("نام و نام خانوادگی");
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+    expect(await screen.findByText(nothingChanged)).toBeInTheDocument();
+
+    fireEvent.change(name, { target: { value: "رضا احمدی نژاد" } });
+
+    await waitFor(() => expect(screen.queryByText(nothingChanged)).not.toBeInTheDocument());
+  });
+
+  it("EditMember_ServerError_IsShownBesideTheButton", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, reza),
+      [`PUT /api/members/${reza.id}`]: () => problem(500, "Server.Unexpected"),
+    });
+    renderApp(editPath, { session: session() });
+
+    fireEvent.change(await screen.findByLabelText("نام و نام خانوادگی"), {
+      target: { value: "رضا احمدی نژاد" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await saveRowOf("ذخیره").findByRole("alert")).toBeInTheDocument();
   });
 
   it("EditMember_UnknownId_SaysTheMemberWasNotFound", async () => {

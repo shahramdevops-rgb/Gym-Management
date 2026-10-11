@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { FieldErrors, FieldValues, Path, Resolver, UseFormSetError } from "react-hook-form";
 import type { z } from "zod";
 
@@ -83,4 +84,15 @@ export function applyServerErrors<TValues extends FieldValues>(
   } else {
     setError("root.server" as Path<TValues>, { type: "server", message: errorMessage(problem) });
   }
+}
+
+/**
+ * Whether a request would send exactly what is already saved (roadmap 13.2c). `initial` is the
+ * request built from the values the form opened with, taken once; `isUnchanged(input)` compares
+ * a new request with it. Requests, not raw field values: «۵۰۰٬۰۰۰» typed over «500000», or a
+ * value changed and put back, send the same request, so they count as no change.
+ */
+export function useUnchanged<TInput>(initial: () => TInput): (input: TInput) => boolean {
+  const [saved] = useState(() => JSON.stringify(initial()));
+  return (input) => JSON.stringify(input) === saved;
 }

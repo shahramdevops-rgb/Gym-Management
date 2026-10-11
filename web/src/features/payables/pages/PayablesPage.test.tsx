@@ -19,6 +19,7 @@ import {
   payablesPage,
 } from "@/test/payables";
 import { renderApp } from "@/test/renderApp";
+import { nothingChanged, saveRowOf } from "@/test/saveRow";
 import { chooseDate } from "@/test/jalaliDate";
 
 const totals = { cheques: 80000000, installments: 5000000 };
@@ -373,5 +374,37 @@ describe("PayablesPage", () => {
     renderApp("/payables?status=Cancelled", { session: session() });
 
     expect(await screen.findByText("مورد باطل‌شده‌ای نیست.")).toBeInTheDocument();
+  });
+
+  // ---- Saving the way every edit form does (roadmap 13.2c) ----
+
+  it("PayablesPage_EditWithNothingChanged_SendsNothingAndSaysSoBesideTheButton", async () => {
+    const api = mockApi(register);
+    renderApp("/payables", { session: session() });
+
+    const row = await waitFor(() => rowWith("وام دستگاه"));
+    fireEvent.click(within(row).getByRole("button", { name: /^ویرایش/ }));
+    const form = formOf("پرداخت به");
+    fireEvent.click(within(form).getByRole("button", { name: "ذخیرهٔ تغییرات" }));
+
+    expect(await saveRowOf("ذخیرهٔ تغییرات", form).findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", `/api/payables/${futureInstallment.id}`)).toHaveLength(0);
+  });
+
+  it("PayablesPage_EditRefused_SaysSoBesideTheButton", async () => {
+    mockApi({
+      ...register,
+      [`PUT /api/payables/${futureInstallment.id}`]: () =>
+        problem(409, "Payables.ChangedConcurrently"),
+    });
+    renderApp("/payables", { session: session() });
+
+    const row = await waitFor(() => rowWith("وام دستگاه"));
+    fireEvent.click(within(row).getByRole("button", { name: /^ویرایش/ }));
+    const form = formOf("پرداخت به");
+    fireEvent.change(within(form).getByLabelText("شمارهٔ قسط"), { target: { value: "4" } });
+    fireEvent.click(within(form).getByRole("button", { name: "ذخیرهٔ تغییرات" }));
+
+    expect(await saveRowOf("ذخیرهٔ تغییرات", form).findByRole("alert")).toBeInTheDocument();
   });
 });

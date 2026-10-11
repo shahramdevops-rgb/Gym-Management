@@ -1714,3 +1714,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **A shared token beats a copied value.** The tagged cards had their own Tailwind shadows; swapping them for 13.2a's `shadow-card` and `shadow-raised` makes them sit on the page like every other card, and a later change to the shadows reaches them too.
 - **Check screenshots against the DOM.** The browser forced its own dark rendering, so a page whose computed background was light still showed dark. Reading `getComputedStyle` showed the screenshot was lying, not the CSS.
 - **My notes:**
+## 13.2c — Edit forms' save behaviour (رفتار ذخیره در فرم‌های ویرایش)
+
+- **Extract a pattern once it has a second user.** The SMS page invented "nothing changed" and "outcome beside the button" alone; written there, it was one page's code. With eight more forms needing it, the parts that were really general (`SaveRow`, `StaleAlert`, `useUnchanged`) moved to shared files and the SMS page became their first user.
+- **Compare what would be sent, not what is on screen.** Field values differ for the same meaning (`۷۵٬۰۰۰` and `75000`, a phone with or without spaces). Each form already had one place that turns values into a request; comparing two requests (`JSON.stringify`) makes "nothing changed" mean exactly "the server would get what it already has".
+- **A hook keeps a value from the first render.** `useUnchanged` stores the opening request with `useState(() => ...)`, whose initialiser runs once, so later renders with edited values never move the baseline. A form rebuilt by its `key` (fresh data after a reload) gets a new baseline for free.
+- **Events bubble, so one handler hears every field.** `onChange` on the `<form>` clears the message for any input, select or textarea inside, without touching each field.
+- **One component, one priority.** `SaveRow` shows a single outcome, chosen in a fixed order (someone else saved, an error, nothing changed, saved). Writing the order once is what keeps eight forms from disagreeing about it.
+- **An opt-in prop protects the other use of a shared form.** The expense, payable, product and member forms also add things, where the roadmap keeps the old messages; `editing` turns the new behaviour on only where it belongs, so no add-form test had to change.
+- **A test helper names the place, not the markup.** `saveRowOf("ذخیره")` finds the row through the button's role and name (or «در حال ذخیره…» while saving), so tests say "beside the button" and survive layout changes.
+- **My notes:**

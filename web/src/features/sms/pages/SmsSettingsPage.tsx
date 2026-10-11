@@ -4,12 +4,12 @@ import { Controller, useForm, useWatch, type UseFormReturn } from "react-hook-fo
 import { PageMessage } from "@/features/auth/components/PageMessage";
 import { PageHeader } from "@/components/PageHeader";
 import { FormField, SelectField } from "@/components/FormField";
-import { Alert } from "@/components/ui/alert";
+import { SaveRow, StaleAlert, type SaveNotice } from "@/components/SaveRow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
-import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
 
 import { useSmsSettings, useUpdateSmsSettings, type SmsSettings } from "../api";
 import { SmsCreditLine } from "../components/SmsCreditLine";
@@ -122,31 +122,17 @@ export function SmsSettingsPage() {
           <SmsSettingsForm
             key={String(settings.data.version)}
             current={settings.data}
+            notice={notice}
             onNotice={setNotice}
             onStale={() => setStale(true)}
-            status={
+            stale={
               stale ? (
-                <Alert variant="destructive">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span>{errorMessage({ code: changedConcurrently })}</span>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={reloading}
-                      onClick={() => void reload()}
-                    >
-                      بارگذاری اطلاعات تازه
-                    </Button>
-                  </div>
-                </Alert>
-              ) : notice === "saved" ? (
-                <Alert variant="success" role="status">
-                  تغییرها ثبت شد.
-                </Alert>
-              ) : notice === "unchanged" ? (
-                <Alert role="status">تغییری نداده‌اید؛ چیزی ذخیره نشد.</Alert>
-              ) : null
+                <StaleAlert
+                  code={changedConcurrently}
+                  reloading={reloading}
+                  onReload={() => void reload()}
+                />
+              ) : undefined
             }
           />
         </CardContent>
@@ -155,15 +141,12 @@ export function SmsSettingsPage() {
   );
 }
 
-/** What the last press of «ذخیره» did, shown beside the button where the Owner is looking. */
-type SaveNotice = "saved" | "unchanged" | null;
-
 interface SmsSettingsFormProps {
   current: SmsSettings;
+  notice: SaveNotice;
   onNotice: (notice: SaveNotice) => void;
   onStale: () => void;
-  /** The outcome of the last save, shown beside the button: the page may be scrolled far from its top. */
-  status: ReactNode;
+  stale: ReactNode;
 }
 
 /**
@@ -172,11 +155,9 @@ interface SmsSettingsFormProps {
  * back counts as no change. Any edit clears the last message, so «ثبت شد» never sits beside fields
  * that were changed after it.
  */
-function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsFormProps) {
+function SmsSettingsForm({ current, notice, onNotice, onStale, stale }: SmsSettingsFormProps) {
   const updateSettings = useUpdateSmsSettings();
-  const [savedInput] = useState(() =>
-    JSON.stringify(toInput(toFormValues(current), current.version)),
-  );
+  const isUnchanged = useUnchanged(() => toInput(toFormValues(current), current.version));
   const form = useForm<SmsSettingsValues>({
     resolver: zodResolver(smsSettingsSchema),
     defaultValues: toFormValues(current),
@@ -184,7 +165,7 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
 
   const submit = form.handleSubmit(async (values) => {
     const input = toInput(values, current.version);
-    if (JSON.stringify(input) === savedInput) {
+    if (isUnchanged(input)) {
       onNotice("unchanged");
       return;
     }
@@ -245,18 +226,11 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
         />
       </KindFieldset>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <SaveRow error={errors.root?.server?.message} notice={notice} stale={stale}>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "در حال ذخیره…" : "ذخیره"}
         </Button>
-        {errors.root?.server !== undefined ? (
-          <Alert variant="destructive" className="w-auto flex-1">
-            {errors.root.server.message}
-          </Alert>
-        ) : (
-          status !== null && <div className="flex-1 [&>[data-slot=alert]]:py-2">{status}</div>
-        )}
-      </div>
+      </SaveRow>
     </form>
   );
 }

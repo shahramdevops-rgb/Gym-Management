@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { FormField, MoneyField, SelectField } from "@/components/FormField";
+import { SaveRow, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
+import { normalizeMoney } from "@/lib/money";
 
 import type { ProductCategory } from "../api";
 import { productSchema, type ProductValues } from "../schemas";
@@ -20,6 +23,16 @@ interface ProductFormProps {
   /** Sends the form; a rejection is a server problem and lands on the form's fields. */
   onSubmit: (values: ProductValues) => Promise<void>;
   onCancel: () => void;
+  /**
+   * Editing a product rather than adding one (roadmap 13.2c): «ذخیره» with nothing changed sends
+   * nothing and says so, and every outcome is shown beside the button.
+   */
+  editing?: boolean;
+}
+
+/** The values as a save sends them: the price as the API reads it, whichever digits were typed. */
+function comparable(values: ProductValues) {
+  return { name: values.name, categoryId: values.categoryId, price: normalizeMoney(values.price) };
 }
 
 /**
@@ -33,10 +46,19 @@ export function ProductForm({
   submitLabel,
   onSubmit,
   onCancel,
+  editing = false,
 }: ProductFormProps) {
   const form = useForm({ resolver: zodResolver(productSchema), defaultValues });
+  const isUnchanged = useUnchanged(() => comparable(defaultValues));
+  const [notice, setNotice] = useState<SaveNotice>(null);
 
   const submit = form.handleSubmit(async (values) => {
+    if (editing && isUnchanged(comparable(values))) {
+      setNotice("unchanged");
+      return;
+    }
+
+    setNotice(null);
     try {
       await onSubmit(values);
     } catch (problem) {
@@ -47,8 +69,14 @@ export function ProductForm({
   const { errors, isSubmitting } = form.formState;
 
   return (
-    <form className="flex flex-wrap items-start gap-3" onSubmit={submit} noValidate>
-      {errors.root?.server !== undefined && (
+    // Every field is a native input or select, and their change events bubble up to here.
+    <form
+      className="flex flex-wrap items-start gap-3"
+      onSubmit={submit}
+      onChange={() => setNotice(null)}
+      noValidate
+    >
+      {!editing && errors.root?.server !== undefined && (
         <Alert variant="destructive" className="w-full">
           {errors.root.server.message}
         </Alert>
@@ -93,13 +121,15 @@ export function ProductForm({
           )}
         />
       </div>
-      <div className="flex w-full gap-2">
-        <Button type="submit" size="sm" disabled={isSubmitting}>
-          {submitLabel}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-          انصراف
-        </Button>
+      <div className="w-full">
+        <SaveRow error={editing ? errors.root?.server?.message : undefined} notice={notice}>
+          <Button type="submit" size="sm" disabled={isSubmitting}>
+            {submitLabel}
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+            انصراف
+          </Button>
+        </SaveRow>
       </div>
     </form>
   );

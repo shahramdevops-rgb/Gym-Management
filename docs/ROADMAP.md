@@ -2799,11 +2799,22 @@ every screen, rather than the gym's green or a neutral black.
       default (6.5.22)
 - [ ] The Persian font renders numbers and text consistently across screens
 - [ ] Empty states, loading states and error states that look deliberate
-- [ ] Every edit form saves the way «تنظیمات پیامک» does since 1405/07/16 (asked by the developer):
+- [x] Every edit form saves the way «تنظیمات پیامک» does since 1405/07/16 (asked by the developer):
       «ذخیره» always enabled; pressed with nothing changed it sends nothing and says «تغییری
       نداده‌اید»; every outcome (saved, nothing changed, someone else saved, a server error) is shown
       beside the button, not at the top of a page the user has scrolled away from; an edit clears it.
       Forms that add something keep their own messages
+- [x] **13.2c Edit forms' save behaviour** (1405/07/19). The SMS page's pattern made shared:
+      `SaveRow` (the buttons and the last outcome beside them, one at a time: someone else saved, a
+      server error, nothing changed, saved), `StaleAlert`, and `useUnchanged` (the request the
+      values would make against the one they opened with, so «۷۵٬۰۰۰» over «75000», or a value
+      changed and put back, is no change). On: تنظیمات پیامک, تنظیمات قیمت, ویرایش عضو, ویرایش
+      هزینه, ویرایش چک و قسط, ویرایش محصول بوفه, ویرایش مبلغ خدمت, and the two category renames
+      (whose one-line «تغییری نداده‌اید» sits right under the box and its buttons). Forms that close
+      on a save keep closing, with the message they showed before (the developer's choice, the same
+      day); «تغییرها ثبت شد» beside the button is for the two settings pages, which stay open. A
+      form shared by adding and editing takes `editing`; adding is unchanged. No package added, no
+      API change
 
 ### 13.3 The public site
 - [ ] Replace the placeholder on the apex with a real page for the gym: hours, address, contact,

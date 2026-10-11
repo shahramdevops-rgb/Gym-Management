@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { cafePage, chips, drinks, snacks, water } from "@/test/cafe";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
+import { nothingChanged, saveRowOf } from "@/test/saveRow";
 
 const menu = {
   // Staff, not the Owner: the whole cafe is front-desk work (BUSINESS_RULES.md §8).
@@ -135,22 +136,6 @@ describe("CafeMenuPage", () => {
     });
   });
 
-  it("Menu_EditProductSomebodyElseChanged_ShowsTheConflict", async () => {
-    mockApi({
-      ...menu,
-      [`PUT /api/cafe/products/${water.id}`]: () => problem(409, "Products.ChangedConcurrently"),
-    });
-    renderApp("/cafe/menu", { session: session() });
-
-    await screen.findByText("چیپس");
-    fireEvent.click(screen.getByRole("button", { name: "ویرایش آب معدنی" }));
-    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "این محصول هم‌زمان توسط شخص دیگری تغییر کرد.",
-    );
-  });
-
   it("Menu_SwitchProductOff_CallsDeactivate", async () => {
     const api = mockApi({
       ...menu,
@@ -165,5 +150,54 @@ describe("CafeMenuPage", () => {
     await waitFor(() =>
       expect(api.requestsTo("POST", `/api/cafe/products/${water.id}/deactivate`)).toHaveLength(1),
     );
+  });
+
+  // ---- Saving the way every edit form does (roadmap 13.2c) ----
+
+  it("Menu_EditProductWithNothingChanged_SendsNothingAndSaysSoBesideTheButton", async () => {
+    const api = mockApi(menu);
+    renderApp("/cafe/menu", { session: session() });
+
+    await screen.findByText("چیپس");
+    fireEvent.click(screen.getByRole("button", { name: "ویرایش آب معدنی" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await saveRowOf("ذخیره").findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", `/api/cafe/products/${water.id}`)).toHaveLength(0);
+  });
+
+  it("Menu_EditProductRefused_SaysSoBesideTheButton", async () => {
+    mockApi({
+      ...menu,
+      [`PUT /api/cafe/products/${water.id}`]: () => problem(409, "Products.ChangedConcurrently"),
+    });
+    renderApp("/cafe/menu", { session: session() });
+
+    await screen.findByText("چیپس");
+    fireEvent.click(screen.getByRole("button", { name: "ویرایش آب معدنی" }));
+    fireEvent.change(screen.getByLabelText("قیمت (تومان)"), { target: { value: "30000" } });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await saveRowOf("ذخیره").findByRole("alert")).toHaveTextContent(
+      "این محصول هم‌زمان توسط شخص دیگری تغییر کرد.",
+    );
+  });
+
+  it("Menu_RenameCategoryToTheSameName_SendsNothingAndSaysSo", async () => {
+    const api = mockApi(menu);
+    renderApp("/cafe/menu", { session: session() });
+
+    await screen.findByText("چیپس");
+    fireEvent.click(screen.getByRole("button", { name: `تغییر نام ${drinks.name}` }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", `/api/cafe/categories/${drinks.id}`)).toHaveLength(0);
+
+    fireEvent.change(screen.getByLabelText(`نام تازهٔ ${drinks.name}`), {
+      target: { value: "نوشیدنی سرد" },
+    });
+
+    await waitFor(() => expect(screen.queryByText(nothingChanged)).not.toBeInTheDocument());
   });
 });

@@ -204,7 +204,7 @@ web/src/
 ├── app/            Router, providers (QueryClient, DirectionProvider), layout shell
 ├── features/       One folder per feature: members/, subscriptions/, attendance/...
 │   └── members/    api.ts (queries/mutations), components/, pages/, schemas.ts (Zod)
-├── components/     Shared building blocks: PageHeader, States (LoadingState, EmptyState), FormField, Pager
+├── components/     Shared building blocks: PageHeader, States (LoadingState, EmptyState), FormField, SaveRow, Pager
 ├── components/ui/  shadcn/ui components (adjusted for RTL), Table among them
 ├── lib/
 │   ├── api/        Generated types (do not edit) and the openapi-fetch client
@@ -219,6 +219,12 @@ web/src/
   `LoadingState`, an empty one `EmptyState`, a failure an `Alert variant="destructive"`. Colours are tokens in
   `index.css` with a dark value each (`--sidebar`, `shadow-card`, `shadow-raised`, `shadow-overlay` among them); a
   screen never writes a raw colour. The brand is a deep blue, kept apart from the green and red of the states.
+- An edit form saves one way (roadmap 13.2c): its buttons sit in `SaveRow` (`components/SaveRow.tsx`), which shows
+  the outcome of the last press beside them — `StaleAlert` when someone else saved first, a server error, «تغییری
+  نداده‌اید» or «تغییرها ثبت شد» — one at a time. «ذخیره» is never disabled; `useUnchanged` (`lib/forms.ts`) compares
+  the request the values would make with the one they opened with, so a save with nothing changed sends nothing.
+  Any edit clears the message (`onChange` on the `<form>`). A form shared by adding and editing takes `editing`;
+  adding keeps its own messages. In tests, `test/saveRow.ts` finds the row (`saveRowOf`).
 - Direction: `<html lang="fa" dir="rtl">` plus Radix `DirectionProvider dir="rtl"`. After adding a shadcn component, replace any physical left/right classes with logical ones and check icons that should mirror (arrows, chevrons).
 - Dates: API sends and receives ISO dates (`2026-09-17`) and UTC timestamps. Display with `Intl.DateTimeFormat('fa-IR', ...)`, which uses the Persian calendar. Jalali ranges such as "this month" are computed in the frontend and sent as Gregorian dates.
 - A date is **chosen** in three dropdowns (day, month, year) in `components/FormField.tsx`: `BirthDateField` for a birth date, `JalaliDateField` for a date entered on a form (cheque, instalment, expense); both are thin wrappers over one `DropdownDateField` that differ only in the years offered and the clear button. Each box is the file's own `Picker` (a select-only combobox), not a native `<select>`, so its list opens short and scrolls. The field holds the ISO value and shows Jalali; `jalaliToIso`/`jalaliPartsOf` in `format.ts` do the conversion with `date-fns-jalali`, and every `Date` they build is at **noon**, because Iran changed its clocks at midnight through the years birth dates fall in. In tests, `test/jalaliDate.ts` chooses a date (`chooseDate`) and reads one back (`dateShown`).

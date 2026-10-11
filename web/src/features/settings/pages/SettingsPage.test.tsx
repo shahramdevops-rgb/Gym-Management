@@ -11,6 +11,7 @@ import {
 } from "@/test/mockApi";
 import { prices, pricesNotSet, pricesResponse } from "@/test/prices";
 import { renderApp } from "@/test/renderApp";
+import { nothingChanged, saveRowOf } from "@/test/saveRow";
 
 describe("SettingsPage", () => {
   it("SettingsPage_StaffUser_SeesNoAccessMessage", async () => {
@@ -60,7 +61,7 @@ describe("SettingsPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
-    expect(await screen.findByText("قیمت‌ها ذخیره شد.")).toBeInTheDocument();
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
     const saves = api.requestsTo("PUT", "/api/pricing");
     expect(saves).toHaveLength(1);
     expect(await saves[0]!.clone().json()).toEqual({
@@ -97,9 +98,96 @@ describe("SettingsPage", () => {
     await waitFor(() =>
       expect(screen.getByLabelText("قیمت هر جلسه برای پلن‌ها (تومان)")).not.toHaveValue(""),
     );
+    fireEvent.change(screen.getByLabelText("قیمت هر جلسه برای پلن‌ها (تومان)"), {
+      target: { value: "90000" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
-    expect(await screen.findByText(/قیمت‌ها هم‌زمان توسط شخص دیگری تغییر کرد/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "بارگذاری اطلاعات تازه" })).toBeInTheDocument();
+    expect(
+      await saveRowOf("ذخیره").findByText(/قیمت‌ها هم‌زمان توسط شخص دیگری تغییر کرد/),
+    ).toBeInTheDocument();
+    expect(
+      saveRowOf("ذخیره").getByRole("button", { name: "بارگذاری اطلاعات تازه" }),
+    ).toBeInTheDocument();
+  });
+
+  // ---- Saving the way every edit form does (roadmap 13.2c) ----
+
+  it("SettingsPage_Saved_SaysSoBesideTheButton", async () => {
+    mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/pricing": () => pricesResponse(prices),
+      "PUT /api/pricing": () => json(200, { ...prices, sessionPrice: 90000, version: 8 }),
+    });
+    renderApp("/settings", { session: session() });
+    const sessionPrice = await screen.findByLabelText("قیمت هر جلسه برای پلن‌ها (تومان)");
+    await waitFor(() => expect(sessionPrice).not.toHaveValue(""));
+
+    fireEvent.change(sessionPrice, { target: { value: "90000" } });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    expect(saveRowOf("ذخیره").getByText("تغییرها ثبت شد.")).toBeInTheDocument();
+  });
+
+  it("SettingsPage_SaveWithNothingChanged_SendsNothingAndSaysSoBesideTheButton", async () => {
+    const api = mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/pricing": () => pricesResponse(prices),
+    });
+    renderApp("/settings", { session: session() });
+    await waitFor(() =>
+      expect(screen.getByLabelText("قیمت هر جلسه برای پلن‌ها (تومان)")).not.toHaveValue(""),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await saveRowOf("ذخیره").findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", "/api/pricing")).toHaveLength(0);
+  });
+
+  it("SettingsPage_SamePriceTypedInPersianDigits_CountsAsNothingChanged", async () => {
+    const api = mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/pricing": () => pricesResponse(prices),
+    });
+    renderApp("/settings", { session: session() });
+    const sessionPrice = await screen.findByLabelText("قیمت هر جلسه برای پلن‌ها (تومان)");
+    await waitFor(() => expect(sessionPrice).not.toHaveValue(""));
+
+    fireEvent.change(sessionPrice, { target: { value: "۷۵٬۰۰۰" } });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", "/api/pricing")).toHaveLength(0);
+  });
+
+  it("SettingsPage_EditAfterNothingChanged_ClearsTheMessage", async () => {
+    mockApi({ ...signedInHandlers(owner), "GET /api/pricing": () => pricesResponse(prices) });
+    renderApp("/settings", { session: session() });
+    const sessionPrice = await screen.findByLabelText("قیمت هر جلسه برای پلن‌ها (تومان)");
+    await waitFor(() => expect(sessionPrice).not.toHaveValue(""));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+    expect(await screen.findByText(nothingChanged)).toBeInTheDocument();
+
+    fireEvent.change(sessionPrice, { target: { value: "80000" } });
+
+    await waitFor(() => expect(screen.queryByText(nothingChanged)).not.toBeInTheDocument());
+  });
+
+  it("SettingsPage_ServerError_IsShownBesideTheButton", async () => {
+    mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/pricing": () => pricesResponse(prices),
+      "PUT /api/pricing": () => problem(500, "Server.Unexpected"),
+    });
+    renderApp("/settings", { session: session() });
+    const sessionPrice = await screen.findByLabelText("قیمت هر جلسه برای پلن‌ها (تومان)");
+    await waitFor(() => expect(sessionPrice).not.toHaveValue(""));
+
+    fireEvent.change(sessionPrice, { target: { value: "80000" } });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await saveRowOf("ذخیره").findByRole("alert")).toBeInTheDocument();
   });
 });

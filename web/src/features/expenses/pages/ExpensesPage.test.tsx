@@ -20,6 +20,7 @@ import {
 } from "@/test/mockApi";
 import { gymToday, jalaliPartsOf } from "@/lib/format";
 import { renderApp } from "@/test/renderApp";
+import { nothingChanged, saveRowOf } from "@/test/saveRow";
 import { chooseDate, dateShown } from "@/test/jalaliDate";
 
 const books = {
@@ -213,23 +214,6 @@ describe("ExpensesPage", () => {
     });
   });
 
-  it("ExpensesPage_EditCrossingAnotherEdit_SaysSoOnTheForm", async () => {
-    mockApi({
-      ...books,
-      [`PUT /api/expenses/${septemberRent.id}`]: () => problem(409, "Expenses.ChangedConcurrently"),
-    });
-    renderApp("/expenses", { session: session() });
-
-    await screen.findByText("اجارهٔ شهریور");
-    fireEvent.click(within(rowWith("اجارهٔ شهریور")).getByRole("button", { name: /^ویرایش/ }));
-    const form = formOf("شرح");
-    fireEvent.click(within(form).getByRole("button", { name: "ذخیرهٔ تغییرات" }));
-
-    expect(
-      await within(form).findByText(/این هزینه هم‌زمان توسط شخص دیگری تغییر کرد/),
-    ).toBeInTheDocument();
-  });
-
   it("ExpensesPage_Void_RequiresAReasonAndSendsIt", async () => {
     const api = mockApi({
       ...books,
@@ -290,5 +274,54 @@ describe("ExpensesPage", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("نام دسته‌بندی تغییر کرد.");
     const [request] = api.requestsTo("PUT", `/api/expenses/categories/${electricity.id}`);
     expect(await request!.json()).toEqual({ name: "برق و گاز", version: 2 });
+  });
+
+  // ---- Saving the way every edit form does (roadmap 13.2c) ----
+
+  it("ExpensesPage_EditWithNothingChanged_SendsNothingAndSaysSoBesideTheButton", async () => {
+    const api = mockApi(books);
+    renderApp("/expenses", { session: session() });
+
+    await screen.findByText("اجارهٔ شهریور");
+    fireEvent.click(within(rowWith("اجارهٔ شهریور")).getByRole("button", { name: /^ویرایش/ }));
+    const form = formOf("شرح");
+    fireEvent.click(within(form).getByRole("button", { name: "ذخیرهٔ تغییرات" }));
+
+    expect(await saveRowOf("ذخیرهٔ تغییرات", form).findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", `/api/expenses/${septemberRent.id}`)).toHaveLength(0);
+  });
+
+  it("ExpensesPage_EditCrossingAnotherEdit_SaysSoBesideTheButton", async () => {
+    mockApi({
+      ...books,
+      [`PUT /api/expenses/${septemberRent.id}`]: () => problem(409, "Expenses.ChangedConcurrently"),
+    });
+    renderApp("/expenses", { session: session() });
+
+    await screen.findByText("اجارهٔ شهریور");
+    fireEvent.click(within(rowWith("اجارهٔ شهریور")).getByRole("button", { name: /^ویرایش/ }));
+    const form = formOf("شرح");
+    fireEvent.change(within(form).getByLabelText("شرح"), { target: { value: "اجارهٔ مهر" } });
+    fireEvent.click(within(form).getByRole("button", { name: "ذخیرهٔ تغییرات" }));
+
+    expect(
+      await saveRowOf("ذخیرهٔ تغییرات", form).findByText(/هم‌زمان توسط شخص دیگری تغییر کرد/),
+    ).toBeInTheDocument();
+  });
+
+  it("ExpensesPage_RenameCategoryToTheSameName_SendsNothingAndSaysSo", async () => {
+    const api = mockApi(books);
+    renderApp("/expenses", { session: session() });
+
+    const list = await screen.findByRole("list", { name: "فهرست دسته‌بندی‌های هزینه" });
+    fireEvent.click(within(list).getByRole("button", { name: "تغییر نام برق" }));
+    fireEvent.click(within(list).getByRole("button", { name: "ذخیره" }));
+
+    expect(await within(list).findByText(nothingChanged)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", `/api/expenses/categories/${electricity.id}`)).toHaveLength(0);
+
+    fireEvent.change(screen.getByLabelText("نام تازهٔ برق"), { target: { value: "برق و گاز" } });
+
+    await waitFor(() => expect(screen.queryByText(nothingChanged)).not.toBeInTheDocument());
   });
 });

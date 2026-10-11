@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { paths } from "@/app/paths";
 import { PageMessage } from "@/features/auth/components/PageMessage";
 import { PageHeader } from "@/components/PageHeader";
-import { Alert } from "@/components/ui/alert";
+import { StaleAlert } from "@/components/SaveRow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
@@ -57,22 +57,6 @@ export function EditMemberPage() {
       <PageHeader title={<>ویرایش «{current.fullName}»</>} />
       <Card>
         <CardContent className="space-y-4">
-          {stale && (
-            <Alert variant="destructive">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>{errorMessage({ code: changedConcurrently })}</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={reloading}
-                  onClick={() => void reload()}
-                >
-                  بارگذاری اطلاعات تازه
-                </Button>
-              </div>
-            </Alert>
-          )}
-
           {/*
           Keyed by version: once the fresh member is loaded, React builds a new form with its
           values, instead of keeping the fields filled from the old one.
@@ -87,6 +71,16 @@ export function EditMemberPage() {
             }}
             submitLabel="ذخیره"
             submittingLabel="در حال ذخیره…"
+            editing
+            stale={
+              stale ? (
+                <StaleAlert
+                  code={changedConcurrently}
+                  reloading={reloading}
+                  onReload={() => void reload()}
+                />
+              ) : undefined
+            }
             onSubmit={async (input) => {
               try {
                 await updateMember.mutateAsync({ id, version: current.version, ...input });

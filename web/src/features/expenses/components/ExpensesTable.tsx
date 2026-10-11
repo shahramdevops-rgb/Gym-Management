@@ -140,6 +140,7 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
                 }}
                 categories={categories}
                 submitLabel="ذخیرهٔ تغییرات"
+                editing
                 onSubmit={async (input) => {
                   // The version read with the list: an edit that crossed somebody else's is refused.
                   await updateExpense.mutateAsync({

@@ -176,6 +176,7 @@ export function ProductsCard() {
                           }}
                           categories={categoryList}
                           submitLabel="ذخیره"
+                          editing
                           onSubmit={async (values) => {
                             // The version read with the list, so an edit that crossed
                             // somebody else's is refused rather than silently winning.
