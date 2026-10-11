@@ -131,7 +131,7 @@ describe("CafeOrdersPage", () => {
     });
     renderApp("/cafe/orders", { session: session() });
 
-    fireEvent.click(await screen.findByLabelText("فقط پرداخت‌نشده — مهمان"));
+    fireEvent.click(await screen.findByRole("button", { name: "فقط پرداخت‌نشده — مهمان" }));
 
     await waitFor(() =>
       expect(

@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/table";
 import { guestLabel } from "@/features/attendance/holder";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
+import { stateEdge } from "@/lib/edges";
 import { formatDate, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 import { isPositiveMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import type { CafeOrder } from "../api";
 import { CafeOrderPaymentForm } from "./CafeOrderPaymentForm";
@@ -28,7 +30,12 @@ interface CafeOrdersTableProps {
   onDone: (message: string) => void;
 }
 
-/** Orders newest first, as the API sends them; cancelled ones stay in the list, marked (§8). */
+/**
+ * Orders newest first, as the API sends them; cancelled ones stay in the list, marked (§8). Drawn
+ * like the history's lists (13.2i): each row edged at its start in the page's tone, its tags and
+ * buttons edged at their end in a state's colour (`stateEdge`): green to pay, red for what is
+ * owed, cancelled or undone, grey for a guest who owes nothing.
+ */
 export function CafeOrdersTable({ orders, showCustomer = true, onDone }: CafeOrdersTableProps) {
   const columns = showCustomer ? 7 : 6;
 
@@ -95,18 +102,23 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
   return (
     <>
       <TableRow className="align-top">
-        <TableCell>{formatDate(order.orderedOn)}</TableCell>
+        {/* Edged at its start in the page's tone, like a locker door (`tone-row-edge`, 13.2i). */}
+        <TableCell className="tone-row-edge">{formatDate(order.orderedOn)}</TableCell>
         {showCustomer && (
           <TableCell>
             {order.guestName !== null ? (
               // An order on a guest's visit (BUSINESS_RULES.md §7 *Guest visit*): their name, no profile.
               <span className="flex flex-wrap items-center gap-1">
                 {order.guestName}
-                <Badge variant="outline">
-                  {!cancelled && isPositiveMoney(order.outstanding)
-                    ? "پرداخت‌نشده — مهمان"
-                    : guestLabel}
-                </Badge>
+                {!cancelled && isPositiveMoney(order.outstanding) ? (
+                  <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
+                    پرداخت‌نشده — مهمان
+                  </Badge>
+                ) : (
+                  <Badge variant="ghost" className={stateEdge.muted}>
+                    {guestLabel}
+                  </Badge>
+                )}
               </span>
             ) : order.memberId === null ? (
               <span className="text-muted-foreground">مشتری آزاد</span>
@@ -132,14 +144,16 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
         <TableCell>{formatMoney(order.totalAmount)}</TableCell>
         <TableCell>
           <div className="flex flex-wrap items-center gap-2">
-            {!cancelled && <PaymentStatusBadge status={order.paymentStatus} />}
+            {!cancelled && <PaymentStatusBadge status={order.paymentStatus} edged />}
             <span className="text-muted-foreground">{formatMoney(order.netPaid)}</span>
           </div>
         </TableCell>
         <TableCell>
           {cancelled ? (
             <div className="space-y-1">
-              <Badge variant="destructive">لغو شده</Badge>
+              <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
+                لغو شده
+              </Badge>
               <p className="text-xs text-muted-foreground">
                 {formatDateTime(order.cancelledAt)} — {order.cancelReason}
               </p>
@@ -155,7 +169,8 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
             {canPay && (
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
+                className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success")}
                 aria-label={`ثبت پرداخت برای ${context}`}
                 onClick={() => toggle("payment")}
               >
@@ -165,7 +180,11 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
             {canCancel && (
               <Button
                 size="sm"
-                variant="destructive"
+                variant="ghost"
+                className={cn(
+                  stateEdge.destructive,
+                  "hover:bg-destructive/10 hover:text-destructive",
+                )}
                 aria-label={`لغو ${context}`}
                 onClick={() => toggle("cancel")}
               >

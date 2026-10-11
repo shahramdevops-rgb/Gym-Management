@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { LoadingState } from "@/components/States";
 import { FormField, MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
@@ -16,9 +16,11 @@ import type { PaymentMethod } from "@/features/payments/api";
 import { ConfirmPaymentDialog } from "@/features/payments/components/ConfirmPaymentDialog";
 import { PaymentMethodField } from "@/features/payments/components/PaymentMethodField";
 import { amountProblem } from "@/features/payments/schemas";
+import { toneAction, toneButton } from "@/lib/edges";
 import { errorMessage, errorMessages, fieldErrors } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
 import { isPositiveMoney, normalizeMoney, subtractMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import { cafeLimits, useCreateCafeOrder, useSellableProducts, type PaymentInput } from "../api";
 import { addToCart, cartTotal, removeFromCart, setQuantity, type CartLine } from "../cart";
@@ -194,18 +196,18 @@ export function CafeTillPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      {/* The other two cafe pages on the banner, edged like «عضو جدید» on the members' (13.2i). */}
+      <PageHero
         title="بوفه"
-        description="فروش از منوی بوفه به اعضا و مشتریان."
         actions={
           <>
-            <Button asChild variant="outline">
+            <Button asChild variant="ghost" className={toneAction}>
               <Link to={paths.cafeOrders}>
                 <ReceiptText aria-hidden />
                 سفارش‌ها
               </Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button asChild variant="ghost" className={toneAction}>
               <Link to={paths.cafeMenu}>
                 <ClipboardList aria-hidden />
                 منوی بوفه
@@ -222,7 +224,7 @@ export function CafeTillPage() {
       )}
 
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_24rem]">
-        <Card>
+        <Card edge>
           <CardContent>
             {products.isPending && <LoadingState />}
             {products.isError && (
@@ -247,7 +249,7 @@ export function CafeTillPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card edge>
           <CardHeader>
             <CardTitle>سبد خرید</CardTitle>
           </CardHeader>
@@ -333,7 +335,8 @@ export function CafeTillPage() {
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  variant="ghost"
+                  className={cn(toneButton, "w-full")}
                   size="lg"
                   disabled={
                     createOrder.isPending ||

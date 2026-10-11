@@ -8,15 +8,21 @@ import { guestLabel } from "@/features/attendance/holder";
 import { nameMatches, nameSearchTerm } from "@/features/lockers/nameSearch";
 import { useMemberList, type Member } from "@/features/members/api";
 import { searchMinLength } from "@/features/members/schemas";
+import { filterEdge } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { formatPhone, toPersianDigits } from "@/lib/format";
 import { normalizeInput } from "@/lib/normalize";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
+import { cn } from "@/lib/utils";
 
 const searchDelayMs = 300;
 
 /** How many matches the till offers; the member search page is where a long list belongs. */
 const shownMatches = 5;
+
+/** The chosen buyer, edged like a filter box: chosen, as a filter's choice is (13.2i). */
+const chosenBox =
+  "flex items-center justify-between gap-3 rounded-md border border-e-[3px] px-3 py-2 tone-edge-end";
 
 interface CafeMemberPickerProps {
   /** The member the order is for, or null for a walk-in customer. */
@@ -66,7 +72,7 @@ export function CafeMemberPicker({
 
   if (guest !== null) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+      <div className={chosenBox}>
         <div>
           <p className="font-medium">{guest.guestName}</p>
           <p className="text-sm text-muted-foreground">
@@ -91,7 +97,7 @@ export function CafeMemberPicker({
 
   if (member !== null) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+      <div className={chosenBox}>
         <div>
           <p className="font-medium">{member.fullName}</p>
           <p className="text-sm text-muted-foreground" dir="ltr">
@@ -125,7 +131,7 @@ export function CafeMemberPicker({
           type="search"
           aria-label="جستجوی عضو"
           placeholder="مشتری آزاد — یا نام یا موبایل عضو…"
-          className="ps-9"
+          className={cn("ps-9", filterEdge)}
           value={text}
           onChange={(event) => {
             setText(event.target.value);

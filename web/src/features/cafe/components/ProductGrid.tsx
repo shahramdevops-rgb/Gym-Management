@@ -1,8 +1,10 @@
 import { useState } from "react";
 
 import { Input } from "@/components/ui/input";
+import { filterEdge } from "@/lib/edges";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { normalizeInput } from "@/lib/normalize";
+import { cn } from "@/lib/utils";
 
 import type { Product } from "../api";
 
@@ -44,6 +46,8 @@ export function ProductGrid({ products, inCart, onPick }: ProductGridProps) {
         type="search"
         aria-label="جستجوی محصول"
         placeholder="جستجوی محصول…"
+        // Edged like every filter box, the thick edge at its end (13.2i).
+        className={cn(filterEdge, "sm:max-w-sm")}
         value={filter}
         onChange={(event) => setFilter(event.target.value)}
       />
@@ -63,10 +67,12 @@ export function ProductGrid({ products, inCart, onPick }: ProductGridProps) {
             {items.map((product) => {
               const count = inCart.get(product.id);
               return (
+                // Like a locker door on the map (13.2i): no fill of its own, a faint frame and a thick
+                // start edge in the page's tone, tinted when pointed at.
                 <button
                   key={product.id}
                   type="button"
-                  className="relative flex min-h-20 flex-col items-start justify-between gap-1 rounded-md border bg-card p-3 text-start hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                  className="relative flex min-h-20 flex-col items-start justify-between gap-1 rounded-md border border-s-[3px] p-3 text-start tone-edge hover:tone-soft focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
                   onClick={() => onPick(product)}
                 >
                   <span className="font-medium">{product.name}</span>
@@ -74,7 +80,8 @@ export function ProductGrid({ products, inCart, onPick }: ProductGridProps) {
                     {formatMoney(product.price)}
                   </span>
                   {count !== undefined && (
-                    <span className="absolute end-2 top-2 rounded-full bg-primary px-2 text-xs text-primary-foreground">
+                    // Edged like a tag, in the tone, not a filled pill.
+                    <span className="absolute end-2 top-2 rounded-md border border-e-[3px] px-1.5 text-xs font-semibold tone-ink tone-edge-end">
                       {toPersianDigits(count)}
                       <span className="sr-only"> عدد در سبد</span>
                     </span>

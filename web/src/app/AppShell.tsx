@@ -106,7 +106,10 @@ export function AppShell() {
                   )}
                 >
                   {group.tone !== undefined && (
-                    <span aria-hidden className="size-1.5 shrink-0 rounded-full tone-solid" />
+                    <span
+                      aria-hidden
+                      className="size-1.5 shrink-0 rounded-full bg-current tone-ink"
+                    />
                   )}
                   {group.title}
                   <GroupSwoosh muted={group.tone === undefined} />
@@ -194,7 +197,7 @@ export function AppShell() {
 }
 
 /**
- * A line under a menu group's title, in the group's colour (13.2h, asked by the developer with a
+ * A line under a menu group's title, in the colour of its pages' edges (13.2h, asked by the developer with a
  * sketch, then on the canvas: "not curved, and not all straight"): it leaves the title's dot,
  * bends down once, and from in front of the group's first item runs straight to the far edge,
  * fading out at the very end, so the groups read as parts without a hard rule.
@@ -209,7 +212,9 @@ function GroupSwoosh({ muted }: { muted: boolean }) {
       preserveAspectRatio="none"
       className={cn(
         "pointer-events-none absolute inset-x-3 top-[calc(50%+3px)] h-3 [mask-image:linear-gradient(to_left,black_75%,transparent)]",
-        muted ? "text-muted-foreground/50" : "text-(--tone)",
+        // `tone-ink`: the colour of the page's edges, so the line and the page beside it match
+        // (13.2i, asked by the developer on «فروش بوفه»).
+        muted ? "text-muted-foreground/50" : "tone-ink",
       )}
     >
       {/* Drawn from the right, where the dot is in a right-to-left menu. */}

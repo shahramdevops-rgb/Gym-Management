@@ -7,8 +7,10 @@ import { SaveNoticeAlert, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { stateEdge, toneButton } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { cn } from "@/lib/utils";
 
 import {
   useCreateProductCategory,
@@ -19,6 +21,7 @@ import {
   type ProductCategory,
 } from "../api";
 import { categorySchema, type CategoryValues } from "../schemas";
+import { switchClass } from "../stockSwitch";
 import { StockBadge } from "./StockBadge";
 
 const codeFields = { "ProductCategories.NameAlreadyExists": "name" } as const;
@@ -48,7 +51,7 @@ export function CategoriesCard() {
   }
 
   return (
-    <Card>
+    <Card edge>
       <CardHeader>
         <CardTitle>دسته‌بندی‌ها</CardTitle>
       </CardHeader>
@@ -72,7 +75,8 @@ export function CategoriesCard() {
         {categories.isSuccess && categories.data.length > 0 && (
           <ul className="divide-y" aria-label="فهرست دسته‌بندی‌ها">
             {categories.data.map((category) => (
-              <li key={category.id} className="py-2">
+              // Edged at its start in the page's tone, like a table row (`tone-row-edge`, 13.2i).
+              <li key={category.id} className="py-2 ps-3 tone-row-edge">
                 {renaming === category.id ? (
                   <RenameCategoryForm
                     category={category}
@@ -85,7 +89,9 @@ export function CategoriesCard() {
                 ) : (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{category.name}</span>
-                    <StockBadge inStock={category.isActive} />
+                    {/* Only «ناموجود» is marked (asked by the developer, 13.2i): a «موجود» on every
+                        shelf said nothing, and the switch beside it already says which way it goes. */}
+                    {!category.isActive && <StockBadge inStock={false} />}
                     <div className="ms-auto flex flex-wrap gap-1">
                       <Button
                         size="sm"
@@ -97,7 +103,8 @@ export function CategoriesCard() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="ghost"
+                        className={switchClass(category.isActive)}
                         disabled={setActive.isPending}
                         aria-label={`${category.isActive ? "ناموجود کردن" : "موجود کردن"} ${category.name}`}
                         onClick={() =>
@@ -118,7 +125,10 @@ export function CategoriesCard() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-destructive"
+                        className={cn(
+                          stateEdge.destructive,
+                          "hover:bg-destructive/10 hover:text-destructive",
+                        )}
                         disabled={deleteCategory.isPending}
                         aria-label={`حذف ${category.name}`}
                         onClick={() =>
@@ -171,7 +181,12 @@ function NewCategoryForm({ onDone }: { onDone: (message: string) => void }) {
           {...form.register("name")}
         />
       </div>
-      <Button type="submit" className="mt-[1.375rem]" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        variant="ghost"
+        className={cn(toneButton, "mt-[1.375rem]")}
+        disabled={isSubmitting}
+      >
         افزودن
       </Button>
     </form>
@@ -227,7 +242,13 @@ function RenameCategoryForm({ category, onDone, onCancel }: RenameCategoryFormPr
           {...form.register("name")}
         />
       </div>
-      <Button type="submit" size="sm" className="mt-[1.375rem]" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        size="sm"
+        variant="ghost"
+        className={cn(toneButton, "mt-[1.375rem]")}
+        disabled={isSubmitting}
+      >
         ذخیره
       </Button>
       <Button type="button" size="sm" variant="ghost" className="mt-[1.375rem]" onClick={onCancel}>

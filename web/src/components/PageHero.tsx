@@ -49,13 +49,20 @@ export function PageHero({ title, actions, children, icon, className }: PageHero
         <h2 className="text-xl leading-tight font-extrabold tracking-tight">{title}</h2>
       </div>
       {children !== undefined && <div className="min-w-0 flex-1">{children}</div>}
-      {actions !== undefined && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {/* The page's tools at the far end, beside the logo (asked by the developer, 13.2i). */}
+      {actions !== undefined && (
+        <div className="ms-auto flex flex-wrap items-center gap-2">{actions}</div>
+      )}
       {/* The logo is white lines on transparency, so it is drawn as a mask in the group's colour:
           it reads on the card in both themes. `ms-auto` keeps it at the far end even on a page
-          with nothing beside the title (asked by the developer, 13.2i). */}
+          with nothing beside the title (asked by the developer, 13.2i); after the tools, they
+          already took the free room. */}
       <span
         aria-hidden
-        className="ms-auto hidden h-10 w-12 shrink-0 bg-current tone-ink lg:block"
+        className={cn(
+          "hidden h-10 w-12 shrink-0 bg-current tone-ink lg:block",
+          actions === undefined && "ms-auto",
+        )}
         style={logoMask}
       />
     </div>

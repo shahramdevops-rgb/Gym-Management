@@ -2898,7 +2898,7 @@ every screen, rather than the gym's green or a neutral black.
       hidden `<div>`. The average's label («میانگین ۱ دوشنبه باز در ۴ هفتهٔ گذشته») stays as it is,
       once explained (the developer's choice). Left: the rest of the pages. No package added, no API
       change
-- [ ] **13.2i Pages in the panel's look: «داخل باشگاه», «تاریخچه», «اعضا»** (asked by the
+- [ ] **13.2i Pages in the panel's look: «داخل باشگاه», «تاریخچه», «اعضا», then «فروش بوفه»** (asked by the
       developer, 1405/07/20–21, from marked-up screenshots). The rules, now in `web/src/lib/edges.ts`
       so every page draws them the same way: a table row is edged at its start in the page's tone
       (`tone-row-edge`, a curved bar on the first cell; a history settlement spans its items with
@@ -2921,7 +2921,23 @@ every screen, rather than the gym's green or a neutral black.
       (the 30-minute window is checked by the API only). Left: the member profile and the other
       pages, then the light theme, which this work was not checked in: the tone's edge, mixed with
       the near-black text colour, turns almost black there, and the page and the cards are nearly
-      the same white. No package added, no API change
+      the same white. Then «فروش بوفه»'s three pages the same way (asked by the developer,
+      1405/07/21: "exactly like the reception pages"): the banner on each, the other cafe pages'
+      links on it edged in the tone like «عضو جدید» (`toneAction`, the members' page moved onto it);
+      `Card edge`; the product and member searches, the date boxes and «نمایش دسته‌بندی» as filter
+      boxes; «فقط پرداخت‌نشده — مهمان» a filter choice instead of a checkbox; each product on the
+      till a locker door (start edge in the tone, its count in the cart an edged tag); the orders'
+      and the menu's rows edged, their tags and buttons in `stateEdge` («پرداخت‌شده», «موجود»,
+      «ثبت پرداخت» green; «پرداخت‌نشده», «لغو شده», «لغو», «حذف» red; «ناموجود» and «مهمان» grey); a
+      category carries only «ناموجود», no «موجود» on every shelf (asked by the developer).
+      Through the shared parts, the member profile's orders and the locker box's product buttons
+      take the same look. A form's main button («ثبت سفارش», «افزودن», «افزودن محصول», «ذخیره») edged in the tone too
+      (`toneButton`, asked by the developer: the blue was the one colour out of place), and the new
+      product's box edged like the cards. A banner's tools sit at its far end, beside the logo, on
+      every page (asked by the developer for «بازگشت به بوفه»). The menu's
+      group line and dot are now drawn in the edges' colour (`tone-ink`) instead of the raw tone,
+      so «فروش بوفه»'s line matches its pages (asked by the developer). No package added, no API
+      change
 
 #### 13.2e plan
 

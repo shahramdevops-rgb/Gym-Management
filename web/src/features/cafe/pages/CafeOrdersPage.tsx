@@ -3,16 +3,18 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { paths } from "@/app/paths";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { EmptyState, LoadingState } from "@/components/States";
 import { JalaliCalendarField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { choiceClass, filterEdge, toneAction } from "@/lib/edges";
 import { errorMessage, errorMessages } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 import { dateFromParams, pageFromParams } from "@/lib/searchParams";
+import { cn } from "@/lib/utils";
 
 import { useCafeOrderList } from "../api";
 import { CafeOrdersTable } from "../components/CafeOrdersTable";
@@ -51,11 +53,10 @@ export function CafeOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <PageHero
         title="سفارش‌های بوفه"
-        description="همهٔ سفارش‌های ثبت‌شدهٔ بوفه."
         actions={
-          <Button asChild variant="outline">
+          <Button asChild variant="ghost" className={toneAction}>
             <Link to={paths.cafe}>
               <ArrowRight aria-hidden />
               بازگشت به بوفه
@@ -64,7 +65,7 @@ export function CafeOrdersPage() {
         }
       />
 
-      <Card>
+      <Card edge>
         <CardHeader>
           <CardTitle>
             سفارش‌ها
@@ -76,28 +77,37 @@ export function CafeOrdersPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid max-w-xl gap-3 sm:grid-cols-2">
-            <JalaliCalendarField
-              label="از تاریخ"
-              value={from ?? ""}
-              onChange={(iso) => setFilter({ from: iso })}
-            />
-            <JalaliCalendarField
-              label="تا تاریخ"
-              value={to ?? ""}
-              error={rangeIsValid ? undefined : errorMessages["CafeOrders.InvalidDateRange"]}
-              onChange={(iso) => setFilter({ to: iso })}
-            />
+          {/* One row that wraps, like the history's filters (13.2i): each date box as wide as its
+              calendar, edged with the thick edge at its end; the unpaid-guest filter a choice
+              beside them, chosen the way a filter's choice is. */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-full sm:w-64">
+              <JalaliCalendarField
+                label="از تاریخ"
+                inputClassName={filterEdge}
+                value={from ?? ""}
+                onChange={(iso) => setFilter({ from: iso })}
+              />
+            </div>
+            <div className="w-full sm:w-64">
+              <JalaliCalendarField
+                label="تا تاریخ"
+                inputClassName={filterEdge}
+                value={to ?? ""}
+                error={rangeIsValid ? undefined : errorMessages["CafeOrders.InvalidDateRange"]}
+                onChange={(iso) => setFilter({ to: iso })}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              className={cn("h-9", choiceClass(unpaidGuest, "end"))}
+              aria-pressed={unpaidGuest}
+              onClick={() => setFilter({ unpaidGuest: !unpaidGuest })}
+            >
+              فقط پرداخت‌نشده — مهمان
+            </Button>
           </div>
-          <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-4 accent-primary"
-              checked={unpaidGuest}
-              onChange={(event) => setFilter({ unpaidGuest: event.target.checked })}
-            />
-            فقط پرداخت‌نشده — مهمان
-          </label>
 
           {notice !== null && (
             <Alert variant="success" role="status">

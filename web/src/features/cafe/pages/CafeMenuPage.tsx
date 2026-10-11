@@ -2,8 +2,9 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 
 import { paths } from "@/app/paths";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { Button } from "@/components/ui/button";
+import { toneAction } from "@/lib/edges";
 
 import { CategoriesCard } from "../components/CategoriesCard";
 import { ProductsCard } from "../components/ProductsCard";
@@ -16,11 +17,10 @@ import { ProductsCard } from "../components/ProductsCard";
 export function CafeMenuPage() {
   return (
     <div className="space-y-6">
-      <PageHeader
+      <PageHero
         title="منوی بوفه"
-        description="دسته‌بندی‌ها، محصولات و قیمت‌های بوفه."
         actions={
-          <Button asChild variant="outline">
+          <Button asChild variant="ghost" className={toneAction}>
             <Link to={paths.cafe}>
               <ArrowRight aria-hidden />
               بازگشت به بوفه

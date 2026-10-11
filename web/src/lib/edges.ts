@@ -14,6 +14,20 @@ import { cn } from "@/lib/utils";
 export const filterEdge = "border-e-[3px] tone-edge-end! bg-background";
 
 /**
+ * A form's main button («افزودن», «ذخیره», «ثبت سفارش»): no fill, the page's tone as text, edged in
+ * the tone with the thick edge at its end, like a filter box (13.2i, asked by the developer: the
+ * blue button was the one thing on the cafe pages in another colour).
+ */
+export const toneButton =
+  "border border-e-[3px] font-semibold tone-ink tone-edge-end hover:tone-soft hover:tone-ink";
+
+/**
+ * A button or link on a page's banner («عضو جدید», «منوی بوفه»): a `toneButton` as tall as the
+ * search beside it (13.2i).
+ */
+export const toneAction = `h-10 ${toneButton}`;
+
+/**
  * A tag or a row's button in a state's colour, with the thick edge at its end, closing the row its
  * start edge opens: green for what is fine or moves on (paid, inside, check-out), red for what is
  * owed or undone, amber for what needs attention soon, grey for what is over.

@@ -28,6 +28,8 @@ describe("CafeMenuPage", () => {
     expect(within(chipsRow).getByText(/دسته‌بندی ناموجود است/)).toBeInTheDocument();
 
     expect(within(categoryRow("تنقلات")).getByText("ناموجود")).toBeInTheDocument();
+    // A shelf on sale carries no tag; its switch reads «ناموجود», the way to take it off.
+    expect(within(categoryRow("نوشیدنی")).queryByText("موجود")).not.toBeInTheDocument();
     // The management list asks for everything, not only what is sellable.
     const url = new URL(api.requestsTo("GET", "/api/cafe/products")[0]!.url);
     expect(url.searchParams.has("IsActive")).toBe(false);

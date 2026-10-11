@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
-import { choiceClass, filterEdge } from "@/lib/edges";
+import { choiceClass, filterEdge, toneAction } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 import { normalizeInput } from "@/lib/normalize";
@@ -175,11 +175,7 @@ export function MembersPage() {
         actions={
           // Edged in the page's tone like the search beside it, with no fill (13.2i, asked by the
           // developer).
-          <Button
-            asChild
-            variant="ghost"
-            className="h-10 border border-e-[3px] font-semibold tone-ink tone-edge-end hover:tone-soft hover:tone-ink"
-          >
+          <Button asChild variant="ghost" className={toneAction}>
             <Link to={paths.newMember}>
               <UserPlus aria-hidden />
               عضو جدید

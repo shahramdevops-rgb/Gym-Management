@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { filterEdge, toneAction } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { normalizeMoney } from "@/lib/money";
@@ -28,6 +29,7 @@ import {
   type Product,
 } from "../api";
 import { emptyProductValues } from "../schemas";
+import { switchClass } from "../stockSwitch";
 import { ProductForm } from "./ProductForm";
 import { StockBadge } from "./StockBadge";
 
@@ -67,7 +69,7 @@ export function ProductsCard() {
   }
 
   return (
-    <Card>
+    <Card edge>
       <CardHeader className="flex flex-wrap items-center justify-between gap-3">
         <CardTitle>
           محصولات
@@ -78,8 +80,10 @@ export function ProductsCard() {
           )}
         </CardTitle>
         {!adding && (
+          // Edged in the page's tone like «عضو جدید» (13.2i).
           <Button
-            size="sm"
+            variant="ghost"
+            className={toneAction}
             disabled={categoryList.length === 0}
             onClick={() => {
               setNotice(null);
@@ -99,7 +103,8 @@ export function ProductsCard() {
         )}
 
         {adding && (
-          <div className="rounded-md border p-3">
+          // Edged like the cards around it (13.2i), not a grey frame of its own.
+          <div className="rounded-md border border-s-[3px] p-3 tone-edge">
             <ProductForm
               defaultValues={{
                 ...emptyProductValues,
@@ -127,9 +132,11 @@ export function ProductsCard() {
           </Alert>
         )}
 
-        <div className="max-w-xs">
+        {/* A filter box like the history's (13.2i). */}
+        <div className="w-full sm:w-64">
           <SelectField
             label="نمایش دسته‌بندی"
+            className={filterEdge}
             value={categoryId}
             onChange={(event) => {
               setCategoryId(event.target.value);
@@ -196,7 +203,7 @@ export function ProductsCard() {
                     </TableRow>
                   ) : (
                     <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell className="font-medium tone-row-edge">{product.name}</TableCell>
                       <TableCell>{product.categoryName}</TableCell>
                       <TableCell>{formatMoney(product.price)}</TableCell>
                       <TableCell>
@@ -226,7 +233,8 @@ export function ProductsCard() {
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
+                            className={switchClass(product.isActive)}
                             disabled={setActive.isPending}
                             aria-label={`${product.isActive ? "ناموجود کردن" : "موجود کردن"} ${product.name}`}
                             onClick={() => void toggleActive(product)}

@@ -17,8 +17,8 @@ const variants: Record<Payment["targetPaymentStatus"], "success" | "secondary" |
 };
 
 /**
- * The edged look (13.2i, asked by the developer, on trial in the history): no fill, a faint frame
- * and a thick end edge like a locker door, in the same colour the filled badge has.
+ * The edged look (13.2i, asked by the developer; the history and the cafe's orders): no fill, a
+ * faint frame and a thick end edge like a locker door, in the same colour the filled badge has.
  */
 const edgedClasses: Record<Payment["targetPaymentStatus"], string> = {
   Paid: cn(stateEdge.success, "font-semibold"),
