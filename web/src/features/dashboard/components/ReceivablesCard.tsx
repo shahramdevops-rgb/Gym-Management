@@ -27,7 +27,8 @@ export function ReceivablesCard({ data }: { data: Receivables }) {
   return (
     <div
       style={toneStyle("violet")}
-      className="relative space-y-4 overflow-hidden rounded-2xl border bg-card p-4 shadow-card before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-(--tone)"
+      // Edged like the dashboard's stat cards (13.2i).
+      className="relative space-y-4 overflow-hidden rounded-xl border border-s-[3px] tone-edge bg-card p-4"
     >
       <dl>
         <div className="space-y-1.5">
@@ -66,7 +67,7 @@ export function ReceivablesCard({ data }: { data: Receivables }) {
           <div
             key={bucket.label}
             style={toneStyle(bucket.tone)}
-            className="space-y-0.5 rounded-xl tone-soft px-3 py-2"
+            className="space-y-0.5 rounded-lg border border-s-[3px] tone-edge px-3 py-2"
           >
             <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span aria-hidden className="size-2 shrink-0 rounded-full tone-solid" />

@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { stateEdge } from "@/lib/edges";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +26,12 @@ interface ExpensesTableProps {
   onDone: (message: string) => void;
 }
 
-/** Expenses newest first, as the API sends them; voided ones stay in the list, marked (§9). */
+/**
+ * Expenses newest first, as the API sends them; voided ones stay in the list, marked (§9). Drawn
+ * like the cafe's orders (13.2i): each row edged at its start in the page's tone, its tags and
+ * buttons edged at their end in a state's colour (`stateEdge`): red for a voided expense and for
+ * «ابطال», grey for one that «چک و قسط» wrote.
+ */
 export function ExpensesTable({ expenses, categories, onDone }: ExpensesTableProps) {
   return (
     <Table>
@@ -79,7 +85,8 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
   return (
     <>
       <TableRow className={cn("align-top", expense.isVoided && "text-muted-foreground")}>
-        <TableCell>{formatDate(expense.expenseDate)}</TableCell>
+        {/* Edged at its start in the page's tone, like a locker door (`tone-row-edge`, 13.2i). */}
+        <TableCell className="tone-row-edge">{formatDate(expense.expenseDate)}</TableCell>
         <TableCell>{expense.categoryName}</TableCell>
         <TableCell>
           <p className="whitespace-pre-line">{expense.description}</p>
@@ -91,10 +98,16 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
           {formatMoney(expense.amount)}
         </TableCell>
         <TableCell>
-          {expense.payableId !== null && <Badge variant="outline">از چک و قسط</Badge>}
+          {expense.payableId !== null && (
+            <Badge variant="ghost" className={stateEdge.muted}>
+              از چک و قسط
+            </Badge>
+          )}
           {expense.isVoided && (
             <div className="space-y-1">
-              <Badge variant="destructive">باطل شده</Badge>
+              <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
+                باطل شده
+              </Badge>
               <p className="text-xs">
                 {formatDateTime(expense.voidedAt)} — {expense.voidReason}
               </p>
@@ -115,7 +128,11 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
               </Button>
               <Button
                 size="sm"
-                variant="destructive"
+                variant="ghost"
+                className={cn(
+                  stateEdge.destructive,
+                  "hover:bg-destructive/10 hover:text-destructive",
+                )}
                 aria-label={`ابطال ${context}`}
                 onClick={() => toggle("void")}
               >

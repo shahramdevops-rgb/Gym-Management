@@ -122,11 +122,6 @@
   /* The Owner's cheque alert in the header while a payment is only close (13.2i, asked by the
      developer): yellow, apart from «فروش بوفه»'s orange and the amber of `--warning`. */
   --tone-yellow: oklch(0.7 0.14 95);
-  /* The dashboard's banner: violet into a deep indigo, the colour of its menu group «مالی» (13.2e,
-     asked by the developer; it was green from 1405/07/14). White text stays readable on all of it. */
-  --hero-from: oklch(0.52 0.19 305);
-  --hero-via: oklch(0.48 0.18 290);
-  --hero-to: oklch(0.41 0.15 275);
 }
 
 /* The party ring's turn. Registered, so the browser can animate an angle inside a gradient. */
@@ -203,9 +198,6 @@
   --tone-cyan: oklch(0.76 0.1 210);
   --tone-rose: oklch(0.72 0.16 10);
   --tone-yellow: oklch(0.87 0.16 95);
-  --hero-from: oklch(0.42 0.15 305);
-  --hero-via: oklch(0.38 0.14 290);
-  --hero-to: oklch(0.33 0.11 275);
 }
 
 /*

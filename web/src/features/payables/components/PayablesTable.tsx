@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ExpenseCategory } from "@/features/expenses/api";
+import { stateEdge } from "@/lib/edges";
 import { formatDate, formatDateTime, formatMoney, gymToday, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +38,13 @@ interface PayablesTableProps {
   onDone: (message: string) => void;
 }
 
-/** In the API's order; paid and cancelled ones stay in the register, marked (§9). */
+/**
+ * In the API's order; paid and cancelled ones stay in the register, marked (§9). Drawn like the
+ * cafe's orders (13.2i): each row edged at its start in the page's tone, its tags and buttons edged
+ * at their end in a state's colour (`stateEdge`): green for paying and for paid, amber for one
+ * still waiting, red for one past its date, a cancelled one, «ابطال» and «برگشت به در انتظار»,
+ * which undoes a payment.
+ */
 export function PayablesTable({ payables, categories, onDone }: PayablesTableProps) {
   const today = gymToday();
 
@@ -105,7 +112,8 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
   return (
     <>
       <TableRow className={cn("align-top", !pending && "text-muted-foreground")}>
-        <TableCell>{kindText(payable)}</TableCell>
+        {/* Edged at its start in the page's tone, like a locker door (`tone-row-edge`, 13.2i). */}
+        <TableCell className="tone-row-edge">{kindText(payable)}</TableCell>
         <TableCell>{formatDate(payable.dueDate)}</TableCell>
         <TableCell>{payable.payee}</TableCell>
         <TableCell>
@@ -118,13 +126,18 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
         <TableCell>
           <div className="space-y-1">
             {payable.status === "Pending" && (
-              <Badge variant={overdue ? "destructive" : "outline"}>
+              <Badge
+                variant="ghost"
+                className={overdue ? cn(stateEdge.destructive, "font-semibold") : stateEdge.warning}
+              >
                 {overdue ? "سررسید گذشته" : payableStatusLabels.Pending}
               </Badge>
             )}
             {payable.status === "Paid" && (
               <>
-                <Badge variant="success">{paidLabel(payable.kind)}</Badge>
+                <Badge variant="ghost" className={stateEdge.success}>
+                  {paidLabel(payable.kind)}
+                </Badge>
                 <p className="text-xs">{formatDateTime(payable.paidAt)}</p>
                 <Link to={paths.expenses} className="text-xs underline">
                   در هزینه‌ها ثبت شد
@@ -133,7 +146,9 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
             )}
             {payable.status === "Cancelled" && (
               <>
-                <Badge variant="destructive">{payableStatusLabels.Cancelled}</Badge>
+                <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
+                  {payableStatusLabels.Cancelled}
+                </Badge>
                 <p className="text-xs">
                   {formatDateTime(payable.cancelledAt)} — {payable.cancelReason}
                 </p>
@@ -147,6 +162,8 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
               {canPay && (
                 <Button
                   size="sm"
+                  variant="ghost"
+                  className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success")}
                   aria-label={`${paidLabel(payable.kind)}، ${context}`}
                   onClick={() => toggle("pay")}
                 >
@@ -163,7 +180,11 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
               </Button>
               <Button
                 size="sm"
-                variant="destructive"
+                variant="ghost"
+                className={cn(
+                  stateEdge.destructive,
+                  "hover:bg-destructive/10 hover:text-destructive",
+                )}
                 aria-label={`ابطال ${context}`}
                 onClick={() => toggle("cancel")}
               >
@@ -174,7 +195,11 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
           {payable.status === "Paid" && (
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
+              className={cn(
+                stateEdge.destructive,
+                "hover:bg-destructive/10 hover:text-destructive",
+              )}
               aria-label={`برگشت به در انتظار، ${context}`}
               onClick={() => toggle("revert")}
             >

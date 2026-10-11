@@ -45,13 +45,16 @@ interface ListFrameProps {
   children: ReactNode;
 }
 
-/** The box every list of the panel sits in: its icon, title and count, and its rule. */
+/**
+ * The box every list of the panel sits in: its icon, title and count, and its rule. Edged in the
+ * list's tone like a locker door (13.2i), its count an edged tag.
+ */
 function ListFrame({ headingId, title, icon: Icon, tone, count, rule, children }: ListFrameProps) {
   return (
     <section
       aria-labelledby={headingId}
       style={toneStyle(tone)}
-      className="relative space-y-2 overflow-hidden rounded-xl border bg-card p-3 ps-4 before:absolute before:inset-y-0 before:start-0 before:w-1 before:bg-(--tone)"
+      className="space-y-2 rounded-xl border border-s-[3px] tone-edge p-3"
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -65,7 +68,7 @@ function ListFrame({ headingId, title, icon: Icon, tone, count, rule, children }
             {title}
           </h4>
         </div>
-        <span className="rounded-full px-2.5 py-0.5 text-xs font-bold tone-soft tone-ink">
+        <span className="rounded-md border border-e-[3px] tone-edge-end px-2 py-0.5 text-xs font-bold tone-ink">
           {count}
         </span>
       </div>
@@ -159,7 +162,8 @@ function PayablesDueList({ rows, today }: { rows: NeedsAttention["payablesDue"];
                 key={row.payableId}
                 className={cn(
                   "flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg px-2 py-2 text-sm",
-                  overdue && "bg-destructive/8",
+                  // Past its date: a red start edge instead of a fill (13.2i).
+                  overdue && "border-s-[3px] border-s-destructive",
                 )}
               >
                 <div className="space-y-0.5">
@@ -199,15 +203,12 @@ export function NeedsAttentionPanel({ data }: { data: NeedsAttention }) {
   const withoutMember = Number(data.oldDebtWithoutMember);
 
   return (
-    <Card
-      accent={false}
-      style={toneStyle("red")}
-      className="rounded-2xl bg-linear-to-b from-(--tone)/6 to-card"
-    >
+    // A `Card edge` in red, like the cards on every other page (13.2i).
+    <Card edge style={toneStyle("red")}>
       <CardHeader className="grid-cols-[auto_1fr] gap-x-3">
         <span
           aria-hidden
-          className="row-span-2 grid size-10 place-items-center rounded-xl tone-solid text-white shadow-sm"
+          className="row-span-2 grid size-10 place-items-center rounded-xl tone-soft tone-ink"
         >
           <BellRing className="size-5" />
         </span>

@@ -1,13 +1,16 @@
+import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { EmptyState, LoadingState } from "@/components/States";
 import { JalaliCalendarField, SelectField } from "@/components/FormField";
 import { Pager } from "@/components/Pager";
+import { StatTile } from "@/components/StatTile";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { filterEdge, toneAction } from "@/lib/edges";
 import { errorMessage, errorMessages } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { dateFromParams, pageFromParams } from "@/lib/searchParams";
@@ -65,19 +68,21 @@ export function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      {/* The banner like «پذیرش» and «فروش بوفه» (13.2i), «ثبت هزینه» on it edged in the tone. */}
+      <PageHero
         title="هزینه‌ها"
-        description="هزینه‌های باشگاه. هزینهٔ اشتباه باطل می‌شود، پاک نمی‌شود."
         actions={
           !adding && (
             <Button
-              size="sm"
+              variant="ghost"
+              className={toneAction}
               disabled={!categories.isSuccess}
               onClick={() => {
                 setNotice(null);
                 setAdding(true);
               }}
             >
+              <Plus aria-hidden />
               ثبت هزینه
             </Button>
           )
@@ -85,7 +90,7 @@ export function ExpensesPage() {
       />
 
       {adding && categories.isSuccess && (
-        <Card>
+        <Card edge>
           <CardHeader>
             <CardTitle>هزینهٔ جدید</CardTitle>
           </CardHeader>
@@ -106,7 +111,7 @@ export function ExpensesPage() {
       )}
 
       <div className="grid items-start gap-4 xl:grid-cols-[1fr_20rem]">
-        <Card>
+        <Card edge>
           <CardHeader>
             <CardTitle>
               فهرست هزینه‌ها
@@ -118,30 +123,41 @@ export function ExpensesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <JalaliCalendarField
-                label="از تاریخ"
-                value={from ?? ""}
-                onChange={(iso) => setFilter({ from: iso })}
-              />
-              <JalaliCalendarField
-                label="تا تاریخ"
-                value={to ?? ""}
-                error={rangeIsValid ? undefined : errorMessages["Expenses.InvalidDateRange"]}
-                onChange={(iso) => setFilter({ to: iso })}
-              />
-              <SelectField
-                label="دسته‌بندی"
-                value={categoryId ?? ""}
-                onChange={(event) => setFilter({ category: event.target.value })}
-              >
-                <option value="">همه</option>
-                {categories.data?.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </SelectField>
+            {/* One row that wraps, like the history's filters (13.2i): each box as wide as what it
+                holds, on the page's colour and edged with the thick edge at its end. */}
+            <div className="flex flex-wrap items-start gap-3">
+              <div className="w-full sm:w-64">
+                <JalaliCalendarField
+                  label="از تاریخ"
+                  inputClassName={filterEdge}
+                  value={from ?? ""}
+                  onChange={(iso) => setFilter({ from: iso })}
+                />
+              </div>
+              <div className="w-full sm:w-64">
+                <JalaliCalendarField
+                  label="تا تاریخ"
+                  inputClassName={filterEdge}
+                  value={to ?? ""}
+                  error={rangeIsValid ? undefined : errorMessages["Expenses.InvalidDateRange"]}
+                  onChange={(iso) => setFilter({ to: iso })}
+                />
+              </div>
+              <div className="w-full sm:w-48">
+                <SelectField
+                  label="دسته‌بندی"
+                  className={filterEdge}
+                  value={categoryId ?? ""}
+                  onChange={(event) => setFilter({ category: event.target.value })}
+                >
+                  <option value="">همه</option>
+                  {categories.data?.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
             </div>
 
             {notice !== null && (
@@ -157,13 +173,17 @@ export function ExpensesPage() {
                   <Alert variant="destructive">{errorMessage(expenses.error)}</Alert>
                 )}
                 {expenses.isSuccess && (
-                  <div className="rounded-md border bg-muted/30 p-3">
-                    <p className="text-sm text-muted-foreground">
-                      {filtered ? "جمع هزینه‌ها در این فیلتر" : "جمع همهٔ هزینه‌ها"}
-                    </p>
-                    <p className="text-lg font-bold" aria-label="جمع هزینه‌ها">
-                      {formatMoney(expenses.data.totalAmount)}
-                    </p>
+                  // A tile edged like «چک و قسط»'s totals (13.2i), not a grey box.
+                  <div className="space-y-2">
+                    <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <StatTile
+                        label={filtered ? "جمع هزینه‌ها در این فیلتر" : "جمع همهٔ هزینه‌ها"}
+                        valueLabel="جمع هزینه‌ها"
+                        value={formatMoney(expenses.data.totalAmount)}
+                        icon={Receipt}
+                        primary
+                      />
+                    </dl>
                     <p className="text-xs text-muted-foreground">
                       هزینه‌های باطل‌شده در این جمع حساب نمی‌شوند.
                     </p>

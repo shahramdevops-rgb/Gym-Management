@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { toneButton } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 
 import { paidLabel, useMarkPayablePaid, type PayableKind } from "../api";
@@ -41,7 +42,15 @@ export function PayConfirm({ payableId, kind, onDone, onCancel }: PayConfirmProp
       </Alert>
 
       <div className="flex gap-2">
-        <Button type="button" size="sm" disabled={markPaid.isPending} onClick={confirm}>
+        {/* Edged in the tone like the cafe's form buttons (`toneButton`, 13.2i). */}
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className={toneButton}
+          disabled={markPaid.isPending}
+          onClick={confirm}
+        >
           تأیید {paidLabel(kind)}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>

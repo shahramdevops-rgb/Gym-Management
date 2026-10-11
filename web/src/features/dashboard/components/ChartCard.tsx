@@ -2,7 +2,6 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 import { toneStyle, type Tone } from "@/lib/tone";
 
@@ -20,7 +19,9 @@ interface ChartCardProps {
 
 /**
  * The frame every dashboard chart sits in: a title that says what is plotted (a single series
- * needs no legend box), a line under it for the unit or the rule, and the chart.
+ * needs no legend box), a line under it for the unit or the rule, and the chart. A `Card edge` in
+ * the chart's own tone (13.2i), like the cards on every other page: on the page's colour, no frame,
+ * a thick start edge.
  */
 export function ChartCard({
   title,
@@ -32,11 +33,7 @@ export function ChartCard({
   children,
 }: ChartCardProps) {
   return (
-    <Card
-      accent={false}
-      style={toneStyle(tone)}
-      className={cn("rounded-2xl transition-shadow hover:shadow-raised", className)}
-    >
+    <Card edge style={toneStyle(tone)} className={className}>
       <CardHeader className="grid-cols-[auto_1fr] gap-x-3">
         <span
           aria-hidden

@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, Minus, type LucideIcon } from "lucide-react";
 
+import { stateEdge } from "@/lib/edges";
 import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -19,8 +20,11 @@ export interface Comparison {
 interface StatCardProps {
   label: string;
   value: string;
-  /** The card's accent and its icon: decoration, so each figure is found at a glance. */
-  tone: Tone;
+  /**
+   * The card's edge and icon in a colour of its own. Without one, the page's: «خلاصهٔ بازه» is all
+   * in «مالی»'s violet (13.2i, asked by the developer).
+   */
+  tone?: Tone;
   icon: LucideIcon;
   /** One line under the figure: what it counts, or what it is made of. */
   hint?: string;
@@ -47,7 +51,9 @@ export interface BreakdownRow {
 
 /**
  * One headline figure. The change since the range before is an arrow, a word and a colour
- * together, never the colour alone.
+ * together, never the colour alone. Edged like a page's `StatTile` and the banner (13.2i): a faint
+ * frame and a thick start edge in the card's tone, or the page's without one; no strip, shadow
+ * or lift.
  *
  * The label and the figure are the card's own `dt` and `dd`, so the card stays one group of its
  * list; the icon sits inside the `dt`, placed at the card's top corner. A breakdown is one more
@@ -68,9 +74,9 @@ export function StatCard({
 
   return (
     <div
-      style={toneStyle(tone)}
+      style={tone === undefined ? undefined : toneStyle(tone)}
       className={cn(
-        "relative space-y-1.5 overflow-hidden rounded-2xl border bg-card p-4 shadow-card transition before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-(--tone) hover:shadow-raised motion-safe:hover:-translate-y-0.5",
+        "relative space-y-1.5 overflow-hidden rounded-xl border border-s-[3px] tone-edge bg-card p-4",
         breakdown !== undefined && "min-h-40",
       )}
     >
@@ -138,7 +144,7 @@ export function StatCardsLoading() {
         <div
           key={index}
           aria-hidden
-          className="space-y-3 rounded-2xl border bg-card p-4 shadow-card motion-safe:animate-pulse"
+          className="space-y-3 rounded-xl border border-s-[3px] tone-edge bg-card p-4 motion-safe:animate-pulse"
         >
           <div className="flex justify-between">
             <div className="h-4 w-24 rounded-full bg-muted" />
@@ -152,7 +158,8 @@ export function StatCardsLoading() {
   );
 }
 
-const badge = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium";
+/** Edged like a row's tag (13.2i): no fill, the thick edge at its end in the change's colour. */
+const badge = "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium";
 
 /**
  * The change since the range before. Beside a breakdown it keeps clear of that column (a margin,
@@ -179,7 +186,7 @@ function ChangeLine({
   const rounded = Math.round(change);
   if (rounded === 0) {
     return (
-      <dd className={cn(badge, "bg-muted text-muted-foreground", className)}>
+      <dd className={cn(badge, stateEdge.muted, className)}>
         <Minus className="size-3.5" aria-hidden />
         بدون تغییر نسبت به بازهٔ قبل
       </dd>
@@ -191,13 +198,7 @@ function ChangeLine({
   const Icon = up ? ArrowUp : ArrowDown;
 
   return (
-    <dd
-      className={cn(
-        badge,
-        good ? "bg-success/12 text-success" : "bg-destructive/10 text-destructive",
-        className,
-      )}
-    >
+    <dd className={cn(badge, good ? stateEdge.success : stateEdge.destructive, className)}>
       <Icon className="size-3.5" aria-hidden />
       {formatPercent(Math.abs(change))} {up ? "بیشتر" : "کمتر"} از بازهٔ قبل
     </dd>

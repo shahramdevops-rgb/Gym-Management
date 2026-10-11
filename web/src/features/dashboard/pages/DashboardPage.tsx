@@ -27,10 +27,18 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router";
 
+import { PageHero } from "@/components/PageHero";
 import { Alert } from "@/components/ui/alert";
 import { paymentMethodLabels, type PaymentMethod } from "@/features/payments/api";
 import { errorMessage, errorMessages } from "@/lib/errors";
-import { formatMoney, formatNumber, formatPercent, gymToday, toPersianDigits } from "@/lib/format";
+import {
+  formatDate,
+  formatMoney,
+  formatNumber,
+  formatPercent,
+  gymToday,
+  toPersianDigits,
+} from "@/lib/format";
 import { dateFromParams } from "@/lib/searchParams";
 
 import {
@@ -50,7 +58,6 @@ import {
 } from "../api";
 import { AttendanceHeatmap } from "../components/AttendanceHeatmap";
 import { BarListChart, type BarListItem } from "../components/BarListChart";
-import { DashboardHero } from "../components/DashboardHero";
 import { MonthlyChart } from "../components/MonthlyChart";
 import { NeedsAttentionPanel } from "../components/NeedsAttentionPanel";
 import { RangePicker, type RangeDraft } from "../components/RangePicker";
@@ -61,7 +68,6 @@ import { StaffMoneyTable } from "../components/StaffMoneyTable";
 import { StatCard, StatCardsLoading } from "../components/StatCard";
 import { byJalaliMonth, conversionRate, methodsTotal, outcomeOf, renewalRate } from "../figures";
 import { defaultRangePreset, presetRange, rangeError, type ReportRange } from "../range";
-import type { Tone } from "@/lib/tone";
 
 /**
  * The range from the URL (`?from=2026-09-23&to=2026-10-04`). With neither date the dashboard opens
@@ -161,14 +167,25 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <DashboardHero range={draft}>
+      {/* The slim banner of every page (13.2i, asked by the developer: the dashboard "exactly like
+          the other pages"; its violet banner of 13.2b is kept in the tag dashboard-colour-v1),
+          the range the figures are for beside the title, and the range under it like a page's
+          filters. */}
+      <div className="space-y-4">
+        <PageHero title="داشبورد">
+          {draft.from !== undefined && draft.to !== undefined && (
+            <p className="text-sm text-muted-foreground">
+              گزارش از {formatDate(draft.from)} تا {formatDate(draft.to)}
+            </p>
+          )}
+        </PageHero>
         <RangePicker
           range={draft}
           today={today}
           onChange={changeRange}
           error={errorCode === undefined ? undefined : errorMessages[errorCode]}
         />
-      </DashboardHero>
+      </div>
 
       {failed !== undefined && <Alert variant="destructive">{errorMessage(failed.error)}</Alert>}
       {canAsk && financial.isPending && <StatCardsLoading />}
@@ -183,7 +200,6 @@ export function DashboardPage() {
               <>
                 <StatCard
                   label={salesLabel}
-                  tone="violet"
                   icon={ShoppingBag}
                   value={formatMoney(financial.data.current.sales)}
                   hint="آنچه در بازه فروخته شده، پرداخت شده یا نشده"
@@ -199,7 +215,6 @@ export function DashboardPage() {
                 />
                 <ReceivedCard
                   label="دریافتی"
-                  tone="blue"
                   icon={Wallet}
                   hint="آنچه در بازه آمد، بدهی‌های قبلی هم، منهای بازگشت‌ها؛ بدون آنالیز، فروشگاه و متفرقه"
                   current={financial.data.current.receivedByMethod}
@@ -207,7 +222,6 @@ export function DashboardPage() {
                 />
                 <ReceivedCard
                   label="دریافتی آنالیز و فروشگاه"
-                  tone="amber"
                   icon={Store}
                   hint="پول آنالیز و فروشگاه، جدا از دریافتی باشگاه"
                   current={financial.data.current.shopAndAnalysisByMethod}
@@ -215,34 +229,21 @@ export function DashboardPage() {
                 />
                 <ReceivedCard
                   label="دریافتی متفرقه"
-                  tone="rose"
                   icon={Package}
                   hint="پول متفرقه، جدا از دریافتی باشگاه"
                   current={financial.data.current.otherByMethod}
                   previous={financial.data.previous.otherByMethod}
                 />
-                <SourceReceivedCard
-                  tone="brown"
-                  icon={CupSoda}
-                  source="Cafe"
-                  report={financial.data}
-                />
-                <SourceReceivedCard
-                  tone="pink"
-                  icon={HeartPulse}
-                  source="Cardio"
-                  report={financial.data}
-                />
+                <SourceReceivedCard icon={CupSoda} source="Cafe" report={financial.data} />
+                <SourceReceivedCard icon={HeartPulse} source="Cardio" report={financial.data} />
                 <SourceCard
                   label="دریافتی پلن"
-                  tone="indigo"
                   icon={IdCard}
                   source="Membership"
                   report={financial.data}
                 />
                 <SourceCard
                   label="دریافتی تک‌جلسه‌ای"
-                  tone="lime"
                   icon={Ticket}
                   source="SingleSession"
                   report={financial.data}
@@ -277,7 +278,6 @@ export function DashboardPage() {
             {attendance.isSuccess && (
               <StatCard
                 label="ورود اعضا"
-                tone="sky"
                 icon={Footprints}
                 value={formatNumber(Number(attendance.data.visits))}
                 hint={`${formatNumber(Number(attendance.data.members))} عضو مختلف`}
@@ -292,7 +292,6 @@ export function DashboardPage() {
               <>
                 <StatCard
                   label="اعضای جدید"
-                  tone="pink"
                   icon={UserPlus}
                   value={formatNumber(Number(members.data.newMembers))}
                   hint="عضوهایی که اولین پلن عضویتشان در این بازه فروخته شده"
@@ -494,7 +493,6 @@ function RenewalCard({
   return (
     <StatCard
       label="نرخ تمدید"
-      tone="teal"
       icon={Repeat}
       value={formatPercent(rate)}
       progress={rate}
@@ -524,14 +522,12 @@ function RenewalCard({
  */
 function ReceivedCard({
   label,
-  tone,
   icon,
   hint,
   current,
   previous,
 }: {
   label: string;
-  tone: Tone;
   icon: LucideIcon;
   hint: string;
   current: FinancialPeriod["byMethod"];
@@ -543,7 +539,6 @@ function ReceivedCard({
   return (
     <StatCard
       label={label}
-      tone={tone}
       icon={icon}
       value={formatMoney(total)}
       hint={hint}
@@ -567,12 +562,10 @@ function ReceivedCard({
  * together.
  */
 function SourceReceivedCard({
-  tone,
   icon,
   source,
   report,
 }: {
-  tone: Tone;
   icon: LucideIcon;
   source: "Cafe" | "Cardio";
   report: FinancialReport;
@@ -586,7 +579,6 @@ function SourceReceivedCard({
   return (
     <StatCard
       label={`دریافتی ${name}`}
-      tone={tone}
       icon={icon}
       value={formatMoney(total)}
       hint={`پول ${name} که در بازه آمد، منهای بازگشت‌ها؛ جزئی از «دریافتی» است`}
@@ -608,13 +600,11 @@ function SourceReceivedCard({
  */
 function SourceCard({
   label,
-  tone,
   icon,
   source,
   report,
 }: {
   label: string;
-  tone: Tone;
   icon: LucideIcon;
   source: "Membership" | "SingleSession";
   report: FinancialReport;
@@ -626,7 +616,6 @@ function SourceCard({
   return (
     <StatCard
       label={label}
-      tone={tone}
       icon={icon}
       value={formatMoney(current?.soldAmount ?? 0)}
       hint={`${formatNumber(Number(current?.sold ?? 0))} ${noun} در این بازه فروخته شد، پرداخت شده یا نشده`}
@@ -663,7 +652,6 @@ function ConversionCard({
   return (
     <StatCard
       label="نرخ تبدیل تک‌جلسه‌ای به پلن"
-      tone="cyan"
       icon={ArrowLeftRight}
       value={formatPercent(rate)}
       progress={rate}

@@ -7,8 +7,10 @@ import { SaveNoticeAlert, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toneButton } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { cn } from "@/lib/utils";
 
 import {
   useCreateExpenseCategory,
@@ -31,7 +33,7 @@ export function ExpenseCategoriesCard() {
   const [notice, setNotice] = useState<string | null>(null);
 
   return (
-    <Card>
+    <Card edge>
       <CardHeader>
         <CardTitle>دسته‌بندی‌ها</CardTitle>
       </CardHeader>
@@ -52,7 +54,8 @@ export function ExpenseCategoriesCard() {
         {categories.isSuccess && categories.data.length > 0 && (
           <ul className="divide-y" aria-label="فهرست دسته‌بندی‌های هزینه">
             {categories.data.map((category) => (
-              <li key={category.id} className="py-2">
+              // Edged at its start in the page's tone, like a table row (`tone-row-edge`, 13.2i).
+              <li key={category.id} className="py-2 ps-3 tone-row-edge">
                 {renaming === category.id ? (
                   <RenameCategoryForm
                     category={category}
@@ -114,7 +117,12 @@ function NewCategoryForm({ onDone }: { onDone: (message: string) => void }) {
           {...form.register("name")}
         />
       </div>
-      <Button type="submit" className="mt-[1.375rem]" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        variant="ghost"
+        className={cn(toneButton, "mt-[1.375rem]")}
+        disabled={isSubmitting}
+      >
         افزودن
       </Button>
     </form>
@@ -170,7 +178,13 @@ function RenameCategoryForm({ category, onDone, onCancel }: RenameCategoryFormPr
           {...form.register("name")}
         />
       </div>
-      <Button type="submit" size="sm" className="mt-[1.375rem]" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        size="sm"
+        variant="ghost"
+        className={cn(toneButton, "mt-[1.375rem]")}
+        disabled={isSubmitting}
+      >
         ذخیره
       </Button>
       <Button type="button" size="sm" variant="ghost" className="mt-[1.375rem]" onClick={onCancel}>

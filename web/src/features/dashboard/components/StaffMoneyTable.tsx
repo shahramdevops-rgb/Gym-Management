@@ -39,7 +39,8 @@ export function StaffMoneyTable({ rows }: { rows: FinancialPeriod["byStaff"] }) 
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.userId}>
-              <TableCell>
+              {/* Edged at its start in the card's tone, like every table row (13.2i). */}
+              <TableCell className="tone-row-edge">
                 <span className="flex items-center gap-2">
                   <Initial name={row.fullName} tone="violet" />
                   {row.fullName}

@@ -2940,8 +2940,27 @@ every screen, rather than the gym's green or a neutral black.
       are now mixed in `oklab` instead of `oklch`, which had pulled the orange towards pink; every
       group's edges keep their own hue. The header's cheque alert, while a payment is only close, is
       a new `--tone-yellow` instead of the amber `--warning`, so it is not read as the cafe's orange
-      (both asked by the developer; `--warning` itself is unchanged). No package added, no API
-      change
+      (both asked by the developer; `--warning` itself is unchanged). Then «مالی»'s three pages
+      the same way (asked by the developer, 1405/07/21: "like «پذیرش» and «فروش بوفه»"). «هزینه‌ها»
+      and «چک و قسط»: the banner, «ثبت هزینه» and «ثبت چک یا قسط» on it as `toneAction`, `Card
+      edge` for the lists, the new boxes and «دسته‌بندی‌ها»; the expenses' dates and category as
+      filter boxes and their total an edged `StatTile`; «چک و قسط»'s status as tabs (start edge)
+      and its kind as a filter's choices (end edge); rows edged, tags and buttons in `stateEdge`
+      («پاس شد»/«پرداخت شد» and paying green; «در انتظار» amber; «سررسید گذشته», «باطل شده»,
+      «ابطال» and «برگشت به در انتظار», which undoes a payment, red; «از چک و قسط» grey); the
+      forms' main buttons `toneButton`, the red confirmations («تأیید ابطال») kept as in the cafe.
+      The dashboard "exactly like the others" (the developer's choice): the violet banner
+      (`DashboardHero`, `--hero-*`) gave way to `PageHero`, the range beside the title; the
+      presets and «دلخواه» are a filter's choices under it and the dates filter boxes; the stat
+      cards, «کل مطالبات» and its buckets edged like `StatTile`; «خلاصهٔ بازه»'s cards all in the
+      page's violet (asked by the developer; `StatCard`'s tone is optional now, and without one it
+      takes the page's), except «هزینه‌ها» orange and «سود خالص» green (asked by the developer,
+      after trying the sale tiles' colours on the cards of the same name and turning them down);
+      «امروز»'s each in its own tone for now; the change since the range before
+      an edged tag; the charts,
+      «نیاز به اقدام» and its lists `Card edge` / edged, a past-due cheque a red start edge
+      instead of a fill; the staff table's rows edged. The coloured version stays in the tag
+      `dashboard-colour-v1` (docs/design/dashboard-colour.md). No package added, no API change
 
 #### 13.2e plan
 

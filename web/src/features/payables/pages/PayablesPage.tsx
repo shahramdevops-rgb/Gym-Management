@@ -1,8 +1,8 @@
-import { CalendarClock, Hourglass, ScrollText } from "lucide-react";
+import { CalendarClock, Hourglass, Plus, ScrollText } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { EmptyState, LoadingState } from "@/components/States";
 import { Pager } from "@/components/Pager";
 import { StatTile } from "@/components/StatTile";
@@ -10,6 +10,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useExpenseCategories } from "@/features/expenses/api";
+import { choiceClass, toneAction } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { pageFromParams } from "@/lib/searchParams";
@@ -93,18 +94,20 @@ export function PayablesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      {/* The banner like «پذیرش» and «فروش بوفه» (13.2i), «ثبت چک یا قسط» on it edged in the tone. */}
+      <PageHero
         title="چک و قسط"
-        description="چک‌ها و قسط‌هایی که باشگاه باید بپردازد."
         actions={
           !adding && (
             <Button
-              size="sm"
+              variant="ghost"
+              className={toneAction}
               onClick={() => {
                 setNotice(null);
                 setAdding(true);
               }}
             >
+              <Plus aria-hidden />
               ثبت چک یا قسط
             </Button>
           )
@@ -112,7 +115,7 @@ export function PayablesPage() {
       />
 
       {adding && (
-        <Card>
+        <Card edge>
           <CardHeader>
             <CardTitle>چک یا قسط جدید</CardTitle>
           </CardHeader>
@@ -134,7 +137,7 @@ export function PayablesPage() {
         </Card>
       )}
 
-      <Card>
+      <Card edge>
         <CardHeader>
           <CardTitle>
             فهرست چک و قسط
@@ -146,6 +149,8 @@ export function PayablesPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* The status reads like tabs, the chosen one like the active menu item (start edge); the
+              kind is a filter's choice, edged at its end like a filter box (13.2i). */}
           <div className="flex flex-wrap gap-3">
             <div role="group" aria-label="وضعیت" className="flex flex-wrap gap-1">
               {[...payableStatuses, "all" as const].map((option) => (
@@ -154,7 +159,8 @@ export function PayablesPage() {
                   type="button"
                   size="sm"
                   aria-pressed={tab === option}
-                  variant={tab === option ? "secondary" : "outline"}
+                  variant="ghost"
+                  className={choiceClass(tab === option)}
                   onClick={() => setFilter({ tab: option })}
                 >
                   {option === "all" ? "همه" : payableStatusLabels[option]}
@@ -168,7 +174,8 @@ export function PayablesPage() {
                   type="button"
                   size="sm"
                   aria-pressed={kind === option}
-                  variant={kind === option ? "secondary" : "outline"}
+                  variant="ghost"
+                  className={choiceClass(kind === option, "end")}
                   onClick={() => setFilter({ kind: option })}
                 >
                   {option === "all" ? "چک و قسط" : payableKindLabels[option]}

@@ -11,6 +11,7 @@ import {
 import { SaveRow, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { toneButton } from "@/lib/edges";
 import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
 import { normalizeMoney } from "@/lib/money";
 
@@ -150,7 +151,14 @@ export function ExpenseForm({
       </div>
 
       <SaveRow error={editing ? errors.root?.server?.message : undefined} notice={notice}>
-        <Button type="submit" size="sm" disabled={isSubmitting}>
+        {/* Edged in the tone like the cafe's form buttons (`toneButton`, 13.2i). */}
+        <Button
+          type="submit"
+          size="sm"
+          variant="ghost"
+          className={toneButton}
+          disabled={isSubmitting}
+        >
           {submitLabel}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
