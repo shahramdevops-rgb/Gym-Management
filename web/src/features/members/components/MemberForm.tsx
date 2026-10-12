@@ -5,6 +5,7 @@ import { BirthDateField, FormField, TextareaField } from "@/components/FormField
 import { SaveRow, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { toneButton } from "@/lib/edges";
 import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
 import { normalizeDigits, normalizePersianText } from "@/lib/normalize";
 
@@ -150,7 +151,8 @@ export function MemberForm({
         notice={notice}
         stale={stale}
       >
-        <Button type="submit" disabled={isSubmitting}>
+        {/* Edged in the page's tone like the cafe's form buttons (`toneButton`, 13.2j). */}
+        <Button type="submit" variant="ghost" className={toneButton} disabled={isSubmitting}>
           {isSubmitting ? submittingLabel : submitLabel}
         </Button>
         {actions}

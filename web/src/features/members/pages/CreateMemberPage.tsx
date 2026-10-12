@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router";
 
 import { paths } from "@/app/paths";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -15,8 +15,9 @@ export function CreateMemberPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <PageHeader title="عضو جدید" />
-      <Card>
+      {/* The banner and an edged card, like the members' list (13.2j). */}
+      <PageHero title="عضو جدید" />
+      <Card edge>
         <CardContent>
           <MemberForm
             submitLabel="ثبت عضو"

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { usePrices } from "@/features/settings/api";
+import { toneButton } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
 import { multiplyMoney } from "@/lib/money";
@@ -64,7 +65,13 @@ export function RenewSubscriptionForm({
         می‌شود.
       </p>
       <div className="flex gap-2">
-        <Button size="sm" disabled={renew.isPending} onClick={() => void confirm()}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className={toneButton}
+          disabled={renew.isPending}
+          onClick={() => void confirm()}
+        >
           تأیید تمدید
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>

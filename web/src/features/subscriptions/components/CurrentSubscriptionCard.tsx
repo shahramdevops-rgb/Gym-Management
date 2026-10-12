@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
+import { toneButton } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 
@@ -48,7 +49,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
 
   if (subscription.isPending) {
     return (
-      <Card>
+      <Card edge>
         <CardHeader>
           <CardTitle>اشتراک فعلی</CardTitle>
         </CardHeader>
@@ -61,7 +62,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
 
   if (subscription.isError) {
     return (
-      <Card>
+      <Card edge>
         <CardHeader>
           <CardTitle>اشتراک فعلی</CardTitle>
         </CardHeader>
@@ -75,7 +76,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
   const current = subscription.data;
 
   return (
-    <Card>
+    <Card edge>
       <CardHeader>
         <CardTitle>اشتراک فعلی</CardTitle>
       </CardHeader>
@@ -109,7 +110,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
 
             <dt className="text-muted-foreground">وضعیت پرداخت</dt>
             <dd className="flex flex-wrap items-center gap-2">
-              <PaymentStatusBadge status={current.paymentStatus} />
+              <PaymentStatusBadge status={current.paymentStatus} edged />
               <span className="text-muted-foreground">
                 {formatMoney(current.netPaid)} از {formatMoney(current.price)}
               </span>
@@ -118,7 +119,13 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
         )}
 
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => togglePanel("assign")}>
+          {/* The card's main button edged in the page's tone (`toneButton`, 13.2j). */}
+          <Button
+            size="sm"
+            variant="ghost"
+            className={toneButton}
+            onClick={() => togglePanel("assign")}
+          >
             فروش اشتراک
           </Button>
           <Button

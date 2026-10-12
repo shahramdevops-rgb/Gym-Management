@@ -107,11 +107,13 @@ function DebtRow({ item }: { item: MemberDebtItem }) {
   return (
     <>
       <TableRow className={cn(lines.length > 0 && "border-b-0")}>
-        <TableCell>{debtItemLabel(item)}</TableCell>
+        {/* Edged at its start in the page's tone, like every list's rows (13.2j). */}
+        <TableCell className="tone-row-edge">{debtItemLabel(item)}</TableCell>
         <TableCell>{formatDate(item.startDate)}</TableCell>
-        <TableCell>{formatMoney(item.price)}</TableCell>
-        <TableCell>{formatMoney(item.netPaid)}</TableCell>
-        <TableCell>{formatMoney(item.outstanding)}</TableCell>
+        {/* An amount stays on one line: the card is half the page wide beside the subscription. */}
+        <TableCell className="whitespace-nowrap">{formatMoney(item.price)}</TableCell>
+        <TableCell className="whitespace-nowrap">{formatMoney(item.netPaid)}</TableCell>
+        <TableCell className="whitespace-nowrap">{formatMoney(item.outstanding)}</TableCell>
       </TableRow>
       {lines.map((line, index) => {
         const last = index === lines.length - 1;
@@ -121,7 +123,9 @@ function DebtRow({ item }: { item: MemberDebtItem }) {
               {line.productName} × {toPersianDigits(line.quantity)}
             </TableCell>
             <TableCell />
-            <TableCell className={last ? "pb-2" : "pb-1"}>{formatMoney(line.lineTotal)}</TableCell>
+            <TableCell className={cn("whitespace-nowrap", last ? "pb-2" : "pb-1")}>
+              {formatMoney(line.lineTotal)}
+            </TableCell>
             <TableCell />
             <TableCell />
           </TableRow>
@@ -133,7 +137,7 @@ function DebtRow({ item }: { item: MemberDebtItem }) {
 
 function DebtCard({ children }: { children: React.ReactNode }) {
   return (
-    <Card>
+    <Card edge>
       <CardHeader>
         <CardTitle>بدهی</CardTitle>
       </CardHeader>

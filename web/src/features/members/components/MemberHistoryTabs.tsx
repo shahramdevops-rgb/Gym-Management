@@ -12,6 +12,7 @@ import { useMemberPayments } from "@/features/payments/api";
 import { PaymentHistoryTable } from "@/features/payments/components/PaymentHistoryTable";
 import { useMemberSubscriptions } from "@/features/subscriptions/api";
 import { SubscriptionHistoryTable } from "@/features/subscriptions/components/SubscriptionHistoryTable";
+import { choiceClass } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 
 type Tab = "subscriptions" | "payments" | "cafe";
@@ -43,16 +44,19 @@ export function MemberHistoryTabs({ memberId }: { memberId: string }) {
   const cafeOrders = useMemberCafeOrders(memberId, cafePage, { enabled: tab === "cafe" });
 
   return (
-    <Card>
+    // An edged card and tabs like the history page's (13.2j): the chosen tab looks like the active
+    // menu item.
+    <Card edge>
       <CardContent className="space-y-4">
-        <div role="tablist" aria-label="تاریخچه عضو" className="flex gap-1 border-b">
+        <div role="tablist" aria-label="تاریخچه عضو" className="flex flex-wrap gap-1">
           {tabs.map((item) => (
             <Button
               key={item.value}
               role="tab"
               aria-selected={tab === item.value}
               size="sm"
-              variant={tab === item.value ? "secondary" : "ghost"}
+              variant="ghost"
+              className={choiceClass(tab === item.value)}
               onClick={() => setTab(item.value)}
             >
               {item.label}

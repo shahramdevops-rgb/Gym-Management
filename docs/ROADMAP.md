@@ -2961,6 +2961,27 @@ every screen, rather than the gym's green or a neutral black.
       «نیاز به اقدام» and its lists `Card edge` / edged, a past-due cheque a red start edge
       instead of a fill; the staff table's rows edged. The coloured version stays in the tag
       `dashboard-colour-v1` (docs/design/dashboard-colour.md). No package added, no API change
+- [x] **13.2j The light theme and the member profile** (asked by the developer, 1405/07/21: "the
+      dark theme is done, do the light one"). The light theme, without moving the dark one: edges
+      and lines (`tone-edge`, `tone-line`) keep the tone's full colour on white and stay mixed
+      towards the light ink on the dark page (`--tone-edge-share`); green and amber text uses new
+      `--success-ink` and `--warning-ink`, mixed towards the ink on white, where the plain colours
+      were too faint to read (amber from about 2.8:1 to 4.8:1); text in a tone stays `tone-ink`.
+      The menu's group line leaves the end of its title, bends once and runs to the far edge (a
+      second sketch from the developer). Then the member profile, «عضو جدید» and «ویرایش عضو»
+      like «اعضا» (asked by the developer, from a marked-up screenshot): full width, the banner
+      with the member's name and «فعال», «ویرایش» on it as `toneAction` and «غیرفعال‌سازی» red
+      with no fill (green «فعال‌سازی»); «مشخصات» and «بدهی» at the start facing «اشتراک فعلی»
+      on a wide screen; every card `Card edge`, the tabs `choiceClass`, every list's rows edged;
+      the visit's and subscription's tags in `stateEdge` («باز», «فعال» and «پرداخت» green;
+      «جلسات تمام‌شده» amber like «پلن تمام‌شده»; «لغوشده» and «استرداد» red; «منقضی», «فریز»,
+      «در انتظار شروع» and «بسته» grey) and the payment status edged; «ثبت پرداخت» and
+      «تأیید پرداخت» green, «لغو اشتراک» and «استرداد» red with no fill; «فروش اشتراک», «تأیید
+      تمدید» and the member form's button `toneButton`. Kept as they were: «تأیید فروش» and
+      «تسویه یکجا», which also open in the locker box, a dialog with no page tone, where a
+      `toneButton` would turn grey; the red confirmations. The other pages («مدیریت», «حساب و
+      سیستم») keep their look: the developer chose not to change them. No package added, no API
+      change
 
 #### 13.2e plan
 

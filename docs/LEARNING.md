@@ -1791,3 +1791,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **A design rule kept in one file travels.** «مالی»'s pages took the reception's look mostly by importing `filterEdge`, `stateEdge`, `choiceClass`, `toneButton` and `toneAction` from `lib/edges.ts`; there was little to decide page by page, only which state each tag is.
 - **Deleting a design is safe when it is kept somewhere findable.** The dashboard's violet banner and its `--hero-*` colours were removed from the code, not left unused, because the tag `dashboard-colour-v1` and `docs/design/dashboard-colour.md` already say how to bring them back. Dead code would only mislead the next reader.
 - **My notes:**
+
+## 13.2j — The light theme and the member profile (تم روشن و پروفایل عضو)
+
+- **One variable per theme instead of two formulas.** The edge colour is still one `color-mix`, but how much of the tone it keeps is a token, `--tone-edge-share`: 100% on white, less on the dark page. The light theme changed and the dark one stayed the same to the pixel, which was checked by comparing screenshots before and after.
+- **Measure contrast, do not trust the eye.** Green and amber text on white looked "fine" but measured about 3.5:1 and 2.8:1, under the 4.5:1 text needs. A separate `-ink` colour for text, mixed towards the ink, fixed the words without darkening the edges and bars that use the same state colour.
+- **A shared component carries a look into places with no page tone.** `toneButton` takes its colour from `--tone`, which the frame sets on the page. A dialog is rendered outside the page (a portal), so there the button would fall back to grey; the sell-plan and settle forms, also opened in the locker box, kept their own button for that reason.
+- **A two-column grid that falls back to one.** `grid lg:grid-cols-2` puts the details and the debt beside the subscription on a wide screen, and on a narrow one the same markup stacks them; in a right-to-left page the first child lands on the right without saying so.
+- **Narrower columns need `whitespace-nowrap` on amounts.** Once the debt card was half the page wide, «۹۰,۰۰۰ تومان» broke between the number and the word; an amount is one thing to read, so it stays on one line and the label beside it wraps instead.
+- **My notes:**

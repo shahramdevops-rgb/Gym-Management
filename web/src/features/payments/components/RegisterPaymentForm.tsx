@@ -4,8 +4,10 @@ import { Controller, useForm } from "react-hook-form";
 import { FormField, MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { stateEdge } from "@/lib/edges";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { normalizeMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import { useRegisterPayment } from "../api";
 import {
@@ -102,7 +104,14 @@ export function RegisterPaymentForm({
             {...form.register("referenceNumber")}
           />
         </div>
-        <Button type="submit" size="sm" disabled={registerPayment.isPending}>
+        {/* Green like «ثبت پرداخت» on the row that opened it (13.2j). */}
+        <Button
+          type="submit"
+          size="sm"
+          variant="ghost"
+          className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success-ink")}
+          disabled={registerPayment.isPending}
+        >
           تأیید پرداخت
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>

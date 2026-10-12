@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { paths } from "@/app/paths";
+import { PageHero } from "@/components/PageHero";
 import { LoadingState } from "@/components/States";
-import { PageHeader } from "@/components/PageHeader";
 import { StaleAlert } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -55,8 +55,9 @@ export function EditMemberPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <PageHeader title={<>ویرایش «{current.fullName}»</>} />
-      <Card>
+      {/* The banner and an edged card, like the members' list (13.2j). */}
+      <PageHero title={<>ویرایش «{current.fullName}»</>} />
+      <Card edge>
         <CardContent className="space-y-4">
           {/*
           Keyed by version: once the fresh member is loaded, React builds a new form with its

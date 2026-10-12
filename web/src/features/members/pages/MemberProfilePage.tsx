@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 
 import { paths } from "@/app/paths";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHero } from "@/components/PageHero";
 import { EmptyState, LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,10 @@ import { useMemberAttendanceHistory } from "@/features/attendance/api";
 import { AttendanceHistoryTable } from "@/features/attendance/components/AttendanceHistoryTable";
 import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
 import { CurrentSubscriptionCard } from "@/features/subscriptions/components/CurrentSubscriptionCard";
+import { stateEdge, toneAction } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatDateTime, toPersianDigits } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import { useMember, useSetMemberActive } from "../api";
 import { MemberDebtCard } from "../components/MemberDebtCard";
@@ -71,29 +73,29 @@ export function MemberProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
-      {/* The member's name is the page's title, like every other page's (roadmap 13.2g); the
-          line under it says whether they may come in. */}
-      <PageHeader
+    // As wide as the column, so the banner runs to the far end like every other page's (13.2j).
+    <div className="space-y-4">
+      {/* The member's name is the page's title, on the banner like the members' list (13.2j); the
+          tag beside it says whether they may come in. «ویرایش» is edged in the tone like «عضو
+          جدید», and deactivating in red like «لغو» on the cafe's orders, with no fill. */}
+      <PageHero
         title={current.fullName}
-        description={
-          <span className="inline-flex flex-wrap items-center gap-2">
-            <MemberStatusBadge isActive={current.isActive} />
-            {!current.isActive && (
-              <span>عضو غیرفعال نمی‌تواند وارد باشگاه شود یا اشتراک تازه بگیرد.</span>
-            )}
-          </span>
-        }
         actions={
           <>
-            <Button asChild variant="outline">
+            <Button asChild variant="ghost" className={toneAction}>
               <Link to={paths.editMember(id)}>
                 <Pencil aria-hidden />
                 ویرایش
               </Link>
             </Button>
             <Button
-              variant={current.isActive ? "destructive" : "secondary"}
+              variant="ghost"
+              className={cn(
+                "h-10",
+                current.isActive
+                  ? cn(stateEdge.destructive, "hover:bg-destructive/10 hover:text-destructive")
+                  : cn(stateEdge.success, "hover:bg-success/10 hover:text-success-ink"),
+              )}
               disabled={setActive.isPending}
               onClick={() => void toggleActive()}
             >
@@ -101,7 +103,14 @@ export function MemberProfilePage() {
             </Button>
           </>
         }
-      />
+      >
+        <span className="inline-flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <MemberStatusBadge isActive={current.isActive} />
+          {!current.isActive && (
+            <span>عضو غیرفعال نمی‌تواند وارد باشگاه شود یا اشتراک تازه بگیرد.</span>
+          )}
+        </span>
+      </PageHero>
 
       {notice !== null && (
         <Alert variant={notice.kind} role={notice.kind === "success" ? "status" : "alert"}>
@@ -109,34 +118,41 @@ export function MemberProfilePage() {
         </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>مشخصات</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
-            <dt className="text-muted-foreground">شماره موبایل</dt>
-            <dd>
-              <PhoneNumber value={current.phoneNumber} />
-            </dd>
+      {/* Two columns on a wide screen (13.2j, asked by the developer, so the room beside the
+          details is used): the details and the debt at the start, the current subscription
+          facing them. */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <Card edge>
+            <CardHeader>
+              <CardTitle>مشخصات</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
+                <dt className="text-muted-foreground">شماره موبایل</dt>
+                <dd>
+                  <PhoneNumber value={current.phoneNumber} />
+                </dd>
 
-            <dt className="text-muted-foreground">تاریخ تولد</dt>
-            <dd>{formatDate(current.birthDate)}</dd>
+                <dt className="text-muted-foreground">تاریخ تولد</dt>
+                <dd>{formatDate(current.birthDate)}</dd>
 
-            <dt className="text-muted-foreground">یادداشت</dt>
-            <dd className="whitespace-pre-line">{current.notes ?? "—"}</dd>
+                <dt className="text-muted-foreground">یادداشت</dt>
+                <dd className="whitespace-pre-line">{current.notes ?? "—"}</dd>
 
-            <dt className="text-muted-foreground">تاریخ ثبت</dt>
-            <dd>{formatDateTime(current.createdAt)}</dd>
-          </dl>
-        </CardContent>
-      </Card>
+                <dt className="text-muted-foreground">تاریخ ثبت</dt>
+                <dd>{formatDateTime(current.createdAt)}</dd>
+              </dl>
+            </CardContent>
+          </Card>
 
-      <MemberDebtCard memberId={id} />
+          <MemberDebtCard memberId={id} />
+        </div>
 
-      <CurrentSubscriptionCard memberId={id} />
+        <CurrentSubscriptionCard memberId={id} />
+      </div>
 
-      <Card>
+      <Card edge>
         <CardHeader>
           <CardTitle>ورود و خروج</CardTitle>
         </CardHeader>
@@ -146,7 +162,8 @@ export function MemberProfilePage() {
 
           {history.isSuccess &&
             (openAttendance !== undefined ? (
-              <div className="space-y-3 rounded-md border p-3">
+              // Edged like the desk panel: the visit is open, as on the locker map (13.2j).
+              <div className="space-y-3 rounded-md border border-s-[3px] tone-edge p-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm">
                     <p className="font-medium">هم‌اکنون داخل باشگاه است.</p>
@@ -158,9 +175,14 @@ export function MemberProfilePage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
+                    {/* Red and green like the «داخل باشگاه» board's buttons (13.2i). */}
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="ghost"
+                      className={cn(
+                        stateEdge.destructive,
+                        "hover:bg-destructive/10 hover:text-destructive",
+                      )}
                       onClick={() =>
                         desk.open({
                           kind: "cancelCheckIn",
@@ -173,6 +195,11 @@ export function MemberProfilePage() {
                     </Button>
                     <Button
                       size="sm"
+                      variant="ghost"
+                      className={cn(
+                        stateEdge.success,
+                        "hover:bg-success/10 hover:text-success-ink",
+                      )}
                       onClick={() =>
                         desk.open({
                           kind: "checkOut",

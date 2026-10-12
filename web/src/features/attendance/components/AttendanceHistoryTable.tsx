@@ -8,7 +8,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
+import { stateEdge } from "@/lib/edges";
 import { emptyValue, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import type { Attendance } from "../api";
 import { cardioOnlyLabel } from "../holder";
@@ -29,7 +31,8 @@ export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.id}>
-            <TableCell>{formatDateTime(item.checkedInAt)}</TableCell>
+            {/* Edged at its start in the page's tone, like the history's rows (13.2j). */}
+            <TableCell className="tone-row-edge">{formatDateTime(item.checkedInAt)}</TableCell>
             <TableCell>{formatDateTime(item.checkedOutAt)}</TableCell>
             <TableCell>
               {item.lockerNumber === null ? emptyValue : toPersianDigits(item.lockerNumber)}
@@ -81,16 +84,32 @@ function CardioCell({ item }: { item: Attendance }) {
   );
 }
 
+/**
+ * Edged like the history's tags (13.2j): green for a visit still open, grey for one that is over.
+ * A cancelled one keeps its plain outline, as in the history.
+ */
 function AttendanceStatusBadge({ item }: { item: Attendance }) {
   if (item.cancelledAt !== null) {
     return <Badge variant="outline">لغو شده</Badge>;
   }
   if (item.autoClosedAt !== null) {
-    return <Badge variant="secondary">بسته خودکار</Badge>;
+    return (
+      <Badge variant="ghost" className={stateEdge.muted}>
+        بسته خودکار
+      </Badge>
+    );
   }
   if (item.checkedOutAt === null) {
-    return <Badge variant="success">باز</Badge>;
+    return (
+      <Badge variant="ghost" className={cn(stateEdge.success, "font-semibold")}>
+        باز
+      </Badge>
+    );
   }
 
-  return <Badge variant="secondary">بسته</Badge>;
+  return (
+    <Badge variant="ghost" className={stateEdge.muted}>
+      بسته
+    </Badge>
+  );
 }

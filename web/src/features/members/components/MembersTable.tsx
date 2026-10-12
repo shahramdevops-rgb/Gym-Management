@@ -172,9 +172,15 @@ function MemberDebt({ value }: { value: Member["debt"] }) {
   ) : null;
 }
 
+/** Edged like the other state tags (13.2j): green while they may come in, grey once deactivated. */
 export function MemberStatusBadge({ isActive }: { isActive: boolean }) {
   return (
-    <Badge variant={isActive ? "success" : "secondary"}>{isActive ? "فعال" : "غیرفعال"}</Badge>
+    <Badge
+      variant="ghost"
+      className={isActive ? cn(stateEdge.success, "font-semibold") : stateEdge.muted}
+    >
+      {isActive ? "فعال" : "غیرفعال"}
+    </Badge>
   );
 }
 

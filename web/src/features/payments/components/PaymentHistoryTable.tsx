@@ -9,7 +9,9 @@ import {
 } from "@/components/ui/table";
 import { serviceChargeLabel } from "@/features/serviceCharges/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
+import { stateEdge } from "@/lib/edges";
 import { formatDateTime, formatMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import { paymentMethodLabels, type PaymentHistoryItem } from "../api";
 import { groupBySettlement, type SettlementSummary } from "../settlementGroups";
@@ -54,7 +56,8 @@ export function PaymentHistoryTable({ payments }: { payments: PaymentHistoryItem
 function PaymentRow({ payment }: { payment: PaymentHistoryItem }) {
   return (
     <TableRow>
-      <TableCell>{formatDateTime(payment.paidAt)}</TableCell>
+      {/* Edged at its start in the page's tone, like the history's payments (13.2j). */}
+      <TableCell className="tone-row-edge">{formatDateTime(payment.paidAt)}</TableCell>
       <TableCell>{paidForLabel(payment)}</TableCell>
       <TableCell>
         <KindBadge kind={payment.kind} />
@@ -87,7 +90,10 @@ function SettlementRows({
   return (
     <>
       <TableRow>
-        <TableCell className="pt-2 pb-1">{formatDateTime(first.paidAt)}</TableCell>
+        {/* The moment spans the heading and its items, so one start edge marks one handover. */}
+        <TableCell rowSpan={payments.length + 1} className="pt-2 pb-1 align-top tone-row-edge">
+          {formatDateTime(first.paidAt)}
+        </TableCell>
         <TableCell className="pt-2 pb-1">
           <SettlementHeading settlement={settlement} />
         </TableCell>
@@ -105,7 +111,6 @@ function SettlementRows({
 
         return (
           <TableRow key={payment.id} className={last ? undefined : "border-b-0"}>
-            <TableCell />
             <TableCell className={last ? "pt-1 pb-2" : "py-1"}>
               <SettlementItemLabel>{paidForLabel(payment)}</SettlementItemLabel>
             </TableCell>
@@ -122,9 +127,13 @@ function SettlementRows({
   );
 }
 
+/** Edged like the history's (13.2j): green for money in, red for money given back. */
 function KindBadge({ kind }: { kind: PaymentHistoryItem["kind"] }) {
   return (
-    <Badge variant={kind === "Refund" ? "destructive" : "success"}>
+    <Badge
+      variant="ghost"
+      className={cn(kind === "Refund" ? stateEdge.destructive : stateEdge.success, "font-semibold")}
+    >
       {kind === "Refund" ? "استرداد" : "پرداخت"}
     </Badge>
   );

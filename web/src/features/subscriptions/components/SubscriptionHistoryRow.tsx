@@ -6,9 +6,11 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { RegisterPaymentForm } from "@/features/payments/components/RegisterPaymentForm";
 import { RegisterRefundForm } from "@/features/payments/components/RegisterRefundForm";
+import { stateEdge } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/format";
 import { isPositiveMoney, subtractMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import { useFreezeSubscription, useUnfreezeSubscription, type Subscription } from "../api";
 import { planLabel } from "../planLabel";
@@ -97,7 +99,8 @@ export function SubscriptionHistoryRow({
   return (
     <>
       <TableRow>
-        <TableCell>{label}</TableCell>
+        {/* Edged at its start in the page's tone, like the history's rows (13.2j). */}
+        <TableCell className="tone-row-edge">{label}</TableCell>
         {/* When it was sold, paid or not: payments carry their own times in «پرداخت‌ها». */}
         <TableCell>{formatDateTime(subscription.createdAt)}</TableCell>
         {queued ? (
@@ -124,16 +127,21 @@ export function SubscriptionHistoryRow({
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            <PaymentStatusBadge status={subscription.paymentStatus} />
-            <span className="text-muted-foreground">{formatMoney(subscription.netPaid)}</span>
+            <PaymentStatusBadge status={subscription.paymentStatus} edged />
+            <span className="whitespace-nowrap text-muted-foreground">
+              {formatMoney(subscription.netPaid)}
+            </span>
           </div>
         </TableCell>
         <TableCell>
+          {/* Edged at their end in a state's colour, like the cafe's orders (13.2j): green to pay,
+              red to cancel or give money back; freezing keeps its plain outline. */}
           <div className="flex flex-wrap gap-1">
             {canPay && (
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
+                className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success-ink")}
                 aria-label={`ثبت پرداخت برای ${context}`}
                 onClick={() => toggle("payment")}
               >
@@ -165,7 +173,11 @@ export function SubscriptionHistoryRow({
             {canCancel && (
               <Button
                 size="sm"
-                variant="destructive"
+                variant="ghost"
+                className={cn(
+                  stateEdge.destructive,
+                  "hover:bg-destructive/10 hover:text-destructive",
+                )}
                 aria-label={`لغو اشتراک ${context}`}
                 onClick={() => toggle("cancel")}
               >
@@ -175,7 +187,11 @@ export function SubscriptionHistoryRow({
             {canRefund && (
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
+                className={cn(
+                  stateEdge.destructive,
+                  "hover:bg-destructive/10 hover:text-destructive",
+                )}
                 aria-label={`استرداد برای ${context}`}
                 onClick={() => toggle("refund")}
               >
