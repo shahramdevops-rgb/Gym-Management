@@ -18,6 +18,7 @@ import { useDeskDialog } from "@/features/attendance/components/useDeskDialog";
 import { holderName } from "@/features/attendance/holder";
 import { errorMessage } from "@/lib/errors";
 import { gymToday, isJalaliBirthday, toPersianDigits } from "@/lib/format";
+import { useIsPhone } from "@/lib/useIsPhone";
 import { useNow } from "@/lib/useNow";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +78,7 @@ export function LockersPage() {
   const [usageView, setUsageView] = useState(false);
   const [usagePeriod, setUsagePeriod] = useState<UsagePeriod>(defaultUsagePeriod);
   const usage = useLockerUsage(usagePeriod, usageView);
+  const isPhone = useIsPhone();
 
   function toggleUsageView() {
     // The search and the blink belong to the desk's map; the usage view starts without them.
@@ -194,7 +196,8 @@ export function LockersPage() {
         <LockerStats
           lockers={lockers.data}
           tools={
-            <div className="flex flex-wrap items-center gap-3">
+            // On a phone the search stands beside the title, taking the rest of its row (13.1a).
+            <div className="flex flex-wrap items-center gap-3 max-lg:min-w-0 max-lg:flex-1">
               {!usageView && (
                 <NameSearch
                   value={nameQuery}
@@ -208,7 +211,11 @@ export function LockersPage() {
                 aria-pressed={usageView}
                 onClick={toggleUsageView}
                 // Edged like the banner around it while off; pressed, the brand fill says it is on.
-                className={cn("h-9 rounded-lg", !usageView && "border-s-[3px] tone-edge")}
+                // Not on a phone (BUSINESS_RULES.md §6 *Locker usage map*, 13.1a).
+                className={cn(
+                  "h-9 rounded-lg max-lg:hidden",
+                  !usageView && "border-s-[3px] tone-edge",
+                )}
               >
                 <ChartColumn aria-hidden />
                 نقشهٔ استفاده
@@ -266,7 +273,8 @@ export function LockersPage() {
           />
         </>
       )}
-      <TodayByHourChart now={now} />
+      {/* Not on a phone (BUSINESS_RULES.md §6 *Today by hour*, 13.1a): not asked for, so not drawn. */}
+      {!isPhone && <TodayByHourChart now={now} />}
 
       {box !== null && box.open.kind === "checkIn" && (
         <LockerCheckInDialog key={box.id} place={box.open.place} onClose={close} />
@@ -307,7 +315,9 @@ export function LockersPage() {
 function PageFrame({ stats, children }: { stats?: ReactNode; children: ReactNode }) {
   return (
     <div className="space-y-5">
-      <PageHero title="ورود با کمد">{stats}</PageHero>
+      <PageHero title="ورود با کمد" spreadOnPhone>
+        {stats}
+      </PageHero>
       {children}
     </div>
   );
@@ -330,7 +340,8 @@ function NameSearch({
   result: number | null;
 }) {
   return (
-    <div className="flex items-center gap-3">
+    // The whole row on a phone (13.1a), the field taking what the result's words leave.
+    <div className="flex items-center gap-3 max-lg:w-full">
       <p
         role="status"
         className={cn(
@@ -344,7 +355,7 @@ function NameSearch({
             ? "کسی با این نام داخل نیست"
             : `${toPersianDigits(result)} نفر پیدا شد`}
       </p>
-      <div className="relative w-60">
+      <div className="relative w-60 max-lg:w-auto max-lg:min-w-0 max-lg:flex-1">
         <Search
           aria-hidden
           className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"

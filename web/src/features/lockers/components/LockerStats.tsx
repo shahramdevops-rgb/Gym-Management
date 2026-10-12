@@ -53,26 +53,43 @@ export function LockerStats({
   return (
     <section
       aria-label="وضعیت کمدها"
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3"
+      // On a phone the box dissolves into the banner's row (`spreadOnPhone` there, 13.1a): the
+      // search stands beside the title and the counts take the row under them (asked by the
+      // developer).
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 max-lg:contents"
     >
       {legend ?? (
-        <ul aria-label="راهنمای کمدها" className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        // On a phone only free, occupied, guest and cardio, smaller and on one line (BUSINESS_RULES.md
+        // §6, 13.1a, asked by the developer).
+        <ul
+          aria-label="راهنمای کمدها"
+          className="flex flex-wrap items-center gap-x-6 gap-y-2 max-lg:order-last max-lg:w-full max-lg:flex-nowrap max-lg:justify-between max-lg:gap-x-2"
+        >
           {states.map((state) => (
-            <li key={state} className="flex items-center gap-2">
+            <li
+              key={state}
+              className={cn(
+                "flex items-center gap-2 max-lg:gap-1 max-lg:whitespace-nowrap",
+                state === "outOfService" && "max-lg:hidden",
+              )}
+            >
               <span
                 aria-hidden
                 className={cn(
-                  "inline-block size-3.5 rounded-[3px] border-e-[3px] border-door-border bg-door",
+                  "inline-block size-3.5 rounded-[3px] border-e-[3px] border-door-border bg-door max-lg:size-3",
                   swatchClass[state],
                 )}
               />
-              <span className="text-2xl leading-none font-extrabold tabular-nums">
+              <span className="text-2xl leading-none font-extrabold tabular-nums max-lg:text-base">
                 {toPersianDigits(counts[state])}
               </span>{" "}
-              <span className="text-xs text-muted-foreground">{lockerStateLabel[state]}</span>
+              <span className="text-xs text-muted-foreground max-lg:text-[0.7rem]">
+                {lockerStateLabel[state]}
+              </span>
             </li>
           ))}
-          <li className="flex items-center gap-2 text-xs text-muted-foreground">
+          {/* What the tag and the bar mean: on the computer only (§6, 13.1a). */}
+          <li className="flex items-center gap-2 text-xs text-muted-foreground max-lg:hidden">
             <span
               aria-hidden
               className="rounded-es-sm bg-destructive/20 px-1 text-[9px] leading-snug font-bold text-destructive"
@@ -81,7 +98,7 @@ export function LockerStats({
             </span>
             بدهی دارد
           </li>
-          <li className="flex items-center gap-2 text-xs text-muted-foreground">
+          <li className="flex items-center gap-2 text-xs text-muted-foreground max-lg:hidden">
             {/* Green on the right, red on the left: the bar fills from the right, as time passes. */}
             <span
               aria-hidden

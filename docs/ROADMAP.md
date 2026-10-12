@@ -2758,11 +2758,34 @@ the badge and the primary button early because the board needs them anyway.
 Not cosmetic. The reception PC is a Windows desktop, but the gym loses power: during an outage
 the desk has to keep working from a phone, and the Owner checks the gym from home on one.
 
-- [ ] Check-in, check-out and the board are fully usable on a phone — the flows that cannot wait
-      for the power to come back
-- [ ] Tables become cards below the breakpoint instead of scrolling sideways
-- [ ] Forms and dialogs open full-screen on a phone, including the service-charge panel from 6.5.2
-- [ ] Touch targets, and the Jalali date picker and MoneyField on a real phone keyboard
+Split into three sessions with the developer on 1405/07/20 (2026-10-12), on the same branch as 13.2
+(`task/13.2-visual-language`; nothing is released before SMS is live): (a) the frame and the desk,
+(b) tables as cards, (c) forms, dialogs and touch. One rule over all of it, set by the developer:
+**every change is for the phone only, and the computer's screen is not touched at all.** "A phone"
+is below Tailwind's `lg` (1024px), where the side menu becomes a drawer: `max-lg:` in the classes,
+`useIsPhone()` in the code. The desk's PC and the backup tablet are wider.
+
+- [x] **13.1a The frame and the desk on a phone** (1405/07/20). Check-in, check-out and the
+      board fully usable on a phone, the flows that cannot wait for the power to come back. The
+      side menu is a drawer from the right, opened by «منو» at the header's start and closed by
+      choosing a page, its ✕, Escape or a tap beside it (Radix's dialog, no new package); the
+      menu's rows are finger-sized in it. The header drops the user's name and the word «خروج»; the
+      page has a 16px gutter and `h-dvh`, so the browser's address bar does not hide its bottom.
+      «ورود با کمد» (BUSINESS_RULES.md §6, decided by the developer while looking at it): a smaller
+      title with the name search beside it; under them on one line only free, occupied, guest and
+      cardio-only, smaller (no out-of-service count, no legend for «بدهکار» or the long-stay bar);
+      no «نقشهٔ استفاده» and no hourly chart (not even asked for); the cabinets wrap three to a
+      row, each keeping its six doors, the doors sized to fill the row; every locker first, then
+      the desk panel at full width and height, then the reserve places. Measured at 1920px before
+      and after: the computer's screen is the same to the pixel. Left for 13.1b: «داخل باشگاه»'s
+      table still scrolls sideways (check-out on a phone goes through the map). Tests: the drawer
+      (opens, closes on a page and on ✕, absent while the password must change, never opens on a
+      computer), the panel's place on each screen, the chart neither drawn nor fetched on a phone,
+      and an end-to-end run at 390×844 with touch: check-in and check-out on the map, no sideways
+      scroll, the drawer. No package added, no API change
+- [ ] **13.1b Tables become cards** below the breakpoint instead of scrolling sideways
+- [ ] **13.1c Forms and dialogs** open full-screen on a phone, including the service-charge panel
+      from 6.5.2; touch targets, and the Jalali date picker and MoneyField on a real phone keyboard
 
 ### 13.2 One visual language
 Split into four sessions with the developer on 1405/07/19 (2026-10-11), in this order: (a) the
@@ -2867,7 +2890,7 @@ every screen, rather than the gym's green or a neutral black.
       دیگر دوباره امتحان کنید.» on every form and page, the sign-in page included, instead of the
       general error. Unchanged: a session whose refresh hits the restart still goes to the sign-in
       page. No package added, no API change
-- [ ] **13.2h Page by page, from the developer's notes** (asked by the developer, 1405/07/20: the
+- [x] **13.2h Page by page, from the developer's notes** (asked by the developer, 1405/07/20: the
       panel did not read as one design). Three mock-ups of the locker page were drawn first and all
       turned down; the developer then marked up screenshots on a canvas instead, and each note is
       applied in the code and shown back as a new screenshot. One or two pages done together this
@@ -2898,7 +2921,7 @@ every screen, rather than the gym's green or a neutral black.
       hidden `<div>`. The average's label («میانگین ۱ دوشنبه باز در ۴ هفتهٔ گذشته») stays as it is,
       once explained (the developer's choice). Left: the rest of the pages. No package added, no API
       change
-- [ ] **13.2i Pages in the panel's look: «داخل باشگاه», «تاریخچه», «اعضا», then «فروش بوفه»** (asked by the
+- [x] **13.2i Pages in the panel's look: «داخل باشگاه», «تاریخچه», «اعضا», then «فروش بوفه»** (asked by the
       developer, 1405/07/20–21, from marked-up screenshots). The rules, now in `web/src/lib/edges.ts`
       so every page draws them the same way: a table row is edged at its start in the page's tone
       (`tone-row-edge`, a curved bar on the first cell; a history settlement spans its items with

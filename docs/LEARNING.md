@@ -1800,3 +1800,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **A two-column grid that falls back to one.** `grid lg:grid-cols-2` puts the details and the debt beside the subscription on a wide screen, and on a narrow one the same markup stacks them; in a right-to-left page the first child lands on the right without saying so.
 - **Narrower columns need `whitespace-nowrap` on amounts.** Once the debt card was half the page wide, «۹۰,۰۰۰ تومان» broke between the number and the word; an amount is one thing to read, so it stays on one line and the label beside it wraps instead.
 - **My notes:**
+
+## 13.1a — The frame and the desk on a phone (قاب و میز پذیرش روی گوشی)
+
+- **Desktop-first classes, phone-only changes.** The app was built for a wide screen, so the phone's look is added with `max-lg:` (below 1024px) instead of rewriting every class mobile-first. Everything from `lg` up is then untouched by construction, which is what the developer asked for; it was also checked by measuring the same elements at 1920px before and after (`git stash`, measure, `git stash pop`).
+- **CSS for size, a hook for place.** Hiding, shrinking and wrapping are `max-lg:` classes. Putting the desk panel *after* the map is a different place in the document, which CSS can only fake (`order`, `display: contents`); `useIsPhone()` (a `useSyncExternalStore` over `matchMedia`) renders it in the right place once, so there is never a second copy for screen readers or tests to find.
+- **Not rendering beats hiding.** The hourly chart is not drawn on a phone rather than `hidden`, so its data is never fetched either; the test checks that no request was made.
+- **A drawer is a dialog.** Radix's dialog already moves focus in, traps it, closes on Escape and on a tap outside, and gives focus back; a drawer is that dialog placed at the side with a slide-in animation. No new package.
+- **`100vh` is not the visible height on a phone.** Mobile browsers measure it with the address bar hidden, so the bottom of a full-height layout sits under the bar; `100dvh` follows the bar.
+- **`display: contents` lets a box's children join the row around it.** On a phone the banner's figures box dissolves, so its search can stand beside the title and its counts take the next row, while on the computer the same markup is one box.
+- **Container queries need the container outside.** `cqw` and `@max-[…]` look at the nearest *ancestor* container, so the map got an outer `@container` box and the door size is switched on the box inside it. Variants stack: `max-lg:@max-[50.5rem]:` is "on a phone, and the map narrower than its widest wall".
+- **A test can pretend to be a phone.** jsdom applies no CSS and has no `matchMedia`; the setup gives it one that never matches (the computer), and `pretendPhone()` makes it match for one test. Only what the code decides is testable there; what CSS decides is checked in the end-to-end run at 390×844.
+- **My notes:**

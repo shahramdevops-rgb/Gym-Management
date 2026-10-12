@@ -65,8 +65,9 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
       // As tall as the three doors of the cabinets beside it, and scrolling inside beyond that,
       // so a busy day never pushes the map down. Like a locker door (13.2h, asked by
       // the developer): no frame and the page's own colour, only a thick start edge in the page's
-      // tone (`tone-edge`).
-      className="flex max-h-[calc(3*var(--door-size)+1.25rem)] w-80 max-w-full flex-col gap-4 overflow-y-auto rounded-xl border-s-[3px] tone-edge p-3"
+      // tone (`tone-edge`). On a phone it comes after every locker (13.1a), so it takes the
+      // whole width and its full height there.
+      className="flex max-h-[calc(3*var(--door-size)+1.25rem)] w-80 max-w-full flex-col gap-4 overflow-y-auto rounded-xl border-s-[3px] tone-edge p-3 max-lg:max-h-none max-lg:w-full"
     >
       {birthdays.length > 0 && (
         // A plain list, like the renewals: the party is drawn on the member's door, not here.

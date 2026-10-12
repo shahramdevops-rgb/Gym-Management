@@ -1,7 +1,8 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import { sessionStore } from "@/features/auth/session";
 import { mockApi, owner, session, signedInHandlers, staffUser } from "@/test/mockApi";
+import { pretendPhone } from "@/test/phone";
 import { renderApp } from "@/test/renderApp";
 
 describe("AppShell", () => {
@@ -261,5 +262,60 @@ describe("AppShell", () => {
     expect(await screen.findByRole("button", { name: "ورود" })).toBeInTheDocument();
     expect(api.requestsTo("POST", "/api/auth/logout")).toHaveLength(1);
     expect(sessionStore.getState().status).toBe("signedOut");
+  });
+
+  it("AppShell_PhoneMenuButton_OpensTheMenuAsADrawerAndChoosingAPageClosesIt", async () => {
+    pretendPhone();
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+    fireEvent.click(screen.getByRole("button", { name: "منو" }));
+
+    // 13.1a: the same menu, over the page.
+    const drawer = await screen.findByRole("dialog", { name: "منو" });
+    const menu = within(drawer).getByRole("navigation", { name: "منوی اصلی" });
+    expect(within(menu).getByRole("link", { name: "ورود با کمد" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+
+    fireEvent.click(within(menu).getByRole("link", { name: "اعضا" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(await screen.findByRole("heading", { name: "اعضا" })).toBeInTheDocument();
+  });
+
+  it("AppShell_PhoneDrawerCloseButton_ClosesIt", async () => {
+    pretendPhone();
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+    fireEvent.click(screen.getByRole("button", { name: "منو" }));
+    const drawer = await screen.findByRole("dialog", { name: "منو" });
+    fireEvent.click(within(drawer).getByRole("button", { name: "بستن منو" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("AppShell_MustChangePassword_HasNoMenuButton", () => {
+    pretendPhone();
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/change-password", { session: session({ mustChangePassword: true }) });
+
+    // Nowhere else to go yet, so nothing to open (as the side menu shows no items).
+    expect(screen.queryByRole("button", { name: "منو" })).not.toBeInTheDocument();
+  });
+
+  it("AppShell_Computer_DrawerNeverOpens", () => {
+    mockApi(signedInHandlers(staffUser));
+
+    renderApp("/", { session: session() });
+    // The button is hidden from `lg` up by CSS, which jsdom does not apply; even pressed, the
+    // drawer stays shut while the side menu stands beside the page.
+    fireEvent.click(screen.getByRole("button", { name: "منو" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("navigation", { name: "منوی اصلی" })).toHaveLength(1);
   });
 });

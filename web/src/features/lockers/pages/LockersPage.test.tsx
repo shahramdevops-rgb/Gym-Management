@@ -11,6 +11,7 @@ import {
   todayByHour,
 } from "@/test/attendance";
 import { clickOutsideDialog } from "@/test/dialog";
+import { pretendPhone } from "@/test/phone";
 import {
   allLockers,
   heldLocker,
@@ -1062,6 +1063,29 @@ describe("LockersPage", () => {
       );
     });
 
+    it("DeskPanel_Computer_StandsBesideTheFirstZone", async () => {
+      mockApi(panelHandlers({ usedSessions: 10, remainingSessions: 2 }));
+      renderMap();
+
+      const panel = await screen.findByRole("complementary", { name: "پنل پذیرش" });
+      expect(screen.getByRole("region", { name: "بیرون رختکن" })).toContainElement(panel);
+    });
+
+    it("DeskPanel_Phone_ComesAfterEveryLocker", async () => {
+      pretendPhone();
+      mockApi(panelHandlers({ usedSessions: 10, remainingSessions: 2 }));
+      renderMap();
+
+      // BUSINESS_RULES.md §6, 13.1a: every locker first, then the panel.
+      const panel = await screen.findByRole("complementary", { name: "پنل پذیرش" });
+      expect(screen.getByRole("region", { name: "بیرون رختکن" })).not.toContainElement(panel);
+      const lastZone = screen.getByRole("region", { name: "داخل رختکن" });
+      expect(
+        lastZone.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(within(panel).getByRole("region", { name: "فرصت تمدید" })).toBeInTheDocument();
+    });
+
     it("DeskPanel_AlreadyRenewedOrASingleVisit_IsNotListedAndThePanelIsHidden", async () => {
       mockApi(
         panelHandlers(
@@ -1255,6 +1279,23 @@ describe("LockersPage", () => {
     function hourRows(region: HTMLElement) {
       return within(within(region).getByRole("table")).getAllByRole("row").slice(1);
     }
+
+    it("TodayByHour_Phone_IsNotDrawnOrAskedFor", async () => {
+      pretendPhone();
+      const api = mockApi(
+        mapHandlers(allLockers(), [], {
+          "GET /api/attendance/today-by-hour": () => todayByHour({ 9: { today: 2 } }),
+        }),
+      );
+      renderMap();
+
+      // BUSINESS_RULES.md §6 *Today by hour*: the computer's screen only (13.1a).
+      expect(await screen.findByRole("region", { name: "داخل رختکن" })).toBeInTheDocument();
+      expect(
+        screen.queryByRole("region", { name: "ورود امروز ساعت به ساعت" }),
+      ).not.toBeInTheDocument();
+      expect(api.requestsTo("GET", "/api/attendance/today-by-hour")).toHaveLength(0);
+    });
 
     it("TodayByHour_Counts_DrawsTheBusyHoursWithTodayAndTheAverage", async () => {
       mockApi(

@@ -3,6 +3,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 
 import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useIsPhone } from "@/lib/useIsPhone";
 
 import type { Locker } from "../api";
 import { cabinetColumns, columnsPerCabinet, lockerZones } from "../layout";
@@ -31,6 +32,14 @@ const widestRowDoors =
  * Every door gets the same size whatever is written on it, so a long name can never grow one.
  */
 const doorWidth = `clamp(2.75rem, calc((100cqw - 12rem) / ${widestRowDoors}), 6rem)`;
+
+/**
+ * A door's width on a phone (13.1a), where the widest zone cannot stand in one row even with the
+ * smallest doors: the cabinets wrap, three to a row, and the doors grow to fill that row. 4.5rem
+ * is the room three cabinets leave: the gap inside each, the two gaps between them and the zone's
+ * padding. Each cabinet keeps its six doors as they stand, so a number is still where it is on it.
+ */
+const narrowDoorWidth = "clamp(2.75rem, calc((100cqw - 4.5rem) / 6), 6rem)";
 
 /** Fixed square doors, sized by `--door-size` on the map. */
 const doorSize = "w-(--door-size) shrink-0 aspect-square";
@@ -119,77 +128,93 @@ export function LockerMap({
   const byNumber = new Map(lockers.map((locker) => [Number(locker.number), locker]));
   const changed = useChangedDoors(lockers);
   const mostUses = usage === undefined ? 0 : Math.max(0, ...usage.values());
+  const isPhone = useIsPhone();
 
   return (
-    <div className="@container space-y-6" style={{ "--door-size": doorWidth } as CSSProperties}>
-      {lockerZones.map((zone, zoneIndex) => (
-        <section key={zone.name} aria-label={zone.name}>
-          {/* The padding keeps a lifted door, and the ring around a found one, inside the zone's
+    // The query container is the outer box, so the inner one can switch the door's width on the
+    // map's own width. Only on a phone (below `lg`, where the side menu is a drawer; 13.1a): the
+    // computer's map is left exactly as it was (asked by the developer). 50.5rem is where the
+    // widest zone's fourteen doors stop fitting at their smallest (12rem of gaps and
+    // 14 × 2.75rem); below it, on a phone, the cabinets wrap.
+    <div className="@container">
+      <div
+        className="space-y-6 [--door-size:var(--door-wide)] max-lg:@max-[50.5rem]:[--door-size:var(--door-narrow)]"
+        style={{ "--door-wide": doorWidth, "--door-narrow": narrowDoorWidth } as CSSProperties}
+      >
+        {lockerZones.map((zone, zoneIndex) => (
+          <section key={zone.name} aria-label={zone.name}>
+            {/* The padding keeps a lifted door, and the ring around a found one, inside the zone's
               scrolling edge, which would otherwise cut them off. */}
-          <div
-            dir="ltr"
-            className="flex flex-wrap items-start gap-10 overflow-x-auto px-1 pt-3 pb-2"
-          >
-            {zone.groups.map((group) => (
-              <div key={group.cabinets[0]} className="flex gap-4">
-                {group.cabinets.map((first) => (
-                  <div key={first} className="flex gap-2" data-testid={`cabinet-${first}`}>
-                    {cabinetColumns(first).map((column) => (
-                      <div key={column[0]} className="flex flex-col gap-2">
-                        {column.map((number) => {
-                          const locker = byNumber.get(number);
-                          if (usage !== undefined && locker !== undefined) {
+            <div
+              dir="ltr"
+              className="flex flex-wrap items-start gap-10 overflow-x-auto px-1 pt-3 pb-2 max-lg:gap-y-4"
+            >
+              {zone.groups.map((group) => (
+                // Cabinets wrap to the next row on a phone only (13.1a).
+                <div key={group.cabinets[0]} className="flex gap-4 max-lg:flex-wrap">
+                  {group.cabinets.map((first) => (
+                    <div key={first} className="flex gap-2" data-testid={`cabinet-${first}`}>
+                      {cabinetColumns(first).map((column) => (
+                        <div key={column[0]} className="flex flex-col gap-2">
+                          {column.map((number) => {
+                            const locker = byNumber.get(number);
+                            if (usage !== undefined && locker !== undefined) {
+                              return (
+                                <UsageDoor
+                                  key={number}
+                                  number={number}
+                                  outOfService={locker.isOutOfService}
+                                  uses={usage.get(locker.id) ?? 0}
+                                  mostUses={mostUses}
+                                />
+                              );
+                            }
                             return (
-                              <UsageDoor
+                              <LockerDoor
                                 key={number}
                                 number={number}
-                                outOfService={locker.isOutOfService}
-                                uses={usage.get(locker.id) ?? 0}
-                                mostUses={mostUses}
+                                locker={locker}
+                                mode={mode}
+                                highlighted={
+                                  highlightedLockerId !== null && locker?.id === highlightedLockerId
+                                }
+                                found={
+                                  foundLockerIds === null
+                                    ? null
+                                    : locker !== undefined && foundLockerIds.has(locker.id)
+                                }
+                                changedRound={
+                                  locker !== undefined && changed.ids.has(locker.id)
+                                    ? changed.round
+                                    : null
+                                }
+                                birthday={
+                                  locker !== undefined &&
+                                  (birthdayLockerIds?.has(locker.id) ?? false)
+                                }
+                                stays={stays}
+                                onSelect={onSelect}
                               />
                             );
-                          }
-                          return (
-                            <LockerDoor
-                              key={number}
-                              number={number}
-                              locker={locker}
-                              mode={mode}
-                              highlighted={
-                                highlightedLockerId !== null && locker?.id === highlightedLockerId
-                              }
-                              found={
-                                foundLockerIds === null
-                                  ? null
-                                  : locker !== undefined && foundLockerIds.has(locker.id)
-                              }
-                              changedRound={
-                                locker !== undefined && changed.ids.has(locker.id)
-                                  ? changed.round
-                                  : null
-                              }
-                              birthday={
-                                locker !== undefined && (birthdayLockerIds?.has(locker.id) ?? false)
-                              }
-                              stays={stays}
-                              onSelect={onSelect}
-                            />
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ))}
-            {/* ms-auto here, inside dir="ltr", is a left margin: it pushes the aside to the right
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {/* ms-auto here, inside dir="ltr", is a left margin: it pushes the aside to the right
                 end. Hidden while empty, so a panel with nothing to say leaves no gap to wrap. */}
-            {zoneIndex === 0 && aside !== undefined && (
-              <div className="ms-auto empty:hidden">{aside}</div>
-            )}
-          </div>
-        </section>
-      ))}
+              {zoneIndex === 0 && aside !== undefined && !isPhone && (
+                <div className="ms-auto empty:hidden">{aside}</div>
+              )}
+            </div>
+          </section>
+        ))}
+        {/* On a phone every locker comes first and the panel after them all (13.1a, asked by the
+            developer): beside the first zone there is no room for it. */}
+        {aside !== undefined && isPhone && <div className="empty:hidden">{aside}</div>}
+      </div>
     </div>
   );
 }

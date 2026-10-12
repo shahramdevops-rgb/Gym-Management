@@ -15,6 +15,20 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 };
 
+// jsdom has no media queries either; `useIsPhone` asks one (13.1a). A query that never matches and
+// never changes: the tests render the computer's layout unless a test stubs a phone.
+window.matchMedia ??= (query: string) =>
+  ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+    dispatchEvent: () => false,
+  }) as MediaQueryList;
+
 // Each test renders into a fresh document and starts with the real globals again. The session
 // lives in a module, not in React, so it is reset by hand: otherwise one test's login would
 // leak into the next. The theme lives on <html> and in localStorage, which outlive a render.

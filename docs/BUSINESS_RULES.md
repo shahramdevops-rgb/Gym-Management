@@ -650,6 +650,13 @@ Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadma
   tag and the long-stay bar mean. (A strip of 72 marks showing how full the lockers are, and a
   "refreshed N seconds ago" mark, were tried and removed by the developer, 1405/07/07: the desk
   does not need them.)
+- On a phone (roadmap 13.1a, decided by the developer, 1405/07/20 (2026-10-12)): above the map
+  only the counts of free, occupied, guest and cardio-only lockers, on one line, and the name
+  search beside the title; no out-of-service count, no meaning of the «بدهکار» tag or the
+  long-stay bar, no usage view (*Locker usage map* below) and no hourly chart (*Today by hour*
+  below). The cabinets wrap to the next row, three to a row, each keeping its six doors as they
+  stand. Every locker comes first, then the desk panel (*The desk panel*), then the reserve places. Every change for a phone stays on a phone: the desk's computer screen is
+  not changed by it.
 - The reserve places (*Reserve places* above) are drawn like doors: a used one like an occupied
   door with the member's name, an empty one like a free door with «خالی», faded while a locker is
   still free.
@@ -674,6 +681,8 @@ Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.14.
   left, as time runs along the long-stay bar.
 - It shows counts only, never money, so it is on the desk's screen for both roles (§1 *Permissions*).
   Full attendance reports stay Owner-only (§12).
+- Not on a phone (decided by the developer, 1405/07/20: not needed there); the computer's screen
+  only.
 
 ### Locker usage map (نقشهٔ استفادهٔ کمدها)
 
@@ -696,6 +705,8 @@ Roadmap 6.5.15.
   holder's name, the «بدهکار» tag, the long-stay bar, the birthday, the desk panel and the name
   search) is not shown. Switching back shows the map as usual.
 - Counts only, so both roles see it (§1 *Permissions*).
+- Not on a phone (decided by the developer, 1405/07/20: not needed there); the switch is on the
+  computer's screen only.
 
 ---
 

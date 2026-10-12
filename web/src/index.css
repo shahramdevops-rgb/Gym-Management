@@ -594,6 +594,16 @@
     }
   }
 
+  /* The side menu on a phone (13.1a) slides in from the start edge. The app is always
+     right-to-left, so the start is the right and the drawer comes from off-screen on the right. */
+  --animate-drawer-in: drawer-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes drawer-in {
+    from {
+      translate: 100% 0;
+    }
+  }
+
   /* A long stay's full bar, blinking slowly but clearly: it glows red, then nearly fades out (§6). */
   --animate-stay-blink: stay-blink 2s ease-in-out infinite;
   /* A door whose state changed since the last refresh: one pulse, then still. */
