@@ -1,8 +1,17 @@
 import { useState } from "react";
-import type { FieldErrors, FieldValues, Path, Resolver, UseFormSetError } from "react-hook-form";
+import type {
+  FieldErrors,
+  FieldValues,
+  Path,
+  Resolver,
+  UseFormRegisterReturn,
+  UseFormSetError,
+} from "react-hook-form";
 import type { z } from "zod";
 
 import { errorMessage, fieldErrors } from "./errors";
+import { toPersianDigits } from "./format";
+import { normalizeDigits } from "./normalize";
 
 /**
  * Lets React Hook Form validate with a Zod schema.
@@ -95,4 +104,31 @@ export function applyServerErrors<TValues extends FieldValues>(
 export function useUnchanged<TInput>(initial: () => TInput): (input: TInput) => boolean {
   const [saved] = useState(() => JSON.stringify(initial()));
   return (input) => JSON.stringify(input) === saved;
+}
+
+/**
+ * A plain number box that shows Persian digits as they are typed, the way MoneyField does: wraps
+ * what `register` returns and rewrites English and Arabic digits before React Hook Form reads the
+ * value. `{...withPersianDigits(form.register("sessionCount"))}`.
+ *
+ * Each digit is one character either way, so the caret is put back where it was; without that
+ * the browser moves it to the end, and a digit typed in the middle would jump.
+ */
+export function withPersianDigits<TRegistration extends UseFormRegisterReturn>(
+  registration: TRegistration,
+): TRegistration {
+  return {
+    ...registration,
+    onChange: (event) => {
+      const input = event.target as HTMLInputElement;
+      const persian = toPersianDigits(normalizeDigits(input.value));
+      if (persian !== input.value) {
+        const { selectionStart, selectionEnd } = input;
+        input.value = persian;
+        input.setSelectionRange(selectionStart, selectionEnd);
+      }
+
+      return registration.onChange(event);
+    },
+  };
 }

@@ -13,7 +13,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { ExpenseCategory } from "@/features/expenses/api";
 import { toneButton } from "@/lib/edges";
-import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
+import { applyServerErrors, useUnchanged, withPersianDigits, zodResolver } from "@/lib/forms";
 import { normalizeMoney } from "@/lib/money";
 
 import { payableKindLabels, payableKinds, type PayableInput } from "../api";
@@ -162,14 +162,14 @@ export function PayableForm({
               inputMode="numeric"
               autoComplete="off"
               error={errors.installmentNumber?.message}
-              {...form.register("installmentNumber")}
+              {...withPersianDigits(form.register("installmentNumber"))}
             />
             <FormField
               label="از چند قسط"
               inputMode="numeric"
               autoComplete="off"
               error={errors.installmentCount?.message}
-              {...form.register("installmentCount")}
+              {...withPersianDigits(form.register("installmentCount"))}
             />
           </div>
         )}

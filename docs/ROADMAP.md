@@ -2836,6 +2836,23 @@ is below Tailwind's `lg` (1024px), where the side menu becomes a drawer: `max-lg
       real phone is left to the developer (`npm run dev -- --host`). No package added, no API
       change
 
+#### 13.1 follow-up: three small things on the computer (asked by the developer, 1405/07/21)
+Found on the computer while 13.1 was measured, and left alone then because 13.1 changed the phone
+only. The developer asked for all three, as suggested:
+- [x] A date and time read «۱۴۰۵/۰۷/۲۰، ۲۰:۵۱» with the Persian comma. ICU joins them with a Latin
+      one, so `formatDateTime` puts the two together from their parts, like `formatLongDate`; every
+      table and page that shows a moment changes at once
+- [x] The «تسویه یکجا» receipt's button says «باشه». In the visit box the box's own ✕ is «بستن»
+      too, and this button closes only the receipt
+- [x] Plain number boxes show Persian digits as they are typed, as `MoneyField` does:
+      `withPersianDigits` in `lib/forms.ts` wraps a `register`, rewrites English and Arabic digits
+      and puts the caret back. On the custom plan's «تعداد جلسات» (the one found) and, the same gap,
+      the instalment's two numbers, the sale's quantity and the SMS settings' threshold. What is
+      sent does not change: the parsers already accepted both
+- [x] Tests: `withPersianDigits` (English and Arabic digits, the caret in the middle, other
+      characters left alone), the comma in `formatDateTime`, the receipt's «باشه». No package, no
+      API change
+
 ### 13.2 One visual language
 Split into four sessions with the developer on 1405/07/19 (2026-10-11), in this order: (a) the
 foundation and the frame, every page on the shared components; (b) the coloured dashboard; (c) the

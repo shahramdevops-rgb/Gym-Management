@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { usePrices } from "@/features/settings/api";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
-import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { applyServerErrors, withPersianDigits, zodResolver } from "@/lib/forms";
 import { multiplyMoney } from "@/lib/money";
 
 import {
@@ -87,7 +87,7 @@ export function PlanForm({ submitLabel, onSubmit, onCancel }: PlanFormProps) {
             autoComplete="off"
             placeholder="۱۲"
             error={errors.sessionCount?.message}
-            {...form.register("sessionCount")}
+            {...withPersianDigits(form.register("sessionCount"))}
           />
         </div>
         <div className="w-40">

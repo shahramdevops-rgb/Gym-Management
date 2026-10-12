@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
-import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
+import { applyServerErrors, useUnchanged, withPersianDigits, zodResolver } from "@/lib/forms";
 
 import { useSmsSettings, useUpdateSmsSettings, type SmsSettings } from "../api";
 import { SmsCreditLine } from "../components/SmsCreditLine";
@@ -296,7 +296,7 @@ function KindFieldset({ kind, form, children }: KindFieldsetProps) {
           label={text.thresholdLabel}
           inputMode="numeric"
           error={errors?.threshold?.message}
-          {...form.register(`${kind}.threshold`)}
+          {...withPersianDigits(form.register(`${kind}.threshold`))}
         />
 
         <Controller

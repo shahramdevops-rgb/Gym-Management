@@ -48,6 +48,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat(locale, {
   day: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
+  hourCycle: "h23",
 });
 
 const timeFormatter = new Intl.DateTimeFormat(locale, {
@@ -361,11 +362,23 @@ export function formatDate(value: string | null | undefined): string {
   return date === null ? emptyValue : dateFormatter.format(date);
 }
 
-/** A UTC timestamp as a Jalali date and a time in the gym's time zone. */
+/**
+ * A UTC timestamp as a Jalali date and a time in the gym's time zone: «۱۴۰۵/۰۶/۲۶، ۱۱:۴۵».
+ *
+ * Put together from its parts, like formatLongDate: ICU joins the two with a Latin comma
+ * («۱۴۰۵/۰۶/۲۶, ۱۱:۴۵»), and a Persian reader expects the Persian one.
+ */
 export function formatDateTime(value: string | null | undefined): string {
   const date = parseTimestamp(value);
+  if (date === null) {
+    return emptyValue;
+  }
 
-  return date === null ? emptyValue : dateTimeFormatter.format(date);
+  const parts = dateTimeFormatter.formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((piece) => piece.type === type)?.value ?? "";
+
+  return `${part("year")}/${part("month")}/${part("day")}، ${part("hour")}:${part("minute")}`;
 }
 
 /**

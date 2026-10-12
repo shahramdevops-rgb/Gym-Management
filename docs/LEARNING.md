@@ -1838,3 +1838,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **jsdom lacks what a test needs, so the test supplies it.** jsdom has no `scrollIntoView`; the test puts a `vi.fn()` on `Element.prototype`, then checks `mock.contexts` (the `this` of each call) to see *which* element was scrolled.
 - **Compare boxes aligned, not by position.** Adding one wrapper element renumbers every element after it, so a positional diff of 1920px measurements showed a hundred "changes". A longest-common-subsequence diff shows the one added element and proves everything else kept its box.
 - **My notes:**
+
+## 13.1 follow-up — Three small things on the computer (سه ناهماهنگی کوچک روی کامپیوتر)
+
+- **Build a format from its parts when the separator matters.** `Intl.DateTimeFormat` decides the punctuation between the date and the time itself, and for `fa-IR` ICU writes a Latin comma. `formatToParts` returns the year, month, day, hour and minute as separate pieces, so the app joins them with «،» and no browser or Node version can change it.
+- **Same name, same job.** Two buttons called «بستن» in one box, one closing the box and one closing only a receipt inside it, leave the desk guessing; a screen reader announces them identically too. Renaming the smaller one is cheaper and clearer than explaining it.
+- **Wrap `register` instead of controlling the field.** `withPersianDigits` keeps the box uncontrolled (React Hook Form still reads it through its ref) and only rewrites `event.target.value` before passing the event on. A `Controller` with its own state would have worked too, at the cost of a re-render per key and more code in five forms.
+- **Setting `value` moves the caret.** Assigning to an input's `value` puts the caret at the end, so a digit typed in the middle would make it jump. A Persian digit is one character like an English one, so the old `selectionStart`/`selectionEnd` are still right and `setSelectionRange` puts them back.
+- **My notes:**

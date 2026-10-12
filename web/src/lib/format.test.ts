@@ -214,12 +214,12 @@ describe("formatDate", () => {
 
 describe("formatDateTime", () => {
   it("formatDateTime_UtcTimestamp_ShowsTehranLocalTime", () => {
-    expect(formatDateTime("2026-09-17T08:15:00Z")).toBe("۱۴۰۵/۰۶/۲۶, ۱۱:۴۵");
+    expect(formatDateTime("2026-09-17T08:15:00Z")).toBe("۱۴۰۵/۰۶/۲۶، ۱۱:۴۵");
   });
 
   it("formatDateTime_LateUtcEvening_IsAlreadyTomorrowInTehran", () => {
     // 21:00 UTC is 00:30 the next day at +03:30: the Jalali date must move with it.
-    expect(formatDateTime("2026-09-17T21:00:00Z")).toBe("۱۴۰۵/۰۶/۲۷, ۰۰:۳۰");
+    expect(formatDateTime("2026-09-17T21:00:00Z")).toBe("۱۴۰۵/۰۶/۲۷، ۰۰:۳۰");
   });
 
   it.each([null, undefined, "", "yesterday"])(

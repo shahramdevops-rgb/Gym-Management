@@ -9,7 +9,7 @@ import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatMoney, toPersianDigits } from "@/lib/format";
-import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { applyServerErrors, withPersianDigits, zodResolver } from "@/lib/forms";
 import { addMoney, multiplyMoney, normalizeMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -232,7 +232,7 @@ function QuantityStepper({ form, index }: { form: UseFormReturn<ShopSaleValues>;
           className="text-center"
           aria-invalid={error !== undefined}
           aria-describedby={error !== undefined ? errorId : undefined}
-          {...form.register(name)}
+          {...withPersianDigits(form.register(name))}
         />
         <Button
           type="button"

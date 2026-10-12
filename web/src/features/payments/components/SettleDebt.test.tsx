@@ -242,7 +242,7 @@ describe("SettleDebt", () => {
     // The debt behind it is refetched and empty; the step stays until the desk closes it.
     expect(await screen.findByText("این عضو بدهی ندارد.")).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "تسویه ثبت شد" })).toBeInTheDocument();
-    fireEvent.click(within(done).getByRole("button", { name: "بستن" }));
+    fireEvent.click(within(done).getByRole("button", { name: "باشه" }));
     expect(screen.queryByRole("status", { name: "تسویه ثبت شد" })).not.toBeInTheDocument();
   });
 

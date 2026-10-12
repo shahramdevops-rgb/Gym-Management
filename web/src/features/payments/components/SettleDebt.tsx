@@ -365,8 +365,10 @@ function SettlementDone({ receipt, onClose }: { receipt: Receipt; onClose: () =>
           ? `بدهی باقی‌مانده: ${formatMoney(receipt.remainingDebt)}`
           : "بدهی این عضو صاف شد."}
       </p>
+      {/* «باشه», not «بستن»: in the visit box the box's own ✕ is «بستن», and this closes only
+          the receipt. */}
       <Button type="button" size="sm" variant="outline" onClick={onClose}>
-        بستن
+        باشه
       </Button>
     </section>
   );
