@@ -8,5 +8,5 @@ import { cn } from "@/lib/utils";
 export function switchClass(isActive: boolean): string {
   return isActive
     ? cn(stateEdge.muted, "hover:bg-muted hover:text-muted-foreground")
-    : cn(stateEdge.success, "hover:bg-success/10 hover:text-success");
+    : cn(stateEdge.success, "hover:bg-success/10 hover:text-success-ink");
 }

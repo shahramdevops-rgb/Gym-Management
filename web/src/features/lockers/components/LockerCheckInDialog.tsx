@@ -315,7 +315,7 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
         {step.kind === "guestCheckedIn" && (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-success">
+              <DialogTitle className="flex items-center gap-2 text-success-ink">
                 <CheckCircle2 className="size-5" aria-hidden />
                 ورود مهمان ثبت شد
               </DialogTitle>
@@ -405,7 +405,7 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
         {step.kind === "checkedIn" && (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-success">
+              <DialogTitle className="flex items-center gap-2 text-success-ink">
                 <CheckCircle2 className="size-5" aria-hidden />
                 {checkedInTitle[step.sold]}
               </DialogTitle>

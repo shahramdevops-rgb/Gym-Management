@@ -44,6 +44,15 @@
   /* Attention, not failure: a subscription running low is not an error (BUSINESS_RULES.md §7). */
   --warning: oklch(0.68 0.15 65);
   --warning-foreground: oklch(0.205 0 0);
+  /* A state's colour as text on the page or a card (13.2j): on white the green and the amber are
+     too faint to read (about 3.5:1 and 2.8:1), so the text is mixed towards the ink. A fill, an
+     edge or a bar keeps the state's own colour. The dark palette needs no mix. */
+  --success-ink: color-mix(in oklab, var(--success) 72%, var(--foreground));
+  --warning-ink: color-mix(in oklab, var(--warning) 72%, var(--foreground));
+  /* How much of the page's tone an edge or a line keeps (13.2j): all of it on white, where the tone
+     itself is visible enough; mixed towards the light ink on the dark page. Text in a tone is
+     always 72% (`tone-ink`), since it needs more contrast than a line does. */
+  --tone-edge-share: 100%;
   --border: oklch(0.918 0.008 258);
   --input: oklch(0.88 0.012 258);
   --ring: oklch(0.62 0.15 263);
@@ -156,6 +165,9 @@
   --success-foreground: oklch(0.2 0.03 155);
   --warning: oklch(0.77 0.15 70);
   --warning-foreground: oklch(0.2 0.02 70);
+  --success-ink: var(--success);
+  --warning-ink: var(--warning);
+  --tone-edge-share: 72%;
   --border: oklch(0.29 0.01 268);
   --input: oklch(0.34 0.012 268);
   --ring: oklch(0.62 0.13 263);
@@ -216,6 +228,16 @@
   color: color-mix(in oklab, var(--tone, var(--muted-foreground)) 72%, var(--foreground));
 }
 
+/* The colour of the page's edges, for a line or a mark drawn with `bg-current` (the menu group's dot
+   and line, the banner's logo): the tone itself on white, like the edges (13.2j). */
+@utility tone-line {
+  color: color-mix(
+    in oklab,
+    var(--tone, var(--muted-foreground)) var(--tone-edge-share),
+    var(--foreground)
+  );
+}
+
 @utility tone-solid {
   background-color: var(--tone);
 }
@@ -235,18 +257,23 @@
 }
 
 /* A box edged in the page's tone like a locker door is in its state's colour (13.2h, asked by the
-   developer): on an element with `border border-s-[3px]`, a faint frame (the `tone-ink` colour at
+   developer): on an element with `border border-s-[3px]`, a faint frame (the `tone-line` colour at
    40%) and the thick start edge in the full colour. The active menu item, the page's banner and
    the desk panel share it. Grey without a `--tone`. */
 @utility tone-edge {
   border-color: color-mix(
     in oklch,
-    color-mix(in oklab, var(--tone, var(--muted-foreground)) 72%, var(--foreground)) 40%,
+    color-mix(
+        in oklab,
+        var(--tone, var(--muted-foreground)) var(--tone-edge-share),
+        var(--foreground)
+      )
+      40%,
     transparent
   );
   border-inline-start-color: color-mix(
     in oklab,
-    var(--tone, var(--muted-foreground)) 72%,
+    var(--tone, var(--muted-foreground)) var(--tone-edge-share),
     var(--foreground)
   );
 }
@@ -265,7 +292,11 @@
     inset-inline-start: 0;
     width: 0.75rem;
     border-inline-start: 3px solid
-      color-mix(in oklab, var(--tone, var(--muted-foreground)) 72%, var(--foreground));
+      color-mix(
+        in oklab,
+        var(--tone, var(--muted-foreground)) var(--tone-edge-share),
+        var(--foreground)
+      );
     border-start-start-radius: var(--radius);
     border-end-start-radius: var(--radius);
   }
@@ -277,12 +308,17 @@
 @utility tone-edge-end {
   border-color: color-mix(
     in oklch,
-    color-mix(in oklab, var(--tone, var(--muted-foreground)) 72%, var(--foreground)) 40%,
+    color-mix(
+        in oklab,
+        var(--tone, var(--muted-foreground)) var(--tone-edge-share),
+        var(--foreground)
+      )
+      40%,
     transparent
   );
   border-inline-end-color: color-mix(
     in oklab,
-    var(--tone, var(--muted-foreground)) 72%,
+    var(--tone, var(--muted-foreground)) var(--tone-edge-share),
     var(--foreground)
   );
 }
@@ -360,11 +396,20 @@
 .jalali-calendar.rmdp-border {
   border-color: color-mix(
     in oklch,
-    color-mix(in oklab, var(--tone, var(--muted-foreground)) 72%, var(--foreground)) 40%,
+    color-mix(
+        in oklab,
+        var(--tone, var(--muted-foreground)) var(--tone-edge-share),
+        var(--foreground)
+      )
+      40%,
     transparent
   );
   border-inline-start: 3px solid
-    color-mix(in oklab, var(--tone, var(--muted-foreground)) 72%, var(--foreground));
+    color-mix(
+      in oklab,
+      var(--tone, var(--muted-foreground)) var(--tone-edge-share),
+      var(--foreground)
+    );
 }
 
 /*
@@ -399,11 +444,20 @@
     border: 1px solid
       color-mix(
         in oklch,
-        color-mix(in oklab, var(--tone, var(--muted-foreground)) 72%, var(--foreground)) 40%,
+        color-mix(
+            in oklab,
+            var(--tone, var(--muted-foreground)) var(--tone-edge-share),
+            var(--foreground)
+          )
+          40%,
         transparent
       );
     border-inline-end: 3px solid
-      color-mix(in oklab, var(--tone, var(--muted-foreground)) 72%, var(--foreground));
+      color-mix(
+        in oklab,
+        var(--tone, var(--muted-foreground)) var(--tone-edge-share),
+        var(--foreground)
+      );
     border-radius: calc(var(--radius) - 2px);
     background-color: var(--background);
     color: var(--foreground);
@@ -457,6 +511,8 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-success-ink: var(--success-ink);
+  --color-warning-ink: var(--warning-ink);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

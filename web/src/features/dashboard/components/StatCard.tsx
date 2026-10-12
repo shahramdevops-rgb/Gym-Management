@@ -93,7 +93,7 @@ export function StatCard({
         className={cn(
           "pe-12 text-2xl font-extrabold tracking-tight",
           besideBreakdown,
-          outcome === "gain" && "text-success",
+          outcome === "gain" && "text-success-ink",
           outcome === "loss" && "text-destructive",
         )}
       >

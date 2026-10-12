@@ -23,7 +23,7 @@ export function DialogSuccess({ title, description, children, onClose }: DialogS
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="flex items-center gap-2 text-success">
+        <DialogTitle className="flex items-center gap-2 text-success-ink">
           <CheckCircle2 className="size-5" aria-hidden />
           {title}
         </DialogTitle>

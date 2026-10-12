@@ -60,7 +60,7 @@ export function PageHero({ title, actions, children, icon, className }: PageHero
       <span
         aria-hidden
         className={cn(
-          "hidden h-10 w-12 shrink-0 bg-current tone-ink lg:block",
+          "hidden h-10 w-12 shrink-0 bg-current tone-line lg:block",
           actions === undefined && "ms-auto",
         )}
         style={logoMask}

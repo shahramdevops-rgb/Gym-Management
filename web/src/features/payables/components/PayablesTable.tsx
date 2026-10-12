@@ -163,7 +163,7 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success")}
+                  className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success-ink")}
                   aria-label={`${paidLabel(payable.kind)}، ${context}`}
                   onClick={() => toggle("pay")}
                 >

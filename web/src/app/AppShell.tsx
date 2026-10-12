@@ -101,14 +101,14 @@ export function AppShell() {
                 <p
                   id={`nav-group-${index}`}
                   className={cn(
-                    "relative flex items-center gap-1.5 px-3 text-[0.7rem] leading-5 font-bold short:leading-4",
+                    "flex items-center gap-1.5 px-3 text-[0.7rem] leading-5 font-bold short:leading-4",
                     group.tone === undefined ? "text-muted-foreground/80" : "text-muted-foreground",
                   )}
                 >
                   {group.tone !== undefined && (
                     <span
                       aria-hidden
-                      className="size-1.5 shrink-0 rounded-full bg-current tone-ink"
+                      className="size-1.5 shrink-0 rounded-full bg-current tone-line"
                     />
                   )}
                   {group.title}
@@ -197,35 +197,36 @@ export function AppShell() {
 }
 
 /**
- * A line under a menu group's title, in the colour of its pages' edges (13.2h, asked by the developer with a
- * sketch, then on the canvas: "not curved, and not all straight"): it leaves the title's dot,
- * bends down once, and from in front of the group's first item runs straight to the far edge,
- * fading out at the very end, so the groups read as parts without a hard rule.
- * Absolutely placed in the title's own line, so it adds no height and the menu still fits a
- * 900px-tall window. Decoration only.
+ * A line beside a menu group's title, in the colour of its pages' edges (13.2h, asked by the developer with a
+ * sketch, then on the canvas: "not curved, and not all straight"): it leaves the end of the title
+ * (13.2j, asked with a second sketch: not from the dot, under the words), bends down once and runs
+ * straight to the far edge, fading out at the very end, so the groups read as parts without a hard rule.
+ * The bend is a fixed-size curve and the straight part a stretching bar, so the bend looks the same
+ * after a short title and a long one. Shifted down with a transform inside the title's own line, so
+ * it adds no height and the menu still fits a 900px-tall window. Decoration only.
  */
 function GroupSwoosh({ muted }: { muted: boolean }) {
   return (
-    <svg
+    <span
       aria-hidden
-      viewBox="0 0 200 12"
-      preserveAspectRatio="none"
       className={cn(
-        "pointer-events-none absolute inset-x-3 top-[calc(50%+3px)] h-3 [mask-image:linear-gradient(to_left,black_75%,transparent)]",
-        // `tone-ink`: the colour of the page's edges, so the line and the page beside it match
+        "pointer-events-none flex h-3.5 min-w-0 flex-1 translate-y-[5px] items-end [mask-image:linear-gradient(to_left,black_75%,transparent)]",
+        // `tone-line`: the colour of the page's edges, so the line and the page beside it match
         // (13.2i, asked by the developer on «فروش بوفه»).
-        muted ? "text-muted-foreground/50" : "tone-ink",
+        muted ? "text-muted-foreground/50" : "tone-line",
       )}
     >
-      {/* Drawn from the right, where the dot is in a right-to-left menu. */}
-      <path
-        d="M197 0.5 C186 0.5 178 9 164 9 L0 9"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
+      {/* First in a right-to-left row: the bend, beside the title's last word. */}
+      <svg viewBox="0 0 16 14" className="h-full w-4 shrink-0 overflow-visible">
+        <path
+          d="M15 1 C9 1 7 13.25 -0.5 13.25"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="h-[1.5px] flex-1 bg-current" />
+    </span>
   );
 }

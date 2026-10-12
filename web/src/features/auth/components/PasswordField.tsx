@@ -92,7 +92,7 @@ export function PasswordField({
         </button>
       </span>
       {persianKeyboard && (
-        <p id={warningId} role="status" className="text-sm text-warning">
+        <p id={warningId} role="status" className="text-sm text-warning-ink">
           کیبورد روی فارسی است. رمز عبور با حروف انگلیسی نوشته می‌شود.
         </p>
       )}
@@ -127,7 +127,7 @@ export function PasswordChecklist({ value, userName }: PasswordChecklistProps) {
           data-met={check.met}
           className={cn(
             "flex items-center gap-2",
-            check.met ? "text-success" : "text-muted-foreground",
+            check.met ? "text-success-ink" : "text-muted-foreground",
           )}
         >
           {check.met ? (

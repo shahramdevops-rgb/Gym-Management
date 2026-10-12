@@ -33,9 +33,9 @@ export const toneAction = `h-10 ${toneButton}`;
  * owed or undone, amber for what needs attention soon, grey for what is over.
  */
 export const stateEdge = {
-  success: "border border-success/40 border-e-[3px] border-e-success text-success",
+  success: "border border-success/40 border-e-[3px] border-e-success text-success-ink",
   destructive: "border border-destructive/40 border-e-[3px] border-e-destructive text-destructive",
-  warning: "border border-warning/40 border-e-[3px] border-e-warning text-warning",
+  warning: "border border-warning/40 border-e-[3px] border-e-warning text-warning-ink",
   muted:
     "border border-muted-foreground/40 border-e-[3px] border-e-muted-foreground text-muted-foreground",
 } as const;

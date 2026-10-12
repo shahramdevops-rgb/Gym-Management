@@ -167,7 +167,7 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
         {step.kind === "cancelled" && (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-success">
+              <DialogTitle className="flex items-center gap-2 text-success-ink">
                 <CheckCircle2 className="size-5" aria-hidden />
                 ورود لغو شد
               </DialogTitle>
@@ -184,7 +184,7 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
         {step.kind === "checkedOut" && (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-success">
+              <DialogTitle className="flex items-center gap-2 text-success-ink">
                 <CheckCircle2 className="size-5" aria-hidden />
                 خروج ثبت شد
               </DialogTitle>

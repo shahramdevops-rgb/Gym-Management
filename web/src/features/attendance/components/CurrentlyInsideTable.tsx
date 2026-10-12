@@ -125,7 +125,10 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                 )}
               </TableCell>
               <TableCell
-                className={cn("py-2 whitespace-nowrap", expiringSoon && "font-medium text-warning")}
+                className={cn(
+                  "py-2 whitespace-nowrap",
+                  expiringSoon && "font-medium text-warning-ink",
+                )}
               >
                 {row.subscriptionEndDate !== null && formatDate(row.subscriptionEndDate)}
                 {expiringSoon && (
@@ -204,7 +207,7 @@ function RowActions({
       <Button
         size="sm"
         variant="ghost"
-        className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success")}
+        className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success-ink")}
         onClick={() => onCheckOut(row)}
       >
         ثبت خروج

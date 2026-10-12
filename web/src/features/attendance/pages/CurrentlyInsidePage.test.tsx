@@ -127,7 +127,7 @@ describe("CurrentlyInsidePage", () => {
     renderApp("/attendance", { session: session() });
 
     const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
-    expect(within(row).getByText("۹ از ۱۲")).toHaveClass("text-warning");
+    expect(within(row).getByText("۹ از ۱۲")).toHaveClass("text-warning-ink");
   });
 
   /** BUSINESS_RULES.md §7: within five days of expiry, and how many days are left. */
@@ -635,7 +635,7 @@ describe("CurrentlyInsidePage", () => {
     expect(row).toHaveTextContent("مهمان");
     expect(within(row).queryByRole("progressbar")).not.toBeInTheDocument();
     // Never marked as needing attention: a guest has no plan to run out.
-    expect(row.querySelector(".text-warning")).toBeNull();
+    expect(row.querySelector(".text-warning-ink")).toBeNull();
   });
 
   it("Board_CancelGuestLeavingAnUnpaidOrder_WaitsUntilItIsTickedAndSendsNoCardio", async () => {

@@ -335,7 +335,7 @@ function NameSearch({
         role="status"
         className={cn(
           "text-xs whitespace-nowrap",
-          result === 0 ? "text-warning" : "text-muted-foreground",
+          result === 0 ? "text-warning-ink" : "text-muted-foreground",
         )}
       >
         {result === null

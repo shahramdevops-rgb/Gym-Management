@@ -128,7 +128,7 @@ function DeskButtons({
       <Button
         size="sm"
         variant="ghost"
-        className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success")}
+        className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success-ink")}
         onClick={() => onCheckOut(member)}
       >
         خروج

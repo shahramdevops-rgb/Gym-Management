@@ -323,7 +323,7 @@ export function LockerVisitDialog({
         {step.kind === "moved" && (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-success">
+              <DialogTitle className="flex items-center gap-2 text-success-ink">
                 <CheckCircle2 className="size-5" aria-hidden />
                 کمد جابه‌جا شد
               </DialogTitle>

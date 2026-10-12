@@ -138,7 +138,7 @@ describe("DashboardPage", () => {
 
     // 7,000,000 after 6,000,000: up, and good news.
     expect(within(card("سود خالص")).getByText(/۱۷٪ بیشتر از بازهٔ قبل/)).toHaveClass(
-      "text-success",
+      "text-success-ink",
     );
 
     // Expenses going up is bad news, whatever the arrow's direction.
@@ -302,7 +302,7 @@ describe("DashboardPage", () => {
 
     await screen.findByText("خلاصهٔ بازه");
     // §12: a profit is green.
-    expect(within(card("سود خالص")).getByText("۷٬۰۰۰٬۰۰۰ تومان")).toHaveClass("text-success");
+    expect(within(card("سود خالص")).getByText("۷٬۰۰۰٬۰۰۰ تومان")).toHaveClass("text-success-ink");
   });
 
   it("DashboardPage_Loss_IsRedWithItsMinusSign", async () => {
@@ -336,7 +336,7 @@ describe("DashboardPage", () => {
 
     await screen.findByText("خلاصهٔ بازه");
     const zero = within(card("سود خالص")).getByText("۰ تومان");
-    expect(zero).not.toHaveClass("text-success");
+    expect(zero).not.toHaveClass("text-success-ink");
     expect(zero).not.toHaveClass("text-destructive");
   });
 

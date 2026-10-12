@@ -330,7 +330,7 @@ function SettlementDone({ receipt, onClose }: { receipt: Receipt; onClose: () =>
       aria-label="تسویه ثبت شد"
       className="space-y-2 rounded-lg border border-success/40 bg-success/5 p-3 text-sm"
     >
-      <p className="flex items-center gap-2 font-medium text-success">
+      <p className="flex items-center gap-2 font-medium text-success-ink">
         <CheckCircle2 className="size-5" aria-hidden />
         تسویه ثبت شد: {formatMoney(receipt.amount)} ({paymentMethodLabels[receipt.method]})
       </p>

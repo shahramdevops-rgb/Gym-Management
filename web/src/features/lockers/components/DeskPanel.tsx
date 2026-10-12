@@ -90,7 +90,7 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
 
       {renewals.length > 0 && (
         <section aria-label="فرصت تمدید">
-          <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-bold text-warning">
+          <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-bold text-warning-ink">
             <RefreshCw aria-hidden className="size-4" />
             فرصت تمدید ({toPersianDigits(renewals.length)})
           </h3>
@@ -98,7 +98,7 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
             {renewals.map(({ visit, due }) =>
               entry(
                 visit,
-                <span className="shrink-0 text-xs font-medium whitespace-nowrap text-warning">
+                <span className="shrink-0 text-xs font-medium whitespace-nowrap text-warning-ink">
                   {dueLabel(due)}
                 </span>,
               ),

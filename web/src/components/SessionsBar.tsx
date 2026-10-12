@@ -51,7 +51,7 @@ export function SessionsBar({ total, used, remaining, lowThreshold, className }:
   return (
     <div className={cn("min-w-24 space-y-1", className)}>
       <div className="flex items-center gap-1.5 text-sm tabular-nums">
-        <span className={cn(isLow && "font-medium text-warning")}>
+        <span className={cn(isLow && "font-medium text-warning-ink")}>
           {toPersianDigits(usedCount)} از {toPersianDigits(totalCount)}
         </span>
       </div>
