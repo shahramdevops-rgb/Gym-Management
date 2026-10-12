@@ -98,34 +98,37 @@ export function SubscriptionHistoryRow({
 
   return (
     <>
-      <TableRow>
+      <TableRow joins={hasPanel ? "below" : undefined}>
         {/* Edged at its start in the page's tone, like the history's rows (13.2j). */}
         <TableCell className="tone-row-edge">{label}</TableCell>
         {/* When it was sold, paid or not: payments carry their own times in «پرداخت‌ها». */}
-        <TableCell>{formatDateTime(subscription.createdAt)}</TableCell>
+        <TableCell label="تاریخ فروش">{formatDateTime(subscription.createdAt)}</TableCell>
         {queued ? (
           // A queued plan's dates move if the plan before it ends early or is frozen (§4); only
           // its length is fixed. The stored start is still shown, as where it stands today.
           <>
-            <TableCell>
+            <TableCell label="شروع">
               <div>بعد از پلن قبلی</div>
               <div className="text-xs text-muted-foreground">
                 فعلاً {formatDate(subscription.startDate)}
               </div>
             </TableCell>
-            <TableCell>{`${formatNumber(Number(subscription.durationDays))} روز از شروع`}</TableCell>
+            <TableCell label="پایان">{`${formatNumber(Number(subscription.durationDays))} روز از شروع`}</TableCell>
           </>
         ) : (
           <>
-            <TableCell>{formatDate(subscription.startDate)}</TableCell>
-            <TableCell>{formatDate(subscription.endDate)}</TableCell>
+            <TableCell label="شروع">{formatDate(subscription.startDate)}</TableCell>
+            <TableCell label="پایان">{formatDate(subscription.endDate)}</TableCell>
           </>
         )}
-        <TableCell className="whitespace-nowrap">{`${formatNumber(Number(subscription.usedSessions))} / ${formatNumber(Number(subscription.totalSessions))}`}</TableCell>
-        <TableCell>
+        <TableCell
+          label="جلسات"
+          className="whitespace-nowrap"
+        >{`${formatNumber(Number(subscription.usedSessions))} / ${formatNumber(Number(subscription.totalSessions))}`}</TableCell>
+        <TableCell label="وضعیت">
           <SubscriptionStatusBadge status={subscription.status} />
         </TableCell>
-        <TableCell>
+        <TableCell label="پرداخت">
           <div className="flex items-center gap-2">
             <PaymentStatusBadge status={subscription.paymentStatus} edged />
             <span className="whitespace-nowrap text-muted-foreground">
@@ -202,7 +205,7 @@ export function SubscriptionHistoryRow({
         </TableCell>
       </TableRow>
       {hasPanel && (
-        <TableRow className="bg-muted/30 hover:bg-muted/30">
+        <TableRow joins="above" className="bg-muted/30 hover:bg-muted/30">
           <TableCell colSpan={8} className="space-y-2">
             <p className="text-xs text-muted-foreground">
               برای «{label}» —{" "}

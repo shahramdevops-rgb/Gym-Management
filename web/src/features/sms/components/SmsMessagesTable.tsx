@@ -100,19 +100,19 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
 
   return (
     <>
-      <TableRow className="align-top">
+      <TableRow joins={confirming ? "below" : undefined} className="align-top">
         <TableCell className="whitespace-nowrap">{formatDateTime(message.createdAt)}</TableCell>
-        <TableCell>
+        <TableCell label="نوع">
           <p>{smsKindLabels[message.kind]}</p>
           <p className="text-xs text-muted-foreground">{message.text}</p>
         </TableCell>
-        <TableCell>
+        <TableCell label="گیرنده">
           <p>{recipient}</p>
           <p className="text-xs text-muted-foreground" dir="ltr">
             {formatPhone(message.recipient)}
           </p>
         </TableCell>
-        <TableCell className="space-y-1">
+        <TableCell label="وضعیت" className="space-y-1">
           <Badge variant={statusBadges[message.status]}>{smsStatusLabels[message.status]}</Badge>
           {message.delivery !== null && (
             <p className="text-xs text-muted-foreground">{smsDeliveryLabels[message.delivery]}</p>
@@ -124,7 +124,7 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
             </p>
           )}
         </TableCell>
-        <TableCell className="space-y-1">
+        <TableCell label="هزینه" className="space-y-1">
           <p>{message.costToman === null ? emptyValue : formatMoney(message.costToman)}</p>
           {isRefunded(message.delivery) && (
             <p className="text-xs text-muted-foreground">هزینه برگشت داده شد</p>
@@ -147,7 +147,7 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
         </TableCell>
       </TableRow>
       {confirming && (
-        <TableRow className="bg-muted/30">
+        <TableRow joins="above" className="bg-muted/30">
           <TableCell colSpan={columns} className="space-y-2 py-2">
             {message.status === "Unknown" ? (
               <Alert variant="destructive">

@@ -204,9 +204,9 @@ export function ProductsCard() {
                   ) : (
                     <TableRow key={product.id}>
                       <TableCell className="font-medium tone-row-edge">{product.name}</TableCell>
-                      <TableCell>{product.categoryName}</TableCell>
-                      <TableCell>{formatMoney(product.price)}</TableCell>
-                      <TableCell>
+                      <TableCell label="دسته‌بندی">{product.categoryName}</TableCell>
+                      <TableCell label="قیمت">{formatMoney(product.price)}</TableCell>
+                      <TableCell label="وضعیت">
                         <div className="flex flex-wrap items-center gap-2">
                           <StockBadge inStock={product.isActive} />
                           {product.isActive && !product.categoryIsActive && (

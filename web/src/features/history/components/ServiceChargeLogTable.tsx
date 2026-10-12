@@ -38,29 +38,29 @@ export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[]
         {items.map((item) => (
           <TableRow key={item.id}>
             <TableCell className="tone-row-edge">{formatDateTime(item.createdAt)}</TableCell>
-            <TableCell>
+            <TableCell label="مشتری">
               <WhoCell
                 memberId={item.memberId}
                 memberFullName={item.memberFullName}
                 guestName={item.guestName}
               />
             </TableCell>
-            <TableCell>
+            <TableCell label="بابت">
               {serviceChargeLabel(item.kind, item.description)}
               {item.quantity !== null && Number(item.quantity) > 1 && (
                 <span className="text-muted-foreground"> × {toPersianDigits(item.quantity)}</span>
               )}
             </TableCell>
-            <TableCell>{formatMoney(item.amount)}</TableCell>
-            <TableCell>
+            <TableCell label="مبلغ">{formatMoney(item.amount)}</TableCell>
+            <TableCell label="پرداخت">
               {item.voidedAt === null ? (
                 <PaymentStatusBadge status={item.paymentStatus} edged />
               ) : (
                 emptyValue
               )}
             </TableCell>
-            <TableCell>{item.recordedByFullName ?? emptyValue}</TableCell>
-            <TableCell>
+            <TableCell label="ثبت توسط">{item.recordedByFullName ?? emptyValue}</TableCell>
+            <TableCell label="وضعیت">
               {item.voidedAt === null ? (
                 emptyValue
               ) : (

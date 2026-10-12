@@ -84,20 +84,23 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
 
   return (
     <>
-      <TableRow className={cn("align-top", expense.isVoided && "text-muted-foreground")}>
+      <TableRow
+        joins={action !== null ? "below" : undefined}
+        className={cn("align-top", expense.isVoided && "text-muted-foreground")}
+      >
         {/* Edged at its start in the page's tone, like a locker door (`tone-row-edge`, 13.2i). */}
         <TableCell className="tone-row-edge">{formatDate(expense.expenseDate)}</TableCell>
-        <TableCell>{expense.categoryName}</TableCell>
-        <TableCell>
+        <TableCell label="دسته‌بندی">{expense.categoryName}</TableCell>
+        <TableCell label="شرح">
           <p className="whitespace-pre-line">{expense.description}</p>
           {expense.referenceNumber !== null && (
             <p className="text-xs text-muted-foreground">مرجع: {expense.referenceNumber}</p>
           )}
         </TableCell>
-        <TableCell className={cn("", expense.isVoided && "line-through")}>
+        <TableCell label="مبلغ" className={cn("", expense.isVoided && "line-through")}>
           {formatMoney(expense.amount)}
         </TableCell>
-        <TableCell>
+        <TableCell label="وضعیت">
           {expense.payableId !== null && (
             <Badge variant="ghost" className={stateEdge.muted}>
               از چک و قسط
@@ -143,7 +146,7 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
         </TableCell>
       </TableRow>
       {action !== null && (
-        <TableRow className="bg-muted/30">
+        <TableRow joins="above" className="bg-muted/30">
           <TableCell colSpan={columns} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">برای {context}</p>
             {action === "edit" && (

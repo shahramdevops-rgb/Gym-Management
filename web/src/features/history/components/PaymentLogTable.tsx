@@ -64,23 +64,23 @@ function PaymentRow({ item }: { item: HistoryPayment }) {
   return (
     <TableRow>
       <TableCell className="tone-row-edge">{formatDateTime(item.paidAt)}</TableCell>
-      <TableCell>
+      <TableCell label="عضو">
         <WhoCell
           memberId={item.memberId}
           memberFullName={item.memberFullName}
           guestName={item.guestName}
         />
       </TableCell>
-      <TableCell>
+      <TableCell label="بابت">
         <PaidFor item={item} />
       </TableCell>
-      <TableCell>
+      <TableCell label="نوع">
         <KindBadge kind={item.kind} />
       </TableCell>
-      <TableCell>{formatMoney(item.amount)}</TableCell>
-      <TableCell>{paymentMethodLabels[item.method]}</TableCell>
-      <TableCell>{item.receivedByFullName ?? emptyValue}</TableCell>
-      <TableCell className="text-muted-foreground">
+      <TableCell label="مبلغ">{formatMoney(item.amount)}</TableCell>
+      <TableCell label="روش">{paymentMethodLabels[item.method]}</TableCell>
+      <TableCell label="ثبت توسط">{item.receivedByFullName ?? emptyValue}</TableCell>
+      <TableCell label="توضیح" className="text-muted-foreground">
         {item.reason ?? item.referenceNumber ?? emptyValue}
       </TableCell>
     </TableRow>
@@ -105,28 +105,34 @@ function SettlementRows({
 
   return (
     <>
-      <TableRow>
+      <TableRow joins="below">
         {/* The moment spans the heading and its items, so one start edge marks one handover. */}
         <TableCell rowSpan={items.length + 1} className="pt-2 pb-1 align-top tone-row-edge">
           {formatDateTime(first.paidAt)}
         </TableCell>
-        <TableCell className="pt-2 pb-1">
+        <TableCell label="عضو" className="pt-2 pb-1">
           <WhoCell
             memberId={first.memberId}
             memberFullName={first.memberFullName}
             guestName={first.guestName}
           />
         </TableCell>
-        <TableCell className="pt-2 pb-1">
+        <TableCell label="بابت" className="pt-2 pb-1">
           <SettlementHeading settlement={settlement} />
         </TableCell>
-        <TableCell className="pt-2 pb-1">
+        <TableCell label="نوع" className="pt-2 pb-1">
           <KindBadge kind={first.kind} />
         </TableCell>
-        <TableCell className="pt-2 pb-1 font-medium">{formatMoney(settlement.total)}</TableCell>
-        <TableCell className="pt-2 pb-1">{paymentMethodLabels[first.method]}</TableCell>
-        <TableCell className="pt-2 pb-1">{first.receivedByFullName ?? emptyValue}</TableCell>
-        <TableCell className="pt-2 pb-1 text-muted-foreground">
+        <TableCell label="مبلغ" className="pt-2 pb-1 font-medium">
+          {formatMoney(settlement.total)}
+        </TableCell>
+        <TableCell label="روش" className="pt-2 pb-1">
+          {paymentMethodLabels[first.method]}
+        </TableCell>
+        <TableCell label="ثبت توسط" className="pt-2 pb-1">
+          {first.receivedByFullName ?? emptyValue}
+        </TableCell>
+        <TableCell label="توضیح" className="pt-2 pb-1 text-muted-foreground">
           {first.referenceNumber ?? emptyValue}
         </TableCell>
       </TableRow>
@@ -134,7 +140,11 @@ function SettlementRows({
         const last = index === items.length - 1;
 
         return (
-          <TableRow key={item.id} className={last ? undefined : "border-b-0"}>
+          <TableRow
+            joins={last ? "above" : "both"}
+            key={item.id}
+            className={last ? undefined : "border-b-0"}
+          >
             <TableCell />
             <TableCell className={last ? "pt-1 pb-2" : "py-1"}>
               <SettlementItemLabel>

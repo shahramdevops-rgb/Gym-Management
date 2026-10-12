@@ -73,9 +73,7 @@ test.describe("on a phone", () => {
 
     // Nothing wider than the phone, and what is the computer's only is not there
     // (BUSINESS_RULES.md §6).
-    // A string, since the e2e project has no DOM types; it runs in the page.
-    const pageWidth = Number(await page.evaluate("document.documentElement.scrollWidth"));
-    expect(pageWidth).toBeLessThanOrEqual(390);
+    expect(await pageWidth(page)).toBeLessThanOrEqual(390);
     await expect(page.getByRole("navigation", { name: "منوی اصلی" })).toBeHidden();
     await expect(page.getByRole("button", { name: "نقشهٔ استفاده" })).toBeHidden();
     await expect(page.getByRole("region", { name: "ورود امروز ساعت به ساعت" })).toHaveCount(0);
@@ -86,7 +84,7 @@ test.describe("on a phone", () => {
     await checkIn.getByRole("button", { name: new RegExp(member.fullName) }).tap();
     await checkIn.getByRole("button", { name: "بله، ورود ثبت شود" }).tap();
     await expect(checkIn.getByText("ورود ثبت شد")).toBeVisible();
-    await checkIn.getByRole("button", { name: "بستن" }).tap();
+    await checkIn.getByText("بستن", { exact: true }).tap();
 
     const taken = page.getByRole("button", {
       name: new RegExp(`^کمد ۱۳، اشغال — ${member.fullName}`),
@@ -97,7 +95,7 @@ test.describe("on a phone", () => {
     await checkOut.getByLabel("کلید کمد شماره ۱۳ را تحویل گرفتم").check();
     await checkOut.getByRole("button", { name: "بله، خروج ثبت شود" }).tap();
     await expect(checkOut.getByText("کمد شماره ۱۳ آزاد شد.")).toBeVisible();
-    await checkOut.getByRole("button", { name: "بستن" }).tap();
+    await checkOut.getByText("بستن", { exact: true }).tap();
     await expect(page.getByRole("button", { name: /^کمد ۱۳، آزاد/ })).toBeVisible();
 
     await page.getByRole("button", { name: "منو" }).tap();
@@ -106,4 +104,55 @@ test.describe("on a phone", () => {
     await expect(drawer).toBeHidden();
     await expect(page.getByRole("link", { name: member.fullName })).toBeVisible();
   });
+
+  /**
+   * The lists on a phone (roadmap 13.1b): every row is a card, so neither «داخل باشگاه» nor the
+   * member list scrolls sideways, check-out works from the card, and the member list's filters
+   * share one line.
+   */
+  test("FrontDesk_Phone_ListsAreCardsAndCheckOutWorksFromOne", async ({ page }) => {
+    await signInAsStaff(page);
+    await page.getByRole("button", { name: /^کمد ۱۴، آزاد/ }).tap();
+    const checkIn = page.getByRole("dialog");
+    await checkIn.getByRole("searchbox", { name: "نام یا شماره موبایل" }).fill("رضا");
+    await checkIn.getByRole("button", { name: new RegExp(member.fullName) }).tap();
+    await checkIn.getByRole("button", { name: "بله، ورود ثبت شود" }).tap();
+    await expect(checkIn.getByText("ورود ثبت شد")).toBeVisible();
+    await checkIn.getByText("بستن", { exact: true }).tap();
+
+    await page.goto("/attendance");
+    const card = page.getByRole("row").filter({ hasText: member.fullName });
+    await expect(card).toBeVisible();
+    // The headings are the computer's; on a phone each line carries its own.
+    await expect(page.getByRole("columnheader", { name: "کمد" })).toBeHidden();
+    expect(await pageWidth(page)).toBeLessThanOrEqual(390);
+
+    await card.getByRole("button", { name: "ثبت خروج" }).tap();
+    const checkOut = page.getByRole("dialog");
+    await checkOut.getByLabel("کلید کمد شماره ۱۴ را تحویل گرفتم").check();
+    await checkOut.getByRole("button", { name: "بله، خروج ثبت شود" }).tap();
+    await expect(checkOut.getByText("کمد شماره ۱۴ آزاد شد.")).toBeVisible();
+    await checkOut.getByText("بستن", { exact: true }).tap();
+    await expect(page.getByRole("row").filter({ hasText: member.fullName })).toHaveCount(0);
+
+    await page.goto("/members");
+    await expect(page.getByRole("link", { name: member.fullName })).toBeVisible();
+    expect(await pageWidth(page)).toBeLessThanOrEqual(390);
+    const first = await page.getByRole("button", { name: "همه" }).boundingBox();
+    const last = await page.getByRole("button", { name: "پلن تمام‌شده" }).boundingBox();
+    expect(last?.y).toBe(first?.y);
+  });
 });
+
+/**
+ * How wide the page is drawn, so a test can tell it never scrolls sideways. The page scrolls in
+ * the frame's column (the parent of `main`), not the window, so both are measured. A string,
+ * since the e2e project has no DOM types; it runs in the page.
+ */
+async function pageWidth(page: Page): Promise<number> {
+  return Number(
+    await page.evaluate(
+      "Math.max(document.documentElement.scrollWidth, document.querySelector('main').parentElement.scrollWidth)",
+    ),
+  );
+}

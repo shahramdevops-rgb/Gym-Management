@@ -51,8 +51,8 @@ export function AttendanceLogTable({ items }: { items: HistoryAttendance[] }) {
                 )}
               </span>
             </TableCell>
-            <TableCell>{formatDateTime(item.checkedInAt)}</TableCell>
-            <TableCell>
+            <TableCell label="ورود">{formatDateTime(item.checkedInAt)}</TableCell>
+            <TableCell label="خروج">
               {item.cancelledAt !== null ? (
                 emptyValue
               ) : (
@@ -62,9 +62,9 @@ export function AttendanceLogTable({ items }: { items: HistoryAttendance[] }) {
                 </span>
               )}
             </TableCell>
-            <TableCell>{placeOf(item)}</TableCell>
-            <TableCell>{item.checkedInByFullName ?? emptyValue}</TableCell>
-            <TableCell>
+            <TableCell label="کمد">{placeOf(item)}</TableCell>
+            <TableCell label="ثبت ورود">{item.checkedInByFullName ?? emptyValue}</TableCell>
+            <TableCell label="وضعیت">
               <StatusBadge item={item} />
             </TableCell>
           </TableRow>

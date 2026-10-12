@@ -101,11 +101,11 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
 
   return (
     <>
-      <TableRow className="align-top">
+      <TableRow joins={action !== null ? "below" : undefined} className="align-top">
         {/* Edged at its start in the page's tone, like a locker door (`tone-row-edge`, 13.2i). */}
         <TableCell className="tone-row-edge">{formatDate(order.orderedOn)}</TableCell>
         {showCustomer && (
-          <TableCell>
+          <TableCell label="مشتری">
             {order.guestName !== null ? (
               // An order on a guest's visit (BUSINESS_RULES.md §7 *Guest visit*): their name, no profile.
               <span className="flex flex-wrap items-center gap-1">
@@ -132,7 +132,7 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
             )}
           </TableCell>
         )}
-        <TableCell>
+        <TableCell label="اقلام">
           <ul>
             {order.items.map((item) => (
               <li key={item.id}>
@@ -141,14 +141,14 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
             ))}
           </ul>
         </TableCell>
-        <TableCell>{formatMoney(order.totalAmount)}</TableCell>
-        <TableCell>
+        <TableCell label="مبلغ">{formatMoney(order.totalAmount)}</TableCell>
+        <TableCell label="پرداخت">
           <div className="flex flex-wrap items-center gap-2">
             {!cancelled && <PaymentStatusBadge status={order.paymentStatus} edged />}
             <span className="text-muted-foreground">{formatMoney(order.netPaid)}</span>
           </div>
         </TableCell>
-        <TableCell>
+        <TableCell label="وضعیت">
           {cancelled ? (
             <div className="space-y-1">
               <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
@@ -195,7 +195,7 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
         </TableCell>
       </TableRow>
       {action !== null && (
-        <TableRow className="bg-muted/30">
+        <TableRow joins="above" className="bg-muted/30">
           <TableCell colSpan={columns} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">
               برای {context}

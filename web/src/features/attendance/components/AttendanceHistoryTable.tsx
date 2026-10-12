@@ -33,14 +33,14 @@ export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
           <TableRow key={item.id}>
             {/* Edged at its start in the page's tone, like the history's rows (13.2j). */}
             <TableCell className="tone-row-edge">{formatDateTime(item.checkedInAt)}</TableCell>
-            <TableCell>{formatDateTime(item.checkedOutAt)}</TableCell>
-            <TableCell>
+            <TableCell label="خروج">{formatDateTime(item.checkedOutAt)}</TableCell>
+            <TableCell label="کمد">
               {item.lockerNumber === null ? emptyValue : toPersianDigits(item.lockerNumber)}
             </TableCell>
-            <TableCell>
+            <TableCell label="هوازی">
               <CardioCell item={item} />
             </TableCell>
-            <TableCell>
+            <TableCell label="وضعیت">
               <span className="flex flex-wrap items-center gap-2">
                 <AttendanceStatusBadge item={item} />
                 {/* No session was consumed (BUSINESS_RULES.md §7 *Cardio-only visit*). */}

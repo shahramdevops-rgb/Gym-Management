@@ -54,6 +54,9 @@ const toggles: { value: Toggle; param: string; label: string }[] = [
   { value: "planEndedOnly", param: "ended", label: "پلن تمام‌شده" },
 ];
 
+/** A filter button on a phone: small enough that all six share one line (13.1b). */
+const phoneChoice = "max-lg:h-7 max-lg:px-1 max-lg:text-xs";
+
 type ToggleState = Record<Toggle, boolean>;
 
 function togglesFromParams(params: URLSearchParams): ToggleState {
@@ -172,6 +175,7 @@ export function MembersPage() {
       {/* The search on the banner, like the name search on the locker map's (13.2h). */}
       <PageHero
         title="اعضا"
+        spreadOnPhone
         actions={
           // Edged in the page's tone like the search beside it, with no fill (13.2i, asked by the
           // developer).
@@ -185,8 +189,10 @@ export function MembersPage() {
       >
         <form
           role="search"
-          // As wide as a name or a number needs (asked by the developer, 13.2i).
-          className="relative max-w-sm"
+          // As wide as a name or a number needs (asked by the developer, 13.2i). On a phone, beside
+          // the title, in the room the title leaves (asked by the developer, 13.1b); «عضو جدید»
+          // goes under them.
+          className="relative max-w-sm max-lg:min-w-0 max-lg:grow max-lg:basis-48"
           onSubmit={(event) => {
             event.preventDefault();
             debouncedCommit.cancel();
@@ -252,14 +258,16 @@ export function MembersPage() {
               </span>
             )}
           </CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label="وضعیت عضویت" className="flex gap-1">
+          {/* On a phone, every filter on one line under the title (asked by the developer, 13.1b):
+              smaller and closer together. */}
+          <div className="flex flex-wrap items-center gap-2 max-lg:flex-nowrap max-lg:gap-1">
+            <div role="group" aria-label="وضعیت عضویت" className="flex gap-1 max-lg:gap-px">
               {filters.map((filter) => (
                 <Button
                   key={filter.value}
                   size="sm"
                   variant="ghost"
-                  className={choiceClass(status === filter.value, "end")}
+                  className={cn(choiceClass(status === filter.value, "end"), phoneChoice)}
                   aria-pressed={status === filter.value}
                   onClick={() => show({ status: filter.value })}
                 >
@@ -268,13 +276,17 @@ export function MembersPage() {
               ))}
             </div>
             <span className="h-5 w-px bg-border" aria-hidden />
-            <div role="group" aria-label="فیلترها" className="flex flex-wrap gap-1">
+            <div
+              role="group"
+              aria-label="فیلترها"
+              className="flex flex-wrap gap-1 max-lg:flex-nowrap max-lg:gap-px"
+            >
               {toggles.map((toggle) => (
                 <Button
                   key={toggle.value}
                   size="sm"
                   variant="ghost"
-                  className={choiceClass(on[toggle.value], "end")}
+                  className={cn(choiceClass(on[toggle.value], "end"), phoneChoice)}
                   aria-pressed={on[toggle.value]}
                   onClick={() => show({ toggles: { [toggle.value]: !on[toggle.value] } })}
                 >

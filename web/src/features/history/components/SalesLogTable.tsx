@@ -38,14 +38,14 @@ export function SalesLogTable({ items }: { items: HistorySale[] }) {
         {items.map((item) => (
           <TableRow key={`${item.source}-${item.id}`}>
             <TableCell className="tone-row-edge">{formatDateTime(item.soldAt)}</TableCell>
-            <TableCell>
+            <TableCell label="مشتری">
               <WhoCell
                 memberId={item.memberId}
                 memberFullName={item.memberFullName}
                 guestName={item.guestName}
               />
             </TableCell>
-            <TableCell>
+            <TableCell label="بابت">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span>{saleLabel(item)}</span>
                 {item.undoneAt !== null && (
@@ -60,15 +60,15 @@ export function SalesLogTable({ items }: { items: HistorySale[] }) {
                 <p className="text-muted-foreground">{item.undoReason}</p>
               )}
             </TableCell>
-            <TableCell>{formatMoney(item.amount)}</TableCell>
-            <TableCell>
+            <TableCell label="مبلغ">{formatMoney(item.amount)}</TableCell>
+            <TableCell label="پرداخت">
               {item.undoneAt === null ? (
                 <PaymentStatusBadge status={item.paymentStatus} edged />
               ) : (
                 emptyValue
               )}
             </TableCell>
-            <TableCell>{item.recordedByFullName ?? emptyValue}</TableCell>
+            <TableCell label="ثبت توسط">{item.recordedByFullName ?? emptyValue}</TableCell>
           </TableRow>
         ))}
       </TableBody>

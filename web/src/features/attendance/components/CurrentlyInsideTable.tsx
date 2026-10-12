@@ -99,7 +99,7 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                   </Badge>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell label="کمد">
                 {/* A reserve place has no number to show (BUSINESS_RULES.md §6, §7). */}
                 {row.lockerNumber !== null
                   ? toPersianDigits(row.lockerNumber)
@@ -107,8 +107,8 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                     ? "رزرو"
                     : "—"}
               </TableCell>
-              <TableCell>{formatDateTime(row.checkedInAt)}</TableCell>
-              <TableCell>
+              <TableCell label="ساعت ورود">{formatDateTime(row.checkedInAt)}</TableCell>
+              <TableCell label="جلسات">
                 {!hasPlan ? (
                   <span className="text-muted-foreground">—</span>
                 ) : row.isSingleSession ? (
@@ -125,6 +125,7 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                 )}
               </TableCell>
               <TableCell
+                label="انقضا"
                 className={cn(
                   "py-2 whitespace-nowrap",
                   expiringSoon && "font-medium text-warning-ink",
@@ -163,18 +164,20 @@ function GuestRow({
   return (
     <TableRow>
       <TableCell className="font-medium tone-row-edge">{row.guestName}</TableCell>
-      <TableCell>
+      <TableCell label="کمد">
         {row.lockerNumber !== null
           ? toPersianDigits(row.lockerNumber)
           : row.usesReservePlace
             ? "رزرو"
             : "—"}
       </TableCell>
-      <TableCell>{formatDateTime(row.checkedInAt)}</TableCell>
-      <TableCell>
+      <TableCell label="ساعت ورود">{formatDateTime(row.checkedInAt)}</TableCell>
+      <TableCell label="جلسات">
         <span className="whitespace-nowrap text-muted-foreground">{guestLabel}</span>
       </TableCell>
-      <TableCell className="text-muted-foreground">—</TableCell>
+      <TableCell label="انقضا" className="text-muted-foreground">
+        —
+      </TableCell>
       <TableCell>
         <RowActions row={row} onCheckOut={onCheckOut} onCancel={onCancel} />
       </TableCell>

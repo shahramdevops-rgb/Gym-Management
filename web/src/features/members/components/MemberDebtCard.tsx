@@ -106,19 +106,32 @@ function DebtRow({ item }: { item: MemberDebtItem }) {
 
   return (
     <>
-      <TableRow className={cn(lines.length > 0 && "border-b-0")}>
+      <TableRow
+        joins={lines.length > 0 ? "below" : undefined}
+        className={cn(lines.length > 0 && "border-b-0")}
+      >
         {/* Edged at its start in the page's tone, like every list's rows (13.2j). */}
         <TableCell className="tone-row-edge">{debtItemLabel(item)}</TableCell>
-        <TableCell>{formatDate(item.startDate)}</TableCell>
+        <TableCell label="تاریخ">{formatDate(item.startDate)}</TableCell>
         {/* An amount stays on one line: the card is half the page wide beside the subscription. */}
-        <TableCell className="whitespace-nowrap">{formatMoney(item.price)}</TableCell>
-        <TableCell className="whitespace-nowrap">{formatMoney(item.netPaid)}</TableCell>
-        <TableCell className="whitespace-nowrap">{formatMoney(item.outstanding)}</TableCell>
+        <TableCell label="مبلغ" className="whitespace-nowrap">
+          {formatMoney(item.price)}
+        </TableCell>
+        <TableCell label="پرداخت‌شده" className="whitespace-nowrap">
+          {formatMoney(item.netPaid)}
+        </TableCell>
+        <TableCell label="مانده" className="whitespace-nowrap">
+          {formatMoney(item.outstanding)}
+        </TableCell>
       </TableRow>
       {lines.map((line, index) => {
         const last = index === lines.length - 1;
         return (
-          <TableRow key={line.id} className={cn("text-muted-foreground", !last && "border-b-0")}>
+          <TableRow
+            joins={last ? "above" : "both"}
+            key={line.id}
+            className={cn("text-muted-foreground", !last && "border-b-0")}
+          >
             <TableCell className={cn("ps-4", last ? "pb-2" : "pb-1")}>
               {line.productName} × {toPersianDigits(line.quantity)}
             </TableCell>

@@ -102,12 +102,16 @@ export function StaffPage() {
               <TableBody>
                 {staff.data.items.map((member) => (
                   <Fragment key={member.id}>
-                    <TableRow>
+                    <TableRow joins={resettingId === member.id ? "below" : undefined}>
                       <TableCell>{member.fullName}</TableCell>
-                      <TableCell dir="ltr">
-                        <span className="block text-end">{member.userName}</span>
+                      <TableCell label="نام کاربری">
+                        {/* Left to right on the name itself, so a phone keeps the label at the
+                            line's start. */}
+                        <span dir="ltr" className="block text-end">
+                          {member.userName}
+                        </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell label="وضعیت">
                         <div className="flex flex-wrap gap-1">
                           <Badge variant={member.isActive ? "success" : "secondary"}>
                             {member.isActive ? "فعال" : "غیرفعال"}
@@ -149,7 +153,7 @@ export function StaffPage() {
                       </TableCell>
                     </TableRow>
                     {resettingId === member.id && (
-                      <TableRow className="bg-muted/40">
+                      <TableRow joins="above" className="bg-muted/40">
                         <TableCell colSpan={4} className="p-3">
                           <ResetPasswordForm
                             staff={member}

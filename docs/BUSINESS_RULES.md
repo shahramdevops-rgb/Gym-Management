@@ -197,6 +197,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
   - Deactivating asks for no confirmation: nothing is deleted, and reactivating undoes it in one click.
   - After a new member is saved, their profile opens.
   - Phone numbers are shown in the local format with Persian digits (`۰۹۱۲ ۱۲۳ ۴۵۶۷`); the API stores and returns E.164.
+  - On a phone (roadmap 13.1b, decided by the developer, 1405/07/20 (2026-10-12)): the search sits beside the title «اعضا», with «عضو جدید» on the line under them, and the six filters («همه / فعال / غیرفعال» and «بدهکار / تک‌جلسه / پلن تمام‌شده») share one line, smaller. Each member is a card (as every list is on a phone, 13.1b): the name and its tags, then a line each for mobile, sessions and debt; no debt line for a member who owes nothing. The computer's screen is not changed by it.
 
 ---
 

@@ -46,9 +46,11 @@ export function StaffMoneyTable({ rows }: { rows: FinancialPeriod["byStaff"] }) 
                   {row.fullName}
                 </span>
               </TableCell>
-              <TableCell>{formatMoney(row.money.received)}</TableCell>
-              <TableCell>{formatMoney(row.money.refunded)}</TableCell>
-              <TableCell className="font-bold">{formatMoney(row.money.net)}</TableCell>
+              <TableCell label="دریافتی">{formatMoney(row.money.received)}</TableCell>
+              <TableCell label="بازگشت">{formatMoney(row.money.refunded)}</TableCell>
+              <TableCell label="خالص" className="font-bold">
+                {formatMoney(row.money.net)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -80,13 +80,13 @@ export function MembersTable({ members, deskActions }: MembersTableProps) {
                 )}
               </div>
             </TableCell>
-            <TableCell>
+            <TableCell label="موبایل">
               <PhoneNumber value={member.phoneNumber} />
             </TableCell>
-            <TableCell>
+            <TableCell label="جلسات">
               <PlanSessions plan={member.plan ?? null} />
             </TableCell>
-            <TableCell>
+            <TableCell label="بدهی">
               <MemberDebt value={member.debt} />
             </TableCell>
             {deskActions !== undefined && (

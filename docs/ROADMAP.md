@@ -2783,7 +2783,26 @@ is below Tailwind's `lg` (1024px), where the side menu becomes a drawer: `max-lg
       computer), the panel's place on each screen, the chart neither drawn nor fetched on a phone,
       and an end-to-end run at 390×844 with touch: check-in and check-out on the map, no sideways
       scroll, the drawer. No package added, no API change
-- [ ] **13.1b Tables become cards** below the breakpoint instead of scrolling sideways
+- [x] **13.1b Tables become cards** below the breakpoint instead of scrolling sideways
+      (1405/07/20). One rule in the shared `Table` for all eighteen lists, as `max-lg:` classes:
+      the headings hide and every row is a card framed like the desk panel (`tone-edge`), its
+      thick edge at the start in the page's tone. A cell's `label` (its heading) is drawn before
+      its value by CSS, so the computer never shows it; a cell without one (the row's title, its
+      buttons) takes the whole line, and an empty cell is left out. Rows that belong together stay
+      one card through `joins`: a payment's items under its heading, a cafe order's lines under a
+      debt, and every edit panel under its row. The members page, decided by the developer while
+      looking at it (BUSINESS_RULES.md §2): the search beside the title with «عضو جدید» under them,
+      and the six filters on one line. Cards have 12px side padding on a phone instead of 24px.
+      Found on the way: the dashboard's charts widened the whole page on a phone (a grid column
+      with no minimum), now held to the screen; the attendance heatmap still scrolls sideways in
+      its own box, on purpose. Measured at 1920px before and after on thirteen pages: the same to
+      the pixel, except what moves by itself (the long-stay bars and an animated door on the map).
+      Tests: a label stays out of the cell's text, and everything a label
+      or a join adds is `max-lg:` only; an end-to-end run at 390×844 checks out from a card on
+      «داخل باشگاه», with no sideways scroll there or on the member list, and the filters on one
+      line. The phone e2e now measures the frame's scrolling column too (the window alone never
+      showed sideways scroll), and its «بستن» taps name the text button, since the dialog's ✕ has
+      the same name. No package added, no API change
 - [ ] **13.1c Forms and dialogs** open full-screen on a phone, including the service-charge panel
       from 6.5.2; touch targets, and the Jalali date picker and MoneyField on a real phone keyboard
 

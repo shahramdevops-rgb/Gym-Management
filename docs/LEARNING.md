@@ -1812,3 +1812,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Container queries need the container outside.** `cqw` and `@max-[…]` look at the nearest *ancestor* container, so the map got an outer `@container` box and the door size is switched on the box inside it. Variants stack: `max-lg:@max-[50.5rem]:` is "on a phone, and the map narrower than its widest wall".
 - **A test can pretend to be a phone.** jsdom applies no CSS and has no `matchMedia`; the setup gives it one that never matches (the computer), and `pretendPhone()` makes it match for one test. Only what the code decides is testable there; what CSS decides is checked in the end-to-end run at 390×844.
 - **My notes:**
+
+## 13.1b — Tables become cards on a phone (جدول‌ها روی گوشی کارت می‌شوند)
+
+- **One rule in the shared component instead of a phone copy of every list.** All eighteen tables already used `components/ui/table.tsx`, so the cards are `max-lg:` classes there: the table and its rows become blocks, the headings hide, each row is a framed card. Writing a card component per table would have meant a second rendering of the same data to keep in step forever; a table that one day needs a different shape on a phone can still get its own.
+- **A heading has to travel with its cell.** Once the heading row is hidden, a bare «۲۵» means nothing, so `TableCell` takes a `label` that is drawn before the value by CSS (`content: attr(data-label)`). Because it is generated content, not text in the page, the computer never shows it and tests that look for «کمد» still find exactly one.
+- **Rows that belong together say so.** A payment's lines, a cafe order's items and an open edit panel are separate `<tr>`s, which would have become separate cards. `joins` (`below`, `above`, `both`) removes the frame and the gap between them on a phone only, so one handover stays one card.
+- **`:empty` cleans up for free.** A cell that renders nothing (no debt, no badge) would leave a label with no value; `max-lg:empty:hidden` drops it from the card without any code deciding it.
+- **Specificity decides between a variant and a descendant selector.** The body's `[&_tr:last-child]:border-0` is `.x tr:last-child`, stronger than a row's own `max-lg:border`, so the last card lost its frame. Narrowing that rule to `lg:` keeps the computer the same and lets the phone draw the frame.
+- **A grid track needs a minimum.** A grid with no set columns gives its one column `auto`, which grows to the widest child; a chart then widened the whole dashboard on a phone. `grid-cols-1` is `minmax(0, 1fr)`, which holds the column to the screen.
+- **Test the rule, not the look.** jsdom draws no CSS, so the unit test checks the promise instead: every class a label or a join adds starts with `max-lg:`. How the cards look is checked at 390×844 in the end-to-end run and by eye.
+- **Measure the scrolling box, not the window.** The frame scrolls inside its own `h-dvh` column, so `document.documentElement.scrollWidth` stays 390 even when the page is wider; the end-to-end check now measures `main`'s parent as well.
+- **A file served empty.** Vite read a source file in the instant a script was rewriting it and cached an empty module, so the page threw "not defined" for a constant that was in the file. Touching the file made Vite read it again.
+- **My notes:**

@@ -111,19 +111,25 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
 
   return (
     <>
-      <TableRow className={cn("align-top", !pending && "text-muted-foreground")}>
+      <TableRow
+        joins={action !== null ? "below" : undefined}
+        className={cn("align-top", !pending && "text-muted-foreground")}
+      >
         {/* Edged at its start in the page's tone, like a locker door (`tone-row-edge`, 13.2i). */}
         <TableCell className="tone-row-edge">{kindText(payable)}</TableCell>
-        <TableCell>{formatDate(payable.dueDate)}</TableCell>
-        <TableCell>{payable.payee}</TableCell>
-        <TableCell>
+        <TableCell label="تاریخ">{formatDate(payable.dueDate)}</TableCell>
+        <TableCell label="گیرنده">{payable.payee}</TableCell>
+        <TableCell label="شرح">
           <p className="whitespace-pre-line">{payable.description}</p>
           <p className="text-xs text-muted-foreground">{payable.categoryName}</p>
         </TableCell>
-        <TableCell className={cn("", payable.status === "Cancelled" && "line-through")}>
+        <TableCell
+          label="مبلغ"
+          className={cn("", payable.status === "Cancelled" && "line-through")}
+        >
           {formatMoney(payable.amount)}
         </TableCell>
-        <TableCell>
+        <TableCell label="وضعیت">
           <div className="space-y-1">
             {payable.status === "Pending" && (
               <Badge
@@ -209,7 +215,7 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
         </TableCell>
       </TableRow>
       {action !== null && (
-        <TableRow className="bg-muted/30">
+        <TableRow joins="above" className="bg-muted/30">
           <TableCell colSpan={columns} className="space-y-2 py-2">
             <p className="text-xs text-muted-foreground">برای {context}</p>
             {action === "edit" && (

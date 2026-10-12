@@ -369,7 +369,9 @@ export function DashboardPage() {
             <SectionHeading id="charts" icon={Activity} tone="violet">
               نمودارها و جزئیات بازه
             </SectionHeading>
-            <div className="grid gap-4 lg:grid-cols-2">
+            {/* One column as wide as the phone (13.1b): without a set column, a chart's own
+                width widened the page and it scrolled sideways. */}
+            <div className="grid gap-4 max-lg:grid-cols-1 lg:grid-cols-2">
               {financial.isSuccess && (
                 <>
                   <RevenueChart days={financial.data.days} />

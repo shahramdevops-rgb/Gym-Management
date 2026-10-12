@@ -82,9 +82,9 @@ function AuditLogRow({ row, userNames, onMember, onRecord }: AuditLogRowProps) {
 
   return (
     <>
-      <TableRow className="align-top">
+      <TableRow joins={open ? "below" : undefined} className="align-top">
         <TableCell className="whitespace-nowrap">{formatDateTime(row.occurredAt)}</TableCell>
-        <TableCell>
+        <TableCell label="کاربر">
           <p>{who}</p>
           {row.ipAddress !== null && (
             <p className="text-xs text-muted-foreground" dir="ltr">
@@ -92,13 +92,13 @@ function AuditLogRow({ row, userNames, onMember, onRecord }: AuditLogRowProps) {
             </p>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell label="تغییر">
           <span className="flex flex-wrap items-center gap-2">
             <Badge variant={actionBadges[row.action]}>{auditActionLabels[row.action]}</Badge>
             <span>{entityLabel(row.entityType)}</span>
           </span>
         </TableCell>
-        <TableCell>
+        <TableCell label="مربوط به">
           {memberId !== null && row.memberFullName !== null ? (
             <button
               type="button"
@@ -126,7 +126,7 @@ function AuditLogRow({ row, userNames, onMember, onRecord }: AuditLogRowProps) {
         </TableCell>
       </TableRow>
       {open && (
-        <TableRow className="bg-muted/30">
+        <TableRow joins="above" className="bg-muted/30">
           <TableCell colSpan={columns} className="space-y-3 py-3">
             {changes.length === 0 ? (
               <p className="text-sm text-muted-foreground">جزئیات دیگری ثبت نشده است.</p>
@@ -155,11 +155,18 @@ function AuditLogRow({ row, userNames, onMember, onRecord }: AuditLogRowProps) {
                       </TableCell>
                       {row.action === "Update" ? (
                         <>
-                          <TableCell className="py-1 pe-3">{change.before}</TableCell>
-                          <TableCell className="py-1 font-medium">{change.after}</TableCell>
+                          <TableCell label="قبل" className="py-1 pe-3">
+                            {change.before}
+                          </TableCell>
+                          <TableCell label="بعد" className="py-1 font-medium">
+                            {change.after}
+                          </TableCell>
                         </>
                       ) : (
-                        <TableCell className="py-1">
+                        <TableCell
+                          label={row.action === "Insert" ? "مقدار" : "مقدار پیش از حذف"}
+                          className="py-1"
+                        >
                           {row.action === "Insert" ? change.after : change.before}
                         </TableCell>
                       )}

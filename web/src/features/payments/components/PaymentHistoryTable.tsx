@@ -58,13 +58,13 @@ function PaymentRow({ payment }: { payment: PaymentHistoryItem }) {
     <TableRow>
       {/* Edged at its start in the page's tone, like the history's payments (13.2j). */}
       <TableCell className="tone-row-edge">{formatDateTime(payment.paidAt)}</TableCell>
-      <TableCell>{paidForLabel(payment)}</TableCell>
-      <TableCell>
+      <TableCell label="بابت">{paidForLabel(payment)}</TableCell>
+      <TableCell label="نوع">
         <KindBadge kind={payment.kind} />
       </TableCell>
-      <TableCell>{formatMoney(payment.amount)}</TableCell>
-      <TableCell>{paymentMethodLabels[payment.method]}</TableCell>
-      <TableCell className="text-muted-foreground">
+      <TableCell label="مبلغ">{formatMoney(payment.amount)}</TableCell>
+      <TableCell label="روش">{paymentMethodLabels[payment.method]}</TableCell>
+      <TableCell label="توضیح" className="text-muted-foreground">
         {payment.reason ?? payment.referenceNumber ?? "—"}
       </TableCell>
     </TableRow>
@@ -89,20 +89,24 @@ function SettlementRows({
 
   return (
     <>
-      <TableRow>
+      <TableRow joins="below">
         {/* The moment spans the heading and its items, so one start edge marks one handover. */}
         <TableCell rowSpan={payments.length + 1} className="pt-2 pb-1 align-top tone-row-edge">
           {formatDateTime(first.paidAt)}
         </TableCell>
-        <TableCell className="pt-2 pb-1">
+        <TableCell label="بابت" className="pt-2 pb-1">
           <SettlementHeading settlement={settlement} />
         </TableCell>
-        <TableCell className="pt-2 pb-1">
+        <TableCell label="نوع" className="pt-2 pb-1">
           <KindBadge kind={first.kind} />
         </TableCell>
-        <TableCell className="pt-2 pb-1 font-medium">{formatMoney(settlement.total)}</TableCell>
-        <TableCell className="pt-2 pb-1">{paymentMethodLabels[first.method]}</TableCell>
-        <TableCell className="pt-2 pb-1 text-muted-foreground">
+        <TableCell label="مبلغ" className="pt-2 pb-1 font-medium">
+          {formatMoney(settlement.total)}
+        </TableCell>
+        <TableCell label="روش" className="pt-2 pb-1">
+          {paymentMethodLabels[first.method]}
+        </TableCell>
+        <TableCell label="توضیح" className="pt-2 pb-1 text-muted-foreground">
           {first.referenceNumber ?? "—"}
         </TableCell>
       </TableRow>
@@ -110,7 +114,11 @@ function SettlementRows({
         const last = index === payments.length - 1;
 
         return (
-          <TableRow key={payment.id} className={last ? undefined : "border-b-0"}>
+          <TableRow
+            joins={last ? "above" : "both"}
+            key={payment.id}
+            className={last ? undefined : "border-b-0"}
+          >
             <TableCell className={last ? "pt-1 pb-2" : "py-1"}>
               <SettlementItemLabel>{paidForLabel(payment)}</SettlementItemLabel>
             </TableCell>
