@@ -340,12 +340,14 @@ function NameSearch({
   result: number | null;
 }) {
   return (
-    // The whole row on a phone (13.1a), the field taking what the result's words leave.
-    <div className="flex items-center gap-3 max-lg:w-full">
+    // The whole row on a phone (13.1a): the field, and what it found under it (13.1c).
+    <div className="flex items-center gap-3 max-lg:w-full max-lg:flex-wrap max-lg:gap-y-1">
       <p
         role="status"
         className={cn(
           "text-xs whitespace-nowrap",
+          // Under the field on a phone, where beside it the words squeezed it to a sliver (13.1c).
+          "max-lg:order-last max-lg:w-full max-lg:empty:hidden",
           result === 0 ? "text-warning-ink" : "text-muted-foreground",
         )}
       >

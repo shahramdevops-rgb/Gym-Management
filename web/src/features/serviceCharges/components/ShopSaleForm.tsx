@@ -5,11 +5,13 @@ import { Controller, useFieldArray, useForm, useWatch, type UseFormReturn } from
 import { FormField, MoneyField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { addMoney, multiplyMoney, normalizeMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import { useRecordShopSale, type ServiceCharge } from "../api";
 import {
@@ -169,7 +171,7 @@ export function ShopSaleForm({
           : "مبلغ به حساب عضو ثبت می‌شود و بعداً پرداخت می‌شود."}
       </p>
 
-      <div className="flex gap-2">
+      <div className={cn("flex gap-2", dialogActionsClassName)}>
         <Button type="submit" disabled={recordSale.isPending}>
           {recordSale.isPending ? "در حال ثبت…" : "ثبت فروش"}
         </Button>

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { member, seedFrontDesk, staff } from "./seed";
 
@@ -142,7 +142,90 @@ test.describe("on a phone", () => {
     const last = await page.getByRole("button", { name: "پلن تمام‌شده" }).boundingBox();
     expect(last?.y).toBe(first?.y);
   });
+
+  /**
+   * Forms on a phone (roadmap 13.1c): a form's box is the whole screen and its buttons are on it
+   * without scrolling; an amount is typed on the phone's number pad and a date is chosen by
+   * touch.
+   */
+  test("FrontDesk_Phone_FormsFillTheScreenWithTheirButtonsInReach", async ({ page }) => {
+    await signInAsStaff(page);
+    await page.getByRole("button", { name: /^کمد ۱۵، آزاد/ }).tap();
+    const checkIn = page.getByRole("dialog");
+    await expectFullScreen(checkIn);
+    // Not on a phone (decided by the developer, 13.1c): only the computer shows today's history.
+    await expect(checkIn.getByRole("button", { name: "تاریخچه امروز این کمد" })).toBeHidden();
+    await checkIn.getByRole("searchbox", { name: "نام یا شماره موبایل" }).fill("رضا");
+    await checkIn.getByRole("button", { name: new RegExp(member.fullName) }).tap();
+    await checkIn.getByRole("button", { name: "بله، ورود ثبت شود" }).tap();
+    await expect(checkIn.getByText("ورود ثبت شد")).toBeVisible();
+    await checkIn.getByText("بستن", { exact: true }).tap();
+
+    await page.getByRole("button", { name: /^کمد ۱۵، اشغال/ }).tap();
+    const visit = page.getByRole("dialog");
+    await expectFullScreen(visit);
+    await expectOnScreen(visit.getByRole("button", { name: "ثبت خروج" }));
+    // Moving the locker and its history are the computer's only (13.1c).
+    await expect(visit.getByRole("button", { name: "جابه‌جایی کمد" })).toBeHidden();
+    await expect(visit.getByRole("button", { name: "تاریخچه امروز این کمد" })).toBeHidden();
+
+    // هوازی's amount in Persian digits, as a phone's keyboard types them.
+    await visit.getByRole("button", { name: "هوازی" }).tap();
+    const cardio = page.getByRole("dialog", { name: "ثبت مبلغ هوازی" });
+    await expectFullScreen(cardio);
+    const amount = cardio.getByLabel("مبلغ هوازی");
+    await amount.tap();
+    await amount.pressSequentially("۱۵۰۰۰۰");
+    await expect(amount).toHaveValue("۱۵۰٬۰۰۰");
+    await expect(cardio.getByText("صد و پنجاه هزار تومان")).toBeVisible();
+    await cardio.getByRole("button", { name: "ثبت", exact: true }).tap();
+    await expect(page.getByText("مبلغ هوازی ثبت شد")).toBeVisible();
+    await page.getByText("بستن", { exact: true }).tap();
+
+    await visit.getByRole("button", { name: "ثبت خروج" }).tap();
+    const checkOut = page.getByRole("dialog");
+    await checkOut.getByLabel("کلید کمد شماره ۱۵ را تحویل گرفتم").check();
+    await expectOnScreen(checkOut.getByRole("button", { name: "بله، خروج ثبت شود" }));
+    await checkOut.getByRole("button", { name: "بله، خروج ثبت شود" }).tap();
+    await expect(checkOut.getByText("کمد شماره ۱۵ آزاد شد.")).toBeVisible();
+    await checkOut.getByText("بستن", { exact: true }).tap();
+
+    // A birth date, chosen by touch in the new member's form.
+    await page.getByRole("button", { name: /^کمد ۱۵، آزاد/ }).tap();
+    const register = page.getByRole("dialog");
+    await register.getByRole("searchbox", { name: "نام یا شماره موبایل" }).fill("زهره کاظمی");
+    await register.getByRole("button", { name: "ثبت این شخص" }).tap();
+    await register.getByRole("combobox", { name: "روز" }).tap();
+    await page.getByRole("option", { name: "۵", exact: true }).tap();
+    await expect(register.getByRole("combobox", { name: "روز" })).toHaveText("۵");
+    await expectOnScreen(register.getByRole("button", { name: "ثبت و ادامه" }));
+    await register.getByRole("button", { name: "بستن" }).tap();
+    await expect(register).toBeHidden();
+  });
 });
+
+/** A form's box on a phone is the whole screen, and nothing in it scrolls sideways. */
+async function expectFullScreen(dialog: Locator) {
+  await expect(dialog).toBeVisible();
+  // Polled: the box grows in from 96% as it opens, so the first measure can catch it on the way.
+  await expect.poll(() => dialog.boundingBox()).toEqual({ x: 0, y: 0, width: 390, height: 844 });
+  // A string, since the e2e project has no DOM types; it runs in the page.
+  // An expression, not a function: a string is evaluated, never called. The top box is the last.
+  expect(
+    await dialog
+      .page()
+      .evaluate(
+        "(() => { const box = [...document.querySelectorAll('[role=dialog]')].at(-1); return box.scrollWidth - box.clientWidth; })()",
+      ),
+  ).toBe(0);
+}
+
+/** On the screen as it is, with nothing scrolled. */
+async function expectOnScreen(button: Locator) {
+  const box = await button.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.y + box!.height).toBeLessThanOrEqual(844);
+}
 
 /**
  * How wide the page is drawn, so a test can tell it never scrolls sideways. The page scrolls in

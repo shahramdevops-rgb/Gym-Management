@@ -77,7 +77,7 @@ export function ServiceChargePaymentForm({
           <Alert variant="destructive">{errors.root.server.message}</Alert>
         )}
 
-        <div className="w-40">
+        <div className="w-40 max-lg:w-full">
           <Controller
             control={form.control}
             name="amount"

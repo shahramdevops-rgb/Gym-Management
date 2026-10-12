@@ -3,7 +3,9 @@ import { useForm } from "react-hook-form";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { cn } from "@/lib/utils";
 
 import { useVoidServiceCharge } from "../api";
 import { emptyVoidServiceChargeValues, voidServiceChargeSchema } from "../schemas";
@@ -62,7 +64,7 @@ export function VoidServiceChargeForm({
 
       <FormField label="دلیل ابطال" error={errors.reason?.message} {...form.register("reason")} />
 
-      <div className="flex gap-2">
+      <div className={cn("flex gap-2", dialogActionsClassName)}>
         <Button type="submit" size="sm" variant="destructive" disabled={isSubmitting}>
           تأیید ابطال
         </Button>

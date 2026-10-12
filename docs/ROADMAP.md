@@ -2803,8 +2803,38 @@ is below Tailwind's `lg` (1024px), where the side menu becomes a drawer: `max-lg
       line. The phone e2e now measures the frame's scrolling column too (the window alone never
       showed sideways scroll), and its «بستن» taps name the text button, since the dialog's ✕ has
       the same name. No package added, no API change
-- [ ] **13.1c Forms and dialogs** open full-screen on a phone, including the service-charge panel
+- [x] **13.1c Forms and dialogs** open full-screen on a phone, including the service-charge panel
       from 6.5.2; touch targets, and the Jalali date picker and MoneyField on a real phone keyboard
+      (1405/07/21). Decided by the developer: only a box that holds a form fills the screen
+      (`fullScreenOnPhone` on `DialogContent`: check-in and check-out, the visit, the cafe, هوازی
+      and the sales); a short confirmation and a sale's "saved" message stay a card. In a full
+      box the row of buttons (`dialogActionsClassName`, also on `SaveRow` and the desk's
+      `ConfirmButtons`/`CloseButton`) stays at the screen's bottom while the form scrolls, and the
+      ✕ stays in the corner. The row's classes act only inside a box marked `data-phone-full`
+      (Tailwind's `in-*` variant), so a form shared with a page carries them harmlessly. Touch, on
+      a phone only: buttons 44px (small ones 40px), inputs, selects and the date's three boxes
+      44px, the date list's rows taller, the ✕ and the date's clear button 40–44px targets. The
+      eight problems found on the locker screen after 13.1a, all chosen by the developer: the
+      visit's buttons and the cafe's total and «ثبت» stay at the bottom (1, 3); «تسویه یکجا»
+      scrolls its form into view (2); doors two cabinets to a row, about 77px, with the holder's
+      name (4, chosen over numbers only); the name search's result under the box (5); the move
+      map fills the screen (6; moot once moving left the phone, below); the reserve places three to a row (7); amounts, the check-in time
+      and a found member's mobile number never break in the middle (8). Then, looking at it, the
+      developer took «جابه‌جایی کمد» and «تاریخچه امروز این کمد» off the phone on every page
+      (`max-lg:hidden`), which leaves the visit's bar one row: «ثبت خروج» and «لغو ورود»; and
+      on a phone «ورود مهمان» and «ثبت ورود مهمان» in the guest's blue, «خارج از سرویس کردن این کمد» red-edged, the visit's name
+      larger and bold. The cafe's two columns
+      start at `lg` instead of `md` (the same on every computer). Measured at 1920px before and
+      after (`git stash`) on eighteen pages and ten dialog steps: the same to the pixel, besides
+      the pulsing dot and two new wrappers that sit exactly where their content was. Tests: the
+      full box's classes are `max-lg:` only and the button row's act only inside it; «تسویه
+      یکجا» scrolls into view on a phone and not on a computer; an end-to-end run at 390×844 with
+      touch: the check-in, visit, هوازی boxes fill the screen with no sideways scroll, the move and
+      history buttons are absent, «ثبت
+      خروج» and the check-out's confirm are on screen unscrolled, an amount typed in Persian
+      digits is grouped and spelled out, a birth date is chosen by touch. The real keyboard on a
+      real phone is left to the developer (`npm run dev -- --host`). No package added, no API
+      change
 
 ### 13.2 One visual language
 Split into four sessions with the developer on 1405/07/19 (2026-10-11), in this order: (a) the

@@ -76,7 +76,7 @@ interface SelectFieldProps extends ComponentProps<"select"> {
 /** The look of a native `<select>` here, shared by `SelectField` and the date fields' boxes. */
 const selectClassName = cn(
   // `select-box`: the open list in the panel's look where the browser allows it (index.css).
-  "select-box h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+  "select-box h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 max-lg:h-11 md:text-sm",
   "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30",
   "aria-invalid:border-destructive aria-invalid:ring-destructive/20",
   // The browser draws the open list on its own white, whatever the box's colour; the
@@ -377,7 +377,8 @@ export function JalaliCalendarField({
           <button
             type="button"
             aria-label="پاک کردن تاریخ"
-            className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            // On a phone a 44px target over the box's end, the icon where it was (13.1c).
+            className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground max-lg:end-0 max-lg:px-2 max-lg:py-3.5"
             onClick={() => {
               setText("");
               commit("");
@@ -623,7 +624,7 @@ function Picker({ name, options, value, onChange, onBlur, invalid, disabled }: P
               role="option"
               aria-selected={index === selectedIndex}
               className={cn(
-                "cursor-pointer rounded-sm px-2 py-1.5 text-sm",
+                "cursor-pointer rounded-sm px-2 py-1.5 text-sm max-lg:py-2.5",
                 index === active && "bg-accent text-accent-foreground",
                 index === selectedIndex && "font-semibold text-primary",
               )}
@@ -744,7 +745,8 @@ function DropdownDateField({
           <button
             type="button"
             aria-label={`پاک کردن ${label}`}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            // Taller to a finger on a phone, without moving the boxes under it (13.1c).
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground max-lg:-my-3 max-lg:py-3"
             onClick={() => commit(noDateParts)}
           >
             <X className="size-3.5" aria-hidden />

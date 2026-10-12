@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { useMoveLocker, type CurrentlyInside } from "@/features/attendance/api";
 import type { DeskAction } from "@/features/attendance/components/CheckInOutDialog";
 import { lowSessionsThreshold } from "@/features/attendance/renewal";
@@ -26,6 +27,7 @@ import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceCh
 import { errorMessage } from "@/lib/errors";
 import { formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney, subtractMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import type { Locker } from "../api";
 import { LockerMap } from "./LockerMap";
@@ -108,6 +110,7 @@ export function LockerVisitDialog({
       }}
     >
       <DialogContent
+        fullScreenOnPhone
         className={step.kind === "pick" ? "max-w-5xl" : "max-w-2xl"}
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
@@ -160,7 +163,7 @@ export function LockerVisitDialog({
                 <DialogDescription>
                   <Link
                     to={paths.member(memberId)}
-                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                    className="font-medium text-foreground underline-offset-4 hover:underline max-lg:text-base max-lg:font-bold"
                   >
                     {member.fullName}
                   </Link>
@@ -172,7 +175,10 @@ export function LockerVisitDialog({
                       </span>
                     </>
                   )}
-                  {" · "}ورود: {formatDateTime(visit.checkedInAt)}
+                  {" · "}
+                  <span className="max-lg:whitespace-nowrap">
+                    ورود: {formatDateTime(visit.checkedInAt)}
+                  </span>
                 </DialogDescription>
               </DialogHeader>
               <VisitSessions visit={visit} />
@@ -226,7 +232,7 @@ export function LockerVisitDialog({
                 می‌شود).
               </Alert>
             )}
-            <div className="flex flex-wrap gap-2 border-t pt-3">
+            <div className={cn("flex flex-wrap gap-2 border-t pt-3", dialogActionsClassName)}>
               <Button
                 disabled={cardioMissing}
                 onClick={() =>
@@ -239,7 +245,11 @@ export function LockerVisitDialog({
               >
                 ثبت خروج
               </Button>
-              <Button variant="outline" onClick={() => setStep({ kind: "pick" })}>
+              <Button
+                variant="outline"
+                className="max-lg:hidden"
+                onClick={() => setStep({ kind: "pick" })}
+              >
                 <ArrowLeftRight aria-hidden />
                 جابه‌جایی کمد
               </Button>
@@ -252,7 +262,11 @@ export function LockerVisitDialog({
                 لغو ورود
               </Button>
               {lockerId !== null && (
-                <Button variant="outline" onClick={() => setStep({ kind: "history", lockerId })}>
+                <Button
+                  variant="outline"
+                  className="max-lg:hidden"
+                  onClick={() => setStep({ kind: "history", lockerId })}
+                >
                   <History aria-hidden />
                   تاریخچه امروز این کمد
                 </Button>
@@ -270,7 +284,7 @@ export function LockerVisitDialog({
               </DialogDescription>
             </DialogHeader>
             <LockerTodayHistory lockerId={step.lockerId} />
-            <div className="flex">
+            <div className={cn("flex", dialogActionsClassName)}>
               <Button variant="outline" onClick={() => setStep({ kind: "view" })}>
                 بازگشت
               </Button>
@@ -291,7 +305,7 @@ export function LockerVisitDialog({
               mode="pick"
               onSelect={(target) => setStep({ kind: "confirmMove", target })}
             />
-            <div className="flex">
+            <div className={cn("flex", dialogActionsClassName)}>
               <Button variant="outline" onClick={() => setStep({ kind: "view" })}>
                 بازگشت
               </Button>
@@ -341,7 +355,7 @@ export function LockerVisitDialog({
               <DialogDescription>{member.fullName}</DialogDescription>
             </DialogHeader>
             <Alert variant="destructive">{step.reason}</Alert>
-            <div className="flex gap-2">
+            <div className={cn("flex gap-2", dialogActionsClassName)}>
               <Button variant="outline" onClick={() => setStep({ kind: "pick" })}>
                 انتخاب کمد دیگر
               </Button>
@@ -402,12 +416,17 @@ function GuestView({
       <DialogHeader className="pe-6">
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>
-          <span className="font-medium text-foreground">{guest.fullName}</span>
+          <span className="font-medium text-foreground max-lg:text-base max-lg:font-bold">
+            {guest.fullName}
+          </span>
           {" · "}
           <span className="rounded bg-guest/15 px-1.5 py-0.5 text-xs font-medium text-foreground">
             {guestLabel}
           </span>
-          {" · "}ورود: {formatDateTime(visit.checkedInAt)}
+          {" · "}
+          <span className="max-lg:whitespace-nowrap">
+            ورود: {formatDateTime(visit.checkedInAt)}
+          </span>
         </DialogDescription>
       </DialogHeader>
 
@@ -452,7 +471,7 @@ function GuestView({
         </Button>
       )}
 
-      <div className="space-y-2 border-t pt-3">
+      <div className={cn("space-y-2 border-t pt-3", dialogActionsClassName)}>
         {owes && (
           <Alert role="status">مهمان حسابی ندارد: خروج پس از پرداخت همهٔ خریدها ثبت می‌شود.</Alert>
         )}
@@ -460,7 +479,7 @@ function GuestView({
           <Button disabled={owes} onClick={onCheckOut}>
             ثبت خروج
           </Button>
-          <Button variant="outline" onClick={onMove}>
+          <Button variant="outline" className="max-lg:hidden" onClick={onMove}>
             <ArrowLeftRight aria-hidden />
             جابه‌جایی کمد
           </Button>
@@ -468,7 +487,7 @@ function GuestView({
             لغو ورود
           </Button>
           {onHistory !== null && (
-            <Button variant="outline" onClick={onHistory}>
+            <Button variant="outline" className="max-lg:hidden" onClick={onHistory}>
               <History aria-hidden />
               تاریخچه امروز این کمد
             </Button>

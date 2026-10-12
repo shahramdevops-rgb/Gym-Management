@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { errorMessage } from "@/lib/errors";
+import { cn } from "@/lib/utils";
 
 /** What the last press of «ذخیره» did on an edit form, until the next edit clears it. */
 export type SaveNotice = "saved" | "unchanged" | null;
@@ -34,7 +36,8 @@ export function SaveRow({ children, error, notice = null, stale }: SaveRowProps)
     ) : null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    // At the bottom of a phone's screen when the form is in a dialog (13.1c); as it was elsewhere.
+    <div className={cn("flex flex-wrap items-center gap-2", dialogActionsClassName)}>
       {children}
       {status !== null && (
         <div className="min-w-48 flex-1 [&>[data-slot=alert]]:py-2">{status}</div>

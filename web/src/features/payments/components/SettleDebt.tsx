@@ -1,5 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { FormField, MoneyField } from "@/components/FormField";
@@ -10,6 +10,7 @@ import { debtItemLabel } from "@/features/members/debtItemLabel";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { formatDate, formatMoney } from "@/lib/format";
 import { addMoney, isPositiveMoney, normalizeMoney, subtractMoney } from "@/lib/money";
+import { isPhoneNow } from "@/lib/useIsPhone";
 
 import { paymentMethodLabels, type PaymentMethod } from "../api";
 import {
@@ -136,6 +137,16 @@ function SettleDebtForm({
     setValue("amount", asTypedAmount(selectedTotal));
   }, [selectedTotal, setValue]);
 
+  // On a phone the form opens below the screen's edge, under the debt it settles: it is brought
+  // up once, as it opens, so the press visibly did something (13.1c). The computer has the room.
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (isPhoneNow()) {
+      // jsdom has no scrollIntoView.
+      formRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    }
+  }, []);
+
   function toggle(id: string) {
     setUnticked((current) => {
       const next = new Set(current);
@@ -193,6 +204,7 @@ function SettleDebtForm({
   return (
     <>
       <form
+        ref={formRef}
         aria-label="تسویه یکجا"
         className="space-y-3 rounded-lg border p-3 text-sm"
         onSubmit={onSubmit}
@@ -218,14 +230,18 @@ function SettleDebtForm({
                 {debtItemLabel(item)}
                 <span className="text-muted-foreground"> · {formatDate(item.startDate)}</span>
               </span>
-              <span className="font-medium">{formatMoney(item.outstanding)}</span>
+              <span className="font-medium max-lg:shrink-0 max-lg:whitespace-nowrap">
+                {formatMoney(item.outstanding)}
+              </span>
             </label>
           ))}
         </fieldset>
 
         <p className="flex justify-between gap-3 border-t pt-2 font-medium">
           <span>جمع انتخاب‌شده</span>
-          <span>{formatMoney(selectedTotal)}</span>
+          <span className="max-lg:shrink-0 max-lg:whitespace-nowrap">
+            {formatMoney(selectedTotal)}
+          </span>
         </p>
 
         {selected.length === 0 ? (
@@ -338,7 +354,9 @@ function SettlementDone({ receipt, onClose }: { receipt: Receipt; onClose: () =>
         {receipt.lines.map((line) => (
           <li key={line.id} className="flex justify-between gap-3">
             <span>{line.label}</span>
-            <span>{formatMoney(line.amount)}</span>
+            <span className="max-lg:shrink-0 max-lg:whitespace-nowrap">
+              {formatMoney(line.amount)}
+            </span>
           </li>
         ))}
       </ul>

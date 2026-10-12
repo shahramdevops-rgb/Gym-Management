@@ -4,8 +4,10 @@ import { z } from "zod";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { errorMessages } from "@/lib/errors";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { cn } from "@/lib/utils";
 
 /** The same limit as a member's name (BUSINESS_RULES.md §7 *Guest visit*, `Attendance.GuestNameMaxLength`). */
 export const guestNameMaxLength = 200;
@@ -59,8 +61,13 @@ export function GuestNameForm({ onSubmit, onBack }: GuestNameFormProps) {
         error={errors.guestName?.message}
         {...form.register("guestName")}
       />
-      <div className="flex gap-2">
-        <Button type="submit" disabled={isSubmitting}>
+      <div className={cn("flex gap-2", dialogActionsClassName)}>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          // Filled in the guest's blue on a phone, like «ورود مهمان» that opened it (13.1c).
+          className="max-lg:bg-guest max-lg:text-white max-lg:shadow-none max-lg:hover:bg-guest/90 max-lg:dark:text-background"
+        >
           {isSubmitting ? "در حال ثبت…" : "ثبت ورود مهمان"}
         </Button>
         <Button type="button" variant="ghost" onClick={onBack}>

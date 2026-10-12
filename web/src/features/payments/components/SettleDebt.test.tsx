@@ -4,6 +4,7 @@ import type { Settlement } from "@/features/payments/settle";
 import { json, mockApi, problem, session, signedInHandlers, staffUser } from "@/test/mockApi";
 import { cafeDebtItem, debtItem, memberDebt, reza, serviceChargeDebtItem } from "@/test/members";
 import { confirmMoneyReceived, pickMethod } from "@/test/payments";
+import { pretendPhone } from "@/test/phone";
 import { renderApp } from "@/test/renderApp";
 import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
 
@@ -103,6 +104,36 @@ describe("SettleDebt", () => {
         { kind: "CafeOrder", id: cafeDebtItem().id, outstanding: 30000 },
         { kind: "ServiceCharge", id: serviceChargeDebtItem().id, outstanding: 10000 },
       ],
+    });
+  });
+
+  // On a phone the form opens below the screen's edge, so it is brought up as it opens (13.1c);
+  // jsdom has no scrollIntoView, so the test gives it one to watch.
+  describe("scrolling into view", () => {
+    const scrolled = vi.fn();
+
+    beforeEach(() => {
+      scrolled.mockClear();
+      Element.prototype.scrollIntoView = scrolled;
+    });
+
+    afterEach(() => {
+      delete (Element.prototype as Partial<Element>).scrollIntoView;
+    });
+
+    it("SettleDebt_OpenedOnAPhone_ScrollsTheFormIntoView", async () => {
+      pretendPhone();
+      profile();
+      const form = await openForm();
+
+      expect(scrolled.mock.contexts).toContain(form);
+    });
+
+    it("SettleDebt_OpenedOnAComputer_LeavesThePageWhereItIs", async () => {
+      profile();
+      const form = await openForm();
+
+      expect(scrolled.mock.contexts).not.toContain(form);
     });
   });
 

@@ -107,7 +107,7 @@ export function SaleBox({ attendanceId, kind, memberName, isGuest = false, sales
       />
 
       <Dialog open={step !== null} onOpenChange={(next) => !next && setStep(null)}>
-        <DialogContent>
+        <DialogContent fullScreenOnPhone={step !== null && step.kind !== "done"}>
           {step?.kind === "done" && (
             <DialogSuccess
               title={step.title}

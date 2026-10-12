@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { toPersianDigits } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 /**
  * The place a visit was given, large enough to read from across the desk: the locker's number, or
@@ -47,7 +49,7 @@ export function ConfirmButtons({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className={cn("flex flex-wrap gap-2", dialogActionsClassName)}>
       <Button disabled={pending || disabled} onClick={onConfirm}>
         {pending ? "در حال ثبت…" : label}
       </Button>
@@ -61,7 +63,7 @@ export function ConfirmButtons({
 
 export function CloseButton({ onClose }: { onClose: () => void }) {
   return (
-    <div className="flex">
+    <div className={cn("flex", dialogActionsClassName)}>
       <Button variant="outline" onClick={onClose}>
         بستن
       </Button>

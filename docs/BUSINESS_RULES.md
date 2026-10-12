@@ -655,9 +655,13 @@ Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadma
   only the counts of free, occupied, guest and cardio-only lockers, on one line, and the name
   search beside the title; no out-of-service count, no meaning of the «بدهکار» tag or the
   long-stay bar, no usage view (*Locker usage map* below) and no hourly chart (*Today by hour*
-  below). The cabinets wrap to the next row, three to a row, each keeping its six doors as they
-  stand. Every locker comes first, then the desk panel (*The desk panel*), then the reserve places. Every change for a phone stays on a phone: the desk's computer screen is
-  not changed by it.
+  below). The cabinets wrap to the next row, each keeping its six doors as they stand: two to a
+  row, so a door is wide enough (about 77px on a 390px phone) to show its holder's name under the
+  number (chosen by the developer in 13.1c, 1405/07/21 (2026-10-13), over three to a row with
+  numbers only; three to a row was 13.1a's first look). What the name search found is written
+  under the search box, not beside it. The reserve places stand three to a row, a little lower.
+  Every locker comes first, then the desk panel (*The desk panel*), then the reserve places. Every
+  change for a phone stays on a phone: the desk's computer screen is not changed by it.
 - The reserve places (*Reserve places* above) are drawn like doors: a used one like an occupied
   door with the member's name, an empty one like a free door with «خالی», faded while a locker is
   still free.
@@ -832,6 +836,18 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 - Cancelling a check-in (*Cancel check-in*) asks in the same box. When the visit bought nothing, that
   is the only question: it gives the session back and frees the locker, so a stray press is worth
   one more click. When it bought something, the box asks about each purchase (*Cancel check-in*).
+- On a phone (roadmap 13.1c, decided by the developer, 1405/07/21 (2026-10-13)): a box that holds
+  a form (check-in and check-out, the locker's visit, buying from the cafe, هوازی and the other
+  sales) fills the whole screen, its buttons stay at the bottom of the screen while it scrolls,
+  and its ✕ stays in the corner. A short question (confirming a payment, a freeze, an
+  out-of-service locker) and the "saved" message after a sale stay a small card. When
+  «تسویه یکجا» is opened, the page scrolls to its form. Not on a phone, on any page (decided by
+  the developer the same day: not needed there): «جابه‌جایی کمد» and «تاریخچه امروز این کمد»,
+  in the visit's box and in a free locker's box; the computer keeps both. Also on a phone only,
+  asked the same day: in a free locker's box «ورود مهمان» and the guest form's «ثبت ورود مهمان» are in the guest's
+  blue (as a guest's door is; هوازی keeps its yellow) and «خارج از سرویس کردن این کمد» is
+  red-edged (both looked like plain words); in the visit's box the person's name is larger
+  and bold. The computer's boxes are not changed.
 
 ### Cancel check-in
 - Allowed only for an open attendance within `Gym:CancelCheckInWindowMinutes` of check-in.

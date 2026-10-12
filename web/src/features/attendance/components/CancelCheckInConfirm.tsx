@@ -4,10 +4,12 @@ import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { isSaleKind, serviceChargeLabel } from "@/features/serviceCharges/api";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney, subtractMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import { useEveryoneInside, type CurrentlyInside } from "../api";
 import { ConfirmButtons } from "./deskParts";
@@ -120,7 +122,9 @@ export function CancelCheckInConfirm({
           {chosen.map((purchase) => (
             <li key={purchase.id} className="flex justify-between gap-3">
               <span>{purchase.label}</span>
-              <span className="font-medium">{formatMoney(purchase.amount)}</span>
+              <span className="font-medium max-lg:shrink-0 max-lg:whitespace-nowrap">
+                {formatMoney(purchase.amount)}
+              </span>
             </li>
           ))}
         </ul>
@@ -136,7 +140,7 @@ export function CancelCheckInConfirm({
             </p>
           )}
         </Alert>
-        <div className="flex flex-wrap gap-2">
+        <div className={cn("flex flex-wrap gap-2", dialogActionsClassName)}>
           <Button disabled={pending} onClick={send}>
             {pending ? "در حال ثبت…" : "بله، ورود و این موارد لغو شوند"}
           </Button>

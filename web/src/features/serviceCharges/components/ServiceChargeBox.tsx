@@ -127,7 +127,7 @@ export function ServiceChargeBox({
       )}
 
       <Dialog open={open !== null} onOpenChange={(next) => !next && setOpen(null)}>
-        <DialogContent>
+        <DialogContent fullScreenOnPhone={open !== null && open !== "done"}>
           {open === "done" && outcome !== null && (
             <DialogSuccess
               title={outcome.title}

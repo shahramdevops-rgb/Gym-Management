@@ -35,11 +35,13 @@ const doorWidth = `clamp(2.75rem, calc((100cqw - 12rem) / ${widestRowDoors}), 6r
 
 /**
  * A door's width on a phone (13.1a), where the widest zone cannot stand in one row even with the
- * smallest doors: the cabinets wrap, three to a row, and the doors grow to fill that row. 4.5rem
- * is the room three cabinets leave: the gap inside each, the two gaps between them and the zone's
- * padding. Each cabinet keeps its six doors as they stand, so a number is still where it is on it.
+ * smallest doors: the cabinets wrap, two to a row, and the doors grow to fill that row, wide enough
+ * (about 77px on a 390px phone) to carry the holder's name under the number (13.1c, chosen by the
+ * developer over three to a row with numbers only). 3rem is the room two cabinets leave: the gap
+ * inside each, the gap between them and the zone's padding, and a little to spare. Each cabinet
+ * keeps its six doors as they stand, so a number is still where it is on it.
  */
-const narrowDoorWidth = "clamp(2.75rem, calc((100cqw - 4.5rem) / 6), 6rem)";
+const narrowDoorWidth = "clamp(2.75rem, calc((100cqw - 3rem) / 4), 6rem)";
 
 /** Fixed square doors, sized by `--door-size` on the map. */
 const doorSize = "w-(--door-size) shrink-0 aspect-square";

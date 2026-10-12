@@ -4,12 +4,14 @@ import { useForm } from "react-hook-form";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { ConfirmPaymentDialog } from "@/features/payments/components/ConfirmPaymentDialog";
 import { PaymentMethodField } from "@/features/payments/components/PaymentMethodField";
 import { registerPaymentSchema, type RegisterPaymentValues } from "@/features/payments/schemas";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { formatMoney } from "@/lib/format";
 import { normalizeMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import { useSettleGuestVisit } from "../api";
 
@@ -91,7 +93,7 @@ export function GuestSettleForm({
             />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className={cn("flex gap-2", dialogActionsClassName)}>
           <Button type="submit" size="sm" disabled={settle.isPending}>
             تأیید پرداخت
           </Button>

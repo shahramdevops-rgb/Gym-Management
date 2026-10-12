@@ -19,8 +19,11 @@ import { StayBar } from "./StayBar";
 /** How many visits can be inside with no locker at once: `Attendance.ReservePlaceCount` (BUSINESS_RULES.md §6). */
 export const reservePlaceCount = 15;
 
-/** A place is a door, a little wider than tall so a name fits on two lines. */
-const placeSize = "flex h-20 w-28 items-center justify-center";
+/**
+ * A place is a door, a little wider than tall so a name fits on two lines. On a phone three share
+ * a row, a little lower, so the fifteen take five rows instead of eight (13.1c).
+ */
+const placeSize = "flex h-20 w-28 items-center justify-center max-lg:h-16 max-lg:w-full";
 
 interface ReservePlacesProps {
   /** The open visits on a reserve place. */
@@ -101,7 +104,7 @@ export function ReservePlaces({
           <ul
             aria-label="جاهای ورود بدون کمد"
             dir="ltr"
-            className="flex flex-wrap gap-2 px-1 pt-2 pb-1"
+            className="flex flex-wrap gap-2 px-1 pt-2 pb-1 max-lg:grid max-lg:grid-cols-3"
           >
             {visits.map((visit) => {
               const stay = stayProgress(visit.checkedInAt, now);

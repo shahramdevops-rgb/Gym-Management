@@ -11,11 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { PurchaseTile, PurchaseTileSummary } from "@/features/attendance/components/PurchaseTile";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, toPersianDigits } from "@/lib/format";
 import { addMoney, isPositiveMoney } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 import { cafeLimits, useCreateCafeOrder, useSellableProducts, type CafeOrder } from "../api";
 import { addToCart, cartTotal, removeFromCart, setQuantity, type CartLine } from "../cart";
@@ -87,7 +89,10 @@ export function VisitCafeBox({ attendanceId, member, orders }: VisitCafeBoxProps
       />
 
       <Dialog open={open !== null} onOpenChange={(next) => !next && setOpen(null)}>
-        <DialogContent className={open === "done" ? undefined : "sm:max-w-3xl"}>
+        <DialogContent
+          className={open === "done" ? undefined : "sm:max-w-3xl"}
+          fullScreenOnPhone={open !== null && open !== "done"}
+        >
           {open === "done" && saved !== null && (
             <DialogSuccess
               title="خرید بوفه ثبت شد"
@@ -199,7 +204,9 @@ function VisitPurchaseForm({ attendanceId, memberId, onDone, onCancel }: VisitPu
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-[1fr_16rem]">
+    // On a phone (13.1c) one column, and the cart's box dissolves into it (`contents`) so its total
+    // and buttons can stay at the bottom of the screen under the products, not after all of them.
+    <div className="grid gap-4 lg:grid-cols-[1fr_16rem]">
       <div>
         {products.isPending && <LoadingState />}
         {products.isError && <Alert variant="destructive">{errorMessage(products.error)}</Alert>}
@@ -217,7 +224,7 @@ function VisitPurchaseForm({ attendanceId, memberId, onDone, onCancel }: VisitPu
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 max-lg:contents">
         <CartLines
           cart={cart}
           onQuantityChange={(productId, quantity) =>
@@ -225,25 +232,27 @@ function VisitPurchaseForm({ attendanceId, memberId, onDone, onCancel }: VisitPu
           }
           onRemove={(productId) => setCart((current) => removeFromCart(current, productId))}
         />
-        <div className="flex items-center justify-between border-t pt-3 font-bold">
-          <span>جمع</span>
-          <span>{formatMoney(cartTotal(cart))}</span>
-        </div>
-        {error !== null && <Alert variant="destructive">{error}</Alert>}
-        <div className="flex gap-2">
-          <Button
-            disabled={cart.length === 0 || createOrder.isPending}
-            onClick={() => void submit()}
-          >
-            {createOrder.isPending
-              ? "در حال ثبت…"
-              : memberId === null
-                ? "ثبت به نام مهمان"
-                : "ثبت به حساب عضو"}
-          </Button>
-          <Button variant="ghost" onClick={onCancel}>
-            انصراف
-          </Button>
+        <div className={cn("space-y-3", dialogActionsClassName)}>
+          <div className="flex items-center justify-between border-t pt-3 font-bold max-lg:border-t-0 max-lg:pt-0">
+            <span>جمع</span>
+            <span>{formatMoney(cartTotal(cart))}</span>
+          </div>
+          {error !== null && <Alert variant="destructive">{error}</Alert>}
+          <div className="flex gap-2">
+            <Button
+              disabled={cart.length === 0 || createOrder.isPending}
+              onClick={() => void submit()}
+            >
+              {createOrder.isPending
+                ? "در حال ثبت…"
+                : memberId === null
+                  ? "ثبت به نام مهمان"
+                  : "ثبت به حساب عضو"}
+            </Button>
+            <Button variant="ghost" onClick={onCancel}>
+              انصراف
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -13,7 +13,8 @@ function subscribe(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
-function isPhoneNow() {
+/** Whether the screen is a phone's right now, for an effect that asks once (13.1c). */
+export function isPhoneNow(): boolean {
   return window.matchMedia(phoneQuery).matches;
 }
 

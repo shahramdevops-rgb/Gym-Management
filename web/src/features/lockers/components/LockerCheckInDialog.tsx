@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { Input } from "@/components/ui/input";
 import {
   useCardioOnlyCheckIn,
@@ -34,6 +35,7 @@ import { errorMessage } from "@/lib/errors";
 import { formatPhone, toPersianDigits } from "@/lib/format";
 import { normalizeInput } from "@/lib/normalize";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
+import { cn } from "@/lib/utils";
 
 import { useSetLockerOutOfService, type Locker } from "../api";
 import { GuestNameForm } from "./GuestNameForm";
@@ -221,6 +223,7 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
       }}
     >
       <DialogContent
+        fullScreenOnPhone
         onOpenAutoFocus={(event) => {
           // Straight into the search box on open; nowhere else, so a held Enter confirms nothing.
           if (step.kind !== "search") {
@@ -239,7 +242,13 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               onRegister={(text) => setStep({ kind: "register", text })}
             />
             <div className="flex">
-              <Button size="sm" variant="outline" onClick={() => setStep({ kind: "guest" })}>
+              <Button
+                size="sm"
+                variant="outline"
+                // In the guest's blue on a phone, as a guest's door is (asked by the developer, 13.1c).
+                className="max-lg:border-guest max-lg:bg-guest/15"
+                onClick={() => setStep({ kind: "guest" })}
+              >
                 <UserRound aria-hidden />
                 ورود مهمان
               </Button>
@@ -256,6 +265,8 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
                   <Button
                     size="sm"
                     variant="ghost"
+                    // In red on a phone, where a bare word read as nothing to press (13.1c).
+                    className="max-lg:border max-lg:border-destructive/50 max-lg:text-destructive"
                     disabled={setOutOfService.isPending}
                     onClick={() => void takeOutOfService(place.locker)}
                   >
@@ -394,7 +405,7 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               </DialogDescription>
             </DialogHeader>
             <LockerTodayHistory lockerId={step.locker.id} />
-            <div className="flex">
+            <div className={cn("flex", dialogActionsClassName)}>
               <Button variant="outline" onClick={() => setStep({ kind: "search" })}>
                 بازگشت
               </Button>
@@ -485,7 +496,7 @@ function FrozenPlanWarning({ memberId }: { memberId: string }) {
  */
 function TodayHistoryButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button size="sm" variant="ghost" onClick={onClick}>
+    <Button size="sm" variant="ghost" className="max-lg:hidden" onClick={onClick}>
       <History aria-hidden />
       تاریخچه امروز این کمد
     </Button>
@@ -608,7 +619,10 @@ function MemberSearch({
                     )}
                     {!found.isActive && <Badge variant="secondary">غیرفعال</Badge>}
                   </span>
-                  <span className="text-sm text-muted-foreground" dir="ltr">
+                  <span
+                    className="text-sm text-muted-foreground max-lg:shrink-0 max-lg:whitespace-nowrap"
+                    dir="ltr"
+                  >
                     {formatPhone(found.phoneNumber)}
                   </span>
                 </button>

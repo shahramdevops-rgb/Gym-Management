@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { dialogActionsClassName } from "@/components/ui/dialogActions";
+import { cn } from "@/lib/utils";
 
 interface DialogSuccessProps {
   title: string;
@@ -30,7 +32,7 @@ export function DialogSuccess({ title, description, children, onClose }: DialogS
         {description !== undefined && <DialogDescription>{description}</DialogDescription>}
       </DialogHeader>
       {children}
-      <div className="flex">
+      <div className={cn("flex", dialogActionsClassName)}>
         <Button variant="outline" autoFocus onClick={onClose}>
           بستن
         </Button>

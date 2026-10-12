@@ -77,13 +77,15 @@ function VisitPurchases({ attendanceId }: { attendanceId: string }) {
             <span>
               {line.productName} × {toPersianDigits(line.quantity)}
             </span>
-            <span>{formatMoney(line.lineTotal)}</span>
+            <span className="max-lg:shrink-0 max-lg:whitespace-nowrap">
+              {formatMoney(line.lineTotal)}
+            </span>
           </li>
         ))}
       </ul>
       <p className="flex justify-between gap-3 border-t pt-2 font-medium">
         <span>جمع</span>
-        <span>{formatMoney(total)}</span>
+        <span className="max-lg:shrink-0 max-lg:whitespace-nowrap">{formatMoney(total)}</span>
       </p>
     </section>
   );
@@ -260,7 +262,9 @@ function DebtDetails({ debt, itemized }: { debt: MemberDebt; itemized: boolean }
         {debtBySource(debt.items).map((source) => (
           <div key={source.label} className="flex justify-between gap-3 font-medium">
             <dt>{source.label}</dt>
-            <dd>{formatMoney(source.amount)}</dd>
+            <dd className="max-lg:shrink-0 max-lg:whitespace-nowrap">
+              {formatMoney(source.amount)}
+            </dd>
           </div>
         ))}
       </dl>
@@ -275,7 +279,9 @@ function DebtDetails({ debt, itemized }: { debt: MemberDebt; itemized: boolean }
                 {debtItemLabel(item)}
                 <span className="text-destructive/70"> · {formatDate(item.startDate)}</span>
               </span>
-              <span className="font-medium">{formatMoney(item.outstanding)}</span>
+              <span className="font-medium max-lg:shrink-0 max-lg:whitespace-nowrap">
+                {formatMoney(item.outstanding)}
+              </span>
             </li>
           ))}
         </ul>
