@@ -56,7 +56,9 @@ export function MemberDebtCard({ memberId }: { memberId: string }) {
     <DebtCard>
       {isPositiveMoney(total) ? (
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* The toggle right beside the amount, not across the card at its end, where it read as
+              the subscription card's button next door (the UX review, 1405/07/21). */}
+          <div className="flex flex-wrap items-center gap-3">
             <p className="text-lg font-medium text-destructive">{formatMoney(total)}</p>
             <Button
               size="sm"

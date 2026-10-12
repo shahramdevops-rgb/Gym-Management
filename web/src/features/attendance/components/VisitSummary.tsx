@@ -5,7 +5,11 @@ import { useMemberDebt, type MemberDebt } from "@/features/members/api";
 import { debtBySource } from "@/features/members/debtBySource";
 import { debtItemLabel } from "@/features/members/debtItemLabel";
 import { SettleDebt } from "@/features/payments/components/SettleDebt";
-import { useCurrentSubscription, type Subscription } from "@/features/subscriptions/api";
+import {
+  useCurrentSubscription,
+  useMemberSubscription,
+  type Subscription,
+} from "@/features/subscriptions/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatMoney, gymToday, toPersianDigits } from "@/lib/format";
@@ -32,12 +36,15 @@ import { daysUntil, expiringDaysThreshold, lowSessionsThreshold } from "../renew
 export function VisitSummary({
   memberId,
   attendanceId,
+  visitSubscriptionId = null,
   withSessions = true,
 }: {
   /** `null` for a guest. */
   memberId: string | null;
   /** The visit being closed, whose cafe purchases are listed; omitted at check-in. */
   attendanceId?: string;
+  /** The subscription the visit used, if any: see `SubscriptionLine`. */
+  visitSubscriptionId?: string | null;
   /** False where the caller already shows the sessions (the locker's box, with its bar). */
   withSessions?: boolean;
 }) {
@@ -47,7 +54,11 @@ export function VisitSummary({
 
   return (
     <div className="space-y-3">
-      <SubscriptionLine memberId={memberId} withSessions={withSessions} />
+      <SubscriptionLine
+        memberId={memberId}
+        visitSubscriptionId={visitSubscriptionId}
+        withSessions={withSessions}
+      />
       {attendanceId !== undefined && <VisitPurchases attendanceId={attendanceId} />}
       <DebtBox memberId={memberId} itemized={attendanceId === undefined} />
     </div>
@@ -114,10 +125,27 @@ function byProduct(items: CafeOrderItem[]) {
   return [...lines.values()];
 }
 
-function SubscriptionLine({ memberId, withSessions }: { memberId: string; withSessions: boolean }) {
+/**
+ * The member's current subscription, the one the next visit will use. When this visit took the
+ * last session of its plan and a queued one is waiting, the current subscription is that queued
+ * one (`pickCurrentSubscription`), so the box would show a fresh "۶ از ۶" right after the plan ran
+ * out. The desk then reads both, labelled (decided with the developer, 1405/07/21): this visit was
+ * the plan's last session, and the box below is the next plan.
+ */
+function SubscriptionLine({
+  memberId,
+  visitSubscriptionId,
+  withSessions,
+}: {
+  memberId: string;
+  visitSubscriptionId: string | null;
+  withSessions: boolean;
+}) {
   const subscription = useCurrentSubscription(memberId);
+  const visitSubscription = useMemberSubscription(memberId, visitSubscriptionId);
 
-  if (subscription.isPending) {
+  // `isLoading`, not `isPending`: without a visit's subscription the query is off, and stays pending.
+  if (subscription.isPending || visitSubscription.isLoading) {
     return <LoadingState className="py-2">در حال بارگذاری اشتراک…</LoadingState>;
   }
   if (subscription.isError) {
@@ -128,23 +156,39 @@ function SubscriptionLine({ memberId, withSessions }: { memberId: string; withSe
   }
 
   const current = subscription.data;
+  const used = visitSubscription.data ?? null;
+  const usedUp =
+    used !== null &&
+    used.id !== current.id &&
+    !used.isSingleSession &&
+    Number(used.remainingSessions) === 0;
 
   return (
-    <dl className="grid grid-cols-2 gap-3 rounded-lg border p-3 text-sm">
-      <div>
-        <dt className="text-muted-foreground">پلن</dt>
-        <dd className="font-medium">{planLabel(current)}</dd>
-      </div>
-      <ValidityPeriod subscription={current} />
-      {withSessions && (
-        <div className="col-span-2">
-          <dt className="text-muted-foreground">جلسات باقی‌مانده</dt>
-          <dd className={cn("font-medium", isLow(current) && "text-destructive")}>
-            {sessionsLeft(current)}
-          </dd>
-        </div>
+    <div className="space-y-3">
+      {usedUp && withSessions && (
+        <Alert role="status" className="border-warning/40 font-medium text-warning-ink">
+          این ورود آخرین جلسهٔ اشتراک «{planLabel(used)}» بود؛ ۰ جلسه مانده.
+        </Alert>
       )}
-    </dl>
+      <div className="space-y-2 rounded-lg border p-3 text-sm">
+        {usedUp && <p className="font-medium">اشتراک بعدی (در صف)</p>}
+        <dl className="grid grid-cols-2 gap-3">
+          <div>
+            <dt className="text-muted-foreground">پلن</dt>
+            <dd className="font-medium">{planLabel(current)}</dd>
+          </div>
+          <ValidityPeriod subscription={current} />
+          {withSessions && (
+            <div className="col-span-2">
+              <dt className="text-muted-foreground">جلسات</dt>
+              <dd className={cn("font-medium", isLow(current) && "text-destructive")}>
+                {sessionsLeft(current)}
+              </dd>
+            </div>
+          )}
+        </dl>
+      </div>
+    </div>
   );
 }
 
@@ -200,7 +244,7 @@ function sessionsLeft(subscription: Subscription): string {
   if (subscription.isSingleSession) {
     return "تک‌جلسه‌ای";
   }
-  return `${toPersianDigits(subscription.remainingSessions)} از ${toPersianDigits(subscription.totalSessions)} جلسه`;
+  return `${toPersianDigits(subscription.remainingSessions)} از ${toPersianDigits(subscription.totalSessions)} مانده`;
 }
 
 /** The front desk board's threshold (BUSINESS_RULES.md §7), so both screens flag the same members. */

@@ -51,19 +51,34 @@ export function RenewSubscriptionForm({
   return (
     <div className="space-y-3 rounded-md border p-3">
       {error !== null && <Alert variant="destructive">{error}</Alert>}
-      <p className="text-sm text-muted-foreground">
-        {/* Renew skips single visits and sells the member's last plan (BUSINESS_RULES.md §4). */}
-        {current.isSingleSession
-          ? "آخرین پلن این عضو (بدون ورودهای تک‌جلسه‌ای)"
-          : `همان پلن «${planLabel(current)}»`}{" "}
-        با قیمت امروزِ هر جلسه تمدید می‌شود
-        {!current.isSingleSession && sessionPrice !== null
-          ? `: ${formatMoney(multiplyMoney(sessionPrice, Number(current.totalSessions)))}.`
-          : "."}{" "}
-        تاریخ شروع اشتراک تازه خودکار محاسبه می‌شود — اگر اشتراک فعلی این عضو هنوز جا دارد، پشت سر
-        آن قرار می‌گیرد؛ وگرنه از همین امروز شروع می‌شود. بعد از تأیید، تاریخ دقیق همین‌جا نشان داده
-        می‌شود.
-      </p>
+      {/* Three short lines rather than one paragraph (the UX review, 1405/07/21): what is sold,
+          what it costs, when it starts. The price is the line the desk reads out. */}
+      <dl className="space-y-1 text-sm">
+        <div className="flex flex-wrap gap-x-2">
+          <dt className="text-muted-foreground">پلن:</dt>
+          <dd className="font-medium">
+            {/* Renew skips single visits and sells the member's last plan (BUSINESS_RULES.md §4). */}
+            {current.isSingleSession
+              ? "آخرین پلن این عضو (بدون ورودهای تک‌جلسه‌ای)"
+              : `همان پلن «${planLabel(current)}»`}
+          </dd>
+        </div>
+        <div className="flex flex-wrap gap-x-2">
+          <dt className="text-muted-foreground">مبلغ:</dt>
+          <dd className="font-bold">
+            {!current.isSingleSession && sessionPrice !== null
+              ? formatMoney(multiplyMoney(sessionPrice, Number(current.totalSessions)))
+              : "با قیمت امروزِ هر جلسه"}
+          </dd>
+        </div>
+        <div className="flex flex-wrap gap-x-2">
+          <dt className="text-muted-foreground">شروع:</dt>
+          <dd>
+            بعد از اشتراک فعلی، اگر هنوز جا دارد؛ وگرنه از امروز. تاریخ دقیق بعد از تأیید همین‌جا
+            می‌آید.
+          </dd>
+        </div>
+      </dl>
       <div className="flex gap-2">
         <Button
           size="sm"

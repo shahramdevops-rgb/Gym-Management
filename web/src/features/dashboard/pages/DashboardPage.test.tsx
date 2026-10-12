@@ -171,14 +171,16 @@ describe("DashboardPage", () => {
     ]);
   });
 
-  it("DashboardPage_Sales_ComeFirstSplitIntoPaidAndOwed", async () => {
+  it("DashboardPage_NetProfitThenSales_ComeFirstSalesSplitIntoPaidAndOwed", async () => {
     mockApi(dashboard);
     renderApp("/dashboard", { session: session() });
 
     await screen.findByText("خلاصهٔ بازه");
     // 1405/07/14: «فروش» took «درآمد ناخالص»'s place, and «صندوق نقدی» is gone.
+    // 1405/07/21: «سود خالص» moved before it, where the eye starts (the UX review).
     const terms = screen.getAllByRole("term").map((term) => term.textContent);
-    expect(terms.slice(0, 8)).toEqual([
+    expect(terms.slice(0, 9)).toEqual([
+      "سود خالص",
       "فروش (به غیر از آنالیز، فروشگاه و متفرقه)",
       "دریافتی",
       "دریافتی آنالیز و فروشگاه",

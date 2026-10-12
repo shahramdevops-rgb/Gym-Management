@@ -9,6 +9,8 @@ import { usePrices } from "@/features/settings/api";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/format";
 
+import { singleClick } from "../singleClick";
+
 interface SaleAtCheckInOfferProps {
   memberId: string;
   /** Whether a plan sold now would start today (`canSellPlanForToday`). */
@@ -60,7 +62,7 @@ export function SaleAtCheckInOffer({
 
       <div className="flex flex-wrap gap-2">
         {price !== null && (
-          <Button disabled={selling} onClick={onSellSingleVisit}>
+          <Button disabled={selling} onClick={singleClick(onSellSingleVisit)}>
             {selling ? "در حال ثبت…" : `ورود تک‌جلسه‌ای — ${formatMoney(price)}`}
           </Button>
         )}

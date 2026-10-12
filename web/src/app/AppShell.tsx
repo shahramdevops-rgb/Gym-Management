@@ -124,12 +124,12 @@ export function AppShell() {
             <Button
               variant="ghost"
               size="sm"
-              aria-label="خروج"
+              aria-label="خروج از حساب"
               onClick={() => void signOut()}
               disabled={logout.isPending}
             >
               <LogOut aria-hidden />
-              <span className="hidden sm:inline">خروج</span>
+              <span className="hidden sm:inline">خروج از حساب</span>
             </Button>
           </div>
         </header>
@@ -213,7 +213,7 @@ function SideMenu({
         </span>
         <div className="min-w-0 leading-tight">
           <h1 className="text-sm font-extrabold">مدیریت باشگاه</h1>
-          <p className="text-[0.7rem] text-muted-foreground">باشگاه پاسارگاد</p>
+          <p className="text-xs text-muted-foreground">باشگاه پاسارگاد</p>
         </div>
         {close}
       </div>
@@ -231,10 +231,7 @@ function SideMenu({
           >
             <p
               id={`nav-group-${index}`}
-              className={cn(
-                "flex items-center gap-1.5 px-3 text-[0.7rem] leading-5 font-bold short:leading-4",
-                group.tone === undefined ? "text-muted-foreground/80" : "text-muted-foreground",
-              )}
+              className="flex items-center gap-1.5 px-3 text-xs leading-5 font-bold text-muted-foreground short:leading-4"
             >
               {group.tone !== undefined && (
                 <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current tone-line" />

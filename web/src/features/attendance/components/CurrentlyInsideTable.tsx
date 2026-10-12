@@ -118,7 +118,6 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                 ) : (
                   <SessionsBar
                     total={row.totalSessions ?? 0}
-                    used={row.usedSessions ?? 0}
                     remaining={row.remainingSessions ?? 0}
                     lowThreshold={lowSessionsThreshold}
                   />

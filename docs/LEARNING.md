@@ -1846,3 +1846,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **Wrap `register` instead of controlling the field.** `withPersianDigits` keeps the box uncontrolled (React Hook Form still reads it through its ref) and only rewrites `event.target.value` before passing the event on. A `Controller` with its own state would have worked too, at the cost of a re-render per key and more code in five forms.
 - **Setting `value` moves the caret.** Assigning to an input's `value` puts the caret at the end, so a digit typed in the middle would make it jump. A Persian digit is one character like an English one, so the old `selectionStart`/`selectionEnd` are still right and `setSelectionRange` puts them back.
 - **My notes:**
+
+## UX review fixes — Twelve things found by using the app (ایرادهای بررسی UI و UX)
+
+- **A review by doing, not by looking.** Timing one check-in step by step found what screenshots could not: the box asked to confirm before saying the plan was used up, and the buttons of three steps sat under one spot of the mouse. Measuring (contrast ratios, font sizes, clicks) turns "looks fine" into numbers to fix.
+- **`event.detail` counts the clicks.** A click event carries how many clicks in a row it is (1, 2, 3); Enter and Space give 0. Dropping clicks above 1 stops a double click from carrying into the next step without slowing a deliberate click, and without disabling buttons, which would have broken every test that clicks right away.
+- **`select` in TanStack Query.** One fetch can serve several views: `useMemberSubscription` fetches the member's plans once and `select` picks one by id. A query that is turned off (`enabled: false`) stays `pending`, so "is it loading?" is `isLoading`, not `isPending`.
+- **Contrast is a ratio you can compute.** WCAG asks 4.5:1 for normal text. Mixing a light colour towards the text colour (`color-mix` in oklab) keeps its hue while making it readable on white; the dark theme needs no mix.
+- **One number, one meaning.** «۴ از ۱۲» meant used on one screen and remaining on another. Changing the shared `SessionsBar` fixed most screens at once, which is why it was shared.
+- **My notes:**

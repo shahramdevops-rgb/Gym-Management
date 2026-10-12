@@ -99,6 +99,10 @@
      colours. Bright enough for both palettes, so the dark one does not redefine them. */
   --party-pink: oklch(0.72 0.19 350);
   --party-gold: oklch(0.86 0.16 90);
+  /* The pink as text on white (the UX review, 1405/07/21): on its own about 2.6:1, so it is mixed
+     towards the ink further than the states above, the pink being lighter. The dark palette keeps
+     the pink itself. */
+  --party-pink-ink: color-mix(in oklab, var(--party-pink) 60%, var(--foreground));
   --party-mint: oklch(0.8 0.15 165);
   --party-sky: oklch(0.76 0.13 235);
   --party-violet: oklch(0.7 0.17 300);
@@ -167,6 +171,7 @@
   --warning-foreground: oklch(0.2 0.02 70);
   --success-ink: var(--success);
   --warning-ink: var(--warning);
+  --party-pink-ink: var(--party-pink);
   --tone-edge-share: 72%;
   --border: oklch(0.29 0.01 268);
   --input: oklch(0.34 0.012 268);
@@ -544,6 +549,7 @@
   --color-door-use: var(--door-use);
   --color-door-unused: var(--door-unused);
   --color-party-pink: var(--party-pink);
+  --color-party-pink-ink: var(--party-pink-ink);
   --color-party-gold: var(--party-gold);
   --color-party-mint: var(--party-mint);
   --color-party-sky: var(--party-sky);

@@ -105,8 +105,8 @@ describe("CurrentlyInsidePage", () => {
     renderApp("/attendance", { session: session() });
 
     const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
-    expect(within(row).getByText("۴ از ۱۲")).toBeInTheDocument();
-    expect(within(row).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "4");
+    expect(within(row).getByText("۸ از ۱۲ مانده")).toBeInTheDocument();
+    expect(within(row).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "8");
   });
 
   /** BUSINESS_RULES.md §7: three or fewer sessions left is the desk's cue to mention renewing. */
@@ -127,7 +127,7 @@ describe("CurrentlyInsidePage", () => {
     renderApp("/attendance", { session: session() });
 
     const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
-    expect(within(row).getByText("۹ از ۱۲")).toHaveClass("text-warning-ink");
+    expect(within(row).getByText("۳ از ۱۲ مانده")).toHaveClass("text-warning-ink");
   });
 
   /** BUSINESS_RULES.md §7: within five days of expiry, and how many days are left. */

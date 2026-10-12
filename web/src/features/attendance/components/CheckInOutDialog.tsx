@@ -29,6 +29,8 @@ export interface DeskVisit {
   attendanceId: string;
   /** `null` when the visit holds a reserve place (or, before 6.5.5, no locker): no key to take back. */
   lockerNumber: number | string | null;
+  /** The subscription the visit used, where the caller knows it: see `VisitSummary`. */
+  subscriptionId?: string | null;
 }
 
 /**
@@ -138,7 +140,11 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
                     onReturnedChange={setKeyReturned}
                   />
                 )}
-                <VisitSummary memberId={member.id} attendanceId={visit.attendanceId} />
+                <VisitSummary
+                  memberId={member.id}
+                  attendanceId={visit.attendanceId}
+                  visitSubscriptionId={visit.subscriptionId ?? null}
+                />
                 <ConfirmButtons
                   label="بله، خروج ثبت شود"
                   pending={checkOut.isPending}
@@ -197,7 +203,11 @@ export function CheckInOutDialog({ action, onClose }: CheckInOutDialogProps) {
               </Alert>
             )}
             {/* Again after leaving: this is the last moment to collect what is owed. */}
-            <VisitSummary memberId={member.id} attendanceId={visit?.attendanceId} />
+            <VisitSummary
+              memberId={member.id}
+              attendanceId={visit?.attendanceId}
+              visitSubscriptionId={visit?.subscriptionId ?? null}
+            />
             <CloseButton onClose={onClose} />
           </>
         )}

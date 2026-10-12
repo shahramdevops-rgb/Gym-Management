@@ -15,6 +15,7 @@ export const subscriptionKeys = {
   memberList: (memberId: string, page: number) =>
     [...subscriptionKeys.all, "memberList", memberId, page] as const,
   current: (memberId: string) => [...subscriptionKeys.all, "current", memberId] as const,
+  lookback: (memberId: string) => [...subscriptionKeys.all, "lookback", memberId] as const,
 };
 
 async function fetchMemberSubscriptions(memberId: string, page: number, pageSize: number) {
@@ -90,6 +91,21 @@ export function useCurrentSubscription(memberId: string) {
       const page = await fetchMemberSubscriptions(memberId, 1, currentSubscriptionLookback);
       return pickCurrentSubscription(page.items);
     },
+  });
+}
+
+/**
+ * One subscription of the member, by id, from the same lookback as the current card: the one a
+ * visit used, which is no longer the current one once that visit took its last session and a
+ * queued plan is waiting. `null` while the id is `null` or when it is not in the lookback.
+ */
+export function useMemberSubscription(memberId: string, subscriptionId: string | null) {
+  return useQuery({
+    queryKey: subscriptionKeys.lookback(memberId),
+    enabled: subscriptionId !== null,
+    queryFn: async () =>
+      (await fetchMemberSubscriptions(memberId, 1, currentSubscriptionLookback)).items,
+    select: (items) => items.find((item) => item.id === subscriptionId) ?? null,
   });
 }
 

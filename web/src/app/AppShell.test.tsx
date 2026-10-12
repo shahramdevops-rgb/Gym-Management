@@ -257,7 +257,7 @@ describe("AppShell", () => {
     });
 
     renderApp("/", { session: session() });
-    fireEvent.click(screen.getByRole("button", { name: "خروج" }));
+    fireEvent.click(screen.getByRole("button", { name: "خروج از حساب" }));
 
     expect(await screen.findByRole("button", { name: "ورود" })).toBeInTheDocument();
     expect(api.requestsTo("POST", "/api/auth/logout")).toHaveLength(1);

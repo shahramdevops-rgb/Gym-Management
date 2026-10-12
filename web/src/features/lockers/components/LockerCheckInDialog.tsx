@@ -1,5 +1,5 @@
 import { CheckCircle2, Footprints, History, Search, UserPlus, UserRound } from "lucide-react";
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +31,10 @@ import type { PlanChoice } from "@/features/subscriptions/components/PlanForm";
 import { MemberForm } from "@/features/members/components/MemberForm";
 import { searchMinLength } from "@/features/members/schemas";
 import { memberDraftFromSearch } from "@/features/members/searchDraft";
+import { stateEdge } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
-import { formatPhone, toPersianDigits } from "@/lib/format";
+import { formatMoney, formatPhone, toPersianDigits } from "@/lib/format";
+import { isPositiveMoney } from "@/lib/money";
 import { normalizeInput } from "@/lib/normalize";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 import { cn } from "@/lib/utils";
@@ -430,7 +432,10 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               step.attendance.unfrozenDays !== null && (
                 <Alert role="status">{unfrozenNotice(Number(step.attendance.unfrozenDays))}</Alert>
               )}
-            <VisitSummary memberId={step.member.id} />
+            <VisitSummary
+              memberId={step.member.id}
+              visitSubscriptionId={step.attendance.subscriptionId ?? null}
+            />
             <CloseButton onClose={onClose} />
           </>
         )}
@@ -529,6 +534,14 @@ function unfrozenNotice(days: number): string {
 /**
  * One box for a name or a mobile number, as on the search screen, with the matches listed below
  * it. A member already inside is marked with their locker and cannot be chosen.
+ *
+ * Each match also says what the check-in will meet (asked by the developer, 1405/07/21): what the
+ * member owes and a plan that is over or missing, so the desk knows before choosing rather than
+ * after confirming. Only what the list already returns; the API still decides at check-in.
+ *
+ * The keyboard can do the whole search: ↓ and ↑ move through the matches and Enter chooses the
+ * marked one, or the only one. Choosing only opens the confirmation, which Enter never presses
+ * (see the dialog's `onOpenAutoFocus`), so a held Enter still confirms nothing.
  */
 function MemberSearch({
   onChoose,
@@ -539,14 +552,16 @@ function MemberSearch({
 }) {
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
+  const [marked, setMarked] = useState(-1);
   const [insideError, setInsideError] = useState<string | null>(null);
-  const debouncedSearch = useDebouncedCallback(
-    (value: string) => setSearch(normalizeInput(value)),
-    searchDelayMs,
-  );
+  const debouncedSearch = useDebouncedCallback((value: string) => {
+    setSearch(normalizeInput(value));
+    setMarked(-1);
+  }, searchDelayMs);
 
   const ready = search.length >= searchMinLength;
   const results = useMemberList({ search, page: 1 }, { enabled: ready });
+  const shown = ready && results.isSuccess ? results.data.items.slice(0, shownMatches) : [];
 
   function choose(member: Member) {
     const visit = member.currentVisit ?? null;
@@ -556,6 +571,23 @@ function MemberSearch({
       return;
     }
     onChoose(member);
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (shown.length === 0) {
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      setMarked((index) => (index + step + shown.length) % shown.length);
+    } else if (event.key === "Enter" && !event.repeat) {
+      const member = marked >= 0 ? shown[marked] : shown.length === 1 ? shown[0] : undefined;
+      if (member !== undefined) {
+        event.preventDefault();
+        choose(member);
+      }
+    }
   }
 
   return (
@@ -571,6 +603,7 @@ function MemberSearch({
           placeholder="نام یا شماره موبایل عضو…"
           className="h-11 ps-9 text-base"
           autoFocus
+          onKeyDown={onKeyDown}
           value={text}
           onChange={(event) => {
             setText(event.target.value);
@@ -600,16 +633,22 @@ function MemberSearch({
           </Button>
         </div>
       )}
-      {ready && results.isSuccess && results.data.items.length > 0 && (
+      {shown.length > 0 && (
         <ul className="divide-y rounded-md border" aria-label="اعضای پیدا شده">
-          {results.data.items.slice(0, shownMatches).map((found) => {
+          {shown.map((found, index) => {
             const visit = found.currentVisit ?? null;
 
             return (
               <li key={found.id}>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-start hover:bg-accent"
+                  // Out of the tab order: the box's ↓ and ↑ move through the matches instead.
+                  tabIndex={-1}
+                  aria-current={index === marked ? "true" : undefined}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-3 px-3 py-2 text-start hover:bg-accent",
+                    index === marked && "bg-accent",
+                  )}
                   onClick={() => choose(found)}
                 >
                   <span className="flex flex-wrap items-center gap-2">
@@ -618,6 +657,7 @@ function MemberSearch({
                       <Badge variant="secondary">داخل باشگاه — {placeOf(visit)}</Badge>
                     )}
                     {!found.isActive && <Badge variant="secondary">غیرفعال</Badge>}
+                    {visit === null && <CheckInHints member={found} />}
                   </span>
                   <span
                     className="text-sm text-muted-foreground max-lg:shrink-0 max-lg:whitespace-nowrap"
@@ -632,6 +672,36 @@ function MemberSearch({
         </ul>
       )}
     </div>
+  );
+}
+
+/**
+ * What a match will meet at check-in, read from the member list: what they owe, and a plan that is
+ * over (BUSINESS_RULES.md §2 «پلن تمام‌شده») or one with no sessions left. A hint, not a verdict:
+ * the API decides, and a queued plan or a single visit for today may still let them in.
+ */
+function CheckInHints({ member }: { member: Member }) {
+  const plan = member.plan ?? null;
+  const noSessionsLeft = plan !== null && !member.planEnded && Number(plan.remainingSessions) === 0;
+
+  return (
+    <>
+      {member.planEnded && (
+        <Badge variant="ghost" className={stateEdge.warning}>
+          پلن تمام‌شده
+        </Badge>
+      )}
+      {noSessionsLeft && (
+        <Badge variant="ghost" className={stateEdge.warning}>
+          جلسات تمام
+        </Badge>
+      )}
+      {isPositiveMoney(member.debt) && (
+        <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
+          بدهی {formatMoney(member.debt)}
+        </Badge>
+      )}
+    </>
   );
 }
 

@@ -84,8 +84,8 @@ describe("MembersPage", () => {
     renderApp("/members", { session: session() });
 
     const rezaRow = (await screen.findByRole("link", { name: "رضا احمدی" })).closest("tr")!;
-    expect(within(rezaRow).getByText("۴ از ۱۲")).toBeInTheDocument();
-    expect(within(rezaRow).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "4");
+    expect(within(rezaRow).getByText("۸ از ۱۲ مانده")).toBeInTheDocument();
+    expect(within(rezaRow).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "8");
     const aliRow = screen.getByRole("link", { name: "علی رضایی" }).closest("tr")!;
     expect(within(aliRow).queryByRole("progressbar")).not.toBeInTheDocument();
   });
@@ -457,7 +457,7 @@ describe("MembersPage", () => {
     const row = await rezaRow();
 
     expect(within(row).getByText("داخل باشگاه — کمد ۱۰")).toBeInTheDocument();
-    expect(within(row).getByRole("button", { name: "خروج" })).toBeEnabled();
+    expect(within(row).getByRole("button", { name: "ثبت خروج" })).toBeEnabled();
     // Check-in happens only on the locker map, where the locker is chosen.
     expect(within(row).queryByRole("button", { name: "ورود" })).not.toBeInTheDocument();
   });
@@ -472,7 +472,7 @@ describe("MembersPage", () => {
     );
     renderApp("/members", { session: session() });
 
-    fireEvent.click(within(await rezaRow()).getByRole("button", { name: "خروج" }));
+    fireEvent.click(within(await rezaRow()).getByRole("button", { name: "ثبت خروج" }));
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("آیا از ثبت خروج رضا احمدی مطمئن هستید؟");
     fireEvent.click(within(dialog).getByLabelText("کلید کمد شماره ۱۰ را تحویل گرفتم"));
@@ -488,7 +488,7 @@ describe("MembersPage", () => {
     const api = mockApi(deskHandlers());
     renderApp("/members", { session: session() });
 
-    fireEvent.click(within(await rezaRow()).getByRole("button", { name: "خروج" }));
+    fireEvent.click(within(await rezaRow()).getByRole("button", { name: "ثبت خروج" }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "انصراف" }));
 

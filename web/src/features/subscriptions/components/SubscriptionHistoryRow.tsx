@@ -121,10 +121,11 @@ export function SubscriptionHistoryRow({
             <TableCell label="پایان">{formatDate(subscription.endDate)}</TableCell>
           </>
         )}
+        {/* Remaining of total, as everywhere a session count is shown (see `SessionsBar`). */}
         <TableCell
           label="جلسات"
           className="whitespace-nowrap"
-        >{`${formatNumber(Number(subscription.usedSessions))} / ${formatNumber(Number(subscription.totalSessions))}`}</TableCell>
+        >{`${formatNumber(Number(subscription.remainingSessions))} از ${formatNumber(Number(subscription.totalSessions))} مانده`}</TableCell>
         <TableCell label="وضعیت">
           <SubscriptionStatusBadge status={subscription.status} />
         </TableCell>

@@ -370,7 +370,7 @@ function LockerDoor({
         {holder !== null && (
           <span
             dir="rtl"
-            className="hidden w-full text-center text-[11px] leading-tight text-muted-foreground break-words @min-[3.5rem]:line-clamp-2"
+            className="hidden w-full text-center text-xs leading-tight text-muted-foreground break-words @min-[3.5rem]:line-clamp-2"
           >
             {holder}
           </span>

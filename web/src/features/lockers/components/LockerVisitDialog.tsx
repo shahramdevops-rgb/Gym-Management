@@ -123,7 +123,11 @@ export function LockerVisitDialog({
               onDeskAction({
                 kind: "checkOut",
                 member,
-                visit: { attendanceId: visit.attendanceId, lockerNumber: visit.lockerNumber },
+                visit: {
+                  attendanceId: visit.attendanceId,
+                  lockerNumber: visit.lockerNumber,
+                  subscriptionId: visit.subscriptionId ?? null,
+                },
               })
             }
             onMove={() => setStep({ kind: "pick" })}
@@ -223,6 +227,7 @@ export function LockerVisitDialog({
             <VisitSummary
               memberId={memberId}
               attendanceId={visit.attendanceId}
+              visitSubscriptionId={visit.subscriptionId ?? null}
               withSessions={false}
             />
 
@@ -239,7 +244,11 @@ export function LockerVisitDialog({
                   onDeskAction({
                     kind: "checkOut",
                     member,
-                    visit: { attendanceId: visit.attendanceId, lockerNumber: visit.lockerNumber },
+                    visit: {
+                      attendanceId: visit.attendanceId,
+                      lockerNumber: visit.lockerNumber,
+                      subscriptionId: visit.subscriptionId ?? null,
+                    },
                   })
                 }
               >
@@ -499,8 +508,7 @@ function GuestView({
 }
 
 /**
- * The visit's sessions, used of total over a bar, and how many that leaves: the one count the desk
- * reads at the door. A single visit has nothing to count, and a cardio-only visit by a member with
+ * The visit's sessions, remaining of total over a bar: the one count the desk reads at the door. A single visit has nothing to count, and a cardio-only visit by a member with
  * no plan has nothing at all (BUSINESS_RULES.md §7 *Cardio-only visit*).
  */
 function VisitSessions({ visit }: { visit: CurrentlyInside }) {
@@ -512,18 +520,12 @@ function VisitSessions({ visit }: { visit: CurrentlyInside }) {
       ) : visit.isSingleSession ? (
         <p className="font-medium">تک‌جلسه‌ای</p>
       ) : (
-        <>
-          <SessionsBar
-            className="w-full"
-            total={visit.totalSessions ?? 0}
-            used={visit.usedSessions ?? 0}
-            remaining={visit.remainingSessions ?? 0}
-            lowThreshold={lowSessionsThreshold}
-          />
-          <p className="text-xs text-muted-foreground">
-            {toPersianDigits(visit.remainingSessions ?? 0)} جلسه مانده
-          </p>
-        </>
+        <SessionsBar
+          className="w-full"
+          total={visit.totalSessions ?? 0}
+          remaining={visit.remainingSessions ?? 0}
+          lowThreshold={lowSessionsThreshold}
+        />
       )}
     </section>
   );

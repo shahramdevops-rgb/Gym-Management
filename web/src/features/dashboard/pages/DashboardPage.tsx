@@ -198,6 +198,21 @@ export function DashboardPage() {
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {financial.isSuccess && (
               <>
+                {/* First, where the eye starts (the UX review, 1405/07/21): the one figure the Owner
+                    reads before the others. */}
+                <StatCard
+                  label="سود خالص"
+                  tone="green"
+                  icon={TrendingUp}
+                  value={formatMoney(financial.data.current.netProfit)}
+                  outcome={outcomeOf(financial.data.current.netProfit)}
+                  hint="درآمد به غیر از آنالیز، فروشگاه و متفرقه، منهای همهٔ هزینه‌ها"
+                  comparison={{
+                    current: financial.data.current.netProfit,
+                    previous: financial.data.previous.netProfit,
+                    previousLabel: formatMoney(financial.data.previous.netProfit),
+                  }}
+                />
                 <StatCard
                   label={salesLabel}
                   icon={ShoppingBag}
@@ -258,19 +273,6 @@ export function DashboardPage() {
                     previous: financial.data.previous.expenses,
                     previousLabel: formatMoney(financial.data.previous.expenses),
                     higherIsBetter: false,
-                  }}
-                />
-                <StatCard
-                  label="سود خالص"
-                  tone="green"
-                  icon={TrendingUp}
-                  value={formatMoney(financial.data.current.netProfit)}
-                  outcome={outcomeOf(financial.data.current.netProfit)}
-                  hint="درآمد به غیر از آنالیز، فروشگاه و متفرقه، منهای همهٔ هزینه‌ها"
-                  comparison={{
-                    current: financial.data.current.netProfit,
-                    previous: financial.data.previous.netProfit,
-                    previousLabel: formatMoney(financial.data.previous.netProfit),
                   }}
                 />
               </>

@@ -58,7 +58,11 @@ export function CurrentlyInsidePage() {
                   desk.open({
                     kind: "checkOut",
                     member: holderOf(row),
-                    visit: { attendanceId: row.attendanceId, lockerNumber: row.lockerNumber },
+                    visit: {
+                      attendanceId: row.attendanceId,
+                      lockerNumber: row.lockerNumber,
+                      subscriptionId: row.subscriptionId ?? null,
+                    },
                   })
                 }
                 onCancel={(row) =>

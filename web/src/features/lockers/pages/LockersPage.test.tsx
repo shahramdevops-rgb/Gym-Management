@@ -40,7 +40,8 @@ import {
 } from "@/test/members";
 import { renderApp } from "@/test/renderApp";
 import { pricesResponse } from "@/test/prices";
-import { activeSubscription, subscriptionsPage } from "@/test/subscriptions";
+import { activeSubscription, queuedRenewal, subscriptionsPage } from "@/test/subscriptions";
+import { formatMoney } from "@/lib/format";
 
 // Every test signs in as Staff: the map is the desk's screen, the same for both roles, and nothing
 // on it is Owner-only (BUSINESS_RULES.md §6). A test passing here is a test that Staff can do it.
@@ -405,6 +406,156 @@ describe("LockersPage", () => {
     const requests = api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`);
     expect(requests).toHaveLength(1);
     expect(await requests[0]!.clone().json()).toEqual({ lockerId: lockerId(12) });
+  });
+
+  it("Search_MembersWhoOweOrHaveNothingLeft_SaySoBeforeOneIsChosen", async () => {
+    mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () =>
+          membersPage([
+            {
+              ...reza,
+              debt: 65000,
+              plan: { totalSessions: 5, usedSessions: 5, remainingSessions: 0 },
+            },
+            { ...ali, isActive: true, planEnded: true },
+          ]),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await search(dialog, "رضا");
+
+    const rezaMatch = await within(dialog).findByRole("button", { name: /رضا احمدی/ });
+    expect(rezaMatch).toHaveTextContent("جلسات تمام");
+    expect(rezaMatch).toHaveTextContent(`بدهی ${formatMoney(65000)}`);
+    const aliMatch = within(dialog).getByRole("button", { name: /علی رضایی/ });
+    expect(aliMatch).toHaveTextContent("پلن تمام‌شده");
+    expect(aliMatch).not.toHaveTextContent("بدهی");
+  });
+
+  it("Search_ArrowsAndEnter_ChooseTheMarkedMemberWithoutConfirming", async () => {
+    const api = mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza, { ...ali, isActive: true }]),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await search(dialog, "رضا");
+    await within(dialog).findByRole("button", { name: /علی رضایی/ });
+    const box = within(dialog).getByRole("searchbox", { name: "نام یا شماره موبایل" });
+
+    fireEvent.keyDown(box, { key: "ArrowDown" });
+    fireEvent.keyDown(box, { key: "ArrowDown" });
+    expect(within(dialog).getByRole("button", { name: /علی رضایی/ })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    fireEvent.keyDown(box, { key: "Enter" });
+
+    await waitFor(() =>
+      expect(dialog).toHaveTextContent("آیا از ثبت ورود علی رضایی با کمد شماره ۱۲ مطمئن هستید؟"),
+    );
+    // Enter only chose: the confirmation is still the desk's to press.
+    expect(api.requestsTo("POST", `/api/members/${ali.id}/attendance/check-in`)).toHaveLength(0);
+  });
+
+  it("Search_EnterWithOneMatch_ChoosesIt", async () => {
+    mockApi(mapHandlers(allLockers(), [], { "GET /api/members": () => membersPage([reza]) }));
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await search(dialog, "رضا");
+    await within(dialog).findByRole("button", { name: /رضا احمدی/ });
+    fireEvent.keyDown(within(dialog).getByRole("searchbox", { name: "نام یا شماره موبایل" }), {
+      key: "Enter",
+    });
+
+    expect(await within(dialog).findByRole("button", { name: "بله، ورود ثبت شود" })).toBeEnabled();
+  });
+
+  it("Confirm_SecondClickOfADoubleClick_SendsNothing", async () => {
+    const api = mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza]),
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+          json(201, { ...openVisit(reza.id), lockerId: lockerId(12), lockerNumber: 12 }),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await search(dialog, "رضا");
+    fireEvent.click(await within(dialog).findByRole("button", { name: /رضا احمدی/ }));
+    const confirm = await within(dialog).findByRole("button", { name: "بله، ورود ثبت شود" });
+
+    // The second click of a double click on the member lands where the confirmation now is.
+    fireEvent.click(confirm, { detail: 2 });
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(0);
+
+    fireEvent.click(confirm, { detail: 1 });
+    expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/members/${reza.id}/attendance/check-in`)).toHaveLength(1);
+  });
+
+  it("CheckIn_TookThePlansLastSessionWithAPlanQueued_SaysSoAndLabelsTheNextPlan", async () => {
+    const usedUp = {
+      ...activeSubscription,
+      status: "Exhausted" as const,
+      usedSessions: 12,
+      remainingSessions: 0,
+    };
+    mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza]),
+        [`GET /api/members/${reza.id}/subscriptions`]: () =>
+          subscriptionsPage([queuedRenewal, usedUp]),
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+          json(201, {
+            ...openVisit(reza.id),
+            subscriptionId: usedUp.id,
+            lockerId: lockerId(12),
+            lockerNumber: 12,
+          }),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await chooseAndConfirm(dialog, "رضا احمدی");
+
+    expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
+    expect(
+      await within(dialog).findByText(/این ورود آخرین جلسهٔ اشتراک .* بود؛ ۰ جلسه مانده\./),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("اشتراک بعدی (در صف)")).toBeInTheDocument();
+    expect(within(dialog).getByText("۱۲ از ۱۲ مانده")).toBeInTheDocument();
+  });
+
+  it("CheckIn_PlanStillHasSessions_ShowsItWithoutTheNextPlansLabel", async () => {
+    mockApi(
+      mapHandlers(allLockers(), [], {
+        "GET /api/members": () => membersPage([reza]),
+        [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+          json(201, {
+            ...openVisit(reza.id),
+            subscriptionId: activeSubscription.id,
+            lockerId: lockerId(12),
+            lockerNumber: 12,
+          }),
+      }),
+    );
+    renderMap();
+
+    const dialog = await openFreeLocker("۱۲");
+    await chooseAndConfirm(dialog, "رضا احمدی");
+
+    expect(await within(dialog).findByText("۹ از ۱۲ مانده")).toBeInTheDocument();
+    expect(within(dialog).queryByText("اشتراک بعدی (در صف)")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/آخرین جلسه/)).not.toBeInTheDocument();
   });
 
   // ---- A free locker: who had it today ----
@@ -901,15 +1052,14 @@ describe("LockersPage", () => {
       const dialog = await openVisitBox();
 
       const sessions = within(dialog).getByRole("region", { name: "جلسات" });
-      expect(sessions).toHaveTextContent("۴ از ۱۲");
-      expect(sessions).toHaveTextContent("۸ جلسه مانده");
+      expect(sessions).toHaveTextContent("۸ از ۱۲ مانده");
       // activeSubscription runs from 1 September to 30 September 2026, both days included.
       expect(await within(dialog).findByText("۱۴۰۵/۰۶/۱۰ تا ۱۴۰۵/۰۷/۰۸")).toBeInTheDocument();
       expect(within(dialog).getByText("دوره اعتبار")).toBeInTheDocument();
       // Five days is the desk panel's renewal threshold, so it is marked the same way.
       expect(within(dialog).getByText("۵ روز مانده")).toHaveClass("text-destructive");
       // The header already shows the sessions; the plan box does not repeat them.
-      expect(within(dialog).queryByText("جلسات باقی‌مانده")).not.toBeInTheDocument();
+      expect(within(dialog).getAllByText(/از ۱۲ مانده/)).toHaveLength(1);
     });
   });
 

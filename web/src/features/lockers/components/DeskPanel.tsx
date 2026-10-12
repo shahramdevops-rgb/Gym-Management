@@ -72,7 +72,7 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
       {birthdays.length > 0 && (
         // A plain list, like the renewals: the party is drawn on the member's door, not here.
         <section aria-label="تولدت مبارک">
-          <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-bold text-party-pink">
+          <h3 className="mb-2 flex items-center gap-2 px-1 text-sm font-bold text-party-pink-ink">
             <Cake aria-hidden className="size-4" />
             تولدت مبارک
           </h3>
@@ -80,7 +80,7 @@ export function DeskPanel({ visits, onOpen, onHighlight }: DeskPanelProps) {
             {birthdays.map((visit) =>
               entry(
                 visit,
-                <span className="shrink-0 text-xs font-bold whitespace-nowrap text-party-pink">
+                <span className="shrink-0 text-xs font-bold whitespace-nowrap text-party-pink-ink">
                   امروز تولدشه
                 </span>,
               ),

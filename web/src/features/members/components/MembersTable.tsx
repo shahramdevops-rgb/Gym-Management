@@ -120,7 +120,7 @@ function DeskButtons({
 
   return (
     <div className="flex items-center justify-end gap-2">
-      {/* Green like «داخل باشگاه» in the history, and «خروج» like «ثبت خروج» on the board. */}
+      {/* Green like «داخل باشگاه» in the history, and «ثبت خروج» as on the board (not a bare «خروج», which is also signing out). */}
       <Badge variant="ghost" className={cn(stateEdge.success, "font-semibold")}>
         داخل باشگاه —{" "}
         {visit.lockerNumber === null ? "بدون کمد" : `کمد ${toPersianDigits(visit.lockerNumber)}`}
@@ -131,7 +131,7 @@ function DeskButtons({
         className={cn(stateEdge.success, "hover:bg-success/10 hover:text-success-ink")}
         onClick={() => onCheckOut(member)}
       >
-        خروج
+        ثبت خروج
       </Button>
     </div>
   );
@@ -150,7 +150,6 @@ function PlanSessions({ plan }: { plan: Member["plan"] }) {
   return (
     <SessionsBar
       total={plan.totalSessions}
-      used={plan.usedSessions}
       remaining={plan.remainingSessions}
       lowThreshold={lowSessionsThreshold}
       className="max-w-32"

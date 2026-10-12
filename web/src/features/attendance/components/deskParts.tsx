@@ -7,6 +7,8 @@ import { dialogActionsClassName } from "@/components/ui/dialogActions";
 import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { singleClick } from "../singleClick";
+
 /**
  * The place a visit was given, large enough to read from across the desk: the locker's number, or
  * that a reserve place was used because every locker was full (BUSINESS_RULES.md §6).
@@ -50,7 +52,7 @@ export function ConfirmButtons({
 }) {
   return (
     <div className={cn("flex flex-wrap gap-2", dialogActionsClassName)}>
-      <Button disabled={pending || disabled} onClick={onConfirm}>
+      <Button disabled={pending || disabled} onClick={singleClick(onConfirm)}>
         {pending ? "در حال ثبت…" : label}
       </Button>
       <Button variant="outline" disabled={pending} onClick={onCancel}>

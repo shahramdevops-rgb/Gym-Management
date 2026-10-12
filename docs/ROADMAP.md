@@ -2853,6 +2853,36 @@ only. The developer asked for all three, as suggested:
       characters left alone), the comma in `formatDateTime`, the receipt's «باشه». No package, no
       API change
 
+#### UX review fixes (asked by the developer, 1405/07/21)
+A review of the running app (the check-in timed step by step, a contrast and font-size scan of
+seven pages in both themes) found twelve things; the developer asked for all of them. Decided with
+the developer: the card after check-in shows both plans, labelled; a session count means
+*remaining* everywhere; the renew date stays the server's, only its text is tidied; «سود خالص»
+first on the dashboard.
+- [x] After a check-in that took the plan's last session while a plan is queued, the box said
+      «۶ از ۶» for the queued plan. It now says «این ورود آخرین جلسهٔ اشتراک … بود؛ ۰ جلسه مانده» and
+      labels the plan below «اشتراک بعدی (در صف)», in the check-in, the visit and the check-out
+      boxes (`useMemberSubscription` finds the visit's plan in the current card's lookback)
+- [x] The locker box's matches say what the check-in will meet: «بدهی …», «پلن تمام‌شده»,
+      «جلسات تمام», from what the member list already returns
+- [x] The second click of a double click (`detail` above 1) is dropped on the desk's confirm
+      buttons and the single-visit sale (`singleClick`): each step put its main button under the
+      last one, so a double click on a member could confirm, and a third could sell
+- [x] «X از Y» is «remaining of total, مانده» everywhere: `SessionsBar` (its bar now empties), the
+      subscription history, the visit box (its extra «… جلسه مانده» line went)
+- [x] ↓ ↑ and Enter in the locker box's search choose a member (Enter alone with one match).
+      Enter still never confirms, and the result box still closes only by hand (both decided
+      earlier, left as they were)
+- [x] The birthday pink as text: `--party-pink-ink`, 5.75:1 on white (was 2.58). Menu group
+      headings and the gym's name 11.2 → 12px, all at full muted contrast (5.24:1); the name on a
+      locker door 11 → 12px
+- [x] Dashboard: «سود خالص» is the first card
+- [x] Member debt card: «جزء به جزء» right beside the amount
+- [x] Renew: plan, amount (bold) and start on three short lines instead of one paragraph
+- [x] «خروج» on a member row is «ثبت خروج», as elsewhere; the header's is «خروج از حساب»
+- [x] Tests: the hints, the keys, the double click, both check-in cards; the session-count and
+      dashboard-order tests follow the new wording and order. No package, no API change
+
 ### 13.2 One visual language
 Split into four sessions with the developer on 1405/07/19 (2026-10-11), in this order: (a) the
 foundation and the frame, every page on the shared components; (b) the coloured dashboard; (c) the
