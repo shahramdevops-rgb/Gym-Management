@@ -508,7 +508,7 @@ function GuestView({
 }
 
 /**
- * The visit's sessions, remaining of total over a bar: the one count the desk reads at the door. A single visit has nothing to count, and a cardio-only visit by a member with
+ * The visit's sessions, used of total over a bar: the one count the desk reads at the door. A single visit has nothing to count, and a cardio-only visit by a member with
  * no plan has nothing at all (BUSINESS_RULES.md §7 *Cardio-only visit*).
  */
 function VisitSessions({ visit }: { visit: CurrentlyInside }) {
@@ -523,6 +523,7 @@ function VisitSessions({ visit }: { visit: CurrentlyInside }) {
         <SessionsBar
           className="w-full"
           total={visit.totalSessions ?? 0}
+          used={visit.usedSessions ?? 0}
           remaining={visit.remainingSessions ?? 0}
           lowThreshold={lowSessionsThreshold}
         />

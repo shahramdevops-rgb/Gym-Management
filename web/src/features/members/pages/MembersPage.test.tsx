@@ -84,8 +84,8 @@ describe("MembersPage", () => {
     renderApp("/members", { session: session() });
 
     const rezaRow = (await screen.findByRole("link", { name: "رضا احمدی" })).closest("tr")!;
-    expect(within(rezaRow).getByText("۸ از ۱۲ مانده")).toBeInTheDocument();
-    expect(within(rezaRow).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "8");
+    expect(within(rezaRow).getByText("۴ از ۱۲")).toBeInTheDocument();
+    expect(within(rezaRow).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "4");
     const aliRow = screen.getByRole("link", { name: "علی رضایی" }).closest("tr")!;
     expect(within(aliRow).queryByRole("progressbar")).not.toBeInTheDocument();
   });

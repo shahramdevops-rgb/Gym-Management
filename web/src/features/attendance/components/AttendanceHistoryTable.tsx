@@ -8,9 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
-import { stateEdge } from "@/lib/edges";
 import { emptyValue, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 import type { Attendance } from "../api";
 import { cardioOnlyLabel } from "../holder";
@@ -44,11 +42,7 @@ export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
               <span className="flex flex-wrap items-center gap-2">
                 <AttendanceStatusBadge item={item} />
                 {/* No session was consumed (BUSINESS_RULES.md §7 *Cardio-only visit*). */}
-                {item.isCardioOnly && (
-                  <Badge variant="outline" className="border-cardio">
-                    {cardioOnlyLabel}
-                  </Badge>
-                )}
+                {item.isCardioOnly && <Badge variant="cardio">{cardioOnlyLabel}</Badge>}
               </span>
             </TableCell>
           </TableRow>
@@ -90,26 +84,14 @@ function CardioCell({ item }: { item: Attendance }) {
  */
 function AttendanceStatusBadge({ item }: { item: Attendance }) {
   if (item.cancelledAt !== null) {
-    return <Badge variant="outline">لغو شده</Badge>;
+    return <Badge variant="destructive">لغو شده</Badge>;
   }
   if (item.autoClosedAt !== null) {
-    return (
-      <Badge variant="ghost" className={stateEdge.muted}>
-        بسته خودکار
-      </Badge>
-    );
+    return <Badge variant="secondary">بسته خودکار</Badge>;
   }
   if (item.checkedOutAt === null) {
-    return (
-      <Badge variant="ghost" className={cn(stateEdge.success, "font-semibold")}>
-        باز
-      </Badge>
-    );
+    return <Badge variant="success">باز</Badge>;
   }
 
-  return (
-    <Badge variant="ghost" className={stateEdge.muted}>
-      بسته
-    </Badge>
-  );
+  return <Badge variant="secondary">بسته</Badge>;
 }

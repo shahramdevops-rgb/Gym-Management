@@ -15,9 +15,7 @@ import {
 import { groupBySettlement, type SettlementSummary } from "@/features/payments/settlementGroups";
 import { serviceChargeLabel } from "@/features/serviceCharges/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
-import { stateEdge } from "@/lib/edges";
 import { emptyValue, formatDateTime, formatMoney } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 import { paymentSourceLabels, type HistoryPayment } from "../api";
 import { WhoCell } from "./WhoCell";
@@ -168,22 +166,20 @@ function PaidFor({ item }: { item: HistoryPayment }) {
     <span className="flex flex-wrap items-center gap-2">
       {paidForLabel(item)}
       {item.targetUndone && (
-        <Badge variant="outline">{item.source === "ServiceCharge" ? "ابطال شده" : "لغو شده"}</Badge>
+        <Badge variant="destructive">
+          {item.source === "ServiceCharge" ? "ابطال شده" : "لغو شده"}
+        </Badge>
       )}
     </span>
   );
 }
 
 /**
- * Edged like the payment status tags (asked by the developer, 13.2i): no fill, a faint frame and a
- * thick end edge, green for money in, red for money given back.
+ * Solid like every state tag: green for money in, red for money given back.
  */
 function KindBadge({ kind }: { kind: HistoryPayment["kind"] }) {
   return (
-    <Badge
-      variant="ghost"
-      className={cn(kind === "Refund" ? stateEdge.destructive : stateEdge.success, "font-semibold")}
-    >
+    <Badge variant={kind === "Refund" ? "destructive" : "success"}>
       {kind === "Refund" ? "استرداد" : "پرداخت"}
     </Badge>
   );

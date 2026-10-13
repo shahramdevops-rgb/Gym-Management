@@ -1854,4 +1854,5 @@ The question that started this was whether a gym that is entirely internal — I
 - **`select` in TanStack Query.** One fetch can serve several views: `useMemberSubscription` fetches the member's plans once and `select` picks one by id. A query that is turned off (`enabled: false`) stays `pending`, so "is it loading?" is `isLoading`, not `isPending`.
 - **Contrast is a ratio you can compute.** WCAG asks 4.5:1 for normal text. Mixing a light colour towards the text colour (`color-mix` in oklab) keeps its hue while making it readable on white; the dark theme needs no mix.
 - **One number, one meaning.** «۴ از ۱۲» meant used on one screen and remaining on another. Changing the shared `SessionsBar` fixed most screens at once, which is why it was shared.
+- **Follow-up: one formatter for one wording.** Going back to *used* («۴ از ۱۲») touched three screens, each with its own template string. `formatSessionsUsed` in `lib/format.ts` now owns the wording, so the next change happens in one place. The orange stays tied to what is *left* (§7's threshold), not to the number shown.
 - **My notes:**

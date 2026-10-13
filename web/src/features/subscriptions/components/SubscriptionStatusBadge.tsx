@@ -1,6 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { stateEdge } from "@/lib/edges";
-import { cn } from "@/lib/utils";
 
 import type { Subscription } from "../api";
 
@@ -14,24 +12,23 @@ const labels: Record<Subscription["status"], string> = {
 };
 
 /**
- * Edged like the other state tags (13.2j): green while it runs; amber once its sessions are used
- * up, like «پلن تمام‌شده» on the members' list; red when it was cancelled; grey for what waits,
- * is frozen or is simply over.
+ * Solid, like every state tag (asked by the developer, 1405/07/22; edged in 13.2j): green while it
+ * runs; amber once its sessions are used up, like «پلن تمام‌شده» on the members' list; red when it
+ * was cancelled; grey for what waits, is frozen or is simply over.
  */
-const classes: Record<Subscription["status"], string> = {
-  Active: cn(stateEdge.success, "font-semibold"),
-  Upcoming: stateEdge.muted,
-  Frozen: stateEdge.muted,
-  Expired: stateEdge.muted,
-  Exhausted: stateEdge.warning,
-  Cancelled: cn(stateEdge.destructive, "font-semibold"),
+const variants: Record<
+  Subscription["status"],
+  "success" | "secondary" | "warning" | "destructive"
+> = {
+  Active: "success",
+  Upcoming: "secondary",
+  Frozen: "secondary",
+  Expired: "secondary",
+  Exhausted: "warning",
+  Cancelled: "destructive",
 };
 
 /** BUSINESS_RULES.md §4: the subscription's calculated status. */
 export function SubscriptionStatusBadge({ status }: { status: Subscription["status"] }) {
-  return (
-    <Badge variant="ghost" className={classes[status]}>
-      {labels[status]}
-    </Badge>
-  );
+  return <Badge variant={variants[status]}>{labels[status]}</Badge>;
 }

@@ -54,7 +54,7 @@ export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[]
             <TableCell label="مبلغ">{formatMoney(item.amount)}</TableCell>
             <TableCell label="پرداخت">
               {item.voidedAt === null ? (
-                <PaymentStatusBadge status={item.paymentStatus} edged />
+                <PaymentStatusBadge status={item.paymentStatus} />
               ) : (
                 emptyValue
               )}
@@ -65,7 +65,7 @@ export function ServiceChargeLogTable({ items }: { items: HistoryServiceCharge[]
                 emptyValue
               ) : (
                 <div className="space-y-1">
-                  <Badge variant="outline">ابطال شده</Badge>
+                  <Badge variant="destructive">ابطال شده</Badge>
                   <p className="text-muted-foreground">
                     {item.voidReason}
                     {item.voidedByFullName !== null && ` — ${item.voidedByFullName}`}

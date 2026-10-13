@@ -1,4 +1,4 @@
-import { emptyValue, toPersianDigits } from "@/lib/format";
+import { emptyValue, formatSessionsUsed, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -9,6 +9,7 @@ type SessionCount = number | string | null | undefined;
 
 interface SessionsBarProps {
   total: SessionCount;
+  used: SessionCount;
   remaining: SessionCount;
   /** At or below this many sessions left, the bar asks for attention (BUSINESS_RULES.md §7). */
   lowThreshold: number;
@@ -26,19 +27,20 @@ function toCount(value: SessionCount): number | null {
 }
 
 /**
- * How much of a subscription is left, as "remaining of total" over a bar that empties as sessions
- * are used. Remaining, not used, everywhere a session count is shown (decided with the developer,
- * 1405/07/21): it is what the desk tells the member, and one "X از Y" meaning two things on two
- * screens was misread. Every subscription has a session count since task 6.5.6
- * (BUSINESS_RULES.md §3: there is no unlimited plan); a count that is missing anyway draws no bar
- * rather than one with an invented denominator.
+ * How much of a subscription is used, as "used/total" over a bar that fills as sessions are used.
+ * Used, the same way everywhere a session count is shown (decided with the developer, 1405/07/22,
+ * back from "remaining of total, مانده" of 1405/07/21); the bar still turns orange on what is left.
+ * Every subscription has a session count since task 6.5.6 (BUSINESS_RULES.md §3: there is no
+ * unlimited plan); a count that is missing anyway draws no bar rather than one with an invented
+ * denominator.
  *
  * Shared rather than local to attendance because Phase 9's dashboard shows the same thing, and a
  * second copy would drift from this one.
  */
-export function SessionsBar({ total, remaining, lowThreshold, className }: SessionsBarProps) {
+export function SessionsBar({ total, used, remaining, lowThreshold, className }: SessionsBarProps) {
   const totalCount = toCount(total);
   const remainingCount = toCount(remaining);
+  const usedCount = toCount(used) ?? 0;
 
   if (totalCount === null || remainingCount === null) {
     return <span className="text-muted-foreground">{emptyValue}</span>;
@@ -48,10 +50,8 @@ export function SessionsBar({ total, remaining, lowThreshold, className }: Sessi
   // A total of zero cannot happen (a limited plan has at least one session), but dividing by it
   // would render a NaN width rather than fail loudly, so it is handled rather than assumed.
   const percent =
-    totalCount > 0
-      ? Math.max(0, Math.min(100, Math.round((remainingCount / totalCount) * 100)))
-      : 0;
-  const text = `${toPersianDigits(remainingCount)} از ${toPersianDigits(totalCount)} مانده`;
+    totalCount > 0 ? Math.max(0, Math.min(100, Math.round((usedCount / totalCount) * 100))) : 0;
+  const text = formatSessionsUsed(usedCount, totalCount);
 
   return (
     <div className={cn("min-w-24 space-y-1", className)}>
@@ -62,8 +62,8 @@ export function SessionsBar({ total, remaining, lowThreshold, className }: Sessi
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={totalCount}
-        aria-valuenow={remainingCount}
-        aria-label={`${toPersianDigits(remainingCount)} جلسه از ${toPersianDigits(totalCount)} مانده`}
+        aria-valuenow={usedCount}
+        aria-label={`${toPersianDigits(usedCount)} جلسه از ${toPersianDigits(totalCount)} مصرف شده`}
         className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
       >
         <div

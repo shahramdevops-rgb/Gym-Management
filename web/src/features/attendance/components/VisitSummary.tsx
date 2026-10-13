@@ -12,7 +12,13 @@ import {
 } from "@/features/subscriptions/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
 import { errorMessage } from "@/lib/errors";
-import { formatDate, formatMoney, gymToday, toPersianDigits } from "@/lib/format";
+import {
+  formatDate,
+  formatMoney,
+  formatSessionsUsed,
+  gymToday,
+  toPersianDigits,
+} from "@/lib/format";
 import { addMoney, isPositiveMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -181,7 +187,7 @@ function SubscriptionLine({
           {withSessions && (
             <div className="col-span-2">
               <dt className="text-muted-foreground">جلسات</dt>
-              <dd className={cn("font-medium", isLow(current) && "text-destructive")}>
+              <dd className={cn("font-medium", isLow(current) && "text-warning-ink")}>
                 {sessionsLeft(current)}
               </dd>
             </div>
@@ -244,7 +250,7 @@ function sessionsLeft(subscription: Subscription): string {
   if (subscription.isSingleSession) {
     return "تک‌جلسه‌ای";
   }
-  return `${toPersianDigits(subscription.remainingSessions)} از ${toPersianDigits(subscription.totalSessions)} مانده`;
+  return formatSessionsUsed(subscription.usedSessions, subscription.totalSessions);
 }
 
 /** The front desk board's threshold (BUSINESS_RULES.md §7), so both screens flag the same members. */

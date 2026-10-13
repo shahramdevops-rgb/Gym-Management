@@ -28,7 +28,7 @@ export function WhoCell({ memberId, memberFullName, guestName }: WhoCellProps) {
     return (
       <span className="flex items-center gap-2">
         <span className="font-medium">{guestName}</span>
-        <Badge variant="outline">مهمان</Badge>
+        <Badge variant="guest">مهمان</Badge>
       </span>
     );
   }

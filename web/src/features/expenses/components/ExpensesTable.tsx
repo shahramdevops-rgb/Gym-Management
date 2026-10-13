@@ -101,16 +101,10 @@ function ExpenseRow({ expense, categories, onDone }: ExpenseRowProps) {
           {formatMoney(expense.amount)}
         </TableCell>
         <TableCell label="وضعیت">
-          {expense.payableId !== null && (
-            <Badge variant="ghost" className={stateEdge.muted}>
-              از چک و قسط
-            </Badge>
-          )}
+          {expense.payableId !== null && <Badge variant="secondary">از چک و قسط</Badge>}
           {expense.isVoided && (
             <div className="space-y-1">
-              <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
-                باطل شده
-              </Badge>
+              <Badge variant="destructive">باطل شده</Badge>
               <p className="text-xs">
                 {formatDateTime(expense.voidedAt)} — {expense.voidReason}
               </p>

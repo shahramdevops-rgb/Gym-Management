@@ -72,6 +72,14 @@ export function formatNumber(value: number | null | undefined): string {
   return numberFormatter.format(value);
 }
 
+/**
+ * A plan's session count, used of total: `4, 12` → `۴ از ۱۲`. The one wording for it on every screen
+ * (decided with the developer, 1405/07/22), so the bar, the visit box and the history agree.
+ */
+export function formatSessionsUsed(used: string | number, total: string | number): string {
+  return `${toPersianDigits(used)} از ${toPersianDigits(total)}`;
+}
+
 /** A share as a whole percent with Persian digits: `12.4` → `۱۲٪`. */
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {

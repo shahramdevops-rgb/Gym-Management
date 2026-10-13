@@ -40,7 +40,7 @@ export function LockerTodayHistory({ lockerId }: { lockerId: string }) {
               // A guest has no profile to open (BUSINESS_RULES.md §7 *Guest visit*).
               <>
                 <span className="font-medium">{visit.guestName}</span>
-                <Badge variant="outline">{guestLabel}</Badge>
+                <Badge variant="guest">{guestLabel}</Badge>
               </>
             ) : (
               <Link
@@ -50,13 +50,9 @@ export function LockerTodayHistory({ lockerId }: { lockerId: string }) {
                 {visit.memberFullName}
               </Link>
             )}
-            {visit.isCardioOnly && (
-              <Badge variant="outline" className="border-cardio">
-                {cardioOnlyLabel}
-              </Badge>
-            )}
+            {visit.isCardioOnly && <Badge variant="cardio">{cardioOnlyLabel}</Badge>}
             {visit.cancelledAt !== null && visit.cancelledAt !== undefined && (
-              <Badge variant="secondary">لغو شده</Badge>
+              <Badge variant="destructive">لغو شده</Badge>
             )}
           </span>
           <span className="text-sm text-muted-foreground">{visitTimes(visit)}</span>

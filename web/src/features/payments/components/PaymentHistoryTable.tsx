@@ -9,9 +9,7 @@ import {
 } from "@/components/ui/table";
 import { serviceChargeLabel } from "@/features/serviceCharges/api";
 import { planLabel } from "@/features/subscriptions/planLabel";
-import { stateEdge } from "@/lib/edges";
 import { formatDateTime, formatMoney } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 import { paymentMethodLabels, type PaymentHistoryItem } from "../api";
 import { groupBySettlement, type SettlementSummary } from "../settlementGroups";
@@ -135,13 +133,10 @@ function SettlementRows({
   );
 }
 
-/** Edged like the history's (13.2j): green for money in, red for money given back. */
+/** Solid like every state tag: green for money in, red for money given back. */
 function KindBadge({ kind }: { kind: PaymentHistoryItem["kind"] }) {
   return (
-    <Badge
-      variant="ghost"
-      className={cn(kind === "Refund" ? stateEdge.destructive : stateEdge.success, "font-semibold")}
-    >
+    <Badge variant={kind === "Refund" ? "destructive" : "success"}>
       {kind === "Refund" ? "استرداد" : "پرداخت"}
     </Badge>
   );

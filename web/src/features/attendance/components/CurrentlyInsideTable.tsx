@@ -94,7 +94,7 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                 </Link>
                 {/* No session came from the plan beside it (BUSINESS_RULES.md §7 *Cardio-only visit*). */}
                 {row.isCardioOnly && (
-                  <Badge variant="outline" className="ms-2 border-cardio">
+                  <Badge variant="cardio" className="ms-2">
                     {cardioOnlyLabel}
                   </Badge>
                 )}
@@ -118,6 +118,7 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                 ) : (
                   <SessionsBar
                     total={row.totalSessions ?? 0}
+                    used={row.usedSessions ?? 0}
                     remaining={row.remainingSessions ?? 0}
                     lowThreshold={lowSessionsThreshold}
                   />

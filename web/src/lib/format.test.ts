@@ -10,6 +10,7 @@ import {
   formatNumber,
   formatPercent,
   formatPhone,
+  formatSessionsUsed,
   formatTime,
   gymToday,
   isJalaliBirthday,
@@ -31,6 +32,12 @@ describe("toPersianDigits", () => {
 
   it("toPersianDigits_MixedText_LeavesNonDigitsAlone", () => {
     expect(toPersianDigits("جلسه 3 از 12")).toBe("جلسه ۳ از ۱۲");
+  });
+});
+
+describe("formatSessionsUsed", () => {
+  it("formatSessionsUsed_UsedAndTotal_ReturnsUsedOfTotalInPersianDigits", () => {
+    expect(formatSessionsUsed(4, "12")).toBe("۴ از ۱۲");
   });
 });
 

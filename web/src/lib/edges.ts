@@ -28,8 +28,8 @@ export const toneButton =
 export const toneAction = `h-10 ${toneButton}`;
 
 /**
- * A tag or a row's button in a state's colour, with the thick edge at its end, closing the row its
- * start edge opens: green for what is fine or moves on (paid, inside, check-out), red for what is
+ * A row's button in a state's colour, with the thick edge at its end, closing the row its start
+ * edge opens (tags are solid `Badge`s again since 1405/07/22, asked by the developer): green for what is fine or moves on (paid, inside, check-out), red for what is
  * owed or undone, amber for what needs attention soon, grey for what is over.
  */
 export const stateEdge = {

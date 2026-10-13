@@ -110,7 +110,7 @@ export function CurrentSubscriptionCard({ memberId }: { memberId: string }) {
 
             <dt className="text-muted-foreground">وضعیت پرداخت</dt>
             <dd className="flex flex-wrap items-center gap-2">
-              <PaymentStatusBadge status={current.paymentStatus} edged />
+              <PaymentStatusBadge status={current.paymentStatus} />
               <span className="text-muted-foreground">
                 {formatMoney(current.netPaid)} از {formatMoney(current.price)}
               </span>

@@ -132,18 +132,13 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
         <TableCell label="وضعیت">
           <div className="space-y-1">
             {payable.status === "Pending" && (
-              <Badge
-                variant="ghost"
-                className={overdue ? cn(stateEdge.destructive, "font-semibold") : stateEdge.warning}
-              >
+              <Badge variant={overdue ? "destructive" : "warning"}>
                 {overdue ? "سررسید گذشته" : payableStatusLabels.Pending}
               </Badge>
             )}
             {payable.status === "Paid" && (
               <>
-                <Badge variant="ghost" className={stateEdge.success}>
-                  {paidLabel(payable.kind)}
-                </Badge>
+                <Badge variant="success">{paidLabel(payable.kind)}</Badge>
                 <p className="text-xs">{formatDateTime(payable.paidAt)}</p>
                 <Link to={paths.expenses} className="text-xs underline">
                   در هزینه‌ها ثبت شد
@@ -152,9 +147,7 @@ function PayableRow({ payable, categories, today, onDone }: PayableRowProps) {
             )}
             {payable.status === "Cancelled" && (
               <>
-                <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
-                  {payableStatusLabels.Cancelled}
-                </Badge>
+                <Badge variant="destructive">{payableStatusLabels.Cancelled}</Badge>
                 <p className="text-xs">
                   {formatDateTime(payable.cancelledAt)} — {payable.cancelReason}
                 </p>

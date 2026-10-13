@@ -2882,6 +2882,17 @@ first on the dashboard.
 - [x] «خروج» on a member row is «ثبت خروج», as elsewhere; the header's is «خروج از حساب»
 - [x] Tests: the hints, the keys, the double click, both check-in cards; the session-count and
       dashboard-order tests follow the new wording and order. No package, no API change
+- [x] Follow-up (asked by the developer, 1405/07/22): the session count is back to *used*, as
+      before the review, and only «۴ از ۱۲» everywhere (first written «۴/۱۲», changed the same day) (`formatSessionsUsed`): `SessionsBar` (its bar
+      fills again), the visit and check-in box, the subscription history. Orange still marks 3 or
+      fewer left (§7), now also in the visit box, which was red. Tests follow the wording
+- [x] Follow-up, same day: in the locker box's matches the phone never breaks onto two lines and a
+      long name ends in «…» (the whole name on hover), on the computer too
+- [x] Follow-up, same day: every tag is solid again, as before 13.2i (one «پرداخت‌شده» was edged,
+      another filled). Same colours as the edged ones (green, red, grey, amber for running out),
+      plus the `Badge` variants `warning`, `cardio` («فقط هوازی») and `guest` («مهمان»); «لغو شده»
+      and «ابطال شده» red everywhere. `stateEdge` stays for the rows' buttons. The dashboard's
+      change tags («… بیشتر از بازهٔ قبل») stay edged
 
 ### 13.2 One visual language
 Split into four sessions with the developer on 1405/07/19 (2026-10-11), in this order: (a) the

@@ -8,7 +8,13 @@ import { RegisterPaymentForm } from "@/features/payments/components/RegisterPaym
 import { RegisterRefundForm } from "@/features/payments/components/RegisterRefundForm";
 import { stateEdge } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
-import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  formatNumber,
+  formatSessionsUsed,
+} from "@/lib/format";
 import { isPositiveMoney, subtractMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -121,17 +127,16 @@ export function SubscriptionHistoryRow({
             <TableCell label="پایان">{formatDate(subscription.endDate)}</TableCell>
           </>
         )}
-        {/* Remaining of total, as everywhere a session count is shown (see `SessionsBar`). */}
-        <TableCell
-          label="جلسات"
-          className="whitespace-nowrap"
-        >{`${formatNumber(Number(subscription.remainingSessions))} از ${formatNumber(Number(subscription.totalSessions))} مانده`}</TableCell>
+        {/* Used of total, as everywhere a session count is shown (see `SessionsBar`). */}
+        <TableCell label="جلسات" className="whitespace-nowrap">
+          {formatSessionsUsed(subscription.usedSessions, subscription.totalSessions)}
+        </TableCell>
         <TableCell label="وضعیت">
           <SubscriptionStatusBadge status={subscription.status} />
         </TableCell>
         <TableCell label="پرداخت">
           <div className="flex items-center gap-2">
-            <PaymentStatusBadge status={subscription.paymentStatus} edged />
+            <PaymentStatusBadge status={subscription.paymentStatus} />
             <span className="whitespace-nowrap text-muted-foreground">
               {formatMoney(subscription.netPaid)}
             </span>

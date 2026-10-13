@@ -111,13 +111,9 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
               <span className="flex flex-wrap items-center gap-1">
                 {order.guestName}
                 {!cancelled && isPositiveMoney(order.outstanding) ? (
-                  <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
-                    پرداخت‌نشده — مهمان
-                  </Badge>
+                  <Badge variant="destructive">پرداخت‌نشده — مهمان</Badge>
                 ) : (
-                  <Badge variant="ghost" className={stateEdge.muted}>
-                    {guestLabel}
-                  </Badge>
+                  <Badge variant="secondary">{guestLabel}</Badge>
                 )}
               </span>
             ) : order.memberId === null ? (
@@ -144,16 +140,14 @@ function CafeOrderRow({ order, showCustomer, columns, onDone }: CafeOrderRowProp
         <TableCell label="مبلغ">{formatMoney(order.totalAmount)}</TableCell>
         <TableCell label="پرداخت">
           <div className="flex flex-wrap items-center gap-2">
-            {!cancelled && <PaymentStatusBadge status={order.paymentStatus} edged />}
+            {!cancelled && <PaymentStatusBadge status={order.paymentStatus} />}
             <span className="text-muted-foreground">{formatMoney(order.netPaid)}</span>
           </div>
         </TableCell>
         <TableCell label="وضعیت">
           {cancelled ? (
             <div className="space-y-1">
-              <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
-                لغو شده
-              </Badge>
+              <Badge variant="destructive">لغو شده</Badge>
               <p className="text-xs text-muted-foreground">
                 {formatDateTime(order.cancelledAt)} — {order.cancelReason}
               </p>

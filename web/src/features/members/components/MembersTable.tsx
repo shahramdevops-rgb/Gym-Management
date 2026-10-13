@@ -67,17 +67,9 @@ export function MembersTable({ members, deskActions }: MembersTableProps) {
                   {member.fullName}
                 </Link>
                 {/* BUSINESS_RULES.md §2: their latest visit was a single visit. */}
-                {member.lastVisitWasSingleSession && (
-                  <Badge variant="ghost" className={stateEdge.destructive}>
-                    تک‌جلسه
-                  </Badge>
-                )}
+                {member.lastVisitWasSingleSession && <Badge variant="destructive">تک‌جلسه</Badge>}
                 {/* BUSINESS_RULES.md §2: the plan is over and nothing was bought after it. */}
-                {member.planEnded && (
-                  <Badge variant="ghost" className={stateEdge.warning}>
-                    پلن تمام‌شده
-                  </Badge>
-                )}
+                {member.planEnded && <Badge variant="warning">پلن تمام‌شده</Badge>}
               </div>
             </TableCell>
             <TableCell label="موبایل">
@@ -121,7 +113,7 @@ function DeskButtons({
   return (
     <div className="flex items-center justify-end gap-2">
       {/* Green like «داخل باشگاه» in the history, and «ثبت خروج» as on the board (not a bare «خروج», which is also signing out). */}
-      <Badge variant="ghost" className={cn(stateEdge.success, "font-semibold")}>
+      <Badge variant="success">
         داخل باشگاه —{" "}
         {visit.lockerNumber === null ? "بدون کمد" : `کمد ${toPersianDigits(visit.lockerNumber)}`}
       </Badge>
@@ -150,6 +142,7 @@ function PlanSessions({ plan }: { plan: Member["plan"] }) {
   return (
     <SessionsBar
       total={plan.totalSessions}
+      used={plan.usedSessions}
       remaining={plan.remainingSessions}
       lowThreshold={lowSessionsThreshold}
       className="max-w-32"
@@ -163,23 +156,14 @@ function PlanSessions({ plan }: { plan: Member["plan"] }) {
  * before opening the profile (BUSINESS_RULES.md §5 Member debt).
  */
 function MemberDebt({ value }: { value: Member["debt"] }) {
-  // Red and edged like «پرداخت‌نشده» in the history (13.2i).
-  return isPositiveMoney(value) ? (
-    <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
-      {formatMoney(value)}
-    </Badge>
-  ) : null;
+  // Solid red like «پرداخت‌نشده».
+  return isPositiveMoney(value) ? <Badge variant="destructive">{formatMoney(value)}</Badge> : null;
 }
 
-/** Edged like the other state tags (13.2j): green while they may come in, grey once deactivated. */
+/** Solid like every state tag: green while they may come in, grey once deactivated. */
 export function MemberStatusBadge({ isActive }: { isActive: boolean }) {
   return (
-    <Badge
-      variant="ghost"
-      className={isActive ? cn(stateEdge.success, "font-semibold") : stateEdge.muted}
-    >
-      {isActive ? "فعال" : "غیرفعال"}
-    </Badge>
+    <Badge variant={isActive ? "success" : "secondary"}>{isActive ? "فعال" : "غیرفعال"}</Badge>
   );
 }
 

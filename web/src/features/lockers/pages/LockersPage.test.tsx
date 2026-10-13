@@ -532,7 +532,7 @@ describe("LockersPage", () => {
       await within(dialog).findByText(/این ورود آخرین جلسهٔ اشتراک .* بود؛ ۰ جلسه مانده\./),
     ).toBeInTheDocument();
     expect(within(dialog).getByText("اشتراک بعدی (در صف)")).toBeInTheDocument();
-    expect(within(dialog).getByText("۱۲ از ۱۲ مانده")).toBeInTheDocument();
+    expect(within(dialog).getByText("۰ از ۱۲")).toBeInTheDocument();
   });
 
   it("CheckIn_PlanStillHasSessions_ShowsItWithoutTheNextPlansLabel", async () => {
@@ -553,7 +553,7 @@ describe("LockersPage", () => {
     const dialog = await openFreeLocker("۱۲");
     await chooseAndConfirm(dialog, "رضا احمدی");
 
-    expect(await within(dialog).findByText("۹ از ۱۲ مانده")).toBeInTheDocument();
+    expect(await within(dialog).findByText("۳ از ۱۲")).toBeInTheDocument();
     expect(within(dialog).queryByText("اشتراک بعدی (در صف)")).not.toBeInTheDocument();
     expect(within(dialog).queryByText(/آخرین جلسه/)).not.toBeInTheDocument();
   });
@@ -1052,14 +1052,14 @@ describe("LockersPage", () => {
       const dialog = await openVisitBox();
 
       const sessions = within(dialog).getByRole("region", { name: "جلسات" });
-      expect(sessions).toHaveTextContent("۸ از ۱۲ مانده");
+      expect(sessions).toHaveTextContent("۴ از ۱۲");
       // activeSubscription runs from 1 September to 30 September 2026, both days included.
       expect(await within(dialog).findByText("۱۴۰۵/۰۶/۱۰ تا ۱۴۰۵/۰۷/۰۸")).toBeInTheDocument();
       expect(within(dialog).getByText("دوره اعتبار")).toBeInTheDocument();
       // Five days is the desk panel's renewal threshold, so it is marked the same way.
       expect(within(dialog).getByText("۵ روز مانده")).toHaveClass("text-destructive");
       // The header already shows the sessions; the plan box does not repeat them.
-      expect(within(dialog).getAllByText(/از ۱۲ مانده/)).toHaveLength(1);
+      expect(within(dialog).getAllByText("۴ از ۱۲")).toHaveLength(1);
     });
   });
 

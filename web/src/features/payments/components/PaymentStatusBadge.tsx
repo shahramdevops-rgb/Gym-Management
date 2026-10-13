@@ -1,6 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { stateEdge } from "@/lib/edges";
-import { cn } from "@/lib/utils";
 
 import type { Payment } from "../api";
 
@@ -10,38 +8,17 @@ const labels: Record<Payment["targetPaymentStatus"], string> = {
   Unpaid: "پرداخت‌نشده",
 };
 
+/**
+ * Solid on every screen (asked by the developer, 1405/07/22, replacing the edged look of 13.2i
+ * that the history and the cafe's orders had).
+ */
 const variants: Record<Payment["targetPaymentStatus"], "success" | "secondary" | "destructive"> = {
   Paid: "success",
   Partial: "secondary",
   Unpaid: "destructive",
 };
 
-/**
- * The edged look (13.2i, asked by the developer; the history and the cafe's orders): no fill, a
- * faint frame and a thick end edge like a locker door, in the same colour the filled badge has.
- */
-const edgedClasses: Record<Payment["targetPaymentStatus"], string> = {
-  Paid: cn(stateEdge.success, "font-semibold"),
-  Partial: stateEdge.muted,
-  Unpaid: cn(stateEdge.destructive, "font-semibold"),
-};
-
 /** BUSINESS_RULES.md §4 "Payment status (calculated)". */
-export function PaymentStatusBadge({
-  status,
-  edged = false,
-}: {
-  status: Payment["targetPaymentStatus"];
-  /** Edged instead of filled, like the history's «داخل باشگاه» tag. */
-  edged?: boolean;
-}) {
-  if (edged) {
-    return (
-      <Badge variant="ghost" className={edgedClasses[status]}>
-        {labels[status]}
-      </Badge>
-    );
-  }
-
+export function PaymentStatusBadge({ status }: { status: Payment["targetPaymentStatus"] }) {
   return <Badge variant={variants[status]}>{labels[status]}</Badge>;
 }

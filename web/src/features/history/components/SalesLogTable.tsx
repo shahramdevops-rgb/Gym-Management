@@ -49,7 +49,7 @@ export function SalesLogTable({ items }: { items: HistorySale[] }) {
               <div className="flex flex-wrap items-center gap-1.5">
                 <span>{saleLabel(item)}</span>
                 {item.undoneAt !== null && (
-                  <Badge variant="outline">
+                  <Badge variant="destructive">
                     {item.source === "Subscription" || item.source === "CafeOrder"
                       ? "لغو شده"
                       : "ابطال شده"}
@@ -63,7 +63,7 @@ export function SalesLogTable({ items }: { items: HistorySale[] }) {
             <TableCell label="مبلغ">{formatMoney(item.amount)}</TableCell>
             <TableCell label="پرداخت">
               {item.undoneAt === null ? (
-                <PaymentStatusBadge status={item.paymentStatus} edged />
+                <PaymentStatusBadge status={item.paymentStatus} />
               ) : (
                 emptyValue
               )}

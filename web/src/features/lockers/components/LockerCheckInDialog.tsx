@@ -31,7 +31,6 @@ import type { PlanChoice } from "@/features/subscriptions/components/PlanForm";
 import { MemberForm } from "@/features/members/components/MemberForm";
 import { searchMinLength } from "@/features/members/schemas";
 import { memberDraftFromSearch } from "@/features/members/searchDraft";
-import { stateEdge } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney, formatPhone, toPersianDigits } from "@/lib/format";
 import { isPositiveMoney } from "@/lib/money";
@@ -651,8 +650,12 @@ function MemberSearch({
                   )}
                   onClick={() => choose(found)}
                 >
-                  <span className="flex flex-wrap items-center gap-2">
-                    {found.fullName}
+                  {/* A long name ends in «…» (the whole of it on hover) and the phone never breaks:
+                      asked by the developer, 1405/07/22, after «۰۹۳۳ ۵۵۵ / ۵۶۵۴» on two lines. */}
+                  <span className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="max-w-full truncate" title={found.fullName}>
+                      {found.fullName}
+                    </span>
                     {visit !== null && (
                       <Badge variant="secondary">داخل باشگاه — {placeOf(visit)}</Badge>
                     )}
@@ -660,7 +663,7 @@ function MemberSearch({
                     {visit === null && <CheckInHints member={found} />}
                   </span>
                   <span
-                    className="text-sm text-muted-foreground max-lg:shrink-0 max-lg:whitespace-nowrap"
+                    className="shrink-0 text-sm whitespace-nowrap text-muted-foreground"
                     dir="ltr"
                   >
                     {formatPhone(found.phoneNumber)}
@@ -686,20 +689,10 @@ function CheckInHints({ member }: { member: Member }) {
 
   return (
     <>
-      {member.planEnded && (
-        <Badge variant="ghost" className={stateEdge.warning}>
-          پلن تمام‌شده
-        </Badge>
-      )}
-      {noSessionsLeft && (
-        <Badge variant="ghost" className={stateEdge.warning}>
-          جلسات تمام
-        </Badge>
-      )}
+      {member.planEnded && <Badge variant="warning">پلن تمام‌شده</Badge>}
+      {noSessionsLeft && <Badge variant="warning">جلسات تمام</Badge>}
       {isPositiveMoney(member.debt) && (
-        <Badge variant="ghost" className={cn(stateEdge.destructive, "font-semibold")}>
-          بدهی {formatMoney(member.debt)}
-        </Badge>
+        <Badge variant="destructive">بدهی {formatMoney(member.debt)}</Badge>
       )}
     </>
   );
