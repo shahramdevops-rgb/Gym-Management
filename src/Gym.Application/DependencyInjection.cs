@@ -85,7 +85,6 @@ using Gym.Application.Payables.RevertPayable;
 using Gym.Application.Payables.UpdatePayable;
 using Gym.Application.Payments.ListMemberPayments;
 using Gym.Application.Payments.RegisterPayment;
-using Gym.Application.Payments.RegisterRefund;
 using Gym.Application.Payments.SettleMemberDebt;
 using Gym.Application.Pricing.GetPrices;
 using Gym.Application.Pricing.UpdatePrices;
@@ -191,7 +190,6 @@ public static class DependencyInjection
         services.AddScoped<CancelSubscriptionHandler>();
 
         services.AddScoped<RegisterPaymentHandler>();
-        services.AddScoped<RegisterRefundHandler>();
         services.AddScoped<RegisterServiceChargePaymentHandler>();
         services.AddScoped<RegisterCafeOrderPaymentHandler>();
         services.AddScoped<ListMemberPaymentsHandler>();

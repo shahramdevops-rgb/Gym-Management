@@ -43,11 +43,13 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
     {
         var (owner, token, _) = await OwnerClientAsync();
 
-        // Membership: paid by card, partly refunded by card.
+        // Membership: 300,000 paid by card, 100,000 of it on a plan then cancelled, which refunds it
+        // by card (BUSINESS_RULES.md §4 Cancel, 6.5.37).
         var membership = await AssignOkAsync(owner, token, (await AddMemberAsync("علی رضایی")).Id);
-        await PayOkAsync(owner, token, $"/api/subscriptions/{membership.Id}/payments", 300_000m, "Card");
-        await PostOkAsync(owner, token, $"/api/subscriptions/{membership.Id}/refunds",
-            new { amount = 100_000m, method = "Card", reason = "اشتباه در ثبت" });
+        await PayOkAsync(owner, token, $"/api/subscriptions/{membership.Id}/payments", 200_000m, "Card");
+        var mistake = await AssignOkAsync(owner, token, (await AddMemberAsync("سارا امینی")).Id);
+        await PayOkAsync(owner, token, $"/api/subscriptions/{mistake.Id}/payments", 100_000m, "Card");
+        await PostOkAsync(owner, token, $"/api/subscriptions/{mistake.Id}/cancel", new { reason = "اشتباه در ثبت" });
 
         // A single visit, apart from membership.
         await TestPlans.SetPricesAsync(Fixture, singleVisitPrice: 150_000m);
@@ -171,9 +173,12 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var visitor = await AddMemberAsync("رضا کریمی");
         var plan = await AssignOkAsync(owner, token, visitor.Id);
         await PayOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/payments", 500_000m, "Card");
-        await PayOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/payments", 100_000m, "Cash");
-        await PostOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/refunds",
-            new { amount = 40_000m, method = "Cash", reason = "اشتباه در ثبت" });
+        await PayOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/payments", 60_000m, "Cash");
+        // A plan paid in cash and cancelled, which refunds it (BUSINESS_RULES.md §4 Cancel, 6.5.37):
+        // both its movements count in «دریافتی», and a cancelled plan is no sale.
+        var mistake = await AssignOkAsync(owner, token, (await AddMemberAsync("سارا امینی")).Id);
+        await PayOkAsync(owner, token, $"/api/subscriptions/{mistake.Id}/payments", 40_000m, "Cash");
+        await PostOkAsync(owner, token, $"/api/subscriptions/{mistake.Id}/cancel", new { reason = "اشتباه در ثبت" });
         var visit = await TestLockers.CheckInOkAsync(owner, token, visitor.Id);
         var cardio = await RecordChargeOkAsync(owner, token, visit.Id, "Cardio", 50_000m);
         await PayOkAsync(owner, token, $"/api/service-charges/{cardio.Id}/payments", 50_000m, "BankTransfer");
@@ -201,7 +206,7 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
         [
             (PaymentMethod.Card, 500_000m + 900_000m),
             (PaymentMethod.BankTransfer, 50_000m),
-            (PaymentMethod.Cash, 100_000m - 40_000m + 60_000m),
+            (PaymentMethod.Cash, 60_000m + 40_000m - 40_000m + 60_000m),
         ]);
         current.ShopAndAnalysisByMethod.Select(row => (row.Method, row.Money.Net)).ShouldBe(
         [
@@ -263,8 +268,7 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var (owner, token, _) = await OwnerClientAsync();
         var plan = await AssignOkAsync(owner, token, (await AddMemberAsync("علی رضایی")).Id);
         await PayOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/payments", 900_000m, "Cash");
-        await PostOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/refunds",
-            new { amount = 900_000m, method = "Cash", reason = "انصراف" });
+        // Cancelling refunds the 900,000 itself (BUSINESS_RULES.md §4 Cancel, 6.5.37).
         await PostOkAsync(owner, token, $"/api/subscriptions/{plan.Id}/cancel", new { reason = "انصراف" });
 
         var current = (await FinancialOkAsync(owner, token, TodayRange())).Current;
@@ -283,14 +287,16 @@ public sealed class ReportsEndpointTests(DatabaseFixture fixture) : DatabaseTest
         await PayOkAsync(owner, ownerToken, $"/api/subscriptions/{first.Id}/payments", 100_000m, "Cash");
         var second = await AssignOkAsync(owner, ownerToken, (await AddMemberAsync("مریم کاظمی")).Id);
         await PayOkAsync(staff, staffToken, $"/api/subscriptions/{second.Id}/payments", 400_000m, "Card");
-        await PostOkAsync(owner, ownerToken, $"/api/subscriptions/{second.Id}/refunds",
-            new { amount = 50_000m, method = "Card", reason = "اشتباه در ثبت" });
+        // The staff takes 50,000 on a third plan and the Owner cancels it, which refunds it.
+        var third = await AssignOkAsync(owner, ownerToken, (await AddMemberAsync("سارا امینی")).Id);
+        await PayOkAsync(staff, staffToken, $"/api/subscriptions/{third.Id}/payments", 50_000m, "Card");
+        await PostOkAsync(owner, ownerToken, $"/api/subscriptions/{third.Id}/cancel", new { reason = "اشتباه در ثبت" });
 
         var byStaff = (await FinancialOkAsync(owner, ownerToken, TodayRange())).Current.ByStaff;
 
-        // The largest net first; a refund is on whoever gave it back (only the Owner may, §1).
+        // The largest net first; a refund is on whoever gave it back (only the Owner may cancel, §1).
         byStaff.Select(row => row.UserId).ShouldBe([staffId, ownerId]);
-        byStaff[0].Money.ShouldBe(new MoneyFlowResponse(400_000m, 0m, 400_000m));
+        byStaff[0].Money.ShouldBe(new MoneyFlowResponse(450_000m, 0m, 450_000m));
         byStaff[0].FullName.ShouldBe("کاربر تست");
         byStaff[1].Money.ShouldBe(new MoneyFlowResponse(100_000m, 50_000m, 50_000m));
     }

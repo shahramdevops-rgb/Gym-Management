@@ -81,26 +81,3 @@ export const emptyRegisterPaymentValues: DefaultValues<RegisterPaymentValues> = 
   amount: "",
   referenceNumber: "",
 };
-
-/** BUSINESS_RULES.md §5: a reason is required to refund a payment, at most 500 characters. */
-export const refundReasonMaxLength = 500;
-
-export const registerRefundSchema = z.object({
-  amount: amountField,
-  method: methodField,
-  referenceNumber: referenceNumberField,
-  reason: z
-    .string()
-    .trim()
-    .min(1, message("Payments.RefundReasonRequired"))
-    .max(refundReasonMaxLength, message("Payments.RefundReasonTooLong")),
-});
-
-export type RegisterRefundValues = z.infer<typeof registerRefundSchema>;
-
-/** Without a method on purpose, like a payment. */
-export const emptyRegisterRefundValues: DefaultValues<RegisterRefundValues> = {
-  amount: "",
-  referenceNumber: "",
-  reason: "",
-};

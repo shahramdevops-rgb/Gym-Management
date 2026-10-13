@@ -32,7 +32,6 @@ import {
 } from "@/test/members";
 import {
   confirmMoneyReceived,
-  confirmMoneyReturned,
   paymentHistoryItem,
   paymentOfActiveSubscription,
   paymentsPage,
@@ -643,30 +642,29 @@ describe("MemberProfilePage", () => {
     expect(await screen.findByText("دلیل لغو را وارد کنید.")).toBeInTheDocument();
   });
 
-  it("Subscription_Refund_ExceedsNetPaid_ShowsThePersianError", async () => {
-    // Unused and part-paid: the only shape a refund is offered for (BUSINESS_RULES.md §5).
-    const unusedPartPaid = { ...activeSubscription, usedSessions: 0, remainingSessions: 12 };
-    mockApi({
+  it("Subscription_CancelPaidPlan_SaysTheMoneyComesBackAndOffersNoSeparateRefund", async () => {
+    // Cancelling gives back what was paid, the way it was paid (BUSINESS_RULES.md §4 Cancel,
+    // roadmap 6.5.37); there is no «استرداد» of its own any more.
+    const paidQueued = { ...queuedRenewal, netPaid: 900000, paymentStatus: "Paid" as const };
+    const api = mockApi({
       ...signedInHandlers(owner),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
-      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([unusedPartPaid]),
-      [`POST /api/subscriptions/${activeSubscription.id}/refunds`]: () =>
-        problem(422, "Payments.RefundExceedsNetPaid"),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([paidQueued]),
+      [`POST /api/subscriptions/${paidQueued.id}/cancel`]: () =>
+        json(200, { ...paidQueued, status: "Cancelled", netPaid: 0, paymentStatus: "Unpaid" }),
     });
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    fireEvent.click(await screen.findByRole("button", { name: /^استرداد برای/ }));
-    fireEvent.change(screen.getByLabelText("مبلغ استرداد (تومان)"), {
-      target: { value: "500000" },
-    });
-    fireEvent.change(screen.getByLabelText("دلیل استرداد"), { target: { value: "دلیل" } });
-    pickMethod(document.body, "Cash", "روش");
-    fireEvent.click(screen.getByRole("button", { name: "تأیید استرداد" }));
-    await confirmMoneyReturned();
-
+    fireEvent.click(await screen.findByRole("button", { name: /^لغو اشتراک / }));
+    expect(screen.queryByRole("button", { name: /^استرداد برای/ })).not.toBeInTheDocument();
     expect(
-      await screen.findByText("این استرداد از مبلغ پرداخت‌شدهٔ این مورد بیشتر است."),
+      screen.getByText(/پرداخت‌شده برای این اشتراک، به همان روشی که پرداخت شده بود/),
     ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("دلیل لغو"), { target: { value: "انصراف عضو" } });
+    fireEvent.click(screen.getByRole("button", { name: "تأیید لغو" }));
+
+    expect(await screen.findByText(/^اشتراک لغو شد و .* بازگردانده شد\.$/)).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/subscriptions/${paidQueued.id}/cancel`)).toHaveLength(1);
   });
 
   // ---- History tabs (task 4.6) ----
@@ -946,7 +944,7 @@ describe("MemberProfilePage", () => {
     renderApp(`/members/${reza.id}`, { session: session() });
 
     expect(await screen.findByRole("button", { name: /^لغو اشتراک / })).toBeEnabled();
-    // Nothing has been paid on it, so there is nothing to refund either.
+    // There is no refund button at all: cancelling gives the money back (6.5.37).
     expect(screen.queryByRole("button", { name: /^استرداد برای/ })).not.toBeInTheDocument();
   });
 

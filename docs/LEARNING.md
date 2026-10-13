@@ -1683,6 +1683,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **One field instead of two special cases.** The «جدید» mark had a fixed text and a date; three new marks needed other words, and one has no end date at all. A small `badge` object (`text`, optional `until`) covers all of them, and the render is one condition: no `until`, or today is not past it.
 - **Measure the layout instead of guessing it.** «جدید آزمایشی» passed every test but broke «تنظیمات پیامک» onto two lines in a 224 px menu. jsdom has no layout, so only a real browser shows this; the fix was the developer's choice between a wider menu for every page and a shorter word.
 
+## 6.5.37 — Cancelling a subscription gives the money back (لغو اشتراک با بازگشت پول)
+
+- **Two steps that must both happen should be one step.** Cancel and refund were separate buttons, so the second one could be forgotten, and at the gym it was. Writing the refunds inside the cancel's transaction makes "cancelled but still paid" impossible instead of merely discouraged.
+- **Copy the shape that already works.** The cafe's cancel and the charge's void already refunded per payment method. `SubscriptionRefunder` is the same twenty lines for a third kind of item, so all three behave alike and the next reader recognises it.
+- **A lock protects a sum, not a row.** "Refund what was paid" reads a sum over many payment rows. Taking the member lock that every payment takes means a payment arriving at the same moment either lands first and is refunded too, or waits and finds the subscription cancelled. The row's `xmin` alone could not see a new payment row.
+- **Removing a path can create a gap elsewhere.** With no refund endpoint, a payment onto an already cancelled subscription could never come back, so payment now refuses a cancelled subscription. When you delete a feature, ask what it was quietly covering.
+- **Rewrite a test's setup, keep its numbers.** Several report tests used a partial refund just to have a refund in the figures. Splitting it into a second plan that is paid and cancelled kept every expected total, so the tests still check what they checked before.
+- **My notes:**
+
 ## 12 — Portfolio polish: demo data, screenshots, ADRs, deployment guide (نمایش پروژه)
 
 - **Swap a service in the composition root, for one command only.** `admin seed-demo` needs a clock it can move, a current user it can choose, and an SMS sender that can never send. `Program.cs` replaces exactly those three registrations before `builder.Build()`, and only when the arguments are `admin seed-demo`; every handler the seeder calls is the real one. The same trick the integration tests use with `ConfigureTestServices`, and the test for the seeder uses it too.

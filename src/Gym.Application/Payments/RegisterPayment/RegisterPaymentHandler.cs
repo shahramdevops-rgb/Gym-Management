@@ -32,6 +32,18 @@ public sealed class RegisterPaymentHandler(IAppDbContext db, TimeProvider time, 
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
         await db.LockMemberAsync(subscription.MemberId, cancellationToken);
 
+        // A cancelled subscription takes no more payments (BUSINESS_RULES.md §4 Cancel, 6.5.37): its
+        // only refund is the cancel itself, so money paid onto it afterwards could never come back.
+        // Read again under the lock, which cancelling takes too, rather than from the copy above.
+        var isCancelled = await db.Subscriptions.AsNoTracking()
+            .Where(s => s.Id == subscriptionId)
+            .Select(s => s.CancelledAt != null)
+            .SingleAsync(cancellationToken);
+        if (isCancelled)
+        {
+            return Result.Failure<PaymentResponse>(SubscriptionErrors.Cancelled);
+        }
+
         var netPaid = await PaymentLedger.GetNetPaidAsync(db, subscriptionId, cancellationToken);
         var updatedNetPaid = netPaid + command.Amount;
         if (updatedNetPaid > subscription.Price)

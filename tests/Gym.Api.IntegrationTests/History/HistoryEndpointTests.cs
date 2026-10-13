@@ -222,9 +222,8 @@ public sealed class HistoryEndpointTests(DatabaseFixture fixture) : DatabaseTest
         var member = await AddMemberAsync("علی رضایی");
         var subscription = await AssignOkAsync(staff, staffToken, member.Id);
         await PayOkAsync(staff, staffToken, $"/api/subscriptions/{subscription.Id}/payments", 900_000m, "Cash");
-        await PostOkAsync(owner, ownerToken, $"/api/subscriptions/{subscription.Id}/refunds",
-            new { amount = 900_000m, method = "Cash", reason = "اشتباه در ثبت" });
-        await PostOkAsync(owner, ownerToken, $"/api/subscriptions/{subscription.Id}/cancel", new { reason = "انصراف" });
+        // Cancelling writes the refund itself, with the cancel's reason (BUSINESS_RULES.md §4, 6.5.37).
+        await PostOkAsync(owner, ownerToken, $"/api/subscriptions/{subscription.Id}/cancel", new { reason = "اشتباه در ثبت" });
 
         var page = await PaymentsOkAsync(owner, ownerToken, TodayRange());
 

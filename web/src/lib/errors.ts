@@ -154,8 +154,6 @@ export const errorMessages: Record<string, string> = {
   "Payments.Overpayment": "این پرداخت از باقی‌ماندهٔ این مورد بیشتر می‌شود.",
   "Payments.RefundReasonRequired": "دلیل استرداد را وارد کنید.",
   "Payments.RefundReasonTooLong": "دلیل استرداد بیش از حد طولانی است.",
-  "Payments.RefundExceedsNetPaid": "این استرداد از مبلغ پرداخت‌شدهٔ این مورد بیشتر است.",
-  "Payments.RefundAfterUse": "از این اشتراک استفاده شده است و مبلغ آن قابل استرداد نیست.",
   "Payments.HistoryTooFarBack": "کارمندان فقط پرداخت‌های امروز و ۳ روز قبل از آن را می‌بینند.",
   "Payments.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
   "Payments.InvalidSource": "بابت پرداخت معتبر نیست.",
