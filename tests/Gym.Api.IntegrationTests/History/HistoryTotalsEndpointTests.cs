@@ -203,8 +203,7 @@ public sealed class HistoryTotalsEndpointTests(DatabaseFixture fixture) : Databa
         var (owner, token) = await OwnerClientAsync();
         var subscription = await AssignOkAsync(owner, token, (await AddMemberAsync("علی رضایی")).Id, price: 900_000m);
         await PayOkAsync(owner, token, $"/api/subscriptions/{subscription.Id}/payments", 900_000m, "Cash");
-        await PostOkAsync(owner, token, $"/api/subscriptions/{subscription.Id}/refunds",
-            new { amount = 900_000m, method = "Cash", reason = "اشتباه در ثبت" });
+        // Cancelling refunds the 900,000 itself (BUSINESS_RULES.md §4 Cancel, 6.5.37).
         await PostOkAsync(owner, token, $"/api/subscriptions/{subscription.Id}/cancel", new { reason = "انصراف" });
         await WalkInOrderAsync(owner, token, 60_000m);
 

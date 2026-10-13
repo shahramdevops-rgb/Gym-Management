@@ -21,6 +21,10 @@ reasons are in BUSINESS_RULES.md §5 *Member debt*; this record keeps the decisi
   explains it; a full refund of a mistaken payment is a "void". A service charge or an expense is
   voided with a reason, and the row stays. Subscriptions and cafe orders are cancelled, not
   removed.
+  - *Updated 1405/07/22 (2026-10-14), roadmap 6.5.37:* no refund is written by hand any more.
+    Cancelling or voiding the item writes the refunds itself, one per payment method, with its
+    reason; a mistaken payment is corrected by cancelling what it paid for and selling it again.
+    The two steps below became one after a cancelled plan at the gym kept its money.
 - **Every payment belongs to exactly one item**: a subscription, a service charge or a cafe order
   (a check constraint). A lump sum for several items is written as one payment per item, all in
   one transaction («تسویه یکجا»), and the rows share a settlement id so the history can show them

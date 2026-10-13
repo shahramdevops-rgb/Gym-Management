@@ -27,7 +27,6 @@ using Gym.Application.Payables.MarkPayablePaid;
 using Gym.Application.Payables.RegisterPayable;
 using Gym.Application.Payments;
 using Gym.Application.Payments.RegisterPayment;
-using Gym.Application.Payments.RegisterRefund;
 using Gym.Application.Payments.SettleMemberDebt;
 using Gym.Application.Pricing;
 using Gym.Application.Pricing.GetPrices;
@@ -694,7 +693,8 @@ public sealed class DemoSeeder
 
     /// <summary>
     /// The desk sells a second plan to someone who already has one, takes the money, and the Owner
-    /// puts it right: a refund with the reason, then the cancellation (BUSINESS_RULES.md §4, §5).
+    /// puts it right: the cancellation with the reason, which gives the money back (BUSINESS_RULES.md
+    /// §4 Cancel, §5).
     /// </summary>
     private async Task SellByMistakeAsync()
     {
@@ -720,8 +720,7 @@ public sealed class DemoSeeder
 
         ActAsOwner();
         const string Reason = "پلن تکراری؛ عضو پلن فعال داشت و اشتباهی دوباره فروخته شد";
-        await MustAsync<RegisterRefundHandler, PaymentResponse>(async h => await h.Handle(
-            sold.Id, await ValidAsync(new RegisterRefundCommand(sold.Price, PaymentMethod.Card, null, Reason)), _cancellationToken));
+        // Cancelling gives the card payment back itself (BUSINESS_RULES.md §4 Cancel, 6.5.37).
         await MustAsync<CancelSubscriptionHandler, SubscriptionResponse>(async h => await h.Handle(
             sold.Id, await ValidAsync(new CancelSubscriptionCommand(Reason)), _cancellationToken));
     }

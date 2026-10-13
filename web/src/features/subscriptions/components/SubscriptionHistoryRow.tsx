@@ -4,7 +4,6 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { RegisterPaymentForm } from "@/features/payments/components/RegisterPaymentForm";
-import { RegisterRefundForm } from "@/features/payments/components/RegisterRefundForm";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/format";
 import { isPositiveMoney, subtractMoney } from "@/lib/money";
@@ -15,7 +14,7 @@ import { CancelSubscriptionForm } from "./CancelSubscriptionForm";
 import { ConfirmFreezeDialog, type FreezeAction } from "./ConfirmFreezeDialog";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
 
-type RowAction = "payment" | "refund" | "cancel" | null;
+type RowAction = "payment" | "cancel" | null;
 
 interface SubscriptionHistoryRowProps {
   subscription: Subscription;
@@ -84,14 +83,14 @@ export function SubscriptionHistoryRow({
   // Only the actions that would actually be allowed, so a finished, settled subscription shows no
   // buttons at all instead of a row of disabled ones (task 4.7). Each condition is the rule the
   // API would answer with: payment while anything is still owed, whatever the status
-  // (BUSINESS_RULES.md §5 Member debt); cancel and refund only while nobody has used it (§4, §5).
+  // (BUSINESS_RULES.md §5 Member debt); cancel only while nobody has used it (§4). There is no
+  // refund button: cancelling gives back what was paid (§4 Cancel, roadmap 6.5.37).
   const unused = subscription.usedSessions === 0;
   const canPay = subscription.paymentStatus !== "Paid";
   const canFreeze = isOwner && subscription.status === "Active";
   const canUnfreeze = isOwner && subscription.status === "Frozen";
   const canCancel =
     isOwner && unused && ["Upcoming", "Active", "Frozen"].includes(subscription.status);
-  const canRefund = isOwner && unused && isPositiveMoney(subscription.netPaid);
 
   return (
     <>
@@ -171,16 +170,6 @@ export function SubscriptionHistoryRow({
                 لغو اشتراک
               </Button>
             )}
-            {canRefund && (
-              <Button
-                size="sm"
-                variant="outline"
-                aria-label={`استرداد برای ${context}`}
-                onClick={() => toggle("refund")}
-              >
-                استرداد
-              </Button>
-            )}
           </div>
         </td>
       </tr>
@@ -204,17 +193,17 @@ export function SubscriptionHistoryRow({
                 onCancel={() => setAction(null)}
               />
             )}
-            {action === "refund" && (
-              <RegisterRefundForm
-                subscriptionId={subscription.id}
-                onDone={() => done("استرداد ثبت شد.")}
-                onCancel={() => setAction(null)}
-              />
-            )}
             {action === "cancel" && (
               <CancelSubscriptionForm
                 subscriptionId={subscription.id}
-                onDone={() => done("اشتراک لغو شد.")}
+                netPaid={subscription.netPaid}
+                onDone={() =>
+                  done(
+                    isPositiveMoney(subscription.netPaid)
+                      ? `اشتراک لغو شد و ${formatMoney(subscription.netPaid)} بازگردانده شد.`
+                      : "اشتراک لغو شد.",
+                  )
+                }
                 onCancel={() => setAction(null)}
               />
             )}

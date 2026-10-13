@@ -58,9 +58,3 @@ export async function confirmMoneyReceived() {
   const dialog = await screen.findByRole("dialog", { name: "آیا پول دریافت شد؟" });
   fireEvent.click(within(dialog).getByRole("button", { name: "بله، پول دریافت شد" }));
 }
-
-/** Answers "yes" in the "was the money handed back?" box a refund opens before it is sent. */
-export async function confirmMoneyReturned() {
-  const dialog = await screen.findByRole("dialog", { name: "آیا پول به عضو برگردانده شد؟" });
-  fireEvent.click(within(dialog).getByRole("button", { name: "بله، پول برگردانده شد" }));
-}

@@ -365,7 +365,8 @@ public sealed class Subscription : Entity
     /// Cancels a subscription nobody has used yet (BUSINESS_RULES.md §4 Cancel, decided
     /// 1405/06/31 — replaces the earlier task 4.1 rule that any status could be cancelled). A
     /// service that has been consumed is not un-sold, and an expired or exhausted subscription is
-    /// history. Payments are untouched: money goes back only through refunds (§4, §5).
+    /// history. Payments are never deleted: what was paid goes back as refunds, which the caller
+    /// writes in the same transaction (§4 Cancel, roadmap 6.5.37).
     /// </summary>
     public Result Cancel(string reason, DateOnly today, DateTimeOffset now)
     {

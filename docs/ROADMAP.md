@@ -1859,6 +1859,51 @@ it on its own tab of the history and its own card on the dashboard.
 
 Release needs no migration. Released in `20261010-2323-3428fa7` (1405/07/18).
 
+### 6.5.37 Cancelling a subscription gives the money back (لغو اشتراک با بازگشت پول)
+Asked by the developer on 1405/07/22 (2026-10-14), after a cancelled plan at the gym kept its money
+because the separate «استرداد» was never pressed. Cancelling now refunds everything paid, in the
+same step, as a cafe order's cancel and a charge's void already did; there is no refund by hand any
+more. A payment taken wrong is fixed by cancelling the subscription and selling a new one.
+BUSINESS_RULES.md §1, §4 *Cancel*, §5 (and *Confirming money at the desk*) updated. Built on its own
+branch from `main`, so it can be released before the Phase 13 look.
+
+- [x] **API.** `CancelSubscriptionHandler` takes the member lock, cancels, and writes one refund
+      per payment method still in credit with the cancel's reason (`SubscriptionRefunder`, the twin
+      of `CafeOrderRefunder`; `PaymentLedger.GetNetPaidByMethodForSubscriptionAsync`), in one
+      transaction
+- [x] **Refund endpoint removed.** `POST /api/subscriptions/{id}/refunds`, `RegisterRefund*` and
+      the codes `Payments.RefundExceedsNetPaid` and `Payments.RefundAfterUse` are gone
+- [x] **A cancelled subscription takes no more payments** (`Subscriptions.Cancelled`), read again
+      under the member lock: with no refund of its own, money paid onto it could never come back.
+      *Claude's decision, pending review*
+- [x] **Demo.** `seed-demo`'s plan sold by mistake is put right with the cancel alone
+- [x] **Web.** The «استرداد» button and `RegisterRefundForm` are gone; the cancel box says
+      «… پرداخت‌شده برای این اشتراک، به همان روشی که پرداخت شده بود بازگردانده می‌شود» and the row
+      «اشتراک لغو شد و … بازگردانده شد»; the payments list refreshes after a cancel. The money-out
+      question of `ConfirmPaymentDialog` went with the form that used it
+- [x] Tests (integration): nothing paid, paid in full with the reason, cash and card refunded
+      separately, partly paid, a refused cancel refunds nothing, a cancelled plan refuses a payment,
+      four cancels at once refund once, a cancel and a payment at once leave nothing paid, the old
+      route answers 404. The history, totals, reports, debt and payments tests that refunded by hand
+      now cancel, with the same figures
+- [x] Tests (frontend): the cancel box names the money coming back, no «استرداد» button, the
+      message after the cancel
+- [ ] **Before the release** (with the developer, each step confirmed): on the server, record the
+      «استرداد» for the plan already cancelled at the gym with the old button, and check that no
+      other cancelled subscription still has money on it, since the new version has no button to
+      give it back
+
+Done when: the Owner cancels a paid plan and the money is back in «پرداخت‌ها» as «استرداد», with no
+second step to forget.
+
+Release needs no migration.
+
+Found during this task, not fixed (its own small task): `DemoSeederTests.SeedDemo_EmptyDatabase_
+FillsThreeMonthsUpToNow` fails on `main` as well since 1405/07/22. The seeder tries the freeze on one
+day only (day 78 of 90), and with that day's seeded data no member qualifies (inside the gym, or no
+active plan with sessions left), so nothing is frozen and the test's "one frozen plan" fails. Every
+other backend test passes (2190 of 2191).
+
 #### Housekeeping before Phase 9 (2026-10-04)
 Phase 6.5 closed with a check of the whole repository, so the next task starts clean:
 - [x] Full suite on `6b3159e`: 1509 backend and 785 frontend tests green, `dotnet build` with zero
