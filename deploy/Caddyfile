@@ -70,8 +70,9 @@
 	}
 }
 
-# The gym's public face. One static file and its font, served without touching the API, so a
-# release or a database outage never takes the gym's website down with it.
+# The gym's public face. Static files (the page, its stylesheet, one script, the font and the
+# photos), served without touching the API, so a release or a database outage never takes the
+# gym's website down with it.
 # Unset (local smoke tests) it falls back to a single-label name, which keeps Caddy on its
 # internal CA instead of asking Let's Encrypt for an unobtainable certificate.
 {$PUBLIC_DOMAIN:no-public-site} {
@@ -82,8 +83,9 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		# One page with its own <style> and font, and no script at all, so none may run.
-		Content-Security-Policy "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		# Only the site's own files may load. Its one script is a file (site.js), never inline,
+		# so script-src needs no 'unsafe-inline'. Nothing is fetched from another host.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		-Server
 	}

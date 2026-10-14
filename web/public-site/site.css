@@ -1,0 +1,1098 @@
+/*
+  The public site's look: "Stone and steel". Dark stone, bronze light, one grade for every photo.
+  One theme on purpose: the dark stone is the gym's identity, not a display preference.
+  Logical properties only (inline-start/end), as in the panel: the page is right-to-left.
+*/
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("./fonts/Vazirmatn-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --stone: #0d0e11;
+  --stone-2: #15171c;
+  --stone-3: #1f222a;
+  --line: #2a2d35;
+  --bronze: #c89b57;
+  --bronze-hi: #e8c07d;
+  --bronze-lo: #6e5330;
+  --ember: #e25b38;
+  --text: #f2efe9;
+  --muted: #9a968f;
+  --faint: #5d5a55;
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --gutter: 1.25rem;
+
+  color-scheme: dark;
+  interpolate-size: allow-keywords;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--stone);
+  color: var(--text);
+  font-family: "Vazirmatn", system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.8;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+p,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--bronze);
+  color: var(--stone);
+}
+
+:focus-visible {
+  outline: 2px solid var(--bronze-hi);
+  outline-offset: 3px;
+}
+
+.sprite {
+  position: absolute;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.wrap {
+  width: min(100% - var(--gutter) * 2, 72rem);
+  margin-inline: auto;
+}
+
+/* ---------- The bronze grade ----------
+   Every photo, placeholder or real, goes through the same treatment: no colour of its own, a
+   little more contrast, darker, then washed with bronze. Swapping a file never changes the look. */
+
+.photo {
+  position: relative;
+  overflow: hidden;
+  background: var(--stone-2);
+  isolation: isolate;
+}
+
+.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.15) brightness(0.68);
+  transition:
+    transform 1.2s var(--ease-out),
+    filter 1.2s var(--ease-out);
+}
+
+.photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, var(--bronze-hi), var(--bronze-lo) 70%);
+  mix-blend-mode: color;
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 1.2s var(--ease-out);
+}
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 10;
+  padding-block-start: env(safe-area-inset-top);
+  background: linear-gradient(to bottom, rgb(13 14 17 / 0.85), transparent);
+  transition: background-color 0.4s;
+}
+
+.topbar.is-scrolled {
+  background-color: rgb(13 14 17 / 0.8);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.topbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: min(100% - var(--gutter) * 2, 72rem);
+  margin-inline: auto;
+  min-height: 4rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.brand__mark {
+  width: 1.9rem;
+  height: 1.6rem;
+  fill: var(--bronze);
+}
+
+.brand__name {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.brand__name span {
+  font-weight: 300;
+  color: var(--muted);
+}
+
+.topnav {
+  display: none;
+  gap: 0.25rem;
+}
+
+.topnav button {
+  padding: 0.5rem 0.9rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  transition: color 0.25s;
+}
+
+.topnav button:hover {
+  color: var(--text);
+}
+
+.menu-button {
+  display: grid;
+  place-content: center;
+  gap: 0.4rem;
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.menu-button span {
+  display: block;
+  width: 1.5rem;
+  height: 2px;
+  background: var(--text);
+}
+
+.menu-button span:last-child {
+  width: 1rem;
+  justify-self: start;
+  background: var(--bronze);
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  position: relative;
+  display: grid;
+  align-content: end;
+  min-height: 100svh;
+  padding-block: 7rem 4.5rem;
+  overflow: hidden;
+}
+
+.hero__photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: var(--stone);
+}
+
+.hero__photo img {
+  animation: hero-settle 2.4s var(--ease-out) both;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 90% 60% at 70% 20%, transparent, rgb(13 14 17 / 0.55)),
+    linear-gradient(
+      to bottom,
+      rgb(13 14 17 / 0.6) 0%,
+      rgb(13 14 17 / 0.15) 30%,
+      rgb(13 14 17 / 0.85) 70%,
+      var(--stone) 100%
+    );
+}
+
+/* The flutes of a column, faint, across the whole hero. */
+.hero__flutes {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: repeating-linear-gradient(
+    to left,
+    rgb(200 155 87 / 0.07) 0 1px,
+    transparent 1px 2.25rem
+  );
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 65%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 65%, transparent);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--bronze);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.eyebrow svg {
+  width: 1.3rem;
+  height: 1.1rem;
+  fill: currentColor;
+}
+
+.eyebrow__num {
+  font-weight: 300;
+  color: var(--faint);
+}
+
+.hero__eyebrow {
+  animation: rise 1s 0.2s var(--ease-out) both;
+}
+
+.hero__title {
+  margin-block: 0.75rem 0;
+  line-height: 1;
+}
+
+/* The name is cut into the stone, and a bronze torchlight moves across it. site.js moves the
+   light (--lx, --ly) with the finger, the pointer, or on its own when nobody touches. */
+.carved {
+  --lx: 50%;
+  --ly: 40%;
+  display: block;
+  padding-block: 0.08em 0.12em;
+  font-size: clamp(4.5rem, 25vw, 12.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  color: transparent;
+  background: radial-gradient(
+    circle at var(--lx) var(--ly),
+    #fff3d6 0%,
+    var(--bronze-hi) 9%,
+    var(--bronze) 22%,
+    var(--bronze-lo) 44%,
+    #322c25 68%,
+    #24211d 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 1px 0 rgb(255 236 200 / 0.12)) drop-shadow(0 10px 24px rgb(0 0 0 / 0.65));
+  animation: carve 1.6s 0.35s var(--ease-out) both;
+}
+
+.hero__sub {
+  display: block;
+  margin-block-start: 0.15em;
+  font-size: clamp(1.5rem, 7.5vw, 3rem);
+  font-weight: 200;
+  color: var(--text);
+  animation: rise 1s 1s var(--ease-out) both;
+}
+
+.hero__lead {
+  margin-block-start: 1.25rem;
+  font-size: clamp(1.1rem, 4.4vw, 1.4rem);
+  font-weight: 500;
+  color: var(--muted);
+  animation: rise 1s 1.15s var(--ease-out) both;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block-start: 2rem;
+  animation: rise 1s 1.3s var(--ease-out) both;
+}
+
+.hero .status {
+  margin-block-start: 1.75rem;
+  animation: rise 1s 1.45s var(--ease-out) both;
+}
+
+.hero__scroll {
+  position: absolute;
+  inset-block-end: 1.25rem;
+  inset-inline-start: 50%;
+  width: 1px;
+  height: 2.5rem;
+  overflow: hidden;
+  background: var(--line);
+  translate: 50% 0;
+}
+
+.hero__scroll span {
+  display: block;
+  width: 100%;
+  height: 40%;
+  background: var(--bronze);
+  animation: drip 2.2s ease-in-out infinite;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding-inline: 1.5rem;
+  font-weight: 700;
+  font-size: 1rem;
+  overflow: hidden;
+  clip-path: polygon(
+    0.6rem 0,
+    100% 0,
+    100% calc(100% - 0.6rem),
+    calc(100% - 0.6rem) 100%,
+    0 100%,
+    0 0.6rem
+  );
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+}
+
+.btn--bronze {
+  background: var(--bronze);
+  color: var(--stone);
+}
+
+/* A strip of light crossing the bronze, now and then. */
+.btn--bronze::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: -40%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgb(255 245 220 / 0.55), transparent);
+  transform: skewX(-20deg);
+  animation: sheen 5s 2.5s ease-in-out infinite;
+}
+
+.btn--bronze:hover {
+  background: var(--bronze-hi);
+}
+
+.btn--ghost {
+  color: var(--text);
+  background: rgb(242 239 233 / 0.04);
+  box-shadow: inset 0 0 0 1px rgb(200 155 87 / 0.45);
+}
+
+.btn--ghost:hover {
+  background: rgb(200 155 87 / 0.12);
+}
+
+/* ---------- Open now ---------- */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--line);
+  background: rgb(21 23 28 / 0.7);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.status[hidden] {
+  display: none;
+}
+
+.status__dot {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--bronze-hi);
+}
+
+.status__dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: ping 2s ease-out infinite;
+}
+
+.status.is-closed .status__dot {
+  background: var(--ember);
+}
+
+.status.is-closed .status__dot::after {
+  animation: none;
+}
+
+/* ---------- The band ---------- */
+
+.band {
+  overflow: hidden;
+  background: var(--bronze);
+  color: var(--stone);
+  padding-block: 0.85rem;
+}
+
+.band__track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  animation: band 32s linear infinite;
+}
+
+.band__track > * {
+  margin-inline-end: 1.5rem;
+}
+
+.band span {
+  font-size: 1.2rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.band svg {
+  width: 1.2rem;
+  height: 1rem;
+  fill: currentColor;
+  opacity: 0.55;
+}
+
+/* ---------- Sections ---------- */
+
+.intro,
+.services,
+.space,
+.hours,
+.contact {
+  padding-block: clamp(4.5rem, 14vw, 8.5rem) 0;
+}
+
+.section-head h2 {
+  max-width: 22ch;
+  margin-block-start: 0.75rem;
+  font-size: clamp(1.75rem, 7.4vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+/* ---------- Manifesto and facts ---------- */
+
+.manifesto {
+  margin-block-start: 1.25rem;
+  font-size: clamp(1.65rem, 7vw, 3.5rem);
+  font-weight: 750;
+  line-height: 1.65;
+}
+
+.manifesto .w {
+  color: rgb(242 239 233 / 0.14);
+  transition: color 0.35s;
+}
+
+.manifesto .w.is-lit {
+  color: var(--text);
+}
+
+.facts {
+  display: grid;
+  gap: 0;
+  margin-block-start: clamp(3rem, 10vw, 5rem);
+}
+
+.fact {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+  padding-block: 1.25rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.fact__num {
+  flex: none;
+  min-width: 5.5ch;
+  font-size: clamp(3rem, 15vw, 5.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--bronze);
+  font-variant-numeric: tabular-nums;
+}
+
+.fact dd {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* The slot reels site.js builds from each digit. A number is written left to right even in
+   Persian text; once each digit is its own box the browser would lay them out right to left
+   (۳۶۵ shown as ۵۶۳), so the row of reels is isolated as left-to-right. */
+.slot > [aria-hidden] {
+  display: inline-block;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.reel {
+  display: inline-block;
+  height: 1.1em;
+  overflow: hidden;
+  vertical-align: top;
+}
+
+.reel__strip {
+  display: flex;
+  flex-direction: column;
+  transition: transform 1.6s var(--ease-out);
+}
+
+.reel__strip span {
+  height: 1.1em;
+  text-align: center;
+}
+
+/* ---------- Services ---------- */
+
+.service-list {
+  margin-block-start: 2.5rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.service {
+  border-block-end: 1px solid var(--line);
+  transition: background-color 0.4s;
+}
+
+.service summary {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 1.25rem;
+  list-style: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.service summary::-webkit-details-marker {
+  display: none;
+}
+
+.service__num {
+  color: var(--faint);
+  font-weight: 300;
+  font-size: 0.95rem;
+}
+
+.service__name {
+  font-size: clamp(1.6rem, 7.5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.3;
+  transition:
+    color 0.3s,
+    translate 0.4s var(--ease-out);
+}
+
+.service__plus {
+  position: relative;
+  width: 1.25rem;
+  height: 1.25rem;
+  transition: rotate 0.4s var(--ease-out);
+}
+
+.service__plus::before,
+.service__plus::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--bronze);
+}
+
+.service__plus::after {
+  rotate: 90deg;
+}
+
+.service[open] {
+  background: linear-gradient(to left, rgb(200 155 87 / 0.12), transparent 80%);
+}
+
+.service[open] .service__name {
+  color: var(--bronze-hi);
+}
+
+.service[open] .service__plus {
+  rotate: 135deg;
+}
+
+.service__body {
+  padding: 0 3.25rem 1.5rem 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.service::details-content {
+  height: 0;
+  overflow: clip;
+  transition:
+    height 0.45s var(--ease-out),
+    content-visibility 0.45s allow-discrete;
+}
+
+.service[open]::details-content {
+  height: auto;
+}
+
+@media (hover: hover) {
+  .service summary:hover .service__name {
+    color: var(--bronze-hi);
+    translate: -0.5rem 0;
+  }
+}
+
+/* ---------- The space ---------- */
+
+.gallery {
+  display: flex;
+  gap: 0.75rem;
+  margin-block-start: 2.5rem;
+  padding-inline: var(--gutter);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.gallery::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery__item {
+  flex: none;
+  width: 78vw;
+  aspect-ratio: 4 / 5;
+  scroll-snap-align: start;
+}
+
+@media (hover: hover) {
+  .gallery__item:hover img {
+    transform: scale(1.04);
+    filter: grayscale(0.6) contrast(1.1) brightness(0.85);
+  }
+
+  .gallery__item:hover::after {
+    opacity: 0.3;
+  }
+}
+
+.gallery__count {
+  margin-block-start: 1rem;
+  font-weight: 700;
+  color: var(--bronze);
+}
+
+.gallery__of {
+  color: var(--faint);
+  font-weight: 300;
+}
+
+/* ---------- Hours ---------- */
+
+.hours__card {
+  margin-block-start: 2.5rem;
+  padding: clamp(1.5rem, 6vw, 3rem);
+  background: linear-gradient(160deg, var(--stone-3), var(--stone-2) 60%);
+  clip-path: polygon(
+    1.25rem 0,
+    100% 0,
+    100% calc(100% - 1.25rem),
+    calc(100% - 1.25rem) 100%,
+    0 100%,
+    0 1.25rem
+  );
+}
+
+.hours__range {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: clamp(2.25rem, 11vw, 6.5rem);
+  font-weight: 900;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.hours__dash {
+  flex: 1;
+  min-width: 0.75rem;
+  height: 3px;
+  background: linear-gradient(to left, var(--bronze), var(--bronze-lo));
+}
+
+.hours__words {
+  margin-block-start: 0.25rem;
+  color: var(--muted);
+}
+
+/* The day as a track: 0 at the start (right), 24 at the end, the open hours in bronze. */
+.dial {
+  margin-block: 2rem 1.5rem;
+}
+
+.dial__track {
+  position: relative;
+  height: 0.5rem;
+  background: var(--line);
+}
+
+.dial__open {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 31.25%; /* 7:30 */
+  width: 64.5833%; /* to 23:00 */
+  background: linear-gradient(to left, var(--bronze-hi), var(--bronze));
+  box-shadow: 0 0 18px rgb(200 155 87 / 0.35);
+}
+
+.dial__now {
+  --now: 0;
+  position: absolute;
+  inset-block: -0.6rem;
+  inset-inline-start: calc(var(--now) * 100%);
+  width: 2px;
+  background: var(--text);
+  box-shadow: 0 0 10px rgb(242 239 233 / 0.7);
+}
+
+.dial__now[hidden] {
+  display: none;
+}
+
+.dial__ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-block-start: 0.6rem;
+  color: var(--faint);
+  font-size: 0.85rem;
+}
+
+/* ---------- Contact ---------- */
+
+.contact {
+  padding-block-end: clamp(4.5rem, 14vw, 8.5rem);
+}
+
+.contact__list {
+  margin-block-start: 2.5rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.contact__list > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding-block: 1.1rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.contact__list dt {
+  color: var(--muted);
+}
+
+.contact__list dd {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.soon {
+  color: var(--faint);
+}
+
+.contact__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block-start: 2rem;
+}
+
+/* ---------- Footer ---------- */
+
+.footer {
+  overflow: hidden;
+  border-block-start: 1px solid var(--line);
+}
+
+.footer__word {
+  margin-block-end: -0.18em;
+  font-size: min(31vw, 24rem);
+  font-weight: 900;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1px rgb(200 155 87 / 0.35);
+  background: linear-gradient(to bottom, rgb(200 155 87 / 0.1), transparent 75%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.footer__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.footer__bar .brand__mark {
+  width: 1.4rem;
+  height: 1.2rem;
+}
+
+/* ---------- Reveal on scroll (only when site.js runs) ---------- */
+
+.js [data-reveal] {
+  opacity: 0;
+  translate: 0 1.5rem;
+  transition:
+    opacity 0.9s var(--ease-out),
+    translate 0.9s var(--ease-out);
+}
+
+.js [data-reveal].is-in {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* ---------- Computer screen ---------- */
+
+@media (min-width: 900px) {
+  :root {
+    --gutter: 2.5rem;
+  }
+
+  .topnav {
+    display: flex;
+  }
+
+  .menu-button {
+    display: none;
+  }
+
+  .hero {
+    padding-block-end: 6rem;
+  }
+
+  .hero__content {
+    max-width: 72rem;
+  }
+
+  .facts {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  .fact {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(3, 16rem);
+    width: min(100% - var(--gutter) * 2, 72rem);
+    margin-inline: auto;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .gallery__item {
+    width: auto;
+    aspect-ratio: auto;
+  }
+
+  .gallery__item:nth-child(1) {
+    grid-column: 1 / 5;
+    grid-row: 1 / 3;
+  }
+
+  .gallery__item:nth-child(2) {
+    grid-column: 5 / 13;
+    grid-row: 1 / 2;
+  }
+
+  .gallery__item:nth-child(3) {
+    grid-column: 5 / 9;
+    grid-row: 2 / 3;
+  }
+
+  .gallery__item:nth-child(4) {
+    grid-column: 9 / 13;
+    grid-row: 2 / 4;
+  }
+
+  .gallery__item:nth-child(5) {
+    grid-column: 1 / 9;
+    grid-row: 3 / 4;
+  }
+
+  .gallery__count {
+    display: none;
+  }
+
+  .service__body {
+    padding-inline-start: 3.25rem;
+    max-width: 40rem;
+  }
+
+  .contact__list dd {
+    font-size: 1.35rem;
+  }
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes hero-settle {
+  from {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+
+@keyframes carve {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 1.25rem;
+  }
+}
+
+@keyframes drip {
+  from {
+    translate: 0 -100%;
+  }
+  to {
+    translate: 0 250%;
+  }
+}
+
+@keyframes sheen {
+  0%,
+  70% {
+    inset-inline-start: -40%;
+  }
+  100% {
+    inset-inline-start: 130%;
+  }
+}
+
+@keyframes ping {
+  0% {
+    opacity: 0.7;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 3;
+  }
+}
+
+/* Right to left: the band moves towards the reader's right, new words entering from the left. */
+@keyframes band {
+  to {
+    translate: 50% 0;
+  }
+}
+
+/* ---------- Less motion when the phone asks for it ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  .js [data-reveal] {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  .manifesto .w {
+    color: var(--text);
+  }
+}

@@ -2826,6 +2826,10 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
 ### 13.3 The public site
 - [ ] Replace the placeholder on the apex with a real page for the gym: hours, address, contact,
       services. Static, no API
+      - 1405/07/22 (2026-10-14), branch `task/13.3-public-site`: first page built (direction "Stone and
+        steel"), buttons still do nothing; placeholder Unsplash photos in `web/public-site/img/`, to be
+        replaced by the gym's own; address, telephone and Instagram still «به‌زودی». The public CSP
+        now allows the site's own script (`script-src 'self'`). Not released.
 - [ ] Confirm the panel stays out of search results
 
 ---

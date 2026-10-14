@@ -1703,3 +1703,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **An ADR written later says so.** 0005 to 0008 record decisions made weeks before. Each gives the date of the decision and the date it was written, and takes its reasons from where they were first written down; an alternative nobody recorded considering was left out rather than invented.
 - **A release checklist is written from the releases.** docs/DEPLOYMENT.md lists the steps the roadmap's release records show were actually taken, in their order, so the document describes practice instead of intention.
 - **My notes:**
+
+## 13.3 — The public site, first page (صفحه‌ی اول سایت)
+
+- **Ask a second designer, then check its facts.** The prompt to another AI gave three directions and a pick, and also invented services, square metres and a font setting that does not exist (`ss01` does not make Vazirmatn's digits Persian). Ideas can come from anywhere; facts on a public page come only from the gym.
+- **One grade makes any photo belong.** Every picture is greyed, darkened and washed with bronze in CSS (`.photo`). The placeholders and the gym's own phone photos later will look like one set, and replacing a photo is replacing a file, not redesigning a section.
+- **A number is left-to-right even inside Persian.** Splitting «۳۶۵» into one box per digit made the browser lay the boxes out right to left as «۵۶۳». `direction: ltr; unicode-bidi: isolate` on the row of digits fixes it. Only a real browser showed it; reading the code did not.
+- **Use the platform's own element before writing one.** The services list is `<details>`/`<summary>`: it opens and closes, works with the keyboard and screen readers and without JavaScript. CSS animates it where the browser can (`::details-content`, `interpolate-size`), and elsewhere it simply opens.
+- **Effects add, never hold up.** The page is complete without site.js; the script only adds the torchlight, the reels and "open now". Reduced motion turns every animation off, and the torchlight only runs while the name is on screen and the tab is visible.
+- **A Content-Security-Policy follows the page.** The placeholder had no script, so its policy said `script-src 'none'`. The new page has one script file, so it is `'self'`, still without `'unsafe-inline'`: the script is a file, never inline.
+- **My notes:**

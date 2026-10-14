@@ -2,94 +2,371 @@
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>باشگاه پاسارگاد جیم پلاس</title>
-    <meta name="description" content="وب‌سایت باشگاه پاسارگاد جیم پلاس به‌زودی." />
+    <meta
+      name="description"
+      content="پاسارگاد جیم پلاس، باشگاه بدنسازی آقایان. هر روز سال، از ۷:۳۰ صبح تا ۱۱ شب."
+    />
+    <meta name="theme-color" content="#0d0e11" />
 
     <!--
-      The gym's public face. Deliberately a single static file with no JavaScript and no call to
-      the API: it is served by Caddy from /srv-public and keeps working while the application,
-      the database or a release is down.
+      The gym's public face (roadmap 13.3). Static files only: this page, site.css, site.js, the
+      font and the photos. Nothing here calls the API, so the page keeps serving while the
+      application, the database or a release is down. Caddy serves the folder from /srv-public.
 
-      This is a placeholder. When the real site is written, replace this file — the Caddy site,
-      the certificate and the DNS record all stay as they are.
+      Design direction "Stone and steel": the stepped Tomb of Cyrus at Pasargadae as the mark,
+      dark stone with bronze light, every photo passed through one bronze grade (.photo in
+      site.css) so that the placeholders and the gym's own photos later read as one set.
 
-      TODO, whenever the gym supplies them: address, telephone, opening hours, Instagram. Nothing
-      is invented here on purpose; a wrong phone number on a public page is worse than none.
+      The photos in img/ are PLACEHOLDERS from Unsplash (free licence, no credit required),
+      to be replaced by the gym's own photos under the same file names:
+        hero.webp      7ltjONcH_mI
+        dumbbell.webp  JWK2H-2qz1Y
+        plate.webp     Z__WwJxWP0g
+        grip.webp      hOuJYX2K5DA
+        rack.webp      3uWgVRLbJwI
+        floor.webp     AzX5iNFYBMY
+
+      Buttons do nothing yet, on purpose: what they open is decided later. Facts not supplied by
+      the gym (address, telephone, Instagram) say «به‌زودی»; a wrong number on a public page is
+      worse than none. The hours are real: every day of the year, 7:30 to 23:00
+      (docs/BUSINESS_RULES.md: no closed days).
     -->
 
-    <style>
-      @font-face {
-        font-family: "Vazirmatn";
-        src: url("./fonts/Vazirmatn-Variable.woff2") format("woff2-variations");
-        font-weight: 100 900;
-        font-display: swap;
-      }
-
-      :root {
-        --ink: #1a1a1a;
-        --muted: #6b6b6b;
-        --surface: #fbfaf8;
-        --line: #e6e3de;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --ink: #f2f0ed;
-          --muted: #a0a0a0;
-          --surface: #141414;
-          --line: #2c2c2c;
-        }
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        min-height: 100dvh;
-        display: grid;
-        place-items: center;
-        padding: 2rem 1rem;
-        background: var(--surface);
-        color: var(--ink);
-        font-family: "Vazirmatn", system-ui, sans-serif;
-        line-height: 1.8;
-      }
-
-      main {
-        max-width: 32rem;
-        text-align: center;
-      }
-
-      h1 {
-        margin: 0 0 0.5rem;
-        font-size: clamp(1.75rem, 5vw, 2.5rem);
-        font-weight: 700;
-        letter-spacing: -0.01em;
-      }
-
-      p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 1.05rem;
-      }
-
-      hr {
-        width: 3rem;
-        margin: 2rem auto;
-        border: 0;
-        border-top: 1px solid var(--line);
-      }
-    </style>
+    <link
+      rel="preload"
+      href="./fonts/Vazirmatn-Variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="./img/hero.webp"
+      as="image"
+      media="(max-width: 899px)"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      href="./img/dumbbell.webp"
+      as="image"
+      media="(min-width: 900px)"
+      fetchpriority="high"
+    />
+    <link rel="stylesheet" href="./site.css" />
+    <script src="./site.js"></script>
   </head>
 
   <body>
+    <svg width="0" height="0" class="sprite" aria-hidden="true">
+      <!-- The Tomb of Cyrus: six steps and a gabled chamber. The gym's mark. -->
+      <symbol id="tomb" viewBox="0 0 48 40">
+        <path d="M14 9.5 24 2.5l10 7z" />
+        <rect x="16" y="10.5" width="16" height="4.5" />
+        <rect x="12" y="16" width="24" height="2.5" />
+        <rect x="10.5" y="19.5" width="27" height="3" />
+        <rect x="8.5" y="23.5" width="31" height="3.5" />
+        <rect x="6" y="28" width="36" height="3.5" />
+        <rect x="3" y="32.5" width="42" height="3" />
+        <rect x="0" y="36.5" width="48" height="3.5" />
+      </symbol>
+    </svg>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="./" aria-label="پاسارگاد جیم پلاس، صفحه‌ی اول">
+          <svg class="brand__mark" aria-hidden="true"><use href="#tomb" /></svg>
+          <span class="brand__name">پاسارگاد <span>جیم پلاس</span></span>
+        </a>
+
+        <nav class="topnav" aria-label="بخش‌های سایت">
+          <button type="button">امکانات</button>
+          <button type="button">فضای باشگاه</button>
+          <button type="button">ساعت کاری</button>
+          <button type="button">تماس</button>
+        </nav>
+
+        <button type="button" class="menu-button" aria-label="منو">
+          <span></span><span></span>
+        </button>
+      </div>
+    </header>
+
     <main>
-      <h1>باشگاه پاسارگاد جیم پلاس</h1>
-      <hr />
-      <p>وب‌سایت ما به‌زودی در همین نشانی در دسترس خواهد بود.</p>
+      <!-- Hero -->
+      <section class="hero" aria-labelledby="hero-title">
+        <picture class="photo hero__photo">
+          <source
+            media="(min-width: 900px)"
+            srcset="./img/dumbbell.webp"
+            width="1200"
+            height="748"
+          />
+          <img src="./img/hero.webp" alt="" width="1000" height="1500" fetchpriority="high" />
+        </picture>
+        <div class="hero__flutes" aria-hidden="true"></div>
+
+        <div class="hero__content wrap">
+          <p class="eyebrow hero__eyebrow">
+            <svg aria-hidden="true"><use href="#tomb" /></svg>
+            باشگاه بدنسازی آقایان
+          </p>
+
+          <h1 id="hero-title" class="hero__title">
+            <span class="carved" data-torch>پاسارگاد</span>
+            <span class="hero__sub">جیم پلاس</span>
+          </h1>
+
+          <p class="hero__lead">قدرت، ریشه در سنگ دارد.</p>
+
+          <div class="hero__actions">
+            <button type="button" class="btn btn--bronze">امکانات باشگاه</button>
+            <button type="button" class="btn btn--ghost">ساعت کاری و نشانی</button>
+          </div>
+
+          <p class="status" data-status hidden>
+            <span class="status__dot"></span>
+            <span data-status-text></span>
+          </p>
+        </div>
+
+        <div class="hero__scroll" aria-hidden="true"><span></span></div>
+      </section>
+
+      <!-- The band of services -->
+      <div class="band" aria-hidden="true">
+        <div class="band__track">
+          <span>بدنسازی</span><svg><use href="#tomb" /></svg> <span>هوازی</span
+          ><svg><use href="#tomb" /></svg> <span>آنالیز بدن</span><svg><use href="#tomb" /></svg>
+          <span>کافه</span><svg><use href="#tomb" /></svg> <span>فروشگاه</span
+          ><svg><use href="#tomb" /></svg> <span>کمد</span><svg><use href="#tomb" /></svg>
+          <span>بدنسازی</span><svg><use href="#tomb" /></svg> <span>هوازی</span
+          ><svg><use href="#tomb" /></svg> <span>آنالیز بدن</span><svg><use href="#tomb" /></svg>
+          <span>کافه</span><svg><use href="#tomb" /></svg> <span>فروشگاه</span
+          ><svg><use href="#tomb" /></svg> <span>کمد</span><svg><use href="#tomb" /></svg>
+        </div>
+      </div>
+
+      <!-- Manifesto and the numbers -->
+      <section class="intro wrap" aria-labelledby="intro-title">
+        <p class="eyebrow" id="intro-title" data-reveal>
+          <span class="eyebrow__num">۰۱</span> پاسارگاد
+        </p>
+
+        <p class="manifesto" data-manifesto>
+          اینجا آهن صبور است. هر تکرار، سنگی است که روی سنگ قبلی می‌گذاری؛ تا روزی که بنای خودت را
+          ببینی.
+        </p>
+
+        <dl class="facts">
+          <div class="fact" data-reveal>
+            <dt class="fact__num"><span class="slot" data-slot>۳۶۵</span></dt>
+            <dd>روز در سال باز، حتی روزهای تعطیل</dd>
+          </div>
+          <div class="fact" data-reveal>
+            <dt class="fact__num"><span class="slot" data-slot>۱۵٫۵</span></dt>
+            <dd>ساعت تمرین در هر روز</dd>
+          </div>
+          <div class="fact" data-reveal>
+            <dt class="fact__num"><span class="slot" data-slot>۷:۳۰</span></dt>
+            <dd>صبح، درها باز می‌شود</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Services -->
+      <section class="services wrap" aria-labelledby="services-title">
+        <div class="section-head" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۲</span> امکانات</p>
+          <h2 id="services-title">هرچه برای تمرین لازم داری، زیر یک سقف.</h2>
+        </div>
+
+        <div class="service-list">
+          <details class="service" data-reveal>
+            <summary>
+              <span class="service__num">۰۱</span>
+              <span class="service__name">بدنسازی</span>
+              <span class="service__plus" aria-hidden="true"></span>
+            </summary>
+            <div class="service__body">
+              <p>وزنه‌ی آزاد و دستگاه؛ از اولین جلسه تا رکورد بعدی.</p>
+            </div>
+          </details>
+          <details class="service" data-reveal>
+            <summary>
+              <span class="service__num">۰۲</span>
+              <span class="service__name">هوازی</span>
+              <span class="service__plus" aria-hidden="true"></span>
+            </summary>
+            <div class="service__body">
+              <p>تردمیل برای گرم کردن، استقامت و چربی‌سوزی.</p>
+            </div>
+          </details>
+          <details class="service" data-reveal>
+            <summary>
+              <span class="service__num">۰۳</span>
+              <span class="service__name">آنالیز بدن</span>
+              <span class="service__plus" aria-hidden="true"></span>
+            </summary>
+            <div class="service__body">
+              <p>ببین امروز کجا هستی، تا بدانی چقدر جلو رفته‌ای.</p>
+            </div>
+          </details>
+          <details class="service" data-reveal>
+            <summary>
+              <span class="service__num">۰۴</span>
+              <span class="service__name">کافه</span>
+              <span class="service__plus" aria-hidden="true"></span>
+            </summary>
+            <div class="service__body">
+              <p>نوشیدنی و خوراکی بعد از تمرین، همین‌جا.</p>
+            </div>
+          </details>
+          <details class="service" data-reveal>
+            <summary>
+              <span class="service__num">۰۵</span>
+              <span class="service__name">فروشگاه</span>
+              <span class="service__plus" aria-hidden="true"></span>
+            </summary>
+            <div class="service__body">
+              <p>آنچه سر تمرین لازم داری، از پیشخوان باشگاه.</p>
+            </div>
+          </details>
+          <details class="service" data-reveal>
+            <summary>
+              <span class="service__num">۰۶</span>
+              <span class="service__name">کمد</span>
+              <span class="service__plus" aria-hidden="true"></span>
+            </summary>
+            <div class="service__body">
+              <p>وسایلت در طول تمرین جای امنی دارد.</p>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- The space -->
+      <section class="space" aria-labelledby="space-title">
+        <div class="section-head wrap" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۳</span> فضای باشگاه</p>
+          <h2 id="space-title">آهن، نور، و جایی برای تمرکز.</h2>
+        </div>
+
+        <div class="gallery" data-gallery tabindex="0" aria-label="عکس‌های باشگاه">
+          <figure class="photo gallery__item">
+            <img
+              src="./img/rack.webp"
+              alt="ردیف دمبل‌ها"
+              loading="lazy"
+              width="900"
+              height="1350"
+            />
+          </figure>
+          <figure class="photo gallery__item">
+            <img
+              src="./img/plate.webp"
+              alt="هالتر و صفحه‌ی وزنه"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </figure>
+          <figure class="photo gallery__item">
+            <img
+              src="./img/grip.webp"
+              alt="دست روی هالتر"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </figure>
+          <figure class="photo gallery__item">
+            <img src="./img/floor.webp" alt="سالن تمرین" loading="lazy" width="900" height="1350" />
+          </figure>
+          <figure class="photo gallery__item">
+            <img
+              src="./img/dumbbell.webp"
+              alt="دمبل در تاریکی"
+              loading="lazy"
+              width="1200"
+              height="748"
+            />
+          </figure>
+        </div>
+        <p class="gallery__count wrap" aria-hidden="true">
+          <span data-gallery-index>۰۱</span> <span class="gallery__of">/ ۰۵</span>
+        </p>
+      </section>
+
+      <!-- Hours -->
+      <section class="hours wrap" aria-labelledby="hours-title">
+        <div class="section-head" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۴</span> ساعت کاری</p>
+          <h2 id="hours-title">هر روز سال، حتی روزهای تعطیل.</h2>
+        </div>
+
+        <div class="hours__card" data-reveal>
+          <p class="hours__range">
+            <span>۷:۳۰</span>
+            <span class="hours__dash" aria-hidden="true"></span>
+            <span>۲۳:۰۰</span>
+          </p>
+          <p class="hours__words">از هفت و نیم صبح تا یازده شب</p>
+
+          <div class="dial" aria-hidden="true">
+            <div class="dial__track">
+              <span class="dial__open"></span>
+              <span class="dial__now" data-now hidden></span>
+            </div>
+            <div class="dial__ticks">
+              <span>۰</span><span>۶</span><span>۱۲</span><span>۱۸</span><span>۲۴</span>
+            </div>
+          </div>
+
+          <p class="status status--inline" data-status hidden>
+            <span class="status__dot"></span>
+            <span data-status-text></span>
+          </p>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="contact wrap" aria-labelledby="contact-title">
+        <div class="section-head" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۵</span> نشانی و تماس</p>
+          <h2 id="contact-title">سر بزن؛ بقیه‌اش با آهن.</h2>
+        </div>
+
+        <dl class="contact__list" data-reveal>
+          <div>
+            <dt>نشانی</dt>
+            <dd class="soon">به‌زودی</dd>
+          </div>
+          <div>
+            <dt>تلفن</dt>
+            <dd class="soon">به‌زودی</dd>
+          </div>
+          <div>
+            <dt>اینستاگرام</dt>
+            <dd class="soon">به‌زودی</dd>
+          </div>
+        </dl>
+
+        <div class="contact__actions" data-reveal>
+          <button type="button" class="btn btn--bronze">مسیریابی با نشان</button>
+          <button type="button" class="btn btn--ghost">مسیریابی با بلد</button>
+        </div>
+      </section>
     </main>
+
+    <footer class="footer">
+      <p class="footer__word" aria-hidden="true">پاسارگاد</p>
+      <div class="footer__bar wrap">
+        <svg class="brand__mark" aria-hidden="true"><use href="#tomb" /></svg>
+        <p>© ۱۴۰۵ باشگاه پاسارگاد جیم پلاس</p>
+      </div>
+    </footer>
   </body>
 </html>
