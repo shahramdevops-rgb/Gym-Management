@@ -145,7 +145,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | Lockers: see the map, see who had a locker today, take one out of service, bring it back in, move a visit to another locker (§6, §7) | ✅ | ✅ |
 | Lockers screen: the desk panel, today by hour, the locker usage map (§6; counts only, no money) | ✅ | ✅ |
 | Freeze, unfreeze, cancel subscriptions (a check-in by either role still ends a freeze, §4 *Freeze*) | ✅ | ❌ |
-| Refunds, voids (outside the cafe) | ✅ | ❌ |
+| Voids (outside the cafe), and the refunds they write (§5) | ✅ | ❌ |
 | Gym service charges: record, change the amount, void (§7 *Gym services*) | ✅ | ✅ |
 | Cafe: products, categories, orders, and cancelling an order (§8) | ✅ | ✅ |
 | The gym's history (تاریخچه): check-ins and هوازی of any day (§12 *History*) | ✅ | ✅ |
@@ -359,6 +359,17 @@ visit, and it must never move, delay or shorten what the member already bought.
 
 ### Cancel
 - Requires a reason. Payments are not deleted; money is returned only through refunds.
+- **Cancelling gives back everything paid on it, in the same step** (decided by the developer,
+  1405/07/22, roadmap 6.5.37; replaces "payments are untouched, the refund is a separate step",
+  after a cancelled plan at the gym kept its money because the second step was forgotten). As a
+  cancelled cafe order (§8) and a voided charge (§7): one refund per payment method still in
+  credit, so cash comes back as cash and a card payment is reversed on the card, each carrying the
+  cancel reason. Nothing paid, nothing refunded: it is simply cancelled.
+  - There is no other refund of a subscription. A payment taken wrong is fixed by cancelling the
+    whole subscription, which gives all of it back, and selling a new one at the right figures.
+  - A cancelled subscription takes no more payments (`Subscriptions.Cancelled`), as a cancelled
+    cafe order takes none (§8): with no refund of its own, money paid onto it could never come
+    back. *Decided by Claude during task 6.5.37; pending review.*
 - Details (decided with the developer in task 4.1):
   - Only a subscription nobody has used yet can be cancelled: `UsedSessions = 0` **and** the status is `Upcoming`, `Active` or `Frozen` (decided with the developer, 1405/06/31 — it replaces the earlier task 4.1 rule that any status could be cancelled). A service that has been consumed is not un-sold, and an `Expired` or `Exhausted` subscription is history, not something still to decide about.
     - `Subscriptions.AlreadyUsed` when a session has been consumed, `Subscriptions.Expired` when it has ended, `Subscriptions.Cancelled` when it was cancelled before.
@@ -380,10 +391,10 @@ visit, and it must never move, delay or shorten what the member already bought.
 - A payment belongs to exactly one of: a Subscription, a CafeOrder or a ServiceCharge (§7 *Gym services*), enforced by a check constraint. The service charge target arrived in task 5.7 and the cafe order target in task 7.2.
 - Fields: `Kind` (Payment or Refund), `Amount` (> 0), `Method`, `ReferenceNumber` (optional), `PaidAt` (UTC), `ReceivedByUserId`, `Reason` (required for refunds).
 - A subscription cannot be overpaid.
-- Payments are never edited or deleted. A mistaken entry is fixed with a full refund whose reason explains the mistake (a "void").
+- Payments are never edited or deleted. A mistaken entry is fixed by undoing what it paid for, which refunds it: cancelling the subscription (§4 *Cancel*) or the cafe order (§8), voiding the charge (§7).
 - A refund cannot exceed the current net paid amount.
-- A subscription can only be refunded while nobody has used it (`UsedSessions = 0`), whatever its status (decided with the developer, 1405/06/31). Sessions already taken are not bought back. `Payments.RefundAfterUse` otherwise.
-  - This makes the refund unavailable for correcting a payment typed wrong on a subscription the member has already used. That is deliberate: the overpayment guard above refuses more than the price as it is typed, so a wrong figure is caught at the desk, and a visit entered by mistake can be undone within the cancel window (§7).
+- **No refund is written by hand** (decided by the developer, 1405/07/22, roadmap 6.5.37; replaces the subscription's own refund of task 4.4, partial or a full "void"). Every refund comes from a cancel or a void, and gives back all that is still paid, per method.
+  - Sessions already taken are not bought back: only a subscription nobody has used can be cancelled (§4), so only that one is refunded (decided with the developer, 1405/06/31). A payment typed wrong on a subscription the member has already used stays as it is. That is deliberate: the overpayment guard above refuses more than the price as it is typed, so a wrong figure is caught at the desk, and a visit entered by mistake can be undone within the cancel window (§7), after which the subscription can be cancelled.
 - Details. *Decided by Claude during task 4.4; pending review.*
   - `Amount` follows the same money rule as the prices (§3): at most 2 decimal places, refused rather
     than rounded, capped at the same column limit (`numeric(18,2)`).
@@ -401,15 +412,15 @@ Decided with the developer, 1405/07/04. A payment is never deleted, so a stray p
 should not be enough to write one. This rule covers every screen that records money.
 
 - **No payment method is chosen in advance.** The "روش پرداخت" list starts empty ("انتخاب کنید…"),
-  and a payment or refund with no method picked is refused before anything is sent. The desk has
+  and a payment with no method picked is refused before anything is sent. The desk has
   to look at the list and choose.
 - **The list is always in the same order: کارت (Card), انتقال بانکی (BankTransfer), نقدی (Cash).**
 - **Before any money is written, the desk answers a second question**, which names the amount
-  and the method: "آیا پول دریافت شد؟" for a payment, and "آیا پول به عضو برگردانده شد؟" for a
-  refund. Nothing is sent until the desk answers yes. "No" closes the question and leaves the form
+  and the method: "آیا پول دریافت شد؟". Nothing is sent until the desk answers yes. "No" closes the question and leaves the form
   as it was.
 - This applies to a payment against a subscription, a هوازی charge or a cafe order, to «تسویه
-  یکجا», to the cafe till, and to a refund.
+  یکجا», and to the cafe till. A refund is never typed (§5, roadmap 6.5.37): the cancel or void
+  that writes it asks for its reason and says how much goes back instead.
 - A cafe order left wholly on a member's account takes no money, so it asks neither for a method
   nor for the confirmation (§8).
 - This is a desk-side guard only. The API already requires a valid method on every payment, so
@@ -422,7 +433,7 @@ charges in 5.7; cafe orders join the same total in Phase 7.
 
 - Debt is **calculated, never stored**, the same way subscription status and payment status are: there is no balance column to keep correct, and no nightly job to recompute one.
 - A member's debt = what is still owed on their non-cancelled subscriptions, plus what is still owed on their non-voided service charges (§7 *Gym services*), plus (from Phase 7) what is still owed on their non-cancelled cafe orders. Per item that is `Price − net paid`, never below zero.
-- Cancelled items owe nothing. A subscription can only be cancelled while nobody has used it (§4), and money already paid on one comes back as a refund, not as a debt that quietly disappears. A voided service charge owes nothing for the same reason.
+- Cancelled items owe nothing. A subscription can only be cancelled while nobody has used it (§4), and money already paid on one comes back as refunds written by the cancellation itself (§4 *Cancel*), not as a debt that quietly disappears. A voided service charge owes nothing for the same reason.
 - **There is no wallet and no credit balance.** Every payment still belongs to exactly one subscription, service charge or cafe order (§5 above), so the total is always the sum of named items and never a figure nobody can account for. A member who hands over a lump sum for several things has it entered against each of those items.
   - Reviewed with the developer on 1405/07/01, who proposed a wallet so that money taken at the desk would not have to be tied to a named item, and then decided against it. The reasons, recorded so the question does not have to be reopened from scratch: a wallet splits "money arrived" from "money earned", so the revenue figure in §12 would have to choose between the deposit date and the allocation date; debt would become a net figure rather than the sum of items the breakdown can point at; and refunds would gain a destination. *If the gym later wants one, the balance must be calculated from a deposit/allocation ledger, never stored in a column, like every other figure here.*
 - The total is never shown on its own: opening it shows the breakdown item by item — what it is (subscription, service charge or cafe order), its date, its price, what has been paid and what is left. The developer's requirement is that "جزء به جزء" is always one click from the number.
@@ -469,8 +480,8 @@ entries for one handover of money.
   - Settlements made before the column existed were given one when it was added: payments with
     exactly the same moment, method and staff member, two or more of them. Only «تسویه یکجا»
     writes payments like that.
-- Correcting a settlement is the same as correcting any payment: each row is refunded or its item
-  voided or cancelled on its own terms (§5, §7, §8).
+- Correcting a settlement is the same as correcting any payment: each row's item is voided or
+  cancelled on its own terms, which refunds that row (§4, §5, §7, §8).
 
 ---
 

@@ -37,19 +37,6 @@ public static class PaymentErrors
         "Payments.RefundReasonTooLong",
         "The refund reason is too long.");
 
-    /// <summary>BUSINESS_RULES.md §5: a refund cannot exceed the current net paid amount.</summary>
-    public static readonly Error RefundExceedsNetPaid = Error.BusinessRule(
-        "Payments.RefundExceedsNetPaid",
-        "This refund would exceed the item's net paid amount.");
-
-    /// <summary>
-    /// BUSINESS_RULES.md §5: a subscription can only be refunded while nobody has used it, whatever
-    /// its status. Sessions already taken are not bought back.
-    /// </summary>
-    public static readonly Error RefundAfterUse = Error.BusinessRule(
-        "Payments.RefundAfterUse",
-        "A subscription with a used session cannot be refunded.");
-
     /// <summary>
     /// BUSINESS_RULES.md §12 <i>History</i>: Staff read payments of today and the
     /// <see cref="PaymentHistoryWindow.StaffDaysBeforeToday"/> days before it, and nothing earlier.

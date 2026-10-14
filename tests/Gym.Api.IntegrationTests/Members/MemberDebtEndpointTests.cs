@@ -147,24 +147,26 @@ public sealed class MemberDebtEndpointTests(DatabaseFixture fixture) : DatabaseT
         debt.Items.ShouldBeEmpty();
     }
 
-    /// <summary>A refund puts the money back on the member's account as debt again.</summary>
+    /// <summary>
+    /// A partly paid plan, cancelled: it owes nothing, and what was paid came back with the cancel
+    /// rather than vanishing from the debt (BUSINESS_RULES.md §4 Cancel, §5 Member debt, 6.5.37).
+    /// </summary>
     [Fact]
-    public async Task GetDebt_AfterARefund_OwesTheRefundedAmountAgain()
+    public async Task GetDebt_PartlyPaidPlanCancelled_OwesNothing()
     {
         var (client, token) = await StaffClientAsync();
         var (ownerClient, ownerToken) = await OwnerClientAsync();
         var member = await AddMemberAsync();
         var sold = await SellAsync(client, token, member.Id, 900_000m);
-        await PayAsync(client, token, sold.Id, 900_000m);
-        using var refund = await SendAsync(
-            ownerClient, ownerToken, $"/api/subscriptions/{sold.Id}/refunds",
-            new { amount = 200_000m, method = "Cash", reason = "بازگشت وجه" });
-        refund.StatusCode.ShouldBe(HttpStatusCode.Created);
+        await PayAsync(client, token, sold.Id, 200_000m);
+        using var cancel = await SendAsync(
+            ownerClient, ownerToken, $"/api/subscriptions/{sold.Id}/cancel", new { reason = "انصراف عضو" });
+        cancel.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var debt = await GetDebtOkAsync(client, token, member.Id);
 
-        debt.Total.ShouldBe(200_000m);
-        debt.Items.ShouldHaveSingleItem().NetPaid.ShouldBe(700_000m);
+        debt.Total.ShouldBe(0m);
+        debt.Items.ShouldBeEmpty();
     }
 
     /// <summary>Another member's sale never reaches this member's total.</summary>

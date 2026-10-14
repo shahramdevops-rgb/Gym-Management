@@ -5,14 +5,14 @@ using Gym.Application.Common.Paging;
 using Gym.Application.Payments;
 using Gym.Application.Payments.ListMemberPayments;
 using Gym.Application.Payments.RegisterPayment;
-using Gym.Application.Payments.RegisterRefund;
 using Gym.Application.Payments.SettleMemberDebt;
 
 namespace Gym.Api.Endpoints;
 
 /// <summary>
-/// Payments and refunds (BUSINESS_RULES.md §5). Registering a payment is front-desk work, so both
-/// roles; refunds and void are Owner only (§1, permissions table).
+/// Payments (BUSINESS_RULES.md §5). Registering a payment is front-desk work, so both roles. There
+/// is no refund endpoint: every refund is written by the cancel or void that undoes what was paid
+/// for (§5, roadmap 6.5.37).
 /// </summary>
 public static class PaymentsEndpoints
 {
@@ -30,22 +30,6 @@ public static class PaymentsEndpoints
                 (await handler.Handle(subscriptionId, command, ct)).ToHttpResult(payment => Created(subscriptionId, "payments", payment)))
             .AddEndpointFilter<ValidationFilter<RegisterPaymentCommand>>()
             .WithName("RegisterPayment")
-            .Produces<PaymentResponse>(StatusCodes.Status201Created)
-            .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
-
-        // Owner only (BUSINESS_RULES.md §1, permissions: "Refunds, voids ...").
-        var refunds = app.MapGroup("/api/subscriptions/{subscriptionId:guid}/refunds")
-            .WithTags("Payments")
-            .RequireAuthorization(Policies.OwnerOnly)
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status403Forbidden);
-
-        refunds.MapPost("/", async (Guid subscriptionId, RegisterRefundCommand command, RegisterRefundHandler handler, CancellationToken ct) =>
-                (await handler.Handle(subscriptionId, command, ct)).ToHttpResult(payment => Created(subscriptionId, "refunds", payment)))
-            .AddEndpointFilter<ValidationFilter<RegisterRefundCommand>>()
-            .WithName("RegisterRefund")
             .Produces<PaymentResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)

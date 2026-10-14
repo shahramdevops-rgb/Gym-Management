@@ -58,6 +58,19 @@ public static class PaymentLedger
             db.Payments.Where(payment => payment.ServiceChargeId == serviceChargeId), cancellationToken);
     }
 
+    /// <summary>
+    /// The subscription twin: what cancelling a subscription gives back (BUSINESS_RULES.md §4
+    /// <i>Cancel</i>).
+    /// </summary>
+    public static Task<IReadOnlyList<MethodNetPaid>> GetNetPaidByMethodForSubscriptionAsync(
+        IAppDbContext db, Guid subscriptionId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+
+        return NetPaidByMethodAsync(
+            db.Payments.Where(payment => payment.SubscriptionId == subscriptionId), cancellationToken);
+    }
+
     /// <summary>The cafe twin: what cancelling an order gives back (BUSINESS_RULES.md §8).</summary>
     public static Task<IReadOnlyList<MethodNetPaid>> GetNetPaidByMethodForCafeOrderAsync(
         IAppDbContext db, Guid cafeOrderId, CancellationToken cancellationToken)

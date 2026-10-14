@@ -91,20 +91,3 @@ export function useRegisterPayment() {
     return data;
   });
 }
-
-export interface RegisterRefundInput extends RegisterPaymentInput {
-  reason: string;
-}
-
-export function useRegisterRefund() {
-  return usePaymentMutation(async ({ subscriptionId, ...body }: RegisterRefundInput) => {
-    const { data, error } = await api.POST("/api/subscriptions/{subscriptionId}/refunds", {
-      params: { path: { subscriptionId } },
-      body,
-    });
-    if (error !== undefined) {
-      throw error;
-    }
-    return data;
-  });
-}

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { PaymentStatusBadge } from "@/features/payments/components/PaymentStatusBadge";
 import { RegisterPaymentForm } from "@/features/payments/components/RegisterPaymentForm";
-import { RegisterRefundForm } from "@/features/payments/components/RegisterRefundForm";
 import { stateEdge } from "@/lib/edges";
 import { errorMessage } from "@/lib/errors";
 import {
@@ -24,7 +23,7 @@ import { CancelSubscriptionForm } from "./CancelSubscriptionForm";
 import { ConfirmFreezeDialog, type FreezeAction } from "./ConfirmFreezeDialog";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
 
-type RowAction = "payment" | "refund" | "cancel" | null;
+type RowAction = "payment" | "cancel" | null;
 
 interface SubscriptionHistoryRowProps {
   subscription: Subscription;
@@ -93,14 +92,14 @@ export function SubscriptionHistoryRow({
   // Only the actions that would actually be allowed, so a finished, settled subscription shows no
   // buttons at all instead of a row of disabled ones (task 4.7). Each condition is the rule the
   // API would answer with: payment while anything is still owed, whatever the status
-  // (BUSINESS_RULES.md §5 Member debt); cancel and refund only while nobody has used it (§4, §5).
+  // (BUSINESS_RULES.md §5 Member debt); cancel only while nobody has used it (§4). There is no
+  // refund button: cancelling gives back what was paid (§4 Cancel, roadmap 6.5.37).
   const unused = subscription.usedSessions === 0;
   const canPay = subscription.paymentStatus !== "Paid";
   const canFreeze = isOwner && subscription.status === "Active";
   const canUnfreeze = isOwner && subscription.status === "Frozen";
   const canCancel =
     isOwner && unused && ["Upcoming", "Active", "Frozen"].includes(subscription.status);
-  const canRefund = isOwner && unused && isPositiveMoney(subscription.netPaid);
 
   return (
     <>
@@ -144,7 +143,7 @@ export function SubscriptionHistoryRow({
         </TableCell>
         <TableCell>
           {/* Edged at their end in a state's colour, like the cafe's orders (13.2j): green to pay,
-              red to cancel or give money back; freezing keeps its plain outline. */}
+              red to cancel; freezing keeps its plain outline. */}
           <div className="flex flex-wrap gap-1">
             {canPay && (
               <Button
@@ -193,20 +192,6 @@ export function SubscriptionHistoryRow({
                 لغو اشتراک
               </Button>
             )}
-            {canRefund && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cn(
-                  stateEdge.destructive,
-                  "hover:bg-destructive/10 hover:text-destructive",
-                )}
-                aria-label={`استرداد برای ${context}`}
-                onClick={() => toggle("refund")}
-              >
-                استرداد
-              </Button>
-            )}
           </div>
         </TableCell>
       </TableRow>
@@ -230,17 +215,17 @@ export function SubscriptionHistoryRow({
                 onCancel={() => setAction(null)}
               />
             )}
-            {action === "refund" && (
-              <RegisterRefundForm
-                subscriptionId={subscription.id}
-                onDone={() => done("استرداد ثبت شد.")}
-                onCancel={() => setAction(null)}
-              />
-            )}
             {action === "cancel" && (
               <CancelSubscriptionForm
                 subscriptionId={subscription.id}
-                onDone={() => done("اشتراک لغو شد.")}
+                netPaid={subscription.netPaid}
+                onDone={() =>
+                  done(
+                    isPositiveMoney(subscription.netPaid)
+                      ? `اشتراک لغو شد و ${formatMoney(subscription.netPaid)} بازگردانده شد.`
+                      : "اشتراک لغو شد.",
+                  )
+                }
                 onCancel={() => setAction(null)}
               />
             )}
