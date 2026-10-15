@@ -2830,6 +2830,17 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
         steel"), buttons still do nothing; placeholder Unsplash photos in `web/public-site/img/`, to be
         replaced by the gym's own; address, telephone and Instagram still «به‌زودی». The public CSP
         now allows the site's own script (`script-src 'self'`). Not released.
+      - Same day, second pass: a hero slider of athletes (4 s, arrows, swipe) between two layers of
+        drawn bronze smoke, the background lit by the pointer; the real logo (the panel's); photos for
+        every service (massage and analysis still «عکس به‌زودی»); a wide photo; a schematic plan of the
+        1000 m² hall with each zone's floor; the phone's bottom bar. Services and floors from the gym.
+      - 2026-10-15, third pass: the plan is now the gym's own drawing (lobby, rooms, walls, two doors)
+        and a walk on scroll: the stage stays on screen, a bronze line goes from the door through 13
+        stops (bodybuilding four, CrossFit two), the lit room's photo fills the screen and its name
+        rises in; a click on the plan goes to the nearest stop. One hard rubber floor everywhere. The
+        address and telephone are in (tel: links); Neshan/Balad links and Instagram still to come.
+        Every service has a photo (massage and analysis added); `tour-*.webp` are 1920×1080 crops for
+        the stage.
 - [ ] Confirm the panel stays out of search results
 
 ---

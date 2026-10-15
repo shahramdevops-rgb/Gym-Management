@@ -1713,3 +1713,21 @@ The question that started this was whether a gym that is entirely internal — I
 - **Effects add, never hold up.** The page is complete without site.js; the script only adds the torchlight, the reels and "open now". Reduced motion turns every animation off, and the torchlight only runs while the name is on screen and the tab is visible.
 - **A Content-Security-Policy follows the page.** The placeholder had no script, so its policy said `script-src 'none'`. The new page has one script file, so it is `'self'`, still without `'unsafe-inline'`: the script is a file, never inline.
 - **My notes:**
+
+### 13.3, second pass — the slider and the smoke
+- **Depth is layers moving at different speeds.** The effect the developer liked on another site is a photo between a back and a front layer of smoke, each shifted by the pointer by a different amount. The same `--px`/`--py` (-1 to 1) drive every layer in CSS; only the multiplier changes.
+- **Draw it instead of downloading it.** The smoke is a canvas: three puff images made once from many small gradients, then a few dozen of them drifting, turning and fading. No picture to license, a few kilobytes of code, and the colour is one number to change (it is bronze to match the page).
+- **Animate only what is seen.** The light, the smoke and the slider run only while the hero is on screen and the tab is visible (`whileVisible`). A loop that keeps running below the fold costs battery on every phone for nothing.
+- **The site someone liked can be the site we are not building.** The reference was WordPress with a slider plugin and twenty-six scripts. Looking at how it was made (its layers and class names) showed the idea worth keeping, and that it needs one small file, not a plugin.
+- **A schematic says so.** The plan's outline and floors come from the gym; the zones' places do not. The page says «نقشه شماتیک است» rather than presenting a guess as a drawing.
+- **My notes:**
+
+### 13.3, third pass — the walk through the hall
+- **Ask for a drawing, not a description.** A plan described in words would have been a guess; a quick drawing in Paint, photographed or pasted, gave the real rooms, walls and doors in one go.
+- **A sticky stage turns scroll into a timeline.** A tall box with a `position: sticky` screen inside it: while the page scrolls through the box, the screen stays put and the scroll distance becomes progress from 0 to 1. Everything (line, walker, photo, name) is computed from that one number, so scrolling back plays it backwards for free.
+- **Draw a line by hiding it.** `stroke-dasharray` equal to the path's length and `stroke-dashoffset` from that length down to 0 draws the line as it goes; `getPointAtLength` puts the walker at its tip.
+- **Pauses make it readable.** Between two stops the walker only moves in the middle half of the scroll (`smoothstep` on 0.25–0.75), so each room rests on screen for a while instead of sliding past.
+- **The user decides what "cool" costs.** The zoom onto each room looked good but lost the whole plan; someone at the CrossFit corner could no longer see the massage room. The camera went, the whole plan stays.
+- **A click means "the nearest".** A big room with several stops takes the click's position, turns it into plan units (`getScreenCTM().inverse()`) and goes to the closest spot, so clicking where you look does what you expect.
+- **Placeholder photos carry no one's name.** One photo showed another gym's sign; it was replaced, because on this gym's page it would read as theirs.
+- **My notes:**
