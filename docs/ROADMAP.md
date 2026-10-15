@@ -1867,6 +1867,7 @@ more. A payment taken wrong is fixed by cancelling the subscription and selling 
 BUSINESS_RULES.md §1, §4 *Cancel*, §5 (and *Confirming money at the desk*) updated. Built on its own
 branch from `main`, so it can be released before the Phase 13 look.
 
+- [x] Released on 2026-10-15 in `20261015-1423-4f9347d`, with the public site (13.3)
 - [x] **API.** `CancelSubscriptionHandler` takes the member lock, cancels, and writes one refund
       per payment method still in credit with the cancel's reason (`SubscriptionRefunder`, the twin
       of `CafeOrderRefunder`; `PaymentLedger.GetNetPaidByMethodForSubscriptionAsync`), in one
@@ -2774,6 +2775,11 @@ docs/DEPLOYMENT.md.
       (`Demo.DatabaseNotEmpty`), a missing Owner (`Demo.NoOwner`), and on Production anything without
       `Demo:Allowed=true` (`Demo.NotAllowedHere`), which only the screenshot run passes, to that one
       command. No `server.sh` command for it
+  - [ ] Since 2026-10-15 `DemoSeederTests.SeedDemo_EmptyDatabase_FillsThreeMonthsUpToNow` fails:
+        no frozen subscription. `FreezeSomeoneAsync` (12 days before today) is a `TryAsync` and
+        finds no one with today's date, silently. Date-dependent; it passed on the day it was
+        written. Find which condition empties the list and make the freeze certain. Never runs on
+        the server; the screenshots are still made (they show no freeze)
 - [x] **README with architecture diagram and screenshots.** The diagram was there. Added what the
       system does, what is worth a look in the code, and the screenshots; the long deployment and
       backup sections moved to docs/DEPLOYMENT.md. `npm run screenshots` (in web/) builds the
@@ -2851,6 +2857,20 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
         and move (a hall, a lamp, a door at ground level, a fan); the numbers sit on barbell plates.
       - Same day: a «ثبت‌نام» button in the top bar (phone and computer). It does nothing yet; what
         it opens is the member accounts phase below.
+- [x] Released in `20261015-1423-4f9347d` (previous `20261010-2339-7ebfb0d`) on 2026-10-15 at
+      14:23, by day at the developer's choice: the panel's look did not change (nothing of 13.2's
+      branch is in `main`); it also carries 6.5.37 and the SMS settings wording. Before it: e2e
+      green, frontend 1018/1018, lint, format and build clean, backend Release build with no warning,
+      2190 of 2191 tests (the one red is the demo seeder's, below in Phase 12; it never runs on the
+      server), screenshots retaken (`4f9347d`). `./backup.sh run` first →
+      `gym-20261015-141449.dump`, copied to `D:\gymbackups`, both `sha256sum` equal. No migration.
+      After it, from outside: `pasargadgymplus.ir` 200 with the new page, `Cache-Control: no-cache`
+      on the page and `site.js`, `www.` and `.com` 301 to it, the panel and `/health` 200, no error
+      in the API log. A rollback to `7ebfb0d` is safe: the schema did not change. The first
+      `release.sh` run stopped before reaching the server: a local `dotnet run` of the API locked
+      `bin/Debug` and the migration bundle could not build
+- [ ] The server asks for a restart (`*** System restart required ***`, 24 updates, 11 security):
+      on a night of its own, not with a release
 - [ ] Queued by the developer on 2026-10-15, to be reviewed in detail before building:
   - [ ] Trainers (مربیان): the gym has two or three; one card each (photo, name, specialty,
         experience). The gym sends the names and photos later. Later still, a member picks a trainer
