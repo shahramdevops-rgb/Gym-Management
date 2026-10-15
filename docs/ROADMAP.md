@@ -2847,6 +2847,12 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
   - [ ] Trainers (مربیان): the gym has two or three; one card each (photo, name, specialty,
         experience). The gym sends the names and photos later. Later still, a member picks a trainer
         (that needs the member accounts phase). The developer: "we have to work on it a lot"
+        - 2026-10-15: the stage is built (section ۰۵): three bronze cards under one light, the one in
+          front tilts with the pointer and turns over on a tap (certificates, honours, hours at the
+          gym, «انتخاب این مربی، به‌زودی»); arrows, keys and a swipe go round. Every detail says
+          «به‌زودی»; the placeholder photos are athletes seen from behind, so no stranger's face
+          stands under a trainer's name. Waiting for the gym's names, photos (portrait 4:5, one
+          plain dark wall for all) and details
   - [ ] Shop (فروشگاه): a showcase of the categories (protein, creatine, supplements, shakers and
         bands, sportswear, perfume), with photos and no prices; «استعلام قیمت» calls the gym
   - [ ] Neshan and Balad links for «مسیریابی» (the gym sends its location link)

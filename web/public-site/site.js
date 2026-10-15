@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   slots();
   serviceFloat();
   tour();
+  coaches();
   bandParallax();
   galleryCounter();
   topbar();
@@ -660,6 +661,102 @@ function tour() {
   tour.classList.add("is-live");
   onScroll(update);
   window.addEventListener("resize", update);
+}
+
+// ---------- The trainers: a deck of cards on a stage ----------
+// The card in front is the chosen one; a tap on it turns it over, a tap on a card beside it
+// brings that one to the front. Arrows, the keyboard and a swipe go round the deck.
+
+function coaches() {
+  const section = document.querySelector("[data-coaches]");
+  if (!section) return;
+  const deck = section.querySelector(".coaches__deck");
+  const ghost = section.querySelector("[data-coach-ghost]");
+  const cards = [...section.querySelectorAll("[data-coach]")];
+  const nameOf = (card) => card.querySelector(".coach__name").textContent;
+  let current = 0;
+
+  function place() {
+    const n = cards.length;
+    cards.forEach((card, i) => {
+      let offset = (i - current + n) % n;
+      if (offset > n / 2) offset -= n; // the short way round: one side or the other
+      card.style.setProperty("--o", offset);
+      card.style.setProperty("--a", Math.abs(offset));
+      card.classList.toggle("is-active", offset === 0);
+      if (offset !== 0) card.classList.remove("is-flipped");
+    });
+  }
+
+  function go(index) {
+    current = (index + cards.length) % cards.length;
+    place();
+    ghost.classList.add("is-changing");
+    setTimeout(() => {
+      ghost.textContent = nameOf(cards[current]);
+      ghost.classList.remove("is-changing");
+    }, 350);
+  }
+
+  let swiped = false;
+  cards.forEach((card, i) => {
+    card.addEventListener("click", () => {
+      if (swiped) return;
+      if (i === current) card.classList.toggle("is-flipped");
+      else go(i);
+    });
+    card.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      card.click();
+    });
+  });
+
+  // Right to left: the next trainer is on the left.
+  section.querySelector("[data-coach-next]").addEventListener("click", () => go(current + 1));
+  section.querySelector("[data-coach-prev]").addEventListener("click", () => go(current - 1));
+  section.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") go(current + 1);
+    if (e.key === "ArrowRight") go(current - 1);
+  });
+
+  let startX = null;
+  deck.addEventListener("pointerdown", (e) => {
+    startX = e.clientX;
+    swiped = false;
+  });
+  deck.addEventListener("pointerup", (e) => {
+    if (startX === null) return;
+    const dx = e.clientX - startX;
+    startX = null;
+    if (Math.abs(dx) < 40) return;
+    swiped = true; // the click that follows this swipe is not a tap
+    go(current + (dx > 0 ? 1 : -1));
+  });
+
+  // The card in front tilts toward the pointer and the light slides over its metal.
+  if (!reduceMotion && window.matchMedia("(hover: hover)").matches) {
+    cards.forEach((card) => {
+      card.addEventListener("pointermove", (e) => {
+        if (!card.classList.contains("is-active")) return;
+        const box = card.getBoundingClientRect();
+        const x = (e.clientX - box.left) / box.width;
+        const y = (e.clientY - box.top) / box.height;
+        card.style.setProperty("--ty", `${(x - 0.5) * 16}deg`);
+        card.style.setProperty("--tx", `${(0.5 - y) * 12}deg`);
+        card.style.setProperty("--sx", `${x * 100}%`);
+        card.style.setProperty("--sy", `${y * 100}%`);
+        card.classList.add("is-tilting");
+      });
+      card.addEventListener("pointerleave", () => {
+        card.style.setProperty("--ty", "0deg");
+        card.style.setProperty("--tx", "0deg");
+        card.classList.remove("is-tilting");
+      });
+    });
+  }
+
+  place();
 }
 
 // ---------- The wide photo moves a little slower than the page ----------

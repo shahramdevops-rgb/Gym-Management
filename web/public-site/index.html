@@ -68,6 +68,7 @@
         <nav class="topnav" aria-label="بخش‌های سایت">
           <button type="button">امکانات</button>
           <button type="button">فضای باشگاه</button>
+          <button type="button">مربیان</button>
           <button type="button">ساعت کاری</button>
           <button type="button">تماس</button>
         </nav>
@@ -633,10 +634,165 @@
         </p>
       </section>
 
+      <!--
+        The trainers: cards on a dark stage under one bronze light. The card in front is the
+        chosen one; the others wait at its sides. A tap turns the card over. Names, photos and
+        details come from the gym later: until then each card says «به‌زودی». The photos
+        (img/coach-1.webp and so on, 800×1000) are Unsplash placeholders taken from behind, so no
+        stranger's face stands under a trainer's name: sHfo3WOgGTU, 9If-9MsWBDQ, QkK7NtsPrJM
+        are coach-3, coach-2, coach-1. The gym's own replace them under the same names.
+      -->
+      <section class="coaches" aria-labelledby="coaches-title" data-coaches>
+        <div class="section-head wrap" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۵</span> مربیان</p>
+          <h2 id="coaches-title">کنار هر وزنه، کسی که مسیر را می‌شناسد.</h2>
+        </div>
+
+        <div class="coaches__stage" data-reveal>
+          <span class="coaches__light" aria-hidden="true"></span>
+          <p class="coaches__ghost" aria-hidden="true" data-coach-ghost>مربی ۰۱</p>
+
+          <div class="coaches__deck">
+            <article class="coach" tabindex="0" aria-label="مربی ۰۱" data-coach>
+              <div class="coach__card">
+                <div class="coach__face coach__front">
+                  <figure class="coach__photo">
+                    <img src="./img/coach-1.webp" alt="" loading="lazy" width="800" height="1000" />
+                  </figure>
+                  <p class="coach__num">۰۱</p>
+                  <h3 class="coach__name">مربی ۰۱</h3>
+                  <p class="coach__role">تخصص: به‌زودی</p>
+                  <dl class="coach__stats">
+                    <div>
+                      <dt>سال سابقه</dt>
+                      <dd>—</dd>
+                    </div>
+                    <div>
+                      <dt>شاگرد</dt>
+                      <dd>—</dd>
+                    </div>
+                  </dl>
+                  <span class="coach__sheen" aria-hidden="true"></span>
+                </div>
+                <div class="coach__face coach__back">
+                  <dl class="coach__about">
+                    <div>
+                      <dt>مدرک‌ها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>افتخارها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>حضور در باشگاه</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                  </dl>
+                  <p class="coach__pick">انتخاب این مربی، به‌زودی</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="coach" tabindex="0" aria-label="مربی ۰۲" data-coach>
+              <div class="coach__card">
+                <div class="coach__face coach__front">
+                  <figure class="coach__photo">
+                    <img src="./img/coach-2.webp" alt="" loading="lazy" width="800" height="1000" />
+                  </figure>
+                  <p class="coach__num">۰۲</p>
+                  <h3 class="coach__name">مربی ۰۲</h3>
+                  <p class="coach__role">تخصص: به‌زودی</p>
+                  <dl class="coach__stats">
+                    <div>
+                      <dt>سال سابقه</dt>
+                      <dd>—</dd>
+                    </div>
+                    <div>
+                      <dt>شاگرد</dt>
+                      <dd>—</dd>
+                    </div>
+                  </dl>
+                  <span class="coach__sheen" aria-hidden="true"></span>
+                </div>
+                <div class="coach__face coach__back">
+                  <dl class="coach__about">
+                    <div>
+                      <dt>مدرک‌ها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>افتخارها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>حضور در باشگاه</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                  </dl>
+                  <p class="coach__pick">انتخاب این مربی، به‌زودی</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="coach" tabindex="0" aria-label="مربی ۰۳" data-coach>
+              <div class="coach__card">
+                <div class="coach__face coach__front">
+                  <figure class="coach__photo">
+                    <img src="./img/coach-3.webp" alt="" loading="lazy" width="800" height="1000" />
+                  </figure>
+                  <p class="coach__num">۰۳</p>
+                  <h3 class="coach__name">مربی ۰۳</h3>
+                  <p class="coach__role">تخصص: به‌زودی</p>
+                  <dl class="coach__stats">
+                    <div>
+                      <dt>سال سابقه</dt>
+                      <dd>—</dd>
+                    </div>
+                    <div>
+                      <dt>شاگرد</dt>
+                      <dd>—</dd>
+                    </div>
+                  </dl>
+                  <span class="coach__sheen" aria-hidden="true"></span>
+                </div>
+                <div class="coach__face coach__back">
+                  <dl class="coach__about">
+                    <div>
+                      <dt>مدرک‌ها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>افتخارها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>حضور در باشگاه</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                  </dl>
+                  <p class="coach__pick">انتخاب این مربی، به‌زودی</p>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="coaches__nav">
+            <button type="button" class="slider-nav__arrow" data-coach-prev aria-label="مربی قبلی">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+            </button>
+            <p class="coaches__hint">برای دیدن پشت کارت، رویش بزنید</p>
+            <button type="button" class="slider-nav__arrow" data-coach-next aria-label="مربی بعدی">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- Hours -->
       <section class="hours wrap" aria-labelledby="hours-title">
         <div class="section-head" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۵</span> ساعت کاری</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۶</span> ساعت کاری</p>
           <h2 id="hours-title">هر روز سال، حتی روزهای تعطیل.</h2>
         </div>
 
@@ -668,7 +824,7 @@
       <!-- Contact -->
       <section class="contact wrap" aria-labelledby="contact-title">
         <div class="section-head" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۶</span> نشانی و تماس</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۷</span> نشانی و تماس</p>
           <h2 id="contact-title">منتظر حضور گرمتون هستیم</h2>
         </div>
 

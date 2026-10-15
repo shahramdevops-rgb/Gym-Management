@@ -727,6 +727,7 @@ a {
 .services,
 .plan,
 .space,
+.coaches,
 .hours,
 .contact {
   padding-block: clamp(4.5rem, 14vw, 8.5rem) 0;
@@ -1460,6 +1461,258 @@ a {
 .gallery__of {
   color: var(--faint);
   font-weight: 300;
+}
+
+/* ---------- The trainers: cards on a stage ----------
+   site.js gives each card its place as --o (-1 beside, 0 in front, 1 the other side) and --a
+   (how far: 0 or 1); the tilt as --tx/--ty and the sheen's spot as --sx/--sy. */
+
+.coaches__stage {
+  --card-w: clamp(15rem, 68vw, 19rem);
+  position: relative;
+  margin-block-start: 2rem;
+  padding-block: 2.5rem 1.5rem;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* One cone of bronze light from above, onto the card in front */
+.coaches__light {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0;
+  z-index: -1;
+  width: min(44rem, 130%);
+  margin-inline: auto;
+  background:
+    radial-gradient(ellipse 22% 95% at 50% -5%, rgb(232 192 125 / 0.3), transparent 70%),
+    radial-gradient(ellipse 45% 30% at 50% 88%, rgb(200 155 87 / 0.14), transparent 70%);
+}
+
+/* The name in front, huge and hollow, behind the cards */
+.coaches__ghost {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  z-index: -1;
+  translate: 0 -50%;
+  color: transparent;
+  font-size: clamp(5rem, 17vw, 14rem);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  -webkit-text-stroke: 1px rgb(200 155 87 / 0.28);
+  transition: opacity 0.35s;
+}
+
+.coaches__ghost.is-changing {
+  opacity: 0;
+}
+
+.coaches__deck {
+  position: relative;
+  height: calc(var(--card-w) * 1.4 + 1rem);
+  perspective: 1400px;
+  touch-action: pan-y;
+}
+
+.coach {
+  --o: 0;
+  --a: 0;
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: calc(3 - var(--a));
+  width: var(--card-w);
+  aspect-ratio: 5 / 7;
+  margin-inline: auto;
+  outline: none;
+  cursor: pointer;
+  opacity: calc(1 - var(--a) * 0.4);
+  transform: translateX(calc(var(--o) * -70%)) translateZ(calc(var(--a) * -180px))
+    rotateY(calc(var(--o) * 20deg));
+  /* No filter here: a filter flattens the 3D and the card could no longer turn over */
+  transform-style: preserve-3d;
+  transition:
+    transform 0.8s var(--ease-out),
+    opacity 0.8s;
+}
+
+.coach__card {
+  position: relative;
+  height: 100%;
+  transform: rotateX(var(--tx, 0deg)) rotateY(calc(var(--flip, 0deg) + var(--ty, 0deg)));
+  transform-style: preserve-3d;
+  transition: transform 0.8s var(--ease-out);
+}
+
+.coach.is-flipped {
+  --flip: 180deg;
+}
+
+.coach.is-tilting .coach__card {
+  transition-duration: 0.15s;
+}
+
+.coach:focus-visible .coach__face {
+  outline: 2px solid var(--bronze-hi);
+  outline-offset: 4px;
+}
+
+/* Both faces: stone inside a bronze frame */
+.coach__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  overflow: hidden;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--stone-2), var(--stone-2)) padding-box,
+    linear-gradient(
+        150deg,
+        var(--bronze-hi),
+        var(--bronze-lo) 35%,
+        var(--bronze) 65%,
+        var(--bronze-lo)
+      )
+      border-box;
+  box-shadow: 0 30px 60px rgb(0 0 0 / 0.55);
+  filter: brightness(calc(1 - var(--a) * 0.5));
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transition: filter 0.8s;
+}
+
+.coach__back {
+  justify-content: space-between;
+  transform: rotateY(180deg);
+}
+
+.coach__photo {
+  position: relative;
+  flex: 1;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 30%, rgb(200 155 87 / 0.18), transparent 70%),
+    var(--stone);
+}
+
+.coach__photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.6) sepia(0.18) contrast(1.08) brightness(0.85);
+}
+
+.coach__num {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 1.5rem;
+  inset-inline-start: 1.6rem;
+  color: var(--bronze-hi);
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 0.7);
+}
+
+.coach__name {
+  margin-block-start: 0.85rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.coach__role {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.coach__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-block-start: 0.75rem;
+  border-block-start: 1px solid var(--line);
+}
+
+.coach__stats > div {
+  padding-block-start: 0.6rem;
+}
+
+.coach__stats > div + div {
+  padding-inline-start: 0.75rem;
+  border-inline-start: 1px solid var(--line);
+}
+
+.coach__stats dt,
+.coach__about dt {
+  color: var(--bronze);
+  font-size: 0.8rem;
+}
+
+.coach__stats dd {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.coach__about {
+  display: grid;
+  gap: 1.1rem;
+  margin-block-start: 0.5rem;
+}
+
+.coach__about dd {
+  color: var(--muted);
+}
+
+.coach__pick {
+  padding: 0.75rem;
+  border: 1px dashed rgb(200 155 87 / 0.5);
+  color: var(--bronze);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* The light on the metal: follows the pointer over the card in front */
+.coach__sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at var(--sx, 30%) var(--sy, 20%),
+      rgb(255 228 180 / 0.22),
+      transparent 45%
+    ),
+    linear-gradient(115deg, transparent 35%, rgb(232 192 125 / 0.12) 48%, transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.coach.is-tilting .coach__sheen {
+  opacity: 1;
+}
+
+.coaches__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-block-start: 1.5rem;
+}
+
+.coaches__hint {
+  color: var(--faint);
+  font-size: 0.85rem;
 }
 
 /* ---------- Hours ---------- */
