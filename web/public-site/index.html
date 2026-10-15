@@ -33,7 +33,7 @@
         tour-cardio.webp _cUZkx0wTyM   tour-bodybuilding.webp k47w6BeapCs
         tour-bodybuilding-2.webp m4Jqyv5VwqY   tour-bodybuilding-3.webp gzeTjGu3b_k
         tour-bodybuilding-4.webp Hb_EpXSTL4I   tour-crossfit.webp 0Wra5YYVQJE
-        tour-crossfit-2.webp CPSjcuuV8E8
+        tour-crossfit-2.webp CPSjcuuV8E8   tour-stage.webp uckFugBOBhM
         gym-curl.webp b5boYWIR2vU   gym-deadlift.webp KaxVB5xh4Nw   gym-press.webp 8Hip5Ntz1WM
         gym-athlete.webp GLivMZcDfY0   rack.webp 3uWgVRLbJwI
       The tour-*.webp are 1920×1080, for the tour's full-screen stage.
@@ -171,6 +171,49 @@
           یک سوله بزرگ، با نور عالی، طبقه همکف، تهویه مناسب، و هر چیزی که برای ساختن بدن لازم داریم.
         </p>
 
+        <!-- The line's four points, each with a bronze sign that draws itself, then moves -->
+        <ul class="features" data-features>
+          <li class="feature" data-reveal>
+            <svg class="feature__icon" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="draw" pathLength="1" d="M2 56h60" />
+              <path class="draw" pathLength="1" d="M8 56V28L32 12l24 16v28" />
+              <path class="draw" pathLength="1" d="M8 28h48M20 28l12-8 12 8" />
+              <path class="draw" pathLength="1" d="M24 56V42h16v14" />
+            </svg>
+            <span class="feature__name">سوله بزرگ</span>
+          </li>
+          <li class="feature" data-reveal>
+            <svg class="feature__icon" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="feature__beam" d="M21 30L6 62h52L43 30z" />
+              <path class="draw" pathLength="1" d="M32 2v12" />
+              <path class="draw" pathLength="1" d="M18 30c0-9 6-16 14-16s14 7 14 16z" />
+              <path class="draw" pathLength="1" d="M28 30a4 4 0 0 0 8 0" />
+            </svg>
+            <span class="feature__name">نور عالی</span>
+          </li>
+          <li class="feature" data-reveal>
+            <svg class="feature__icon" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="draw" pathLength="1" d="M2 56h60" />
+              <path class="draw" pathLength="1" d="M34 56V16h22v40" />
+              <path class="draw" pathLength="1" d="M51 37v2" />
+              <path class="feature__walk" d="M6 44h18M18 38l6 6-6 6" />
+            </svg>
+            <span class="feature__name">طبقه همکف</span>
+          </li>
+          <li class="feature" data-reveal>
+            <svg class="feature__icon" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="draw" pathLength="1" d="M8 30a16 16 0 1 0 32 0a16 16 0 1 0-32 0" />
+              <g class="feature__fan">
+                <path d="M24 30c-3-5-2-11 3-13 3 5 1 10-3 13z" />
+                <path d="M24 30c-3-5-2-11 3-13 3 5 1 10-3 13z" transform="rotate(120 24 30)" />
+                <path d="M24 30c-3-5-2-11 3-13 3 5 1 10-3 13z" transform="rotate(240 24 30)" />
+              </g>
+              <path class="feature__wind" d="M46 20h14M48 30h14M46 40h14" />
+            </svg>
+            <span class="feature__name">تهویه مناسب</span>
+          </li>
+        </ul>
+
         <dl class="facts">
           <div class="fact" data-reveal>
             <dt class="fact__num" data-unit="متر"><span class="slot" data-slot>۱۰۰۰</span></dt>
@@ -238,6 +281,9 @@
                 <img src="./img/tour-bodybuilding-4.webp" alt="" loading="lazy" />
               </figure>
               <figure class="photo tour__photo">
+                <img src="./img/tour-stage.webp" alt="" loading="lazy" />
+              </figure>
+              <figure class="photo tour__photo">
                 <img src="./img/tour-crossfit.webp" alt="" loading="lazy" />
               </figure>
               <figure class="photo tour__photo">
@@ -247,7 +293,7 @@
 
             <div class="tour__caption">
               <p class="tour__count">
-                <span data-tour-count>۰۰</span><span class="tour__of"> / ۱۳</span>
+                <span data-tour-count>۰۰</span><span class="tour__of"> / ۱۴</span>
               </p>
               <ol class="tour__names">
                 <li class="is-active">
@@ -299,6 +345,10 @@
                   <p>وزنه‌ی آزاد و دستگاه؛ بخش ۴ از ۴</p>
                 </li>
                 <li>
+                  <h3><span>استیج فیگور</span></h3>
+                  <p>برای تمرین فیگور، کنار کراس‌فیت.</p>
+                </li>
+                <li>
                   <h3><span>کراس‌فیت</span></h3>
                   <p>تمرین عملکردی؛ بخش ۱ از ۲</p>
                 </li>
@@ -332,13 +382,17 @@
                 <g class="zone" data-steps="8 9 10 11" tabindex="0" role="button">
                   <path
                     fill-rule="evenodd"
-                    d="M256 16H1061V398H256Z M256 16H364V143H256Z M256 210H383V398H256Z M416 16H549V143H416Z M849 189H1061V398H849Z"
+                    d="M256 16H1061V398H256Z M256 16H364V143H256Z M256 210H383V398H256Z M416 16H549V143H416Z M863 226H1061V398H863Z M1021 134H1061V226H1021Z"
                   />
                   <text x="562" y="240">سالن بدنسازی</text>
                 </g>
-                <g class="zone" data-steps="12 13" tabindex="0" role="button">
-                  <rect x="849" y="189" width="212" height="209" />
-                  <text x="990" y="294">کراس‌فیت</text>
+                <g class="zone" data-steps="13 14" tabindex="0" role="button">
+                  <rect x="863" y="226" width="198" height="172" />
+                  <text x="1000" y="318">کراس‌فیت</text>
+                </g>
+                <g class="zone zone--tiny" data-steps="12" tabindex="0" role="button">
+                  <rect x="1021" y="134" width="40" height="92" />
+                  <text x="1041" y="180" transform="rotate(-90 1041 180)">استیج فیگور</text>
                 </g>
                 <g class="zone" data-steps="7" tabindex="0" role="button">
                   <rect x="416" y="16" width="133" height="127" />
@@ -393,8 +447,8 @@
                 <circle class="spot" data-step="9" cx="655" cy="316" r="7" />
                 <circle class="spot" data-step="10" cx="655" cy="100" r="7" />
                 <circle class="spot" data-step="11" cx="890" cy="100" r="7" />
-                <circle class="spot" data-step="12" cx="890" cy="244" r="7" />
-                <circle class="spot" data-step="13" cx="890" cy="351" r="7" />
+                <circle class="spot" data-step="13" cx="930" cy="262" r="7" />
+                <circle class="spot" data-step="14" cx="930" cy="352" r="7" />
 
                 <!-- The walk: a faint track, the bronze line drawn over it, and the walker -->
                 <path class="route route--track" data-route-track />
@@ -419,6 +473,7 @@
                 <button type="button" aria-label="سالن بدنسازی، بخش ۲"></button>
                 <button type="button" aria-label="سالن بدنسازی، بخش ۳"></button>
                 <button type="button" aria-label="سالن بدنسازی، بخش ۴"></button>
+                <button type="button" aria-label="استیج فیگور"></button>
                 <button type="button" aria-label="کراس‌فیت، بخش ۱"></button>
                 <button type="button" aria-label="کراس‌فیت، بخش ۲"></button>
               </div>

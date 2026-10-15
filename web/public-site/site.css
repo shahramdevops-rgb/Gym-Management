@@ -758,6 +758,107 @@ a {
   color: var(--text);
 }
 
+/* The four points of the line. Each sign draws itself as it comes on screen (every stroke has
+   pathLength 1, so one dash hides it and the offset reveals it), then keeps a small motion
+   going; site.js pauses that motion while the row is off screen. */
+.features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin: clamp(2.5rem, 8vw, 4rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feature {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 0.9rem;
+  padding: 1.25rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 0%, rgb(200 155 87 / 0.1), transparent 60%), var(--stone-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.feature__icon {
+  width: clamp(3.75rem, 12vw, 5.25rem);
+  height: clamp(3.75rem, 12vw, 5.25rem);
+  overflow: visible;
+  fill: none;
+  stroke: var(--bronze-hi);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.feature__name {
+  font-size: clamp(1.05rem, 4vw, 1.3rem);
+  font-weight: 800;
+}
+
+.js .feature .draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.4s var(--ease-out);
+}
+
+.js .feature.is-in .draw {
+  stroke-dashoffset: 0;
+}
+
+.js .feature .draw:nth-child(2) {
+  transition-delay: 0.2s;
+}
+
+.js .feature .draw:nth-child(3) {
+  transition-delay: 0.4s;
+}
+
+.js .feature .draw:nth-child(4) {
+  transition-delay: 0.6s;
+}
+
+/* The lamp's light: comes on once the lamp is drawn, then breathes */
+.feature__beam {
+  fill: rgb(232 192 125 / 0.22);
+  stroke: none;
+  opacity: 0;
+  transition: opacity 1s 1s;
+}
+
+.feature.is-in .feature__beam {
+  opacity: 1;
+  animation: beam 3.2s ease-in-out 2s infinite;
+}
+
+/* Walking in at ground level: the arrow goes through the door and comes round again */
+.feature__walk {
+  opacity: 0;
+}
+
+.feature.is-in .feature__walk {
+  animation: walk-in 2.6s ease-in-out 1.2s infinite;
+}
+
+/* The fan turns and the air flows */
+.feature__fan {
+  fill: rgb(232 192 125 / 0.35);
+  transform-box: view-box;
+  transform-origin: 24px 30px;
+  animation: spin 2.8s linear infinite;
+}
+
+.feature__wind {
+  stroke-dasharray: 5 6;
+  animation: wind 1s linear infinite;
+}
+
+.features:not(.is-playing) * {
+  animation-play-state: paused;
+}
+
 .facts {
   display: grid;
   gap: 1.5rem;
@@ -893,7 +994,7 @@ a {
 }
 
 .js .tour.is-live {
-  height: calc(100svh + 13 * 45svh);
+  height: calc(100svh + 14 * 45svh);
 }
 
 .tour__stage {
@@ -1977,6 +2078,15 @@ a {
     max-width: 34rem;
   }
 
+  .features {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  .feature {
+    padding: 1.75rem 1.5rem;
+  }
+
   .facts {
     grid-template-columns: repeat(3, 1fr);
     gap: 2rem;
@@ -2088,14 +2198,40 @@ a {
   }
 }
 
-@keyframes ping {
-  from {
-    scale: 0.6;
+@keyframes beam {
+  0%,
+  100% {
     opacity: 1;
   }
-  to {
-    scale: 2.6;
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes walk-in {
+  0% {
     opacity: 0;
+    translate: -6px 0;
+  }
+  25%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 22px 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes wind {
+  to {
+    stroke-dashoffset: -11;
   }
 }
 

@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   slider();
   reveal();
   manifesto();
+  features();
   slots();
   tour();
   coaches();
@@ -411,6 +412,18 @@ function manifesto() {
   });
 }
 
+// ---------- The four points' signs move only while they are on screen ----------
+
+function features() {
+  const row = document.querySelector("[data-features]");
+  if (!row) return;
+  whileVisible(
+    row,
+    () => row.classList.add("is-playing"),
+    () => row.classList.remove("is-playing"),
+  );
+}
+
 // ---------- Numbers that land like the reels of a lock ----------
 // Each Persian digit becomes a reel of ۰..۹ twice over; on screen, it spins once and stops on
 // its digit. Screen readers get the plain number.
@@ -508,8 +521,11 @@ const walk = [
   [655, 316, 9],
   [655, 100, 10],
   [890, 100, 11],
-  [890, 244, 12], // crossfit, its two spots
-  [890, 351, 13],
+  [995, 100],
+  [995, 180, 12], // the figure stage, on the wall
+  [995, 262],
+  [930, 262, 13], // crossfit, its two spots
+  [930, 352, 14],
 ];
 
 const lerp = (a, b, t) => a + (b - a) * t;

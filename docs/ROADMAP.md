@@ -2845,6 +2845,10 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
         section now, «امکانات و فضای باشگاه»: each stop's line is its service's description, the
         list of services and its photos are gone. Floors: club rubber everywhere. The opening
         line mentions the air («هوای خنک و تازه»), nothing more about it on purpose.
+      - Same day, from the gym's next drawing: «استیج فیگور», a narrow room on the right wall above
+        CrossFit (which got smaller), is stop ۱۲ of the walk; the walk now has 14 stops. The opening
+        line is the developer's own, with its four points in a row of signs that draw themselves
+        and move (a hall, a lamp, a door at ground level, a fan); the numbers sit on barbell plates.
       - Same day: a «ثبت‌نام» button in the top bar (phone and computer). It does nothing yet; what
         it opens is the member accounts phase below.
 - [ ] Queued by the developer on 2026-10-15, to be reviewed in detail before building:
