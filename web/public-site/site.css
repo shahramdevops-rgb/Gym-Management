@@ -760,25 +760,93 @@ a {
 
 .facts {
   display: grid;
+  gap: 1.5rem;
   margin-block-start: clamp(3rem, 10vw, 5rem);
 }
 
 .fact {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 1.25rem;
-  padding-block: 1.25rem;
-  border-block-start: 1px solid var(--line);
 }
 
+/* A barbell plate: dark cast iron with machined grooves, a bronze ring at the rim, the hole in
+   the middle; the number above the hole and its unit below, like «20 KG» on a real plate. */
 .fact__num {
+  position: relative;
   flex: none;
-  min-width: 5.5ch;
-  font-size: clamp(3rem, 15vw, 5.5rem);
+  display: grid;
+  width: clamp(8.5rem, 34vw, 15rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  color: var(--bronze-hi);
+  font-size: clamp(1.9rem, 8vw, 3.4rem);
   font-weight: 900;
   line-height: 1.1;
-  color: var(--bronze);
   font-variant-numeric: tabular-nums;
+  background:
+    radial-gradient(circle, var(--stone) 0 9%, #4a3820 9% 11%, transparent 11%),
+    radial-gradient(
+      circle,
+      transparent 0 30%,
+      rgb(255 255 255 / 0.04) 30% 31%,
+      transparent 31% 64%,
+      rgb(255 255 255 / 0.05) 64% 65%,
+      transparent 65%
+    ),
+    repeating-conic-gradient(rgb(255 255 255 / 0.02) 0 1deg, transparent 1deg 5deg),
+    radial-gradient(circle at 35% 30%, #2c2e35, #141519 72%);
+  box-shadow:
+    inset 0 0 0 0.5rem #1c1d22,
+    inset 0 0 0 0.6rem rgb(200 155 87 / 0.6),
+    inset 0 3px 16px rgb(255 255 255 / 0.07),
+    0 24px 50px rgb(0 0 0 / 0.55);
+  transition: rotate 0.8s var(--ease-out);
+}
+
+.fact__num .slot {
+  position: absolute;
+  inset-block-start: 17%;
+  inset-inline: 0;
+  text-align: center;
+}
+
+.fact__num::after {
+  content: attr(data-unit);
+  position: absolute;
+  inset-block-end: 18%;
+  inset-inline: 0;
+  color: var(--bronze);
+  font-size: clamp(0.75rem, 2.4vw, 0.95rem);
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.2em;
+}
+
+/* It rolls in from the side and settles with a small bounce */
+.js .fact[data-reveal] .fact__num {
+  transform: translateX(-3rem) rotate(-150deg);
+  transition:
+    transform 1.4s cubic-bezier(0.2, 1.25, 0.35, 1),
+    rotate 0.8s var(--ease-out);
+}
+
+.js .fact[data-reveal].is-in .fact__num {
+  transform: none;
+}
+
+.fact:nth-child(2) .fact__num {
+  transition-delay: 0.12s;
+}
+
+.fact:nth-child(3) .fact__num {
+  transition-delay: 0.24s;
+}
+
+@media (hover: hover) {
+  .fact:hover .fact__num {
+    rotate: 25deg;
+  }
 }
 
 .fact dd {
@@ -957,12 +1025,13 @@ a {
   inset-block-end: clamp(2rem, 9svh, 5rem);
   width: min(42rem, 50vw);
   padding: 0.75rem;
-  background: rgb(13 14 17 / 0.55);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  backdrop-filter: blur(18px) saturate(1.2);
+  /* Thin glass: the photo shows through it */
+  background: rgb(13 14 17 / 0.2);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   box-shadow:
-    inset 0 0 0 1px rgb(200 155 87 / 0.2),
-    0 30px 70px rgb(0 0 0 / 0.5);
+    inset 0 0 0 1px rgb(200 155 87 / 0.25),
+    0 20px 50px rgb(0 0 0 / 0.3);
 }
 
 .tour__map {
@@ -1057,7 +1126,7 @@ a {
 }
 
 .plan__floor {
-  fill: rgb(13 14 17 / 0.45);
+  fill: rgb(13 14 17 / 0.12);
 }
 
 .plan__wall {
@@ -1078,6 +1147,10 @@ a {
 .room text,
 .zone text {
   font-family: inherit;
+  /* A dark outline keeps the names readable on any photo */
+  stroke: rgb(13 14 17 / 0.75);
+  stroke-width: 4px;
+  paint-order: stroke;
   text-anchor: middle;
   dominant-baseline: middle;
 }
@@ -1911,7 +1984,8 @@ a {
 
   .fact {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 1.25rem;
+    text-align: center;
   }
 
   /* The showcase: one big shelf, the rest around it, all seen at once */
