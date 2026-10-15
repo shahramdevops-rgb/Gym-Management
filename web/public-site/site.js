@@ -19,7 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
   reveal();
   manifesto();
   slots();
-  serviceFloat();
   tour();
   coaches();
   galleryCounter();
@@ -482,31 +481,6 @@ function slots() {
     { threshold: 0.6 },
   );
   numbers.forEach((number) => observer.observe(number));
-}
-
-// ---------- A service's photo floats beside the pointer (computer only) ----------
-
-function serviceFloat() {
-  const float = document.querySelector("[data-float]");
-  if (!float || !window.matchMedia("(hover: hover) and (min-width: 900px)").matches) return;
-  const image = float.querySelector("img");
-  let lastX = 0;
-
-  for (const service of document.querySelectorAll(".service[data-photo]")) {
-    const summary = service.querySelector("summary");
-    summary.addEventListener("pointerenter", () => {
-      image.src = service.dataset.photo;
-      float.classList.add("is-on");
-    });
-    summary.addEventListener("pointerleave", () => float.classList.remove("is-on"));
-    summary.addEventListener("pointermove", (e) => {
-      const tilt = Math.max(-8, Math.min(8, (e.clientX - lastX) * 0.6));
-      lastX = e.clientX;
-      float.style.setProperty("--fx", `${e.clientX - float.offsetWidth - 40}px`);
-      float.style.setProperty("--fy", `${e.clientY - float.offsetHeight / 2}px`);
-      float.style.setProperty("--fr", `${tilt}deg`);
-    });
-  }
 }
 
 // ---------- The hall as a walk, driven by the scroll ----------

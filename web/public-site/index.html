@@ -27,15 +27,16 @@
       Every photo in img/ except logo.png is a PLACEHOLDER from Unsplash (free licence, no credit
       required), to be replaced by the gym's own photos under the same file names:
         slide-1.webp mviOOZJ-dZA   slide-2.webp a_ZHAHMK-yM   slide-3.webp Gp25M1794Wk
-        slide-4.webp 2F6MPKEkrBQ   band.webp 8LWo8v0mKik
-        svc-bodybuilding.webp k47w6BeapCs   svc-crossfit.webp 0Wra5YYVQJE
-        svc-cardio.webp _cUZkx0wTyM   svc-barber.webp cftRv45BNRU   svc-cafe.webp y2Dfk2Kt89o
-        svc-shop.webp -1W7mesKxYg   svc-lockers.webp 4UbSaPKGRqc
-        svc-massage.webp J1trUf0Lj3Q   svc-analysis.webp DBvEoaU3ICs
+        slide-4.webp 2F6MPKEkrBQ   band.webp 8LWo8v0mKik (the tour's first stop, the door)
+        tour-massage.webp J1trUf0Lj3Q   tour-barber.webp cftRv45BNRU   tour-cafe.webp y2Dfk2Kt89o
+        tour-shop.webp -1W7mesKxYg   tour-analysis.webp DBvEoaU3ICs   tour-lockers.webp 4UbSaPKGRqc
+        tour-cardio.webp _cUZkx0wTyM   tour-bodybuilding.webp k47w6BeapCs
+        tour-bodybuilding-2.webp m4Jqyv5VwqY   tour-bodybuilding-3.webp gzeTjGu3b_k
+        tour-bodybuilding-4.webp Hb_EpXSTL4I   tour-crossfit.webp 0Wra5YYVQJE
+        tour-crossfit-2.webp CPSjcuuV8E8
         gym-curl.webp b5boYWIR2vU   gym-deadlift.webp KaxVB5xh4Nw   gym-press.webp 8Hip5Ntz1WM
         gym-athlete.webp GLivMZcDfY0   rack.webp 3uWgVRLbJwI
-      Each tour-<room>.webp is the same photo as svc-<room>.webp, cropped to 1920×1080 for the
-      tour's full-screen stage; replace both together.
+      The tour-*.webp are 1920×1080, for the tour's full-screen stage.
 
       «تماس» dials the gym; the other buttons do nothing yet, on purpose: what they open is decided
       later. Facts not supplied by the gym (Instagram) say «به‌زودی»; a wrong number on a public
@@ -67,7 +68,6 @@
 
         <nav class="topnav" aria-label="بخش‌های سایت">
           <button type="button">امکانات</button>
-          <button type="button">فضای باشگاه</button>
           <button type="button">مربیان</button>
           <button type="button">فروشگاه</button>
           <button type="button">ساعت کاری</button>
@@ -168,7 +168,7 @@
         </p>
 
         <p class="manifesto" data-manifesto>
-          یک سوله‌ی بزرگ، نور گرم، و آهن؛ هر چه برای ساختن بدن لازم داری.
+          یک سوله بزرگ، با نور عالی، طبقه همکف، تهویه مناسب، و هر چیزی که برای ساختن بدن لازم داریم.
         </p>
 
         <dl class="facts">
@@ -187,142 +187,6 @@
         </dl>
       </section>
 
-      <!-- Services: each row opens on its photo; on a computer the photo also follows the pointer -->
-      <section class="services wrap" aria-labelledby="services-title" data-services>
-        <div class="section-head" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۲</span> امکانات</p>
-          <h2 id="services-title">هرچه برای تمرین لازم داری، زیر یک سقف.</h2>
-        </div>
-
-        <div class="service-list">
-          <details class="service" data-reveal data-photo="./img/svc-bodybuilding.webp">
-            <summary>
-              <span class="service__num">۰۱</span>
-              <span class="service__name">بدنسازی</span>
-              <span class="service__plus" aria-hidden="true"></span>
-            </summary>
-            <div class="service__body">
-              <figure class="photo service__photo">
-                <img
-                  src="./img/svc-bodybuilding.webp"
-                  alt=""
-                  loading="lazy"
-                  width="900"
-                  height="600"
-                />
-              </figure>
-              <p>وزنه‌ی آزاد و دستگاه، روی کفپوش ضربه‌گیر سخت.</p>
-            </div>
-          </details>
-          <details class="service" data-reveal data-photo="./img/svc-crossfit.webp">
-            <summary>
-              <span class="service__num">۰۲</span>
-              <span class="service__name">کراس‌فیت</span>
-              <span class="service__plus" aria-hidden="true"></span>
-            </summary>
-            <div class="service__body">
-              <figure class="photo service__photo">
-                <img src="./img/svc-crossfit.webp" alt="" loading="lazy" width="900" height="601" />
-              </figure>
-              <p>تمرین عملکردی، روی تایل ضربه‌گیر و چمن مصنوعی.</p>
-            </div>
-          </details>
-          <details class="service" data-reveal data-photo="./img/svc-cardio.webp">
-            <summary>
-              <span class="service__num">۰۳</span>
-              <span class="service__name">هوازی</span>
-              <span class="service__plus" aria-hidden="true"></span>
-            </summary>
-            <div class="service__body">
-              <figure class="photo service__photo">
-                <img src="./img/svc-cardio.webp" alt="" loading="lazy" width="800" height="1199" />
-              </figure>
-              <p>تردمیل برای گرم کردن، استقامت و چربی‌سوزی.</p>
-            </div>
-          </details>
-          <details class="service" data-reveal data-photo="./img/svc-massage.webp">
-            <summary>
-              <span class="service__num">۰۴</span>
-              <span class="service__name">ماساژ</span>
-              <span class="service__plus" aria-hidden="true"></span>
-            </summary>
-            <div class="service__body">
-              <figure class="photo service__photo">
-                <img src="./img/svc-massage.webp" alt="" loading="lazy" width="900" height="600" />
-              </figure>
-              <p>ریکاوری عضلات، بعد از تمرین سنگین.</p>
-            </div>
-          </details>
-          <details class="service" data-reveal data-photo="./img/svc-barber.webp">
-            <summary>
-              <span class="service__num">۰۵</span>
-              <span class="service__name">آرایشگاه</span>
-              <span class="service__plus" aria-hidden="true"></span>
-            </summary>
-            <div class="service__body">
-              <figure class="photo service__photo">
-                <img src="./img/svc-barber.webp" alt="" loading="lazy" width="900" height="601" />
-              </figure>
-              <p>اصلاح و پیرایش آقایان، همین‌جا در باشگاه.</p>
-            </div>
-          </details>
-          <details class="service" data-reveal data-photo="./img/svc-cafe.webp">
-            <summary>
-              <span class="service__num">۰۶</span>
-              <span class="service__name">کافه</span>
-              <span class="service__plus" aria-hidden="true"></span>
-            </summary>
-            <div class="service__body">
-              <figure class="photo service__photo">
-                <img src="./img/svc-cafe.webp" alt="" loading="lazy" width="800" height="1202" />
-              </figure>
-              <p>قهوه، شیک و میان‌وعده‌ی بعد از تمرین.</p>
-            </div>
-          </details>
-          <details class="service" data-reveal data-photo="./img/svc-shop.webp">
-            <summary>
-              <span class="service__num">۰۷</span>
-              <span class="service__name">فروشگاه</span>
-              <span class="service__plus" aria-hidden="true"></span>
-            </summary>
-            <div class="service__body">
-              <figure class="photo service__photo">
-                <img src="./img/svc-shop.webp" alt="" loading="lazy" width="900" height="600" />
-              </figure>
-              <p>پروتئین، کراتین و مکمل، شیکر و کش، لباس ورزشی و عطر.</p>
-            </div>
-          </details>
-          <details class="service" data-reveal data-photo="./img/svc-analysis.webp">
-            <summary>
-              <span class="service__num">۰۸</span>
-              <span class="service__name">آنالیز بدن</span>
-              <span class="service__plus" aria-hidden="true"></span>
-            </summary>
-            <div class="service__body">
-              <figure class="photo service__photo">
-                <img src="./img/svc-analysis.webp" alt="" loading="lazy" width="900" height="600" />
-              </figure>
-              <p>ببین امروز کجا هستی، تا بدانی چقدر جلو رفته‌ای.</p>
-            </div>
-          </details>
-          <details class="service" data-reveal data-photo="./img/svc-lockers.webp">
-            <summary>
-              <span class="service__num">۰۹</span>
-              <span class="service__name">کمد و رختکن</span>
-              <span class="service__plus" aria-hidden="true"></span>
-            </summary>
-            <div class="service__body">
-              <figure class="photo service__photo">
-                <img src="./img/svc-lockers.webp" alt="" loading="lazy" width="900" height="599" />
-              </figure>
-              <p>وسایلت در طول تمرین جای امنی دارد.</p>
-            </div>
-          </details>
-        </div>
-
-        <div class="service-float" data-float aria-hidden="true"><img alt="" /></div>
-      </section>
-
       <!--
         The hall as a walk: the stage stays on screen while the page scrolls past it; a bronze
         line leaves the door and stops at each room, the plan zooms onto it and its photo fills
@@ -330,7 +194,7 @@
       -->
       <section class="plan" aria-labelledby="plan-title" data-plan>
         <div class="section-head wrap" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۳</span> فضای باشگاه</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۲</span> امکانات و فضای باشگاه</p>
           <h2 id="plan-title">یک سوله، یک مستطیل.</h2>
         </div>
 
@@ -388,59 +252,59 @@
               <ol class="tour__names">
                 <li class="is-active">
                   <h3><span>ورودی</span></h3>
-                  <p>۱۰۰۰ متر مربع؛ کف همه‌جا ضربه‌گیر سخت.</p>
+                  <p>۱۰۰۰ متر سالن؛ کف همه‌جا ضربه‌گیر باشگاهی.</p>
                 </li>
                 <li>
                   <h3><span>ماساژ</span></h3>
-                  <p>در لابی، کنار پذیرش</p>
+                  <p>ریکاوری عضلات، بعد از تمرین سنگین.</p>
                 </li>
                 <li>
                   <h3><span>آرایشگاه</span></h3>
-                  <p>در لابی، کنار ورودی</p>
+                  <p>اصلاح و پیرایش آقایان، همین‌جا در باشگاه.</p>
                 </li>
                 <li>
                   <h3><span>کافه</span></h3>
-                  <p>سالن اصلی، کنار در</p>
+                  <p>قهوه، شیک و میان‌وعده‌ی بعد از تمرین.</p>
                 </li>
                 <li>
                   <h3><span>فروشگاه</span></h3>
-                  <p>سالن اصلی، روبه‌روی کافه</p>
+                  <p>پروتئین، کراتین و مکمل، شیکر و کش، لباس ورزشی و عطر.</p>
                 </li>
                 <li>
                   <h3><span>آنالیز بدن</span></h3>
-                  <p>سالن اصلی، کنار رختکن</p>
+                  <p>ببین امروز کجا هستی، تا بدانی چقدر جلو رفته‌ای.</p>
                 </li>
                 <li>
                   <h3><span>رختکن و کمدها</span></h3>
-                  <p>سالن اصلی، کنار در</p>
+                  <p>وسایلت در طول تمرین جای امنی دارد.</p>
                 </li>
                 <li>
                   <h3><span>هوازی</span></h3>
-                  <p>سالن اصلی</p>
+                  <p>تردمیل برای گرم کردن، استقامت و چربی‌سوزی.</p>
                 </li>
                 <li>
                   <h3><span>سالن بدنسازی</span></h3>
-                  <p>وسط سالن اصلی، بخش ۱ از ۴</p>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۱ از ۴</p>
                 </li>
                 <li>
                   <h3><span>سالن بدنسازی</span></h3>
-                  <p>وسط سالن اصلی، بخش ۲ از ۴</p>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۲ از ۴</p>
                 </li>
                 <li>
                   <h3><span>سالن بدنسازی</span></h3>
-                  <p>وسط سالن اصلی، بخش ۳ از ۴</p>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۳ از ۴</p>
                 </li>
                 <li>
                   <h3><span>سالن بدنسازی</span></h3>
-                  <p>وسط سالن اصلی، بخش ۴ از ۴</p>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۴ از ۴</p>
                 </li>
                 <li>
                   <h3><span>کراس‌فیت</span></h3>
-                  <p>انتهای سالن، بخش ۱ از ۲</p>
+                  <p>تمرین عملکردی؛ بخش ۱ از ۲</p>
                 </li>
                 <li>
                   <h3><span>کراس‌فیت</span></h3>
-                  <p>انتهای سالن، بخش ۲ از ۲</p>
+                  <p>تمرین عملکردی؛ بخش ۲ از ۲</p>
                 </li>
               </ol>
             </div>
@@ -568,7 +432,7 @@
       <!-- The gallery -->
       <section class="space" aria-labelledby="space-title">
         <div class="section-head wrap" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۴</span> گالری</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۳</span> گالری</p>
           <h2 id="space-title">یه جای خاص و دوست داشتنی</h2>
         </div>
 
@@ -634,7 +498,7 @@
       -->
       <section class="coaches" aria-labelledby="coaches-title" data-coaches>
         <div class="section-head wrap" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۵</span> مربیان</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۴</span> مربیان</p>
           <h2 id="coaches-title">کنار هر وزنه، کسی که مسیر را می‌شناسد.</h2>
         </div>
 
@@ -787,7 +651,7 @@
       -->
       <section class="shop" aria-labelledby="shop-title">
         <div class="section-head wrap" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۶</span> فروشگاه</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۵</span> فروشگاه</p>
           <h2 id="shop-title">هرچه برای تمرین لازم داری، همین‌جا.</h2>
           <p class="shop__lead">در سالن اصلی، کنار درب ورودی.</p>
         </div>
@@ -859,7 +723,7 @@
       <!-- Hours -->
       <section class="hours wrap" aria-labelledby="hours-title">
         <div class="section-head" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۷</span> ساعت کاری</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۶</span> ساعت کاری</p>
           <h2 id="hours-title">هر روز سال، حتی روزهای تعطیل.</h2>
         </div>
 
@@ -891,7 +755,7 @@
       <!-- Contact -->
       <section class="contact wrap" aria-labelledby="contact-title">
         <div class="section-head" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۸</span> نشانی و تماس</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۷</span> نشانی و تماس</p>
           <h2 id="contact-title">منتظر حضور گرمتون هستیم</h2>
         </div>
 

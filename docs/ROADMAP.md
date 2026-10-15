@@ -2841,6 +2841,10 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
         address and telephone are in (tel: links); Neshan/Balad links and Instagram still to come.
         Every service has a photo (massage and analysis added); `tour-*.webp` are 1920×1080 crops for
         the stage.
+      - Same day, by the developer: «امکانات» and the tour showed the gym twice, so they are one
+        section now, «امکانات و فضای باشگاه»: each stop's line is its service's description, the
+        list of services and its photos are gone. Floors: club rubber everywhere. The opening
+        line mentions the air («هوای خنک و تازه»), nothing more about it on purpose.
       - Same day: a «ثبت‌نام» button in the top bar (phone and computer). It does nothing yet; what
         it opens is the member accounts phase below.
 - [ ] Queued by the developer on 2026-10-15, to be reviewed in detail before building:
