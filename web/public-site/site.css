@@ -770,6 +770,11 @@ a {
   list-style: none;
 }
 
+/* Five in two columns: the last one takes the whole row */
+.feature:last-child {
+  grid-column: 1 / -1;
+}
+
 .feature {
   position: relative;
   display: grid;
@@ -840,6 +845,30 @@ a {
 
 .feature.is-in .feature__walk {
   animation: walk-in 2.6s ease-in-out 1.2s infinite;
+}
+
+/* The stage: two spotlights come on and sweep across it in turn */
+.feature__spot {
+  fill: rgb(232 192 125 / 0.2);
+  stroke: none;
+  opacity: 0;
+  transition: opacity 1s 1.2s;
+}
+
+.feature.is-in .feature__spot {
+  opacity: 1;
+}
+
+.feature__spot--a {
+  transform-box: view-box;
+  transform-origin: 4px 2px;
+  animation: sweep-a 3.6s ease-in-out infinite;
+}
+
+.feature__spot--b {
+  transform-box: view-box;
+  transform-origin: 60px 2px;
+  animation: sweep-b 3.6s ease-in-out infinite;
 }
 
 /* The fan turns and the air flows */
@@ -2079,8 +2108,12 @@ a {
   }
 
   .features {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
+  }
+
+  .feature:last-child {
+    grid-column: auto;
   }
 
   .feature {
@@ -2220,6 +2253,26 @@ a {
   100% {
     opacity: 0;
     translate: 22px 0;
+  }
+}
+
+@keyframes sweep-a {
+  0%,
+  100% {
+    rotate: -10deg;
+  }
+  50% {
+    rotate: 12deg;
+  }
+}
+
+@keyframes sweep-b {
+  0%,
+  100% {
+    rotate: -12deg;
+  }
+  50% {
+    rotate: 10deg;
   }
 }
 
