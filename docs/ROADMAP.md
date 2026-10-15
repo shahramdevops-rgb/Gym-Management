@@ -2841,6 +2841,15 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
         address and telephone are in (tel: links); Neshan/Balad links and Instagram still to come.
         Every service has a photo (massage and analysis added); `tour-*.webp` are 1920×1080 crops for
         the stage.
+      - Same day: a «ثبت‌نام» button in the top bar (phone and computer). It does nothing yet; what
+        it opens is the member accounts phase below.
+- [ ] Queued by the developer on 2026-10-15, to be reviewed in detail before building:
+  - [ ] Trainers (مربیان): the gym has two or three; one card each (photo, name, specialty,
+        experience). The gym sends the names and photos later. Later still, a member picks a trainer
+        (that needs the member accounts phase). The developer: "we have to work on it a lot"
+  - [ ] Shop (فروشگاه): a showcase of the categories (protein, creatine, supplements, shakers and
+        bands, sportswear, perfume), with photos and no prices; «استعلام قیمت» calls the gym
+  - [ ] Neshan and Balad links for «مسیریابی» (the gym sends its location link)
 - [ ] Confirm the panel stays out of search results
 
 ---
@@ -2915,3 +2924,22 @@ every SMS since 1405/07/16 (see the birthday entry above).
 - [ ] How a sale with a discount is recorded: the full price and a discount line, or the final price
       only; the financial report's figures follow from that
 - [ ] A code used twice refused by the database too (a unique index), not only by the code
+
+## Future — Member accounts on the public site (حساب اعضا)
+Asked by the developer on 2026-10-15, for later, to be reviewed in detail first. Members sign up
+and sign in on the public site; they never enter the admin panel. This changes a founding rule of
+the project ("no self-registration, no member logins"), so it needs an ADR and the Owner's decision
+before any code, and its rules written in docs/BUSINESS_RULES.md.
+
+- [ ] Sign-up and sign-in with the phone number and a one-time code by SMS (OTP); after the first
+      sign-in the member gives first name, last name and birth date, which the panel can use
+- [ ] A phone already in the panel links to that member, never a duplicate; whether a sign-up is a
+      request the desk confirms, and whether a member's own entry may change what the desk entered
+- [ ] Abuse and SMS cost: a limit per phone and per IP, codes that expire, a few wrong tries only;
+      every code is a paid SMS
+- [ ] What a signed-in member sees (subscription, sessions left, trainer?); a sign-in with nothing
+      behind it is not worth building
+- [ ] Perhaps selling plans online: payment gateway, refunds, and how it meets the desk's sales
+- [ ] Picking a trainer (see 13.3, trainers)
+- [ ] The public site is static and calls no API today; these pages would, so the API gets public
+      endpoints with their own authentication, separate from the staff's

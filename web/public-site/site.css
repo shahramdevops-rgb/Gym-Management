@@ -242,6 +242,11 @@ a {
   color: var(--text);
 }
 
+/* On a phone the menu is hidden, so the button pushes itself to the end next to the menu */
+.topbar__join {
+  margin-inline-start: auto;
+}
+
 .menu-button {
   display: grid;
   place-content: center;
@@ -1680,6 +1685,11 @@ a {
 
   .topnav {
     display: flex;
+    margin-inline-start: auto;
+  }
+
+  .topbar__join {
+    margin-inline-start: 0.75rem;
   }
 
   .menu-button {
