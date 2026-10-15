@@ -40,7 +40,7 @@
       «تماس» dials the gym; the other buttons do nothing yet, on purpose: what they open is decided
       later. Facts not supplied by the gym (Instagram) say «به‌زودی»; a wrong number on a public
       page is worse than none. Supplied by the gym: the address and the telephone; men only; 7:30 to 23:00 every day of the year
-      (docs/BUSINESS_RULES.md: no closed days); one 1000 m² hall with no columns; the services and
+      (docs/BUSINESS_RULES.md: no closed days); one 1000 m² hall (the page stopped saying "no columns" in the plan on 2026-10-15); the services and
       the plan of the hall, drawn by the gym (approximate, not to scale); one hard rubber floor
       everywhere.
     -->
@@ -69,6 +69,7 @@
           <button type="button">امکانات</button>
           <button type="button">فضای باشگاه</button>
           <button type="button">مربیان</button>
+          <button type="button">فروشگاه</button>
           <button type="button">ساعت کاری</button>
           <button type="button">تماس</button>
         </nav>
@@ -322,17 +323,6 @@
         <div class="service-float" data-float aria-hidden="true"><img alt="" /></div>
       </section>
 
-      <!-- A wide photo, with one line -->
-      <section class="photo-band" aria-label="سالن باشگاه">
-        <figure class="photo photo-band__photo" data-parallax>
-          <img src="./img/band.webp" alt="" loading="lazy" width="1800" height="1200" />
-        </figure>
-        <p class="photo-band__text wrap" data-reveal>
-          <span>۱۰۰۰ متر.</span>
-          <span>بدون ستون.</span>
-        </p>
-      </section>
-
       <!--
         The hall as a walk: the stage stays on screen while the page scrolls past it; a bronze
         line leaves the door and stops at each room, the plan zooms onto it and its photo fills
@@ -341,7 +331,7 @@
       <section class="plan" aria-labelledby="plan-title" data-plan>
         <div class="section-head wrap" data-reveal>
           <p class="eyebrow"><span class="eyebrow__num">۰۳</span> فضای باشگاه</p>
-          <h2 id="plan-title">یک سوله، یک مستطیل، بدون ستون.</h2>
+          <h2 id="plan-title">یک سوله، یک مستطیل.</h2>
         </div>
 
         <div class="tour" data-tour>
@@ -398,7 +388,7 @@
               <ol class="tour__names">
                 <li class="is-active">
                   <h3><span>ورودی</span></h3>
-                  <p>۱۰۰۰ متر مربع بدون ستون؛ کف همه‌جا ضربه‌گیر سخت.</p>
+                  <p>۱۰۰۰ متر مربع؛ کف همه‌جا ضربه‌گیر سخت.</p>
                 </li>
                 <li>
                   <h3><span>ماساژ</span></h3>
@@ -789,10 +779,87 @@
         </div>
       </section>
 
+      <!--
+        The shop: a showcase of what the counter sells, without prices. The categories are the gym's own
+        list; the photos are Unsplash placeholders without a brand on them: shop-protein
+        4CzpHxVzTFA, shop-creatine -Tu9jm9tpLo, shop-supplements UTPZnnEVW4E, shop-bands
+        IZOAOjvwhaM, shop-wear xPJYL0l5Ii8, shop-perfume zvqq7CG8BwY.
+      -->
+      <section class="shop" aria-labelledby="shop-title">
+        <div class="section-head wrap" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۶</span> فروشگاه</p>
+          <h2 id="shop-title">هرچه برای تمرین لازم داری، همین‌جا.</h2>
+          <p class="shop__lead">در سالن اصلی، کنار درب ورودی.</p>
+        </div>
+
+        <ul class="shop__grid" data-reveal>
+          <li class="shelf shelf--big">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-protein.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۱</span>
+              <h3 class="shelf__name">پروتئین</h3>
+            </div>
+          </li>
+          <li class="shelf">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-creatine.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۲</span>
+              <h3 class="shelf__name">کراتین</h3>
+            </div>
+          </li>
+          <li class="shelf">
+            <figure class="photo shelf__photo">
+              <img
+                src="./img/shop-supplements.webp"
+                alt=""
+                loading="lazy"
+                width="1200"
+                height="900"
+              />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۳</span>
+              <h3 class="shelf__name">مکمل</h3>
+            </div>
+          </li>
+          <li class="shelf shelf--wide">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-bands.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۴</span>
+              <h3 class="shelf__name">شیکر و کش</h3>
+            </div>
+          </li>
+          <li class="shelf shelf--wide">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-wear.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۵</span>
+              <h3 class="shelf__name">لباس ورزشی</h3>
+            </div>
+          </li>
+          <li class="shelf shelf--wide">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-perfume.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۶</span>
+              <h3 class="shelf__name">عطر</h3>
+            </div>
+          </li>
+        </ul>
+      </section>
+
       <!-- Hours -->
       <section class="hours wrap" aria-labelledby="hours-title">
         <div class="section-head" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۶</span> ساعت کاری</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۷</span> ساعت کاری</p>
           <h2 id="hours-title">هر روز سال، حتی روزهای تعطیل.</h2>
         </div>
 
@@ -824,7 +891,7 @@
       <!-- Contact -->
       <section class="contact wrap" aria-labelledby="contact-title">
         <div class="section-head" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۷</span> نشانی و تماس</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۸</span> نشانی و تماس</p>
           <h2 id="contact-title">منتظر حضور گرمتون هستیم</h2>
         </div>
 

@@ -2853,8 +2853,13 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
           «به‌زودی»; the placeholder photos are athletes seen from behind, so no stranger's face
           stands under a trainer's name. Waiting for the gym's names, photos (portrait 4:5, one
           plain dark wall for all) and details
-  - [ ] Shop (فروشگاه): a showcase of the categories (protein, creatine, supplements, shakers and
-        bands, sportswear, perfume), with photos and no prices; «استعلام قیمت» calls the gym
+  - [x] Shop (فروشگاه): a showcase of the categories (protein, creatine, supplements, shakers and
+        bands, sportswear, perfume), with photos and no prices
+        - 2026-10-15: built (section ۰۶): a phone swipes one row of tall shelves, a computer sees a
+          grid with protein big; on hover the photo comes closer and a band of light crosses it.
+          Placeholder Unsplash photos without a brand on them. Same day, by the developer: no «استعلام
+          قیمت» on the shelves; the wide photo «۱۰۰۰ متر. بدون ستون.» and «بدون ستون» in the plan
+          removed
   - [ ] Neshan and Balad links for «مسیریابی» (the gym sends its location link)
 - [ ] Confirm the panel stays out of search results
 

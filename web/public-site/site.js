@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
   serviceFloat();
   tour();
   coaches();
-  bandParallax();
   galleryCounter();
   topbar();
   dock();
@@ -757,20 +756,6 @@ function coaches() {
   }
 
   place();
-}
-
-// ---------- The wide photo moves a little slower than the page ----------
-
-function bandParallax() {
-  const band = document.querySelector("[data-parallax]");
-  if (!band || reduceMotion) return;
-  const image = band.querySelector("img");
-  onScroll(() => {
-    const box = band.getBoundingClientRect();
-    if (box.bottom < 0 || box.top > window.innerHeight) return;
-    const fromCentre = box.top + box.height / 2 - window.innerHeight / 2;
-    image.style.setProperty("--shift", `${(fromCentre * -0.12).toFixed(1)}px`);
-  });
 }
 
 // ---------- Photo counter on the phone's swipeable gallery ----------
