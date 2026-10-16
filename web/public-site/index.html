@@ -9,7 +9,7 @@
       content="پاسارگاد جیم پلاس، باشگاه بدنسازی آقایان. سوله‌ی ۱۰۰۰ متر؛ هر روز سال، از ۷:۳۰ صبح تا ۱۱ شب."
     />
     <meta name="theme-color" content="#0d0e11" />
-    <link rel="icon" href="./img/logo.png" type="image/png" />
+    <link rel="icon" href="./img/favicon.png" type="image/png" />
 
     <!--
       The gym's public face (roadmap 13.3). Static files only: this page, site.css, site.js, the
@@ -22,7 +22,8 @@
 
       The logo (img/logo.png) is the gym's real one, the same file the panel uses
       (web/src/assets/brand/pasargad-logo.png). It is white on transparent and drawn through a CSS
-      mask, so it takes any colour.
+      mask, so it takes any colour. The tab's icon (img/favicon.png) is the same logo in bronze, a
+      copy of the panel's (web/public/favicon.png): white would not show on a light tab.
 
       Every photo in img/ except logo.png is a PLACEHOLDER from Unsplash (free licence, no credit
       required), to be replaced by the gym's own photos under the same file names:
@@ -36,7 +37,10 @@
         tour-crossfit-2.webp CPSjcuuV8E8   tour-stage.webp uckFugBOBhM
         gym-curl.webp b5boYWIR2vU   gym-deadlift.webp KaxVB5xh4Nw   gym-press.webp 8Hip5Ntz1WM
         gym-athlete.webp GLivMZcDfY0   rack.webp 3uWgVRLbJwI
-      The tour-*.webp are 1920×1080, for the tour's full-screen stage.
+      The tour-*.webp are 1920×1080, for the tour's full-screen stage. Each has a 900×1600 twin,
+      *-tall.webp (band-tall.webp too), cut from the same original for a phone's tall screen: a
+      wide photo cropped to a phone shows only a narrow strip of itself. The gym's own photos
+      need both cuts.
 
       «تماس» dials the gym; the other buttons do nothing yet, on purpose: what they open is decided
       later. Facts not supplied by the gym (Instagram) say «به‌زودی»; a wrong number on a public
@@ -66,21 +70,32 @@
           <span class="brand__name">پاسارگاد <span>جیم پلاس</span></span>
         </a>
 
-        <nav class="topnav" aria-label="بخش‌های سایت">
-          <button type="button">امکانات</button>
-          <button type="button">مربیان</button>
-          <button type="button">فروشگاه</button>
-          <button type="button">ساعت کاری</button>
-          <button type="button">تماس</button>
+        <!-- A row on a computer; on a phone a drawer from the side that the three-line button opens -->
+        <nav class="topnav" id="topnav" aria-label="بخش‌های سایت">
+          <a href="#facilities">امکانات</a>
+          <a href="#coaches">مربیان</a>
+          <a href="#shop">فروشگاه</a>
+          <a href="#hours">ساعت کاری</a>
+          <a href="#contact">تماس</a>
         </nav>
 
         <!-- Online sign-up comes later (roadmap: member accounts); the button holds its place -->
         <button type="button" class="btn btn--bronze btn--small topbar__join">ثبت‌نام</button>
 
-        <button type="button" class="menu-button" aria-label="منو">
+        <button
+          type="button"
+          class="menu-button"
+          aria-label="منو"
+          aria-controls="topnav"
+          aria-expanded="false"
+          data-menu-button
+        >
           <span></span><span></span>
         </button>
       </div>
+
+      <!-- The phone's drawer dims the page beside it; a tap there closes it -->
+      <div class="menu-shade" data-menu-shade aria-hidden="true"></div>
     </header>
 
     <main>
@@ -246,7 +261,7 @@
         line leaves the door and stops at each room, the plan zooms onto it and its photo fills
         the stage. site.js drives it from the scroll; without it the stage shows the whole plan.
       -->
-      <section class="plan" aria-labelledby="plan-title" data-plan>
+      <section class="plan" id="facilities" aria-labelledby="plan-title" data-plan>
         <div class="section-head wrap" data-reveal>
           <p class="eyebrow"><span class="eyebrow__num">۰۲</span> امکانات و فضای باشگاه</p>
           <h2 id="plan-title">یک سوله، یک مستطیل.</h2>
@@ -256,49 +271,94 @@
           <div class="tour__stage">
             <div class="tour__photos" aria-hidden="true">
               <figure class="photo tour__photo is-active">
-                <img src="./img/band.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/band-tall.webp" />
+                  <img src="./img/band.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-massage.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-massage-tall.webp" />
+                  <img src="./img/tour-massage.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-barber.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-barber-tall.webp" />
+                  <img src="./img/tour-barber.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-cafe.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-cafe-tall.webp" />
+                  <img src="./img/tour-cafe.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-shop.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-shop-tall.webp" />
+                  <img src="./img/tour-shop.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-analysis.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-analysis-tall.webp" />
+                  <img src="./img/tour-analysis.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-lockers.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-lockers-tall.webp" />
+                  <img src="./img/tour-lockers.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-cardio.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-cardio-tall.webp" />
+                  <img src="./img/tour-cardio.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-bodybuilding.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-tall.webp" />
+                  <img src="./img/tour-bodybuilding.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-bodybuilding-2.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-2-tall.webp" />
+                  <img src="./img/tour-bodybuilding-2.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-bodybuilding-3.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-3-tall.webp" />
+                  <img src="./img/tour-bodybuilding-3.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-bodybuilding-4.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-4-tall.webp" />
+                  <img src="./img/tour-bodybuilding-4.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-stage.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-stage-tall.webp" />
+                  <img src="./img/tour-stage.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-crossfit.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-crossfit-tall.webp" />
+                  <img src="./img/tour-crossfit.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
               <figure class="photo tour__photo">
-                <img src="./img/tour-crossfit-2.webp" alt="" loading="lazy" />
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-crossfit-2-tall.webp" />
+                  <img src="./img/tour-crossfit-2.webp" alt="" loading="lazy" />
+                </picture>
               </figure>
             </div>
 
@@ -562,7 +622,7 @@
         stranger's face stands under a trainer's name: sHfo3WOgGTU, 9If-9MsWBDQ, QkK7NtsPrJM
         are coach-3, coach-2, coach-1. The gym's own replace them under the same names.
       -->
-      <section class="coaches" aria-labelledby="coaches-title" data-coaches>
+      <section class="coaches" id="coaches" aria-labelledby="coaches-title" data-coaches>
         <div class="section-head wrap" data-reveal>
           <p class="eyebrow"><span class="eyebrow__num">۰۴</span> مربیان</p>
           <h2 id="coaches-title">کنار هر وزنه، کسی که مسیر را می‌شناسد.</h2>
@@ -715,7 +775,7 @@
         4CzpHxVzTFA, shop-creatine -Tu9jm9tpLo, shop-supplements UTPZnnEVW4E, shop-bands
         IZOAOjvwhaM, shop-wear xPJYL0l5Ii8, shop-perfume zvqq7CG8BwY.
       -->
-      <section class="shop" aria-labelledby="shop-title">
+      <section class="shop" id="shop" aria-labelledby="shop-title">
         <div class="section-head wrap" data-reveal>
           <p class="eyebrow"><span class="eyebrow__num">۰۵</span> فروشگاه</p>
           <h2 id="shop-title">هرچه برای تمرین لازم داری، همین‌جا.</h2>
@@ -787,7 +847,7 @@
       </section>
 
       <!-- Hours -->
-      <section class="hours wrap" aria-labelledby="hours-title">
+      <section class="hours wrap" id="hours" aria-labelledby="hours-title">
         <div class="section-head" data-reveal>
           <p class="eyebrow"><span class="eyebrow__num">۰۶</span> ساعت کاری</p>
           <h2 id="hours-title">هر روز سال، حتی روزهای تعطیل.</h2>
@@ -819,7 +879,7 @@
       </section>
 
       <!-- Contact -->
-      <section class="contact wrap" aria-labelledby="contact-title">
+      <section class="contact wrap" id="contact" aria-labelledby="contact-title">
         <div class="section-head" data-reveal>
           <p class="eyebrow"><span class="eyebrow__num">۰۷</span> نشانی و تماس</p>
           <h2 id="contact-title">منتظر حضور گرمتون هستیم</h2>

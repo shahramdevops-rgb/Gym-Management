@@ -2889,6 +2889,42 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
           قیمت» on the shelves; the wide photo «۱۰۰۰ متر. بدون ستون.» and «بدون ستون» in the plan
           removed
   - [ ] Neshan and Balad links for «مسیریابی» (the gym sends its location link)
+- [ ] Before the next release, check these first (found by the developer on 2026-10-15; the release of
+      that day is live with them):
+  - [x] The photos are the computer's photos, and a phone crops them to its tall screen, so they show
+        far too zoomed in (the tour's `tour-*.webp` are 1920×1080: a phone sees a narrow strip of
+        each). Likely a tall crop per photo for the phone (`<picture>` with a `max-width` source)
+        - 2026-10-16: each stop has a 900×1600 `*-tall.webp` cut from the same Unsplash original
+          (three with a focus point chosen by eye: the door, bodybuilding 1, analysis), picked by
+          `<picture>` below 900 px. The developer chose this over a framed wide photo: the stage
+          stays full-screen, and the gym's own photos will need both cuts. The hero's two wide
+          slides gained nothing from a tall cut and stay as they are
+  - [x] The tour's plan is so small on a phone that its rooms cannot be told apart
+        - 2026-10-16: first a window on half the plan that followed the walker; the developer found
+          it far too big and wanted the whole plan on screen, so the camera went. Now the whole
+          plan nearly edge to edge, with the big rooms' names drawn larger (30 units); the small
+          rooms' names are hidden on a phone, the lit room's name is under the plan
+  - [x] The trainers' cards are too small: each card should be big, close to the whole screen
+        - 2026-10-16: on a phone the card is the screen's width less 3rem (at most 26rem)
+  - [x] The top bar's links are far too small on a phone. They go: the three-line button opens and
+        closes a menu that holds them
+        - 2026-10-16: a drawer under the bar from the button's side (the left), over a shade, not
+          the whole screen (the developer's correction of a first full-screen menu); the button
+          becomes a cross; a link, the button, a tap on the shade or Escape closes it. On a phone
+          the bar's blur became a darker glass, so the fixed drawer is laid out on the screen. The
+          links now go to their sections on the computer too (asked by the developer); the hero's
+          two buttons still do nothing
+  - [x] The panel has no logo in its browser tab: the public site shows the gym's logo there (and in
+        Google), but `web/index.html` has no `<link rel="icon">`
+        - 2026-10-16: `web/public/favicon.png`, the logo in bronze, 192×192: the brand file is white
+          and would not show on a light tab. The public site uses the same file since the same day
+          (`img/favicon.png`)
+  - [x] 2026-10-16, asked by the developer: the ticks under the plan fill from the left (phone and
+        computer), with the walk that starts at the door on the plan's left; they filled from the
+        right, the page's reading direction
+  - Checked on 2026-10-16 (before the ticks, the one change meant for both): the computer's page is unchanged at 1440, 1024 and 900 px (full-page
+    pixel comparison with the last commit; the few differing pixels are the clock's, the same
+    between two shots of the old page)
 - [ ] Confirm the panel stays out of search results
 
 ---

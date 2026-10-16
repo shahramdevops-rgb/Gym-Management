@@ -561,6 +561,7 @@ function tour() {
   const zones = [...tour.querySelectorAll("[data-steps]")];
   const stepsOf = (zone) => zone.dataset.steps.split(" ").map(Number);
   const spots = [...tour.querySelectorAll("[data-step]")];
+  const plan = tour.querySelector(".tour__map");
   const last = walk.filter((point) => point[2] !== undefined).length - 1;
 
   // The line, and how far along it each stop lies: the length of the line up to that stop.
@@ -627,7 +628,6 @@ function tour() {
 
   // A room with several stops goes to the spot nearest the click; from the keyboard, each
   // Enter goes to the room's next spot.
-  const plan = tour.querySelector(".tour__map");
   function nearestStep(steps, e) {
     const at = new DOMPoint(e.clientX, e.clientY).matrixTransform(plan.getScreenCTM().inverse());
     const distance = (step) => {
@@ -773,6 +773,38 @@ function topbar() {
   const bar = document.querySelector(".topbar");
   if (!bar) return;
   onScroll(() => bar.classList.toggle("is-scrolled", window.scrollY > 40));
+  menu(bar);
+}
+
+// ---------- The phone's menu: the three-line button opens and closes it ----------
+// A link, the button again, a tap beside the drawer or Escape closes it. While it is open the
+// page under it stays put.
+
+function menu(bar) {
+  const button = bar.querySelector("[data-menu-button]");
+  const nav = bar.querySelector(".topnav");
+  if (!button || !nav) return;
+
+  function toggle(open) {
+    bar.classList.toggle("is-open", open);
+    document.documentElement.classList.toggle("menu-open", open);
+    button.setAttribute("aria-expanded", String(open));
+    button.setAttribute("aria-label", open ? "بستن منو" : "منو");
+  }
+
+  button.addEventListener("click", () => toggle(!bar.classList.contains("is-open")));
+  nav.addEventListener("click", (e) => {
+    if (e.target.closest("a")) toggle(false);
+  });
+  bar.querySelector("[data-menu-shade]")?.addEventListener("click", () => toggle(false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && bar.classList.contains("is-open")) {
+      toggle(false);
+      button.focus();
+    }
+  });
+  // Turned to a computer's width while open: nothing is left to close it
+  window.matchMedia("(min-width: 900px)").addEventListener("change", () => toggle(false));
 }
 
 // ---------- The phone's bottom bar appears once the hero is behind ----------

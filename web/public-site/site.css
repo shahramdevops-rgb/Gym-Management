@@ -229,15 +229,20 @@ a {
   gap: 0.25rem;
 }
 
-.topnav button {
+.topnav a {
   padding: 0.5rem 0.9rem;
   color: var(--muted);
   font-size: 0.95rem;
   transition: color 0.25s;
 }
 
-.topnav button:hover {
+.topnav a:hover {
   color: var(--text);
+}
+
+/* A section a link goes to stops below the top bar, not under it */
+main > section[id] {
+  scroll-margin-block-start: 4.25rem;
 }
 
 /* On a phone the menu is hidden, so the button pushes itself to the end next to the menu */
@@ -264,6 +269,108 @@ a {
   width: 1rem;
   justify-self: start;
   background: var(--bronze);
+}
+
+/* ----- The phone's menu -----
+   The three-line button turns into a cross and a drawer slides out under the bar, from the
+   button's side, over a shade that dims the rest of the page. */
+
+.menu-shade {
+  display: none;
+}
+
+.menu-button span {
+  transition:
+    translate 0.35s var(--ease-out),
+    rotate 0.35s var(--ease-out),
+    width 0.35s var(--ease-out);
+}
+
+.menu-button[aria-expanded="true"] span:first-child {
+  translate: 0 calc(0.2rem + 1px);
+  rotate: 45deg;
+}
+
+.menu-button[aria-expanded="true"] span:last-child {
+  width: 1.5rem;
+  translate: 0 calc(-0.2rem - 1px);
+  rotate: -45deg;
+}
+
+@media (max-width: 899px) {
+  /* No blur on a phone's bar, a darker glass instead: a backdrop-filter would make the bar, not
+     the screen, the box the fixed drawer and shade are laid out in */
+  .topbar.is-scrolled,
+  .topbar.is-open {
+    background-color: rgb(13 14 17 / 0.94);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .topnav,
+  .menu-shade {
+    position: fixed;
+    inset-block: calc(4.25rem + env(safe-area-inset-top)) 0;
+    /* Under the bar, over everything else on the page */
+    z-index: -1;
+  }
+
+  .menu-shade {
+    display: block;
+    /* Below the drawer too, so a tap on a link reaches the link */
+    z-index: -2;
+    inset-inline: 0;
+    background: rgb(0 0 0 / 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s var(--ease-out);
+  }
+
+  .topbar.is-open .menu-shade {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* The button sits at the bar's end (the left), so the drawer comes out of that side */
+  .topnav {
+    inset-inline-end: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: min(78vw, 19rem);
+    padding: 1rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    background:
+      radial-gradient(ellipse 90% 35% at 50% 0%, rgb(200 155 87 / 0.1), transparent 70%),
+      var(--stone-2);
+    box-shadow:
+      inset 0 1px 0 var(--line),
+      1px 0 0 var(--line),
+      20px 0 50px rgb(0 0 0 / 0.5);
+    translate: -100% 0;
+    visibility: hidden;
+    transition:
+      translate 0.4s var(--ease-out),
+      visibility 0s 0.4s;
+  }
+
+  .topbar.is-open .topnav {
+    translate: 0 0;
+    visibility: visible;
+    transition: translate 0.4s var(--ease-out);
+  }
+
+  .topnav a {
+    padding: 1rem 0.25rem;
+    color: var(--text);
+    font-size: 1.2rem;
+    font-weight: 700;
+    box-shadow: 0 1px 0 var(--line);
+  }
+
+  .menu-open {
+    overflow: hidden;
+  }
 }
 
 /* ---------- Hero ----------
@@ -1069,6 +1176,11 @@ a {
   opacity: 1;
 }
 
+/* The picture only chooses the file (the tall one on a phone); the img still fills the figure */
+.tour__photo picture {
+  display: contents;
+}
+
 .tour__photo img {
   transform: scale(1.16);
   transition:
@@ -1171,8 +1283,11 @@ a {
   aspect-ratio: 1080 / 414;
 }
 
+/* Left to right even in this page: the walk starts at the door on the plan's left, so the
+   ticks fill from the left with it */
 .tour__ticks {
   display: flex;
+  direction: ltr;
   gap: 0.35rem;
   margin-block-start: 0.6rem;
 }
@@ -1406,10 +1521,10 @@ a {
 @media (max-width: 899px) {
   /* A phone: the plan across the top, the name at the bottom above the bar */
   .tour__hud {
-    inset-inline: var(--gutter);
+    inset-inline: 0.5rem;
     inset-block: calc(4.75rem + env(safe-area-inset-top)) auto;
     width: auto;
-    padding: 0.5rem;
+    padding: 0.4rem;
   }
 
   .tour__caption {
@@ -1420,8 +1535,14 @@ a {
     display: none;
   }
 
-  /* Too small to read on a phone: the lit room and the name under it say where the walk is */
-  .tour__map text {
+  /* The whole hall, nearly the screen's width. The big rooms' names are drawn larger so they
+     can be read at this size; the small rooms' would not fit, and the lit room's name is under
+     the plan anyway */
+  .zone text {
+    font-size: 30px;
+  }
+
+  :is(.zone--small, .zone--tiny, .room) text {
     display: none;
   }
 }
@@ -1719,6 +1840,13 @@ a {
 .coaches__hint {
   color: var(--faint);
   font-size: 0.85rem;
+}
+
+/* A phone: the card in front takes nearly the whole width; the others peek at the edges */
+@media (max-width: 899px) {
+  .coaches__stage {
+    --card-w: min(100vw - 3rem, 26rem);
+  }
 }
 
 /* ---------- The shop: a showcase ----------
@@ -2221,7 +2349,6 @@ a {
     translate: 0 1.25rem;
   }
 }
-
 @keyframes progress {
   from {
     width: 0;

@@ -1731,3 +1731,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **A click means "the nearest".** A big room with several stops takes the click's position, turns it into plan units (`getScreenCTM().inverse()`) and goes to the closest spot, so clicking where you look does what you expect.
 - **Placeholder photos carry no one's name.** One photo showed another gym's sign; it was replaced, because on this gym's page it would read as theirs.
 - **My notes:**
+
+### 13.3, phone fixes — the photos, the plan, the cards and the menu
+- **A tall crop of a wide photo is still a strip.** Most originals are 3:2, so cutting them for a 9:19.5 phone screen keeps about a third of the width wherever the cut is. What a tall cut adds is choosing *which* third: the subject instead of the middle. A wide photo framed whole was the other way; the developer kept the full-screen stage.
+- **`<picture>` picks the file, CSS still draws it.** A `<source media="(max-width: 899px)">` gives the phone its own file; the `<img>` inside keeps every style, and `picture { display: contents }` keeps it out of the layout.
+- **Ask the image server for the crop.** Unsplash's images go through imgix, which crops on request (`w`, `h`, `fit=crop`, `crop=entropy` or a focal point `fp-x`), so no image tool was needed; `fm=json` tells an original's size first.
+- **A backdrop-filter traps `position: fixed`.** A fixed box inside an element with a filter or backdrop-filter is placed relative to that element, not the screen; on a phone the top bar trades its blur for a darker glass, so the drawer and its shade are laid out on the screen.
+- **A past decision is a hint for the next one.** The phone's plan was first a camera on half of it, the same kind of zoom the third pass had removed; the developer again wanted the whole plan. Bigger names on the whole plan did what the zoom was for.
+- **Paint order decides who gets the tap.** The shade and the drawer had the same `z-index`, so the later one in the page (the shade) lay on top and swallowed the taps on the links. A browser test that taps, not only a screenshot, found it.
+- **Measure "unchanged".** The computer's page was compared pixel by pixel with the last commit, with motion reduced and the smoke's randomness seeded. The clock still made a few pixels differ, so the old page was compared with itself too: the same rows, so they are noise.
+- **My notes:**
