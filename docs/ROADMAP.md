@@ -2869,6 +2869,24 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
       in the API log. A rollback to `7ebfb0d` is safe: the schema did not change. The first
       `release.sh` run stopped before reaching the server: a local `dotnet run` of the API locked
       `bin/Debug` and the migration bundle could not build
+- [x] Released in `20261016-1717-7ed7006` (previous `20261015-1423-4f9347d`) on 2026-10-16 at
+      17:17, by day at the developer's choice: the public site's phone fixes, the six faceless
+      slides, «پاسارگاد پلاس» without «جیم», calisthenics; the panel only gained its tab icon. No
+      migration, so a rollback to `4f9347d` is safe. Before it: frontend 1018/1018, lint, format
+      and build clean, e2e green, screenshots retaken (`7ed7006`); no backend test, the backend
+      unchanged since the last release. Server first: API and Postgres healthy, 50 GB disk and
+      2.8 GB memory free. `./backup.sh run` → `gym-20261016-171258.dump` (593 KB), copied to
+      `D:\gymbackups`, both `sha256sum` equal. After it, from outside: the public page 200 with the
+      new content, `site.css`/`site.js` `no-cache`, the panel, its icon and `/health` 200, `www.`
+      and `.com` 301.
+      - Found after it: a phone that had seen the site kept showing the old slides. The photos have
+        no `Cache-Control`, so a browser guesses how long its copy stays fresh (hours), and the new
+        slides kept the old file names (my miss: only the page, site.css and site.js were checked).
+        Built the same day, for the next release: `no-cache` on every file of the public site in
+        `deploy/Caddyfile`, and `web/Dockerfile` stamps each address in the page with its file's
+        fingerprint (`?v=`), so even a phone holding an old copy fetches a changed file. Checked
+        in a local build: 53 addresses stamped, none left plain, `caddy validate` passes, all 35
+        photos load on a phone and a computer
 - [ ] The server asks for a restart (`*** System restart required ***`, 24 updates, 11 security):
       on a night of its own, not with a release
 - [ ] Queued by the developer on 2026-10-15, to be reviewed in detail before building:

@@ -90,11 +90,12 @@
 		-Server
 	}
 
-	# The page, its stylesheet and its script change together at every release: a browser asks
-	# before it reuses its copy (a 304 costs nothing), so nobody gets the new page with the old
-	# site.js. The photos keep the usual caching.
-	@code path / /index.html /site.css /site.js
-	header @code Cache-Control "no-cache"
+	# Every file, the photos too: a browser asks before it reuses its copy (a 304 costs nothing),
+	# so a release is seen at once. Until 2026-10-16 the photos had no Cache-Control, a browser
+	# guessed hours of freshness, and phones kept showing the old slides under the same names.
+	# web/Dockerfile also gives each file's address its content's fingerprint (?v=), which reaches
+	# copies a browser already holds.
+	header Cache-Control "no-cache"
 
 	root * /srv-public
 	file_server
