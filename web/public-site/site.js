@@ -523,9 +523,9 @@ const walk = [
   [890, 100, 11],
   [995, 100],
   [995, 180, 12], // the figure stage, on the wall
-  [995, 262],
-  [930, 262, 13], // crossfit, its two spots
-  [930, 352, 14],
+  [890, 180],
+  [890, 269, 13], // calisthenics, the upper half of the old CrossFit room
+  [890, 355, 14], // crossfit, the lower half
 ];
 
 const lerp = (a, b, t) => a + (b - a) * t;

@@ -2910,7 +2910,8 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
   - [x] The top bar's links are far too small on a phone. They go: the three-line button opens and
         closes a menu that holds them
         - 2026-10-16: a drawer under the bar from the button's side (the left), over a shade, not
-          the whole screen (the developer's correction of a first full-screen menu); the button
+          the whole screen (the developer's correction of a first full-screen menu; then narrowed
+          twice, as too wide, to under a third of the screen, `min(30vw, 7.5rem)`); the button
           becomes a cross; a link, the button, a tap on the shade or Escape closes it. On a phone
           the bar's blur became a darker glass, so the fixed drawer is laid out on the screen. The
           links now go to their sections on the computer too (asked by the developer); the hero's
@@ -2926,6 +2927,14 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
         from the developer's own examples (two of them are among the six). 1100×1650, the
         originals' 2:3, one file for phone and computer. Two new lines, picked by the developer:
         «نور عالی، تهویه مناسب، طبقه همکف.» and «استیج فیگور، برای تمرین ژست‌ها.»
+  - [x] 2026-10-16, asked by the developer: calisthenics (کلیستنیکس), for calisthenics people to
+        know they can train here. The CrossFit room is split along the hall's length: calisthenics
+        above, CrossFit below, and of CrossFit's two stops the first is calisthenics now (a photo
+        of rings, which the gym has; the kettlebells photo went). Named in the band of services,
+        the hero's line (کراس‌فیت، کلیستنیکس، ...), the description for Google, and the figure
+        stage's line (it is beside calisthenics now); «۹ بخش» became «۱۰». Two hero slides
+        (a tattooed back, a dumbbell curl) gave way to the gym's own kit: the rings, and the
+        pull-up and dip station
   - [x] 2026-10-16, asked by the developer: the name is «پاسارگاد پلاس», no Persian «جیم» anywhere:
         the hero's «جیم پلاس» line is gone and the carved word has a bronze plus; the top bar says
         «پاسارگاد+»; the title, description and footer say «پاسارگاد پلاس»

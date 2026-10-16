@@ -338,8 +338,8 @@ main > section[id] {
     display: flex;
     flex-direction: column;
     gap: 0;
-    width: min(78vw, 19rem);
-    padding: 1rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+    width: min(30vw, 7.5rem);
+    padding: 0.5rem 0.75rem calc(1.5rem + env(safe-area-inset-bottom));
     overflow-y: auto;
     background:
       radial-gradient(ellipse 90% 35% at 50% 0%, rgb(200 155 87 / 0.1), transparent 70%),
@@ -362,9 +362,10 @@ main > section[id] {
   }
 
   .topnav a {
-    padding: 1rem 0.25rem;
+    padding: 0.8rem 0;
     color: var(--text);
-    font-size: 1.2rem;
+    font-size: 1rem;
+    white-space: nowrap;
     font-weight: 700;
     box-shadow: 0 1px 0 var(--line);
   }
