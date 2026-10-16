@@ -2902,8 +2902,9 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
   - [x] The tour's plan is so small on a phone that its rooms cannot be told apart
         - 2026-10-16: first a window on half the plan that followed the walker; the developer found
           it far too big and wanted the whole plan on screen, so the camera went. Now the whole
-          plan nearly edge to edge, with the big rooms' names drawn larger (30 units); the small
-          rooms' names are hidden on a phone, the lit room's name is under the plan
+          plan nearly edge to edge, every name drawn as large as its room allows (the developer
+          wanted the small rooms named too); the figure stage says «فیگور» on a phone, its full
+          name does not fit
   - [x] The trainers' cards are too small: each card should be big, close to the whole screen
         - 2026-10-16: on a phone the card is the screen's width less 3rem (at most 26rem)
   - [x] The top bar's links are far too small on a phone. They go: the three-line button opens and
@@ -2919,6 +2920,15 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
         - 2026-10-16: `web/public/favicon.png`, the logo in bronze, 192×192: the brand file is white
           and would not show on a light tab. The public site uses the same file since the same day
           (`img/favicon.png`)
+  - [x] 2026-10-16, asked by the developer: six hero slides instead of four. The old ones showed
+        one model's face, which could be taken for someone local; the new ones are free Unsplash
+        photos where no face shows clearly (one series from one gym, then three dark ones), found
+        from the developer's own examples (two of them are among the six). 1100×1650, the
+        originals' 2:3, one file for phone and computer. Two new lines, picked by the developer:
+        «نور عالی، تهویه مناسب، طبقه همکف.» and «استیج فیگور، برای تمرین ژست‌ها.»
+  - [x] 2026-10-16, asked by the developer: the name is «پاسارگاد پلاس», no Persian «جیم» anywhere:
+        the hero's «جیم پلاس» line is gone and the carved word has a bronze plus; the top bar says
+        «پاسارگاد+»; the title, description and footer say «پاسارگاد پلاس»
   - [x] 2026-10-16, asked by the developer: the ticks under the plan fill from the left (phone and
         computer), with the walk that starts at the door on the plan's left; they filled from the
         right, the page's reading direction

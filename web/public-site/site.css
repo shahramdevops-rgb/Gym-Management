@@ -219,9 +219,10 @@ a {
   font-size: 1.05rem;
 }
 
+/* The plus of «پاسارگاد پلاس» */
 .brand__name span {
-  font-weight: 300;
-  color: var(--muted);
+  margin-inline-start: 0.1em;
+  color: var(--bronze);
 }
 
 .topnav {
@@ -512,6 +513,8 @@ main > section[id] {
   --lx: 50%;
   --ly: 40%;
   display: block;
+  /* As wide as the word and its plus: ink outside the box is not drawn (background-clip) */
+  width: fit-content;
   padding-block: 0.08em 0.12em;
   font-size: clamp(4.25rem, 22vw, 10rem);
   font-weight: 900;
@@ -532,14 +535,13 @@ main > section[id] {
   animation: carve 1.6s 0.35s var(--ease-out) both;
 }
 
-.hero__sub {
-  display: block;
-  margin-block-start: 0.1em;
-  font-size: clamp(1.5rem, 7vw, 2.75rem);
-  font-weight: 200;
-  color: var(--text);
-  text-shadow: 0 2px 16px rgb(0 0 0 / 0.8);
-  animation: rise 1s 1s var(--ease-out) both;
+/* The plus of «پاسارگاد پلاس», raised like a mark beside the word. Its own bronze, not the
+   word's moving light: at the word's dark end it would vanish */
+.carved__plus {
+  color: var(--bronze);
+  margin-inline-start: 0.04em;
+  font-size: 0.62em;
+  vertical-align: 0.42em;
 }
 
 /* One short line per slide, changing with it. */
@@ -1535,16 +1537,43 @@ main > section[id] {
     display: none;
   }
 
-  /* The whole hall, nearly the screen's width. The big rooms' names are drawn larger so they
-     can be read at this size; the small rooms' would not fit, and the lit room's name is under
-     the plan anyway */
+  /* The whole hall, nearly the screen's width: every name is drawn larger so it can be read at
+     this size, each as large as its room allows, with a thinner outline. The figure stage is
+     too narrow for its full name and says «فیگور» */
+  .room text,
+  .zone text {
+    stroke-width: 3px;
+  }
+
   .zone text {
     font-size: 30px;
   }
 
-  :is(.zone--small, .zone--tiny, .room) text {
+  /* The barber's long name in its narrow room */
+  .zone--small text,
+  .zone[data-steps="2"] text {
+    font-size: 24px;
+  }
+
+  .zone--tiny text {
+    font-size: 19px;
+  }
+
+  .room text {
+    font-size: 20px;
+  }
+
+  .zone .zone__long {
     display: none;
   }
+
+  .zone .zone__short {
+    display: inline;
+  }
+}
+
+.zone__short {
+  display: none;
 }
 
 /* ---------- The gallery ---------- */

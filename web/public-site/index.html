@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>باشگاه پاسارگاد جیم پلاس</title>
+    <title>باشگاه پاسارگاد پلاس</title>
     <meta
       name="description"
-      content="پاسارگاد جیم پلاس، باشگاه بدنسازی آقایان. سوله‌ی ۱۰۰۰ متر؛ هر روز سال، از ۷:۳۰ صبح تا ۱۱ شب."
+      content="پاسارگاد پلاس، باشگاه بدنسازی آقایان. سوله‌ی ۱۰۰۰ متر؛ هر روز سال، از ۷:۳۰ صبح تا ۱۱ شب."
     />
     <meta name="theme-color" content="#0d0e11" />
     <link rel="icon" href="./img/favicon.png" type="image/png" />
@@ -27,8 +27,9 @@
 
       Every photo in img/ except logo.png is a PLACEHOLDER from Unsplash (free licence, no credit
       required), to be replaced by the gym's own photos under the same file names:
-        slide-1.webp mviOOZJ-dZA   slide-2.webp a_ZHAHMK-yM   slide-3.webp Gp25M1794Wk
-        slide-4.webp 2F6MPKEkrBQ   band.webp 8LWo8v0mKik (the tour's first stop, the door)
+        slide-1.webp oytTrK0Oho0   slide-2.webp SrTXkanaqtU   slide-3.webp EsgoXQef7PI
+        slide-4.webp q17MCCiBv2c   slide-5.webp V-SkkqKbt7g   slide-6.webp juHWRzZCxVw
+        band.webp 8LWo8v0mKik (the tour's first stop, the door)
         tour-massage.webp J1trUf0Lj3Q   tour-barber.webp cftRv45BNRU   tour-cafe.webp y2Dfk2Kt89o
         tour-shop.webp -1W7mesKxYg   tour-analysis.webp DBvEoaU3ICs   tour-lockers.webp 4UbSaPKGRqc
         tour-cardio.webp _cUZkx0wTyM   tour-bodybuilding.webp k47w6BeapCs
@@ -37,6 +38,9 @@
         tour-crossfit-2.webp CPSjcuuV8E8   tour-stage.webp uckFugBOBhM
         gym-curl.webp b5boYWIR2vU   gym-deadlift.webp KaxVB5xh4Nw   gym-press.webp 8Hip5Ntz1WM
         gym-athlete.webp GLivMZcDfY0   rack.webp 3uWgVRLbJwI
+      The slides are 1100×1650, the originals' own 2:3, so a phone and a computer each cut what
+      they need. No face shows clearly in any of them (since 2026-10-16: the earlier slides showed
+      one model's face, which could be taken for someone local).
       The tour-*.webp are 1920×1080, for the tour's full-screen stage. Each has a 900×1600 twin,
       *-tall.webp (band-tall.webp too), cut from the same original for a phone's tall screen: a
       wide photo cropped to a phone shows only a narrow strip of itself. The gym's own photos
@@ -65,9 +69,9 @@
   <body>
     <header class="topbar">
       <div class="topbar__inner">
-        <a class="brand" href="./" aria-label="پاسارگاد جیم پلاس، صفحه‌ی اول">
+        <a class="brand" href="./" aria-label="پاسارگاد پلاس، صفحه‌ی اول">
           <span class="logo brand__logo" aria-hidden="true"></span>
-          <span class="brand__name">پاسارگاد <span>جیم پلاس</span></span>
+          <span class="brand__name">پاسارگاد<span>+</span></span>
         </a>
 
         <!-- A row on a computer; on a phone a drawer from the side that the three-line button opens -->
@@ -106,16 +110,22 @@
 
         <div class="hero__stage" aria-hidden="true">
           <div class="slide is-active" data-slide>
-            <img src="./img/slide-1.webp" alt="" width="1100" height="1955" fetchpriority="high" />
-          </div>
-          <div class="slide slide--wide" data-slide>
-            <img src="./img/slide-2.webp" alt="" width="1600" height="900" fetchpriority="low" />
+            <img src="./img/slide-1.webp" alt="" width="1100" height="1650" fetchpriority="high" />
           </div>
           <div class="slide" data-slide>
-            <img src="./img/slide-3.webp" alt="" width="1100" height="1955" fetchpriority="low" />
+            <img src="./img/slide-2.webp" alt="" width="1100" height="1650" fetchpriority="low" />
           </div>
-          <div class="slide slide--wide" data-slide>
-            <img src="./img/slide-4.webp" alt="" width="1600" height="1067" fetchpriority="low" />
+          <div class="slide" data-slide>
+            <img src="./img/slide-3.webp" alt="" width="1100" height="1650" fetchpriority="low" />
+          </div>
+          <div class="slide" data-slide>
+            <img src="./img/slide-4.webp" alt="" width="1100" height="1650" fetchpriority="low" />
+          </div>
+          <div class="slide" data-slide>
+            <img src="./img/slide-5.webp" alt="" width="1100" height="1650" fetchpriority="low" />
+          </div>
+          <div class="slide" data-slide>
+            <img src="./img/slide-6.webp" alt="" width="1100" height="1650" fetchpriority="low" />
           </div>
         </div>
 
@@ -125,8 +135,11 @@
           <p class="eyebrow hero__eyebrow">باشگاه بدنسازی آقایان</p>
 
           <h1 id="hero-title" class="hero__title">
-            <span class="carved" data-torch>پاسارگاد</span>
-            <span class="hero__sub">جیم پلاس</span>
+            <!-- The gym's name is «پاسارگاد پلاس»: the plus is part of the carved word -->
+            <span class="carved" data-torch
+              >پاسارگاد<span class="carved__plus" aria-hidden="true">+</span></span
+            >
+            <span class="sr-only">پلاس</span>
           </h1>
 
           <div class="hero__lines" aria-live="polite">
@@ -134,6 +147,8 @@
             <p class="hero__line" data-line>۱۰۰۰ متر سالن یه تیکه</p>
             <p class="hero__line" data-line>هر روز سال، از ۷:۳۰ تا ۲۳.</p>
             <p class="hero__line" data-line>کراس‌فیت، ماساژ، آرایشگاه و کافه؛ زیر یک سقف.</p>
+            <p class="hero__line" data-line>نور عالی، تهویه مناسب، طبقه همکف.</p>
+            <p class="hero__line" data-line>استیج فیگور، برای تمرین ژست‌ها.</p>
           </div>
 
           <div class="hero__actions">
@@ -153,7 +168,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
             </button>
             <p class="slider-nav__count" aria-hidden="true">
-              <span data-slide-index>۰۱</span><span class="slider-nav__of"> / ۰۴</span>
+              <span data-slide-index>۰۱</span><span class="slider-nav__of"> / ۰۶</span>
             </p>
             <button type="button" class="slider-nav__arrow" data-next aria-label="عکس بعدی">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
@@ -463,7 +478,13 @@
                 </g>
                 <g class="zone zone--tiny" data-steps="12" tabindex="0" role="button">
                   <rect x="1021" y="134" width="40" height="92" />
-                  <text x="1041" y="180" transform="rotate(-90 1041 180)">استیج فیگور</text>
+                  <text class="zone__long" x="1041" y="180" transform="rotate(-90 1041 180)">
+                    استیج فیگور
+                  </text>
+                  <!-- The full name does not fit on a phone -->
+                  <text class="zone__short" x="1041" y="180" transform="rotate(-90 1041 180)">
+                    فیگور
+                  </text>
                 </g>
                 <g class="zone" data-steps="7" tabindex="0" role="button">
                   <rect x="416" y="16" width="133" height="127" />
@@ -911,7 +932,7 @@
       <p class="footer__word" aria-hidden="true">پاسارگاد</p>
       <div class="footer__bar wrap">
         <span class="logo footer__logo" aria-hidden="true"></span>
-        <p>© ۱۴۰۵ باشگاه پاسارگاد جیم پلاس</p>
+        <p>© ۱۴۰۵ باشگاه پاسارگاد پلاس</p>
       </div>
     </footer>
 
