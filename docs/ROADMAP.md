@@ -2887,6 +2887,15 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
         fingerprint (`?v=`), so even a phone holding an old copy fetches a changed file. Checked
         in a local build: 53 addresses stamped, none left plain, `caddy validate` passes, all 35
         photos load on a phone and a computer
+- [x] Released in `20261016-1747-c6ff9ec` (previous `20261016-1717-7ed7006`) on 2026-10-16 at
+      17:47, half an hour after the one above, to fix the stale photos it showed: `no-cache` on
+      every file of the public site and a fingerprint (`?v=`) in each address of the page. Only
+      `deploy/Caddyfile` and `web/Dockerfile` changed; no migration, a rollback to `7ed7006` is
+      safe. `./backup.sh run` first → `gym-20261016-174554.dump` (595 KB), copied to
+      `D:\gymbackups`, both `sha256sum` equal. After it, from outside: the page's addresses all
+      stamped (`slide-1.webp?v=b45d33dca8`, none plain), the page, site.css, the photos and the font
+      `no-cache`, a photo asked again with its ETag answers 304; the panel and `/health` 200,
+      `www.` 301. The developer's phone, which kept the old slides, shows the new ones
 - [ ] The server asks for a restart (`*** System restart required ***`, 24 updates, 11 security):
       on a night of its own, not with a release
 - [ ] Queued by the developer on 2026-10-15, to be reviewed in detail before building:
