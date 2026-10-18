@@ -276,7 +276,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         await RunAsync(NotificationKind.Birthday, sender);
 
         sender.Requests.Select(request => request.Receptor).ShouldBe([active.PhoneNumber, deactivated.PhoneNumber], ignoreOrder: true);
-        sender.Requests[0].Text.ShouldBe($"{Name} عزیز، امروز ۱۴۰۵/۰۷/۱۴ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
+        sender.Requests[0].Text.ShouldBe($"{Name} عزیز، امروز ۱۴۰۵/۰۷/۱۴ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد\nلغو11");
         (await NotificationsAsync()).ShouldAllBe(notification => notification.JalaliYear == 1405);
     }
 
@@ -291,7 +291,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         await RunAsync(NotificationKind.Birthday, sender, at: At(Today.AddDays(1), 10, 0));
 
         sender.Requests.ShouldHaveSingleItem().Text
-            .ShouldBe($"{Name} عزیز، تولدتان در ۱۴۰۵/۰۷/۱۶ را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد");
+            .ShouldBe($"{Name} عزیز، تولدتان در ۱۴۰۵/۰۷/۱۶ را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد\nلغو11");
     }
 
     [Fact]
@@ -305,7 +305,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         // The day itself, so the «تولدتان مبارک» text, not the «پیشاپیش» one.
         sender.Requests.ShouldHaveSingleItem().Text
-            .ShouldBe($"{Name} عزیز، امروز ۱۴۰۴/۱۲/۲۹ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
+            .ShouldBe($"{Name} عزیز، امروز ۱۴۰۴/۱۲/۲۹ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد\nلغو11");
     }
 
     // ---- Cheques and instalments ----
@@ -325,8 +325,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         sender.Requests.Count.ShouldBe(2);
         sender.Requests.ShouldAllBe(request => request.Receptor == OwnerPhone);
-        sender.Requests[0].Text.ShouldBe("یادآوری قسط: ۲٬۰۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۴، به بانک ملت");
-        sender.Requests[1].Text.ShouldBe("یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۷، به فروشگاه تجهیزات ورزشی");
+        sender.Requests[0].Text.ShouldBe("یادآوری قسط: ۲٬۰۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۴، به بانک ملت\nلغو11");
+        sender.Requests[1].Text.ShouldBe("یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۷، به فروشگاه تجهیزات ورزشی\nلغو11");
     }
 
     [Fact]

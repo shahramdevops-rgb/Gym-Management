@@ -2525,7 +2525,7 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
       its kind and values, then the old columns go; a kind that is on stays on. 2120 backend tests
       (695 domain, 1425 integration) and 987 frontend tests green, zero warnings, lint and
       `format:check` pass; the release still starts with `./backup.sh run`
-- [ ] A manual test with the developer's account and number. `account/info` checked on 1405/07/16
+- [x] A manual test with the developer's account and number. `account/info` checked on 1405/07/16
       (2026-10-08) with the developer's key: the settings page showed the account's 1,050,000 Rial as
       ۱۰۵٬۰۰۰ تومان. Still to do: the line's number in user secrets (`Sms:Kavenegar:Sender`; with
       `Sms:Provider` = Kavenegar the API does not start without it), then one message to the
@@ -2550,7 +2550,20 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
       sending through international lines needs the server's IP in the account's security settings,
       so that may be the reason. Not looked into further: the test waits for the dedicated line.
       The dedicated line was bought on 1405/07/18 (2026-10-10); Kavenegar's registration of it may
-      take about a week, then this test runs with that account's key and line
+      take about a week, then this test runs with that account's key and line.
+      **Passed on 1405/07/26 (2026-10-18)**: Kavenegar registered the line `9981600378` (خدماتی,
+      10 digits) on the same account, so the same key. Locally, `Sms:Kavenegar:Sender` set to it,
+      `Sms:Provider` = Kavenegar, the master switch off first so Hangfire's missed runs made nothing
+      («SMS or this kind is off»); the two `427` messages to the developer's number resent from
+      «پیامک‌ها»: both `Sent`, with Kavenegar's message ids, 1,615 Rial each, and both reached the
+      phone from `9981600378`, each followed by a line «لغو11» that Kavenegar added (next item).
+      `notifications-delivery-check` triggered by hand from Hangfire: «asked about 2, 2 with a new
+      delivery», both `Delivered`, so `sms/status` and its mapping work too
+- [x] Kavenegar's opt-out line in the text (1405/07/26): every message from the line reached the
+      phone ending in a line «لغو11», which Kavenegar adds anyway, so the system writes it itself
+      (`SmsText.OptOut`, BUSINESS_RULES.md §10 *Sending*, `docs/sms-texts.md`) and the history holds
+      what was sent; it shows the line on a line of its own. No migration: messages already written
+      keep their text, and the server has none yet
 - [x] Whether a member who blocked advertising SMS still gets the line's messages (§10 *Sending*):
       settled by the developer on 1405/07/18 — `sms/send` from the dedicated line reaches the gym's
       members with no limit and no block. No code change: a status 14 that still comes back shows
@@ -2601,7 +2614,10 @@ The code of 10.1 to 10.5 is on the server since `20261010-2323-3428fa7` (1405/07
 provider `Fake` and every kind off. Switching it on needs no release, but taking the menu's
 «آزمایشی» mark off does (`smsTestBadge` in `AppShell.tsx`), so plan a small frontend release for
 the same night.
-- [ ] The account that holds the dedicated line charged (no templates to wait for since 1405/07/16)
+**Waits for 10.7 to 10.13** (decided by the developer, 1405/07/26): no hurry, SMS goes live as one
+complete version with every kind below, not the four kinds first.
+- [ ] The account that holds the dedicated line charged (no templates to wait for since 1405/07/16;
+      it has credit: the test of 1405/07/26 was paid from it)
 - [x] `docker-compose.prod.yml` passes `Sms__Provider`, `Sms__Kavenegar__ApiKey` and
       `Sms__Kavenegar__Sender` to the API from `SMS_PROVIDER`, `SMS_KAVENEGAR_API_KEY` and
       `SMS_KAVENEGAR_SENDER`; left out of `.env`, the provider stays `Fake`, so a release sends
@@ -2610,6 +2626,99 @@ the same night.
       in Kavenegar
 - [ ] The Owner fills in the settings page and turns on the kinds they want
 - [ ] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed and released
+
+### More SMS kinds (10.7 to 10.13)
+Asked by the developer on 1405/07/26 (2026-10-18), after the line's first messages arrived. One task
+each, in this order (10.7 first: the developer promised it to the Owner). What is common to all:
+- Every kind has its row on «تنظیمات پیامک»: on/off, its numbers and a send time, starting empty
+  and off like the first four (§10 *SMS settings*); the Owner turns any of them off at any time.
+- Every text ends with «لغو11» (10.4). The wording is chosen by the developer and kept in
+  `SmsText` and `docs/sms-texts.md`, except the broadcast (10.13), which the Owner writes.
+- **Offers and discounts may be sent** (settled by the developer with Kavenegar on 1405/07/26): the
+  members signed up in the gym's own customer club and were registered at the desk, so any
+  message to them may go from the line. Goes into §10 *Sending* with the first of these tasks.
+- Each task starts with its rules in BUSINESS_RULES.md §10 (rules first), and asks before
+  inventing any of what is listed as open below.
+- A migration only adds columns, off and empty, and new kinds: the server's real data is carried
+  forward (CLAUDE.md).
+
+#### 10.7 Daily report to the Owner (گزارش روزانه)
+Decided: one SMS a day to the Owner with the date, the number of entries, the number of
+subscriptions sold, and the day's whole takings (دخل): cash, card and bank transfer each on its own,
+the cash line left out on a day with no cash.
+- [ ] Open: which money counts — only what members paid for subscriptions and debts, or the whole
+      till (cafe, desk sales, guest and cardio-only visits)? Refunds taken off? Does it match a
+      figure the dashboard already shows?
+- [ ] Open: "entries" — check-ins of members only, or guests and cardio-only visits too?
+- [ ] Open: sent for today in the evening (last send time 22:00, while the gym may still be open),
+      or for yesterday in the morning?
+- [ ] Open: the Owner's number shared with the cheque reminder's, or its own?
+- [ ] Open: the wording
+- [ ] Rules, settings row, the run, tests, UI
+
+#### 10.8 Birthday: one text and a free visit (تولد و ورود رایگان)
+Replaces the «Future — Free entry on the birthday» notes. Decided:
+- One text instead of two, sent 1 to 7 days before the birthday (the days on the settings page, as
+  now), telling the member that on their birthday the gym is free for them.
+- On the birthday the visit uses **no session** of the plan, like a guest's; anything else (cafe,
+  services such as cardio, desk sales) is paid as usual.
+- A frozen member gets the SMS too. If they come, they are unfrozen as any frozen member who comes
+  in (§4 *Freeze*).
+- [ ] Open: is 0 (the day itself) no longer allowed, so 1–7 only? Members whose birthday was already
+      greeted this year keep their row (one per member and year)
+- [ ] Open: a member with **no** active plan (expired, none, single-session only) or a deactivated
+      one: do they get the SMS and the free visit? Today every member with a birth date gets the SMS
+- [ ] To check with the developer: §4 says a subscription may be frozen **several times**, the days
+      adding up; the developer said on 1405/07/26 it can be frozen only **once**. Which is the rule?
+- [ ] Open: how the free visit shows in the money and on the history (a visit at zero with the
+      reason «تولد», never a deleted record), and whether the desk offers it by itself on the day
+      or a staff member chooses it
+- [ ] Open: the wording
+- [ ] Rules, migration (the second birthday text gone, the days' range), check-in, tests, UI
+
+#### 10.9 Subscription receipt (رسید خرید اشتراک)
+Decided: sent when the subscription is **fully paid**, so a member who got it has surely paid; a
+subscription paid in parts gets it when the last part is paid.
+- [ ] Open: what it says (plan, dates, amount)
+- [ ] Open: single-session visits too, or plans only?
+- [ ] Open: sent at once after the payment (not a daily run: a queued Hangfire job, so the desk never
+      waits for Kavenegar); a payment after 22:00 sent the next morning at 08:00?
+- [ ] Open: a payment refunded or a subscription cancelled after the SMS: nothing more?
+- [ ] Rules, settings row (on/off only?), the job, tests, UI
+
+#### 10.10 Welcome (خوش‌آمد)
+Decided: once per member, when they buy their **first plan**; single-session visits never get it.
+- [ ] Open: a member who already has plans in the system (registered before this goes live) never
+      gets it?
+- [ ] Open: on the first plan's sale, or when it is fully paid like the receipt? On the same purchase
+      both go out: two SMS, or one welcome that carries the receipt?
+- [ ] Open: the wording
+- [ ] Rules, settings row, tests, UI
+
+#### 10.11 Debt reminder (یادآوری بدهی)
+Decided: the Owner sets on the settings page the number of days and the minimum amount.
+- [ ] Open: days counted from when the debt began (the oldest unpaid item), or from the last payment?
+- [ ] Open: once per debt, or again every N days until it is paid?
+- [ ] Open: the amount in the text is the member's whole open account (§5 *Member debt*)?
+- [ ] Open: deactivated members too?
+- [ ] Open: the wording (friendly, not harsh)
+- [ ] Rules, settings row, the run, tests, UI
+
+#### 10.12 Absence SMS (پیامک غیبت)
+Moved here from «Future — Absence SMS». Decided: the Owner sets the number of days on the settings
+page. Its four open questions are still there and come with it: who gets it, how often, a member
+who never came, the wording.
+- [ ] Rules, settings row, the run, tests, UI
+
+#### 10.13 Broadcast (پیامک گروهی)
+Decided: the Owner writes the text each time (e.g. the gym closed for a few hours, a piece of news);
+the one kind not fixed in the code.
+- [ ] Open: who it goes to: every active member, every member, or a choice (e.g. active plans only)?
+- [ ] Open: the page: the text with its length and parts, the number of recipients and the cost
+      before sending, a confirmation; Owner only, in the audit log
+- [ ] Open: sent at once (within 08:00–22:00) or at a chosen time?
+- [ ] Open: how it shows on «پیامک‌ها» (one row per recipient, as now)
+- [ ] Rules, migration, endpoint, tests, UI
 
 ---
 
@@ -3005,6 +3114,7 @@ until then each visitor buys their own single visit under their own name.
 ---
 
 ## Future — Absence SMS (پیامک غیبت)
+**Now task 10.12** (1405/07/26); the questions below go with it.
 Planned by the developer on 1405/07/15 (2026-10-07): a member who has not come for N days gets a
 friendly SMS («جای شما در باشگاه خالی است»), with no offer in it. A fifth SMS kind on Phase 10's
 design: the settings page row (on/off, days, send time), a unique index so it is sent once,
@@ -3019,6 +3129,8 @@ gets the rule once these are answered:
 - [ ] The wording, added to `docs/sms-texts.md` and `SmsText`
 
 ## Future — Free entry on the birthday (ورود رایگان روز تولد)
+**Now task 10.8** (1405/07/26), which answers the session question (none used) and the advertising
+one (any message may go, settled with Kavenegar); the rest stays open there.
 Planned by the developer on 1405/07/15 (2026-10-07). Two separate parts. The gym's rule: a member
 gets a free visit on their birthday; the desk already knows whose birthday it is (BUSINESS_RULES.md
 §6 *The desk panel*), so the desk can offer it at check-in, and no discount code is needed. And the

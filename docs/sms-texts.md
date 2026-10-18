@@ -20,12 +20,20 @@ and kept so one long name cannot make a message cost several parts): a member's 
 6 words and a payee its first 9, then the first 100 characters (`SmsText.Fit`).
 
 **Length:** a Persian SMS holds 70 characters in one part and 67 in each part of a longer one; each
-part is paid for. The lengths below take a 10-character name and a 20-character payee. The developer
-decided that length is not a concern for these four.
+part is paid for. The lengths below take a 10-character name and a 20-character payee, and include
+the opt-out line. The developer decided that length is not a concern for these four.
+
+## The opt-out line
+
+Every text ends with a line of its own holding **`لغو11`**: English digits, no space (decided with
+the developer on 1405/07/26, 2026-10-18). Kavenegar adds it to every message from the gym's line
+anyway, as the first messages showed; written here, the history holds what reached the phone and
+Kavenegar does not add a second one. `SmsText.OptOut`. Messages written before keep their text.
 
 ## The texts
 
-`{name}` and the other braces mark where a value goes.
+`{name}` and the other braces mark where a value goes. Each text below is followed by the line
+`لغو11`, left out here.
 
 ### Subscription running out (`SubscriptionExpiring`, to the member)
 
@@ -34,7 +42,7 @@ decided that length is not a concern for these four.
 ```
 
 - The end date and not "n days left", which would read «۰ روز دیگر» on the last day.
-- About 74 characters: two parts.
+- About 80 characters: two parts.
 
 ### Few sessions left (`LowSessions`, to the member)
 
@@ -42,7 +50,7 @@ decided that length is not a concern for these four.
 {name} عزیز، فقط {sessions left} جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.
 ```
 
-- About 71 characters: two parts, one with a name a character or two shorter.
+- About 77 characters: two parts.
 
 ### Birthday (`Birthday`, to the member)
 
@@ -60,7 +68,7 @@ it is 1 to 7 days away.
 
 - `{birthday}`: the birthday's date this year (Jalali); 29 Esfand for someone born on 30 Esfand in a
   year without it.
-- About 80 and 81 characters: two parts each.
+- About 86 and 87 characters: two parts each.
 
 ### Cheque or instalment coming due (`PayableDue`, to the Owner)
 
@@ -70,4 +78,4 @@ it is 1 to 7 days away.
 
 - `{date}`: the date written on the cheque or the instalment's due day (Jalali).
 - `{amount}`: in Toman, e.g. `۱۲٬۵۰۰٬۰۰۰`.
-- About 72 characters: two parts, one with a shorter payee. One SMS for each cheque and each instalment.
+- About 78 characters: two parts. One SMS for each cheque and each instalment.

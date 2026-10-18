@@ -22,6 +22,11 @@ namespace Gym.Domain.Notifications;
 /// <b>A long name or payee is cut short</b> (<see cref="Fit"/>), as it was in the templates' blanks,
 /// so one long name cannot make a message cost several parts.
 /// </para>
+/// <para>
+/// <b>Every text ends with <see cref="OptOut"/> on its own line</b> (1405/07/26). Kavenegar adds it
+/// to every message from the gym's line anyway; written here, the history keeps the text exactly as
+/// it reached the phone.
+/// </para>
 /// </remarks>
 public static class SmsText
 {
@@ -48,14 +53,20 @@ public static class SmsText
 
     public const string InstallmentWord = "قسط";
 
+    /// <summary>
+    /// The opt-out line every message ends with, exactly as Kavenegar writes it: English digits, no
+    /// space. Written differently, Kavenegar may not see it and add its own.
+    /// </summary>
+    public const string OptOut = "لغو11";
+
     // ---- The four kinds (docs/sms-texts.md) ----
 
     /// <summary>The subscription running out: the end date, not the days left.</summary>
     public static string ForRunningOut(string fullName, DateOnly endDate) =>
-        $"{Name(fullName)} عزیز، اشتراک شما در باشگاه پاسارگاد {Date(endDate)} به پایان می‌رسد.";
+        WithOptOut($"{Name(fullName)} عزیز، اشتراک شما در باشگاه پاسارگاد {Date(endDate)} به پایان می‌رسد.");
 
     public static string ForFewSessionsLeft(string fullName, int sessionsLeft) =>
-        $"{Name(fullName)} عزیز، فقط {Number(sessionsLeft)} جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.";
+        WithOptOut($"{Name(fullName)} عزیز، فقط {Number(sessionsLeft)} جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.");
 
     /// <summary>
     /// «تولدتان مبارک» on the day itself, «پیشاپیش» when the greeting goes out 1 to 7 days early:
@@ -64,9 +75,9 @@ public static class SmsText
     /// <param name="birthday">This year's birthday, as <c>SmsAudience.BirthdayToGreet</c> found it.</param>
     /// <param name="today">The gym's date the message is written on.</param>
     public static string ForBirthday(string fullName, DateOnly birthday, DateOnly today) =>
-        birthday == today
+        WithOptOut(birthday == today
             ? $"{Name(fullName)} عزیز، امروز {Date(birthday)} روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد"
-            : $"{Name(fullName)} عزیز، تولدتان در {Date(birthday)} را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد";
+            : $"{Name(fullName)} عزیز، تولدتان در {Date(birthday)} را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد");
 
     /// <summary>To the Owner: the kind, the amount, the date and the payee.</summary>
     public static string ForPayableDue(PayableKind kind, decimal amount, DateOnly dueDate, string payee)
@@ -75,7 +86,7 @@ public static class SmsText
 
         var word = kind == PayableKind.Cheque ? ChequeWord : InstallmentWord;
 
-        return $"یادآوری {word}: {Amount(amount)} تومان، سررسید {Date(dueDate)}، به {Fit(payee, MaxPayeeWords)}";
+        return WithOptOut($"یادآوری {word}: {Amount(amount)} تومان، سررسید {Date(dueDate)}، به {Fit(payee, MaxPayeeWords)}");
     }
 
     // ---- The values ----
@@ -127,6 +138,8 @@ public static class SmsText
 
         return kept.Length <= MaxValueLength ? kept : kept[..MaxValueLength].TrimEnd();
     }
+
+    private static string WithOptOut(string text) => $"{text}\n{OptOut}";
 
     private static string Name(string fullName)
     {

@@ -9,6 +9,9 @@ public sealed class SmsTextTests
     private const string LongName = "سید محمد حسین علی رضا موسوی تبریزی نژاد";
     private const string LongPayee = "شرکت بازرگانی تجهیزات ورزشی و بدنسازی پارس پویا نوین گستر آریا";
 
+    /// <summary>Kavenegar's opt-out line, on its own line at the end of every text.</summary>
+    private const string OptOutLine = "\nلغو11";
+
     private static readonly DateOnly Day = new(2026, 10, 12);
 
     // ---- The values ----
@@ -48,21 +51,21 @@ public sealed class SmsTextTests
     public void ForRunningOut_NameAndEndDate_IsTheAgreedText()
     {
         SmsText.ForRunningOut("سارا محمدی", Day)
-            .ShouldBe("سارا محمدی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.");
+            .ShouldBe("سارا محمدی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد." + OptOutLine);
     }
 
     [Fact]
     public void ForFewSessionsLeft_SessionsLeft_IsTheAgreedText()
     {
         SmsText.ForFewSessionsLeft("سارا محمدی", 2)
-            .ShouldBe("سارا محمدی عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.");
+            .ShouldBe("سارا محمدی عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است." + OptOutLine);
     }
 
     [Fact]
     public void ForBirthday_OnTheDayItself_SaysHappyBirthday()
     {
         SmsText.ForBirthday("سارا محمدی", Day, today: Day)
-            .ShouldBe("سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۲۰ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
+            .ShouldBe("سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۲۰ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد" + OptOutLine);
     }
 
     [Theory]
@@ -71,14 +74,14 @@ public sealed class SmsTextTests
     public void ForBirthday_DaysAhead_CongratulatesInAdvance(int daysAhead)
     {
         SmsText.ForBirthday("سارا محمدی", Day, today: Day.AddDays(-daysAhead))
-            .ShouldBe("سارا محمدی عزیز، تولدتان در ۱۴۰۵/۰۷/۲۰ را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد");
+            .ShouldBe("سارا محمدی عزیز، تولدتان در ۱۴۰۵/۰۷/۲۰ را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد" + OptOutLine);
     }
 
     [Fact]
     public void ForPayableDue_Cheque_GivesKindAmountDateAndPayee()
     {
         SmsText.ForPayableDue(PayableKind.Cheque, 12_500_000m, Day, "فروشگاه تجهیزات ورزشی")
-            .ShouldBe("یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی");
+            .ShouldBe("یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی" + OptOutLine);
     }
 
     [Fact]
@@ -97,7 +100,23 @@ public sealed class SmsTextTests
     public void ForPayableDue_LongPayee_IsCutToNineWords()
     {
         SmsText.ForPayableDue(PayableKind.Cheque, 1m, Day, LongPayee)
-            .ShouldEndWith("، به شرکت بازرگانی تجهیزات ورزشی و بدنسازی پارس پویا نوین");
+            .ShouldEndWith("، به شرکت بازرگانی تجهیزات ورزشی و بدنسازی پارس پویا نوین" + OptOutLine);
+    }
+
+    [Fact]
+    public void ForEveryKind_Text_EndsWithKavenegarsOptOutLine()
+    {
+        string[] texts =
+        [
+            SmsText.ForRunningOut("سارا محمدی", Day),
+            SmsText.ForFewSessionsLeft("سارا محمدی", 2),
+            SmsText.ForBirthday("سارا محمدی", Day, today: Day),
+            SmsText.ForBirthday("سارا محمدی", Day, today: Day.AddDays(-3)),
+            SmsText.ForPayableDue(PayableKind.Installment, 1m, Day, "بانک"),
+        ];
+
+        // Exactly as it reached the phone on 1405/07/26: its own line, English digits, no space.
+        texts.ShouldAllBe(text => text.EndsWith("\nلغو11", StringComparison.Ordinal));
     }
 
     [Fact]

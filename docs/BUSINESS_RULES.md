@@ -1356,6 +1356,12 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   1405/07/14 and kept in `docs/sms-texts.md`. Changing it is a release, not a setting. The values in
   it are written the way the app shows them: Persian digits, a Jalali date as `۱۴۰۵/۰۷/۲۰`, an amount
   with thousands separators.
+- **Every message ends with Kavenegar's opt-out line, `لغو11`**, on a line of its own, English
+  digits, no space (decided with the developer, 1405/07/26, after the first messages from the
+  dedicated line arrived with it). Kavenegar adds it to every message from the line anyway; written
+  by the system, the history keeps the text exactly as it reached the phone, and Kavenegar does not
+  add a second one. All four kinds carry it, the Owner's reminder too. Messages written before keep
+  their text.
 - **A long name or payee is cut short**, as it was in the templates' blanks (decided with the
   developer, 1405/07/14), so one long name cannot make a message cost several parts: a member's name
   keeps its first 6 words and a payee its first 9, then the first 100 characters.

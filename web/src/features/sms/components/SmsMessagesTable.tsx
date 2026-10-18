@@ -98,7 +98,8 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
         <td className="py-2 whitespace-nowrap">{formatDateTime(message.createdAt)}</td>
         <td className="py-2">
           <p>{smsKindLabels[message.kind]}</p>
-          <p className="text-xs text-muted-foreground">{message.text}</p>
+          {/* pre-line: the opt-out line «لغو11» sits on a line of its own, as on the phone. */}
+          <p className="text-xs whitespace-pre-line text-muted-foreground">{message.text}</p>
         </td>
         <td className="py-2">
           <p>{recipient}</p>

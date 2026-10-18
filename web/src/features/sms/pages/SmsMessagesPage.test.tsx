@@ -29,7 +29,7 @@ const failedBirthday: SmsMessage = {
   memberId: "01990000-0000-7000-8000-0000000000a1",
   memberName: "سارا محمدی",
   payableId: null,
-  text: "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد",
+  text: "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد\nلغو11",
   attempts: 1,
   errorCode: 411,
   costToman: null,
@@ -45,7 +45,7 @@ const unknownExpiring: SmsMessage = {
   kind: "SubscriptionExpiring",
   status: "Unknown",
   memberName: "مینا کریمی",
-  text: "مینا کریمی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.",
+  text: "مینا کریمی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.\nلغو11",
   errorCode: null,
 };
 
@@ -58,7 +58,7 @@ const sentCheque: SmsMessage = {
   memberId: null,
   memberName: null,
   payableId: "01990000-0000-7000-8000-0000000000b1",
-  text: "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی",
+  text: "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی\nلغو11",
   errorCode: null,
   costToman: 135,
   delivery: "Delivered",
@@ -123,11 +123,12 @@ describe("SmsMessagesPage", () => {
     expect(within(row).getByText("ناموفق")).toBeInTheDocument();
     expect(within(row).getByText("کد ۴۱۱ — شماره نامعتبر است")).toBeInTheDocument();
     expect(within(row).getByText("۰۹۱۲ ۱۲۳ ۴۵۶۷")).toBeInTheDocument();
-    expect(
-      within(row).getByText(
-        "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد",
-      ),
-    ).toBeInTheDocument();
+    // The opt-out line keeps its own line, as on the phone.
+    const text = within(row).getByText(
+      "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد لغو11",
+    );
+    expect(text.textContent).toContain("\nلغو11");
+    expect(text).toHaveClass("whitespace-pre-line");
   });
 
   it("SmsMessagesPage_ChequesMessage_IsTheOwnersWithItsCostAndDelivery", async () => {
