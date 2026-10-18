@@ -11,6 +11,17 @@ Milestones:
 - **MVP 2 (Phases 7–9):** cafe, expenses, owner dashboard.
 - **Complete (Phases 10–12):** SMS, audit UI, hardening, portfolio polish.
 
+Release order (decided by the developer on 1405/07/26, 2026-10-18):
+1. **The next release is SMS only:** 10.6 to 10.13, from `main`, as one complete version. Nothing
+   else goes in it.
+2. Then, in the days after SMS works, Phase 13's look and mobile (13.1 and 13.2 are finished and
+   ticked on the branch `task/13.2-visual-language`; they are merged into `main` only after the SMS
+   release, so they still show open here) as a release of its own.
+3. The public site (Phase 14) has no link to the panel; it is built on its own branch and released
+   on its own, when the developer chooses, never inside the SMS release.
+4. The server asks for a restart (`*** System restart required ***`, 24 updates, 11 security, noted
+   on 2026-10-16): on a night of its own, not with a release.
+
 ---
 
 ## Phase 0 — Foundation
@@ -1889,10 +1900,11 @@ branch from `main`, so it can be released before the Phase 13 look.
       now cancel, with the same figures
 - [x] Tests (frontend): the cancel box names the money coming back, no «استرداد» button, the
       message after the cancel
-- [ ] **Before the release** (with the developer, each step confirmed): on the server, record the
+- [x] **Before the release** (with the developer, each step confirmed): on the server, record the
       «استرداد» for the plan already cancelled at the gym with the old button, and check that no
       other cancelled subscription still has money on it, since the new version has no button to
-      give it back
+      give it back. Settled with the release of 2026-10-15, as the developer confirmed on
+      1405/07/26 (2026-10-18): the server's panel has had no «استرداد» button since then
 
 Done when: the Owner cancels a paid plan and the money is back in «پرداخت‌ها» as «استرداد», with no
 second step to forget.
@@ -2914,6 +2926,10 @@ before they exist means restyling them twice, while a shared set of components b
 be built against screens that do not exist yet. The exception is 6.5.2, which builds the bar,
 the badge and the primary button early because the board needs them anyway.
 
+**13.1 and 13.2 are finished on the branch `task/13.2-visual-language`** (ticked there, 24 commits
+not yet in `main` on 1405/07/26); this file on `main` gets their ticks when the branch is merged,
+after the SMS release (see *Release order* at the top).
+
 ### 13.1 Mobile
 Not cosmetic. The reception PC is a Windows desktop, but the gym loses power: during an outage
 the desk has to keep working from a phone, and the Owner checks the gym from home on one.
@@ -2938,9 +2954,18 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
       beside the button, not at the top of a page the user has scrolled away from; an edit clears it.
       Forms that add something keep their own messages
 
-### 13.3 The public site
-- [ ] Replace the placeholder on the apex with a real page for the gym: hours, address, contact,
-      services. Static, no API
+---
+
+## Phase 14 — The public site (سایت اصلی)
+Moved out of Phase 13 (it was 13.3) on 1405/07/26 (2026-10-18), asked by the developer: the public
+site at `pasargadgymplus.ir` is its own work and has **no link to the panel** for now; the developer
+says when something does. Static, no API. Its work goes on its own branch and is released on its
+own, never inside the SMS release (*Release order* at the top). 14.0 is what was built and released;
+the open work is 14.1 onwards.
+
+### 14.0 Built and released (was 13.3)
+- [x] Replace the placeholder on the apex with a real page for the gym: hours, address, contact,
+      services. Static, no API. Live since the release of 2026-10-15
       - 1405/07/22 (2026-10-14), branch `task/13.3-public-site`: first page built (direction "Stone and
         steel"), buttons still do nothing; placeholder Unsplash photos in `web/public-site/img/`, to be
         replaced by the gym's own; address, telephone and Instagram still «به‌زودی». The public CSP
@@ -3005,10 +3030,9 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
       stamped (`slide-1.webp?v=b45d33dca8`, none plain), the page, site.css, the photos and the font
       `no-cache`, a photo asked again with its ETag answers 304; the panel and `/health` 200,
       `www.` 301. The developer's phone, which kept the old slides, shows the new ones
-- [ ] The server asks for a restart (`*** System restart required ***`, 24 updates, 11 security):
-      on a night of its own, not with a release
-- [ ] Queued by the developer on 2026-10-15, to be reviewed in detail before building:
-  - [ ] Trainers (مربیان): the gym has two or three; one card each (photo, name, specialty,
+- The server's restart, noted here on 2026-10-16, is now item 4 of *Release order* at the top
+- Queued by the developer on 2026-10-15 (what is still open is 14.1 and 14.2):
+  - Trainers (مربیان), open in 14.1: the gym has two or three; one card each (photo, name, specialty,
         experience). The gym sends the names and photos later. Later still, a member picks a trainer
         (that needs the member accounts phase). The developer: "we have to work on it a lot"
         - 2026-10-15: the stage is built (section ۰۵): three bronze cards under one light, the one in
@@ -3024,8 +3048,8 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
           Placeholder Unsplash photos without a brand on them. Same day, by the developer: no «استعلام
           قیمت» on the shelves; the wide photo «۱۰۰۰ متر. بدون ستون.» and «بدون ستون» in the plan
           removed
-  - [ ] Neshan and Balad links for «مسیریابی» (the gym sends its location link)
-- [ ] Before the next release, check these first (found by the developer on 2026-10-15; the release of
+  - Neshan and Balad links for «مسیریابی», open in 14.2
+- [x] Before the next release, check these first (found by the developer on 2026-10-15; the release of
       that day is live with them):
   - [x] The photos are the computer's photos, and a phone crops them to its tall screen, so they show
         far too zoomed in (the tour's `tour-*.webp` are 1920×1080: a phone sees a narrow strip of
@@ -3080,7 +3104,34 @@ the desk has to keep working from a phone, and the Owner checks the gym from hom
   - Checked on 2026-10-16 (before the ticks, the one change meant for both): the computer's page is unchanged at 1440, 1024 and 900 px (full-page
     pixel comparison with the last commit; the few differing pixels are the clock's, the same
     between two shots of the old page)
-- [ ] Confirm the panel stays out of search results
+
+### 14.1 Trainers (مربیان)
+The stage is built (14.0, section ۰۵) with placeholder photos and «به‌زودی» everywhere.
+- [ ] Waiting for the gym: two or three trainers' names, photos (portrait 4:5, one plain dark wall
+      for all) and details (specialty, experience, certificates, honours, hours at the gym)
+- [ ] Put them in; «انتخاب این مربی» stays «به‌زودی» (choosing a trainer needs 14.6)
+
+### 14.2 Finding the gym (مسیریابی و اینستاگرام)
+- [ ] Waiting for the gym: its location link for Neshan and Balad, and its Instagram page
+- [ ] «مسیریابی» opens them; Instagram in the footer and contact section instead of «به‌زودی»
+
+### 14.3 The gym's own photos
+- [ ] Waiting for the gym: photos of its own rooms, kit and slides, to replace the Unsplash
+      placeholders in `web/public-site/img/`; each tour stop needs a wide (1920×1080) and a tall
+      (900×1600) cut (14.0)
+
+### 14.4 The buttons that do nothing yet
+- [ ] The hero's two buttons and «ثبت‌نام» in the top bar do nothing. Open: what each does until
+      14.6 exists (e.g. call the gym, or hidden)
+
+### 14.5 The panel out of search results
+- [ ] Confirm `panel.pasargadgymplus.ir` stays out of Google (`noindex` and `robots.txt` on the
+      panel's domain) while the public site is indexed
+
+### 14.6 Member accounts (later)
+The «Future — Member accounts on the public site» section below, kept there until the developer
+and the Owner decide; it is the one part of the site that would touch the panel (members, SMS
+codes, a public API), so it needs an ADR first.
 
 ---
 
@@ -3159,6 +3210,7 @@ every SMS since 1405/07/16 (see the birthday entry above).
 - [ ] A code used twice refused by the database too (a unique index), not only by the code
 
 ## Future — Member accounts on the public site (حساب اعضا)
+Phase 14's task 14.6 (1405/07/26); kept here until it is decided.
 Asked by the developer on 2026-10-15, for later, to be reviewed in detail first. Members sign up
 and sign in on the public site; they never enter the admin panel. This changes a founding rule of
 the project ("no self-registration, no member logins"), so it needs an ADR and the Owner's decision
@@ -3173,6 +3225,6 @@ before any code, and its rules written in docs/BUSINESS_RULES.md.
 - [ ] What a signed-in member sees (subscription, sessions left, trainer?); a sign-in with nothing
       behind it is not worth building
 - [ ] Perhaps selling plans online: payment gateway, refunds, and how it meets the desk's sales
-- [ ] Picking a trainer (see 13.3, trainers)
+- [ ] Picking a trainer (see 14.1, trainers)
 - [ ] The public site is static and calls no API today; these pages would, so the API gets public
       endpoints with their own authentication, separate from the staff's
