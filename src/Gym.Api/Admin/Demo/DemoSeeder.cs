@@ -765,6 +765,14 @@ public sealed class DemoSeeder
 
     private async Task CheckInAsync(Visit visit, int index)
     {
+        // A day's visits are planned in the morning and the freeze comes at 13:00, so the member frozen
+        // that day may still have a visit planned for the evening. They stay away: coming in would
+        // unfreeze the plan (BUSINESS_RULES.md §4 Freeze), and the demo would show no frozen plan.
+        if (visit.Member is { Frozen: true })
+        {
+            return;
+        }
+
         ActAsDesk();
         var locker = TakeLocker();
 

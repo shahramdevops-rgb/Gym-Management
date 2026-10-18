@@ -1928,7 +1928,8 @@ Phase 6.5 closed with a check of the whole repository, so the next task starts c
 - [x] 6.5.33 released in `20261006-0505-73e6c33` (1405/07/14), with 9.1 to 9.4 and their
       follow-ups
 - [ ] The gym PC has not yet pulled its own copy of the `gym-20261004-050157.dump` backup
-      (`deploy/pull-backup.ps1`); today it exists only on the server and in `D:\GymBackups`
+      (`deploy/pull-backup.ps1`); today it exists only on the server and in `D:\GymBackups`.
+      Still to do on 1405/07/26 (2026-10-18), the developer confirmed: the gym PC is not set up yet
 - Noted for 11.3: the production build warns that the main JS chunk is about 942 kB (Vite's hint
   is 500 kB); code splitting by route would fix it. Not an error. Done in 11.3: pages load when
   first opened, the main file is 436 kB
@@ -2896,11 +2897,18 @@ docs/DEPLOYMENT.md.
       (`Demo.DatabaseNotEmpty`), a missing Owner (`Demo.NoOwner`), and on Production anything without
       `Demo:Allowed=true` (`Demo.NotAllowedHere`), which only the screenshot run passes, to that one
       command. No `server.sh` command for it
-  - [ ] Since 2026-10-15 `DemoSeederTests.SeedDemo_EmptyDatabase_FillsThreeMonthsUpToNow` fails:
+  - [x] Since 2026-10-15 `DemoSeederTests.SeedDemo_EmptyDatabase_FillsThreeMonthsUpToNow` fails:
         no frozen subscription. `FreezeSomeoneAsync` (12 days before today) is a `TryAsync` and
         finds no one with today's date, silently. Date-dependent; it passed on the day it was
         written. Find which condition empties the list and make the freeze certain. Never runs on
         the server; the screenshots are still made (they show no freeze)
+        - Fixed on 1405/07/26 (2026-10-18). The freeze did succeed: a day's visits are planned in
+          the morning and the freeze comes at 13:00, so on some days the frozen member still had a
+          visit planned for that evening, and checking in unfroze the plan (§4 *Freeze*). Run as if
+          on eleven days from 2026-10-14 to 10-25: 10-14, 15, 19 and 21 failed. `CheckInAsync` now
+          skips a frozen member's planned visit; all eleven pass. A new test pins 2026-10-15
+          (`SeedDemo_FrozenMemberHadAVisitPlannedThatEvening_PlanStaysFrozen`): red without the fix,
+          green with it
 - [x] **README with architecture diagram and screenshots.** The diagram was there. Added what the
       system does, what is worth a look in the code, and the screenshots; the long deployment and
       backup sections moved to docs/DEPLOYMENT.md. `npm run screenshots` (in web/) builds the

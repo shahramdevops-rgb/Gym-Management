@@ -10,8 +10,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.Internal;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Gym.Api.IntegrationTests.Admin;
 
@@ -66,6 +68,30 @@ public sealed class DemoSeederTests(DatabaseFixture fixture) : DatabaseTestBase(
         (await db.Attendances.CountAsync(a => staff.Select(s => (Guid?)s.Id).Contains(a.CreatedBy), ct))
             .ShouldBeGreaterThan(0, "the desk's work is signed by the staff.");
         (await db.PriceLists.SingleAsync(ct)).UpdatedBy.ShouldBe(owner.Id, "the Owner set the prices.");
+    }
+
+    [Fact]
+    public async Task SeedDemo_FrozenMemberHadAVisitPlannedThatEvening_PlanStaysFrozen()
+    {
+        // Run as if on 2026-10-15, a day the member frozen at 13:00 had a visit planned for later
+        // that day: the check-in unfroze the plan, and from then on the full run above failed on
+        // some days and passed on others.
+        await CreateOwnerAsync();
+        var startedAt = new FakeTimeProvider(new DateTimeOffset(2026, 10, 15, 9, 0, 0, TimeSpan.Zero));
+        await using var host = Fixture.CreateHost(services =>
+        {
+            services.AddDemoSeedServices();
+            services.RemoveAll<DemoClock>();
+            services.AddSingleton(new DemoClock(startedAt));
+        });
+
+        var (exitCode, output) = await RunAsync(host);
+
+        exitCode.ShouldBe(0, output);
+        output.ShouldStartWith("Seeded 90 days up to 2026-10-15");
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.Subscriptions.CountAsync(s => s.FrozenSince != null, TestContext.Current.CancellationToken)).ShouldBe(1);
     }
 
     [Fact]
