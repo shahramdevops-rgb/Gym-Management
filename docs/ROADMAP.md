@@ -2635,8 +2635,11 @@ complete version with every kind below, not the four kinds first.
       `Sms__Kavenegar__Sender` to the API from `SMS_PROVIDER`, `SMS_KAVENEGAR_API_KEY` and
       `SMS_KAVENEGAR_SENDER`; left out of `.env`, the provider stays `Fake`, so a release sends
       nothing. `deploy/env.example` lists them (1405/07/17)
-- [ ] Its API key and the line's number in the server's `.env`, the key restricted to the server's IP
-      in Kavenegar
+- [x] Its API key and the line's number in the server's `.env` (2026-10-20, 03:00, right after the
+      release below; `.env.bak-20261020` kept beside it). Every switch was checked off first, read-only,
+      so nothing could go out; `docker compose up -d` rebuilt only the API, healthy, and the header
+      shows the credit. Whether the key is limited to the server's IP in Kavenegar is the
+      developer's to check
 - [ ] The Owner fills in the settings page and turns on the kinds they want
 - [x] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed (1405/07/28), released
       with 10.7 to 10.15 as the SMS release
@@ -2646,8 +2649,8 @@ complete version with every kind below, not the four kinds first.
       `AddSmsDebtReminder`, `AddSmsAbsence`, `AddSmsBroadcast`), so a rollback to `c6ff9ec` leaves
       the new columns in place and is not harmless. Before it: `npm run e2e` passed, the README
       pictures retaken, `./backup.sh run` → `gym-20261020-023611.dump` (771 KB, after 712 KB the
-      night before), copied to `D:\gymbackups` with the same size. The provider is still `Fake`
-      until the `.env` step above
+      night before), copied to `D:\gymbackups` with the same size. The provider was `Fake` until
+      the `.env` step above
 
 ### More SMS kinds (10.7 to 10.13)
 Asked by the developer on 1405/07/26 (2026-10-18), after the line's first messages arrived. One task
