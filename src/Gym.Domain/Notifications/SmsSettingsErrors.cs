@@ -30,6 +30,14 @@ public static class SmsSettingsErrors
         "Sms.SettingsIncomplete",
         "A kind can only be turned on when all of its fields are filled.");
 
+    /// <summary>
+    /// The daily report's number is not an Iranian mobile (§2's phone rules). Its own code, so the page
+    /// puts it under that number and not under the cheque reminder's.
+    /// </summary>
+    public static readonly Error DailyReportPhoneInvalid = Error.Validation(
+        "Sms.DailyReportPhoneInvalid",
+        "The daily report's number must be an Iranian mobile number.");
+
     /// <summary>Two people saved the settings at the same moment; the second save is refused.</summary>
     public static readonly Error ChangedConcurrently = Error.Conflict(
         "Sms.ChangedConcurrently",

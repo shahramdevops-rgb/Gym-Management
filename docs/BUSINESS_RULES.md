@@ -49,6 +49,8 @@ Decided values:
 - A run the server missed (it was down at the send time) is made when the server is back **the
   same day, before 22:00**; after 22:00 that day's run is skipped, and the next day's run reaches
   whoever is still covered (decided with the developer, 1405/07/14, task 10.3).
+  The daily report (§10) is made until midnight instead (decided with the developer, 1405/07/27,
+  task 10.7): a missed 22:45 run is still made the same night.
 - A cheque or instalment whose date is changed after its SMS was sent **gets no second SMS**:
   one per cheque or instalment, whatever its date becomes (decided with the developer,
   1405/07/14, task 10.3). The header alert and the dashboard follow the new date.
@@ -1284,8 +1286,44 @@ sent that the Owner did not choose, and the same message is never paid for twice
   cancelled one gets none.
 - **Each event is sent once**, enforced by unique indexes in the database: one `SubscriptionExpiring`
   and one `LowSessions` per subscription, one `Birthday` per member and Jalali year, one `PayableDue`
-  per cheque or instalment. Running the job twice sends nothing twice. A cheque or instalment whose
-  date is changed after its SMS went out gets no second one (§0).
+  per cheque or instalment, one `DailyReport` per day (*The daily report* below). Running the job
+  twice sends nothing twice. A cheque or instalment whose date is changed after its SMS went out
+  gets no second one (§0).
+
+### The daily report (گزارش روزانه)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.7. The first of the kinds added after
+the four above (roadmap 10.7 to 10.13).
+- **One SMS a day to the Owner (`DailyReport`)**, about **that same day**, sent **at 22:45**
+  (Asia/Tehran). The time is **fixed in the code**, not chosen on the settings page. Whatever is
+  recorded between 22:45 and midnight is in no report: the gym is open until midnight
+  (`Gym:ClosingTime`), and the developer chose the evening of the day itself over the next
+  morning. Sending it after the last check-out of the day was considered and dropped: the system
+  cannot know which check-out is the last (the gym can be empty in the afternoon, a forgotten
+  check-out keeps it from ever emptying, and the auto-checkout runs at midnight, the next day).
+- **Its own hours: 08:00 until midnight**, instead of 08:00–22:00, for this kind only. A retry, a
+  run the server missed and a resend by hand may be made until 23:59; the members' messages and the
+  cheque reminder keep 08:00–22:00.
+- **What it says**, the figures of the dashboard (§12 *Financial report*, *Dashboard*) for that one
+  day, so the SMS and the dashboard never disagree:
+  - **ورود**: the members' check-ins of the day, by the moment they began, cancelled ones left out,
+    cardio-only visits counted, guests left out (§12 *Attendance*, §7).
+  - **پلن** and **تک‌جلسه**: the membership plans and the single visits sold that day, by the day of
+    the sale, cancelled ones left out, each counted on its own.
+  - **دریافتی**: the dashboard's «دریافتی» for the day (§12 *Financial report*): every payment
+    taken that day less every refund given, old debts included, **without فروشگاه, آنالیز and
+    متفرقه**. Then cash, card and bank transfer, each on its own line; **the cash line is left out on
+    a day with no cash**, card and transfer are always there. A method can come out below zero (more
+    refunded than taken); it is written with a minus sign.
+  - **In thousands of Toman** (the developer, 1405/07/27): every amount is **rounded to the nearest
+    thousand Toman**, 500 rounded up, and the total says «هزار تومان». Each figure is rounded on its
+    own, so the three lines may add up to one more or one less than the total; the exact figures are
+    on the dashboard. Written in full, the text would run to three parts instead of two.
+- **A day with nothing is not sent**: no check-in, nothing sold and no money in or out (every
+  figure zero). No row is written for it, and nothing is paid.
+- **The Owner's number for it is its own**, on its row of the settings page, apart from the cheque
+  reminder's (the developer, 1405/07/27): the report can go to someone else.
+- **One per day**, enforced by a unique index on the day it is about; the run made twice, or a
+  missed run made late, sends nothing twice.
 
 ### The daily runs
 Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
@@ -1294,14 +1332,14 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   applies from the next run, and a kind turned off has none.
 - A run reads the settings when it starts, and sends nothing when all SMS or its kind is off, or
   when it is outside 08:00–22:00. A run the server missed is made when the server is back the same
-  day, before 22:00 (§0).
+  day, before 22:00 (§0). The daily report's hours run until midnight instead (*The daily report*).
 - **Each message is written before it is sent**, one at a time: the row is saved as `Pending`,
   then the request is made, then its outcome is saved. If the run stops between the two (the
   server restarted), nobody can tell whether the request left, so the next run of that kind marks
   that row `Unknown`, and it is never sent again by itself (the Owner can resend it, task 10.5).
 - **A failure that may pass** is tried again after the others: at most `Sms:MaxAttempts` tries in
   all, waiting `Sms:RetryDelays` between them (1 minute, then 5; §0). After the last try, or when the
-  next try would fall after 22:00, it is `Failed`.
+  next try would fall after 22:00 (after midnight for the daily report), it is `Failed`.
 - **Credit used up** stops the run at once: that message is `Failed`, and those not yet written are
   not written; whoever is still covered the next day is reached by the next day's run. Messages
   waiting for a retry are `Failed` too, since they would meet the same empty account.
@@ -1326,11 +1364,12 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Few sessions left | on/off, sessions left, send time | 1–10 sessions |
   | Birthday | on/off, days before the birthday, send time | 0–7 days (0 = the day itself) |
   | Cheques and instalments | on/off, days before the date, send time, the Owner's mobile number | 0–30 days |
+  | Daily report | on/off, the mobile number it goes to | sent at 22:45, fixed |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,
   task 10.2; `Sms.SendTimeOutOfRange`). The Owner's number follows the
-  members' phone rules (§2: Iranian mobile only, any digits). There is no template name any more
+  members' phone rules (§2: Iranian mobile only, any digits). So does the daily report's number. There is no template name any more
   (1405/07/16, *Sending*): the wording is fixed in the code.
 - A change applies **from the next run**, never to the past: whoever already got a message does not
   get it again, and raising a number brings in the people it now covers.
@@ -1352,6 +1391,9 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   gym's messages go to its own members through `sms/send` on the dedicated line, with no limit and
   no block from the receiver's advertising setting. Should one still come back blocked, its
   delivery shows it as before (status 14, the cost given back).
+  **Offers and discounts may be sent too** (settled by the developer with Kavenegar on 1405/07/26):
+  the members signed up in the gym's own customer club and were registered at the desk, so any
+  message to them may go from the line.
 - **The wording is fixed in the code** (decided with the developer, 1405/07/16), as agreed on
   1405/07/14 and kept in `docs/sms-texts.md`. Changing it is a release, not a setting. The values in
   it are written the way the app shows them: Persian digits, a Jalali date as `۱۴۰۵/۰۷/۲۰`, an amount
@@ -1392,7 +1434,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   - **No answer after the request left** (the connection broke while waiting): the message may have
     gone. It becomes `Unknown` and is **never retried automatically**, because the request carries no
     duplicate guard for Kavenegar to check and a second try could be paid twice.
-  - Nothing is sent outside 08:00–22:00. A retry that would fall after 22:00 is not made: the message
+  - Nothing is sent outside 08:00–22:00 (the daily report: until midnight). A retry that would fall after 22:00 is not made: the message
     is `Failed`.
 - **Delivery:** after sending, the system asks Kavenegar (which keeps it for 48 hours) whether the
   message reached the phone: delivered (`10`), not delivered (`11` the phone off or out of reach,
@@ -1424,7 +1466,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   - **One request, no retries:** a failure that may pass makes it `Failed` at once with its code, and
     the Owner can resend again. Credit used up is `Failed` too, and `Unknown` as in a run.
   - It is allowed **while all SMS or that kind is off**: the switches stop the daily runs, and a resend
-    is the Owner's own choice. It is not allowed outside 08:00–22:00 (`Notifications.OutsideSendingHours`).
+    is the Owner's own choice. It is not allowed outside 08:00–22:00 (`Notifications.OutsideSendingHours`), a daily report outside 08:00 to midnight.
   - Only a `Failed` or `Unknown` message can be resent (`Notifications.NotResendable`); two resends of
     one message at once send it once. Like a run, the message is saved as `Pending` before the request,
     so a resend the server stopped in the middle becomes `Unknown` at that kind's next run.

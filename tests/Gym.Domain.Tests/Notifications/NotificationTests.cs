@@ -71,6 +71,23 @@ public sealed class NotificationTests
     }
 
     [Fact]
+    public void ForDailyReport_Valid_NamesTheDayAndNothingElse()
+    {
+        var day = new DateOnly(2026, 10, 19);
+
+        var notification = Notification.ForDailyReport(day, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.DailyReport);
+        notification.ReportDate.ShouldBe(day);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.MemberId.ShouldBeNull();
+        notification.SubscriptionId.ShouldBeNull();
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+    }
+
+    [Fact]
     public void Create_TextAtTheLimit_IsKept()
     {
         var text = new string('x', Notification.TextMaxLength);

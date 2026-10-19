@@ -31,6 +31,7 @@ const phoneCodeFields = {
   "Members.PhoneInvalid": "ownerPhone",
   "Members.PhoneNotMobile": "ownerPhone",
   "Members.PhoneNotIranian": "ownerPhone",
+  "Sms.DailyReportPhoneInvalid": "dailyReport.phone",
 } as const;
 
 function isCode(problem: unknown, code: string): boolean {
@@ -244,6 +245,7 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
           {...form.register("ownerPhone")}
         />
       </KindFieldset>
+      <DailyReportFieldset form={form} sendTime={current.dailyReport.sendTime} />
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={isSubmitting}>
@@ -340,6 +342,78 @@ function KindFieldset({ kind, form, children }: KindFieldsetProps) {
       </div>
 
       {text.hint !== undefined && <p className="text-sm text-muted-foreground">{text.hint}</p>}
+    </fieldset>
+  );
+}
+
+interface DailyReportFieldsetProps {
+  form: UseFormReturn<SmsSettingsValues>;
+  /** `HH:mm:ss` from the API: fixed in the code, shown so the page says the time the server uses. */
+  sendTime: string;
+}
+
+/**
+ * The Owner's daily report (BUSINESS_RULES.md §10 *The daily report*, task 10.7): a switch and the
+ * number it goes to, apart from the cheques' number. No number of days and no time to choose: it
+ * goes every night at 22:45 about that same day.
+ */
+function DailyReportFieldset({ form, sendTime }: DailyReportFieldsetProps) {
+  const control = form.control;
+  const phone = useWatch({ control, name: "dailyReport.phone" });
+  const filled = phone.trim() !== "";
+  const errors = form.formState.errors.dailyReport;
+  const time = toPersianDigits(sendTime.slice(0, 5));
+
+  return (
+    <fieldset className="space-y-3 rounded-md border p-4">
+      <legend className="px-1 font-medium">گزارش روزانه</legend>
+      <p className="text-sm text-muted-foreground">
+        هر شب ساعت {time} برای همان روز: تعداد ورود اعضا، پلن و تک‌جلسهٔ فروخته‌شده، و دریافتی (بدون
+        فروشگاه، آنالیز و متفرقه) با نقد، کارت و انتقال، به هزار تومان. روزی که هیچ ورود، فروش و
+        پولی نداشته فرستاده نمی‌شود.
+      </p>
+
+      <Controller
+        control={control}
+        name="dailyReport.enabled"
+        render={({ field }) => (
+          <div className="space-y-1">
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-sm has-disabled:cursor-not-allowed has-disabled:opacity-60">
+              <input
+                type="checkbox"
+                className="size-4 accent-primary"
+                name={field.name}
+                checked={field.value}
+                disabled={!field.value && !filled}
+                aria-invalid={errors?.enabled !== undefined}
+                onChange={(event) => field.onChange(event.target.checked)}
+                onBlur={field.onBlur}
+              />
+              روشن
+            </label>
+            {!field.value && !filled && (
+              <p className="text-sm text-muted-foreground">
+                برای روشن کردن، اول شمارهٔ موبایل را بنویسید.
+              </p>
+            )}
+            {errors?.enabled?.message !== undefined && (
+              <p className="text-sm text-destructive">{errors.enabled.message}</p>
+            )}
+          </div>
+        )}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <FormField
+          label="شماره موبایل گیرندهٔ گزارش"
+          placeholder="۰۹۱۲ ۱۲۳ ۴۵۶۷"
+          inputMode="tel"
+          dir="ltr"
+          className="text-end"
+          error={errors?.phone?.message}
+          {...form.register("dailyReport.phone")}
+        />
+      </div>
     </fieldset>
   );
 }

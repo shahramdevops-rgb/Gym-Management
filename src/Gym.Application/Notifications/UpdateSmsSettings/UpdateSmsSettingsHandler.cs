@@ -35,6 +35,19 @@ public sealed class UpdateSmsSettingsHandler(IAppDbContext db, IPhoneNormalizer 
             ownerPhone = phone.Value;
         }
 
+        // The same rules, under its own code so the page shows it under the report's number.
+        string? reportPhone = null;
+        if (!string.IsNullOrWhiteSpace(command.DailyReport.Phone))
+        {
+            var phone = phones.Normalize(command.DailyReport.Phone);
+            if (phone.IsFailure)
+            {
+                return Result.Failure<SmsSettingsResponse>(SmsSettingsErrors.DailyReportPhoneInvalid);
+            }
+
+            reportPhone = phone.Value;
+        }
+
         var settings = await SmsSettingsRow.ForUpdateAsync(db, cancellationToken);
 
         if (settings.Version != command.Version)
@@ -48,7 +61,9 @@ public sealed class UpdateSmsSettingsHandler(IAppDbContext db, IPhoneNormalizer 
             command.LowSessions,
             command.Birthday,
             command.PayableDue,
-            ownerPhone);
+            ownerPhone,
+            command.DailyReport.Enabled,
+            reportPhone);
         if (updated.IsFailure)
         {
             return Result.Failure<SmsSettingsResponse>(updated.Error);

@@ -22,7 +22,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         {
             table.HasCheckConstraint(
                 "ck_notifications_kind",
-                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue')");
+                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport')");
             table.HasCheckConstraint(
                 "ck_notifications_status",
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
@@ -40,11 +40,13 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             table.HasCheckConstraint(
                 NotificationConstraints.EventMatchesKind,
                 "(kind IN ('SubscriptionExpiring', 'LowSessions') AND member_id IS NOT NULL " +
-                "AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL) OR " +
+                "AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR " +
                 "(kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL " +
-                "AND subscription_id IS NULL AND payable_id IS NULL) OR " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL) OR " +
                 "(kind = 'PayableDue' AND payable_id IS NOT NULL " +
-                "AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL)");
+                "AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR " +
+                "(kind = 'DailyReport' AND report_date IS NOT NULL " +
+                "AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL)");
 
             table.HasCheckConstraint(
                 NotificationConstraints.SentHasProviderId,
@@ -91,6 +93,11 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             .IsUnique()
             .HasFilter("payable_id IS NOT NULL")
             .HasDatabaseName(NotificationConstraints.OnePerPayable);
+
+        builder.HasIndex(notification => notification.ReportDate)
+            .IsUnique()
+            .HasFilter("kind = 'DailyReport'")
+            .HasDatabaseName(NotificationConstraints.OneDailyReportPerDay);
 
         builder.Property(notification => notification.Version).IsRowVersion();
     }

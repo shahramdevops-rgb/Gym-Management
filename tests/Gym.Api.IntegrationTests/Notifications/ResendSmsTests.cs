@@ -189,6 +189,42 @@ public sealed class ResendSmsTests(DatabaseFixture fixture) : DatabaseTestBase(f
     }
 
     [Theory]
+    [InlineData(22, 45, 0)]
+    [InlineData(23, 59, 59)]
+    public async Task Handle_DailyReportAfter2200BeforeMidnight_Sends(int hour, int minute, int second)
+    {
+        var report = Notification.ForDailyReport(Today, "+989351112233", "گزارش باشگاه پاسارگاد ۰۷/۱۶\nورود: ۸۵");
+        report.MarkFailed(409, At(Today, 22, 45));
+        await using (var scope = Fixture.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Notifications.Add(report);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var result = await ResendAsync(report.Id, new ScriptedSmsSender(), At(Today, hour, minute, second));
+
+        result.Value.Status.ShouldBe(NotificationStatus.Sent);
+    }
+
+    [Fact]
+    public async Task Handle_DailyReportBefore0800_IsRefused()
+    {
+        var report = Notification.ForDailyReport(Today, "+989351112233", "گزارش باشگاه پاسارگاد ۰۷/۱۶\nورود: ۸۵");
+        report.MarkFailed(409, At(Today, 22, 45));
+        await using (var scope = Fixture.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Notifications.Add(report);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var result = await ResendAsync(report.Id, new ScriptedSmsSender(), At(Today.AddDays(1), 7, 59));
+
+        result.Error.ShouldBe(NotificationErrors.OutsideSendingHours);
+    }
+
+    [Theory]
     [InlineData(8, 0)]
     [InlineData(22, 0)]
     public async Task Handle_AtTheEdgesOfTheSendingHours_Sends(int hour, int minute)

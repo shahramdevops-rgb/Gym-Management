@@ -46,9 +46,16 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             table.HasCheckConstraint(
                 "ck_sms_settings_payable_due_on_means_filled",
                 OnMeansFilled("payable_due", "payable_due_days_before", "owner_phone IS NOT NULL"));
+
+            // The daily report (task 10.7) has only a number: on means the number is there.
+            table.HasCheckConstraint(
+                "ck_sms_settings_daily_report_phone", "daily_report_phone IS NULL OR daily_report_phone ~ '^\\+989[0-9]{9}$'");
+            table.HasCheckConstraint(
+                "ck_sms_settings_daily_report_on_means_filled", "NOT daily_report_enabled OR daily_report_phone IS NOT NULL");
         });
 
         builder.Property(settings => settings.OwnerPhone).HasMaxLength(PhoneMaxLength);
+        builder.Property(settings => settings.DailyReportPhone).HasMaxLength(PhoneMaxLength);
 
         builder.Property(settings => settings.Version).IsRowVersion();
 
@@ -63,6 +70,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             LowSessionsEnabled = false,
             BirthdayEnabled = false,
             PayableDueEnabled = false,
+            DailyReportEnabled = false,
         });
     }
 

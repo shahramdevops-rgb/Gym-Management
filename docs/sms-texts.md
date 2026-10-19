@@ -79,3 +79,28 @@ it is 1 to 7 days away.
 - `{date}`: the date written on the cheque or the instalment's due day (Jalali).
 - `{amount}`: in Toman, e.g. `۱۲٬۵۰۰٬۰۰۰`.
 - About 78 characters: two parts. One SMS for each cheque and each instalment.
+
+### Daily report (`DailyReport`, to the Owner)
+
+Agreed with the developer on 1405/07/27 (2026-10-19), task 10.7. Sent every night at 22:45 about
+that same day (BUSINESS_RULES.md §10 *The daily report*).
+
+```
+گزارش باشگاه پاسارگاد {month/day}
+ورود: {check-ins}
+پلن: {plans sold}، تک‌جلسه: {single visits sold}
+دریافتی: {received} هزار تومان
+نقد: {cash}
+کارت: {card}
+انتقال: {bank transfer}
+```
+
+- `{month/day}`: the Jalali month and day without the year, e.g. `۰۷/۲۷` (`SmsText.MonthAndDay`).
+- The amounts are **thousands of Toman**, each rounded on its own to the nearest thousand, 500 rounded
+  away from zero (`SmsText.Thousands`): `۱۲٬۳۴۵٬۶۰۰` تومان is written `۱۲٬۳۴۶`. A figure below zero
+  (more refunded than taken) carries the app's minus sign with a left-to-right mark before it, as
+  `formatMoney` writes it.
+- **The `نقد` line is left out on a day with no cash**; `کارت` and `انتقال` are always there.
+- No SMS for a day with nothing (every figure zero).
+- About 125 characters for a busy day: two parts. Written in full Toman it would be about 136, three
+  parts; that is why the developer took the zeros off.

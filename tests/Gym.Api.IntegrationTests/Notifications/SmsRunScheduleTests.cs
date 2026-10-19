@@ -46,6 +46,27 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
     }
 
     [Fact]
+    public async Task Apply_DailyReportOn_SchedulesItsRunAt2245InTehran()
+    {
+        var settings = await SettingsAsync(enabled: true, expiringOn: false, sendTime: new TimeOnly(10, 0), dailyReportOn: true);
+
+        try
+        {
+            Schedule().Apply(settings);
+
+            var job = RecurringJobs().ShouldHaveSingleItem();
+            job.Id.ShouldBe("sms-DailyReport");
+            job.Cron.ShouldBe("45 22 * * *");
+            job.TimeZoneId.ShouldBe(Calendar().TimeZone.Id);
+            job.Job.Args[0].ShouldBe(NotificationKind.DailyReport);
+        }
+        finally
+        {
+            RemoveAll();
+        }
+    }
+
+    [Fact]
     public async Task Apply_TimeChanged_MovesTheRun()
     {
         try
@@ -89,7 +110,7 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
     private IGymCalendar Calendar() => Fixture.Services.GetRequiredService<IGymCalendar>();
 
     /// <summary>The seeded row, changed in memory only: the schedule reads nothing else.</summary>
-    private async Task<SmsSettings> SettingsAsync(bool enabled, bool expiringOn, TimeOnly sendTime)
+    private async Task<SmsSettings> SettingsAsync(bool enabled, bool expiringOn, TimeOnly sendTime, bool dailyReportOn = false)
     {
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -101,7 +122,9 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
             SmsKindSettings.Off,
             SmsKindSettings.Off,
             SmsKindSettings.Off,
-            ownerPhone: null).IsSuccess.ShouldBeTrue();
+            ownerPhone: null,
+            dailyReportEnabled: dailyReportOn,
+            dailyReportOn ? "+989351112233" : null).IsSuccess.ShouldBeTrue();
 
         return settings;
     }

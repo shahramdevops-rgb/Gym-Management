@@ -41,7 +41,7 @@ public sealed class ResendSmsHandler(IAppDbContext db, IGymCalendar calendar, Ti
         }
 
         // Nothing is saved on this path, so the change above goes with the request.
-        if (!SmsSettings.IsWithinSendingHours(calendar.TimeOfDay()))
+        if (!SmsSettings.IsWithinSendingHours(notification.Kind, calendar.TimeOfDay()))
         {
             return Result.Failure<SmsMessageResponse>(NotificationErrors.OutsideSendingHours);
         }

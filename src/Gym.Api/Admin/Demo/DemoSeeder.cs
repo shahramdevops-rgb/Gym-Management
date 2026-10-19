@@ -389,6 +389,7 @@ public sealed class DemoSeeder
         if (_smsOn)
         {
             Add(At(day, 10, 30), SendDailySmsAsync);
+            Add(At(day, 22, 45), SendDailyReportAsync);
         }
 
         AddExpenses(day, index, Add);
@@ -609,6 +610,7 @@ public sealed class DemoSeeder
             Birthday: new SmsKindSettings(true, 0, new TimeOnly(9, 0)),
             PayableDue: new SmsKindSettings(true, 3, new TimeOnly(9, 30)),
             OwnerPhone: "09121112233",
+            DailyReport: new DailyReportSettings(true, "09121112233"),
             Version: version);
 
         await MustAsync<UpdateSmsSettingsHandler, SmsSettingsResponse>(
@@ -616,15 +618,23 @@ public sealed class DemoSeeder
         _smsOn = true;
     }
 
-    /// <summary>The daily runs, as Hangfire would make them, on nobody's behalf.</summary>
+    /// <summary>The daily runs, as Hangfire would make them, on nobody's behalf. The report has its own time.</summary>
     private async Task SendDailySmsAsync()
     {
         _actor.ActAsNobody();
-        foreach (var kind in Enum.GetValues<NotificationKind>())
+        foreach (var kind in Enum.GetValues<NotificationKind>().Where(kind => kind != NotificationKind.DailyReport))
         {
             await using var scope = _services.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<SendDailySmsHandler>().Handle(kind, _cancellationToken);
         }
+    }
+
+    /// <summary>The Owner's daily report at 22:45 (task 10.7), as Hangfire would make it.</summary>
+    private async Task SendDailyReportAsync()
+    {
+        _actor.ActAsNobody();
+        await using var scope = _services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<SendDailySmsHandler>().Handle(NotificationKind.DailyReport, _cancellationToken);
     }
 
     private void AddExpenses(DateOnly day, int index, Action<DateTimeOffset, Func<Task>> add)

@@ -124,6 +124,7 @@
 
     "Recipient": { "label": "گیرنده" },
     "JalaliYear": { "label": "سال" },
+    "ReportDate": { "label": "روز گزارش" },
     "Text": { "label": "متن" },
     "Status": { "label": "وضعیت", "format": "notificationStatus" },
     "Attempts": { "label": "دفعات تلاش" },
@@ -155,6 +156,8 @@
     "PayableDueSendTime": { "label": "چک و قسط: ساعت ارسال" },
     "PayableDueTemplateName": { "label": "چک و قسط: نام قالب" },
     "OwnerPhone": { "label": "موبایل مالک" },
+    "DailyReportEnabled": { "label": "گزارش روزانه: روشن" },
+    "DailyReportPhone": { "label": "گزارش روزانه: موبایل" },
 
     "RevokedReason": { "label": "دلیل باطل شدن", "format": "revocationReason" },
     "FailedAttempts": { "label": "تلاش‌های ناموفق" },

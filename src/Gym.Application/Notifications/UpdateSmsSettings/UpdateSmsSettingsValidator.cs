@@ -27,6 +27,24 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
             CheckKind(NotificationKind.Birthday, settings, context));
         RuleFor(command => command.PayableDue).Custom((settings, context) =>
             CheckKind(NotificationKind.PayableDue, settings, context));
+        RuleFor(command => command.DailyReport).Custom(CheckDailyReport);
+    }
+
+    private static void CheckDailyReport(DailyReportSettings? settings, ValidationContext<UpdateSmsSettingsCommand> context)
+    {
+        if (settings is null)
+        {
+            context.AddFailure(new ValidationFailure(context.PropertyPath, "Every kind must be sent, on or off.")
+            {
+                ErrorCode = SmsSettingsErrors.SettingsIncomplete.Code,
+            });
+            return;
+        }
+
+        Report(
+            context,
+            nameof(DailyReportSettings.Enabled),
+            SmsSettings.CheckDailyReportComplete(settings.Enabled, settings.Phone));
     }
 
     private static void CheckKind(

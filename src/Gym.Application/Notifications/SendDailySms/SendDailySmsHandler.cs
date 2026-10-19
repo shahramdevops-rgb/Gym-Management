@@ -22,7 +22,8 @@ namespace Gym.Application.Notifications.SendDailySms;
 /// <para>
 /// <b>Retries come after everyone else.</b> A failure that may pass waits for the round of retries,
 /// so one busy moment at the provider does not hold up the rest. Each round waits the configured
-/// delay (1 minute, then 5) on the injected clock; a round that would fall after 22:00 is not made.
+/// delay (1 minute, then 5) on the injected clock; a round that would fall after 22:00 (after
+/// midnight for the daily report) is not made.
 /// </para>
 /// <para>
 /// No HTTP endpoint calls this; Gym.Infrastructure/Jobs runs it with Hangfire at the kind's send time,
@@ -35,6 +36,7 @@ public sealed partial class SendDailySmsHandler(
     TimeProvider time,
     ISmsSender sender,
     SmsRetrySchedule retries,
+    DailyReportCandidate dailyReport,
     ILogger<SendDailySmsHandler> logger)
 {
     public async Task<SmsRunResult> Handle(NotificationKind kind, CancellationToken cancellationToken)
@@ -47,7 +49,7 @@ public sealed partial class SendDailySmsHandler(
             return SmsRunResult.NotRun;
         }
 
-        if (!SmsSettings.IsWithinSendingHours(calendar.TimeOfDay()))
+        if (!SmsSettings.IsWithinSendingHours(kind, calendar.TimeOfDay()))
         {
             LogNotRun(logger, kind, "outside the sending hours");
             return SmsRunResult.NotRun;
@@ -56,7 +58,9 @@ public sealed partial class SendDailySmsHandler(
         var tally = new Tally { Interrupted = await MarkInterruptedAsync(kind, cancellationToken) };
 
         var today = calendar.Today();
-        var candidates = await SmsCandidates.FindAsync(db, kind, settings, today, cancellationToken);
+        var candidates = kind == NotificationKind.DailyReport
+            ? await dailyReport.FindAsync(settings, today, cancellationToken)
+            : await SmsCandidates.FindAsync(db, kind, settings, today, cancellationToken);
 
         var waiting = new List<Notification>();
         foreach (var notification in candidates)
@@ -81,7 +85,7 @@ public sealed partial class SendDailySmsHandler(
             }
         }
 
-        await RetryAsync(waiting, tally, cancellationToken);
+        await RetryAsync(kind, waiting, tally, cancellationToken);
 
         return tally.Finish(kind, logger);
     }
@@ -173,12 +177,12 @@ public sealed partial class SendDailySmsHandler(
     }
 
     /// <summary>Rounds of retries until each one is sent, fails for good, or runs out of tries or time.</summary>
-    private async Task RetryAsync(List<Notification> waiting, Tally tally, CancellationToken cancellationToken)
+    private async Task RetryAsync(NotificationKind kind, List<Notification> waiting, Tally tally, CancellationToken cancellationToken)
     {
         var attemptsMade = 1;
         while (waiting.Count > 0)
         {
-            if (retries.NextDelay(attemptsMade, calendar.TimeOfDay()) is not { } delay)
+            if (retries.NextDelay(attemptsMade, calendar.TimeOfDay(), kind) is not { } delay)
             {
                 await GiveUpAsync(waiting, tally);
                 return;

@@ -59,6 +59,9 @@ public static class SmsText
     /// </summary>
     public const string OptOut = "لغو11";
 
+    /// <summary>The left-to-right mark (U+200E) and the minus sign (U+2212), as <c>formatMoney</c> in the frontend writes them.</summary>
+    public const string MinusSign = "\u200E\u2212";
+
     // ---- The four kinds (docs/sms-texts.md) ----
 
     /// <summary>The subscription running out: the end date, not the days left.</summary>
@@ -89,7 +92,57 @@ public static class SmsText
         return WithOptOut($"یادآوری {word}: {Amount(amount)} تومان، سررسید {Date(dueDate)}، به {Fit(payee, MaxPayeeWords)}");
     }
 
+    /// <summary>
+    /// To the Owner: the day's check-ins, plans and single visits sold, and «دریافتی» with its
+    /// methods, in thousands of Toman (decided with the developer, 1405/07/27, task 10.7). The cash
+    /// line is left out on a day with no cash; card and transfer are always there.
+    /// </summary>
+    public static string ForDailyReport(DailyReportFigures figures)
+    {
+        ArgumentNullException.ThrowIfNull(figures);
+
+        var lines = new List<string>
+        {
+            $"گزارش باشگاه پاسارگاد {MonthAndDay(figures.Day)}",
+            $"ورود: {Number(figures.CheckIns)}",
+            $"پلن: {Number(figures.PlansSold)}، تک‌جلسه: {Number(figures.SingleVisitsSold)}",
+            $"دریافتی: {Thousands(figures.Received)} هزار تومان",
+        };
+
+        if (figures.Cash != 0m)
+        {
+            lines.Add($"نقد: {Thousands(figures.Cash)}");
+        }
+
+        lines.Add($"کارت: {Thousands(figures.Card)}");
+        lines.Add($"انتقال: {Thousands(figures.BankTransfer)}");
+
+        return WithOptOut(string.Join('\n', lines));
+    }
+
     // ---- The values ----
+
+    /// <summary><c>2026-10-19</c> → <c>۰۷/۲۷</c>: the daily report leaves the year out.</summary>
+    public static string MonthAndDay(DateOnly date)
+    {
+        var (_, month, day) = JalaliCalendar.Parts(date);
+
+        return ToPersianDigits(string.Create(CultureInfo.InvariantCulture, $"{month:D2}/{day:D2}"));
+    }
+
+    /// <summary>
+    /// An amount in Toman as thousands of Toman, rounded to the nearest thousand, 500 rounded away from
+    /// zero: <c>12345600</c> → <c>۱۲٬۳۴۶</c>, <c>-1500</c> → <c>−۲</c>. A figure below zero (more
+    /// refunded than taken) carries the app's minus sign, with the left-to-right mark before it so it
+    /// stays in front of the number in a right-to-left line, as <c>formatMoney</c> writes it.
+    /// </summary>
+    public static string Thousands(decimal amount)
+    {
+        var thousands = decimal.Round(amount / 1000m, MidpointRounding.AwayFromZero);
+        var grouped = Math.Abs(thousands).ToString("#,0", CultureInfo.InvariantCulture).Replace(',', ThousandsSeparator);
+
+        return (thousands < 0 ? MinusSign : string.Empty) + ToPersianDigits(grouped);
+    }
 
     /// <summary><c>2026-10-12</c> → <c>۱۴۰۵/۰۷/۲۰</c>.</summary>
     public static string Date(DateOnly date)

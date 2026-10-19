@@ -2659,15 +2659,32 @@ each, in this order (10.7 first: the developer promised it to the Owner). What i
 Decided: one SMS a day to the Owner with the date, the number of entries, the number of
 subscriptions sold, and the day's whole takings (دخل): cash, card and bank transfer each on its own,
 the cash line left out on a day with no cash.
-- [ ] Open: which money counts — only what members paid for subscriptions and debts, or the whole
-      till (cafe, desk sales, guest and cardio-only visits)? Refunds taken off? Does it match a
-      figure the dashboard already shows?
-- [ ] Open: "entries" — check-ins of members only, or guests and cardio-only visits too?
-- [ ] Open: sent for today in the evening (last send time 22:00, while the gym may still be open),
-      or for yesterday in the morning?
-- [ ] Open: the Owner's number shared with the cheque reminder's, or its own?
-- [ ] Open: the wording
-- [ ] Rules, settings row, the run, tests, UI
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The daily report*:
+- [x] The money is the dashboard's «دریافتی» for the day: refunds taken off, old debts included,
+      without فروشگاه, آنالیز and متفرقه; cash, card and transfer each on its line
+- [x] Entries are the members' check-ins, cardio-only included, guests and cancelled ones left out
+      (the dashboard's attendance); plans and single visits sold, each counted on its own
+- [x] Sent for **the same day at 22:45**, fixed in the code; this kind's hours run until midnight
+      (a retry, a missed run and a resend until 23:59), the other kinds keep 08:00–22:00. "After the
+      last check-out" was considered and dropped (the system cannot know which one is the last)
+- [x] Its own number on its row of the settings page, apart from the cheques'
+      (`Sms.DailyReportPhoneInvalid` for a number that is not an Iranian mobile)
+- [x] The wording (`docs/sms-texts.md`): the date without the year, amounts in thousands of Toman
+      rounded to the nearest thousand (two SMS parts instead of three), no cash line on a day with
+      no cash; a day with nothing is not sent
+- [x] Rules, settings row, the run, tests, UI: `NotificationKind.DailyReport`, `DailyReportFigures`,
+      `SmsText.ForDailyReport`, `DailyReportCandidate` (the figures from `GetFinancialReportHandler`
+      and `GetAttendanceReportHandler` for one day, so the SMS says what the dashboard says),
+      `SmsSettings.IsWithinSendingHours(kind, …)`, Hangfire job `sms-DailyReport` at `45 22 * * *`;
+      migration `AddSmsDailyReport` (two columns on `sms_settings`, off and empty, `report_date` on
+      `notifications` with the unique index `ix_notifications_one_daily_report_per_day`, the kind
+      and event check constraints widened; no existing row is touched); the «گزارش روزانه» section
+      on «تنظیمات پیامک» and its label on «پیامک‌ها»; the demo sends it at 22:45
+
+Closed 2026-10-19: 2250 backend tests (739 domain, 1511 integration) and 1025 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSmsDailyReport`,
+which only adds (the switch starts off, the numbers empty) and refuses no existing row. It goes out
+with the SMS release (10.6), which still starts with `./backup.sh run`.
 
 #### 10.8 Birthday: one text and a free visit (تولد و ورود رایگان)
 Replaces the «Future — Free entry on the birthday» notes. Decided:

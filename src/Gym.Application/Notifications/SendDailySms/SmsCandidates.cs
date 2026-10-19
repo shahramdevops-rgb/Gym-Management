@@ -8,7 +8,7 @@ namespace Gym.Application.Notifications.SendDailySms;
 
 /// <summary>
 /// The messages a run of one kind is to send today (BUSINESS_RULES.md §10 <i>The four kinds</i>), built
-/// but not yet saved.
+/// but not yet saved. The daily report has its own, <see cref="DailyReportCandidate"/>.
 /// </summary>
 /// <remarks>
 /// <para>

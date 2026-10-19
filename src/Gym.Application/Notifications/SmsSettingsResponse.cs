@@ -12,6 +12,7 @@ public sealed record SmsSettingsResponse(
     SmsKindSettings Birthday,
     SmsKindSettings PayableDue,
     string? OwnerPhone,
+    DailyReportSettingsResponse DailyReport,
     uint Version)
 {
     public static SmsSettingsResponse From(SmsSettings settings)
@@ -25,6 +26,7 @@ public sealed record SmsSettingsResponse(
             settings.For(NotificationKind.Birthday),
             settings.For(NotificationKind.PayableDue),
             settings.OwnerPhone,
+            new DailyReportSettingsResponse(settings.DailyReportEnabled, settings.DailyReportPhone, SmsSettings.DailyReportSendTime),
             settings.Version);
     }
 }

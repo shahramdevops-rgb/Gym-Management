@@ -1730,6 +1730,16 @@ export interface components {
             roles: string[];
             mustChangePassword: boolean;
         };
+        DailyReportSettings: {
+            enabled: boolean;
+            phone: null | string;
+        };
+        DailyReportSettingsResponse: {
+            enabled: boolean;
+            phone: null | string;
+            /** Format: time */
+            sendTime: string;
+        };
         /** @enum {unknown} */
         DayOfWeek: "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
         ExpenseCategoryResponse: {
@@ -2142,7 +2152,7 @@ export interface components {
             payablesDue: components["schemas"]["PayableDueResponse"][];
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -2760,6 +2770,7 @@ export interface components {
             birthday: components["schemas"]["SmsKindSettings"];
             payableDue: components["schemas"]["SmsKindSettings"];
             ownerPhone: null | string;
+            dailyReport: components["schemas"]["DailyReportSettingsResponse"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -2910,6 +2921,7 @@ export interface components {
             birthday: components["schemas"]["SmsKindSettings"];
             payableDue: components["schemas"]["SmsKindSettings"];
             ownerPhone: null | string;
+            dailyReport: components["schemas"]["DailyReportSettings"];
             /** Format: uint32 */
             version: number | string;
         };

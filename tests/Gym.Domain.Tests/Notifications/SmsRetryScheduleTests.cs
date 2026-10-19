@@ -11,44 +11,62 @@ public sealed class SmsRetryScheduleTests
     [Fact]
     public void NextDelay_AfterTheFirstTry_IsOneMinute()
     {
-        Schedule.NextDelay(1, Morning).ShouldBe(TimeSpan.FromMinutes(1));
+        Schedule.NextDelay(1, Morning, NotificationKind.SubscriptionExpiring).ShouldBe(TimeSpan.FromMinutes(1));
     }
 
     [Fact]
     public void NextDelay_AfterTheSecondTry_IsFiveMinutes()
     {
-        Schedule.NextDelay(2, Morning).ShouldBe(TimeSpan.FromMinutes(5));
+        Schedule.NextDelay(2, Morning, NotificationKind.SubscriptionExpiring).ShouldBe(TimeSpan.FromMinutes(5));
     }
 
     [Fact]
     public void NextDelay_AfterTheLastTry_IsNone()
     {
-        Schedule.NextDelay(3, Morning).ShouldBeNull();
+        Schedule.NextDelay(3, Morning, NotificationKind.SubscriptionExpiring).ShouldBeNull();
     }
 
     [Fact]
     public void NextDelay_TryLandingAt2200_IsMade()
     {
-        Schedule.NextDelay(2, new TimeOnly(21, 55)).ShouldBe(TimeSpan.FromMinutes(5));
+        Schedule.NextDelay(2, new TimeOnly(21, 55), NotificationKind.SubscriptionExpiring).ShouldBe(TimeSpan.FromMinutes(5));
     }
 
     [Fact]
     public void NextDelay_TryLandingAfter2200_IsNotMade()
     {
-        Schedule.NextDelay(2, new TimeOnly(21, 55, 1)).ShouldBeNull();
+        Schedule.NextDelay(2, new TimeOnly(21, 55, 1), NotificationKind.SubscriptionExpiring).ShouldBeNull();
     }
 
     [Fact]
     public void NextDelay_LateEveningWait_DoesNotWrapPastMidnight()
     {
         // 23:58 plus 5 minutes is 00:03 on a clock, which is not early in the day.
-        Schedule.NextDelay(2, new TimeOnly(23, 58)).ShouldBeNull();
+        Schedule.NextDelay(2, new TimeOnly(23, 58), NotificationKind.SubscriptionExpiring).ShouldBeNull();
+    }
+
+    [Fact]
+    public void NextDelay_DailyReportAfter2200_IsMade()
+    {
+        Schedule.NextDelay(1, new TimeOnly(22, 46), NotificationKind.DailyReport).ShouldBe(TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
+    public void NextDelay_DailyReportTryLandingBeforeMidnight_IsMade()
+    {
+        Schedule.NextDelay(2, new TimeOnly(23, 54), NotificationKind.DailyReport).ShouldBe(TimeSpan.FromMinutes(5));
+    }
+
+    [Fact]
+    public void NextDelay_DailyReportTryLandingAfterMidnight_IsNotMade()
+    {
+        Schedule.NextDelay(2, new TimeOnly(23, 55), NotificationKind.DailyReport).ShouldBeNull();
     }
 
     [Fact]
     public void NextDelay_OneTryOnly_IsNone()
     {
-        new SmsRetrySchedule(1, []).NextDelay(1, Morning).ShouldBeNull();
+        new SmsRetrySchedule(1, []).NextDelay(1, Morning, NotificationKind.SubscriptionExpiring).ShouldBeNull();
     }
 
     [Fact]

@@ -120,6 +120,7 @@ export const errorMessages: Record<string, string> = {
   "Sms.PayableDueDaysOutOfRange": "تعداد روز باید از ۰ تا ۳۰ باشد (۰ یعنی خود روز سررسید).",
   "Sms.SendTimeOutOfRange": "ساعت ارسال باید بین ۸:۰۰ و ۲۲:۰۰ و روی ربع ساعت باشد.",
   "Sms.SettingsIncomplete": "برای روشن کردن این پیامک، همهٔ خانه‌هایش را پر کنید.",
+  "Sms.DailyReportPhoneInvalid": "شمارهٔ گزارش روزانه باید یک شمارهٔ موبایل ایران باشد.",
   "Sms.ChangedConcurrently":
     "تنظیمات پیامک هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 

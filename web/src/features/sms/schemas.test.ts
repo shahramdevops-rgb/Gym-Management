@@ -14,6 +14,7 @@ const settings: SmsSettings = {
   birthday: { enabled: false, threshold: 0, sendTime: null },
   payableDue: off,
   ownerPhone: "+989121234567",
+  dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
   version: 3,
 };
 
@@ -21,7 +22,12 @@ describe("sms schemas", () => {
   it("toFormValues_ThenToInput_GivesBackWhatTheApiSent", () => {
     const input = toInput(toFormValues(settings), settings.version);
 
-    expect(input).toEqual({ ...settings, ownerPhone: "0912 123 4567" });
+    expect(input).toEqual({
+      ...settings,
+      ownerPhone: "0912 123 4567",
+      // The time is the server's own; the page only sends the switch and the number.
+      dailyReport: { enabled: true, phone: "0935 123 4567" },
+    });
   });
 
   it("toInput_PersianDigitsAndBlankFields_BecomeNumbersAndNulls", () => {
@@ -62,5 +68,24 @@ describe("sms schemas", () => {
     values[kind] = { enabled: false, threshold, sendTime: "" };
 
     expect(smsSettingsSchema.safeParse(values).success).toBe(valid);
+  });
+
+  it("smsSettingsSchema_DailyReportOnWithoutItsNumber_IsRefusedUnderItsSwitch", () => {
+    const values = toFormValues(settings);
+    values.dailyReport = { enabled: true, phone: " " };
+
+    const result = smsSettingsSchema.safeParse(values);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path.join("."))).toEqual([
+      "dailyReport.enabled",
+    ]);
+  });
+
+  it("toInput_DailyReportNumberBlank_IsNull", () => {
+    const values = toFormValues(settings);
+    values.dailyReport = { enabled: false, phone: "" };
+
+    expect(toInput(values, 3).dailyReport).toEqual({ enabled: false, phone: null });
   });
 });

@@ -76,6 +76,11 @@ export const smsSettingsSchema = z
     birthday: kindSchema,
     payableDue: kindSchema,
     ownerPhone: z.string().max(30, message("Members.PhoneInvalid")),
+    /** The daily report (task 10.7): only a switch and the number it goes to; its time is fixed. */
+    dailyReport: z.object({
+      enabled: z.boolean(),
+      phone: z.string().max(30, message("Sms.DailyReportPhoneInvalid")),
+    }),
   })
   .superRefine((values, context) => {
     for (const kind of smsKinds) {
@@ -100,6 +105,14 @@ export const smsSettingsSchema = z
           message: message("Sms.SettingsIncomplete"),
         });
       }
+    }
+
+    if (values.dailyReport.enabled && values.dailyReport.phone.trim() === "") {
+      context.addIssue({
+        code: "custom",
+        path: ["dailyReport", "enabled"],
+        message: message("Sms.SettingsIncomplete"),
+      });
     }
   });
 
@@ -127,6 +140,10 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
     payableDue: kindValues(settings.payableDue),
     // Shown the way people write it (۰۹۱۲ ۱۲۳ ۴۵۶۷); the server reads any digits and spaces.
     ownerPhone: settings.ownerPhone === null ? "" : formatPhone(settings.ownerPhone),
+    dailyReport: {
+      enabled: settings.dailyReport.enabled,
+      phone: settings.dailyReport.phone === null ? "" : formatPhone(settings.dailyReport.phone),
+    },
   };
 }
 
@@ -146,6 +163,7 @@ export function toInput(
   version: SmsSettings["version"],
 ): SmsSettingsInput {
   const ownerPhone = normalizeDigits(values.ownerPhone).trim();
+  const reportPhone = normalizeDigits(values.dailyReport.phone).trim();
 
   return {
     enabled: values.enabled,
@@ -154,6 +172,10 @@ export function toInput(
     birthday: kindInput(values.birthday),
     payableDue: kindInput(values.payableDue),
     ownerPhone: ownerPhone === "" ? null : ownerPhone,
+    dailyReport: {
+      enabled: values.dailyReport.enabled,
+      phone: reportPhone === "" ? null : reportPhone,
+    },
     version,
   };
 }

@@ -257,6 +257,7 @@ public static class DependencyInjection
         services.AddScoped<GetSmsSettingsHandler>();
         services.AddScoped<UpdateSmsSettingsHandler>();
         services.AddScoped<SendDailySmsHandler>();
+        services.AddScoped<DailyReportCandidate>();
         services.AddScoped<CheckSmsDeliveryHandler>();
         services.AddScoped<GetSmsCreditHandler>();
         services.AddScoped<ListSmsMessagesHandler>();

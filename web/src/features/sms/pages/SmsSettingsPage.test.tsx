@@ -27,6 +27,7 @@ const empty: SmsSettings = {
   birthday: off,
   payableDue: off,
   ownerPhone: null,
+  dailyReport: { enabled: false, phone: null, sendTime: "22:45:00" },
   version: 1,
 };
 
@@ -41,6 +42,7 @@ const filled: SmsSettings = {
   birthday: { enabled: false, threshold: 0, sendTime: null },
   payableDue: { enabled: true, threshold: 3, sendTime: "22:00:00" },
   ownerPhone: "+989121234567",
+  dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
   version: 5,
 };
 
@@ -294,6 +296,7 @@ describe("SmsSettingsPage", () => {
       birthday: { enabled: true, threshold: 0, sendTime: "10:30:00" },
       payableDue: off,
       ownerPhone: "0912 123 4567",
+      dailyReport: { enabled: false, phone: null },
       version: empty.version,
     });
   });
@@ -342,6 +345,92 @@ describe("SmsSettingsPage", () => {
 
     expect(
       await screen.findByText("شماره باید موبایل باشد؛ شمارهٔ ثابت پذیرفته نمی‌شود."),
+    ).toBeInTheDocument();
+  });
+
+  // ---- The daily report (task 10.7) ----
+
+  it("SmsSettingsPage_DailyReport_SaysItsFixedTimeAndStaysLockedUntilItsNumber", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "گزارش روزانه" });
+
+    expect(group("گزارش روزانه").getByText(/هر شب ساعت ۲۲:۴۵ برای همان روز/)).toBeInTheDocument();
+    expect(group("گزارش روزانه").queryByLabelText("ساعت ارسال")).not.toBeInTheDocument();
+    expect(switchOf("گزارش روزانه")).toBeDisabled();
+
+    // The cheques' number does not unlock it: the report has its own.
+    fireEvent.change(screen.getByLabelText("شماره موبایل مدیر"), {
+      target: { value: "09121234567" },
+    });
+    expect(switchOf("گزارش روزانه")).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("شماره موبایل گیرندهٔ گزارش"), {
+      target: { value: "09351234567" },
+    });
+    expect(switchOf("گزارش روزانه")).toBeEnabled();
+  });
+
+  it("SmsSettingsPage_DailyReportSaved_FillsItsSwitchAndNumber", async () => {
+    ownerWith(filled);
+
+    renderApp("/sms-settings", { session: session() });
+
+    await waitFor(() => expect(switchOf("گزارش روزانه")).toBeChecked());
+    expect(screen.getByLabelText("شماره موبایل گیرندهٔ گزارش")).toHaveValue("۰۹۳۵ ۱۲۳ ۴۵۶۷");
+  });
+
+  it("SmsSettingsPage_DailyReportTurnedOn_SendsItsSwitchAndNumber", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "گزارش روزانه" });
+
+    fireEvent.change(screen.getByLabelText("شماره موبایل گیرندهٔ گزارش"), {
+      target: { value: "۰۹۳۵ ۱۲۳ ۴۵۶۷" },
+    });
+    fireEvent.click(switchOf("گزارش روزانه"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.dailyReport).toEqual({ enabled: true, phone: "0935 123 4567" });
+  });
+
+  it("SmsSettingsPage_DailyReportOnWithItsNumberEmptied_SaysWhatIsMissing", async () => {
+    const api = ownerWith(filled);
+    renderApp("/sms-settings", { session: session() });
+    await waitFor(() => expect(switchOf("گزارش روزانه")).toBeChecked());
+
+    fireEvent.change(screen.getByLabelText("شماره موبایل گیرندهٔ گزارش"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(
+      await group("گزارش روزانه").findByText(
+        "برای روشن کردن این پیامک، همهٔ خانه‌هایش را پر کنید.",
+      ),
+    ).toBeInTheDocument();
+    expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);
+  });
+
+  it("SmsSettingsPage_ServerRefusesTheReportsNumber_ShowsItUnderThatNumber", async () => {
+    ownerWith(empty, {
+      "PUT /api/sms/settings": () => problem(400, "Sms.DailyReportPhoneInvalid"),
+    });
+    renderApp("/sms-settings", { session: session() });
+
+    fireEvent.change(await screen.findByLabelText("شماره موبایل گیرندهٔ گزارش"), {
+      target: { value: "02112345678" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(
+      await group("گزارش روزانه").findByText(
+        "شمارهٔ گزارش روزانه باید یک شمارهٔ موبایل ایران باشد.",
+      ),
     ).toBeInTheDocument();
   });
 

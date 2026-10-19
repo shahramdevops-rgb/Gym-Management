@@ -29,6 +29,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     private static readonly object Off = new { enabled = false, threshold = (int?)null, sendTime = (string?)null };
 
+    private static readonly object ReportOff = new { enabled = false, phone = (string?)null };
+
     // ---- The seeded row ----
 
     [Fact]
@@ -76,6 +78,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [InlineData(
         "payable_due_enabled = true, payable_due_days_before = 3, payable_due_send_time = '10:00'",
         "ck_sms_settings_payable_due_on_means_filled")]
+    [InlineData("daily_report_phone = '09121234567'", "ck_sms_settings_daily_report_phone")]
+    [InlineData("daily_report_enabled = true", "ck_sms_settings_daily_report_on_means_filled")]
     public async Task Database_RuleBroken_IsRefused(string assignments, string constraint)
     {
         var exception = await Should.ThrowAsync<PostgresException>(() => ExecuteAsync($"UPDATE sms_settings SET {assignments}"));
@@ -107,6 +111,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         settings.Birthday.ShouldBe(SmsKindSettings.Off);
         settings.PayableDue.ShouldBe(SmsKindSettings.Off);
         settings.OwnerPhone.ShouldBeNull();
+        settings.DailyReport.ShouldBe(new DailyReportSettingsResponse(false, null, new TimeOnly(22, 45)));
     }
 
     [Fact]
@@ -151,6 +156,74 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         reread.Birthday.ShouldBe(new SmsKindSettings(true, 0, new TimeOnly(10, 30)));
         reread.PayableDue.ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(22, 0)));
         reread.OwnerPhone.ShouldBe("+989121234567");
+        reread.DailyReport.ShouldBe(new DailyReportSettingsResponse(true, "+989351234567", new TimeOnly(22, 45)));
+    }
+
+    // ---- The daily report (task 10.7) ----
+
+    [Fact]
+    public async Task Update_DailyReportNumberInPersianDigits_IsKeptAsE164ApartFromTheOwnersNumber()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version,
+            ownerPhone: "09121234567",
+            dailyReport: new { enabled = true, phone = "۰۹۳۵ ۱۲۳ ۴۵۶۷" }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var saved = await GetOkAsync(client, token);
+        saved.DailyReport.Phone.ShouldBe("+989351234567");
+        saved.OwnerPhone.ShouldBe("+989121234567");
+    }
+
+    [Fact]
+    public async Task Update_DailyReportOnWithoutItsNumber_Returns400SettingsIncompleteUnderTheSwitch()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        // The Owner's number for the cheques does not stand in for the report's.
+        using var response = await UpdateAsync(client, token, Body(
+            read.Version, ownerPhone: "09121234567", dailyReport: new { enabled = true, phone = (string?)null }));
+
+        await ShouldHaveFieldErrorAsync(response, "dailyReport.enabled", "Sms.SettingsIncomplete");
+    }
+
+    [Theory]
+    [InlineData("0912")]
+    [InlineData("02112345678")]
+    public async Task Update_DailyReportNumberNotAnIranianMobile_Returns400WithItsOwnCode(string phone)
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(before.Version, dailyReport: new { enabled = false, phone }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Sms.DailyReportPhoneInvalid");
+        (await GetOkAsync(client, token)).DailyReport.Phone.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Update_DailyReportLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = Off,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "dailyReport", "Sms.SettingsIncomplete");
     }
 
     [Fact]
@@ -254,6 +327,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         applied.Enabled.ShouldBeTrue();
         applied.For(NotificationKind.SubscriptionExpiring).SendTime.ShouldBe(new TimeOnly(9, 0));
         applied.For(NotificationKind.PayableDue).SendTime.ShouldBe(new TimeOnly(22, 0));
+        applied.For(NotificationKind.DailyReport).ShouldBe(new SmsKindSettings(true, null, new TimeOnly(22, 45)));
     }
 
     [Fact]
@@ -331,6 +405,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             lowSessions = Off,
             payableDue = Off,
             ownerPhone = (string?)null,
+            dailyReport = ReportOff,
             version = read.Version,
         });
 
@@ -383,7 +458,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         object? lowSessions = null,
         object? birthday = null,
         object? payableDue = null,
-        string? ownerPhone = null) =>
+        string? ownerPhone = null,
+        object? dailyReport = null) =>
         new
         {
             enabled,
@@ -392,6 +468,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             birthday = birthday ?? Off,
             payableDue = payableDue ?? Off,
             ownerPhone,
+            dailyReport = dailyReport ?? ReportOff,
             version,
         };
 
@@ -402,7 +479,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         lowSessions: Kind(true, 2, "09:15:00"),
         birthday: Kind(true, 0, "10:30:00"),
         payableDue: Kind(true, 3, "22:00:00"),
-        ownerPhone: "09121234567");
+        ownerPhone: "09121234567",
+        dailyReport: new { enabled = true, phone = "09351234567" });
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {

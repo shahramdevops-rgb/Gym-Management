@@ -6,6 +6,7 @@ namespace Gym.Domain.Tests.Notifications;
 public sealed class SmsSettingsTests
 {
     private const string Phone = "+989121234567";
+    private const string OtherPhone = "+989351234567";
     private static readonly TimeOnly Ten = new(10, 0);
 
     // ---- The seeded row ----
@@ -17,10 +18,13 @@ public sealed class SmsSettingsTests
 
         settings.Enabled.ShouldBeFalse();
         settings.OwnerPhone.ShouldBeNull();
-        foreach (var kind in Enum.GetValues<NotificationKind>())
+        foreach (var kind in Enum.GetValues<NotificationKind>().Where(kind => kind != NotificationKind.DailyReport))
         {
             settings.For(kind).ShouldBe(SmsKindSettings.Off);
         }
+
+        settings.DailyReportEnabled.ShouldBeFalse();
+        settings.DailyReportPhone.ShouldBeNull();
     }
 
     // ---- Saving ----
@@ -36,7 +40,9 @@ public sealed class SmsSettingsTests
             lowSessions: new(true, 2, new TimeOnly(9, 15)),
             birthday: new(true, 0, new TimeOnly(10, 30)),
             payableDue: new(true, 3, new TimeOnly(21, 45)),
-            ownerPhone: Phone);
+            ownerPhone: Phone,
+            dailyReportEnabled: true,
+            dailyReportPhone: OtherPhone);
 
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
@@ -45,6 +51,8 @@ public sealed class SmsSettingsTests
         settings.For(NotificationKind.Birthday).ShouldBe(new SmsKindSettings(true, 0, new TimeOnly(10, 30)));
         settings.For(NotificationKind.PayableDue).ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(21, 45)));
         settings.OwnerPhone.ShouldBe(Phone);
+        settings.DailyReportEnabled.ShouldBeTrue();
+        settings.DailyReportPhone.ShouldBe(OtherPhone);
     }
 
     [Fact]
@@ -207,6 +215,76 @@ public sealed class SmsSettingsTests
         settings.OwnerPhone.ShouldBe(Phone);
     }
 
+    // ---- The daily report (task 10.7) ----
+
+    [Fact]
+    public void Update_DailyReportOnWithoutItsNumber_IsRefused()
+    {
+        var settings = Empty();
+
+        var result = Save(settings, enabled: true, ownerPhone: Phone, dailyReportEnabled: true);
+
+        result.Error.ShouldBe(SmsSettingsErrors.SettingsIncomplete);
+        settings.DailyReportEnabled.ShouldBeFalse();
+        settings.OwnerPhone.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Update_DailyReportOffWithANumber_KeepsTheNumber()
+    {
+        var settings = Empty();
+
+        Save(settings, dailyReportPhone: OtherPhone).IsSuccess.ShouldBeTrue();
+
+        settings.DailyReportEnabled.ShouldBeFalse();
+        settings.DailyReportPhone.ShouldBe(OtherPhone);
+    }
+
+    [Fact]
+    public void Update_DailyReportNumberEmptied_ClearsIt()
+    {
+        var settings = Empty();
+        Save(settings, dailyReportPhone: OtherPhone);
+
+        Save(settings, dailyReportPhone: "  ").IsSuccess.ShouldBeTrue();
+
+        settings.DailyReportPhone.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Update_DailyReportNumberNotNormalized_Throws()
+    {
+        Should.Throw<ArgumentException>(() => Save(Empty(), dailyReportPhone: "09121234567"));
+    }
+
+    [Fact]
+    public void For_DailyReport_HasNoNumberAndTheFixedTime()
+    {
+        var settings = Empty();
+        Save(settings, dailyReportEnabled: true, dailyReportPhone: OtherPhone);
+
+        settings.For(NotificationKind.DailyReport).ShouldBe(new SmsKindSettings(true, null, new TimeOnly(22, 45)));
+    }
+
+    [Theory]
+    [InlineData(NotificationKind.DailyReport, 8, 0, true)]
+    [InlineData(NotificationKind.DailyReport, 22, 45, true)]
+    [InlineData(NotificationKind.DailyReport, 23, 59, true)]
+    [InlineData(NotificationKind.DailyReport, 7, 59, false)]
+    [InlineData(NotificationKind.PayableDue, 22, 0, true)]
+    [InlineData(NotificationKind.PayableDue, 22, 1, false)]
+    [InlineData(NotificationKind.Birthday, 22, 45, false)]
+    public void IsWithinSendingHours_ByKind_FollowsItsOwnHours(NotificationKind kind, int hour, int minute, bool expected)
+    {
+        SmsSettings.IsWithinSendingHours(kind, new TimeOnly(hour, minute)).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IsWithinSendingHours_DailyReportLastMomentOfTheDay_IsAllowed()
+    {
+        SmsSettings.IsWithinSendingHours(NotificationKind.DailyReport, TimeOnly.MaxValue).ShouldBeTrue();
+    }
+
     // ---- Helpers ----
 
     private static Domain.Common.Result Save(
@@ -216,14 +294,18 @@ public sealed class SmsSettingsTests
         SmsKindSettings? lowSessions = null,
         SmsKindSettings? birthday = null,
         SmsKindSettings? payableDue = null,
-        string? ownerPhone = null) =>
+        string? ownerPhone = null,
+        bool dailyReportEnabled = false,
+        string? dailyReportPhone = null) =>
         settings.Update(
             enabled,
             subscriptionExpiring ?? SmsKindSettings.Off,
             lowSessions ?? SmsKindSettings.Off,
             birthday ?? SmsKindSettings.Off,
             payableDue ?? SmsKindSettings.Off,
-            ownerPhone);
+            ownerPhone,
+            dailyReportEnabled,
+            dailyReportPhone);
 
     /// <summary>
     /// The one row the migration seeds. There is no public constructor, on purpose: nothing in the

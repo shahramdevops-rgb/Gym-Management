@@ -15,6 +15,8 @@ public static class NotificationConstraints
     /// <summary>One <c>PayableDue</c> per cheque or instalment (BUSINESS_RULES.md §10).</summary>
     public const string OnePerPayable = "ix_notifications_one_per_payable";
 
+    public const string OneDailyReportPerDay = "ix_notifications_one_daily_report_per_day";
+
     /// <summary>Each kind fills the ids of its own event and leaves the others empty.</summary>
     public const string EventMatchesKind = "ck_notifications_event_matches_kind";
 

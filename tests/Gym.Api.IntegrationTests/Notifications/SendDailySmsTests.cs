@@ -606,7 +606,14 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
-        var handler = new SendDailySmsHandler(db, calendar, time, sender, retries, NullLogger<SendDailySmsHandler>.Instance);
+        var handler = new SendDailySmsHandler(
+            db,
+            calendar,
+            time,
+            sender,
+            retries,
+            scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
+            NullLogger<SendDailySmsHandler>.Instance);
 
         return await handler.Handle(kind, TestContext.Current.CancellationToken);
     }
@@ -622,7 +629,9 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             kind == NotificationKind.LowSessions ? on : SmsKindSettings.Off,
             kind == NotificationKind.Birthday ? on : SmsKindSettings.Off,
             kind == NotificationKind.PayableDue ? on : SmsKindSettings.Off,
-            OwnerPhone));
+            OwnerPhone,
+            dailyReportEnabled: kind == NotificationKind.DailyReport,
+            kind == NotificationKind.DailyReport ? OwnerPhone : null));
     }
 
     private Task TurnOnBothSubscriptionKindsAsync() => SaveSettingsAsync(settings => settings.Update(
@@ -631,7 +640,9 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         new SmsKindSettings(true, 2, new TimeOnly(10, 0)),
         SmsKindSettings.Off,
         SmsKindSettings.Off,
-        OwnerPhone));
+        OwnerPhone,
+        dailyReportEnabled: false,
+        dailyReportPhone: null));
 
     private async Task SaveSettingsAsync(Func<SmsSettings, Result> update)
     {

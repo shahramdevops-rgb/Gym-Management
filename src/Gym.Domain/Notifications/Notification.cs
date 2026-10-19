@@ -11,7 +11,8 @@ namespace Gym.Domain.Notifications;
 /// <b>Written before it is sent.</b> The row is saved as <see cref="NotificationStatus.Pending"/>
 /// first, then sent. Because the database allows one row per event (one
 /// <see cref="NotificationKind.SubscriptionExpiring"/> per subscription, one birthday per member and
-/// Jalali year, one <see cref="NotificationKind.PayableDue"/> per cheque or instalment), a second
+/// Jalali year, one <see cref="NotificationKind.PayableDue"/> per cheque or instalment, one
+/// <see cref="NotificationKind.DailyReport"/> per day), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -37,10 +38,10 @@ public sealed class Notification : Entity
 
     public NotificationKind Kind { get; private set; }
 
-    /// <summary>E.164: the member's number, or the Owner's for <see cref="NotificationKind.PayableDue"/>.</summary>
+    /// <summary>E.164: the member's number, or the Owner's for <see cref="NotificationKind.PayableDue"/> and <see cref="NotificationKind.DailyReport"/>.</summary>
     public string Recipient { get; private set; } = string.Empty;
 
-    /// <summary>Set for the three kinds sent to a member; <c>null</c> for <see cref="NotificationKind.PayableDue"/>.</summary>
+    /// <summary>Set for the three kinds sent to a member; <c>null</c> for the Owner's.</summary>
     public Guid? MemberId { get; private set; }
 
     /// <summary>Set for <see cref="NotificationKind.SubscriptionExpiring"/> and <see cref="NotificationKind.LowSessions"/>.</summary>
@@ -51,6 +52,9 @@ public sealed class Notification : Entity
 
     /// <summary>Set for <see cref="NotificationKind.Birthday"/>: the Jalali year of the birthday, e.g. 1405.</summary>
     public int? JalaliYear { get; private set; }
+
+    /// <summary>Set for <see cref="NotificationKind.DailyReport"/>: the gym's day the report is about, one per day.</summary>
+    public DateOnly? ReportDate { get; private set; }
 
     /// <summary>The whole text, as <see cref="SmsText"/> wrote it when the message was written.</summary>
     public string Text { get; private set; } = string.Empty;
@@ -113,6 +117,16 @@ public sealed class Notification : Entity
 
         var notification = Create(NotificationKind.PayableDue, ownerRecipient, text);
         notification.PayableId = payableId;
+
+        return notification;
+    }
+
+    /// <param name="reportDate">The day the report is about: at most one per day.</param>
+    /// <param name="recipient">The daily report's number from the SMS settings.</param>
+    public static Notification ForDailyReport(DateOnly reportDate, string recipient, string text)
+    {
+        var notification = Create(NotificationKind.DailyReport, recipient, text);
+        notification.ReportDate = reportDate;
 
         return notification;
     }

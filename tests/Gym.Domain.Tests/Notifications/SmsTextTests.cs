@@ -158,4 +158,95 @@ public sealed class SmsTextTests
 
         SmsText.Fit(value, SmsText.MaxPayeeWords).ShouldBe(new string('x', SmsText.MaxValueLength - 1));
     }
+
+    // ---- The daily report (task 10.7) ----
+
+    [Fact]
+    public void MonthAndDay_GregorianDay_LeavesTheYearOut()
+    {
+        SmsText.MonthAndDay(Day).ShouldBe("۰۷/۲۰");
+    }
+
+    [Theory]
+    [InlineData("12345600", "۱۲٬۳۴۶")]
+    [InlineData("12345499", "۱۲٬۳۴۵")]
+    [InlineData("12000000", "۱۲٬۰۰۰")]
+    [InlineData("1500", "۲")]
+    [InlineData("499", "۰")]
+    [InlineData("0", "۰")]
+    public void Thousands_Toman_IsRoundedToTheNearestThousand(string amount, string expected)
+    {
+        SmsText.Thousands(decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture)).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void Thousands_BelowZero_CarriesTheAppsMinusSign()
+    {
+        SmsText.Thousands(-1_500_000m).ShouldBe(SmsText.MinusSign + "۱٬۵۰۰");
+    }
+
+    [Fact]
+    public void Thousands_SmallRefundRoundingToZero_HasNoMinusSign()
+    {
+        SmsText.Thousands(-400m).ShouldBe("۰");
+    }
+
+    [Fact]
+    public void ForDailyReport_DayWithCash_IsTheAgreedText()
+    {
+        var figures = new DailyReportFigures(
+            new DateOnly(2026, 10, 19), CheckIns: 85, PlansSold: 3, SingleVisitsSold: 5,
+            Received: 12_345_600m, Cash: 2_000_000m, Card: 8_000_000m, BankTransfer: 2_345_600m);
+
+        SmsText.ForDailyReport(figures).ShouldBe(
+            "گزارش باشگاه پاسارگاد ۰۷/۲۷\n" +
+            "ورود: ۸۵\n" +
+            "پلن: ۳، تک‌جلسه: ۵\n" +
+            "دریافتی: ۱۲٬۳۴۶ هزار تومان\n" +
+            "نقد: ۲٬۰۰۰\n" +
+            "کارت: ۸٬۰۰۰\n" +
+            "انتقال: ۲٬۳۴۶" + OptOutLine);
+    }
+
+    [Fact]
+    public void ForDailyReport_DayWithoutCash_LeavesTheCashLineOut()
+    {
+        var figures = new DailyReportFigures(
+            new DateOnly(2026, 10, 19), CheckIns: 4, PlansSold: 0, SingleVisitsSold: 0,
+            Received: 900_000m, Cash: 0m, Card: 900_000m, BankTransfer: 0m);
+
+        var text = SmsText.ForDailyReport(figures);
+
+        text.ShouldNotContain("نقد");
+        text.ShouldContain("کارت: ۹۰۰\nانتقال: ۰" + OptOutLine);
+    }
+
+    [Fact]
+    public void ForDailyReport_BusyDay_FitsInTwoParts()
+    {
+        // Two parts hold 2 × 67 characters (§10 Sending): the reason the amounts are in thousands.
+        var figures = new DailyReportFigures(
+            new DateOnly(2026, 10, 19), CheckIns: 250, PlansSold: 20, SingleVisitsSold: 30,
+            Received: 150_000_000m, Cash: 20_000_000m, Card: 100_000_000m, BankTransfer: 30_000_000m);
+
+        SmsText.ForDailyReport(figures).Length.ShouldBeLessThanOrEqualTo(2 * 67);
+    }
+
+    [Fact]
+    public void IsEmpty_NothingHappened_IsTrue()
+    {
+        new DailyReportFigures(Day, 0, 0, 0, 0m, 0m, 0m, 0m).IsEmpty().ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(1, 0, 0, "0")]
+    [InlineData(0, 1, 0, "0")]
+    [InlineData(0, 0, 1, "0")]
+    [InlineData(0, 0, 0, "-1000")]
+    public void IsEmpty_AnyFigure_IsFalse(int checkIns, int plans, int singleVisits, string received)
+    {
+        var amount = decimal.Parse(received, System.Globalization.CultureInfo.InvariantCulture);
+
+        new DailyReportFigures(Day, checkIns, plans, singleVisits, amount, amount, 0m, 0m).IsEmpty().ShouldBeFalse();
+    }
 }

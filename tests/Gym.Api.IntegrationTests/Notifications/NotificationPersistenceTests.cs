@@ -155,6 +155,51 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
         exception.ConstraintName.ShouldBe(NotificationConstraints.OnePerPayable);
     }
 
+    [Fact]
+    public async Task Save_SecondDailyReportForOneDay_RejectedByTheUniqueIndex()
+    {
+        await SaveAsync(Notification.ForDailyReport(ReportDay, OwnerPhone, ReportText));
+
+        var exception = await SaveRejectedAsync(Notification.ForDailyReport(ReportDay, OwnerPhone, ReportText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OneDailyReportPerDay);
+    }
+
+    [Fact]
+    public async Task Save_DailyReportsOfTwoDays_AreAllowed()
+    {
+        await SaveAsync(
+            Notification.ForDailyReport(ReportDay, OwnerPhone, ReportText),
+            Notification.ForDailyReport(ReportDay.AddDays(1), OwnerPhone, ReportText));
+
+        (await CountAsync()).ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Notification_DailyReportWithoutItsDay_RejectedByACheckConstraint()
+    {
+        var report = Notification.ForDailyReport(ReportDay, OwnerPhone, ReportText);
+        await SaveAsync(report);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET report_date = NULL WHERE id = '{report.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
+    public async Task Notification_MemberKindCarryingAReportDay_RejectedByACheckConstraint()
+    {
+        var id = await SaveExpiringAsync();
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET report_date = '2026-10-19' WHERE id = '{id}'"));
+
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
     // ---- Check constraints ----
 
     [Fact]
@@ -293,6 +338,10 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     private const string BirthdayText = "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۲۰ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد";
 
     private const string ChequeText = "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی";
+
+    private const string ReportText = "گزارش باشگاه پاسارگاد ۰۷/۲۷\nورود: ۸۵";
+
+    private static readonly DateOnly ReportDay = new(2026, 10, 19);
 
     /// <summary>A member with a subscription, and a pending cheque: one event of every kind can point at them.</summary>
     private async Task<(Member Member, Subscription Subscription, Payable Payable)> SeedAsync()

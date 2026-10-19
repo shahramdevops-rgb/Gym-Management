@@ -1580,6 +1580,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("recipient");
 
+                    b.Property<DateOnly?>("ReportDate")
+                        .HasColumnType("date")
+                        .HasColumnName("report_date");
+
                     b.Property<DateTimeOffset?>("SentAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sent_at");
@@ -1622,6 +1626,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_notifications_one_per_payable")
                         .HasFilter("payable_id IS NOT NULL");
 
+                    b.HasIndex("ReportDate")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_daily_report_per_day")
+                        .HasFilter("kind = 'DailyReport'");
+
                     b.HasIndex("MemberId", "JalaliYear")
                         .IsUnique()
                         .HasDatabaseName("ix_notifications_one_birthday_per_member_and_year")
@@ -1642,9 +1651,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_notifications_delivery_only_when_sent", "delivery IS NULL OR status = 'Sent'");
 
-                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL)");
+                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL)");
 
-                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue')");
+                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport')");
 
                             t.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
 
@@ -1684,6 +1693,15 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
+
+                    b.Property<bool>("DailyReportEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("daily_report_enabled");
+
+                    b.Property<string>("DailyReportPhone")
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)")
+                        .HasColumnName("daily_report_phone");
 
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean")
@@ -1753,6 +1771,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_sms_settings_birthday_on_means_filled", "NOT birthday_enabled OR (birthday_days_before IS NOT NULL AND birthday_send_time IS NOT NULL)");
 
+                            t.HasCheckConstraint("ck_sms_settings_daily_report_on_means_filled", "NOT daily_report_enabled OR daily_report_phone IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_sms_settings_daily_report_phone", "daily_report_phone IS NULL OR daily_report_phone ~ '^\\+989[0-9]{9}$'");
+
                             t.HasCheckConstraint("ck_sms_settings_low_sessions_on_means_filled", "NOT low_sessions_enabled OR (low_sessions_threshold IS NOT NULL AND low_sessions_send_time IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_sms_settings_low_sessions_threshold", "low_sessions_threshold IS NULL OR low_sessions_threshold BETWEEN 1 AND 10");
@@ -1778,6 +1800,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             Id = new Guid("8b2e4f61-3c5a-4d7e-9f10-2a6b8c4d0e5f"),
                             BirthdayEnabled = false,
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 10, 6, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            DailyReportEnabled = false,
                             Enabled = false,
                             LowSessionsEnabled = false,
                             PayableDueEnabled = false,
