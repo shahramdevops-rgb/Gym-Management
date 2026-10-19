@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { hasRole, useCurrentUser, useLogout, type Role } from "@/features/auth/api";
 import { useSessionState } from "@/features/auth/session";
 import { PayablesDueAlert } from "@/features/payables/components/PayablesDueAlert";
+import { SmsCreditBadge } from "@/features/sms/components/SmsCreditBadge";
 import { gymToday } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -137,9 +138,9 @@ export function AppShell() {
     ? []
     : navigation.filter((item) => item.role === undefined || hasRole(user.data, item.role));
 
-  // The Owner reads cheques and instalments (§1); a user who must change their password sees only
-  // that page.
-  const showPayablesAlert = !mustChangePassword && hasRole(user.data, "Owner");
+  // The Owner reads cheques and instalments (§1) and the SMS credit (§10); a user who must change
+  // their password sees only that page.
+  const showOwnerAlerts = !mustChangePassword && hasRole(user.data, "Owner");
 
   async function signOut() {
     await logout.mutateAsync();
@@ -150,8 +151,9 @@ export function AppShell() {
     <div className="flex min-h-screen flex-col">
       <header className="flex h-14 items-center justify-between gap-4 border-b bg-card px-6">
         <h1 className="text-lg font-bold">مدیریت باشگاه</h1>
-        <div className="flex min-w-0 flex-1 justify-center">
-          {showPayablesAlert && <PayablesDueAlert />}
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+          {showOwnerAlerts && <PayablesDueAlert />}
+          {showOwnerAlerts && <SmsCreditBadge />}
         </div>
         <div className="flex items-center gap-3">
           {user.data !== undefined && (

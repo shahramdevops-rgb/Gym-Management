@@ -105,7 +105,8 @@ describe("SmsSettingsPage", () => {
     renderApp("/sms-settings", { session: session() });
 
     expect(await screen.findByText(/اعتبار باقی‌ماندهٔ پنل پیامک/)).toBeInTheDocument();
-    expect(screen.getByText("۱۲۵٬۰۰۰ تومان")).toBeInTheDocument();
+    // The header shows it too (§10 *The credit in the header*); this is the page's own line.
+    expect(within(screen.getByRole("main")).getByText("۱۲۵٬۰۰۰ تومان")).toBeInTheDocument();
   });
 
   it("SmsSettingsPage_KavenegarNotAnswering_SaysTheCreditIsUnavailable", async () => {

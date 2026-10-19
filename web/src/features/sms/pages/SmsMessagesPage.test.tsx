@@ -222,7 +222,8 @@ describe("SmsMessagesPage", () => {
 
     renderApp("/sms", { session: session() });
 
-    expect(await screen.findByText("۱۲۵٬۰۰۰ تومان")).toBeInTheDocument();
+    // The header shows it too (§10 *The credit in the header*); this is the page's own line.
+    expect(await within(screen.getByRole("main")).findByText("۱۲۵٬۰۰۰ تومان")).toBeInTheDocument();
   });
 
   // ---- Resend ----

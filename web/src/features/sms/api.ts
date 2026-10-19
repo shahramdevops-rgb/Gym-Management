@@ -79,16 +79,42 @@ export const broadcastKeys = {
 
 export const broadcastsPageSize = 20;
 
-/** Asks Kavenegar each time the page opens (BUSINESS_RULES.md §10 *Sending*): free, and the page is opened rarely. */
-export function useSmsCredit() {
+/** How often the header asks Kavenegar again (BUSINESS_RULES.md §10 *The credit in the header*). */
+export const smsCreditRefreshMs = 10 * 60 * 1000;
+
+/**
+ * The header's thresholds in Toman: the whole pill flashing below the first, red below the second,
+ * orange up to the third, green above.
+ */
+export const smsCreditEmptyToman = 1_000;
+export const smsCreditLowToman = 100_000;
+export const smsCreditFairToman = 200_000;
+
+export interface SmsCreditState extends SmsCredit {
+  /**
+   * The latest figure Kavenegar gave in this tab: `remainingToman` while it answers, the one before
+   * when it does not, null when it never has.
+   */
+  lastKnownToman: SmsCredit["remainingToman"];
+}
+
+/**
+ * Asks Kavenegar each time a page using it opens (BUSINESS_RULES.md §10 *Sending*): free. One cache
+ * entry for the SMS pages and the header, so the header's figure follows a resend too.
+ */
+export function useSmsCredit({ refetchInterval }: { refetchInterval?: number } = {}) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: smsCreditKeys.all,
-    queryFn: async () => {
+    refetchInterval,
+    queryFn: async (): Promise<SmsCreditState> => {
       const { data, error } = await api.GET("/api/sms/credit");
       if (error !== undefined) {
         throw error;
       }
-      return data;
+      const previous = queryClient.getQueryData<SmsCreditState>(smsCreditKeys.all);
+      return { ...data, lastKnownToman: data.remainingToman ?? previous?.lastKnownToman ?? null };
     },
   });
 }

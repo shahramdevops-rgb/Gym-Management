@@ -1680,6 +1680,21 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - **The credit warning** (decided with the developer, 1405/07/16, task 10.5): shown on both SMS pages
   while the latest message that failed for credit used up (`418`) is newer than the latest one sent.
   It goes away by itself once a message is sent again, by a run or a resend.
+- **The credit in the header** (decided with the developer, 1405/07/27, task 10.14): the Owner sees
+  the account's remaining credit on every page, in the header beside the cheques and instalments
+  alert, and it opens «تنظیمات پیامک». Its colour says how much is left:
+  - below **1,000 Toman**: the whole box flashes solid red, fast (asked by the developer the same
+    day: almost nothing can be sent any more);
+  - below **100,000 Toman**: red, blinking like a cheque past its date;
+  - from 100,000 to 200,000 Toman, both included: orange;
+  - above 200,000 Toman: green.
+
+  It is asked from Kavenegar when the panel opens and then **every 10 minutes**, and again when an
+  SMS page opens or after a resend. Kavenegar's answer to a send gives only that message's cost, and the
+  account is charged outside the panel, so the panel never works the figure out by itself. When
+  Kavenegar does not answer, the **last figure it gave** is kept, in grey; with none yet, the header
+  says the credit is unknown. In test mode it is not shown. Nothing is sent by SMS about the credit:
+  the header is the warning (an SMS to two numbers was considered and dropped by the developer).
 - **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand. For `Unknown` the page
   says it may already have arrived. Decided with the developer on 1405/07/16 (task 10.5):
   - It sends **exactly the same message**: the same number and text that were written, even if the

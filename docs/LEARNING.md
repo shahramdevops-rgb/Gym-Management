@@ -1821,3 +1821,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **A lock needs a way out.** "One broadcast at a time" is a row in `Sending`; if the server dies between saving it and queueing its job, nothing would ever clear it and every later broadcast would be refused. Two small pieces close that: a hosted service (`BackgroundService`) that, at start, hands any broadcast still sending to its job again, and a Hangfire state filter (`IElectStateFilter`) that stops the broadcast when its job moves to Failed. Whenever you build a lock, ask "who releases it if the holder dies?"
 - **An estimate that says it is one.** Kavenegar gives no price before sending, so the cost shown before confirming is the latest charged message's price per part times the parts, labelled «حدود». Showing a precise-looking number that is really a guess would mislead the Owner.
 - **My notes:**
+
+## 10.14 — The SMS credit in the header (اعتبار پیامک)
+
+- **Ask the source when you cannot see every change.** Keeping a running figure (last credit minus each message's cost) looks cheaper than asking Kavenegar, but the account is charged on Kavenegar's own site and blocked messages are paid back later, so such a figure drifts. A free, read-only question to the one place that knows is simpler and always right.
+- **One cache entry, several readers.** The header and the SMS pages use the same query key, so a resend that refreshes the credit on «پیامک‌ها» refreshes the header too, and two of them on screen make one request.
+- **Remember the last good answer in the query itself.** `queryFn` reads the previous cache entry (`queryClient.getQueryData`) and carries `lastKnownToman` forward when Kavenegar returns nothing; when the request fails, TanStack Query keeps the previous data anyway. Both kinds of silence end up as "the old figure, in grey".
+- **Polling with `refetchInterval`.** A query asks again on a timer while its component is on screen; tests skip the wait with fake timers and `advanceTimersByTimeAsync`.
+- **My notes:**

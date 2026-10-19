@@ -12,7 +12,7 @@ Milestones:
 - **Complete (Phases 10–12):** SMS, audit UI, hardening, portfolio polish.
 
 Release order (decided by the developer on 1405/07/26, 2026-10-18):
-1. **The next release is SMS only:** 10.6 to 10.13, from `main`, as one complete version. Nothing
+1. **The next release is SMS only:** 10.6 to 10.14, from `main`, as one complete version. Nothing
    else goes in it.
 2. Then, in the days after SMS works, Phase 13's look and mobile (13.1 and 13.2 are finished and
    ticked on the branch `task/13.2-visual-language`; they are merged into `main` only after the SMS
@@ -2870,6 +2870,29 @@ Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *T
       measures the text again and stops with `TooLong` if a longer first name joined; at start
       `BroadcastRecoveryService` hands a broadcast still sending to its job again, and
       `StopBroadcastOnFailureFilter` stops one whose Hangfire job failed (`RecoverBroadcastsHandler`)
+
+Closed 2026-10-19: 2602 backend tests (917 domain, 1685 integration) and 1084 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. `DemoSeederTests.SeedDemo_…` fails
+when run late at night (after about 23:30 nobody is still inside, so no open visit), whatever the
+code; it passed earlier the same evening. One migration, `AddSmsBroadcast`, which only adds (a
+table, a column off, a column and a unique index) and widens two check constraints, refusing no
+existing row. It goes out with the SMS release (10.6), which still starts with `./backup.sh run`.
+
+### 10.14 The SMS credit in the header (اعتبار پیامک)
+Asked by the developer on 1405/07/27 (2026-10-19): the panel warned only once the credit had run out,
+and only on the SMS pages. Decided, BUSINESS_RULES.md §10 *The credit in the header*:
+- [x] The Owner sees the credit on every page, beside the cheques alert, opening «تنظیمات پیامک»:
+      the whole box flashing solid red below 1,000 Toman, red and blinking below 100,000, orange
+      from 100,000 to 200,000, green above
+- [x] Asked from Kavenegar when the panel opens and every 10 minutes (a send's answer carries only
+      its cost, and the account is charged outside the panel, so the figure is never worked out);
+      no answer keeps the last figure, in grey; none yet says «نامعلوم»; hidden in test mode
+- [x] An SMS to two numbers below 100,000 was considered and dropped by the developer
+- [x] `SmsCreditBadge` in the header, `useSmsCredit`'s `lastKnownToman` and `refetchInterval`
+      (one cache entry with the SMS pages); no backend change, no migration
+
+Closed 2026-10-19: frontend 1096 tests green, lint, `format:check` and production build pass. No
+migration and no endpoint change. It goes out with the SMS release (10.6).
 
 ---
 
