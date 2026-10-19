@@ -12,15 +12,19 @@ Milestones:
 - **Complete (Phases 10–12):** SMS, audit UI, hardening, portfolio polish.
 
 Release order (decided by the developer on 1405/07/26, 2026-10-18):
-1. **The next release is SMS only:** 10.6 to 10.15, from `main`, as one complete version. Nothing
-   else goes in it.
+1. **Done 2026-10-20:** the SMS release, 10.6 to 10.15, from `main`, as one complete version
+   (`20261020-0246-099e551`, 10.6), Kavenegar live with every kind off until the Owner turns them on.
 2. Then, in the days after SMS works, Phase 13's look and mobile (13.1 and 13.2 are finished and
    ticked on the branch `task/13.2-visual-language`; they are merged into `main` only after the SMS
    release, so they still show open here) as a release of its own.
 3. The public site (Phase 14) has no link to the panel; it is built on its own branch and released
    on its own, when the developer chooses, never inside the SMS release.
-4. The server asks for a restart (`*** System restart required ***`, 24 updates, 11 security, noted
-   on 2026-10-16): on a night of its own, not with a release.
+4. **Restart done 2026-10-20, 03:21**, the same night as the SMS release, by the developer's choice
+   once the release was seen healthy: `./backup.sh run` first, `sudo reboot`, back in about a
+   minute with all three containers healthy on their own and `/var/run/reboot-required` gone.
+   **Still open:** 19 packages to upgrade, Docker among them (`docker-ce`, `containerd.io`,
+   `docker-compose-plugin`, …), which restarts every container: `./backup.sh run`, then
+   `sudo apt upgrade`, then a reboot if asked, on a night of its own, not with a release.
 
 ---
 
