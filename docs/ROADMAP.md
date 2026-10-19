@@ -2640,6 +2640,14 @@ complete version with every kind below, not the four kinds first.
 - [ ] The Owner fills in the settings page and turns on the kinds they want
 - [x] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed (1405/07/28), released
       with 10.7 to 10.15 as the SMS release
+- [x] Released in `20261020-0246-099e551` (previous `20261016-1747-c6ff9ec`) on 2026-10-20 at
+      02:46: 10.6's menu change and 10.7 to 10.15. Seven migrations, each only adding and off at
+      the start (`AddSmsDailyReport`, `AddBirthdayVisit`, `AddSubscriptionReceipt`, `AddSmsWelcome`,
+      `AddSmsDebtReminder`, `AddSmsAbsence`, `AddSmsBroadcast`), so a rollback to `c6ff9ec` leaves
+      the new columns in place and is not harmless. Before it: `npm run e2e` passed, the README
+      pictures retaken, `./backup.sh run` → `gym-20261020-023611.dump` (771 KB, after 712 KB the
+      night before), copied to `D:\gymbackups` with the same size. The provider is still `Fake`
+      until the `.env` step above
 
 ### More SMS kinds (10.7 to 10.13)
 Asked by the developer on 1405/07/26 (2026-10-18), after the line's first messages arrived. One task
