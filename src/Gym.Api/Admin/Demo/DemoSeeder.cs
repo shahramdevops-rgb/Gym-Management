@@ -607,7 +607,7 @@ public sealed class DemoSeeder
             Enabled: true,
             SubscriptionExpiring: new SmsKindSettings(true, 3, new TimeOnly(10, 0)),
             LowSessions: new SmsKindSettings(true, 2, new TimeOnly(10, 15)),
-            Birthday: new SmsKindSettings(true, 0, new TimeOnly(9, 0)),
+            Birthday: new SmsKindSettings(true, 3, new TimeOnly(9, 0)),
             PayableDue: new SmsKindSettings(true, 3, new TimeOnly(9, 30)),
             OwnerPhone: "09121112233",
             DailyReport: new DailyReportSettings(true, "09121112233"),

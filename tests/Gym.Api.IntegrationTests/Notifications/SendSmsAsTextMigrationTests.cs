@@ -69,17 +69,19 @@ public sealed class SendSmsAsTextMigrationTests(DatabaseFixture fixture)
         texts.Count.ShouldBe(5);
         texts.Single(row => row.Kind == NotificationKind.SubscriptionExpiring).Text.ShouldBe(BeforeOptOut(SmsText.ForRunningOut(Name, Day)));
         texts.Single(row => row.Kind == NotificationKind.LowSessions).Text.ShouldBe(BeforeOptOut(SmsText.ForFewSessionsLeft(Name, 2)));
+        // The birthday's two texts of the time, written out: SmsText has one text since task 10.8.
         texts.Single(row => row.Recipient == "+989121234567" && row.Kind == NotificationKind.Birthday).Text
-            .ShouldBe(BeforeOptOut(SmsText.ForBirthday(Name, Day, today: Day)));
+            .ShouldBe($"{Name} عزیز، امروز {date} روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
         texts.Single(row => row.Recipient == "+989121234568").Text
-            .ShouldBe(BeforeOptOut(SmsText.ForBirthday(Name, Day, today: Day.AddDays(-3))));
+            .ShouldBe($"{Name} عزیز، تولدتان در {date} را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد");
         texts.Single(row => row.Kind == NotificationKind.PayableDue).Text
             .ShouldBe(BeforeOptOut(SmsText.ForPayableDue(PayableKind.Cheque, 12_500_000m, Day, "فروشگاه تجهیزات ورزشی")));
         texts.Single(row => row.Kind == NotificationKind.LowSessions).Status.ShouldBe(NotificationStatus.Failed);
 
         var birthday = (await db.SmsSettings.AsNoTracking().SingleAsync(TestContext.Current.CancellationToken))
             .For(NotificationKind.Birthday);
-        birthday.ShouldBe(new SmsKindSettings(Enabled: true, 0, new TimeOnly(10, 0)));
+        // Still on. Its 0 (the day itself) is 1 since AddBirthdayVisit (task 10.8), which allows 1 to 7.
+        birthday.ShouldBe(new SmsKindSettings(Enabled: true, 1, new TimeOnly(10, 0)));
     }
 
     /// <summary>

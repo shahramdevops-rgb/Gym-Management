@@ -24,7 +24,7 @@ export type SmsKind = (typeof smsKinds)[number];
 export const thresholdRanges: Record<SmsKind, { min: number; max: number; code: string }> = {
   subscriptionExpiring: { min: 1, max: 30, code: "Sms.SubscriptionExpiringDaysOutOfRange" },
   lowSessions: { min: 1, max: 10, code: "Sms.LowSessionsOutOfRange" },
-  birthday: { min: 0, max: 7, code: "Sms.BirthdayDaysOutOfRange" },
+  birthday: { min: 1, max: 7, code: "Sms.BirthdayDaysOutOfRange" },
   payableDue: { min: 0, max: 30, code: "Sms.PayableDueDaysOutOfRange" },
 };
 

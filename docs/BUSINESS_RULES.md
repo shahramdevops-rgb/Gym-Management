@@ -715,7 +715,8 @@ The request names the locker the desk chose, or asks for a reserve place (§6). 
 sale — a single visit or a plan — which is made first, in the same transaction, and is then what
 step 1 finds (*Confirming at the front desk*).
 1. Load the subscription that is in effect today — an `Active` one always wins over a queued renewal that ends later. If none is active, apply the exhausted-with-a-queue rule above. If still none and a membership is frozen, unfreeze it (§4 *Freeze*) — unless the request carries a sale.
-2. `subscription.ConsumeSession(today)`.
+2. `subscription.ConsumeSession(today)` — except on the member's birthday visit (*Birthday visit*),
+   which checks that the plan is usable today and consumes nothing.
 3. Take the place the desk chose (decided by the Owner, 1405/07/05; this replaces the random pick):
    - **A locker:** it must exist (`Lockers.NotFound`), be in service (`Lockers.OutOfService`), and
      have no open attendance (`Attendance.LockerTaken`). Two desks choosing the same free locker
@@ -830,7 +831,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 
 ### Cancel check-in
 - Allowed only for an open attendance within `Gym:CancelCheckInWindowMinutes` of check-in.
-- Restores the session, frees the locker, and marks the attendance cancelled (who and when). The row is kept.
+- Restores the session, frees the locker, and marks the attendance cancelled (who and when). The row is kept. A visit that used no session (a birthday visit, a cardio-only one, a guest's) has none to restore.
 - A freeze the check-in ended stays ended (§4 *Freeze*): the Owner freezes the plan again if it was a mistake.
 - Cancelled attendances are excluded from attendance reports.
 - **What the visit bought is cancelled only when the desk says so, one purchase at a time**
@@ -852,6 +853,36 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 
 ### Auto-checkout
 - A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed. Two kinds of visit stay open for the desk the next day: a cardio-only visit with no هوازی amount (*Cardio-only visit*), and a guest's visit with anything still unpaid (*Guest visit*).
+
+### Birthday visit (ورود رایگان تولد)
+Decided with the developer, 1405/07/27 (2026-10-19), roadmap 10.8. The birthday SMS (§10) tells
+the member of it; the visit is free whether or not the SMS went out.
+- **On their birthday, a member's first visit uses no session of their plan**, like a guest's
+  (§7 *Guest visit*). The birthday is the Jalali month and day, the same day the desk celebrates
+  (§6 *The desk panel*; 29 Esfand for someone born on 30 Esfand in a year without it). The day they
+  were born is not a birthday.
+- **It is automatic**: the desk chooses nothing. Check-in finds the subscription as always (*Check-in*
+  step 1); when that is a **membership plan** (§4, not a single visit), the visit is the birthday
+  visit: the plan must still be usable today (`Active`, the same refusals as `ConsumeSession`), and
+  `UsedSessions` does not change.
+  - A frozen plan is unfrozen by the check-in as usual (§4 *Freeze*), and then uses no session.
+  - **A plan sold with the check-in counts too** (decided by the developer, 1405/07/27): someone who
+    buys a plan at the locker on their birthday comes in on it for free.
+  - A **single visit** is never free: when check-in uses one (one held for today, or one sold in the
+    box), it is used as usual, the money already paid for it.
+  - A cardio-only visit (*Cardio-only visit*) uses no session anyway and is not a birthday visit.
+- **Once per birthday**: the second visit on the same day uses a session as usual. The database
+  holds it too: a partial unique index allows one birthday visit per member and Jalali year, not
+  counting cancelled ones.
+- **Cancelling it** (*Cancel check-in*) gives no session back, since none was used; the visit no
+  longer counts, so the member's next visit that day is the free one.
+- **No money moves**: nothing is sold or recorded at zero, so the financial report is unchanged and
+  no record is deleted. The visit is ordinary attendance and is counted in every attendance report
+  and in the daily report's «ورود» (§10).
+- **On screen**: the check-in box says before confirming that today is the member's birthday and
+  the visit on their plan is free, and afterwards that no session was used; the visit is marked
+  «تولد» wherever visits are listed (the board, the locker's box, the member's history and the
+  history page).
 
 ### Guest visit (ورود مهمان)
 Decided by the developer, 1405/07/07 (2026-09-29). Implemented in roadmap 6.5.11. This replaces
@@ -1272,14 +1303,17 @@ sent that the Owner did not choose, and the same message is never paid for twice
   cancelled later, the member counts as not renewed again, and the next run may send it.
 - **Birthday (`Birthday`)**, to the member: *N days* before the member's birthday by the **Jalali**
   month and day, the same day the desk celebrates (§6 *The desk panel*: someone born on 30 Esfand has
-  their birthday on 29 Esfand in a year without it). It works as a window, like the other kinds
-  (decided with the developer, 1405/07/14, task 10.3): with *N* = 0 it goes on the birthday itself;
-  with *N* from 1 to 7 it goes when the birthday is between tomorrow and *N* days ahead, so a missed
-  day or a member registered a few days before still gets it, and the «پیشاپیش» greeting never
-  arrives on the day itself. **Every member with a birth date gets it**:
-  active or deactivated, with a plan, frozen, single-session only, or with no subscription at all
-  (decided with the developer: the one exception to "deactivated members receive no SMS"). At most
-  once per member per Jalali year.
+  their birthday on 29 Esfand in a year without it), telling them that **on their birthday the gym
+  is free for them** (§7 *Birthday visit*). It works as a window, like the other kinds (decided with
+  the developer, 1405/07/14, task 10.3): *N* is 1 to 7, and it goes when the birthday is between
+  tomorrow and *N* days ahead, so a missed day or a member registered a few days before still gets
+  it. **Never on the day itself** (decided with the developer, 1405/07/27, task 10.8; replaces "0 =
+  the day itself"): the member hears of the free visit early enough to plan it.
+  **Only an active member who holds a plan gets it** (decided with the developer, 1405/07/27, task
+  10.8; replaces "every member with a birth date, deactivated ones included"): on the day the SMS
+  is written, a membership plan (§4, not a single visit, not cancelled) that is active, frozen, or
+  bought for later. A plan whose sessions are used up or whose days have ended does not count, nor
+  does a deactivated member. At most once per member per Jalali year.
 - **Cheque or instalment coming due (`PayableDue`)**, to the **Owner**: a pending cheque or
   instalment (§9 *Cheques and instalments*) dated between today and *N days* ahead. **One SMS for
   each cheque and each instalment**, never a daily summary (decided with the developer). A paid or
@@ -1362,7 +1396,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | All SMS | on/off | |
   | Subscription running out | on/off, days before `EndDate`, send time | 1–30 days |
   | Few sessions left | on/off, sessions left, send time | 1–10 sessions |
-  | Birthday | on/off, days before the birthday, send time | 0–7 days (0 = the day itself) |
+  | Birthday | on/off, days before the birthday, send time | 1–7 days |
   | Cheques and instalments | on/off, days before the date, send time, the Owner's mobile number | 0–30 days |
   | Daily report | on/off, the mobile number it goes to | sent at 22:45, fixed |
 
@@ -1409,10 +1443,10 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   keeps its first 6 words and a payee its first 9, then the first 100 characters.
 - **The wording** (decided with the developer, 1405/07/14, in `docs/sms-texts.md`): the gym is
   named «باشگاه پاسارگاد»; the subscription message gives the end date, not the days left; the
-  birthday has two texts, one for the day itself and one with «پیشاپیش» for a greeting sent 1 to 7
-  days early, and the system picks the one that matches the birthday's date (the Owner picked it
-  while there were templates); the Owner's message gives the kind, the amount, the date and the
-  payee.
+  birthday has one text, always sent 1 to 7 days early, giving the birthday's date and the free
+  visit and ending «پیشاپیش مبارک!» (decided with the developer, 1405/07/27, task 10.8; replaces two
+  texts, one of them for the day itself); the Owner's message gives the kind, the amount, the date
+  and the payee.
 - **Length:** a Persian SMS holds 70 characters in one part and 67 in each part of a longer one, and
   each part is paid for. The four texts run to about two parts each; the developer decided that
   is fine.

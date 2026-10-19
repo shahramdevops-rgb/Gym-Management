@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { cardioOnlyLabel } from "@/features/attendance/holder";
+import { birthdayVisitLabel, cardioOnlyLabel } from "@/features/attendance/holder";
 import { emptyValue, formatDateTime, toPersianDigits } from "@/lib/format";
 
 import type { HistoryAttendance } from "../api";
@@ -38,6 +38,11 @@ export function AttendanceLogTable({ items }: { items: HistoryAttendance[] }) {
                   {item.isCardioOnly && (
                     <Badge variant="outline" className="border-cardio">
                       {cardioOnlyLabel}
+                    </Badge>
+                  )}
+                  {item.isBirthdayVisit && (
+                    <Badge variant="outline" className="border-party-pink">
+                      {birthdayVisitLabel}
                     </Badge>
                   )}
                 </span>

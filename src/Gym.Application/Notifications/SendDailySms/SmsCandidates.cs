@@ -89,21 +89,38 @@ internal static class SmsCandidates
     }
 
     /// <summary>
-    /// Every member with a birth date, active or not, with a subscription or without (§10: the one
-    /// exception to "deactivated members receive no SMS"). Read whole: the Jalali month and day cannot
-    /// be asked of a Gregorian column, and a gym's members fit in memory.
+    /// Active members who hold a plan (§10, task 10.8): the SMS tells them of the free visit on their
+    /// birthday. Read whole: the Jalali month and day cannot be asked of a Gregorian column, and a
+    /// gym's members fit in memory.
     /// </summary>
     private static async Task<List<Notification>> BirthdaysAsync(
         IAppDbContext db, DateOnly today, int daysBefore, CancellationToken cancellationToken)
     {
         var (thisYear, _, _) = JalaliCalendar.Parts(today);
 
-        var members = await db.Members
+        // The likely plans, by their columns: a membership not cancelled that is frozen, or has not
+        // ended and has sessions left (active, or bought for later). SmsAudience has the last word.
+        var plans = await db.Subscriptions
             .AsNoTracking()
-            .OrderBy(member => member.FullName)
-            .ThenBy(member => member.Id)
-            .Select(member => new { member.Id, member.FullName, member.PhoneNumber, member.BirthDate })
+            .Where(subscription => !subscription.IsSingleSession
+                && subscription.CancelledAt == null
+                && (subscription.FrozenSince != null
+                    || (subscription.EndDate >= today && subscription.UsedSessions < subscription.TotalSessions)))
             .ToListAsync(cancellationToken);
+
+        var holdsPlan = plans
+            .Where(subscription => SmsAudience.HoldsPlanForBirthday(subscription, today))
+            .Select(subscription => subscription.MemberId)
+            .ToHashSet();
+
+        var members = (await db.Members
+                .AsNoTracking()
+                .Where(member => member.IsActive)
+                .OrderBy(member => member.FullName)
+                .ThenBy(member => member.Id)
+                .Select(member => new { member.Id, member.FullName, member.PhoneNumber, member.BirthDate })
+                .ToListAsync(cancellationToken))
+            .Where(member => holdsPlan.Contains(member.Id));
 
         // A greeting sent in Esfand may be for next year's birthday, so this year's and later count.
         var greeted = (await db.Notifications
@@ -129,7 +146,7 @@ internal static class SmsCandidates
             }
 
             notifications.Add(Notification.ForBirthday(
-                member.Id, year, member.PhoneNumber, SmsText.ForBirthday(member.FullName, birthday, today)));
+                member.Id, year, member.PhoneNumber, SmsText.ForBirthday(member.FullName, birthday)));
         }
 
         return notifications;

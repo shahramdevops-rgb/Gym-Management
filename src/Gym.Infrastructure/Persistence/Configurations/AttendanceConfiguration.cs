@@ -78,7 +78,19 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
             table.HasCheckConstraint(
                 AttendanceConstraints.CardioOnlyIsMembers,
                 "NOT is_cardio_only OR member_id IS NOT NULL");
+
+            // BUSINESS_RULES.md §7 Birthday visit: a member's visit on the plan it names, from which
+            // no session was consumed. The column's migration leaves every earlier visit null, which
+            // passes. The single-session side cannot be checked here: it is on the subscription's row.
+            table.HasCheckConstraint(
+                AttendanceConstraints.BirthdayVisitOnPlan,
+                "birthday_year IS NULL OR (member_id IS NOT NULL AND subscription_id IS NOT NULL AND NOT is_cardio_only)");
         });
+
+        // A Jalali year such as 1405: smallint is plenty.
+        builder.Property(a => a.BirthdayYear).HasColumnType("smallint");
+        builder.Ignore(a => a.IsBirthdayVisit);
+        builder.Ignore(a => a.ConsumedSession);
 
         builder.Property(a => a.GuestName).HasMaxLength(Attendance.GuestNameMaxLength);
         builder.Ignore(a => a.IsGuest);
@@ -108,6 +120,13 @@ public sealed class AttendanceConfiguration : IEntityTypeConfiguration<Attendanc
             .IsUnique()
             .HasFilter("checked_out_at IS NULL")
             .HasDatabaseName(AttendanceConstraints.OneOpenPerReserveSlot);
+
+        // BUSINESS_RULES.md §7 Birthday visit: one free visit per birthday. A cancelled one no longer
+        // counts, so the member's next visit that day is the free one.
+        builder.HasIndex(a => new { a.MemberId, a.BirthdayYear })
+            .IsUnique()
+            .HasFilter("birthday_year IS NOT NULL AND cancelled_at IS NULL")
+            .HasDatabaseName(AttendanceConstraints.OneBirthdayVisitPerMemberAndYear);
 
         // Not a rule, only speed: the desk's charts read visits by a range of check-in moments (today
         // by hour, and a locker's use over a period). Nothing reacts to its name.

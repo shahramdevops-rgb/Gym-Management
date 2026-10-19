@@ -72,15 +72,12 @@ public static class SmsText
         WithOptOut($"{Name(fullName)} عزیز، فقط {Number(sessionsLeft)} جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.");
 
     /// <summary>
-    /// «تولدتان مبارک» on the day itself, «پیشاپیش» when the greeting goes out 1 to 7 days early:
-    /// picked by the date, so it always matches the day the message is written.
+    /// Always sent 1 to 7 days early, so one text: the date, the free visit on it (BUSINESS_RULES.md
+    /// §7 <i>Birthday visit</i>) and «پیشاپیش مبارک» (chosen by the developer, 1405/07/27, task 10.8).
     /// </summary>
     /// <param name="birthday">This year's birthday, as <c>SmsAudience.BirthdayToGreet</c> found it.</param>
-    /// <param name="today">The gym's date the message is written on.</param>
-    public static string ForBirthday(string fullName, DateOnly birthday, DateOnly today) =>
-        WithOptOut(birthday == today
-            ? $"{Name(fullName)} عزیز، امروز {Date(birthday)} روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد"
-            : $"{Name(fullName)} عزیز، تولدتان در {Date(birthday)} را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد");
+    public static string ForBirthday(string fullName, DateOnly birthday) =>
+        WithOptOut($"{Name(fullName)} عزیز، {Date(birthday)} روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!");
 
     /// <summary>To the Owner: the kind, the amount, the date and the payee.</summary>
     public static string ForPayableDue(PayableKind kind, decimal amount, DateOnly dueDate, string payee)

@@ -104,6 +104,7 @@
 
     "ReserveSlot": { "label": "جای رزرو" },
     "IsCardioOnly": { "label": "فقط هوازی" },
+    "BirthdayYear": { "label": "ورود رایگان تولد (سال)" },
     "GuestName": { "label": "نام مهمان" },
     "ProductName": { "label": "نام محصول" },
     "CancelReason": { "label": "دلیل لغو" },

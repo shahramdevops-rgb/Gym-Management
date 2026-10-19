@@ -63,7 +63,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [InlineData("subscription_expiring_days_before = 31", "ck_sms_settings_subscription_expiring_days")]
     [InlineData("low_sessions_threshold = 0", "ck_sms_settings_low_sessions_threshold")]
     [InlineData("low_sessions_threshold = 11", "ck_sms_settings_low_sessions_threshold")]
-    [InlineData("birthday_days_before = -1", "ck_sms_settings_birthday_days")]
+    [InlineData("birthday_days_before = 0", "ck_sms_settings_birthday_days")]
     [InlineData("birthday_days_before = 8", "ck_sms_settings_birthday_days")]
     [InlineData("payable_due_days_before = 31", "ck_sms_settings_payable_due_days")]
     [InlineData("birthday_send_time = '07:45'", "ck_sms_settings_send_times")]
@@ -92,7 +92,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     public async Task Database_KindOnAndFilled_IsAccepted() =>
         await ExecuteAsync(
             """
-            UPDATE sms_settings SET birthday_enabled = true, birthday_days_before = 0,
+            UPDATE sms_settings SET birthday_enabled = true, birthday_days_before = 1,
                 birthday_send_time = '22:00'
             """);
 
@@ -153,7 +153,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         reread.Enabled.ShouldBeTrue();
         reread.SubscriptionExpiring.ShouldBe(new SmsKindSettings(true, 7, new TimeOnly(9, 0)));
         reread.LowSessions.ShouldBe(new SmsKindSettings(true, 2, new TimeOnly(9, 15)));
-        reread.Birthday.ShouldBe(new SmsKindSettings(true, 0, new TimeOnly(10, 30)));
+        reread.Birthday.ShouldBe(new SmsKindSettings(true, 1, new TimeOnly(10, 30)));
         reread.PayableDue.ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(22, 0)));
         reread.OwnerPhone.ShouldBe("+989121234567");
         reread.DailyReport.ShouldBe(new DailyReportSettingsResponse(true, "+989351234567", new TimeOnly(22, 45)));
@@ -280,7 +280,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             .OrderByDescending(log => log.OccurredAt)
             .FirstAsync(TestContext.Current.CancellationToken);
         update.UserId.ShouldBe(ownerId);
-        Value(update.OldValues, nameof(SmsSettings.BirthdayDaysBefore)).GetInt32().ShouldBe(0);
+        Value(update.OldValues, nameof(SmsSettings.BirthdayDaysBefore)).GetInt32().ShouldBe(1);
         Value(update.NewValues, nameof(SmsSettings.BirthdayDaysBefore)).GetInt32().ShouldBe(3);
         Value(update.NewValues, nameof(SmsSettings.BirthdayEnabled)).GetBoolean().ShouldBeFalse();
     }
@@ -415,6 +415,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [Theory]
     [InlineData("subscriptionExpiring", 31, null, "subscriptionExpiring.threshold", "Sms.SubscriptionExpiringDaysOutOfRange")]
     [InlineData("lowSessions", 11, null, "lowSessions.threshold", "Sms.LowSessionsOutOfRange")]
+    [InlineData("birthday", 0, null, "birthday.threshold", "Sms.BirthdayDaysOutOfRange")]
     [InlineData("birthday", 8, null, "birthday.threshold", "Sms.BirthdayDaysOutOfRange")]
     [InlineData("payableDue", 31, null, "payableDue.threshold", "Sms.PayableDueDaysOutOfRange")]
     [InlineData("birthday", null, "22:15:00", "birthday.sendTime", "Sms.SendTimeOutOfRange")]
@@ -477,7 +478,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         enabled: true,
         subscriptionExpiring: Kind(true, 7, "09:00:00"),
         lowSessions: Kind(true, 2, "09:15:00"),
-        birthday: Kind(true, 0, "10:30:00"),
+        birthday: Kind(true, 1, "10:30:00"),
         payableDue: Kind(true, 3, "22:00:00"),
         ownerPhone: "09121234567",
         dailyReport: new { enabled = true, phone = "09351234567" });

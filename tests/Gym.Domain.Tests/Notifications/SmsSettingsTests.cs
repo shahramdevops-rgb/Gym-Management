@@ -38,7 +38,7 @@ public sealed class SmsSettingsTests
             enabled: true,
             subscriptionExpiring: new(true, 7, new TimeOnly(9, 0)),
             lowSessions: new(true, 2, new TimeOnly(9, 15)),
-            birthday: new(true, 0, new TimeOnly(10, 30)),
+            birthday: new(true, 1, new TimeOnly(10, 30)),
             payableDue: new(true, 3, new TimeOnly(21, 45)),
             ownerPhone: Phone,
             dailyReportEnabled: true,
@@ -48,7 +48,7 @@ public sealed class SmsSettingsTests
         settings.Enabled.ShouldBeTrue();
         settings.For(NotificationKind.SubscriptionExpiring).ShouldBe(new SmsKindSettings(true, 7, new TimeOnly(9, 0)));
         settings.For(NotificationKind.LowSessions).ShouldBe(new SmsKindSettings(true, 2, new TimeOnly(9, 15)));
-        settings.For(NotificationKind.Birthday).ShouldBe(new SmsKindSettings(true, 0, new TimeOnly(10, 30)));
+        settings.For(NotificationKind.Birthday).ShouldBe(new SmsKindSettings(true, 1, new TimeOnly(10, 30)));
         settings.For(NotificationKind.PayableDue).ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(21, 45)));
         settings.OwnerPhone.ShouldBe(Phone);
         settings.DailyReportEnabled.ShouldBeTrue();
@@ -113,7 +113,7 @@ public sealed class SmsSettingsTests
     [InlineData(NotificationKind.SubscriptionExpiring, 30)]
     [InlineData(NotificationKind.LowSessions, 1)]
     [InlineData(NotificationKind.LowSessions, 10)]
-    [InlineData(NotificationKind.Birthday, 0)]
+    [InlineData(NotificationKind.Birthday, 1)]
     [InlineData(NotificationKind.Birthday, 7)]
     [InlineData(NotificationKind.PayableDue, 0)]
     [InlineData(NotificationKind.PayableDue, 30)]
@@ -125,7 +125,7 @@ public sealed class SmsSettingsTests
     [InlineData(NotificationKind.SubscriptionExpiring, 31)]
     [InlineData(NotificationKind.LowSessions, 0)]
     [InlineData(NotificationKind.LowSessions, 11)]
-    [InlineData(NotificationKind.Birthday, -1)]
+    [InlineData(NotificationKind.Birthday, 0)]
     [InlineData(NotificationKind.Birthday, 8)]
     [InlineData(NotificationKind.PayableDue, -1)]
     [InlineData(NotificationKind.PayableDue, 31)]

@@ -39,7 +39,7 @@ const filled: SmsSettings = {
     sendTime: "09:15:00",
   },
   lowSessions: off,
-  birthday: { enabled: false, threshold: 0, sendTime: null },
+  birthday: { enabled: false, threshold: 2, sendTime: null },
   payableDue: { enabled: true, threshold: 3, sendTime: "22:00:00" },
   ownerPhone: "+989121234567",
   dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
@@ -263,7 +263,7 @@ describe("SmsSettingsPage", () => {
     expect(expiring.getByLabelText(/^چند روز/)).toHaveValue("7");
     expect(expiring.getByLabelText("ساعت ارسال")).toHaveValue("09");
     expect(expiring.getByLabelText("دقیقه")).toHaveValue("15");
-    expect(group("تولد").getByLabelText(/^چند روز/)).toHaveValue("0");
+    expect(group("تولد").getByLabelText(/^چند روز/)).toHaveValue("2");
     expect(screen.getByLabelText("شماره موبایل مدیر")).toHaveValue("۰۹۱۲ ۱۲۳ ۴۵۶۷");
   });
 
@@ -277,7 +277,7 @@ describe("SmsSettingsPage", () => {
     await screen.findByRole("group", { name: "تولد" });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "ارسال پیامک روشن باشد" }));
-    fillKind("تولد", "۰", "10");
+    fillKind("تولد", "۱", "10");
     fireEvent.change(group("تولد").getByLabelText("دقیقه"), { target: { value: "30" } });
     fireEvent.click(switchOf("تولد"));
     fireEvent.change(screen.getByLabelText("شماره موبایل مدیر"), {
@@ -293,7 +293,7 @@ describe("SmsSettingsPage", () => {
       enabled: true,
       subscriptionExpiring: off,
       lowSessions: off,
-      birthday: { enabled: true, threshold: 0, sendTime: "10:30:00" },
+      birthday: { enabled: true, threshold: 1, sendTime: "10:30:00" },
       payableDue: off,
       ownerPhone: "0912 123 4567",
       dailyReport: { enabled: false, phone: null },
@@ -309,7 +309,7 @@ describe("SmsSettingsPage", () => {
     fireEvent.change(group("تولد").getByLabelText(/^چند روز/), { target: { value: "8" } });
     fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
 
-    expect(await screen.findByText(/تعداد روز باید از ۰ تا ۷ باشد/)).toBeInTheDocument();
+    expect(await screen.findByText(/تعداد روز باید از ۱ تا ۷ باشد/)).toBeInTheDocument();
     expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);
   });
 

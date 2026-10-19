@@ -28,6 +28,11 @@ namespace Gym.Application.Attendances;
 /// visit</i>); <paramref name="SubscriptionId"/> is then the plan they held, if any. The visit cannot
 /// be checked out until its هوازی amount is recorded.
 /// </param>
+/// <param name="IsBirthdayVisit">
+/// The member's free visit on their birthday (BUSINESS_RULES.md §7 <i>Birthday visit</i>): no session
+/// was consumed from <paramref name="SubscriptionId"/>. The desk is told so after check-in, and the
+/// visit is marked «تولد» wherever it is listed.
+/// </param>
 /// <param name="CheckedOutAt"><c>null</c> while the visit is still open.</param>
 /// <param name="CancelledAt"><c>null</c> unless the check-in was cancelled (BUSINESS_RULES.md §7).</param>
 /// <param name="AutoClosedAt"><c>null</c> unless the nightly job closed this visit instead of the member checking out (BUSINESS_RULES.md §7 Auto-checkout).</param>
@@ -60,6 +65,7 @@ public sealed record AttendanceResponse(
     int? LockerNumber,
     bool UsesReservePlace,
     bool IsCardioOnly,
+    bool IsBirthdayVisit,
     DateTimeOffset CheckedInAt,
     DateTimeOffset? CheckedOutAt,
     DateTimeOffset? CancelledAt,
@@ -84,6 +90,7 @@ public sealed record AttendanceResponse(
             lockers.Where(l => l.Id == attendance.LockerId).Select(l => (int?)l.Number).FirstOrDefault(),
             attendance.ReserveSlot != null,
             attendance.IsCardioOnly,
+            attendance.BirthdayYear != null,
             attendance.CheckedInAt,
             attendance.CheckedOutAt,
             attendance.CancelledAt,
@@ -108,6 +115,7 @@ public sealed record AttendanceResponse(
             lockerNumber,
             attendance.UsesReservePlace,
             attendance.IsCardioOnly,
+            attendance.IsBirthdayVisit,
             attendance.CheckedInAt,
             attendance.CheckedOutAt,
             attendance.CancelledAt,

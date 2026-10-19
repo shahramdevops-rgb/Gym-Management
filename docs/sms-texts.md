@@ -54,21 +54,18 @@ Kavenegar does not add a second one. `SmsText.OptOut`. Messages written before k
 
 ### Birthday (`Birthday`, to the member)
 
-Two texts, because the Owner may send it 0 to 7 days ahead, and «تولدتان مبارک» three days early
-reads wrong. The system picks by the birthday's date: the first on the day itself, the second when
-it is 1 to 7 days away.
+One text, chosen by the developer on 1405/07/27 (2026-10-19), task 10.8. It is always sent 1 to 7
+days before the birthday, never on the day, and tells the member of the free visit
+(BUSINESS_RULES.md §7 *Birthday visit*). It replaced two texts, one for the day itself and one
+«پیشاپیش»; messages written before keep their text.
 
 ```
-{name} عزیز، امروز {birthday} روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد
+{name} عزیز، {birthday} روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!
 ```
 
-```
-{name} عزیز، تولدتان در {birthday} را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد
-```
-
-- `{birthday}`: the birthday's date this year (Jalali); 29 Esfand for someone born on 30 Esfand in a
-  year without it.
-- About 86 and 87 characters: two parts each.
+- `{birthday}`: the birthday's date this year (Jalali, with the year); 29 Esfand for someone born on
+  30 Esfand in a year without it.
+- About 121 characters: two parts.
 
 ### Cheque or instalment coming due (`PayableDue`, to the Owner)
 

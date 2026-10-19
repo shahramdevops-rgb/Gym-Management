@@ -264,48 +264,77 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
     // ---- Birthday ----
 
     [Fact]
-    public async Task Handle_Birthday_DeactivatedAndWithoutSubscriptionBothGetIt()
+    public async Task Handle_Birthday_OnlyActiveMembersHoldingAPlanGetIt()
     {
-        await TurnOnAsync(NotificationKind.Birthday, 0);
-        var bornToday = JalaliCalendar.ToDate(1370, 7, 14);
-        var active = await AddMemberAsync(birthDate: bornToday);
-        var deactivated = await AddMemberAsync(birthDate: bornToday, active: false);
-        await AddMemberAsync();
+        // Task 10.8: the SMS tells of the free visit, so only an active member with a plan, active,
+        // frozen or bought for later; a used-up plan, a single visit or none does not count.
+        await TurnOnAsync(NotificationKind.Birthday, 3);
+        var born = JalaliCalendar.ToDate(1370, 7, 16);
+        var withPlan = await AddMemberAsync(birthDate: born);
+        await AddPlanEndingInAsync(withPlan, daysLeft: 10);
+        var frozen = await AddMemberAsync(birthDate: born);
+        var frozenPlan = Subscription.CreateMembership(frozen.Id, Sessions, 90_000m, Today.AddDays(-5)).Value;
+        frozenPlan.Freeze(Today, maxFreezeDays: 30).IsSuccess.ShouldBeTrue();
+        await AddSubscriptionAsync(frozenPlan);
+        var queued = await AddMemberAsync(birthDate: born);
+        await AddSubscriptionAsync(Subscription.CreateMembership(queued.Id, Sessions, 90_000m, Today.AddDays(5)).Value);
+        var deactivated = await AddMemberAsync(birthDate: born, active: false);
+        await AddPlanEndingInAsync(deactivated, daysLeft: 10);
+        await AddMemberAsync(birthDate: born);
+        var singleVisitOnly = await AddMemberAsync(birthDate: born);
+        await AddSubscriptionAsync(Subscription.CreateSingleVisit(singleVisitOnly.Id, 1m, Today).Value);
+        var usedUp = await AddMemberAsync(birthDate: born);
+        await AddPlanWithSessionsLeftAsync(usedUp, left: 0);
         var sender = new ScriptedSmsSender();
 
         await RunAsync(NotificationKind.Birthday, sender);
 
-        sender.Requests.Select(request => request.Receptor).ShouldBe([active.PhoneNumber, deactivated.PhoneNumber], ignoreOrder: true);
-        sender.Requests[0].Text.ShouldBe($"{Name} عزیز، امروز ۱۴۰۵/۰۷/۱۴ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد\nلغو11");
+        sender.Requests.Select(request => request.Receptor)
+            .ShouldBe([withPlan.PhoneNumber, frozen.PhoneNumber, queued.PhoneNumber], ignoreOrder: true);
+        sender.Requests[0].Text.ShouldBe(
+            $"{Name} عزیز، ۱۴۰۵/۰۷/۱۶ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!\nلغو11");
         (await NotificationsAsync()).ShouldAllBe(notification => notification.JalaliYear == 1405);
+    }
+
+    [Fact]
+    public async Task Handle_BirthdayToday_SendsNothing()
+    {
+        await TurnOnAsync(NotificationKind.Birthday, 7);
+        var member = await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1370, 7, 14));
+        await AddPlanEndingInAsync(member, daysLeft: 10);
+        var sender = new ScriptedSmsSender();
+
+        await RunAsync(NotificationKind.Birthday, sender);
+
+        sender.Requests.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Handle_BirthdayDaysAhead_OncePerJalaliYearAcrossTheWindow()
     {
         await TurnOnAsync(NotificationKind.Birthday, 3);
-        await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1370, 7, 16));
+        var member = await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1370, 7, 16));
+        await AddPlanEndingInAsync(member, daysLeft: 10);
         var sender = new ScriptedSmsSender();
 
         await RunAsync(NotificationKind.Birthday, sender);
         await RunAsync(NotificationKind.Birthday, sender, at: At(Today.AddDays(1), 10, 0));
 
-        sender.Requests.ShouldHaveSingleItem().Text
-            .ShouldBe($"{Name} عزیز، تولدتان در ۱۴۰۵/۰۷/۱۶ را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد\nلغو11");
+        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{Name} عزیز، ۱۴۰۵/۰۷/۱۶ روز تولد شماست؛");
     }
 
     [Fact]
-    public async Task Handle_BirthdayBornOn30EsfandInACommonYear_GreetedOn29Esfand()
+    public async Task Handle_BirthdayBornOn30EsfandInACommonYear_GreetedFor29Esfand()
     {
-        await TurnOnAsync(NotificationKind.Birthday, 0);
-        await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1379, 12, 30));
+        await TurnOnAsync(NotificationKind.Birthday, 1);
+        var day = JalaliCalendar.ToDate(1404, 12, 28);
+        var member = await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1379, 12, 30));
+        await AddSubscriptionAsync(Subscription.CreateMembership(member.Id, Sessions, 90_000m, day.AddDays(-3)).Value);
         var sender = new ScriptedSmsSender();
 
-        await RunAsync(NotificationKind.Birthday, sender, at: At(JalaliCalendar.ToDate(1404, 12, 29), 10, 0));
+        await RunAsync(NotificationKind.Birthday, sender, at: At(day, 10, 0));
 
-        // The day itself, so the «تولدتان مبارک» text, not the «پیشاپیش» one.
-        sender.Requests.ShouldHaveSingleItem().Text
-            .ShouldBe($"{Name} عزیز، امروز ۱۴۰۴/۱۲/۲۹ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد\nلغو11");
+        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{Name} عزیز، ۱۴۰۴/۱۲/۲۹ روز تولد شماست؛");
     }
 
     // ---- Cheques and instalments ----

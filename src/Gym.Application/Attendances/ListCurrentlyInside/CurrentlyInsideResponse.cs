@@ -23,6 +23,7 @@ namespace Gym.Application.Attendances.ListCurrentlyInside;
 /// subscription values are the plan the member held, all <c>null</c> when they held none (no plan is
 /// needed for this); the board marks the row «فقط هوازی».
 /// </param>
+/// <param name="IsBirthdayVisit">The member's free visit on their birthday (§7 <i>Birthday visit</i>); the board marks it «تولد».</param>
 /// <param name="SubscriptionEndDate">
 /// Of the subscription this visit consumed from, which the attendance names outright
 /// (<c>Attendance.SubscriptionId</c>). Reading it from there rather than re-deriving "the one in
@@ -61,6 +62,7 @@ public sealed record CurrentlyInsideResponse(
     int? LockerNumber,
     bool UsesReservePlace,
     bool IsCardioOnly,
+    bool IsBirthdayVisit,
     DateTimeOffset CheckedInAt,
     Guid? SubscriptionId,
     int? TotalSessions,
@@ -100,6 +102,7 @@ public sealed record CurrentlyInsideResponse(
             lockers.Where(l => l.Id == attendance.LockerId).Select(l => (int?)l.Number).FirstOrDefault(),
             attendance.ReserveSlot != null,
             attendance.IsCardioOnly,
+            attendance.BirthdayYear != null,
             attendance.CheckedInAt,
             attendance.SubscriptionId,
             subscriptions.Where(s => s.Id == attendance.SubscriptionId).Select(s => (int?)s.TotalSessions).FirstOrDefault(),

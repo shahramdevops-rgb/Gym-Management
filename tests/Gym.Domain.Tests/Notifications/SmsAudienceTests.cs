@@ -119,18 +119,6 @@ public sealed class SmsAudienceTests
 
     // ---- Birthday ----
 
-    [Fact]
-    public void BirthdayToGreet_DayItselfWithZero_IsToday()
-    {
-        SmsAudience.BirthdayToGreet(BornOn(7, 14), Today, daysBefore: 0).ShouldBe(Today);
-    }
-
-    [Fact]
-    public void BirthdayToGreet_TomorrowWithZero_IsNone()
-    {
-        SmsAudience.BirthdayToGreet(BornOn(7, 15), Today, daysBefore: 0).ShouldBeNull();
-    }
-
     [Theory]
     [InlineData(1)]
     [InlineData(3)]
@@ -142,11 +130,13 @@ public sealed class SmsAudienceTests
         SmsAudience.BirthdayToGreet(BornOn(month, day), Today, daysBefore: 3).ShouldBe(birthday);
     }
 
-    [Fact]
-    public void BirthdayToGreet_DayItselfWithDaysAhead_IsNone()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void BirthdayToGreet_DayItself_IsNone(int daysBefore)
     {
-        // The «پیشاپیش» greeting never lands on the day (decided with the developer, task 10.3).
-        SmsAudience.BirthdayToGreet(BornOn(7, 14), Today, daysBefore: 3).ShouldBeNull();
+        // Never on the day: the member hears of the free visit in time (task 10.8).
+        SmsAudience.BirthdayToGreet(BornOn(7, 14), Today, daysBefore).ShouldBeNull();
     }
 
     [Fact]
@@ -165,9 +155,9 @@ public sealed class SmsAudienceTests
     public void BirthdayToGreet_BornOn30EsfandInAYearWithout_Is29Esfand()
     {
         var born = JalaliCalendar.ToDate(1379, 12, 30);
-        var today = JalaliCalendar.ToDate(1404, 12, 29);
+        var today = JalaliCalendar.ToDate(1404, 12, 28);
 
-        SmsAudience.BirthdayToGreet(born, today, daysBefore: 0).ShouldBe(today);
+        SmsAudience.BirthdayToGreet(born, today, daysBefore: 1).ShouldBe(JalaliCalendar.ToDate(1404, 12, 29));
     }
 
     [Fact]
@@ -182,7 +172,59 @@ public sealed class SmsAudienceTests
     [Fact]
     public void BirthdayToGreet_BornToday_IsNone()
     {
-        SmsAudience.BirthdayToGreet(Today, Today, daysBefore: 0).ShouldBeNull();
+        SmsAudience.BirthdayToGreet(Today, Today, daysBefore: 7).ShouldBeNull();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_ActivePlan_IsTrue()
+    {
+        SmsAudience.HoldsPlanForBirthday(WithSessionsLeft(3), Today).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_Frozen_IsTrue()
+    {
+        var subscription = WithSessionsLeft(3);
+        subscription.Freeze(Today, maxFreezeDays: 30).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.HoldsPlanForBirthday(subscription, Today).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_BoughtForLater_IsTrue()
+    {
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(5)).Value;
+
+        SmsAudience.HoldsPlanForBirthday(queued, Today).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_UsedUp_IsFalse()
+    {
+        SmsAudience.HoldsPlanForBirthday(WithSessionsLeft(0), Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_Ended_IsFalse()
+    {
+        SmsAudience.HoldsPlanForBirthday(EndingIn(-1), Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_Cancelled_IsFalse()
+    {
+        var subscription = EndingIn(10);
+        subscription.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.HoldsPlanForBirthday(subscription, Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_SingleVisit_IsFalse()
+    {
+        var visit = Subscription.CreateSingleVisit(MemberId, 1m, Today).Value;
+
+        SmsAudience.HoldsPlanForBirthday(visit, Today).ShouldBeFalse();
     }
 
     // ---- Cheques and instalments ----

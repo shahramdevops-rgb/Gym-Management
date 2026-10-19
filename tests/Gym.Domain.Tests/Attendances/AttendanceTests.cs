@@ -411,6 +411,46 @@ public sealed class AttendanceTests
         guest.AutoClosedAt.ShouldBe(closedAt);
     }
 
+    // ---- Birthday visit (BUSINESS_RULES.md §7) ----
+
+    [Fact]
+    public void CheckIn_Ordinary_IsNotABirthdayVisitAndConsumedASession()
+    {
+        var attendance = OpenAttendance();
+
+        attendance.IsBirthdayVisit.ShouldBeFalse();
+        attendance.BirthdayYear.ShouldBeNull();
+        attendance.ConsumedSession.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CheckIn_WithBirthdayYear_IsABirthdayVisitThatConsumedNoSession()
+    {
+        var attendance = Attendance.CheckIn(MemberId, SubscriptionId, Guid.NewGuid(), CheckedInAt, birthdayYear: 1405);
+
+        attendance.IsBirthdayVisit.ShouldBeTrue();
+        attendance.BirthdayYear.ShouldBe(1405);
+        attendance.SubscriptionId.ShouldBe(SubscriptionId);
+        attendance.ConsumedSession.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CheckInOnReservePlace_WithBirthdayYear_IsABirthdayVisit()
+    {
+        var attendance = Attendance.CheckInOnReservePlace(MemberId, SubscriptionId, 1, CheckedInAt, birthdayYear: 1405);
+
+        attendance.IsBirthdayVisit.ShouldBeTrue();
+        attendance.ConsumedSession.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ConsumedSession_CardioOnly_IsFalse() =>
+        Attendance.CheckInCardioOnly(MemberId, SubscriptionId, Guid.NewGuid(), CheckedInAt).ConsumedSession.ShouldBeFalse();
+
+    [Fact]
+    public void ConsumedSession_Guest_IsFalse() =>
+        GuestAttendance().ConsumedSession.ShouldBeFalse();
+
     private static Attendance OpenAttendance() =>
         Attendance.CheckIn(MemberId, SubscriptionId, Guid.NewGuid(), CheckedInAt);
 

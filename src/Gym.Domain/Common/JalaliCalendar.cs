@@ -49,6 +49,17 @@ public static class JalaliCalendar
         return ToDate(year, month, day);
     }
 
+    /// <summary>
+    /// Whether <paramref name="today"/> is the member's birthday (§7 <i>Birthday visit</i>). The day
+    /// someone was born is not one: the first is a year later.
+    /// </summary>
+    public static bool IsBirthday(DateOnly birthDate, DateOnly today)
+    {
+        var (year, _, _) = Parts(today);
+
+        return today > birthDate && BirthdayIn(birthDate, year) == today;
+    }
+
     /// <summary>The member's next birthday on or after <paramref name="today"/>: this Jalali year's, or next year's once it has passed.</summary>
     public static DateOnly NextBirthday(DateOnly birthDate, DateOnly today)
     {

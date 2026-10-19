@@ -43,10 +43,10 @@ public static class SmsAudience
     }
 
     /// <summary>
-    /// The birthday to greet today, or <c>null</c>. With <paramref name="daysBefore"/> = 0, the
-    /// birthday itself; otherwise a birthday from tomorrow to <paramref name="daysBefore"/> days ahead,
-    /// so the «پیشاپیش» greeting never lands on the day (decided with the developer, task 10.3). The
-    /// birthday's Jalali year is the year of the message: one per member and year.
+    /// The birthday to greet today, or <c>null</c>: a birthday from tomorrow to
+    /// <paramref name="daysBefore"/> days ahead, never the day itself, so the member hears of the free
+    /// visit in time (task 10.8; the settings allow 1 to 7). The birthday's Jalali year is the year of
+    /// the message: one per member and year.
     /// </summary>
     public static DateOnly? BirthdayToGreet(DateOnly birthDate, DateOnly today, int daysBefore)
     {
@@ -59,9 +59,21 @@ public static class SmsAudience
         }
 
         var daysAway = birthday.DayNumber - today.DayNumber;
-        var inWindow = daysBefore == 0 ? daysAway == 0 : daysAway >= 1 && daysAway <= daysBefore;
 
-        return inWindow ? birthday : null;
+        return daysAway >= 1 && daysAway <= daysBefore ? birthday : null;
+    }
+
+    /// <summary>
+    /// A plan that earns the birthday SMS (§10, task 10.8): a membership, not a single visit, that is
+    /// active, frozen or bought for later on the day the message is written. One used up, ended or
+    /// cancelled does not count. Whether the member is active is the run's question.
+    /// </summary>
+    public static bool HoldsPlanForBirthday(Subscription subscription, DateOnly today)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+
+        return !subscription.IsSingleSession
+            && subscription.GetStatus(today) is SubscriptionStatus.Active or SubscriptionStatus.Frozen or SubscriptionStatus.Upcoming;
     }
 
     /// <summary>

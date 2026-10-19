@@ -1756,3 +1756,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **A trigger that sounds natural can be the wrong one.** "Send it after the last check-out" needs the system to know which check-out is the last, and it cannot: the gym empties in the afternoon, a forgotten check-out never empties it, and the auto-checkout is at midnight. A fixed time is less clever and always right.
 - **A specific error code when two fields share a rule.** Both numbers follow the members' phone rules, so the normalizer answers with the same codes for either. The report's number is mapped to `Sms.DailyReportPhoneInvalid` in the handler, so the page can show it under the right box.
 - **My notes:**
+
+## 10.8 — Birthday: one text and a free visit (تولد و ورود رایگان)
+
+- **A nullable value instead of a flag.** `Attendance.BirthdayYear` says two things at once: whether the visit was free (`IsBirthdayVisit`) and for which birthday. A plain bool could not be part of a unique index that means "one free visit per member and year"; the year can.
+- **A partial unique index that forgets cancelled rows.** `WHERE birthday_year IS NOT NULL AND cancelled_at IS NULL` lets a cancelled birthday visit step aside, so the member's next visit that day is the free one, while two live free visits in one year are refused by the database even if the code had a bug.
+- **Name the question, not the cases.** `CancelCheckInHandler` used to ask "is it cardio-only?" before giving a session back; with a third kind of visit that uses no session, the entity now answers `ConsumedSession` itself. The next kind added will change one property, not every caller.
+- **Check without changing.** The free visit still needs a plan usable today, so the handler calls `subscription.EnsureActive(today)` instead of `ConsumeSession(today)`: the same refusals (expired, used up, not started) without the side effect.
+- **Pure rule in Domain, other rows in the handler.** `BirthdayVisit.FreeYear` knows the calendar and the subscription and is unit tested with no database; "did they already have one this year?" reads other attendances, so the handler asks it, under the member lock, and the index backs it up.
+- **A migration that changes data must still carry it forward.** The range went from 0–7 to 1–7, so the migration turns a saved 0 into 1 *before* adding the new check constraint; adding the constraint first would refuse the Owner's row and stop the release.
+- **Tests on the real clock need dates that never collide.** The test members had a fixed birth date, so once a year their check-ins would have been free and every session count would fail. Their birth date is now half a year away from the day the tests run.
+- **My notes:**

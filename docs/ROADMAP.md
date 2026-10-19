@@ -2694,17 +2694,32 @@ Replaces the «Future — Free entry on the birthday» notes. Decided:
   services such as cardio, desk sales) is paid as usual.
 - A frozen member gets the SMS too. If they come, they are unfrozen as any frozen member who comes
   in (§4 *Freeze*).
-- [ ] Open: is 0 (the day itself) no longer allowed, so 1–7 only? Members whose birthday was already
-      greeted this year keep their row (one per member and year)
-- [ ] Open: a member with **no** active plan (expired, none, single-session only) or a deactivated
-      one: do they get the SMS and the free visit? Today every member with a birth date gets the SMS
-- [ ] To check with the developer: §4 says a subscription may be frozen **several times**, the days
-      adding up; the developer said on 1405/07/26 it can be frozen only **once**. Which is the rule?
-- [ ] Open: how the free visit shows in the money and on the history (a visit at zero with the
-      reason «تولد», never a deleted record), and whether the desk offers it by itself on the day
-      or a staff member chooses it
-- [ ] Open: the wording
-- [ ] Rules, migration (the second birthday text gone, the days' range), check-in, tests, UI
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §7 *Birthday visit* and §10:
+- [x] 1–7 days only: never on the day itself, so the member can plan the visit; a 0 already saved
+      becomes 1. Members greeted this year keep their row (one per member and year)
+- [x] Only an **active member holding a plan** gets the SMS: a membership active, frozen or bought
+      for later on the day it is written (not a single visit, not used up or ended); replaces "every
+      member with a birth date, deactivated ones included"
+- [x] Freezing stays as §4 says: **several times**, the days adding up (the developer, 1405/07/27)
+- [x] The free visit is **automatic**: the first check-in on the Jalali birthday that lands on a
+      membership plan uses no session (frozen ones are unfrozen as usual; a plan sold at the locker
+      that day counts too, decided by the developer); a single visit is used as usual; the second
+      visit that day uses a session; a cancelled one gives nothing back and frees the free visit
+      again. No money moves, so nothing at zero is recorded; the visit is marked «تولد»
+- [x] The wording (`docs/sms-texts.md`): «{name} عزیز، {date} روز تولد شماست؛ آن روز مهمان باشگاه
+      پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!», the date with the year
+- [x] Rules, migration, check-in, tests, UI: `BirthdayVisit.FreeYear`, `JalaliCalendar.IsBirthday`,
+      `Attendance.BirthdayYear` and `ConsumedSession`, `SmsAudience.HoldsPlanForBirthday`, one
+      `SmsText.ForBirthday`; migration `AddBirthdayVisit` (`birthday_year` on `attendances`, empty for
+      every visit before, the unique index `ix_attendances_one_birthday_visit_per_member_and_year`,
+      the check `ck_attendances_birthday_visit_on_plan`, the settings' range 1–7 with a 0 carried
+      forward as 1); the check-in box says it before and after, «تولد» on the board, the locker's
+      box and both histories; the settings page says 1–7
+
+Closed 2026-10-19: 2283 backend tests (758 domain, 1525 integration) and 1029 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddBirthdayVisit`,
+which only adds (an empty column, an index, a check) and carries a saved 0 forward as 1, refusing
+no existing row. It goes out with the SMS release (10.6), which still starts with `./backup.sh run`.
 
 #### 10.9 Subscription receipt (رسید خرید اشتراک)
 Decided: sent when the subscription is **fully paid**, so a member who got it has surely paid; a
@@ -3205,8 +3220,8 @@ gets the rule once these are answered:
 - [ ] The wording, added to `docs/sms-texts.md` and `SmsText`
 
 ## Future — Free entry on the birthday (ورود رایگان روز تولد)
-**Now task 10.8** (1405/07/26), which answers the session question (none used) and the advertising
-one (any message may go, settled with Kavenegar); the rest stays open there.
+**Done in task 10.8** (1405/07/27): every question below is answered there and in BUSINESS_RULES.md
+§7 *Birthday visit*. Kept for the history of the idea.
 Planned by the developer on 1405/07/15 (2026-10-07). Two separate parts. The gym's rule: a member
 gets a free visit on their birthday; the desk already knows whose birthday it is (BUSINESS_RULES.md
 §6 *The desk panel*), so the desk can offer it at check-in, and no discount code is needed. And the

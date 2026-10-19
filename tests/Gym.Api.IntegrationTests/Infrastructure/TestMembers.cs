@@ -16,9 +16,13 @@ internal static class TestMembers
     private static readonly DateOnly SeedToday = new(2026, 1, 1);
 
     /// <summary>
-    /// Every member has a birth date (BUSINESS_RULES.md §2). Tests about something else get this one.
+    /// Every member has a birth date (BUSINESS_RULES.md §2). Tests about something else get this one:
+    /// half a year away from the day the tests run, so a test that counts sessions never meets the
+    /// free birthday visit (§7 <i>Birthday visit</i>). The tests run on the real clock, and a fixed
+    /// date would turn them red one day a year.
     /// </summary>
-    private static readonly DateOnly SeedBirthDate = new(1990, 6, 15);
+    private static readonly DateOnly SeedBirthDate =
+        DateOnly.FromDateTime(TimeProvider.System.GetUtcNow().UtcDateTime).AddMonths(6).AddYears(-36);
 
     /// <summary>An active member with no notes and the default birth date.</summary>
     internal static Member Seed(string fullName, string phoneNumber) =>

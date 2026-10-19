@@ -11,7 +11,7 @@ const settings: SmsSettings = {
     sendTime: "09:15:00",
   },
   lowSessions: off,
-  birthday: { enabled: false, threshold: 0, sendTime: null },
+  birthday: { enabled: false, threshold: 2, sendTime: null },
   payableDue: off,
   ownerPhone: "+989121234567",
   dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
@@ -60,7 +60,8 @@ describe("sms schemas", () => {
     ["subscriptionExpiring", "0", false],
     ["subscriptionExpiring", "30", true],
     ["lowSessions", "11", false],
-    ["birthday", "0", true],
+    ["birthday", "0", false],
+    ["birthday", "1", true],
     ["birthday", "8", false],
     ["payableDue", "31", false],
   ] as const)("smsSettingsSchema_%s_%s_Valid_%s", (kind, threshold, valid) => {

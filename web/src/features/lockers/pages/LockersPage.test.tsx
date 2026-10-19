@@ -664,6 +664,63 @@ describe("LockersPage", () => {
     expect(notice.closest("[role='status']")).not.toBeNull();
   });
 
+  describe("birthday visit (BUSINESS_RULES.md §7)", () => {
+    // ۱۴۰۵/۰۵/۱۲: Reza was born on ۱۳۷۰/۰۵/۱۲ (1991-08-03).
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date("2026-08-03T08:00:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("CheckIn_Birthday_SaysTheVisitIsFreeBeforeAndThatNoSessionWasUsedAfter", async () => {
+      // BUSINESS_RULES.md §7 Birthday visit.
+      mockApi(
+        mapHandlers(allLockers(), [], {
+          "GET /api/members": () => membersPage([reza]),
+          [`POST /api/members/${reza.id}/attendance/check-in`]: () =>
+            json(201, {
+              ...openVisit(reza.id),
+              lockerId: lockerId(12),
+              lockerNumber: 12,
+              isBirthdayVisit: true,
+            }),
+        }),
+      );
+      renderMap();
+
+      const dialog = await openFreeLocker("۱۲");
+      await search(dialog, "رضا");
+      fireEvent.click(await within(dialog).findByRole("button", { name: /رضا احمدی/ }));
+
+      expect(await within(dialog).findByText(/امروز تولد اوست/)).toBeInTheDocument();
+      expect(within(dialog).queryByText(/یک جلسه از اشتراک او کم می‌شود/)).not.toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole("button", { name: "بله، ورود ثبت شود" }));
+
+      expect(await within(dialog).findByText("ورود ثبت شد")).toBeInTheDocument();
+      const notice = within(dialog).getByText("ورود رایگان تولد: جلسه‌ای از پلن او کم نشد.");
+      expect(notice.closest("[role='status']")).not.toBeNull();
+    });
+
+    it("CheckIn_NotTheBirthday_SaysASessionIsUsedAndNothingAboutABirthday", async () => {
+      mockApi(
+        mapHandlers(allLockers(), [], {
+          "GET /api/members": () => membersPage([{ ...reza, birthDate: "1991-01-01" }]),
+        }),
+      );
+      renderMap();
+
+      const dialog = await openFreeLocker("۱۲");
+      await search(dialog, "رضا");
+      fireEvent.click(await within(dialog).findByRole("button", { name: /رضا احمدی/ }));
+
+      expect(await within(dialog).findByText(/یک جلسه از اشتراک او کم می‌شود/)).toBeInTheDocument();
+      expect(within(dialog).queryByText(/امروز تولد اوست/)).not.toBeInTheDocument();
+    });
+  });
+
   it("CheckIn_SingleVisitHeldAlongAFrozenPlan_DoesNotWarn", async () => {
     const frozen = { ...activeSubscription, status: "Frozen" as const, frozenSince: "2026-09-14" };
     const singleVisit = {

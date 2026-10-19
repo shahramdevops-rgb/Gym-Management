@@ -25,6 +25,12 @@ export const guestLabel = "مهمان";
  */
 export const cardioOnlyLabel = "فقط هوازی";
 
+/**
+ * «تولد»: the member's free visit on their birthday, which consumed no session of their plan
+ * (BUSINESS_RULES.md §7 *Birthday visit*), on the board, the map's box and every history.
+ */
+export const birthdayVisitLabel = "تولد";
+
 /** A guest's visit: no member, a typed name. */
 export function isGuestVisit(visit: { memberId: string | null }): boolean {
   return visit.memberId === null;

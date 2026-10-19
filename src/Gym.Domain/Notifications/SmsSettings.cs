@@ -67,7 +67,7 @@ public sealed class SmsSettings : Entity
 
     public bool BirthdayEnabled { get; private set; }
 
-    /// <summary>Days before the birthday; 0 is the day itself.</summary>
+    /// <summary>Days before the birthday, 1 to 7: never the day itself (task 10.8).</summary>
     public int? BirthdayDaysBefore { get; private set; }
 
     public TimeOnly? BirthdaySendTime { get; private set; }
@@ -117,7 +117,7 @@ public sealed class SmsSettings : Entity
     {
         NotificationKind.SubscriptionExpiring => (1, 30),
         NotificationKind.LowSessions => (1, 10),
-        NotificationKind.Birthday => (0, 7),
+        NotificationKind.Birthday => (1, 7),
         NotificationKind.PayableDue => (0, 30),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No range is set for this kind."),
     };

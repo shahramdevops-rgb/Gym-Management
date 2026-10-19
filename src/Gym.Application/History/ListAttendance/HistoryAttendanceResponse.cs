@@ -15,6 +15,10 @@ namespace Gym.Application.History.ListAttendance;
 /// A member's visit for هوازی only, which consumed no session (BUSINESS_RULES.md §7 <i>Cardio-only
 /// visit</i>); the screen marks it «فقط هوازی».
 /// </param>
+/// <param name="IsBirthdayVisit">
+/// The member's free visit on their birthday, which consumed no session (BUSINESS_RULES.md §7
+/// <i>Birthday visit</i>); the screen marks it «تولد».
+/// </param>
 /// <param name="CheckedOutAt"><c>null</c> while the visit is still open.</param>
 /// <param name="CancelledAt">Set when the check-in was cancelled. The row is listed and marked, never hidden.</param>
 /// <param name="AutoClosedAt">
@@ -32,6 +36,7 @@ public sealed record HistoryAttendanceResponse(
     int? LockerNumber,
     bool UsesReservePlace,
     bool IsCardioOnly,
+    bool IsBirthdayVisit,
     DateTimeOffset CheckedInAt,
     DateTimeOffset? CheckedOutAt,
     DateTimeOffset? CancelledAt,

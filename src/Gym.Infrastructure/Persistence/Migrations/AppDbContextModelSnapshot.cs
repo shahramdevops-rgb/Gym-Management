@@ -35,6 +35,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("auto_closed_at");
 
+                    b.Property<short?>("BirthdayYear")
+                        .HasColumnType("smallint")
+                        .HasColumnName("birthday_year");
+
                     b.Property<DateTimeOffset?>("CancelledAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("cancelled_at");
@@ -118,6 +122,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasIndex("SubscriptionId")
                         .HasDatabaseName("ix_attendances_subscription_id");
 
+                    b.HasIndex("MemberId", "BirthdayYear")
+                        .IsUnique()
+                        .HasDatabaseName("ix_attendances_one_birthday_visit_per_member_and_year")
+                        .HasFilter("birthday_year IS NOT NULL AND cancelled_at IS NULL");
+
                     b.HasIndex("MemberId", "CheckedInAt")
                         .HasDatabaseName("ix_attendances_member_id_checked_in_at")
                         .HasFilter("cancelled_at IS NULL");
@@ -125,6 +134,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.ToTable("attendances", null, t =>
                         {
                             t.HasCheckConstraint("ck_attendances_auto_close", "auto_closed_at IS NULL OR checked_out_at = auto_closed_at");
+
+                            t.HasCheckConstraint("ck_attendances_birthday_visit_on_plan", "birthday_year IS NULL OR (member_id IS NOT NULL AND subscription_id IS NOT NULL AND NOT is_cardio_only)");
 
                             t.HasCheckConstraint("ck_attendances_cancellation", "cancelled_at IS NULL OR checked_out_at = cancelled_at");
 
@@ -1767,7 +1778,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                     b.ToTable("sms_settings", null, t =>
                         {
-                            t.HasCheckConstraint("ck_sms_settings_birthday_days", "birthday_days_before IS NULL OR birthday_days_before BETWEEN 0 AND 7");
+                            t.HasCheckConstraint("ck_sms_settings_birthday_days", "birthday_days_before IS NULL OR birthday_days_before BETWEEN 1 AND 7");
 
                             t.HasCheckConstraint("ck_sms_settings_birthday_on_means_filled", "NOT birthday_enabled OR (birthday_days_before IS NOT NULL AND birthday_send_time IS NOT NULL)");
 

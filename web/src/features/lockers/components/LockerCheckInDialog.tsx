@@ -31,7 +31,7 @@ import { MemberForm } from "@/features/members/components/MemberForm";
 import { searchMinLength } from "@/features/members/schemas";
 import { memberDraftFromSearch } from "@/features/members/searchDraft";
 import { errorMessage } from "@/lib/errors";
-import { formatPhone, toPersianDigits } from "@/lib/format";
+import { formatPhone, gymToday, isJalaliBirthday, toPersianDigits } from "@/lib/format";
 import { normalizeInput } from "@/lib/normalize";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 
@@ -337,9 +337,13 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
                 {place.kind === "locker"
                   ? `با کمد شماره ${toPersianDigits(place.locker.number)}`
                   : "بدون کمد"}{" "}
-                مطمئن هستید؟ یک جلسه از اشتراک او کم می‌شود.
+                مطمئن هستید؟
+                {isJalaliBirthday(step.member.birthDate, gymToday())
+                  ? ""
+                  : " یک جلسه از اشتراک او کم می‌شود."}
               </DialogDescription>
             </DialogHeader>
+            <BirthdayVisitNotice birthDate={step.member.birthDate} />
             <FrozenPlanWarning memberId={step.member.id} />
             <ConfirmButtons
               label="بله، ورود ثبت شود"
@@ -415,6 +419,9 @@ export function LockerCheckInDialog({ place, onClose }: LockerCheckInDialogProps
               </DialogDescription>
             </DialogHeader>
             <LockerBox number={step.attendance.lockerNumber} />
+            {step.attendance.isBirthdayVisit && (
+              <Alert role="status">ورود رایگان تولد: جلسه‌ای از پلن او کم نشد.</Alert>
+            )}
             {step.attendance.unfrozenDays !== undefined &&
               step.attendance.unfrozenDays !== null && (
                 <Alert role="status">{unfrozenNotice(Number(step.attendance.unfrozenDays))}</Alert>
@@ -477,6 +484,25 @@ function FrozenPlanWarning({ memberId }: { memberId: string }) {
   }
 
   return <Alert>اشتراک او فریز است. با ثبت این ورود، اشتراک از حالت فریز خارج می‌شود.</Alert>;
+}
+
+/**
+ * Said before the desk confirms, on the member's Jalali birthday: their first visit today on a plan
+ * is free (BUSINESS_RULES.md §7 *Birthday visit*). Only what the desk should expect; the API decides
+ * (a single visit is used as usual, a second visit today uses a session), and the box says
+ * afterwards whether the visit was the free one.
+ */
+function BirthdayVisitNotice({ birthDate }: { birthDate?: string | null }) {
+  if (!isJalaliBirthday(birthDate, gymToday())) {
+    return null;
+  }
+
+  return (
+    <Alert role="status">
+      امروز تولد اوست. اولین ورود امروز روی پلنش رایگان است و جلسه‌ای کم نمی‌شود؛ تک‌جلسه‌ای و ورود
+      دوم امروز مثل همیشه حساب می‌شوند.
+    </Alert>
+  );
 }
 
 /**

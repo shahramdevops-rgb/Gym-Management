@@ -62,19 +62,17 @@ public sealed class SmsTextTests
     }
 
     [Fact]
-    public void ForBirthday_OnTheDayItself_SaysHappyBirthday()
+    public void ForBirthday_Birthday_IsTheAgreedTextWithTheFreeVisit()
     {
-        SmsText.ForBirthday("سارا محمدی", Day, today: Day)
-            .ShouldBe("سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۲۰ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد" + OptOutLine);
+        SmsText.ForBirthday("سارا محمدی", Day)
+            .ShouldBe("سارا محمدی عزیز، ۱۴۰۵/۰۷/۲۰ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!" + OptOutLine);
     }
 
-    [Theory]
-    [InlineData(1)]
-    [InlineData(7)]
-    public void ForBirthday_DaysAhead_CongratulatesInAdvance(int daysAhead)
+    [Fact]
+    public void ForBirthday_TenCharacterName_FitsInTwoParts()
     {
-        SmsText.ForBirthday("سارا محمدی", Day, today: Day.AddDays(-daysAhead))
-            .ShouldBe("سارا محمدی عزیز، تولدتان در ۱۴۰۵/۰۷/۲۰ را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد" + OptOutLine);
+        // docs/sms-texts.md: about 121 characters; two parts hold 134.
+        SmsText.ForBirthday("سارا محمدی", Day).Length.ShouldBeLessThanOrEqualTo(2 * 67);
     }
 
     [Fact]
@@ -110,8 +108,7 @@ public sealed class SmsTextTests
         [
             SmsText.ForRunningOut("سارا محمدی", Day),
             SmsText.ForFewSessionsLeft("سارا محمدی", 2),
-            SmsText.ForBirthday("سارا محمدی", Day, today: Day),
-            SmsText.ForBirthday("سارا محمدی", Day, today: Day.AddDays(-3)),
+            SmsText.ForBirthday("سارا محمدی", Day),
             SmsText.ForPayableDue(PayableKind.Installment, 1m, Day, "بانک"),
         ];
 
@@ -125,7 +122,7 @@ public sealed class SmsTextTests
         var longest = string.Join(' ', Enumerable.Repeat(new string('x', 40), 20));
 
         SmsText.ForRunningOut(longest, Day).Length.ShouldBeLessThanOrEqualTo(SmsText.MaxLength);
-        SmsText.ForBirthday(longest, Day, Day.AddDays(-1)).Length.ShouldBeLessThanOrEqualTo(SmsText.MaxLength);
+        SmsText.ForBirthday(longest, Day).Length.ShouldBeLessThanOrEqualTo(SmsText.MaxLength);
         SmsText.ForPayableDue(PayableKind.Cheque, 999_999_999_999m, Day, longest).Length
             .ShouldBeLessThanOrEqualTo(SmsText.MaxLength);
     }

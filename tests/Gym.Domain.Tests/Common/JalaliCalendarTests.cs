@@ -77,4 +77,32 @@ public sealed class JalaliCalendarTests
 
         JalaliCalendar.NextBirthday(JalaliCalendar.ToDate(1370, 1, 1), today).ShouldBe(JalaliCalendar.ToDate(1405, 1, 1));
     }
+
+    [Fact]
+    public void IsBirthday_SameJalaliMonthAndDay_IsTrue()
+    {
+        JalaliCalendar.IsBirthday(JalaliCalendar.ToDate(1370, 7, 14), JalaliCalendar.ToDate(1405, 7, 14)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsBirthday_TheDayBefore_IsFalse()
+    {
+        JalaliCalendar.IsBirthday(JalaliCalendar.ToDate(1370, 7, 14), JalaliCalendar.ToDate(1405, 7, 13)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsBirthday_BornOn30EsfandInAYearWithout_Is29Esfand()
+    {
+        var born = JalaliCalendar.ToDate(1379, 12, 30);
+
+        JalaliCalendar.IsBirthday(born, JalaliCalendar.ToDate(1404, 12, 29)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsBirthday_TheDayOfBirth_IsFalse()
+    {
+        var today = JalaliCalendar.ToDate(1405, 7, 14);
+
+        JalaliCalendar.IsBirthday(today, today).ShouldBeFalse();
+    }
 }

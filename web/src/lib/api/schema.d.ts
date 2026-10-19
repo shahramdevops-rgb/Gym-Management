@@ -1518,6 +1518,7 @@ export interface components {
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
             isCardioOnly: boolean;
+            isBirthdayVisit: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: date-time */
@@ -1703,6 +1704,7 @@ export interface components {
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
             isCardioOnly: boolean;
+            isBirthdayVisit: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: uuid */
@@ -1853,6 +1855,7 @@ export interface components {
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
             isCardioOnly: boolean;
+            isBirthdayVisit: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: date-time */

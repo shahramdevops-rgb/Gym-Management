@@ -15,7 +15,7 @@ public static class SmsSettingsErrors
 
     public static readonly Error BirthdayDaysOutOfRange = Error.Validation(
         "Sms.BirthdayDaysOutOfRange",
-        "Days before the birthday must be from 0 to 7.");
+        "Days before the birthday must be from 1 to 7.");
 
     public static readonly Error PayableDueDaysOutOfRange = Error.Validation(
         "Sms.PayableDueDaysOutOfRange",

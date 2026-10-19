@@ -107,10 +107,21 @@ public sealed class CheckInHandler(
             return Result.Failure<AttendanceResponse>(NothingUsableToday(today, live));
         }
 
-        var consumed = subscription.ConsumeSession(today);
-        if (consumed.IsFailure)
+        // The member's first visit on their birthday uses no session of their plan (BUSINESS_RULES.md
+        // §7 Birthday visit), a plan sold in this box included. The plan must still be usable today,
+        // so it meets the same refusals as ConsumeSession. The member is locked above, so a second
+        // check-in cannot slip in between this question and the save; the index backs it up.
+        var birthdayYear = BirthdayVisit.FreeYear(member.BirthDate, subscription, today);
+        if (birthdayYear is { } year && await db.Attendances.AnyAsync(
+                a => a.MemberId == memberId && a.BirthdayYear == year && a.CancelledAt == null, cancellationToken))
         {
-            return Result.Failure<AttendanceResponse>(consumed.Error);
+            birthdayYear = null;
+        }
+
+        var used = birthdayYear is null ? subscription.ConsumeSession(today) : subscription.EnsureActive(today);
+        if (used.IsFailure)
+        {
+            return Result.Failure<AttendanceResponse>(used.Error);
         }
 
         // The place the desk chose, after the subscription: a member who cannot come in today hears
@@ -128,7 +139,7 @@ public sealed class CheckInHandler(
             }
 
             lockerNumber = locker.Value;
-            attendance = Attendance.CheckIn(memberId, subscription.Id, lockerId, now);
+            attendance = Attendance.CheckIn(memberId, subscription.Id, lockerId, now, birthdayYear);
         }
         else
         {
@@ -138,7 +149,7 @@ public sealed class CheckInHandler(
                 return Result.Failure<AttendanceResponse>(reserveSlot.Error);
             }
 
-            attendance = Attendance.CheckInOnReservePlace(memberId, subscription.Id, reserveSlot.Value, now);
+            attendance = Attendance.CheckInOnReservePlace(memberId, subscription.Id, reserveSlot.Value, now, birthdayYear);
         }
 
         db.Attendances.Add(attendance);
@@ -160,7 +171,9 @@ public sealed class CheckInHandler(
             return Result.Failure<AttendanceResponse>(AttendanceErrors.LockerTaken);
         }
         catch (UniqueConstraintException exception)
-            when (exception.ConstraintName is AttendanceConstraints.OneOpenPerMember or AttendanceConstraints.OneOpenPerReserveSlot)
+            when (exception.ConstraintName is AttendanceConstraints.OneOpenPerMember
+                or AttendanceConstraints.OneOpenPerReserveSlot
+                or AttendanceConstraints.OneBirthdayVisitPerMemberAndYear)
         {
             return Result.Failure<AttendanceResponse>(AttendanceErrors.ChangedConcurrently);
         }
