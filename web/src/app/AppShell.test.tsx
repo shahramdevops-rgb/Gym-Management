@@ -189,7 +189,7 @@ describe("AppShell", () => {
 
   // ---- The pages released on 1405/07/18, marked for the Owner and the desk ----
 
-  it("AppShell_On25Mehr_MarksMembersUpdatedAuditNewAndSmsInTesting", async () => {
+  it("AppShell_On25Mehr_MarksMembersUpdatedAndAuditNew", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-17T17:00:00Z")); // ۲۵ مهر ۱۴۰۵, 20:30 at the gym
     mockApi(signedInHandlers(owner));
@@ -201,16 +201,10 @@ describe("AppShell", () => {
     expect(
       within(screen.getByRole("link", { name: "اعضا" })).getByText("به‌روز شد"),
     ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("link", { name: "پیامک‌ها" })).getByText("آزمایشی"),
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("link", { name: "تنظیمات پیامک" })).getByText("آزمایشی"),
-    ).toBeInTheDocument();
     expect(within(screen.getByRole("link", { name: "داشبورد" })).queryByText("جدید")).toBeNull();
   });
 
-  it("AppShell_From26Mehr_KeepsOnlyTheSmsMarks", async () => {
+  it("AppShell_From26Mehr_MarksNothing", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-17T21:00:00Z")); // ۲۶ مهر ۱۴۰۵, 00:30 at the gym
     mockApi(signedInHandlers(owner));
@@ -220,8 +214,8 @@ describe("AppShell", () => {
     await screen.findByRole("link", { name: "گزارش تغییرات" });
     expect(screen.queryByText("به‌روز شد")).not.toBeInTheDocument();
     expect(screen.queryByText("جدید")).not.toBeInTheDocument();
-    // Until SMS goes live (task 10.6), not until a date.
-    expect(screen.getAllByText("آزمایشی")).toHaveLength(2);
+    // SMS went live in task 10.6: its pages are no longer marked «آزمایشی».
+    expect(screen.queryByText("آزمایشی")).not.toBeInTheDocument();
   });
 
   it("AppShell_Staff_SeesMembersUpdatedButNoOwnerMarks", async () => {

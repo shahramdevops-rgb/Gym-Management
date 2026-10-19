@@ -57,12 +57,6 @@ interface NavigationBadge {
 const releasedOn18MehrUntil = "2026-10-17";
 
 /**
- * The SMS pages are on the server, but nothing is really sent until the gym's line is registered
- * with Kavenegar. Marked until SMS goes live; remove it in task 10.6 (asked by the developer).
- */
-const smsTestBadge: NavigationBadge = { text: "آزمایشی" };
-
-/**
  * The locker map comes first: it is where every check-in happens, for Staff and the Owner alike
  * (BUSINESS_RULES.md §6, §7). Finding a member is on the member list, which checks nobody in.
  */
@@ -84,20 +78,8 @@ const navigation: NavigationItem[] = [
   { to: paths.payables, label: "چک و قسط", icon: BanknoteArrowUp, role: "Owner" },
   { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
   { to: paths.settings, label: "تنظیمات", icon: Settings, role: "Owner" },
-  {
-    to: paths.smsMessages,
-    label: "پیامک‌ها",
-    icon: MessagesSquare,
-    role: "Owner",
-    badge: smsTestBadge,
-  },
-  {
-    to: paths.smsSettings,
-    label: "تنظیمات پیامک",
-    icon: MessageSquareText,
-    role: "Owner",
-    badge: smsTestBadge,
-  },
+  { to: paths.smsMessages, label: "پیامک‌ها", icon: MessagesSquare, role: "Owner" },
+  { to: paths.smsSettings, label: "تنظیمات پیامک", icon: MessageSquareText, role: "Owner" },
   {
     to: paths.auditLogs,
     label: "گزارش تغییرات",

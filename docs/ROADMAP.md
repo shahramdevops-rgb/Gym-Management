@@ -2638,7 +2638,8 @@ complete version with every kind below, not the four kinds first.
 - [ ] Its API key and the line's number in the server's `.env`, the key restricted to the server's IP
       in Kavenegar
 - [ ] The Owner fills in the settings page and turns on the kinds they want
-- [ ] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed and released
+- [x] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed (1405/07/28), released
+      with 10.7 to 10.15 as the SMS release
 
 ### More SMS kinds (10.7 to 10.13)
 Asked by the developer on 1405/07/26 (2026-10-18), after the line's first messages arrived. One task
