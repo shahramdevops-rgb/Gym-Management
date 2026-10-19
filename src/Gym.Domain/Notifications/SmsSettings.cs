@@ -50,6 +50,12 @@ public sealed class SmsSettings : Entity
     /// </summary>
     public static readonly TimeOnly MorningSendTime = new(10, 0);
 
+    /// <summary>The smallest minimum amount the debt reminder accepts, in Toman (decided with the developer, task 10.11).</summary>
+    public const decimal DebtReminderMinAmountFloor = 1_000m;
+
+    /// <summary>The largest amount a <c>numeric(18,2)</c> column holds, as for every amount (§3).</summary>
+    public const decimal DebtReminderMinAmountCeiling = 9_999_999_999_999_999.99m;
+
     // For EF Core. The row comes from the migration, so no code creates one.
     private SmsSettings()
     {
@@ -110,6 +116,17 @@ public sealed class SmsSettings : Entity
     /// </summary>
     public bool WelcomeEnabled { get; private set; }
 
+    /// <summary>The member's reminder of a debt owed for a while (§10 <i>The debt reminder</i>, task 10.11).</summary>
+    public bool DebtReminderEnabled { get; private set; }
+
+    /// <summary>Days since the oldest unpaid sale, 1 to 90: sent once that sale is at least this old.</summary>
+    public int? DebtReminderDaysAfter { get; private set; }
+
+    public TimeOnly? DebtReminderSendTime { get; private set; }
+
+    /// <summary>In Toman: only a member whose whole debt is at least this gets the reminder.</summary>
+    public decimal? DebtReminderMinAmount { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
@@ -156,6 +173,7 @@ public sealed class SmsSettings : Entity
         NotificationKind.LowSessions => (1, 10),
         NotificationKind.Birthday => (1, 7),
         NotificationKind.PayableDue => (0, 30),
+        NotificationKind.DebtReminder => (1, 90),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No range is set for this kind."),
     };
 
@@ -170,6 +188,10 @@ public sealed class SmsSettings : Entity
             BirthdayEnabled, BirthdayDaysBefore, BirthdaySendTime),
         NotificationKind.PayableDue => new(
             PayableDueEnabled, PayableDueDaysBefore, PayableDueSendTime),
+
+        // Its minimum amount is a field of its own (DebtReminderMinAmount), outside this record.
+        NotificationKind.DebtReminder => new(
+            DebtReminderEnabled, DebtReminderDaysAfter, DebtReminderSendTime),
 
         // No number, and the time is fixed: the run is scheduled from it like any other kind's.
         NotificationKind.DailyReport => new(
@@ -191,6 +213,7 @@ public sealed class SmsSettings : Entity
     /// <param name="dailyReportPhone">The same, for the daily report.</param>
     /// <param name="subscriptionReceiptEnabled">The receipt's switch: it has nothing to fill in.</param>
     /// <param name="welcomeEnabled">The welcome's switch: nothing to fill in either.</param>
+    /// <param name="debtReminder">The debt reminder's switch, days and time; its minimum amount comes apart.</param>
     public Result Update(
         bool enabled,
         SmsKindSettings subscriptionExpiring,
@@ -201,12 +224,15 @@ public sealed class SmsSettings : Entity
         bool dailyReportEnabled,
         string? dailyReportPhone,
         bool subscriptionReceiptEnabled,
-        bool welcomeEnabled)
+        bool welcomeEnabled,
+        SmsKindSettings debtReminder,
+        decimal? debtReminderMinAmount)
     {
         ArgumentNullException.ThrowIfNull(subscriptionExpiring);
         ArgumentNullException.ThrowIfNull(lowSessions);
         ArgumentNullException.ThrowIfNull(birthday);
         ArgumentNullException.ThrowIfNull(payableDue);
+        ArgumentNullException.ThrowIfNull(debtReminder);
 
         var phone = Normalized(ownerPhone, nameof(ownerPhone));
         var reportPhone = Normalized(dailyReportPhone, nameof(dailyReportPhone));
@@ -215,7 +241,11 @@ public sealed class SmsSettings : Entity
             ?? Check(NotificationKind.LowSessions, lowSessions, phone)
             ?? Check(NotificationKind.Birthday, birthday, phone)
             ?? Check(NotificationKind.PayableDue, payableDue, phone)
-            ?? CheckDailyReportComplete(dailyReportEnabled, reportPhone);
+            ?? CheckDailyReportComplete(dailyReportEnabled, reportPhone)
+            ?? CheckThreshold(NotificationKind.DebtReminder, debtReminder.Threshold)
+            ?? CheckSendTime(debtReminder.SendTime)
+            ?? CheckDebtReminderMinAmount(debtReminderMinAmount)
+            ?? CheckDebtReminderComplete(debtReminder, debtReminderMinAmount);
         if (error is not null)
         {
             return Result.Failure(error);
@@ -247,6 +277,11 @@ public sealed class SmsSettings : Entity
         SubscriptionReceiptEnabled = subscriptionReceiptEnabled;
         WelcomeEnabled = welcomeEnabled;
 
+        DebtReminderEnabled = debtReminder.Enabled;
+        DebtReminderDaysAfter = debtReminder.Threshold;
+        DebtReminderSendTime = debtReminder.SendTime;
+        DebtReminderMinAmount = debtReminderMinAmount;
+
         return Result.Success();
     }
 
@@ -271,6 +306,7 @@ public sealed class SmsSettings : Entity
             NotificationKind.SubscriptionExpiring => SmsSettingsErrors.SubscriptionExpiringDaysOutOfRange,
             NotificationKind.LowSessions => SmsSettingsErrors.LowSessionsOutOfRange,
             NotificationKind.Birthday => SmsSettingsErrors.BirthdayDaysOutOfRange,
+            NotificationKind.DebtReminder => SmsSettingsErrors.DebtReminderDaysOutOfRange,
             _ => SmsSettingsErrors.PayableDueDaysOutOfRange,
         };
     }
@@ -309,6 +345,32 @@ public sealed class SmsSettings : Entity
     /// <summary>The daily report has only a number to fill: on means the number is there.</summary>
     public static Error? CheckDailyReportComplete(bool enabled, string? phone) =>
         !enabled || !string.IsNullOrWhiteSpace(phone) ? null : SmsSettingsErrors.SettingsIncomplete;
+
+    /// <summary>
+    /// An empty minimum amount is allowed (the kind may be off); a filled one is 1,000 Toman or more,
+    /// with at most 2 decimal places, refused rather than rounded (§3).
+    /// </summary>
+    public static Error? CheckDebtReminderMinAmount(decimal? minAmount)
+    {
+        if (minAmount is not { } amount)
+        {
+            return null;
+        }
+
+        var inRange = amount >= DebtReminderMinAmountFloor && amount <= DebtReminderMinAmountCeiling;
+
+        return inRange && decimal.Round(amount, 2) == amount ? null : SmsSettingsErrors.DebtReminderMinAmountOutOfRange;
+    }
+
+    /// <summary>The debt reminder on means its days, its time and its minimum amount are all there.</summary>
+    public static Error? CheckDebtReminderComplete(SmsKindSettings settings, decimal? minAmount)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        return !settings.Enabled || (settings.IsFilled() && minAmount is not null)
+            ? null
+            : SmsSettingsErrors.SettingsIncomplete;
+    }
 
     private static string? Normalized(string? phone, string parameterName)
     {

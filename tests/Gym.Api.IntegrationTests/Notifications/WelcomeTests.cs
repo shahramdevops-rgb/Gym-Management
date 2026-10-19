@@ -465,7 +465,9 @@ public sealed class WelcomeTests(DatabaseFixture fixture) : DatabaseTestBase(fix
             dailyReportEnabled: false,
             dailyReportPhone: null,
             subscriptionReceiptEnabled: false,
-            welcomeEnabled: welcome).IsSuccess.ShouldBeTrue();
+            welcomeEnabled: welcome,
+            debtReminder: SmsKindSettings.Off,
+            debtReminderMinAmount: null).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

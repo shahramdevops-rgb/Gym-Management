@@ -22,7 +22,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         {
             table.HasCheckConstraint(
                 "ck_notifications_kind",
-                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome')");
+                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder')");
             table.HasCheckConstraint(
                 "ck_notifications_status",
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
@@ -40,13 +40,18 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             table.HasCheckConstraint(
                 NotificationConstraints.EventMatchesKind,
                 "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL " +
-                "AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR " +
+                "AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
+                "AND debt_since IS NULL) OR " +
                 "(kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL " +
-                "AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL) OR " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL) OR " +
                 "(kind = 'PayableDue' AND payable_id IS NOT NULL " +
-                "AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR " +
+                "AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
+                "AND debt_since IS NULL) OR " +
                 "(kind = 'DailyReport' AND report_date IS NOT NULL " +
-                "AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL)");
+                "AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL " +
+                "AND debt_since IS NULL) OR " +
+                "(kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL)");
 
             table.HasCheckConstraint(
                 NotificationConstraints.SentHasProviderId,
@@ -105,6 +110,13 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             .IsUnique()
             .HasFilter("kind = 'Welcome'")
             .HasDatabaseName(NotificationConstraints.OneWelcomePerMember);
+
+        // Once per debt (task 10.11): a debt is named by its member and the day its oldest unpaid
+        // sale was recorded. A debt that builds after everything before was paid begins later.
+        builder.HasIndex(notification => new { notification.MemberId, notification.DebtSince })
+            .IsUnique()
+            .HasFilter("kind = 'DebtReminder'")
+            .HasDatabaseName(NotificationConstraints.OneDebtReminderPerMemberAndDebt);
 
         builder.Property(notification => notification.Version).IsRowVersion();
     }

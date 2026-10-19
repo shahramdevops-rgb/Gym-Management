@@ -409,7 +409,9 @@ public sealed class SubscriptionReceiptTests(DatabaseFixture fixture) : Database
             dailyReportEnabled: false,
             dailyReportPhone: null,
             subscriptionReceiptEnabled: receipt,
-            welcomeEnabled: false).IsSuccess.ShouldBeTrue();
+            welcomeEnabled: false,
+            debtReminder: SmsKindSettings.Off,
+            debtReminderMinAmount: null).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

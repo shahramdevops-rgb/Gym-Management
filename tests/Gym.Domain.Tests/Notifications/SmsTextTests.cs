@@ -300,4 +300,27 @@ public sealed class SmsTextTests
         // docs/sms-texts.md: about 52 characters, one part of 70.
         SmsText.ForWelcome("سارا محمدی").Length.ShouldBeLessThanOrEqualTo(70);
     }
+
+    // ---- The debt reminder (task 10.11) ----
+
+    [Fact]
+    public void ForDebtReminder_Member_GivesTheWholeAmountPolitely()
+    {
+        SmsText.ForDebtReminder("سارا محمدی", 1_250_000m).ShouldBe(
+            "سارا محمدی عزیز، مانده حساب شما در باشگاه پاسارگاد ۱٬۲۵۰٬۰۰۰ تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!"
+            + OptOutLine);
+    }
+
+    [Fact]
+    public void ForDebtReminder_LongName_IsCutShort()
+    {
+        SmsText.ForDebtReminder(LongName, 50_000m).ShouldStartWith("سید محمد حسین علی رضا موسوی عزیز،");
+    }
+
+    [Fact]
+    public void ForDebtReminder_TenCharacterName_FitsInTwoParts()
+    {
+        // docs/sms-texts.md: about 120 characters, two parts of 67.
+        SmsText.ForDebtReminder("سارا محمدی", 1_200_000m).Length.ShouldBeLessThanOrEqualTo(2 * 67);
+    }
 }

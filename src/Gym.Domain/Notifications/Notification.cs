@@ -13,7 +13,8 @@ namespace Gym.Domain.Notifications;
 /// <see cref="NotificationKind.SubscriptionExpiring"/> per subscription, one birthday per member and
 /// Jalali year, one <see cref="NotificationKind.PayableDue"/> per cheque or instalment, one
 /// <see cref="NotificationKind.DailyReport"/> per day, one <see cref="NotificationKind.SubscriptionReceipt"/>
-/// per subscription, one <see cref="NotificationKind.Welcome"/> per member), a second
+/// per subscription, one <see cref="NotificationKind.Welcome"/> per member, one
+/// <see cref="NotificationKind.DebtReminder"/> per member and debt), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -42,7 +43,7 @@ public sealed class Notification : Entity
     /// <summary>E.164: the member's number, or the Owner's for <see cref="NotificationKind.PayableDue"/> and <see cref="NotificationKind.DailyReport"/>.</summary>
     public string Recipient { get; private set; } = string.Empty;
 
-    /// <summary>Set for the kinds sent to a member; <c>null</c> for the Owner's.</summary>
+    /// <summary>Set for the kinds sent to a member (the debt reminder included); <c>null</c> for the Owner's.</summary>
     public Guid? MemberId { get; private set; }
 
     /// <summary>
@@ -60,6 +61,12 @@ public sealed class Notification : Entity
 
     /// <summary>Set for <see cref="NotificationKind.DailyReport"/>: the gym's day the report is about, one per day.</summary>
     public DateOnly? ReportDate { get; private set; }
+
+    /// <summary>
+    /// Set for <see cref="NotificationKind.DebtReminder"/>: the gym's day of the oldest unpaid sale the
+    /// reminder was about, one per member and debt (task 10.11).
+    /// </summary>
+    public DateOnly? DebtSince { get; private set; }
 
     /// <summary>The whole text, as <see cref="SmsText"/> wrote it when the message was written.</summary>
     public string Text { get; private set; } = string.Empty;
@@ -143,6 +150,19 @@ public sealed class Notification : Entity
     {
         var notification = Create(NotificationKind.DailyReport, recipient, text);
         notification.ReportDate = reportDate;
+
+        return notification;
+    }
+
+    /// <summary>The member's debt has been owed for a while (<see cref="NotificationKind.DebtReminder"/>, task 10.11).</summary>
+    /// <param name="debtSince">The gym's day of the oldest unpaid sale: at most one per member and day.</param>
+    public static Notification ForDebtReminder(Guid memberId, DateOnly debtSince, string recipient, string text)
+    {
+        CheckId(memberId, nameof(memberId));
+
+        var notification = Create(NotificationKind.DebtReminder, recipient, text);
+        notification.MemberId = memberId;
+        notification.DebtSince = debtSince;
 
         return notification;
     }

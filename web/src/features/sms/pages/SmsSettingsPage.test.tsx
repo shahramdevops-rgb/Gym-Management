@@ -30,6 +30,7 @@ const empty: SmsSettings = {
   dailyReport: { enabled: false, phone: null, sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: false, morningSendTime: "10:00:00" },
   welcome: { enabled: false, morningSendTime: "10:00:00" },
+  debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
   version: 1,
 };
 
@@ -47,6 +48,7 @@ const filled: SmsSettings = {
   dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: true, morningSendTime: "10:00:00" },
   welcome: { enabled: true, morningSendTime: "10:00:00" },
+  debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: 200000 },
   version: 5,
 };
 
@@ -179,14 +181,14 @@ describe("SmsSettingsPage", () => {
     expect(
       await screen.findByRole("checkbox", { name: "ارسال پیامک روشن باشد" }),
     ).not.toBeChecked();
-    for (const name of ["پایان اشتراک", "جلسات رو به اتمام", "تولد", "چک و قسط"]) {
+    for (const name of ["پایان اشتراک", "جلسات رو به اتمام", "تولد", "چک و قسط", "یادآوری بدهی"]) {
       expect(switchOf(name)).not.toBeChecked();
       expect(switchOf(name)).toBeDisabled();
       expect(group(name).getByLabelText("ساعت ارسال")).toHaveValue("");
     }
     expect(
       screen.getAllByText("برای روشن کردن، اول همهٔ خانه‌های این بخش را پر کنید."),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
   });
 
   it("SmsSettingsPage_KindFilled_UnlocksItsSwitch", async () => {
@@ -303,6 +305,7 @@ describe("SmsSettingsPage", () => {
       dailyReport: { enabled: false, phone: null },
       subscriptionReceipt: { enabled: false },
       welcome: { enabled: false },
+      debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
       version: empty.version,
     });
   });
@@ -470,6 +473,93 @@ describe("SmsSettingsPage", () => {
     expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
     const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
     expect(body.welcome).toEqual({ enabled: true });
+  });
+
+  it("SmsSettingsPage_DebtReminderEmpty_CannotBeTurnedOnUntilEveryFieldIsFilled", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "یادآوری بدهی" });
+
+    expect(switchOf("یادآوری بدهی")).toBeDisabled();
+
+    fireEvent.change(group("یادآوری بدهی").getByLabelText(/^چند روز/), { target: { value: "۳۰" } });
+    fireEvent.change(group("یادآوری بدهی").getByLabelText("ساعت ارسال"), {
+      target: { value: "11" },
+    });
+    expect(switchOf("یادآوری بدهی")).toBeDisabled();
+
+    fireEvent.change(group("یادآوری بدهی").getByLabelText(/^حداقل کل بدهی/), {
+      target: { value: "۲۰۰۰۰۰" },
+    });
+    expect(switchOf("یادآوری بدهی")).toBeEnabled();
+  });
+
+  it("SmsSettingsPage_DebtReminderFilledAndOn_SendsDaysTimeAndAmountAsText", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "یادآوری بدهی" });
+
+    const debt = group("یادآوری بدهی");
+    fireEvent.change(debt.getByLabelText(/^چند روز/), { target: { value: "۳۰" } });
+    fireEvent.change(debt.getByLabelText("ساعت ارسال"), { target: { value: "11" } });
+    fireEvent.change(debt.getByLabelText(/^حداقل کل بدهی/), { target: { value: "۲۰۰٬۰۰۰" } });
+    fireEvent.click(switchOf("یادآوری بدهی"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.debtReminder).toEqual({
+      enabled: true,
+      daysAfter: 30,
+      sendTime: "11:00:00",
+      minAmount: "200000",
+    });
+  });
+
+  it("SmsSettingsPage_DebtReminderSaved_ShowsItOnWithItsAmount", async () => {
+    ownerWith(filled);
+    renderApp("/sms-settings", { session: session() });
+
+    await waitFor(() => expect(switchOf("یادآوری بدهی")).toBeChecked());
+    expect(group("یادآوری بدهی").getByLabelText(/^چند روز/)).toHaveValue("30");
+    expect(group("یادآوری بدهی").getByLabelText(/^حداقل کل بدهی/)).toHaveValue("۲۰۰٬۰۰۰");
+  });
+
+  it("SmsSettingsPage_DebtReminderAmountBelowTheFloorOrDaysOutOfRange_IsRefusedBeforeAnythingIsSent", async () => {
+    const api = ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "یادآوری بدهی" });
+
+    fireEvent.change(group("یادآوری بدهی").getByLabelText(/^چند روز/), { target: { value: "91" } });
+    fireEvent.change(group("یادآوری بدهی").getByLabelText(/^حداقل کل بدهی/), {
+      target: { value: "999" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(
+      await group("یادآوری بدهی").findByText("تعداد روز باید از ۱ تا ۹۰ باشد."),
+    ).toBeInTheDocument();
+    expect(group("یادآوری بدهی").getByText(/حداقل مبلغ باید ۱٬۰۰۰ تومان/)).toBeInTheDocument();
+    expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);
+  });
+
+  it("SmsSettingsPage_ServerRefusesTheMinimumAmount_ShowsItUnderTheAmount", async () => {
+    ownerWith(filled, {
+      "PUT /api/sms/settings": () => problem(400, "Sms.DebtReminderMinAmountOutOfRange"),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await waitFor(() => expect(switchOf("یادآوری بدهی")).toBeChecked());
+
+    fireEvent.change(group("یادآوری بدهی").getByLabelText(/^حداقل کل بدهی/), {
+      target: { value: "۳۰۰۰۰۰" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(
+      await group("یادآوری بدهی").findByText(/حداقل مبلغ باید ۱٬۰۰۰ تومان/),
+    ).toBeInTheDocument();
   });
 
   it("SmsSettingsPage_DailyReportOnWithItsNumberEmptied_SaysWhatIsMissing", async () => {

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { errorMessages } from "@/lib/errors";
 import { formatPhone } from "@/lib/format";
+import { normalizeMoney } from "@/lib/money";
 import { normalizeDigits } from "@/lib/normalize";
 
 import type { SmsKindSettings, SmsSettings, SmsSettingsInput } from "./api";
@@ -28,6 +29,36 @@ export const thresholdRanges: Record<SmsKind, { min: number; max: number; code: 
   payableDue: { min: 0, max: 30, code: "Sms.PayableDueDaysOutOfRange" },
 };
 
+/** The debt reminder's days since the oldest unpaid sale, the same as the API's `SmsSettings.ThresholdRange` (task 10.11). */
+export const debtReminderDaysRange = { min: 1, max: 90 } as const;
+
+/** The smallest minimum amount, in Toman (`SmsSettings.DebtReminderMinAmountFloor`). */
+export const debtReminderMinAmountFloor = 1000;
+
+/** A `numeric(18,2)` amount: sixteen digits before the point, two after (§3). */
+const amountLimits = { decimals: 2, integerDigits: 16 } as const;
+
+/**
+ * Whether a typed minimum amount is one the API takes: 1,000 Toman or more, at most two decimal
+ * places, refused rather than rounded (BUSINESS_RULES.md §10 *The debt reminder*).
+ */
+export function isValidDebtReminderMinAmount(text: string): boolean {
+  const parts = /^(\d+)(?:\.(\d+))?$/.exec(normalizeMoney(text));
+  if (parts === null) {
+    return false;
+  }
+
+  const [, whole = "", fraction = ""] = parts;
+  const digits = whole.replace(/^0+(?=\d)/, "");
+
+  return (
+    fraction.length <= amountLimits.decimals &&
+    digits.length <= amountLimits.integerDigits &&
+    // Below 1,000 has at most four digits, so this compares as a number without losing anything.
+    (digits.length > 4 || Number(digits) >= debtReminderMinAmountFloor)
+  );
+}
+
 /** The hours a send time can start in: 08 to 22 (Asia/Tehran). */
 export const sendHours = Array.from({ length: 15 }, (_, index) =>
   String(index + 8).padStart(2, "0"),
@@ -53,6 +84,23 @@ function wholeNumber(text: string): number | null {
   const normalized = normalizeDigits(text).trim();
 
   return /^\d{1,3}$/.test(normalized) ? Number(normalized) : null;
+}
+
+const debtReminderSchema = z.object({
+  enabled: z.boolean(),
+  /** As typed, Persian or English digits; empty while the Owner has not chosen it. */
+  daysAfter: z.string(),
+  /** `HH:mm`, or empty. */
+  sendTime: z.string(),
+  /** As typed in `MoneyField`; empty while the Owner has not chosen it. */
+  minAmount: z.string(),
+});
+
+export type DebtReminderValues = z.infer<typeof debtReminderSchema>;
+
+/** Whether the debt reminder has its days, time and minimum amount, so its switch may be turned on. */
+export function isDebtReminderFilled(values: DebtReminderValues): boolean {
+  return values.daysAfter.trim() !== "" && values.sendTime !== "" && values.minAmount.trim() !== "";
 }
 
 /** Whether a kind has its number and time, so its switch may be turned on. */
@@ -89,6 +137,8 @@ export const smsSettingsSchema = z
     welcome: z.object({
       enabled: z.boolean(),
     }),
+    /** The member's debt reminder (task 10.11): days, time and a minimum amount. */
+    debtReminder: debtReminderSchema,
   })
   .superRefine((values, context) => {
     for (const kind of smsKinds) {
@@ -119,6 +169,34 @@ export const smsSettingsSchema = z
       context.addIssue({
         code: "custom",
         path: ["dailyReport", "enabled"],
+        message: message("Sms.SettingsIncomplete"),
+      });
+    }
+
+    const debt = values.debtReminder;
+    if (debt.daysAfter.trim() !== "") {
+      const days = wholeNumber(debt.daysAfter);
+      if (days === null || days < debtReminderDaysRange.min || days > debtReminderDaysRange.max) {
+        context.addIssue({
+          code: "custom",
+          path: ["debtReminder", "daysAfter"],
+          message: message("Sms.DebtReminderDaysOutOfRange"),
+        });
+      }
+    }
+
+    if (debt.minAmount.trim() !== "" && !isValidDebtReminderMinAmount(debt.minAmount)) {
+      context.addIssue({
+        code: "custom",
+        path: ["debtReminder", "minAmount"],
+        message: message("Sms.DebtReminderMinAmountOutOfRange"),
+      });
+    }
+
+    if (debt.enabled && !isDebtReminderFilled(debt)) {
+      context.addIssue({
+        code: "custom",
+        path: ["debtReminder", "enabled"],
         message: message("Sms.SettingsIncomplete"),
       });
     }
@@ -154,6 +232,14 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
     },
     subscriptionReceipt: { enabled: settings.subscriptionReceipt.enabled },
     welcome: { enabled: settings.welcome.enabled },
+    debtReminder: {
+      enabled: settings.debtReminder.enabled,
+      daysAfter:
+        settings.debtReminder.daysAfter === null ? "" : String(settings.debtReminder.daysAfter),
+      sendTime: settings.debtReminder.sendTime?.slice(0, 5) ?? "",
+      minAmount:
+        settings.debtReminder.minAmount === null ? "" : String(settings.debtReminder.minAmount),
+    },
   };
 }
 
@@ -164,6 +250,19 @@ function kindInput(values: SmsKindValues): SmsKindSettings {
     enabled: values.enabled,
     threshold: threshold === "" ? null : Number(normalizeDigits(threshold)),
     sendTime: values.sendTime === "" ? null : `${values.sendTime}:00`,
+  };
+}
+
+function debtReminderInput(values: DebtReminderValues): SmsSettingsInput["debtReminder"] {
+  const days = values.daysAfter.trim();
+  const minAmount = normalizeMoney(values.minAmount);
+
+  return {
+    enabled: values.enabled,
+    daysAfter: days === "" ? null : Number(normalizeDigits(days)),
+    sendTime: values.sendTime === "" ? null : `${values.sendTime}:00`,
+    // A string, never a float: an amount is never rounded on its way (§13).
+    minAmount: minAmount === "" ? null : minAmount,
   };
 }
 
@@ -188,6 +287,7 @@ export function toInput(
     },
     subscriptionReceipt: { enabled: values.subscriptionReceipt.enabled },
     welcome: { enabled: values.welcome.enabled },
+    debtReminder: debtReminderInput(values.debtReminder),
     version,
   };
 }

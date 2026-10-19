@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -33,6 +34,14 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     private static readonly object ReceiptOff = new { enabled = false };
     private static readonly object WelcomeOff = new { enabled = false };
+
+    private static readonly object DebtReminderOff = new
+    {
+        enabled = false,
+        daysAfter = (int?)null,
+        sendTime = (string?)null,
+        minAmount = (decimal?)null,
+    };
 
     // ---- The seeded row ----
 
@@ -83,6 +92,13 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         "ck_sms_settings_payable_due_on_means_filled")]
     [InlineData("daily_report_phone = '09121234567'", "ck_sms_settings_daily_report_phone")]
     [InlineData("daily_report_enabled = true", "ck_sms_settings_daily_report_on_means_filled")]
+    [InlineData("debt_reminder_days_after = 0", "ck_sms_settings_debt_reminder_days")]
+    [InlineData("debt_reminder_days_after = 91", "ck_sms_settings_debt_reminder_days")]
+    [InlineData("debt_reminder_min_amount = 999.99", "ck_sms_settings_debt_reminder_min_amount")]
+    [InlineData("debt_reminder_send_time = '22:15'", "ck_sms_settings_send_times")]
+    [InlineData(
+        "debt_reminder_enabled = true, debt_reminder_days_after = 30, debt_reminder_send_time = '11:00'",
+        "ck_sms_settings_debt_reminder_on_means_filled")]
     public async Task Database_RuleBroken_IsRefused(string assignments, string constraint)
     {
         var exception = await Should.ThrowAsync<PostgresException>(() => ExecuteAsync($"UPDATE sms_settings SET {assignments}"));
@@ -90,6 +106,14 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
         exception.ConstraintName.ShouldBe(constraint);
     }
+
+    [Fact]
+    public async Task Database_DebtReminderOnAndFilled_IsAccepted() =>
+        await ExecuteAsync(
+            """
+            UPDATE sms_settings SET debt_reminder_enabled = true, debt_reminder_days_after = 90,
+                debt_reminder_send_time = '08:00', debt_reminder_min_amount = 1000
+            """);
 
     [Fact]
     public async Task Database_KindOnAndFilled_IsAccepted() =>
@@ -117,6 +141,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         settings.DailyReport.ShouldBe(new DailyReportSettingsResponse(false, null, new TimeOnly(22, 45)));
         settings.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(false, new TimeOnly(10, 0)));
         settings.Welcome.ShouldBe(new WelcomeSettingsResponse(false, new TimeOnly(10, 0)));
+        settings.DebtReminder.ShouldBe(new DebtReminderSettings(false, null, null, null));
     }
 
     [Fact]
@@ -222,6 +247,82 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     }
 
     // ---- The welcome (task 10.10) ----
+
+    // ---- The debt reminder (task 10.11) ----
+
+    [Fact]
+    public async Task Update_DebtReminderOnAndFilled_IsSavedAndGetsItsRun()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var schedule = RecordingSchedule();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version,
+            enabled: true,
+            debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000.5m }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).DebtReminder.ShouldBe(
+            new DebtReminderSettings(true, 30, new TimeOnly(11, 0), 200_000.5m));
+        schedule.Applied.ShouldNotBeEmpty();
+        schedule.Applied[^1].For(NotificationKind.DebtReminder).SendTime.ShouldBe(new TimeOnly(11, 0));
+    }
+
+    [Fact]
+    public async Task Update_DebtReminderOnWithoutItsMinimumAmount_Returns400SettingsIncompleteUnderTheSwitch()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            read.Version,
+            debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = (decimal?)null }));
+
+        await ShouldHaveFieldErrorAsync(response, "debtReminder.enabled", "Sms.SettingsIncomplete");
+    }
+
+    [Theory]
+    [InlineData(0, null, null, "debtReminder.daysAfter", "Sms.DebtReminderDaysOutOfRange")]
+    [InlineData(91, null, null, "debtReminder.daysAfter", "Sms.DebtReminderDaysOutOfRange")]
+    [InlineData(null, "22:15:00", null, "debtReminder.sendTime", "Sms.SendTimeOutOfRange")]
+    [InlineData(null, null, "999.99", "debtReminder.minAmount", "Sms.DebtReminderMinAmountOutOfRange")]
+    [InlineData(null, null, "1000.001", "debtReminder.minAmount", "Sms.DebtReminderMinAmountOutOfRange")]
+    public async Task Update_DebtReminderFieldOutOfItsRange_Returns400WithTheFieldsCode(
+        int? daysAfter, string? sendTime, string? minAmount, string field, string code)
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+        var amount = minAmount is null ? (decimal?)null : decimal.Parse(minAmount, CultureInfo.InvariantCulture);
+
+        using var response = await UpdateAsync(client, token, Body(
+            read.Version, debtReminder: new { enabled = false, daysAfter, sendTime, minAmount = amount }));
+
+        await ShouldHaveFieldErrorAsync(response, field, code);
+    }
+
+    [Fact]
+    public async Task Update_DebtReminderLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = Off,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "debtReminder", "Sms.SettingsIncomplete");
+    }
 
     [Fact]
     public async Task Update_WelcomeOn_IsSavedWithNothingElseToFill()
@@ -587,7 +688,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         string? ownerPhone = null,
         object? dailyReport = null,
         object? subscriptionReceipt = null,
-        object? welcome = null) =>
+        object? welcome = null,
+        object? debtReminder = null) =>
         new
         {
             enabled,
@@ -599,6 +701,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             dailyReport = dailyReport ?? ReportOff,
             subscriptionReceipt = subscriptionReceipt ?? ReceiptOff,
             welcome = welcome ?? WelcomeOff,
+            debtReminder = debtReminder ?? DebtReminderOff,
             version,
         };
 
@@ -612,7 +715,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         ownerPhone: "09121234567",
         dailyReport: new { enabled = true, phone = "09351234567" },
         subscriptionReceipt: new { enabled = true },
-        welcome: new { enabled = true });
+        welcome: new { enabled = true },
+        debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000m });
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {

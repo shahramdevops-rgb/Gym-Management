@@ -123,6 +123,29 @@ public sealed class NotificationTests
     }
 
     [Fact]
+    public void ForDebtReminder_NamesTheMemberAndTheDayTheDebtBegan()
+    {
+        var memberId = Guid.NewGuid();
+        var since = new DateOnly(2026, 9, 1);
+
+        var notification = Notification.ForDebtReminder(memberId, since, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.DebtReminder);
+        notification.MemberId.ShouldBe(memberId);
+        notification.DebtSince.ShouldBe(since);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.SubscriptionId.ShouldBeNull();
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForDebtReminder_EmptyMemberId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForDebtReminder(Guid.Empty, new DateOnly(2026, 9, 1), Phone, Text));
+
+    [Fact]
     public void ForSubscriptionReceipt_EmptySubscriptionId_Throws()
     {
         Should.Throw<ArgumentException>(() => Notification.ForSubscriptionReceipt(Guid.NewGuid(), Guid.Empty, Phone, Text));

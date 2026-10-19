@@ -642,6 +642,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             sender,
             retries,
             scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
+            scope.ServiceProvider.GetRequiredService<DebtReminderCandidate>(),
             NullLogger<SendDailySmsHandler>.Instance);
 
         return await handler.Handle(kind, TestContext.Current.CancellationToken);
@@ -662,7 +663,9 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             dailyReportEnabled: kind == NotificationKind.DailyReport,
             kind == NotificationKind.DailyReport ? OwnerPhone : null,
             subscriptionReceiptEnabled: false,
-            welcomeEnabled: false));
+            welcomeEnabled: false,
+            debtReminder: SmsKindSettings.Off,
+            debtReminderMinAmount: null));
     }
 
     private Task TurnOnBothSubscriptionKindsAsync() => SaveSettingsAsync(settings => settings.Update(
@@ -675,7 +678,9 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         dailyReportEnabled: false,
         dailyReportPhone: null,
         subscriptionReceiptEnabled: false,
-        welcomeEnabled: false));
+        welcomeEnabled: false,
+        debtReminder: SmsKindSettings.Off,
+        debtReminderMinAmount: null));
 
     private async Task SaveSettingsAsync(Func<SmsSettings, Result> update)
     {

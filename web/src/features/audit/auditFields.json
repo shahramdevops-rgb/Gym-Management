@@ -126,6 +126,7 @@
     "Recipient": { "label": "گیرنده" },
     "JalaliYear": { "label": "سال" },
     "ReportDate": { "label": "روز گزارش" },
+    "DebtSince": { "label": "بدهی از روز" },
     "Text": { "label": "متن" },
     "Status": { "label": "وضعیت", "format": "notificationStatus" },
     "Attempts": { "label": "دفعات تلاش" },
@@ -161,6 +162,10 @@
     "DailyReportPhone": { "label": "گزارش روزانه: موبایل" },
     "SubscriptionReceiptEnabled": { "label": "رسید خرید اشتراک: روشن" },
     "WelcomeEnabled": { "label": "خوش‌آمد: روشن" },
+    "DebtReminderEnabled": { "label": "یادآوری بدهی: روشن" },
+    "DebtReminderDaysAfter": { "label": "یادآوری بدهی: چند روز بعد" },
+    "DebtReminderSendTime": { "label": "یادآوری بدهی: ساعت ارسال" },
+    "DebtReminderMinAmount": { "label": "یادآوری بدهی: حداقل مبلغ", "format": "money" },
 
     "RevokedReason": { "label": "دلیل باطل شدن", "format": "revocationReason" },
     "FailedAttempts": { "label": "تلاش‌های ناموفق" },

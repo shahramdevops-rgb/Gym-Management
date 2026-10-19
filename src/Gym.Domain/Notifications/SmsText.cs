@@ -140,6 +140,14 @@ public static class SmsText
     public static string ForWelcome(string fullName) =>
         WithOptOut($"{Name(fullName)} عزیز، به باشگاه پاسارگاد خوش آمدید!");
 
+    /// <summary>
+    /// To the member whose debt has been owed for a while (task 10.11): their whole open account,
+    /// asked politely (chosen by the developer, 1405/07/27).
+    /// </summary>
+    /// <param name="owed">The whole open account, in Toman.</param>
+    public static string ForDebtReminder(string fullName, decimal owed) =>
+        WithOptOut($"{Name(fullName)} عزیز، مانده حساب شما در باشگاه پاسارگاد {Amount(owed)} تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!");
+
     // ---- The values ----
 
     /// <summary><c>2026-10-19</c> → <c>۰۷/۲۷</c>: the daily report and the receipt leave the year out.</summary>

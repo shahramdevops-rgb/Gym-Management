@@ -2776,12 +2776,33 @@ existing row. It goes out with the SMS release (10.6), which still starts with `
 
 #### 10.11 Debt reminder (یادآوری بدهی)
 Decided: the Owner sets on the settings page the number of days and the minimum amount.
-- [ ] Open: days counted from when the debt began (the oldest unpaid item), or from the last payment?
-- [ ] Open: once per debt, or again every N days until it is paid?
-- [ ] Open: the amount in the text is the member's whole open account (§5 *Member debt*)?
-- [ ] Open: deactivated members too?
-- [ ] Open: the wording (friendly, not harsh)
-- [ ] Rules, settings row, the run, tests, UI
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The debt reminder*:
+- [x] The days count from the **oldest unpaid sale** (the receivables' ages), not the last payment;
+      sent once it is at least that many days old (*N* = 1: yesterday's debt today)
+- [x] **Once per debt**: no other until everything owed at the last reminder is paid; a debt that
+      builds after that has its own (refined from "until the debt is zero", approved with the plan)
+- [x] The amount is the member's **whole open account** (§5), newer sales included
+- [x] **Deactivated members get it too**: money owed is owed; guests and walk-ins have no account
+- [x] The wording (`docs/sms-texts.md`): «{name} عزیز، مانده حساب شما در باشگاه پاسارگاد {amount}
+      تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!», two parts
+- [x] A daily run at the time chosen on the page (08:00–22:00, quarter hours); days 1–90; the
+      minimum amount 1,000 Toman or more
+- [x] Rules, settings row, the run, tests, UI: `NotificationKind.DebtReminder`, `Notification.DebtSince`,
+      `OpenDebt`, `SmsAudience.IsDebtReminderDue`, `SmsText.ForDebtReminder`, the four
+      `SmsSettings.DebtReminder*` fields with `CheckDebtReminderMinAmount` and
+      `CheckDebtReminderComplete`; `DebtReminderCandidate` reads each member's debt from `SaleRows`
+      (the receivables' query) and their latest reminder; Hangfire job `sms-DebtReminder` at the
+      chosen time; migration `AddSmsDebtReminder` (four columns on `sms_settings`, off and empty,
+      with their checks; `debt_since` on `notifications` with the unique index
+      `ix_notifications_one_debt_reminder_per_member_and_debt`; the kind and event checks widened;
+      no existing row is touched); «یادآوری بدهی» on «تنظیمات پیامک» with `MoneyField`, its label on
+      «پیامک‌ها» and the audit screen; the demo turns it on (30 days, 200,000)
+
+Closed 2026-10-19: 2443 backend tests (833 domain, 1610 integration) and 1051 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSmsDebtReminder`,
+which only adds (four columns, off and empty, one column and a unique index) and widens two check
+constraints, refusing no existing row. It goes out with the SMS release (10.6), which still starts
+with `./backup.sh run`.
 
 #### 10.12 Absence SMS (پیامک غیبت)
 Moved here from «Future — Absence SMS». Decided: the Owner sets the number of days on the settings

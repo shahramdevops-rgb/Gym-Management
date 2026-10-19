@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Controller, useForm, useWatch, type UseFormReturn } from "react-hook-form";
 
 import { PageMessage } from "@/features/auth/components/PageMessage";
-import { FormField, SelectField } from "@/components/FormField";
+import { FormField, MoneyField, SelectField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { applyServerErrors, zodResolver } from "@/lib/forms";
 import { useSmsSettings, useUpdateSmsSettings, type SmsSettings } from "../api";
 import { SmsCreditLine } from "../components/SmsCreditLine";
 import {
+  isDebtReminderFilled,
   isKindFilled,
   lastSendHour,
   sendHours,
@@ -26,12 +27,17 @@ import {
 
 const changedConcurrently = "Sms.ChangedConcurrently";
 
-/** The Owner's number follows the members' phone rules, so the server answers with their codes. */
-const phoneCodeFields = {
+/**
+ * Refusals that come back as one code rather than per field. The Owner's number follows the
+ * members' phone rules, so the server answers with their codes.
+ */
+const codeFields = {
   "Members.PhoneInvalid": "ownerPhone",
   "Members.PhoneNotMobile": "ownerPhone",
   "Members.PhoneNotIranian": "ownerPhone",
   "Sms.DailyReportPhoneInvalid": "dailyReport.phone",
+  "Sms.DebtReminderDaysOutOfRange": "debtReminder.daysAfter",
+  "Sms.DebtReminderMinAmountOutOfRange": "debtReminder.minAmount",
 } as const;
 
 function isCode(problem: unknown, code: string): boolean {
@@ -200,7 +206,7 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
         onStale();
         return;
       }
-      applyServerErrors(problem, form.setError, phoneCodeFields);
+      applyServerErrors(problem, form.setError, codeFields);
     }
   });
 
@@ -252,6 +258,7 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
         morningSendTime={current.subscriptionReceipt.morningSendTime}
       />
       <WelcomeFieldset form={form} morningSendTime={current.welcome.morningSendTime} />
+      <DebtReminderFieldset form={form} />
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={isSubmitting}>
@@ -488,6 +495,101 @@ function WelcomeFieldset({ form, morningSendTime }: WelcomeFieldsetProps) {
         />
         روشن
       </label>
+    </fieldset>
+  );
+}
+
+interface DebtReminderFieldsetProps {
+  form: UseFormReturn<SmsSettingsValues>;
+}
+
+/**
+ * The member's debt reminder (BUSINESS_RULES.md §10 *The debt reminder*, task 10.11): a daily run
+ * like the four kinds, with a minimum amount besides the days and the time. The switch follows the
+ * same rule as theirs: it cannot be turned on while a field is empty.
+ */
+function DebtReminderFieldset({ form }: DebtReminderFieldsetProps) {
+  const control = form.control;
+  const values = useWatch({ control, name: "debtReminder" });
+  const filled = isDebtReminderFilled(values);
+  const errors = form.formState.errors.debtReminder;
+
+  return (
+    <fieldset className="space-y-3 rounded-md border p-4">
+      <legend className="px-1 font-medium">یادآوری بدهی</legend>
+      <p className="text-sm text-muted-foreground">
+        به عضوی که قدیمی‌ترین بدهی پرداخت‌نشده‌اش این تعداد روز یا بیشتر مانده و کل بدهی‌اش دست‌کم
+        این مبلغ است، با کل مانده‌اش: «… عزیز، مانده حساب شما در باشگاه پاسارگاد … تومان است. لطفاً
+        در مراجعه بعدی تسویه بفرمایید.». برای هر بدهی یک بار؛ پیامک بعدی فقط وقتی می‌رود که همهٔ
+        بدهی آن روز پرداخت شده باشد و بدهی تازه‌ای این‌قدر بماند. عضو غیرفعال هم می‌گیرد.
+      </p>
+
+      <Controller
+        control={control}
+        name="debtReminder.enabled"
+        render={({ field }) => (
+          <div className="space-y-1">
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-sm has-disabled:cursor-not-allowed has-disabled:opacity-60">
+              <input
+                type="checkbox"
+                className="size-4 accent-primary"
+                name={field.name}
+                checked={field.value}
+                disabled={!field.value && !filled}
+                aria-invalid={errors?.enabled !== undefined}
+                onChange={(event) => field.onChange(event.target.checked)}
+                onBlur={field.onBlur}
+              />
+              روشن
+            </label>
+            {!field.value && !filled && (
+              <p className="text-sm text-muted-foreground">
+                برای روشن کردن، اول همهٔ خانه‌های این بخش را پر کنید.
+              </p>
+            )}
+            {errors?.enabled?.message !== undefined && (
+              <p className="text-sm text-destructive">{errors.enabled.message}</p>
+            )}
+          </div>
+        )}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <FormField
+          label="چند روز پس از قدیمی‌ترین بدهی (۱ تا ۹۰)"
+          inputMode="numeric"
+          error={errors?.daysAfter?.message}
+          {...form.register("debtReminder.daysAfter")}
+        />
+
+        <Controller
+          control={control}
+          name="debtReminder.sendTime"
+          render={({ field }) => (
+            <SendTimeField
+              value={field.value}
+              onChange={field.onChange}
+              error={errors?.sendTime?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="debtReminder.minAmount"
+          render={({ field }) => (
+            <MoneyField
+              label="حداقل کل بدهی (تومان، از ۱٬۰۰۰)"
+              placeholder="۲۰۰٬۰۰۰"
+              error={errors?.minAmount?.message}
+              name={field.name}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+            />
+          )}
+        />
+      </div>
     </fieldset>
   );
 }

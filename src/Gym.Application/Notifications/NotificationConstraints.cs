@@ -23,6 +23,12 @@ public static class NotificationConstraints
     /// <summary>One <c>Welcome</c> per member, whichever plan was their first (BUSINESS_RULES.md §10).</summary>
     public const string OneWelcomePerMember = "ix_notifications_one_welcome_per_member";
 
+    /// <summary>
+    /// One <c>DebtReminder</c> per member and debt, the debt named by the day of its oldest unpaid sale
+    /// (BUSINESS_RULES.md §10 <i>The debt reminder</i>).
+    /// </summary>
+    public const string OneDebtReminderPerMemberAndDebt = "ix_notifications_one_debt_reminder_per_member_and_debt";
+
     /// <summary>Each kind fills the ids of its own event and leaves the others empty.</summary>
     public const string EventMatchesKind = "ck_notifications_event_matches_kind";
 

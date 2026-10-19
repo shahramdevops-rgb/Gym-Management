@@ -1297,7 +1297,8 @@ sent that the Owner did not choose, and the same message is never paid for twice
   (not frozen, not queued) whose `EndDate` is at most *N days* away, today included.
 - **Few sessions left (`LowSessions`)**, to the member: an `Active` subscription with at most
   *N sessions* left.
-- For both: a single-session visit never gets one; a deactivated member never gets one; **a member
+- For both: a single-session visit never gets one; a deactivated member never gets one (nor any
+  member's SMS, except the debt reminder, *The debt reminder*); **a member
   who has already bought the next subscription** (a queued one, §4 `Upcoming`, not cancelled) never
   gets one, since they have renewed and the message would only cost money. If that queued one is
   cancelled later, the member counts as not renewed again, and the next run may send it.
@@ -1322,7 +1323,8 @@ sent that the Owner did not choose, and the same message is never paid for twice
   and one `LowSessions` per subscription, one `Birthday` per member and Jalali year, one `PayableDue`
   per cheque or instalment, one `DailyReport` per day (*The daily report* below), one
   `SubscriptionReceipt` per subscription (*The subscription receipt* below), one `Welcome` per
-  member (*The welcome* below). Running the job
+  member (*The welcome* below), one `DebtReminder` per member and debt (*The debt reminder*
+  below). Running the job
   twice sends nothing twice. A cheque or instalment whose date is changed after its SMS went out
   gets no second one (§0).
 
@@ -1421,6 +1423,39 @@ Decided with the developer on 1405/07/27 (2026-10-19), task 10.10.
   welcome the server stopped between the two saves becomes `Unknown`, never sent again by itself.
   Welcomes are sent one at a time.
 
+### The debt reminder (یادآوری بدهی)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.11.
+- **One SMS to the member (`DebtReminder`) when their debt has been owed for a while**: a daily
+  run at the time chosen on the settings page, like the four kinds.
+- **The debt is §5's *Member debt***: every sale not cancelled or voided that is not fully paid
+  (plans, single visits, هوازی, فروشگاه, آنالیز, متفرقه, cafe orders), counted exactly as
+  «مطالبات» and «بدهی‌های قدیمی» count it (§12), so the SMS and the reports never disagree. A
+  guest or a walk-in has no account (§7 *Guest visit*) and never gets one.
+- **The days count from the oldest unpaid sale**: the gym's day it was recorded on, as the
+  receivables' ages (§12). The reminder goes once that sale is **at least *N* days old**: sold on
+  or before today − *N* (*N* = 1: yesterday's debt is reminded today). *The boundary proposed by
+  Claude and approved with the plan, 1405/07/27.*
+- **The minimum amount**: only a member whose whole debt is at least that amount gets it. It is
+  1,000 Toman or more (decided with the developer), typed like every amount (§3: at most 2
+  decimal places, refused rather than rounded).
+- **The amount in the text is the member's whole open account**, newer sales included: the figure
+  the desk and the member list show (§5), so the member comes with one number and clears it all.
+- **Once per debt.** After a reminder, the member gets **no other until everything owed when it
+  was written has been paid** (or cancelled or voided); a debt that builds after that has its own
+  reminder once its oldest sale is *N* days old. In practice the next reminder is due only when
+  the oldest unpaid sale was recorded after the last reminder was written. A partial payment
+  brings no second reminder. *Refined by Claude and approved with the plan, 1405/07/27: "until the
+  debt is back to zero" would never remind again a member who always carries some newer debt.*
+  A reminder that failed counts as written, as every kind: the Owner can resend it (*Sending*).
+- **Deactivated members get it too** (decided with the developer, 1405/07/27): money owed is owed.
+  The one member's SMS that does not leave them out (*The four kinds*).
+- **Checked when the run writes it**: the debt and its amount are read at that moment; there is
+  no later check, since the message is sent at once.
+- **One per member and debt**, enforced by a unique index on the member and the day of the oldest
+  unpaid sale the reminder was about; a run made twice sends nothing twice.
+- **What it says**: the member's name and the whole amount, politely (`docs/sms-texts.md`); two
+  SMS parts.
+
 ### The daily runs
 Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - **One run per kind, at its own send time**, every day, in Asia/Tehran. Only a kind that is on
@@ -1463,6 +1498,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Daily report | on/off, the mobile number it goes to | sent at 22:45, fixed |
   | Subscription receipt | on/off | sent at once; after 22:00 at 10:00, fixed |
   | Welcome | on/off | sent at once; after 22:00 at 10:00, fixed |
+  | Debt reminder | on/off, days since the oldest unpaid sale, the minimum amount, send time | 1–90 days; 1,000 Toman or more |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,

@@ -260,6 +260,7 @@ public static class DependencyInjection
         services.AddScoped<UpdateSmsSettingsHandler>();
         services.AddScoped<SendDailySmsHandler>();
         services.AddScoped<DailyReportCandidate>();
+        services.AddScoped<DebtReminderCandidate>();
         services.AddScoped<SubscriptionReceipts>();
         services.AddScoped<SendSubscriptionReceiptHandler>();
         services.AddScoped<Welcomes>();

@@ -118,6 +118,9 @@ export const errorMessages: Record<string, string> = {
   "Sms.LowSessionsOutOfRange": "تعداد جلسه باید از ۱ تا ۱۰ باشد.",
   "Sms.BirthdayDaysOutOfRange": "تعداد روز باید از ۱ تا ۷ باشد.",
   "Sms.PayableDueDaysOutOfRange": "تعداد روز باید از ۰ تا ۳۰ باشد (۰ یعنی خود روز سررسید).",
+  "Sms.DebtReminderDaysOutOfRange": "تعداد روز باید از ۱ تا ۹۰ باشد.",
+  "Sms.DebtReminderMinAmountOutOfRange":
+    "حداقل مبلغ باید ۱٬۰۰۰ تومان یا بیشتر باشد، با حداکثر دو رقم اعشار.",
   "Sms.SendTimeOutOfRange": "ساعت ارسال باید بین ۸:۰۰ و ۲۲:۰۰ و روی ربع ساعت باشد.",
   "Sms.SettingsIncomplete": "برای روشن کردن این پیامک، همهٔ خانه‌هایش را پر کنید.",
   "Sms.DailyReportPhoneInvalid": "شمارهٔ گزارش روزانه باید یک شمارهٔ موبایل ایران باشد.",

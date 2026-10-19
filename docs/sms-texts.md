@@ -135,3 +135,18 @@ sold (BUSINESS_RULES.md §10 *The welcome*).
 
 - Nothing in it would be wrong for a member moved over from the paper notebook, who gets it too.
 - About 52 characters with a 10-character name: one part, the only text that fits in one.
+
+### Debt reminder (`DebtReminder`, to the member)
+
+Chosen by the developer on 1405/07/27 (2026-10-19), task 10.11. Sent once per debt, when the
+member's oldest unpaid sale is the settings' number of days old and their whole debt is at least the
+minimum amount (BUSINESS_RULES.md §10 *The debt reminder*).
+
+```
+{name} عزیز، مانده حساب شما در باشگاه پاسارگاد {amount} تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!
+```
+
+- `{amount}`: the member's whole open account in Toman, newer sales included, e.g. `۱٬۲۵۰٬۰۰۰`.
+- Friendly rather than harsh, as asked; a shorter text (without «لطفاً … بفرمایید») was offered and
+  would still take two parts, so the developer kept the polite one.
+- About 120 characters with a 10-character name: two parts.

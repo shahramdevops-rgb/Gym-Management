@@ -290,6 +290,62 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
         exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
     }
 
+    // ---- The debt reminder (task 10.11) ----
+
+    [Fact]
+    public async Task Save_SecondDebtReminderForOneDebt_RejectedByTheUniqueIndex()
+    {
+        var (member, _, _) = await SeedAsync();
+        await SaveAsync(Notification.ForDebtReminder(member.Id, ReportDay, Phone, DebtText));
+
+        var exception = await SaveRejectedAsync(Notification.ForDebtReminder(member.Id, ReportDay, Phone, DebtText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OneDebtReminderPerMemberAndDebt);
+    }
+
+    [Fact]
+    public async Task Save_DebtRemindersOfTwoDebts_AreAllowedAndReadBackAsWritten()
+    {
+        var (member, _, _) = await SeedAsync();
+
+        await SaveAsync(
+            Notification.ForDebtReminder(member.Id, ReportDay, Phone, DebtText),
+            Notification.ForDebtReminder(member.Id, ReportDay.AddDays(40), Phone, DebtText));
+
+        await using var scope = Fixture.CreateScope();
+        var saved = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Notifications
+            .OrderBy(notification => notification.DebtSince)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        saved.Select(notification => notification.DebtSince).ShouldBe([ReportDay, ReportDay.AddDays(40)]);
+        saved.ShouldAllBe(notification => notification.MemberId == member.Id && notification.Kind == NotificationKind.DebtReminder);
+    }
+
+    [Fact]
+    public async Task Notification_DebtReminderWithoutItsDay_RejectedByACheckConstraint()
+    {
+        var (member, _, _) = await SeedAsync();
+        var reminder = Notification.ForDebtReminder(member.Id, ReportDay, Phone, DebtText);
+        await SaveAsync(reminder);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET debt_since = NULL WHERE id = '{reminder.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
+    public async Task Notification_MemberKindCarryingADebtDay_RejectedByACheckConstraint()
+    {
+        var id = await SaveExpiringAsync();
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET debt_since = '2026-10-19' WHERE id = '{id}'"));
+
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
     // ---- Check constraints ----
 
     [Fact]
@@ -428,6 +484,8 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     private const string BirthdayText = "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۲۰ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد";
 
     private const string ChequeText = "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی";
+
+    private const string DebtText = "سارا محمدی عزیز، مانده حساب شما در باشگاه پاسارگاد ۸۰۰٬۰۰۰ تومان است.";
 
     private const string ReportText = "گزارش باشگاه پاسارگاد ۰۷/۲۷\nورود: ۸۵";
 

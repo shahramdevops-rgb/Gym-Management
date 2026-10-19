@@ -445,7 +445,69 @@ public sealed class SmsAudienceTests
         SmsAudience.IsFirstPlan(free, [free]).ShouldBeTrue();
     }
 
+    // ---- The debt reminder (task 10.11) ----
+
+    [Theory]
+    [InlineData(29, false)]
+    [InlineData(30, true)]
+    [InlineData(45, true)]
+    public void IsDebtReminderDue_OldestSaleAge_IsDueOnceItIsAtLeastTheDays(int daysOld, bool expected)
+    {
+        SmsAudience.IsDebtReminderDue(Debt(500_000m, daysOld), lastReminderAt: null, Today, daysAfter: 30, minAmount: 100_000m)
+            .ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IsDebtReminderDue_OneDayAfterYesterdaysSale_IsDue()
+    {
+        SmsAudience.IsDebtReminderDue(Debt(5_000m, 1), lastReminderAt: null, Today, daysAfter: 1, minAmount: 1_000m)
+            .ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(99_999, false)]
+    [InlineData(100_000, true)]
+    public void IsDebtReminderDue_WholeDebtAgainstTheMinimum_IsDueFromTheMinimumUp(int owed, bool expected)
+    {
+        SmsAudience.IsDebtReminderDue(Debt(owed, 40), lastReminderAt: null, Today, daysAfter: 30, minAmount: 100_000m)
+            .ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IsDebtReminderDue_NothingOwed_IsNotDue()
+    {
+        SmsAudience.IsDebtReminderDue(Debt(0m, 40), lastReminderAt: null, Today, daysAfter: 30, minAmount: 1_000m)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsDebtReminderDue_RemindedAfterTheOldestSale_IsNotDueAgain()
+    {
+        var debt = Debt(500_000m, 40);
+
+        SmsAudience.IsDebtReminderDue(debt, debt.OldestSoldAt.AddDays(30), Today, daysAfter: 30, minAmount: 100_000m)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsDebtReminderDue_OldestSaleRecordedAfterTheLastReminder_IsDueAgain()
+    {
+        // Everything owed at the last reminder was paid; this debt began after it.
+        var debt = Debt(300_000m, 35);
+
+        SmsAudience.IsDebtReminderDue(debt, debt.OldestSoldAt.AddDays(-5), Today, daysAfter: 30, minAmount: 100_000m)
+            .ShouldBeTrue();
+    }
+
     // ---- Helpers ----
+
+    /// <summary>A debt whose oldest unpaid sale was recorded <paramref name="daysOld"/> days before today, at noon UTC.</summary>
+    private static OpenDebt Debt(decimal owed, int daysOld)
+    {
+        var day = Today.AddDays(-daysOld);
+
+        return new OpenDebt(owed, new DateTimeOffset(day.ToDateTime(new TimeOnly(12, 0)), TimeSpan.Zero), day);
+    }
 
     /// <summary>
     /// Stamps the moment it was saved, <paramref name="minutes"/> after <see cref="Now"/>, as the

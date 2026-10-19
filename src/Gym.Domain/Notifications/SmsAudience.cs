@@ -177,6 +177,28 @@ public static class SmsAudience
             && other.EndDate == dayBefore);
     }
 
+    /// <summary>
+    /// Whether a member's debt earns a reminder today (§10 <i>The debt reminder</i>, task 10.11): at
+    /// least <paramref name="minAmount"/> owed, the oldest unpaid sale at least
+    /// <paramref name="daysAfter"/> days old, and no reminder written since that sale was recorded.
+    /// </summary>
+    /// <remarks>
+    /// "Once per debt": a reminder written after the oldest unpaid sale already spoke of it. Only when
+    /// everything owed at the last reminder has been paid is the oldest unpaid sale a newer one, and
+    /// that debt earns its own. Whether the member is active does not matter for this kind.
+    /// </remarks>
+    /// <param name="lastReminderAt">When the member's latest debt reminder was written, whatever became of it; <c>null</c> for none.</param>
+    public static bool IsDebtReminderDue(
+        OpenDebt debt, DateTimeOffset? lastReminderAt, DateOnly today, int daysAfter, decimal minAmount)
+    {
+        ArgumentNullException.ThrowIfNull(debt);
+
+        return debt.Owed > 0m
+            && debt.Owed >= minAmount
+            && today.DayNumber - debt.OldestSoldOn.DayNumber >= daysAfter
+            && (lastReminderAt is not { } last || debt.OldestSoldAt > last);
+    }
+
     private static bool SoldBefore(Subscription one, Subscription other) =>
         one.CreatedAt < other.CreatedAt
         || (one.CreatedAt == other.CreatedAt && one.Id.CompareTo(other.Id) < 0);

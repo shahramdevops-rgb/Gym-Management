@@ -18,7 +18,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
     private const int PhoneMaxLength = 13;
 
     // The kinds' column prefixes, as snake_case names them.
-    private static readonly string[] Kinds = ["subscription_expiring", "low_sessions", "birthday", "payable_due"];
+    private static readonly string[] Kinds = ["subscription_expiring", "low_sessions", "birthday", "payable_due", "debt_reminder"];
 
     public void Configure(EntityTypeBuilder<SmsSettings> builder)
     {
@@ -31,6 +31,13 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             table.HasCheckConstraint("ck_sms_settings_low_sessions_threshold", Range("low_sessions_threshold", NotificationKind.LowSessions));
             table.HasCheckConstraint("ck_sms_settings_birthday_days", Range("birthday_days_before", NotificationKind.Birthday));
             table.HasCheckConstraint("ck_sms_settings_payable_due_days", Range("payable_due_days_before", NotificationKind.PayableDue));
+            table.HasCheckConstraint("ck_sms_settings_debt_reminder_days", Range("debt_reminder_days_after", NotificationKind.DebtReminder));
+
+            // The debt reminder's minimum amount (task 10.11): 1,000 Toman or more. Two decimal
+            // places and the ceiling are the column's own numeric(18,2).
+            table.HasCheckConstraint(
+                "ck_sms_settings_debt_reminder_min_amount",
+                $"debt_reminder_min_amount IS NULL OR debt_reminder_min_amount >= {SmsSettings.DebtReminderMinAmountFloor.ToString(CultureInfo.InvariantCulture)}");
 
             // 08:00 to 22:00, both included, on a quarter hour with no seconds.
             table.HasCheckConstraint(
@@ -47,6 +54,10 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
                 "ck_sms_settings_payable_due_on_means_filled",
                 OnMeansFilled("payable_due", "payable_due_days_before", "owner_phone IS NOT NULL"));
 
+            table.HasCheckConstraint(
+                "ck_sms_settings_debt_reminder_on_means_filled",
+                OnMeansFilled("debt_reminder", "debt_reminder_days_after", "debt_reminder_min_amount IS NOT NULL"));
+
             // The daily report (task 10.7) has only a number: on means the number is there.
             table.HasCheckConstraint(
                 "ck_sms_settings_daily_report_phone", "daily_report_phone IS NULL OR daily_report_phone ~ '^\\+989[0-9]{9}$'");
@@ -56,6 +67,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
 
         builder.Property(settings => settings.OwnerPhone).HasMaxLength(PhoneMaxLength);
         builder.Property(settings => settings.DailyReportPhone).HasMaxLength(PhoneMaxLength);
+        builder.Property(settings => settings.DebtReminderMinAmount).HasPrecision(18, 2);
 
         builder.Property(settings => settings.Version).IsRowVersion();
 
@@ -73,6 +85,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             DailyReportEnabled = false,
             SubscriptionReceiptEnabled = false,
             WelcomeEnabled = false,
+            DebtReminderEnabled = false,
         });
     }
 

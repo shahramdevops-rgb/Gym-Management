@@ -21,6 +21,15 @@ public static class SmsSettingsErrors
         "Sms.PayableDueDaysOutOfRange",
         "Days before the cheque's or instalment's date must be from 0 to 30.");
 
+    public static readonly Error DebtReminderDaysOutOfRange = Error.Validation(
+        "Sms.DebtReminderDaysOutOfRange",
+        "Days since the oldest unpaid sale must be from 1 to 90.");
+
+    /// <summary>The debt reminder's minimum amount (task 10.11): 1,000 Toman or more, at most 2 decimal places.</summary>
+    public static readonly Error DebtReminderMinAmountOutOfRange = Error.Validation(
+        "Sms.DebtReminderMinAmountOutOfRange",
+        "The minimum amount must be at least 1,000 Toman, with at most 2 decimal places.");
+
     public static readonly Error SendTimeOutOfRange = Error.Validation(
         "Sms.SendTimeOutOfRange",
         "The send time must be between 08:00 and 22:00, on a quarter hour.");

@@ -15,6 +15,7 @@ public sealed record SmsSettingsResponse(
     DailyReportSettingsResponse DailyReport,
     SubscriptionReceiptSettingsResponse SubscriptionReceipt,
     WelcomeSettingsResponse Welcome,
+    DebtReminderSettings DebtReminder,
     uint Version)
 {
     public static SmsSettingsResponse From(SmsSettings settings)
@@ -31,6 +32,11 @@ public sealed record SmsSettingsResponse(
             new DailyReportSettingsResponse(settings.DailyReportEnabled, settings.DailyReportPhone, SmsSettings.DailyReportSendTime),
             new SubscriptionReceiptSettingsResponse(settings.SubscriptionReceiptEnabled, SmsSettings.MorningSendTime),
             new WelcomeSettingsResponse(settings.WelcomeEnabled, SmsSettings.MorningSendTime),
+            new DebtReminderSettings(
+                settings.DebtReminderEnabled,
+                settings.DebtReminderDaysAfter,
+                settings.DebtReminderSendTime,
+                settings.DebtReminderMinAmount),
             settings.Version);
     }
 }

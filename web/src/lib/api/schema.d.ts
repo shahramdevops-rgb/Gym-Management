@@ -1744,6 +1744,15 @@ export interface components {
         };
         /** @enum {unknown} */
         DayOfWeek: "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
+        DebtReminderSettings: {
+            enabled: boolean;
+            /** Format: int32 */
+            daysAfter: null | number | string;
+            /** Format: time */
+            sendTime: null | string;
+            /** Format: double */
+            minAmount: null | number | string;
+        };
         ExpenseCategoryResponse: {
             /** Format: uuid */
             id: string;
@@ -2155,7 +2164,7 @@ export interface components {
             payablesDue: components["schemas"]["PayableDueResponse"][];
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -2776,6 +2785,7 @@ export interface components {
             dailyReport: components["schemas"]["DailyReportSettingsResponse"];
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettingsResponse"];
             welcome: components["schemas"]["WelcomeSettingsResponse"];
+            debtReminder: components["schemas"]["DebtReminderSettings"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -2937,6 +2947,7 @@ export interface components {
             dailyReport: components["schemas"]["DailyReportSettings"];
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettings"];
             welcome: components["schemas"]["WelcomeSettings"];
+            debtReminder: components["schemas"]["DebtReminderSettings"];
             /** Format: uint32 */
             version: number | string;
         };

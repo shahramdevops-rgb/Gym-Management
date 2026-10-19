@@ -1,5 +1,12 @@
 import type { SmsSettings } from "./api";
-import { isKindFilled, smsSettingsSchema, toFormValues, toInput } from "./schemas";
+import {
+  isDebtReminderFilled,
+  isKindFilled,
+  isValidDebtReminderMinAmount,
+  smsSettingsSchema,
+  toFormValues,
+  toInput,
+} from "./schemas";
 
 const off = { enabled: false, threshold: null, sendTime: null };
 
@@ -17,6 +24,7 @@ const settings: SmsSettings = {
   dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: true, morningSendTime: "10:00:00" },
   welcome: { enabled: false, morningSendTime: "10:00:00" },
+  debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: 200000 },
   version: 3,
 };
 
@@ -32,7 +40,55 @@ describe("sms schemas", () => {
       // Only the switch: the morning time is fixed in the code.
       subscriptionReceipt: { enabled: true },
       welcome: { enabled: false },
+      // The amount goes back as text, never a float (§13).
+      debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: "200000" },
     });
+  });
+
+  it("toInput_DebtReminderTypedInPersianAndBlank_BecomesNumbersTextAndNulls", () => {
+    const values = toFormValues(settings);
+    values.debtReminder = {
+      enabled: false,
+      daysAfter: "۴۵",
+      sendTime: "",
+      minAmount: "۱٬۵۰۰٬۰۰۰٫۵",
+    };
+
+    expect(toInput(values, 3).debtReminder).toEqual({
+      enabled: false,
+      daysAfter: 45,
+      sendTime: null,
+      minAmount: "1500000.5",
+    });
+
+    values.debtReminder = { enabled: false, daysAfter: "", sendTime: "", minAmount: "" };
+    expect(toInput(values, 3).debtReminder).toEqual({
+      enabled: false,
+      daysAfter: null,
+      sendTime: null,
+      minAmount: null,
+    });
+  });
+
+  it.each([
+    ["1000", true],
+    ["۱٬۰۰۰", true],
+    ["1000.25", true],
+    ["9999999999999999.99", true],
+    ["999", false],
+    ["0", false],
+    ["1000.255", false],
+    ["99999999999999999", false],
+    ["هزار", false],
+  ])("isValidDebtReminderMinAmount_%s_Is%s", (text, valid) => {
+    expect(isValidDebtReminderMinAmount(text)).toBe(valid);
+  });
+
+  it("isDebtReminderFilled_WithoutTheAmount_IsNotFilled", () => {
+    const debt = { enabled: false, daysAfter: "30", sendTime: "11:00", minAmount: "" };
+
+    expect(isDebtReminderFilled(debt)).toBe(false);
+    expect(isDebtReminderFilled({ ...debt, minAmount: "200000" })).toBe(true);
   });
 
   it("toInput_PersianDigitsAndBlankFields_BecomeNumbersAndNulls", () => {

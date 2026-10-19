@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using Gym.Domain.Notifications;
 
 namespace Gym.Domain.Tests.Notifications;
@@ -45,7 +47,9 @@ public sealed class SmsSettingsTests
             dailyReportEnabled: true,
             dailyReportPhone: OtherPhone,
             subscriptionReceiptEnabled: true,
-            welcomeEnabled: true);
+            welcomeEnabled: true,
+            debtReminder: new(true, 30, new TimeOnly(11, 0)),
+            debtReminderMinAmount: 500_000m);
 
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
@@ -60,6 +64,8 @@ public sealed class SmsSettingsTests
         settings.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
         settings.WelcomeEnabled.ShouldBeTrue();
         settings.For(NotificationKind.Welcome).ShouldBe(new SmsKindSettings(true, null, null));
+        settings.For(NotificationKind.DebtReminder).ShouldBe(new SmsKindSettings(true, 30, new TimeOnly(11, 0)));
+        settings.DebtReminderMinAmount.ShouldBe(500_000m);
     }
 
     [Fact]
@@ -124,6 +130,8 @@ public sealed class SmsSettingsTests
     [InlineData(NotificationKind.Birthday, 7)]
     [InlineData(NotificationKind.PayableDue, 0)]
     [InlineData(NotificationKind.PayableDue, 30)]
+    [InlineData(NotificationKind.DebtReminder, 1)]
+    [InlineData(NotificationKind.DebtReminder, 90)]
     public void CheckThreshold_AtTheEdgeOfTheRange_Passes(NotificationKind kind, int threshold) =>
         SmsSettings.CheckThreshold(kind, threshold).ShouldBeNull();
 
@@ -136,10 +144,13 @@ public sealed class SmsSettingsTests
     [InlineData(NotificationKind.Birthday, 8)]
     [InlineData(NotificationKind.PayableDue, -1)]
     [InlineData(NotificationKind.PayableDue, 31)]
+    [InlineData(NotificationKind.DebtReminder, 0)]
+    [InlineData(NotificationKind.DebtReminder, 91)]
     public void CheckThreshold_JustOutsideTheRange_FailsWithTheKindsError(NotificationKind kind, int threshold)
     {
         var expected = kind switch
         {
+            NotificationKind.DebtReminder => SmsSettingsErrors.DebtReminderDaysOutOfRange,
             NotificationKind.SubscriptionExpiring => SmsSettingsErrors.SubscriptionExpiringDaysOutOfRange,
             NotificationKind.LowSessions => SmsSettingsErrors.LowSessionsOutOfRange,
             NotificationKind.Birthday => SmsSettingsErrors.BirthdayDaysOutOfRange,
@@ -341,6 +352,86 @@ public sealed class SmsSettingsTests
         settings.SubscriptionReceiptEnabled.ShouldBeTrue();
     }
 
+    // ---- The debt reminder (task 10.11) ----
+
+    [Theory]
+    [InlineData("1000")]
+    [InlineData("1000.5")]
+    [InlineData("2500000.25")]
+    [InlineData("9999999999999999.99")]
+    public void CheckDebtReminderMinAmount_InRange_Passes(string amount) =>
+        SmsSettings.CheckDebtReminderMinAmount(decimal.Parse(amount, CultureInfo.InvariantCulture)).ShouldBeNull();
+
+    [Theory]
+    [InlineData("999.99")]
+    [InlineData("0")]
+    [InlineData("-5000")]
+    [InlineData("1000.001")]
+    public void CheckDebtReminderMinAmount_OutOfRangeOrTooPrecise_FailsWithMinAmountOutOfRange(string amount) =>
+        SmsSettings.CheckDebtReminderMinAmount(decimal.Parse(amount, CultureInfo.InvariantCulture))
+            .ShouldBe(SmsSettingsErrors.DebtReminderMinAmountOutOfRange);
+
+    [Fact]
+    public void CheckDebtReminderMinAmount_Empty_Passes() =>
+        SmsSettings.CheckDebtReminderMinAmount(null).ShouldBeNull();
+
+    [Fact]
+    public void Update_DebtReminderOnWithoutItsMinimumAmount_FailsWithSettingsIncomplete()
+    {
+        var settings = Empty();
+
+        var result = Save(settings, debtReminder: new(true, 30, Ten), debtReminderMinAmount: null);
+
+        result.Error.ShouldBe(SmsSettingsErrors.SettingsIncomplete);
+        settings.DebtReminderEnabled.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(null, 10)]
+    [InlineData(30, null)]
+    public void Update_DebtReminderOnWithAFieldEmpty_FailsWithSettingsIncomplete(int? days, int? hour)
+    {
+        TimeOnly? sendTime = hour is null ? null : new TimeOnly(hour.Value, 0);
+
+        Save(Empty(), debtReminder: new(true, days, sendTime), debtReminderMinAmount: 100_000m)
+            .Error.ShouldBe(SmsSettingsErrors.SettingsIncomplete);
+    }
+
+    [Fact]
+    public void Update_DebtReminderOffAndHalfFilled_KeepsWhatIsFilled()
+    {
+        var settings = Empty();
+
+        Save(settings, debtReminder: new(false, null, null), debtReminderMinAmount: 200_000m).IsSuccess.ShouldBeTrue();
+
+        settings.DebtReminderMinAmount.ShouldBe(200_000m);
+        settings.For(NotificationKind.DebtReminder).ShouldBe(SmsKindSettings.Off);
+    }
+
+    [Fact]
+    public void Update_DebtReminderMinimumAmountTooSmall_IsRefusedAndChangesNothing()
+    {
+        var settings = Empty();
+
+        var result = Save(settings, enabled: true, debtReminder: new(false, 30, Ten), debtReminderMinAmount: 500m);
+
+        result.Error.ShouldBe(SmsSettingsErrors.DebtReminderMinAmountOutOfRange);
+        settings.Enabled.ShouldBeFalse();
+        settings.DebtReminderDaysAfter.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Update_DebtReminderSendTimeOffTheQuarter_FailsWithSendTimeOutOfRange() =>
+        Save(Empty(), debtReminder: new(false, 30, new TimeOnly(10, 10)), debtReminderMinAmount: null)
+            .Error.ShouldBe(SmsSettingsErrors.SendTimeOutOfRange);
+
+    [Fact]
+    public void IsWithinSendingHours_DebtReminder_KeepsTheMembersHours()
+    {
+        SmsSettings.IsWithinSendingHours(NotificationKind.DebtReminder, new TimeOnly(22, 0)).ShouldBeTrue();
+        SmsSettings.IsWithinSendingHours(NotificationKind.DebtReminder, new TimeOnly(22, 1)).ShouldBeFalse();
+    }
+
     // ---- Helpers ----
 
     private static Domain.Common.Result Save(
@@ -354,7 +445,9 @@ public sealed class SmsSettingsTests
         bool dailyReportEnabled = false,
         string? dailyReportPhone = null,
         bool subscriptionReceiptEnabled = false,
-        bool welcomeEnabled = false) =>
+        bool welcomeEnabled = false,
+        SmsKindSettings? debtReminder = null,
+        decimal? debtReminderMinAmount = null) =>
         settings.Update(
             enabled,
             subscriptionExpiring ?? SmsKindSettings.Off,
@@ -365,7 +458,9 @@ public sealed class SmsSettingsTests
             dailyReportEnabled,
             dailyReportPhone,
             subscriptionReceiptEnabled,
-            welcomeEnabled);
+            welcomeEnabled,
+            debtReminder ?? SmsKindSettings.Off,
+            debtReminderMinAmount);
 
     /// <summary>
     /// The one row the migration seeds. There is no public constructor, on purpose: nothing in the

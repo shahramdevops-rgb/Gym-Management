@@ -1550,6 +1550,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
+                    b.Property<DateOnly?>("DebtSince")
+                        .HasColumnType("date")
+                        .HasColumnName("debt_since");
+
                     b.Property<string>("Delivery")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
@@ -1647,6 +1651,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_notifications_one_daily_report_per_day")
                         .HasFilter("kind = 'DailyReport'");
 
+                    b.HasIndex("MemberId", "DebtSince")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_debt_reminder_per_member_and_debt")
+                        .HasFilter("kind = 'DebtReminder'");
+
                     b.HasIndex("MemberId", "JalaliYear")
                         .IsUnique()
                         .HasDatabaseName("ix_notifications_one_birthday_per_member_and_year")
@@ -1667,9 +1676,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_notifications_delivery_only_when_sent", "delivery IS NULL OR status = 'Sent'");
 
-                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL)");
+                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL) OR (kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL)");
 
-                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome')");
+                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder')");
 
                             t.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
 
@@ -1718,6 +1727,23 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasMaxLength(13)
                         .HasColumnType("character varying(13)")
                         .HasColumnName("daily_report_phone");
+
+                    b.Property<int?>("DebtReminderDaysAfter")
+                        .HasColumnType("integer")
+                        .HasColumnName("debt_reminder_days_after");
+
+                    b.Property<bool>("DebtReminderEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("debt_reminder_enabled");
+
+                    b.Property<decimal?>("DebtReminderMinAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("debt_reminder_min_amount");
+
+                    b.Property<TimeOnly?>("DebtReminderSendTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("debt_reminder_send_time");
 
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean")
@@ -1799,6 +1825,12 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_sms_settings_daily_report_phone", "daily_report_phone IS NULL OR daily_report_phone ~ '^\\+989[0-9]{9}$'");
 
+                            t.HasCheckConstraint("ck_sms_settings_debt_reminder_days", "debt_reminder_days_after IS NULL OR debt_reminder_days_after BETWEEN 1 AND 90");
+
+                            t.HasCheckConstraint("ck_sms_settings_debt_reminder_min_amount", "debt_reminder_min_amount IS NULL OR debt_reminder_min_amount >= 1000");
+
+                            t.HasCheckConstraint("ck_sms_settings_debt_reminder_on_means_filled", "NOT debt_reminder_enabled OR (debt_reminder_days_after IS NOT NULL AND debt_reminder_send_time IS NOT NULL AND debt_reminder_min_amount IS NOT NULL)");
+
                             t.HasCheckConstraint("ck_sms_settings_low_sessions_on_means_filled", "NOT low_sessions_enabled OR (low_sessions_threshold IS NOT NULL AND low_sessions_send_time IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_sms_settings_low_sessions_threshold", "low_sessions_threshold IS NULL OR low_sessions_threshold BETWEEN 1 AND 10");
@@ -1809,7 +1841,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_sms_settings_payable_due_on_means_filled", "NOT payable_due_enabled OR (payable_due_days_before IS NOT NULL AND payable_due_send_time IS NOT NULL AND owner_phone IS NOT NULL)");
 
-                            t.HasCheckConstraint("ck_sms_settings_send_times", "(subscription_expiring_send_time IS NULL OR (subscription_expiring_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM subscription_expiring_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM subscription_expiring_send_time) = 0)) AND (low_sessions_send_time IS NULL OR (low_sessions_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM low_sessions_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM low_sessions_send_time) = 0)) AND (birthday_send_time IS NULL OR (birthday_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM birthday_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM birthday_send_time) = 0)) AND (payable_due_send_time IS NULL OR (payable_due_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM payable_due_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM payable_due_send_time) = 0))");
+                            t.HasCheckConstraint("ck_sms_settings_send_times", "(subscription_expiring_send_time IS NULL OR (subscription_expiring_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM subscription_expiring_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM subscription_expiring_send_time) = 0)) AND (low_sessions_send_time IS NULL OR (low_sessions_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM low_sessions_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM low_sessions_send_time) = 0)) AND (birthday_send_time IS NULL OR (birthday_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM birthday_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM birthday_send_time) = 0)) AND (payable_due_send_time IS NULL OR (payable_due_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM payable_due_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM payable_due_send_time) = 0)) AND (debt_reminder_send_time IS NULL OR (debt_reminder_send_time BETWEEN '08:00' AND '22:00' AND EXTRACT(MINUTE FROM debt_reminder_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM debt_reminder_send_time) = 0))");
 
                             t.HasCheckConstraint("ck_sms_settings_single_row", "id = '8b2e4f61-3c5a-4d7e-9f10-2a6b8c4d0e5f'");
 
@@ -1825,6 +1857,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             BirthdayEnabled = false,
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 10, 6, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             DailyReportEnabled = false,
+                            DebtReminderEnabled = false,
                             Enabled = false,
                             LowSessionsEnabled = false,
                             PayableDueEnabled = false,
