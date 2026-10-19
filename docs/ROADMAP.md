@@ -12,7 +12,7 @@ Milestones:
 - **Complete (Phases 10–12):** SMS, audit UI, hardening, portfolio polish.
 
 Release order (decided by the developer on 1405/07/26, 2026-10-18):
-1. **The next release is SMS only:** 10.6 to 10.14, from `main`, as one complete version. Nothing
+1. **The next release is SMS only:** 10.6 to 10.15, from `main`, as one complete version. Nothing
    else goes in it.
 2. Then, in the days after SMS works, Phase 13's look and mobile (13.1 and 13.2 are finished and
    ticked on the branch `task/13.2-visual-language`; they are merged into `main` only after the SMS
@@ -2893,6 +2893,29 @@ and only on the SMS pages. Decided, BUSINESS_RULES.md §10 *The credit in the he
 
 Closed 2026-10-19: frontend 1096 tests green, lint, `format:check` and production build pass. No
 migration and no endpoint change. It goes out with the SMS release (10.6).
+
+### 10.15 The SMS settings page: a card per kind with its message (تنظیمات پیامک)
+Asked by the developer on 1405/07/28 (2026-10-20): the broadcast belongs under the SMS settings,
+each kind should show the exact SMS it sends, and the page left most of a wide screen empty.
+Decided, BUSINESS_RULES.md §10 *SMS settings*:
+- [x] Each kind is a box in a grid (three a row on a wide screen, two, then one): its switch beside
+      the title, its few fields only as wide as their numbers, the range inside the empty box, and
+      at its foot the message drawn as on a phone, with its SMS parts
+- [x] The texts come from `GET /api/sms/samples` (Owner), built by `SmsText` with a sample member
+      and figures (`GetSmsSamplesHandler`), so the frontend keeps no copy of the wording
+- [x] The kinds grouped: «پیامک به اعضا», «پیامک به شما (مدیر)» and «ارسال دستی» (the last two
+      side by side on a wide screen); the master switch on a card of its own; «ذخیره» stays at the
+      bottom of the screen while the settings scroll
+- [x] The broadcast is one card: its switch, writing and sending one with a live preview (the
+      group's longest first name), and the latest broadcast only while it is sending or stopped,
+      with «ادامه ارسال» (`LatestBroadcast`); its own page, route, menu item and list of sent
+      broadcasts removed (they are on «پیامک‌ها», which links back to the card, `#broadcast`)
+- [x] Tests: the samples are the runs' own texts and parts, Owner only (integration); every card's
+      preview, an unreadable preview, the grouping, the broadcast card (frontend)
+
+Closed 2026-10-20: 2605 backend tests (917 domain, 1688 integration) and 1100 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. No migration; one new endpoint,
+`GET /api/sms/samples`, which reads nothing from the database. It goes out with the SMS release (10.6).
 
 ---
 

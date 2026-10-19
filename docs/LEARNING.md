@@ -1829,3 +1829,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Remember the last good answer in the query itself.** `queryFn` reads the previous cache entry (`queryClient.getQueryData`) and carries `lastKnownToman` forward when Kavenegar returns nothing; when the request fails, TanStack Query keeps the previous data anyway. Both kinds of silence end up as "the old figure, in grey".
 - **Polling with `refetchInterval`.** A query asks again on a timer while its component is on screen; tests skip the wait with fake timers and `advanceTimersByTimeAsync`.
 - **My notes:**
+
+## 10.15 — The SMS settings page: a card per kind with its message
+
+- **One source for a text that two places show.** The page needs the exact SMS each kind sends. Copying the wording into the frontend would work on the day it is written and drift the first time `SmsText` changes. Instead the API builds a sample with the same `SmsText` methods the runs call (`GET /api/sms/samples`), so what the Owner sees and what the members get cannot disagree.
+- **Sample data that is obviously sample data.** The preview uses a made-up member and figures and says so under the bubble («نام و عددها نمونه‌اند»). Showing a real member's message would raise "why him?" and leak data onto a settings page.
+- **A button inside a form submits it unless told otherwise.** The broadcast card sits inside the settings `<form>`, so its «بررسی و ارسال» and «ادامه ارسال» buttons are `type="button"`; a plain `<button>` there would save the settings instead. A test checks the attribute, since nothing on the screen would show the mistake until a save happened by surprise.
+- **Remove a list, keep what only the list did.** The list of sent broadcasts was dropped as a copy of «پیامک‌ها», but it was also the only place to continue a stopped broadcast. The card keeps just that: the latest broadcast, while it is sending or stopped. Before deleting a screen, ask what action lives only there.
+- **Data the page already has goes down as a prop.** `BroadcastForm` used to ask for the SMS settings itself; on the settings page that was a second request for what the page had just loaded. It now takes `off` from the page, and a test that counts the requests caught the duplicate.
+- **Name things for screen readers, not only for eyes.** Each card is a `fieldset` named by its title through `aria-labelledby`, and the preview a `figure` named by its caption. The tests find "the preview inside the خوش‌آمد card" by those names, which is also how a screen reader announces them.
+- **My notes:**

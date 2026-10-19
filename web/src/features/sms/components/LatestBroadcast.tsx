@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router";
 
 import { paths } from "@/app/paths";
-import { Pager } from "@/components/Pager";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,45 +22,35 @@ const statusBadges = {
 } as const;
 
 /**
- * The broadcasts sent, the latest first, each with how its messages went (BUSINESS_RULES.md §10
- * *The broadcast*). Each opens its own messages on «پیامک‌ها»; a stopped one can be continued.
+ * The latest broadcast, only while it is sending or stopped (BUSINESS_RULES.md §10 *The broadcast*,
+ * task 10.15): how far it got, and «ادامه ارسال» for a stopped one, which is the only place it can be
+ * continued. Finished ones are not listed here: every message is on «پیامک‌ها», filtered by kind.
+ * One broadcast sends at a time, so the latest is the only one that can still be going.
  */
-export function BroadcastList() {
-  const [page, setPage] = useState(1);
-  const broadcasts = useBroadcasts(page);
-
-  if (broadcasts.isPending) {
-    return <p className="text-muted-foreground">در حال بارگذاری…</p>;
-  }
+export function LatestBroadcast() {
+  const broadcasts = useBroadcasts(1);
+  const latest = broadcasts.data?.items[0];
 
   if (broadcasts.isError) {
     return <Alert variant="destructive">{errorMessage(broadcasts.error)}</Alert>;
   }
 
-  if (broadcasts.data.items.length === 0) {
-    return <p className="text-muted-foreground">هنوز پیامک گروهی فرستاده نشده.</p>;
+  if (latest === undefined || latest.status === "Finished") {
+    return null;
   }
 
-  return (
-    <div className="space-y-3">
-      <ul className="space-y-3">
-        {broadcasts.data.items.map((broadcast) => (
-          <BroadcastItem key={broadcast.id} broadcast={broadcast} />
-        ))}
-      </ul>
-      <Pager page={page} pageCount={broadcasts.data.pageCount} onPageChange={setPage} />
-    </div>
-  );
+  return <BroadcastStatus broadcast={latest} />;
 }
 
-function BroadcastItem({ broadcast }: { broadcast: Broadcast }) {
+function BroadcastStatus({ broadcast }: { broadcast: Broadcast }) {
   const [confirming, setConfirming] = useState(false);
   const resume = useResumeBroadcast();
 
   return (
-    <li
+    <div
+      role="group"
       className="space-y-2 rounded-md border p-3 text-sm"
-      aria-label={`پیامک گروهی ${formatDateTime(broadcast.createdAt)}`}
+      aria-label={`آخرین پیامک گروهی ${formatDateTime(broadcast.createdAt)}`}
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">{formatDateTime(broadcast.createdAt)}</span>
@@ -95,7 +84,7 @@ function BroadcastItem({ broadcast }: { broadcast: Broadcast }) {
           پیامک‌های این ارسال
         </Link>
         {broadcast.status === "Stopped" && !confirming && (
-          <Button size="sm" variant="outline" onClick={() => setConfirming(true)}>
+          <Button type="button" size="sm" variant="outline" onClick={() => setConfirming(true)}>
             ادامه ارسال
           </Button>
         )}
@@ -110,6 +99,7 @@ function BroadcastItem({ broadcast }: { broadcast: Broadcast }) {
           {resume.isError && <Alert variant="destructive">{errorMessage(resume.error)}</Alert>}
           <div className="flex flex-wrap gap-2">
             <Button
+              type="button"
               size="sm"
               disabled={resume.isPending}
               onClick={() => resume.mutate(broadcast.id, { onSuccess: () => setConfirming(false) })}
@@ -117,6 +107,7 @@ function BroadcastItem({ broadcast }: { broadcast: Broadcast }) {
               {resume.isPending ? "در حال ثبت…" : "بله، ادامه بده"}
             </Button>
             <Button
+              type="button"
               size="sm"
               variant="outline"
               disabled={resume.isPending}
@@ -130,6 +121,6 @@ function BroadcastItem({ broadcast }: { broadcast: Broadcast }) {
           </div>
         </div>
       )}
-    </li>
+    </div>
   );
 }

@@ -158,7 +158,7 @@ export function SmsMessagesPage() {
             <Alert role="status" className="flex flex-wrap items-center justify-between gap-2">
               <span>فقط پیامک‌های یک پیامک گروهی نشان داده می‌شود.</span>
               <span className="flex gap-3">
-                <Link className="text-primary underline" to={paths.smsBroadcasts}>
+                <Link className="text-primary underline" to={paths.smsBroadcast}>
                   بازگشت به پیامک گروهی
                 </Link>
                 <button

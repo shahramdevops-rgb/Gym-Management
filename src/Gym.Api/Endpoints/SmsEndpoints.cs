@@ -10,6 +10,7 @@ using Gym.Application.Notifications.Broadcasts.PreviewBroadcast;
 using Gym.Application.Notifications.Broadcasts.ResumeBroadcast;
 using Gym.Application.Notifications.Broadcasts.SendBroadcast;
 using Gym.Application.Notifications.GetSmsCredit;
+using Gym.Application.Notifications.GetSmsSamples;
 using Gym.Application.Notifications.GetSmsSettings;
 using Gym.Application.Notifications.ListSmsMessages;
 using Gym.Application.Notifications.ResendSms;
@@ -50,6 +51,12 @@ public static class SmsEndpoints
             .Produces<SmsSettingsResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
+
+        // Each kind's text with a sample member, built by the code that writes the real one (§10).
+        sms.MapGet("/samples", (GetSmsSamplesHandler handler) => Results.Ok(handler.Handle()))
+            .RequireAuthorization(Policies.OwnerOnly)
+            .WithName("GetSmsSamples")
+            .Produces<SmsSamplesResponse>();
 
         // Always 200: a provider that does not answer is a null credit, not an error (§10).
         sms.MapGet("/credit", async (GetSmsCreditHandler handler, CancellationToken ct) =>

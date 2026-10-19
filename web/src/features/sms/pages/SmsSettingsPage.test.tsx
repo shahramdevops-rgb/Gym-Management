@@ -11,7 +11,7 @@ import {
 } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
 
-import type { SmsCredit, SmsKindSettings, SmsSettings } from "../api";
+import type { SmsCredit, SmsKindSettings, SmsSample, SmsSamples, SmsSettings } from "../api";
 
 const off: SmsKindSettings = {
   enabled: false,
@@ -61,8 +61,33 @@ function ownerWith(settings: SmsSettings, extra: Parameters<typeof mockApi>[0] =
     ...signedInHandlers(owner),
     "GET /api/sms/settings": () => json(200, settings),
     "GET /api/sms/credit": () => json(200, testMode),
+    "GET /api/sms/samples": () => json(200, samples),
     ...extra,
   });
+}
+
+function sample(text: string, parts = 1): SmsSample {
+  return { text, parts };
+}
+
+/** What `GET /api/sms/samples` answers: the API's own texts with a sample member (task 10.15). */
+const samples: SmsSamples = {
+  subscriptionExpiring: sample(
+    "علی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۳۱ به پایان می‌رسد.\nلغو11",
+  ),
+  lowSessions: sample("علی عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.\nلغو11"),
+  birthday: sample("علی عزیز، ۰۷/۳۱ روز تولد شماست؛ …\nلغو11", 2),
+  payableDue: sample("یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۳۰، به فروشگاه\nلغو11"),
+  dailyReport: sample("گزارش باشگاه پاسارگاد ۰۷/۲۸\nورود: ۴۸\nلغو11", 2),
+  subscriptionReceipt: sample("علی عزیز، اشتراک ۱۲ جلسه‌ای شما … سپاس!\nلغو11", 2),
+  welcome: sample("علی عزیز، به باشگاه پاسارگاد خوش آمدید!\nلغو11"),
+  debtReminder: sample("علی عزیز، مانده حساب شما در باشگاه پاسارگاد ۴۵۰٬۰۰۰ تومان است.\nلغو11", 2),
+  absence: sample("علی عزیز، جای شما در باشگاه پاسارگاد خالی است!\nلغو11"),
+};
+
+/** The phone-like preview inside one kind's card. */
+function previewOf(name: string) {
+  return group(name).getByRole("figure", { name: "پیش‌نمایش پیامک" });
 }
 
 /** `Sms:Provider` is `Fake`: nothing is really sent, so there is no credit (BUSINESS_RULES.md §10). */
@@ -84,6 +109,60 @@ function fillKind(name: string, threshold: string, hour: string) {
 }
 
 describe("SmsSettingsPage", () => {
+  // ---- The cards and their previews (task 10.15) ----
+
+  it("SmsSettingsPage_EachKind_ShowsTheMessageItSendsAndItsParts", async () => {
+    ownerWith(empty);
+
+    renderApp("/sms-settings", { session: session() });
+
+    await waitFor(() =>
+      expect(previewOf("خوش‌آمد")).toHaveTextContent("علی عزیز، به باشگاه پاسارگاد خوش آمدید!"),
+    );
+    expect(previewOf("خوش‌آمد")).toHaveTextContent("۱ بخش · نام و عددها نمونه‌اند");
+    expect(previewOf("گزارش روزانه")).toHaveTextContent("گزارش باشگاه پاسارگاد ۰۷/۲۸");
+    expect(previewOf("گزارش روزانه")).toHaveTextContent("۲ بخش");
+    for (const name of [
+      "پایان اشتراک",
+      "جلسات رو به اتمام",
+      "تولد",
+      "چک و قسط",
+      "رسید خرید اشتراک",
+      "یادآوری بدهی",
+      "پیامک غیبت",
+    ]) {
+      expect(previewOf(name)).toHaveTextContent("لغو11");
+    }
+  });
+
+  it("SmsSettingsPage_SamplesUnreadable_SaysSoAndTheSettingsStillWork", async () => {
+    ownerWith(empty, { "GET /api/sms/samples": () => problem(500, "Server.Error") });
+
+    renderApp("/sms-settings", { session: session() });
+
+    await waitFor(
+      () => expect(previewOf("پیامک غیبت")).toHaveTextContent("پیش‌نمایش خوانده نشد."),
+      {
+        // The query is tried once more before it fails.
+        timeout: 3000,
+      },
+    );
+    expect(switchOf("خوش‌آمد")).toBeEnabled();
+  });
+
+  it("SmsSettingsPage_Kinds_AreGroupedByWhoReceivesThem", async () => {
+    ownerWith(empty);
+
+    renderApp("/sms-settings", { session: session() });
+
+    const members = within(await screen.findByRole("region", { name: "پیامک به اعضا" }));
+    expect(members.getByRole("group", { name: "یادآوری بدهی" })).toBeInTheDocument();
+    expect(members.queryByRole("group", { name: "چک و قسط" })).not.toBeInTheDocument();
+    const toOwner = within(screen.getByRole("region", { name: "پیامک به شما (مدیر)" }));
+    expect(toOwner.getByRole("group", { name: "چک و قسط" })).toBeInTheDocument();
+    expect(toOwner.getByRole("group", { name: "گزارش روزانه" })).toBeInTheDocument();
+  });
+
   // ---- The credit (task 10.4) ----
 
   it("SmsSettingsPage_TestMode_SaysNothingIsReallySent", async () => {

@@ -11,6 +11,12 @@ export type SmsKindSettings = components["schemas"]["SmsKindSettings"];
 
 export type SmsSettingsInput = components["schemas"]["UpdateSmsSettingsCommand"];
 
+/** One kind's message as it reaches the phone, with a sample member, and its SMS parts. */
+export type SmsSample = components["schemas"]["SmsSample"];
+
+/** Every kind with a fixed wording, built by the API's own `SmsText` (task 10.15). */
+export type SmsSamples = components["schemas"]["SmsSamplesResponse"];
+
 /**
  * The SMS account's credit in Toman; `remainingToman` is null in test mode or when Kavenegar does
  * not answer. `creditUsedUp` is the warning: the latest failure for credit is newer than the latest
@@ -65,6 +71,10 @@ export const smsMessageKeys = {
 
 export const smsSettingsKeys = {
   all: ["sms-settings"] as const,
+};
+
+export const smsSampleKeys = {
+  all: ["sms-samples"] as const,
 };
 
 export const smsCreditKeys = {
@@ -187,6 +197,24 @@ export function useSmsSettings() {
       }
       return data;
     },
+  });
+}
+
+/**
+ * The sample texts beside each kind on «تنظیمات پیامک». They change only with a release (and the
+ * dates with the day), so they are asked once per visit.
+ */
+export function useSmsSamples() {
+  return useQuery({
+    queryKey: smsSampleKeys.all,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/sms/samples");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+    staleTime: Infinity,
   });
 }
 

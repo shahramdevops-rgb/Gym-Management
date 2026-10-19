@@ -79,6 +79,7 @@ using Gym.Application.Notifications.Broadcasts.RunBroadcast;
 using Gym.Application.Notifications.Broadcasts.SendBroadcast;
 using Gym.Application.Notifications.CheckSmsDelivery;
 using Gym.Application.Notifications.GetSmsCredit;
+using Gym.Application.Notifications.GetSmsSamples;
 using Gym.Application.Notifications.GetSmsSettings;
 using Gym.Application.Notifications.ListSmsMessages;
 using Gym.Application.Notifications.ResendSms;
@@ -278,6 +279,7 @@ public static class DependencyInjection
         services.AddScoped<SendWelcomeHandler>();
         services.AddScoped<CheckSmsDeliveryHandler>();
         services.AddScoped<GetSmsCreditHandler>();
+        services.AddScoped<GetSmsSamplesHandler>();
         services.AddScoped<ListSmsMessagesHandler>();
         services.AddScoped<ResendSmsHandler>();
         services.AddScoped<BroadcastRecipients>();

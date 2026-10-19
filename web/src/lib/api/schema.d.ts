@@ -1172,6 +1172,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sms/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetSmsSamples"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sms/credit": {
         parameters: {
             query?: never;
@@ -2908,6 +2924,22 @@ export interface components {
             lastAttemptAt: null | string;
             /** Format: date-time */
             sentAt: null | string;
+        };
+        SmsSample: {
+            text: string;
+            /** Format: int32 */
+            parts: number | string;
+        };
+        SmsSamplesResponse: {
+            subscriptionExpiring: components["schemas"]["SmsSample"];
+            lowSessions: components["schemas"]["SmsSample"];
+            birthday: components["schemas"]["SmsSample"];
+            payableDue: components["schemas"]["SmsSample"];
+            dailyReport: components["schemas"]["SmsSample"];
+            subscriptionReceipt: components["schemas"]["SmsSample"];
+            welcome: components["schemas"]["SmsSample"];
+            debtReminder: components["schemas"]["SmsSample"];
+            absence: components["schemas"]["SmsSample"];
         };
         SmsSettingsResponse: {
             enabled: boolean;
@@ -8533,6 +8565,44 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSmsSamples: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSamplesResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

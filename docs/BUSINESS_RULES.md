@@ -1590,6 +1590,15 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - A change applies **from the next run**, never to the past: whoever already got a message does not
   get it again, and raising a number brings in the people it now covers.
 - Every change is in the audit log (§11).
+- **Each kind shows the message it sends** (asked by the developer, 1405/07/28, task 10.15): under
+  its settings, the text exactly as the code writes it, with a sample member («سید علی رضایی», named
+  «علی») and sample figures, and how many SMS parts it takes. It is built by the same code as the real
+  messages, so the page cannot show a wording the members do not get. The kinds are grouped by who
+  receives them: the members, the Owner, and the broadcast.
+- **The broadcast is one card on this page** (*The broadcast*): its switch, and writing and sending
+  one, with the message drawn as it is typed. It has no page, tab or menu item of its own, and no
+  list of the broadcasts sent: their messages are on «پیامک‌ها». Only the latest, while it is
+  sending or stopped, shows on the card, with «ادامه ارسال» (asked by the developer, 1405/07/28).
 - Not on the page: the Kavenegar API key (a secret: an environment variable on the server, user
   secrets on the developer's machine), the dedicated line's number (`Sms:Kavenegar:Sender`, an
   environment variable on the server: it belongs to the account, like the key) and how many times a

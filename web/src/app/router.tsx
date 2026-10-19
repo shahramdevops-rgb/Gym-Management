@@ -122,12 +122,6 @@ export const routes: RouteObject[] = [
                 true,
               ),
               lazyPage(
-                paths.smsBroadcasts,
-                () =>
-                  import("@/features/sms/pages/SmsBroadcastsPage").then((m) => m.SmsBroadcastsPage),
-                true,
-              ),
-              lazyPage(
                 paths.auditLogs,
                 () => import("@/features/audit/pages/AuditLogsPage").then((m) => m.AuditLogsPage),
                 true,

@@ -92,22 +92,22 @@ function sendButton() {
   return screen.getByRole("button", { name: "بررسی و ارسال" });
 }
 
-describe("SmsBroadcastsPage", () => {
+describe("BroadcastCard", () => {
   // ---- Writing ----
 
-  it("SmsBroadcastsPage_Groups_ShowHowManyAreInEach", async () => {
+  it("BroadcastCard_Groups_ShowHowManyAreInEach", async () => {
     ownerWith();
 
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
 
     expect(await screen.findByText("(۱۲۰ نفر)")).toBeInTheDocument();
     expect(screen.getByText("(۴۵ نفر)")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /همه اعضای فعال/ })).toBeChecked();
   });
 
-  it("SmsBroadcastsPage_Typing_CountsWithTheLongestFirstNameInTheGroup", async () => {
+  it("BroadcastCard_Typing_CountsWithTheLongestFirstNameInTheGroup", async () => {
     ownerWith();
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
     await screen.findByText("(۱۲۰ نفر)");
 
     fireEvent.change(textBox(), { target: { value: "ب".repeat(60) } });
@@ -119,9 +119,9 @@ describe("SmsBroadcastsPage", () => {
     expect(screen.getByText("۶۰ از ۱۸۵ نویسه · ۲ بخش")).toBeInTheDocument();
   });
 
-  it("SmsBroadcastsPage_TooLongForThreeParts_CannotBeSent", async () => {
+  it("BroadcastCard_TooLongForThreeParts_CannotBeSent", async () => {
     ownerWith();
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
     await screen.findByText("(۱۲۰ نفر)");
 
     fireEvent.change(textBox(), { target: { value: "ب".repeat(180) } });
@@ -132,11 +132,11 @@ describe("SmsBroadcastsPage", () => {
     expect(sendButton()).toBeDisabled();
   });
 
-  it("SmsBroadcastsPage_BroadcastOff_SaysSoAndCannotBeSent", async () => {
+  it("BroadcastCard_BroadcastOff_SaysSoAndCannotBeSent", async () => {
     ownerWith({
       "GET /api/sms/settings": () => json(200, { ...settingsOn, broadcast: { enabled: false } }),
     });
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
 
     expect(await screen.findByText(/پیامک گروهی خاموش است/)).toBeInTheDocument();
     fireEvent.change(textBox(), { target: { value: "فردا تعطیل است." } });
@@ -145,13 +145,13 @@ describe("SmsBroadcastsPage", () => {
 
   // ---- The confirmation ----
 
-  it("SmsBroadcastsPage_Review_ShowsTheFiguresAndSendsOnlyAfterConfirming", async () => {
+  it("BroadcastCard_Review_ShowsTheFiguresAndSendsOnlyAfterConfirming", async () => {
     const api = ownerWith({
       "POST /api/sms/broadcasts/preview": () => json(200, preview),
       "POST /api/sms/broadcasts": () =>
         json(200, { ...stopped, status: "Sending", stopReason: null }),
     });
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
     await screen.findByText("(۱۲۰ نفر)");
 
     fireEvent.change(textBox(), { target: { value: "  فردا تعطیل است.\r\n" } });
@@ -176,12 +176,12 @@ describe("SmsBroadcastsPage", () => {
     expect(textBox()).toHaveValue("");
   });
 
-  it("SmsBroadcastsPage_SavedButNotQueued_SaysItDidNotStartAndToContinueIt", async () => {
+  it("BroadcastCard_SavedButNotQueued_SaysItDidNotStartAndToContinueIt", async () => {
     ownerWith({
       "POST /api/sms/broadcasts/preview": () => json(200, preview),
       "POST /api/sms/broadcasts": () => json(200, { ...stopped, stopReason: "Error" }),
     });
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
     await screen.findByText("(۱۲۰ نفر)");
 
     fireEvent.change(textBox(), { target: { value: "فردا تعطیل است." } });
@@ -194,11 +194,11 @@ describe("SmsBroadcastsPage", () => {
     expect(screen.queryByText(/در حال ارسال است/)).not.toBeInTheDocument();
   });
 
-  it("SmsBroadcastsPage_NothingChargedYet_SaysTheCostCannotBeEstimated", async () => {
+  it("BroadcastCard_NothingChargedYet_SaysTheCostCannotBeEstimated", async () => {
     ownerWith({
       "POST /api/sms/broadcasts/preview": () => json(200, { ...preview, estimatedCostToman: null }),
     });
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
     await screen.findByText("(۱۲۰ نفر)");
 
     fireEvent.change(textBox(), { target: { value: "فردا تعطیل است." } });
@@ -207,12 +207,12 @@ describe("SmsBroadcastsPage", () => {
     expect(await screen.findByText(/برآورد نمی‌شود/)).toBeInTheDocument();
   });
 
-  it("SmsBroadcastsPage_SendRefused_ShowsWhyInTheConfirmation", async () => {
+  it("BroadcastCard_SendRefused_ShowsWhyInTheConfirmation", async () => {
     ownerWith({
       "POST /api/sms/broadcasts/preview": () => json(200, preview),
       "POST /api/sms/broadcasts": () => problem(422, "Notifications.OutsideSendingHours"),
     });
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
     await screen.findByText("(۱۲۰ نفر)");
 
     fireEvent.change(textBox(), { target: { value: "فردا تعطیل است." } });
@@ -227,13 +227,13 @@ describe("SmsBroadcastsPage", () => {
 
   // ---- The list ----
 
-  it("SmsBroadcastsPage_StoppedBroadcast_ShowsWhyAndCanBeContinued", async () => {
+  it("BroadcastCard_StoppedBroadcast_ShowsWhyAndCanBeContinued", async () => {
     const api = ownerWith({
       "GET /api/sms/broadcasts": () => broadcastsPage([stopped]),
       "POST /api/sms/broadcasts/01990000-0000-7000-8000-0000000000c1/resume": () =>
         json(200, { ...stopped, status: "Sending", stopReason: null }),
     });
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
 
     expect(await screen.findByText("متوقف شد")).toBeInTheDocument();
     expect(screen.getByText("اعتبار پنل تمام شد")).toBeInTheDocument();
@@ -252,36 +252,53 @@ describe("SmsBroadcastsPage", () => {
     );
   });
 
-  it("SmsBroadcastsPage_FinishedBroadcast_CannotBeContinued", async () => {
-    ownerWith({
+  it("BroadcastCard_LatestFinished_ShowsNoListOrStatus", async () => {
+    const api = ownerWith({
       "GET /api/sms/broadcasts": () =>
         broadcastsPage([{ ...stopped, status: "Finished", stopReason: null }]),
     });
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
 
-    expect(await screen.findByText("فرستاده شد")).toBeInTheDocument();
+    await waitFor(() => expect(api.requestsTo("GET", "/api/sms/broadcasts")).toHaveLength(1));
+    // The sent broadcasts are on «پیامک‌ها»; the card keeps only one that may still need the Owner.
+    expect(screen.queryByText("فرستاده شد")).not.toBeInTheDocument();
+    expect(screen.queryByText("پیامک‌های گروهی فرستاده‌شده")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ادامه ارسال" })).not.toBeInTheDocument();
   });
 
   // ---- Who may open it ----
 
-  it("SmsBroadcastsPage_StaffUser_SeesNoAccessMessage", async () => {
+  it("BroadcastCard_StaffUser_SeesNoAccessMessage", async () => {
     const api = mockApi(signedInHandlers(staffUser));
 
-    renderApp("/sms-broadcasts", { session: session() });
+    renderApp("/sms-settings", { session: session() });
 
     expect(await screen.findByText("اجازهٔ دسترسی به این بخش را ندارید.")).toBeInTheDocument();
     expect(api.requestsTo("GET", "/api/sms/broadcasts")).toHaveLength(0);
   });
 
-  it("SmsBroadcastsPage_Owner_HasAMenuItem", async () => {
-    mockApi(signedInHandlers(owner));
+  it("BroadcastCard_IsOneCardOfSmsSettingsWithNoPageOrMenuItemOfItsOwn", async () => {
+    ownerWith();
+    renderApp("/sms-settings", { session: session() });
 
-    renderApp("/", { session: session() });
+    const card = within(await screen.findByRole("group", { name: "پیامک گروهی" }));
+    expect(screen.getByRole("group", { name: "پیامک گروهی" })).toHaveAttribute("id", "broadcast");
+    expect(card.getByRole("checkbox", { name: "روشن" })).toBeInTheDocument();
+    expect(card.getByLabelText("متن پیامک")).toBeInTheDocument();
+    expect(card.getByRole("button", { name: "بررسی و ارسال" })).toHaveAttribute("type", "button");
+    const menu = within(screen.getByRole("navigation", { name: "منوی اصلی" }));
+    expect(menu.queryByRole("link", { name: /پیامک گروهی/ })).not.toBeInTheDocument();
+  });
 
-    expect(await screen.findByRole("link", { name: /پیامک گروهی/ })).toHaveAttribute(
-      "href",
-      "/sms-broadcasts",
+  it("BroadcastCard_Typing_ShowsTheMessageWithTheLongestFirstName", async () => {
+    ownerWith();
+    renderApp("/sms-settings", { session: session() });
+    const card = within(await screen.findByRole("group", { name: "پیامک گروهی" }));
+
+    fireEvent.change(card.getByLabelText("متن پیامک"), { target: { value: "فردا تعطیل است." } });
+
+    expect(card.getByRole("figure", { name: "پیش‌نمایش پیامک" })).toHaveTextContent(
+      "عبدالرحمن عزیز، فردا تعطیل است. لغو11",
     );
   });
 });

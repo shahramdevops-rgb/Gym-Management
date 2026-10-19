@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
 
-import { paths } from "@/app/paths";
 import { TextareaField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -20,7 +18,6 @@ import {
   usePreviewBroadcast,
   useSendBroadcast,
   useSmsCredit,
-  useSmsSettings,
   type BroadcastAudience,
   type BroadcastPreview,
 } from "../api";
@@ -32,6 +29,7 @@ import {
   smsParts,
 } from "../broadcastText";
 import { broadcastAudienceLabels, broadcastStopReasonLabels } from "../labels";
+import { SmsPreview } from "./SmsPreview";
 
 const audiences: readonly BroadcastAudience[] = ["ActiveMembers", "MembersWithUsablePlan"];
 
@@ -42,6 +40,8 @@ export interface BroadcastNotice {
 }
 
 interface BroadcastFormProps {
+  /** All SMS or the broadcast is off in the saved settings: nothing can be sent. */
+  off: boolean;
   onSent: (notice: BroadcastNotice) => void;
 }
 
@@ -50,12 +50,11 @@ interface BroadcastFormProps {
  * characters and parts counted as they type, then a confirmation with the figures before anything
  * is sent. The counter uses the longest first name in the group, as the send will.
  */
-export function BroadcastForm({ onSent }: BroadcastFormProps) {
+export function BroadcastForm({ off, onSent }: BroadcastFormProps) {
   const [audience, setAudience] = useState<BroadcastAudience>("ActiveMembers");
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<BroadcastPreview | null>(null);
   const groups = useBroadcastAudiences();
-  const settings = useSmsSettings();
   const previewing = usePreviewBroadcast();
   const sending = useSendBroadcast();
 
@@ -66,7 +65,6 @@ export function BroadcastForm({ onSent }: BroadcastFormProps) {
   const maxLength = broadcastMaxTextLength(longestName);
   const parts = smsParts(broadcastMessage(longestName, normalized));
   const tooLong = parts > broadcastMaxParts;
-  const off = settings.isSuccess && (!settings.data.enabled || !settings.data.broadcast.enabled);
   const empty = group !== undefined && Number(group.recipients) === 0;
 
   function review() {
@@ -88,11 +86,11 @@ export function BroadcastForm({ onSent }: BroadcastFormProps) {
             broadcast.status === "Stopped" && broadcast.stopReason !== null
               ? {
                   tone: "error",
-                  text: `پیامک گروهی ثبت شد ولی ارسالش شروع نشد (${broadcastStopReasonLabels[broadcast.stopReason]})؛ از فهرست پایین «ادامه ارسال» را بزنید.`,
+                  text: `پیامک گروهی ثبت شد ولی ارسالش شروع نشد (${broadcastStopReasonLabels[broadcast.stopReason]})؛ «ادامه ارسال» را در همین کارت بزنید.`,
                 }
               : {
                   tone: "success",
-                  text: "پیامک گروهی در حال ارسال است؛ پیشرفتش در فهرست پایین دیده می‌شود.",
+                  text: "پیامک گروهی در حال ارسال است؛ پیشرفتش در همین کارت دیده می‌شود.",
                 },
           );
         },
@@ -104,11 +102,7 @@ export function BroadcastForm({ onSent }: BroadcastFormProps) {
     <div className="space-y-4">
       {off && (
         <Alert role="status">
-          پیامک گروهی خاموش است. برای فرستادن، در{" "}
-          <Link className="text-primary underline" to={paths.smsSettings}>
-            تنظیمات پیامک
-          </Link>{" "}
-          «پیامک‌ها» و «پیامک گروهی» را روشن کنید.
+          پیامک گروهی خاموش است. برای فرستادن، «همهٔ پیامک‌ها» و همین کارت را روشن و ذخیره کنید.
         </Alert>
       )}
 
@@ -164,7 +158,21 @@ export function BroadcastForm({ onSent }: BroadcastFormProps) {
       {empty && <Alert role="status">در این گروه کسی نیست.</Alert>}
       {previewing.isError && <Alert variant="destructive">{errorMessage(previewing.error)}</Alert>}
 
+      {/* Drawn with the group's longest first name: the message the parts are counted on. */}
+      <SmsPreview
+        text={
+          normalized.length === 0 ? (
+            <span className="text-muted-foreground">پیامک، همان‌طور که به گوشی می‌رسد.</span>
+          ) : (
+            broadcastMessage(longestName || "علی", normalized)
+          )
+        }
+        caption={`${toPersianDigits(parts)} بخش از ${toPersianDigits(broadcastMaxParts)} · با بلندترین نام کوچک این گروه`}
+      />
+
+      {/* type="button": the card sits inside the settings form, which this must not save. */}
       <Button
+        type="button"
         disabled={off || empty || normalized.length === 0 || tooLong || previewing.isPending}
         onClick={review}
       >
@@ -262,10 +270,10 @@ function BroadcastConfirm({
       {error !== null && <Alert variant="destructive">{error}</Alert>}
 
       <div className="flex flex-wrap gap-2">
-        <Button disabled={pending} onClick={onConfirm}>
+        <Button type="button" disabled={pending} onClick={onConfirm}>
           {pending ? "در حال ارسال…" : "بله، بفرست"}
         </Button>
-        <Button variant="outline" disabled={pending} onClick={onCancel}>
+        <Button type="button" variant="outline" disabled={pending} onClick={onCancel}>
           بازگشت
         </Button>
       </div>
