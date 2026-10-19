@@ -2835,12 +2835,41 @@ with `./backup.sh run`.
 #### 10.13 Broadcast (پیامک گروهی)
 Decided: the Owner writes the text each time (e.g. the gym closed for a few hours, a piece of news);
 the one kind not fixed in the code.
-- [ ] Open: who it goes to: every active member, every member, or a choice (e.g. active plans only)?
-- [ ] Open: the page: the text with its length and parts, the number of recipients and the cost
-      before sending, a confirmation; Owner only, in the audit log
-- [ ] Open: sent at once (within 08:00–22:00) or at a chosen time?
-- [ ] Open: how it shows on «پیامک‌ها» (one row per recipient, as now)
-- [ ] Rules, migration, endpoint, tests, UI
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The broadcast*:
+- [x] Who it goes to: the Owner chooses each time, «همه اعضای فعال» or «اعضای دارای پلن» (a plan
+      usable today, the absence SMS's members); never a deactivated member, a guest or a walk-in
+- [x] The text: «{name} عزیز، » before the Owner's own, «لغو11» after it; at most **3 parts** for
+      every recipient, measured with the longest first name among them (`Sms.BroadcastTooLong`)
+- [x] Every member's SMS now names them by the **first name only** («سید» skipped), replacing
+      "the first 6 words" (`SmsText.FirstName`); messages written before keep their text
+- [x] The page «پیامک گروهی» (Owner only, in the audit log): the text with its characters and
+      parts as it is typed, then a confirmation with the recipients, the exact parts and the cost
+      «حدود» (from the latest charged message) beside the credit left
+- [x] Sent at once in the background, only 08:00–22:00; no chosen time. Its own switch on «تنظیمات
+      پیامک», off at the start (`Sms.BroadcastOff`); one at a time (`Sms.BroadcastInProgress`)
+- [x] Stopped (credit, hours, a switch, an error) → «متوقف شد» with its reason, and «ادامه ارسال»
+      sends to those of the group with no message of it yet; a server restart continues it by itself
+- [x] On «پیامک‌ها» one row per recipient, of the kind «پیامک گروهی»; the broadcast page lists each
+      broadcast with its group, state, sent/failed/unknown and cost
+- [x] Rules, migration, endpoints, tests, UI: `SmsBroadcast` (`Create`, `CheckLength`, `Finish`,
+      `Stop`, `Resume`, `xmin`), `SmsParts` (70, then 67 a part; the frontend's `smsParts` counts the
+      same), `SmsBroadcastErrors`, `NotificationKind.Broadcast`, `Notification.BroadcastId`;
+      `SmsBatchSender` taken out of `SendDailySmsHandler` so a run and a broadcast write, send, retry
+      and stop on credit the same way; `GET /api/sms/broadcasts/audiences`,
+      `POST /api/sms/broadcasts/preview`, `POST /api/sms/broadcasts`,
+      `POST /api/sms/broadcasts/{id}/resume`, `GET /api/sms/broadcasts`; Hangfire `BroadcastJob`
+      (one at a time, no automatic retry); migration `AddSmsBroadcast` (the table `sms_broadcasts`
+      with the partial unique index `ix_sms_broadcasts_one_sending`, `broadcast_enabled` on
+      `sms_settings`, off; `broadcast_id` on `notifications` with
+      `ix_notifications_one_per_broadcast_and_member`; the kind and event checks widened; no
+      existing row is touched); the page, its menu item, the labels on «پیامک‌ها» and the audit
+      screen; the demo turns it on
+- [x] Review fixes: the switches and the hours are read again before every message, so 22:00 or
+      a switch turned off stops a broadcast in the middle (`SmsBatchSender`'s `mayGoOn`, `Halted`);
+      a broadcast saved but not queued says so on the page instead of «در حال ارسال»; the job
+      measures the text again and stops with `TooLong` if a longer first name joined; at start
+      `BroadcastRecoveryService` hands a broadcast still sending to its job again, and
+      `StopBroadcastOnFailureFilter` stops one whose Hangfire job failed (`RecoverBroadcastsHandler`)
 
 ---
 

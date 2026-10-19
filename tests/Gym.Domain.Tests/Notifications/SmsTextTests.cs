@@ -51,21 +51,21 @@ public sealed class SmsTextTests
     public void ForRunningOut_NameAndEndDate_IsTheAgreedText()
     {
         SmsText.ForRunningOut("سارا محمدی", Day)
-            .ShouldBe("سارا محمدی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد." + OptOutLine);
+            .ShouldBe("سارا عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد." + OptOutLine);
     }
 
     [Fact]
     public void ForFewSessionsLeft_SessionsLeft_IsTheAgreedText()
     {
         SmsText.ForFewSessionsLeft("سارا محمدی", 2)
-            .ShouldBe("سارا محمدی عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است." + OptOutLine);
+            .ShouldBe("سارا عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است." + OptOutLine);
     }
 
     [Fact]
     public void ForBirthday_Birthday_IsTheAgreedTextWithTheFreeVisit()
     {
         SmsText.ForBirthday("سارا محمدی", Day)
-            .ShouldBe("سارا محمدی عزیز، ۰۷/۲۰ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!" + OptOutLine);
+            .ShouldBe("سارا عزیز، ۰۷/۲۰ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!" + OptOutLine);
     }
 
     [Fact]
@@ -89,9 +89,9 @@ public sealed class SmsTextTests
     }
 
     [Fact]
-    public void ForRunningOut_LongName_IsCutToSixWords()
+    public void ForRunningOut_NameWithSayyed_IsTheWordAfterIt()
     {
-        SmsText.ForRunningOut(LongName, Day).ShouldStartWith("سید محمد حسین علی رضا موسوی عزیز،");
+        SmsText.ForRunningOut(LongName, Day).ShouldStartWith("محمد عزیز،");
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public sealed class SmsTextTests
     [Fact]
     public void Fit_RunsOfWhiteSpace_BecomeOneSpace()
     {
-        SmsText.Fit("  سارا \t  محمدی\n", SmsText.MaxNameWords).ShouldBe("سارا محمدی");
+        SmsText.Fit("  بانک \t  ملت\n", SmsText.MaxPayeeWords).ShouldBe("بانک ملت");
     }
 
     [Fact]
@@ -253,22 +253,22 @@ public sealed class SmsTextTests
     public void ForSubscriptionReceipt_Plan_GivesSessionsDatesWithoutTheYearAndPrice()
     {
         SmsText.ForSubscriptionReceipt("سارا محمدی", 12, Day, Day.AddDays(29), 1_200_000m)
-            .ShouldBe("سارا محمدی عزیز، اشتراک ۱۲ جلسه‌ای شما در باشگاه پاسارگاد از ۰۷/۲۰ تا ۰۸/۱۹ ثبت و ۱٬۲۰۰٬۰۰۰ تومان کامل پرداخت شد. سپاس!" + OptOutLine);
+            .ShouldBe("سارا عزیز، اشتراک ۱۲ جلسه‌ای شما در باشگاه پاسارگاد از ۰۷/۲۰ تا ۰۸/۱۹ ثبت و ۱٬۲۰۰٬۰۰۰ تومان کامل پرداخت شد. سپاس!" + OptOutLine);
     }
 
     [Fact]
     public void ForQueuedSubscriptionReceipt_Plan_GivesItsDaysInsteadOfDates()
     {
         SmsText.ForQueuedSubscriptionReceipt("سارا محمدی", 12, 30, 1_200_000m)
-            .ShouldBe("سارا محمدی عزیز، اشتراک ۱۲ جلسه‌ای شما در باشگاه پاسارگاد (۳۰ روز، پس از اشتراک فعلی) ثبت و ۱٬۲۰۰٬۰۰۰ تومان کامل پرداخت شد. سپاس!" + OptOutLine);
+            .ShouldBe("سارا عزیز، اشتراک ۱۲ جلسه‌ای شما در باشگاه پاسارگاد (۳۰ روز، پس از اشتراک فعلی) ثبت و ۱٬۲۰۰٬۰۰۰ تومان کامل پرداخت شد. سپاس!" + OptOutLine);
     }
 
     [Fact]
-    public void ForSubscriptionReceipt_LongName_IsCutShort()
+    public void ForSubscriptionReceipt_NameWithSayyed_IsTheFirstNameOnly()
     {
         var text = SmsText.ForSubscriptionReceipt(LongName, 12, Day, Day.AddDays(29), 1_200_000m);
 
-        text.ShouldStartWith("سید محمد حسین علی رضا موسوی عزیز،");
+        text.ShouldStartWith("محمد عزیز،");
     }
 
     [Fact]
@@ -285,13 +285,13 @@ public sealed class SmsTextTests
     [Fact]
     public void ForWelcome_Member_GreetsThemByName()
     {
-        SmsText.ForWelcome("سارا محمدی").ShouldBe("سارا محمدی عزیز، به باشگاه پاسارگاد خوش آمدید!" + OptOutLine);
+        SmsText.ForWelcome("سارا محمدی").ShouldBe("سارا عزیز، به باشگاه پاسارگاد خوش آمدید!" + OptOutLine);
     }
 
     [Fact]
-    public void ForWelcome_LongName_IsCutShort()
+    public void ForWelcome_NameWithSayyed_IsTheFirstNameOnly()
     {
-        SmsText.ForWelcome(LongName).ShouldStartWith("سید محمد حسین علی رضا موسوی عزیز،");
+        SmsText.ForWelcome(LongName).ShouldStartWith("محمد عزیز،");
     }
 
     [Fact]
@@ -307,14 +307,14 @@ public sealed class SmsTextTests
     public void ForDebtReminder_Member_GivesTheWholeAmountPolitely()
     {
         SmsText.ForDebtReminder("سارا محمدی", 1_250_000m).ShouldBe(
-            "سارا محمدی عزیز، مانده حساب شما در باشگاه پاسارگاد ۱٬۲۵۰٬۰۰۰ تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!"
+            "سارا عزیز، مانده حساب شما در باشگاه پاسارگاد ۱٬۲۵۰٬۰۰۰ تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!"
             + OptOutLine);
     }
 
     [Fact]
-    public void ForDebtReminder_LongName_IsCutShort()
+    public void ForDebtReminder_NameWithSayyed_IsTheFirstNameOnly()
     {
-        SmsText.ForDebtReminder(LongName, 50_000m).ShouldStartWith("سید محمد حسین علی رضا موسوی عزیز،");
+        SmsText.ForDebtReminder(LongName, 50_000m).ShouldStartWith("محمد عزیز،");
     }
 
     [Fact]
@@ -329,13 +329,13 @@ public sealed class SmsTextTests
     [Fact]
     public void ForAbsence_Member_TellsThemTheirPlaceIsEmpty()
     {
-        SmsText.ForAbsence("سارا محمدی").ShouldBe("سارا محمدی عزیز، جای شما در باشگاه پاسارگاد خالی است!" + OptOutLine);
+        SmsText.ForAbsence("سارا محمدی").ShouldBe("سارا عزیز، جای شما در باشگاه پاسارگاد خالی است!" + OptOutLine);
     }
 
     [Fact]
-    public void ForAbsence_LongName_IsCutShort()
+    public void ForAbsence_NameWithSayyed_IsTheFirstNameOnly()
     {
-        SmsText.ForAbsence(LongName).ShouldStartWith("سید محمد حسین علی رضا موسوی عزیز،");
+        SmsText.ForAbsence(LongName).ShouldStartWith("محمد عزیز،");
     }
 
     [Fact]
@@ -343,5 +343,54 @@ public sealed class SmsTextTests
     {
         // docs/sms-texts.md: about 59 characters, one part of 70.
         SmsText.ForAbsence("سارا محمدی").Length.ShouldBeLessThanOrEqualTo(70);
+    }
+
+    // ---- The first name (task 10.13) ----
+
+    [Theory]
+    [InlineData("علی رضایی", "علی")]
+    [InlineData("علی", "علی")]
+    [InlineData("  علی   رضایی  ", "علی")]
+    [InlineData("سید محمد احمدی", "محمد")]
+    [InlineData("سيد محمد احمدی", "محمد")]
+    [InlineData("سید", "سید")]
+    [InlineData("محمد علی کریمی", "محمد")]
+    [InlineData("محمدعلی کریمی", "محمدعلی")]
+    public void FirstName_FullName_IsTheFirstWordOrTheOneAfterSayyed(string fullName, string expected)
+    {
+        SmsText.FirstName(fullName).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void FirstName_VeryLongWord_IsCutAtTheLimit()
+    {
+        SmsText.FirstName(new string('x', 150) + " رضایی").Length.ShouldBe(SmsText.MaxValueLength);
+    }
+
+    [Fact]
+    public void FirstName_Blank_IsEmpty()
+    {
+        SmsText.FirstName("   ").ShouldBe(string.Empty);
+    }
+
+    // ---- The broadcast (task 10.13) ----
+
+    [Fact]
+    public void ForBroadcast_OwnersText_IsBetweenTheFirstNameAndTheOptOutLine()
+    {
+        SmsText.ForBroadcast("سید محمد احمدی", "باشگاه فردا تا ساعت ۱۶ تعطیل است.")
+            .ShouldBe("محمد عزیز، باشگاه فردا تا ساعت ۱۶ تعطیل است." + OptOutLine);
+    }
+
+    [Fact]
+    public void ForBroadcast_LineBreaks_AreKept()
+    {
+        SmsText.ForBroadcast("علی رضایی", "خط اول\nخط دوم").ShouldBe("علی عزیز، خط اول\nخط دوم" + OptOutLine);
+    }
+
+    [Fact]
+    public void ForBroadcast_BlankText_Throws()
+    {
+        Should.Throw<ArgumentException>(() => SmsText.ForBroadcast("علی", "  "));
     }
 }

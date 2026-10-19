@@ -26,13 +26,14 @@ public static class HangfireSetup
 
         var storageOptions = new PostgreSqlStorageOptions { SchemaName = SchemaName };
 
-        services.AddHangfire(config => config
+        services.AddHangfire((provider, config) => config
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
             .UsePostgreSqlStorage(
                 options => options.UseConnectionFactory(new NpgsqlConnectionFactory(connectionString, storageOptions)),
-                storageOptions));
+                storageOptions)
+            .UseFilter(new StopBroadcastOnFailureFilter(provider.GetRequiredService<IServiceScopeFactory>())));
 
         // Runs jobs in-process, the same host as the API. No separate worker process for a
         // single-gym deployment this size. Each worker holds a Postgres connection, and the

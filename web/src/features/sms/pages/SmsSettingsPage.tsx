@@ -266,6 +266,7 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
       <WelcomeFieldset form={form} morningSendTime={current.welcome.morningSendTime} />
       <DebtReminderFieldset form={form} />
       <KindFieldset kind="absence" form={form} />
+      <BroadcastFieldset form={form} />
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={isSubmitting}>
@@ -499,6 +500,36 @@ function WelcomeFieldset({ form, morningSendTime }: WelcomeFieldsetProps) {
           type="checkbox"
           className="size-4 accent-primary"
           {...form.register("welcome.enabled")}
+        />
+        روشن
+      </label>
+    </fieldset>
+  );
+}
+
+interface BroadcastFieldsetProps {
+  form: UseFormReturn<SmsSettingsValues>;
+}
+
+/**
+ * The Owner's broadcast (BUSINESS_RULES.md §10 *The broadcast*, task 10.13): only a switch. The text
+ * and who it goes to are chosen each time on «پیامک گروهی».
+ */
+function BroadcastFieldset({ form }: BroadcastFieldsetProps) {
+  return (
+    <fieldset className="space-y-3 rounded-md border p-4">
+      <legend className="px-1 font-medium">پیامک گروهی</legend>
+      <p className="text-sm text-muted-foreground">
+        متنی که خودتان در صفحهٔ «پیامک گروهی» می‌نویسید، با نام هر عضو در ابتدا، به همهٔ اعضای فعال
+        یا فقط اعضای دارای پلن. همان لحظه و فقط بین ساعت ۸ تا ۲۲ فرستاده می‌شود. تا این روشن نباشد،
+        آن صفحه چیزی نمی‌فرستد.
+      </p>
+
+      <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="size-4 accent-primary"
+          {...form.register("broadcast.enabled")}
         />
         روشن
       </label>

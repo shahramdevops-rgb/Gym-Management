@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 
 using Gym.Domain.Common;
+using Gym.Domain.Common.Text;
 using Gym.Domain.Payables;
 
 namespace Gym.Domain.Notifications;
@@ -19,8 +20,9 @@ namespace Gym.Domain.Notifications;
 /// the Owner could leave half written.
 /// </para>
 /// <para>
-/// <b>A long name or payee is cut short</b> (<see cref="Fit"/>), as it was in the templates' blanks,
-/// so one long name cannot make a message cost several parts.
+/// <b>A member is named by the first name only</b> (<see cref="FirstName"/>, task 10.13), and a long
+/// payee is cut short (<see cref="Fit"/>), as it was in the templates' blanks, so one long name
+/// cannot make a message cost several parts.
 /// </para>
 /// <para>
 /// <b>Every text ends with <see cref="OptOut"/> on its own line</b> (1405/07/26). Kavenegar adds it
@@ -30,14 +32,17 @@ namespace Gym.Domain.Notifications;
 /// </remarks>
 public static class SmsText
 {
-    /// <summary>The longest text the four can make: a 100-character name or payee and the wording.</summary>
+    /// <summary>The longest text the kinds can make: a 100-character name or payee and the wording.</summary>
     public const int MaxLength = 500;
 
-    /// <summary>The most characters a name or a payee keeps.</summary>
+    /// <summary>The most characters a first name or a payee keeps.</summary>
     public const int MaxValueLength = 100;
 
-    /// <summary>A member's name keeps its first 6 words, as the template's name blank allowed.</summary>
-    public const int MaxNameWords = 6;
+    /// <summary>
+    /// The title a first name may start with: «سید محمد احمدی» is named «محمد» (the developer,
+    /// 1405/07/27). The gym is for men only, so «سیده» never comes.
+    /// </summary>
+    public const string SayyedTitle = "سید";
 
     /// <summary>A payee keeps its first 9 words, as the template's payee blank allowed.</summary>
     public const int MaxPayeeWords = 9;
@@ -66,10 +71,10 @@ public static class SmsText
 
     /// <summary>The subscription running out: the end date, not the days left.</summary>
     public static string ForRunningOut(string fullName, DateOnly endDate) =>
-        WithOptOut($"{Name(fullName)} عزیز، اشتراک شما در باشگاه پاسارگاد {Date(endDate)} به پایان می‌رسد.");
+        WithOptOut($"{FirstName(fullName)} عزیز، اشتراک شما در باشگاه پاسارگاد {Date(endDate)} به پایان می‌رسد.");
 
     public static string ForFewSessionsLeft(string fullName, int sessionsLeft) =>
-        WithOptOut($"{Name(fullName)} عزیز، فقط {Number(sessionsLeft)} جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.");
+        WithOptOut($"{FirstName(fullName)} عزیز، فقط {Number(sessionsLeft)} جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.");
 
     /// <summary>
     /// Always sent 1 to 7 days early, so one text: the date without the year, the free visit on it
@@ -78,7 +83,7 @@ public static class SmsText
     /// </summary>
     /// <param name="birthday">This year's birthday, as <c>SmsAudience.BirthdayToGreet</c> found it.</param>
     public static string ForBirthday(string fullName, DateOnly birthday) =>
-        WithOptOut($"{Name(fullName)} عزیز، {MonthAndDay(birthday)} روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!");
+        WithOptOut($"{FirstName(fullName)} عزیز، {MonthAndDay(birthday)} روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!");
 
     /// <summary>To the Owner: the kind, the amount, the date and the payee.</summary>
     public static string ForPayableDue(PayableKind kind, decimal amount, DateOnly dueDate, string payee)
@@ -124,21 +129,21 @@ public static class SmsText
     /// </summary>
     public static string ForSubscriptionReceipt(
         string fullName, int sessions, DateOnly startDate, DateOnly endDate, decimal price) =>
-        WithOptOut($"{Name(fullName)} عزیز، اشتراک {Number(sessions)} جلسه‌ای شما در باشگاه پاسارگاد از {MonthAndDay(startDate)} تا {MonthAndDay(endDate)} ثبت و {Amount(price)} تومان کامل پرداخت شد. سپاس!");
+        WithOptOut($"{FirstName(fullName)} عزیز، اشتراک {Number(sessions)} جلسه‌ای شما در باشگاه پاسارگاد از {MonthAndDay(startDate)} تا {MonthAndDay(endDate)} ثبت و {Amount(price)} تومان کامل پرداخت شد. سپاس!");
 
     /// <summary>
     /// The receipt of a plan queued behind another (BUSINESS_RULES.md §4): its dates move if the plan
     /// before it ends early or is frozen, so it gives its length instead of a promise.
     /// </summary>
     public static string ForQueuedSubscriptionReceipt(string fullName, int sessions, int days, decimal price) =>
-        WithOptOut($"{Name(fullName)} عزیز، اشتراک {Number(sessions)} جلسه‌ای شما در باشگاه پاسارگاد ({Number(days)} روز، پس از اشتراک فعلی) ثبت و {Amount(price)} تومان کامل پرداخت شد. سپاس!");
+        WithOptOut($"{FirstName(fullName)} عزیز، اشتراک {Number(sessions)} جلسه‌ای شما در باشگاه پاسارگاد ({Number(days)} روز، پس از اشتراک فعلی) ثبت و {Amount(price)} تومان کامل پرداخت شد. سپاس!");
 
     /// <summary>
     /// To the member when their first plan is sold (task 10.10): one SMS part, and nothing in it that
     /// would be wrong for a member moved over from the paper notebook (chosen by the developer, 1405/07/27).
     /// </summary>
     public static string ForWelcome(string fullName) =>
-        WithOptOut($"{Name(fullName)} عزیز، به باشگاه پاسارگاد خوش آمدید!");
+        WithOptOut($"{FirstName(fullName)} عزیز، به باشگاه پاسارگاد خوش آمدید!");
 
     /// <summary>
     /// To the member whose debt has been owed for a while (task 10.11): their whole open account,
@@ -146,16 +151,48 @@ public static class SmsText
     /// </summary>
     /// <param name="owed">The whole open account, in Toman.</param>
     public static string ForDebtReminder(string fullName, decimal owed) =>
-        WithOptOut($"{Name(fullName)} عزیز، مانده حساب شما در باشگاه پاسارگاد {Amount(owed)} تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!");
+        WithOptOut($"{FirstName(fullName)} عزیز، مانده حساب شما در باشگاه پاسارگاد {Amount(owed)} تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!");
 
     /// <summary>
     /// To the member with a usable plan who has stopped coming (task 10.12): friendly, with no offer
     /// in it, one SMS part (chosen by the developer, 1405/07/27).
     /// </summary>
     public static string ForAbsence(string fullName) =>
-        WithOptOut($"{Name(fullName)} عزیز، جای شما در باشگاه پاسارگاد خالی است!");
+        WithOptOut($"{FirstName(fullName)} عزیز، جای شما در باشگاه پاسارگاد خالی است!");
+
+    /// <summary>
+    /// The broadcast (task 10.13): the member's first name, then the Owner's own text, which the
+    /// caller has already trimmed (<c>SmsBroadcast</c>).
+    /// </summary>
+    public static string ForBroadcast(string fullName, string ownerText)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerText);
+
+        return WithOptOut($"{FirstName(fullName)} عزیز، {ownerText}");
+    }
 
     // ---- The values ----
+
+    /// <summary>
+    /// The member's first name (BUSINESS_RULES.md §10 <i>Sending</i>, task 10.13): the first word of
+    /// the full name, or the word after it when the first is <see cref="SayyedTitle"/>, cut at
+    /// <see cref="MaxValueLength"/> characters. A name of one word is used whole, «سید» alone too.
+    /// </summary>
+    public static string FirstName(string fullName)
+    {
+        ArgumentNullException.ThrowIfNull(fullName);
+
+        var words = fullName.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        // Normalized, so «سيد» typed with the Arabic ye is the title too.
+        var first = words.Length > 1 && PersianText.Normalize(words[0]) == SayyedTitle ? words[1] : words[0];
+
+        return first.Length <= MaxValueLength ? first : first[..MaxValueLength];
+    }
 
     /// <summary><c>2026-10-19</c> → <c>۰۷/۲۷</c>: the daily report and the receipt leave the year out.</summary>
     public static string MonthAndDay(DateOnly date)
@@ -212,7 +249,7 @@ public static class SmsText
     }
 
     /// <summary>
-    /// Shortens a name or a payee: runs of white space become one space, only the first
+    /// Shortens a payee: runs of white space become one space, only the first
     /// <paramref name="maxWords"/> words are kept, and what is left is cut at
     /// <see cref="MaxValueLength"/> characters (decided with the developer, 1405/07/14: simply cut).
     /// </summary>
@@ -229,12 +266,6 @@ public static class SmsText
 
     private static string WithOptOut(string text) => $"{text}\n{OptOut}";
 
-    private static string Name(string fullName)
-    {
-        ArgumentNullException.ThrowIfNull(fullName);
-
-        return Fit(fullName, MaxNameWords);
-    }
 
     private static string ToPersianDigits(string value)
     {

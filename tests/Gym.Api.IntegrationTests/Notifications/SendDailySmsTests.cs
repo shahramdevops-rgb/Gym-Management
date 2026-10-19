@@ -2,6 +2,7 @@ using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Common;
 using Gym.Application.Common.Sms;
+using Gym.Application.Notifications;
 using Gym.Application.Notifications.SendDailySms;
 using Gym.Domain.Common;
 using Gym.Domain.Expenses;
@@ -292,7 +293,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         sender.Requests.Select(request => request.Receptor)
             .ShouldBe([withPlan.PhoneNumber, frozen.PhoneNumber, queued.PhoneNumber], ignoreOrder: true);
         sender.Requests[0].Text.ShouldBe(
-            $"{Name} عزیز، ۰۷/۱۶ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!\nلغو11");
+            $"{SmsText.FirstName(Name)} عزیز، ۰۷/۱۶ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!\nلغو11");
         (await NotificationsAsync()).ShouldAllBe(notification => notification.JalaliYear == 1405);
     }
 
@@ -320,7 +321,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         await RunAsync(NotificationKind.Birthday, sender);
         await RunAsync(NotificationKind.Birthday, sender, at: At(Today.AddDays(1), 10, 0));
 
-        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{Name} عزیز، ۰۷/۱۶ روز تولد شماست؛");
+        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{SmsText.FirstName(Name)} عزیز، ۰۷/۱۶ روز تولد شماست؛");
     }
 
     [Fact]
@@ -334,7 +335,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         await RunAsync(NotificationKind.Birthday, sender, at: At(day, 10, 0));
 
-        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{Name} عزیز، ۱۲/۲۹ روز تولد شماست؛");
+        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{SmsText.FirstName(Name)} عزیز، ۱۲/۲۹ روز تولد شماست؛");
     }
 
     // ---- Cheques and instalments ----
@@ -638,9 +639,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         var handler = new SendDailySmsHandler(
             db,
             calendar,
-            time,
-            sender,
-            retries,
+            new SmsBatchSender(db, calendar, time, sender, retries),
             scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
             scope.ServiceProvider.GetRequiredService<DebtReminderCandidate>(),
             scope.ServiceProvider.GetRequiredService<AbsenceCandidate>(),
@@ -667,7 +666,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             welcomeEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
-            absence: kind == NotificationKind.Absence ? on : SmsKindSettings.Off));
+            absence: kind == NotificationKind.Absence ? on : SmsKindSettings.Off,
+            broadcastEnabled: false));
     }
 
     private Task TurnOnBothSubscriptionKindsAsync() => SaveSettingsAsync(settings => settings.Update(
@@ -683,7 +683,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         welcomeEnabled: false,
         debtReminder: SmsKindSettings.Off,
         debtReminderMinAmount: null,
-        absence: SmsKindSettings.Off));
+        absence: SmsKindSettings.Off,
+        broadcastEnabled: false));
 
     private async Task SaveSettingsAsync(Func<SmsSettings, Result> update)
     {

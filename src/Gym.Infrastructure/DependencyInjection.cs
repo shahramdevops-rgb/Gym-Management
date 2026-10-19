@@ -149,6 +149,13 @@ public static class DependencyInjection
         services.AddSingleton<IWelcomeScheduler, HangfireWelcomeScheduler>();
         services.AddScoped<WelcomeJob>();
 
+        // A broadcast is one job, enqueued after it is saved, which writes and sends its messages (task 10.13).
+        services.AddSingleton<IBroadcastScheduler, HangfireBroadcastScheduler>();
+        services.AddScoped<BroadcastJob>();
+
+        // One left «در حال ارسال» by a stopped server is handed to its job again at start.
+        services.AddHostedService<BroadcastRecoveryService>();
+
         // Without this, /health would only report that the process is running, and an
         // orchestrator would happily route traffic to an API that cannot reach its database.
         services.AddHealthChecks()

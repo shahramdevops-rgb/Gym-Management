@@ -31,7 +31,29 @@ export interface SmsMessageFilter {
   to?: string;
   kind?: SmsMessageKind;
   status?: SmsMessageStatus;
+  /** One broadcast's messages only, opened from «پیامک گروهی». */
+  broadcastId?: string;
   page: number;
+}
+
+/** One broadcast as «پیامک گروهی» lists it (BUSINESS_RULES.md §10 *The broadcast*). */
+export type Broadcast = components["schemas"]["BroadcastResponse"];
+
+export type BroadcastAudience = components["schemas"]["BroadcastAudience"];
+
+export type BroadcastStatus = components["schemas"]["BroadcastStatus"];
+
+export type BroadcastStopReason = NonNullable<components["schemas"]["BroadcastStopReason"]>;
+
+/** Both groups the Owner can choose from: how many are in each and the longest first name. */
+export type BroadcastAudiences = components["schemas"]["BroadcastAudiencesResponse"];
+
+/** The confirmation's figures: recipients, parts, the estimated cost and the longest message. */
+export type BroadcastPreview = components["schemas"]["BroadcastPreviewResponse"];
+
+export interface BroadcastInput {
+  text: string;
+  audience: BroadcastAudience;
 }
 
 export const smsMessagesPageSize = 20;
@@ -48,6 +70,14 @@ export const smsSettingsKeys = {
 export const smsCreditKeys = {
   all: ["sms-credit"] as const,
 };
+
+export const broadcastKeys = {
+  all: ["sms-broadcasts"] as const,
+  list: (page: number) => [...broadcastKeys.all, "list", page] as const,
+  audiences: () => [...broadcastKeys.all, "audiences"] as const,
+};
+
+export const broadcastsPageSize = 20;
 
 /** Asks Kavenegar each time the page opens (BUSINESS_RULES.md §10 *Sending*): free, and the page is opened rarely. */
 export function useSmsCredit() {
@@ -77,6 +107,7 @@ export function useSmsMessages(filter: SmsMessageFilter, { enabled = true } = {}
             To: filter.to,
             Kind: filter.kind,
             Status: filter.status,
+            BroadcastId: filter.broadcastId,
             Page: filter.page,
             PageSize: smsMessagesPageSize,
           },
@@ -146,6 +177,102 @@ export function useUpdateSmsSettings() {
     },
     onSuccess: (settings) => {
       queryClient.setQueryData(smsSettingsKeys.all, settings);
+    },
+  });
+}
+
+/** The two groups as they stand now, read when «پیامک گروهی» opens. */
+export function useBroadcastAudiences() {
+  return useQuery({
+    queryKey: broadcastKeys.audiences(),
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/sms/broadcasts/audiences");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/**
+ * The broadcasts, the latest first. While one is sending it is asked again every few seconds, so
+ * the Owner sees it go out and end without reloading.
+ */
+export function useBroadcasts(page: number) {
+  return useQuery({
+    queryKey: broadcastKeys.list(page),
+    placeholderData: keepPreviousData,
+    refetchInterval: (query) =>
+      query.state.data?.items.some((broadcast) => broadcast.status === "Sending") === true
+        ? 3000
+        : false,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/sms/broadcasts", {
+        params: { query: { Page: page, PageSize: broadcastsPageSize } },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return {
+        items: data.items,
+        totalCount: Number(data.totalCount),
+        pageCount: Math.max(1, Math.ceil(Number(data.totalCount) / broadcastsPageSize)),
+      };
+    },
+  });
+}
+
+/** The confirmation's figures for a text and a group; writes nothing. */
+export function usePreviewBroadcast() {
+  return useMutation({
+    mutationFn: async (body: BroadcastInput) => {
+      const { data, error } = await api.POST("/api/sms/broadcasts/preview", { body });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/** Sends a broadcast: saved at once, its messages written and sent in the background. */
+export function useSendBroadcast() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body: BroadcastInput) => {
+      const { data, error } = await api.POST("/api/sms/broadcasts", { body });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: broadcastKeys.all });
+      void queryClient.invalidateQueries({ queryKey: smsMessageKeys.all });
+    },
+  });
+}
+
+/** «ادامه ارسال»: a stopped broadcast goes on to the members it has not reached. */
+export function useResumeBroadcast() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await api.POST("/api/sms/broadcasts/{id}/resume", {
+        params: { path: { id } },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: broadcastKeys.all });
+      void queryClient.invalidateQueries({ queryKey: smsMessageKeys.all });
+      void queryClient.invalidateQueries({ queryKey: smsCreditKeys.all });
     },
   });
 }

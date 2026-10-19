@@ -225,6 +225,31 @@ public static class SmsAudience
             && (lastAbsentSince is not { } last || since > last);
     }
 
+    /// <summary>
+    /// Whether an active member is in the broadcast's group (§10 <i>The broadcast</i>, task 10.13):
+    /// every one for <see cref="BroadcastAudience.ActiveMembers"/>; for
+    /// <see cref="BroadcastAudience.MembersWithUsablePlan"/>, one holding a membership plan usable
+    /// today, the plans the absence SMS looks at. A deactivated member is in no group.
+    /// </summary>
+    /// <param name="plans">The member's subscriptions; only needed for the plan group.</param>
+    public static bool IsInBroadcastGroup(
+        BroadcastAudience audience, bool memberIsActive, IEnumerable<Subscription> plans, DateOnly today)
+    {
+        ArgumentNullException.ThrowIfNull(plans);
+
+        if (!memberIsActive)
+        {
+            return false;
+        }
+
+        return audience switch
+        {
+            BroadcastAudience.ActiveMembers => true,
+            BroadcastAudience.MembersWithUsablePlan => plans.Any(plan => IsActivePlan(plan, today)),
+            _ => throw new ArgumentOutOfRangeException(nameof(audience), audience, "Unknown audience."),
+        };
+    }
+
     private static bool SoldBefore(Subscription one, Subscription other) =>
         one.CreatedAt < other.CreatedAt
         || (one.CreatedAt == other.CreatedAt && one.Id.CompareTo(other.Id) < 0);

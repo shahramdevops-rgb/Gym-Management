@@ -1,6 +1,7 @@
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Common;
 using Gym.Application.Common.Sms;
+using Gym.Application.Notifications;
 using Gym.Application.Notifications.SendDailySms;
 using Gym.Domain.Members;
 using Gym.Domain.Notifications;
@@ -199,7 +200,8 @@ public sealed class AbsenceTests(DatabaseFixture fixture) : DatabaseTestBase(fix
             welcomeEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
-            absence: new SmsKindSettings(true, DaysAway, new TimeOnly(11, 0))).IsSuccess.ShouldBeTrue();
+            absence: new SmsKindSettings(true, DaysAway, new TimeOnly(11, 0)),
+            broadcastEnabled: false).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -214,9 +216,7 @@ public sealed class AbsenceTests(DatabaseFixture fixture) : DatabaseTestBase(fix
         var handler = new SendDailySmsHandler(
             db,
             calendar,
-            time,
-            sender,
-            NoWait,
+            new SmsBatchSender(db, calendar, time, sender, NoWait),
             scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
             scope.ServiceProvider.GetRequiredService<DebtReminderCandidate>(),
             new AbsenceCandidate(db, calendar),

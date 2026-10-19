@@ -41,6 +41,11 @@ public sealed class ListSmsMessagesHandler(IAppDbContext db, IGymCalendar calend
             messages = messages.Where(notification => notification.Status == status);
         }
 
+        if (query.BroadcastId is { } broadcastId)
+        {
+            messages = messages.Where(notification => notification.BroadcastId == broadcastId);
+        }
+
         var totalCount = await messages.CountAsync(cancellationToken);
 
         // Only a sent message has a cost; the others add nothing.

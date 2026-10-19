@@ -127,6 +127,18 @@ export const errorMessages: Record<string, string> = {
   "Sms.DailyReportPhoneInvalid": "شمارهٔ گزارش روزانه باید یک شمارهٔ موبایل ایران باشد.",
   "Sms.ChangedConcurrently":
     "تنظیمات پیامک هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+  "Sms.BroadcastNotFound": "این پیامک گروهی پیدا نشد.",
+  "Sms.BroadcastTextRequired": "متن پیامک را بنویسید.",
+  "Sms.BroadcastTooLong":
+    "متن بلند است: پیامک هر عضو، با نامش، باید در ۳ بخش جا شود. متن را کوتاه‌تر کنید.",
+  "Sms.BroadcastUnknownAudience": "گیرندگان را انتخاب کنید.",
+  "Sms.BroadcastOff": "اول در «تنظیمات پیامک»، پیامک‌ها و پیامک گروهی را روشن کنید.",
+  "Sms.BroadcastNoRecipients": "در این گروه کسی نیست؛ پیامکی فرستاده نمی‌شود.",
+  "Sms.BroadcastInProgress": "یک پیامک گروهی دیگر هنوز در حال ارسال است. صبر کنید تا تمام شود.",
+  "Sms.BroadcastNotStopped": "فقط پیامک گروهیِ متوقف‌شده را می‌شود ادامه داد.",
+  "Sms.BroadcastNotSending": "این پیامک گروهی دیگر در حال ارسال نیست.",
+  "Sms.BroadcastChangedConcurrently":
+    "این پیامک گروهی هم‌زمان تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
   // Subscriptions
   "Subscriptions.NotFound": "اشتراک پیدا نشد.",

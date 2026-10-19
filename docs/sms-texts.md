@@ -15,9 +15,11 @@ here and in `SmsText` together, and the domain tests that hold each text.
 Numbers and dates are written the way the app shows them: Persian digits, the Jalali date as
 `۱۴۰۵/۰۷/۲۰`, an amount with thousands separators (`٬`) and no space.
 
-A long name or payee is **simply cut short** (decided with the developer when these were templates,
-and kept so one long name cannot make a message cost several parts): a member's name keeps its first
-6 words and a payee its first 9, then the first 100 characters (`SmsText.Fit`).
+`{name}` is the member's **first name only** (decided with the developer on 1405/07/27, task 10.13):
+the first word of the full name, or the word after it when the first is «سید» («سید محمد احمدی» →
+«محمد»), cut at 100 characters (`SmsText.FirstName`). Messages written before keep the full name
+they were written with. A long payee is **simply cut short** (decided with the developer when these
+were templates): its first 9 words, then the first 100 characters (`SmsText.Fit`).
 
 **Length:** a Persian SMS holds 70 characters in one part and 67 in each part of a longer one; each
 part is paid for. The lengths below take a 10-character name and a 20-character payee, and include
@@ -164,3 +166,17 @@ visit or from the plan's start (BUSINESS_RULES.md §10 *The absence SMS*).
 - Friendly, with no offer in it (planned that way by the developer, 1405/07/15). A longer text
   («… منتظر دیدارتان هستیم.») was offered and would take two parts, so the developer chose the short one.
 - About 59 characters with a 10-character name: one part.
+
+### Broadcast (`Broadcast`, to the member)
+
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.13. The one text the code does not
+fix: the Owner writes the middle each time, on «پیامک گروهی» (BUSINESS_RULES.md §10 *The
+broadcast*).
+
+```
+{name} عزیز، {the Owner's text}
+```
+
+- The Owner's text is trimmed at both ends and keeps its line breaks (`SmsText.ForBroadcast`).
+- **At most 3 parts** (201 characters) with the opt-out line, measured with the longest first name
+  among the recipients (`SmsParts`).

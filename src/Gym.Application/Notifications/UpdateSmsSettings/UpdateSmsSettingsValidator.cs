@@ -41,6 +41,10 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
             .NotNull()
             .WithMessage("Every kind must be sent, on or off.")
             .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);
+        RuleFor(command => command.Broadcast)
+            .NotNull()
+            .WithMessage("Every kind must be sent, on or off.")
+            .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);
     }
 
     private static void CheckDailyReport(DailyReportSettings? settings, ValidationContext<UpdateSmsSettingsCommand> context)

@@ -22,7 +22,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         {
             table.HasCheckConstraint(
                 "ck_notifications_kind",
-                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence')");
+                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast')");
             table.HasCheckConstraint(
                 "ck_notifications_status",
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
@@ -41,22 +41,25 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
                 NotificationConstraints.EventMatchesKind,
                 "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL " +
                 "AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
-                "AND debt_since IS NULL AND absent_since IS NULL) OR " +
+                "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL " +
                 "AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL " +
-                "AND absent_since IS NULL) OR " +
+                "AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'PayableDue' AND payable_id IS NOT NULL " +
                 "AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
-                "AND debt_since IS NULL AND absent_since IS NULL) OR " +
+                "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'DailyReport' AND report_date IS NOT NULL " +
                 "AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL " +
-                "AND debt_since IS NULL AND absent_since IS NULL) OR " +
+                "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL " +
                 "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
-                "AND absent_since IS NULL) OR " +
+                "AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'Absence' AND member_id IS NOT NULL AND absent_since IS NOT NULL " +
                 "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
-                "AND debt_since IS NULL)");
+                "AND debt_since IS NULL AND broadcast_id IS NULL) OR " +
+                "(kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
+                "AND debt_since IS NULL AND absent_since IS NULL)");
 
             table.HasCheckConstraint(
                 NotificationConstraints.SentHasProviderId,
@@ -86,6 +89,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.HasOne<Member>().WithMany().HasForeignKey(notification => notification.MemberId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Subscription>().WithMany().HasForeignKey(notification => notification.SubscriptionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Payable>().WithMany().HasForeignKey(notification => notification.PayableId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<SmsBroadcast>().WithMany().HasForeignKey(notification => notification.BroadcastId).OnDelete(DeleteBehavior.Restrict);
 
         // Each event once (BUSINESS_RULES.md §10). The kind is in the first index because a
         // subscription can get each of its kinds (running out, few sessions, receipt, welcome) once.
@@ -129,6 +133,13 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             .IsUnique()
             .HasFilter("kind = 'Absence'")
             .HasDatabaseName(NotificationConstraints.OneAbsencePerMemberAndAbsence);
+
+        // Once per member and broadcast (task 10.13): a job made again after a restart, or a
+        // broadcast continued, cannot write to anyone a second time.
+        builder.HasIndex(notification => new { notification.BroadcastId, notification.MemberId })
+            .IsUnique()
+            .HasFilter("broadcast_id IS NOT NULL")
+            .HasDatabaseName(NotificationConstraints.OnePerBroadcastAndMember);
 
         builder.Property(notification => notification.Version).IsRowVersion();
     }

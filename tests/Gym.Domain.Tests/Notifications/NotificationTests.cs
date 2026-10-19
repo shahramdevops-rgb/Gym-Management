@@ -170,6 +170,34 @@ public sealed class NotificationTests
         Should.Throw<ArgumentException>(() => Notification.ForAbsence(Guid.Empty, new DateOnly(2026, 10, 1), Phone, Text));
 
     [Fact]
+    public void ForBroadcast_NamesTheBroadcastAndTheMember()
+    {
+        var broadcastId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+
+        var notification = Notification.ForBroadcast(broadcastId, memberId, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.Broadcast);
+        notification.BroadcastId.ShouldBe(broadcastId);
+        notification.MemberId.ShouldBe(memberId);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.SubscriptionId.ShouldBeNull();
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+        notification.DebtSince.ShouldBeNull();
+        notification.AbsentSince.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForBroadcast_EmptyBroadcastId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForBroadcast(Guid.Empty, Guid.NewGuid(), Phone, Text));
+
+    [Fact]
+    public void ForBroadcast_EmptyMemberId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForBroadcast(Guid.NewGuid(), Guid.Empty, Phone, Text));
+
+    [Fact]
     public void ForSubscriptionReceipt_EmptySubscriptionId_Throws()
     {
         Should.Throw<ArgumentException>(() => Notification.ForSubscriptionReceipt(Guid.NewGuid(), Guid.Empty, Phone, Text));

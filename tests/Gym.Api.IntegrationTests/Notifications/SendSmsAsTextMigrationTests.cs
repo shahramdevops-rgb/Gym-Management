@@ -67,8 +67,11 @@ public sealed class SendSmsAsTextMigrationTests(DatabaseFixture fixture)
             .Select(notification => new { notification.Kind, notification.Recipient, notification.Status, notification.Text })
             .ToListAsync(TestContext.Current.CancellationToken);
         texts.Count.ShouldBe(5);
-        texts.Single(row => row.Kind == NotificationKind.SubscriptionExpiring).Text.ShouldBe(BeforeOptOut(SmsText.ForRunningOut(Name, Day)));
-        texts.Single(row => row.Kind == NotificationKind.LowSessions).Text.ShouldBe(BeforeOptOut(SmsText.ForFewSessionsLeft(Name, 2)));
+        // Written out with the whole name, as the texts were then: SmsText has used the first name since task 10.13.
+        texts.Single(row => row.Kind == NotificationKind.SubscriptionExpiring).Text
+            .ShouldBe($"{Name} عزیز، اشتراک شما در باشگاه پاسارگاد {date} به پایان می‌رسد.");
+        texts.Single(row => row.Kind == NotificationKind.LowSessions).Text
+            .ShouldBe($"{Name} عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.");
         // The birthday's two texts of the time, written out: SmsText has one text since task 10.8.
         texts.Single(row => row.Recipient == "+989121234567" && row.Kind == NotificationKind.Birthday).Text
             .ShouldBe($"{Name} عزیز، امروز {date} روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");

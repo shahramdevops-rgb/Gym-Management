@@ -68,6 +68,15 @@ using Gym.Application.Members.GetMemberDebt;
 using Gym.Application.Members.ListMembers;
 using Gym.Application.Members.SetMemberActive;
 using Gym.Application.Members.UpdateMember;
+using Gym.Application.Notifications;
+using Gym.Application.Notifications.Broadcasts;
+using Gym.Application.Notifications.Broadcasts.GetBroadcastAudience;
+using Gym.Application.Notifications.Broadcasts.ListBroadcasts;
+using Gym.Application.Notifications.Broadcasts.PreviewBroadcast;
+using Gym.Application.Notifications.Broadcasts.RecoverBroadcasts;
+using Gym.Application.Notifications.Broadcasts.ResumeBroadcast;
+using Gym.Application.Notifications.Broadcasts.RunBroadcast;
+using Gym.Application.Notifications.Broadcasts.SendBroadcast;
 using Gym.Application.Notifications.CheckSmsDelivery;
 using Gym.Application.Notifications.GetSmsCredit;
 using Gym.Application.Notifications.GetSmsSettings;
@@ -258,6 +267,7 @@ public static class DependencyInjection
 
         services.AddScoped<GetSmsSettingsHandler>();
         services.AddScoped<UpdateSmsSettingsHandler>();
+        services.AddScoped<SmsBatchSender>();
         services.AddScoped<SendDailySmsHandler>();
         services.AddScoped<DailyReportCandidate>();
         services.AddScoped<DebtReminderCandidate>();
@@ -270,6 +280,15 @@ public static class DependencyInjection
         services.AddScoped<GetSmsCreditHandler>();
         services.AddScoped<ListSmsMessagesHandler>();
         services.AddScoped<ResendSmsHandler>();
+        services.AddScoped<BroadcastRecipients>();
+        services.AddScoped<BroadcastSending>();
+        services.AddScoped<GetBroadcastAudienceHandler>();
+        services.AddScoped<PreviewBroadcastHandler>();
+        services.AddScoped<SendBroadcastHandler>();
+        services.AddScoped<ResumeBroadcastHandler>();
+        services.AddScoped<ListBroadcastsHandler>();
+        services.AddScoped<RunBroadcastHandler>();
+        services.AddScoped<RecoverBroadcastsHandler>();
 
         services.AddScoped<ListAuditLogsHandler>();
         services.AddScoped<ListAuditUsersHandler>();

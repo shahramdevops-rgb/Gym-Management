@@ -593,6 +593,55 @@ public sealed class SmsAudienceTests
             .ShouldBeFalse();
     }
 
+    // ---- The broadcast's group (task 10.13) ----
+
+    [Fact]
+    public void IsInBroadcastGroup_ActiveMembers_TakesEveryActiveMemberWithOrWithoutAPlan()
+    {
+        SmsAudience.IsInBroadcastGroup(BroadcastAudience.ActiveMembers, memberIsActive: true, [], Today).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(BroadcastAudience.ActiveMembers)]
+    [InlineData(BroadcastAudience.MembersWithUsablePlan)]
+    public void IsInBroadcastGroup_DeactivatedMember_IsInNoGroup(BroadcastAudience audience)
+    {
+        SmsAudience.IsInBroadcastGroup(audience, memberIsActive: false, [StartedDaysAgo(3)], Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsInBroadcastGroup_PlanGroupWithAUsablePlan_IsIn()
+    {
+        SmsAudience.IsInBroadcastGroup(BroadcastAudience.MembersWithUsablePlan, true, [EndingIn(-5), StartedDaysAgo(3)], Today)
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsInBroadcastGroup_PlanGroupWithoutAPlan_IsOut()
+    {
+        SmsAudience.IsInBroadcastGroup(BroadcastAudience.MembersWithUsablePlan, true, [], Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsInBroadcastGroup_PlanGroupWithOnlyFrozenEndedQueuedOrUsedUpPlans_IsOut()
+    {
+        var frozen = StartedDaysAgo(5);
+        frozen.Freeze(Today, maxFreezeDays: 30).IsSuccess.ShouldBeTrue();
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(1)).Value;
+
+        SmsAudience.IsInBroadcastGroup(
+                BroadcastAudience.MembersWithUsablePlan, true, [frozen, queued, EndingIn(-1), WithSessionsLeft(0)], Today)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsInBroadcastGroup_PlanGroupWithASingleVisitOnly_IsOut()
+    {
+        var visit = Subscription.CreateSingleVisit(MemberId, 1m, Today).Value;
+
+        SmsAudience.IsInBroadcastGroup(BroadcastAudience.MembersWithUsablePlan, true, [visit], Today).ShouldBeFalse();
+    }
+
     // ---- Helpers ----
 
     /// <summary>A 10-session, 30-day plan that began <paramref name="daysAgo"/> days before today.</summary>

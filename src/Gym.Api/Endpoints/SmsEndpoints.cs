@@ -1,7 +1,14 @@
 using Gym.Api.Authorization;
 using Gym.Api.Common;
 using Gym.Api.Filters;
+using Gym.Application.Common.Paging;
 using Gym.Application.Notifications;
+using Gym.Application.Notifications.Broadcasts;
+using Gym.Application.Notifications.Broadcasts.GetBroadcastAudience;
+using Gym.Application.Notifications.Broadcasts.ListBroadcasts;
+using Gym.Application.Notifications.Broadcasts.PreviewBroadcast;
+using Gym.Application.Notifications.Broadcasts.ResumeBroadcast;
+using Gym.Application.Notifications.Broadcasts.SendBroadcast;
 using Gym.Application.Notifications.GetSmsCredit;
 using Gym.Application.Notifications.GetSmsSettings;
 using Gym.Application.Notifications.ListSmsMessages;
@@ -71,6 +78,51 @@ public static class SmsEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // The broadcast (task 10.13): the groups' sizes, the confirmation's figures, the send, «ادامه ارسال», the list.
+        sms.MapGet("/broadcasts/audiences", async (GetBroadcastAudienceHandler handler, CancellationToken ct) =>
+                Results.Ok(await handler.Handle(ct)))
+            .RequireAuthorization(Policies.OwnerOnly)
+            .WithName("GetBroadcastAudiences")
+            .Produces<BroadcastAudiencesResponse>();
+
+        // A POST although it writes nothing: the text can be long and has line breaks.
+        sms.MapPost("/broadcasts/preview", async (PreviewBroadcastCommand command, PreviewBroadcastHandler handler, CancellationToken ct) =>
+                (await handler.Handle(command, ct)).ToHttpResult())
+            .RequireAuthorization(Policies.OwnerOnly)
+            .WithName("PreviewBroadcast")
+            .Produces<BroadcastPreviewResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        sms.MapPost("/broadcasts", async (SendBroadcastCommand command, SendBroadcastHandler handler, CancellationToken ct) =>
+                (await handler.Handle(command, ct)).ToHttpResult())
+            .RequireAuthorization(Policies.OwnerOnly)
+            .WithName("SendBroadcast")
+            .Produces<BroadcastResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        sms.MapPost("/broadcasts/{id:guid}/resume", async (Guid id, ResumeBroadcastHandler handler, CancellationToken ct) =>
+                (await handler.Handle(id, ct)).ToHttpResult())
+            .RequireAuthorization(Policies.OwnerOnly)
+            .WithName("ResumeBroadcast")
+            .Produces<BroadcastResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        sms.MapGet("/broadcasts", async (
+                [AsParameters] ListBroadcastsQuery query,
+                ListBroadcastsHandler handler,
+                CancellationToken ct) =>
+                    Results.Ok(await handler.Handle(query, ct)))
+            .RequireAuthorization(Policies.OwnerOnly)
+            .AddEndpointFilter<ValidationFilter<ListBroadcastsQuery>>()
+            .WithName("ListBroadcasts")
+            .Produces<PagedResponse<BroadcastResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
 
         return app;
     }

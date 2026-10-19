@@ -35,6 +35,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     private static readonly object ReceiptOff = new { enabled = false };
     private static readonly object WelcomeOff = new { enabled = false };
 
+    private static readonly object BroadcastOff = new { enabled = false };
+
     private static readonly object DebtReminderOff = new
     {
         enabled = false,
@@ -149,6 +151,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         settings.Welcome.ShouldBe(new WelcomeSettingsResponse(false, new TimeOnly(10, 0)));
         settings.DebtReminder.ShouldBe(new DebtReminderSettings(false, null, null, null));
         settings.Absence.ShouldBe(SmsKindSettings.Off);
+        settings.Broadcast.ShouldBe(new BroadcastSettings(false));
     }
 
     [Fact]
@@ -230,6 +233,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             ownerPhone = (string?)null,
             dailyReport = ReportOff,
             welcome = WelcomeOff,
+            broadcast = BroadcastOff,
             version = read.Version,
         });
 
@@ -326,6 +330,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             dailyReport = ReportOff,
             subscriptionReceipt = ReceiptOff,
             welcome = WelcomeOff,
+            broadcast = BroadcastOff,
             version = read.Version,
         });
 
@@ -404,6 +409,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             ownerPhone = (string?)null,
             dailyReport = ReportOff,
             subscriptionReceipt = ReceiptOff,
+            broadcast = BroadcastOff,
             version = read.Version,
         });
 
@@ -426,6 +432,64 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             .FirstAsync(TestContext.Current.CancellationToken);
         Value(update.OldValues, nameof(SmsSettings.WelcomeEnabled)).GetBoolean().ShouldBeFalse();
         Value(update.NewValues, nameof(SmsSettings.WelcomeEnabled)).GetBoolean().ShouldBeTrue();
+    }
+
+    // ---- The broadcast (task 10.13) ----
+
+    [Fact]
+    public async Task Update_BroadcastOn_IsSavedWithNothingElseToFill()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, broadcast: new { enabled = true }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).Broadcast.Enabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Update_BroadcastLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = Off,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
+            debtReminder = DebtReminderOff,
+            absence = AbsenceOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "broadcast", "Sms.SettingsIncomplete");
+    }
+
+    [Fact]
+    public async Task Update_BroadcastTurnedOn_IsInTheAuditLog()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        (await UpdateAsync(client, token, Body(read.Version, broadcast: new { enabled = true })))
+            .EnsureSuccessStatusCode().Dispose();
+
+        await using var scope = Fixture.CreateScope();
+        var update = await scope.ServiceProvider.GetRequiredService<AppDbContext>().AuditLogs.AsNoTracking()
+            .Where(log => log.EntityType == nameof(SmsSettings) && log.Action == AuditAction.Update)
+            .OrderByDescending(log => log.OccurredAt)
+            .FirstAsync(TestContext.Current.CancellationToken);
+        Value(update.OldValues, nameof(SmsSettings.BroadcastEnabled)).GetBoolean().ShouldBeFalse();
+        Value(update.NewValues, nameof(SmsSettings.BroadcastEnabled)).GetBoolean().ShouldBeTrue();
     }
 
     // ---- The daily report (task 10.7) ----
@@ -491,6 +555,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             ownerPhone = (string?)null,
             subscriptionReceipt = ReceiptOff,
             welcome = WelcomeOff,
+            broadcast = BroadcastOff,
             version = read.Version,
         });
 
@@ -683,6 +748,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             dailyReport = ReportOff,
             subscriptionReceipt = ReceiptOff,
             welcome = WelcomeOff,
+            broadcast = BroadcastOff,
             version = read.Version,
         });
 
@@ -741,7 +807,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         object? subscriptionReceipt = null,
         object? welcome = null,
         object? debtReminder = null,
-        object? absence = null) =>
+        object? absence = null,
+        object? broadcast = null) =>
         new
         {
             enabled,
@@ -755,6 +822,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             welcome = welcome ?? WelcomeOff,
             debtReminder = debtReminder ?? DebtReminderOff,
             absence = absence ?? AbsenceOff,
+            broadcast = broadcast ?? BroadcastOff,
             version,
         };
 

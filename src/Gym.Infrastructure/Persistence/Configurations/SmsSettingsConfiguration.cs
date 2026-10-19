@@ -89,6 +89,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             WelcomeEnabled = false,
             DebtReminderEnabled = false,
             AbsenceEnabled = false,
+            BroadcastEnabled = false,
         });
     }
 

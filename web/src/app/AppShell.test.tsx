@@ -221,7 +221,7 @@ describe("AppShell", () => {
     expect(screen.queryByText("به‌روز شد")).not.toBeInTheDocument();
     expect(screen.queryByText("جدید")).not.toBeInTheDocument();
     // Until SMS goes live (task 10.6), not until a date.
-    expect(screen.getAllByText("آزمایشی")).toHaveLength(2);
+    expect(screen.getAllByText("آزمایشی")).toHaveLength(3);
   });
 
   it("AppShell_Staff_SeesMembersUpdatedButNoOwnerMarks", async () => {

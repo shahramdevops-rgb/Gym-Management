@@ -15,7 +15,8 @@ namespace Gym.Domain.Notifications;
 /// <see cref="NotificationKind.DailyReport"/> per day, one <see cref="NotificationKind.SubscriptionReceipt"/>
 /// per subscription, one <see cref="NotificationKind.Welcome"/> per member, one
 /// <see cref="NotificationKind.DebtReminder"/> per member and debt, one
-/// <see cref="NotificationKind.Absence"/> per member and absence), a second
+/// <see cref="NotificationKind.Absence"/> per member and absence, one
+/// <see cref="NotificationKind.Broadcast"/> per member and broadcast), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -74,6 +75,12 @@ public sealed class Notification : Entity
     /// (their last visit, or their plan's start), one per member and absence (task 10.12).
     /// </summary>
     public DateOnly? AbsentSince { get; private set; }
+
+    /// <summary>
+    /// Set for <see cref="NotificationKind.Broadcast"/>: the <see cref="SmsBroadcast"/> it belongs to,
+    /// one per member and broadcast (task 10.13).
+    /// </summary>
+    public Guid? BroadcastId { get; private set; }
 
     /// <summary>The whole text, as <see cref="SmsText"/> wrote it when the message was written.</summary>
     public string Text { get; private set; } = string.Empty;
@@ -183,6 +190,19 @@ public sealed class Notification : Entity
         var notification = Create(NotificationKind.Absence, recipient, text);
         notification.MemberId = memberId;
         notification.AbsentSince = absentSince;
+
+        return notification;
+    }
+
+    /// <summary>The Owner's broadcast to one member (<see cref="NotificationKind.Broadcast"/>, task 10.13).</summary>
+    public static Notification ForBroadcast(Guid broadcastId, Guid memberId, string recipient, string text)
+    {
+        CheckId(broadcastId, nameof(broadcastId));
+        CheckId(memberId, nameof(memberId));
+
+        var notification = Create(NotificationKind.Broadcast, recipient, text);
+        notification.BroadcastId = broadcastId;
+        notification.MemberId = memberId;
 
         return notification;
     }

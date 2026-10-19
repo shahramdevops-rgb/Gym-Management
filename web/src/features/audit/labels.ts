@@ -1,7 +1,14 @@
 import { payableKindLabels } from "@/features/payables/api";
 import { paymentMethodLabels } from "@/features/payments/api";
 import { serviceChargeKindLabels } from "@/features/serviceCharges/api";
-import { smsDeliveryLabels, smsKindLabels, smsStatusLabels } from "@/features/sms/labels";
+import {
+  broadcastAudienceLabels,
+  broadcastStatusLabels,
+  broadcastStopReasonLabels,
+  smsDeliveryLabels,
+  smsKindLabels,
+  smsStatusLabels,
+} from "@/features/sms/labels";
 import { emptyValue, formatDate, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 
 import type { AuditAction, AuditChange, AuditLog } from "./api";
@@ -24,6 +31,9 @@ type FieldFormat =
   | "notificationKind"
   | "notificationStatus"
   | "smsDelivery"
+  | "broadcastAudience"
+  | "broadcastStatus"
+  | "broadcastStopReason"
   | "revocationReason";
 
 interface FieldSpec {
@@ -64,6 +74,9 @@ const enumLabels: Record<string, Record<string, string>> = {
   notificationKind: smsKindLabels,
   notificationStatus: smsStatusLabels,
   smsDelivery: smsDeliveryLabels,
+  broadcastAudience: broadcastAudienceLabels,
+  broadcastStatus: broadcastStatusLabels,
+  broadcastStopReason: broadcastStopReasonLabels,
   revocationReason: {
     Rotated: "تمدید شد",
     ReuseDetected: "استفادهٔ دوباره، مشکوک",

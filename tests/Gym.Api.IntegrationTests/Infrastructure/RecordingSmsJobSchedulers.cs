@@ -58,3 +58,48 @@ internal sealed class RecordingSubscriptionReceiptScheduler : RecordingSmsJobSch
 
 /// <summary>The welcomes asked for (task 10.10).</summary>
 internal sealed class RecordingWelcomeScheduler : RecordingSmsJobScheduler, IWelcomeScheduler;
+
+/// <summary>
+/// The broadcasts asked for (task 10.13). <see cref="Fail"/> makes the next ask throw, as a job
+/// runner that cannot take it would.
+/// </summary>
+internal sealed class RecordingBroadcastScheduler : IBroadcastScheduler
+{
+    private readonly List<Guid> _asked = [];
+    private readonly Lock _lock = new();
+
+    public bool Fail { get; set; }
+
+    public IReadOnlyList<Guid> Asked
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return [.. _asked];
+            }
+        }
+    }
+
+    public void SendNow(Guid broadcastId)
+    {
+        if (Fail)
+        {
+            throw new InvalidOperationException("The job runner is down.");
+        }
+
+        lock (_lock)
+        {
+            _asked.Add(broadcastId);
+        }
+    }
+
+    public void Clear()
+    {
+        lock (_lock)
+        {
+            _asked.Clear();
+            Fail = false;
+        }
+    }
+}

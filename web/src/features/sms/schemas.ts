@@ -151,6 +151,10 @@ export const smsSettingsSchema = z
     debtReminder: debtReminderSchema,
     /** The member's absence SMS (task 10.12): days away and a time, like the four kinds. */
     absence: kindSchema,
+    /** The Owner's broadcast (task 10.13): only a switch; the text is written on «پیامک گروهی». */
+    broadcast: z.object({
+      enabled: z.boolean(),
+    }),
   })
   .superRefine((values, context) => {
     for (const kind of smsKinds) {
@@ -253,6 +257,7 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
         settings.debtReminder.minAmount === null ? "" : String(settings.debtReminder.minAmount),
     },
     absence: kindValues(settings.absence),
+    broadcast: { enabled: settings.broadcast.enabled },
   };
 }
 
@@ -302,6 +307,7 @@ export function toInput(
     welcome: { enabled: values.welcome.enabled },
     debtReminder: debtReminderInput(values.debtReminder),
     absence: kindInput(values.absence),
+    broadcast: { enabled: values.broadcast.enabled },
     version,
   };
 }

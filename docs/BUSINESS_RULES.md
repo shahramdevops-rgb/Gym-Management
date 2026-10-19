@@ -1298,7 +1298,7 @@ sent that the Owner did not choose, and the same message is never paid for twice
 - **Few sessions left (`LowSessions`)**, to the member: an `Active` subscription with at most
   *N sessions* left.
 - For both: a single-session visit never gets one; a deactivated member never gets one (nor any
-  member's SMS, except the debt reminder, *The debt reminder*); **a member
+  member's SMS, the broadcast included, except the debt reminder, *The debt reminder*); **a member
   who has already bought the next subscription** (a queued one, §4 `Upcoming`, not cancelled) never
   gets one, since they have renewed and the message would only cost money. If that queued one is
   cancelled later, the member counts as not renewed again, and the next run may send it.
@@ -1324,8 +1324,8 @@ sent that the Owner did not choose, and the same message is never paid for twice
   per cheque or instalment, one `DailyReport` per day (*The daily report* below), one
   `SubscriptionReceipt` per subscription (*The subscription receipt* below), one `Welcome` per
   member (*The welcome* below), one `DebtReminder` per member and debt (*The debt reminder*
-  below), one `Absence` per member and absence (*The absence SMS* below). Running the job
-  twice sends nothing twice. A cheque or instalment whose date is changed after its SMS went out
+  below), one `Absence` per member and absence (*The absence SMS* below), one `Broadcast` per
+  member and broadcast (*The broadcast* below). Running the job twice sends nothing twice. A cheque or instalment whose date is changed after its SMS went out
   gets no second one (§0).
 
 ### The daily report (گزارش روزانه)
@@ -1482,6 +1482,60 @@ Decided with the developer on 1405/07/27 (2026-10-19), task 10.12.
 - **What it says** (`docs/sms-texts.md`): «{name} عزیز، جای شما در باشگاه پاسارگاد خالی است!», one
   SMS part.
 
+### The broadcast (پیامک گروهی)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.13. The one kind whose wording is
+not fixed in the code: the Owner writes it each time (the gym closed for a few hours, a piece of
+news, an offer).
+- **Owner only**, on its own page «پیامک گروهی». Every broadcast is in the audit log (§11).
+- **Who gets it: the Owner chooses each time**, one of two groups:
+  - **«همه اعضای فعال»**: every active member.
+  - **«اعضای دارای پلن»**: every active member with a **plan usable today**, the members the absence
+    SMS looks at (*The absence SMS*): a membership plan that is §4 `Active` (not a single visit, not
+    cancelled, not frozen, started and not ended, sessions left).
+  - A deactivated member never gets it, nor a guest or a walk-in (they are not members, §7).
+- **The text**: the Owner writes the middle; the system puts **«{name} عزیز، »** before it (the
+  member's first name, *Sending*) and the opt-out line after it, as every kind. The Owner's text is
+  trimmed at both ends, keeps its line breaks, and cannot be empty (`Sms.BroadcastTextRequired`).
+- **At most 3 SMS parts** for every recipient (decided with the developer): measured with the
+  **longest first name among the chosen recipients**, so no one's message can come out longer. A
+  text that would make anyone's message longer is refused (`Sms.BroadcastTooLong`). The page counts
+  the characters and parts as the Owner types.
+- **Before sending, a confirmation** shows the number of recipients, the total number of SMS parts
+  (exact: each recipient's own message counted), and the cost **estimated** from the latest message
+  that was sent and charged (its cost divided by its parts, times the total parts), with the
+  account's remaining credit. With no such message yet, only the parts are shown. Kavenegar tells no
+  price before sending, so the estimate is marked «حدود».
+- **A group with nobody in it is refused** (`Sms.BroadcastNoRecipients`): nothing would be sent.
+- **Sent at once**, in the background, only within **08:00–22:00**: outside the hours it is refused
+  (`Notifications.OutsideSendingHours`). There is no chosen time (decided with the developer).
+- **A switch of its own** on the settings page, off at the start, like every kind; the all-SMS
+  switch must be on too. With either off, a broadcast is refused (`Sms.BroadcastOff`).
+- **One broadcast at a time**: while one is sending, another is refused (`Sms.BroadcastInProgress`),
+  enforced by the database too. *Proposed by Claude and approved with the plan, 1405/07/27.*
+- **The recipients are read when the sending starts**, and each message is written and sent as in
+  a run (*The daily runs*): saved `Pending` before its request; a failure that may pass is tried
+  again until 22:00; a message that failed can be resent by hand (*Sending*).
+- **Once per member and broadcast**, enforced by a unique index on the broadcast and the member.
+- **The switches and the hours are read again before every message**, so 22:00, or a switch the
+  Owner turns off, stops a broadcast in the middle; turning the broadcast's switch off is the
+  Owner's brake. The text is measured again when the sending starts: if a member with a longer first
+  name has joined the group since, so that their message would take more than 3 parts, nothing is
+  written and it stops. *Found in review and approved by the developer, 1405/07/27.*
+- **A broadcast that stops before everyone is written** (the credit used up, the hours ended, all
+  SMS or the broadcast turned off, the text grown too long for a new member's name, an unexpected
+  error) is **«متوقف شد»** with its reason. The
+  Owner can **continue it** («ادامه ارسال») under the same rules as a new one (the switches, the
+  hours, the 3 parts): it sends the same text to the members of the same group as it stands then
+  who have no message of this broadcast yet. *Proposed by Claude and approved with the plan,
+  1405/07/27.* A server restart in the middle continues it by itself (at the start, a broadcast
+  still sending is handed to its job again); the message that was in flight becomes `Unknown`
+  (*The daily runs*). A job that fails before it could stop the broadcast stops it with an error,
+  so a broadcast is never left «در حال ارسال» blocking the next one. *Approved by the developer,
+  1405/07/27.*
+- **How it shows**: on «پیامک‌ها» each recipient has a row of their own, of the kind «پیامک
+  گروهی», like every message. The broadcast page lists the broadcasts, the latest first, each with
+  its date, text, group, state, how many were sent, failed or unknown, and its cost.
+
 ### The daily runs
 Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - **One run per kind, at its own send time**, every day, in Asia/Tehran. Only a kind that is on
@@ -1526,6 +1580,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Welcome | on/off | sent at once; after 22:00 at 10:00, fixed |
   | Debt reminder | on/off, days since the oldest unpaid sale, the minimum amount, send time | 1–90 days; 1,000 Toman or more |
   | Absence | on/off, days away, send time | 7–60 days |
+  | Broadcast | on/off | sent at once from its own page, 08:00–22:00 |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,
@@ -1556,7 +1611,8 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   the members signed up in the gym's own customer club and were registered at the desk, so any
   message to them may go from the line.
 - **The wording is fixed in the code** (decided with the developer, 1405/07/16), as agreed on
-  1405/07/14 and kept in `docs/sms-texts.md`. Changing it is a release, not a setting. The values in
+  1405/07/14 and kept in `docs/sms-texts.md`. Changing it is a release, not a setting. The one
+  exception is the broadcast, whose middle the Owner writes each time (*The broadcast*). The values in
   it are written the way the app shows them: Persian digits, a Jalali date as `۱۴۰۵/۰۷/۲۰`, an amount
   with thousands separators.
 - **Every message ends with Kavenegar's opt-out line, `لغو11`**, on a line of its own, English
@@ -1565,9 +1621,13 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   by the system, the history keeps the text exactly as it reached the phone, and Kavenegar does not
   add a second one. All four kinds carry it, the Owner's reminder too. Messages written before keep
   their text.
-- **A long name or payee is cut short**, as it was in the templates' blanks (decided with the
-  developer, 1405/07/14), so one long name cannot make a message cost several parts: a member's name
-  keeps its first 6 words and a payee its first 9, then the first 100 characters.
+- **A member is named by the first name only** (decided with the developer, 1405/07/27, task
+  10.13; replaces "the first 6 words of the name"): the system keeps one full name (§2), so the
+  first name is its **first word**, and when that word is «سید», the word after it («سید محمد
+  احمدی» → «محمد»). A name of one word is used whole; a first name is cut at 100 characters. Every
+  member's message uses it; messages written before keep their text.
+- **A long payee is cut short**, as it was in the templates' blanks (decided with the developer,
+  1405/07/14): its first 9 words, then the first 100 characters.
 - **The wording** (decided with the developer, 1405/07/14, in `docs/sms-texts.md`): the gym is
   named «باشگاه پاسارگاد»; the subscription message gives the end date, not the days left; the
   birthday has one text, always sent 1 to 7 days early, giving the birthday's month and day

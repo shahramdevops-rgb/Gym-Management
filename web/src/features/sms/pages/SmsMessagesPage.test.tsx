@@ -29,6 +29,7 @@ const failedBirthday: SmsMessage = {
   memberId: "01990000-0000-7000-8000-0000000000a1",
   memberName: "سارا محمدی",
   payableId: null,
+  broadcastId: null,
   text: "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد\nلغو11",
   attempts: 1,
   errorCode: 411,
@@ -303,6 +304,26 @@ describe("SmsMessagesPage", () => {
   });
 
   // ---- Who sees it ----
+
+  it("SmsMessagesPage_OpenedOnABroadcast_AsksForItsMessagesWhateverTheMonth", async () => {
+    const api = ownerWith();
+
+    renderApp("/sms?broadcast=01990000-0000-7000-8000-0000000000c1", { session: session() });
+
+    expect(
+      await screen.findByText("فقط پیامک‌های یک پیامک گروهی نشان داده می‌شود."),
+    ).toBeInTheDocument();
+    const url = new URL(api.requestsTo("GET", "/api/sms/messages")[0]!.url);
+    expect(url.searchParams.get("BroadcastId")).toBe("01990000-0000-7000-8000-0000000000c1");
+    expect(url.searchParams.get("From")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "همهٔ پیامک‌ها" }));
+
+    await waitFor(() => {
+      const last = api.requestsTo("GET", "/api/sms/messages").at(-1)!;
+      expect(new URL(last.url).searchParams.get("BroadcastId")).toBeNull();
+    });
+  });
 
   it("SmsMessagesPage_StaffUser_SeesNoAccessMessage", async () => {
     // BUSINESS_RULES.md §1: every SMS costs money, and the SMS pages are the Owner's.

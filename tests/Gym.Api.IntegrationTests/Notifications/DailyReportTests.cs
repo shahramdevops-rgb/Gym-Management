@@ -212,12 +212,11 @@ public sealed class DailyReportTests(DatabaseFixture fixture) : DatabaseTestBase
         var calendar = new GymCalendar(time, Options.Create(new GymCalendarOptions { TimeZone = "Asia/Tehran" }));
 
         await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
         var handler = new SendDailySmsHandler(
-            scope.ServiceProvider.GetRequiredService<IAppDbContext>(),
+            db,
             calendar,
-            time,
-            sender,
-            NoWait,
+            new SmsBatchSender(db, calendar, time, sender, NoWait),
             scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
             scope.ServiceProvider.GetRequiredService<DebtReminderCandidate>(),
             scope.ServiceProvider.GetRequiredService<AbsenceCandidate>(),
@@ -245,7 +244,8 @@ public sealed class DailyReportTests(DatabaseFixture fixture) : DatabaseTestBase
             welcomeEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
-            absence: SmsKindSettings.Off).IsSuccess.ShouldBeTrue();
+            absence: SmsKindSettings.Off,
+            broadcastEnabled: false).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

@@ -135,6 +135,12 @@ public sealed class SmsSettings : Entity
 
     public TimeOnly? AbsenceSendTime { get; private set; }
 
+    /// <summary>
+    /// The Owner's broadcast (§10 <i>The broadcast</i>, task 10.13). Only a switch: the text and the
+    /// group are chosen each time on its own page.
+    /// </summary>
+    public bool BroadcastEnabled { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
@@ -213,6 +219,10 @@ public sealed class SmsSettings : Entity
             SubscriptionReceiptEnabled, Threshold: null, SendTime: null),
         NotificationKind.Welcome => new(
             WelcomeEnabled, Threshold: null, SendTime: null),
+
+        // Sent from its own page, never by a daily run.
+        NotificationKind.Broadcast => new(
+            BroadcastEnabled, Threshold: null, SendTime: null),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown notification kind."),
     };
 
@@ -226,6 +236,7 @@ public sealed class SmsSettings : Entity
     /// <param name="welcomeEnabled">The welcome's switch: nothing to fill in either.</param>
     /// <param name="debtReminder">The debt reminder's switch, days and time; its minimum amount comes apart.</param>
     /// <param name="absence">The absence SMS's switch, days and time (task 10.12).</param>
+    /// <param name="broadcastEnabled">The broadcast's switch: nothing to fill in (task 10.13).</param>
     public Result Update(
         bool enabled,
         SmsKindSettings subscriptionExpiring,
@@ -239,7 +250,8 @@ public sealed class SmsSettings : Entity
         bool welcomeEnabled,
         SmsKindSettings debtReminder,
         decimal? debtReminderMinAmount,
-        SmsKindSettings absence)
+        SmsKindSettings absence,
+        bool broadcastEnabled)
     {
         ArgumentNullException.ThrowIfNull(subscriptionExpiring);
         ArgumentNullException.ThrowIfNull(lowSessions);
@@ -300,6 +312,8 @@ public sealed class SmsSettings : Entity
         AbsenceEnabled = absence.Enabled;
         AbsenceDaysAway = absence.Threshold;
         AbsenceSendTime = absence.SendTime;
+
+        BroadcastEnabled = broadcastEnabled;
 
         return Result.Success();
     }

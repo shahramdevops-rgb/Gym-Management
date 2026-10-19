@@ -32,6 +32,7 @@ const empty: SmsSettings = {
   welcome: { enabled: false, morningSendTime: "10:00:00" },
   debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
   absence: off,
+  broadcast: { enabled: false },
   version: 1,
 };
 
@@ -51,6 +52,7 @@ const filled: SmsSettings = {
   welcome: { enabled: true, morningSendTime: "10:00:00" },
   debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: 200000 },
   absence: { enabled: true, threshold: 14, sendTime: "11:30:00" },
+  broadcast: { enabled: true },
   version: 5,
 };
 
@@ -316,6 +318,7 @@ describe("SmsSettingsPage", () => {
       welcome: { enabled: false },
       debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
       absence: off,
+      broadcast: { enabled: false },
       version: empty.version,
     });
   });

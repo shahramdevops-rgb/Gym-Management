@@ -35,6 +35,9 @@ public static class NotificationConstraints
     /// </summary>
     public const string OneAbsencePerMemberAndAbsence = "ix_notifications_one_absence_per_member_and_absence";
 
+    /// <summary>One <c>Broadcast</c> per broadcast and member (BUSINESS_RULES.md §10 <i>The broadcast</i>).</summary>
+    public const string OnePerBroadcastAndMember = "ix_notifications_one_per_broadcast_and_member";
+
     /// <summary>Each kind fills the ids of its own event and leaves the others empty.</summary>
     public const string EventMatchesKind = "ck_notifications_event_matches_kind";
 
