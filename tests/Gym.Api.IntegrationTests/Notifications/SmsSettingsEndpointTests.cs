@@ -43,6 +43,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         minAmount = (decimal?)null,
     };
 
+    private static readonly object AbsenceOff = Off;
+
     // ---- The seeded row ----
 
     [Fact]
@@ -96,6 +98,10 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [InlineData("debt_reminder_days_after = 91", "ck_sms_settings_debt_reminder_days")]
     [InlineData("debt_reminder_min_amount = 999.99", "ck_sms_settings_debt_reminder_min_amount")]
     [InlineData("debt_reminder_send_time = '22:15'", "ck_sms_settings_send_times")]
+    [InlineData("absence_days_away = 6", "ck_sms_settings_absence_days")]
+    [InlineData("absence_days_away = 61", "ck_sms_settings_absence_days")]
+    [InlineData("absence_send_time = '07:45'", "ck_sms_settings_send_times")]
+    [InlineData("absence_enabled = true, absence_days_away = 14", "ck_sms_settings_absence_on_means_filled")]
     [InlineData(
         "debt_reminder_enabled = true, debt_reminder_days_after = 30, debt_reminder_send_time = '11:00'",
         "ck_sms_settings_debt_reminder_on_means_filled")]
@@ -142,6 +148,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         settings.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(false, new TimeOnly(10, 0)));
         settings.Welcome.ShouldBe(new WelcomeSettingsResponse(false, new TimeOnly(10, 0)));
         settings.DebtReminder.ShouldBe(new DebtReminderSettings(false, null, null, null));
+        settings.Absence.ShouldBe(SmsKindSettings.Off);
     }
 
     [Fact]
@@ -189,6 +196,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         reread.DailyReport.ShouldBe(new DailyReportSettingsResponse(true, "+989351234567", new TimeOnly(22, 45)));
         reread.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(true, new TimeOnly(10, 0)));
         reread.Welcome.ShouldBe(new WelcomeSettingsResponse(true, new TimeOnly(10, 0)));
+        reread.Absence.ShouldBe(new SmsKindSettings(true, 14, new TimeOnly(11, 30)));
     }
 
     // ---- The subscription receipt (task 10.9) ----
@@ -322,6 +330,49 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         });
 
         await ShouldHaveFieldErrorAsync(response, "debtReminder", "Sms.SettingsIncomplete");
+    }
+
+    // ---- The absence SMS (task 10.12) ----
+
+    [Fact]
+    public async Task Update_AbsenceOnAndFilled_IsSavedAndGetsItsRun()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var schedule = RecordingSchedule();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, absence: Kind(true, 14, "11:30:00")));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).Absence.ShouldBe(new SmsKindSettings(true, 14, new TimeOnly(11, 30)));
+        schedule.Applied[^1].For(NotificationKind.Absence).SendTime.ShouldBe(new TimeOnly(11, 30));
+    }
+
+    [Theory]
+    [InlineData(6, null, "absence.threshold", "Sms.AbsenceDaysOutOfRange")]
+    [InlineData(61, null, "absence.threshold", "Sms.AbsenceDaysOutOfRange")]
+    [InlineData(null, "11:10:00", "absence.sendTime", "Sms.SendTimeOutOfRange")]
+    public async Task Update_AbsenceFieldOutOfItsRange_Returns400WithTheFieldsCode(
+        int? days, string? sendTime, string field, string code)
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(read.Version, absence: Kind(false, days, sendTime)));
+
+        await ShouldHaveFieldErrorAsync(response, field, code);
+    }
+
+    [Fact]
+    public async Task Update_AbsenceOnWithoutItsTime_Returns400SettingsIncompleteUnderTheSwitch()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(read.Version, absence: Kind(true, 14, null)));
+
+        await ShouldHaveFieldErrorAsync(response, "absence.enabled", "Sms.SettingsIncomplete");
     }
 
     [Fact]
@@ -689,7 +740,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         object? dailyReport = null,
         object? subscriptionReceipt = null,
         object? welcome = null,
-        object? debtReminder = null) =>
+        object? debtReminder = null,
+        object? absence = null) =>
         new
         {
             enabled,
@@ -702,6 +754,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             subscriptionReceipt = subscriptionReceipt ?? ReceiptOff,
             welcome = welcome ?? WelcomeOff,
             debtReminder = debtReminder ?? DebtReminderOff,
+            absence = absence ?? AbsenceOff,
             version,
         };
 
@@ -716,7 +769,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         dailyReport: new { enabled = true, phone = "09351234567" },
         subscriptionReceipt: new { enabled = true },
         welcome: new { enabled = true },
-        debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000m });
+        debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000m },
+        absence: Kind(true, 14, "11:30:00"));
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {

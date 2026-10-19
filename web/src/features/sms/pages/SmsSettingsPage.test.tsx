@@ -31,6 +31,7 @@ const empty: SmsSettings = {
   subscriptionReceipt: { enabled: false, morningSendTime: "10:00:00" },
   welcome: { enabled: false, morningSendTime: "10:00:00" },
   debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
+  absence: off,
   version: 1,
 };
 
@@ -49,6 +50,7 @@ const filled: SmsSettings = {
   subscriptionReceipt: { enabled: true, morningSendTime: "10:00:00" },
   welcome: { enabled: true, morningSendTime: "10:00:00" },
   debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: 200000 },
+  absence: { enabled: true, threshold: 14, sendTime: "11:30:00" },
   version: 5,
 };
 
@@ -181,14 +183,21 @@ describe("SmsSettingsPage", () => {
     expect(
       await screen.findByRole("checkbox", { name: "ارسال پیامک روشن باشد" }),
     ).not.toBeChecked();
-    for (const name of ["پایان اشتراک", "جلسات رو به اتمام", "تولد", "چک و قسط", "یادآوری بدهی"]) {
+    for (const name of [
+      "پایان اشتراک",
+      "جلسات رو به اتمام",
+      "تولد",
+      "چک و قسط",
+      "یادآوری بدهی",
+      "پیامک غیبت",
+    ]) {
       expect(switchOf(name)).not.toBeChecked();
       expect(switchOf(name)).toBeDisabled();
       expect(group(name).getByLabelText("ساعت ارسال")).toHaveValue("");
     }
     expect(
       screen.getAllByText("برای روشن کردن، اول همهٔ خانه‌های این بخش را پر کنید."),
-    ).toHaveLength(5);
+    ).toHaveLength(6);
   });
 
   it("SmsSettingsPage_KindFilled_UnlocksItsSwitch", async () => {
@@ -306,6 +315,7 @@ describe("SmsSettingsPage", () => {
       subscriptionReceipt: { enabled: false },
       welcome: { enabled: false },
       debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
+      absence: off,
       version: empty.version,
     });
   });
@@ -516,6 +526,48 @@ describe("SmsSettingsPage", () => {
       sendTime: "11:00:00",
       minAmount: "200000",
     });
+  });
+
+  // ---- The absence SMS (task 10.12) ----
+
+  it("SmsSettingsPage_AbsenceFilledAndOn_SendsItsDaysAndTime", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "پیامک غیبت" });
+
+    expect(switchOf("پیامک غیبت")).toBeDisabled();
+    fillKind("پیامک غیبت", "۱۴", "11");
+    expect(switchOf("پیامک غیبت")).toBeEnabled();
+    fireEvent.click(switchOf("پیامک غیبت"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.absence).toEqual({ enabled: true, threshold: 14, sendTime: "11:00:00" });
+  });
+
+  it("SmsSettingsPage_AbsenceDaysOutOfRange_IsRefusedBeforeAnythingIsSent", async () => {
+    const api = ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "پیامک غیبت" });
+
+    fireEvent.change(group("پیامک غیبت").getByLabelText(/^چند روز/), { target: { value: "6" } });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(
+      await group("پیامک غیبت").findByText("تعداد روز باید از ۷ تا ۶۰ باشد."),
+    ).toBeInTheDocument();
+    expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);
+  });
+
+  it("SmsSettingsPage_AbsenceSaved_ShowsItOnWithItsDays", async () => {
+    ownerWith(filled);
+    renderApp("/sms-settings", { session: session() });
+
+    await waitFor(() => expect(switchOf("پیامک غیبت")).toBeChecked());
+    expect(group("پیامک غیبت").getByLabelText(/^چند روز/)).toHaveValue("14");
   });
 
   it("SmsSettingsPage_DebtReminderSaved_ShowsItOnWithItsAmount", async () => {

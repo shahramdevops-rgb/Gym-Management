@@ -1,6 +1,6 @@
 namespace Gym.Domain.Notifications;
 
-/// <summary>The SMS the gym sends (BUSINESS_RULES.md §10 <i>The four kinds</i>, <i>The daily report</i>, <i>The subscription receipt</i>, <i>The welcome</i>, <i>The debt reminder</i>).</summary>
+/// <summary>The SMS the gym sends (BUSINESS_RULES.md §10 <i>The four kinds</i>, <i>The daily report</i>, <i>The subscription receipt</i>, <i>The welcome</i>, <i>The debt reminder</i>, <i>The absence SMS</i>).</summary>
 public enum NotificationKind
 {
     /// <summary>To the member: an active subscription's end date is near.</summary>
@@ -26,4 +26,7 @@ public enum NotificationKind
 
     /// <summary>To the member: their debt has been owed for a while (task 10.11), once per debt, by a daily run.</summary>
     DebtReminder,
+
+    /// <summary>To the member: they have a usable plan and have not come for a while (task 10.12), once per absence, by a daily run.</summary>
+    Absence,
 }

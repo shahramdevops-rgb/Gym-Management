@@ -79,6 +79,12 @@ const kindText: Record<SmsKind, KindText> = {
     description: "به شما (مدیر)، برای هر چک و هر قسطِ در انتظار، یک پیامک جدا.",
     thresholdLabel: "چند روز قبل از سررسید (۰ تا ۳۰؛ ۰ یعنی خود روز)",
   },
+  absence: {
+    title: "پیامک غیبت",
+    description:
+      "به عضو فعالی که پلن قابل‌استفاده دارد (نه فریز، نه تک‌جلسه) و این تعداد روز نیامده؛ اگر از شروع پلن نیامده، از روز شروع شمرده می‌شود. در هر غیبت یک بار؛ بعد از آمدن دوباره، غیبت بعدی پیامک خودش را دارد.",
+    thresholdLabel: "چند روز نیامده (۷ تا ۶۰)",
+  },
 };
 
 /**
@@ -259,6 +265,7 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
       />
       <WelcomeFieldset form={form} morningSendTime={current.welcome.morningSendTime} />
       <DebtReminderFieldset form={form} />
+      <KindFieldset kind="absence" form={form} />
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={isSubmitting}>

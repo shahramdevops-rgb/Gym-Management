@@ -18,7 +18,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
     private const int PhoneMaxLength = 13;
 
     // The kinds' column prefixes, as snake_case names them.
-    private static readonly string[] Kinds = ["subscription_expiring", "low_sessions", "birthday", "payable_due", "debt_reminder"];
+    private static readonly string[] Kinds = ["subscription_expiring", "low_sessions", "birthday", "payable_due", "debt_reminder", "absence"];
 
     public void Configure(EntityTypeBuilder<SmsSettings> builder)
     {
@@ -32,6 +32,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             table.HasCheckConstraint("ck_sms_settings_birthday_days", Range("birthday_days_before", NotificationKind.Birthday));
             table.HasCheckConstraint("ck_sms_settings_payable_due_days", Range("payable_due_days_before", NotificationKind.PayableDue));
             table.HasCheckConstraint("ck_sms_settings_debt_reminder_days", Range("debt_reminder_days_after", NotificationKind.DebtReminder));
+            table.HasCheckConstraint("ck_sms_settings_absence_days", Range("absence_days_away", NotificationKind.Absence));
 
             // The debt reminder's minimum amount (task 10.11): 1,000 Toman or more. Two decimal
             // places and the ceiling are the column's own numeric(18,2).
@@ -50,6 +51,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             table.HasCheckConstraint("ck_sms_settings_subscription_expiring_on_means_filled", OnMeansFilled("subscription_expiring", "subscription_expiring_days_before"));
             table.HasCheckConstraint("ck_sms_settings_low_sessions_on_means_filled", OnMeansFilled("low_sessions", "low_sessions_threshold"));
             table.HasCheckConstraint("ck_sms_settings_birthday_on_means_filled", OnMeansFilled("birthday", "birthday_days_before"));
+            table.HasCheckConstraint("ck_sms_settings_absence_on_means_filled", OnMeansFilled("absence", "absence_days_away"));
             table.HasCheckConstraint(
                 "ck_sms_settings_payable_due_on_means_filled",
                 OnMeansFilled("payable_due", "payable_due_days_before", "owner_phone IS NOT NULL"));
@@ -86,6 +88,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             SubscriptionReceiptEnabled = false,
             WelcomeEnabled = false,
             DebtReminderEnabled = false,
+            AbsenceEnabled = false,
         });
     }
 

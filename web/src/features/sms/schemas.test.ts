@@ -25,6 +25,7 @@ const settings: SmsSettings = {
   subscriptionReceipt: { enabled: true, morningSendTime: "10:00:00" },
   welcome: { enabled: false, morningSendTime: "10:00:00" },
   debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: 200000 },
+  absence: { enabled: true, threshold: 14, sendTime: "11:30:00" },
   version: 3,
 };
 
@@ -125,6 +126,10 @@ describe("sms schemas", () => {
     ["birthday", "1", true],
     ["birthday", "8", false],
     ["payableDue", "31", false],
+    ["absence", "6", false],
+    ["absence", "7", true],
+    ["absence", "۶۰", true],
+    ["absence", "61", false],
   ] as const)("smsSettingsSchema_%s_%s_Valid_%s", (kind, threshold, valid) => {
     const values = toFormValues({ ...settings, enabled: false });
     values[kind] = { enabled: false, threshold, sendTime: "" };

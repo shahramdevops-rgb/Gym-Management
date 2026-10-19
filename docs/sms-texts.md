@@ -134,7 +134,7 @@ sold (BUSINESS_RULES.md §10 *The welcome*).
 ```
 
 - Nothing in it would be wrong for a member moved over from the paper notebook, who gets it too.
-- About 52 characters with a 10-character name: one part, the only text that fits in one.
+- About 52 characters with a 10-character name: one part, like the absence SMS.
 
 ### Debt reminder (`DebtReminder`, to the member)
 
@@ -150,3 +150,17 @@ minimum amount (BUSINESS_RULES.md §10 *The debt reminder*).
 - Friendly rather than harsh, as asked; a shorter text (without «لطفاً … بفرمایید») was offered and
   would still take two parts, so the developer kept the polite one.
 - About 120 characters with a 10-character name: two parts.
+
+### Absence (`Absence`, to the member)
+
+Chosen by the developer on 1405/07/27 (2026-10-19), task 10.12. Sent once per absence, to an active
+member with a usable plan who has not come for the settings' number of days, counted from the last
+visit or from the plan's start (BUSINESS_RULES.md §10 *The absence SMS*).
+
+```
+{name} عزیز، جای شما در باشگاه پاسارگاد خالی است!
+```
+
+- Friendly, with no offer in it (planned that way by the developer, 1405/07/15). A longer text
+  («… منتظر دیدارتان هستیم.») was offered and would take two parts, so the developer chose the short one.
+- About 59 characters with a 10-character name: one part.

@@ -29,6 +29,12 @@ public static class NotificationConstraints
     /// </summary>
     public const string OneDebtReminderPerMemberAndDebt = "ix_notifications_one_debt_reminder_per_member_and_debt";
 
+    /// <summary>
+    /// One <c>Absence</c> per member and absence, the absence named by the day it counts from
+    /// (BUSINESS_RULES.md §10 <i>The absence SMS</i>).
+    /// </summary>
+    public const string OneAbsencePerMemberAndAbsence = "ix_notifications_one_absence_per_member_and_absence";
+
     /// <summary>Each kind fills the ids of its own event and leaves the others empty.</summary>
     public const string EventMatchesKind = "ck_notifications_event_matches_kind";
 

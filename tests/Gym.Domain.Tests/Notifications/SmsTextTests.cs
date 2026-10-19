@@ -323,4 +323,25 @@ public sealed class SmsTextTests
         // docs/sms-texts.md: about 120 characters, two parts of 67.
         SmsText.ForDebtReminder("سارا محمدی", 1_200_000m).Length.ShouldBeLessThanOrEqualTo(2 * 67);
     }
+
+    // ---- The absence SMS (task 10.12) ----
+
+    [Fact]
+    public void ForAbsence_Member_TellsThemTheirPlaceIsEmpty()
+    {
+        SmsText.ForAbsence("سارا محمدی").ShouldBe("سارا محمدی عزیز، جای شما در باشگاه پاسارگاد خالی است!" + OptOutLine);
+    }
+
+    [Fact]
+    public void ForAbsence_LongName_IsCutShort()
+    {
+        SmsText.ForAbsence(LongName).ShouldStartWith("سید محمد حسین علی رضا موسوی عزیز،");
+    }
+
+    [Fact]
+    public void ForAbsence_TenCharacterName_FitsInOnePart()
+    {
+        // docs/sms-texts.md: about 59 characters, one part of 70.
+        SmsText.ForAbsence("سارا محمدی").Length.ShouldBeLessThanOrEqualTo(70);
+    }
 }

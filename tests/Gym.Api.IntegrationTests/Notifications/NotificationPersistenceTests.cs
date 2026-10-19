@@ -346,6 +346,62 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
         exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
     }
 
+    // ---- The absence SMS (task 10.12) ----
+
+    [Fact]
+    public async Task Save_SecondAbsenceSmsForOneAbsence_RejectedByTheUniqueIndex()
+    {
+        var (member, _, _) = await SeedAsync();
+        await SaveAsync(Notification.ForAbsence(member.Id, ReportDay, Phone, AbsenceText));
+
+        var exception = await SaveRejectedAsync(Notification.ForAbsence(member.Id, ReportDay, Phone, AbsenceText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OneAbsencePerMemberAndAbsence);
+    }
+
+    [Fact]
+    public async Task Save_AbsenceSmsOfTwoAbsences_AreAllowedAndReadBackAsWritten()
+    {
+        var (member, _, _) = await SeedAsync();
+
+        await SaveAsync(
+            Notification.ForAbsence(member.Id, ReportDay, Phone, AbsenceText),
+            Notification.ForAbsence(member.Id, ReportDay.AddDays(20), Phone, AbsenceText));
+
+        await using var scope = Fixture.CreateScope();
+        var saved = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Notifications
+            .OrderBy(notification => notification.AbsentSince)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        saved.Select(notification => notification.AbsentSince).ShouldBe([ReportDay, ReportDay.AddDays(20)]);
+        saved.ShouldAllBe(notification => notification.MemberId == member.Id && notification.Kind == NotificationKind.Absence);
+    }
+
+    [Fact]
+    public async Task Notification_AbsenceWithoutItsDay_RejectedByACheckConstraint()
+    {
+        var (member, _, _) = await SeedAsync();
+        var absence = Notification.ForAbsence(member.Id, ReportDay, Phone, AbsenceText);
+        await SaveAsync(absence);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET absent_since = NULL WHERE id = '{absence.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
+    public async Task Notification_MemberKindCarryingAnAbsenceDay_RejectedByACheckConstraint()
+    {
+        var id = await SaveExpiringAsync();
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET absent_since = '2026-10-19' WHERE id = '{id}'"));
+
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
     // ---- Check constraints ----
 
     [Fact]
@@ -486,6 +542,8 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     private const string ChequeText = "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی";
 
     private const string DebtText = "سارا محمدی عزیز، مانده حساب شما در باشگاه پاسارگاد ۸۰۰٬۰۰۰ تومان است.";
+
+    private const string AbsenceText = "سارا محمدی عزیز، جای شما در باشگاه پاسارگاد خالی است!";
 
     private const string ReportText = "گزارش باشگاه پاسارگاد ۰۷/۲۷\nورود: ۸۵";
 

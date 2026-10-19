@@ -2,7 +2,7 @@ import { toPersianDigits } from "@/lib/format";
 
 import type { SmsMessage, SmsMessageKind, SmsMessageStatus } from "./api";
 
-/** Each kind by the name the settings page gives it (BUSINESS_RULES.md §10 *The four kinds*, *The daily report*, *The subscription receipt*, *The welcome*, *The debt reminder*). */
+/** Each kind by the name the settings page gives it (BUSINESS_RULES.md §10 *The four kinds*, *The daily report*, *The subscription receipt*, *The welcome*, *The debt reminder*, *The absence SMS*). */
 export const smsKindLabels: Record<SmsMessageKind, string> = {
   SubscriptionExpiring: "پایان اشتراک",
   LowSessions: "جلسات رو به اتمام",
@@ -12,6 +12,7 @@ export const smsKindLabels: Record<SmsMessageKind, string> = {
   SubscriptionReceipt: "رسید خرید اشتراک",
   Welcome: "خوش‌آمد",
   DebtReminder: "یادآوری بدهی",
+  Absence: "پیامک غیبت",
 };
 
 export const smsStatusLabels: Record<SmsMessageStatus, string> = {

@@ -148,6 +148,13 @@ public static class SmsText
     public static string ForDebtReminder(string fullName, decimal owed) =>
         WithOptOut($"{Name(fullName)} عزیز، مانده حساب شما در باشگاه پاسارگاد {Amount(owed)} تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!");
 
+    /// <summary>
+    /// To the member with a usable plan who has stopped coming (task 10.12): friendly, with no offer
+    /// in it, one SMS part (chosen by the developer, 1405/07/27).
+    /// </summary>
+    public static string ForAbsence(string fullName) =>
+        WithOptOut($"{Name(fullName)} عزیز، جای شما در باشگاه پاسارگاد خالی است!");
+
     // ---- The values ----
 
     /// <summary><c>2026-10-19</c> → <c>۰۷/۲۷</c>: the daily report and the receipt leave the year out.</summary>

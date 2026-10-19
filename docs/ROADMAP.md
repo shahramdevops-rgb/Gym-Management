@@ -2806,9 +2806,31 @@ with `./backup.sh run`.
 
 #### 10.12 Absence SMS (پیامک غیبت)
 Moved here from «Future — Absence SMS». Decided: the Owner sets the number of days on the settings
-page. Its four open questions are still there and come with it: who gets it, how often, a member
-who never came, the wording.
-- [ ] Rules, settings row, the run, tests, UI
+page.
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The absence SMS*:
+- [x] Only an active member with a **plan usable today** (§4 `Active`): the members of «دیگر
+      نمی‌آید» on «نیاز به اقدام»; not a frozen plan, a plan for later, an ended one or a single visit
+- [x] **Once per absence**: nothing more until the member comes again; the next absence has its own
+- [x] A member who **never came** on the plan is counted from the plan's start, as on the board
+- [x] The wording (`docs/sms-texts.md`): «{name} عزیز، جای شما در باشگاه پاسارگاد خالی است!», one part
+- [x] Days away **7 to 60** (proposed by Claude, approved with the plan), a send time 08:00–22:00 on
+      a quarter hour; the board's own 10 days stay as they are
+- [x] Rules, settings row, the run, tests, UI: `NotificationKind.Absence`, `Notification.AbsentSince`,
+      `Absence.Since` and `DaysAway` (Domain/Attendances, now used by the board too, so both count
+      the same way), `SmsAudience.IsAbsenceDue`, `SmsText.ForAbsence`, the three `SmsSettings.Absence*`
+      fields (`Sms.AbsenceDaysOutOfRange`); `AbsenceCandidate` reads each plan's last visit and the
+      member's latest absence SMS; Hangfire job `sms-Absence` at the chosen time; migration
+      `AddSmsAbsence` (three columns on `sms_settings`, off and empty, with their checks;
+      `absent_since` on `notifications` with the unique index
+      `ix_notifications_one_absence_per_member_and_absence`; the kind and event checks widened; no
+      existing row is touched); «پیامک غیبت» on «تنظیمات پیامک», its label on «پیامک‌ها» and the
+      audit screen; the demo turns it on (14 days, 11:30)
+
+Closed 2026-10-19: 2498 backend tests (868 domain, 1630 integration) and 1058 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSmsAbsence`,
+which only adds (three columns, off and empty, one column and a unique index) and widens two check
+constraints, refusing no existing row. It goes out with the SMS release (10.6), which still starts
+with `./backup.sh run`.
 
 #### 10.13 Broadcast (پیامک گروهی)
 Decided: the Owner writes the text each time (e.g. the gym closed for a few hours, a piece of news);
@@ -3260,7 +3282,8 @@ until then each visitor buys their own single visit under their own name.
 ---
 
 ## Future — Absence SMS (پیامک غیبت)
-**Now task 10.12** (1405/07/26); the questions below go with it.
+**Done in task 10.12** (1405/07/27): every question below is answered there and in BUSINESS_RULES.md
+§10 *The absence SMS*. Kept for the history of the idea.
 Planned by the developer on 1405/07/15 (2026-10-07): a member who has not come for N days gets a
 friendly SMS («جای شما در باشگاه خالی است»), with no offer in it. A fifth SMS kind on Phase 10's
 design: the settings page row (on/off, days, send time), a unique index so it is sent once,

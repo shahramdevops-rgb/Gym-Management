@@ -127,6 +127,14 @@ public sealed class SmsSettings : Entity
     /// <summary>In Toman: only a member whose whole debt is at least this gets the reminder.</summary>
     public decimal? DebtReminderMinAmount { get; private set; }
 
+    /// <summary>The member's SMS when they have stopped coming (§10 <i>The absence SMS</i>, task 10.12).</summary>
+    public bool AbsenceEnabled { get; private set; }
+
+    /// <summary>Days away, 7 to 60: sent once the member has not come for at least this many days.</summary>
+    public int? AbsenceDaysAway { get; private set; }
+
+    public TimeOnly? AbsenceSendTime { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
@@ -174,6 +182,7 @@ public sealed class SmsSettings : Entity
         NotificationKind.Birthday => (1, 7),
         NotificationKind.PayableDue => (0, 30),
         NotificationKind.DebtReminder => (1, 90),
+        NotificationKind.Absence => (7, 60),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No range is set for this kind."),
     };
 
@@ -192,6 +201,8 @@ public sealed class SmsSettings : Entity
         // Its minimum amount is a field of its own (DebtReminderMinAmount), outside this record.
         NotificationKind.DebtReminder => new(
             DebtReminderEnabled, DebtReminderDaysAfter, DebtReminderSendTime),
+        NotificationKind.Absence => new(
+            AbsenceEnabled, AbsenceDaysAway, AbsenceSendTime),
 
         // No number, and the time is fixed: the run is scheduled from it like any other kind's.
         NotificationKind.DailyReport => new(
@@ -214,6 +225,7 @@ public sealed class SmsSettings : Entity
     /// <param name="subscriptionReceiptEnabled">The receipt's switch: it has nothing to fill in.</param>
     /// <param name="welcomeEnabled">The welcome's switch: nothing to fill in either.</param>
     /// <param name="debtReminder">The debt reminder's switch, days and time; its minimum amount comes apart.</param>
+    /// <param name="absence">The absence SMS's switch, days and time (task 10.12).</param>
     public Result Update(
         bool enabled,
         SmsKindSettings subscriptionExpiring,
@@ -226,13 +238,15 @@ public sealed class SmsSettings : Entity
         bool subscriptionReceiptEnabled,
         bool welcomeEnabled,
         SmsKindSettings debtReminder,
-        decimal? debtReminderMinAmount)
+        decimal? debtReminderMinAmount,
+        SmsKindSettings absence)
     {
         ArgumentNullException.ThrowIfNull(subscriptionExpiring);
         ArgumentNullException.ThrowIfNull(lowSessions);
         ArgumentNullException.ThrowIfNull(birthday);
         ArgumentNullException.ThrowIfNull(payableDue);
         ArgumentNullException.ThrowIfNull(debtReminder);
+        ArgumentNullException.ThrowIfNull(absence);
 
         var phone = Normalized(ownerPhone, nameof(ownerPhone));
         var reportPhone = Normalized(dailyReportPhone, nameof(dailyReportPhone));
@@ -245,7 +259,8 @@ public sealed class SmsSettings : Entity
             ?? CheckThreshold(NotificationKind.DebtReminder, debtReminder.Threshold)
             ?? CheckSendTime(debtReminder.SendTime)
             ?? CheckDebtReminderMinAmount(debtReminderMinAmount)
-            ?? CheckDebtReminderComplete(debtReminder, debtReminderMinAmount);
+            ?? CheckDebtReminderComplete(debtReminder, debtReminderMinAmount)
+            ?? Check(NotificationKind.Absence, absence, phone);
         if (error is not null)
         {
             return Result.Failure(error);
@@ -282,6 +297,10 @@ public sealed class SmsSettings : Entity
         DebtReminderSendTime = debtReminder.SendTime;
         DebtReminderMinAmount = debtReminderMinAmount;
 
+        AbsenceEnabled = absence.Enabled;
+        AbsenceDaysAway = absence.Threshold;
+        AbsenceSendTime = absence.SendTime;
+
         return Result.Success();
     }
 
@@ -307,6 +326,7 @@ public sealed class SmsSettings : Entity
             NotificationKind.LowSessions => SmsSettingsErrors.LowSessionsOutOfRange,
             NotificationKind.Birthday => SmsSettingsErrors.BirthdayDaysOutOfRange,
             NotificationKind.DebtReminder => SmsSettingsErrors.DebtReminderDaysOutOfRange,
+            NotificationKind.Absence => SmsSettingsErrors.AbsenceDaysOutOfRange,
             _ => SmsSettingsErrors.PayableDueDaysOutOfRange,
         };
     }

@@ -499,7 +499,105 @@ public sealed class SmsAudienceTests
             .ShouldBeTrue();
     }
 
+    // ---- The absence SMS (task 10.12) ----
+
+    [Theory]
+    [InlineData(13, false)]
+    [InlineData(14, true)]
+    [InlineData(20, true)]
+    public void IsAbsenceDue_DaysSinceTheLastVisit_IsDueOnceItIsAtLeastTheDays(int daysAway, bool expected)
+    {
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(25), Today.AddDays(-daysAway), lastAbsentSince: null, Today, daysAway: 14)
+            .ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(13, false)]
+    [InlineData(14, true)]
+    public void IsAbsenceDue_NeverCameOnThePlan_CountsFromItsStart(int startedDaysAgo, bool expected)
+    {
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(startedDaysAgo), lastVisitOn: null, lastAbsentSince: null, Today, daysAway: 14)
+            .ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IsAbsenceDue_LastVisitBeforeThePlanStarted_CountsFromTheStart()
+    {
+        // Came on the old plan 40 days ago; this plan began 10 days ago and they have not come on it.
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(10), Today.AddDays(-40), lastAbsentSince: null, Today, daysAway: 14)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_ThisAbsenceAlreadyTexted_IsNotDueAgain()
+    {
+        var lastVisit = Today.AddDays(-20);
+
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(28), lastVisit, lastAbsentSince: lastVisit, Today, daysAway: 14)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_CameAgainAfterTheLastSms_IsDueForTheNewAbsence()
+    {
+        // Texted for an absence from 25 days ago; they came 15 days ago and stopped again.
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(28), Today.AddDays(-15), lastAbsentSince: Today.AddDays(-25), Today, daysAway: 14)
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_CancelledVisitBringsBackAnAbsenceTextedBefore_IsNotDue()
+    {
+        // The SMS was for an absence from 20 days ago; the visit since was cancelled, so the last
+        // visit is 20 days ago again, and a later visit had been texted too.
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(28), Today.AddDays(-20), lastAbsentSince: Today.AddDays(-16), Today, daysAway: 14)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_Frozen_IsFalse()
+    {
+        var plan = StartedDaysAgo(25);
+        plan.Freeze(Today, maxFreezeDays: 30).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.IsAbsenceDue(plan, lastVisitOn: null, lastAbsentSince: null, Today, daysAway: 14).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_Queued_IsFalse()
+    {
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(1)).Value;
+
+        SmsAudience.IsAbsenceDue(queued, Today.AddDays(-30), lastAbsentSince: null, Today, daysAway: 7).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_Ended_IsFalse()
+    {
+        SmsAudience.IsAbsenceDue(EndingIn(-1), lastVisitOn: null, lastAbsentSince: null, Today, daysAway: 7).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_Cancelled_IsFalse()
+    {
+        var plan = StartedDaysAgo(25);
+        plan.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.IsAbsenceDue(plan, lastVisitOn: null, lastAbsentSince: null, Today, daysAway: 14).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_UsedUp_IsFalse()
+    {
+        SmsAudience.IsAbsenceDue(WithSessionsLeft(0, daysLeft: 2), Today.AddDays(-20), lastAbsentSince: null, Today, daysAway: 7)
+            .ShouldBeFalse();
+    }
+
     // ---- Helpers ----
+
+    /// <summary>A 10-session, 30-day plan that began <paramref name="daysAgo"/> days before today.</summary>
+    private static Subscription StartedDaysAgo(int daysAgo) =>
+        Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(-daysAgo)).Value;
 
     /// <summary>A debt whose oldest unpaid sale was recorded <paramref name="daysOld"/> days before today, at noon UTC.</summary>
     private static OpenDebt Debt(decimal owed, int daysOld)

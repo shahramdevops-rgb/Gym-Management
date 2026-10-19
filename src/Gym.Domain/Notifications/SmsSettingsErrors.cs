@@ -25,6 +25,10 @@ public static class SmsSettingsErrors
         "Sms.DebtReminderDaysOutOfRange",
         "Days since the oldest unpaid sale must be from 1 to 90.");
 
+    public static readonly Error AbsenceDaysOutOfRange = Error.Validation(
+        "Sms.AbsenceDaysOutOfRange",
+        "Days away must be from 7 to 60.");
+
     /// <summary>The debt reminder's minimum amount (task 10.11): 1,000 Toman or more, at most 2 decimal places.</summary>
     public static readonly Error DebtReminderMinAmountOutOfRange = Error.Validation(
         "Sms.DebtReminderMinAmountOutOfRange",

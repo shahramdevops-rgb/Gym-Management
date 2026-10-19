@@ -1324,7 +1324,7 @@ sent that the Owner did not choose, and the same message is never paid for twice
   per cheque or instalment, one `DailyReport` per day (*The daily report* below), one
   `SubscriptionReceipt` per subscription (*The subscription receipt* below), one `Welcome` per
   member (*The welcome* below), one `DebtReminder` per member and debt (*The debt reminder*
-  below). Running the job
+  below), one `Absence` per member and absence (*The absence SMS* below). Running the job
   twice sends nothing twice. A cheque or instalment whose date is changed after its SMS went out
   gets no second one (§0).
 
@@ -1456,6 +1456,32 @@ Decided with the developer on 1405/07/27 (2026-10-19), task 10.11.
 - **What it says**: the member's name and the whole amount, politely (`docs/sms-texts.md`); two
   SMS parts.
 
+### The absence SMS (پیامک غیبت)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.12.
+- **One friendly SMS to the member (`Absence`) who has stopped coming**, with no offer in it: a
+  daily run at the time chosen on the settings page, like the four kinds.
+- **Only a member with a plan usable today**: an active member whose membership plan is §4
+  `Active` (not a single visit, not cancelled, not frozen, started and not ended, sessions left).
+  A deactivated member, a frozen plan, a plan bought for later that has not started, and a plan
+  used up or ended get none: the same members as «دیگر نمی‌آید» on «نیاز به اقدام» (§12).
+- **The days count as on «نیاز به اقدام»**: from the gym's day of the member's last visit, or from
+  the plan's start when the member has not come since it started, so a member who bought a plan
+  and never came is counted from its start. A cancelled check-in is not a visit; a cardio-only one
+  is. It goes once the member has been away **at least *N* days**: the last visit (or the start) on
+  or before today − *N*. *N* is **7 to 60** (proposed by Claude and approved with the plan,
+  1405/07/27: fewer than 7 is too soon for someone who comes twice a week). The board's own
+  threshold stays 10 days (§12): the SMS has its own number, because an SMS costs money.
+- **Once per absence**: after it, nothing more until the member comes again; the next absence has
+  its own. An absence is named by the day it counts from, so a member who did not come on one plan
+  and buys another counts from the new plan's start, and that is a new absence. A check-in
+  cancelled after the SMS brings the old absence back, which has had its SMS already. A message
+  that failed counts as written, as every kind: the Owner can resend it (*Sending*).
+- **Checked when the run writes it**; the message is sent at once, so there is no later check.
+- **One per member and absence**, enforced by a unique index on the member and the day the absence
+  counts from; a run made twice sends nothing twice.
+- **What it says** (`docs/sms-texts.md`): «{name} عزیز، جای شما در باشگاه پاسارگاد خالی است!», one
+  SMS part.
+
 ### The daily runs
 Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - **One run per kind, at its own send time**, every day, in Asia/Tehran. Only a kind that is on
@@ -1499,6 +1525,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Subscription receipt | on/off | sent at once; after 22:00 at 10:00, fixed |
   | Welcome | on/off | sent at once; after 22:00 at 10:00, fixed |
   | Debt reminder | on/off, days since the oldest unpaid sale, the minimum amount, send time | 1–90 days; 1,000 Toman or more |
+  | Absence | on/off, days away, send time | 7–60 days |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,

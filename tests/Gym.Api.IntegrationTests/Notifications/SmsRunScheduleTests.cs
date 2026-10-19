@@ -172,7 +172,8 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
             subscriptionReceiptEnabled: receiptOn,
             welcomeEnabled: false,
             debtReminder: SmsKindSettings.Off,
-            debtReminderMinAmount: null).IsSuccess.ShouldBeTrue();
+            debtReminderMinAmount: null,
+            absence: SmsKindSettings.Off).IsSuccess.ShouldBeTrue();
 
         return settings;
     }

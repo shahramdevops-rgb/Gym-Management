@@ -1799,3 +1799,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **Money travels as text.** The minimum amount goes from `MoneyField` to the API as a string (`"200000.5"`), never a JavaScript number, so no amount is rounded on its way; the check `decimal.Round(x, 2) == x` refuses rather than rounds a third decimal.
 - **Moving time in an integration test.** The sales are made through the API on today's clock, then `created_at` is moved back with SQL, and the reminder's own `created_at` too, so "a debt that began after the last reminder" can be tested without waiting 30 days.
 - **My notes:**
+
+## 10.12 — Absence SMS (پیامک غیبت)
+
+- **One rule, two readers.** "How long has this member been away?" was written inline in the dashboard's «دیگر نمی‌آید». The SMS needs the same answer, so it moved into the Domain as `Absence.Since` and `DaysAway`, and both the board and the SMS call it. Two copies of a rule drift apart; one copy cannot disagree with itself.
+- **Name the event by the day it began.** An absence has no row of its own, like a debt. It is named by the member and the day it counts from (`absent_since`: the last visit, or the plan's start), and a partial unique index on those two (`WHERE kind = 'Absence'`) makes "once per absence" a database fact. Coming again moves that day, so the next absence is a new name and earns its own SMS.
+- **"Later than the last one" instead of "not the same one".** The rule sends only when today's absence began after the day the latest SMS counted from. A cancelled check-in can bring an old absence back; comparing "later" rather than "different" keeps it from being paid for a second time.
+- **A new kind that fits the shared shape costs little.** The absence SMS is a switch, a number and a time, exactly `SmsKindSettings`, so the validator's `CheckKind`, the entity's `Check`, the scheduler's loop over the kinds and the page's `KindFieldset` all took it with one line each. The debt reminder needed its own record because it did not fit; this one did.
+- **Pinned clock, rows written with the dates each case needs.** The integration tests write plans and visits straight into the tables with dates relative to a fixed day, and run the job on a `FakeTimeProvider` at 11:00 that day, or on a later day for "came again and stopped again". The real calendar never decides whether a test passes.
+- **My notes:**

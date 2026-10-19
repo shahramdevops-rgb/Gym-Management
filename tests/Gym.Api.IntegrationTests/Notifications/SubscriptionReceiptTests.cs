@@ -411,7 +411,8 @@ public sealed class SubscriptionReceiptTests(DatabaseFixture fixture) : Database
             subscriptionReceiptEnabled: receipt,
             welcomeEnabled: false,
             debtReminder: SmsKindSettings.Off,
-            debtReminderMinAmount: null).IsSuccess.ShouldBeTrue();
+            debtReminderMinAmount: null,
+            absence: SmsKindSettings.Off).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

@@ -7,6 +7,7 @@ namespace Gym.Application.Notifications.UpdateSmsSettings;
 /// <param name="SubscriptionReceipt">The receipt's switch (task 10.9).</param>
 /// <param name="Welcome">The welcome's switch (task 10.10).</param>
 /// <param name="DebtReminder">The debt reminder's switch, days, time and minimum amount (task 10.11).</param>
+/// <param name="Absence">The absence SMS's switch, days away and time (task 10.12).</param>
 /// <param name="Version">The <c>version</c> from the settings as they were read before editing.</param>
 public sealed record UpdateSmsSettingsCommand(
     bool Enabled,
@@ -19,4 +20,5 @@ public sealed record UpdateSmsSettingsCommand(
     SubscriptionReceiptSettings SubscriptionReceipt,
     WelcomeSettings Welcome,
     DebtReminderSettings DebtReminder,
+    SmsKindSettings Absence,
     uint Version);

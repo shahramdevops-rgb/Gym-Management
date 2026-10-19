@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.History.ListSales;
+using Gym.Domain.Attendances;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -148,14 +149,13 @@ public sealed class GetNeedsAttentionHandler(IAppDbContext db, IGymCalendar cale
             .Select(candidate =>
             {
                 DateOnly? lastVisitOn = candidate.LastVisitAt is { } moment ? calendar.DayOf(moment) : null;
-                var awaySince = lastVisitOn is { } day && day > candidate.StartDate ? day : candidate.StartDate;
 
                 return new AbsentResponse(
                     candidate.Id,
                     candidate.FullName,
                     candidate.PhoneNumber,
                     lastVisitOn,
-                    today.DayNumber - awaySince.DayNumber);
+                    Absence.DaysAway(lastVisitOn, candidate.StartDate, today));
             })
             .Where(row => row.DaysAway >= ReportThresholds.AbsentDays)
             .OrderByDescending(row => row.DaysAway)

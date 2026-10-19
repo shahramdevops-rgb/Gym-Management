@@ -14,7 +14,8 @@ namespace Gym.Domain.Notifications;
 /// Jalali year, one <see cref="NotificationKind.PayableDue"/> per cheque or instalment, one
 /// <see cref="NotificationKind.DailyReport"/> per day, one <see cref="NotificationKind.SubscriptionReceipt"/>
 /// per subscription, one <see cref="NotificationKind.Welcome"/> per member, one
-/// <see cref="NotificationKind.DebtReminder"/> per member and debt), a second
+/// <see cref="NotificationKind.DebtReminder"/> per member and debt, one
+/// <see cref="NotificationKind.Absence"/> per member and absence), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -67,6 +68,12 @@ public sealed class Notification : Entity
     /// reminder was about, one per member and debt (task 10.11).
     /// </summary>
     public DateOnly? DebtSince { get; private set; }
+
+    /// <summary>
+    /// Set for <see cref="NotificationKind.Absence"/>: the gym's day the member's absence counts from
+    /// (their last visit, or their plan's start), one per member and absence (task 10.12).
+    /// </summary>
+    public DateOnly? AbsentSince { get; private set; }
 
     /// <summary>The whole text, as <see cref="SmsText"/> wrote it when the message was written.</summary>
     public string Text { get; private set; } = string.Empty;
@@ -163,6 +170,19 @@ public sealed class Notification : Entity
         var notification = Create(NotificationKind.DebtReminder, recipient, text);
         notification.MemberId = memberId;
         notification.DebtSince = debtSince;
+
+        return notification;
+    }
+
+    /// <summary>The member has stopped coming (<see cref="NotificationKind.Absence"/>, task 10.12).</summary>
+    /// <param name="absentSince">The gym's day the absence counts from: at most one per member and day.</param>
+    public static Notification ForAbsence(Guid memberId, DateOnly absentSince, string recipient, string text)
+    {
+        CheckId(memberId, nameof(memberId));
+
+        var notification = Create(NotificationKind.Absence, recipient, text);
+        notification.MemberId = memberId;
+        notification.AbsentSince = absentSince;
 
         return notification;
     }

@@ -1,3 +1,4 @@
+using Gym.Domain.Attendances;
 using Gym.Domain.Common;
 using Gym.Domain.Payables;
 using Gym.Domain.Subscriptions;
@@ -197,6 +198,31 @@ public static class SmsAudience
             && debt.Owed >= minAmount
             && today.DayNumber - debt.OldestSoldOn.DayNumber >= daysAfter
             && (lastReminderAt is not { } last || debt.OldestSoldAt > last);
+    }
+
+    /// <summary>
+    /// Whether a member earns the absence SMS today (§10 <i>The absence SMS</i>, task 10.12): their
+    /// plan is usable today (§4 <c>Active</c>: not a single visit, not frozen, not queued, not used
+    /// up), they have been away at least <paramref name="daysAway"/> days (<see cref="Absence"/>),
+    /// and this absence has had no SMS yet. Whether the member is active is the run's question.
+    /// </summary>
+    /// <remarks>
+    /// "Once per absence": an absence is named by the day it counts from. A visit, or a newer plan the
+    /// member has not come on, starts a later one, which earns its own; a cancelled check-in that
+    /// brings back an absence already texted brings no second SMS.
+    /// </remarks>
+    /// <param name="lastVisitOn">The gym's day of the member's last visit not cancelled; <c>null</c> for none.</param>
+    /// <param name="lastAbsentSince">The day the member's latest absence SMS counted from, whatever became of it; <c>null</c> for none.</param>
+    public static bool IsAbsenceDue(
+        Subscription plan, DateOnly? lastVisitOn, DateOnly? lastAbsentSince, DateOnly today, int daysAway)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+
+        var since = Absence.Since(lastVisitOn, plan.StartDate);
+
+        return IsActivePlan(plan, today)
+            && today.DayNumber - since.DayNumber >= daysAway
+            && (lastAbsentSince is not { } last || since > last);
     }
 
     private static bool SoldBefore(Subscription one, Subscription other) =>

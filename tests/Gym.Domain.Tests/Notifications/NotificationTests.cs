@@ -146,6 +146,30 @@ public sealed class NotificationTests
         Should.Throw<ArgumentException>(() => Notification.ForDebtReminder(Guid.Empty, new DateOnly(2026, 9, 1), Phone, Text));
 
     [Fact]
+    public void ForAbsence_NamesTheMemberAndTheDayTheAbsenceCountsFrom()
+    {
+        var memberId = Guid.NewGuid();
+        var since = new DateOnly(2026, 10, 1);
+
+        var notification = Notification.ForAbsence(memberId, since, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.Absence);
+        notification.MemberId.ShouldBe(memberId);
+        notification.AbsentSince.ShouldBe(since);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.SubscriptionId.ShouldBeNull();
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+        notification.DebtSince.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForAbsence_EmptyMemberId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForAbsence(Guid.Empty, new DateOnly(2026, 10, 1), Phone, Text));
+
+    [Fact]
     public void ForSubscriptionReceipt_EmptySubscriptionId_Throws()
     {
         Should.Throw<ArgumentException>(() => Notification.ForSubscriptionReceipt(Guid.NewGuid(), Guid.Empty, Phone, Text));

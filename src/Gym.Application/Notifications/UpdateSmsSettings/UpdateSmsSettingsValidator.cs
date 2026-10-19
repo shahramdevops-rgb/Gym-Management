@@ -27,6 +27,8 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
             CheckKind(NotificationKind.Birthday, settings, context));
         RuleFor(command => command.PayableDue).Custom((settings, context) =>
             CheckKind(NotificationKind.PayableDue, settings, context));
+        RuleFor(command => command.Absence).Custom((settings, context) =>
+            CheckKind(NotificationKind.Absence, settings, context));
         RuleFor(command => command.DailyReport).Custom(CheckDailyReport);
         RuleFor(command => command.DebtReminder).Custom(CheckDebtReminder);
 

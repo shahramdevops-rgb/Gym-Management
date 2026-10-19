@@ -127,6 +127,7 @@
     "JalaliYear": { "label": "سال" },
     "ReportDate": { "label": "روز گزارش" },
     "DebtSince": { "label": "بدهی از روز" },
+    "AbsentSince": { "label": "غیبت از روز" },
     "Text": { "label": "متن" },
     "Status": { "label": "وضعیت", "format": "notificationStatus" },
     "Attempts": { "label": "دفعات تلاش" },
@@ -166,6 +167,9 @@
     "DebtReminderDaysAfter": { "label": "یادآوری بدهی: چند روز بعد" },
     "DebtReminderSendTime": { "label": "یادآوری بدهی: ساعت ارسال" },
     "DebtReminderMinAmount": { "label": "یادآوری بدهی: حداقل مبلغ", "format": "money" },
+    "AbsenceEnabled": { "label": "پیامک غیبت: روشن" },
+    "AbsenceDaysAway": { "label": "پیامک غیبت: چند روز نیامده" },
+    "AbsenceSendTime": { "label": "پیامک غیبت: ساعت ارسال" },
 
     "RevokedReason": { "label": "دلیل باطل شدن", "format": "revocationReason" },
     "FailedAttempts": { "label": "تلاش‌های ناموفق" },

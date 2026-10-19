@@ -38,6 +38,7 @@ public sealed partial class SendDailySmsHandler(
     SmsRetrySchedule retries,
     DailyReportCandidate dailyReport,
     DebtReminderCandidate debtReminders,
+    AbsenceCandidate absences,
     ILogger<SendDailySmsHandler> logger)
 {
     public async Task<SmsRunResult> Handle(NotificationKind kind, CancellationToken cancellationToken)
@@ -70,6 +71,7 @@ public sealed partial class SendDailySmsHandler(
         {
             NotificationKind.DailyReport => await dailyReport.FindAsync(settings, today, cancellationToken),
             NotificationKind.DebtReminder => await debtReminders.FindAsync(settings, today, cancellationToken),
+            NotificationKind.Absence => await absences.FindAsync(settings, today, cancellationToken),
             _ => await SmsCandidates.FindAsync(db, kind, settings, today, cancellationToken),
         };
 

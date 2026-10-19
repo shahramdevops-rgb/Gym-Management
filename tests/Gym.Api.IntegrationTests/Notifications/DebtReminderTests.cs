@@ -233,7 +233,8 @@ public sealed class DebtReminderTests(DatabaseFixture fixture) : DatabaseTestBas
             subscriptionReceiptEnabled: false,
             welcomeEnabled: false,
             debtReminder: new SmsKindSettings(true, DaysAfter, new TimeOnly(11, 0)),
-            debtReminderMinAmount: MinAmount).IsSuccess.ShouldBeTrue();
+            debtReminderMinAmount: MinAmount,
+            absence: SmsKindSettings.Off).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -253,6 +254,7 @@ public sealed class DebtReminderTests(DatabaseFixture fixture) : DatabaseTestBas
             NoWait,
             scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
             new DebtReminderCandidate(db, scope.ServiceProvider.GetRequiredService<SaleRows>(), calendar),
+            new AbsenceCandidate(db, calendar),
             NullLogger<SendDailySmsHandler>.Instance);
 
         return await handler.Handle(NotificationKind.DebtReminder, TestContext.Current.CancellationToken);

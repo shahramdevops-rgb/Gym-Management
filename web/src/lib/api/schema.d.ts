@@ -2164,7 +2164,7 @@ export interface components {
             payablesDue: components["schemas"]["PayableDueResponse"][];
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -2786,6 +2786,7 @@ export interface components {
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettingsResponse"];
             welcome: components["schemas"]["WelcomeSettingsResponse"];
             debtReminder: components["schemas"]["DebtReminderSettings"];
+            absence: components["schemas"]["SmsKindSettings"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -2948,6 +2949,7 @@ export interface components {
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettings"];
             welcome: components["schemas"]["WelcomeSettings"];
             debtReminder: components["schemas"]["DebtReminderSettings"];
+            absence: components["schemas"]["SmsKindSettings"];
             /** Format: uint32 */
             version: number | string;
         };

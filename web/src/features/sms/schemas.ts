@@ -16,8 +16,17 @@ function message(code: string): string {
   return text;
 }
 
-/** The four kinds, in the order the page shows them (BUSINESS_RULES.md §10 *The four kinds*). */
-export const smsKinds = ["subscriptionExpiring", "lowSessions", "birthday", "payableDue"] as const;
+/**
+ * The kinds with a number and a send time (BUSINESS_RULES.md §10 *The four kinds*, and *The absence
+ * SMS*, task 10.12). The page shows the absence SMS last, after the debt reminder.
+ */
+export const smsKinds = [
+  "subscriptionExpiring",
+  "lowSessions",
+  "birthday",
+  "payableDue",
+  "absence",
+] as const;
 
 export type SmsKind = (typeof smsKinds)[number];
 
@@ -27,6 +36,7 @@ export const thresholdRanges: Record<SmsKind, { min: number; max: number; code: 
   lowSessions: { min: 1, max: 10, code: "Sms.LowSessionsOutOfRange" },
   birthday: { min: 1, max: 7, code: "Sms.BirthdayDaysOutOfRange" },
   payableDue: { min: 0, max: 30, code: "Sms.PayableDueDaysOutOfRange" },
+  absence: { min: 7, max: 60, code: "Sms.AbsenceDaysOutOfRange" },
 };
 
 /** The debt reminder's days since the oldest unpaid sale, the same as the API's `SmsSettings.ThresholdRange` (task 10.11). */
@@ -139,6 +149,8 @@ export const smsSettingsSchema = z
     }),
     /** The member's debt reminder (task 10.11): days, time and a minimum amount. */
     debtReminder: debtReminderSchema,
+    /** The member's absence SMS (task 10.12): days away and a time, like the four kinds. */
+    absence: kindSchema,
   })
   .superRefine((values, context) => {
     for (const kind of smsKinds) {
@@ -240,6 +252,7 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
       minAmount:
         settings.debtReminder.minAmount === null ? "" : String(settings.debtReminder.minAmount),
     },
+    absence: kindValues(settings.absence),
   };
 }
 
@@ -288,6 +301,7 @@ export function toInput(
     subscriptionReceipt: { enabled: values.subscriptionReceipt.enabled },
     welcome: { enabled: values.welcome.enabled },
     debtReminder: debtReminderInput(values.debtReminder),
+    absence: kindInput(values.absence),
     version,
   };
 }

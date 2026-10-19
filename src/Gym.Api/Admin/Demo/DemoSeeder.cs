@@ -619,6 +619,7 @@ public sealed class DemoSeeder
             SubscriptionReceipt: new SubscriptionReceiptSettings(true),
             Welcome: new WelcomeSettings(true),
             DebtReminder: new DebtReminderSettings(true, 30, new TimeOnly(11, 0), 200_000m),
+            Absence: new SmsKindSettings(true, 14, new TimeOnly(11, 30)),
             Version: version);
 
         await MustAsync<UpdateSmsSettingsHandler, SmsSettingsResponse>(

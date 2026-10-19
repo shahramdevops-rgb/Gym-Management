@@ -49,7 +49,8 @@ public sealed class SmsSettingsTests
             subscriptionReceiptEnabled: true,
             welcomeEnabled: true,
             debtReminder: new(true, 30, new TimeOnly(11, 0)),
-            debtReminderMinAmount: 500_000m);
+            debtReminderMinAmount: 500_000m,
+            absence: new(true, 14, new TimeOnly(11, 30)));
 
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
@@ -66,6 +67,7 @@ public sealed class SmsSettingsTests
         settings.For(NotificationKind.Welcome).ShouldBe(new SmsKindSettings(true, null, null));
         settings.For(NotificationKind.DebtReminder).ShouldBe(new SmsKindSettings(true, 30, new TimeOnly(11, 0)));
         settings.DebtReminderMinAmount.ShouldBe(500_000m);
+        settings.For(NotificationKind.Absence).ShouldBe(new SmsKindSettings(true, 14, new TimeOnly(11, 30)));
     }
 
     [Fact]
@@ -132,6 +134,8 @@ public sealed class SmsSettingsTests
     [InlineData(NotificationKind.PayableDue, 30)]
     [InlineData(NotificationKind.DebtReminder, 1)]
     [InlineData(NotificationKind.DebtReminder, 90)]
+    [InlineData(NotificationKind.Absence, 7)]
+    [InlineData(NotificationKind.Absence, 60)]
     public void CheckThreshold_AtTheEdgeOfTheRange_Passes(NotificationKind kind, int threshold) =>
         SmsSettings.CheckThreshold(kind, threshold).ShouldBeNull();
 
@@ -146,11 +150,14 @@ public sealed class SmsSettingsTests
     [InlineData(NotificationKind.PayableDue, 31)]
     [InlineData(NotificationKind.DebtReminder, 0)]
     [InlineData(NotificationKind.DebtReminder, 91)]
+    [InlineData(NotificationKind.Absence, 6)]
+    [InlineData(NotificationKind.Absence, 61)]
     public void CheckThreshold_JustOutsideTheRange_FailsWithTheKindsError(NotificationKind kind, int threshold)
     {
         var expected = kind switch
         {
             NotificationKind.DebtReminder => SmsSettingsErrors.DebtReminderDaysOutOfRange,
+            NotificationKind.Absence => SmsSettingsErrors.AbsenceDaysOutOfRange,
             NotificationKind.SubscriptionExpiring => SmsSettingsErrors.SubscriptionExpiringDaysOutOfRange,
             NotificationKind.LowSessions => SmsSettingsErrors.LowSessionsOutOfRange,
             NotificationKind.Birthday => SmsSettingsErrors.BirthdayDaysOutOfRange,
@@ -432,6 +439,59 @@ public sealed class SmsSettingsTests
         SmsSettings.IsWithinSendingHours(NotificationKind.DebtReminder, new TimeOnly(22, 1)).ShouldBeFalse();
     }
 
+    // ---- The absence SMS (task 10.12) ----
+
+    [Theory]
+    [InlineData(null, 10)]
+    [InlineData(14, null)]
+    public void Update_AbsenceOnWithAFieldEmpty_FailsWithSettingsIncomplete(int? days, int? hour)
+    {
+        var settings = Empty();
+        TimeOnly? sendTime = hour is null ? null : new TimeOnly(hour.Value, 0);
+
+        var result = Save(settings, absence: new(true, days, sendTime));
+
+        result.Error.ShouldBe(SmsSettingsErrors.SettingsIncomplete);
+        settings.AbsenceEnabled.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Update_AbsenceDaysOutOfRange_IsRefusedAndChangesNothing()
+    {
+        var settings = Empty();
+
+        var result = Save(settings, enabled: true, absence: new(false, 5, Ten));
+
+        result.Error.ShouldBe(SmsSettingsErrors.AbsenceDaysOutOfRange);
+        settings.Enabled.ShouldBeFalse();
+        settings.AbsenceDaysAway.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Update_AbsenceSendTimeOffTheQuarter_FailsWithSendTimeOutOfRange() =>
+        Save(Empty(), absence: new(false, 14, new TimeOnly(10, 10)))
+            .Error.ShouldBe(SmsSettingsErrors.SendTimeOutOfRange);
+
+    [Fact]
+    public void Update_AbsenceOffAndHalfFilled_KeepsWhatIsFilled()
+    {
+        var settings = Empty();
+
+        Save(settings, absence: new(false, 14, null)).IsSuccess.ShouldBeTrue();
+
+        settings.For(NotificationKind.Absence).ShouldBe(new SmsKindSettings(false, 14, null));
+    }
+
+    [Fact]
+    public void Update_AbsenceOnNeedsNoOwnerPhone()
+    {
+        var settings = Empty();
+
+        Save(settings, absence: new(true, 14, Ten)).IsSuccess.ShouldBeTrue();
+
+        settings.For(NotificationKind.Absence).ShouldBe(new SmsKindSettings(true, 14, Ten));
+    }
+
     // ---- Helpers ----
 
     private static Domain.Common.Result Save(
@@ -447,7 +507,8 @@ public sealed class SmsSettingsTests
         bool subscriptionReceiptEnabled = false,
         bool welcomeEnabled = false,
         SmsKindSettings? debtReminder = null,
-        decimal? debtReminderMinAmount = null) =>
+        decimal? debtReminderMinAmount = null,
+        SmsKindSettings? absence = null) =>
         settings.Update(
             enabled,
             subscriptionExpiring ?? SmsKindSettings.Off,
@@ -460,7 +521,8 @@ public sealed class SmsSettingsTests
             subscriptionReceiptEnabled,
             welcomeEnabled,
             debtReminder ?? SmsKindSettings.Off,
-            debtReminderMinAmount);
+            debtReminderMinAmount,
+            absence ?? SmsKindSettings.Off);
 
     /// <summary>
     /// The one row the migration seeds. There is no public constructor, on purpose: nothing in the
