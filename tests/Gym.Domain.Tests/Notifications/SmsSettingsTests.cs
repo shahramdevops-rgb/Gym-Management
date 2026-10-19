@@ -44,7 +44,8 @@ public sealed class SmsSettingsTests
             ownerPhone: Phone,
             dailyReportEnabled: true,
             dailyReportPhone: OtherPhone,
-            subscriptionReceiptEnabled: true);
+            subscriptionReceiptEnabled: true,
+            welcomeEnabled: true);
 
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
@@ -57,6 +58,8 @@ public sealed class SmsSettingsTests
         settings.DailyReportPhone.ShouldBe(OtherPhone);
         settings.SubscriptionReceiptEnabled.ShouldBeTrue();
         settings.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
+        settings.WelcomeEnabled.ShouldBeTrue();
+        settings.For(NotificationKind.Welcome).ShouldBe(new SmsKindSettings(true, null, null));
     }
 
     [Fact]
@@ -295,26 +298,26 @@ public sealed class SmsSettingsTests
     [InlineData(8, 0)]
     [InlineData(15, 30)]
     [InlineData(22, 0)]
-    public void ReceiptDeferredUntil_WithinTheHours_IsNow(int hour, int minute)
+    public void DeferredToMorning_WithinTheHours_IsNow(int hour, int minute)
     {
-        SmsSettings.ReceiptDeferredUntil(Day, new TimeOnly(hour, minute)).ShouldBeNull();
+        SmsSettings.DeferredToMorning(Day, new TimeOnly(hour, minute)).ShouldBeNull();
     }
 
     [Theory]
     [InlineData(22, 1)]
     [InlineData(23, 59)]
-    public void ReceiptDeferredUntil_After2200_IsTenTheNextMorning(int hour, int minute)
+    public void DeferredToMorning_After2200_IsTenTheNextMorning(int hour, int minute)
     {
-        SmsSettings.ReceiptDeferredUntil(Day, new TimeOnly(hour, minute))
+        SmsSettings.DeferredToMorning(Day, new TimeOnly(hour, minute))
             .ShouldBe(Day.AddDays(1).ToDateTime(new TimeOnly(10, 0)));
     }
 
     [Theory]
     [InlineData(0, 0)]
     [InlineData(7, 59)]
-    public void ReceiptDeferredUntil_Before0800_IsTenThatMorning(int hour, int minute)
+    public void DeferredToMorning_Before0800_IsTenThatMorning(int hour, int minute)
     {
-        SmsSettings.ReceiptDeferredUntil(Day, new TimeOnly(hour, minute))
+        SmsSettings.DeferredToMorning(Day, new TimeOnly(hour, minute))
             .ShouldBe(Day.ToDateTime(new TimeOnly(10, 0)));
     }
 
@@ -350,7 +353,8 @@ public sealed class SmsSettingsTests
         string? ownerPhone = null,
         bool dailyReportEnabled = false,
         string? dailyReportPhone = null,
-        bool subscriptionReceiptEnabled = false) =>
+        bool subscriptionReceiptEnabled = false,
+        bool welcomeEnabled = false) =>
         settings.Update(
             enabled,
             subscriptionExpiring ?? SmsKindSettings.Off,
@@ -360,7 +364,8 @@ public sealed class SmsSettingsTests
             ownerPhone,
             dailyReportEnabled,
             dailyReportPhone,
-            subscriptionReceiptEnabled);
+            subscriptionReceiptEnabled,
+            welcomeEnabled);
 
     /// <summary>
     /// The one row the migration seeds. There is no public constructor, on purpose: nothing in the

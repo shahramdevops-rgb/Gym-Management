@@ -7,8 +7,8 @@ namespace Gym.Application.Notifications;
 public static class NotificationConstraints
 {
     /// <summary>
-    /// One <c>SubscriptionExpiring</c>, one <c>LowSessions</c> and one <c>SubscriptionReceipt</c> per
-    /// subscription (BUSINESS_RULES.md §10).
+    /// One <c>SubscriptionExpiring</c>, one <c>LowSessions</c>, one <c>SubscriptionReceipt</c> and one
+    /// <c>Welcome</c> per subscription (BUSINESS_RULES.md §10).
     /// </summary>
     public const string OnePerSubscriptionAndKind = "ix_notifications_one_per_subscription_and_kind";
 
@@ -19,6 +19,9 @@ public static class NotificationConstraints
     public const string OnePerPayable = "ix_notifications_one_per_payable";
 
     public const string OneDailyReportPerDay = "ix_notifications_one_daily_report_per_day";
+
+    /// <summary>One <c>Welcome</c> per member, whichever plan was their first (BUSINESS_RULES.md §10).</summary>
+    public const string OneWelcomePerMember = "ix_notifications_one_welcome_per_member";
 
     /// <summary>Each kind fills the ids of its own event and leaves the others empty.</summary>
     public const string EventMatchesKind = "ck_notifications_event_matches_kind";

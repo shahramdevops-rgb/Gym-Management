@@ -364,7 +364,99 @@ public sealed class SmsAudienceTests
         SmsAudience.IsQueuedBehindAnother(upcoming, [visit], Today).ShouldBeFalse();
     }
 
+    // ---- Welcome (task 10.10) ----
+
+    [Fact]
+    public void IsFirstPlan_NoOtherPlan_IsTrue()
+    {
+        var plan = SoldAt(EndingIn(20), 0);
+
+        SmsAudience.IsFirstPlan(plan, [plan]).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_APlanSoldBefore_IsFalse()
+    {
+        var earlier = SoldAt(EndingIn(5), 0);
+        var plan = SoldAt(Subscription.CreateMembership(MemberId, Sessions, 1m, earlier.EndDate.AddDays(1)).Value, 1);
+
+        SmsAudience.IsFirstPlan(plan, [earlier, plan]).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsFirstPlan_APlanSoldAfter_IsStillTrue()
+    {
+        var plan = SoldAt(EndingIn(5), 0);
+        var later = SoldAt(Subscription.CreateMembership(MemberId, Sessions, 1m, plan.EndDate.AddDays(1)).Value, 1);
+
+        SmsAudience.IsFirstPlan(plan, [plan, later]).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_TwoSoldAtTheSameMoment_ExactlyOneIsFirst()
+    {
+        var one = SoldAt(EndingIn(5), 0);
+        var other = SoldAt(Subscription.CreateMembership(MemberId, Sessions, 1m, one.EndDate.AddDays(1)).Value, 0);
+
+        (SmsAudience.IsFirstPlan(one, [other]) ^ SmsAudience.IsFirstPlan(other, [one])).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_OnlyACancelledPlanBefore_IsTrue()
+    {
+        var cancelled = SoldAt(EndingIn(5), 0);
+        cancelled.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+        var plan = SoldAt(EndingIn(20), 1);
+
+        SmsAudience.IsFirstPlan(plan, [cancelled, plan]).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_OnlySingleVisitsBefore_IsTrue()
+    {
+        var visit = SoldAt(Subscription.CreateSingleVisit(MemberId, 1m, Today).Value, 0);
+        var plan = SoldAt(EndingIn(20), 1);
+
+        SmsAudience.IsFirstPlan(plan, [visit, plan]).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_SingleVisit_IsFalse()
+    {
+        var visit = SoldAt(Subscription.CreateSingleVisit(MemberId, 1m, Today).Value, 0);
+
+        SmsAudience.IsFirstPlan(visit, [visit]).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsFirstPlan_Cancelled_IsFalse()
+    {
+        var plan = SoldAt(EndingIn(20), 0);
+        plan.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.IsFirstPlan(plan, [plan]).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsFirstPlan_PricedAtZero_IsTrue()
+    {
+        var free = SoldAt(Subscription.CreateMembership(MemberId, Sessions, 0m, Today).Value, 0);
+
+        SmsAudience.IsFirstPlan(free, [free]).ShouldBeTrue();
+    }
+
     // ---- Helpers ----
+
+    /// <summary>
+    /// Stamps the moment it was saved, <paramref name="minutes"/> after <see cref="Now"/>, as the
+    /// database interceptor does; the entity has no setter of its own for it.
+    /// </summary>
+    private static Subscription SoldAt(Subscription subscription, int minutes)
+    {
+        typeof(Entity).GetProperty(nameof(Entity.CreatedAt))!.SetValue(subscription, Now.AddMinutes(minutes));
+
+        return subscription;
+    }
 
     /// <summary>A plan of 10 sessions, none used, whose last day is <paramref name="daysLeft"/> days from today.</summary>
     private static Subscription EndingIn(int daysLeft) =>

@@ -148,6 +148,55 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     }
 
     [Fact]
+    public async Task Save_SecondWelcomeForOneMember_RejectedByTheUniqueIndex()
+    {
+        // Once per member (§10 The welcome): a first plan cancelled after its welcome went out does not
+        // earn the member's next plan a second one.
+        var (member, subscription, _) = await SeedAsync();
+        var next = Subscription.CreateMembership(member.Id, 10, 90_000m, subscription.EndDate.AddDays(1)).Value;
+        await using (var scope = Fixture.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Subscriptions.Add(next);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await SaveAsync(Notification.ForWelcome(member.Id, subscription.Id, Phone, WelcomeText));
+
+        var exception = await SaveRejectedAsync(Notification.ForWelcome(member.Id, next.Id, Phone, WelcomeText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OneWelcomePerMember);
+    }
+
+    [Fact]
+    public async Task Save_WelcomeBesideTheReceiptOfTheSamePlan_IsAllowed()
+    {
+        // A first plan paid at once gets both (decided with the developer).
+        var (member, subscription, _) = await SeedAsync();
+
+        await SaveAsync(
+            Notification.ForWelcome(member.Id, subscription.Id, Phone, WelcomeText),
+            Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText));
+
+        (await CountAsync()).ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Notification_WelcomeWithoutItsPlan_RejectedByACheckConstraint()
+    {
+        var (member, subscription, _) = await SeedAsync();
+        var welcome = Notification.ForWelcome(member.Id, subscription.Id, Phone, WelcomeText);
+        await SaveAsync(welcome);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET subscription_id = NULL WHERE id = '{welcome.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
     public async Task Save_BothSubscriptionKindsForOneSubscription_AreAllowed()
     {
         // Running out of days and running out of sessions are two events, one message each.
@@ -383,6 +432,8 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     private const string ReportText = "گزارش باشگاه پاسارگاد ۰۷/۲۷\nورود: ۸۵";
 
     private const string ReceiptText = "سارا محمدی عزیز، اشتراک ۱۰ جلسه‌ای شما در باشگاه پاسارگاد از ۰۷/۲۷ تا ۰۸/۲۶ ثبت";
+
+    private const string WelcomeText = "سارا محمدی عزیز، به باشگاه پاسارگاد خوش آمدید!";
 
     private static readonly DateOnly ReportDay = new(2026, 10, 19);
 

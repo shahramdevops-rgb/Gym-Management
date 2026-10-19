@@ -2155,7 +2155,7 @@ export interface components {
             payablesDue: components["schemas"]["PayableDueResponse"][];
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -2775,6 +2775,7 @@ export interface components {
             ownerPhone: null | string;
             dailyReport: components["schemas"]["DailyReportSettingsResponse"];
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettingsResponse"];
+            welcome: components["schemas"]["WelcomeSettingsResponse"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -2935,6 +2936,7 @@ export interface components {
             ownerPhone: null | string;
             dailyReport: components["schemas"]["DailyReportSettings"];
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettings"];
+            welcome: components["schemas"]["WelcomeSettings"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -2948,6 +2950,14 @@ export interface components {
         };
         VoidServiceChargeCommand: {
             reason: string;
+        };
+        WelcomeSettings: {
+            enabled: boolean;
+        };
+        WelcomeSettingsResponse: {
+            enabled: boolean;
+            /** Format: time */
+            morningSendTime: string;
         };
     };
     responses: never;

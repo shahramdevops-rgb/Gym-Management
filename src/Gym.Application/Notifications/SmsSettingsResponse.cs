@@ -14,6 +14,7 @@ public sealed record SmsSettingsResponse(
     string? OwnerPhone,
     DailyReportSettingsResponse DailyReport,
     SubscriptionReceiptSettingsResponse SubscriptionReceipt,
+    WelcomeSettingsResponse Welcome,
     uint Version)
 {
     public static SmsSettingsResponse From(SmsSettings settings)
@@ -28,7 +29,8 @@ public sealed record SmsSettingsResponse(
             settings.For(NotificationKind.PayableDue),
             settings.OwnerPhone,
             new DailyReportSettingsResponse(settings.DailyReportEnabled, settings.DailyReportPhone, SmsSettings.DailyReportSendTime),
-            new SubscriptionReceiptSettingsResponse(settings.SubscriptionReceiptEnabled, SmsSettings.ReceiptMorningSendTime),
+            new SubscriptionReceiptSettingsResponse(settings.SubscriptionReceiptEnabled, SmsSettings.MorningSendTime),
+            new WelcomeSettingsResponse(settings.WelcomeEnabled, SmsSettings.MorningSendTime),
             settings.Version);
     }
 }

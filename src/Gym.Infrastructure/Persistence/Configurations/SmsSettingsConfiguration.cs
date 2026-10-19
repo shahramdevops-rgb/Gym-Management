@@ -72,6 +72,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             PayableDueEnabled = false,
             DailyReportEnabled = false,
             SubscriptionReceiptEnabled = false,
+            WelcomeEnabled = false,
         });
     }
 

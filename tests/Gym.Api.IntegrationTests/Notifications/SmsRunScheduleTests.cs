@@ -169,7 +169,8 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
             ownerPhone: null,
             dailyReportEnabled: dailyReportOn,
             dailyReportOn ? "+989351112233" : null,
-            subscriptionReceiptEnabled: receiptOn).IsSuccess.ShouldBeTrue();
+            subscriptionReceiptEnabled: receiptOn,
+            welcomeEnabled: false).IsSuccess.ShouldBeTrue();
 
         return settings;
     }

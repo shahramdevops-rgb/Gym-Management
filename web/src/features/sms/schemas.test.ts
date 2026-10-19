@@ -16,6 +16,7 @@ const settings: SmsSettings = {
   ownerPhone: "+989121234567",
   dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: true, morningSendTime: "10:00:00" },
+  welcome: { enabled: false, morningSendTime: "10:00:00" },
   version: 3,
 };
 
@@ -30,6 +31,7 @@ describe("sms schemas", () => {
       dailyReport: { enabled: true, phone: "0935 123 4567" },
       // Only the switch: the morning time is fixed in the code.
       subscriptionReceipt: { enabled: true },
+      welcome: { enabled: false },
     });
   });
 

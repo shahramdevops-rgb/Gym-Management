@@ -133,6 +133,13 @@ public static class SmsText
     public static string ForQueuedSubscriptionReceipt(string fullName, int sessions, int days, decimal price) =>
         WithOptOut($"{Name(fullName)} عزیز، اشتراک {Number(sessions)} جلسه‌ای شما در باشگاه پاسارگاد ({Number(days)} روز، پس از اشتراک فعلی) ثبت و {Amount(price)} تومان کامل پرداخت شد. سپاس!");
 
+    /// <summary>
+    /// To the member when their first plan is sold (task 10.10): one SMS part, and nothing in it that
+    /// would be wrong for a member moved over from the paper notebook (chosen by the developer, 1405/07/27).
+    /// </summary>
+    public static string ForWelcome(string fullName) =>
+        WithOptOut($"{Name(fullName)} عزیز، به باشگاه پاسارگاد خوش آمدید!");
+
     // ---- The values ----
 
     /// <summary><c>2026-10-19</c> → <c>۰۷/۲۷</c>: the daily report and the receipt leave the year out.</summary>

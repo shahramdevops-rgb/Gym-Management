@@ -238,7 +238,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
             """
             SELECT id,
                 enabled OR subscription_expiring_enabled OR low_sessions_enabled OR birthday_enabled OR payable_due_enabled
-                    OR daily_report_enabled OR subscription_receipt_enabled,
+                    OR daily_report_enabled OR subscription_receipt_enabled OR welcome_enabled,
                 num_nonnulls(subscription_expiring_days_before, subscription_expiring_send_time,
                     low_sessions_threshold, low_sessions_send_time,
                     birthday_days_before, birthday_send_time,

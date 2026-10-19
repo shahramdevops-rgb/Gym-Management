@@ -1632,6 +1632,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_notifications");
 
+                    b.HasIndex("MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_welcome_per_member")
+                        .HasFilter("kind = 'Welcome'");
+
                     b.HasIndex("PayableId")
                         .IsUnique()
                         .HasDatabaseName("ix_notifications_one_per_payable")
@@ -1662,9 +1667,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_notifications_delivery_only_when_sent", "delivery IS NULL OR status = 'Sent'");
 
-                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL)");
+                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL)");
 
-                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt')");
+                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome')");
 
                             t.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
 
@@ -1777,6 +1782,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
 
+                    b.Property<bool>("WelcomeEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("welcome_enabled");
+
                     b.HasKey("Id")
                         .HasName("pk_sms_settings");
 
@@ -1820,7 +1829,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             LowSessionsEnabled = false,
                             PayableDueEnabled = false,
                             SubscriptionExpiringEnabled = false,
-                            SubscriptionReceiptEnabled = false
+                            SubscriptionReceiptEnabled = false,
+                            WelcomeEnabled = false
                         });
                 });
 

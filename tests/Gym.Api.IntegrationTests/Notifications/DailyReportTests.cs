@@ -239,7 +239,8 @@ public sealed class DailyReportTests(DatabaseFixture fixture) : DatabaseTestBase
             ownerPhone: null,
             dailyReportEnabled: true,
             ReportPhone,
-            subscriptionReceiptEnabled: false).IsSuccess.ShouldBeTrue();
+            subscriptionReceiptEnabled: false,
+            welcomeEnabled: false).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

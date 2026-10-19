@@ -66,6 +66,8 @@ public sealed class DemoSeederTests(DatabaseFixture fixture) : DatabaseTestBase(
             .ShouldBeGreaterThan(0, "the plans paid in full got their receipts, on the demo's own clock.");
         (await db.Notifications.Where(n => n.Kind == NotificationKind.SubscriptionReceipt).MaxAsync(n => n.SentAt, ct))
             .ShouldNotBeNull().ShouldBeLessThan(startedAt, "a receipt is sent when the demo's payment was made, not at the real time.");
+        (await db.Notifications.CountAsync(n => n.Kind == NotificationKind.Welcome && n.Status == NotificationStatus.Sent, ct))
+            .ShouldBeGreaterThan(0, "the first plans sold once SMS was on got their welcomes.");
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var staff = await userManager.GetUsersInRoleAsync(Roles.Staff);

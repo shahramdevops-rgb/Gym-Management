@@ -38,8 +38,10 @@ public static class DemoServices
         services.AddScoped<ISmsAccount>(provider => provider.GetRequiredService<FakeSmsSender>());
 
         services.RemoveAll<ISubscriptionReceiptScheduler>();
-        services.AddSingleton<DemoReceiptScheduler>();
-        services.AddSingleton<ISubscriptionReceiptScheduler>(provider => provider.GetRequiredService<DemoReceiptScheduler>());
+        services.RemoveAll<IWelcomeScheduler>();
+        services.AddSingleton<DemoSmsJobs>();
+        services.AddSingleton<ISubscriptionReceiptScheduler>(provider => provider.GetRequiredService<DemoSmsJobs>());
+        services.AddSingleton<IWelcomeScheduler>(provider => provider.GetRequiredService<DemoSmsJobs>());
 
         return services;
     }

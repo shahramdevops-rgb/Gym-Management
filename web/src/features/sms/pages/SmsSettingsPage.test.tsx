@@ -29,6 +29,7 @@ const empty: SmsSettings = {
   ownerPhone: null,
   dailyReport: { enabled: false, phone: null, sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: false, morningSendTime: "10:00:00" },
+  welcome: { enabled: false, morningSendTime: "10:00:00" },
   version: 1,
 };
 
@@ -45,6 +46,7 @@ const filled: SmsSettings = {
   ownerPhone: "+989121234567",
   dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: true, morningSendTime: "10:00:00" },
+  welcome: { enabled: true, morningSendTime: "10:00:00" },
   version: 5,
 };
 
@@ -300,6 +302,7 @@ describe("SmsSettingsPage", () => {
       ownerPhone: "0912 123 4567",
       dailyReport: { enabled: false, phone: null },
       subscriptionReceipt: { enabled: false },
+      welcome: { enabled: false },
       version: empty.version,
     });
   });
@@ -433,6 +436,40 @@ describe("SmsSettingsPage", () => {
     expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
     const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
     expect(body.subscriptionReceipt).toEqual({ enabled: true });
+  });
+
+  it("SmsSettingsPage_Welcome_IsOnlyASwitchAndSaysWhenItGoes", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+
+    const welcome = await screen.findByRole("group", { name: "خوش‌آمد" });
+    expect(switchOf("خوش‌آمد")).toBeEnabled();
+    expect(switchOf("خوش‌آمد")).not.toBeChecked();
+    expect(within(welcome).queryAllByRole("textbox")).toHaveLength(0);
+    expect(within(welcome).getByText(/اولین پلن/)).toBeInTheDocument();
+    expect(within(welcome).getByText(/صبح روز بعد ساعت ۱۰:۰۰/)).toBeInTheDocument();
+  });
+
+  it("SmsSettingsPage_WelcomeSaved_ShowsItOn", async () => {
+    ownerWith(filled);
+    renderApp("/sms-settings", { session: session() });
+
+    await waitFor(() => expect(switchOf("خوش‌آمد")).toBeChecked());
+  });
+
+  it("SmsSettingsPage_WelcomeTurnedOn_SendsItsSwitch", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "خوش‌آمد" });
+
+    fireEvent.click(switchOf("خوش‌آمد"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.welcome).toEqual({ enabled: true });
   });
 
   it("SmsSettingsPage_DailyReportOnWithItsNumberEmptied_SaysWhatIsMissing", async () => {

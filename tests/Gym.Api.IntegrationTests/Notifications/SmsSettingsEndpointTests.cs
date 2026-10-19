@@ -32,6 +32,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     private static readonly object ReportOff = new { enabled = false, phone = (string?)null };
 
     private static readonly object ReceiptOff = new { enabled = false };
+    private static readonly object WelcomeOff = new { enabled = false };
 
     // ---- The seeded row ----
 
@@ -115,6 +116,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         settings.OwnerPhone.ShouldBeNull();
         settings.DailyReport.ShouldBe(new DailyReportSettingsResponse(false, null, new TimeOnly(22, 45)));
         settings.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(false, new TimeOnly(10, 0)));
+        settings.Welcome.ShouldBe(new WelcomeSettingsResponse(false, new TimeOnly(10, 0)));
     }
 
     [Fact]
@@ -161,6 +163,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         reread.OwnerPhone.ShouldBe("+989121234567");
         reread.DailyReport.ShouldBe(new DailyReportSettingsResponse(true, "+989351234567", new TimeOnly(22, 45)));
         reread.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(true, new TimeOnly(10, 0)));
+        reread.Welcome.ShouldBe(new WelcomeSettingsResponse(true, new TimeOnly(10, 0)));
     }
 
     // ---- The subscription receipt (task 10.9) ----
@@ -193,6 +196,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             payableDue = Off,
             ownerPhone = (string?)null,
             dailyReport = ReportOff,
+            welcome = WelcomeOff,
             version = read.Version,
         });
 
@@ -215,6 +219,61 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             .FirstAsync(TestContext.Current.CancellationToken);
         Value(update.OldValues, nameof(SmsSettings.SubscriptionReceiptEnabled)).GetBoolean().ShouldBeFalse();
         Value(update.NewValues, nameof(SmsSettings.SubscriptionReceiptEnabled)).GetBoolean().ShouldBeTrue();
+    }
+
+    // ---- The welcome (task 10.10) ----
+
+    [Fact]
+    public async Task Update_WelcomeOn_IsSavedWithNothingElseToFill()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, welcome: new { enabled = true }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).Welcome.Enabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Update_WelcomeLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = Off,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "welcome", "Sms.SettingsIncomplete");
+    }
+
+    [Fact]
+    public async Task Update_WelcomeTurnedOn_IsInTheAuditLog()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        (await UpdateAsync(client, token, Body(read.Version, welcome: new { enabled = true })))
+            .EnsureSuccessStatusCode().Dispose();
+
+        await using var scope = Fixture.CreateScope();
+        var update = await scope.ServiceProvider.GetRequiredService<AppDbContext>().AuditLogs.AsNoTracking()
+            .Where(log => log.EntityType == nameof(SmsSettings) && log.Action == AuditAction.Update)
+            .OrderByDescending(log => log.OccurredAt)
+            .FirstAsync(TestContext.Current.CancellationToken);
+        Value(update.OldValues, nameof(SmsSettings.WelcomeEnabled)).GetBoolean().ShouldBeFalse();
+        Value(update.NewValues, nameof(SmsSettings.WelcomeEnabled)).GetBoolean().ShouldBeTrue();
     }
 
     // ---- The daily report (task 10.7) ----
@@ -279,6 +338,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             payableDue = Off,
             ownerPhone = (string?)null,
             subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
             version = read.Version,
         });
 
@@ -390,6 +450,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
         // On, but no send time: the receipt goes at each payment, never by a daily run.
         applied.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
+        applied.For(NotificationKind.Welcome).ShouldBe(new SmsKindSettings(true, null, null));
     }
 
     [Fact]
@@ -469,6 +530,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             ownerPhone = (string?)null,
             dailyReport = ReportOff,
             subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
             version = read.Version,
         });
 
@@ -524,7 +586,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         object? payableDue = null,
         string? ownerPhone = null,
         object? dailyReport = null,
-        object? subscriptionReceipt = null) =>
+        object? subscriptionReceipt = null,
+        object? welcome = null) =>
         new
         {
             enabled,
@@ -535,6 +598,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             ownerPhone,
             dailyReport = dailyReport ?? ReportOff,
             subscriptionReceipt = subscriptionReceipt ?? ReceiptOff,
+            welcome = welcome ?? WelcomeOff,
             version,
         };
 
@@ -547,7 +611,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         payableDue: Kind(true, 3, "22:00:00"),
         ownerPhone: "09121234567",
         dailyReport: new { enabled = true, phone = "09351234567" },
-        subscriptionReceipt: new { enabled = true });
+        subscriptionReceipt: new { enabled = true },
+        welcome: new { enabled = true });
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {

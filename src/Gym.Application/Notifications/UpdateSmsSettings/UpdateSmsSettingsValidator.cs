@@ -29,8 +29,12 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
             CheckKind(NotificationKind.PayableDue, settings, context));
         RuleFor(command => command.DailyReport).Custom(CheckDailyReport);
 
-        // Nothing to fill in, but left out it would quietly turn the receipt off.
+        // Nothing to fill in, but left out they would quietly turn the receipt or the welcome off.
         RuleFor(command => command.SubscriptionReceipt)
+            .NotNull()
+            .WithMessage("Every kind must be sent, on or off.")
+            .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);
+        RuleFor(command => command.Welcome)
             .NotNull()
             .WithMessage("Every kind must be sent, on or off.")
             .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);

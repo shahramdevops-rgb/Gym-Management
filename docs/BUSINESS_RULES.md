@@ -1321,7 +1321,8 @@ sent that the Owner did not choose, and the same message is never paid for twice
 - **Each event is sent once**, enforced by unique indexes in the database: one `SubscriptionExpiring`
   and one `LowSessions` per subscription, one `Birthday` per member and Jalali year, one `PayableDue`
   per cheque or instalment, one `DailyReport` per day (*The daily report* below), one
-  `SubscriptionReceipt` per subscription (*The subscription receipt* below). Running the job
+  `SubscriptionReceipt` per subscription (*The subscription receipt* below), one `Welcome` per
+  member (*The welcome* below). Running the job
   twice sends nothing twice. A cheque or instalment whose date is changed after its SMS went out
   gets no second one (§0).
 
@@ -1388,6 +1389,38 @@ Decided with the developer on 1405/07/27 (2026-10-19), task 10.9.
   its job is made again after the restart, and becomes `Unknown`, never sent again by itself.
   Receipts are sent one at a time.
 
+### The welcome (خوش‌آمد)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.10.
+- **One SMS to the member (`Welcome`) when their first membership plan is sold**, paid or not: it is
+  about joining, not about money. The **first plan** is the one sold while the member has no other
+  membership plan that is not cancelled, the same test as «عضو جدید» on the dashboard (§12 *New
+  members*). A single visit never gets one, and single visits bought before do not count as plans.
+- **Every way of selling a plan counts**: assign, renew (a member whose only plans were cancelled can
+  renew into a first plan), and a plan sold with a check-in (§7 *Confirming at the front desk*).
+- **Its price does not matter**: a plan is priced by its sessions (§3), and one that came out at 0
+  (the session price set to 0) is still a member's first plan.
+- **Members who hold plans already never get it**: their next plan is not their first. A member
+  moved over from the paper notebook whose first plan in the system is sold now gets it like anyone
+  new (decided with the developer); the text says nothing that would be wrong for them.
+- **Only while it is on**: a sale gets a welcome only when all SMS and this kind are on at the moment
+  the sale is written. Turning it on later sends nothing for sales made before.
+- **When**: as the receipt (*The subscription receipt*): at once, in the background, so the desk
+  never waits for Kavenegar; a sale made outside 08:00–22:00 has it sent **at 10:00 the next
+  morning**, fixed in the code. A first plan paid at once gets two SMS, the welcome and then its
+  receipt: they are separate kinds with separate switches (decided with the developer).
+- **Checked again when it is sent**: nothing goes if all SMS or this kind has been turned off since,
+  the plan has been cancelled, or the member deactivated. A first plan cancelled **before** its
+  welcome went out sends nothing, and the next plan sold to them is then their first (a plan sold
+  while that one still stood is not, being sold after it). One cancelled
+  **after** sends nothing more, and no later plan gets a welcome.
+- **What it says**: the member's name and the gym's welcome (`docs/sms-texts.md`); one SMS part.
+- **Once per member**, enforced by a unique index on the member for this kind, and once per plan by
+  the index on the subscription and the kind.
+- **Written before it is sent, retries and resend** as the receipt: saved as `Pending` before the
+  request; a failure that may pass is tried again until 22:00; the Owner can resend a failed one; a
+  welcome the server stopped between the two saves becomes `Unknown`, never sent again by itself.
+  Welcomes are sent one at a time.
+
 ### The daily runs
 Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - **One run per kind, at its own send time**, every day, in Asia/Tehran. Only a kind that is on
@@ -1429,6 +1462,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Cheques and instalments | on/off, days before the date, send time, the Owner's mobile number | 0–30 days |
   | Daily report | on/off, the mobile number it goes to | sent at 22:45, fixed |
   | Subscription receipt | on/off | sent at once; after 22:00 at 10:00, fixed |
+  | Welcome | on/off | sent at once; after 22:00 at 10:00, fixed |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,

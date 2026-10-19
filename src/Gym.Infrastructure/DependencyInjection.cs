@@ -145,6 +145,10 @@ public static class DependencyInjection
         services.AddSingleton<ISubscriptionReceiptScheduler, HangfireSubscriptionReceiptScheduler>();
         services.AddScoped<SubscriptionReceiptJob>();
 
+        // The welcome likewise, one job per first plan, enqueued after the sale is saved (task 10.10).
+        services.AddSingleton<IWelcomeScheduler, HangfireWelcomeScheduler>();
+        services.AddScoped<WelcomeJob>();
+
         // Without this, /health would only report that the process is running, and an
         // orchestrator would happily route traffic to an API that cannot reach its database.
         services.AddHealthChecks()

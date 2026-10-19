@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Members;
+using Gym.Application.Notifications.SendWelcome;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
@@ -19,7 +20,12 @@ namespace Gym.Application.Attendances.CheckIn;
 /// both roles.
 /// </summary>
 public sealed class CheckInHandler(
-    IAppDbContext db, IGymCalendar calendar, TimeProvider time, SubscriptionSeller seller, ISubscriptionPolicy policy)
+    IAppDbContext db,
+    IGymCalendar calendar,
+    TimeProvider time,
+    SubscriptionSeller seller,
+    ISubscriptionPolicy policy,
+    Welcomes welcomes)
 {
     public async Task<Result<AttendanceResponse>> Handle(Guid memberId, CheckInCommand command, CancellationToken cancellationToken)
     {
@@ -51,6 +57,7 @@ public sealed class CheckInHandler(
 
         var today = calendar.Today();
 
+        Subscription? soldPlan = null;
         if (command.Sale is { } sale)
         {
             var sold = await SellAsync(member, sale, today, cancellationToken);
@@ -58,6 +65,8 @@ public sealed class CheckInHandler(
             {
                 return Result.Failure<AttendanceResponse>(sold.Error);
             }
+
+            soldPlan = sold.Value.IsSingleSession ? null : sold.Value;
         }
 
         // Tracked, not AsNoTracking: InEffectToday may move the queue up, and those changes are
@@ -182,6 +191,12 @@ public sealed class CheckInHandler(
             return Result.Failure<AttendanceResponse>(SubscriptionErrors.ChangedConcurrently);
         }
 
+        // A plan sold in this box may be the member's first (BUSINESS_RULES.md §10 The welcome).
+        if (soldPlan is not null)
+        {
+            await welcomes.QueueIfFirstPlanAsync(soldPlan.Id, cancellationToken);
+        }
+
         // BUSINESS_RULES.md §7: money owed never blocks a check-in. The visit is already committed;
         // this only tells the front desk what to mention while the member is still at the desk.
         // Read after the commit because check-in moves no money, so the total cannot have changed.
@@ -197,7 +212,7 @@ public sealed class CheckInHandler(
     /// Nothing is committed until the visit is: if the member still cannot come in today (a plan
     /// queued behind a frozen one, say), or the locker is gone, the sale is rolled back with it.
     /// </summary>
-    private async Task<Result> SellAsync(Member member, CheckInSale sale, DateOnly today, CancellationToken cancellationToken)
+    private async Task<Result<Subscription>> SellAsync(Member member, CheckInSale sale, DateOnly today, CancellationToken cancellationToken)
     {
         var added = sale.Kind == CheckInSaleKind.SingleVisit
             ? await seller.AddSingleVisitAsync(member, today, cancellationToken)
@@ -206,7 +221,7 @@ public sealed class CheckInHandler(
 
         if (added.IsFailure)
         {
-            return Result.Failure(added.Error);
+            return added;
         }
 
         try
@@ -215,14 +230,14 @@ public sealed class CheckInHandler(
         }
         catch (ExclusionConstraintException exception) when (exception.ConstraintName == SubscriptionConstraints.NoOverlap)
         {
-            return Result.Failure(SubscriptionErrors.ChangedConcurrently);
+            return Result.Failure<Subscription>(SubscriptionErrors.ChangedConcurrently);
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Result.Failure(SubscriptionErrors.ChangedConcurrently);
+            return Result.Failure<Subscription>(SubscriptionErrors.ChangedConcurrently);
         }
 
-        return Result.Success();
+        return added;
     }
 
     /// <summary>

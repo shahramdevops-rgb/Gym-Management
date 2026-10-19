@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Notifications.SendWelcome;
 using Gym.Application.Pricing;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
@@ -18,9 +19,10 @@ namespace Gym.Application.Subscriptions;
 /// Each sale comes in two forms. <c>Sell…Async</c> is a sale on its own: it opens the transaction,
 /// takes the member's lock and commits. <c>Add…Async</c> is the same sale inside a transaction the
 /// caller already holds, for check-in, which sells and lets the member in as one operation
-/// (BUSINESS_RULES.md §7 <i>Confirming at the front desk</i>, roadmap 6.5.7).
+/// (BUSINESS_RULES.md §7 <i>Confirming at the front desk</i>, roadmap 6.5.7). Only a sale on its
+/// own asks for the member's welcome; check-in asks after its own commit.
 /// </remarks>
-public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
+public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar, Welcomes welcomes)
 {
     /// <summary>A plan of so many sessions, for the days they give: assign and renew.</summary>
     public async Task<Result<SubscriptionResponse>> SellMembershipAsync(
@@ -41,7 +43,15 @@ public sealed class SubscriptionSeller(IAppDbContext db, IGymCalendar calendar)
             return Result.Failure<SubscriptionResponse>(added.Error);
         }
 
-        return await SaveAsync(added.Value, transaction, today, cancellationToken);
+        var saved = await SaveAsync(added.Value, transaction, today, cancellationToken);
+
+        // After the commit (BUSINESS_RULES.md §10 The welcome): the member's first plan earns one.
+        if (saved.IsSuccess)
+        {
+            await welcomes.QueueIfFirstPlanAsync(added.Value.Id, cancellationToken);
+        }
+
+        return saved;
     }
 
     /// <summary>

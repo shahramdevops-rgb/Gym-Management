@@ -123,3 +123,15 @@ A plan queued behind another, whose dates are not settled yet (§4), has its day
 - `{price}`: the subscription's price in Toman, e.g. `۱٬۲۰۰٬۰۰۰`.
 - About 125 characters with a 10-character name, two parts; about 135 for a queued plan, three. The
   developer took «مبلغ» and «پایان» out to keep the first one in two parts (1405/07/27).
+
+### Welcome (`Welcome`, to the member)
+
+Chosen by the developer on 1405/07/27 (2026-10-19), task 10.10. Sent when a member's first plan is
+sold (BUSINESS_RULES.md §10 *The welcome*).
+
+```
+{name} عزیز، به باشگاه پاسارگاد خوش آمدید!
+```
+
+- Nothing in it would be wrong for a member moved over from the paper notebook, who gets it too.
+- About 52 characters with a 10-character name: one part, the only text that fits in one.

@@ -106,6 +106,23 @@ public sealed class NotificationTests
     }
 
     [Fact]
+    public void ForWelcome_NamesTheMemberAndTheirFirstPlan()
+    {
+        var memberId = Guid.NewGuid();
+        var subscriptionId = Guid.NewGuid();
+
+        var notification = Notification.ForWelcome(memberId, subscriptionId, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.Welcome);
+        notification.MemberId.ShouldBe(memberId);
+        notification.SubscriptionId.ShouldBe(subscriptionId);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+    }
+
+    [Fact]
     public void ForSubscriptionReceipt_EmptySubscriptionId_Throws()
     {
         Should.Throw<ArgumentException>(() => Notification.ForSubscriptionReceipt(Guid.NewGuid(), Guid.Empty, Phone, Text));

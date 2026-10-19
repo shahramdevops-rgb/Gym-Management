@@ -408,7 +408,8 @@ public sealed class SubscriptionReceiptTests(DatabaseFixture fixture) : Database
             ownerPhone: null,
             dailyReportEnabled: false,
             dailyReportPhone: null,
-            subscriptionReceiptEnabled: receipt).IsSuccess.ShouldBeTrue();
+            subscriptionReceiptEnabled: receipt,
+            welcomeEnabled: false).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

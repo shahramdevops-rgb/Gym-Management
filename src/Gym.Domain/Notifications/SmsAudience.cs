@@ -125,6 +125,34 @@ public static class SmsAudience
     }
 
     /// <summary>
+    /// Whether a plan is the member's first (§10 <i>The welcome</i>, task 10.10): a membership, not
+    /// cancelled, sold while the member had no other membership that is not cancelled. Only the
+    /// plans sold before it count: a plan sold after the first does not make it any less the first.
+    /// Single visits never count, either way.
+    /// </summary>
+    /// <remarks>
+    /// "Sold before" is the moment it was saved, and the id when two share a moment, so of two plans
+    /// exactly one is the first, even when both are asked about after both were saved.
+    /// </remarks>
+    /// <param name="others">The member's other subscriptions; the plan itself may be among them.</param>
+    public static bool IsFirstPlan(Subscription plan, IEnumerable<Subscription> others)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(others);
+
+        if (plan.IsSingleSession || plan.CancelledAt is not null)
+        {
+            return false;
+        }
+
+        return !others.Any(other =>
+            other.Id != plan.Id
+            && !other.IsSingleSession
+            && other.CancelledAt is null
+            && SoldBefore(other, plan));
+    }
+
+    /// <summary>
     /// A plan waiting in line behind another membership of the same member (§4): it has not started
     /// and a live membership ends the day before it starts, so its dates are only where it stands
     /// today. The same test as the member's history («بعد از پلن قبلی»).
@@ -148,6 +176,10 @@ public static class SmsAudience
             && other.CancelledAt is null
             && other.EndDate == dayBefore);
     }
+
+    private static bool SoldBefore(Subscription one, Subscription other) =>
+        one.CreatedAt < other.CreatedAt
+        || (one.CreatedAt == other.CreatedAt && one.Id.CompareTo(other.Id) < 0);
 
     private static bool IsActivePlan(Subscription subscription, DateOnly today) =>
         !subscription.IsSingleSession && subscription.GetStatus(today) == SubscriptionStatus.Active;

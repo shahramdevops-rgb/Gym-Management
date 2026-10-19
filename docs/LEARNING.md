@@ -1779,3 +1779,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **A test double for anything that runs later.** The test host has a real Hangfire server; a receipt enqueued by one test would run during another. `RecordingSubscriptionReceiptScheduler` only remembers what it was asked, and the tests run the handler themselves on a `FakeTimeProvider`.
 - **Measure the text, do not estimate it.** The first wording came to 130 and 146 characters, three SMS parts for a queued plan; a test that checks the length found it, and the developer took two words out.
 - **My notes:**
+
+## 10.10 — Welcome (خوش‌آمد)
+
+- **"First" needs an order, and a tie needs a tie-breaker.** A plan is the first when no live plan was sold *before* it, so a plan sold later never takes the title away. Two sales a millisecond apart could both be committed before either asks "am I first?"; ordering by `CreatedAt` and then by id makes exactly one of them first, whatever the timing.
+- **Two unique indexes for two different promises.** The index on (subscription, kind) keeps one welcome per plan; a filtered index on the member (`WHERE kind = 'Welcome'`) keeps one per member, so a first plan cancelled after its welcome does not earn the next plan a second one. A partial unique index can promise something only for some rows of a shared table.
+- **One place for a shared side effect.** Assign and renew both go through `SubscriptionSeller.SellMembershipAsync`, so the welcome is asked for there once; check-in sells inside its own transaction and asks after its own commit. Putting it in each endpoint would have meant three copies, and the next way of selling a plan would have forgotten it.
+- **A second job of the same shape, kept separate.** The welcome copies the receipt's flow (scheduler interface, Hangfire job, handler) instead of a generic "message job". Each stays readable on its own and each has its own one-at-a-time lock; the shared part (`SmsRequest`) was already extracted in 10.9.
+- **Reflection in a test, not a setter in the entity.** `CreatedAt` is stamped by the database interceptor and has no public setter; the domain test sets it by reflection, so the entity does not grow a method only tests would call.
+- **My notes:**

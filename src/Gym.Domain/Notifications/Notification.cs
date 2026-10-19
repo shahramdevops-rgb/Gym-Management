@@ -13,7 +13,7 @@ namespace Gym.Domain.Notifications;
 /// <see cref="NotificationKind.SubscriptionExpiring"/> per subscription, one birthday per member and
 /// Jalali year, one <see cref="NotificationKind.PayableDue"/> per cheque or instalment, one
 /// <see cref="NotificationKind.DailyReport"/> per day, one <see cref="NotificationKind.SubscriptionReceipt"/>
-/// per subscription), a second
+/// per subscription, one <see cref="NotificationKind.Welcome"/> per member), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -46,8 +46,9 @@ public sealed class Notification : Entity
     public Guid? MemberId { get; private set; }
 
     /// <summary>
-    /// Set for <see cref="NotificationKind.SubscriptionExpiring"/>, <see cref="NotificationKind.LowSessions"/>
-    /// and <see cref="NotificationKind.SubscriptionReceipt"/>.
+    /// Set for <see cref="NotificationKind.SubscriptionExpiring"/>, <see cref="NotificationKind.LowSessions"/>,
+    /// <see cref="NotificationKind.SubscriptionReceipt"/> and <see cref="NotificationKind.Welcome"/> (the
+    /// first plan).
     /// </summary>
     public Guid? SubscriptionId { get; private set; }
 
@@ -103,6 +104,12 @@ public sealed class Notification : Entity
     public static Notification ForSubscriptionReceipt(
         Guid memberId, Guid subscriptionId, string recipient, string text) =>
         ForSubscription(NotificationKind.SubscriptionReceipt, memberId, subscriptionId, recipient, text);
+
+    /// <summary>The member's first plan was sold (<see cref="NotificationKind.Welcome"/>, task 10.10): at most one per member.</summary>
+    /// <param name="subscriptionId">The first plan.</param>
+    public static Notification ForWelcome(
+        Guid memberId, Guid subscriptionId, string recipient, string text) =>
+        ForSubscription(NotificationKind.Welcome, memberId, subscriptionId, recipient, text);
 
     /// <param name="jalaliYear">The Jalali year the birthday falls in: at most one per member and year.</param>
     public static Notification ForBirthday(

@@ -44,10 +44,11 @@ public sealed class SmsSettings : Entity
     public static readonly TimeOnly DailyReportLatestSendTime = TimeOnly.MaxValue;
 
     /// <summary>
-    /// A receipt for a payment made outside the sending hours goes at this time the next morning,
-    /// fixed in the code (decided with the developer, 1405/07/27, task 10.9).
+    /// A receipt for a payment, or a welcome for a sale, made outside the sending hours goes at this
+    /// time the next morning, fixed in the code (decided with the developer, 1405/07/27, tasks 10.9
+    /// and 10.10).
     /// </summary>
-    public static readonly TimeOnly ReceiptMorningSendTime = new(10, 0);
+    public static readonly TimeOnly MorningSendTime = new(10, 0);
 
     // For EF Core. The row comes from the migration, so no code creates one.
     private SmsSettings()
@@ -103,6 +104,12 @@ public sealed class SmsSettings : Entity
     /// </summary>
     public bool SubscriptionReceiptEnabled { get; private set; }
 
+    /// <summary>
+    /// The member's welcome when their first plan is sold (§10 <i>The welcome</i>, task 10.10). Only
+    /// a switch, like the receipt.
+    /// </summary>
+    public bool WelcomeEnabled { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
@@ -125,20 +132,21 @@ public sealed class SmsSettings : Entity
         kind == NotificationKind.DailyReport ? DailyReportLatestSendTime : LatestSendTime;
 
     /// <summary>
-    /// When a receipt asked for now is to be sent (§10 <i>The subscription receipt</i>): <c>null</c>
-    /// for at once, within 08:00–22:00; otherwise 10:00 the next morning, which is the same day
-    /// before 08:00 and the day after once it is past 22:00. A local date and time in the gym's zone.
+    /// When a receipt or a welcome asked for now is to be sent (§10 <i>The subscription receipt</i>,
+    /// <i>The welcome</i>): <c>null</c> for at once, within 08:00–22:00; otherwise 10:00 the next
+    /// morning, which is the same day before 08:00 and the day after once it is past 22:00. A local
+    /// date and time in the gym's zone.
     /// </summary>
-    public static DateTime? ReceiptDeferredUntil(DateOnly today, TimeOnly localTime)
+    public static DateTime? DeferredToMorning(DateOnly today, TimeOnly localTime)
     {
-        if (IsWithinSendingHours(NotificationKind.SubscriptionReceipt, localTime))
+        if (IsWithinSendingHours(localTime))
         {
             return null;
         }
 
         var morning = localTime < EarliestSendTime ? today : today.AddDays(1);
 
-        return morning.ToDateTime(ReceiptMorningSendTime, DateTimeKind.Unspecified);
+        return morning.ToDateTime(MorningSendTime, DateTimeKind.Unspecified);
     }
 
     /// <summary>The smallest and largest number each kind accepts (§10, the settings table).</summary>
@@ -170,6 +178,8 @@ public sealed class SmsSettings : Entity
         // Sent at each payment, not by a daily run: no send time, so no run is scheduled for it.
         NotificationKind.SubscriptionReceipt => new(
             SubscriptionReceiptEnabled, Threshold: null, SendTime: null),
+        NotificationKind.Welcome => new(
+            WelcomeEnabled, Threshold: null, SendTime: null),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown notification kind."),
     };
 
@@ -180,6 +190,7 @@ public sealed class SmsSettings : Entity
     /// <param name="ownerPhone">Already normalized to E.164 by the caller, or <c>null</c>.</param>
     /// <param name="dailyReportPhone">The same, for the daily report.</param>
     /// <param name="subscriptionReceiptEnabled">The receipt's switch: it has nothing to fill in.</param>
+    /// <param name="welcomeEnabled">The welcome's switch: nothing to fill in either.</param>
     public Result Update(
         bool enabled,
         SmsKindSettings subscriptionExpiring,
@@ -189,7 +200,8 @@ public sealed class SmsSettings : Entity
         string? ownerPhone,
         bool dailyReportEnabled,
         string? dailyReportPhone,
-        bool subscriptionReceiptEnabled)
+        bool subscriptionReceiptEnabled,
+        bool welcomeEnabled)
     {
         ArgumentNullException.ThrowIfNull(subscriptionExpiring);
         ArgumentNullException.ThrowIfNull(lowSessions);
@@ -233,6 +245,7 @@ public sealed class SmsSettings : Entity
         DailyReportPhone = reportPhone;
 
         SubscriptionReceiptEnabled = subscriptionReceiptEnabled;
+        WelcomeEnabled = welcomeEnabled;
 
         return Result.Success();
     }

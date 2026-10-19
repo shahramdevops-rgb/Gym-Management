@@ -85,6 +85,10 @@ export const smsSettingsSchema = z
     subscriptionReceipt: z.object({
       enabled: z.boolean(),
     }),
+    /** The member's welcome (task 10.10): only a switch, like the receipt. */
+    welcome: z.object({
+      enabled: z.boolean(),
+    }),
   })
   .superRefine((values, context) => {
     for (const kind of smsKinds) {
@@ -149,6 +153,7 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
       phone: settings.dailyReport.phone === null ? "" : formatPhone(settings.dailyReport.phone),
     },
     subscriptionReceipt: { enabled: settings.subscriptionReceipt.enabled },
+    welcome: { enabled: settings.welcome.enabled },
   };
 }
 
@@ -182,6 +187,7 @@ export function toInput(
       phone: reportPhone === "" ? null : reportPhone,
     },
     subscriptionReceipt: { enabled: values.subscriptionReceipt.enabled },
+    welcome: { enabled: values.welcome.enabled },
     version,
   };
 }

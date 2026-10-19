@@ -251,6 +251,7 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
         form={form}
         morningSendTime={current.subscriptionReceipt.morningSendTime}
       />
+      <WelcomeFieldset form={form} morningSendTime={current.welcome.morningSendTime} />
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={isSubmitting}>
@@ -450,6 +451,40 @@ function SubscriptionReceiptFieldset({ form, morningSendTime }: SubscriptionRece
           type="checkbox"
           className="size-4 accent-primary"
           {...form.register("subscriptionReceipt.enabled")}
+        />
+        روشن
+      </label>
+    </fieldset>
+  );
+}
+
+interface WelcomeFieldsetProps {
+  form: UseFormReturn<SmsSettingsValues>;
+  /** `HH:mm:ss` from the API: when a welcome for a sale after 22:00 goes, fixed in the code. */
+  morningSendTime: string;
+}
+
+/**
+ * The member's welcome (BUSINESS_RULES.md §10 *The welcome*, task 10.10): only a switch. It goes to
+ * the member's own number once, when their first plan is sold.
+ */
+function WelcomeFieldset({ form, morningSendTime }: WelcomeFieldsetProps) {
+  const morning = toPersianDigits(morningSendTime.slice(0, 5));
+
+  return (
+    <fieldset className="space-y-3 rounded-md border p-4">
+      <legend className="px-1 font-medium">خوش‌آمد</legend>
+      <p className="text-sm text-muted-foreground">
+        یک بار برای هر عضو، وقتی اولین پلنش فروخته شد، پرداخت‌شده یا نسیه: «… عزیز، به باشگاه
+        پاسارگاد خوش آمدید!». همان لحظه فرستاده می‌شود؛ فروشی که بعد از ساعت ۲۲ ثبت شود، صبح روز بعد
+        ساعت {morning}. عضوی که قبلاً پلن داشته، و تک‌جلسه، خوش‌آمد نمی‌گیرد.
+      </p>
+
+      <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="size-4 accent-primary"
+          {...form.register("welcome.enabled")}
         />
         روشن
       </label>

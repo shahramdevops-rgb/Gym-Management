@@ -69,7 +69,7 @@ public sealed partial class SubscriptionReceipts(
     /// </summary>
     public void Queue(Guid subscriptionId)
     {
-        if (SmsSettings.ReceiptDeferredUntil(calendar.Today(), calendar.TimeOfDay()) is { } morning)
+        if (SmsSettings.DeferredToMorning(calendar.Today(), calendar.TimeOfDay()) is { } morning)
         {
             var at = TimeZoneInfo.ConvertTimeToUtc(morning, calendar.TimeZone);
             scheduler.SendAt(subscriptionId, new DateTimeOffset(at, TimeSpan.Zero));

@@ -22,6 +22,7 @@ using Gym.Application.Notifications;
 using Gym.Application.Notifications.GetSmsSettings;
 using Gym.Application.Notifications.SendDailySms;
 using Gym.Application.Notifications.SendSubscriptionReceipt;
+using Gym.Application.Notifications.SendWelcome;
 using Gym.Application.Notifications.UpdateSmsSettings;
 using Gym.Application.Payables;
 using Gym.Application.Payables.MarkPayablePaid;
@@ -254,11 +255,11 @@ public sealed class DemoSeeder
 
             foreach (var e in events)
             {
-                // A receipt put off to 10:00, then the ones this event's payments asked for at once.
-                await SendReceiptsAsync(e.At);
+                // A receipt or welcome put off to 10:00, then the ones this event asked for at once.
+                await SendQueuedSmsAsync(e.At);
                 _clock.Set(e.At);
                 await e.Run();
-                await SendReceiptsAsync(e.At);
+                await SendQueuedSmsAsync(e.At);
             }
         }
     }
@@ -616,6 +617,7 @@ public sealed class DemoSeeder
             OwnerPhone: "09121112233",
             DailyReport: new DailyReportSettings(true, "09121112233"),
             SubscriptionReceipt: new SubscriptionReceiptSettings(true),
+            Welcome: new WelcomeSettings(true),
             Version: version);
 
         await MustAsync<UpdateSmsSettingsHandler, SmsSettingsResponse>(
@@ -628,7 +630,7 @@ public sealed class DemoSeeder
     {
         _actor.ActAsNobody();
         foreach (var kind in Enum.GetValues<NotificationKind>()
-            .Where(kind => kind is not (NotificationKind.DailyReport or NotificationKind.SubscriptionReceipt)))
+            .Where(kind => kind is not (NotificationKind.DailyReport or NotificationKind.SubscriptionReceipt or NotificationKind.Welcome)))
         {
             await using var scope = _services.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<SendDailySmsHandler>().Handle(kind, _cancellationToken);
@@ -636,12 +638,13 @@ public sealed class DemoSeeder
     }
 
     /// <summary>
-    /// The receipts due by <paramref name="until"/> (task 10.9), each at its own moment and on nobody's
-    /// behalf, as Hangfire's job would send them. Whoever the seeder was acting as is put back after.
+    /// The receipts (task 10.9) and welcomes (task 10.10) due by <paramref name="until"/>, each at its
+    /// own moment and on nobody's behalf, as Hangfire's jobs would send them. Whoever the seeder was
+    /// acting as is put back after.
     /// </summary>
-    private async Task SendReceiptsAsync(DateTimeOffset until)
+    private async Task SendQueuedSmsAsync(DateTimeOffset until)
     {
-        var due = _services.GetRequiredService<DemoReceiptScheduler>().TakeDue(until);
+        var due = _services.GetRequiredService<DemoSmsJobs>().TakeDue(until);
         if (due.Count == 0)
         {
             return;
@@ -649,7 +652,7 @@ public sealed class DemoSeeder
 
         var (userId, isOwner) = (_actor.UserId, _actor.IsOwner);
         _actor.ActAsNobody();
-        foreach (var (subscriptionId, at) in due)
+        foreach (var (kind, subscriptionId, at) in due)
         {
             if (at > _clock.GetUtcNow())
             {
@@ -657,7 +660,14 @@ public sealed class DemoSeeder
             }
 
             await using var scope = _services.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<SendSubscriptionReceiptHandler>().Handle(subscriptionId, _cancellationToken);
+            if (kind == NotificationKind.Welcome)
+            {
+                await scope.ServiceProvider.GetRequiredService<SendWelcomeHandler>().Handle(subscriptionId, _cancellationToken);
+            }
+            else
+            {
+                await scope.ServiceProvider.GetRequiredService<SendSubscriptionReceiptHandler>().Handle(subscriptionId, _cancellationToken);
+            }
         }
 
         if (userId is { } id)

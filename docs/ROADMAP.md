@@ -2752,12 +2752,27 @@ out with the SMS release (10.6), which still starts with `./backup.sh run`.
 
 #### 10.10 Welcome (خوش‌آمد)
 Decided: once per member, when they buy their **first plan**; single-session visits never get it.
-- [ ] Open: a member who already has plans in the system (registered before this goes live) never
-      gets it?
-- [ ] Open: on the first plan's sale, or when it is fully paid like the receipt? On the same purchase
-      both go out: two SMS, or one welcome that carries the receipt?
-- [ ] Open: the wording
-- [ ] Rules, settings row, tests, UI
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The welcome*:
+- [x] Members who hold plans already never get it (their next plan is not their first); a member
+      moved over from the paper notebook gets it with their first plan in the system
+- [x] Sent **at the sale** of the first plan, paid or not, as its own kind: a first plan paid at once
+      gets two SMS, the welcome and then its receipt. At once, or at 10:00 for a sale after 22:00
+- [x] The wording: «{name} عزیز، به باشگاه پاسارگاد خوش آمدید!», one SMS part
+- [x] No free-plan rule: a plan's price is its sessions × the session price (§3), and any first plan
+      gets it whatever it cost
+- [x] Rules, settings row (on/off only), the job, tests, UI: `NotificationKind.Welcome`,
+      `SmsText.ForWelcome`, `SmsAudience.IsFirstPlan` (sold before it by `CreatedAt`, then id),
+      `SmsSettings.DeferredToMorning` (was `ReceiptDeferredUntil`); `Welcomes` called after the commit
+      of `SubscriptionSeller.SellMembershipAsync` (assign, renew) and of `CheckInHandler`,
+      `IWelcomeScheduler`, `SendWelcomeHandler` run by `Jobs/WelcomeJob` one at a time; migration
+      `AddSmsWelcome` (one switch, off, the unique index `ix_notifications_one_welcome_per_member`,
+      the kind and event checks widened; no existing row is touched); «خوش‌آمد» on «تنظیمات پیامک»,
+      its label on «پیامک‌ها» and the audit screen; the demo sends them on its own clock
+
+Closed 2026-10-19: 2382 backend tests (799 domain, 1583 integration) and 1035 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSmsWelcome`,
+which only adds (one switch, off, and a unique index) and widens two check constraints, refusing no
+existing row. It goes out with the SMS release (10.6), which still starts with `./backup.sh run`.
 
 #### 10.11 Debt reminder (یادآوری بدهی)
 Decided: the Owner sets on the settings page the number of days and the minimum amount.

@@ -279,4 +279,25 @@ public sealed class SmsTextTests
 
         text.Length.ShouldBeLessThanOrEqualTo(2 * 67);
     }
+
+    // ---- The welcome (task 10.10) ----
+
+    [Fact]
+    public void ForWelcome_Member_GreetsThemByName()
+    {
+        SmsText.ForWelcome("سارا محمدی").ShouldBe("سارا محمدی عزیز، به باشگاه پاسارگاد خوش آمدید!" + OptOutLine);
+    }
+
+    [Fact]
+    public void ForWelcome_LongName_IsCutShort()
+    {
+        SmsText.ForWelcome(LongName).ShouldStartWith("سید محمد حسین علی رضا موسوی عزیز،");
+    }
+
+    [Fact]
+    public void ForWelcome_TenCharacterName_FitsInOnePart()
+    {
+        // docs/sms-texts.md: about 52 characters, one part of 70.
+        SmsText.ForWelcome("سارا محمدی").Length.ShouldBeLessThanOrEqualTo(70);
+    }
 }
