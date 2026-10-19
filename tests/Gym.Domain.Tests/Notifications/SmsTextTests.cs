@@ -65,13 +65,13 @@ public sealed class SmsTextTests
     public void ForBirthday_Birthday_IsTheAgreedTextWithTheFreeVisit()
     {
         SmsText.ForBirthday("سارا محمدی", Day)
-            .ShouldBe("سارا محمدی عزیز، ۱۴۰۵/۰۷/۲۰ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!" + OptOutLine);
+            .ShouldBe("سارا محمدی عزیز، ۰۷/۲۰ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!" + OptOutLine);
     }
 
     [Fact]
     public void ForBirthday_TenCharacterName_FitsInTwoParts()
     {
-        // docs/sms-texts.md: about 121 characters; two parts hold 134.
+        // docs/sms-texts.md: about 124 characters; two parts hold 134.
         SmsText.ForBirthday("سارا محمدی", Day).Length.ShouldBeLessThanOrEqualTo(2 * 67);
     }
 

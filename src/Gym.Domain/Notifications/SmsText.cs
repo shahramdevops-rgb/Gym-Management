@@ -72,12 +72,13 @@ public static class SmsText
         WithOptOut($"{Name(fullName)} عزیز، فقط {Number(sessionsLeft)} جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.");
 
     /// <summary>
-    /// Always sent 1 to 7 days early, so one text: the date, the free visit on it (BUSINESS_RULES.md
-    /// §7 <i>Birthday visit</i>) and «پیشاپیش مبارک» (chosen by the developer, 1405/07/27, task 10.8).
+    /// Always sent 1 to 7 days early, so one text: the date without the year, the free visit on it
+    /// (BUSINESS_RULES.md §7 <i>Birthday visit</i>) and «پیشاپیش تولدتان مبارک» (chosen by the
+    /// developer, 1405/07/27, task 10.8).
     /// </summary>
     /// <param name="birthday">This year's birthday, as <c>SmsAudience.BirthdayToGreet</c> found it.</param>
     public static string ForBirthday(string fullName, DateOnly birthday) =>
-        WithOptOut($"{Name(fullName)} عزیز، {Date(birthday)} روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!");
+        WithOptOut($"{Name(fullName)} عزیز، {MonthAndDay(birthday)} روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!");
 
     /// <summary>To the Owner: the kind, the amount, the date and the payee.</summary>
     public static string ForPayableDue(PayableKind kind, decimal amount, DateOnly dueDate, string payee)

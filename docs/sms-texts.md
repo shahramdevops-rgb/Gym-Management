@@ -60,12 +60,13 @@ days before the birthday, never on the day, and tells the member of the free vis
 «پیشاپیش»; messages written before keep their text.
 
 ```
-{name} عزیز، {birthday} روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!
+{name} عزیز، {month/day} روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!
 ```
 
-- `{birthday}`: the birthday's date this year (Jalali, with the year); 29 Esfand for someone born on
-  30 Esfand in a year without it.
-- About 121 characters: two parts.
+- `{month/day}`: the birthday's Jalali month and day **without the year** (the developer,
+  1405/07/27), e.g. `۰۷/۱۶` (`SmsText.MonthAndDay`, as in the daily report); `۱۲/۲۹` for someone
+  born on 30 Esfand in a year without it.
+- About 124 characters: two parts.
 
 ### Cheque or instalment coming due (`PayableDue`, to the Owner)
 

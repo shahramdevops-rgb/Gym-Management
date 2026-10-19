@@ -1443,8 +1443,8 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   keeps its first 6 words and a payee its first 9, then the first 100 characters.
 - **The wording** (decided with the developer, 1405/07/14, in `docs/sms-texts.md`): the gym is
   named «باشگاه پاسارگاد»; the subscription message gives the end date, not the days left; the
-  birthday has one text, always sent 1 to 7 days early, giving the birthday's date and the free
-  visit and ending «پیشاپیش مبارک!» (decided with the developer, 1405/07/27, task 10.8; replaces two
+  birthday has one text, always sent 1 to 7 days early, giving the birthday's month and day
+  (without the year) and the free visit and ending «پیشاپیش تولدتان مبارک!» (decided with the developer, 1405/07/27, task 10.8; replaces two
   texts, one of them for the day itself); the Owner's message gives the kind, the amount, the date
   and the payee.
 - **Length:** a Persian SMS holds 70 characters in one part and 67 in each part of a longer one, and

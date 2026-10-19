@@ -2707,7 +2707,7 @@ Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §7 *Bi
       visit that day uses a session; a cancelled one gives nothing back and frees the free visit
       again. No money moves, so nothing at zero is recorded; the visit is marked «تولد»
 - [x] The wording (`docs/sms-texts.md`): «{name} عزیز، {date} روز تولد شماست؛ آن روز مهمان باشگاه
-      پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!», the date with the year
+      پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!», the month and day without the year
 - [x] Rules, migration, check-in, tests, UI: `BirthdayVisit.FreeYear`, `JalaliCalendar.IsBirthday`,
       `Attendance.BirthdayYear` and `ConsumedSession`, `SmsAudience.HoldsPlanForBirthday`, one
       `SmsText.ForBirthday`; migration `AddBirthdayVisit` (`birthday_year` on `attendances`, empty for

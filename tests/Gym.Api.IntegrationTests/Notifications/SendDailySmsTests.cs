@@ -292,7 +292,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         sender.Requests.Select(request => request.Receptor)
             .ShouldBe([withPlan.PhoneNumber, frozen.PhoneNumber, queued.PhoneNumber], ignoreOrder: true);
         sender.Requests[0].Text.ShouldBe(
-            $"{Name} عزیز، ۱۴۰۵/۰۷/۱۶ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش مبارک!\nلغو11");
+            $"{Name} عزیز، ۰۷/۱۶ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!\nلغو11");
         (await NotificationsAsync()).ShouldAllBe(notification => notification.JalaliYear == 1405);
     }
 
@@ -320,7 +320,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         await RunAsync(NotificationKind.Birthday, sender);
         await RunAsync(NotificationKind.Birthday, sender, at: At(Today.AddDays(1), 10, 0));
 
-        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{Name} عزیز، ۱۴۰۵/۰۷/۱۶ روز تولد شماست؛");
+        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{Name} عزیز، ۰۷/۱۶ روز تولد شماست؛");
     }
 
     [Fact]
@@ -334,7 +334,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         await RunAsync(NotificationKind.Birthday, sender, at: At(day, 10, 0));
 
-        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{Name} عزیز، ۱۴۰۴/۱۲/۲۹ روز تولد شماست؛");
+        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{Name} عزیز، ۱۲/۲۹ روز تولد شماست؛");
     }
 
     // ---- Cheques and instalments ----
