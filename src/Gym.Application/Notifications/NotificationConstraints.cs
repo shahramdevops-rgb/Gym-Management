@@ -6,7 +6,10 @@ namespace Gym.Application.Notifications;
 /// </summary>
 public static class NotificationConstraints
 {
-    /// <summary>One <c>SubscriptionExpiring</c> and one <c>LowSessions</c> per subscription (BUSINESS_RULES.md §10).</summary>
+    /// <summary>
+    /// One <c>SubscriptionExpiring</c>, one <c>LowSessions</c> and one <c>SubscriptionReceipt</c> per
+    /// subscription (BUSINESS_RULES.md §10).
+    /// </summary>
     public const string OnePerSubscriptionAndKind = "ix_notifications_one_per_subscription_and_kind";
 
     /// <summary>One <c>Birthday</c> per member and Jalali year (BUSINESS_RULES.md §10).</summary>

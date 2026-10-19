@@ -12,7 +12,8 @@ namespace Gym.Domain.Notifications;
 /// first, then sent. Because the database allows one row per event (one
 /// <see cref="NotificationKind.SubscriptionExpiring"/> per subscription, one birthday per member and
 /// Jalali year, one <see cref="NotificationKind.PayableDue"/> per cheque or instalment, one
-/// <see cref="NotificationKind.DailyReport"/> per day), a second
+/// <see cref="NotificationKind.DailyReport"/> per day, one <see cref="NotificationKind.SubscriptionReceipt"/>
+/// per subscription), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -41,10 +42,13 @@ public sealed class Notification : Entity
     /// <summary>E.164: the member's number, or the Owner's for <see cref="NotificationKind.PayableDue"/> and <see cref="NotificationKind.DailyReport"/>.</summary>
     public string Recipient { get; private set; } = string.Empty;
 
-    /// <summary>Set for the three kinds sent to a member; <c>null</c> for the Owner's.</summary>
+    /// <summary>Set for the kinds sent to a member; <c>null</c> for the Owner's.</summary>
     public Guid? MemberId { get; private set; }
 
-    /// <summary>Set for <see cref="NotificationKind.SubscriptionExpiring"/> and <see cref="NotificationKind.LowSessions"/>.</summary>
+    /// <summary>
+    /// Set for <see cref="NotificationKind.SubscriptionExpiring"/>, <see cref="NotificationKind.LowSessions"/>
+    /// and <see cref="NotificationKind.SubscriptionReceipt"/>.
+    /// </summary>
     public Guid? SubscriptionId { get; private set; }
 
     /// <summary>Set for <see cref="NotificationKind.PayableDue"/>: the cheque or instalment.</summary>
@@ -94,6 +98,11 @@ public sealed class Notification : Entity
     public static Notification ForLowSessions(
         Guid memberId, Guid subscriptionId, string recipient, string text) =>
         ForSubscription(NotificationKind.LowSessions, memberId, subscriptionId, recipient, text);
+
+    /// <summary>The member's plan is fully paid (<see cref="NotificationKind.SubscriptionReceipt"/>, task 10.9).</summary>
+    public static Notification ForSubscriptionReceipt(
+        Guid memberId, Guid subscriptionId, string recipient, string text) =>
+        ForSubscription(NotificationKind.SubscriptionReceipt, memberId, subscriptionId, recipient, text);
 
     /// <param name="jalaliYear">The Jalali year the birthday falls in: at most one per member and year.</param>
     public static Notification ForBirthday(

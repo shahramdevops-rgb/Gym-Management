@@ -141,6 +141,10 @@ public static class DependencyInjection
         services.AddSingleton<ISmsRunSchedule, HangfireSmsRunSchedule>();
         services.AddScoped<DailySmsJob>();
 
+        // The receipt is a background job per payment, enqueued after the payment is saved (task 10.9).
+        services.AddSingleton<ISubscriptionReceiptScheduler, HangfireSubscriptionReceiptScheduler>();
+        services.AddScoped<SubscriptionReceiptJob>();
+
         // Without this, /health would only report that the process is running, and an
         // orchestrator would happily route traffic to an API that cannot reach its database.
         services.AddHealthChecks()

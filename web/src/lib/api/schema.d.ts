@@ -2155,7 +2155,7 @@ export interface components {
             payablesDue: components["schemas"]["PayableDueResponse"][];
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -2774,6 +2774,7 @@ export interface components {
             payableDue: components["schemas"]["SmsKindSettings"];
             ownerPhone: null | string;
             dailyReport: components["schemas"]["DailyReportSettingsResponse"];
+            subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettingsResponse"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -2785,6 +2786,14 @@ export interface components {
             isActive: boolean;
             mustChangePassword: boolean;
             isLockedOut: boolean;
+        };
+        SubscriptionReceiptSettings: {
+            enabled: boolean;
+        };
+        SubscriptionReceiptSettingsResponse: {
+            enabled: boolean;
+            /** Format: time */
+            morningSendTime: string;
         };
         SubscriptionResponse: {
             /** Format: uuid */
@@ -2925,6 +2934,7 @@ export interface components {
             payableDue: components["schemas"]["SmsKindSettings"];
             ownerPhone: null | string;
             dailyReport: components["schemas"]["DailyReportSettings"];
+            subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettings"];
             /** Format: uint32 */
             version: number | string;
         };

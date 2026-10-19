@@ -2,6 +2,7 @@ using Gym.Api.Admin;
 using Gym.Api.Admin.Demo;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
+using Gym.Domain.Notifications;
 using Gym.Domain.Payments;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -61,6 +62,10 @@ public sealed class DemoSeederTests(DatabaseFixture fixture) : DatabaseTestBase(
         (await db.Payables.CountAsync(p => p.PaidAt != null, ct)).ShouldBeGreaterThan(0);
         (await db.Payables.CountAsync(p => p.PaidAt == null, ct)).ShouldBeGreaterThan(0);
         (await db.Notifications.CountAsync(ct)).ShouldBeGreaterThan(0, "the SMS runs sent through the fake sender.");
+        (await db.Notifications.CountAsync(n => n.Kind == NotificationKind.SubscriptionReceipt && n.Status == NotificationStatus.Sent, ct))
+            .ShouldBeGreaterThan(0, "the plans paid in full got their receipts, on the demo's own clock.");
+        (await db.Notifications.Where(n => n.Kind == NotificationKind.SubscriptionReceipt).MaxAsync(n => n.SentAt, ct))
+            .ShouldNotBeNull().ShouldBeLessThan(startedAt, "a receipt is sent when the demo's payment was made, not at the real time.");
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var staff = await userManager.GetUsersInRoleAsync(Roles.Staff);

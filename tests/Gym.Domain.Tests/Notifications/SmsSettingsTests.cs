@@ -8,6 +8,7 @@ public sealed class SmsSettingsTests
     private const string Phone = "+989121234567";
     private const string OtherPhone = "+989351234567";
     private static readonly TimeOnly Ten = new(10, 0);
+    private static readonly DateOnly Day = new(2026, 10, 19);
 
     // ---- The seeded row ----
 
@@ -42,7 +43,8 @@ public sealed class SmsSettingsTests
             payableDue: new(true, 3, new TimeOnly(21, 45)),
             ownerPhone: Phone,
             dailyReportEnabled: true,
-            dailyReportPhone: OtherPhone);
+            dailyReportPhone: OtherPhone,
+            subscriptionReceiptEnabled: true);
 
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
@@ -53,6 +55,8 @@ public sealed class SmsSettingsTests
         settings.OwnerPhone.ShouldBe(Phone);
         settings.DailyReportEnabled.ShouldBeTrue();
         settings.DailyReportPhone.ShouldBe(OtherPhone);
+        settings.SubscriptionReceiptEnabled.ShouldBeTrue();
+        settings.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
     }
 
     [Fact]
@@ -285,6 +289,55 @@ public sealed class SmsSettingsTests
         SmsSettings.IsWithinSendingHours(NotificationKind.DailyReport, TimeOnly.MaxValue).ShouldBeTrue();
     }
 
+    // ---- The subscription receipt (task 10.9) ----
+
+    [Theory]
+    [InlineData(8, 0)]
+    [InlineData(15, 30)]
+    [InlineData(22, 0)]
+    public void ReceiptDeferredUntil_WithinTheHours_IsNow(int hour, int minute)
+    {
+        SmsSettings.ReceiptDeferredUntil(Day, new TimeOnly(hour, minute)).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(22, 1)]
+    [InlineData(23, 59)]
+    public void ReceiptDeferredUntil_After2200_IsTenTheNextMorning(int hour, int minute)
+    {
+        SmsSettings.ReceiptDeferredUntil(Day, new TimeOnly(hour, minute))
+            .ShouldBe(Day.AddDays(1).ToDateTime(new TimeOnly(10, 0)));
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(7, 59)]
+    public void ReceiptDeferredUntil_Before0800_IsTenThatMorning(int hour, int minute)
+    {
+        SmsSettings.ReceiptDeferredUntil(Day, new TimeOnly(hour, minute))
+            .ShouldBe(Day.ToDateTime(new TimeOnly(10, 0)));
+    }
+
+    [Fact]
+    public void For_SubscriptionReceipt_HasNoSendTimeSoNoDailyRun()
+    {
+        var settings = Empty();
+        Save(settings, subscriptionReceiptEnabled: true).IsSuccess.ShouldBeTrue();
+
+        settings.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
+        SmsSettings.LatestSendTimeFor(NotificationKind.SubscriptionReceipt).ShouldBe(new TimeOnly(22, 0));
+    }
+
+    [Fact]
+    public void Update_SubscriptionReceiptOnWithEverythingElseEmpty_Succeeds()
+    {
+        var settings = Empty();
+
+        Save(settings, enabled: true, subscriptionReceiptEnabled: true).IsSuccess.ShouldBeTrue();
+
+        settings.SubscriptionReceiptEnabled.ShouldBeTrue();
+    }
+
     // ---- Helpers ----
 
     private static Domain.Common.Result Save(
@@ -296,7 +349,8 @@ public sealed class SmsSettingsTests
         SmsKindSettings? payableDue = null,
         string? ownerPhone = null,
         bool dailyReportEnabled = false,
-        string? dailyReportPhone = null) =>
+        string? dailyReportPhone = null,
+        bool subscriptionReceiptEnabled = false) =>
         settings.Update(
             enabled,
             subscriptionExpiring ?? SmsKindSettings.Off,
@@ -305,7 +359,8 @@ public sealed class SmsSettingsTests
             payableDue ?? SmsKindSettings.Off,
             ownerPhone,
             dailyReportEnabled,
-            dailyReportPhone);
+            dailyReportPhone,
+            subscriptionReceiptEnabled);
 
     /// <summary>
     /// The one row the migration seeds. There is no public constructor, on purpose: nothing in the

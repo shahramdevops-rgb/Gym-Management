@@ -102,3 +102,24 @@ that same day (BUSINESS_RULES.md §10 *The daily report*).
 - No SMS for a day with nothing (every figure zero).
 - About 125 characters for a busy day: two parts. Written in full Toman it would be about 136, three
   parts; that is why the developer took the zeros off.
+
+### Subscription receipt (`SubscriptionReceipt`, to the member)
+
+Agreed with the developer on 1405/07/27 (2026-10-19), task 10.9. Sent when a plan becomes fully paid
+(BUSINESS_RULES.md §10 *The subscription receipt*).
+
+```
+{name} عزیز، اشتراک {sessions} جلسه‌ای شما در باشگاه پاسارگاد از {start} تا {end} ثبت و {price} تومان کامل پرداخت شد. سپاس!
+```
+
+A plan queued behind another, whose dates are not settled yet (§4), has its days instead of dates:
+
+```
+{name} عزیز، اشتراک {sessions} جلسه‌ای شما در باشگاه پاسارگاد ({days} روز، پس از اشتراک فعلی) ثبت و {price} تومان کامل پرداخت شد. سپاس!
+```
+
+- `{start}` and `{end}`: the Jalali month and day **without the year** (the developer chose it), e.g.
+  `۰۷/۲۷` (`SmsText.MonthAndDay`).
+- `{price}`: the subscription's price in Toman, e.g. `۱٬۲۰۰٬۰۰۰`.
+- About 125 characters with a 10-character name, two parts; about 135 for a queued plan, three. The
+  developer took «مبلغ» and «پایان» out to keep the first one in two parts (1405/07/27).

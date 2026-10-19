@@ -31,6 +31,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     private static readonly object ReportOff = new { enabled = false, phone = (string?)null };
 
+    private static readonly object ReceiptOff = new { enabled = false };
+
     // ---- The seeded row ----
 
     [Fact]
@@ -112,6 +114,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         settings.PayableDue.ShouldBe(SmsKindSettings.Off);
         settings.OwnerPhone.ShouldBeNull();
         settings.DailyReport.ShouldBe(new DailyReportSettingsResponse(false, null, new TimeOnly(22, 45)));
+        settings.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(false, new TimeOnly(10, 0)));
     }
 
     [Fact]
@@ -157,6 +160,61 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         reread.PayableDue.ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(22, 0)));
         reread.OwnerPhone.ShouldBe("+989121234567");
         reread.DailyReport.ShouldBe(new DailyReportSettingsResponse(true, "+989351234567", new TimeOnly(22, 45)));
+        reread.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(true, new TimeOnly(10, 0)));
+    }
+
+    // ---- The subscription receipt (task 10.9) ----
+
+    [Fact]
+    public async Task Update_SubscriptionReceiptOn_IsSavedWithNothingElseToFill()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, subscriptionReceipt: new { enabled = true }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).SubscriptionReceipt.Enabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Update_SubscriptionReceiptLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = Off,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "subscriptionReceipt", "Sms.SettingsIncomplete");
+    }
+
+    [Fact]
+    public async Task Update_SubscriptionReceiptTurnedOn_IsInTheAuditLog()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        (await UpdateAsync(client, token, Body(read.Version, subscriptionReceipt: new { enabled = true })))
+            .EnsureSuccessStatusCode().Dispose();
+
+        await using var scope = Fixture.CreateScope();
+        var update = await scope.ServiceProvider.GetRequiredService<AppDbContext>().AuditLogs.AsNoTracking()
+            .Where(log => log.EntityType == nameof(SmsSettings) && log.Action == AuditAction.Update)
+            .OrderByDescending(log => log.OccurredAt)
+            .FirstAsync(TestContext.Current.CancellationToken);
+        Value(update.OldValues, nameof(SmsSettings.SubscriptionReceiptEnabled)).GetBoolean().ShouldBeFalse();
+        Value(update.NewValues, nameof(SmsSettings.SubscriptionReceiptEnabled)).GetBoolean().ShouldBeTrue();
     }
 
     // ---- The daily report (task 10.7) ----
@@ -220,6 +278,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             birthday = Off,
             payableDue = Off,
             ownerPhone = (string?)null,
+            subscriptionReceipt = ReceiptOff,
             version = read.Version,
         });
 
@@ -328,6 +387,9 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         applied.For(NotificationKind.SubscriptionExpiring).SendTime.ShouldBe(new TimeOnly(9, 0));
         applied.For(NotificationKind.PayableDue).SendTime.ShouldBe(new TimeOnly(22, 0));
         applied.For(NotificationKind.DailyReport).ShouldBe(new SmsKindSettings(true, null, new TimeOnly(22, 45)));
+
+        // On, but no send time: the receipt goes at each payment, never by a daily run.
+        applied.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
     }
 
     [Fact]
@@ -406,6 +468,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             payableDue = Off,
             ownerPhone = (string?)null,
             dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
             version = read.Version,
         });
 
@@ -460,7 +523,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         object? birthday = null,
         object? payableDue = null,
         string? ownerPhone = null,
-        object? dailyReport = null) =>
+        object? dailyReport = null,
+        object? subscriptionReceipt = null) =>
         new
         {
             enabled,
@@ -470,6 +534,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             payableDue = payableDue ?? Off,
             ownerPhone,
             dailyReport = dailyReport ?? ReportOff,
+            subscriptionReceipt = subscriptionReceipt ?? ReceiptOff,
             version,
         };
 
@@ -481,7 +546,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         birthday: Kind(true, 1, "10:30:00"),
         payableDue: Kind(true, 3, "22:00:00"),
         ownerPhone: "09121234567",
-        dailyReport: new { enabled = true, phone = "09351234567" });
+        dailyReport: new { enabled = true, phone = "09351234567" },
+        subscriptionReceipt: new { enabled = true });
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {

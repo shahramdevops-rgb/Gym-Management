@@ -573,7 +573,13 @@ web/src/
   `[DisableConcurrentExecution]` locks on the method, so two kinds never run at once, and a `Pending` row found at
   the start of a run can only be left over from a stopped one. The integration test host replaces the schedule with
   `RecordingSmsRunSchedule`: its real Hangfire server would otherwise fire a test's run at its real time, in the middle
-  of a later test. `Sms:MaxAttempts` and `Sms:RetryDelays` become the domain's `SmsRetrySchedule` (a singleton);
+  of a later test. The receipt (task 10.9) is not a run: `SubscriptionReceipts` is called by the two payment
+  handlers after their commit and hands the subscription to `ISubscriptionReceiptScheduler`
+  (`HangfireSubscriptionReceiptScheduler`: `Enqueue`, or `Schedule` for 10:00), and `Jobs/SubscriptionReceiptJob`
+  runs `SendSubscriptionReceiptHandler`, one receipt at a time. A failure to enqueue is logged, never a failed
+  payment. Both senders record an outcome through `SmsRequest`. The test host swaps in
+  `RecordingSubscriptionReceiptScheduler`, and `admin seed-demo` its own `DemoReceiptScheduler`, which the seeder
+  empties on its own clock. `Sms:MaxAttempts` and `Sms:RetryDelays` become the domain's `SmsRetrySchedule` (a singleton);
   the waits are `Task.Delay(delay, TimeProvider)`, so a test with `FakeTimeProvider` decides when they end. An
   options list must have no default in code: the configuration binder adds to a list rather than replacing it.
   Jalali dates on the server come from .NET's own `PersianCalendar`, behind `Domain/Common/JalaliCalendar`.

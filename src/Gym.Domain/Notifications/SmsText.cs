@@ -118,9 +118,24 @@ public static class SmsText
         return WithOptOut(string.Join('\n', lines));
     }
 
+    /// <summary>
+    /// To the member when a plan is fully paid (task 10.9): its sessions, its dates without the year
+    /// (chosen by the developer, 1405/07/27) and the price paid.
+    /// </summary>
+    public static string ForSubscriptionReceipt(
+        string fullName, int sessions, DateOnly startDate, DateOnly endDate, decimal price) =>
+        WithOptOut($"{Name(fullName)} عزیز، اشتراک {Number(sessions)} جلسه‌ای شما در باشگاه پاسارگاد از {MonthAndDay(startDate)} تا {MonthAndDay(endDate)} ثبت و {Amount(price)} تومان کامل پرداخت شد. سپاس!");
+
+    /// <summary>
+    /// The receipt of a plan queued behind another (BUSINESS_RULES.md §4): its dates move if the plan
+    /// before it ends early or is frozen, so it gives its length instead of a promise.
+    /// </summary>
+    public static string ForQueuedSubscriptionReceipt(string fullName, int sessions, int days, decimal price) =>
+        WithOptOut($"{Name(fullName)} عزیز، اشتراک {Number(sessions)} جلسه‌ای شما در باشگاه پاسارگاد ({Number(days)} روز، پس از اشتراک فعلی) ثبت و {Amount(price)} تومان کامل پرداخت شد. سپاس!");
+
     // ---- The values ----
 
-    /// <summary><c>2026-10-19</c> → <c>۰۷/۲۷</c>: the daily report leaves the year out.</summary>
+    /// <summary><c>2026-10-19</c> → <c>۰۷/۲۷</c>: the daily report and the receipt leave the year out.</summary>
     public static string MonthAndDay(DateOnly date)
     {
         var (_, month, day) = JalaliCalendar.Parts(date);

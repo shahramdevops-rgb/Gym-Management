@@ -63,7 +63,8 @@ public sealed class UpdateSmsSettingsHandler(IAppDbContext db, IPhoneNormalizer 
             command.PayableDue,
             ownerPhone,
             command.DailyReport.Enabled,
-            reportPhone);
+            reportPhone,
+            command.SubscriptionReceipt.Enabled);
         if (updated.IsFailure)
         {
             return Result.Failure<SmsSettingsResponse>(updated.Error);

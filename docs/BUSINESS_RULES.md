@@ -1320,7 +1320,8 @@ sent that the Owner did not choose, and the same message is never paid for twice
   cancelled one gets none.
 - **Each event is sent once**, enforced by unique indexes in the database: one `SubscriptionExpiring`
   and one `LowSessions` per subscription, one `Birthday` per member and Jalali year, one `PayableDue`
-  per cheque or instalment, one `DailyReport` per day (*The daily report* below). Running the job
+  per cheque or instalment, one `DailyReport` per day (*The daily report* below), one
+  `SubscriptionReceipt` per subscription (*The subscription receipt* below). Running the job
   twice sends nothing twice. A cheque or instalment whose date is changed after its SMS went out
   gets no second one (§0).
 
@@ -1358,6 +1359,34 @@ the four above (roadmap 10.7 to 10.13).
   reminder's (the developer, 1405/07/27): the report can go to someone else.
 - **One per day**, enforced by a unique index on the day it is about; the run made twice, or a
   missed run made late, sends nothing twice.
+
+### The subscription receipt (رسید خرید اشتراک)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.9.
+- **One SMS to the member (`SubscriptionReceipt`) when a plan becomes fully paid** (§4 *Payment
+  status*): sent for the payment that brings its net paid up to the price, so a member who got it
+  has surely paid. A plan paid in parts gets it with the last part; one paid at once, with that
+  payment. Both ways of paying count: the subscription's own payment form and «تسویه یکجا» (§5).
+- **Plans only**: a single visit never gets one (it is sold every day and paid on the spot; the
+  SMS would only cost money), nor does a free plan (`Price = 0`): no money was paid.
+- **Only while it is on**: a payment gets a receipt only when all SMS and this kind are on at the
+  moment the payment is written. Turning it on later sends nothing for payments made before.
+- **When**: at once, in the background, so the desk never waits for Kavenegar. A payment made
+  outside 08:00–22:00 has its receipt sent **at 10:00 the next morning** (Asia/Tehran; the same
+  morning for one made before 08:00), fixed in the code. A receipt whose time comes while the server
+  is down is sent once it is back, or at the next 10:00 if that is outside 08:00–22:00.
+- **Checked again when it is sent**: nothing goes if all SMS or this kind has been turned off since,
+  the subscription has been cancelled, or the member deactivated (as every member's SMS, *The four
+  kinds*). *The deactivated member: proposed by Claude and approved with the plan, 1405/07/27.*
+- **Cancelled after its receipt went out: nothing more** is sent (decided with the developer).
+- **What it says**: the plan's sessions, its dates without the year, and the price paid. A plan
+  queued behind another (§4: its dates are only where it stands today) gives its days and «پس از
+  اشتراک فعلی» instead of dates, the same test as the member's history («بعد از پلن قبلی»).
+- **One per subscription**, enforced by the unique index on the subscription and the kind.
+- **Written before it is sent, retries and resend** as every kind (*The daily runs*): saved as
+  `Pending` before the request; a failure that may pass is tried again until 22:00; the Owner can
+  resend a failed one. A receipt the server stopped between the two saves is found `Pending` when
+  its job is made again after the restart, and becomes `Unknown`, never sent again by itself.
+  Receipts are sent one at a time.
 
 ### The daily runs
 Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
@@ -1399,6 +1428,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Birthday | on/off, days before the birthday, send time | 1–7 days |
   | Cheques and instalments | on/off, days before the date, send time, the Owner's mobile number | 0–30 days |
   | Daily report | on/off, the mobile number it goes to | sent at 22:45, fixed |
+  | Subscription receipt | on/off | sent at once; after 22:00 at 10:00, fixed |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,

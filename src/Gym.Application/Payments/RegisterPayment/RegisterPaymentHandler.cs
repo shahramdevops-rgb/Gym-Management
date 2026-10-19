@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Notifications.SendSubscriptionReceipt;
 using Gym.Domain.Common;
 using Gym.Domain.Payments;
 using Gym.Domain.Subscriptions;
@@ -11,7 +12,8 @@ namespace Gym.Application.Payments.RegisterPayment;
 /// Registers a payment against a subscription, partial or in full (BUSINESS_RULES.md §5).
 /// Owner and Staff.
 /// </summary>
-public sealed class RegisterPaymentHandler(IAppDbContext db, TimeProvider time, ICurrentUser currentUser)
+public sealed class RegisterPaymentHandler(
+    IAppDbContext db, TimeProvider time, ICurrentUser currentUser, SubscriptionReceipts receipts)
 {
     public async Task<Result<PaymentResponse>> Handle(
         Guid subscriptionId, RegisterPaymentCommand command, CancellationToken cancellationToken)
@@ -66,6 +68,9 @@ public sealed class RegisterPaymentHandler(IAppDbContext db, TimeProvider time, 
 
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        // §10: the payment that clears the plan earns the member a receipt, sent by a background job.
+        await receipts.QueueIfEarnedAsync(subscriptionId, subscription.Price - netPaid, command.Amount, cancellationToken);
 
         var status = PaymentStatusCalculator.Calculate(subscription.Price, updatedNetPaid);
 

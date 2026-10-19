@@ -88,6 +88,30 @@ public sealed class NotificationTests
     }
 
     [Fact]
+    public void ForSubscriptionReceipt_NamesTheMemberAndTheSubscription()
+    {
+        var memberId = Guid.NewGuid();
+        var subscriptionId = Guid.NewGuid();
+
+        var notification = Notification.ForSubscriptionReceipt(memberId, subscriptionId, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.SubscriptionReceipt);
+        notification.MemberId.ShouldBe(memberId);
+        notification.SubscriptionId.ShouldBe(subscriptionId);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForSubscriptionReceipt_EmptySubscriptionId_Throws()
+    {
+        Should.Throw<ArgumentException>(() => Notification.ForSubscriptionReceipt(Guid.NewGuid(), Guid.Empty, Phone, Text));
+    }
+
+    [Fact]
     public void Create_TextAtTheLimit_IsKept()
     {
         var text = new string('x', Notification.TextMaxLength);

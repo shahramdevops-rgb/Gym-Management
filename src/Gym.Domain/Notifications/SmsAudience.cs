@@ -92,6 +92,63 @@ public static class SmsAudience
             && daysAway <= daysBefore;
     }
 
+    /// <summary>
+    /// Whether a payment earns the receipt (§10 <i>The subscription receipt</i>, task 10.9): it is
+    /// the one that clears what was still owed on a plan, so its net paid reaches the price. A
+    /// single visit and a free plan never earn one, and a payment on a plan already paid cannot
+    /// exist (§5: no overpayment).
+    /// </summary>
+    /// <param name="owedBefore">What was still owed on it just before this payment.</param>
+    /// <param name="amount">This payment.</param>
+    public static bool EarnsReceipt(Subscription subscription, decimal owedBefore, decimal amount)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+
+        return !subscription.IsSingleSession
+            && subscription.Price > 0m
+            && owedBefore > 0m
+            && amount >= owedBefore;
+    }
+
+    /// <summary>
+    /// Whether a receipt asked for earlier is still to be sent: the plan is not cancelled and still
+    /// fully paid. Whether the member is active is the sender's question.
+    /// </summary>
+    public static bool ReceiptStillDue(Subscription subscription, decimal netPaid)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+
+        return !subscription.IsSingleSession
+            && subscription.CancelledAt is null
+            && subscription.Price > 0m
+            && netPaid >= subscription.Price;
+    }
+
+    /// <summary>
+    /// A plan waiting in line behind another membership of the same member (§4): it has not started
+    /// and a live membership ends the day before it starts, so its dates are only where it stands
+    /// today. The same test as the member's history («بعد از پلن قبلی»).
+    /// </summary>
+    /// <param name="others">The member's other subscriptions; the plan itself may be among them.</param>
+    public static bool IsQueuedBehindAnother(Subscription subscription, IEnumerable<Subscription> others, DateOnly today)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        ArgumentNullException.ThrowIfNull(others);
+
+        if (subscription.IsSingleSession || subscription.GetStatus(today) != SubscriptionStatus.Upcoming)
+        {
+            return false;
+        }
+
+        var dayBefore = subscription.StartDate.AddDays(-1);
+
+        return others.Any(other =>
+            other.Id != subscription.Id
+            && !other.IsSingleSession
+            && other.CancelledAt is null
+            && other.EndDate == dayBefore);
+    }
+
     private static bool IsActivePlan(Subscription subscription, DateOnly today) =>
         !subscription.IsSingleSession && subscription.GetStatus(today) == SubscriptionStatus.Active;
 }

@@ -2724,12 +2724,31 @@ no existing row. It goes out with the SMS release (10.6), which still starts wit
 #### 10.9 Subscription receipt (رسید خرید اشتراک)
 Decided: sent when the subscription is **fully paid**, so a member who got it has surely paid; a
 subscription paid in parts gets it when the last part is paid.
-- [ ] Open: what it says (plan, dates, amount)
-- [ ] Open: single-session visits too, or plans only?
-- [ ] Open: sent at once after the payment (not a daily run: a queued Hangfire job, so the desk never
-      waits for Kavenegar); a payment after 22:00 sent the next morning at 08:00?
-- [ ] Open: a payment refunded or a subscription cancelled after the SMS: nothing more?
-- [ ] Rules, settings row (on/off only?), the job, tests, UI
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The subscription receipt*:
+- [x] What it says: the sessions, the dates **without the year**, and the price; a plan queued behind
+      another gives its days and «پس از اشتراک فعلی» instead of dates. «مبلغ» and «پایان» were taken
+      out so the usual text stays in two SMS parts (the queued one takes three)
+- [x] Plans only: a single visit never gets one, nor a free plan
+- [x] Sent at once after the payment, as a Hangfire background job, so the desk never waits for
+      Kavenegar; a payment outside 08:00–22:00 has it sent **at 10:00 the next morning** (fixed)
+- [x] Cancelled after the SMS: nothing more. Checked again when sent: switched off since, cancelled
+      or the member deactivated (the last proposed by Claude, approved with the plan) sends nothing
+- [x] Only payments made while the switch is on: turning it on later sends nothing for older ones
+- [x] Rules, settings row (on/off only), the job, tests, UI: `NotificationKind.SubscriptionReceipt`,
+      `SmsText.ForSubscriptionReceipt` and `ForQueuedSubscriptionReceipt`, `SmsAudience.EarnsReceipt`,
+      `ReceiptStillDue` and `IsQueuedBehindAnother`, `SmsSettings.ReceiptDeferredUntil`;
+      `SubscriptionReceipts` called after the commit of `RegisterPaymentHandler` and
+      `SettleMemberDebtHandler`, `ISubscriptionReceiptScheduler` (Hangfire `Enqueue`/`Schedule`),
+      `SendSubscriptionReceiptHandler` run by `Jobs/SubscriptionReceiptJob` one at a time, `SmsRequest`
+      shared with the daily run; migration `AddSubscriptionReceipt` (one switch, off, and the kind and
+      event check constraints widened; the existing index already allows one per subscription and
+      kind; no existing row is touched); «رسید خرید اشتراک» on «تنظیمات پیامک», its label on
+      «پیامک‌ها» and the audit screen; the demo sends them on its own clock
+
+Closed 2026-10-19: 2339 backend tests (786 domain, 1553 integration) and 1032 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSubscriptionReceipt`,
+which only adds (one switch, off) and widens two check constraints, refusing no existing row. It goes
+out with the SMS release (10.6), which still starts with `./backup.sh run`.
 
 #### 10.10 Welcome (خوش‌آمد)
 Decided: once per member, when they buy their **first plan**; single-session visits never get it.

@@ -41,6 +41,12 @@ public sealed partial class SendDailySmsHandler(
 {
     public async Task<SmsRunResult> Handle(NotificationKind kind, CancellationToken cancellationToken)
     {
+        // The receipt is sent at each payment (SendSubscriptionReceiptHandler), never by a daily run.
+        if (kind == NotificationKind.SubscriptionReceipt)
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "The subscription receipt has no daily run.");
+        }
+
         // Read now, not when the run was scheduled: a change applies from the next run (§10).
         var settings = await SmsSettingsRow.CurrentAsync(db, cancellationToken);
         if (!settings.Enabled || !settings.For(kind).Enabled)
@@ -70,7 +76,7 @@ public sealed partial class SendDailySmsHandler(
                 continue;
             }
 
-            var outcome = await SendAsync(notification, tally, cancellationToken);
+            var outcome = await SendAsync(notification, tally);
             if (outcome == SmsSendOutcome.CreditExhausted)
             {
                 // §10: the rest of the run is not sent; the ones not written yet stay unwritten, so
@@ -128,52 +134,32 @@ public sealed partial class SendDailySmsHandler(
         }
     }
 
-    /// <summary>One request, and its outcome saved on the row.</summary>
-    private async Task<SmsSendOutcome> SendAsync(Notification notification, Tally tally, CancellationToken cancellationToken)
+    /// <summary>One request, its outcome saved on the row (<see cref="SmsRequest"/>) and counted.</summary>
+    private async Task<SmsSendOutcome> SendAsync(Notification notification, Tally tally)
     {
-        var message = new SmsMessage(notification.Recipient, notification.Text);
+        var outcome = await SmsRequest.SendAsync(db, sender, time, notification);
 
-        // Not the run's token: once the request may have left, its outcome is recorded whatever happens.
-        var result = await sender.SendAsync(message, CancellationToken.None);
-        var now = time.GetUtcNow();
-
-        switch (result.Outcome)
+        switch (outcome)
         {
             case SmsSendOutcome.Sent:
-                notification.MarkSent(
-                    result.ProviderMessageId ?? throw new InvalidOperationException("A sent message has no provider id."),
-                    result.CostRial ?? 0m,
-                    now);
                 tally.Sent++;
                 break;
 
-            case SmsSendOutcome.RetryableFailure:
-                notification.RecordRetryableFailure(result.ErrorCode, now);
-                break;
-
             case SmsSendOutcome.PermanentFailure:
-                notification.MarkFailed(result.ErrorCode, now);
                 tally.Failed++;
                 break;
 
             case SmsSendOutcome.CreditExhausted:
-                notification.MarkFailed(result.ErrorCode, now);
                 tally.Failed++;
                 tally.CreditExhausted = true;
                 break;
 
             case SmsSendOutcome.Unknown:
-                notification.MarkUnknown(now);
                 tally.Unknown++;
                 break;
-
-            default:
-                throw new InvalidOperationException($"Unknown send outcome {result.Outcome}.");
         }
 
-        await db.SaveChangesAsync(CancellationToken.None);
-
-        return result.Outcome;
+        return outcome;
     }
 
     /// <summary>Rounds of retries until each one is sent, fails for good, or runs out of tries or time.</summary>
@@ -194,7 +180,7 @@ public sealed partial class SendDailySmsHandler(
             var stillWaiting = new List<Notification>();
             for (var i = 0; i < waiting.Count; i++)
             {
-                var outcome = await SendAsync(waiting[i], tally, cancellationToken);
+                var outcome = await SendAsync(waiting[i], tally);
                 if (outcome == SmsSendOutcome.CreditExhausted)
                 {
                     // The rest would meet the same empty account.

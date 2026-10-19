@@ -1767,3 +1767,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **A migration that changes data must still carry it forward.** The range went from 0–7 to 1–7, so the migration turns a saved 0 into 1 *before* adding the new check constraint; adding the constraint first would refuse the Owner's row and stop the release.
 - **Tests on the real clock need dates that never collide.** The test members had a fixed birth date, so once a year their check-ins would have been free and every session count would fail. Their birth date is now half a year away from the day the tests run.
 - **My notes:**
+
+## 10.9 — Subscription receipt (رسید خرید اشتراک)
+
+- **A background job per event instead of a daily run.** The receipt belongs to a payment, not to a day, so the payment hands the subscription to Hangfire (`Enqueue`, or `Schedule` for 10:00) and the desk is answered at once. Hangfire keeps the job in its own tables, so a receipt waiting for the morning outlives a restart. The trade-off: one more moving part than a daily run, but no "which payments since yesterday?" query and no flag on the subscription.
+- **After the commit, never inside it.** The job must find the payment when it runs, and a payment rolled back must not leave a receipt behind. Hangfire writes to its own connection, so the call comes after `CommitAsync`; the rare loss (the app stops between the two) is accepted because these messages are information.
+- **A side effect must not fail the main action.** The money is saved before the receipt is asked for; if the job runner refuses it, the error is logged and the payment still answers 201. Throwing there would tell the desk "failed" for money that was taken.
+- **Decide twice: when asked and when run.** The payment checks the switch (so turning it on later reaches no one), and the job checks again (the switch, a cancel, a deactivated member), because it may run hours later.
+- **Serialized jobs make "Pending" mean "left over".** `[DisableConcurrentExecution]` runs one receipt at a time, so a `Pending` row found by a job can only be from a job that stopped. Hangfire runs a stopped job again after a restart; it then marks the row `Unknown` instead of paying twice. That also makes a few automatic retries safe.
+- **Extract the shared step, not the whole flow.** The daily run and the receipt both make one request and record its outcome the same way, so that became `SmsRequest.SendAsync`. The rounds of retries stayed in each: the run retries a list after everyone else, the receipt retries one message.
+- **A test double for anything that runs later.** The test host has a real Hangfire server; a receipt enqueued by one test would run during another. `RecordingSubscriptionReceiptScheduler` only remembers what it was asked, and the tests run the handler themselves on a `FakeTimeProvider`.
+- **Measure the text, do not estimate it.** The first wording came to 130 and 146 characters, three SMS parts for a queued plan; a test that checks the length found it, and the developer took two words out.
+- **My notes:**

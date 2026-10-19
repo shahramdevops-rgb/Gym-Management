@@ -247,6 +247,10 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
         />
       </KindFieldset>
       <DailyReportFieldset form={form} sendTime={current.dailyReport.sendTime} />
+      <SubscriptionReceiptFieldset
+        form={form}
+        morningSendTime={current.subscriptionReceipt.morningSendTime}
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={isSubmitting}>
@@ -415,6 +419,40 @@ function DailyReportFieldset({ form, sendTime }: DailyReportFieldsetProps) {
           {...form.register("dailyReport.phone")}
         />
       </div>
+    </fieldset>
+  );
+}
+
+interface SubscriptionReceiptFieldsetProps {
+  form: UseFormReturn<SmsSettingsValues>;
+  /** `HH:mm:ss` from the API: when a receipt for a payment after 22:00 goes, fixed in the code. */
+  morningSendTime: string;
+}
+
+/**
+ * The member's receipt (BUSINESS_RULES.md §10 *The subscription receipt*, task 10.9): only a
+ * switch. It goes to the member's own number when a plan is fully paid, so there is nothing to fill in.
+ */
+function SubscriptionReceiptFieldset({ form, morningSendTime }: SubscriptionReceiptFieldsetProps) {
+  const morning = toPersianDigits(morningSendTime.slice(0, 5));
+
+  return (
+    <fieldset className="space-y-3 rounded-md border p-4">
+      <legend className="px-1 font-medium">رسید خرید اشتراک</legend>
+      <p className="text-sm text-muted-foreground">
+        وقتی پول یک پلن کامل پرداخت شد، به خود عضو: تعداد جلسه، تاریخ شروع و پایان، و مبلغ. همان
+        لحظه فرستاده می‌شود؛ پرداختی که بعد از ساعت ۲۲ ثبت شود، صبح روز بعد ساعت {morning}. تک‌جلسه
+        و اشتراک رایگان رسید ندارند.
+      </p>
+
+      <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="size-4 accent-primary"
+          {...form.register("subscriptionReceipt.enabled")}
+        />
+        روشن
+      </label>
     </fieldset>
   );
 }

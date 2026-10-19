@@ -7,8 +7,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Gym.Api.Admin.Demo;
 
 /// <summary>
-/// The three services <c>admin seed-demo</c> runs with instead of the app's own: its clock, its
-/// acting user, and the fake SMS sender.
+/// The services <c>admin seed-demo</c> runs with instead of the app's own: its clock, its acting
+/// user, the fake SMS sender, and a receipt queue it empties itself.
 /// </summary>
 /// <remarks>
 /// Swapped in <c>Program.cs</c> before the host is built, and only for this one command, so the
@@ -36,6 +36,10 @@ public static class DemoServices
         services.RemoveAll<ISmsAccount>();
         services.AddScoped<ISmsSender>(provider => provider.GetRequiredService<FakeSmsSender>());
         services.AddScoped<ISmsAccount>(provider => provider.GetRequiredService<FakeSmsSender>());
+
+        services.RemoveAll<ISubscriptionReceiptScheduler>();
+        services.AddSingleton<DemoReceiptScheduler>();
+        services.AddSingleton<ISubscriptionReceiptScheduler>(provider => provider.GetRequiredService<DemoReceiptScheduler>());
 
         return services;
     }

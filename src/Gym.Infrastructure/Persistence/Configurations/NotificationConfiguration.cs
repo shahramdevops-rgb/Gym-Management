@@ -22,7 +22,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         {
             table.HasCheckConstraint(
                 "ck_notifications_kind",
-                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport')");
+                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt')");
             table.HasCheckConstraint(
                 "ck_notifications_status",
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
@@ -39,7 +39,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             // counts as passed in Postgres.
             table.HasCheckConstraint(
                 NotificationConstraints.EventMatchesKind,
-                "(kind IN ('SubscriptionExpiring', 'LowSessions') AND member_id IS NOT NULL " +
+                "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt') AND member_id IS NOT NULL " +
                 "AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL) OR " +
                 "(kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL " +
                 "AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL) OR " +
@@ -78,7 +78,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.HasOne<Payable>().WithMany().HasForeignKey(notification => notification.PayableId).OnDelete(DeleteBehavior.Restrict);
 
         // Each event once (BUSINESS_RULES.md §10). The kind is in the first index because a
-        // subscription can get both of its kinds, once each.
+        // subscription can get each of its kinds (running out, few sessions, receipt) once.
         builder.HasIndex(notification => new { notification.SubscriptionId, notification.Kind })
             .IsUnique()
             .HasFilter("subscription_id IS NOT NULL")

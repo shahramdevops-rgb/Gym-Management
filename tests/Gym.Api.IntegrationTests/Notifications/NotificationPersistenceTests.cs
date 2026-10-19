@@ -107,6 +107,47 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     }
 
     [Fact]
+    public async Task Save_SecondReceiptForOneSubscription_RejectedByTheUniqueIndex()
+    {
+        var (member, subscription, _) = await SeedAsync();
+        await SaveAsync(Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText));
+
+        var exception = await SaveRejectedAsync(
+            Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OnePerSubscriptionAndKind);
+    }
+
+    [Fact]
+    public async Task Save_ReceiptBesideTheOtherSubscriptionKinds_IsAllowed()
+    {
+        // The receipt is its own event: a plan can also run out of days and of sessions later.
+        var (member, subscription, _) = await SeedAsync();
+
+        await SaveAsync(
+            Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText),
+            Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, ExpiringText),
+            Notification.ForLowSessions(member.Id, subscription.Id, Phone, LowSessionsText));
+
+        (await CountAsync()).ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task Notification_ReceiptWithoutItsSubscription_RejectedByACheckConstraint()
+    {
+        var (member, subscription, _) = await SeedAsync();
+        var receipt = Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText);
+        await SaveAsync(receipt);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET subscription_id = NULL WHERE id = '{receipt.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
     public async Task Save_BothSubscriptionKindsForOneSubscription_AreAllowed()
     {
         // Running out of days and running out of sessions are two events, one message each.
@@ -340,6 +381,8 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     private const string ChequeText = "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی";
 
     private const string ReportText = "گزارش باشگاه پاسارگاد ۰۷/۲۷\nورود: ۸۵";
+
+    private const string ReceiptText = "سارا محمدی عزیز، اشتراک ۱۰ جلسه‌ای شما در باشگاه پاسارگاد از ۰۷/۲۷ تا ۰۸/۲۶ ثبت";
 
     private static readonly DateOnly ReportDay = new(2026, 10, 19);
 

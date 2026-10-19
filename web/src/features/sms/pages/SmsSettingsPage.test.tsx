@@ -28,6 +28,7 @@ const empty: SmsSettings = {
   payableDue: off,
   ownerPhone: null,
   dailyReport: { enabled: false, phone: null, sendTime: "22:45:00" },
+  subscriptionReceipt: { enabled: false, morningSendTime: "10:00:00" },
   version: 1,
 };
 
@@ -43,6 +44,7 @@ const filled: SmsSettings = {
   payableDue: { enabled: true, threshold: 3, sendTime: "22:00:00" },
   ownerPhone: "+989121234567",
   dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
+  subscriptionReceipt: { enabled: true, morningSendTime: "10:00:00" },
   version: 5,
 };
 
@@ -297,6 +299,7 @@ describe("SmsSettingsPage", () => {
       payableDue: off,
       ownerPhone: "0912 123 4567",
       dailyReport: { enabled: false, phone: null },
+      subscriptionReceipt: { enabled: false },
       version: empty.version,
     });
   });
@@ -396,6 +399,40 @@ describe("SmsSettingsPage", () => {
     expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
     const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
     expect(body.dailyReport).toEqual({ enabled: true, phone: "0935 123 4567" });
+  });
+
+  it("SmsSettingsPage_SubscriptionReceipt_IsOnlyASwitchAndSaysWhenItGoes", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+
+    const receipt = await screen.findByRole("group", { name: "رسید خرید اشتراک" });
+    // Nothing to fill in, so it can be turned on straight away.
+    expect(switchOf("رسید خرید اشتراک")).toBeEnabled();
+    expect(switchOf("رسید خرید اشتراک")).not.toBeChecked();
+    expect(within(receipt).queryAllByRole("textbox")).toHaveLength(0);
+    expect(within(receipt).getByText(/صبح روز بعد ساعت ۱۰:۰۰/)).toBeInTheDocument();
+  });
+
+  it("SmsSettingsPage_SubscriptionReceiptSaved_ShowsItOn", async () => {
+    ownerWith(filled);
+    renderApp("/sms-settings", { session: session() });
+
+    await waitFor(() => expect(switchOf("رسید خرید اشتراک")).toBeChecked());
+  });
+
+  it("SmsSettingsPage_SubscriptionReceiptTurnedOn_SendsItsSwitch", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "رسید خرید اشتراک" });
+
+    fireEvent.click(switchOf("رسید خرید اشتراک"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.subscriptionReceipt).toEqual({ enabled: true });
   });
 
   it("SmsSettingsPage_DailyReportOnWithItsNumberEmptied_SaysWhatIsMissing", async () => {

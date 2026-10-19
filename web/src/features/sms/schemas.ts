@@ -81,6 +81,10 @@ export const smsSettingsSchema = z
       enabled: z.boolean(),
       phone: z.string().max(30, message("Sms.DailyReportPhoneInvalid")),
     }),
+    /** The member's receipt (task 10.9): only a switch, nothing to fill in. */
+    subscriptionReceipt: z.object({
+      enabled: z.boolean(),
+    }),
   })
   .superRefine((values, context) => {
     for (const kind of smsKinds) {
@@ -144,6 +148,7 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
       enabled: settings.dailyReport.enabled,
       phone: settings.dailyReport.phone === null ? "" : formatPhone(settings.dailyReport.phone),
     },
+    subscriptionReceipt: { enabled: settings.subscriptionReceipt.enabled },
   };
 }
 
@@ -176,6 +181,7 @@ export function toInput(
       enabled: values.dailyReport.enabled,
       phone: reportPhone === "" ? null : reportPhone,
     },
+    subscriptionReceipt: { enabled: values.subscriptionReceipt.enabled },
     version,
   };
 }

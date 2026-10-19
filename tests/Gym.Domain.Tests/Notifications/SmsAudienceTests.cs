@@ -268,6 +268,102 @@ public sealed class SmsAudienceTests
         SmsAudience.IsComingDue(cheque, Today, daysBefore: 3).ShouldBeFalse();
     }
 
+    // ---- The subscription receipt (task 10.9) ----
+
+    [Theory]
+    [InlineData(10, 10)]
+    [InlineData(4, 4)]
+    public void EarnsReceipt_PaymentClearsWhatWasOwed_IsTrue(int owedBefore, int amount)
+    {
+        SmsAudience.EarnsReceipt(EndingIn(20), owedBefore, amount).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void EarnsReceipt_PartPayment_IsFalse()
+    {
+        SmsAudience.EarnsReceipt(EndingIn(20), owedBefore: 10m, amount: 6m).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EarnsReceipt_NothingWasOwed_IsFalse()
+    {
+        SmsAudience.EarnsReceipt(EndingIn(20), owedBefore: 0m, amount: 0m).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EarnsReceipt_SingleVisit_IsFalse()
+    {
+        var visit = Subscription.CreateSingleVisit(MemberId, 150_000m, Today).Value;
+
+        SmsAudience.EarnsReceipt(visit, owedBefore: 150_000m, amount: 150_000m).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EarnsReceipt_FreePlan_IsFalse()
+    {
+        var free = Subscription.CreateMembership(MemberId, Sessions, 0m, Today).Value;
+
+        SmsAudience.EarnsReceipt(free, owedBefore: 0m, amount: 0m).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ReceiptStillDue_FullyPaidPlan_IsTrue()
+    {
+        SmsAudience.ReceiptStillDue(EndingIn(20), netPaid: Sessions).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ReceiptStillDue_Cancelled_IsFalse()
+    {
+        var subscription = EndingIn(20);
+        subscription.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.ReceiptStillDue(subscription, netPaid: Sessions).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ReceiptStillDue_NotFullyPaid_IsFalse()
+    {
+        SmsAudience.ReceiptStillDue(EndingIn(20), netPaid: Sessions - 1).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsQueuedBehindAnother_StartsTheDayAfterALivePlanEnds_IsTrue()
+    {
+        var current = EndingIn(5);
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, current.EndDate.AddDays(1)).Value;
+
+        SmsAudience.IsQueuedBehindAnother(queued, [current, queued], Today).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsQueuedBehindAnother_StartsToday_IsFalse()
+    {
+        var plan = EndingIn(Days - 1);
+
+        SmsAudience.IsQueuedBehindAnother(plan, [EndingIn(-1), plan], Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsQueuedBehindAnother_PlanBeforeItCancelled_IsFalse()
+    {
+        // Its dates no longer move: nothing is before it (§4).
+        var current = EndingIn(5);
+        current.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, current.EndDate.AddDays(1)).Value;
+
+        SmsAudience.IsQueuedBehindAnother(queued, [current], Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsQueuedBehindAnother_OnlyASingleVisitBeforeIt_IsFalse()
+    {
+        var visit = Subscription.CreateSingleVisit(MemberId, 1m, Today).Value;
+        var upcoming = Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(1)).Value;
+
+        SmsAudience.IsQueuedBehindAnother(upcoming, [visit], Today).ShouldBeFalse();
+    }
+
     // ---- Helpers ----
 
     /// <summary>A plan of 10 sessions, none used, whose last day is <paramref name="daysLeft"/> days from today.</summary>

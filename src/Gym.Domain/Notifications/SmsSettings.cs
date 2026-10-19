@@ -43,6 +43,12 @@ public sealed class SmsSettings : Entity
     /// <summary>The daily report's hours run until midnight: the last moment of the gym's day.</summary>
     public static readonly TimeOnly DailyReportLatestSendTime = TimeOnly.MaxValue;
 
+    /// <summary>
+    /// A receipt for a payment made outside the sending hours goes at this time the next morning,
+    /// fixed in the code (decided with the developer, 1405/07/27, task 10.9).
+    /// </summary>
+    public static readonly TimeOnly ReceiptMorningSendTime = new(10, 0);
+
     // For EF Core. The row comes from the migration, so no code creates one.
     private SmsSettings()
     {
@@ -91,6 +97,12 @@ public sealed class SmsSettings : Entity
     /// </summary>
     public string? DailyReportPhone { get; private set; }
 
+    /// <summary>
+    /// The member's receipt when a plan is fully paid (§10 <i>The subscription receipt</i>, task 10.9).
+    /// Only a switch: it goes to the member's own number, at once.
+    /// </summary>
+    public bool SubscriptionReceiptEnabled { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
@@ -111,6 +123,23 @@ public sealed class SmsSettings : Entity
     /// <summary>The last moment a message of this kind may be sent, a retry included.</summary>
     public static TimeOnly LatestSendTimeFor(NotificationKind kind) =>
         kind == NotificationKind.DailyReport ? DailyReportLatestSendTime : LatestSendTime;
+
+    /// <summary>
+    /// When a receipt asked for now is to be sent (§10 <i>The subscription receipt</i>): <c>null</c>
+    /// for at once, within 08:00–22:00; otherwise 10:00 the next morning, which is the same day
+    /// before 08:00 and the day after once it is past 22:00. A local date and time in the gym's zone.
+    /// </summary>
+    public static DateTime? ReceiptDeferredUntil(DateOnly today, TimeOnly localTime)
+    {
+        if (IsWithinSendingHours(NotificationKind.SubscriptionReceipt, localTime))
+        {
+            return null;
+        }
+
+        var morning = localTime < EarliestSendTime ? today : today.AddDays(1);
+
+        return morning.ToDateTime(ReceiptMorningSendTime, DateTimeKind.Unspecified);
+    }
 
     /// <summary>The smallest and largest number each kind accepts (§10, the settings table).</summary>
     public static (int Min, int Max) ThresholdRange(NotificationKind kind) => kind switch
@@ -137,6 +166,10 @@ public sealed class SmsSettings : Entity
         // No number, and the time is fixed: the run is scheduled from it like any other kind's.
         NotificationKind.DailyReport => new(
             DailyReportEnabled, Threshold: null, DailyReportSendTime),
+
+        // Sent at each payment, not by a daily run: no send time, so no run is scheduled for it.
+        NotificationKind.SubscriptionReceipt => new(
+            SubscriptionReceiptEnabled, Threshold: null, SendTime: null),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown notification kind."),
     };
 
@@ -146,6 +179,7 @@ public sealed class SmsSettings : Entity
     /// </summary>
     /// <param name="ownerPhone">Already normalized to E.164 by the caller, or <c>null</c>.</param>
     /// <param name="dailyReportPhone">The same, for the daily report.</param>
+    /// <param name="subscriptionReceiptEnabled">The receipt's switch: it has nothing to fill in.</param>
     public Result Update(
         bool enabled,
         SmsKindSettings subscriptionExpiring,
@@ -154,7 +188,8 @@ public sealed class SmsSettings : Entity
         SmsKindSettings payableDue,
         string? ownerPhone,
         bool dailyReportEnabled,
-        string? dailyReportPhone)
+        string? dailyReportPhone,
+        bool subscriptionReceiptEnabled)
     {
         ArgumentNullException.ThrowIfNull(subscriptionExpiring);
         ArgumentNullException.ThrowIfNull(lowSessions);
@@ -196,6 +231,8 @@ public sealed class SmsSettings : Entity
 
         DailyReportEnabled = dailyReportEnabled;
         DailyReportPhone = reportPhone;
+
+        SubscriptionReceiptEnabled = subscriptionReceiptEnabled;
 
         return Result.Success();
     }

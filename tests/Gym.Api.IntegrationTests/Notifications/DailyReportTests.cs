@@ -238,7 +238,8 @@ public sealed class DailyReportTests(DatabaseFixture fixture) : DatabaseTestBase
             SmsKindSettings.Off,
             ownerPhone: null,
             dailyReportEnabled: true,
-            ReportPhone).IsSuccess.ShouldBeTrue();
+            ReportPhone,
+            subscriptionReceiptEnabled: false).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

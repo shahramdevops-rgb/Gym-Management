@@ -75,9 +75,13 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
 
         builder.UseEnvironment(TestingEnvironment);
 
-        // No real SMS run is ever scheduled from a test: see RecordingSmsRunSchedule.
+        // No real SMS run or receipt is ever scheduled from a test: see RecordingSmsRunSchedule and
+        // RecordingSubscriptionReceiptScheduler.
         builder.ConfigureTestServices(services =>
-            services.Replace(ServiceDescriptor.Singleton<ISmsRunSchedule, RecordingSmsRunSchedule>()));
+        {
+            services.Replace(ServiceDescriptor.Singleton<ISmsRunSchedule, RecordingSmsRunSchedule>());
+            services.Replace(ServiceDescriptor.Singleton<ISubscriptionReceiptScheduler, RecordingSubscriptionReceiptScheduler>());
+        });
     }
 
     public override async ValueTask DisposeAsync()

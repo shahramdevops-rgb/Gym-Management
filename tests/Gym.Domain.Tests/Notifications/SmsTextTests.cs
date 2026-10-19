@@ -246,4 +246,37 @@ public sealed class SmsTextTests
 
         new DailyReportFigures(Day, checkIns, plans, singleVisits, amount, amount, 0m, 0m).IsEmpty().ShouldBeFalse();
     }
+
+    // ---- The subscription receipt (task 10.9) ----
+
+    [Fact]
+    public void ForSubscriptionReceipt_Plan_GivesSessionsDatesWithoutTheYearAndPrice()
+    {
+        SmsText.ForSubscriptionReceipt("سارا محمدی", 12, Day, Day.AddDays(29), 1_200_000m)
+            .ShouldBe("سارا محمدی عزیز، اشتراک ۱۲ جلسه‌ای شما در باشگاه پاسارگاد از ۰۷/۲۰ تا ۰۸/۱۹ ثبت و ۱٬۲۰۰٬۰۰۰ تومان کامل پرداخت شد. سپاس!" + OptOutLine);
+    }
+
+    [Fact]
+    public void ForQueuedSubscriptionReceipt_Plan_GivesItsDaysInsteadOfDates()
+    {
+        SmsText.ForQueuedSubscriptionReceipt("سارا محمدی", 12, 30, 1_200_000m)
+            .ShouldBe("سارا محمدی عزیز، اشتراک ۱۲ جلسه‌ای شما در باشگاه پاسارگاد (۳۰ روز، پس از اشتراک فعلی) ثبت و ۱٬۲۰۰٬۰۰۰ تومان کامل پرداخت شد. سپاس!" + OptOutLine);
+    }
+
+    [Fact]
+    public void ForSubscriptionReceipt_LongName_IsCutShort()
+    {
+        var text = SmsText.ForSubscriptionReceipt(LongName, 12, Day, Day.AddDays(29), 1_200_000m);
+
+        text.ShouldStartWith("سید محمد حسین علی رضا موسوی عزیز،");
+    }
+
+    [Fact]
+    public void ForSubscriptionReceipt_TenCharacterName_FitsInTwoParts()
+    {
+        // docs/sms-texts.md: about 125 characters, two parts of 67 (why «مبلغ» was taken out).
+        var text = SmsText.ForSubscriptionReceipt("سارا محمدی", 12, Day, Day.AddDays(29), 1_200_000m);
+
+        text.Length.ShouldBeLessThanOrEqualTo(2 * 67);
+    }
 }

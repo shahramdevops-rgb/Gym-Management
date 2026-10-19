@@ -21,6 +21,7 @@ using Gym.Application.Members.SetMemberActive;
 using Gym.Application.Notifications;
 using Gym.Application.Notifications.GetSmsSettings;
 using Gym.Application.Notifications.SendDailySms;
+using Gym.Application.Notifications.SendSubscriptionReceipt;
 using Gym.Application.Notifications.UpdateSmsSettings;
 using Gym.Application.Payables;
 using Gym.Application.Payables.MarkPayablePaid;
@@ -253,8 +254,11 @@ public sealed class DemoSeeder
 
             foreach (var e in events)
             {
+                // A receipt put off to 10:00, then the ones this event's payments asked for at once.
+                await SendReceiptsAsync(e.At);
                 _clock.Set(e.At);
                 await e.Run();
+                await SendReceiptsAsync(e.At);
             }
         }
     }
@@ -611,6 +615,7 @@ public sealed class DemoSeeder
             PayableDue: new SmsKindSettings(true, 3, new TimeOnly(9, 30)),
             OwnerPhone: "09121112233",
             DailyReport: new DailyReportSettings(true, "09121112233"),
+            SubscriptionReceipt: new SubscriptionReceiptSettings(true),
             Version: version);
 
         await MustAsync<UpdateSmsSettingsHandler, SmsSettingsResponse>(
@@ -622,10 +627,42 @@ public sealed class DemoSeeder
     private async Task SendDailySmsAsync()
     {
         _actor.ActAsNobody();
-        foreach (var kind in Enum.GetValues<NotificationKind>().Where(kind => kind != NotificationKind.DailyReport))
+        foreach (var kind in Enum.GetValues<NotificationKind>()
+            .Where(kind => kind is not (NotificationKind.DailyReport or NotificationKind.SubscriptionReceipt)))
         {
             await using var scope = _services.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<SendDailySmsHandler>().Handle(kind, _cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// The receipts due by <paramref name="until"/> (task 10.9), each at its own moment and on nobody's
+    /// behalf, as Hangfire's job would send them. Whoever the seeder was acting as is put back after.
+    /// </summary>
+    private async Task SendReceiptsAsync(DateTimeOffset until)
+    {
+        var due = _services.GetRequiredService<DemoReceiptScheduler>().TakeDue(until);
+        if (due.Count == 0)
+        {
+            return;
+        }
+
+        var (userId, isOwner) = (_actor.UserId, _actor.IsOwner);
+        _actor.ActAsNobody();
+        foreach (var (subscriptionId, at) in due)
+        {
+            if (at > _clock.GetUtcNow())
+            {
+                _clock.Set(at);
+            }
+
+            await using var scope = _services.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<SendSubscriptionReceiptHandler>().Handle(subscriptionId, _cancellationToken);
+        }
+
+        if (userId is { } id)
+        {
+            _actor.ActAs(id, isOwner);
         }
     }
 

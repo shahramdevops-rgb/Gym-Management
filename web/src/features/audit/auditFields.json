@@ -159,6 +159,7 @@
     "OwnerPhone": { "label": "موبایل مالک" },
     "DailyReportEnabled": { "label": "گزارش روزانه: روشن" },
     "DailyReportPhone": { "label": "گزارش روزانه: موبایل" },
+    "SubscriptionReceiptEnabled": { "label": "رسید خرید اشتراک: روشن" },
 
     "RevokedReason": { "label": "دلیل باطل شدن", "format": "revocationReason" },
     "FailedAttempts": { "label": "تلاش‌های ناموفق" },

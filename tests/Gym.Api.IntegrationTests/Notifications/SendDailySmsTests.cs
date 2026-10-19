@@ -660,7 +660,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             kind == NotificationKind.PayableDue ? on : SmsKindSettings.Off,
             OwnerPhone,
             dailyReportEnabled: kind == NotificationKind.DailyReport,
-            kind == NotificationKind.DailyReport ? OwnerPhone : null));
+            kind == NotificationKind.DailyReport ? OwnerPhone : null,
+            subscriptionReceiptEnabled: false));
     }
 
     private Task TurnOnBothSubscriptionKindsAsync() => SaveSettingsAsync(settings => settings.Update(
@@ -671,7 +672,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         SmsKindSettings.Off,
         OwnerPhone,
         dailyReportEnabled: false,
-        dailyReportPhone: null));
+        dailyReportPhone: null,
+        subscriptionReceiptEnabled: false));
 
     private async Task SaveSettingsAsync(Func<SmsSettings, Result> update)
     {

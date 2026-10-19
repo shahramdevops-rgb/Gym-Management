@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Members;
+using Gym.Application.Notifications.SendSubscriptionReceipt;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
 using Gym.Domain.Payments;
@@ -23,7 +24,8 @@ namespace Gym.Application.Payments.SettleMemberDebt;
 /// charge voided or an order paid while the form was open is caught here rather than overpaid.
 /// </para>
 /// </remarks>
-public sealed class SettleMemberDebtHandler(IAppDbContext db, TimeProvider time, ICurrentUser currentUser)
+public sealed class SettleMemberDebtHandler(
+    IAppDbContext db, TimeProvider time, ICurrentUser currentUser, SubscriptionReceipts receipts)
 {
     public async Task<Result<SettlementResponse>> Handle(
         Guid memberId, SettleMemberDebtCommand command, CancellationToken cancellationToken)
@@ -87,6 +89,12 @@ public sealed class SettleMemberDebtHandler(IAppDbContext db, TimeProvider time,
 
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        // §10: each plan this settlement clears earns its member a receipt, as its own form would.
+        foreach (var share in allocated.Value.Where(share => share.Item.Kind == PaymentTargetKind.Subscription))
+        {
+            await receipts.QueueIfEarnedAsync(share.Item.Id, share.Item.Outstanding, share.Amount, cancellationToken);
+        }
 
         var remainingDebt = debt.Sum(item => item.Outstanding) - command.Amount;
 
