@@ -97,8 +97,9 @@ public sealed class ResendCancelledSmsTests(DatabaseFixture fixture) : DatabaseT
     {
         // The daily report's hours run until midnight (§10).
         await SaveSettingsAsync(settings => settings.Update(
-            enabled: true, SmsKindSettings.Off, SmsKindSettings.Off, SmsKindSettings.Off, SmsKindSettings.Off,
-            ownerPhone: null, dailyReportEnabled: true, OwnerPhone, subscriptionReceiptEnabled: false,
+            enabled: true, SmsKindSettings.Off, LowSessionsSettings.Off, SmsKindSettings.Off, SmsKindSettings.Off,
+            ownerPhone: null, dailyReportEnabled: true, OwnerPhone, dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
+            subscriptionReceiptEnabled: false,
             welcomeEnabled: false, debtReminder: SmsKindSettings.Off, debtReminderMinAmount: null,
             absence: SmsKindSettings.Off, broadcastEnabled: false));
         var report = Notification.ForDailyReport(Today, OwnerPhone, "گزارش باشگاه پاسارگاد ۰۷/۱۶\nورود: ۸۵");
@@ -321,12 +322,13 @@ public sealed class ResendCancelledSmsTests(DatabaseFixture fixture) : DatabaseT
         SaveSettingsAsync(settings => settings.Update(
             allSms,
             SmsKindSettings.Off,
-            SmsKindSettings.Off,
+            LowSessionsSettings.Off,
             new SmsKindSettings(birthday, 2, new TimeOnly(18, 0)),
             SmsKindSettings.Off,
             ownerPhone: null,
             dailyReportEnabled: false,
             dailyReportPhone: null,
+            dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: false,
             welcomeEnabled: false,
             debtReminder: SmsKindSettings.Off,

@@ -69,9 +69,12 @@ public static class SmsText
 
     // ---- The four kinds (docs/sms-texts.md) ----
 
-    /// <summary>The subscription running out: the end date, not the days left.</summary>
-    public static string ForRunningOut(string fullName, DateOnly endDate) =>
-        WithOptOut($"{FirstName(fullName)} عزیز، اشتراک شما در باشگاه پاسارگاد {Date(endDate)} به پایان می‌رسد.");
+    /// <summary>
+    /// The subscription running out: the end date, not the days left, and the sessions still left on
+    /// the day it is written (the developer, 1405/08/01, task 10.17). Two SMS parts, as before it.
+    /// </summary>
+    public static string ForRunningOut(string fullName, DateOnly endDate, int sessionsLeft) =>
+        WithOptOut($"{FirstName(fullName)} عزیز، اشتراک شما در باشگاه پاسارگاد {Date(endDate)} به پایان می‌رسد و فقط {Number(sessionsLeft)} جلسه از آن مانده است.");
 
     public static string ForFewSessionsLeft(string fullName, int sessionsLeft) =>
         WithOptOut($"{FirstName(fullName)} عزیز، فقط {Number(sessionsLeft)} جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.");

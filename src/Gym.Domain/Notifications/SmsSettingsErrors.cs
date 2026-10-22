@@ -11,7 +11,17 @@ public static class SmsSettingsErrors
 
     public static readonly Error LowSessionsOutOfRange = Error.Validation(
         "Sms.LowSessionsOutOfRange",
-        "Sessions left must be from 1 to 10.");
+        "Sessions left must be from 1 to 4.");
+
+    /// <summary>«جلسات رو به اتمام» (task 10.17): the first row's largest plan, 5 to 139.</summary>
+    public static readonly Error LowSessionsSmallPlanMaxOutOfRange = Error.Validation(
+        "Sms.LowSessionsSmallPlanMaxOutOfRange",
+        "The first row's largest plan must be from 5 to 139 sessions.");
+
+    /// <summary>The second row's largest plan: above the first row's, at most 140.</summary>
+    public static readonly Error LowSessionsMediumPlanMaxOutOfRange = Error.Validation(
+        "Sms.LowSessionsMediumPlanMaxOutOfRange",
+        "The second row's largest plan must be above the first row's and at most 140 sessions.");
 
     public static readonly Error BirthdayDaysOutOfRange = Error.Validation(
         "Sms.BirthdayDaysOutOfRange",
@@ -37,6 +47,11 @@ public static class SmsSettingsErrors
     public static readonly Error SendTimeOutOfRange = Error.Validation(
         "Sms.SendTimeOutOfRange",
         "The send time must be between 08:00 and 22:00, on a quarter hour.");
+
+    /// <summary>The daily report's time (task 10.17): 08:00 to 23:45, on a quarter hour.</summary>
+    public static readonly Error DailyReportSendTimeOutOfRange = Error.Validation(
+        "Sms.DailyReportSendTimeOutOfRange",
+        "The daily report's time must be between 08:00 and 23:45, on a quarter hour.");
 
     /// <summary>A kind was turned on while one of its fields is empty (§10: on means filled).</summary>
     public static readonly Error SettingsIncomplete = Error.Validation(

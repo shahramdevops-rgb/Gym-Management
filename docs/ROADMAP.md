@@ -14,8 +14,9 @@ Milestones:
 Release order (decided by the developer on 1405/07/26, 2026-10-18):
 1. **Done 2026-10-20:** the SMS release, 10.6 to 10.15, from `main`, as one complete version
    (`20261020-0246-099e551`, 10.6), Kavenegar live with every kind off until the Owner turns them on.
-   **Next, before the look:** 10.16, sending again what Kavenegar cancelled, as a small release of
-   its own from `main` (planned on 1405/08/01, 2026-10-23).
+   **Next, before the look:** 10.16 (sending again what Kavenegar cancelled) and 10.17 (three
+   changes to the SMS settings), as one small release from `main` (planned on 1405/08/01,
+   2026-10-23).
 2. Then, in the days after SMS works, Phase 13's look and mobile (13.1 and 13.2 are finished and
    ticked on the branch `task/13.2-visual-language`; they are merged into `main` only after the SMS
    release, so they still show open here) as a release of its own.
@@ -2961,8 +2962,29 @@ developer on 1405/08/01, BUSINESS_RULES.md §10 *Sending*:
       schedule, the constraint, the Owner's resend of a cancelled message), frontend (the button,
       the warning, the count)
 
-Release: on its own from `main`, before Phase 13's look; it has a migration, so `./backup.sh run`
+Release: with 10.17, from `main`, before Phase 13's look; it has a migration, so `./backup.sh run`
 first.
+
+### 10.17 Three changes to the SMS settings (تنظیمات پیامک)
+Asked by the developer on 1405/08/01 (2026-10-23), to go out with 10.16. Decided, BUSINESS_RULES.md
+§10:
+- [x] The daily report's time is the Owner's: 08:00 to 23:45 on a quarter hour, an hour and a
+      minute box on its card (the kinds' 22 has only :00; the report's 23 has every quarter). It was
+      22:45, fixed in the code; the migration keeps 22:45 (`daily_report_send_time`, check
+      constraint, `Sms.DailyReportSendTimeOutOfRange`)
+- [x] «پایان اشتراک» also says the sessions left: «… به پایان می‌رسد و فقط ۱۲ جلسه از آن مانده
+      است.» Still two SMS parts (`SmsText.ForRunningOut`, docs/sms-texts.md)
+- [x] «جلسات رو به اتمام» by the plan's size (`LowSessionsSettings`): plans of 5 sessions to a first
+      size (8 at first), to a second (15), and bigger, each row with its own number of sessions left,
+      1 to 4. The migration renames the old number to the first row's and carries it into all
+      three, capped at 4, and sets the sizes to 8 and 15; check constraints for every range and for
+      "on means filled"
+- [x] Tests: domain (the time's window, the rows' ranges, which row a plan falls in, the text),
+      integration (each row's plans in a run, the endpoint's refusals under each box, the
+      constraints, the migration carrying the old number forward), frontend (the rows named by
+      the sizes typed, the report's hours, what is sent)
+
+Release: with 10.16, as one release from `main`; both have migrations, so `./backup.sh run` first.
 
 ---
 

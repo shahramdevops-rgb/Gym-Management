@@ -1852,3 +1852,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Two jobs that touch the same rows will meet.** The nightly delivery check and the 15-minute one both run at 23:30. With `xmin`, one of them gets `DbUpdateConcurrencyException`; catching it, clearing the change tracker and asking again next time is enough, because the provider still knows the answer.
 - **Extract when the second caller arrives (again).** Recording a resend's outcome moved out of `ResendSmsHandler` into `SmsResendOutcome` the moment the automatic resend needed the same switch. One place decides what each answer from Kavenegar means.
 - **My notes:**
+
+## 10.17 — Three changes to the SMS settings
+
+- **When one number becomes several, give it its own type.** «جلسات رو به اتمام» used to fit the shared `SmsKindSettings` (a switch, a number, a time). With three rows it does not, so it became `LowSessionsSettings`, with its own checks and `ThresholdFor(totalSessions)`. Stretching the shared record to fit one kind would have made every other kind carry fields it never uses.
+- **A migration that changes meaning carries the old value forward.** The old single number became the first row's (`RenameColumn`, so EF keeps the data instead of dropping and adding), and an `UPDATE` copies it into the other two, capped at the new limit, before the new check constraints are added. A test migrates a database up to the migration before, puts the old values in, and checks what comes out.
+- **`LEAST` ignores NULLs in Postgres.** `LEAST(NULL, 4)` is 4, not NULL, so the carry-forward `UPDATE` only touches a row whose number was filled (`WHERE … IS NOT NULL`).
+- **A computed property is part of the JSON.** `HighestThreshold` as a property went out in the API response and into the generated TypeScript types; as a method it stays a domain helper. What the API sends should be decided, not a side effect of how the record is written.
+- **Seed data is part of the model.** The plan sizes 8 and 15 went into `HasData`, so a fresh database and the migrated one start the same, and the test fixture that puts the seeded row back after each test had to learn them too.
+- **One component, different limits, by props.** The time picker takes the hours to offer and the hour that has only :00; the kinds pass nothing and keep 8–22, the daily report passes 8–23 with every quarter. One place still decides how an hour and a minute make a time.
+- **My notes:**

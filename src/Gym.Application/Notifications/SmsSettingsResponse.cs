@@ -8,7 +8,7 @@ namespace Gym.Application.Notifications;
 public sealed record SmsSettingsResponse(
     bool Enabled,
     SmsKindSettings SubscriptionExpiring,
-    SmsKindSettings LowSessions,
+    LowSessionsSettings LowSessions,
     SmsKindSettings Birthday,
     SmsKindSettings PayableDue,
     string? OwnerPhone,
@@ -27,11 +27,11 @@ public sealed record SmsSettingsResponse(
         return new SmsSettingsResponse(
             settings.Enabled,
             settings.For(NotificationKind.SubscriptionExpiring),
-            settings.For(NotificationKind.LowSessions),
+            settings.LowSessions,
             settings.For(NotificationKind.Birthday),
             settings.For(NotificationKind.PayableDue),
             settings.OwnerPhone,
-            new DailyReportSettingsResponse(settings.DailyReportEnabled, settings.DailyReportPhone, SmsSettings.DailyReportSendTime),
+            new DailyReportSettingsResponse(settings.DailyReportEnabled, settings.DailyReportPhone, settings.DailyReportSendTime),
             new SubscriptionReceiptSettingsResponse(settings.SubscriptionReceiptEnabled, SmsSettings.MorningSendTime),
             new WelcomeSettingsResponse(settings.WelcomeEnabled, SmsSettings.MorningSendTime),
             new DebtReminderSettings(

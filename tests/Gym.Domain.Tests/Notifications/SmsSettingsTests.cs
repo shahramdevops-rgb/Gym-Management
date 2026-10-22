@@ -40,12 +40,13 @@ public sealed class SmsSettingsTests
         var result = settings.Update(
             enabled: true,
             subscriptionExpiring: new(true, 7, new TimeOnly(9, 0)),
-            lowSessions: new(true, 2, new TimeOnly(9, 15)),
+            lowSessions: new(true, 8, 15, 1, 2, 3, new TimeOnly(9, 15)),
             birthday: new(true, 1, new TimeOnly(10, 30)),
             payableDue: new(true, 3, new TimeOnly(21, 45)),
             ownerPhone: Phone,
             dailyReportEnabled: true,
             dailyReportPhone: OtherPhone,
+            dailyReportSendTime: new TimeOnly(21, 30),
             subscriptionReceiptEnabled: true,
             welcomeEnabled: true,
             debtReminder: new(true, 30, new TimeOnly(11, 0)),
@@ -56,12 +57,14 @@ public sealed class SmsSettingsTests
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
         settings.For(NotificationKind.SubscriptionExpiring).ShouldBe(new SmsKindSettings(true, 7, new TimeOnly(9, 0)));
-        settings.For(NotificationKind.LowSessions).ShouldBe(new SmsKindSettings(true, 2, new TimeOnly(9, 15)));
+        settings.LowSessions.ShouldBe(new LowSessionsSettings(true, 8, 15, 1, 2, 3, new TimeOnly(9, 15)));
+        settings.For(NotificationKind.LowSessions).ShouldBe(new SmsKindSettings(true, null, new TimeOnly(9, 15)));
         settings.For(NotificationKind.Birthday).ShouldBe(new SmsKindSettings(true, 1, new TimeOnly(10, 30)));
         settings.For(NotificationKind.PayableDue).ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(21, 45)));
         settings.OwnerPhone.ShouldBe(Phone);
         settings.DailyReportEnabled.ShouldBeTrue();
         settings.DailyReportPhone.ShouldBe(OtherPhone);
+        settings.DailyReportSendTime.ShouldBe(new TimeOnly(21, 30));
         settings.SubscriptionReceiptEnabled.ShouldBeTrue();
         settings.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
         settings.WelcomeEnabled.ShouldBeTrue();
@@ -130,7 +133,7 @@ public sealed class SmsSettingsTests
     [InlineData(NotificationKind.SubscriptionExpiring, 1)]
     [InlineData(NotificationKind.SubscriptionExpiring, 30)]
     [InlineData(NotificationKind.LowSessions, 1)]
-    [InlineData(NotificationKind.LowSessions, 10)]
+    [InlineData(NotificationKind.LowSessions, 4)]
     [InlineData(NotificationKind.Birthday, 1)]
     [InlineData(NotificationKind.Birthday, 7)]
     [InlineData(NotificationKind.PayableDue, 0)]
@@ -146,7 +149,7 @@ public sealed class SmsSettingsTests
     [InlineData(NotificationKind.SubscriptionExpiring, 0)]
     [InlineData(NotificationKind.SubscriptionExpiring, 31)]
     [InlineData(NotificationKind.LowSessions, 0)]
-    [InlineData(NotificationKind.LowSessions, 11)]
+    [InlineData(NotificationKind.LowSessions, 5)]
     [InlineData(NotificationKind.Birthday, 0)]
     [InlineData(NotificationKind.Birthday, 8)]
     [InlineData(NotificationKind.PayableDue, -1)]
@@ -286,7 +289,7 @@ public sealed class SmsSettingsTests
     }
 
     [Fact]
-    public void For_DailyReport_HasNoNumberAndTheFixedTime()
+    public void For_DailyReport_HasNoNumberAndTheTimeAsItWas()
     {
         var settings = Empty();
         Save(settings, dailyReportEnabled: true, dailyReportPhone: OtherPhone);
@@ -495,18 +498,117 @@ public sealed class SmsSettingsTests
         settings.For(NotificationKind.Absence).ShouldBe(new SmsKindSettings(true, 14, Ten));
     }
 
+    // ---- The daily report's time (task 10.17) ----
+
+    [Theory]
+    [InlineData(8, 0)]
+    [InlineData(18, 30)]
+    [InlineData(23, 45)]
+    public void Update_DailyReportTimeInItsWindow_IsKeptAndScheduled(int hour, int minute)
+    {
+        var settings = Empty();
+        var time = new TimeOnly(hour, minute);
+
+        Save(settings, dailyReportEnabled: true, dailyReportPhone: OtherPhone, dailyReportSendTime: time)
+            .IsSuccess.ShouldBeTrue();
+
+        settings.DailyReportSendTime.ShouldBe(time);
+        settings.For(NotificationKind.DailyReport).SendTime.ShouldBe(time);
+    }
+
+    [Theory]
+    [InlineData(7, 45, 0)]
+    [InlineData(22, 10, 0)]
+    [InlineData(23, 50, 0)]
+    [InlineData(0, 0, 0)]
+    [InlineData(18, 0, 30)]
+    public void Update_DailyReportTimeOutsideItsWindowOrOffTheQuarter_IsRefusedAndKeepsTheOld(int hour, int minute, int second)
+    {
+        var settings = Empty();
+
+        Save(settings, dailyReportSendTime: new TimeOnly(hour, minute, second))
+            .Error.ShouldBe(SmsSettingsErrors.DailyReportSendTimeOutOfRange);
+
+        settings.DailyReportSendTime.ShouldBe(SmsSettings.DefaultDailyReportSendTime);
+    }
+
+    // ---- «جلسات رو به اتمام» by the plan's size (task 10.17) ----
+
+    [Fact]
+    public void Update_LowSessionsOnWithAnEmptyRow_IsRefused()
+    {
+        var settings = Empty();
+
+        Save(settings, lowSessions: new(true, 8, 15, 1, null, 3, Ten)).Error.ShouldBe(SmsSettingsErrors.SettingsIncomplete);
+
+        settings.LowSessionsEnabled.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Update_LowSessionsOffAndHalfFilled_Succeeds() =>
+        Save(Empty(), lowSessions: new(false, 8, null, 1, null, null, null)).IsSuccess.ShouldBeTrue();
+
+    [Theory]
+    [InlineData(5, 6)]
+    [InlineData(8, 15)]
+    [InlineData(139, 140)]
+    public void Update_LowSessionsPlanSizesInRange_Succeeds(int small, int medium) =>
+        Save(Empty(), lowSessions: new(true, small, medium, 1, 2, 3, Ten)).IsSuccess.ShouldBeTrue();
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(140)]
+    public void Update_LowSessionsFirstRowOutOfRange_IsRefused(int small) =>
+        Save(Empty(), lowSessions: new(true, small, 140, 1, 2, 3, Ten))
+            .Error.ShouldBe(SmsSettingsErrors.LowSessionsSmallPlanMaxOutOfRange);
+
+    [Theory]
+    [InlineData(8, 8)]
+    [InlineData(8, 7)]
+    [InlineData(8, 141)]
+    public void Update_LowSessionsSecondRowNotAboveTheFirstOrTooBig_IsRefused(int small, int medium) =>
+        Save(Empty(), lowSessions: new(true, small, medium, 1, 2, 3, Ten))
+            .Error.ShouldBe(SmsSettingsErrors.LowSessionsMediumPlanMaxOutOfRange);
+
+    [Theory]
+    [InlineData(0, 2, 3)]
+    [InlineData(1, 5, 3)]
+    [InlineData(1, 2, 5)]
+    public void Update_LowSessionsNumberOutOfOneToFour_IsRefused(int small, int medium, int large) =>
+        Save(Empty(), lowSessions: new(true, 8, 15, small, medium, large, Ten))
+            .Error.ShouldBe(SmsSettingsErrors.LowSessionsOutOfRange);
+
+    [Theory]
+    [InlineData(5, 1)]
+    [InlineData(8, 1)]
+    [InlineData(9, 2)]
+    [InlineData(15, 2)]
+    [InlineData(16, 3)]
+    [InlineData(140, 3)]
+    public void ThresholdFor_PlanSize_IsItsRowsNumber(int totalSessions, int expected) =>
+        new LowSessionsSettings(true, 8, 15, 1, 2, 3, Ten).ThresholdFor(totalSessions).ShouldBe(expected);
+
+    [Fact]
+    public void ThresholdFor_RowsNotFilled_IsNothing() =>
+        new LowSessionsSettings(false, null, null, 1, 2, 3, null).ThresholdFor(10).ShouldBeNull();
+
+    [Fact]
+    public void HighestThreshold_Filled_IsTheLargestOfTheThree() =>
+        new LowSessionsSettings(true, 8, 15, 3, 1, 2, Ten).HighestThreshold().ShouldBe(3);
+
     // ---- Helpers ----
 
     private static Domain.Common.Result Save(
         SmsSettings settings,
         bool enabled = false,
         SmsKindSettings? subscriptionExpiring = null,
-        SmsKindSettings? lowSessions = null,
+        LowSessionsSettings? lowSessions = null,
         SmsKindSettings? birthday = null,
         SmsKindSettings? payableDue = null,
         string? ownerPhone = null,
         bool dailyReportEnabled = false,
         string? dailyReportPhone = null,
+        TimeOnly? dailyReportSendTime = null,
         bool subscriptionReceiptEnabled = false,
         bool welcomeEnabled = false,
         SmsKindSettings? debtReminder = null,
@@ -516,12 +618,13 @@ public sealed class SmsSettingsTests
         settings.Update(
             enabled,
             subscriptionExpiring ?? SmsKindSettings.Off,
-            lowSessions ?? SmsKindSettings.Off,
+            lowSessions ?? LowSessionsSettings.Off,
             birthday ?? SmsKindSettings.Off,
             payableDue ?? SmsKindSettings.Off,
             ownerPhone,
             dailyReportEnabled,
             dailyReportPhone,
+            dailyReportSendTime ?? SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled,
             welcomeEnabled,
             debtReminder ?? SmsKindSettings.Off,

@@ -26,7 +26,15 @@ const off = { enabled: false, threshold: null, sendTime: null };
 const settingsOn: SmsSettings = {
   enabled: true,
   subscriptionExpiring: off,
-  lowSessions: off,
+  lowSessions: {
+    enabled: false,
+    smallPlanMax: 8,
+    mediumPlanMax: 15,
+    smallThreshold: null,
+    mediumThreshold: null,
+    largeThreshold: null,
+    sendTime: null,
+  },
   birthday: off,
   payableDue: off,
   ownerPhone: null,

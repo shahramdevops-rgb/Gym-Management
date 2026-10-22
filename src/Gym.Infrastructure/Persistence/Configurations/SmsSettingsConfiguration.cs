@@ -20,6 +20,9 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
     // The kinds' column prefixes, as snake_case names them.
     private static readonly string[] Kinds = ["subscription_expiring", "low_sessions", "birthday", "payable_due", "debt_reminder", "absence"];
 
+    // «جلسات رو به اتمام»'s rows by the plan's size (task 10.17), as their columns name them.
+    private static readonly string[] LowSessionsRows = ["small", "medium", "large"];
+
     public void Configure(EntityTypeBuilder<SmsSettings> builder)
     {
         builder.ToTable("sms_settings", table =>
@@ -28,7 +31,18 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             table.HasCheckConstraint("ck_sms_settings_single_row", $"id = '{SmsSettings.TheId}'");
 
             table.HasCheckConstraint("ck_sms_settings_subscription_expiring_days", Range("subscription_expiring_days_before", NotificationKind.SubscriptionExpiring));
-            table.HasCheckConstraint("ck_sms_settings_low_sessions_threshold", Range("low_sessions_threshold", NotificationKind.LowSessions));
+            // «جلسات رو به اتمام» by the plan's size (task 10.17): three numbers of 1 to 4, and the
+            // two plan sizes that divide the rows, the second above the first.
+            table.HasCheckConstraint(
+                "ck_sms_settings_low_sessions_thresholds",
+                string.Join(
+                    " AND ",
+                    LowSessionsRows.Select(row => $"({Range($"low_sessions_{row}_threshold", NotificationKind.LowSessions)})")));
+            table.HasCheckConstraint(
+                "ck_sms_settings_low_sessions_plan_max",
+                $"(low_sessions_small_plan_max IS NULL OR low_sessions_small_plan_max BETWEEN {LowSessionsSettings.SmallPlanMaxFloor} AND {LowSessionsSettings.SmallPlanMaxCeiling})"
+                + $" AND (low_sessions_medium_plan_max IS NULL OR low_sessions_medium_plan_max <= {LowSessionsSettings.MediumPlanMaxCeiling})"
+                + " AND (low_sessions_small_plan_max IS NULL OR low_sessions_medium_plan_max IS NULL OR low_sessions_medium_plan_max > low_sessions_small_plan_max)");
             table.HasCheckConstraint("ck_sms_settings_birthday_days", Range("birthday_days_before", NotificationKind.Birthday));
             table.HasCheckConstraint("ck_sms_settings_payable_due_days", Range("payable_due_days_before", NotificationKind.PayableDue));
             table.HasCheckConstraint("ck_sms_settings_debt_reminder_days", Range("debt_reminder_days_after", NotificationKind.DebtReminder));
@@ -49,7 +63,13 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
 
             // On means filled (§10): a kind cannot be on with an empty field.
             table.HasCheckConstraint("ck_sms_settings_subscription_expiring_on_means_filled", OnMeansFilled("subscription_expiring", "subscription_expiring_days_before"));
-            table.HasCheckConstraint("ck_sms_settings_low_sessions_on_means_filled", OnMeansFilled("low_sessions", "low_sessions_threshold"));
+            table.HasCheckConstraint(
+                "ck_sms_settings_low_sessions_on_means_filled",
+                OnMeansFilled(
+                    "low_sessions",
+                    "low_sessions_small_threshold",
+                    "low_sessions_medium_threshold IS NOT NULL AND low_sessions_large_threshold IS NOT NULL"
+                    + " AND low_sessions_small_plan_max IS NOT NULL AND low_sessions_medium_plan_max IS NOT NULL"));
             table.HasCheckConstraint("ck_sms_settings_birthday_on_means_filled", OnMeansFilled("birthday", "birthday_days_before"));
             table.HasCheckConstraint("ck_sms_settings_absence_on_means_filled", OnMeansFilled("absence", "absence_days_away"));
             table.HasCheckConstraint(
@@ -65,6 +85,12 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
                 "ck_sms_settings_daily_report_phone", "daily_report_phone IS NULL OR daily_report_phone ~ '^\\+989[0-9]{9}$'");
             table.HasCheckConstraint(
                 "ck_sms_settings_daily_report_on_means_filled", "NOT daily_report_enabled OR daily_report_phone IS NOT NULL");
+
+            // Its time is the Owner's (task 10.17): 08:00 to 23:45, on a quarter hour.
+            table.HasCheckConstraint(
+                "ck_sms_settings_daily_report_send_time",
+                $"daily_report_send_time BETWEEN '{Clock(SmsSettings.EarliestSendTime)}' AND '{Clock(SmsSettings.DailyReportLatestChoice)}'"
+                + " AND EXTRACT(MINUTE FROM daily_report_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM daily_report_send_time) = 0");
         });
 
         builder.Property(settings => settings.OwnerPhone).HasMaxLength(PhoneMaxLength);
@@ -82,9 +108,12 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             Enabled = false,
             SubscriptionExpiringEnabled = false,
             LowSessionsEnabled = false,
+            LowSessionsSmallPlanMax = 8,
+            LowSessionsMediumPlanMax = 15,
             BirthdayEnabled = false,
             PayableDueEnabled = false,
             DailyReportEnabled = false,
+            DailyReportSendTime = SmsSettings.DefaultDailyReportSendTime,
             SubscriptionReceiptEnabled = false,
             WelcomeEnabled = false,
             DebtReminderEnabled = false,

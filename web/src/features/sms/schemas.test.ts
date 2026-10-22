@@ -17,7 +17,15 @@ const settings: SmsSettings = {
     threshold: 7,
     sendTime: "09:15:00",
   },
-  lowSessions: off,
+  lowSessions: {
+    enabled: false,
+    smallPlanMax: 8,
+    mediumPlanMax: 15,
+    smallThreshold: null,
+    mediumThreshold: null,
+    largeThreshold: null,
+    sendTime: null,
+  },
   birthday: { enabled: false, threshold: 2, sendTime: null },
   payableDue: off,
   ownerPhone: "+989121234567",
@@ -37,8 +45,8 @@ describe("sms schemas", () => {
     expect(input).toEqual({
       ...settings,
       ownerPhone: "0912 123 4567",
-      // The time is the server's own; the page only sends the switch and the number.
-      dailyReport: { enabled: true, phone: "0935 123 4567" },
+      // The number is sent the way it was shown; the server reads any digits and spaces.
+      dailyReport: { enabled: true, phone: "0935 123 4567", sendTime: "22:45:00" },
       // Only the switch: the morning time is fixed in the code.
       subscriptionReceipt: { enabled: true },
       welcome: { enabled: false },
@@ -122,7 +130,6 @@ describe("sms schemas", () => {
   it.each([
     ["subscriptionExpiring", "0", false],
     ["subscriptionExpiring", "30", true],
-    ["lowSessions", "11", false],
     ["birthday", "0", false],
     ["birthday", "1", true],
     ["birthday", "8", false],
@@ -140,7 +147,7 @@ describe("sms schemas", () => {
 
   it("smsSettingsSchema_DailyReportOnWithoutItsNumber_IsRefusedUnderItsSwitch", () => {
     const values = toFormValues(settings);
-    values.dailyReport = { enabled: true, phone: " " };
+    values.dailyReport = { enabled: true, phone: " ", sendTime: "22:45" };
 
     const result = smsSettingsSchema.safeParse(values);
 
@@ -152,8 +159,12 @@ describe("sms schemas", () => {
 
   it("toInput_DailyReportNumberBlank_IsNull", () => {
     const values = toFormValues(settings);
-    values.dailyReport = { enabled: false, phone: "" };
+    values.dailyReport = { enabled: false, phone: "", sendTime: "22:45" };
 
-    expect(toInput(values, 3).dailyReport).toEqual({ enabled: false, phone: null });
+    expect(toInput(values, 3).dailyReport).toEqual({
+      enabled: false,
+      phone: null,
+      sendTime: "22:45:00",
+    });
   });
 });

@@ -1866,6 +1866,8 @@ export interface components {
         DailyReportSettings: {
             enabled: boolean;
             phone: null | string;
+            /** Format: time */
+            sendTime: string;
         };
         DailyReportSettingsResponse: {
             enabled: boolean;
@@ -2167,6 +2169,21 @@ export interface components {
         LoginCommand: {
             userName: string;
             password: string;
+        };
+        LowSessionsSettings: {
+            enabled: boolean;
+            /** Format: int32 */
+            smallPlanMax: null | number | string;
+            /** Format: int32 */
+            mediumPlanMax: null | number | string;
+            /** Format: int32 */
+            smallThreshold: null | number | string;
+            /** Format: int32 */
+            mediumThreshold: null | number | string;
+            /** Format: int32 */
+            largeThreshold: null | number | string;
+            /** Format: time */
+            sendTime: null | string;
         };
         MemberCurrentVisit: {
             /** Format: uuid */
@@ -2946,7 +2963,7 @@ export interface components {
         SmsSettingsResponse: {
             enabled: boolean;
             subscriptionExpiring: components["schemas"]["SmsKindSettings"];
-            lowSessions: components["schemas"]["SmsKindSettings"];
+            lowSessions: components["schemas"]["LowSessionsSettings"];
             birthday: components["schemas"]["SmsKindSettings"];
             payableDue: components["schemas"]["SmsKindSettings"];
             ownerPhone: null | string;
@@ -3110,7 +3127,7 @@ export interface components {
         UpdateSmsSettingsCommand: {
             enabled: boolean;
             subscriptionExpiring: components["schemas"]["SmsKindSettings"];
-            lowSessions: components["schemas"]["SmsKindSettings"];
+            lowSessions: components["schemas"]["LowSessionsSettings"];
             birthday: components["schemas"]["SmsKindSettings"];
             payableDue: components["schemas"]["SmsKindSettings"];
             ownerPhone: null | string;

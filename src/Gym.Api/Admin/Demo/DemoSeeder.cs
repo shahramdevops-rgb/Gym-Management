@@ -611,11 +611,11 @@ public sealed class DemoSeeder
         var command = new UpdateSmsSettingsCommand(
             Enabled: true,
             SubscriptionExpiring: new SmsKindSettings(true, 3, new TimeOnly(10, 0)),
-            LowSessions: new SmsKindSettings(true, 2, new TimeOnly(10, 15)),
+            LowSessions: new LowSessionsSettings(true, 8, 15, 1, 2, 3, new TimeOnly(10, 15)),
             Birthday: new SmsKindSettings(true, 3, new TimeOnly(9, 0)),
             PayableDue: new SmsKindSettings(true, 3, new TimeOnly(9, 30)),
             OwnerPhone: "09121112233",
-            DailyReport: new DailyReportSettings(true, "09121112233"),
+            DailyReport: new DailyReportSettings(true, "09121112233", SmsSettings.DefaultDailyReportSendTime),
             SubscriptionReceipt: new SubscriptionReceiptSettings(true),
             Welcome: new WelcomeSettings(true),
             DebtReminder: new DebtReminderSettings(true, 30, new TimeOnly(11, 0), 200_000m),

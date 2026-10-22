@@ -50,7 +50,7 @@ Decided values:
   same day, before 22:00**; after 22:00 that day's run is skipped, and the next day's run reaches
   whoever is still covered (decided with the developer, 1405/07/14, task 10.3).
   The daily report (§10) is made until midnight instead (decided with the developer, 1405/07/27,
-  task 10.7): a missed 22:45 run is still made the same night.
+  task 10.7): a missed run of its chosen time is still made the same night.
 - A cheque or instalment whose date is changed after its SMS was sent **gets no second SMS**:
   one per cheque or instalment, whatever its date becomes (decided with the developer,
   1405/07/14, task 10.3). The header alert and the dashboard follow the new date.
@@ -1296,7 +1296,14 @@ sent that the Owner did not choose, and the same message is never paid for twice
 - **Subscription running out (`SubscriptionExpiring`)**, to the member: an `Active` subscription
   (not frozen, not queued) whose `EndDate` is at most *N days* away, today included.
 - **Few sessions left (`LowSessions`)**, to the member: an `Active` subscription with at most
-  *N sessions* left.
+  *N sessions* left, where *N* depends on the plan's size (decided with the developer, 1405/08/01,
+  task 10.17): three rows, plans of 5 sessions (the smallest plan, §3) up to a size the Owner
+  chooses (8 at first), up to a second size (15 at first), and every bigger plan, each with its own
+  *N* from **1 to 4**. The plan's size is the sessions bought on it. The first row ends at 5 to 139
+  sessions, the second above it and at most 140 (`Sms.LowSessionsSmallPlanMaxOutOfRange`,
+  `Sms.LowSessionsMediumPlanMaxOutOfRange`, `Sms.LowSessionsOutOfRange`); the database holds the
+  same. When the rows came in, the one number the Owner had chosen was carried into all three,
+  capped at 4.
 - For both: a single-session visit never gets one; a deactivated member never gets one (nor any
   member's SMS, the broadcast included, except the debt reminder, *The debt reminder*); **a member
   who has already bought the next subscription** (a queued one, §4 `Upcoming`, not cancelled) never
@@ -1331,10 +1338,12 @@ sent that the Owner did not choose, and the same message is never paid for twice
 ### The daily report (گزارش روزانه)
 Decided with the developer on 1405/07/27 (2026-10-19), task 10.7. The first of the kinds added after
 the four above (roadmap 10.7 to 10.13).
-- **One SMS a day to the Owner (`DailyReport`)**, about **that same day**, sent **at 22:45**
-  (Asia/Tehran). The time is **fixed in the code**, not chosen on the settings page. Whatever is
-  recorded between 22:45 and midnight is in no report: the gym is open until midnight
-  (`Gym:ClosingTime`), and the developer chose the evening of the day itself over the next
+- **One SMS a day to the Owner (`DailyReport`)**, about **that same day**, sent at the time the
+  Owner chooses on the settings page, **08:00 to 23:45** on a quarter hour (Asia/Tehran; decided with
+  the developer, 1405/08/01, task 10.17, replacing "22:45, fixed in the code"; it was 22:45 until
+  the Owner changes it, `Sms.DailyReportSendTimeOutOfRange`). It covers the day up to the moment it
+  goes: whatever is recorded after it and before midnight is in no report. The gym is open until
+  midnight (`Gym:ClosingTime`), and the developer chose the evening of the day itself over the next
   morning. Sending it after the last check-out of the day was considered and dropped: the system
   cannot know which check-out is the last (the gym can be empty in the afternoon, a forgotten
   check-out keeps it from ever emptying, and the auto-checkout runs at midnight, the next day).
@@ -1572,10 +1581,10 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   |---|---|---|
   | All SMS | on/off | |
   | Subscription running out | on/off, days before `EndDate`, send time | 1–30 days |
-  | Few sessions left | on/off, sessions left, send time | 1–10 sessions |
+  | Few sessions left | on/off, two plan sizes that divide three rows, sessions left for each row, send time | 1–4 sessions; first row ends at 5–139, second above it, at most 140 |
   | Birthday | on/off, days before the birthday, send time | 1–7 days |
   | Cheques and instalments | on/off, days before the date, send time, the Owner's mobile number | 0–30 days |
-  | Daily report | on/off, the mobile number it goes to | sent at 22:45, fixed |
+  | Daily report | on/off, the mobile number it goes to, send time | 08:00–23:45 |
   | Subscription receipt | on/off | sent at once; after 22:00 at 10:00, fixed |
   | Welcome | on/off | sent at once; after 22:00 at 10:00, fixed |
   | Debt reminder | on/off, days since the oldest unpaid sale, the minimum amount, send time | 1–90 days; 1,000 Toman or more |

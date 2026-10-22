@@ -216,14 +216,15 @@ public sealed class DatabaseFixture : IAsyncLifetime
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
-    /// <summary>The one SMS settings row, everything empty and off, as the migration seeds it (BUSINESS_RULES.md §10).</summary>
+    /// <summary>The one SMS settings row, everything empty and off, as the migration seeds it (BUSINESS_RULES.md §10). The
+    /// plan sizes that divide «جلسات رو به اتمام» come seeded at 8 and 15 (task 10.17).</summary>
     private static async Task RestoreSmsSettingsAsync(NpgsqlConnection connection)
     {
         await using var command = new NpgsqlCommand(
             """
             INSERT INTO sms_settings (id, created_at, enabled, subscription_expiring_enabled, low_sessions_enabled,
-                birthday_enabled, payable_due_enabled)
-            VALUES (@id, now(), false, false, false, false, false)
+                birthday_enabled, payable_due_enabled, low_sessions_small_plan_max, low_sessions_medium_plan_max)
+            VALUES (@id, now(), false, false, false, false, false, 8, 15)
             """,
             connection);
 
@@ -241,7 +242,8 @@ public sealed class DatabaseFixture : IAsyncLifetime
                     OR daily_report_enabled OR subscription_receipt_enabled OR welcome_enabled OR debt_reminder_enabled
                     OR absence_enabled,
                 num_nonnulls(subscription_expiring_days_before, subscription_expiring_send_time,
-                    low_sessions_threshold, low_sessions_send_time,
+                    low_sessions_small_threshold, low_sessions_medium_threshold, low_sessions_large_threshold,
+                    low_sessions_send_time,
                     birthday_days_before, birthday_send_time,
                     payable_due_days_before, payable_due_send_time, owner_phone, daily_report_phone,
                     debt_reminder_days_after, debt_reminder_send_time, debt_reminder_min_amount,

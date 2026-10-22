@@ -115,7 +115,10 @@ export const errorMessages: Record<string, string> = {
 
   // SMS settings (BUSINESS_RULES.md §10 *SMS settings*)
   "Sms.SubscriptionExpiringDaysOutOfRange": "تعداد روز باید از ۱ تا ۳۰ باشد.",
-  "Sms.LowSessionsOutOfRange": "تعداد جلسه باید از ۱ تا ۱۰ باشد.",
+  "Sms.LowSessionsOutOfRange": "تعداد جلسه باید از ۱ تا ۴ باشد.",
+  "Sms.LowSessionsSmallPlanMaxOutOfRange": "اندازهٔ پلن ردیف اول باید از ۵ تا ۱۳۹ جلسه باشد.",
+  "Sms.LowSessionsMediumPlanMaxOutOfRange":
+    "اندازهٔ پلن ردیف دوم باید بزرگ‌تر از ردیف اول و حداکثر ۱۴۰ جلسه باشد.",
   "Sms.BirthdayDaysOutOfRange": "تعداد روز باید از ۱ تا ۷ باشد.",
   "Sms.PayableDueDaysOutOfRange": "تعداد روز باید از ۰ تا ۳۰ باشد (۰ یعنی خود روز سررسید).",
   "Sms.DebtReminderDaysOutOfRange": "تعداد روز باید از ۱ تا ۹۰ باشد.",
@@ -123,6 +126,8 @@ export const errorMessages: Record<string, string> = {
   "Sms.DebtReminderMinAmountOutOfRange":
     "حداقل مبلغ باید ۱٬۰۰۰ تومان یا بیشتر باشد، با حداکثر دو رقم اعشار.",
   "Sms.SendTimeOutOfRange": "ساعت ارسال باید بین ۸:۰۰ و ۲۲:۰۰ و روی ربع ساعت باشد.",
+  "Sms.DailyReportSendTimeOutOfRange":
+    "ساعت گزارش روزانه باید بین ۸:۰۰ و ۲۳:۴۵ و روی ربع ساعت باشد.",
   "Sms.SettingsIncomplete": "برای روشن کردن این پیامک، همهٔ خانه‌هایش را پر کنید.",
   "Sms.DailyReportPhoneInvalid": "شمارهٔ گزارش روزانه باید یک شمارهٔ موبایل ایران باشد.",
   "Sms.ChangedConcurrently":

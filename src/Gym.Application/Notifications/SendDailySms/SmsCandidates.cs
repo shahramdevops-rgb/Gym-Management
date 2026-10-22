@@ -27,6 +27,12 @@ internal static class SmsCandidates
     public static Task<List<Notification>> FindAsync(
         IAppDbContext db, NotificationKind kind, SmsSettings settings, DateOnly today, CancellationToken cancellationToken)
     {
+        // Its number depends on the plan's size (task 10.17), so it has rows of its own.
+        if (kind == NotificationKind.LowSessions)
+        {
+            return FewSessionsLeftAsync(db, today, settings.LowSessions, cancellationToken);
+        }
+
         var kindSettings = settings.For(kind);
 
         // The database holds "on means filled" (task 10.2), and a run only starts for a kind that is on.
@@ -36,7 +42,6 @@ internal static class SmsCandidates
         return kind switch
         {
             NotificationKind.SubscriptionExpiring => RunningOutAsync(db, today, threshold, cancellationToken),
-            NotificationKind.LowSessions => FewSessionsLeftAsync(db, today, threshold, cancellationToken),
             NotificationKind.Birthday => BirthdaysAsync(db, today, threshold, cancellationToken),
             NotificationKind.PayableDue => PayablesComingDueAsync(
                 db,
@@ -65,21 +70,30 @@ internal static class SmsCandidates
                 row.Subscription.MemberId,
                 row.Subscription.Id,
                 row.PhoneNumber,
-                SmsText.ForRunningOut(row.FullName, row.Subscription.EndDate)))
+                SmsText.ForRunningOut(row.FullName, row.Subscription.EndDate, row.Subscription.RemainingSessions)))
             .ToList();
     }
 
+    /// <summary>
+    /// Each plan at its own row's number of sessions left, by the plan's size (task 10.17). The query
+    /// asks for the highest of the three; the domain rule then holds each plan to its own.
+    /// </summary>
     private static async Task<List<Notification>> FewSessionsLeftAsync(
-        IAppDbContext db, DateOnly today, int threshold, CancellationToken cancellationToken)
+        IAppDbContext db, DateOnly today, LowSessionsSettings settings, CancellationToken cancellationToken)
     {
+        // The database holds "on means filled", and a run only starts for a kind that is on.
+        var highest = settings.HighestThreshold()
+            ?? throw new InvalidOperationException("SMS kind LowSessions is on with an empty row.");
+
         var rows = await ActivePlansOfActiveMembers(db, today, NotificationKind.LowSessions)
-            .Where(row => row.Subscription.TotalSessions - row.Subscription.UsedSessions <= threshold)
+            .Where(row => row.Subscription.TotalSessions - row.Subscription.UsedSessions <= highest)
             .OrderBy(row => row.Subscription.EndDate)
             .ThenBy(row => row.Subscription.Id)
             .ToListAsync(cancellationToken);
 
         return rows
-            .Where(row => SmsAudience.HasFewSessionsLeft(row.Subscription, today, threshold))
+            .Where(row => settings.ThresholdFor(row.Subscription.TotalSessions) is { } threshold
+                && SmsAudience.HasFewSessionsLeft(row.Subscription, today, threshold))
             .Select(row => Notification.ForLowSessions(
                 row.Subscription.MemberId,
                 row.Subscription.Id,

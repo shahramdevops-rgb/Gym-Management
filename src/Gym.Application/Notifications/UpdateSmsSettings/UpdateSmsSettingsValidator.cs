@@ -21,8 +21,7 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
     {
         RuleFor(command => command.SubscriptionExpiring).Custom((settings, context) =>
             CheckKind(NotificationKind.SubscriptionExpiring, settings, context));
-        RuleFor(command => command.LowSessions).Custom((settings, context) =>
-            CheckKind(NotificationKind.LowSessions, settings, context));
+        RuleFor(command => command.LowSessions).Custom(CheckLowSessions);
         RuleFor(command => command.Birthday).Custom((settings, context) =>
             CheckKind(NotificationKind.Birthday, settings, context));
         RuleFor(command => command.PayableDue).Custom((settings, context) =>
@@ -62,6 +61,40 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
             context,
             nameof(DailyReportSettings.Enabled),
             SmsSettings.CheckDailyReportComplete(settings.Enabled, settings.Phone));
+        Report(context, nameof(DailyReportSettings.SendTime), SmsSettings.CheckDailyReportSendTime(settings.SendTime));
+    }
+
+    /// <summary>«جلسات رو به اتمام» (task 10.17): each refusal under its own box of the three rows.</summary>
+    private static void CheckLowSessions(LowSessionsSettings? settings, ValidationContext<UpdateSmsSettingsCommand> context)
+    {
+        if (settings is null)
+        {
+            context.AddFailure(new ValidationFailure(context.PropertyPath, "Every kind must be sent, on or off.")
+            {
+                ErrorCode = SmsSettingsErrors.SettingsIncomplete.Code,
+            });
+            return;
+        }
+
+        Report(context, nameof(LowSessionsSettings.SmallPlanMax), SmsSettings.CheckLowSessionsSmallPlanMax(settings.SmallPlanMax));
+        Report(
+            context,
+            nameof(LowSessionsSettings.MediumPlanMax),
+            SmsSettings.CheckLowSessionsMediumPlanMax(settings.SmallPlanMax, settings.MediumPlanMax));
+        Report(
+            context,
+            nameof(LowSessionsSettings.SmallThreshold),
+            SmsSettings.CheckThreshold(NotificationKind.LowSessions, settings.SmallThreshold));
+        Report(
+            context,
+            nameof(LowSessionsSettings.MediumThreshold),
+            SmsSettings.CheckThreshold(NotificationKind.LowSessions, settings.MediumThreshold));
+        Report(
+            context,
+            nameof(LowSessionsSettings.LargeThreshold),
+            SmsSettings.CheckThreshold(NotificationKind.LowSessions, settings.LargeThreshold));
+        Report(context, nameof(LowSessionsSettings.SendTime), SmsSettings.CheckSendTime(settings.SendTime));
+        Report(context, nameof(LowSessionsSettings.Enabled), SmsSettings.CheckLowSessionsComplete(settings));
     }
 
     private static void CheckDebtReminder(DebtReminderSettings? settings, ValidationContext<UpdateSmsSettingsCommand> context)

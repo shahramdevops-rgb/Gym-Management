@@ -40,11 +40,12 @@ Kavenegar does not add a second one. `SmsText.OptOut`. Messages written before k
 ### Subscription running out (`SubscriptionExpiring`, to the member)
 
 ```
-{name} عزیز، اشتراک شما در باشگاه پاسارگاد {end date} به پایان می‌رسد.
+{name} عزیز، اشتراک شما در باشگاه پاسارگاد {end date} به پایان می‌رسد و فقط {sessions left} جلسه از آن مانده است.
 ```
 
 - The end date and not "n days left", which would read «۰ روز دیگر» on the last day.
-- About 80 characters: two parts.
+- The sessions left on the day it is written, added by the developer on 1405/08/01 (task 10.17).
+- About 100 characters: still two parts, as before the sessions were added.
 
 ### Few sessions left (`LowSessions`, to the member)
 
@@ -82,8 +83,8 @@ days before the birthday, never on the day, and tells the member of the free vis
 
 ### Daily report (`DailyReport`, to the Owner)
 
-Agreed with the developer on 1405/07/27 (2026-10-19), task 10.7. Sent every night at 22:45 about
-that same day (BUSINESS_RULES.md §10 *The daily report*).
+Agreed with the developer on 1405/07/27 (2026-10-19), task 10.7. Sent every day at the time the
+Owner chooses (22:45 at first; task 10.17) about that same day (BUSINESS_RULES.md §10 *The daily report*).
 
 ```
 گزارش باشگاه پاسارگاد {month/day}

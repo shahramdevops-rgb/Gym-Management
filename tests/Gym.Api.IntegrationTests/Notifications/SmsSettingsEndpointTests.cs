@@ -30,7 +30,18 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     private static readonly object Off = new { enabled = false, threshold = (int?)null, sendTime = (string?)null };
 
-    private static readonly object ReportOff = new { enabled = false, phone = (string?)null };
+    private static readonly object ReportOff = new { enabled = false, phone = (string?)null, sendTime = "22:45:00" };
+
+    private static readonly object LowSessionsOff = new
+    {
+        enabled = false,
+        smallPlanMax = (int?)null,
+        mediumPlanMax = (int?)null,
+        smallThreshold = (int?)null,
+        mediumThreshold = (int?)null,
+        largeThreshold = (int?)null,
+        sendTime = (string?)null,
+    };
 
     private static readonly object ReceiptOff = new { enabled = false };
     private static readonly object WelcomeOff = new { enabled = false };
@@ -77,8 +88,17 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [Theory]
     [InlineData("subscription_expiring_days_before = 0", "ck_sms_settings_subscription_expiring_days")]
     [InlineData("subscription_expiring_days_before = 31", "ck_sms_settings_subscription_expiring_days")]
-    [InlineData("low_sessions_threshold = 0", "ck_sms_settings_low_sessions_threshold")]
-    [InlineData("low_sessions_threshold = 11", "ck_sms_settings_low_sessions_threshold")]
+    [InlineData("low_sessions_small_threshold = 0", "ck_sms_settings_low_sessions_thresholds")]
+    [InlineData("low_sessions_medium_threshold = 5", "ck_sms_settings_low_sessions_thresholds")]
+    [InlineData("low_sessions_large_threshold = 5", "ck_sms_settings_low_sessions_thresholds")]
+    [InlineData("low_sessions_small_plan_max = 4", "ck_sms_settings_low_sessions_plan_max")]
+    [InlineData("low_sessions_medium_plan_max = 141", "ck_sms_settings_low_sessions_plan_max")]
+    [InlineData("low_sessions_medium_plan_max = 8", "ck_sms_settings_low_sessions_plan_max")]
+    [InlineData("daily_report_send_time = '23:50'", "ck_sms_settings_daily_report_send_time")]
+    [InlineData("daily_report_send_time = '07:45'", "ck_sms_settings_daily_report_send_time")]
+    [InlineData(
+        "low_sessions_enabled = true, low_sessions_small_threshold = 1, low_sessions_send_time = '10:00'",
+        "ck_sms_settings_low_sessions_on_means_filled")]
     [InlineData("birthday_days_before = 0", "ck_sms_settings_birthday_days")]
     [InlineData("birthday_days_before = 8", "ck_sms_settings_birthday_days")]
     [InlineData("payable_due_days_before = 31", "ck_sms_settings_payable_due_days")]
@@ -142,7 +162,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
         settings.Enabled.ShouldBeFalse();
         settings.SubscriptionExpiring.ShouldBe(SmsKindSettings.Off);
-        settings.LowSessions.ShouldBe(SmsKindSettings.Off);
+        // The plan sizes come seeded at 8 and 15 (task 10.17); the numbers are the Owner's to choose.
+        settings.LowSessions.ShouldBe(new LowSessionsSettings(false, 8, 15, null, null, null, null));
         settings.Birthday.ShouldBe(SmsKindSettings.Off);
         settings.PayableDue.ShouldBe(SmsKindSettings.Off);
         settings.OwnerPhone.ShouldBeNull();
@@ -192,11 +213,11 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         var reread = await GetOkAsync(client, token);
         reread.Enabled.ShouldBeTrue();
         reread.SubscriptionExpiring.ShouldBe(new SmsKindSettings(true, 7, new TimeOnly(9, 0)));
-        reread.LowSessions.ShouldBe(new SmsKindSettings(true, 2, new TimeOnly(9, 15)));
+        reread.LowSessions.ShouldBe(new LowSessionsSettings(true, 8, 15, 1, 2, 3, new TimeOnly(9, 15)));
         reread.Birthday.ShouldBe(new SmsKindSettings(true, 1, new TimeOnly(10, 30)));
         reread.PayableDue.ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(22, 0)));
         reread.OwnerPhone.ShouldBe("+989121234567");
-        reread.DailyReport.ShouldBe(new DailyReportSettingsResponse(true, "+989351234567", new TimeOnly(22, 45)));
+        reread.DailyReport.ShouldBe(new DailyReportSettingsResponse(true, "+989351234567", new TimeOnly(21, 30)));
         reread.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(true, new TimeOnly(10, 0)));
         reread.Welcome.ShouldBe(new WelcomeSettingsResponse(true, new TimeOnly(10, 0)));
         reread.Absence.ShouldBe(new SmsKindSettings(true, 14, new TimeOnly(11, 30)));
@@ -227,7 +248,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         {
             enabled = false,
             subscriptionExpiring = Off,
-            lowSessions = Off,
+            lowSessions = LowSessionsOff,
             birthday = Off,
             payableDue = Off,
             ownerPhone = (string?)null,
@@ -323,7 +344,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         {
             enabled = false,
             subscriptionExpiring = Off,
-            lowSessions = Off,
+            lowSessions = LowSessionsOff,
             birthday = Off,
             payableDue = Off,
             ownerPhone = (string?)null,
@@ -403,7 +424,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         {
             enabled = false,
             subscriptionExpiring = Off,
-            lowSessions = Off,
+            lowSessions = LowSessionsOff,
             birthday = Off,
             payableDue = Off,
             ownerPhone = (string?)null,
@@ -459,7 +480,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         {
             enabled = false,
             subscriptionExpiring = Off,
-            lowSessions = Off,
+            lowSessions = LowSessionsOff,
             birthday = Off,
             payableDue = Off,
             ownerPhone = (string?)null,
@@ -503,7 +524,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         using var response = await UpdateAsync(client, token, Body(
             before.Version,
             ownerPhone: "09121234567",
-            dailyReport: new { enabled = true, phone = "۰۹۳۵ ۱۲۳ ۴۵۶۷" }));
+            dailyReport: new { enabled = true, phone = "۰۹۳۵ ۱۲۳ ۴۵۶۷", sendTime = "22:45:00" }));
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var saved = await GetOkAsync(client, token);
@@ -519,7 +540,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
         // The Owner's number for the cheques does not stand in for the report's.
         using var response = await UpdateAsync(client, token, Body(
-            read.Version, ownerPhone: "09121234567", dailyReport: new { enabled = true, phone = (string?)null }));
+            read.Version, ownerPhone: "09121234567", dailyReport: new { enabled = true, phone = (string?)null, sendTime = "22:45:00" }));
 
         await ShouldHaveFieldErrorAsync(response, "dailyReport.enabled", "Sms.SettingsIncomplete");
     }
@@ -532,7 +553,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         var (client, token, _) = await OwnerClientAsync();
         var before = await GetOkAsync(client, token);
 
-        using var response = await UpdateAsync(client, token, Body(before.Version, dailyReport: new { enabled = false, phone }));
+        using var response = await UpdateAsync(client, token, Body(before.Version, dailyReport: new { enabled = false, phone, sendTime = "22:45:00" }));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await response.ReadErrorCodeAsync()).ShouldBe("Sms.DailyReportPhoneInvalid");
@@ -549,7 +570,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         {
             enabled = false,
             subscriptionExpiring = Off,
-            lowSessions = Off,
+            lowSessions = LowSessionsOff,
             birthday = Off,
             payableDue = Off,
             ownerPhone = (string?)null,
@@ -663,7 +684,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         applied.Enabled.ShouldBeTrue();
         applied.For(NotificationKind.SubscriptionExpiring).SendTime.ShouldBe(new TimeOnly(9, 0));
         applied.For(NotificationKind.PayableDue).SendTime.ShouldBe(new TimeOnly(22, 0));
-        applied.For(NotificationKind.DailyReport).ShouldBe(new SmsKindSettings(true, null, new TimeOnly(22, 45)));
+        applied.For(NotificationKind.DailyReport).ShouldBe(new SmsKindSettings(true, null, new TimeOnly(21, 30)));
 
         // On, but no send time: the receipt goes at each payment, never by a daily run.
         applied.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
@@ -742,7 +763,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         {
             enabled = false,
             subscriptionExpiring = Off,
-            lowSessions = Off,
+            lowSessions = LowSessionsOff,
             payableDue = Off,
             ownerPhone = (string?)null,
             dailyReport = ReportOff,
@@ -757,7 +778,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     [Theory]
     [InlineData("subscriptionExpiring", 31, null, "subscriptionExpiring.threshold", "Sms.SubscriptionExpiringDaysOutOfRange")]
-    [InlineData("lowSessions", 11, null, "lowSessions.threshold", "Sms.LowSessionsOutOfRange")]
+    [InlineData("lowSessions", 5, null, "lowSessions.smallThreshold", "Sms.LowSessionsOutOfRange")]
     [InlineData("birthday", 0, null, "birthday.threshold", "Sms.BirthdayDaysOutOfRange")]
     [InlineData("birthday", 8, null, "birthday.threshold", "Sms.BirthdayDaysOutOfRange")]
     [InlineData("payableDue", 31, null, "payableDue.threshold", "Sms.PayableDueDaysOutOfRange")]
@@ -773,12 +794,62 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         using var response = await UpdateAsync(client, token, kind switch
         {
             "subscriptionExpiring" => Body(read.Version, subscriptionExpiring: refused),
-            "lowSessions" => Body(read.Version, lowSessions: refused),
+            "lowSessions" => Body(read.Version, lowSessions: new
+            {
+                enabled = false,
+                smallPlanMax = 8,
+                mediumPlanMax = 15,
+                smallThreshold = threshold,
+                mediumThreshold = (int?)null,
+                largeThreshold = (int?)null,
+                sendTime,
+            }),
             "birthday" => Body(read.Version, birthday: refused),
             _ => Body(read.Version, payableDue: refused),
         });
 
         await ShouldHaveFieldErrorAsync(response, field, code);
+    }
+
+    [Theory]
+    [InlineData(4, 15, "lowSessions.smallPlanMax", "Sms.LowSessionsSmallPlanMaxOutOfRange")]
+    [InlineData(8, 8, "lowSessions.mediumPlanMax", "Sms.LowSessionsMediumPlanMaxOutOfRange")]
+    [InlineData(8, 141, "lowSessions.mediumPlanMax", "Sms.LowSessionsMediumPlanMaxOutOfRange")]
+    public async Task Update_LowSessionsPlanSizeOutOfRange_Returns400UnderThatBox(
+        int smallPlanMax, int mediumPlanMax, string field, string code)
+    {
+        // Task 10.17: the first row ends at 5 to 139 sessions, the second above it and at most 140.
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(read.Version, lowSessions: new
+        {
+            enabled = false,
+            smallPlanMax,
+            mediumPlanMax,
+            smallThreshold = (int?)null,
+            mediumThreshold = (int?)null,
+            largeThreshold = (int?)null,
+            sendTime = (string?)null,
+        }));
+
+        await ShouldHaveFieldErrorAsync(response, field, code);
+    }
+
+    [Theory]
+    [InlineData("07:45:00")]
+    [InlineData("23:50:00")]
+    [InlineData("18:10:00")]
+    public async Task Update_DailyReportTimeOutOfItsWindow_Returns400UnderTheTime(string sendTime)
+    {
+        // Task 10.17: 08:00 to 23:45, on a quarter hour.
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(
+            client, token, Body(read.Version, dailyReport: new { enabled = false, phone = (string?)null, sendTime }));
+
+        await ShouldHaveFieldErrorAsync(response, "dailyReport.sendTime", "Sms.DailyReportSendTimeOutOfRange");
     }
 
     // ---- Helpers ----
@@ -813,7 +884,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         {
             enabled,
             subscriptionExpiring = subscriptionExpiring ?? Off,
-            lowSessions = lowSessions ?? Off,
+            lowSessions = lowSessions ?? LowSessionsOff,
             birthday = birthday ?? Off,
             payableDue = payableDue ?? Off,
             ownerPhone,
@@ -830,11 +901,20 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         version,
         enabled: true,
         subscriptionExpiring: Kind(true, 7, "09:00:00"),
-        lowSessions: Kind(true, 2, "09:15:00"),
+        lowSessions: new
+        {
+            enabled = true,
+            smallPlanMax = 8,
+            mediumPlanMax = 15,
+            smallThreshold = 1,
+            mediumThreshold = 2,
+            largeThreshold = 3,
+            sendTime = "09:15:00",
+        },
         birthday: Kind(true, 1, "10:30:00"),
         payableDue: Kind(true, 3, "22:00:00"),
         ownerPhone: "09121234567",
-        dailyReport: new { enabled = true, phone = "09351234567" },
+        dailyReport: new { enabled = true, phone = "09351234567", sendTime = "21:30:00" },
         subscriptionReceipt: new { enabled = true },
         welcome: new { enabled = true },
         debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000m },

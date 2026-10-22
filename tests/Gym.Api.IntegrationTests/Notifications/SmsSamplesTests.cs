@@ -34,7 +34,7 @@ public sealed class SmsSamplesTests(DatabaseFixture fixture) : DatabaseTestBase(
 
         var samples = new GetSmsSamplesHandler(calendar).Handle();
 
-        samples.SubscriptionExpiring.Text.ShouldBe(SmsText.ForRunningOut("علی", Today.AddDays(3)));
+        samples.SubscriptionExpiring.Text.ShouldBe(SmsText.ForRunningOut("علی", Today.AddDays(3), sessionsLeft: 4));
         samples.LowSessions.Text.ShouldBe("علی عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.\nلغو11");
         samples.Birthday.Text.ShouldBe(SmsText.ForBirthday("علی", Today.AddDays(3)));
         samples.PayableDue.Text.ShouldBe(

@@ -23,7 +23,7 @@ public sealed class GetSmsSamplesHandler(IGymCalendar calendar)
         var today = calendar.Today();
 
         return new SmsSamplesResponse(
-            SubscriptionExpiring: Sample(SmsText.ForRunningOut(SampleMemberName, today.AddDays(3))),
+            SubscriptionExpiring: Sample(SmsText.ForRunningOut(SampleMemberName, today.AddDays(3), sessionsLeft: 4)),
             LowSessions: Sample(SmsText.ForFewSessionsLeft(SampleMemberName, sessionsLeft: 2)),
             Birthday: Sample(SmsText.ForBirthday(SampleMemberName, today.AddDays(3))),
             PayableDue: Sample(SmsText.ForPayableDue(PayableKind.Cheque, 12_500_000m, today.AddDays(2), "فروشگاه تجهیزات ورزشی")),

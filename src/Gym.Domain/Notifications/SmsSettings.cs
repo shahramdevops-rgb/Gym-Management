@@ -35,10 +35,16 @@ public sealed class SmsSettings : Entity
     public static readonly TimeOnly LatestSendTime = new(22, 0);
 
     /// <summary>
-    /// The daily report goes at this time, fixed in the code, not chosen on the page (decided with
-    /// the developer, 1405/07/27, task 10.7).
+    /// The daily report's time until the Owner chose one (1405/07/27, task 10.7, when it was fixed in
+    /// the code); since task 10.17 it is chosen on the page, and the migration kept this for the row.
     /// </summary>
-    public static readonly TimeOnly DailyReportSendTime = new(22, 45);
+    public static readonly TimeOnly DefaultDailyReportSendTime = new(22, 45);
+
+    /// <summary>
+    /// The latest time the daily report can be set to: the last quarter before midnight, so it is still
+    /// about that day (decided with the developer, 1405/08/01, task 10.17).
+    /// </summary>
+    public static readonly TimeOnly DailyReportLatestChoice = new(23, 45);
 
     /// <summary>The daily report's hours run until midnight: the last moment of the gym's day.</summary>
     public static readonly TimeOnly DailyReportLatestSendTime = TimeOnly.MaxValue;
@@ -73,8 +79,18 @@ public sealed class SmsSettings : Entity
 
     public bool LowSessionsEnabled { get; private set; }
 
-    /// <summary>Sent once the sessions left are at most this.</summary>
-    public int? LowSessionsThreshold { get; private set; }
+    /// <summary>The first row's largest plan (task 10.17): plans of 5 sessions up to this.</summary>
+    public int? LowSessionsSmallPlanMax { get; private set; }
+
+    /// <summary>The second row's largest plan: bigger ones are the third row.</summary>
+    public int? LowSessionsMediumPlanMax { get; private set; }
+
+    /// <summary>The first row is sent once the sessions left are at most this.</summary>
+    public int? LowSessionsSmallThreshold { get; private set; }
+
+    public int? LowSessionsMediumThreshold { get; private set; }
+
+    public int? LowSessionsLargeThreshold { get; private set; }
 
     public TimeOnly? LowSessionsSendTime { get; private set; }
 
@@ -103,6 +119,9 @@ public sealed class SmsSettings : Entity
     /// the report can go to someone else (the developer, 1405/07/27).
     /// </summary>
     public string? DailyReportPhone { get; private set; }
+
+    /// <summary>When the daily report goes, chosen by the Owner (task 10.17): 08:00 to 23:45, on a quarter hour.</summary>
+    public TimeOnly DailyReportSendTime { get; private set; } = DefaultDailyReportSendTime;
 
     /// <summary>
     /// The member's receipt when a plan is fully paid (§10 <i>The subscription receipt</i>, task 10.9).
@@ -184,7 +203,7 @@ public sealed class SmsSettings : Entity
     public static (int Min, int Max) ThresholdRange(NotificationKind kind) => kind switch
     {
         NotificationKind.SubscriptionExpiring => (1, 30),
-        NotificationKind.LowSessions => (1, 10),
+        NotificationKind.LowSessions => (LowSessionsSettings.MinThreshold, LowSessionsSettings.MaxThreshold),
         NotificationKind.Birthday => (1, 7),
         NotificationKind.PayableDue => (0, 30),
         NotificationKind.DebtReminder => (1, 90),
@@ -192,13 +211,24 @@ public sealed class SmsSettings : Entity
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No range is set for this kind."),
     };
 
+    /// <summary>«جلسات رو به اتمام» with its three rows (task 10.17).</summary>
+    public LowSessionsSettings LowSessions => new(
+        LowSessionsEnabled,
+        LowSessionsSmallPlanMax,
+        LowSessionsMediumPlanMax,
+        LowSessionsSmallThreshold,
+        LowSessionsMediumThreshold,
+        LowSessionsLargeThreshold,
+        LowSessionsSendTime);
+
     /// <summary>One kind's settings, as the page and the daily job see them.</summary>
     public SmsKindSettings For(NotificationKind kind) => kind switch
     {
         NotificationKind.SubscriptionExpiring => new(
             SubscriptionExpiringEnabled, SubscriptionExpiringDaysBefore, SubscriptionExpiringSendTime),
+        // Its numbers are a row each, by the plan's size: <see cref="LowSessions"/>.
         NotificationKind.LowSessions => new(
-            LowSessionsEnabled, LowSessionsThreshold, LowSessionsSendTime),
+            LowSessionsEnabled, Threshold: null, LowSessionsSendTime),
         NotificationKind.Birthday => new(
             BirthdayEnabled, BirthdayDaysBefore, BirthdaySendTime),
         NotificationKind.PayableDue => new(
@@ -210,7 +240,7 @@ public sealed class SmsSettings : Entity
         NotificationKind.Absence => new(
             AbsenceEnabled, AbsenceDaysAway, AbsenceSendTime),
 
-        // No number, and the time is fixed: the run is scheduled from it like any other kind's.
+        // No number; its time is chosen like any other kind's (task 10.17), from 08:00 to 23:45.
         NotificationKind.DailyReport => new(
             DailyReportEnabled, Threshold: null, DailyReportSendTime),
 
@@ -232,6 +262,8 @@ public sealed class SmsSettings : Entity
     /// </summary>
     /// <param name="ownerPhone">Already normalized to E.164 by the caller, or <c>null</c>.</param>
     /// <param name="dailyReportPhone">The same, for the daily report.</param>
+    /// <param name="dailyReportSendTime">When the daily report goes (task 10.17): 08:00 to 23:45, on a quarter hour.</param>
+    /// <param name="lowSessions">«جلسات رو به اتمام» with its three rows by the plan's size (task 10.17).</param>
     /// <param name="subscriptionReceiptEnabled">The receipt's switch: it has nothing to fill in.</param>
     /// <param name="welcomeEnabled">The welcome's switch: nothing to fill in either.</param>
     /// <param name="debtReminder">The debt reminder's switch, days and time; its minimum amount comes apart.</param>
@@ -240,12 +272,13 @@ public sealed class SmsSettings : Entity
     public Result Update(
         bool enabled,
         SmsKindSettings subscriptionExpiring,
-        SmsKindSettings lowSessions,
+        LowSessionsSettings lowSessions,
         SmsKindSettings birthday,
         SmsKindSettings payableDue,
         string? ownerPhone,
         bool dailyReportEnabled,
         string? dailyReportPhone,
+        TimeOnly dailyReportSendTime,
         bool subscriptionReceiptEnabled,
         bool welcomeEnabled,
         SmsKindSettings debtReminder,
@@ -264,10 +297,11 @@ public sealed class SmsSettings : Entity
         var reportPhone = Normalized(dailyReportPhone, nameof(dailyReportPhone));
 
         var error = Check(NotificationKind.SubscriptionExpiring, subscriptionExpiring, phone)
-            ?? Check(NotificationKind.LowSessions, lowSessions, phone)
+            ?? CheckLowSessions(lowSessions)
             ?? Check(NotificationKind.Birthday, birthday, phone)
             ?? Check(NotificationKind.PayableDue, payableDue, phone)
             ?? CheckDailyReportComplete(dailyReportEnabled, reportPhone)
+            ?? CheckDailyReportSendTime(dailyReportSendTime)
             ?? CheckThreshold(NotificationKind.DebtReminder, debtReminder.Threshold)
             ?? CheckSendTime(debtReminder.SendTime)
             ?? CheckDebtReminderMinAmount(debtReminderMinAmount)
@@ -285,7 +319,11 @@ public sealed class SmsSettings : Entity
         SubscriptionExpiringSendTime = subscriptionExpiring.SendTime;
 
         LowSessionsEnabled = lowSessions.Enabled;
-        LowSessionsThreshold = lowSessions.Threshold;
+        LowSessionsSmallPlanMax = lowSessions.SmallPlanMax;
+        LowSessionsMediumPlanMax = lowSessions.MediumPlanMax;
+        LowSessionsSmallThreshold = lowSessions.SmallThreshold;
+        LowSessionsMediumThreshold = lowSessions.MediumThreshold;
+        LowSessionsLargeThreshold = lowSessions.LargeThreshold;
         LowSessionsSendTime = lowSessions.SendTime;
 
         BirthdayEnabled = birthday.Enabled;
@@ -300,6 +338,7 @@ public sealed class SmsSettings : Entity
 
         DailyReportEnabled = dailyReportEnabled;
         DailyReportPhone = reportPhone;
+        DailyReportSendTime = dailyReportSendTime;
 
         SubscriptionReceiptEnabled = subscriptionReceiptEnabled;
         WelcomeEnabled = welcomeEnabled;
@@ -353,11 +392,7 @@ public sealed class SmsSettings : Entity
             return null;
         }
 
-        var inWindow = IsWithinSendingHours(time);
-        var onQuarter = time.Minute % SendTimeStepMinutes == 0 && time.Second == 0 && time.Millisecond == 0
-            && time.Microsecond == 0 && time.Nanosecond == 0;
-
-        return inWindow && onQuarter ? null : SmsSettingsErrors.SendTimeOutOfRange;
+        return IsWithinSendingHours(time) && IsOnQuarter(time) ? null : SmsSettingsErrors.SendTimeOutOfRange;
     }
 
     /// <summary>A kind that is on has every field filled; the cheque reminders also need the Owner's number.</summary>
@@ -379,6 +414,45 @@ public sealed class SmsSettings : Entity
     /// <summary>The daily report has only a number to fill: on means the number is there.</summary>
     public static Error? CheckDailyReportComplete(bool enabled, string? phone) =>
         !enabled || !string.IsNullOrWhiteSpace(phone) ? null : SmsSettingsErrors.SettingsIncomplete;
+
+    /// <summary>
+    /// The daily report's time (task 10.17): 08:00 to 23:45 on a quarter hour, so it is always that
+    /// same day, and its retries still fit before midnight.
+    /// </summary>
+    public static Error? CheckDailyReportSendTime(TimeOnly sendTime) =>
+        sendTime >= EarliestSendTime && sendTime <= DailyReportLatestChoice && IsOnQuarter(sendTime)
+            ? null
+            : SmsSettingsErrors.DailyReportSendTimeOutOfRange;
+
+    /// <summary>The first row's largest plan: 5 to 139, so the second row has room.</summary>
+    public static Error? CheckLowSessionsSmallPlanMax(int? smallPlanMax) =>
+        smallPlanMax is null
+        || (smallPlanMax >= LowSessionsSettings.SmallPlanMaxFloor && smallPlanMax <= LowSessionsSettings.SmallPlanMaxCeiling)
+            ? null
+            : SmsSettingsErrors.LowSessionsSmallPlanMaxOutOfRange;
+
+    /// <summary>The second row's largest plan: above the first row's, and at most 140.</summary>
+    public static Error? CheckLowSessionsMediumPlanMax(int? smallPlanMax, int? mediumPlanMax)
+    {
+        if (mediumPlanMax is not { } medium)
+        {
+            return null;
+        }
+
+        var floor = (smallPlanMax ?? LowSessionsSettings.SmallPlanMaxFloor) + 1;
+
+        return medium >= floor && medium <= LowSessionsSettings.MediumPlanMaxCeiling
+            ? null
+            : SmsSettingsErrors.LowSessionsMediumPlanMaxOutOfRange;
+    }
+
+    /// <summary>On means the two plan sizes, the three numbers and the time are all there.</summary>
+    public static Error? CheckLowSessionsComplete(LowSessionsSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        return !settings.Enabled || settings.IsFilled() ? null : SmsSettingsErrors.SettingsIncomplete;
+    }
 
     /// <summary>
     /// An empty minimum amount is allowed (the kind may be off); a filled one is 1,000 Toman or more,
@@ -417,6 +491,19 @@ public sealed class SmsSettings : Entity
 
         return value;
     }
+
+    private static bool IsOnQuarter(TimeOnly time) =>
+        time.Minute % SendTimeStepMinutes == 0 && time.Second == 0 && time.Millisecond == 0
+        && time.Microsecond == 0 && time.Nanosecond == 0;
+
+    private static Error? CheckLowSessions(LowSessionsSettings settings) =>
+        CheckLowSessionsSmallPlanMax(settings.SmallPlanMax)
+        ?? CheckLowSessionsMediumPlanMax(settings.SmallPlanMax, settings.MediumPlanMax)
+        ?? CheckThreshold(NotificationKind.LowSessions, settings.SmallThreshold)
+        ?? CheckThreshold(NotificationKind.LowSessions, settings.MediumThreshold)
+        ?? CheckThreshold(NotificationKind.LowSessions, settings.LargeThreshold)
+        ?? CheckSendTime(settings.SendTime)
+        ?? CheckLowSessionsComplete(settings);
 
     private static Error? Check(NotificationKind kind, SmsKindSettings settings, string? ownerPhone) =>
         CheckThreshold(kind, settings.Threshold)

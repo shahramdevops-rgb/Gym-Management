@@ -1,5 +1,6 @@
 using Gym.Domain.Notifications;
 using Gym.Domain.Payables;
+using Gym.Domain.Subscriptions;
 
 namespace Gym.Domain.Tests.Notifications;
 
@@ -48,10 +49,18 @@ public sealed class SmsTextTests
     // ---- The four texts ----
 
     [Fact]
-    public void ForRunningOut_NameAndEndDate_IsTheAgreedText()
+    public void ForRunningOut_NameEndDateAndSessionsLeft_IsTheAgreedText()
     {
-        SmsText.ForRunningOut("سارا محمدی", Day)
-            .ShouldBe("سارا عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد." + OptOutLine);
+        // The sessions left were added by the developer on 1405/08/01 (task 10.17).
+        SmsText.ForRunningOut("سارا محمدی", Day, 12)
+            .ShouldBe("سارا عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد و فقط ۱۲ جلسه از آن مانده است." + OptOutLine);
+    }
+
+    [Fact]
+    public void ForRunningOut_ShortName_IsStillTwoParts()
+    {
+        // Two parts before the sessions were added too: the longer text costs nothing more.
+        SmsParts.Count(SmsText.ForRunningOut("علی", Day, 12)).ShouldBe(2);
     }
 
     [Fact]
@@ -91,7 +100,7 @@ public sealed class SmsTextTests
     [Fact]
     public void ForRunningOut_NameWithSayyed_IsTheWordAfterIt()
     {
-        SmsText.ForRunningOut(LongName, Day).ShouldStartWith("محمد عزیز،");
+        SmsText.ForRunningOut(LongName, Day, 3).ShouldStartWith("محمد عزیز،");
     }
 
     [Fact]
@@ -106,7 +115,7 @@ public sealed class SmsTextTests
     {
         string[] texts =
         [
-            SmsText.ForRunningOut("سارا محمدی", Day),
+            SmsText.ForRunningOut("سارا محمدی", Day, 3),
             SmsText.ForFewSessionsLeft("سارا محمدی", 2),
             SmsText.ForBirthday("سارا محمدی", Day),
             SmsText.ForPayableDue(PayableKind.Installment, 1m, Day, "بانک"),
@@ -121,7 +130,7 @@ public sealed class SmsTextTests
     {
         var longest = string.Join(' ', Enumerable.Repeat(new string('x', 40), 20));
 
-        SmsText.ForRunningOut(longest, Day).Length.ShouldBeLessThanOrEqualTo(SmsText.MaxLength);
+        SmsText.ForRunningOut(longest, Day, Subscription.MaxSessionCount).Length.ShouldBeLessThanOrEqualTo(SmsText.MaxLength);
         SmsText.ForBirthday(longest, Day).Length.ShouldBeLessThanOrEqualTo(SmsText.MaxLength);
         SmsText.ForPayableDue(PayableKind.Cheque, 999_999_999_999m, Day, longest).Length
             .ShouldBeLessThanOrEqualTo(SmsText.MaxLength);

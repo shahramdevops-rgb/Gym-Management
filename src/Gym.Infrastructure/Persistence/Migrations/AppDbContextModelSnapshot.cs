@@ -1849,6 +1849,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(13)")
                         .HasColumnName("daily_report_phone");
 
+                    b.Property<TimeOnly>("DailyReportSendTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("daily_report_send_time");
+
                     b.Property<int?>("DebtReminderDaysAfter")
                         .HasColumnType("integer")
                         .HasColumnName("debt_reminder_days_after");
@@ -1874,13 +1878,29 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("low_sessions_enabled");
 
+                    b.Property<int?>("LowSessionsLargeThreshold")
+                        .HasColumnType("integer")
+                        .HasColumnName("low_sessions_large_threshold");
+
+                    b.Property<int?>("LowSessionsMediumPlanMax")
+                        .HasColumnType("integer")
+                        .HasColumnName("low_sessions_medium_plan_max");
+
+                    b.Property<int?>("LowSessionsMediumThreshold")
+                        .HasColumnType("integer")
+                        .HasColumnName("low_sessions_medium_threshold");
+
                     b.Property<TimeOnly?>("LowSessionsSendTime")
                         .HasColumnType("time without time zone")
                         .HasColumnName("low_sessions_send_time");
 
-                    b.Property<int?>("LowSessionsThreshold")
+                    b.Property<int?>("LowSessionsSmallPlanMax")
                         .HasColumnType("integer")
-                        .HasColumnName("low_sessions_threshold");
+                        .HasColumnName("low_sessions_small_plan_max");
+
+                    b.Property<int?>("LowSessionsSmallThreshold")
+                        .HasColumnType("integer")
+                        .HasColumnName("low_sessions_small_threshold");
 
                     b.Property<string>("OwnerPhone")
                         .HasMaxLength(13)
@@ -1950,15 +1970,19 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_sms_settings_daily_report_phone", "daily_report_phone IS NULL OR daily_report_phone ~ '^\\+989[0-9]{9}$'");
 
+                            t.HasCheckConstraint("ck_sms_settings_daily_report_send_time", "daily_report_send_time BETWEEN '08:00' AND '23:45' AND EXTRACT(MINUTE FROM daily_report_send_time) IN (0, 15, 30, 45) AND EXTRACT(SECOND FROM daily_report_send_time) = 0");
+
                             t.HasCheckConstraint("ck_sms_settings_debt_reminder_days", "debt_reminder_days_after IS NULL OR debt_reminder_days_after BETWEEN 1 AND 90");
 
                             t.HasCheckConstraint("ck_sms_settings_debt_reminder_min_amount", "debt_reminder_min_amount IS NULL OR debt_reminder_min_amount >= 1000");
 
                             t.HasCheckConstraint("ck_sms_settings_debt_reminder_on_means_filled", "NOT debt_reminder_enabled OR (debt_reminder_days_after IS NOT NULL AND debt_reminder_send_time IS NOT NULL AND debt_reminder_min_amount IS NOT NULL)");
 
-                            t.HasCheckConstraint("ck_sms_settings_low_sessions_on_means_filled", "NOT low_sessions_enabled OR (low_sessions_threshold IS NOT NULL AND low_sessions_send_time IS NOT NULL)");
+                            t.HasCheckConstraint("ck_sms_settings_low_sessions_on_means_filled", "NOT low_sessions_enabled OR (low_sessions_small_threshold IS NOT NULL AND low_sessions_send_time IS NOT NULL AND low_sessions_medium_threshold IS NOT NULL AND low_sessions_large_threshold IS NOT NULL AND low_sessions_small_plan_max IS NOT NULL AND low_sessions_medium_plan_max IS NOT NULL)");
 
-                            t.HasCheckConstraint("ck_sms_settings_low_sessions_threshold", "low_sessions_threshold IS NULL OR low_sessions_threshold BETWEEN 1 AND 10");
+                            t.HasCheckConstraint("ck_sms_settings_low_sessions_plan_max", "(low_sessions_small_plan_max IS NULL OR low_sessions_small_plan_max BETWEEN 5 AND 139) AND (low_sessions_medium_plan_max IS NULL OR low_sessions_medium_plan_max <= 140) AND (low_sessions_small_plan_max IS NULL OR low_sessions_medium_plan_max IS NULL OR low_sessions_medium_plan_max > low_sessions_small_plan_max)");
+
+                            t.HasCheckConstraint("ck_sms_settings_low_sessions_thresholds", "(low_sessions_small_threshold IS NULL OR low_sessions_small_threshold BETWEEN 1 AND 4) AND (low_sessions_medium_threshold IS NULL OR low_sessions_medium_threshold BETWEEN 1 AND 4) AND (low_sessions_large_threshold IS NULL OR low_sessions_large_threshold BETWEEN 1 AND 4)");
 
                             t.HasCheckConstraint("ck_sms_settings_owner_phone", "owner_phone IS NULL OR owner_phone ~ '^\\+989[0-9]{9}$'");
 
@@ -1984,9 +2008,12 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             BroadcastEnabled = false,
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 10, 6, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             DailyReportEnabled = false,
+                            DailyReportSendTime = new TimeOnly(22, 45, 0),
                             DebtReminderEnabled = false,
                             Enabled = false,
                             LowSessionsEnabled = false,
+                            LowSessionsMediumPlanMax = 15,
+                            LowSessionsSmallPlanMax = 8,
                             PayableDueEnabled = false,
                             SubscriptionExpiringEnabled = false,
                             SubscriptionReceiptEnabled = false,

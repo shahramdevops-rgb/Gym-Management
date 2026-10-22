@@ -23,7 +23,15 @@ const off: SmsKindSettings = {
 const empty: SmsSettings = {
   enabled: false,
   subscriptionExpiring: off,
-  lowSessions: off,
+  lowSessions: {
+    enabled: false,
+    smallPlanMax: 8,
+    mediumPlanMax: 15,
+    smallThreshold: null,
+    mediumThreshold: null,
+    largeThreshold: null,
+    sendTime: null,
+  },
   birthday: off,
   payableDue: off,
   ownerPhone: null,
@@ -43,7 +51,15 @@ const filled: SmsSettings = {
     threshold: 7,
     sendTime: "09:15:00",
   },
-  lowSessions: off,
+  lowSessions: {
+    enabled: false,
+    smallPlanMax: 8,
+    mediumPlanMax: 15,
+    smallThreshold: null,
+    mediumThreshold: null,
+    largeThreshold: null,
+    sendTime: null,
+  },
   birthday: { enabled: false, threshold: 2, sendTime: null },
   payableDue: { enabled: true, threshold: 3, sendTime: "22:00:00" },
   ownerPhone: "+989121234567",
@@ -389,11 +405,19 @@ describe("SmsSettingsPage", () => {
     expect(await saves[0]!.clone().json()).toEqual({
       enabled: true,
       subscriptionExpiring: off,
-      lowSessions: off,
+      lowSessions: {
+        enabled: false,
+        smallPlanMax: 8,
+        mediumPlanMax: 15,
+        smallThreshold: null,
+        mediumThreshold: null,
+        largeThreshold: null,
+        sendTime: null,
+      },
       birthday: { enabled: true, threshold: 1, sendTime: "10:30:00" },
       payableDue: off,
       ownerPhone: "0912 123 4567",
-      dailyReport: { enabled: false, phone: null },
+      dailyReport: { enabled: false, phone: null, sendTime: "22:45:00" },
       subscriptionReceipt: { enabled: false },
       welcome: { enabled: false },
       debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
@@ -450,15 +474,23 @@ describe("SmsSettingsPage", () => {
     ).toBeInTheDocument();
   });
 
-  // ---- The daily report (task 10.7) ----
+  // ---- The daily report (tasks 10.7 and 10.17) ----
 
-  it("SmsSettingsPage_DailyReport_SaysItsFixedTimeAndStaysLockedUntilItsNumber", async () => {
+  it("SmsSettingsPage_DailyReport_ShowsItsTimeAndStaysLockedUntilItsNumber", async () => {
     ownerWith(empty);
     renderApp("/sms-settings", { session: session() });
     await screen.findByRole("group", { name: "گزارش روزانه" });
 
-    expect(group("گزارش روزانه").getByText(/هر شب ساعت ۲۲:۴۵ برای همان روز/)).toBeInTheDocument();
-    expect(group("گزارش روزانه").queryByLabelText("ساعت ارسال")).not.toBeInTheDocument();
+    // Task 10.17: its time is the Owner's, from 08:00 to 23:45, and always set.
+    const hour = group("گزارش روزانه").getByLabelText("ساعت ارسال");
+    expect(hour).toHaveValue("22");
+    expect(group("گزارش روزانه").getByLabelText("دقیقه")).toHaveValue("45");
+    const hours = within(hour)
+      .getAllByRole("option")
+      .map((option) => option.getAttribute("value"));
+    expect(hours[0]).toBe("08");
+    expect(hours.at(-1)).toBe("23");
+    expect(hours).not.toContain("");
     expect(switchOf("گزارش روزانه")).toBeDisabled();
 
     // The cheques' number does not unlock it: the report has its own.
@@ -497,7 +529,113 @@ describe("SmsSettingsPage", () => {
 
     expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
     const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
-    expect(body.dailyReport).toEqual({ enabled: true, phone: "0935 123 4567" });
+    expect(body.dailyReport).toEqual({
+      enabled: true,
+      phone: "0935 123 4567",
+      sendTime: "22:45:00",
+    });
+  });
+
+  it("SmsSettingsPage_DailyReportTimeChosen_SendsItWithEveryQuarterOf23", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "گزارش روزانه" });
+
+    fireEvent.change(group("گزارش روزانه").getByLabelText("ساعت ارسال"), {
+      target: { value: "23" },
+    });
+    // Unlike the kinds' 22, the report's last hour keeps its quarters.
+    fireEvent.change(group("گزارش روزانه").getByLabelText("دقیقه"), { target: { value: "45" } });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.dailyReport).toEqual({ enabled: false, phone: null, sendTime: "23:45:00" });
+  });
+
+  // ---- «جلسات رو به اتمام» by the plan's size (task 10.17) ----
+
+  /** One row of «جلسات رو به اتمام», named by its plans. */
+  function lowSessionsRow(name: string) {
+    return within(group("جلسات رو به اتمام").getByRole("group", { name }));
+  }
+
+  it("SmsSettingsPage_LowSessions_ThreeRowsNamedByThePlanSizesTyped", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "جلسات رو به اتمام" });
+
+    expect(lowSessionsRow("پلن ۵ تا").getByLabelText("تا چند جلسه")).toHaveValue("8");
+    expect(lowSessionsRow("پلن ۹ تا").getByLabelText("تا چند جلسه")).toHaveValue("15");
+    expect(lowSessionsRow("پلن ۱۶ جلسه و بیشتر").getByLabelText("چند جلسه مانده")).toHaveValue("");
+
+    fireEvent.change(lowSessionsRow("پلن ۵ تا").getByLabelText("تا چند جلسه"), {
+      target: { value: "۱۰" },
+    });
+
+    expect(lowSessionsRow("پلن ۱۱ تا").getByLabelText("تا چند جلسه")).toHaveValue("15");
+    expect(switchOf("جلسات رو به اتمام")).toBeDisabled();
+  });
+
+  it("SmsSettingsPage_LowSessionsFilledAndOn_SendsEveryRow", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "جلسات رو به اتمام" });
+
+    fireEvent.change(lowSessionsRow("پلن ۵ تا").getByLabelText("چند جلسه مانده"), {
+      target: { value: "۱" },
+    });
+    fireEvent.change(lowSessionsRow("پلن ۹ تا").getByLabelText("چند جلسه مانده"), {
+      target: { value: "2" },
+    });
+    fireEvent.change(lowSessionsRow("پلن ۱۶ جلسه و بیشتر").getByLabelText("چند جلسه مانده"), {
+      target: { value: "3" },
+    });
+    fireEvent.change(group("جلسات رو به اتمام").getByLabelText("ساعت ارسال"), {
+      target: { value: "18" },
+    });
+    fireEvent.click(switchOf("جلسات رو به اتمام"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.lowSessions).toEqual({
+      enabled: true,
+      smallPlanMax: 8,
+      mediumPlanMax: 15,
+      smallThreshold: 1,
+      mediumThreshold: 2,
+      largeThreshold: 3,
+      sendTime: "18:00:00",
+    });
+  });
+
+  it("SmsSettingsPage_LowSessionsOutOfRange_IsRefusedUnderEachBox", async () => {
+    const api = ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "جلسات رو به اتمام" });
+
+    fireEvent.change(lowSessionsRow("پلن ۵ تا").getByLabelText("چند جلسه مانده"), {
+      target: { value: "5" },
+    });
+    fireEvent.change(lowSessionsRow("پلن ۹ تا").getByLabelText("تا چند جلسه"), {
+      target: { value: "8" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(
+      await lowSessionsRow("پلن ۵ تا").findByText("تعداد جلسه باید از ۱ تا ۴ باشد."),
+    ).toBeInTheDocument();
+    expect(
+      lowSessionsRow("پلن ۹ تا").getByText(
+        "اندازهٔ پلن ردیف دوم باید بزرگ‌تر از ردیف اول و حداکثر ۱۴۰ جلسه باشد.",
+      ),
+    ).toBeInTheDocument();
+    expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);
   });
 
   it("SmsSettingsPage_SubscriptionReceipt_IsOnlyASwitchAndSaysWhenItGoes", async () => {

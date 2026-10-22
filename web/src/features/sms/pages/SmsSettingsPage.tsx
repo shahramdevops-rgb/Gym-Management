@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 import { toPersianDigits } from "@/lib/format";
 import { applyServerErrors, zodResolver } from "@/lib/forms";
+import { normalizeDigits } from "@/lib/normalize";
 import { cn } from "@/lib/utils";
 
 import {
@@ -24,8 +25,11 @@ import { SmsCreditLine } from "../components/SmsCreditLine";
 import { SmsPreview } from "../components/SmsPreview";
 import {
   isDebtReminderFilled,
+  isLowSessionsFilled,
   isKindFilled,
   lastSendHour,
+  lowSessionsLimits,
+  reportHours,
   sendHours,
   sendMinutes,
   smsSettingsSchema,
@@ -54,6 +58,9 @@ const codeFields = {
   "Sms.DailyReportPhoneInvalid": "dailyReport.phone",
   "Sms.DebtReminderDaysOutOfRange": "debtReminder.daysAfter",
   "Sms.DebtReminderMinAmountOutOfRange": "debtReminder.minAmount",
+  "Sms.DailyReportSendTimeOutOfRange": "dailyReport.sendTime",
+  "Sms.LowSessionsSmallPlanMaxOutOfRange": "lowSessions.smallPlanMax",
+  "Sms.LowSessionsMediumPlanMaxOutOfRange": "lowSessions.mediumPlanMax",
 } as const;
 
 function isCode(problem: unknown, code: string): boolean {
@@ -79,13 +86,6 @@ const kindText: Record<SmsKind, KindText> = {
       "به عضو، وقتی تا پایان اشتراک فعالش این تعداد روز یا کمتر مانده باشد. عضوی که اشتراک بعدی را خریده پیامک نمی‌گیرد.",
     thresholdLabel: "چند روز قبل از پایان",
     range: "۱ تا ۳۰",
-  },
-  lowSessions: {
-    title: "جلسات رو به اتمام",
-    description:
-      "به عضو، وقتی جلسات باقی‌ماندهٔ اشتراک فعالش به این تعداد یا کمتر برسد. عضوی که اشتراک بعدی را خریده پیامک نمی‌گیرد.",
-    thresholdLabel: "تعداد جلسهٔ باقی‌مانده",
-    range: "۱ تا ۱۰",
   },
   birthday: {
     title: "تولد",
@@ -294,7 +294,7 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
 
       <KindSection title="پیامک به اعضا" description="به شمارهٔ موبایل خود عضو.">
         <KindFieldset kind="subscriptionExpiring" form={form} />
-        <KindFieldset kind="lowSessions" form={form} />
+        <LowSessionsFieldset form={form} />
         <KindFieldset kind="birthday" form={form} />
         <SubscriptionReceiptFieldset
           form={form}
@@ -326,7 +326,7 @@ function SmsSettingsForm({ current, onNotice, onStale, status }: SmsSettingsForm
               />
             </div>
           </KindFieldset>
-          <DailyReportFieldset form={form} sendTime={current.dailyReport.sendTime} />
+          <DailyReportFieldset form={form} />
         </KindSection>
 
         <KindSection
@@ -565,28 +565,167 @@ function KindFieldset({ kind, form, children }: KindFieldsetProps) {
   );
 }
 
-interface DailyReportFieldsetProps {
+interface LowSessionsFieldsetProps {
   form: UseFormReturn<SmsSettingsValues>;
-  /** `HH:mm:ss` from the API: fixed in the code, shown so the page says the time the server uses. */
-  sendTime: string;
 }
 
 /**
- * The Owner's daily report (BUSINESS_RULES.md §10 *The daily report*, task 10.7): a switch and the
- * number it goes to, apart from the cheques' number. No number of days and no time to choose: it
- * goes every night at 22:45 about that same day.
+ * «جلسات رو به اتمام» by the plan's size (BUSINESS_RULES.md §10, task 10.17): three short rows, the
+ * first from the smallest plan (5) to a size the Owner types, the second up to another, the third
+ * every bigger plan, each with its own number of sessions left. The switch follows the other kinds'
+ * rule: it cannot be turned on while a box is empty.
  */
-function DailyReportFieldset({ form, sendTime }: DailyReportFieldsetProps) {
+function LowSessionsFieldset({ form }: LowSessionsFieldsetProps) {
+  const control = form.control;
+  const values = useWatch({ control, name: "lowSessions" });
+  const filled = isLowSessionsFilled(values);
+  const errors = form.formState.errors.lowSessions;
+  const small = Number(normalizeDigits(values.smallPlanMax.trim()));
+  const medium = Number(normalizeDigits(values.mediumPlanMax.trim()));
+  const secondFrom =
+    values.smallPlanMax.trim() === "" || Number.isNaN(small) ? "…" : toPersianDigits(small + 1);
+  const thirdFrom =
+    values.mediumPlanMax.trim() === "" || Number.isNaN(medium) ? "…" : toPersianDigits(medium + 1);
+  const left = `${toPersianDigits(lowSessionsLimits.threshold.min)} تا ${toPersianDigits(lowSessionsLimits.threshold.max)}`;
+
+  return (
+    <KindCard
+      title="جلسات رو به اتمام"
+      description="به عضو، وقتی جلسات باقی‌ماندهٔ اشتراک فعالش به عدد ردیف پلنش یا کمتر برسد؛ هر پلن به اندازهٔ خودش. عضوی که اشتراک بعدی را خریده پیامک نمی‌گیرد."
+      preview={<SamplePreview kind="lowSessions" />}
+      toggle={
+        <Controller
+          control={control}
+          name="lowSessions.enabled"
+          render={({ field }) => (
+            <OnSwitch
+              name={field.name}
+              checked={field.value}
+              disabled={!field.value && !filled}
+              aria-invalid={errors?.enabled !== undefined}
+              onChange={(event) => field.onChange(event.target.checked)}
+              onBlur={field.onBlur}
+            />
+          )}
+        />
+      }
+    >
+      <SwitchNotes
+        blocked={
+          !values.enabled && !filled
+            ? "برای روشن کردن، اول همهٔ خانه‌های این بخش را پر کنید."
+            : null
+        }
+        error={errors?.enabled?.message}
+      />
+
+      <div className="space-y-3">
+        <LowSessionsRow title={`پلن ${toPersianDigits(lowSessionsLimits.smallestPlan)} تا`}>
+          <div className={rowNumberWidth}>
+            <FormField
+              label="تا چند جلسه"
+              placeholder="۸"
+              inputMode="numeric"
+              error={errors?.smallPlanMax?.message}
+              {...form.register("lowSessions.smallPlanMax")}
+            />
+          </div>
+          <div className={rowNumberWidth}>
+            <FormField
+              label="چند جلسه مانده"
+              placeholder={left}
+              inputMode="numeric"
+              error={errors?.smallThreshold?.message}
+              {...form.register("lowSessions.smallThreshold")}
+            />
+          </div>
+        </LowSessionsRow>
+
+        <LowSessionsRow title={`پلن ${secondFrom} تا`}>
+          <div className={rowNumberWidth}>
+            <FormField
+              label="تا چند جلسه"
+              placeholder="۱۵"
+              inputMode="numeric"
+              error={errors?.mediumPlanMax?.message}
+              {...form.register("lowSessions.mediumPlanMax")}
+            />
+          </div>
+          <div className={rowNumberWidth}>
+            <FormField
+              label="چند جلسه مانده"
+              placeholder={left}
+              inputMode="numeric"
+              error={errors?.mediumThreshold?.message}
+              {...form.register("lowSessions.mediumThreshold")}
+            />
+          </div>
+        </LowSessionsRow>
+
+        <LowSessionsRow title={`پلن ${thirdFrom} جلسه و بیشتر`}>
+          <div className={rowNumberWidth}>
+            <FormField
+              label="چند جلسه مانده"
+              placeholder={left}
+              inputMode="numeric"
+              error={errors?.largeThreshold?.message}
+              {...form.register("lowSessions.largeThreshold")}
+            />
+          </div>
+        </LowSessionsRow>
+      </div>
+
+      <Controller
+        control={control}
+        name="lowSessions.sendTime"
+        render={({ field }) => (
+          <SendTimeField
+            value={field.value}
+            onChange={field.onChange}
+            error={errors?.sendTime?.message}
+          />
+        )}
+      />
+    </KindCard>
+  );
+}
+
+/** A plan size's or a number of sessions' box in a row: two digits and its label. */
+const rowNumberWidth = "w-28";
+
+/** One row of «جلسات رو به اتمام»: named by its plans, so its boxes are announced as that row's. */
+function LowSessionsRow({ title, children }: { title: string; children: ReactNode }) {
+  const titleId = useId();
+
+  return (
+    <div role="group" aria-labelledby={titleId} className="flex flex-wrap items-end gap-3">
+      <p id={titleId} className="w-24 pb-2 text-sm font-medium">
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+interface DailyReportFieldsetProps {
+  form: UseFormReturn<SmsSettingsValues>;
+}
+
+/**
+ * The Owner's daily report (BUSINESS_RULES.md §10 *The daily report*, tasks 10.7 and 10.17): a switch,
+ * the number it goes to, apart from the cheques' number, and its time, from 08:00 to 23:45. It is
+ * about that same day, up to the moment it goes.
+ */
+function DailyReportFieldset({ form }: DailyReportFieldsetProps) {
   const control = form.control;
   const report = useWatch({ control, name: "dailyReport" });
   const filled = report.phone.trim() !== "";
   const errors = form.formState.errors.dailyReport;
-  const time = toPersianDigits(sendTime.slice(0, 5));
 
   return (
     <KindCard
       title="گزارش روزانه"
-      description={`هر شب ساعت ${time} برای همان روز: تعداد ورود اعضا، پلن و تک‌جلسهٔ فروخته‌شده، و دریافتی (بدون فروشگاه، آنالیز و متفرقه) با نقد، کارت و انتقال، به هزار تومان. روزی که هیچ ورود، فروش و پولی نداشته فرستاده نمی‌شود.`}
+      description="هر روز در ساعتی که انتخاب می‌کنید، برای همان روز تا همان لحظه: تعداد ورود اعضا، پلن و تک‌جلسهٔ فروخته‌شده، و دریافتی (بدون فروشگاه، آنالیز و متفرقه) با نقد، کارت و انتقال، به هزار تومان. آنچه بعد از آن ساعت ثبت شود در هیچ گزارشی نمی‌آید. روزی که هیچ ورود، فروش و پولی نداشته فرستاده نمی‌شود."
       preview={<SamplePreview kind="dailyReport" />}
       toggle={
         <Controller
@@ -624,6 +763,21 @@ function DailyReportFieldset({ form, sendTime }: DailyReportFieldsetProps) {
             {...form.register("dailyReport.phone")}
           />
         </div>
+
+        <Controller
+          control={control}
+          name="dailyReport.sendTime"
+          render={({ field }) => (
+            <SendTimeField
+              value={field.value}
+              onChange={field.onChange}
+              error={errors?.sendTime?.message}
+              hours={reportHours}
+              lastHour={null}
+              required
+            />
+          )}
+        />
       </div>
     </KindCard>
   );
@@ -804,23 +958,37 @@ interface SendTimeFieldProps {
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  /** The hours to choose from: ۸ to ۲۲ for the kinds, ۸ to ۲۳ for the daily report. */
+  hours?: readonly string[];
+  /** The hour that allows only :00; `null` when every hour has its four quarters. */
+  lastHour?: string | null;
+  /** Always set (the daily report): no empty choice. */
+  required?: boolean;
 }
 
 /**
- * An hour from ۸ to ۲۲ and a minute on the quarter (decided with the developer, task 10.2). The
- * minute box follows the hour: choosing an hour fills in :00, and ۲۲ allows only :00, since 22:00 is
- * the last send time. So the two boxes can only make a time the server accepts.
+ * An hour and a minute on the quarter (decided with the developer, task 10.2). The minute box
+ * follows the hour: choosing an hour fills in :00, and for the kinds ۲۲ allows only :00, since 22:00
+ * is their last send time; the daily report goes until 23:45 (task 10.17). So the two boxes can only
+ * make a time the server accepts.
  */
-function SendTimeField({ value, onChange, error }: SendTimeFieldProps) {
+function SendTimeField({
+  value,
+  onChange,
+  error,
+  hours = sendHours,
+  lastHour = lastSendHour,
+  required = false,
+}: SendTimeFieldProps) {
   const [hour = "", minute = ""] = value === "" ? [] : value.split(":");
-  const minutes = hour === lastSendHour ? ["00"] : sendMinutes;
+  const minutes = hour === lastHour ? ["00"] : sendMinutes;
 
   function chooseHour(next: string) {
     if (next === "") {
       onChange("");
       return;
     }
-    const keptMinute = next === lastSendHour || minute === "" ? "00" : minute;
+    const keptMinute = next === lastHour || minute === "" ? "00" : minute;
     onChange(`${next}:${keptMinute}`);
   }
 
@@ -832,8 +1000,8 @@ function SendTimeField({ value, onChange, error }: SendTimeFieldProps) {
         error={error}
         onChange={(event) => chooseHour(event.target.value)}
       >
-        <option value="">—</option>
-        {sendHours.map((option) => (
+        {!required && <option value="">—</option>}
+        {hours.map((option) => (
           <option key={option} value={option}>
             {toPersianDigits(option)}
           </option>

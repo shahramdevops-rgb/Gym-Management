@@ -123,7 +123,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         result.ShouldBe(new SmsRunResult(Ran: true, Sent: 1));
         var request = sender.Requests.ShouldHaveSingleItem();
         request.Receptor.ShouldBe(inside.PhoneNumber);
-        request.Text.ShouldBe(SmsText.ForRunningOut(Name, plan.EndDate));
+        request.Text.ShouldBe(SmsText.ForRunningOut(Name, plan.EndDate, plan.RemainingSessions));
 
         var stored = (await NotificationsAsync()).ShouldHaveSingleItem();
         stored.Kind.ShouldBe(NotificationKind.SubscriptionExpiring);
@@ -244,6 +244,46 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         var request = sender.Requests.ShouldHaveSingleItem();
         request.Receptor.ShouldBe(atTheNumber.PhoneNumber);
         request.Text.ShouldBe(SmsText.ForFewSessionsLeft(Name, 2));
+    }
+
+    [Theory]
+    [InlineData(8, 1, true)]
+    [InlineData(8, 2, false)]
+    [InlineData(9, 2, true)]
+    [InlineData(15, 2, true)]
+    [InlineData(15, 3, false)]
+    [InlineData(16, 3, true)]
+    [InlineData(140, 3, true)]
+    [InlineData(140, 4, false)]
+    public async Task Handle_LowSessionsByPlanSize_EachPlanAtItsOwnRow(int sessions, int left, bool sent)
+    {
+        // Task 10.17: plans of 5 to 8 sessions at 1 left, up to 15 at 2, bigger at 3.
+        await SaveSettingsAsync(settings => settings.Update(
+            enabled: true,
+            SmsKindSettings.Off,
+            new LowSessionsSettings(true, 8, 15, 1, 2, 3, new TimeOnly(10, 0)),
+            SmsKindSettings.Off,
+            SmsKindSettings.Off,
+            OwnerPhone,
+            dailyReportEnabled: false,
+            dailyReportPhone: null,
+            dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
+            subscriptionReceiptEnabled: false,
+            welcomeEnabled: false,
+            debtReminder: SmsKindSettings.Off,
+            debtReminderMinAmount: null,
+            absence: SmsKindSettings.Off,
+            broadcastEnabled: false));
+        await AddPlanWithSessionsLeftAsync(await AddMemberAsync(), left, sessions: sessions);
+        var sender = new ScriptedSmsSender();
+
+        await RunAsync(NotificationKind.LowSessions, sender);
+
+        sender.Requests.Count.ShouldBe(sent ? 1 : 0);
+        if (sent)
+        {
+            sender.Requests[0].Text.ShouldBe(SmsText.ForFewSessionsLeft(Name, left));
+        }
     }
 
     [Fact]
@@ -589,7 +629,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Notifications.Add(Notification.ForSubscriptionExpiring(
-                member.Id, plan.Id, member.PhoneNumber, SmsText.ForRunningOut(Name, plan.EndDate)));
+                member.Id, plan.Id, member.PhoneNumber, SmsText.ForRunningOut(Name, plan.EndDate, plan.RemainingSessions)));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
@@ -656,12 +696,15 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         await SaveSettingsAsync(settings => settings.Update(
             allSms,
             kind == NotificationKind.SubscriptionExpiring ? on : SmsKindSettings.Off,
-            kind == NotificationKind.LowSessions ? on : SmsKindSettings.Off,
+            kind == NotificationKind.LowSessions
+                ? new LowSessionsSettings(true, 8, 15, threshold, threshold, threshold, new TimeOnly(10, 0))
+                : LowSessionsSettings.Off,
             kind == NotificationKind.Birthday ? on : SmsKindSettings.Off,
             kind == NotificationKind.PayableDue ? on : SmsKindSettings.Off,
             OwnerPhone,
             dailyReportEnabled: kind == NotificationKind.DailyReport,
             kind == NotificationKind.DailyReport ? OwnerPhone : null,
+            dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: false,
             welcomeEnabled: false,
             debtReminder: SmsKindSettings.Off,
@@ -673,12 +716,13 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
     private Task TurnOnBothSubscriptionKindsAsync() => SaveSettingsAsync(settings => settings.Update(
         enabled: true,
         new SmsKindSettings(true, 3, new TimeOnly(10, 0)),
-        new SmsKindSettings(true, 2, new TimeOnly(10, 0)),
+        new LowSessionsSettings(true, 8, 15, 2, 2, 2, new TimeOnly(10, 0)),
         SmsKindSettings.Off,
         SmsKindSettings.Off,
         OwnerPhone,
         dailyReportEnabled: false,
         dailyReportPhone: null,
+        dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
         subscriptionReceiptEnabled: false,
         welcomeEnabled: false,
         debtReminder: SmsKindSettings.Off,
@@ -718,10 +762,11 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
     private Task<Subscription> AddPlanEndingInAsync(Member member, int daysLeft) =>
         AddSubscriptionAsync(Subscription.CreateMembership(member.Id, Sessions, 90_000m, Today.AddDays(daysLeft - PlanDays + 1)).Value);
 
-    private Task<Subscription> AddPlanWithSessionsLeftAsync(Member member, int left, int daysLeft = 20)
+    private Task<Subscription> AddPlanWithSessionsLeftAsync(Member member, int left, int daysLeft = 20, int sessions = Sessions)
     {
-        var plan = Subscription.CreateMembership(member.Id, Sessions, 90_000m, Today.AddDays(daysLeft - PlanDays + 1)).Value;
-        for (var i = 0; i < Sessions - left; i++)
+        var days = Subscription.DurationDaysFor(sessions).Value;
+        var plan = Subscription.CreateMembership(member.Id, sessions, 90_000m, Today.AddDays(daysLeft - days + 1)).Value;
+        for (var i = 0; i < sessions - left; i++)
         {
             plan.ConsumeSession(Today).IsSuccess.ShouldBeTrue();
         }
