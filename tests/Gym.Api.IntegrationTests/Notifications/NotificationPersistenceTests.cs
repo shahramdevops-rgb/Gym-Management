@@ -497,6 +497,8 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     [InlineData("attempts = -1", "ck_notifications_attempts_not_negative")]
     [InlineData("cost_rial = -1", "ck_notifications_cost_not_negative")]
     [InlineData("text = ' '", "ck_notifications_text_not_blank")]
+    [InlineData("auto_resends = -1", NotificationConstraints.AutoResendsInRange)]
+    [InlineData("auto_resends = 6", NotificationConstraints.AutoResendsInRange)]
     public async Task Notification_InvalidColumn_RejectedByACheckConstraint(string assignment, string constraint)
     {
         var id = await SaveExpiringAsync();

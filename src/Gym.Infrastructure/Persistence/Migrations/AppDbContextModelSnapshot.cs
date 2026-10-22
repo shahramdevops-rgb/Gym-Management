@@ -1541,6 +1541,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("attempts");
 
+                    b.Property<int>("AutoResends")
+                        .HasColumnType("integer")
+                        .HasColumnName("auto_resends");
+
                     b.Property<Guid?>("BroadcastId")
                         .HasColumnType("uuid")
                         .HasColumnName("broadcast_id");
@@ -1687,6 +1691,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.ToTable("notifications", null, t =>
                         {
                             t.HasCheckConstraint("ck_notifications_attempts_not_negative", "attempts >= 0");
+
+                            t.HasCheckConstraint("ck_notifications_auto_resends_in_range", "auto_resends BETWEEN 0 AND 5");
 
                             t.HasCheckConstraint("ck_notifications_cost_not_negative", "cost_rial IS NULL OR cost_rial >= 0");
 

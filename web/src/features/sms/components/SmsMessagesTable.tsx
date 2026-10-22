@@ -67,7 +67,8 @@ interface SmsMessageRowProps {
 
 /**
  * One SMS. A failed or unknown one can be resent, after a confirmation under the row: it costs
- * money, and an unknown one may already have arrived (§10 *Sending*).
+ * money, and an unknown one may already have arrived (§10 *Sending*). So can one Kavenegar cancelled
+ * (task 10.16): it never reached the phone, and its cost was given back.
  */
 function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
   const [confirming, setConfirming] = useState(false);
@@ -75,7 +76,8 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
 
   const recipient = message.memberName ?? "مالک";
   const context = `پیامک ${smsKindLabels[message.kind]} برای ${recipient}`;
-  const canResend = message.status === "Failed" || message.status === "Unknown";
+  const cancelled = message.status === "Sent" && message.delivery === "Cancelled";
+  const canResend = message.status === "Failed" || message.status === "Unknown" || cancelled;
   const error = describeSmsError(message.errorCode);
 
   async function send() {
@@ -118,6 +120,11 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
               {toPersianDigits(message.attempts)} بار تلاش
             </p>
           )}
+          {Number(message.autoResends) > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {toPersianDigits(message.autoResends)} بار خودکار دوباره فرستاده شد
+            </p>
+          )}
         </td>
         <td className="py-2 space-y-1">
           <p>{message.costToman === null ? emptyValue : formatMoney(message.costToman)}</p>
@@ -151,6 +158,7 @@ function SmsMessageRow({ message, onDone }: SmsMessageRowProps) {
               </Alert>
             ) : (
               <p className="text-sm">
+                {cancelled && "کاوه‌نگار این پیامک را لغو کرد و به گوشی نرسید. "}
                 همین پیامک، با همان متن و به همان شماره، یک بار دیگر فرستاده می‌شود و هزینه دارد.
               </p>
             )}

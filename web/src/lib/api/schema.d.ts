@@ -2914,6 +2914,8 @@ export interface components {
             /** Format: int32 */
             attempts: number | string;
             /** Format: int32 */
+            autoResends: number | string;
+            /** Format: int32 */
             errorCode: null | number | string;
             /** Format: double */
             costToman: null | number | string;

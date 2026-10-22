@@ -72,6 +72,11 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             table.HasCheckConstraint(
                 NotificationConstraints.RefundedHasNoCost,
                 "delivery IS NULL OR delivery NOT IN ('BlockedByReceiver', 'Cancelled') OR cost_rial = 0");
+
+            // §10 Sending (task 10.16): a cancelled message is resent by itself at most this many times.
+            table.HasCheckConstraint(
+                NotificationConstraints.AutoResendsInRange,
+                $"auto_resends BETWEEN 0 AND {Notification.MaxAutoResends}");
         });
 
         builder.Property(notification => notification.Kind).HasConversion<string>().HasMaxLength(30);

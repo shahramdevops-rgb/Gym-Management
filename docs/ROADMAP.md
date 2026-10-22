@@ -14,6 +14,8 @@ Milestones:
 Release order (decided by the developer on 1405/07/26, 2026-10-18):
 1. **Done 2026-10-20:** the SMS release, 10.6 to 10.15, from `main`, as one complete version
    (`20261020-0246-099e551`, 10.6), Kavenegar live with every kind off until the Owner turns them on.
+   **Next, before the look:** 10.16, sending again what Kavenegar cancelled, as a small release of
+   its own from `main` (planned on 1405/08/01, 2026-10-23).
 2. Then, in the days after SMS works, Phase 13's look and mobile (13.1 and 13.2 are finished and
    ticked on the branch `task/13.2-visual-language`; they are merged into `main` only after the SMS
    release, so they still show open here) as a release of its own.
@@ -2932,6 +2934,35 @@ Decided, BUSINESS_RULES.md §10 *SMS settings*:
 Closed 2026-10-20: 2605 backend tests (917 domain, 1688 integration) and 1100 frontend tests green,
 zero warnings, lint, `format:check` and production build pass. No migration; one new endpoint,
 `GET /api/sms/samples`, which reads nothing from the database. It goes out with the SMS release (10.6).
+
+### 10.16 Send again what Kavenegar cancelled (ارسال دوبارهٔ پیامک‌های لغوشده)
+Found on 1405/07/30 (2026-10-22): «اعتبار پیامک: نامعلوم» on the server. The cause was the
+server's DNS, only Google's (`8.8.8.8`, `8.8.4.4`), which from inside Iran sometimes does not answer
+(`NameResolutionError` in the logs). Fixed on the server the same night, no code: ParsPack's
+resolver `45.139.11.231` and Shecan's `178.22.122.100`, `185.51.200.2` beside Google's, in
+`/etc/systemd/resolved.conf.d/iran-dns.conf`; the API reaches them through Docker's
+`host(127.0.0.53)`. The logs then showed no SMS had failed for DNS, but «پیامک‌ها» showed many
+«کاوه‌نگار لغو کرد» (13) between about 18:00 and 20:10, on 07/29 and 07/30, while the messages before
+and after reached the phone. A ticket to Kavenegar about it is the developer's. Decided with the
+developer on 1405/08/01, BUSINESS_RULES.md §10 *Sending*:
+- [x] The Owner's resend also takes a sent message Kavenegar cancelled (`PrepareResend`); the same
+      row, its last request's id, cost, moment and delivery cleared
+- [x] Automatic resend (`ResendCancelledSmsHandler`, Hangfire every 15 minutes, `CancelledSmsResendJob`):
+      asks Kavenegar about today's messages (`CheckSmsDeliveryHandler.CheckSentSinceAsync`), then sends
+      each cancelled one again 30 minutes after its last request, at most 5 times
+      (`PrepareAutoResend`, `auto_resends` with a check constraint), the same day, within the
+      kind's hours, with the switches on; every kind
+- [x] The nightly 23:30 check and the 15-minute one may meet: a conflict is logged and asked again
+      next time instead of failing the job
+- [x] «پیامک‌ها»: «ارسال دوباره» on a cancelled row, with «کاوه‌نگار این پیامک را لغو کرد و به گوشی
+      نرسید» in the confirmation, and «N بار خودکار دوباره فرستاده شد» under the status
+- [x] Migration `AddSmsAutoResends`: one column, 0 for every existing row
+- [x] Tests: domain (resend and automatic resend, the limit), integration (every rule above, the
+      schedule, the constraint, the Owner's resend of a cancelled message), frontend (the button,
+      the warning, the count)
+
+Release: on its own from `main`, before Phase 13's look; it has a migration, so `./backup.sh run`
+first.
 
 ---
 

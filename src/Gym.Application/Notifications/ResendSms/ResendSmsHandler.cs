@@ -8,8 +8,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Notifications.ResendSms;
 
 /// <summary>
-/// The Owner resends a <c>Failed</c> or <c>Unknown</c> SMS by hand (BUSINESS_RULES.md §10
-/// <i>Sending</i>, task 10.5): exactly the same message, one request, no retries. Owner only.
+/// The Owner resends a <c>Failed</c> or <c>Unknown</c> SMS, or one the provider cancelled, by hand
+/// (BUSINESS_RULES.md §10 <i>Sending</i>, tasks 10.5 and 10.16): exactly the same message, one
+/// request, no retries. Owner only.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -58,7 +59,7 @@ public sealed class ResendSmsHandler(IAppDbContext db, IGymCalendar calendar, Ti
         // Not the request's token: once the SMS may have left, its outcome is recorded whatever happens.
         var message = new SmsMessage(notification.Recipient, notification.Text);
         var result = await sender.SendAsync(message, CancellationToken.None);
-        Record(notification, result, time.GetUtcNow());
+        SmsResendOutcome.Record(notification, result, time.GetUtcNow());
 
         try
         {
@@ -79,35 +80,5 @@ public sealed class ResendSmsHandler(IAppDbContext db, IGymCalendar calendar, Ti
             : null;
 
         return SmsMessageResponse.From(notification, memberName);
-    }
-
-    /// <summary>
-    /// One request, so no failure waits for another try: whatever may pass is <c>Failed</c> with its
-    /// code, and the Owner can resend again (§10, decided with the developer, 1405/07/16).
-    /// </summary>
-    private static void Record(Notification notification, SmsSendResult result, DateTimeOffset now)
-    {
-        switch (result.Outcome)
-        {
-            case SmsSendOutcome.Sent:
-                notification.MarkSent(
-                    result.ProviderMessageId ?? throw new InvalidOperationException("A sent message has no provider id."),
-                    result.CostRial ?? 0m,
-                    now);
-                break;
-
-            case SmsSendOutcome.RetryableFailure:
-            case SmsSendOutcome.PermanentFailure:
-            case SmsSendOutcome.CreditExhausted:
-                notification.MarkFailed(result.ErrorCode, now);
-                break;
-
-            case SmsSendOutcome.Unknown:
-                notification.MarkUnknown(now);
-                break;
-
-            default:
-                throw new InvalidOperationException($"Unknown send outcome {result.Outcome}.");
-        }
     }
 }

@@ -32,6 +32,7 @@ const failedBirthday: SmsMessage = {
   broadcastId: null,
   text: "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد\nلغو11",
   attempts: 1,
+  autoResends: 0,
   errorCode: 411,
   costToman: null,
   delivery: null,
@@ -252,6 +253,56 @@ describe("SmsMessagesPage", () => {
     // The list and the credit are asked again: the row and the total have changed.
     await waitFor(() => expect(api.requestsTo("GET", "/api/sms/messages")).toHaveLength(2));
     expect(api.requestsTo("GET", "/api/sms/credit")).toHaveLength(2);
+  });
+
+  it("SmsMessagesPage_CancelledByKavenegar_CanBeResentAndSaysItNeverArrived", async () => {
+    // Task 10.16: it never reached the phone, and its cost was given back.
+    const cancelled = { ...sentCheque, delivery: "Cancelled", costToman: 0 } as const;
+    const api = ownerWith({
+      "GET /api/sms/messages": () => messagesPage([cancelled], 0),
+      [`POST /api/sms/messages/${cancelled.id}/resend`]: () =>
+        json(200, { ...cancelled, delivery: null, costToman: 135, attempts: 2 }),
+    });
+
+    renderApp("/sms", { session: session() });
+    await screen.findByText("مالک");
+
+    fireEvent.click(screen.getByRole("button", { name: "ارسال دوباره پیامک چک و قسط برای مالک" }));
+    expect(screen.getByText(/کاوه‌نگار این پیامک را لغو کرد و به گوشی نرسید/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "بفرست" }));
+
+    expect(
+      await screen.findByText("پیامک چک و قسط برای مالک دوباره فرستاده شد."),
+    ).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/sms/messages/${cancelled.id}/resend`)).toHaveLength(1);
+  });
+
+  it.each(["Delivered", "NotDelivered", "BlockedByReceiver"] as const)(
+    "SmsMessagesPage_Sent%s_HasNoResend",
+    async (delivery) => {
+      ownerWith({
+        "GET /api/sms/messages": () => messagesPage([{ ...sentCheque, delivery }]),
+      });
+
+      renderApp("/sms", { session: session() });
+
+      await screen.findByText("مالک");
+      expect(
+        within(rowOf("مالک")).queryByRole("button", { name: /ارسال دوباره/ }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("SmsMessagesPage_ResentAutomatically_SaysHowManyTimes", async () => {
+    ownerWith({
+      "GET /api/sms/messages": () =>
+        messagesPage([{ ...sentCheque, attempts: 3, autoResends: 2, delivery: null }]),
+    });
+
+    renderApp("/sms", { session: session() });
+
+    await screen.findByText("مالک");
+    expect(within(rowOf("مالک")).getByText("۲ بار خودکار دوباره فرستاده شد")).toBeInTheDocument();
   });
 
   it("SmsMessagesPage_ResendUnknown_WarnsItMayHaveArrived", async () => {

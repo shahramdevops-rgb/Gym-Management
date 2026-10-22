@@ -49,4 +49,7 @@ public static class NotificationConstraints
 
     /// <summary>A blocked or cancelled message costs nothing: the provider gave the cost back (BUSINESS_RULES.md §10).</summary>
     public const string RefundedHasNoCost = "ck_notifications_refunded_has_no_cost";
+
+    /// <summary>At most five automatic resends of a cancelled message (BUSINESS_RULES.md §10, task 10.16).</summary>
+    public const string AutoResendsInRange = "ck_notifications_auto_resends_in_range";
 }

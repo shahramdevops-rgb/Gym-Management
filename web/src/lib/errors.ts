@@ -341,7 +341,10 @@ export const errorMessages: Record<string, string> = {
     "هزینهٔ این پیامک برگشت داده شده و وضعیت تحویلش دیگر تغییر نمی‌کند.",
   "Notifications.NotFound": "این پیامک پیدا نشد.",
   "Notifications.NotResendable":
-    "فقط پیامکی که ناموفق بوده یا وضعیتش نامعلوم است دوباره فرستاده می‌شود. فهرست را تازه کنید.",
+    "فقط پیامکی که ناموفق بوده، وضعیتش نامعلوم است یا کاوه‌نگار لغوش کرده دوباره فرستاده می‌شود. فهرست را تازه کنید.",
+  "Notifications.NotCancelledByProvider":
+    "فقط پیامکی که کاوه‌نگار لغوش کرده خودکار دوباره فرستاده می‌شود.",
+  "Notifications.AutoResendsUsedUp": "این پیامک به تعداد مجاز خودکار دوباره فرستاده شده است.",
   "Notifications.OutsideSendingHours": "پیامک فقط بین ساعت ۸:۰۰ تا ۲۲:۰۰ فرستاده می‌شود.",
   "Notifications.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
   "Notifications.ChangedConcurrently":

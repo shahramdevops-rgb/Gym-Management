@@ -133,6 +133,7 @@
     "Text": { "label": "متن" },
     "Status": { "label": "وضعیت", "format": "notificationStatus" },
     "Attempts": { "label": "دفعات تلاش" },
+    "AutoResends": { "label": "ارسال دوبارهٔ خودکار" },
     "ErrorCode": { "label": "کد خطا" },
     "ProviderMessageId": { "label": "شناسهٔ کاوه‌نگار" },
     "Delivery": { "label": "رسیدن به گوشی", "format": "smsDelivery" },

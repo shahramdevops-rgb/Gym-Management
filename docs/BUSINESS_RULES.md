@@ -1671,7 +1671,9 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   `6` the carrier's error), blocked by the receiver (`14`), or cancelled by Kavenegar (`13`, a
   sending error on its side). It asks **once a day, at 23:30** (Asia/Tehran), about every message
   sent in the last 48 hours that is not yet delivered, blocked or cancelled, so each one is asked about at least once before Kavenegar forgets it, and a
-  "not delivered" (the phone was off) can still become "delivered" the next night. A message still on
+  "not delivered" (the phone was off) can still become "delivered" the next night. The same question
+  is also asked **every 15 minutes** about the messages sent **today**, to find what Kavenegar
+  cancelled while it can still be sent again that day (*Automatic resend*, task 10.16). A message still on
   its way gets nothing yet. If Kavenegar does not answer, it is only logged: the messages keep no
   delivery, and nothing else depends on it (decided with the developer, 1405/07/15, task 10.4: these
   messages are information, not something the gym must be sure arrived).
@@ -1704,7 +1706,10 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   Kavenegar does not answer, the **last figure it gave** is kept, in grey; with none yet, the header
   says the credit is unknown. In test mode it is not shown. Nothing is sent by SMS about the credit:
   the header is the warning (an SMS to two numbers was considered and dropped by the developer).
-- **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand. For `Unknown` the page
+- **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand, and a sent one that
+  **Kavenegar cancelled** (`13`: it never reached the phone and its cost was given back; decided
+  with the developer, 1405/08/01, task 10.16). A delivered, not delivered or blocked one cannot be
+  resent: the first two were paid for, and a blocked one would be blocked again. For `Unknown` the page
   says it may already have arrived. Decided with the developer on 1405/07/16 (task 10.5):
   - It sends **exactly the same message**: the same number and text that were written, even if the
     member's number or name has changed since.
@@ -1712,9 +1717,32 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
     the Owner can resend again. Credit used up is `Failed` too, and `Unknown` as in a run.
   - It is allowed **while all SMS or that kind is off**: the switches stop the daily runs, and a resend
     is the Owner's own choice. It is not allowed outside 08:00–22:00 (`Notifications.OutsideSendingHours`), a daily report outside 08:00 to midnight.
-  - Only a `Failed` or `Unknown` message can be resent (`Notifications.NotResendable`); two resends of
+  - Only a `Failed`, `Unknown` or cancelled message can be resent (`Notifications.NotResendable`); two resends of
     one message at once send it once. Like a run, the message is saved as `Pending` before the request,
     so a resend the server stopped in the middle becomes `Unknown` at that kind's next run.
+  - A cancelled message is sent again **as the same row**: what its last request left (Kavenegar's
+    id, the cost it gave back, the moment it was sent, «کاوه‌نگار لغو کرد») is replaced by the new
+    request's. Its cost was 0, so the month's total does not change.
+- **Automatic resend of what Kavenegar cancelled** (decided with the developer, 1405/08/01, task
+  10.16). On 1405/07/29 and 07/30 Kavenegar accepted a whole evening's messages (about 18:00 to
+  20:10) and then cancelled them, while the ones before and after reached the phone. So the system
+  sends a cancelled message again by itself:
+  - Every **15 minutes** it asks Kavenegar about today's messages (*Delivery*), and sends again each
+    one Kavenegar cancelled, **at least 30 minutes after its last request**, so the tries are not all
+    spent inside the same bad stretch.
+  - **At most 5 times** per message (`auto_resends`, held by a check constraint). After the fifth,
+    only the Owner's resend is left. The Owner's resends are not counted.
+  - **The same day only**, within the kind's sending hours (08:00–22:00; the daily report until
+    midnight). What is still cancelled when they end stays so, with the Owner's resend.
+  - **Every kind**, the Owner's own messages included (the daily report, cheques and instalments).
+  - **The switches hold**: with all SMS or the message's kind off, nothing is resent automatically, as
+    the settings page says nothing is sent. The Owner's resend is still allowed then.
+  - Each one is sent like the Owner's resend: one request, saved `Pending` before it. A failure that
+    may pass, or credit used up, makes it `Failed` with its code, for the Owner to resend; credit
+    used up also leaves the other cancelled ones for later. Only a cancelled message is resent by
+    itself: a failed or unknown one may have cost money or arrived, so it stays the Owner's choice.
+  - The history shows how many times a message was resent automatically («N بار خودکار دوباره
+    فرستاده شد»).
 - **Development and tests:** tests always use `FakeSmsSender`, which only logs, and never reach
   Kavenegar. On the developer's machine Kavenegar can be turned on with the developer's own account,
   and `Sms:AllowedReceptors` then limits real sending to the listed numbers (anything else is only

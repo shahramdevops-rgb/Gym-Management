@@ -35,6 +35,13 @@ public sealed class Notification : Entity
 
     public const int TextMaxLength = SmsText.MaxLength;
 
+    /// <summary>
+    /// How many times the system resends, by itself, a message the provider cancelled (BUSINESS_RULES.md
+    /// §10 <i>Sending</i>, decided with the developer, 1405/08/01, task 10.16). After that only the
+    /// Owner's resend is left.
+    /// </summary>
+    public const int MaxAutoResends = 5;
+
     // For EF Core.
     private Notification()
     {
@@ -107,6 +114,18 @@ public sealed class Notification : Entity
 
     /// <summary><c>null</c> until the provider has said whether it reached the phone.</summary>
     public SmsDelivery? Delivery { get; private set; }
+
+    /// <summary>
+    /// How many times the system resent it by itself after the provider cancelled it (task 10.16), at
+    /// most <see cref="MaxAutoResends"/>. The Owner's resends are not counted.
+    /// </summary>
+    public int AutoResends { get; private set; }
+
+    /// <summary>
+    /// Sent, and then cancelled by the provider (<c>13</c>, a sending error on its side): it never
+    /// reached the phone and its cost was given back, so it may be sent again (§10 <i>Sending</i>).
+    /// </summary>
+    public bool IsCancelledByProvider => Status == NotificationStatus.Sent && Delivery == SmsDelivery.Cancelled;
 
     /// <summary>Postgres <c>xmin</c>: two senders cannot both record an outcome for one message.</summary>
     public uint Version { get; private set; }
@@ -308,26 +327,48 @@ public sealed class Notification : Entity
     }
 
     /// <summary>
-    /// The Owner resends a message that failed, or whose fate is not known, by hand
-    /// (BUSINESS_RULES.md §10 <i>Sending</i>, task 10.5): it is <see cref="NotificationStatus.Pending"/>
-    /// again, to be saved before the request like any other, and the request's outcome is then
-    /// recorded with the same methods a run uses. The number and the text do not change: it is exactly
-    /// the same message.
+    /// The Owner resends a message that failed, whose fate is not known, or that the provider cancelled,
+    /// by hand (BUSINESS_RULES.md §10 <i>Sending</i>, tasks 10.5 and 10.16): it is
+    /// <see cref="NotificationStatus.Pending"/> again, to be saved before the request like any other, and
+    /// the request's outcome is then recorded with the same methods a run uses. The number and the text
+    /// do not change: it is exactly the same message.
     /// </summary>
     /// <remarks>
-    /// The last failure's code is cleared: if the server stops before the outcome is saved, the row
-    /// becomes <see cref="NotificationStatus.Unknown"/> at the next run, and an old code would then
-    /// describe a request that is not the last one.
+    /// What the last request left is cleared (see <see cref="StartAgain"/>): if the server stops before
+    /// the outcome is saved, the row becomes <see cref="NotificationStatus.Unknown"/> at the next run,
+    /// and an old code or delivery would then describe a request that is not the last one.
     /// </remarks>
     public Result PrepareResend()
     {
-        if (Status is not (NotificationStatus.Failed or NotificationStatus.Unknown))
+        if (Status is not (NotificationStatus.Failed or NotificationStatus.Unknown) && !IsCancelledByProvider)
         {
             return Result.Failure(NotificationErrors.NotResendable);
         }
 
-        Status = NotificationStatus.Pending;
-        ErrorCode = null;
+        StartAgain();
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The system resends a message the provider cancelled, by itself (§10 <i>Sending</i>, task 10.16):
+    /// the same as <see cref="PrepareResend"/>, for a cancelled message only, at most
+    /// <see cref="MaxAutoResends"/> times. When and whether it may go now is the caller's to check.
+    /// </summary>
+    public Result PrepareAutoResend()
+    {
+        if (!IsCancelledByProvider)
+        {
+            return Result.Failure(NotificationErrors.NotCancelledByProvider);
+        }
+
+        if (AutoResends >= MaxAutoResends)
+        {
+            return Result.Failure(NotificationErrors.AutoResendsUsedUp);
+        }
+
+        AutoResends++;
+        StartAgain();
 
         return Result.Success();
     }
@@ -415,6 +456,21 @@ public sealed class Notification : Entity
         {
             throw new ArgumentException("An empty id names no record.", name);
         }
+    }
+
+    /// <summary>
+    /// Waiting to be sent again. A cancelled message also loses what its last request left: the
+    /// provider's id, the cost it gave back, the moment and the delivery belong to a message that never
+    /// arrived, and the next request brings its own. The attempts stay counted.
+    /// </summary>
+    private void StartAgain()
+    {
+        Status = NotificationStatus.Pending;
+        ErrorCode = null;
+        ProviderMessageId = null;
+        CostRial = null;
+        SentAt = null;
+        Delivery = null;
     }
 
     /// <summary>Every outcome of a request starts here: only a message still waiting can have one.</summary>

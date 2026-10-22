@@ -153,6 +153,9 @@ public static class DependencyInjection
         services.AddSingleton<IBroadcastScheduler, HangfireBroadcastScheduler>();
         services.AddScoped<BroadcastJob>();
 
+        // What the provider cancelled is sent again by itself, checked every 15 minutes (task 10.16).
+        services.AddScoped<CancelledSmsResendJob>();
+
         // One left «در حال ارسال» by a stopped server is handed to its job again at start.
         services.AddHostedService<BroadcastRecoveryService>();
 

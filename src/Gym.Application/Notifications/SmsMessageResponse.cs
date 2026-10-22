@@ -14,6 +14,7 @@ namespace Gym.Application.Notifications;
 /// </remarks>
 /// <param name="MemberName">The member it was for; <c>null</c> for a cheque or instalment, sent to the Owner.</param>
 /// <param name="BroadcastId">The broadcast it was part of (task 10.13); <c>null</c> for every other kind.</param>
+/// <param name="AutoResends">How many times the system sent it again by itself after the provider cancelled it (task 10.16).</param>
 /// <param name="ErrorCode">The provider's code for the last failure; the page explains the known ones.</param>
 /// <param name="CostToman">What the provider charged, in Toman (its Rial ÷ 10); <c>null</c> until it is sent.</param>
 /// <param name="CreatedAt">When the message was written: its date in the history.</param>
@@ -28,6 +29,7 @@ public sealed record SmsMessageResponse(
     Guid? BroadcastId,
     string Text,
     int Attempts,
+    int AutoResends,
     int? ErrorCode,
     decimal? CostToman,
     [property: JsonConverter(typeof(JsonStringEnumConverter<SmsDelivery>))] SmsDelivery? Delivery,
@@ -50,6 +52,7 @@ public sealed record SmsMessageResponse(
             notification.BroadcastId,
             notification.Text,
             notification.Attempts,
+            notification.AutoResends,
             notification.ErrorCode,
             notification.CostRial / 10m,
             notification.Delivery,
