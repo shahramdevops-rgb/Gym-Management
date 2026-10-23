@@ -14,9 +14,9 @@ Milestones:
 Release order (decided by the developer on 1405/07/26, 2026-10-18):
 1. **Done 2026-10-20:** the SMS release, 10.6 to 10.15, from `main`, as one complete version
    (`20261020-0246-099e551`, 10.6), Kavenegar live with every kind off until the Owner turns them on.
-   **Next, before the look:** 10.16 (sending again what Kavenegar cancelled), 10.17 (three
-   changes to the SMS settings) and 10.18 (new wording for the absence, welcome and birthday SMS), as one small release
-   from `main` (planned on 1405/08/01, 2026-10-23).
+   **Done 2026-10-23:** 10.16 (sending again what Kavenegar cancelled), 10.17 (three changes to
+   the SMS settings) and 10.18 (new wording for the absence, welcome and birthday SMS), as one
+   small release from `main` (`20261023-2305-6bcb031`, 10.18).
 2. Then, in the days after SMS works, Phase 13's look and mobile (13.1 and 13.2 are finished and
    ticked on the branch `task/13.2-visual-language`; they are merged into `main` only after the SMS
    release, so they still show open here) as a release of its own.
@@ -3007,6 +3007,20 @@ Found by the pre-release run on the same day, a 1st of the month, and fixed with
       the whole suite: three, as the other slow notices
 
 No migration. Release: with 10.16 and 10.17, one release from `main`.
+
+- [x] Released in `20261023-2305-6bcb031` (previous `20261020-0246-099e551`) on 1405/08/01
+      (2026-10-23) at 23:05, the gym closed early that night: 10.16, 10.17 and 10.18. Two
+      migrations (`AddSmsAutoResends`, `SmsSettingsLowSessionsRowsAndReportTime`); the second
+      renames `low_sessions_threshold`, so a rollback to `099e551` is **not** safe (fix forward, or
+      restore the dump below). Before it: every test green (965 domain, 1740 integration, 1110
+      frontend), `npm run e2e` passed, the README pictures retaken; read-only, the low-sessions
+      number was 1 (carried into all three rows) and absence, welcome and birthday were on;
+      `./backup.sh run` → `gym-20261023-230118.dump` (994,906 bytes), copied to `D:\gymbackups`,
+      the same `sha256sum` (`42a09964…2b7a67c8`). After it: all three containers on the new tag and
+      healthy, `/health` 200, no error in the API's log, the row counts unchanged (226 members, 245
+      subscriptions, 418 payments, 931 attendances, 121 notifications, 151 cafe orders),
+      `auto_resends` 0 everywhere. The developer then set the low-sessions rows to 1, 2 and 3 and
+      the daily report to 22:30 on the new page
 
 ---
 
