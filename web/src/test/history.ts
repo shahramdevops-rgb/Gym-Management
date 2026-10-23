@@ -21,6 +21,7 @@ export const closedVisit: HistoryAttendance = {
   lockerNumber: 12,
   usesReservePlace: false,
   isCardioOnly: false,
+  isBirthdayVisit: false,
   checkedInAt: "2026-10-02T06:00:00Z",
   checkedOutAt: "2026-10-02T07:30:00Z",
   cancelledAt: null,

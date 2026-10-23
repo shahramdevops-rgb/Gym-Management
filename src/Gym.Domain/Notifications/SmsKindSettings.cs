@@ -9,7 +9,8 @@ namespace Gym.Domain.Notifications;
 /// The kind's number: days before the end date (<see cref="NotificationKind.SubscriptionExpiring"/>),
 /// sessions left (<see cref="NotificationKind.LowSessions"/>), days before the birthday
 /// (<see cref="NotificationKind.Birthday"/>) or days before the cheque's or instalment's date
-/// (<see cref="NotificationKind.PayableDue"/>). The ranges are in <see cref="SmsSettings.ThresholdRange"/>.
+/// (<see cref="NotificationKind.PayableDue"/>), or days since the oldest unpaid sale
+/// (<see cref="NotificationKind.DebtReminder"/>), or days away (<see cref="NotificationKind.Absence"/>). The ranges are in <see cref="SmsSettings.ThresholdRange"/>.
 /// </param>
 /// <param name="SendTime">The gym's local time the day's run starts at.</param>
 public sealed record SmsKindSettings(bool Enabled, int? Threshold, TimeOnly? SendTime)

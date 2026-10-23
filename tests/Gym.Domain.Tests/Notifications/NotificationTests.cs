@@ -71,6 +71,139 @@ public sealed class NotificationTests
     }
 
     [Fact]
+    public void ForDailyReport_Valid_NamesTheDayAndNothingElse()
+    {
+        var day = new DateOnly(2026, 10, 19);
+
+        var notification = Notification.ForDailyReport(day, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.DailyReport);
+        notification.ReportDate.ShouldBe(day);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.MemberId.ShouldBeNull();
+        notification.SubscriptionId.ShouldBeNull();
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForSubscriptionReceipt_NamesTheMemberAndTheSubscription()
+    {
+        var memberId = Guid.NewGuid();
+        var subscriptionId = Guid.NewGuid();
+
+        var notification = Notification.ForSubscriptionReceipt(memberId, subscriptionId, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.SubscriptionReceipt);
+        notification.MemberId.ShouldBe(memberId);
+        notification.SubscriptionId.ShouldBe(subscriptionId);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForWelcome_NamesTheMemberAndTheirFirstPlan()
+    {
+        var memberId = Guid.NewGuid();
+        var subscriptionId = Guid.NewGuid();
+
+        var notification = Notification.ForWelcome(memberId, subscriptionId, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.Welcome);
+        notification.MemberId.ShouldBe(memberId);
+        notification.SubscriptionId.ShouldBe(subscriptionId);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForDebtReminder_NamesTheMemberAndTheDayTheDebtBegan()
+    {
+        var memberId = Guid.NewGuid();
+        var since = new DateOnly(2026, 9, 1);
+
+        var notification = Notification.ForDebtReminder(memberId, since, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.DebtReminder);
+        notification.MemberId.ShouldBe(memberId);
+        notification.DebtSince.ShouldBe(since);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.SubscriptionId.ShouldBeNull();
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForDebtReminder_EmptyMemberId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForDebtReminder(Guid.Empty, new DateOnly(2026, 9, 1), Phone, Text));
+
+    [Fact]
+    public void ForAbsence_NamesTheMemberAndTheDayTheAbsenceCountsFrom()
+    {
+        var memberId = Guid.NewGuid();
+        var since = new DateOnly(2026, 10, 1);
+
+        var notification = Notification.ForAbsence(memberId, since, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.Absence);
+        notification.MemberId.ShouldBe(memberId);
+        notification.AbsentSince.ShouldBe(since);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.SubscriptionId.ShouldBeNull();
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+        notification.DebtSince.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForAbsence_EmptyMemberId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForAbsence(Guid.Empty, new DateOnly(2026, 10, 1), Phone, Text));
+
+    [Fact]
+    public void ForBroadcast_NamesTheBroadcastAndTheMember()
+    {
+        var broadcastId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+
+        var notification = Notification.ForBroadcast(broadcastId, memberId, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.Broadcast);
+        notification.BroadcastId.ShouldBe(broadcastId);
+        notification.MemberId.ShouldBe(memberId);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.SubscriptionId.ShouldBeNull();
+        notification.PayableId.ShouldBeNull();
+        notification.JalaliYear.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+        notification.DebtSince.ShouldBeNull();
+        notification.AbsentSince.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForBroadcast_EmptyBroadcastId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForBroadcast(Guid.Empty, Guid.NewGuid(), Phone, Text));
+
+    [Fact]
+    public void ForBroadcast_EmptyMemberId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForBroadcast(Guid.NewGuid(), Guid.Empty, Phone, Text));
+
+    [Fact]
+    public void ForSubscriptionReceipt_EmptySubscriptionId_Throws()
+    {
+        Should.Throw<ArgumentException>(() => Notification.ForSubscriptionReceipt(Guid.NewGuid(), Guid.Empty, Phone, Text));
+    }
+
+    [Fact]
     public void Create_TextAtTheLimit_IsKept()
     {
         var text = new string('x', Notification.TextMaxLength);
@@ -326,6 +459,143 @@ public sealed class NotificationTests
         notification.ErrorCode.ShouldBeNull();
     }
 
+    // ---- Resend after the provider cancelled it (task 10.16) ----
+
+    [Fact]
+    public void PrepareResend_CancelledByTheProvider_IsPendingAgainWithNothingLeftOfTheLastRequest()
+    {
+        // §10: it never reached the phone and its cost was given back, so the Owner may send it again.
+        var notification = Cancelled();
+
+        notification.PrepareResend().IsSuccess.ShouldBeTrue();
+
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.ProviderMessageId.ShouldBeNull();
+        notification.CostRial.ShouldBeNull();
+        notification.SentAt.ShouldBeNull();
+        notification.Delivery.ShouldBeNull();
+        notification.Attempts.ShouldBe(1);
+        notification.AutoResends.ShouldBe(0);
+        notification.Text.ShouldBe(Text);
+        notification.Recipient.ShouldBe(Phone);
+    }
+
+    [Theory]
+    [InlineData(SmsDelivery.Delivered)]
+    [InlineData(SmsDelivery.NotDelivered)]
+    [InlineData(SmsDelivery.BlockedByReceiver)]
+    public void PrepareResend_SentAndNotCancelled_IsRefusedAndChangesNothing(SmsDelivery delivery)
+    {
+        // Delivered or not delivered was paid for; a blocked one would be blocked again.
+        var notification = Settle("Sent");
+        notification.RecordDelivery(delivery);
+
+        notification.PrepareResend().Error.ShouldBe(NotificationErrors.NotResendable);
+
+        notification.Status.ShouldBe(NotificationStatus.Sent);
+        notification.Delivery.ShouldBe(delivery);
+    }
+
+    [Fact]
+    public void PrepareAutoResend_Cancelled_IsPendingAgainAndCounted()
+    {
+        var notification = Cancelled();
+
+        notification.PrepareAutoResend().IsSuccess.ShouldBeTrue();
+
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.Delivery.ShouldBeNull();
+        notification.ProviderMessageId.ShouldBeNull();
+        notification.AutoResends.ShouldBe(1);
+    }
+
+    [Fact]
+    public void PrepareAutoResend_FifthCancelled_IsTheLastOne()
+    {
+        var notification = Cancelled();
+        for (var resend = 1; resend < Notification.MaxAutoResends; resend++)
+        {
+            CancelAgain(notification);
+        }
+
+        notification.AutoResends.ShouldBe(Notification.MaxAutoResends - 1);
+        notification.PrepareAutoResend().IsSuccess.ShouldBeTrue();
+        notification.AutoResends.ShouldBe(5);
+
+        notification.MarkSent(99, 1_200m, Now).IsSuccess.ShouldBeTrue();
+        notification.RecordDelivery(SmsDelivery.Cancelled);
+        notification.PrepareAutoResend().Error.ShouldBe(NotificationErrors.AutoResendsUsedUp);
+        notification.Status.ShouldBe(NotificationStatus.Sent);
+        notification.AutoResends.ShouldBe(5);
+    }
+
+    [Fact]
+    public void PrepareResend_AfterTheAutomaticResendsAreUsedUp_IsStillAllowed()
+    {
+        // §10: after five, only the Owner's resend is left.
+        var notification = Cancelled();
+        for (var resend = 0; resend < Notification.MaxAutoResends; resend++)
+        {
+            CancelAgain(notification);
+        }
+
+        notification.PrepareResend().IsSuccess.ShouldBeTrue();
+
+        notification.AutoResends.ShouldBe(Notification.MaxAutoResends);
+    }
+
+    [Theory]
+    [InlineData("Pending")]
+    [InlineData("Failed")]
+    [InlineData("Unknown")]
+    [InlineData("Sent")]
+    public void PrepareAutoResend_NotCancelled_IsRefusedAndChangesNothing(string status)
+    {
+        // A failure or an unknown outcome is the Owner's to resend: it may cost money or arrive twice.
+        var notification = Settle(status);
+
+        notification.PrepareAutoResend().Error.ShouldBe(NotificationErrors.NotCancelledByProvider);
+
+        notification.Status.ToString().ShouldBe(status);
+        notification.AutoResends.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData(SmsDelivery.Delivered)]
+    [InlineData(SmsDelivery.NotDelivered)]
+    [InlineData(SmsDelivery.BlockedByReceiver)]
+    public void PrepareAutoResend_SentAndNotCancelled_IsRefused(SmsDelivery delivery)
+    {
+        var notification = Settle("Sent");
+        notification.RecordDelivery(delivery);
+
+        notification.PrepareAutoResend().Error.ShouldBe(NotificationErrors.NotCancelledByProvider);
+    }
+
+    [Fact]
+    public void PrepareAutoResend_ThenSent_KeepsTheNewRequestAndCountsEveryAttempt()
+    {
+        var notification = Cancelled();
+        var later = Now.AddMinutes(30);
+
+        notification.PrepareAutoResend();
+        notification.MarkSent(8, 1_350m, later).IsSuccess.ShouldBeTrue();
+
+        notification.ProviderMessageId.ShouldBe(8);
+        notification.CostRial.ShouldBe(1_350m);
+        notification.SentAt.ShouldBe(later);
+        notification.Delivery.ShouldBeNull();
+        notification.Attempts.ShouldBe(2);
+    }
+
+    [Fact]
+    public void IsCancelledByProvider_OnlyASentMessageTheProviderCancelled()
+    {
+        Cancelled().IsCancelledByProvider.ShouldBeTrue();
+        Settle("Sent").IsCancelledByProvider.ShouldBeFalse();
+        Settle("Failed").IsCancelledByProvider.ShouldBeFalse();
+    }
+
     // ---- Delivery ----
 
     [Theory]
@@ -442,5 +712,22 @@ public sealed class NotificationTests
         }
 
         return notification;
+    }
+
+    /// <summary>Sent once, then cancelled by the provider, which gave the cost back.</summary>
+    private static Notification Cancelled()
+    {
+        var notification = Settle("Sent");
+        notification.RecordDelivery(SmsDelivery.Cancelled).IsSuccess.ShouldBeTrue();
+
+        return notification;
+    }
+
+    /// <summary>One automatic resend that the provider cancelled again.</summary>
+    private static void CancelAgain(Notification notification)
+    {
+        notification.PrepareAutoResend().IsSuccess.ShouldBeTrue();
+        notification.MarkSent(2, 1_200m, Now).IsSuccess.ShouldBeTrue();
+        notification.RecordDelivery(SmsDelivery.Cancelled).IsSuccess.ShouldBeTrue();
     }
 }

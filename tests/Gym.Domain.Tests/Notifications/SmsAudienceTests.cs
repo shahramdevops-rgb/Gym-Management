@@ -119,18 +119,6 @@ public sealed class SmsAudienceTests
 
     // ---- Birthday ----
 
-    [Fact]
-    public void BirthdayToGreet_DayItselfWithZero_IsToday()
-    {
-        SmsAudience.BirthdayToGreet(BornOn(7, 14), Today, daysBefore: 0).ShouldBe(Today);
-    }
-
-    [Fact]
-    public void BirthdayToGreet_TomorrowWithZero_IsNone()
-    {
-        SmsAudience.BirthdayToGreet(BornOn(7, 15), Today, daysBefore: 0).ShouldBeNull();
-    }
-
     [Theory]
     [InlineData(1)]
     [InlineData(3)]
@@ -142,11 +130,13 @@ public sealed class SmsAudienceTests
         SmsAudience.BirthdayToGreet(BornOn(month, day), Today, daysBefore: 3).ShouldBe(birthday);
     }
 
-    [Fact]
-    public void BirthdayToGreet_DayItselfWithDaysAhead_IsNone()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void BirthdayToGreet_DayItself_IsNone(int daysBefore)
     {
-        // The «پیشاپیش» greeting never lands on the day (decided with the developer, task 10.3).
-        SmsAudience.BirthdayToGreet(BornOn(7, 14), Today, daysBefore: 3).ShouldBeNull();
+        // Never on the day: the member hears of the free visit in time (task 10.8).
+        SmsAudience.BirthdayToGreet(BornOn(7, 14), Today, daysBefore).ShouldBeNull();
     }
 
     [Fact]
@@ -165,9 +155,9 @@ public sealed class SmsAudienceTests
     public void BirthdayToGreet_BornOn30EsfandInAYearWithout_Is29Esfand()
     {
         var born = JalaliCalendar.ToDate(1379, 12, 30);
-        var today = JalaliCalendar.ToDate(1404, 12, 29);
+        var today = JalaliCalendar.ToDate(1404, 12, 28);
 
-        SmsAudience.BirthdayToGreet(born, today, daysBefore: 0).ShouldBe(today);
+        SmsAudience.BirthdayToGreet(born, today, daysBefore: 1).ShouldBe(JalaliCalendar.ToDate(1404, 12, 29));
     }
 
     [Fact]
@@ -182,7 +172,59 @@ public sealed class SmsAudienceTests
     [Fact]
     public void BirthdayToGreet_BornToday_IsNone()
     {
-        SmsAudience.BirthdayToGreet(Today, Today, daysBefore: 0).ShouldBeNull();
+        SmsAudience.BirthdayToGreet(Today, Today, daysBefore: 7).ShouldBeNull();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_ActivePlan_IsTrue()
+    {
+        SmsAudience.HoldsPlanForBirthday(WithSessionsLeft(3), Today).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_Frozen_IsTrue()
+    {
+        var subscription = WithSessionsLeft(3);
+        subscription.Freeze(Today, maxFreezeDays: 30).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.HoldsPlanForBirthday(subscription, Today).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_BoughtForLater_IsTrue()
+    {
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(5)).Value;
+
+        SmsAudience.HoldsPlanForBirthday(queued, Today).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_UsedUp_IsFalse()
+    {
+        SmsAudience.HoldsPlanForBirthday(WithSessionsLeft(0), Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_Ended_IsFalse()
+    {
+        SmsAudience.HoldsPlanForBirthday(EndingIn(-1), Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_Cancelled_IsFalse()
+    {
+        var subscription = EndingIn(10);
+        subscription.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.HoldsPlanForBirthday(subscription, Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HoldsPlanForBirthday_SingleVisit_IsFalse()
+    {
+        var visit = Subscription.CreateSingleVisit(MemberId, 1m, Today).Value;
+
+        SmsAudience.HoldsPlanForBirthday(visit, Today).ShouldBeFalse();
     }
 
     // ---- Cheques and instalments ----
@@ -226,7 +268,404 @@ public sealed class SmsAudienceTests
         SmsAudience.IsComingDue(cheque, Today, daysBefore: 3).ShouldBeFalse();
     }
 
+    // ---- The subscription receipt (task 10.9) ----
+
+    [Theory]
+    [InlineData(10, 10)]
+    [InlineData(4, 4)]
+    public void EarnsReceipt_PaymentClearsWhatWasOwed_IsTrue(int owedBefore, int amount)
+    {
+        SmsAudience.EarnsReceipt(EndingIn(20), owedBefore, amount).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void EarnsReceipt_PartPayment_IsFalse()
+    {
+        SmsAudience.EarnsReceipt(EndingIn(20), owedBefore: 10m, amount: 6m).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EarnsReceipt_NothingWasOwed_IsFalse()
+    {
+        SmsAudience.EarnsReceipt(EndingIn(20), owedBefore: 0m, amount: 0m).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EarnsReceipt_SingleVisit_IsFalse()
+    {
+        var visit = Subscription.CreateSingleVisit(MemberId, 150_000m, Today).Value;
+
+        SmsAudience.EarnsReceipt(visit, owedBefore: 150_000m, amount: 150_000m).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EarnsReceipt_FreePlan_IsFalse()
+    {
+        var free = Subscription.CreateMembership(MemberId, Sessions, 0m, Today).Value;
+
+        SmsAudience.EarnsReceipt(free, owedBefore: 0m, amount: 0m).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ReceiptStillDue_FullyPaidPlan_IsTrue()
+    {
+        SmsAudience.ReceiptStillDue(EndingIn(20), netPaid: Sessions).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ReceiptStillDue_Cancelled_IsFalse()
+    {
+        var subscription = EndingIn(20);
+        subscription.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.ReceiptStillDue(subscription, netPaid: Sessions).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ReceiptStillDue_NotFullyPaid_IsFalse()
+    {
+        SmsAudience.ReceiptStillDue(EndingIn(20), netPaid: Sessions - 1).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsQueuedBehindAnother_StartsTheDayAfterALivePlanEnds_IsTrue()
+    {
+        var current = EndingIn(5);
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, current.EndDate.AddDays(1)).Value;
+
+        SmsAudience.IsQueuedBehindAnother(queued, [current, queued], Today).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsQueuedBehindAnother_StartsToday_IsFalse()
+    {
+        var plan = EndingIn(Days - 1);
+
+        SmsAudience.IsQueuedBehindAnother(plan, [EndingIn(-1), plan], Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsQueuedBehindAnother_PlanBeforeItCancelled_IsFalse()
+    {
+        // Its dates no longer move: nothing is before it (§4).
+        var current = EndingIn(5);
+        current.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, current.EndDate.AddDays(1)).Value;
+
+        SmsAudience.IsQueuedBehindAnother(queued, [current], Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsQueuedBehindAnother_OnlyASingleVisitBeforeIt_IsFalse()
+    {
+        var visit = Subscription.CreateSingleVisit(MemberId, 1m, Today).Value;
+        var upcoming = Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(1)).Value;
+
+        SmsAudience.IsQueuedBehindAnother(upcoming, [visit], Today).ShouldBeFalse();
+    }
+
+    // ---- Welcome (task 10.10) ----
+
+    [Fact]
+    public void IsFirstPlan_NoOtherPlan_IsTrue()
+    {
+        var plan = SoldAt(EndingIn(20), 0);
+
+        SmsAudience.IsFirstPlan(plan, [plan]).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_APlanSoldBefore_IsFalse()
+    {
+        var earlier = SoldAt(EndingIn(5), 0);
+        var plan = SoldAt(Subscription.CreateMembership(MemberId, Sessions, 1m, earlier.EndDate.AddDays(1)).Value, 1);
+
+        SmsAudience.IsFirstPlan(plan, [earlier, plan]).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsFirstPlan_APlanSoldAfter_IsStillTrue()
+    {
+        var plan = SoldAt(EndingIn(5), 0);
+        var later = SoldAt(Subscription.CreateMembership(MemberId, Sessions, 1m, plan.EndDate.AddDays(1)).Value, 1);
+
+        SmsAudience.IsFirstPlan(plan, [plan, later]).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_TwoSoldAtTheSameMoment_ExactlyOneIsFirst()
+    {
+        var one = SoldAt(EndingIn(5), 0);
+        var other = SoldAt(Subscription.CreateMembership(MemberId, Sessions, 1m, one.EndDate.AddDays(1)).Value, 0);
+
+        (SmsAudience.IsFirstPlan(one, [other]) ^ SmsAudience.IsFirstPlan(other, [one])).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_OnlyACancelledPlanBefore_IsTrue()
+    {
+        var cancelled = SoldAt(EndingIn(5), 0);
+        cancelled.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+        var plan = SoldAt(EndingIn(20), 1);
+
+        SmsAudience.IsFirstPlan(plan, [cancelled, plan]).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_OnlySingleVisitsBefore_IsTrue()
+    {
+        var visit = SoldAt(Subscription.CreateSingleVisit(MemberId, 1m, Today).Value, 0);
+        var plan = SoldAt(EndingIn(20), 1);
+
+        SmsAudience.IsFirstPlan(plan, [visit, plan]).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsFirstPlan_SingleVisit_IsFalse()
+    {
+        var visit = SoldAt(Subscription.CreateSingleVisit(MemberId, 1m, Today).Value, 0);
+
+        SmsAudience.IsFirstPlan(visit, [visit]).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsFirstPlan_Cancelled_IsFalse()
+    {
+        var plan = SoldAt(EndingIn(20), 0);
+        plan.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.IsFirstPlan(plan, [plan]).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsFirstPlan_PricedAtZero_IsTrue()
+    {
+        var free = SoldAt(Subscription.CreateMembership(MemberId, Sessions, 0m, Today).Value, 0);
+
+        SmsAudience.IsFirstPlan(free, [free]).ShouldBeTrue();
+    }
+
+    // ---- The debt reminder (task 10.11) ----
+
+    [Theory]
+    [InlineData(29, false)]
+    [InlineData(30, true)]
+    [InlineData(45, true)]
+    public void IsDebtReminderDue_OldestSaleAge_IsDueOnceItIsAtLeastTheDays(int daysOld, bool expected)
+    {
+        SmsAudience.IsDebtReminderDue(Debt(500_000m, daysOld), lastReminderAt: null, Today, daysAfter: 30, minAmount: 100_000m)
+            .ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IsDebtReminderDue_OneDayAfterYesterdaysSale_IsDue()
+    {
+        SmsAudience.IsDebtReminderDue(Debt(5_000m, 1), lastReminderAt: null, Today, daysAfter: 1, minAmount: 1_000m)
+            .ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(99_999, false)]
+    [InlineData(100_000, true)]
+    public void IsDebtReminderDue_WholeDebtAgainstTheMinimum_IsDueFromTheMinimumUp(int owed, bool expected)
+    {
+        SmsAudience.IsDebtReminderDue(Debt(owed, 40), lastReminderAt: null, Today, daysAfter: 30, minAmount: 100_000m)
+            .ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IsDebtReminderDue_NothingOwed_IsNotDue()
+    {
+        SmsAudience.IsDebtReminderDue(Debt(0m, 40), lastReminderAt: null, Today, daysAfter: 30, minAmount: 1_000m)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsDebtReminderDue_RemindedAfterTheOldestSale_IsNotDueAgain()
+    {
+        var debt = Debt(500_000m, 40);
+
+        SmsAudience.IsDebtReminderDue(debt, debt.OldestSoldAt.AddDays(30), Today, daysAfter: 30, minAmount: 100_000m)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsDebtReminderDue_OldestSaleRecordedAfterTheLastReminder_IsDueAgain()
+    {
+        // Everything owed at the last reminder was paid; this debt began after it.
+        var debt = Debt(300_000m, 35);
+
+        SmsAudience.IsDebtReminderDue(debt, debt.OldestSoldAt.AddDays(-5), Today, daysAfter: 30, minAmount: 100_000m)
+            .ShouldBeTrue();
+    }
+
+    // ---- The absence SMS (task 10.12) ----
+
+    [Theory]
+    [InlineData(13, false)]
+    [InlineData(14, true)]
+    [InlineData(20, true)]
+    public void IsAbsenceDue_DaysSinceTheLastVisit_IsDueOnceItIsAtLeastTheDays(int daysAway, bool expected)
+    {
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(25), Today.AddDays(-daysAway), lastAbsentSince: null, Today, daysAway: 14)
+            .ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(13, false)]
+    [InlineData(14, true)]
+    public void IsAbsenceDue_NeverCameOnThePlan_CountsFromItsStart(int startedDaysAgo, bool expected)
+    {
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(startedDaysAgo), lastVisitOn: null, lastAbsentSince: null, Today, daysAway: 14)
+            .ShouldBe(expected);
+    }
+
+    [Fact]
+    public void IsAbsenceDue_LastVisitBeforeThePlanStarted_CountsFromTheStart()
+    {
+        // Came on the old plan 40 days ago; this plan began 10 days ago and they have not come on it.
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(10), Today.AddDays(-40), lastAbsentSince: null, Today, daysAway: 14)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_ThisAbsenceAlreadyTexted_IsNotDueAgain()
+    {
+        var lastVisit = Today.AddDays(-20);
+
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(28), lastVisit, lastAbsentSince: lastVisit, Today, daysAway: 14)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_CameAgainAfterTheLastSms_IsDueForTheNewAbsence()
+    {
+        // Texted for an absence from 25 days ago; they came 15 days ago and stopped again.
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(28), Today.AddDays(-15), lastAbsentSince: Today.AddDays(-25), Today, daysAway: 14)
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_CancelledVisitBringsBackAnAbsenceTextedBefore_IsNotDue()
+    {
+        // The SMS was for an absence from 20 days ago; the visit since was cancelled, so the last
+        // visit is 20 days ago again, and a later visit had been texted too.
+        SmsAudience.IsAbsenceDue(StartedDaysAgo(28), Today.AddDays(-20), lastAbsentSince: Today.AddDays(-16), Today, daysAway: 14)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_Frozen_IsFalse()
+    {
+        var plan = StartedDaysAgo(25);
+        plan.Freeze(Today, maxFreezeDays: 30).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.IsAbsenceDue(plan, lastVisitOn: null, lastAbsentSince: null, Today, daysAway: 14).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_Queued_IsFalse()
+    {
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(1)).Value;
+
+        SmsAudience.IsAbsenceDue(queued, Today.AddDays(-30), lastAbsentSince: null, Today, daysAway: 7).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_Ended_IsFalse()
+    {
+        SmsAudience.IsAbsenceDue(EndingIn(-1), lastVisitOn: null, lastAbsentSince: null, Today, daysAway: 7).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_Cancelled_IsFalse()
+    {
+        var plan = StartedDaysAgo(25);
+        plan.Cancel("اشتباه ثبت شد", Today, Now).IsSuccess.ShouldBeTrue();
+
+        SmsAudience.IsAbsenceDue(plan, lastVisitOn: null, lastAbsentSince: null, Today, daysAway: 14).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsAbsenceDue_UsedUp_IsFalse()
+    {
+        SmsAudience.IsAbsenceDue(WithSessionsLeft(0, daysLeft: 2), Today.AddDays(-20), lastAbsentSince: null, Today, daysAway: 7)
+            .ShouldBeFalse();
+    }
+
+    // ---- The broadcast's group (task 10.13) ----
+
+    [Fact]
+    public void IsInBroadcastGroup_ActiveMembers_TakesEveryActiveMemberWithOrWithoutAPlan()
+    {
+        SmsAudience.IsInBroadcastGroup(BroadcastAudience.ActiveMembers, memberIsActive: true, [], Today).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(BroadcastAudience.ActiveMembers)]
+    [InlineData(BroadcastAudience.MembersWithUsablePlan)]
+    public void IsInBroadcastGroup_DeactivatedMember_IsInNoGroup(BroadcastAudience audience)
+    {
+        SmsAudience.IsInBroadcastGroup(audience, memberIsActive: false, [StartedDaysAgo(3)], Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsInBroadcastGroup_PlanGroupWithAUsablePlan_IsIn()
+    {
+        SmsAudience.IsInBroadcastGroup(BroadcastAudience.MembersWithUsablePlan, true, [EndingIn(-5), StartedDaysAgo(3)], Today)
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsInBroadcastGroup_PlanGroupWithoutAPlan_IsOut()
+    {
+        SmsAudience.IsInBroadcastGroup(BroadcastAudience.MembersWithUsablePlan, true, [], Today).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsInBroadcastGroup_PlanGroupWithOnlyFrozenEndedQueuedOrUsedUpPlans_IsOut()
+    {
+        var frozen = StartedDaysAgo(5);
+        frozen.Freeze(Today, maxFreezeDays: 30).IsSuccess.ShouldBeTrue();
+        var queued = Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(1)).Value;
+
+        SmsAudience.IsInBroadcastGroup(
+                BroadcastAudience.MembersWithUsablePlan, true, [frozen, queued, EndingIn(-1), WithSessionsLeft(0)], Today)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsInBroadcastGroup_PlanGroupWithASingleVisitOnly_IsOut()
+    {
+        var visit = Subscription.CreateSingleVisit(MemberId, 1m, Today).Value;
+
+        SmsAudience.IsInBroadcastGroup(BroadcastAudience.MembersWithUsablePlan, true, [visit], Today).ShouldBeFalse();
+    }
+
     // ---- Helpers ----
+
+    /// <summary>A 10-session, 30-day plan that began <paramref name="daysAgo"/> days before today.</summary>
+    private static Subscription StartedDaysAgo(int daysAgo) =>
+        Subscription.CreateMembership(MemberId, Sessions, 1m, Today.AddDays(-daysAgo)).Value;
+
+    /// <summary>A debt whose oldest unpaid sale was recorded <paramref name="daysOld"/> days before today, at noon UTC.</summary>
+    private static OpenDebt Debt(decimal owed, int daysOld)
+    {
+        var day = Today.AddDays(-daysOld);
+
+        return new OpenDebt(owed, new DateTimeOffset(day.ToDateTime(new TimeOnly(12, 0)), TimeSpan.Zero), day);
+    }
+
+    /// <summary>
+    /// Stamps the moment it was saved, <paramref name="minutes"/> after <see cref="Now"/>, as the
+    /// database interceptor does; the entity has no setter of its own for it.
+    /// </summary>
+    private static Subscription SoldAt(Subscription subscription, int minutes)
+    {
+        typeof(Entity).GetProperty(nameof(Entity.CreatedAt))!.SetValue(subscription, Now.AddMinutes(minutes));
+
+        return subscription;
+    }
 
     /// <summary>A plan of 10 sessions, none used, whose last day is <paramref name="daysLeft"/> days from today.</summary>
     private static Subscription EndingIn(int daysLeft) =>

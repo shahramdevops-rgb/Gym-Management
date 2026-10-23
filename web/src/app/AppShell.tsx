@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { hasRole, useCurrentUser, useLogout } from "@/features/auth/api";
 import { useSessionState } from "@/features/auth/session";
 import { PayablesDueAlert } from "@/features/payables/components/PayablesDueAlert";
+import { SmsCreditBadge } from "@/features/sms/components/SmsCreditBadge";
 import { toneStyle } from "@/lib/tone";
 import { useIsPhone } from "@/lib/useIsPhone";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 /**
  * The page frame: the side menu on the right (the gym's logo, the clock and the menu), and beside it
- * the content under its header (the cheque alert, the user, the theme and «خروج»). No frame and no
+ * the content under its header (the cheque alert, the SMS credit, the user, the theme and «خروج»). No frame and no
  * glow (13.2h, asked by the developer: the floating menu did not belong to the page beside it): the
  * menu sits on the page's own background with no line beside it, and the header's bottom line runs on
  * under the logo, so the two read as one frame.
@@ -65,9 +66,9 @@ export function AppShell() {
         }))
         .filter((group) => group.items.length > 0);
 
-  // The Owner reads cheques and instalments (§1); a user who must change their password sees only
-  // that page.
-  const showPayablesAlert = !mustChangePassword && hasRole(user.data, "Owner");
+  // The Owner reads cheques and instalments (§1) and the SMS credit (§10); a user who must change
+  // their password sees only that page.
+  const showOwnerAlerts = !mustChangePassword && hasRole(user.data, "Owner");
 
   async function signOut() {
     await logout.mutateAsync();
@@ -113,7 +114,8 @@ export function AppShell() {
               />
             </MenuDrawer>
           )}
-          {showPayablesAlert && <PayablesDueAlert />}
+          {showOwnerAlerts && <PayablesDueAlert />}
+          {showOwnerAlerts && <SmsCreditBadge />}
           <div className="flex h-9 shrink-0 items-center gap-1 rounded-lg border bg-card sm:ps-3">
             {user.data !== undefined && (
               <span className="hidden pe-2 text-sm font-medium sm:inline">

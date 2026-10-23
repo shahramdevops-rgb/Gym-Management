@@ -46,6 +46,70 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
     }
 
     [Fact]
+    public async Task Apply_DailyReportOn_SchedulesItsRunAt2245InTehran()
+    {
+        var settings = await SettingsAsync(enabled: true, expiringOn: false, sendTime: new TimeOnly(10, 0), dailyReportOn: true);
+
+        try
+        {
+            Schedule().Apply(settings);
+
+            var job = RecurringJobs().ShouldHaveSingleItem();
+            job.Id.ShouldBe("sms-DailyReport");
+            job.Cron.ShouldBe("45 22 * * *");
+            job.TimeZoneId.ShouldBe(Calendar().TimeZone.Id);
+            job.Job.Args[0].ShouldBe(NotificationKind.DailyReport);
+        }
+        finally
+        {
+            RemoveAll();
+        }
+    }
+
+    [Fact]
+    public async Task Apply_SubscriptionReceiptOn_SchedulesNoDailyRun()
+    {
+        // The receipt goes at each payment (task 10.9), so it has no recurring job.
+        var settings = await SettingsAsync(enabled: true, expiringOn: false, sendTime: new TimeOnly(10, 0), receiptOn: true);
+
+        try
+        {
+            Schedule().Apply(settings);
+
+            RecurringJobs().ShouldBeEmpty();
+        }
+        finally
+        {
+            RemoveAll();
+        }
+    }
+
+    [Fact]
+    public void ReceiptSendAt_SchedulesTheReceiptJobForThatMoment()
+    {
+        // Far ahead, so the test host's Hangfire server never runs it before it is deleted.
+        var at = new DateTimeOffset(2099, 1, 1, 6, 30, 0, TimeSpan.Zero);
+        var subscriptionId = Guid.CreateVersion7();
+        var jobs = Fixture.Services.GetRequiredService<IBackgroundJobClient>();
+
+        new HangfireSubscriptionReceiptScheduler(jobs).SendAt(subscriptionId, at);
+
+        var monitoring = Fixture.Services.GetRequiredService<JobStorage>().GetMonitoringApi();
+        var (id, job) = monitoring.ScheduledJobs(0, 1000)
+            .Single(scheduled => scheduled.Value.Job.Args[0] is Guid argument && argument == subscriptionId);
+        try
+        {
+            job.Job.Type.ShouldBe(typeof(SubscriptionReceiptJob));
+            job.Job.Method.Name.ShouldBe(nameof(SubscriptionReceiptJob.Send));
+            job.EnqueueAt.ShouldBe(at.UtcDateTime);
+        }
+        finally
+        {
+            jobs.Delete(id);
+        }
+    }
+
+    [Fact]
     public async Task Apply_TimeChanged_MovesTheRun()
     {
         try
@@ -89,7 +153,8 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
     private IGymCalendar Calendar() => Fixture.Services.GetRequiredService<IGymCalendar>();
 
     /// <summary>The seeded row, changed in memory only: the schedule reads nothing else.</summary>
-    private async Task<SmsSettings> SettingsAsync(bool enabled, bool expiringOn, TimeOnly sendTime)
+    private async Task<SmsSettings> SettingsAsync(
+        bool enabled, bool expiringOn, TimeOnly sendTime, bool dailyReportOn = false, bool receiptOn = false)
     {
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -98,10 +163,19 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
         settings.Update(
             enabled,
             new SmsKindSettings(expiringOn, 3, sendTime),
+            LowSessionsSettings.Off,
             SmsKindSettings.Off,
             SmsKindSettings.Off,
-            SmsKindSettings.Off,
-            ownerPhone: null).IsSuccess.ShouldBeTrue();
+            ownerPhone: null,
+            dailyReportEnabled: dailyReportOn,
+            dailyReportOn ? "+989351112233" : null,
+            dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
+            subscriptionReceiptEnabled: receiptOn,
+            welcomeEnabled: false,
+            debtReminder: SmsKindSettings.Off,
+            debtReminderMinAmount: null,
+            absence: SmsKindSettings.Off,
+            broadcastEnabled: false).IsSuccess.ShouldBeTrue();
 
         return settings;
     }

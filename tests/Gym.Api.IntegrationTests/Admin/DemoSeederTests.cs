@@ -2,6 +2,7 @@ using Gym.Api.Admin;
 using Gym.Api.Admin.Demo;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
+using Gym.Domain.Notifications;
 using Gym.Domain.Payments;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
@@ -10,8 +11,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.Internal;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Gym.Api.IntegrationTests.Admin;
 
@@ -59,6 +62,12 @@ public sealed class DemoSeederTests(DatabaseFixture fixture) : DatabaseTestBase(
         (await db.Payables.CountAsync(p => p.PaidAt != null, ct)).ShouldBeGreaterThan(0);
         (await db.Payables.CountAsync(p => p.PaidAt == null, ct)).ShouldBeGreaterThan(0);
         (await db.Notifications.CountAsync(ct)).ShouldBeGreaterThan(0, "the SMS runs sent through the fake sender.");
+        (await db.Notifications.CountAsync(n => n.Kind == NotificationKind.SubscriptionReceipt && n.Status == NotificationStatus.Sent, ct))
+            .ShouldBeGreaterThan(0, "the plans paid in full got their receipts, on the demo's own clock.");
+        (await db.Notifications.Where(n => n.Kind == NotificationKind.SubscriptionReceipt).MaxAsync(n => n.SentAt, ct))
+            .ShouldNotBeNull().ShouldBeLessThan(startedAt, "a receipt is sent when the demo's payment was made, not at the real time.");
+        (await db.Notifications.CountAsync(n => n.Kind == NotificationKind.Welcome && n.Status == NotificationStatus.Sent, ct))
+            .ShouldBeGreaterThan(0, "the first plans sold once SMS was on got their welcomes.");
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
         var staff = await userManager.GetUsersInRoleAsync(Roles.Staff);
@@ -66,6 +75,30 @@ public sealed class DemoSeederTests(DatabaseFixture fixture) : DatabaseTestBase(
         (await db.Attendances.CountAsync(a => staff.Select(s => (Guid?)s.Id).Contains(a.CreatedBy), ct))
             .ShouldBeGreaterThan(0, "the desk's work is signed by the staff.");
         (await db.PriceLists.SingleAsync(ct)).UpdatedBy.ShouldBe(owner.Id, "the Owner set the prices.");
+    }
+
+    [Fact]
+    public async Task SeedDemo_FrozenMemberHadAVisitPlannedThatEvening_PlanStaysFrozen()
+    {
+        // Run as if on 2026-10-15, a day the member frozen at 13:00 had a visit planned for later
+        // that day: the check-in unfroze the plan, and from then on the full run above failed on
+        // some days and passed on others.
+        await CreateOwnerAsync();
+        var startedAt = new FakeTimeProvider(new DateTimeOffset(2026, 10, 15, 9, 0, 0, TimeSpan.Zero));
+        await using var host = Fixture.CreateHost(services =>
+        {
+            services.AddDemoSeedServices();
+            services.RemoveAll<DemoClock>();
+            services.AddSingleton(new DemoClock(startedAt));
+        });
+
+        var (exitCode, output) = await RunAsync(host);
+
+        exitCode.ShouldBe(0, output);
+        output.ShouldStartWith("Seeded 90 days up to 2026-10-15");
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.Subscriptions.CountAsync(s => s.FrozenSince != null, TestContext.Current.CancellationToken)).ShouldBe(1);
     }
 
     [Fact]

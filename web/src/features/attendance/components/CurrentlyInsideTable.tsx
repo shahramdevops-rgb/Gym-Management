@@ -17,7 +17,7 @@ import { formatDate, formatDateTime, gymToday, toPersianDigits } from "@/lib/for
 import { cn } from "@/lib/utils";
 
 import type { CurrentlyInside } from "../api";
-import { cardioOnlyLabel, guestLabel } from "../holder";
+import { birthdayVisitLabel, cardioOnlyLabel, guestLabel } from "../holder";
 import { daysUntil, expiringDaysThreshold, lowSessionsThreshold } from "../renewal";
 
 interface CurrentlyInsideTableProps {
@@ -96,6 +96,12 @@ export function CurrentlyInsideTable({ rows, onCheckOut, onCancel }: CurrentlyIn
                 {row.isCardioOnly && (
                   <Badge variant="cardio" className="ms-2">
                     {cardioOnlyLabel}
+                  </Badge>
+                )}
+                {/* Free on the birthday: no session came from the plan either (§7 *Birthday visit*). */}
+                {row.isBirthdayVisit && (
+                  <Badge variant="birthday" className="ms-2">
+                    {birthdayVisitLabel}
                   </Badge>
                 )}
               </TableCell>

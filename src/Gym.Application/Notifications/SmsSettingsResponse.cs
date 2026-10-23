@@ -8,10 +8,16 @@ namespace Gym.Application.Notifications;
 public sealed record SmsSettingsResponse(
     bool Enabled,
     SmsKindSettings SubscriptionExpiring,
-    SmsKindSettings LowSessions,
+    LowSessionsSettings LowSessions,
     SmsKindSettings Birthday,
     SmsKindSettings PayableDue,
     string? OwnerPhone,
+    DailyReportSettingsResponse DailyReport,
+    SubscriptionReceiptSettingsResponse SubscriptionReceipt,
+    WelcomeSettingsResponse Welcome,
+    DebtReminderSettings DebtReminder,
+    SmsKindSettings Absence,
+    BroadcastSettings Broadcast,
     uint Version)
 {
     public static SmsSettingsResponse From(SmsSettings settings)
@@ -21,10 +27,20 @@ public sealed record SmsSettingsResponse(
         return new SmsSettingsResponse(
             settings.Enabled,
             settings.For(NotificationKind.SubscriptionExpiring),
-            settings.For(NotificationKind.LowSessions),
+            settings.LowSessions,
             settings.For(NotificationKind.Birthday),
             settings.For(NotificationKind.PayableDue),
             settings.OwnerPhone,
+            new DailyReportSettingsResponse(settings.DailyReportEnabled, settings.DailyReportPhone, settings.DailyReportSendTime),
+            new SubscriptionReceiptSettingsResponse(settings.SubscriptionReceiptEnabled, SmsSettings.MorningSendTime),
+            new WelcomeSettingsResponse(settings.WelcomeEnabled, SmsSettings.MorningSendTime),
+            new DebtReminderSettings(
+                settings.DebtReminderEnabled,
+                settings.DebtReminderDaysAfter,
+                settings.DebtReminderSendTime,
+                settings.DebtReminderMinAmount),
+            settings.For(NotificationKind.Absence),
+            new BroadcastSettings(settings.BroadcastEnabled),
             settings.Version);
     }
 }

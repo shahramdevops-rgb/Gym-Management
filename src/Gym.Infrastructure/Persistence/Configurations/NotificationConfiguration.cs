@@ -22,7 +22,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         {
             table.HasCheckConstraint(
                 "ck_notifications_kind",
-                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue')");
+                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast')");
             table.HasCheckConstraint(
                 "ck_notifications_status",
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
@@ -39,12 +39,27 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             // counts as passed in Postgres.
             table.HasCheckConstraint(
                 NotificationConstraints.EventMatchesKind,
-                "(kind IN ('SubscriptionExpiring', 'LowSessions') AND member_id IS NOT NULL " +
-                "AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL) OR " +
+                "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL " +
+                "AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
+                "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL " +
-                "AND subscription_id IS NULL AND payable_id IS NULL) OR " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL " +
+                "AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'PayableDue' AND payable_id IS NOT NULL " +
-                "AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL)");
+                "AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
+                "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
+                "(kind = 'DailyReport' AND report_date IS NOT NULL " +
+                "AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL " +
+                "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
+                "(kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
+                "AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
+                "(kind = 'Absence' AND member_id IS NOT NULL AND absent_since IS NOT NULL " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
+                "AND debt_since IS NULL AND broadcast_id IS NULL) OR " +
+                "(kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
+                "AND debt_since IS NULL AND absent_since IS NULL)");
 
             table.HasCheckConstraint(
                 NotificationConstraints.SentHasProviderId,
@@ -57,6 +72,11 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             table.HasCheckConstraint(
                 NotificationConstraints.RefundedHasNoCost,
                 "delivery IS NULL OR delivery NOT IN ('BlockedByReceiver', 'Cancelled') OR cost_rial = 0");
+
+            // §10 Sending (task 10.16): a cancelled message is resent by itself at most this many times.
+            table.HasCheckConstraint(
+                NotificationConstraints.AutoResendsInRange,
+                $"auto_resends BETWEEN 0 AND {Notification.MaxAutoResends}");
         });
 
         builder.Property(notification => notification.Kind).HasConversion<string>().HasMaxLength(30);
@@ -74,9 +94,10 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.HasOne<Member>().WithMany().HasForeignKey(notification => notification.MemberId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Subscription>().WithMany().HasForeignKey(notification => notification.SubscriptionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Payable>().WithMany().HasForeignKey(notification => notification.PayableId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<SmsBroadcast>().WithMany().HasForeignKey(notification => notification.BroadcastId).OnDelete(DeleteBehavior.Restrict);
 
         // Each event once (BUSINESS_RULES.md §10). The kind is in the first index because a
-        // subscription can get both of its kinds, once each.
+        // subscription can get each of its kinds (running out, few sessions, receipt, welcome) once.
         builder.HasIndex(notification => new { notification.SubscriptionId, notification.Kind })
             .IsUnique()
             .HasFilter("subscription_id IS NOT NULL")
@@ -91,6 +112,39 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             .IsUnique()
             .HasFilter("payable_id IS NOT NULL")
             .HasDatabaseName(NotificationConstraints.OnePerPayable);
+
+        builder.HasIndex(notification => notification.ReportDate)
+            .IsUnique()
+            .HasFilter("kind = 'DailyReport'")
+            .HasDatabaseName(NotificationConstraints.OneDailyReportPerDay);
+
+        // The welcome names its plan, but it is once per member: a first plan cancelled after its
+        // welcome went out does not earn the next plan a second one.
+        builder.HasIndex(notification => notification.MemberId)
+            .IsUnique()
+            .HasFilter("kind = 'Welcome'")
+            .HasDatabaseName(NotificationConstraints.OneWelcomePerMember);
+
+        // Once per debt (task 10.11): a debt is named by its member and the day its oldest unpaid
+        // sale was recorded. A debt that builds after everything before was paid begins later.
+        builder.HasIndex(notification => new { notification.MemberId, notification.DebtSince })
+            .IsUnique()
+            .HasFilter("kind = 'DebtReminder'")
+            .HasDatabaseName(NotificationConstraints.OneDebtReminderPerMemberAndDebt);
+
+        // Once per absence (task 10.12): an absence is named by its member and the day it counts
+        // from (the last visit, or the plan's start). Coming again starts a later one.
+        builder.HasIndex(notification => new { notification.MemberId, notification.AbsentSince })
+            .IsUnique()
+            .HasFilter("kind = 'Absence'")
+            .HasDatabaseName(NotificationConstraints.OneAbsencePerMemberAndAbsence);
+
+        // Once per member and broadcast (task 10.13): a job made again after a restart, or a
+        // broadcast continued, cannot write to anyone a second time.
+        builder.HasIndex(notification => new { notification.BroadcastId, notification.MemberId })
+            .IsUnique()
+            .HasFilter("broadcast_id IS NOT NULL")
+            .HasDatabaseName(NotificationConstraints.OnePerBroadcastAndMember);
 
         builder.Property(notification => notification.Version).IsRowVersion();
     }

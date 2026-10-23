@@ -6,7 +6,10 @@ namespace Gym.Application.Notifications;
 /// </summary>
 public static class NotificationConstraints
 {
-    /// <summary>One <c>SubscriptionExpiring</c> and one <c>LowSessions</c> per subscription (BUSINESS_RULES.md §10).</summary>
+    /// <summary>
+    /// One <c>SubscriptionExpiring</c>, one <c>LowSessions</c>, one <c>SubscriptionReceipt</c> and one
+    /// <c>Welcome</c> per subscription (BUSINESS_RULES.md §10).
+    /// </summary>
     public const string OnePerSubscriptionAndKind = "ix_notifications_one_per_subscription_and_kind";
 
     /// <summary>One <c>Birthday</c> per member and Jalali year (BUSINESS_RULES.md §10).</summary>
@@ -14,6 +17,26 @@ public static class NotificationConstraints
 
     /// <summary>One <c>PayableDue</c> per cheque or instalment (BUSINESS_RULES.md §10).</summary>
     public const string OnePerPayable = "ix_notifications_one_per_payable";
+
+    public const string OneDailyReportPerDay = "ix_notifications_one_daily_report_per_day";
+
+    /// <summary>One <c>Welcome</c> per member, whichever plan was their first (BUSINESS_RULES.md §10).</summary>
+    public const string OneWelcomePerMember = "ix_notifications_one_welcome_per_member";
+
+    /// <summary>
+    /// One <c>DebtReminder</c> per member and debt, the debt named by the day of its oldest unpaid sale
+    /// (BUSINESS_RULES.md §10 <i>The debt reminder</i>).
+    /// </summary>
+    public const string OneDebtReminderPerMemberAndDebt = "ix_notifications_one_debt_reminder_per_member_and_debt";
+
+    /// <summary>
+    /// One <c>Absence</c> per member and absence, the absence named by the day it counts from
+    /// (BUSINESS_RULES.md §10 <i>The absence SMS</i>).
+    /// </summary>
+    public const string OneAbsencePerMemberAndAbsence = "ix_notifications_one_absence_per_member_and_absence";
+
+    /// <summary>One <c>Broadcast</c> per broadcast and member (BUSINESS_RULES.md §10 <i>The broadcast</i>).</summary>
+    public const string OnePerBroadcastAndMember = "ix_notifications_one_per_broadcast_and_member";
 
     /// <summary>Each kind fills the ids of its own event and leaves the others empty.</summary>
     public const string EventMatchesKind = "ck_notifications_event_matches_kind";
@@ -26,4 +49,7 @@ public static class NotificationConstraints
 
     /// <summary>A blocked or cancelled message costs nothing: the provider gave the cost back (BUSINESS_RULES.md §10).</summary>
     public const string RefundedHasNoCost = "ck_notifications_refunded_has_no_cost";
+
+    /// <summary>At most five automatic resends of a cancelled message (BUSINESS_RULES.md §10, task 10.16).</summary>
+    public const string AutoResendsInRange = "ck_notifications_auto_resends_in_range";
 }

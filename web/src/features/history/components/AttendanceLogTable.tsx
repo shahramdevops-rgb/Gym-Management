@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cardioOnlyLabel } from "@/features/attendance/holder";
+import { birthdayVisitLabel, cardioOnlyLabel } from "@/features/attendance/holder";
 import { emptyValue, formatDateTime, toPersianDigits } from "@/lib/format";
 
 import type { HistoryAttendance } from "../api";
@@ -43,6 +43,7 @@ export function AttendanceLogTable({ items }: { items: HistoryAttendance[] }) {
                   guestName={item.guestName}
                 />
                 {item.isCardioOnly && <Badge variant="cardio">{cardioOnlyLabel}</Badge>}
+                {item.isBirthdayVisit && <Badge variant="birthday">{birthdayVisitLabel}</Badge>}
               </span>
             </TableCell>
             <TableCell label="ورود">{formatDateTime(item.checkedInAt)}</TableCell>

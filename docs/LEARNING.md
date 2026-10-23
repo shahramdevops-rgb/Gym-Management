@@ -270,7 +270,6 @@ A `code-reviewer` agent read all of Phase 1. It found no auth bypass, but it did
 - **Invisible characters need visible source.** A literal Arabic ي looks exactly like Persian ی, and editing tools quietly turned `\u064A` escapes into the character itself. Domain code and tests now write them as code points, `(char)0x064A`, which no tool rewrites and every reviewer can read.
 - **My notes:**
 
-
 ---
 
 ## 2.2 — Member queries and lifecycle
@@ -1864,4 +1863,182 @@ The question that started this was whether a gym that is entirely internal — I
 - **Contrast is a ratio you can compute.** WCAG asks 4.5:1 for normal text. Mixing a light colour towards the text colour (`color-mix` in oklab) keeps its hue while making it readable on white; the dark theme needs no mix.
 - **One number, one meaning.** «۴ از ۱۲» meant used on one screen and remaining on another. Changing the shared `SessionsBar` fixed most screens at once, which is why it was shared.
 - **Follow-up: one formatter for one wording.** Going back to *used* («۴ از ۱۲») touched three screens, each with its own template string. `formatSessionsUsed` in `lib/format.ts` now owns the wording, so the next change happens in one place. The orange stays tied to what is *left* (§7's threshold), not to the number shown.
+
+## 13.3 — The public site, first page (صفحه‌ی اول سایت)
+
+- **Ask a second designer, then check its facts.** The prompt to another AI gave three directions and a pick, and also invented services, square metres and a font setting that does not exist (`ss01` does not make Vazirmatn's digits Persian). Ideas can come from anywhere; facts on a public page come only from the gym.
+- **One grade makes any photo belong.** Every picture is greyed, darkened and washed with bronze in CSS (`.photo`). The placeholders and the gym's own phone photos later will look like one set, and replacing a photo is replacing a file, not redesigning a section.
+- **A number is left-to-right even inside Persian.** Splitting «۳۶۵» into one box per digit made the browser lay the boxes out right to left as «۵۶۳». `direction: ltr; unicode-bidi: isolate` on the row of digits fixes it. Only a real browser showed it; reading the code did not.
+- **Use the platform's own element before writing one.** The services list is `<details>`/`<summary>`: it opens and closes, works with the keyboard and screen readers and without JavaScript. CSS animates it where the browser can (`::details-content`, `interpolate-size`), and elsewhere it simply opens.
+- **Effects add, never hold up.** The page is complete without site.js; the script only adds the torchlight, the reels and "open now". Reduced motion turns every animation off, and the torchlight only runs while the name is on screen and the tab is visible.
+- **A Content-Security-Policy follows the page.** The placeholder had no script, so its policy said `script-src 'none'`. The new page has one script file, so it is `'self'`, still without `'unsafe-inline'`: the script is a file, never inline.
+- **My notes:**
+
+### 13.3, second pass — the slider and the smoke
+- **Depth is layers moving at different speeds.** The effect the developer liked on another site is a photo between a back and a front layer of smoke, each shifted by the pointer by a different amount. The same `--px`/`--py` (-1 to 1) drive every layer in CSS; only the multiplier changes.
+- **Draw it instead of downloading it.** The smoke is a canvas: three puff images made once from many small gradients, then a few dozen of them drifting, turning and fading. No picture to license, a few kilobytes of code, and the colour is one number to change (it is bronze to match the page).
+- **Animate only what is seen.** The light, the smoke and the slider run only while the hero is on screen and the tab is visible (`whileVisible`). A loop that keeps running below the fold costs battery on every phone for nothing.
+- **The site someone liked can be the site we are not building.** The reference was WordPress with a slider plugin and twenty-six scripts. Looking at how it was made (its layers and class names) showed the idea worth keeping, and that it needs one small file, not a plugin.
+- **A schematic says so.** The plan's outline and floors come from the gym; the zones' places do not. The page says «نقشه شماتیک است» rather than presenting a guess as a drawing.
+- **My notes:**
+
+### 13.3, third pass — the walk through the hall
+- **Ask for a drawing, not a description.** A plan described in words would have been a guess; a quick drawing in Paint, photographed or pasted, gave the real rooms, walls and doors in one go.
+- **A sticky stage turns scroll into a timeline.** A tall box with a `position: sticky` screen inside it: while the page scrolls through the box, the screen stays put and the scroll distance becomes progress from 0 to 1. Everything (line, walker, photo, name) is computed from that one number, so scrolling back plays it backwards for free.
+- **Draw a line by hiding it.** `stroke-dasharray` equal to the path's length and `stroke-dashoffset` from that length down to 0 draws the line as it goes; `getPointAtLength` puts the walker at its tip.
+- **Pauses make it readable.** Between two stops the walker only moves in the middle half of the scroll (`smoothstep` on 0.25–0.75), so each room rests on screen for a while instead of sliding past.
+- **The user decides what "cool" costs.** The zoom onto each room looked good but lost the whole plan; someone at the CrossFit corner could no longer see the massage room. The camera went, the whole plan stays.
+- **A click means "the nearest".** A big room with several stops takes the click's position, turns it into plan units (`getScreenCTM().inverse()`) and goes to the closest spot, so clicking where you look does what you expect.
+- **Placeholder photos carry no one's name.** One photo showed another gym's sign; it was replaced, because on this gym's page it would read as theirs.
+- **My notes:**
+
+### 13.3, phone fixes — the photos, the plan, the cards and the menu
+- **A tall crop of a wide photo is still a strip.** Most originals are 3:2, so cutting them for a 9:19.5 phone screen keeps about a third of the width wherever the cut is. What a tall cut adds is choosing *which* third: the subject instead of the middle. A wide photo framed whole was the other way; the developer kept the full-screen stage.
+- **`<picture>` picks the file, CSS still draws it.** A `<source media="(max-width: 899px)">` gives the phone its own file; the `<img>` inside keeps every style, and `picture { display: contents }` keeps it out of the layout.
+- **Ask the image server for the crop.** Unsplash's images go through imgix, which crops on request (`w`, `h`, `fit=crop`, `crop=entropy` or a focal point `fp-x`), so no image tool was needed; `fm=json` tells an original's size first.
+- **A backdrop-filter traps `position: fixed`.** A fixed box inside an element with a filter or backdrop-filter is placed relative to that element, not the screen; on a phone the top bar trades its blur for a darker glass, so the drawer and its shade are laid out on the screen.
+- **A past decision is a hint for the next one.** The phone's plan was first a camera on half of it, the same kind of zoom the third pass had removed; the developer again wanted the whole plan. Bigger names on the whole plan did what the zoom was for.
+- **Paint order decides who gets the tap.** The shade and the drawer had the same `z-index`, so the later one in the page (the shade) lay on top and swallowed the taps on the links. A browser test that taps, not only a screenshot, found it.
+- **`background-clip: text` draws only inside the box.** The plus beside «پاسارگاد» stuck out of the 34rem box on a computer and was cut in half; `width: fit-content` lets the box grow with the word. The plus also has its own colour: the word's moving light leaves its far end dark.
+- **Examples beat descriptions for photos.** The developer's five examples showed the feel wanted (dark, heavy, close) better than words; two of them turned out to be on Unsplash, and their photographer's other shots gave a set that sits together.
+- **No Cache-Control is not "no cache".** A file without the header gets a guessed freshness (about a tenth of its age since Last-Modified), so a phone kept yesterday's slides for hours under the same names. `no-cache` means "ask first": a 304 when nothing changed, the new file when it did.
+- **A new address reaches old copies.** `no-cache` only helps from now on; a copy already guessed fresh is used without asking. Putting the file's fingerprint in its address (`slide-1.webp?v=b45d33dca8`) makes a changed file a different URL, so every browser fetches it, and unchanged files keep their cache. Done at image build, it cannot be forgotten.
+- **Measure "unchanged".** The computer's page was compared pixel by pixel with the last commit, with motion reduced and the smoke's randomness seeded. The clock still made a few pixels differ, so the old page was compared with itself too: the same rows, so they are noise.
+- **My notes:**
+
+## 10.7 — Daily report to the Owner (گزارش روزانه)
+
+- **Reuse a handler instead of repeating its rule.** The report has to say what the dashboard says, so `DailyReportCandidate` calls `GetFinancialReportHandler` and `GetAttendanceReportHandler` for a range of one day. The trade-off: the financial report also works out the day before (a few rows wasted), but the rule of «دریافتی» lives in one place and the SMS can never drift from the dashboard. A second query would be lighter and could quietly disagree a year later.
+- **A per-kind window instead of a global constant.** `SmsSettings.IsWithinSendingHours(kind, time)` and `LatestSendTimeFor(kind)` let one kind run until midnight while the others keep 22:00. The retry schedule takes the kind too, so the same rule holds for the run, the retries and the resend without three separate exceptions.
+- **A fixed value can still fit a shape built for chosen ones.** The report has no number and no chosen time, yet `For(DailyReport)` returns `SmsKindSettings(enabled, null, 22:45)`, so the Hangfire schedule and the run need no special case. The settings page gets the time from the API, so the page never repeats it.
+- **Rounding is a decision, not a detail.** «سه صفر را حذف کن» means rounding: `decimal.Round(x / 1000, MidpointRounding.AwayFromZero)`. Each figure rounded on its own may not add up to the rounded total; the rule says so instead of hiding it. It also turned three SMS parts into two.
+- **A uniqueness key for an event that has no row of its own.** A subscription or a cheque gives a message its id; a day does not. `report_date` with a partial unique index (`WHERE kind = 'DailyReport'`) makes "one report per day" a database fact, and the event check constraint keeps the column empty for every other kind.
+- **A trigger that sounds natural can be the wrong one.** "Send it after the last check-out" needs the system to know which check-out is the last, and it cannot: the gym empties in the afternoon, a forgotten check-out never empties it, and the auto-checkout is at midnight. A fixed time is less clever and always right.
+- **A specific error code when two fields share a rule.** Both numbers follow the members' phone rules, so the normalizer answers with the same codes for either. The report's number is mapped to `Sms.DailyReportPhoneInvalid` in the handler, so the page can show it under the right box.
+- **My notes:**
+
+## 10.8 — Birthday: one text and a free visit (تولد و ورود رایگان)
+
+- **A nullable value instead of a flag.** `Attendance.BirthdayYear` says two things at once: whether the visit was free (`IsBirthdayVisit`) and for which birthday. A plain bool could not be part of a unique index that means "one free visit per member and year"; the year can.
+- **A partial unique index that forgets cancelled rows.** `WHERE birthday_year IS NOT NULL AND cancelled_at IS NULL` lets a cancelled birthday visit step aside, so the member's next visit that day is the free one, while two live free visits in one year are refused by the database even if the code had a bug.
+- **Name the question, not the cases.** `CancelCheckInHandler` used to ask "is it cardio-only?" before giving a session back; with a third kind of visit that uses no session, the entity now answers `ConsumedSession` itself. The next kind added will change one property, not every caller.
+- **Check without changing.** The free visit still needs a plan usable today, so the handler calls `subscription.EnsureActive(today)` instead of `ConsumeSession(today)`: the same refusals (expired, used up, not started) without the side effect.
+- **Pure rule in Domain, other rows in the handler.** `BirthdayVisit.FreeYear` knows the calendar and the subscription and is unit tested with no database; "did they already have one this year?" reads other attendances, so the handler asks it, under the member lock, and the index backs it up.
+- **A migration that changes data must still carry it forward.** The range went from 0–7 to 1–7, so the migration turns a saved 0 into 1 *before* adding the new check constraint; adding the constraint first would refuse the Owner's row and stop the release.
+- **Tests on the real clock need dates that never collide.** The test members had a fixed birth date, so once a year their check-ins would have been free and every session count would fail. Their birth date is now half a year away from the day the tests run.
+- **My notes:**
+
+## 10.9 — Subscription receipt (رسید خرید اشتراک)
+
+- **A background job per event instead of a daily run.** The receipt belongs to a payment, not to a day, so the payment hands the subscription to Hangfire (`Enqueue`, or `Schedule` for 10:00) and the desk is answered at once. Hangfire keeps the job in its own tables, so a receipt waiting for the morning outlives a restart. The trade-off: one more moving part than a daily run, but no "which payments since yesterday?" query and no flag on the subscription.
+- **After the commit, never inside it.** The job must find the payment when it runs, and a payment rolled back must not leave a receipt behind. Hangfire writes to its own connection, so the call comes after `CommitAsync`; the rare loss (the app stops between the two) is accepted because these messages are information.
+- **A side effect must not fail the main action.** The money is saved before the receipt is asked for; if the job runner refuses it, the error is logged and the payment still answers 201. Throwing there would tell the desk "failed" for money that was taken.
+- **Decide twice: when asked and when run.** The payment checks the switch (so turning it on later reaches no one), and the job checks again (the switch, a cancel, a deactivated member), because it may run hours later.
+- **Serialized jobs make "Pending" mean "left over".** `[DisableConcurrentExecution]` runs one receipt at a time, so a `Pending` row found by a job can only be from a job that stopped. Hangfire runs a stopped job again after a restart; it then marks the row `Unknown` instead of paying twice. That also makes a few automatic retries safe.
+- **Extract the shared step, not the whole flow.** The daily run and the receipt both make one request and record its outcome the same way, so that became `SmsRequest.SendAsync`. The rounds of retries stayed in each: the run retries a list after everyone else, the receipt retries one message.
+- **A test double for anything that runs later.** The test host has a real Hangfire server; a receipt enqueued by one test would run during another. `RecordingSubscriptionReceiptScheduler` only remembers what it was asked, and the tests run the handler themselves on a `FakeTimeProvider`.
+- **Measure the text, do not estimate it.** The first wording came to 130 and 146 characters, three SMS parts for a queued plan; a test that checks the length found it, and the developer took two words out.
+- **My notes:**
+
+## 10.10 — Welcome (خوش‌آمد)
+
+- **"First" needs an order, and a tie needs a tie-breaker.** A plan is the first when no live plan was sold *before* it, so a plan sold later never takes the title away. Two sales a millisecond apart could both be committed before either asks "am I first?"; ordering by `CreatedAt` and then by id makes exactly one of them first, whatever the timing.
+- **Two unique indexes for two different promises.** The index on (subscription, kind) keeps one welcome per plan; a filtered index on the member (`WHERE kind = 'Welcome'`) keeps one per member, so a first plan cancelled after its welcome does not earn the next plan a second one. A partial unique index can promise something only for some rows of a shared table.
+- **One place for a shared side effect.** Assign and renew both go through `SubscriptionSeller.SellMembershipAsync`, so the welcome is asked for there once; check-in sells inside its own transaction and asks after its own commit. Putting it in each endpoint would have meant three copies, and the next way of selling a plan would have forgotten it.
+- **A second job of the same shape, kept separate.** The welcome copies the receipt's flow (scheduler interface, Hangfire job, handler) instead of a generic "message job". Each stays readable on its own and each has its own one-at-a-time lock; the shared part (`SmsRequest`) was already extracted in 10.9.
+- **Reflection in a test, not a setter in the entity.** `CreatedAt` is stamped by the database interceptor and has no public setter; the domain test sets it by reflection, so the entity does not grow a method only tests would call.
+- **My notes:**
+
+## 10.11 — Debt reminder (یادآوری بدهی)
+
+- **"Once per thing" when the thing has no id.** A debt is not a row: it is calculated (§5). The reminder names it by the member and the day of its oldest unpaid sale (`debt_since`), and a partial unique index on those two (`WHERE kind = 'DebtReminder'`) makes "one reminder per debt" a database fact, the way `report_date` names a day for the daily report.
+- **The rule compares moments, the index compares days.** "Has this debt been reminded of?" is "was the latest reminder written after the oldest unpaid sale?", two `timestamptz` values; the index only has to refuse a second row for the same debt. Each does the part it is good at: the domain rule is unit tested without a database, the index stops a second run from paying twice.
+- **Make the vague rule exact before writing it.** "Once until the debt is zero" sounds clear, but a member who always carries a little new debt would never be reminded again. Writing it as "until everything owed at the last reminder is paid" fixed that, and it was put to the developer with the plan instead of being decided quietly.
+- **Reuse the report's query so the numbers never disagree.** `DebtReminderCandidate` reads each member's debt from `SaleRows`, the query behind «مطالبات» and «بدهی‌های قدیمی». A new sum written for the SMS could drift from what the desk and the reports show; reusing one query makes that impossible.
+- **A setting the shared shape does not fit gets its own record.** The four kinds share `SmsKindSettings(Enabled, Threshold, SendTime)`. The debt reminder fits that shape plus a minimum amount, so the entity keeps `For(DebtReminder)` in the shared shape (the scheduler needs no special case) and the page gets its own `DebtReminderSettings` with the amount and field names (`daysAfter`, `minAmount`) that say what they are.
+- **Money travels as text.** The minimum amount goes from `MoneyField` to the API as a string (`"200000.5"`), never a JavaScript number, so no amount is rounded on its way; the check `decimal.Round(x, 2) == x` refuses rather than rounds a third decimal.
+- **Moving time in an integration test.** The sales are made through the API on today's clock, then `created_at` is moved back with SQL, and the reminder's own `created_at` too, so "a debt that began after the last reminder" can be tested without waiting 30 days.
+- **My notes:**
+
+## 10.12 — Absence SMS (پیامک غیبت)
+
+- **One rule, two readers.** "How long has this member been away?" was written inline in the dashboard's «دیگر نمی‌آید». The SMS needs the same answer, so it moved into the Domain as `Absence.Since` and `DaysAway`, and both the board and the SMS call it. Two copies of a rule drift apart; one copy cannot disagree with itself.
+- **Name the event by the day it began.** An absence has no row of its own, like a debt. It is named by the member and the day it counts from (`absent_since`: the last visit, or the plan's start), and a partial unique index on those two (`WHERE kind = 'Absence'`) makes "once per absence" a database fact. Coming again moves that day, so the next absence is a new name and earns its own SMS.
+- **"Later than the last one" instead of "not the same one".** The rule sends only when today's absence began after the day the latest SMS counted from. A cancelled check-in can bring an old absence back; comparing "later" rather than "different" keeps it from being paid for a second time.
+- **A new kind that fits the shared shape costs little.** The absence SMS is a switch, a number and a time, exactly `SmsKindSettings`, so the validator's `CheckKind`, the entity's `Check`, the scheduler's loop over the kinds and the page's `KindFieldset` all took it with one line each. The debt reminder needed its own record because it did not fit; this one did.
+- **Pinned clock, rows written with the dates each case needs.** The integration tests write plans and visits straight into the tables with dates relative to a fixed day, and run the job on a `FakeTimeProvider` at 11:00 that day, or on a later day for "came again and stopped again". The real calendar never decides whether a test passes.
+- **My notes:**
+
+## 10.13 — Broadcast (پیامک گروهی)
+
+- **Extract the shared part when the second caller arrives.** The daily runs already knew how to write a message `Pending`, send it, retry later and stop when the credit runs out. The broadcast needs exactly that, so the loop moved out of `SendDailySmsHandler` into `SmsBatchSender`, and both call it. Copying it would have given two retry policies that drift apart; extracting it before there was a second caller would have been guessing at its shape.
+- **Measure the limit with the worst case.** Each recipient's message is «{name} عزیز، » + the Owner's text + «لغو11», so its length depends on the name. Checking the text with the longest first name among the chosen members (`SmsBroadcast.CheckLength`) guarantees nobody's message is longer than 3 parts, with one check instead of one per member.
+- **One rule, counted the same on both sides.** `SmsParts` (70 characters in one part, 67 in each part of a longer one, counted in UTF-16 code units) exists in C# and in TypeScript with the same test cases, so the counter under the text box and the server's refusal never disagree.
+- **"One at a time" as a partial unique index.** `ix_sms_broadcasts_one_sending` is unique on the rows `WHERE status = 'Sending'`, so two tabs pressing «ارسال» together cannot start two broadcasts: the database refuses the second one, whatever the code checked before.
+- **A long job in the background, with a state the Owner can see.** The request only saves the broadcast and enqueues a Hangfire job, and answers at once; the job writes the messages. If it stops (credit, hours, a switch, an error) the row says `Stopped` with its reason, and «ادامه ارسال» enqueues it again. Because messages are unique per broadcast and member, continuing only reaches those who have none yet.
+- **Counts are read, not stored.** How many were sent, failed or cost what is a query over the broadcast's messages (`BroadcastCounts`), not columns on `sms_broadcasts`, so the broadcast page can never disagree with «پیامک‌ها».
+- **A long job checks its conditions as it goes, not only at the start.** The first version read the switches and the hours once, before the first message, so a broadcast started at 21:58 kept texting after 22:00 and the Owner's switch could not stop it. The batch now asks the caller "may I go on?" before each message (`mayGoOn`); the daily runs pass nothing and behave as before. The settings are read untracked each time, because a tracked entity would keep returning the value it was loaded with.
+- **A lock needs a way out.** "One broadcast at a time" is a row in `Sending`; if the server dies between saving it and queueing its job, nothing would ever clear it and every later broadcast would be refused. Two small pieces close that: a hosted service (`BackgroundService`) that, at start, hands any broadcast still sending to its job again, and a Hangfire state filter (`IElectStateFilter`) that stops the broadcast when its job moves to Failed. Whenever you build a lock, ask "who releases it if the holder dies?"
+- **An estimate that says it is one.** Kavenegar gives no price before sending, so the cost shown before confirming is the latest charged message's price per part times the parts, labelled «حدود». Showing a precise-looking number that is really a guess would mislead the Owner.
+- **My notes:**
+
+## 10.14 — The SMS credit in the header (اعتبار پیامک)
+
+- **Ask the source when you cannot see every change.** Keeping a running figure (last credit minus each message's cost) looks cheaper than asking Kavenegar, but the account is charged on Kavenegar's own site and blocked messages are paid back later, so such a figure drifts. A free, read-only question to the one place that knows is simpler and always right.
+- **One cache entry, several readers.** The header and the SMS pages use the same query key, so a resend that refreshes the credit on «پیامک‌ها» refreshes the header too, and two of them on screen make one request.
+- **Remember the last good answer in the query itself.** `queryFn` reads the previous cache entry (`queryClient.getQueryData`) and carries `lastKnownToman` forward when Kavenegar returns nothing; when the request fails, TanStack Query keeps the previous data anyway. Both kinds of silence end up as "the old figure, in grey".
+- **Polling with `refetchInterval`.** A query asks again on a timer while its component is on screen; tests skip the wait with fake timers and `advanceTimersByTimeAsync`.
+- **My notes:**
+
+## 10.15 — The SMS settings page: a card per kind with its message
+
+- **One source for a text that two places show.** The page needs the exact SMS each kind sends. Copying the wording into the frontend would work on the day it is written and drift the first time `SmsText` changes. Instead the API builds a sample with the same `SmsText` methods the runs call (`GET /api/sms/samples`), so what the Owner sees and what the members get cannot disagree.
+- **Sample data that is obviously sample data.** The preview uses a made-up member and figures and says so under the bubble («نام و عددها نمونه‌اند»). Showing a real member's message would raise "why him?" and leak data onto a settings page.
+- **A button inside a form submits it unless told otherwise.** The broadcast card sits inside the settings `<form>`, so its «بررسی و ارسال» and «ادامه ارسال» buttons are `type="button"`; a plain `<button>` there would save the settings instead. A test checks the attribute, since nothing on the screen would show the mistake until a save happened by surprise.
+- **Remove a list, keep what only the list did.** The list of sent broadcasts was dropped as a copy of «پیامک‌ها», but it was also the only place to continue a stopped broadcast. The card keeps just that: the latest broadcast, while it is sending or stopped. Before deleting a screen, ask what action lives only there.
+- **Data the page already has goes down as a prop.** `BroadcastForm` used to ask for the SMS settings itself; on the settings page that was a second request for what the page had just loaded. It now takes `off` from the page, and a test that counts the requests caught the duplicate.
+- **Name things for screen readers, not only for eyes.** Each card is a `fieldset` named by its title through `aria-labelledby`, and the preview a `figure` named by its caption. The tests find "the preview inside the خوش‌آمد card" by those names, which is also how a screen reader announces them.
+- **My notes:**
+
+## 10.16 — Send again what Kavenegar cancelled
+
+- **Read the logs before guessing.** «نامعلوم» looked like a Kavenegar problem. The log line said `NameResolutionError`: the server could not turn `api.kavenegar.com` into an address. Asking Kavenegar from the developer's PC (it answered) and from the server (`curl` gave `000`) split "the provider is down" from "we cannot reach it" in two commands.
+- **DNS is a dependency too.** The server asked only Google's resolvers, which sit outside Iran and sometimes do not answer from inside it. A second, nearby resolver (the data centre's own, then Shecan) beside the first removes that single point of failure. A drop-in file in `/etc/systemd/resolved.conf.d/` changes it without touching the system's own files, and deleting the file undoes it.
+- **Docker containers ask the host's resolver.** With `ExtServers: [host(127.0.0.53)]` in the container's `/etc/resolv.conf`, Docker's embedded DNS forwards to systemd-resolved on the host, so fixing the host fixed the API.
+- **A fix that looked done was not the whole problem.** DNS explained the credit, but the history showed many messages «ارسال شد» and then «کاوه‌نگار لغو کرد»: accepted, then cancelled by the provider. The logs counted them as sent, which they were. Look at what the user sees, not only at what the code counted.
+- **Safe to repeat decides what may be automatic.** A cancelled message never reached the phone and its cost was given back, so sending it again cannot charge twice or arrive twice. A `Failed` or `Unknown` one might have done either, so it stays the Owner's choice. The rule for "retry by itself" follows from which outcomes are safe to repeat.
+- **Bounded retries, spaced out.** At most five tries, at least 30 minutes apart, the same day only. Without a limit a provider that cancels everything would be asked forever; without spacing every try would land inside the same bad stretch.
+- **Reuse the row, clear what belonged to the last try.** The unique indexes allow one message per event, so a resend cannot be a new row. It is the same row back to `Pending`, with the old provider id, cost, moment and delivery cleared; the database's own checks (a pending message has no delivery) would refuse anything else.
+- **Two jobs that touch the same rows will meet.** The nightly delivery check and the 15-minute one both run at 23:30. With `xmin`, one of them gets `DbUpdateConcurrencyException`; catching it, clearing the change tracker and asking again next time is enough, because the provider still knows the answer.
+- **Extract when the second caller arrives (again).** Recording a resend's outcome moved out of `ResendSmsHandler` into `SmsResendOutcome` the moment the automatic resend needed the same switch. One place decides what each answer from Kavenegar means.
+- **My notes:**
+
+## 10.17 — Three changes to the SMS settings
+
+- **When one number becomes several, give it its own type.** «جلسات رو به اتمام» used to fit the shared `SmsKindSettings` (a switch, a number, a time). With three rows it does not, so it became `LowSessionsSettings`, with its own checks and `ThresholdFor(totalSessions)`. Stretching the shared record to fit one kind would have made every other kind carry fields it never uses.
+- **A migration that changes meaning carries the old value forward.** The old single number became the first row's (`RenameColumn`, so EF keeps the data instead of dropping and adding), and an `UPDATE` copies it into the other two, capped at the new limit, before the new check constraints are added. A test migrates a database up to the migration before, puts the old values in, and checks what comes out.
+- **`LEAST` ignores NULLs in Postgres.** `LEAST(NULL, 4)` is 4, not NULL, so the carry-forward `UPDATE` only touches a row whose number was filled (`WHERE … IS NOT NULL`).
+- **A computed property is part of the JSON.** `HighestThreshold` as a property went out in the API response and into the generated TypeScript types; as a method it stays a domain helper. What the API sends should be decided, not a side effect of how the record is written.
+- **Seed data is part of the model.** The plan sizes 8 and 15 went into `HasData`, so a fresh database and the migrated one start the same, and the test fixture that puts the seeded row back after each test had to learn them too.
+- **One component, different limits, by props.** The time picker takes the hours to offer and the hour that has only :00; the kinds pass nothing and keep 8–22, the daily report passes 8–23 with every quarter. One place still decides how an hour and a minute make a time.
+- **My notes:**
+
+## 10.18 — New wording for three SMS kinds, and a test that failed on the 1st
+
+- **A rule's threshold and a message's figure are different numbers.** The settings' *N* decides who gets the absence SMS; the text says how long *this* member has really been away (`Absence.DaysAway`). Writing *N* into the text would be wrong for everyone already away longer when the kind is turned on, and «بیشتر از N» wrong on the very day it is exactly *N*.
+- **Count the parts before changing a text.** A Persian SMS is 70 characters in one part and 67 in each part of a longer one, and every part is paid for. The new absence and welcome texts went from one part to two, so the change doubled their cost; that was the developer's decision to make, not a detail of the code.
+- **History keeps its text.** Tests that store an old wording as a sent message (resend, persistence, migrations) were left alone: a message already sent stays as it reached the phone. Only the tests of what the code writes today changed.
+- **A test that reads the real clock can fail on one day a month.** On ۱۴۰۵/۰۸/۰۱ "this month" and "today" were the same day, and `presetOf` picked the first match, «امروز». The fix was a rule (the page's default wins a tie), with tests pinned to a 1st of the month and to 1 Farvardin, so the case is checked every day, not only on the day it happens.
+- **Intermittent is not the same as random.** The void test failed only under the whole suite: its notice appears after a dialog closes and the visit is read again, which can take more than the default second on a busy machine. A longer wait for that one notice, as other slow notices already have, keeps it honest without hiding a real failure.
+- **My notes:**
+
+## 13 merge — The new look meets the SMS work (ظاهر جدید و کارهای پیامک)
+
+- **Merge the long-lived branch in both directions, the busy side first.** `main` was merged into the branch, conflicts solved and tested there, and only then the branch into `main`, so `main` never holds a half-solved merge and the final merge into it is a plain fast step.
+- **Pick a side per file, then replay the other side's intent.** Where one side rewrote a file (the SMS settings page in 10.15, the tables in 13.2a), taking that side whole and re-applying the other side's few changes by hand is safer than editing conflict markers line by line: `git diff <merge-base> <branch> -- file` shows exactly what to replay.
+- **Binary files cannot merge; regenerate them.** The README screenshots conflicted on both sides; neither version was right after the merge, so the script that makes them (`npm run screenshots`) made new ones.
+- **`git merge-tree --write-tree` previews a merge without touching the working tree.** It listed every conflicting file before anything was changed, which made the plan honest.
+- **A header is a fixed budget on a phone.** Adding one box (the SMS credit) to a full row squeezed its neighbour (`min-w-0`) to an icon; measuring each child's width at 390px found it, and the new box gave up its words on a phone (`max-lg:sr-only`) instead of the alert losing its own.
+- **`sr-only` keeps the words for a screen reader.** Hiding the amount visually with `max-lg:sr-only` rather than `max-lg:hidden` keeps the link's accessible name, so the tests that find it by «اعتبار پیامک» still pass and nothing is lost to someone listening.
+- **A stale compiler server can report a rule `.editorconfig` turned off.** After the shell's path changed case (`d:` to `D:`), `dotnet build` raised CA1716 again; `dotnet build-server shutdown` cleared the server's cached settings and the build was clean.
 - **My notes:**

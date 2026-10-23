@@ -2,94 +2,956 @@
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>باشگاه پاسارگاد جیم پلاس</title>
-    <meta name="description" content="وب‌سایت باشگاه پاسارگاد جیم پلاس به‌زودی." />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>باشگاه پاسارگاد پلاس</title>
+    <meta
+      name="description"
+      content="پاسارگاد پلاس، باشگاه بدنسازی، کراس‌فیت و کلیستنیکس آقایان. سوله‌ی ۱۰۰۰ متر؛ هر روز سال، از ۷:۳۰ صبح تا ۱۱ شب."
+    />
+    <meta name="theme-color" content="#0d0e11" />
+    <link rel="icon" href="./img/favicon.png" type="image/png" />
 
     <!--
-      The gym's public face. Deliberately a single static file with no JavaScript and no call to
-      the API: it is served by Caddy from /srv-public and keeps working while the application,
-      the database or a release is down.
+      The gym's public face (roadmap 13.3). Static files only: this page, site.css, site.js, the
+      font and the photos. Nothing here calls the API, so the page keeps serving while the
+      application, the database or a release is down. Caddy serves the folder from /srv-public.
 
-      This is a placeholder. When the real site is written, replace this file — the Caddy site,
-      the certificate and the DNS record all stay as they are.
+      Design direction "Stone and steel": dark stone, bronze light and bronze smoke. The hero is a
+      slider of athletes between two layers of smoke; the background lights up where the pointer
+      is, and every layer moves at its own depth.
 
-      TODO, whenever the gym supplies them: address, telephone, opening hours, Instagram. Nothing
-      is invented here on purpose; a wrong phone number on a public page is worse than none.
+      The logo (img/logo.png) is the gym's real one, the same file the panel uses
+      (web/src/assets/brand/pasargad-logo.png). It is white on transparent and drawn through a CSS
+      mask, so it takes any colour. The tab's icon (img/favicon.png) is the same logo in bronze, a
+      copy of the panel's (web/public/favicon.png): white would not show on a light tab.
+
+      Every photo in img/ except logo.png is a PLACEHOLDER from Unsplash (free licence, no credit
+      required), to be replaced by the gym's own photos under the same file names:
+        slide-1.webp oytTrK0Oho0   slide-2.webp SrTXkanaqtU   slide-3.webp EsgoXQef7PI
+        slide-4.webp 6aHmLVmw1qk   slide-5.webp 3dmbSaXZ22c   slide-6.webp juHWRzZCxVw
+        band.webp 8LWo8v0mKik (the tour's first stop, the door)
+        tour-massage.webp J1trUf0Lj3Q   tour-barber.webp cftRv45BNRU   tour-cafe.webp y2Dfk2Kt89o
+        tour-shop.webp -1W7mesKxYg   tour-analysis.webp DBvEoaU3ICs   tour-lockers.webp 4UbSaPKGRqc
+        tour-cardio.webp _cUZkx0wTyM   tour-bodybuilding.webp k47w6BeapCs
+        tour-bodybuilding-2.webp m4Jqyv5VwqY   tour-bodybuilding-3.webp gzeTjGu3b_k
+        tour-bodybuilding-4.webp Hb_EpXSTL4I   tour-crossfit.webp 0Wra5YYVQJE
+        tour-calisthenics.webp uH8JDWuxFX8   tour-stage.webp uckFugBOBhM
+        gym-curl.webp b5boYWIR2vU   gym-deadlift.webp KaxVB5xh4Nw   gym-press.webp 8Hip5Ntz1WM
+        gym-athlete.webp GLivMZcDfY0   rack.webp 3uWgVRLbJwI
+      The slides are 1100×1650, the originals' own 2:3, so a phone and a computer each cut what
+      they need. No face shows clearly in any of them (since 2026-10-16: the earlier slides showed
+      one model's face, which could be taken for someone local).
+      The tour-*.webp are 1920×1080, for the tour's full-screen stage. Each has a 900×1600 twin,
+      *-tall.webp (band-tall.webp too), cut from the same original for a phone's tall screen: a
+      wide photo cropped to a phone shows only a narrow strip of itself. The gym's own photos
+      need both cuts.
+
+      «تماس» dials the gym; the other buttons do nothing yet, on purpose: what they open is decided
+      later. Facts not supplied by the gym (Instagram) say «به‌زودی»; a wrong number on a public
+      page is worse than none. Supplied by the gym: the address and the telephone; men only; 7:30 to 23:00 every day of the year
+      (docs/BUSINESS_RULES.md: no closed days); one 1000 m² hall (the page stopped saying "no columns" in the plan on 2026-10-15); the services and
+      the plan of the hall, drawn by the gym (approximate, not to scale); one hard rubber floor
+      everywhere.
     -->
 
-    <style>
-      @font-face {
-        font-family: "Vazirmatn";
-        src: url("./fonts/Vazirmatn-Variable.woff2") format("woff2-variations");
-        font-weight: 100 900;
-        font-display: swap;
-      }
-
-      :root {
-        --ink: #1a1a1a;
-        --muted: #6b6b6b;
-        --surface: #fbfaf8;
-        --line: #e6e3de;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --ink: #f2f0ed;
-          --muted: #a0a0a0;
-          --surface: #141414;
-          --line: #2c2c2c;
-        }
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        min-height: 100dvh;
-        display: grid;
-        place-items: center;
-        padding: 2rem 1rem;
-        background: var(--surface);
-        color: var(--ink);
-        font-family: "Vazirmatn", system-ui, sans-serif;
-        line-height: 1.8;
-      }
-
-      main {
-        max-width: 32rem;
-        text-align: center;
-      }
-
-      h1 {
-        margin: 0 0 0.5rem;
-        font-size: clamp(1.75rem, 5vw, 2.5rem);
-        font-weight: 700;
-        letter-spacing: -0.01em;
-      }
-
-      p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 1.05rem;
-      }
-
-      hr {
-        width: 3rem;
-        margin: 2rem auto;
-        border: 0;
-        border-top: 1px solid var(--line);
-      }
-    </style>
+    <link
+      rel="preload"
+      href="./fonts/Vazirmatn-Variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="preload" href="./img/slide-1.webp" as="image" fetchpriority="high" />
+    <link rel="stylesheet" href="./site.css" />
+    <script src="./site.js"></script>
   </head>
 
   <body>
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="./" aria-label="پاسارگاد پلاس، صفحه‌ی اول">
+          <span class="logo brand__logo" aria-hidden="true"></span>
+          <span class="brand__name">پاسارگاد<span>+</span></span>
+        </a>
+
+        <!-- A row on a computer; on a phone a drawer from the side that the three-line button opens -->
+        <nav class="topnav" id="topnav" aria-label="بخش‌های سایت">
+          <a href="#facilities">امکانات</a>
+          <a href="#coaches">مربیان</a>
+          <a href="#shop">فروشگاه</a>
+          <a href="#hours">ساعت کاری</a>
+          <a href="#contact">تماس</a>
+        </nav>
+
+        <!-- Online sign-up comes later (roadmap: member accounts); the button holds its place -->
+        <button type="button" class="btn btn--bronze btn--small topbar__join">ثبت‌نام</button>
+
+        <button
+          type="button"
+          class="menu-button"
+          aria-label="منو"
+          aria-controls="topnav"
+          aria-expanded="false"
+          data-menu-button
+        >
+          <span></span><span></span>
+        </button>
+      </div>
+
+      <!-- The phone's drawer dims the page beside it; a tap there closes it -->
+      <div class="menu-shade" data-menu-shade aria-hidden="true"></div>
+    </header>
+
     <main>
-      <h1>باشگاه پاسارگاد جیم پلاس</h1>
-      <hr />
-      <p>وب‌سایت ما به‌زودی در همین نشانی در دسترس خواهد بود.</p>
+      <!-- Hero: athletes between two layers of smoke -->
+      <section class="hero" aria-labelledby="hero-title" data-hero>
+        <div class="hero__ghost" aria-hidden="true">پاسارگاد</div>
+        <canvas class="smoke smoke--back" data-smoke="back" aria-hidden="true"></canvas>
+
+        <div class="hero__stage" aria-hidden="true">
+          <div class="slide is-active" data-slide>
+            <img src="./img/slide-1.webp" alt="" width="1100" height="1650" fetchpriority="high" />
+          </div>
+          <div class="slide" data-slide>
+            <img src="./img/slide-2.webp" alt="" width="1100" height="1650" fetchpriority="low" />
+          </div>
+          <div class="slide" data-slide>
+            <img src="./img/slide-3.webp" alt="" width="1100" height="1650" fetchpriority="low" />
+          </div>
+          <div class="slide" data-slide>
+            <img src="./img/slide-4.webp" alt="" width="1100" height="1650" fetchpriority="low" />
+          </div>
+          <div class="slide" data-slide>
+            <img src="./img/slide-5.webp" alt="" width="1100" height="1650" fetchpriority="low" />
+          </div>
+          <div class="slide" data-slide>
+            <img src="./img/slide-6.webp" alt="" width="1100" height="1650" fetchpriority="low" />
+          </div>
+        </div>
+
+        <canvas class="smoke smoke--front" data-smoke="front" aria-hidden="true"></canvas>
+
+        <div class="hero__content wrap">
+          <p class="eyebrow hero__eyebrow">باشگاه بدنسازی آقایان</p>
+
+          <h1 id="hero-title" class="hero__title">
+            <!-- The gym's name is «پاسارگاد پلاس»: the plus is part of the carved word -->
+            <span class="carved" data-torch
+              >پاسارگاد<span class="carved__plus" aria-hidden="true">+</span></span
+            >
+            <span class="sr-only">پلاس</span>
+          </h1>
+
+          <div class="hero__lines" aria-live="polite">
+            <p class="hero__line is-active" data-line>قدرت، ریشه در سنگ دارد.</p>
+            <p class="hero__line" data-line>۱۰۰۰ متر سالن یه تیکه</p>
+            <p class="hero__line" data-line>هر روز سال، از ۷:۳۰ تا ۲۳.</p>
+            <p class="hero__line" data-line>
+              کراس‌فیت، کلیستنیکس، ماساژ، آرایشگاه و کافه؛ زیر یک سقف.
+            </p>
+            <p class="hero__line" data-line>نور عالی، تهویه مناسب، طبقه همکف.</p>
+            <p class="hero__line" data-line>استیج فیگور، برای تمرین ژست‌ها.</p>
+          </div>
+
+          <div class="hero__actions">
+            <button type="button" class="btn btn--bronze">امکانات باشگاه</button>
+            <button type="button" class="btn btn--ghost">ساعت کاری و نشانی</button>
+          </div>
+        </div>
+
+        <div class="hero__controls wrap">
+          <p class="status" data-status hidden>
+            <span class="status__dot"></span>
+            <span data-status-text></span>
+          </p>
+
+          <div class="slider-nav">
+            <button type="button" class="slider-nav__arrow" data-prev aria-label="عکس قبلی">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+            </button>
+            <p class="slider-nav__count" aria-hidden="true">
+              <span data-slide-index>۰۱</span><span class="slider-nav__of"> / ۰۶</span>
+            </p>
+            <button type="button" class="slider-nav__arrow" data-next aria-label="عکس بعدی">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hero__progress" aria-hidden="true"><span data-progress></span></div>
+      </section>
+
+      <!-- The band of services -->
+      <div class="band" aria-hidden="true">
+        <div class="band__track">
+          <span>بدنسازی</span><i></i><span>کراس‌فیت</span><i></i><span>کلیستنیکس</span><i></i
+          ><span>هوازی</span><i></i> <span>ماساژ</span><i></i><span>آرایشگاه</span><i></i
+          ><span>کافه</span><i></i> <span>فروشگاه</span><i></i><span>آنالیز بدن</span><i></i
+          ><span>کمد</span><i></i> <span>بدنسازی</span><i></i><span>کراس‌فیت</span><i></i
+          ><span>کلیستنیکس</span><i></i><span>هوازی</span><i></i> <span>ماساژ</span><i></i
+          ><span>آرایشگاه</span><i></i><span>کافه</span><i></i> <span>فروشگاه</span><i></i
+          ><span>آنالیز بدن</span><i></i><span>کمد</span><i></i>
+        </div>
+      </div>
+
+      <!-- One line, and the numbers cast on barbell plates that roll in and settle -->
+      <section class="intro wrap" aria-labelledby="intro-title">
+        <p class="eyebrow" id="intro-title" data-reveal>
+          <span class="eyebrow__num">۰۱</span> پاسارگاد
+        </p>
+
+        <p class="manifesto" data-manifesto>
+          یک سوله بزرگ، با نور عالی، طبقه همکف، تهویه مناسب، و هر چیزی که برای ساختن بدن لازم داریم.
+        </p>
+
+        <!-- The line's four points, each with a bronze sign that draws itself, then moves -->
+        <ul class="features" data-features>
+          <li class="feature" data-reveal>
+            <svg class="feature__icon" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="draw" pathLength="1" d="M2 56h60" />
+              <path class="draw" pathLength="1" d="M8 56V28L32 12l24 16v28" />
+              <path class="draw" pathLength="1" d="M8 28h48M20 28l12-8 12 8" />
+              <path class="draw" pathLength="1" d="M24 56V42h16v14" />
+            </svg>
+            <span class="feature__name">سوله بزرگ</span>
+          </li>
+          <li class="feature" data-reveal>
+            <svg class="feature__icon" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="feature__spot feature__spot--a" d="M4 2l14 50h12z" />
+              <path class="feature__spot feature__spot--b" d="M60 2L46 52H34z" />
+              <path class="draw" pathLength="1" d="M4 58h56M10 58v-6h44v6" />
+              <path class="draw" pathLength="1" d="M32 26v13M27 50l5-11 5 11" />
+              <path class="draw" pathLength="1" d="M32 30h-8v-8M32 30h8v-8" />
+              <circle class="draw" pathLength="1" cx="32" cy="21" r="3.5" />
+            </svg>
+            <span class="feature__name">استیج فیگور</span>
+          </li>
+          <li class="feature" data-reveal>
+            <svg class="feature__icon" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="feature__beam" d="M21 30L6 62h52L43 30z" />
+              <path class="draw" pathLength="1" d="M32 2v12" />
+              <path class="draw" pathLength="1" d="M18 30c0-9 6-16 14-16s14 7 14 16z" />
+              <path class="draw" pathLength="1" d="M28 30a4 4 0 0 0 8 0" />
+            </svg>
+            <span class="feature__name">نور عالی</span>
+          </li>
+          <li class="feature" data-reveal>
+            <svg class="feature__icon" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="draw" pathLength="1" d="M2 56h60" />
+              <path class="draw" pathLength="1" d="M34 56V16h22v40" />
+              <path class="draw" pathLength="1" d="M51 37v2" />
+              <path class="feature__walk" d="M6 44h18M18 38l6 6-6 6" />
+            </svg>
+            <span class="feature__name">طبقه همکف</span>
+          </li>
+          <li class="feature" data-reveal>
+            <svg class="feature__icon" viewBox="0 0 64 64" aria-hidden="true">
+              <path class="draw" pathLength="1" d="M8 30a16 16 0 1 0 32 0a16 16 0 1 0-32 0" />
+              <g class="feature__fan">
+                <path d="M24 30c-3-5-2-11 3-13 3 5 1 10-3 13z" />
+                <path d="M24 30c-3-5-2-11 3-13 3 5 1 10-3 13z" transform="rotate(120 24 30)" />
+                <path d="M24 30c-3-5-2-11 3-13 3 5 1 10-3 13z" transform="rotate(240 24 30)" />
+              </g>
+              <path class="feature__wind" d="M46 20h14M48 30h14M46 40h14" />
+            </svg>
+            <span class="feature__name">تهویه مناسب</span>
+          </li>
+        </ul>
+
+        <dl class="facts">
+          <div class="fact" data-reveal>
+            <dt class="fact__num" data-unit="متر"><span class="slot" data-slot>۱۰۰۰</span></dt>
+            <dd>متر سالن، بدون حتی یک ستون</dd>
+          </div>
+          <div class="fact" data-reveal>
+            <dt class="fact__num" data-unit="روز"><span class="slot" data-slot>۳۶۵</span></dt>
+            <dd>روز در سال باز، حتی روزهای تعطیل</dd>
+          </div>
+          <div class="fact" data-reveal>
+            <dt class="fact__num" data-unit="بخش"><span class="slot" data-slot>۱۰</span></dt>
+            <dd>بخش ورزشی و رفاهی، زیر یک سقف</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!--
+        The hall as a walk: the stage stays on screen while the page scrolls past it; a bronze
+        line leaves the door and stops at each room, the plan zooms onto it and its photo fills
+        the stage. site.js drives it from the scroll; without it the stage shows the whole plan.
+      -->
+      <section class="plan" id="facilities" aria-labelledby="plan-title" data-plan>
+        <div class="section-head wrap" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۲</span> امکانات و فضای باشگاه</p>
+          <h2 id="plan-title">یک سوله، یک مستطیل.</h2>
+        </div>
+
+        <div class="tour" data-tour>
+          <div class="tour__stage">
+            <div class="tour__photos" aria-hidden="true">
+              <figure class="photo tour__photo is-active">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/band-tall.webp" />
+                  <img src="./img/band.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-massage-tall.webp" />
+                  <img src="./img/tour-massage.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-barber-tall.webp" />
+                  <img src="./img/tour-barber.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-cafe-tall.webp" />
+                  <img src="./img/tour-cafe.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-shop-tall.webp" />
+                  <img src="./img/tour-shop.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-analysis-tall.webp" />
+                  <img src="./img/tour-analysis.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-lockers-tall.webp" />
+                  <img src="./img/tour-lockers.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-cardio-tall.webp" />
+                  <img src="./img/tour-cardio.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-tall.webp" />
+                  <img src="./img/tour-bodybuilding.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-2-tall.webp" />
+                  <img src="./img/tour-bodybuilding-2.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-3-tall.webp" />
+                  <img src="./img/tour-bodybuilding-3.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-4-tall.webp" />
+                  <img src="./img/tour-bodybuilding-4.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-stage-tall.webp" />
+                  <img src="./img/tour-stage.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-calisthenics-tall.webp" />
+                  <img src="./img/tour-calisthenics.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+              <figure class="photo tour__photo">
+                <picture>
+                  <source media="(max-width: 899px)" srcset="./img/tour-crossfit-tall.webp" />
+                  <img src="./img/tour-crossfit.webp" alt="" loading="lazy" />
+                </picture>
+              </figure>
+            </div>
+
+            <div class="tour__caption">
+              <p class="tour__count">
+                <span data-tour-count>۰۰</span><span class="tour__of"> / ۱۴</span>
+              </p>
+              <ol class="tour__names">
+                <li class="is-active">
+                  <h3><span>ورودی</span></h3>
+                  <p>۱۰۰۰ متر سالن؛ کف همه‌جا ضربه‌گیر باشگاهی.</p>
+                </li>
+                <li>
+                  <h3><span>ماساژ</span></h3>
+                  <p>ریکاوری عضلات، بعد از تمرین سنگین.</p>
+                </li>
+                <li>
+                  <h3><span>آرایشگاه</span></h3>
+                  <p>اصلاح و پیرایش آقایان، همین‌جا در باشگاه.</p>
+                </li>
+                <li>
+                  <h3><span>کافه</span></h3>
+                  <p>قهوه، شیک و میان‌وعده‌ی بعد از تمرین.</p>
+                </li>
+                <li>
+                  <h3><span>فروشگاه</span></h3>
+                  <p>پروتئین، کراتین و مکمل، شیکر و کش، لباس ورزشی و عطر.</p>
+                </li>
+                <li>
+                  <h3><span>آنالیز بدن</span></h3>
+                  <p>ببین امروز کجا هستی، تا بدانی چقدر جلو رفته‌ای.</p>
+                </li>
+                <li>
+                  <h3><span>رختکن و کمدها</span></h3>
+                  <p>وسایلت در طول تمرین جای امنی دارد.</p>
+                </li>
+                <li>
+                  <h3><span>هوازی</span></h3>
+                  <p>تردمیل برای گرم کردن، استقامت و چربی‌سوزی.</p>
+                </li>
+                <li>
+                  <h3><span>سالن بدنسازی</span></h3>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۱ از ۴</p>
+                </li>
+                <li>
+                  <h3><span>سالن بدنسازی</span></h3>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۲ از ۴</p>
+                </li>
+                <li>
+                  <h3><span>سالن بدنسازی</span></h3>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۳ از ۴</p>
+                </li>
+                <li>
+                  <h3><span>سالن بدنسازی</span></h3>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۴ از ۴</p>
+                </li>
+                <li>
+                  <h3><span>استیج فیگور</span></h3>
+                  <p>برای تمرین فیگور، کنار کلیستنیکس.</p>
+                </li>
+                <li>
+                  <h3><span>کلیستنیکس</span></h3>
+                  <p>حلقه و وزن بدن خودت؛ کلیستنیکس‌کارها هم اینجا جای خودشان را دارند.</p>
+                </li>
+                <li>
+                  <h3><span>کراس‌فیت</span></h3>
+                  <p>تمرین عملکردی، سنگین و پرتحرک.</p>
+                </li>
+              </ol>
+            </div>
+
+            <div class="tour__hud">
+              <svg
+                class="tour__map"
+                viewBox="0 0 1080 414"
+                role="group"
+                aria-label="نقشه‌ی بخش‌های باشگاه"
+              >
+                <defs>
+                  <pattern id="plan-grid" width="34" height="34" patternUnits="userSpaceOnUse">
+                    <path d="M34 0H0V34" />
+                  </pattern>
+                  <radialGradient id="plan-glow">
+                    <stop offset="0" stop-color="#e8c07d" stop-opacity="0.9" />
+                    <stop offset="1" stop-color="#e8c07d" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+                <rect class="plan__grid" x="-400" y="-400" width="1880" height="1214" />
+                <rect class="plan__floor" x="56" y="16" width="1005" height="382" />
+
+                <!-- data-steps: the stops of the walk inside this room; a click goes to the first -->
+                <g class="zone" data-steps="8 9 10 11" tabindex="0" role="button">
+                  <path
+                    fill-rule="evenodd"
+                    d="M256 16H1061V398H256Z M256 16H364V143H256Z M256 210H383V398H256Z M416 16H549V143H416Z M863 226H1061V398H863Z M1021 134H1061V226H1021Z"
+                  />
+                  <text x="562" y="240">سالن بدنسازی</text>
+                </g>
+                <!-- The old CrossFit room, split along the hall: calisthenics above, CrossFit below -->
+                <g class="zone" data-steps="13" tabindex="0" role="button">
+                  <rect x="863" y="226" width="198" height="86" />
+                  <text x="980" y="269">کلیستنیکس</text>
+                </g>
+                <g class="zone" data-steps="14" tabindex="0" role="button">
+                  <rect x="863" y="312" width="198" height="86" />
+                  <text x="980" y="355">کراس‌فیت</text>
+                </g>
+                <g class="zone zone--tiny" data-steps="12" tabindex="0" role="button">
+                  <rect x="1021" y="134" width="40" height="92" />
+                  <text class="zone__long" x="1041" y="180" transform="rotate(-90 1041 180)">
+                    استیج فیگور
+                  </text>
+                  <!-- The full name does not fit on a phone -->
+                  <text class="zone__short" x="1041" y="180" transform="rotate(-90 1041 180)">
+                    فیگور
+                  </text>
+                </g>
+                <g class="zone" data-steps="7" tabindex="0" role="button">
+                  <rect x="416" y="16" width="133" height="127" />
+                  <text x="482" y="80">هوازی</text>
+                </g>
+                <g class="zone zone--tiny" data-steps="6" tabindex="0" role="button">
+                  <rect x="256" y="16" width="62" height="59" />
+                  <text x="287" y="46">رختکن</text>
+                </g>
+                <g class="zone zone--tiny" data-steps="5" tabindex="0" role="button">
+                  <rect x="318" y="16" width="46" height="59" />
+                  <text x="341" y="46">آنالیز</text>
+                </g>
+                <g class="zone zone--small" data-steps="4" tabindex="0" role="button">
+                  <rect x="256" y="75" width="108" height="68" />
+                  <text x="310" y="109">فروشگاه</text>
+                </g>
+                <g class="zone" data-steps="3" tabindex="0" role="button">
+                  <rect x="256" y="210" width="127" height="116" />
+                  <text x="320" y="268">کافه</text>
+                </g>
+                <g class="zone" data-steps="2" tabindex="0" role="button">
+                  <rect x="143" y="16" width="113" height="108" />
+                  <text x="200" y="70">آرایشگاه</text>
+                </g>
+                <g class="zone" data-steps="1" tabindex="0" role="button">
+                  <rect x="56" y="263" width="105" height="135" />
+                  <text x="109" y="331">ماساژ</text>
+                </g>
+
+                <!-- Rooms without a stop: on the plan, not selectable -->
+                <g class="room">
+                  <rect x="56" y="16" width="87" height="34" />
+                  <text x="100" y="34">جاکفشی</text>
+                </g>
+                <g class="room">
+                  <rect x="161" y="263" width="95" height="135" />
+                  <text x="209" y="331">پذیرش</text>
+                </g>
+                <g class="room">
+                  <rect x="256" y="326" width="127" height="72" />
+                  <text x="320" y="362">سرویس و حمام</text>
+                </g>
+
+                <path
+                  class="plan__wall"
+                  d="M56 172V16H1061V398H56V218 M256 16V160 M256 205V398 M256 75H318 M256 326H383 M161 263V398 M56 263H126"
+                />
+
+                <!-- The spots inside the big rooms, one per stop (and per photo) -->
+                <circle class="spot" data-step="8" cx="470" cy="316" r="7" />
+                <circle class="spot" data-step="9" cx="655" cy="316" r="7" />
+                <circle class="spot" data-step="10" cx="655" cy="100" r="7" />
+                <circle class="spot" data-step="11" cx="890" cy="100" r="7" />
+
+                <!-- The walk: a faint track, the bronze line drawn over it, and the walker -->
+                <path class="route route--track" data-route-track />
+                <path class="route route--done" data-route />
+                <g class="walker" data-walker transform="translate(24 195)">
+                  <circle class="walker__glow" r="34" fill="url(#plan-glow)" />
+                  <circle class="walker__ring" r="11" />
+                  <circle class="walker__dot" r="6" />
+                </g>
+              </svg>
+
+              <div class="tour__ticks" role="group" aria-label="بخش‌ها">
+                <button type="button" aria-label="ورودی"></button>
+                <button type="button" aria-label="ماساژ"></button>
+                <button type="button" aria-label="آرایشگاه"></button>
+                <button type="button" aria-label="کافه"></button>
+                <button type="button" aria-label="فروشگاه"></button>
+                <button type="button" aria-label="آنالیز بدن"></button>
+                <button type="button" aria-label="رختکن و کمدها"></button>
+                <button type="button" aria-label="هوازی"></button>
+                <button type="button" aria-label="سالن بدنسازی، بخش ۱"></button>
+                <button type="button" aria-label="سالن بدنسازی، بخش ۲"></button>
+                <button type="button" aria-label="سالن بدنسازی، بخش ۳"></button>
+                <button type="button" aria-label="سالن بدنسازی، بخش ۴"></button>
+                <button type="button" aria-label="استیج فیگور"></button>
+                <button type="button" aria-label="کلیستنیکس"></button>
+                <button type="button" aria-label="کراس‌فیت"></button>
+              </div>
+            </div>
+
+            <p class="tour__hint" aria-hidden="true">اسکرول کنید</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- The gallery -->
+      <section class="space" aria-labelledby="space-title">
+        <div class="section-head wrap" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۳</span> گالری</p>
+          <h2 id="space-title">یه جای خاص و دوست داشتنی</h2>
+        </div>
+
+        <div class="gallery" data-gallery tabindex="0" aria-label="عکس‌های باشگاه">
+          <figure class="photo gallery__item">
+            <img
+              src="./img/gym-curl.webp"
+              alt="جلو بازو با دمبل"
+              loading="lazy"
+              width="900"
+              height="1347"
+            />
+          </figure>
+          <figure class="photo gallery__item">
+            <img
+              src="./img/gym-deadlift.webp"
+              alt="آماده‌ی ددلیفت"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </figure>
+          <figure class="photo gallery__item">
+            <img
+              src="./img/rack.webp"
+              alt="ردیف دمبل‌ها"
+              loading="lazy"
+              width="900"
+              height="1350"
+            />
+          </figure>
+          <figure class="photo gallery__item">
+            <img
+              src="./img/gym-press.webp"
+              alt="پرس بالای سر با دمبل"
+              loading="lazy"
+              width="900"
+              height="1350"
+            />
+          </figure>
+          <figure class="photo gallery__item">
+            <img
+              src="./img/gym-athlete.webp"
+              alt="ورزشکار در سالن"
+              loading="lazy"
+              width="900"
+              height="1125"
+            />
+          </figure>
+        </div>
+        <p class="gallery__count wrap" aria-hidden="true">
+          <span data-gallery-index>۰۱</span> <span class="gallery__of">/ ۰۵</span>
+        </p>
+      </section>
+
+      <!--
+        The trainers: cards on a dark stage under one bronze light. The card in front is the
+        chosen one; the others wait at its sides. A tap turns the card over. Names, photos and
+        details come from the gym later: until then each card says «به‌زودی». The photos
+        (img/coach-1.webp and so on, 800×1000) are Unsplash placeholders taken from behind, so no
+        stranger's face stands under a trainer's name: sHfo3WOgGTU, 9If-9MsWBDQ, QkK7NtsPrJM
+        are coach-3, coach-2, coach-1. The gym's own replace them under the same names.
+      -->
+      <section class="coaches" id="coaches" aria-labelledby="coaches-title" data-coaches>
+        <div class="section-head wrap" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۴</span> مربیان</p>
+          <h2 id="coaches-title">کنار هر وزنه، کسی که مسیر را می‌شناسد.</h2>
+        </div>
+
+        <div class="coaches__stage" data-reveal>
+          <span class="coaches__light" aria-hidden="true"></span>
+          <p class="coaches__ghost" aria-hidden="true" data-coach-ghost>مربی ۰۱</p>
+
+          <div class="coaches__deck">
+            <article class="coach" tabindex="0" aria-label="مربی ۰۱" data-coach>
+              <div class="coach__card">
+                <div class="coach__face coach__front">
+                  <figure class="coach__photo">
+                    <img src="./img/coach-1.webp" alt="" loading="lazy" width="800" height="1000" />
+                  </figure>
+                  <p class="coach__num">۰۱</p>
+                  <h3 class="coach__name">مربی ۰۱</h3>
+                  <p class="coach__role">تخصص: به‌زودی</p>
+                  <dl class="coach__stats">
+                    <div>
+                      <dt>سال سابقه</dt>
+                      <dd>—</dd>
+                    </div>
+                    <div>
+                      <dt>شاگرد</dt>
+                      <dd>—</dd>
+                    </div>
+                  </dl>
+                  <span class="coach__sheen" aria-hidden="true"></span>
+                </div>
+                <div class="coach__face coach__back">
+                  <dl class="coach__about">
+                    <div>
+                      <dt>مدرک‌ها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>افتخارها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>حضور در باشگاه</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                  </dl>
+                  <p class="coach__pick">انتخاب این مربی، به‌زودی</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="coach" tabindex="0" aria-label="مربی ۰۲" data-coach>
+              <div class="coach__card">
+                <div class="coach__face coach__front">
+                  <figure class="coach__photo">
+                    <img src="./img/coach-2.webp" alt="" loading="lazy" width="800" height="1000" />
+                  </figure>
+                  <p class="coach__num">۰۲</p>
+                  <h3 class="coach__name">مربی ۰۲</h3>
+                  <p class="coach__role">تخصص: به‌زودی</p>
+                  <dl class="coach__stats">
+                    <div>
+                      <dt>سال سابقه</dt>
+                      <dd>—</dd>
+                    </div>
+                    <div>
+                      <dt>شاگرد</dt>
+                      <dd>—</dd>
+                    </div>
+                  </dl>
+                  <span class="coach__sheen" aria-hidden="true"></span>
+                </div>
+                <div class="coach__face coach__back">
+                  <dl class="coach__about">
+                    <div>
+                      <dt>مدرک‌ها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>افتخارها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>حضور در باشگاه</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                  </dl>
+                  <p class="coach__pick">انتخاب این مربی، به‌زودی</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="coach" tabindex="0" aria-label="مربی ۰۳" data-coach>
+              <div class="coach__card">
+                <div class="coach__face coach__front">
+                  <figure class="coach__photo">
+                    <img src="./img/coach-3.webp" alt="" loading="lazy" width="800" height="1000" />
+                  </figure>
+                  <p class="coach__num">۰۳</p>
+                  <h3 class="coach__name">مربی ۰۳</h3>
+                  <p class="coach__role">تخصص: به‌زودی</p>
+                  <dl class="coach__stats">
+                    <div>
+                      <dt>سال سابقه</dt>
+                      <dd>—</dd>
+                    </div>
+                    <div>
+                      <dt>شاگرد</dt>
+                      <dd>—</dd>
+                    </div>
+                  </dl>
+                  <span class="coach__sheen" aria-hidden="true"></span>
+                </div>
+                <div class="coach__face coach__back">
+                  <dl class="coach__about">
+                    <div>
+                      <dt>مدرک‌ها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>افتخارها</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                    <div>
+                      <dt>حضور در باشگاه</dt>
+                      <dd>به‌زودی</dd>
+                    </div>
+                  </dl>
+                  <p class="coach__pick">انتخاب این مربی، به‌زودی</p>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="coaches__nav">
+            <button type="button" class="slider-nav__arrow" data-coach-prev aria-label="مربی قبلی">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+            </button>
+            <p class="coaches__hint">برای دیدن پشت کارت، رویش بزنید</p>
+            <button type="button" class="slider-nav__arrow" data-coach-next aria-label="مربی بعدی">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        The shop: a showcase of what the counter sells, without prices. The categories are the gym's own
+        list; the photos are Unsplash placeholders without a brand on them: shop-protein
+        4CzpHxVzTFA, shop-creatine -Tu9jm9tpLo, shop-supplements UTPZnnEVW4E, shop-bands
+        IZOAOjvwhaM, shop-wear xPJYL0l5Ii8, shop-perfume zvqq7CG8BwY.
+      -->
+      <section class="shop" id="shop" aria-labelledby="shop-title">
+        <div class="section-head wrap" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۵</span> فروشگاه</p>
+          <h2 id="shop-title">هرچه برای تمرین لازم داری، همین‌جا.</h2>
+          <p class="shop__lead">در سالن اصلی، کنار درب ورودی.</p>
+        </div>
+
+        <ul class="shop__grid" data-reveal>
+          <li class="shelf shelf--big">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-protein.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۱</span>
+              <h3 class="shelf__name">پروتئین</h3>
+            </div>
+          </li>
+          <li class="shelf">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-creatine.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۲</span>
+              <h3 class="shelf__name">کراتین</h3>
+            </div>
+          </li>
+          <li class="shelf">
+            <figure class="photo shelf__photo">
+              <img
+                src="./img/shop-supplements.webp"
+                alt=""
+                loading="lazy"
+                width="1200"
+                height="900"
+              />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۳</span>
+              <h3 class="shelf__name">مکمل</h3>
+            </div>
+          </li>
+          <li class="shelf shelf--wide">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-bands.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۴</span>
+              <h3 class="shelf__name">شیکر و کش</h3>
+            </div>
+          </li>
+          <li class="shelf shelf--wide">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-wear.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۵</span>
+              <h3 class="shelf__name">لباس ورزشی</h3>
+            </div>
+          </li>
+          <li class="shelf shelf--wide">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-perfume.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۶</span>
+              <h3 class="shelf__name">عطر</h3>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Hours -->
+      <section class="hours wrap" id="hours" aria-labelledby="hours-title">
+        <div class="section-head" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۶</span> ساعت کاری</p>
+          <h2 id="hours-title">هر روز سال، حتی روزهای تعطیل.</h2>
+        </div>
+
+        <div class="hours__card" data-reveal>
+          <p class="hours__range">
+            <span>۷:۳۰</span>
+            <span class="hours__dash" aria-hidden="true"></span>
+            <span>۲۳:۰۰</span>
+          </p>
+          <p class="hours__words">از هفت و نیم صبح تا یازده شب</p>
+
+          <div class="dial" aria-hidden="true">
+            <div class="dial__track">
+              <span class="dial__open"></span>
+              <span class="dial__now" data-now hidden></span>
+            </div>
+            <div class="dial__ticks">
+              <span>۰</span><span>۶</span><span>۱۲</span><span>۱۸</span><span>۲۴</span>
+            </div>
+          </div>
+
+          <p class="status status--inline" data-status hidden>
+            <span class="status__dot"></span>
+            <span data-status-text></span>
+          </p>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="contact wrap" id="contact" aria-labelledby="contact-title">
+        <div class="section-head" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۷</span> نشانی و تماس</p>
+          <h2 id="contact-title">منتظر حضور گرمتون هستیم</h2>
+        </div>
+
+        <dl class="contact__list" data-reveal>
+          <div>
+            <dt>نشانی</dt>
+            <dd>کرمانشاه، کارمندان، خیابان عصر انقلاب، ۱۸ متری فرهنگیان</dd>
+          </div>
+          <div>
+            <dt>تلفن</dt>
+            <dd><a href="tel:+989939386787" dir="ltr">۰۹۹۳ ۹۳۸ ۶۷۸۷</a></dd>
+          </div>
+          <div>
+            <dt>اینستاگرام</dt>
+            <dd class="soon">به‌زودی</dd>
+          </div>
+        </dl>
+
+        <div class="contact__actions" data-reveal>
+          <button type="button" class="btn btn--bronze">مسیریابی با نشان</button>
+          <button type="button" class="btn btn--ghost">مسیریابی با بلد</button>
+        </div>
+      </section>
     </main>
+
+    <footer class="footer">
+      <p class="footer__word" aria-hidden="true">پاسارگاد</p>
+      <div class="footer__bar wrap">
+        <span class="logo footer__logo" aria-hidden="true"></span>
+        <p>© ۱۴۰۵ باشگاه پاسارگاد پلاس</p>
+      </div>
+    </footer>
+
+    <!-- The phone's bar at the bottom of the screen, once the hero is behind -->
+    <div class="dock" data-dock aria-label="دسترسی سریع">
+      <p class="dock__status" data-status hidden>
+        <span class="status__dot"></span>
+        <span data-status-text></span>
+      </p>
+      <div class="dock__actions">
+        <button type="button" class="btn btn--ghost btn--small">مسیریابی</button>
+        <a class="btn btn--bronze btn--small" href="tel:+989939386787">تماس</a>
+      </div>
+    </div>
   </body>
 </html>

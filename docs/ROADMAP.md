@@ -11,6 +11,27 @@ Milestones:
 - **MVP 2 (Phases 7–9):** cafe, expenses, owner dashboard.
 - **Complete (Phases 10–12):** SMS, audit UI, hardening, portfolio polish.
 
+Release order (decided by the developer on 1405/07/26, 2026-10-18):
+1. **Done 2026-10-20:** the SMS release, 10.6 to 10.15, from `main`, as one complete version
+   (`20261020-0246-099e551`, 10.6), Kavenegar live with every kind off until the Owner turns them on.
+   **Done 2026-10-23:** 10.16 (sending again what Kavenegar cancelled), 10.17 (three changes to
+   the SMS settings) and 10.18 (new wording for the absence, welcome and birthday SMS), as one
+   small release from `main` (`20261023-2305-6bcb031`, 10.18).
+2. Then Phase 13's look and mobile (13.1 and 13.2) as a release of its own. **Merged into `main`
+   on 2026-10-23 (1405/08/01)**, asked by the developer, with the SMS work of 10.7 to 10.18 brought
+   into the new look (*Merged with the SMS work* under Phase 13). Not released yet: a night the
+   developer picks, frontend only (no migration), `./backup.sh run` first as always. The Docker/apt,
+   rootless and edge nights keep their own nights; their order with this release is the
+   developer's call.
+3. The public site (Phase 14) has no link to the panel; it is built on its own branch and released
+   on its own, when the developer chooses, never inside the SMS release.
+4. **Restart done 2026-10-20, 03:21**, the same night as the SMS release, by the developer's choice
+   once the release was seen healthy: `./backup.sh run` first, `sudo reboot`, back in about a
+   minute with all three containers healthy on their own and `/var/run/reboot-required` gone.
+   **Still open:** 19 packages to upgrade, Docker among them (`docker-ce`, `containerd.io`,
+   `docker-compose-plugin`, …), which restarts every container: `./backup.sh run`, then
+   `sudo apt upgrade`, then a reboot if asked, on a night of its own, not with a release.
+
 ---
 
 ## Phase 0 — Foundation
@@ -1867,6 +1888,7 @@ more. A payment taken wrong is fixed by cancelling the subscription and selling 
 BUSINESS_RULES.md §1, §4 *Cancel*, §5 (and *Confirming money at the desk*) updated. Built on its own
 branch from `main`, so it can be released before the Phase 13 look.
 
+- [x] Released on 2026-10-15 in `20261015-1423-4f9347d`, with the public site (13.3)
 - [x] **API.** `CancelSubscriptionHandler` takes the member lock, cancels, and writes one refund
       per payment method still in credit with the cancel's reason (`SubscriptionRefunder`, the twin
       of `CafeOrderRefunder`; `PaymentLedger.GetNetPaidByMethodForSubscriptionAsync`), in one
@@ -1888,10 +1910,11 @@ branch from `main`, so it can be released before the Phase 13 look.
       now cancel, with the same figures
 - [x] Tests (frontend): the cancel box names the money coming back, no «استرداد» button, the
       message after the cancel
-- [ ] **Before the release** (with the developer, each step confirmed): on the server, record the
+- [x] **Before the release** (with the developer, each step confirmed): on the server, record the
       «استرداد» for the plan already cancelled at the gym with the old button, and check that no
       other cancelled subscription still has money on it, since the new version has no button to
-      give it back
+      give it back. Settled with the release of 2026-10-15, as the developer confirmed on
+      1405/07/26 (2026-10-18): the server's panel has had no «استرداد» button since then
 
 Done when: the Owner cancels a paid plan and the money is back in «پرداخت‌ها» as «استرداد», with no
 second step to forget.
@@ -1915,7 +1938,8 @@ Phase 6.5 closed with a check of the whole repository, so the next task starts c
 - [x] 6.5.33 released in `20261006-0505-73e6c33` (1405/07/14), with 9.1 to 9.4 and their
       follow-ups
 - [ ] The gym PC has not yet pulled its own copy of the `gym-20261004-050157.dump` backup
-      (`deploy/pull-backup.ps1`); today it exists only on the server and in `D:\GymBackups`
+      (`deploy/pull-backup.ps1`); today it exists only on the server and in `D:\GymBackups`.
+      Still to do on 1405/07/26 (2026-10-18), the developer confirmed: the gym PC is not set up yet
 - Noted for 11.3: the production build warns that the main JS chunk is about 942 kB (Vite's hint
   is 500 kB); code splitting by route would fix it. Not an error. Done in 11.3: pages load when
   first opened, the main file is 436 kB
@@ -2524,7 +2548,7 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
       its kind and values, then the old columns go; a kind that is on stays on. 2120 backend tests
       (695 domain, 1425 integration) and 987 frontend tests green, zero warnings, lint and
       `format:check` pass; the release still starts with `./backup.sh run`
-- [ ] A manual test with the developer's account and number. `account/info` checked on 1405/07/16
+- [x] A manual test with the developer's account and number. `account/info` checked on 1405/07/16
       (2026-10-08) with the developer's key: the settings page showed the account's 1,050,000 Rial as
       ۱۰۵٬۰۰۰ تومان. Still to do: the line's number in user secrets (`Sms:Kavenegar:Sender`; with
       `Sms:Provider` = Kavenegar the API does not start without it), then one message to the
@@ -2549,7 +2573,20 @@ yet, and has not asked Kavenegar's support about the birthday template (§0 stay
       sending through international lines needs the server's IP in the account's security settings,
       so that may be the reason. Not looked into further: the test waits for the dedicated line.
       The dedicated line was bought on 1405/07/18 (2026-10-10); Kavenegar's registration of it may
-      take about a week, then this test runs with that account's key and line
+      take about a week, then this test runs with that account's key and line.
+      **Passed on 1405/07/26 (2026-10-18)**: Kavenegar registered the line `9981600378` (خدماتی,
+      10 digits) on the same account, so the same key. Locally, `Sms:Kavenegar:Sender` set to it,
+      `Sms:Provider` = Kavenegar, the master switch off first so Hangfire's missed runs made nothing
+      («SMS or this kind is off»); the two `427` messages to the developer's number resent from
+      «پیامک‌ها»: both `Sent`, with Kavenegar's message ids, 1,615 Rial each, and both reached the
+      phone from `9981600378`, each followed by a line «لغو11» that Kavenegar added (next item).
+      `notifications-delivery-check` triggered by hand from Hangfire: «asked about 2, 2 with a new
+      delivery», both `Delivered`, so `sms/status` and its mapping work too
+- [x] Kavenegar's opt-out line in the text (1405/07/26): every message from the line reached the
+      phone ending in a line «لغو11», which Kavenegar adds anyway, so the system writes it itself
+      (`SmsText.OptOut`, BUSINESS_RULES.md §10 *Sending*, `docs/sms-texts.md`) and the history holds
+      what was sent; it shows the line on a line of its own. No migration: messages already written
+      keep their text, and the server has none yet
 - [x] Whether a member who blocked advertising SMS still gets the line's messages (§10 *Sending*):
       settled by the developer on 1405/07/18 — `sms/send` from the dedicated line reaches the gym's
       members with no limit and no block. No code change: a status 14 that still comes back shows
@@ -2597,18 +2634,396 @@ still starts with `./backup.sh run`.
 ### 10.6 Go live with the Owner's account
 Every server step is proposed and confirmed first, with `./backup.sh run` before the release.
 The code of 10.1 to 10.5 is on the server since `20261010-2323-3428fa7` (1405/07/18), with the
-provider `Fake` and every kind off. Switching it on needs no release: the menu's «آزمایشی» mark
-was taken off with every other menu mark in 13.2h (asked by the developer, 1405/07/20), and the
-settings page says «حالت آزمایشی» on its own while the provider is `Fake`.
-- [ ] The account that holds the dedicated line charged (no templates to wait for since 1405/07/16)
+provider `Fake` and every kind off. Switching it on needs no release, but taking the menu's
+«آزمایشی» mark off does (`smsTestBadge` in `AppShell.tsx`), so plan a small frontend release for
+the same night.
+**Waits for 10.7 to 10.13** (decided by the developer, 1405/07/26): no hurry, SMS goes live as one
+complete version with every kind below, not the four kinds first.
+- [ ] The account that holds the dedicated line charged (no templates to wait for since 1405/07/16;
+      it has credit: the test of 1405/07/26 was paid from it)
 - [x] `docker-compose.prod.yml` passes `Sms__Provider`, `Sms__Kavenegar__ApiKey` and
       `Sms__Kavenegar__Sender` to the API from `SMS_PROVIDER`, `SMS_KAVENEGAR_API_KEY` and
       `SMS_KAVENEGAR_SENDER`; left out of `.env`, the provider stays `Fake`, so a release sends
       nothing. `deploy/env.example` lists them (1405/07/17)
-- [ ] Its API key and the line's number in the server's `.env`, the key restricted to the server's IP
-      in Kavenegar
+- [x] Its API key and the line's number in the server's `.env` (2026-10-20, 03:00, right after the
+      release below; `.env.bak-20261020` kept beside it). Every switch was checked off first, read-only,
+      so nothing could go out; `docker compose up -d` rebuilt only the API, healthy, and the header
+      shows the credit. Whether the key is limited to the server's IP in Kavenegar is the
+      developer's to check
 - [ ] The Owner fills in the settings page and turns on the kinds they want
-- [x] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed (13.2h, released with it)
+- [x] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed (1405/07/28), released
+      with 10.7 to 10.15 as the SMS release
+- [x] Released in `20261020-0246-099e551` (previous `20261016-1747-c6ff9ec`) on 2026-10-20 at
+      02:46: 10.6's menu change and 10.7 to 10.15. Seven migrations, each only adding and off at
+      the start (`AddSmsDailyReport`, `AddBirthdayVisit`, `AddSubscriptionReceipt`, `AddSmsWelcome`,
+      `AddSmsDebtReminder`, `AddSmsAbsence`, `AddSmsBroadcast`), so a rollback to `c6ff9ec` leaves
+      the new columns in place and is not harmless. Before it: `npm run e2e` passed, the README
+      pictures retaken, `./backup.sh run` → `gym-20261020-023611.dump` (771 KB, after 712 KB the
+      night before), copied to `D:\gymbackups` with the same size. The provider was `Fake` until
+      the `.env` step above
+
+### More SMS kinds (10.7 to 10.13)
+Asked by the developer on 1405/07/26 (2026-10-18), after the line's first messages arrived. One task
+each, in this order (10.7 first: the developer promised it to the Owner). What is common to all:
+- Every kind has its row on «تنظیمات پیامک»: on/off, its numbers and a send time, starting empty
+  and off like the first four (§10 *SMS settings*); the Owner turns any of them off at any time.
+- Every text ends with «لغو11» (10.4). The wording is chosen by the developer and kept in
+  `SmsText` and `docs/sms-texts.md`, except the broadcast (10.13), which the Owner writes.
+- **Offers and discounts may be sent** (settled by the developer with Kavenegar on 1405/07/26): the
+  members signed up in the gym's own customer club and were registered at the desk, so any
+  message to them may go from the line. Goes into §10 *Sending* with the first of these tasks.
+- Each task starts with its rules in BUSINESS_RULES.md §10 (rules first), and asks before
+  inventing any of what is listed as open below.
+- A migration only adds columns, off and empty, and new kinds: the server's real data is carried
+  forward (CLAUDE.md).
+
+#### 10.7 Daily report to the Owner (گزارش روزانه)
+Decided: one SMS a day to the Owner with the date, the number of entries, the number of
+subscriptions sold, and the day's whole takings (دخل): cash, card and bank transfer each on its own,
+the cash line left out on a day with no cash.
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The daily report*:
+- [x] The money is the dashboard's «دریافتی» for the day: refunds taken off, old debts included,
+      without فروشگاه, آنالیز and متفرقه; cash, card and transfer each on its line
+- [x] Entries are the members' check-ins, cardio-only included, guests and cancelled ones left out
+      (the dashboard's attendance); plans and single visits sold, each counted on its own
+- [x] Sent for **the same day at 22:45**, fixed in the code; this kind's hours run until midnight
+      (a retry, a missed run and a resend until 23:59), the other kinds keep 08:00–22:00. "After the
+      last check-out" was considered and dropped (the system cannot know which one is the last)
+- [x] Its own number on its row of the settings page, apart from the cheques'
+      (`Sms.DailyReportPhoneInvalid` for a number that is not an Iranian mobile)
+- [x] The wording (`docs/sms-texts.md`): the date without the year, amounts in thousands of Toman
+      rounded to the nearest thousand (two SMS parts instead of three), no cash line on a day with
+      no cash; a day with nothing is not sent
+- [x] Rules, settings row, the run, tests, UI: `NotificationKind.DailyReport`, `DailyReportFigures`,
+      `SmsText.ForDailyReport`, `DailyReportCandidate` (the figures from `GetFinancialReportHandler`
+      and `GetAttendanceReportHandler` for one day, so the SMS says what the dashboard says),
+      `SmsSettings.IsWithinSendingHours(kind, …)`, Hangfire job `sms-DailyReport` at `45 22 * * *`;
+      migration `AddSmsDailyReport` (two columns on `sms_settings`, off and empty, `report_date` on
+      `notifications` with the unique index `ix_notifications_one_daily_report_per_day`, the kind
+      and event check constraints widened; no existing row is touched); the «گزارش روزانه» section
+      on «تنظیمات پیامک» and its label on «پیامک‌ها»; the demo sends it at 22:45
+
+Closed 2026-10-19: 2250 backend tests (739 domain, 1511 integration) and 1025 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSmsDailyReport`,
+which only adds (the switch starts off, the numbers empty) and refuses no existing row. It goes out
+with the SMS release (10.6), which still starts with `./backup.sh run`.
+
+#### 10.8 Birthday: one text and a free visit (تولد و ورود رایگان)
+Replaces the «Future — Free entry on the birthday» notes. Decided:
+- One text instead of two, sent 1 to 7 days before the birthday (the days on the settings page, as
+  now), telling the member that on their birthday the gym is free for them.
+- On the birthday the visit uses **no session** of the plan, like a guest's; anything else (cafe,
+  services such as cardio, desk sales) is paid as usual.
+- A frozen member gets the SMS too. If they come, they are unfrozen as any frozen member who comes
+  in (§4 *Freeze*).
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §7 *Birthday visit* and §10:
+- [x] 1–7 days only: never on the day itself, so the member can plan the visit; a 0 already saved
+      becomes 1. Members greeted this year keep their row (one per member and year)
+- [x] Only an **active member holding a plan** gets the SMS: a membership active, frozen or bought
+      for later on the day it is written (not a single visit, not used up or ended); replaces "every
+      member with a birth date, deactivated ones included"
+- [x] Freezing stays as §4 says: **several times**, the days adding up (the developer, 1405/07/27)
+- [x] The free visit is **automatic**: the first check-in on the Jalali birthday that lands on a
+      membership plan uses no session (frozen ones are unfrozen as usual; a plan sold at the locker
+      that day counts too, decided by the developer); a single visit is used as usual; the second
+      visit that day uses a session; a cancelled one gives nothing back and frees the free visit
+      again. No money moves, so nothing at zero is recorded; the visit is marked «تولد»
+- [x] The wording (`docs/sms-texts.md`): «{name} عزیز، {date} روز تولد شماست؛ آن روز مهمان باشگاه
+      پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!», the month and day without the year
+- [x] Rules, migration, check-in, tests, UI: `BirthdayVisit.FreeYear`, `JalaliCalendar.IsBirthday`,
+      `Attendance.BirthdayYear` and `ConsumedSession`, `SmsAudience.HoldsPlanForBirthday`, one
+      `SmsText.ForBirthday`; migration `AddBirthdayVisit` (`birthday_year` on `attendances`, empty for
+      every visit before, the unique index `ix_attendances_one_birthday_visit_per_member_and_year`,
+      the check `ck_attendances_birthday_visit_on_plan`, the settings' range 1–7 with a 0 carried
+      forward as 1); the check-in box says it before and after, «تولد» on the board, the locker's
+      box and both histories; the settings page says 1–7
+
+Closed 2026-10-19: 2283 backend tests (758 domain, 1525 integration) and 1029 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddBirthdayVisit`,
+which only adds (an empty column, an index, a check) and carries a saved 0 forward as 1, refusing
+no existing row. It goes out with the SMS release (10.6), which still starts with `./backup.sh run`.
+
+#### 10.9 Subscription receipt (رسید خرید اشتراک)
+Decided: sent when the subscription is **fully paid**, so a member who got it has surely paid; a
+subscription paid in parts gets it when the last part is paid.
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The subscription receipt*:
+- [x] What it says: the sessions, the dates **without the year**, and the price; a plan queued behind
+      another gives its days and «پس از اشتراک فعلی» instead of dates. «مبلغ» and «پایان» were taken
+      out so the usual text stays in two SMS parts (the queued one takes three)
+- [x] Plans only: a single visit never gets one, nor a free plan
+- [x] Sent at once after the payment, as a Hangfire background job, so the desk never waits for
+      Kavenegar; a payment outside 08:00–22:00 has it sent **at 10:00 the next morning** (fixed)
+- [x] Cancelled after the SMS: nothing more. Checked again when sent: switched off since, cancelled
+      or the member deactivated (the last proposed by Claude, approved with the plan) sends nothing
+- [x] Only payments made while the switch is on: turning it on later sends nothing for older ones
+- [x] Rules, settings row (on/off only), the job, tests, UI: `NotificationKind.SubscriptionReceipt`,
+      `SmsText.ForSubscriptionReceipt` and `ForQueuedSubscriptionReceipt`, `SmsAudience.EarnsReceipt`,
+      `ReceiptStillDue` and `IsQueuedBehindAnother`, `SmsSettings.ReceiptDeferredUntil`;
+      `SubscriptionReceipts` called after the commit of `RegisterPaymentHandler` and
+      `SettleMemberDebtHandler`, `ISubscriptionReceiptScheduler` (Hangfire `Enqueue`/`Schedule`),
+      `SendSubscriptionReceiptHandler` run by `Jobs/SubscriptionReceiptJob` one at a time, `SmsRequest`
+      shared with the daily run; migration `AddSubscriptionReceipt` (one switch, off, and the kind and
+      event check constraints widened; the existing index already allows one per subscription and
+      kind; no existing row is touched); «رسید خرید اشتراک» on «تنظیمات پیامک», its label on
+      «پیامک‌ها» and the audit screen; the demo sends them on its own clock
+
+Closed 2026-10-19: 2339 backend tests (786 domain, 1553 integration) and 1032 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSubscriptionReceipt`,
+which only adds (one switch, off) and widens two check constraints, refusing no existing row. It goes
+out with the SMS release (10.6), which still starts with `./backup.sh run`.
+
+#### 10.10 Welcome (خوش‌آمد)
+Decided: once per member, when they buy their **first plan**; single-session visits never get it.
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The welcome*:
+- [x] Members who hold plans already never get it (their next plan is not their first); a member
+      moved over from the paper notebook gets it with their first plan in the system
+- [x] Sent **at the sale** of the first plan, paid or not, as its own kind: a first plan paid at once
+      gets two SMS, the welcome and then its receipt. At once, or at 10:00 for a sale after 22:00
+- [x] The wording: «{name} عزیز، به باشگاه پاسارگاد خوش آمدید!», one SMS part
+- [x] No free-plan rule: a plan's price is its sessions × the session price (§3), and any first plan
+      gets it whatever it cost
+- [x] Rules, settings row (on/off only), the job, tests, UI: `NotificationKind.Welcome`,
+      `SmsText.ForWelcome`, `SmsAudience.IsFirstPlan` (sold before it by `CreatedAt`, then id),
+      `SmsSettings.DeferredToMorning` (was `ReceiptDeferredUntil`); `Welcomes` called after the commit
+      of `SubscriptionSeller.SellMembershipAsync` (assign, renew) and of `CheckInHandler`,
+      `IWelcomeScheduler`, `SendWelcomeHandler` run by `Jobs/WelcomeJob` one at a time; migration
+      `AddSmsWelcome` (one switch, off, the unique index `ix_notifications_one_welcome_per_member`,
+      the kind and event checks widened; no existing row is touched); «خوش‌آمد» on «تنظیمات پیامک»,
+      its label on «پیامک‌ها» and the audit screen; the demo sends them on its own clock
+
+Closed 2026-10-19: 2382 backend tests (799 domain, 1583 integration) and 1035 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSmsWelcome`,
+which only adds (one switch, off, and a unique index) and widens two check constraints, refusing no
+existing row. It goes out with the SMS release (10.6), which still starts with `./backup.sh run`.
+
+#### 10.11 Debt reminder (یادآوری بدهی)
+Decided: the Owner sets on the settings page the number of days and the minimum amount.
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The debt reminder*:
+- [x] The days count from the **oldest unpaid sale** (the receivables' ages), not the last payment;
+      sent once it is at least that many days old (*N* = 1: yesterday's debt today)
+- [x] **Once per debt**: no other until everything owed at the last reminder is paid; a debt that
+      builds after that has its own (refined from "until the debt is zero", approved with the plan)
+- [x] The amount is the member's **whole open account** (§5), newer sales included
+- [x] **Deactivated members get it too**: money owed is owed; guests and walk-ins have no account
+- [x] The wording (`docs/sms-texts.md`): «{name} عزیز، مانده حساب شما در باشگاه پاسارگاد {amount}
+      تومان است. لطفاً در مراجعه بعدی تسویه بفرمایید. سپاس!», two parts
+- [x] A daily run at the time chosen on the page (08:00–22:00, quarter hours); days 1–90; the
+      minimum amount 1,000 Toman or more
+- [x] Rules, settings row, the run, tests, UI: `NotificationKind.DebtReminder`, `Notification.DebtSince`,
+      `OpenDebt`, `SmsAudience.IsDebtReminderDue`, `SmsText.ForDebtReminder`, the four
+      `SmsSettings.DebtReminder*` fields with `CheckDebtReminderMinAmount` and
+      `CheckDebtReminderComplete`; `DebtReminderCandidate` reads each member's debt from `SaleRows`
+      (the receivables' query) and their latest reminder; Hangfire job `sms-DebtReminder` at the
+      chosen time; migration `AddSmsDebtReminder` (four columns on `sms_settings`, off and empty,
+      with their checks; `debt_since` on `notifications` with the unique index
+      `ix_notifications_one_debt_reminder_per_member_and_debt`; the kind and event checks widened;
+      no existing row is touched); «یادآوری بدهی» on «تنظیمات پیامک» with `MoneyField`, its label on
+      «پیامک‌ها» and the audit screen; the demo turns it on (30 days, 200,000)
+
+Closed 2026-10-19: 2443 backend tests (833 domain, 1610 integration) and 1051 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSmsDebtReminder`,
+which only adds (four columns, off and empty, one column and a unique index) and widens two check
+constraints, refusing no existing row. It goes out with the SMS release (10.6), which still starts
+with `./backup.sh run`.
+
+#### 10.12 Absence SMS (پیامک غیبت)
+Moved here from «Future — Absence SMS». Decided: the Owner sets the number of days on the settings
+page.
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The absence SMS*:
+- [x] Only an active member with a **plan usable today** (§4 `Active`): the members of «دیگر
+      نمی‌آید» on «نیاز به اقدام»; not a frozen plan, a plan for later, an ended one or a single visit
+- [x] **Once per absence**: nothing more until the member comes again; the next absence has its own
+- [x] A member who **never came** on the plan is counted from the plan's start, as on the board
+- [x] The wording (`docs/sms-texts.md`): «{name} عزیز، جای شما در باشگاه پاسارگاد خالی است!», one part
+- [x] Days away **7 to 60** (proposed by Claude, approved with the plan), a send time 08:00–22:00 on
+      a quarter hour; the board's own 10 days stay as they are
+- [x] Rules, settings row, the run, tests, UI: `NotificationKind.Absence`, `Notification.AbsentSince`,
+      `Absence.Since` and `DaysAway` (Domain/Attendances, now used by the board too, so both count
+      the same way), `SmsAudience.IsAbsenceDue`, `SmsText.ForAbsence`, the three `SmsSettings.Absence*`
+      fields (`Sms.AbsenceDaysOutOfRange`); `AbsenceCandidate` reads each plan's last visit and the
+      member's latest absence SMS; Hangfire job `sms-Absence` at the chosen time; migration
+      `AddSmsAbsence` (three columns on `sms_settings`, off and empty, with their checks;
+      `absent_since` on `notifications` with the unique index
+      `ix_notifications_one_absence_per_member_and_absence`; the kind and event checks widened; no
+      existing row is touched); «پیامک غیبت» on «تنظیمات پیامک», its label on «پیامک‌ها» and the
+      audit screen; the demo turns it on (14 days, 11:30)
+
+Closed 2026-10-19: 2498 backend tests (868 domain, 1630 integration) and 1058 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. One migration, `AddSmsAbsence`,
+which only adds (three columns, off and empty, one column and a unique index) and widens two check
+constraints, refusing no existing row. It goes out with the SMS release (10.6), which still starts
+with `./backup.sh run`.
+
+#### 10.13 Broadcast (پیامک گروهی)
+Decided: the Owner writes the text each time (e.g. the gym closed for a few hours, a piece of news);
+the one kind not fixed in the code.
+Settled with the developer on 1405/07/27 (2026-10-19), BUSINESS_RULES.md §10 *The broadcast*:
+- [x] Who it goes to: the Owner chooses each time, «همه اعضای فعال» or «اعضای دارای پلن» (a plan
+      usable today, the absence SMS's members); never a deactivated member, a guest or a walk-in
+- [x] The text: «{name} عزیز، » before the Owner's own, «لغو11» after it; at most **3 parts** for
+      every recipient, measured with the longest first name among them (`Sms.BroadcastTooLong`)
+- [x] Every member's SMS now names them by the **first name only** («سید» skipped), replacing
+      "the first 6 words" (`SmsText.FirstName`); messages written before keep their text
+- [x] The page «پیامک گروهی» (Owner only, in the audit log): the text with its characters and
+      parts as it is typed, then a confirmation with the recipients, the exact parts and the cost
+      «حدود» (from the latest charged message) beside the credit left
+- [x] Sent at once in the background, only 08:00–22:00; no chosen time. Its own switch on «تنظیمات
+      پیامک», off at the start (`Sms.BroadcastOff`); one at a time (`Sms.BroadcastInProgress`)
+- [x] Stopped (credit, hours, a switch, an error) → «متوقف شد» with its reason, and «ادامه ارسال»
+      sends to those of the group with no message of it yet; a server restart continues it by itself
+- [x] On «پیامک‌ها» one row per recipient, of the kind «پیامک گروهی»; the broadcast page lists each
+      broadcast with its group, state, sent/failed/unknown and cost
+- [x] Rules, migration, endpoints, tests, UI: `SmsBroadcast` (`Create`, `CheckLength`, `Finish`,
+      `Stop`, `Resume`, `xmin`), `SmsParts` (70, then 67 a part; the frontend's `smsParts` counts the
+      same), `SmsBroadcastErrors`, `NotificationKind.Broadcast`, `Notification.BroadcastId`;
+      `SmsBatchSender` taken out of `SendDailySmsHandler` so a run and a broadcast write, send, retry
+      and stop on credit the same way; `GET /api/sms/broadcasts/audiences`,
+      `POST /api/sms/broadcasts/preview`, `POST /api/sms/broadcasts`,
+      `POST /api/sms/broadcasts/{id}/resume`, `GET /api/sms/broadcasts`; Hangfire `BroadcastJob`
+      (one at a time, no automatic retry); migration `AddSmsBroadcast` (the table `sms_broadcasts`
+      with the partial unique index `ix_sms_broadcasts_one_sending`, `broadcast_enabled` on
+      `sms_settings`, off; `broadcast_id` on `notifications` with
+      `ix_notifications_one_per_broadcast_and_member`; the kind and event checks widened; no
+      existing row is touched); the page, its menu item, the labels on «پیامک‌ها» and the audit
+      screen; the demo turns it on
+- [x] Review fixes: the switches and the hours are read again before every message, so 22:00 or
+      a switch turned off stops a broadcast in the middle (`SmsBatchSender`'s `mayGoOn`, `Halted`);
+      a broadcast saved but not queued says so on the page instead of «در حال ارسال»; the job
+      measures the text again and stops with `TooLong` if a longer first name joined; at start
+      `BroadcastRecoveryService` hands a broadcast still sending to its job again, and
+      `StopBroadcastOnFailureFilter` stops one whose Hangfire job failed (`RecoverBroadcastsHandler`)
+
+Closed 2026-10-19: 2602 backend tests (917 domain, 1685 integration) and 1084 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. `DemoSeederTests.SeedDemo_…` fails
+when run late at night (after about 23:30 nobody is still inside, so no open visit), whatever the
+code; it passed earlier the same evening. One migration, `AddSmsBroadcast`, which only adds (a
+table, a column off, a column and a unique index) and widens two check constraints, refusing no
+existing row. It goes out with the SMS release (10.6), which still starts with `./backup.sh run`.
+
+### 10.14 The SMS credit in the header (اعتبار پیامک)
+Asked by the developer on 1405/07/27 (2026-10-19): the panel warned only once the credit had run out,
+and only on the SMS pages. Decided, BUSINESS_RULES.md §10 *The credit in the header*:
+- [x] The Owner sees the credit on every page, beside the cheques alert, opening «تنظیمات پیامک»:
+      the whole box flashing solid red below 1,000 Toman, red and blinking below 100,000, orange
+      from 100,000 to 200,000, green above
+- [x] Asked from Kavenegar when the panel opens and every 10 minutes (a send's answer carries only
+      its cost, and the account is charged outside the panel, so the figure is never worked out);
+      no answer keeps the last figure, in grey; none yet says «نامعلوم»; hidden in test mode
+- [x] An SMS to two numbers below 100,000 was considered and dropped by the developer
+- [x] `SmsCreditBadge` in the header, `useSmsCredit`'s `lastKnownToman` and `refetchInterval`
+      (one cache entry with the SMS pages); no backend change, no migration
+
+Closed 2026-10-19: frontend 1096 tests green, lint, `format:check` and production build pass. No
+migration and no endpoint change. It goes out with the SMS release (10.6).
+
+### 10.15 The SMS settings page: a card per kind with its message (تنظیمات پیامک)
+Asked by the developer on 1405/07/28 (2026-10-20): the broadcast belongs under the SMS settings,
+each kind should show the exact SMS it sends, and the page left most of a wide screen empty.
+Decided, BUSINESS_RULES.md §10 *SMS settings*:
+- [x] Each kind is a box in a grid (three a row on a wide screen, two, then one): its switch beside
+      the title, its few fields only as wide as their numbers, the range inside the empty box, and
+      at its foot the message drawn as on a phone, with its SMS parts
+- [x] The texts come from `GET /api/sms/samples` (Owner), built by `SmsText` with a sample member
+      and figures (`GetSmsSamplesHandler`), so the frontend keeps no copy of the wording
+- [x] The kinds grouped: «پیامک به اعضا», «پیامک به شما (مدیر)» and «ارسال دستی» (the last two
+      side by side on a wide screen); the master switch on a card of its own; «ذخیره» stays at the
+      bottom of the screen while the settings scroll
+- [x] The broadcast is one card: its switch, writing and sending one with a live preview (the
+      group's longest first name), and the latest broadcast only while it is sending or stopped,
+      with «ادامه ارسال» (`LatestBroadcast`); its own page, route, menu item and list of sent
+      broadcasts removed (they are on «پیامک‌ها», which links back to the card, `#broadcast`)
+- [x] Tests: the samples are the runs' own texts and parts, Owner only (integration); every card's
+      preview, an unreadable preview, the grouping, the broadcast card (frontend)
+
+Closed 2026-10-20: 2605 backend tests (917 domain, 1688 integration) and 1100 frontend tests green,
+zero warnings, lint, `format:check` and production build pass. No migration; one new endpoint,
+`GET /api/sms/samples`, which reads nothing from the database. It goes out with the SMS release (10.6).
+
+### 10.16 Send again what Kavenegar cancelled (ارسال دوبارهٔ پیامک‌های لغوشده)
+Found on 1405/07/30 (2026-10-22): «اعتبار پیامک: نامعلوم» on the server. The cause was the
+server's DNS, only Google's (`8.8.8.8`, `8.8.4.4`), which from inside Iran sometimes does not answer
+(`NameResolutionError` in the logs). Fixed on the server the same night, no code: ParsPack's
+resolver `45.139.11.231` and Shecan's `178.22.122.100`, `185.51.200.2` beside Google's, in
+`/etc/systemd/resolved.conf.d/iran-dns.conf`; the API reaches them through Docker's
+`host(127.0.0.53)`. The logs then showed no SMS had failed for DNS, but «پیامک‌ها» showed many
+«کاوه‌نگار لغو کرد» (13) between about 18:00 and 20:10, on 07/29 and 07/30, while the messages before
+and after reached the phone. A ticket to Kavenegar about it is the developer's. Decided with the
+developer on 1405/08/01, BUSINESS_RULES.md §10 *Sending*:
+- [x] The Owner's resend also takes a sent message Kavenegar cancelled (`PrepareResend`); the same
+      row, its last request's id, cost, moment and delivery cleared
+- [x] Automatic resend (`ResendCancelledSmsHandler`, Hangfire every 15 minutes, `CancelledSmsResendJob`):
+      asks Kavenegar about today's messages (`CheckSmsDeliveryHandler.CheckSentSinceAsync`), then sends
+      each cancelled one again 30 minutes after its last request, at most 5 times
+      (`PrepareAutoResend`, `auto_resends` with a check constraint), the same day, within the
+      kind's hours, with the switches on; every kind
+- [x] The nightly 23:30 check and the 15-minute one may meet: a conflict is logged and asked again
+      next time instead of failing the job
+- [x] «پیامک‌ها»: «ارسال دوباره» on a cancelled row, with «کاوه‌نگار این پیامک را لغو کرد و به گوشی
+      نرسید» in the confirmation, and «N بار خودکار دوباره فرستاده شد» under the status
+- [x] Migration `AddSmsAutoResends`: one column, 0 for every existing row
+- [x] Tests: domain (resend and automatic resend, the limit), integration (every rule above, the
+      schedule, the constraint, the Owner's resend of a cancelled message), frontend (the button,
+      the warning, the count)
+
+Release: with 10.17, from `main`, before Phase 13's look; it has a migration, so `./backup.sh run`
+first.
+
+### 10.17 Three changes to the SMS settings (تنظیمات پیامک)
+Asked by the developer on 1405/08/01 (2026-10-23), to go out with 10.16. Decided, BUSINESS_RULES.md
+§10:
+- [x] The daily report's time is the Owner's: 08:00 to 23:45 on a quarter hour, an hour and a
+      minute box on its card (the kinds' 22 has only :00; the report's 23 has every quarter). It was
+      22:45, fixed in the code; the migration keeps 22:45 (`daily_report_send_time`, check
+      constraint, `Sms.DailyReportSendTimeOutOfRange`)
+- [x] «پایان اشتراک» also says the sessions left: «… به پایان می‌رسد و فقط ۱۲ جلسه از آن مانده
+      است.» Still two SMS parts (`SmsText.ForRunningOut`, docs/sms-texts.md)
+- [x] «جلسات رو به اتمام» by the plan's size (`LowSessionsSettings`): plans of 5 sessions to a first
+      size (8 at first), to a second (15), and bigger, each row with its own number of sessions left,
+      1 to 4. The migration renames the old number to the first row's and carries it into all
+      three, capped at 4, and sets the sizes to 8 and 15; check constraints for every range and for
+      "on means filled"
+- [x] Tests: domain (the time's window, the rows' ranges, which row a plan falls in, the text),
+      integration (each row's plans in a run, the endpoint's refusals under each box, the
+      constraints, the migration carrying the old number forward), frontend (the rows named by
+      the sizes typed, the report's hours, what is sent)
+
+Release: with 10.16, as one release from `main`; both have migrations, so `./backup.sh run` first.
+
+### 10.18 New wording for three SMS kinds (متن تازهٔ پیامک غیبت، خوش‌آمد و تولد)
+Asked by the developer on 1405/08/01 (2026-10-23), to go out with 10.16 and 10.17, all three in
+spoken Persian. BUSINESS_RULES.md §10, docs/sms-texts.md. Messages already written keep their text.
+- [x] Absence: «{name} عزیز، جات توی باشگاه پاسارگاد خالیه! {days} روزه که باشگاه نیومدی و منتظر
+      حضور گرمت هستیم!», two SMS parts (accepted by the developer; it was one). *{days}* is the
+      member's real days away (`Absence.DaysAway`), not the settings' number (chosen by the
+      developer); the sample on «تنظیمات پیامک» says ۱۲
+- [x] Welcome: «درود بر {name} عزیز، به باشگاه پاسارگاد خوش اومدی، امیدوارم ساعات خوشی رو توی
+      باشگاه داشته باشی», two SMS parts (it was one)
+- [x] Birthday: «{name} عزیز سلام، {month/day} روز تولدته؛ اون روز مهمون باشگاه پاسارگاد هستی و
+      ورودت رایگانه. پیشاپیش تولدت مبارک رفیق!!», still two parts
+- [x] Tests: domain (each text, its parts, no zero days), integration (a member away longer than the
+      setting reads the real days; the samples; the birthday run), frontend (the samples)
+
+Found by the pre-release run on the same day, a 1st of the month, and fixed with it:
+- [x] The dashboard opened with «امروز» lit instead of «این ماه» on every Jalali month's 1st, when
+      the two are the same day (`presetOf`, §12 *Dashboard*): the default now wins a tie
+- [x] `ServiceChargeBox`'s void test waited one second for its notice and sometimes ran out under
+      the whole suite: three, as the other slow notices
+
+No migration. Release: with 10.16 and 10.17, one release from `main`.
+
+- [x] Released in `20261023-2305-6bcb031` (previous `20261020-0246-099e551`) on 1405/08/01
+      (2026-10-23) at 23:05, the gym closed early that night: 10.16, 10.17 and 10.18. Two
+      migrations (`AddSmsAutoResends`, `SmsSettingsLowSessionsRowsAndReportTime`); the second
+      renames `low_sessions_threshold`, so a rollback to `099e551` is **not** safe (fix forward, or
+      restore the dump below). Before it: every test green (965 domain, 1740 integration, 1110
+      frontend), `npm run e2e` passed, the README pictures retaken; read-only, the low-sessions
+      number was 1 (carried into all three rows) and absence, welcome and birthday were on;
+      `./backup.sh run` → `gym-20261023-230118.dump` (994,906 bytes), copied to `D:\gymbackups`,
+      the same `sha256sum` (`42a09964…2b7a67c8`). After it: all three containers on the new tag and
+      healthy, `/health` 200, no error in the API's log, the row counts unchanged (226 members, 245
+      subscriptions, 418 payments, 931 attendances, 121 notifications, 151 cafe orders),
+      `auto_resends` 0 everywhere. The developer then set the low-sessions rows to 1, 2 and 3 and
+      the daily report to 22:30 on the new page
 
 ---
 
@@ -2774,6 +3189,18 @@ docs/DEPLOYMENT.md.
       (`Demo.DatabaseNotEmpty`), a missing Owner (`Demo.NoOwner`), and on Production anything without
       `Demo:Allowed=true` (`Demo.NotAllowedHere`), which only the screenshot run passes, to that one
       command. No `server.sh` command for it
+  - [x] Since 2026-10-15 `DemoSeederTests.SeedDemo_EmptyDatabase_FillsThreeMonthsUpToNow` fails:
+        no frozen subscription. `FreezeSomeoneAsync` (12 days before today) is a `TryAsync` and
+        finds no one with today's date, silently. Date-dependent; it passed on the day it was
+        written. Find which condition empties the list and make the freeze certain. Never runs on
+        the server; the screenshots are still made (they show no freeze)
+        - Fixed on 1405/07/26 (2026-10-18). The freeze did succeed: a day's visits are planned in
+          the morning and the freeze comes at 13:00, so on some days the frozen member still had a
+          visit planned for that evening, and checking in unfroze the plan (§4 *Freeze*). Run as if
+          on eleven days from 2026-10-14 to 10-25: 10-14, 15, 19 and 21 failed. `CheckInAsync` now
+          skips a frozen member's planned visit; all eleven pass. A new test pins 2026-10-15
+          (`SeedDemo_FrozenMemberHadAVisitPlannedThatEvening_PlanStaysFrozen`): red without the fix,
+          green with it
 - [x] **README with architecture diagram and screenshots.** The diagram was there. Added what the
       system does, what is worth a look in the code, and the screenshots; the long deployment and
       backup sections moved to docs/DEPLOYMENT.md. `npm run screenshots` (in web/) builds the
@@ -2798,6 +3225,34 @@ Deliberately last, and deliberately in one pass. Phases 7 to 9 add whole screens
 before they exist means restyling them twice, while a shared set of components built here would
 be built against screens that do not exist yet. The exception is 6.5.2, which builds the bar,
 the badge and the primary button early because the board needs them anyway.
+
+**13.1 and 13.2 were built on the branch `task/13.2-visual-language`** (24 commits) and merged into
+`main` on 1405/08/01 (2026-10-23), after the SMS releases (see *Release order* at the top).
+
+#### Merged with the SMS work (1405/08/01, asked by the developer)
+`main` had moved on by 41 commits (10.7 to 10.18) since the branch last took it in. Merged into the
+branch first, then the branch into `main`. Every SMS rule stays as it is; only how it looks changed.
+- [x] Conflicts: the header, three visit tables, the two locker boxes, the SMS history and settings
+      pages kept the new look and took the SMS work: «تولد» on the board, both histories and the
+      visit box (a solid pink `Badge` variant `birthday`, beside `cardio` and `guest`), the resend of
+      what Kavenegar cancelled and the automatic resends on «پیامک‌ها», the birthday notice in the
+      check-in box
+- [x] «تنظیمات پیامک» (built in 10.15 after the look was finished): `PageHeader`, the page's states,
+      every box and the «همهٔ پیامک‌ها» box with the page's strip, `SaveRow`, `StaleAlert` and
+      `useUnchanged` in its sticky save bar, Persian digits in every number box as typed and as
+      loaded (the three rows of «جلسات رو به اتمام», the debt reminder's days, the absence days)
+- [x] The SMS credit in the header (10.14) edged like the cheque alert beside it (a faint frame, a
+      thick start edge in its colour) instead of a round pill; on a phone only its coloured icon
+      (BUSINESS_RULES.md §10 *The credit in the header*), so the cheque alert keeps its words
+- [x] On a phone only: the rows of «جلسات رو به اتمام» narrower so each stays on one line; no
+      sideways scroll on «تنظیمات پیامک» at 390px
+- [x] Tests: the SMS settings' boxes expect Persian digits, one new test types English digits in
+      four of them; the credit's colour tests read its edge. README screenshots retaken
+
+Closed 2026-10-23: 2705 backend tests (965 domain, 1740 integration) and 1193 frontend tests green,
+zero warnings, lint, `format:check` and production build pass; `npm run e2e` (4, the phone run
+included) and `npm run screenshots` pass. No package added, no API change, no migration.
+
 
 ### 13.1 Mobile
 Not cosmetic. The reception PC is a Windows desktop, but the gym loses power: during an outage
@@ -3224,10 +3679,184 @@ lint. No package, no API change, no backend file.
 **Known limit.** The backup tablet's Chrome 109 cannot show `oklch` or `color-mix` (already true
 of the whole app; the fix agreed is a newer browser, not code); the tints simply do not show there.
 
-### 13.3 The public site
-- [ ] Replace the placeholder on the apex with a real page for the gym: hours, address, contact,
-      services. Static, no API
-- [ ] Confirm the panel stays out of search results
+---
+
+## Phase 14 — The public site (سایت اصلی)
+Moved out of Phase 13 (it was 13.3) on 1405/07/26 (2026-10-18), asked by the developer: the public
+site at `pasargadgymplus.ir` is its own work and has **no link to the panel** for now; the developer
+says when something does. Static, no API. Its work goes on its own branch and is released on its
+own, never inside the SMS release (*Release order* at the top). 14.0 is what was built and released;
+the open work is 14.1 onwards.
+
+### 14.0 Built and released (was 13.3)
+- [x] Replace the placeholder on the apex with a real page for the gym: hours, address, contact,
+      services. Static, no API. Live since the release of 2026-10-15
+      - 1405/07/22 (2026-10-14), branch `task/13.3-public-site`: first page built (direction "Stone and
+        steel"), buttons still do nothing; placeholder Unsplash photos in `web/public-site/img/`, to be
+        replaced by the gym's own; address, telephone and Instagram still «به‌زودی». The public CSP
+        now allows the site's own script (`script-src 'self'`). Not released.
+      - Same day, second pass: a hero slider of athletes (4 s, arrows, swipe) between two layers of
+        drawn bronze smoke, the background lit by the pointer; the real logo (the panel's); photos for
+        every service (massage and analysis still «عکس به‌زودی»); a wide photo; a schematic plan of the
+        1000 m² hall with each zone's floor; the phone's bottom bar. Services and floors from the gym.
+      - 2026-10-15, third pass: the plan is now the gym's own drawing (lobby, rooms, walls, two doors)
+        and a walk on scroll: the stage stays on screen, a bronze line goes from the door through 13
+        stops (bodybuilding four, CrossFit two), the lit room's photo fills the screen and its name
+        rises in; a click on the plan goes to the nearest stop. One hard rubber floor everywhere. The
+        address and telephone are in (tel: links); Neshan/Balad links and Instagram still to come.
+        Every service has a photo (massage and analysis added); `tour-*.webp` are 1920×1080 crops for
+        the stage.
+      - Same day, by the developer: «امکانات» and the tour showed the gym twice, so they are one
+        section now, «امکانات و فضای باشگاه»: each stop's line is its service's description, the
+        list of services and its photos are gone. Floors: club rubber everywhere. The opening
+        line mentions the air («هوای خنک و تازه»), nothing more about it on purpose.
+      - Same day, from the gym's next drawing: «استیج فیگور», a narrow room on the right wall above
+        CrossFit (which got smaller), is stop ۱۲ of the walk; the walk now has 14 stops. The opening
+        line is the developer's own, with its four points in a row of signs that draw themselves
+        and move (a hall, a lamp, a door at ground level, a fan); the numbers sit on barbell plates.
+      - Same day: a «ثبت‌نام» button in the top bar (phone and computer). It does nothing yet; what
+        it opens is the member accounts phase below.
+- [x] Released in `20261015-1423-4f9347d` (previous `20261010-2339-7ebfb0d`) on 2026-10-15 at
+      14:23, by day at the developer's choice: the panel's look did not change (nothing of 13.2's
+      branch is in `main`); it also carries 6.5.37 and the SMS settings wording. Before it: e2e
+      green, frontend 1018/1018, lint, format and build clean, backend Release build with no warning,
+      2190 of 2191 tests (the one red is the demo seeder's, below in Phase 12; it never runs on the
+      server), screenshots retaken (`4f9347d`). `./backup.sh run` first →
+      `gym-20261015-141449.dump`, copied to `D:\gymbackups`, both `sha256sum` equal. No migration.
+      After it, from outside: `pasargadgymplus.ir` 200 with the new page, `Cache-Control: no-cache`
+      on the page and `site.js`, `www.` and `.com` 301 to it, the panel and `/health` 200, no error
+      in the API log. A rollback to `7ebfb0d` is safe: the schema did not change. The first
+      `release.sh` run stopped before reaching the server: a local `dotnet run` of the API locked
+      `bin/Debug` and the migration bundle could not build
+- [x] Released in `20261016-1717-7ed7006` (previous `20261015-1423-4f9347d`) on 2026-10-16 at
+      17:17, by day at the developer's choice: the public site's phone fixes, the six faceless
+      slides, «پاسارگاد پلاس» without «جیم», calisthenics; the panel only gained its tab icon. No
+      migration, so a rollback to `4f9347d` is safe. Before it: frontend 1018/1018, lint, format
+      and build clean, e2e green, screenshots retaken (`7ed7006`); no backend test, the backend
+      unchanged since the last release. Server first: API and Postgres healthy, 50 GB disk and
+      2.8 GB memory free. `./backup.sh run` → `gym-20261016-171258.dump` (593 KB), copied to
+      `D:\gymbackups`, both `sha256sum` equal. After it, from outside: the public page 200 with the
+      new content, `site.css`/`site.js` `no-cache`, the panel, its icon and `/health` 200, `www.`
+      and `.com` 301.
+      - Found after it: a phone that had seen the site kept showing the old slides. The photos have
+        no `Cache-Control`, so a browser guesses how long its copy stays fresh (hours), and the new
+        slides kept the old file names (my miss: only the page, site.css and site.js were checked).
+        Built the same day, for the next release: `no-cache` on every file of the public site in
+        `deploy/Caddyfile`, and `web/Dockerfile` stamps each address in the page with its file's
+        fingerprint (`?v=`), so even a phone holding an old copy fetches a changed file. Checked
+        in a local build: 53 addresses stamped, none left plain, `caddy validate` passes, all 35
+        photos load on a phone and a computer
+- [x] Released in `20261016-1747-c6ff9ec` (previous `20261016-1717-7ed7006`) on 2026-10-16 at
+      17:47, half an hour after the one above, to fix the stale photos it showed: `no-cache` on
+      every file of the public site and a fingerprint (`?v=`) in each address of the page. Only
+      `deploy/Caddyfile` and `web/Dockerfile` changed; no migration, a rollback to `7ed7006` is
+      safe. `./backup.sh run` first → `gym-20261016-174554.dump` (595 KB), copied to
+      `D:\gymbackups`, both `sha256sum` equal. After it, from outside: the page's addresses all
+      stamped (`slide-1.webp?v=b45d33dca8`, none plain), the page, site.css, the photos and the font
+      `no-cache`, a photo asked again with its ETag answers 304; the panel and `/health` 200,
+      `www.` 301. The developer's phone, which kept the old slides, shows the new ones
+- The server's restart, noted here on 2026-10-16, is now item 4 of *Release order* at the top
+- Queued by the developer on 2026-10-15 (what is still open is 14.1 and 14.2):
+  - Trainers (مربیان), open in 14.1: the gym has two or three; one card each (photo, name, specialty,
+        experience). The gym sends the names and photos later. Later still, a member picks a trainer
+        (that needs the member accounts phase). The developer: "we have to work on it a lot"
+        - 2026-10-15: the stage is built (section ۰۵): three bronze cards under one light, the one in
+          front tilts with the pointer and turns over on a tap (certificates, honours, hours at the
+          gym, «انتخاب این مربی، به‌زودی»); arrows, keys and a swipe go round. Every detail says
+          «به‌زودی»; the placeholder photos are athletes seen from behind, so no stranger's face
+          stands under a trainer's name. Waiting for the gym's names, photos (portrait 4:5, one
+          plain dark wall for all) and details
+  - [x] Shop (فروشگاه): a showcase of the categories (protein, creatine, supplements, shakers and
+        bands, sportswear, perfume), with photos and no prices
+        - 2026-10-15: built (section ۰۶): a phone swipes one row of tall shelves, a computer sees a
+          grid with protein big; on hover the photo comes closer and a band of light crosses it.
+          Placeholder Unsplash photos without a brand on them. Same day, by the developer: no «استعلام
+          قیمت» on the shelves; the wide photo «۱۰۰۰ متر. بدون ستون.» and «بدون ستون» in the plan
+          removed
+  - Neshan and Balad links for «مسیریابی», open in 14.2
+- [x] Before the next release, check these first (found by the developer on 2026-10-15; the release of
+      that day is live with them):
+  - [x] The photos are the computer's photos, and a phone crops them to its tall screen, so they show
+        far too zoomed in (the tour's `tour-*.webp` are 1920×1080: a phone sees a narrow strip of
+        each). Likely a tall crop per photo for the phone (`<picture>` with a `max-width` source)
+        - 2026-10-16: each stop has a 900×1600 `*-tall.webp` cut from the same Unsplash original
+          (three with a focus point chosen by eye: the door, bodybuilding 1, analysis), picked by
+          `<picture>` below 900 px. The developer chose this over a framed wide photo: the stage
+          stays full-screen, and the gym's own photos will need both cuts. The hero's two wide
+          slides gained nothing from a tall cut and stay as they are
+  - [x] The tour's plan is so small on a phone that its rooms cannot be told apart
+        - 2026-10-16: first a window on half the plan that followed the walker; the developer found
+          it far too big and wanted the whole plan on screen, so the camera went. Now the whole
+          plan nearly edge to edge, every name drawn as large as its room allows (the developer
+          wanted the small rooms named too); the figure stage says «فیگور» on a phone, its full
+          name does not fit
+  - [x] The trainers' cards are too small: each card should be big, close to the whole screen
+        - 2026-10-16: on a phone the card is the screen's width less 3rem (at most 26rem)
+  - [x] The top bar's links are far too small on a phone. They go: the three-line button opens and
+        closes a menu that holds them
+        - 2026-10-16: a drawer under the bar from the button's side (the left), over a shade, not
+          the whole screen (the developer's correction of a first full-screen menu; then narrowed
+          twice, as too wide, to under a third of the screen, `min(30vw, 7.5rem)`); the button
+          becomes a cross; a link, the button, a tap on the shade or Escape closes it. On a phone
+          the bar's blur became a darker glass, so the fixed drawer is laid out on the screen. The
+          links now go to their sections on the computer too (asked by the developer); the hero's
+          two buttons still do nothing
+  - [x] The panel has no logo in its browser tab: the public site shows the gym's logo there (and in
+        Google), but `web/index.html` has no `<link rel="icon">`
+        - 2026-10-16: `web/public/favicon.png`, the logo in bronze, 192×192: the brand file is white
+          and would not show on a light tab. The public site uses the same file since the same day
+          (`img/favicon.png`)
+  - [x] 2026-10-16, asked by the developer: six hero slides instead of four. The old ones showed
+        one model's face, which could be taken for someone local; the new ones are free Unsplash
+        photos where no face shows clearly (one series from one gym, then three dark ones), found
+        from the developer's own examples (two of them are among the six). 1100×1650, the
+        originals' 2:3, one file for phone and computer. Two new lines, picked by the developer:
+        «نور عالی، تهویه مناسب، طبقه همکف.» and «استیج فیگور، برای تمرین ژست‌ها.»
+  - [x] 2026-10-16, asked by the developer: calisthenics (کلیستنیکس), for calisthenics people to
+        know they can train here. The CrossFit room is split along the hall's length: calisthenics
+        above, CrossFit below, and of CrossFit's two stops the first is calisthenics now (a photo
+        of rings, which the gym has; the kettlebells photo went). Named in the band of services,
+        the hero's line (کراس‌فیت، کلیستنیکس، ...), the description for Google, and the figure
+        stage's line (it is beside calisthenics now); «۹ بخش» became «۱۰». Two hero slides
+        (a tattooed back, a dumbbell curl) gave way to the gym's own kit: the rings, and the
+        pull-up and dip station
+  - [x] 2026-10-16, asked by the developer: the name is «پاسارگاد پلاس», no Persian «جیم» anywhere:
+        the hero's «جیم پلاس» line is gone and the carved word has a bronze plus; the top bar says
+        «پاسارگاد+»; the title, description and footer say «پاسارگاد پلاس»
+  - [x] 2026-10-16, asked by the developer: the ticks under the plan fill from the left (phone and
+        computer), with the walk that starts at the door on the plan's left; they filled from the
+        right, the page's reading direction
+  - Checked on 2026-10-16 (before the ticks, the one change meant for both): the computer's page is unchanged at 1440, 1024 and 900 px (full-page
+    pixel comparison with the last commit; the few differing pixels are the clock's, the same
+    between two shots of the old page)
+
+### 14.1 Trainers (مربیان)
+The stage is built (14.0, section ۰۵) with placeholder photos and «به‌زودی» everywhere.
+- [ ] Waiting for the gym: two or three trainers' names, photos (portrait 4:5, one plain dark wall
+      for all) and details (specialty, experience, certificates, honours, hours at the gym)
+- [ ] Put them in; «انتخاب این مربی» stays «به‌زودی» (choosing a trainer needs 14.6)
+
+### 14.2 Finding the gym (مسیریابی و اینستاگرام)
+- [ ] Waiting for the gym: its location link for Neshan and Balad, and its Instagram page
+- [ ] «مسیریابی» opens them; Instagram in the footer and contact section instead of «به‌زودی»
+
+### 14.3 The gym's own photos
+- [ ] Waiting for the gym: photos of its own rooms, kit and slides, to replace the Unsplash
+      placeholders in `web/public-site/img/`; each tour stop needs a wide (1920×1080) and a tall
+      (900×1600) cut (14.0)
+
+### 14.4 The buttons that do nothing yet
+- [ ] The hero's two buttons and «ثبت‌نام» in the top bar do nothing. Open: what each does until
+      14.6 exists (e.g. call the gym, or hidden)
+
+### 14.5 The panel out of search results
+- [ ] Confirm `panel.pasargadgymplus.ir` stays out of Google (`noindex` and `robots.txt` on the
+      panel's domain) while the public site is indexed
+
+### 14.6 Member accounts (later)
+The «Future — Member accounts on the public site» section below, kept there until the developer
+and the Owner decide; it is the one part of the site that would touch the panel (members, SMS
+codes, a public API), so it needs an ADR first.
 
 ---
 
@@ -3261,6 +3890,8 @@ until then each visitor buys their own single visit under their own name.
 ---
 
 ## Future — Absence SMS (پیامک غیبت)
+**Done in task 10.12** (1405/07/27): every question below is answered there and in BUSINESS_RULES.md
+§10 *The absence SMS*. Kept for the history of the idea.
 Planned by the developer on 1405/07/15 (2026-10-07): a member who has not come for N days gets a
 friendly SMS («جای شما در باشگاه خالی است»), with no offer in it. A fifth SMS kind on Phase 10's
 design: the settings page row (on/off, days, send time), a unique index so it is sent once,
@@ -3275,6 +3906,8 @@ gets the rule once these are answered:
 - [ ] The wording, added to `docs/sms-texts.md` and `SmsText`
 
 ## Future — Free entry on the birthday (ورود رایگان روز تولد)
+**Done in task 10.8** (1405/07/27): every question below is answered there and in BUSINESS_RULES.md
+§7 *Birthday visit*. Kept for the history of the idea.
 Planned by the developer on 1405/07/15 (2026-10-07). Two separate parts. The gym's rule: a member
 gets a free visit on their birthday; the desk already knows whose birthday it is (BUSINESS_RULES.md
 §6 *The desk panel*), so the desk can offer it at check-in, and no discount code is needed. And the
@@ -3301,3 +3934,23 @@ every SMS since 1405/07/16 (see the birthday entry above).
 - [ ] How a sale with a discount is recorded: the full price and a discount line, or the final price
       only; the financial report's figures follow from that
 - [ ] A code used twice refused by the database too (a unique index), not only by the code
+
+## Future — Member accounts on the public site (حساب اعضا)
+Phase 14's task 14.6 (1405/07/26); kept here until it is decided.
+Asked by the developer on 2026-10-15, for later, to be reviewed in detail first. Members sign up
+and sign in on the public site; they never enter the admin panel. This changes a founding rule of
+the project ("no self-registration, no member logins"), so it needs an ADR and the Owner's decision
+before any code, and its rules written in docs/BUSINESS_RULES.md.
+
+- [ ] Sign-up and sign-in with the phone number and a one-time code by SMS (OTP); after the first
+      sign-in the member gives first name, last name and birth date, which the panel can use
+- [ ] A phone already in the panel links to that member, never a duplicate; whether a sign-up is a
+      request the desk confirms, and whether a member's own entry may change what the desk entered
+- [ ] Abuse and SMS cost: a limit per phone and per IP, codes that expire, a few wrong tries only;
+      every code is a paid SMS
+- [ ] What a signed-in member sees (subscription, sessions left, trainer?); a sign-in with nothing
+      behind it is not worth building
+- [ ] Perhaps selling plans online: payment gateway, refunds, and how it meets the desk's sales
+- [ ] Picking a trainer (see 14.1, trainers)
+- [ ] The public site is static and calls no API today; these pages would, so the API gets public
+      endpoints with their own authentication, separate from the staff's

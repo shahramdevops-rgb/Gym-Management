@@ -20,7 +20,12 @@ import { lowSessionsThreshold } from "@/features/attendance/renewal";
 import { CloseButton, ConfirmButtons, LockerBox } from "@/features/attendance/components/deskParts";
 import { GuestSettleForm } from "@/features/attendance/components/GuestSettleForm";
 import { VisitSummary } from "@/features/attendance/components/VisitSummary";
-import { cardioOnlyLabel, guestLabel, holderOf } from "@/features/attendance/holder";
+import {
+  birthdayVisitLabel,
+  cardioOnlyLabel,
+  guestLabel,
+  holderOf,
+} from "@/features/attendance/holder";
 import { VisitCafeBox } from "@/features/cafe/components/VisitCafeBox";
 import { SaleBox } from "@/features/serviceCharges/components/SaleBox";
 import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceChargeBox";
@@ -176,6 +181,15 @@ export function LockerVisitDialog({
                       {" · "}
                       <span className="rounded bg-cardio/25 px-1.5 py-0.5 text-xs font-medium text-foreground">
                         {cardioOnlyLabel}
+                      </span>
+                    </>
+                  )}
+                  {/* Free on the birthday: no session came from the plan (§7 *Birthday visit*). */}
+                  {visit.isBirthdayVisit && (
+                    <>
+                      {" · "}
+                      <span className="rounded bg-party-pink/20 px-1.5 py-0.5 text-xs font-medium text-foreground">
+                        {birthdayVisitLabel}
                       </span>
                     </>
                   )}

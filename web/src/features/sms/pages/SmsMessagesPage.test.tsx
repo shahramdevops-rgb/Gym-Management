@@ -29,8 +29,10 @@ const failedBirthday: SmsMessage = {
   memberId: "01990000-0000-7000-8000-0000000000a1",
   memberName: "سارا محمدی",
   payableId: null,
-  text: "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد",
+  broadcastId: null,
+  text: "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد\nلغو11",
   attempts: 1,
+  autoResends: 0,
   errorCode: 411,
   costToman: null,
   delivery: null,
@@ -45,7 +47,7 @@ const unknownExpiring: SmsMessage = {
   kind: "SubscriptionExpiring",
   status: "Unknown",
   memberName: "مینا کریمی",
-  text: "مینا کریمی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.",
+  text: "مینا کریمی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.\nلغو11",
   errorCode: null,
 };
 
@@ -58,7 +60,7 @@ const sentCheque: SmsMessage = {
   memberId: null,
   memberName: null,
   payableId: "01990000-0000-7000-8000-0000000000b1",
-  text: "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی",
+  text: "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی\nلغو11",
   errorCode: null,
   costToman: 135,
   delivery: "Delivered",
@@ -123,11 +125,12 @@ describe("SmsMessagesPage", () => {
     expect(within(row).getByText("ناموفق")).toBeInTheDocument();
     expect(within(row).getByText("کد ۴۱۱ — شماره نامعتبر است")).toBeInTheDocument();
     expect(within(row).getByText("۰۹۱۲ ۱۲۳ ۴۵۶۷")).toBeInTheDocument();
-    expect(
-      within(row).getByText(
-        "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد",
-      ),
-    ).toBeInTheDocument();
+    // The opt-out line keeps its own line, as on the phone.
+    const text = within(row).getByText(
+      "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۱۶ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد لغو11",
+    );
+    expect(text.textContent).toContain("\nلغو11");
+    expect(text).toHaveClass("whitespace-pre-line");
   });
 
   it("SmsMessagesPage_ChequesMessage_IsTheOwnersWithItsCostAndDelivery", async () => {
@@ -220,7 +223,8 @@ describe("SmsMessagesPage", () => {
 
     renderApp("/sms", { session: session() });
 
-    expect(await screen.findByText("۱۲۵٬۰۰۰ تومان")).toBeInTheDocument();
+    // The header shows it too (§10 *The credit in the header*); this is the page's own line.
+    expect(await within(screen.getByRole("main")).findByText("۱۲۵٬۰۰۰ تومان")).toBeInTheDocument();
   });
 
   // ---- Resend ----
@@ -249,6 +253,56 @@ describe("SmsMessagesPage", () => {
     // The list and the credit are asked again: the row and the total have changed.
     await waitFor(() => expect(api.requestsTo("GET", "/api/sms/messages")).toHaveLength(2));
     expect(api.requestsTo("GET", "/api/sms/credit")).toHaveLength(2);
+  });
+
+  it("SmsMessagesPage_CancelledByKavenegar_CanBeResentAndSaysItNeverArrived", async () => {
+    // Task 10.16: it never reached the phone, and its cost was given back.
+    const cancelled = { ...sentCheque, delivery: "Cancelled", costToman: 0 } as const;
+    const api = ownerWith({
+      "GET /api/sms/messages": () => messagesPage([cancelled], 0),
+      [`POST /api/sms/messages/${cancelled.id}/resend`]: () =>
+        json(200, { ...cancelled, delivery: null, costToman: 135, attempts: 2 }),
+    });
+
+    renderApp("/sms", { session: session() });
+    await screen.findByText("مالک");
+
+    fireEvent.click(screen.getByRole("button", { name: "ارسال دوباره پیامک چک و قسط برای مالک" }));
+    expect(screen.getByText(/کاوه‌نگار این پیامک را لغو کرد و به گوشی نرسید/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "بفرست" }));
+
+    expect(
+      await screen.findByText("پیامک چک و قسط برای مالک دوباره فرستاده شد."),
+    ).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/sms/messages/${cancelled.id}/resend`)).toHaveLength(1);
+  });
+
+  it.each(["Delivered", "NotDelivered", "BlockedByReceiver"] as const)(
+    "SmsMessagesPage_Sent%s_HasNoResend",
+    async (delivery) => {
+      ownerWith({
+        "GET /api/sms/messages": () => messagesPage([{ ...sentCheque, delivery }]),
+      });
+
+      renderApp("/sms", { session: session() });
+
+      await screen.findByText("مالک");
+      expect(
+        within(rowOf("مالک")).queryByRole("button", { name: /ارسال دوباره/ }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("SmsMessagesPage_ResentAutomatically_SaysHowManyTimes", async () => {
+    ownerWith({
+      "GET /api/sms/messages": () =>
+        messagesPage([{ ...sentCheque, attempts: 3, autoResends: 2, delivery: null }]),
+    });
+
+    renderApp("/sms", { session: session() });
+
+    await screen.findByText("مالک");
+    expect(within(rowOf("مالک")).getByText("۲ بار خودکار دوباره فرستاده شد")).toBeInTheDocument();
   });
 
   it("SmsMessagesPage_ResendUnknown_WarnsItMayHaveArrived", async () => {
@@ -302,6 +356,26 @@ describe("SmsMessagesPage", () => {
   });
 
   // ---- Who sees it ----
+
+  it("SmsMessagesPage_OpenedOnABroadcast_AsksForItsMessagesWhateverTheMonth", async () => {
+    const api = ownerWith();
+
+    renderApp("/sms?broadcast=01990000-0000-7000-8000-0000000000c1", { session: session() });
+
+    expect(
+      await screen.findByText("فقط پیامک‌های یک پیامک گروهی نشان داده می‌شود."),
+    ).toBeInTheDocument();
+    const url = new URL(api.requestsTo("GET", "/api/sms/messages")[0]!.url);
+    expect(url.searchParams.get("BroadcastId")).toBe("01990000-0000-7000-8000-0000000000c1");
+    expect(url.searchParams.get("From")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "همهٔ پیامک‌ها" }));
+
+    await waitFor(() => {
+      const last = api.requestsTo("GET", "/api/sms/messages").at(-1)!;
+      expect(new URL(last.url).searchParams.get("BroadcastId")).toBeNull();
+    });
+  });
 
   it("SmsMessagesPage_StaffUser_SeesNoAccessMessage", async () => {
     // BUSINESS_RULES.md §1: every SMS costs money, and the SMS pages are the Owner's.

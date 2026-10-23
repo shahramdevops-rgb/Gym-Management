@@ -89,14 +89,19 @@ export const staffUser: CurrentUser = {
 
 /**
  * The calls every signed-in page makes: who am I, and is the server healthy. The Owner's header
- * also asks for the cheques and instalments coming due; none, unless a test says otherwise.
+ * also asks for the cheques and instalments coming due (none) and the SMS credit (test mode, so
+ * nothing shows), unless a test says otherwise.
  */
 export function signedInHandlers(user: CurrentUser): Record<string, Handler> {
   return {
     "GET /api/auth/me": () => json(200, user),
     "GET /health": () => new Response("Healthy"),
     ...(user.roles.includes("Owner")
-      ? { "GET /api/payables/due-soon": () => json(200, { today: "2026-09-18", items: [] }) }
+      ? {
+          "GET /api/payables/due-soon": () => json(200, { today: "2026-09-18", items: [] }),
+          "GET /api/sms/credit": () =>
+            json(200, { isTestMode: true, remainingToman: null, creditUsedUp: false }),
+        }
       : {}),
   };
 }

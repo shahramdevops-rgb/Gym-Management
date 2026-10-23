@@ -14,7 +14,7 @@ namespace Gym.Api.IntegrationTests.Notifications;
 /// <summary>
 /// The migration <c>SendSmsAsText</c> carries every message written as a template forward
 /// (CLAUDE.md: a migration never refuses existing rows): its text is built from the kind and the
-/// values it kept, the same text <see cref="SmsText"/> writes today. And a kind the Owner had on
+/// values it kept, the same text <see cref="SmsText"/> wrote then (before the opt-out line). And a kind the Owner had on
 /// stays on.
 /// </summary>
 /// <remarks>
@@ -67,19 +67,36 @@ public sealed class SendSmsAsTextMigrationTests(DatabaseFixture fixture)
             .Select(notification => new { notification.Kind, notification.Recipient, notification.Status, notification.Text })
             .ToListAsync(TestContext.Current.CancellationToken);
         texts.Count.ShouldBe(5);
-        texts.Single(row => row.Kind == NotificationKind.SubscriptionExpiring).Text.ShouldBe(SmsText.ForRunningOut(Name, Day));
-        texts.Single(row => row.Kind == NotificationKind.LowSessions).Text.ShouldBe(SmsText.ForFewSessionsLeft(Name, 2));
+        // Written out with the whole name, as the texts were then: SmsText has used the first name since task 10.13.
+        texts.Single(row => row.Kind == NotificationKind.SubscriptionExpiring).Text
+            .ShouldBe($"{Name} عزیز، اشتراک شما در باشگاه پاسارگاد {date} به پایان می‌رسد.");
+        texts.Single(row => row.Kind == NotificationKind.LowSessions).Text
+            .ShouldBe($"{Name} عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.");
+        // The birthday's two texts of the time, written out: SmsText has one text since task 10.8.
         texts.Single(row => row.Recipient == "+989121234567" && row.Kind == NotificationKind.Birthday).Text
-            .ShouldBe(SmsText.ForBirthday(Name, Day, today: Day));
+            .ShouldBe($"{Name} عزیز، امروز {date} روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
         texts.Single(row => row.Recipient == "+989121234568").Text
-            .ShouldBe(SmsText.ForBirthday(Name, Day, today: Day.AddDays(-3)));
+            .ShouldBe($"{Name} عزیز، تولدتان در {date} را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد");
         texts.Single(row => row.Kind == NotificationKind.PayableDue).Text
-            .ShouldBe(SmsText.ForPayableDue(PayableKind.Cheque, 12_500_000m, Day, "فروشگاه تجهیزات ورزشی"));
+            .ShouldBe(BeforeOptOut(SmsText.ForPayableDue(PayableKind.Cheque, 12_500_000m, Day, "فروشگاه تجهیزات ورزشی")));
         texts.Single(row => row.Kind == NotificationKind.LowSessions).Status.ShouldBe(NotificationStatus.Failed);
 
         var birthday = (await db.SmsSettings.AsNoTracking().SingleAsync(TestContext.Current.CancellationToken))
             .For(NotificationKind.Birthday);
-        birthday.ShouldBe(new SmsKindSettings(Enabled: true, 0, new TimeOnly(10, 0)));
+        // Still on. Its 0 (the day itself) is 1 since AddBirthdayVisit (task 10.8), which allows 1 to 7.
+        birthday.ShouldBe(new SmsKindSettings(Enabled: true, 1, new TimeOnly(10, 0)));
+    }
+
+    /// <summary>
+    /// The text as <see cref="SmsText"/> wrote it when the migration was made: the opt-out line came
+    /// later (1405/07/26), and a message keeps the text it was written with.
+    /// </summary>
+    private static string BeforeOptOut(string text)
+    {
+        var line = "\n" + SmsText.OptOut;
+        text.ShouldEndWith(line);
+
+        return text[..^line.Length];
     }
 
     private static AppDbContext Context(string connectionString) => new(

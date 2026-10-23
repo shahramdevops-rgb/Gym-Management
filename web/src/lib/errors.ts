@@ -115,13 +115,35 @@ export const errorMessages: Record<string, string> = {
 
   // SMS settings (BUSINESS_RULES.md §10 *SMS settings*)
   "Sms.SubscriptionExpiringDaysOutOfRange": "تعداد روز باید از ۱ تا ۳۰ باشد.",
-  "Sms.LowSessionsOutOfRange": "تعداد جلسه باید از ۱ تا ۱۰ باشد.",
-  "Sms.BirthdayDaysOutOfRange": "تعداد روز باید از ۰ تا ۷ باشد (۰ یعنی خود روز تولد).",
+  "Sms.LowSessionsOutOfRange": "تعداد جلسه باید از ۱ تا ۴ باشد.",
+  "Sms.LowSessionsSmallPlanMaxOutOfRange": "اندازهٔ پلن ردیف اول باید از ۵ تا ۱۳۹ جلسه باشد.",
+  "Sms.LowSessionsMediumPlanMaxOutOfRange":
+    "اندازهٔ پلن ردیف دوم باید بزرگ‌تر از ردیف اول و حداکثر ۱۴۰ جلسه باشد.",
+  "Sms.BirthdayDaysOutOfRange": "تعداد روز باید از ۱ تا ۷ باشد.",
   "Sms.PayableDueDaysOutOfRange": "تعداد روز باید از ۰ تا ۳۰ باشد (۰ یعنی خود روز سررسید).",
+  "Sms.DebtReminderDaysOutOfRange": "تعداد روز باید از ۱ تا ۹۰ باشد.",
+  "Sms.AbsenceDaysOutOfRange": "تعداد روز باید از ۷ تا ۶۰ باشد.",
+  "Sms.DebtReminderMinAmountOutOfRange":
+    "حداقل مبلغ باید ۱٬۰۰۰ تومان یا بیشتر باشد، با حداکثر دو رقم اعشار.",
   "Sms.SendTimeOutOfRange": "ساعت ارسال باید بین ۸:۰۰ و ۲۲:۰۰ و روی ربع ساعت باشد.",
+  "Sms.DailyReportSendTimeOutOfRange":
+    "ساعت گزارش روزانه باید بین ۸:۰۰ و ۲۳:۴۵ و روی ربع ساعت باشد.",
   "Sms.SettingsIncomplete": "برای روشن کردن این پیامک، همهٔ خانه‌هایش را پر کنید.",
+  "Sms.DailyReportPhoneInvalid": "شمارهٔ گزارش روزانه باید یک شمارهٔ موبایل ایران باشد.",
   "Sms.ChangedConcurrently":
     "تنظیمات پیامک هم‌زمان توسط شخص دیگری تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
+  "Sms.BroadcastNotFound": "این پیامک گروهی پیدا نشد.",
+  "Sms.BroadcastTextRequired": "متن پیامک را بنویسید.",
+  "Sms.BroadcastTooLong":
+    "متن بلند است: پیامک هر عضو، با نامش، باید در ۳ بخش جا شود. متن را کوتاه‌تر کنید.",
+  "Sms.BroadcastUnknownAudience": "گیرندگان را انتخاب کنید.",
+  "Sms.BroadcastOff": "اول در «تنظیمات پیامک»، پیامک‌ها و پیامک گروهی را روشن کنید.",
+  "Sms.BroadcastNoRecipients": "در این گروه کسی نیست؛ پیامکی فرستاده نمی‌شود.",
+  "Sms.BroadcastInProgress": "یک پیامک گروهی دیگر هنوز در حال ارسال است. صبر کنید تا تمام شود.",
+  "Sms.BroadcastNotStopped": "فقط پیامک گروهیِ متوقف‌شده را می‌شود ادامه داد.",
+  "Sms.BroadcastNotSending": "این پیامک گروهی دیگر در حال ارسال نیست.",
+  "Sms.BroadcastChangedConcurrently":
+    "این پیامک گروهی هم‌زمان تغییر کرد. صفحه را دوباره باز کنید و دوباره امتحان کنید.",
 
   // Subscriptions
   "Subscriptions.NotFound": "اشتراک پیدا نشد.",
@@ -324,7 +346,10 @@ export const errorMessages: Record<string, string> = {
     "هزینهٔ این پیامک برگشت داده شده و وضعیت تحویلش دیگر تغییر نمی‌کند.",
   "Notifications.NotFound": "این پیامک پیدا نشد.",
   "Notifications.NotResendable":
-    "فقط پیامکی که ناموفق بوده یا وضعیتش نامعلوم است دوباره فرستاده می‌شود. فهرست را تازه کنید.",
+    "فقط پیامکی که ناموفق بوده، وضعیتش نامعلوم است یا کاوه‌نگار لغوش کرده دوباره فرستاده می‌شود. فهرست را تازه کنید.",
+  "Notifications.NotCancelledByProvider":
+    "فقط پیامکی که کاوه‌نگار لغوش کرده خودکار دوباره فرستاده می‌شود.",
+  "Notifications.AutoResendsUsedUp": "این پیامک به تعداد مجاز خودکار دوباره فرستاده شده است.",
   "Notifications.OutsideSendingHours": "پیامک فقط بین ساعت ۸:۰۰ تا ۲۲:۰۰ فرستاده می‌شود.",
   "Notifications.InvalidDateRange": "بازهٔ تاریخ نامعتبر است.",
   "Notifications.ChangedConcurrently":

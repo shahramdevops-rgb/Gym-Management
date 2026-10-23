@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Members;
+using Gym.Application.Notifications.SendWelcome;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
@@ -19,7 +20,12 @@ namespace Gym.Application.Attendances.CheckIn;
 /// both roles.
 /// </summary>
 public sealed class CheckInHandler(
-    IAppDbContext db, IGymCalendar calendar, TimeProvider time, SubscriptionSeller seller, ISubscriptionPolicy policy)
+    IAppDbContext db,
+    IGymCalendar calendar,
+    TimeProvider time,
+    SubscriptionSeller seller,
+    ISubscriptionPolicy policy,
+    Welcomes welcomes)
 {
     public async Task<Result<AttendanceResponse>> Handle(Guid memberId, CheckInCommand command, CancellationToken cancellationToken)
     {
@@ -51,6 +57,7 @@ public sealed class CheckInHandler(
 
         var today = calendar.Today();
 
+        Subscription? soldPlan = null;
         if (command.Sale is { } sale)
         {
             var sold = await SellAsync(member, sale, today, cancellationToken);
@@ -58,6 +65,8 @@ public sealed class CheckInHandler(
             {
                 return Result.Failure<AttendanceResponse>(sold.Error);
             }
+
+            soldPlan = sold.Value.IsSingleSession ? null : sold.Value;
         }
 
         // Tracked, not AsNoTracking: InEffectToday may move the queue up, and those changes are
@@ -107,10 +116,21 @@ public sealed class CheckInHandler(
             return Result.Failure<AttendanceResponse>(NothingUsableToday(today, live));
         }
 
-        var consumed = subscription.ConsumeSession(today);
-        if (consumed.IsFailure)
+        // The member's first visit on their birthday uses no session of their plan (BUSINESS_RULES.md
+        // §7 Birthday visit), a plan sold in this box included. The plan must still be usable today,
+        // so it meets the same refusals as ConsumeSession. The member is locked above, so a second
+        // check-in cannot slip in between this question and the save; the index backs it up.
+        var birthdayYear = BirthdayVisit.FreeYear(member.BirthDate, subscription, today);
+        if (birthdayYear is { } year && await db.Attendances.AnyAsync(
+                a => a.MemberId == memberId && a.BirthdayYear == year && a.CancelledAt == null, cancellationToken))
         {
-            return Result.Failure<AttendanceResponse>(consumed.Error);
+            birthdayYear = null;
+        }
+
+        var used = birthdayYear is null ? subscription.ConsumeSession(today) : subscription.EnsureActive(today);
+        if (used.IsFailure)
+        {
+            return Result.Failure<AttendanceResponse>(used.Error);
         }
 
         // The place the desk chose, after the subscription: a member who cannot come in today hears
@@ -128,7 +148,7 @@ public sealed class CheckInHandler(
             }
 
             lockerNumber = locker.Value;
-            attendance = Attendance.CheckIn(memberId, subscription.Id, lockerId, now);
+            attendance = Attendance.CheckIn(memberId, subscription.Id, lockerId, now, birthdayYear);
         }
         else
         {
@@ -138,7 +158,7 @@ public sealed class CheckInHandler(
                 return Result.Failure<AttendanceResponse>(reserveSlot.Error);
             }
 
-            attendance = Attendance.CheckInOnReservePlace(memberId, subscription.Id, reserveSlot.Value, now);
+            attendance = Attendance.CheckInOnReservePlace(memberId, subscription.Id, reserveSlot.Value, now, birthdayYear);
         }
 
         db.Attendances.Add(attendance);
@@ -160,13 +180,21 @@ public sealed class CheckInHandler(
             return Result.Failure<AttendanceResponse>(AttendanceErrors.LockerTaken);
         }
         catch (UniqueConstraintException exception)
-            when (exception.ConstraintName is AttendanceConstraints.OneOpenPerMember or AttendanceConstraints.OneOpenPerReserveSlot)
+            when (exception.ConstraintName is AttendanceConstraints.OneOpenPerMember
+                or AttendanceConstraints.OneOpenPerReserveSlot
+                or AttendanceConstraints.OneBirthdayVisitPerMemberAndYear)
         {
             return Result.Failure<AttendanceResponse>(AttendanceErrors.ChangedConcurrently);
         }
         catch (DbUpdateConcurrencyException)
         {
             return Result.Failure<AttendanceResponse>(SubscriptionErrors.ChangedConcurrently);
+        }
+
+        // A plan sold in this box may be the member's first (BUSINESS_RULES.md §10 The welcome).
+        if (soldPlan is not null)
+        {
+            await welcomes.QueueIfFirstPlanAsync(soldPlan.Id, cancellationToken);
         }
 
         // BUSINESS_RULES.md §7: money owed never blocks a check-in. The visit is already committed;
@@ -184,7 +212,7 @@ public sealed class CheckInHandler(
     /// Nothing is committed until the visit is: if the member still cannot come in today (a plan
     /// queued behind a frozen one, say), or the locker is gone, the sale is rolled back with it.
     /// </summary>
-    private async Task<Result> SellAsync(Member member, CheckInSale sale, DateOnly today, CancellationToken cancellationToken)
+    private async Task<Result<Subscription>> SellAsync(Member member, CheckInSale sale, DateOnly today, CancellationToken cancellationToken)
     {
         var added = sale.Kind == CheckInSaleKind.SingleVisit
             ? await seller.AddSingleVisitAsync(member, today, cancellationToken)
@@ -193,7 +221,7 @@ public sealed class CheckInHandler(
 
         if (added.IsFailure)
         {
-            return Result.Failure(added.Error);
+            return added;
         }
 
         try
@@ -202,14 +230,14 @@ public sealed class CheckInHandler(
         }
         catch (ExclusionConstraintException exception) when (exception.ConstraintName == SubscriptionConstraints.NoOverlap)
         {
-            return Result.Failure(SubscriptionErrors.ChangedConcurrently);
+            return Result.Failure<Subscription>(SubscriptionErrors.ChangedConcurrently);
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Result.Failure(SubscriptionErrors.ChangedConcurrently);
+            return Result.Failure<Subscription>(SubscriptionErrors.ChangedConcurrently);
         }
 
-        return Result.Success();
+        return added;
     }
 
     /// <summary>

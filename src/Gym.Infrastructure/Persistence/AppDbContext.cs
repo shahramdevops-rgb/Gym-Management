@@ -77,6 +77,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<SmsSettings> SmsSettings => Set<SmsSettings>();
 
+    public DbSet<SmsBroadcast> SmsBroadcasts => Set<SmsBroadcast>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
 

@@ -1,13 +1,26 @@
 import { toPersianDigits } from "@/lib/format";
 
-import type { SmsMessage, SmsMessageKind, SmsMessageStatus } from "./api";
+import type {
+  BroadcastAudience,
+  BroadcastStatus,
+  BroadcastStopReason,
+  SmsMessage,
+  SmsMessageKind,
+  SmsMessageStatus,
+} from "./api";
 
-/** The four kinds by the names the settings page gives them (BUSINESS_RULES.md §10 *The four kinds*). */
+/** Each kind by the name the settings page gives it (BUSINESS_RULES.md §10 *The four kinds*, *The daily report*, *The subscription receipt*, *The welcome*, *The debt reminder*, *The absence SMS*, *The broadcast*). */
 export const smsKindLabels: Record<SmsMessageKind, string> = {
   SubscriptionExpiring: "پایان اشتراک",
   LowSessions: "جلسات رو به اتمام",
   Birthday: "تولد",
   PayableDue: "چک و قسط",
+  DailyReport: "گزارش روزانه",
+  SubscriptionReceipt: "رسید خرید اشتراک",
+  Welcome: "خوش‌آمد",
+  DebtReminder: "یادآوری بدهی",
+  Absence: "پیامک غیبت",
+  Broadcast: "پیامک گروهی",
 };
 
 export const smsStatusLabels: Record<SmsMessageStatus, string> = {
@@ -15,6 +28,27 @@ export const smsStatusLabels: Record<SmsMessageStatus, string> = {
   Sent: "ارسال شد",
   Failed: "ناموفق",
   Unknown: "نامعلوم",
+};
+
+/** Who a broadcast goes to (BUSINESS_RULES.md §10 *The broadcast*). */
+export const broadcastAudienceLabels: Record<BroadcastAudience, string> = {
+  ActiveMembers: "همه اعضای فعال",
+  MembersWithUsablePlan: "اعضای دارای پلن",
+};
+
+export const broadcastStatusLabels: Record<BroadcastStatus, string> = {
+  Sending: "در حال ارسال",
+  Finished: "فرستاده شد",
+  Stopped: "متوقف شد",
+};
+
+/** Why a broadcast stopped before everyone was reached; the Owner can continue it. */
+export const broadcastStopReasonLabels: Record<BroadcastStopReason, string> = {
+  CreditExhausted: "اعتبار پنل تمام شد",
+  OutsideSendingHours: "ساعت ارسال (۸ تا ۲۲) تمام شد",
+  TurnedOff: "پیامک‌ها یا پیامک گروهی خاموش شد",
+  Error: "خطای پیش‌بینی‌نشده",
+  TooLong: "متن برای نام یکی از اعضای تازه از ۳ بخش بیشتر شد",
 };
 
 export const smsDeliveryLabels: Record<NonNullable<SmsMessage["delivery"]>, string> = {

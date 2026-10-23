@@ -612,8 +612,23 @@
 
   /* A long stay's full bar, blinking slowly but clearly: it glows red, then nearly fades out (§6). */
   --animate-stay-blink: stay-blink 2s ease-in-out infinite;
+  /* The SMS credit nearly gone (§10): the whole pill flashes solid red, fast, then back. */
+  --animate-credit-blink: credit-blink 0.9s ease-in-out infinite;
   /* A door whose state changed since the last refresh: one pulse, then still. */
   --animate-door-changed: door-changed 1.4s ease-out forwards;
+
+  @keyframes credit-blink {
+    0%,
+    100% {
+      background-color: var(--destructive);
+      color: var(--destructive-foreground);
+      box-shadow: 0 0 12px 2px var(--destructive);
+    }
+    50% {
+      background-color: transparent;
+      box-shadow: none;
+    }
+  }
 
   @keyframes stay-blink {
     0%,

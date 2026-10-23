@@ -2,6 +2,7 @@ using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Common;
 using Gym.Application.Common.Sms;
+using Gym.Application.Notifications;
 using Gym.Application.Notifications.SendDailySms;
 using Gym.Domain.Common;
 using Gym.Domain.Expenses;
@@ -122,7 +123,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         result.ShouldBe(new SmsRunResult(Ran: true, Sent: 1));
         var request = sender.Requests.ShouldHaveSingleItem();
         request.Receptor.ShouldBe(inside.PhoneNumber);
-        request.Text.ShouldBe(SmsText.ForRunningOut(Name, plan.EndDate));
+        request.Text.ShouldBe(SmsText.ForRunningOut(Name, plan.EndDate, plan.RemainingSessions));
 
         var stored = (await NotificationsAsync()).ShouldHaveSingleItem();
         stored.Kind.ShouldBe(NotificationKind.SubscriptionExpiring);
@@ -245,6 +246,46 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         request.Text.ShouldBe(SmsText.ForFewSessionsLeft(Name, 2));
     }
 
+    [Theory]
+    [InlineData(8, 1, true)]
+    [InlineData(8, 2, false)]
+    [InlineData(9, 2, true)]
+    [InlineData(15, 2, true)]
+    [InlineData(15, 3, false)]
+    [InlineData(16, 3, true)]
+    [InlineData(140, 3, true)]
+    [InlineData(140, 4, false)]
+    public async Task Handle_LowSessionsByPlanSize_EachPlanAtItsOwnRow(int sessions, int left, bool sent)
+    {
+        // Task 10.17: plans of 5 to 8 sessions at 1 left, up to 15 at 2, bigger at 3.
+        await SaveSettingsAsync(settings => settings.Update(
+            enabled: true,
+            SmsKindSettings.Off,
+            new LowSessionsSettings(true, 8, 15, 1, 2, 3, new TimeOnly(10, 0)),
+            SmsKindSettings.Off,
+            SmsKindSettings.Off,
+            OwnerPhone,
+            dailyReportEnabled: false,
+            dailyReportPhone: null,
+            dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
+            subscriptionReceiptEnabled: false,
+            welcomeEnabled: false,
+            debtReminder: SmsKindSettings.Off,
+            debtReminderMinAmount: null,
+            absence: SmsKindSettings.Off,
+            broadcastEnabled: false));
+        await AddPlanWithSessionsLeftAsync(await AddMemberAsync(), left, sessions: sessions);
+        var sender = new ScriptedSmsSender();
+
+        await RunAsync(NotificationKind.LowSessions, sender);
+
+        sender.Requests.Count.ShouldBe(sent ? 1 : 0);
+        if (sent)
+        {
+            sender.Requests[0].Text.ShouldBe(SmsText.ForFewSessionsLeft(Name, left));
+        }
+    }
+
     [Fact]
     public async Task Handle_LowSessionsAndExpiringForOnePlan_SendsOneOfEach()
     {
@@ -264,48 +305,77 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
     // ---- Birthday ----
 
     [Fact]
-    public async Task Handle_Birthday_DeactivatedAndWithoutSubscriptionBothGetIt()
+    public async Task Handle_Birthday_OnlyActiveMembersHoldingAPlanGetIt()
     {
-        await TurnOnAsync(NotificationKind.Birthday, 0);
-        var bornToday = JalaliCalendar.ToDate(1370, 7, 14);
-        var active = await AddMemberAsync(birthDate: bornToday);
-        var deactivated = await AddMemberAsync(birthDate: bornToday, active: false);
-        await AddMemberAsync();
+        // Task 10.8: the SMS tells of the free visit, so only an active member with a plan, active,
+        // frozen or bought for later; a used-up plan, a single visit or none does not count.
+        await TurnOnAsync(NotificationKind.Birthday, 3);
+        var born = JalaliCalendar.ToDate(1370, 7, 16);
+        var withPlan = await AddMemberAsync(birthDate: born);
+        await AddPlanEndingInAsync(withPlan, daysLeft: 10);
+        var frozen = await AddMemberAsync(birthDate: born);
+        var frozenPlan = Subscription.CreateMembership(frozen.Id, Sessions, 90_000m, Today.AddDays(-5)).Value;
+        frozenPlan.Freeze(Today, maxFreezeDays: 30).IsSuccess.ShouldBeTrue();
+        await AddSubscriptionAsync(frozenPlan);
+        var queued = await AddMemberAsync(birthDate: born);
+        await AddSubscriptionAsync(Subscription.CreateMembership(queued.Id, Sessions, 90_000m, Today.AddDays(5)).Value);
+        var deactivated = await AddMemberAsync(birthDate: born, active: false);
+        await AddPlanEndingInAsync(deactivated, daysLeft: 10);
+        await AddMemberAsync(birthDate: born);
+        var singleVisitOnly = await AddMemberAsync(birthDate: born);
+        await AddSubscriptionAsync(Subscription.CreateSingleVisit(singleVisitOnly.Id, 1m, Today).Value);
+        var usedUp = await AddMemberAsync(birthDate: born);
+        await AddPlanWithSessionsLeftAsync(usedUp, left: 0);
         var sender = new ScriptedSmsSender();
 
         await RunAsync(NotificationKind.Birthday, sender);
 
-        sender.Requests.Select(request => request.Receptor).ShouldBe([active.PhoneNumber, deactivated.PhoneNumber], ignoreOrder: true);
-        sender.Requests[0].Text.ShouldBe($"{Name} عزیز، امروز ۱۴۰۵/۰۷/۱۴ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
+        sender.Requests.Select(request => request.Receptor)
+            .ShouldBe([withPlan.PhoneNumber, frozen.PhoneNumber, queued.PhoneNumber], ignoreOrder: true);
+        sender.Requests[0].Text.ShouldBe(
+            $"{SmsText.FirstName(Name)} عزیز سلام، ۰۷/۱۶ روز تولدته؛ اون روز مهمون باشگاه پاسارگاد هستی و ورودت رایگانه. پیشاپیش تولدت مبارک رفیق!!\nلغو11");
         (await NotificationsAsync()).ShouldAllBe(notification => notification.JalaliYear == 1405);
+    }
+
+    [Fact]
+    public async Task Handle_BirthdayToday_SendsNothing()
+    {
+        await TurnOnAsync(NotificationKind.Birthday, 7);
+        var member = await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1370, 7, 14));
+        await AddPlanEndingInAsync(member, daysLeft: 10);
+        var sender = new ScriptedSmsSender();
+
+        await RunAsync(NotificationKind.Birthday, sender);
+
+        sender.Requests.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Handle_BirthdayDaysAhead_OncePerJalaliYearAcrossTheWindow()
     {
         await TurnOnAsync(NotificationKind.Birthday, 3);
-        await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1370, 7, 16));
+        var member = await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1370, 7, 16));
+        await AddPlanEndingInAsync(member, daysLeft: 10);
         var sender = new ScriptedSmsSender();
 
         await RunAsync(NotificationKind.Birthday, sender);
         await RunAsync(NotificationKind.Birthday, sender, at: At(Today.AddDays(1), 10, 0));
 
-        sender.Requests.ShouldHaveSingleItem().Text
-            .ShouldBe($"{Name} عزیز، تولدتان در ۱۴۰۵/۰۷/۱۶ را پیشاپیش تبریک می‌گوییم. باشگاه پاسارگاد");
+        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{SmsText.FirstName(Name)} عزیز سلام، ۰۷/۱۶ روز تولدته؛");
     }
 
     [Fact]
-    public async Task Handle_BirthdayBornOn30EsfandInACommonYear_GreetedOn29Esfand()
+    public async Task Handle_BirthdayBornOn30EsfandInACommonYear_GreetedFor29Esfand()
     {
-        await TurnOnAsync(NotificationKind.Birthday, 0);
-        await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1379, 12, 30));
+        await TurnOnAsync(NotificationKind.Birthday, 1);
+        var day = JalaliCalendar.ToDate(1404, 12, 28);
+        var member = await AddMemberAsync(birthDate: JalaliCalendar.ToDate(1379, 12, 30));
+        await AddSubscriptionAsync(Subscription.CreateMembership(member.Id, Sessions, 90_000m, day.AddDays(-3)).Value);
         var sender = new ScriptedSmsSender();
 
-        await RunAsync(NotificationKind.Birthday, sender, at: At(JalaliCalendar.ToDate(1404, 12, 29), 10, 0));
+        await RunAsync(NotificationKind.Birthday, sender, at: At(day, 10, 0));
 
-        // The day itself, so the «تولدتان مبارک» text, not the «پیشاپیش» one.
-        sender.Requests.ShouldHaveSingleItem().Text
-            .ShouldBe($"{Name} عزیز، امروز ۱۴۰۴/۱۲/۲۹ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد");
+        sender.Requests.ShouldHaveSingleItem().Text.ShouldStartWith($"{SmsText.FirstName(Name)} عزیز سلام، ۱۲/۲۹ روز تولدته؛");
     }
 
     // ---- Cheques and instalments ----
@@ -325,8 +395,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         sender.Requests.Count.ShouldBe(2);
         sender.Requests.ShouldAllBe(request => request.Receptor == OwnerPhone);
-        sender.Requests[0].Text.ShouldBe("یادآوری قسط: ۲٬۰۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۴، به بانک ملت");
-        sender.Requests[1].Text.ShouldBe("یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۷، به فروشگاه تجهیزات ورزشی");
+        sender.Requests[0].Text.ShouldBe("یادآوری قسط: ۲٬۰۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۴، به بانک ملت\nلغو11");
+        sender.Requests[1].Text.ShouldBe("یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۱۷، به فروشگاه تجهیزات ورزشی\nلغو11");
     }
 
     [Fact]
@@ -559,7 +629,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Notifications.Add(Notification.ForSubscriptionExpiring(
-                member.Id, plan.Id, member.PhoneNumber, SmsText.ForRunningOut(Name, plan.EndDate)));
+                member.Id, plan.Id, member.PhoneNumber, SmsText.ForRunningOut(Name, plan.EndDate, plan.RemainingSessions)));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
@@ -606,7 +676,14 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
-        var handler = new SendDailySmsHandler(db, calendar, time, sender, retries, NullLogger<SendDailySmsHandler>.Instance);
+        var handler = new SendDailySmsHandler(
+            db,
+            calendar,
+            new SmsBatchSender(db, calendar, time, sender, retries),
+            scope.ServiceProvider.GetRequiredService<DailyReportCandidate>(),
+            scope.ServiceProvider.GetRequiredService<DebtReminderCandidate>(),
+            scope.ServiceProvider.GetRequiredService<AbsenceCandidate>(),
+            NullLogger<SendDailySmsHandler>.Instance);
 
         return await handler.Handle(kind, TestContext.Current.CancellationToken);
     }
@@ -619,19 +696,39 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         await SaveSettingsAsync(settings => settings.Update(
             allSms,
             kind == NotificationKind.SubscriptionExpiring ? on : SmsKindSettings.Off,
-            kind == NotificationKind.LowSessions ? on : SmsKindSettings.Off,
+            kind == NotificationKind.LowSessions
+                ? new LowSessionsSettings(true, 8, 15, threshold, threshold, threshold, new TimeOnly(10, 0))
+                : LowSessionsSettings.Off,
             kind == NotificationKind.Birthday ? on : SmsKindSettings.Off,
             kind == NotificationKind.PayableDue ? on : SmsKindSettings.Off,
-            OwnerPhone));
+            OwnerPhone,
+            dailyReportEnabled: kind == NotificationKind.DailyReport,
+            kind == NotificationKind.DailyReport ? OwnerPhone : null,
+            dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
+            subscriptionReceiptEnabled: false,
+            welcomeEnabled: false,
+            debtReminder: SmsKindSettings.Off,
+            debtReminderMinAmount: null,
+            absence: kind == NotificationKind.Absence ? on : SmsKindSettings.Off,
+            broadcastEnabled: false));
     }
 
     private Task TurnOnBothSubscriptionKindsAsync() => SaveSettingsAsync(settings => settings.Update(
         enabled: true,
         new SmsKindSettings(true, 3, new TimeOnly(10, 0)),
-        new SmsKindSettings(true, 2, new TimeOnly(10, 0)),
+        new LowSessionsSettings(true, 8, 15, 2, 2, 2, new TimeOnly(10, 0)),
         SmsKindSettings.Off,
         SmsKindSettings.Off,
-        OwnerPhone));
+        OwnerPhone,
+        dailyReportEnabled: false,
+        dailyReportPhone: null,
+        dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
+        subscriptionReceiptEnabled: false,
+        welcomeEnabled: false,
+        debtReminder: SmsKindSettings.Off,
+        debtReminderMinAmount: null,
+        absence: SmsKindSettings.Off,
+        broadcastEnabled: false));
 
     private async Task SaveSettingsAsync(Func<SmsSettings, Result> update)
     {
@@ -665,10 +762,11 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
     private Task<Subscription> AddPlanEndingInAsync(Member member, int daysLeft) =>
         AddSubscriptionAsync(Subscription.CreateMembership(member.Id, Sessions, 90_000m, Today.AddDays(daysLeft - PlanDays + 1)).Value);
 
-    private Task<Subscription> AddPlanWithSessionsLeftAsync(Member member, int left, int daysLeft = 20)
+    private Task<Subscription> AddPlanWithSessionsLeftAsync(Member member, int left, int daysLeft = 20, int sessions = Sessions)
     {
-        var plan = Subscription.CreateMembership(member.Id, Sessions, 90_000m, Today.AddDays(daysLeft - PlanDays + 1)).Value;
-        for (var i = 0; i < Sessions - left; i++)
+        var days = Subscription.DurationDaysFor(sessions).Value;
+        var plan = Subscription.CreateMembership(member.Id, sessions, 90_000m, Today.AddDays(daysLeft - days + 1)).Value;
+        for (var i = 0; i < sessions - left; i++)
         {
             plan.ConsumeSession(Today).IsSuccess.ShouldBeTrue();
         }

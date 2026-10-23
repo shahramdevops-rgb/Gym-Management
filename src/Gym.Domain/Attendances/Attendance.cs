@@ -47,6 +47,22 @@ public sealed class Attendance : Entity
     public bool IsCardioOnly { get; private set; }
 
     /// <summary>
+    /// Set on the member's birthday visit (BUSINESS_RULES.md §7 <i>Birthday visit</i>): the Jalali year
+    /// of the birthday, and no session was consumed from <see cref="SubscriptionId"/>. <c>null</c> on
+    /// every other visit. A partial unique index allows one per member and year, cancelled ones aside.
+    /// </summary>
+    public int? BirthdayYear { get; private set; }
+
+    /// <summary>The visit was free for the member's birthday (<see cref="BirthdayYear"/>).</summary>
+    public bool IsBirthdayVisit => BirthdayYear is not null;
+
+    /// <summary>
+    /// Whether a session was consumed from <see cref="SubscriptionId"/>, so cancelling gives it back:
+    /// not on a guest's visit, a cardio-only one or a birthday visit (BUSINESS_RULES.md §7).
+    /// </summary>
+    public bool ConsumedSession => SubscriptionId is not null && !IsCardioOnly && !IsBirthdayVisit;
+
+    /// <summary>
     /// The full name the desk typed for a guest (BUSINESS_RULES.md §7 <i>Guest visit</i>), trimmed
     /// and otherwise as typed, like <see cref="Member.FullName"/>. <c>null</c> on a member's visit.
     /// A guest is never searched for on the server, so there is no normalized copy.
@@ -103,13 +119,19 @@ public sealed class Attendance : Entity
     public uint Version { get; private set; }
 
     /// <summary>A visit with the locker the desk chose (BUSINESS_RULES.md §7, step 3).</summary>
-    public static Attendance CheckIn(Guid memberId, Guid subscriptionId, Guid lockerId, DateTimeOffset checkedInAt) =>
+    /// <param name="birthdayYear">
+    /// The year of the birthday this visit is free for (<see cref="BirthdayVisit.FreeYear"/>), or
+    /// <c>null</c> for a visit that consumed a session. Which it is, is the caller's question.
+    /// </param>
+    public static Attendance CheckIn(
+        Guid memberId, Guid subscriptionId, Guid lockerId, DateTimeOffset checkedInAt, int? birthdayYear = null) =>
         new()
         {
             MemberId = memberId,
             SubscriptionId = subscriptionId,
             LockerId = lockerId,
             CheckedInAt = checkedInAt,
+            BirthdayYear = birthdayYear,
         };
 
     /// <summary>
@@ -118,7 +140,8 @@ public sealed class Attendance : Entity
     /// answers them; a number outside 1–<see cref="ReservePlaceCount"/> is a bug, not a business
     /// failure.
     /// </summary>
-    public static Attendance CheckInOnReservePlace(Guid memberId, Guid subscriptionId, int reserveSlot, DateTimeOffset checkedInAt)
+    public static Attendance CheckInOnReservePlace(
+        Guid memberId, Guid subscriptionId, int reserveSlot, DateTimeOffset checkedInAt, int? birthdayYear = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(reserveSlot, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(reserveSlot, ReservePlaceCount);
@@ -129,6 +152,7 @@ public sealed class Attendance : Entity
             SubscriptionId = subscriptionId,
             ReserveSlot = reserveSlot,
             CheckedInAt = checkedInAt,
+            BirthdayYear = birthdayYear,
         };
     }
 

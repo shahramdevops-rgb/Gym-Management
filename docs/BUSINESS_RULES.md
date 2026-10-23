@@ -49,6 +49,8 @@ Decided values:
 - A run the server missed (it was down at the send time) is made when the server is back **the
   same day, before 22:00**; after 22:00 that day's run is skipped, and the next day's run reaches
   whoever is still covered (decided with the developer, 1405/07/14, task 10.3).
+  The daily report (§10) is made until midnight instead (decided with the developer, 1405/07/27,
+  task 10.7): a missed run of its chosen time is still made the same night.
 - A cheque or instalment whose date is changed after its SMS was sent **gets no second SMS**:
   one per cheque or instalment, whatever its date becomes (decided with the developer,
   1405/07/14, task 10.3). The header alert and the dashboard follow the new date.
@@ -735,7 +737,8 @@ The request names the locker the desk chose, or asks for a reserve place (§6). 
 sale — a single visit or a plan — which is made first, in the same transaction, and is then what
 step 1 finds (*Confirming at the front desk*).
 1. Load the subscription that is in effect today — an `Active` one always wins over a queued renewal that ends later. If none is active, apply the exhausted-with-a-queue rule above. If still none and a membership is frozen, unfreeze it (§4 *Freeze*) — unless the request carries a sale.
-2. `subscription.ConsumeSession(today)`.
+2. `subscription.ConsumeSession(today)` — except on the member's birthday visit (*Birthday visit*),
+   which checks that the plan is usable today and consumes nothing.
 3. Take the place the desk chose (decided by the Owner, 1405/07/05; this replaces the random pick):
    - **A locker:** it must exist (`Lockers.NotFound`), be in service (`Lockers.OutOfService`), and
      have no open attendance (`Attendance.LockerTaken`). Two desks choosing the same free locker
@@ -862,7 +865,7 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 
 ### Cancel check-in
 - Allowed only for an open attendance within `Gym:CancelCheckInWindowMinutes` of check-in.
-- Restores the session, frees the locker, and marks the attendance cancelled (who and when). The row is kept.
+- Restores the session, frees the locker, and marks the attendance cancelled (who and when). The row is kept. A visit that used no session (a birthday visit, a cardio-only one, a guest's) has none to restore.
 - A freeze the check-in ended stays ended (§4 *Freeze*): the Owner freezes the plan again if it was a mistake.
 - Cancelled attendances are excluded from attendance reports.
 - **What the visit bought is cancelled only when the desk says so, one purchase at a time**
@@ -884,6 +887,36 @@ Decided with the developer, 1405/07/04. Where check-in happens changed with the 
 
 ### Auto-checkout
 - A nightly job at `Gym:ClosingTime` closes all open attendances and marks them `AutoClosed`. The session stays consumed. Two kinds of visit stay open for the desk the next day: a cardio-only visit with no هوازی amount (*Cardio-only visit*), and a guest's visit with anything still unpaid (*Guest visit*).
+
+### Birthday visit (ورود رایگان تولد)
+Decided with the developer, 1405/07/27 (2026-10-19), roadmap 10.8. The birthday SMS (§10) tells
+the member of it; the visit is free whether or not the SMS went out.
+- **On their birthday, a member's first visit uses no session of their plan**, like a guest's
+  (§7 *Guest visit*). The birthday is the Jalali month and day, the same day the desk celebrates
+  (§6 *The desk panel*; 29 Esfand for someone born on 30 Esfand in a year without it). The day they
+  were born is not a birthday.
+- **It is automatic**: the desk chooses nothing. Check-in finds the subscription as always (*Check-in*
+  step 1); when that is a **membership plan** (§4, not a single visit), the visit is the birthday
+  visit: the plan must still be usable today (`Active`, the same refusals as `ConsumeSession`), and
+  `UsedSessions` does not change.
+  - A frozen plan is unfrozen by the check-in as usual (§4 *Freeze*), and then uses no session.
+  - **A plan sold with the check-in counts too** (decided by the developer, 1405/07/27): someone who
+    buys a plan at the locker on their birthday comes in on it for free.
+  - A **single visit** is never free: when check-in uses one (one held for today, or one sold in the
+    box), it is used as usual, the money already paid for it.
+  - A cardio-only visit (*Cardio-only visit*) uses no session anyway and is not a birthday visit.
+- **Once per birthday**: the second visit on the same day uses a session as usual. The database
+  holds it too: a partial unique index allows one birthday visit per member and Jalali year, not
+  counting cancelled ones.
+- **Cancelling it** (*Cancel check-in*) gives no session back, since none was used; the visit no
+  longer counts, so the member's next visit that day is the free one.
+- **No money moves**: nothing is sold or recorded at zero, so the financial report is unchanged and
+  no record is deleted. The visit is ordinary attendance and is counted in every attendance report
+  and in the daily report's «ورود» (§10).
+- **On screen**: the check-in box says before confirming that today is the member's birthday and
+  the visit on their plan is free, and afterwards that no session was used; the visit is marked
+  «تولد» wherever visits are listed (the board, the locker's box, the member's history and the
+  history page).
 
 ### Guest visit (ورود مهمان)
 Decided by the developer, 1405/07/07 (2026-09-29). Implemented in roadmap 6.5.11. This replaces
@@ -1297,29 +1330,255 @@ sent that the Owner did not choose, and the same message is never paid for twice
 - **Subscription running out (`SubscriptionExpiring`)**, to the member: an `Active` subscription
   (not frozen, not queued) whose `EndDate` is at most *N days* away, today included.
 - **Few sessions left (`LowSessions`)**, to the member: an `Active` subscription with at most
-  *N sessions* left.
-- For both: a single-session visit never gets one; a deactivated member never gets one; **a member
+  *N sessions* left, where *N* depends on the plan's size (decided with the developer, 1405/08/01,
+  task 10.17): three rows, plans of 5 sessions (the smallest plan, §3) up to a size the Owner
+  chooses (8 at first), up to a second size (15 at first), and every bigger plan, each with its own
+  *N* from **1 to 4**. The plan's size is the sessions bought on it. The first row ends at 5 to 139
+  sessions, the second above it and at most 140 (`Sms.LowSessionsSmallPlanMaxOutOfRange`,
+  `Sms.LowSessionsMediumPlanMaxOutOfRange`, `Sms.LowSessionsOutOfRange`); the database holds the
+  same. When the rows came in, the one number the Owner had chosen was carried into all three,
+  capped at 4.
+- For both: a single-session visit never gets one; a deactivated member never gets one (nor any
+  member's SMS, the broadcast included, except the debt reminder, *The debt reminder*); **a member
   who has already bought the next subscription** (a queued one, §4 `Upcoming`, not cancelled) never
   gets one, since they have renewed and the message would only cost money. If that queued one is
   cancelled later, the member counts as not renewed again, and the next run may send it.
 - **Birthday (`Birthday`)**, to the member: *N days* before the member's birthday by the **Jalali**
   month and day, the same day the desk celebrates (§6 *The desk panel*: someone born on 30 Esfand has
-  their birthday on 29 Esfand in a year without it). It works as a window, like the other kinds
-  (decided with the developer, 1405/07/14, task 10.3): with *N* = 0 it goes on the birthday itself;
-  with *N* from 1 to 7 it goes when the birthday is between tomorrow and *N* days ahead, so a missed
-  day or a member registered a few days before still gets it, and the «پیشاپیش» greeting never
-  arrives on the day itself. **Every member with a birth date gets it**:
-  active or deactivated, with a plan, frozen, single-session only, or with no subscription at all
-  (decided with the developer: the one exception to "deactivated members receive no SMS"). At most
-  once per member per Jalali year.
+  their birthday on 29 Esfand in a year without it), telling them that **on their birthday the gym
+  is free for them** (§7 *Birthday visit*). It works as a window, like the other kinds (decided with
+  the developer, 1405/07/14, task 10.3): *N* is 1 to 7, and it goes when the birthday is between
+  tomorrow and *N* days ahead, so a missed day or a member registered a few days before still gets
+  it. **Never on the day itself** (decided with the developer, 1405/07/27, task 10.8; replaces "0 =
+  the day itself"): the member hears of the free visit early enough to plan it.
+  **Only an active member who holds a plan gets it** (decided with the developer, 1405/07/27, task
+  10.8; replaces "every member with a birth date, deactivated ones included"): on the day the SMS
+  is written, a membership plan (§4, not a single visit, not cancelled) that is active, frozen, or
+  bought for later. A plan whose sessions are used up or whose days have ended does not count, nor
+  does a deactivated member. At most once per member per Jalali year.
 - **Cheque or instalment coming due (`PayableDue`)**, to the **Owner**: a pending cheque or
   instalment (§9 *Cheques and instalments*) dated between today and *N days* ahead. **One SMS for
   each cheque and each instalment**, never a daily summary (decided with the developer). A paid or
   cancelled one gets none.
 - **Each event is sent once**, enforced by unique indexes in the database: one `SubscriptionExpiring`
   and one `LowSessions` per subscription, one `Birthday` per member and Jalali year, one `PayableDue`
-  per cheque or instalment. Running the job twice sends nothing twice. A cheque or instalment whose
-  date is changed after its SMS went out gets no second one (§0).
+  per cheque or instalment, one `DailyReport` per day (*The daily report* below), one
+  `SubscriptionReceipt` per subscription (*The subscription receipt* below), one `Welcome` per
+  member (*The welcome* below), one `DebtReminder` per member and debt (*The debt reminder*
+  below), one `Absence` per member and absence (*The absence SMS* below), one `Broadcast` per
+  member and broadcast (*The broadcast* below). Running the job twice sends nothing twice. A cheque or instalment whose date is changed after its SMS went out
+  gets no second one (§0).
+
+### The daily report (گزارش روزانه)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.7. The first of the kinds added after
+the four above (roadmap 10.7 to 10.13).
+- **One SMS a day to the Owner (`DailyReport`)**, about **that same day**, sent at the time the
+  Owner chooses on the settings page, **08:00 to 23:45** on a quarter hour (Asia/Tehran; decided with
+  the developer, 1405/08/01, task 10.17, replacing "22:45, fixed in the code"; it was 22:45 until
+  the Owner changes it, `Sms.DailyReportSendTimeOutOfRange`). It covers the day up to the moment it
+  goes: whatever is recorded after it and before midnight is in no report. The gym is open until
+  midnight (`Gym:ClosingTime`), and the developer chose the evening of the day itself over the next
+  morning. Sending it after the last check-out of the day was considered and dropped: the system
+  cannot know which check-out is the last (the gym can be empty in the afternoon, a forgotten
+  check-out keeps it from ever emptying, and the auto-checkout runs at midnight, the next day).
+- **Its own hours: 08:00 until midnight**, instead of 08:00–22:00, for this kind only. A retry, a
+  run the server missed and a resend by hand may be made until 23:59; the members' messages and the
+  cheque reminder keep 08:00–22:00.
+- **What it says**, the figures of the dashboard (§12 *Financial report*, *Dashboard*) for that one
+  day, so the SMS and the dashboard never disagree:
+  - **ورود**: the members' check-ins of the day, by the moment they began, cancelled ones left out,
+    cardio-only visits counted, guests left out (§12 *Attendance*, §7).
+  - **پلن** and **تک‌جلسه**: the membership plans and the single visits sold that day, by the day of
+    the sale, cancelled ones left out, each counted on its own.
+  - **دریافتی**: the dashboard's «دریافتی» for the day (§12 *Financial report*): every payment
+    taken that day less every refund given, old debts included, **without فروشگاه, آنالیز and
+    متفرقه**. Then cash, card and bank transfer, each on its own line; **the cash line is left out on
+    a day with no cash**, card and transfer are always there. A method can come out below zero (more
+    refunded than taken); it is written with a minus sign.
+  - **In thousands of Toman** (the developer, 1405/07/27): every amount is **rounded to the nearest
+    thousand Toman**, 500 rounded up, and the total says «هزار تومان». Each figure is rounded on its
+    own, so the three lines may add up to one more or one less than the total; the exact figures are
+    on the dashboard. Written in full, the text would run to three parts instead of two.
+- **A day with nothing is not sent**: no check-in, nothing sold and no money in or out (every
+  figure zero). No row is written for it, and nothing is paid.
+- **The Owner's number for it is its own**, on its row of the settings page, apart from the cheque
+  reminder's (the developer, 1405/07/27): the report can go to someone else.
+- **One per day**, enforced by a unique index on the day it is about; the run made twice, or a
+  missed run made late, sends nothing twice.
+
+### The subscription receipt (رسید خرید اشتراک)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.9.
+- **One SMS to the member (`SubscriptionReceipt`) when a plan becomes fully paid** (§4 *Payment
+  status*): sent for the payment that brings its net paid up to the price, so a member who got it
+  has surely paid. A plan paid in parts gets it with the last part; one paid at once, with that
+  payment. Both ways of paying count: the subscription's own payment form and «تسویه یکجا» (§5).
+- **Plans only**: a single visit never gets one (it is sold every day and paid on the spot; the
+  SMS would only cost money), nor does a free plan (`Price = 0`): no money was paid.
+- **Only while it is on**: a payment gets a receipt only when all SMS and this kind are on at the
+  moment the payment is written. Turning it on later sends nothing for payments made before.
+- **When**: at once, in the background, so the desk never waits for Kavenegar. A payment made
+  outside 08:00–22:00 has its receipt sent **at 10:00 the next morning** (Asia/Tehran; the same
+  morning for one made before 08:00), fixed in the code. A receipt whose time comes while the server
+  is down is sent once it is back, or at the next 10:00 if that is outside 08:00–22:00.
+- **Checked again when it is sent**: nothing goes if all SMS or this kind has been turned off since,
+  the subscription has been cancelled, or the member deactivated (as every member's SMS, *The four
+  kinds*). *The deactivated member: proposed by Claude and approved with the plan, 1405/07/27.*
+- **Cancelled after its receipt went out: nothing more** is sent (decided with the developer).
+- **What it says**: the plan's sessions, its dates without the year, and the price paid. A plan
+  queued behind another (§4: its dates are only where it stands today) gives its days and «پس از
+  اشتراک فعلی» instead of dates, the same test as the member's history («بعد از پلن قبلی»).
+- **One per subscription**, enforced by the unique index on the subscription and the kind.
+- **Written before it is sent, retries and resend** as every kind (*The daily runs*): saved as
+  `Pending` before the request; a failure that may pass is tried again until 22:00; the Owner can
+  resend a failed one. A receipt the server stopped between the two saves is found `Pending` when
+  its job is made again after the restart, and becomes `Unknown`, never sent again by itself.
+  Receipts are sent one at a time.
+
+### The welcome (خوش‌آمد)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.10.
+- **One SMS to the member (`Welcome`) when their first membership plan is sold**, paid or not: it is
+  about joining, not about money. The **first plan** is the one sold while the member has no other
+  membership plan that is not cancelled, the same test as «عضو جدید» on the dashboard (§12 *New
+  members*). A single visit never gets one, and single visits bought before do not count as plans.
+- **Every way of selling a plan counts**: assign, renew (a member whose only plans were cancelled can
+  renew into a first plan), and a plan sold with a check-in (§7 *Confirming at the front desk*).
+- **Its price does not matter**: a plan is priced by its sessions (§3), and one that came out at 0
+  (the session price set to 0) is still a member's first plan.
+- **Members who hold plans already never get it**: their next plan is not their first. A member
+  moved over from the paper notebook whose first plan in the system is sold now gets it like anyone
+  new (decided with the developer); the text says nothing that would be wrong for them.
+- **Only while it is on**: a sale gets a welcome only when all SMS and this kind are on at the moment
+  the sale is written. Turning it on later sends nothing for sales made before.
+- **When**: as the receipt (*The subscription receipt*): at once, in the background, so the desk
+  never waits for Kavenegar; a sale made outside 08:00–22:00 has it sent **at 10:00 the next
+  morning**, fixed in the code. A first plan paid at once gets two SMS, the welcome and then its
+  receipt: they are separate kinds with separate switches (decided with the developer).
+- **Checked again when it is sent**: nothing goes if all SMS or this kind has been turned off since,
+  the plan has been cancelled, or the member deactivated. A first plan cancelled **before** its
+  welcome went out sends nothing, and the next plan sold to them is then their first (a plan sold
+  while that one still stood is not, being sold after it). One cancelled
+  **after** sends nothing more, and no later plan gets a welcome.
+- **What it says**: the member's name and the gym's welcome (`docs/sms-texts.md`); two SMS parts since the developer's warmer wording of 1405/08/01 (it was one).
+- **Once per member**, enforced by a unique index on the member for this kind, and once per plan by
+  the index on the subscription and the kind.
+- **Written before it is sent, retries and resend** as the receipt: saved as `Pending` before the
+  request; a failure that may pass is tried again until 22:00; the Owner can resend a failed one; a
+  welcome the server stopped between the two saves becomes `Unknown`, never sent again by itself.
+  Welcomes are sent one at a time.
+
+### The debt reminder (یادآوری بدهی)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.11.
+- **One SMS to the member (`DebtReminder`) when their debt has been owed for a while**: a daily
+  run at the time chosen on the settings page, like the four kinds.
+- **The debt is §5's *Member debt***: every sale not cancelled or voided that is not fully paid
+  (plans, single visits, هوازی, فروشگاه, آنالیز, متفرقه, cafe orders), counted exactly as
+  «مطالبات» and «بدهی‌های قدیمی» count it (§12), so the SMS and the reports never disagree. A
+  guest or a walk-in has no account (§7 *Guest visit*) and never gets one.
+- **The days count from the oldest unpaid sale**: the gym's day it was recorded on, as the
+  receivables' ages (§12). The reminder goes once that sale is **at least *N* days old**: sold on
+  or before today − *N* (*N* = 1: yesterday's debt is reminded today). *The boundary proposed by
+  Claude and approved with the plan, 1405/07/27.*
+- **The minimum amount**: only a member whose whole debt is at least that amount gets it. It is
+  1,000 Toman or more (decided with the developer), typed like every amount (§3: at most 2
+  decimal places, refused rather than rounded).
+- **The amount in the text is the member's whole open account**, newer sales included: the figure
+  the desk and the member list show (§5), so the member comes with one number and clears it all.
+- **Once per debt.** After a reminder, the member gets **no other until everything owed when it
+  was written has been paid** (or cancelled or voided); a debt that builds after that has its own
+  reminder once its oldest sale is *N* days old. In practice the next reminder is due only when
+  the oldest unpaid sale was recorded after the last reminder was written. A partial payment
+  brings no second reminder. *Refined by Claude and approved with the plan, 1405/07/27: "until the
+  debt is back to zero" would never remind again a member who always carries some newer debt.*
+  A reminder that failed counts as written, as every kind: the Owner can resend it (*Sending*).
+- **Deactivated members get it too** (decided with the developer, 1405/07/27): money owed is owed.
+  The one member's SMS that does not leave them out (*The four kinds*).
+- **Checked when the run writes it**: the debt and its amount are read at that moment; there is
+  no later check, since the message is sent at once.
+- **One per member and debt**, enforced by a unique index on the member and the day of the oldest
+  unpaid sale the reminder was about; a run made twice sends nothing twice.
+- **What it says**: the member's name and the whole amount, politely (`docs/sms-texts.md`); two
+  SMS parts.
+
+### The absence SMS (پیامک غیبت)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.12.
+- **One friendly SMS to the member (`Absence`) who has stopped coming**, with no offer in it: a
+  daily run at the time chosen on the settings page, like the four kinds.
+- **Only a member with a plan usable today**: an active member whose membership plan is §4
+  `Active` (not a single visit, not cancelled, not frozen, started and not ended, sessions left).
+  A deactivated member, a frozen plan, a plan bought for later that has not started, and a plan
+  used up or ended get none: the same members as «دیگر نمی‌آید» on «نیاز به اقدام» (§12).
+- **The days count as on «نیاز به اقدام»**: from the gym's day of the member's last visit, or from
+  the plan's start when the member has not come since it started, so a member who bought a plan
+  and never came is counted from its start. A cancelled check-in is not a visit; a cardio-only one
+  is. It goes once the member has been away **at least *N* days**: the last visit (or the start) on
+  or before today − *N*. *N* is **7 to 60** (proposed by Claude and approved with the plan,
+  1405/07/27: fewer than 7 is too soon for someone who comes twice a week). The board's own
+  threshold stays 10 days (§12): the SMS has its own number, because an SMS costs money.
+- **Once per absence**: after it, nothing more until the member comes again; the next absence has
+  its own. An absence is named by the day it counts from, so a member who did not come on one plan
+  and buys another counts from the new plan's start, and that is a new absence. A check-in
+  cancelled after the SMS brings the old absence back, which has had its SMS already. A message
+  that failed counts as written, as every kind: the Owner can resend it (*Sending*).
+- **Checked when the run writes it**; the message is sent at once, so there is no later check.
+- **One per member and absence**, enforced by a unique index on the member and the day the absence
+  counts from; a run made twice sends nothing twice.
+- **What it says** (`docs/sms-texts.md`; rewritten by the developer on 1405/08/01): «{name} عزیز، جات
+  توی باشگاه پاسارگاد خالیه! {days} روزه که باشگاه نیومدی و منتظر حضور گرمت هستیم!», two SMS parts.
+  *{days}* is how long the member has really been away, counted as above, not the settings' *N*.
+
+### The broadcast (پیامک گروهی)
+Decided with the developer on 1405/07/27 (2026-10-19), task 10.13. The one kind whose wording is
+not fixed in the code: the Owner writes it each time (the gym closed for a few hours, a piece of
+news, an offer).
+- **Owner only**, on its own page «پیامک گروهی». Every broadcast is in the audit log (§11).
+- **Who gets it: the Owner chooses each time**, one of two groups:
+  - **«همه اعضای فعال»**: every active member.
+  - **«اعضای دارای پلن»**: every active member with a **plan usable today**, the members the absence
+    SMS looks at (*The absence SMS*): a membership plan that is §4 `Active` (not a single visit, not
+    cancelled, not frozen, started and not ended, sessions left).
+  - A deactivated member never gets it, nor a guest or a walk-in (they are not members, §7).
+- **The text**: the Owner writes the middle; the system puts **«{name} عزیز، »** before it (the
+  member's first name, *Sending*) and the opt-out line after it, as every kind. The Owner's text is
+  trimmed at both ends, keeps its line breaks, and cannot be empty (`Sms.BroadcastTextRequired`).
+- **At most 3 SMS parts** for every recipient (decided with the developer): measured with the
+  **longest first name among the chosen recipients**, so no one's message can come out longer. A
+  text that would make anyone's message longer is refused (`Sms.BroadcastTooLong`). The page counts
+  the characters and parts as the Owner types.
+- **Before sending, a confirmation** shows the number of recipients, the total number of SMS parts
+  (exact: each recipient's own message counted), and the cost **estimated** from the latest message
+  that was sent and charged (its cost divided by its parts, times the total parts), with the
+  account's remaining credit. With no such message yet, only the parts are shown. Kavenegar tells no
+  price before sending, so the estimate is marked «حدود».
+- **A group with nobody in it is refused** (`Sms.BroadcastNoRecipients`): nothing would be sent.
+- **Sent at once**, in the background, only within **08:00–22:00**: outside the hours it is refused
+  (`Notifications.OutsideSendingHours`). There is no chosen time (decided with the developer).
+- **A switch of its own** on the settings page, off at the start, like every kind; the all-SMS
+  switch must be on too. With either off, a broadcast is refused (`Sms.BroadcastOff`).
+- **One broadcast at a time**: while one is sending, another is refused (`Sms.BroadcastInProgress`),
+  enforced by the database too. *Proposed by Claude and approved with the plan, 1405/07/27.*
+- **The recipients are read when the sending starts**, and each message is written and sent as in
+  a run (*The daily runs*): saved `Pending` before its request; a failure that may pass is tried
+  again until 22:00; a message that failed can be resent by hand (*Sending*).
+- **Once per member and broadcast**, enforced by a unique index on the broadcast and the member.
+- **The switches and the hours are read again before every message**, so 22:00, or a switch the
+  Owner turns off, stops a broadcast in the middle; turning the broadcast's switch off is the
+  Owner's brake. The text is measured again when the sending starts: if a member with a longer first
+  name has joined the group since, so that their message would take more than 3 parts, nothing is
+  written and it stops. *Found in review and approved by the developer, 1405/07/27.*
+- **A broadcast that stops before everyone is written** (the credit used up, the hours ended, all
+  SMS or the broadcast turned off, the text grown too long for a new member's name, an unexpected
+  error) is **«متوقف شد»** with its reason. The
+  Owner can **continue it** («ادامه ارسال») under the same rules as a new one (the switches, the
+  hours, the 3 parts): it sends the same text to the members of the same group as it stands then
+  who have no message of this broadcast yet. *Proposed by Claude and approved with the plan,
+  1405/07/27.* A server restart in the middle continues it by itself (at the start, a broadcast
+  still sending is handed to its job again); the message that was in flight becomes `Unknown`
+  (*The daily runs*). A job that fails before it could stop the broadcast stops it with an error,
+  so a broadcast is never left «در حال ارسال» blocking the next one. *Approved by the developer,
+  1405/07/27.*
+- **How it shows**: on «پیامک‌ها» each recipient has a row of their own, of the kind «پیامک
+  گروهی», like every message. The broadcast page lists the broadcasts, the latest first, each with
+  its date, text, group, state, how many were sent, failed or unknown, and its cost.
 
 ### The daily runs
 Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
@@ -1328,14 +1587,14 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   applies from the next run, and a kind turned off has none.
 - A run reads the settings when it starts, and sends nothing when all SMS or its kind is off, or
   when it is outside 08:00–22:00. A run the server missed is made when the server is back the same
-  day, before 22:00 (§0).
+  day, before 22:00 (§0). The daily report's hours run until midnight instead (*The daily report*).
 - **Each message is written before it is sent**, one at a time: the row is saved as `Pending`,
   then the request is made, then its outcome is saved. If the run stops between the two (the
   server restarted), nobody can tell whether the request left, so the next run of that kind marks
   that row `Unknown`, and it is never sent again by itself (the Owner can resend it, task 10.5).
 - **A failure that may pass** is tried again after the others: at most `Sms:MaxAttempts` tries in
   all, waiting `Sms:RetryDelays` between them (1 minute, then 5; §0). After the last try, or when the
-  next try would fall after 22:00, it is `Failed`.
+  next try would fall after 22:00 (after midnight for the daily report), it is `Failed`.
 - **Credit used up** stops the run at once: that message is `Failed`, and those not yet written are
   not written; whoever is still covered the next day is reached by the next day's run. Messages
   waiting for a retry are `Failed` too, since they would meet the same empty account.
@@ -1357,18 +1616,33 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   |---|---|---|
   | All SMS | on/off | |
   | Subscription running out | on/off, days before `EndDate`, send time | 1–30 days |
-  | Few sessions left | on/off, sessions left, send time | 1–10 sessions |
-  | Birthday | on/off, days before the birthday, send time | 0–7 days (0 = the day itself) |
+  | Few sessions left | on/off, two plan sizes that divide three rows, sessions left for each row, send time | 1–4 sessions; first row ends at 5–139, second above it, at most 140 |
+  | Birthday | on/off, days before the birthday, send time | 1–7 days |
   | Cheques and instalments | on/off, days before the date, send time, the Owner's mobile number | 0–30 days |
+  | Daily report | on/off, the mobile number it goes to, send time | 08:00–23:45 |
+  | Subscription receipt | on/off | sent at once; after 22:00 at 10:00, fixed |
+  | Welcome | on/off | sent at once; after 22:00 at 10:00, fixed |
+  | Debt reminder | on/off, days since the oldest unpaid sale, the minimum amount, send time | 1–90 days; 1,000 Toman or more |
+  | Absence | on/off, days away, send time | 7–60 days |
+  | Broadcast | on/off | sent at once from its own page, 08:00–22:00 |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,
   task 10.2; `Sms.SendTimeOutOfRange`). The Owner's number follows the
-  members' phone rules (§2: Iranian mobile only, any digits). There is no template name any more
+  members' phone rules (§2: Iranian mobile only, any digits). So does the daily report's number. There is no template name any more
   (1405/07/16, *Sending*): the wording is fixed in the code.
 - A change applies **from the next run**, never to the past: whoever already got a message does not
   get it again, and raising a number brings in the people it now covers.
 - Every change is in the audit log (§11).
+- **Each kind shows the message it sends** (asked by the developer, 1405/07/28, task 10.15): under
+  its settings, the text exactly as the code writes it, with a sample member («سید علی رضایی», named
+  «علی») and sample figures, and how many SMS parts it takes. It is built by the same code as the real
+  messages, so the page cannot show a wording the members do not get. The kinds are grouped by who
+  receives them: the members, the Owner, and the broadcast.
+- **The broadcast is one card on this page** (*The broadcast*): its switch, and writing and sending
+  one, with the message drawn as it is typed. It has no page, tab or menu item of its own, and no
+  list of the broadcasts sent: their messages are on «پیامک‌ها». Only the latest, while it is
+  sending or stopped, shows on the card, with «ادامه ارسال» (asked by the developer, 1405/07/28).
 - Not on the page: the Kavenegar API key (a secret: an environment variable on the server, user
   secrets on the developer's machine), the dedicated line's number (`Sms:Kavenegar:Sender`, an
   environment variable on the server: it belongs to the account, like the key) and how many times a
@@ -1386,19 +1660,33 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   gym's messages go to its own members through `sms/send` on the dedicated line, with no limit and
   no block from the receiver's advertising setting. Should one still come back blocked, its
   delivery shows it as before (status 14, the cost given back).
+  **Offers and discounts may be sent too** (settled by the developer with Kavenegar on 1405/07/26):
+  the members signed up in the gym's own customer club and were registered at the desk, so any
+  message to them may go from the line.
 - **The wording is fixed in the code** (decided with the developer, 1405/07/16), as agreed on
-  1405/07/14 and kept in `docs/sms-texts.md`. Changing it is a release, not a setting. The values in
+  1405/07/14 and kept in `docs/sms-texts.md`. Changing it is a release, not a setting. The one
+  exception is the broadcast, whose middle the Owner writes each time (*The broadcast*). The values in
   it are written the way the app shows them: Persian digits, a Jalali date as `۱۴۰۵/۰۷/۲۰`, an amount
   with thousands separators.
-- **A long name or payee is cut short**, as it was in the templates' blanks (decided with the
-  developer, 1405/07/14), so one long name cannot make a message cost several parts: a member's name
-  keeps its first 6 words and a payee its first 9, then the first 100 characters.
+- **Every message ends with Kavenegar's opt-out line, `لغو11`**, on a line of its own, English
+  digits, no space (decided with the developer, 1405/07/26, after the first messages from the
+  dedicated line arrived with it). Kavenegar adds it to every message from the line anyway; written
+  by the system, the history keeps the text exactly as it reached the phone, and Kavenegar does not
+  add a second one. All four kinds carry it, the Owner's reminder too. Messages written before keep
+  their text.
+- **A member is named by the first name only** (decided with the developer, 1405/07/27, task
+  10.13; replaces "the first 6 words of the name"): the system keeps one full name (§2), so the
+  first name is its **first word**, and when that word is «سید», the word after it («سید محمد
+  احمدی» → «محمد»). A name of one word is used whole; a first name is cut at 100 characters. Every
+  member's message uses it; messages written before keep their text.
+- **A long payee is cut short**, as it was in the templates' blanks (decided with the developer,
+  1405/07/14): its first 9 words, then the first 100 characters.
 - **The wording** (decided with the developer, 1405/07/14, in `docs/sms-texts.md`): the gym is
   named «باشگاه پاسارگاد»; the subscription message gives the end date, not the days left; the
-  birthday has two texts, one for the day itself and one with «پیشاپیش» for a greeting sent 1 to 7
-  days early, and the system picks the one that matches the birthday's date (the Owner picked it
-  while there were templates); the Owner's message gives the kind, the amount, the date and the
-  payee.
+  birthday has one text, always sent 1 to 7 days early, giving the birthday's month and day
+  (without the year) and the free visit and ending «پیشاپیش تولدت مبارک رفیق!!» (decided with the developer, 1405/07/27, task 10.8, in spoken Persian since 1405/08/01; replaces two
+  texts, one of them for the day itself); the Owner's message gives the kind, the amount, the date
+  and the payee.
 - **Length:** a Persian SMS holds 70 characters in one part and 67 in each part of a longer one, and
   each part is paid for. The four texts run to about two parts each; the developer decided that
   is fine.
@@ -1420,14 +1708,16 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   - **No answer after the request left** (the connection broke while waiting): the message may have
     gone. It becomes `Unknown` and is **never retried automatically**, because the request carries no
     duplicate guard for Kavenegar to check and a second try could be paid twice.
-  - Nothing is sent outside 08:00–22:00. A retry that would fall after 22:00 is not made: the message
+  - Nothing is sent outside 08:00–22:00 (the daily report: until midnight). A retry that would fall after 22:00 is not made: the message
     is `Failed`.
 - **Delivery:** after sending, the system asks Kavenegar (which keeps it for 48 hours) whether the
   message reached the phone: delivered (`10`), not delivered (`11` the phone off or out of reach,
   `6` the carrier's error), blocked by the receiver (`14`), or cancelled by Kavenegar (`13`, a
   sending error on its side). It asks **once a day, at 23:30** (Asia/Tehran), about every message
   sent in the last 48 hours that is not yet delivered, blocked or cancelled, so each one is asked about at least once before Kavenegar forgets it, and a
-  "not delivered" (the phone was off) can still become "delivered" the next night. A message still on
+  "not delivered" (the phone was off) can still become "delivered" the next night. The same question
+  is also asked **every 15 minutes** about the messages sent **today**, to find what Kavenegar
+  cancelled while it can still be sent again that day (*Automatic resend*, task 10.16). A message still on
   its way gets nothing yet. If Kavenegar does not answer, it is only logged: the messages keep no
   delivery, and nothing else depends on it (decided with the developer, 1405/07/15, task 10.4: these
   messages are information, not something the gym must be sure arrived).
@@ -1445,17 +1735,63 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - **The credit warning** (decided with the developer, 1405/07/16, task 10.5): shown on both SMS pages
   while the latest message that failed for credit used up (`418`) is newer than the latest one sent.
   It goes away by itself once a message is sent again, by a run or a resend.
-- **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand. For `Unknown` the page
+- **The credit in the header** (decided with the developer, 1405/07/27, task 10.14): the Owner sees
+  the account's remaining credit on every page, in the header beside the cheques and instalments
+  alert, and it opens «تنظیمات پیامک». Its colour says how much is left:
+  - below **1,000 Toman**: the whole box flashes solid red, fast (asked by the developer the same
+    day: almost nothing can be sent any more);
+  - below **100,000 Toman**: red, blinking like a cheque past its date;
+  - from 100,000 to 200,000 Toman, both included: orange;
+  - above 200,000 Toman: green.
+
+  It is asked from Kavenegar when the panel opens and then **every 10 minutes**, and again when an
+  SMS page opens or after a resend. Kavenegar's answer to a send gives only that message's cost, and the
+  account is charged outside the panel, so the panel never works the figure out by itself. When
+  Kavenegar does not answer, the **last figure it gave** is kept, in grey; with none yet, the header
+  says the credit is unknown. In test mode it is not shown. Nothing is sent by SMS about the credit:
+  the header is the warning (an SMS to two numbers was considered and dropped by the developer).
+
+  On a phone (below 1024px, Phase 13.1) the box shows only its coloured icon, the same colours and
+  flash, so the cheques alert beside it keeps its words; the amount is read out to a screen reader
+  and is on «تنظیمات پیامک», which the box opens (1405/08/01, when the new look met the SMS
+  release; the developer may ask for the amount back).
+- **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand, and a sent one that
+  **Kavenegar cancelled** (`13`: it never reached the phone and its cost was given back; decided
+  with the developer, 1405/08/01, task 10.16). A delivered, not delivered or blocked one cannot be
+  resent: the first two were paid for, and a blocked one would be blocked again. For `Unknown` the page
   says it may already have arrived. Decided with the developer on 1405/07/16 (task 10.5):
   - It sends **exactly the same message**: the same number and text that were written, even if the
     member's number or name has changed since.
   - **One request, no retries:** a failure that may pass makes it `Failed` at once with its code, and
     the Owner can resend again. Credit used up is `Failed` too, and `Unknown` as in a run.
   - It is allowed **while all SMS or that kind is off**: the switches stop the daily runs, and a resend
-    is the Owner's own choice. It is not allowed outside 08:00–22:00 (`Notifications.OutsideSendingHours`).
-  - Only a `Failed` or `Unknown` message can be resent (`Notifications.NotResendable`); two resends of
+    is the Owner's own choice. It is not allowed outside 08:00–22:00 (`Notifications.OutsideSendingHours`), a daily report outside 08:00 to midnight.
+  - Only a `Failed`, `Unknown` or cancelled message can be resent (`Notifications.NotResendable`); two resends of
     one message at once send it once. Like a run, the message is saved as `Pending` before the request,
     so a resend the server stopped in the middle becomes `Unknown` at that kind's next run.
+  - A cancelled message is sent again **as the same row**: what its last request left (Kavenegar's
+    id, the cost it gave back, the moment it was sent, «کاوه‌نگار لغو کرد») is replaced by the new
+    request's. Its cost was 0, so the month's total does not change.
+- **Automatic resend of what Kavenegar cancelled** (decided with the developer, 1405/08/01, task
+  10.16). On 1405/07/29 and 07/30 Kavenegar accepted a whole evening's messages (about 18:00 to
+  20:10) and then cancelled them, while the ones before and after reached the phone. So the system
+  sends a cancelled message again by itself:
+  - Every **15 minutes** it asks Kavenegar about today's messages (*Delivery*), and sends again each
+    one Kavenegar cancelled, **at least 30 minutes after its last request**, so the tries are not all
+    spent inside the same bad stretch.
+  - **At most 5 times** per message (`auto_resends`, held by a check constraint). After the fifth,
+    only the Owner's resend is left. The Owner's resends are not counted.
+  - **The same day only**, within the kind's sending hours (08:00–22:00; the daily report until
+    midnight). What is still cancelled when they end stays so, with the Owner's resend.
+  - **Every kind**, the Owner's own messages included (the daily report, cheques and instalments).
+  - **The switches hold**: with all SMS or the message's kind off, nothing is resent automatically, as
+    the settings page says nothing is sent. The Owner's resend is still allowed then.
+  - Each one is sent like the Owner's resend: one request, saved `Pending` before it. A failure that
+    may pass, or credit used up, makes it `Failed` with its code, for the Owner to resend; credit
+    used up also leaves the other cancelled ones for later. Only a cancelled message is resent by
+    itself: a failed or unknown one may have cost money or arrived, so it stays the Owner's choice.
+  - The history shows how many times a message was resent automatically («N بار خودکار دوباره
+    فرستاده شد»).
 - **Development and tests:** tests always use `FakeSmsSender`, which only logs, and never reach
   Kavenegar. On the developer's machine Kavenegar can be turned on with the developer's own account,
   and `Sms:AllowedReceptors` then limits real sending to the listed numbers (anything else is only
@@ -1690,6 +2026,10 @@ on one page.
     last day, so the comparison with the range before covers the same number of days (07/01–07/12
     is compared with 06/19–06/30). The Iranian week starts on **Saturday**; the year on 1 Farvardin.
   - «ماه قبل» is the whole Jalali month before this one, 29, 30 or 31 days.
+  - The pressed button is the preset the range is. When several are the same days (a month's 1st:
+    «امروز» and «این ماه»; 1 Farvardin: «امسال» too), «این ماه» lights, as the page opens on it;
+    otherwise the first one listed (a Saturday: «امروز», not «این هفته»). Decided with the
+    developer, 1405/08/01.
   - A range missing a date, running backwards or longer than 366 days is refused on the page with
     the API's own messages, before anything is asked.
 - **Compared with the range before**: a card shows the change as a percent with an arrow and a word,

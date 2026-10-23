@@ -57,7 +57,7 @@ public sealed class SmsMessagesEndpointTests(DatabaseFixture fixture) : Database
         sent.Kind.ShouldBe(NotificationKind.Birthday);
         sent.Status.ShouldBe(NotificationStatus.Sent);
         sent.MemberName.ShouldBe("سارا محمدی");
-        sent.Text.ShouldBe(SmsText.ForBirthday("سارا محمدی", Day, Day));
+        sent.Text.ShouldBe(SmsText.ForBirthday("سارا محمدی", Day));
         sent.CostToman.ShouldBe(135m);
         sent.Attempts.ShouldBe(1);
         var failed = list.Items[0];
@@ -256,7 +256,7 @@ public sealed class SmsMessagesEndpointTests(DatabaseFixture fixture) : Database
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed(name, $"+98913{suffix:D7}");
-        var notification = Notification.ForBirthday(member.Id, 1405, member.PhoneNumber, SmsText.ForBirthday(name, Day, Day));
+        var notification = Notification.ForBirthday(member.Id, 1405, member.PhoneNumber, SmsText.ForBirthday(name, Day));
         Settle(notification, createdAt, sentCostRial, failedCode);
 
         await using (var scope = Fixture.CreateScope())

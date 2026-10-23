@@ -62,6 +62,40 @@ public sealed class ResendSmsTests(DatabaseFixture fixture) : DatabaseTestBase(f
     }
 
     [Fact]
+    public async Task Handle_CancelledByTheProvider_SendsItAgainWithANewRequest()
+    {
+        // Task 10.16: it never reached the phone and its cost was given back.
+        var (id, phone) = await AddAsync(NotificationStatus.Sent, SmsDelivery.Cancelled);
+        var sender = new ScriptedSmsSender();
+
+        var result = await ResendAsync(id, sender);
+
+        sender.Requests.ShouldHaveSingleItem().ShouldBe(new SmsMessage(phone, Text));
+        result.Value.Status.ShouldBe(NotificationStatus.Sent);
+        result.Value.Delivery.ShouldBeNull();
+        result.Value.CostToman.ShouldBe(ScriptedSmsSender.Cost / 10m);
+        result.Value.AutoResends.ShouldBe(0);
+        var stored = await StoredAsync(id);
+        stored.SentAt.ShouldBe(At(Today, 10, 0));
+        stored.Attempts.ShouldBe(2);
+    }
+
+    [Theory]
+    [InlineData(SmsDelivery.Delivered)]
+    [InlineData(SmsDelivery.NotDelivered)]
+    [InlineData(SmsDelivery.BlockedByReceiver)]
+    public async Task Handle_SentAndNotCancelled_IsRefusedAndSendsNothing(SmsDelivery delivery)
+    {
+        var (id, _) = await AddAsync(NotificationStatus.Sent, delivery);
+        var sender = new ScriptedSmsSender();
+
+        var result = await ResendAsync(id, sender);
+
+        result.Error.ShouldBe(NotificationErrors.NotResendable);
+        sender.Requests.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Handle_MembersNumberChangedSince_StillGoesToTheNumberItWasWrittenFor()
     {
         var (id, phone) = await AddAsync(NotificationStatus.Failed);
@@ -189,6 +223,42 @@ public sealed class ResendSmsTests(DatabaseFixture fixture) : DatabaseTestBase(f
     }
 
     [Theory]
+    [InlineData(22, 45, 0)]
+    [InlineData(23, 59, 59)]
+    public async Task Handle_DailyReportAfter2200BeforeMidnight_Sends(int hour, int minute, int second)
+    {
+        var report = Notification.ForDailyReport(Today, "+989351112233", "گزارش باشگاه پاسارگاد ۰۷/۱۶\nورود: ۸۵");
+        report.MarkFailed(409, At(Today, 22, 45));
+        await using (var scope = Fixture.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Notifications.Add(report);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var result = await ResendAsync(report.Id, new ScriptedSmsSender(), At(Today, hour, minute, second));
+
+        result.Value.Status.ShouldBe(NotificationStatus.Sent);
+    }
+
+    [Fact]
+    public async Task Handle_DailyReportBefore0800_IsRefused()
+    {
+        var report = Notification.ForDailyReport(Today, "+989351112233", "گزارش باشگاه پاسارگاد ۰۷/۱۶\nورود: ۸۵");
+        report.MarkFailed(409, At(Today, 22, 45));
+        await using (var scope = Fixture.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Notifications.Add(report);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var result = await ResendAsync(report.Id, new ScriptedSmsSender(), At(Today.AddDays(1), 7, 59));
+
+        result.Error.ShouldBe(NotificationErrors.OutsideSendingHours);
+    }
+
+    [Theory]
     [InlineData(8, 0)]
     [InlineData(22, 0)]
     public async Task Handle_AtTheEdgesOfTheSendingHours_Sends(int hour, int minute)
@@ -270,8 +340,11 @@ public sealed class ResendSmsTests(DatabaseFixture fixture) : DatabaseTestBase(f
         return await new ResendSmsHandler(db, calendar, time, sender).Handle(id, TestContext.Current.CancellationToken);
     }
 
-    /// <summary>A birthday SMS for a new member, left in <paramref name="status"/> by one request yesterday.</summary>
-    private async Task<(Guid Id, string Phone)> AddAsync(NotificationStatus status)
+    /// <summary>
+    /// A birthday SMS for a new member, left in <paramref name="status"/> by one request yesterday,
+    /// with the provider's <paramref name="delivery"/> when it was sent.
+    /// </summary>
+    private async Task<(Guid Id, string Phone)> AddAsync(NotificationStatus status, SmsDelivery? delivery = null)
     {
         var suffix = Interlocked.Increment(ref _phoneSuffix);
         var member = TestMembers.Seed(Name, $"+98914{suffix:D7}");
@@ -281,6 +354,11 @@ public sealed class ResendSmsTests(DatabaseFixture fixture) : DatabaseTestBase(f
         {
             case NotificationStatus.Sent:
                 notification.MarkSent(suffix, 1_350m, yesterday);
+                if (delivery is { } known)
+                {
+                    notification.RecordDelivery(known);
+                }
+
                 break;
             case NotificationStatus.Failed:
                 notification.MarkFailed(424, yesterday);

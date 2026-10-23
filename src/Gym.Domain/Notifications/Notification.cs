@@ -11,7 +11,12 @@ namespace Gym.Domain.Notifications;
 /// <b>Written before it is sent.</b> The row is saved as <see cref="NotificationStatus.Pending"/>
 /// first, then sent. Because the database allows one row per event (one
 /// <see cref="NotificationKind.SubscriptionExpiring"/> per subscription, one birthday per member and
-/// Jalali year, one <see cref="NotificationKind.PayableDue"/> per cheque or instalment), a second
+/// Jalali year, one <see cref="NotificationKind.PayableDue"/> per cheque or instalment, one
+/// <see cref="NotificationKind.DailyReport"/> per day, one <see cref="NotificationKind.SubscriptionReceipt"/>
+/// per subscription, one <see cref="NotificationKind.Welcome"/> per member, one
+/// <see cref="NotificationKind.DebtReminder"/> per member and debt, one
+/// <see cref="NotificationKind.Absence"/> per member and absence, one
+/// <see cref="NotificationKind.Broadcast"/> per member and broadcast), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -30,6 +35,13 @@ public sealed class Notification : Entity
 
     public const int TextMaxLength = SmsText.MaxLength;
 
+    /// <summary>
+    /// How many times the system resends, by itself, a message the provider cancelled (BUSINESS_RULES.md
+    /// §10 <i>Sending</i>, decided with the developer, 1405/08/01, task 10.16). After that only the
+    /// Owner's resend is left.
+    /// </summary>
+    public const int MaxAutoResends = 5;
+
     // For EF Core.
     private Notification()
     {
@@ -37,13 +49,17 @@ public sealed class Notification : Entity
 
     public NotificationKind Kind { get; private set; }
 
-    /// <summary>E.164: the member's number, or the Owner's for <see cref="NotificationKind.PayableDue"/>.</summary>
+    /// <summary>E.164: the member's number, or the Owner's for <see cref="NotificationKind.PayableDue"/> and <see cref="NotificationKind.DailyReport"/>.</summary>
     public string Recipient { get; private set; } = string.Empty;
 
-    /// <summary>Set for the three kinds sent to a member; <c>null</c> for <see cref="NotificationKind.PayableDue"/>.</summary>
+    /// <summary>Set for the kinds sent to a member (the debt reminder included); <c>null</c> for the Owner's.</summary>
     public Guid? MemberId { get; private set; }
 
-    /// <summary>Set for <see cref="NotificationKind.SubscriptionExpiring"/> and <see cref="NotificationKind.LowSessions"/>.</summary>
+    /// <summary>
+    /// Set for <see cref="NotificationKind.SubscriptionExpiring"/>, <see cref="NotificationKind.LowSessions"/>,
+    /// <see cref="NotificationKind.SubscriptionReceipt"/> and <see cref="NotificationKind.Welcome"/> (the
+    /// first plan).
+    /// </summary>
     public Guid? SubscriptionId { get; private set; }
 
     /// <summary>Set for <see cref="NotificationKind.PayableDue"/>: the cheque or instalment.</summary>
@@ -51,6 +67,27 @@ public sealed class Notification : Entity
 
     /// <summary>Set for <see cref="NotificationKind.Birthday"/>: the Jalali year of the birthday, e.g. 1405.</summary>
     public int? JalaliYear { get; private set; }
+
+    /// <summary>Set for <see cref="NotificationKind.DailyReport"/>: the gym's day the report is about, one per day.</summary>
+    public DateOnly? ReportDate { get; private set; }
+
+    /// <summary>
+    /// Set for <see cref="NotificationKind.DebtReminder"/>: the gym's day of the oldest unpaid sale the
+    /// reminder was about, one per member and debt (task 10.11).
+    /// </summary>
+    public DateOnly? DebtSince { get; private set; }
+
+    /// <summary>
+    /// Set for <see cref="NotificationKind.Absence"/>: the gym's day the member's absence counts from
+    /// (their last visit, or their plan's start), one per member and absence (task 10.12).
+    /// </summary>
+    public DateOnly? AbsentSince { get; private set; }
+
+    /// <summary>
+    /// Set for <see cref="NotificationKind.Broadcast"/>: the <see cref="SmsBroadcast"/> it belongs to,
+    /// one per member and broadcast (task 10.13).
+    /// </summary>
+    public Guid? BroadcastId { get; private set; }
 
     /// <summary>The whole text, as <see cref="SmsText"/> wrote it when the message was written.</summary>
     public string Text { get; private set; } = string.Empty;
@@ -78,6 +115,18 @@ public sealed class Notification : Entity
     /// <summary><c>null</c> until the provider has said whether it reached the phone.</summary>
     public SmsDelivery? Delivery { get; private set; }
 
+    /// <summary>
+    /// How many times the system resent it by itself after the provider cancelled it (task 10.16), at
+    /// most <see cref="MaxAutoResends"/>. The Owner's resends are not counted.
+    /// </summary>
+    public int AutoResends { get; private set; }
+
+    /// <summary>
+    /// Sent, and then cancelled by the provider (<c>13</c>, a sending error on its side): it never
+    /// reached the phone and its cost was given back, so it may be sent again (§10 <i>Sending</i>).
+    /// </summary>
+    public bool IsCancelledByProvider => Status == NotificationStatus.Sent && Delivery == SmsDelivery.Cancelled;
+
     /// <summary>Postgres <c>xmin</c>: two senders cannot both record an outcome for one message.</summary>
     public uint Version { get; private set; }
 
@@ -90,6 +139,17 @@ public sealed class Notification : Entity
     public static Notification ForLowSessions(
         Guid memberId, Guid subscriptionId, string recipient, string text) =>
         ForSubscription(NotificationKind.LowSessions, memberId, subscriptionId, recipient, text);
+
+    /// <summary>The member's plan is fully paid (<see cref="NotificationKind.SubscriptionReceipt"/>, task 10.9).</summary>
+    public static Notification ForSubscriptionReceipt(
+        Guid memberId, Guid subscriptionId, string recipient, string text) =>
+        ForSubscription(NotificationKind.SubscriptionReceipt, memberId, subscriptionId, recipient, text);
+
+    /// <summary>The member's first plan was sold (<see cref="NotificationKind.Welcome"/>, task 10.10): at most one per member.</summary>
+    /// <param name="subscriptionId">The first plan.</param>
+    public static Notification ForWelcome(
+        Guid memberId, Guid subscriptionId, string recipient, string text) =>
+        ForSubscription(NotificationKind.Welcome, memberId, subscriptionId, recipient, text);
 
     /// <param name="jalaliYear">The Jalali year the birthday falls in: at most one per member and year.</param>
     public static Notification ForBirthday(
@@ -113,6 +173,55 @@ public sealed class Notification : Entity
 
         var notification = Create(NotificationKind.PayableDue, ownerRecipient, text);
         notification.PayableId = payableId;
+
+        return notification;
+    }
+
+    /// <param name="reportDate">The day the report is about: at most one per day.</param>
+    /// <param name="recipient">The daily report's number from the SMS settings.</param>
+    public static Notification ForDailyReport(DateOnly reportDate, string recipient, string text)
+    {
+        var notification = Create(NotificationKind.DailyReport, recipient, text);
+        notification.ReportDate = reportDate;
+
+        return notification;
+    }
+
+    /// <summary>The member's debt has been owed for a while (<see cref="NotificationKind.DebtReminder"/>, task 10.11).</summary>
+    /// <param name="debtSince">The gym's day of the oldest unpaid sale: at most one per member and day.</param>
+    public static Notification ForDebtReminder(Guid memberId, DateOnly debtSince, string recipient, string text)
+    {
+        CheckId(memberId, nameof(memberId));
+
+        var notification = Create(NotificationKind.DebtReminder, recipient, text);
+        notification.MemberId = memberId;
+        notification.DebtSince = debtSince;
+
+        return notification;
+    }
+
+    /// <summary>The member has stopped coming (<see cref="NotificationKind.Absence"/>, task 10.12).</summary>
+    /// <param name="absentSince">The gym's day the absence counts from: at most one per member and day.</param>
+    public static Notification ForAbsence(Guid memberId, DateOnly absentSince, string recipient, string text)
+    {
+        CheckId(memberId, nameof(memberId));
+
+        var notification = Create(NotificationKind.Absence, recipient, text);
+        notification.MemberId = memberId;
+        notification.AbsentSince = absentSince;
+
+        return notification;
+    }
+
+    /// <summary>The Owner's broadcast to one member (<see cref="NotificationKind.Broadcast"/>, task 10.13).</summary>
+    public static Notification ForBroadcast(Guid broadcastId, Guid memberId, string recipient, string text)
+    {
+        CheckId(broadcastId, nameof(broadcastId));
+        CheckId(memberId, nameof(memberId));
+
+        var notification = Create(NotificationKind.Broadcast, recipient, text);
+        notification.BroadcastId = broadcastId;
+        notification.MemberId = memberId;
 
         return notification;
     }
@@ -218,26 +327,48 @@ public sealed class Notification : Entity
     }
 
     /// <summary>
-    /// The Owner resends a message that failed, or whose fate is not known, by hand
-    /// (BUSINESS_RULES.md §10 <i>Sending</i>, task 10.5): it is <see cref="NotificationStatus.Pending"/>
-    /// again, to be saved before the request like any other, and the request's outcome is then
-    /// recorded with the same methods a run uses. The number and the text do not change: it is exactly
-    /// the same message.
+    /// The Owner resends a message that failed, whose fate is not known, or that the provider cancelled,
+    /// by hand (BUSINESS_RULES.md §10 <i>Sending</i>, tasks 10.5 and 10.16): it is
+    /// <see cref="NotificationStatus.Pending"/> again, to be saved before the request like any other, and
+    /// the request's outcome is then recorded with the same methods a run uses. The number and the text
+    /// do not change: it is exactly the same message.
     /// </summary>
     /// <remarks>
-    /// The last failure's code is cleared: if the server stops before the outcome is saved, the row
-    /// becomes <see cref="NotificationStatus.Unknown"/> at the next run, and an old code would then
-    /// describe a request that is not the last one.
+    /// What the last request left is cleared (see <see cref="StartAgain"/>): if the server stops before
+    /// the outcome is saved, the row becomes <see cref="NotificationStatus.Unknown"/> at the next run,
+    /// and an old code or delivery would then describe a request that is not the last one.
     /// </remarks>
     public Result PrepareResend()
     {
-        if (Status is not (NotificationStatus.Failed or NotificationStatus.Unknown))
+        if (Status is not (NotificationStatus.Failed or NotificationStatus.Unknown) && !IsCancelledByProvider)
         {
             return Result.Failure(NotificationErrors.NotResendable);
         }
 
-        Status = NotificationStatus.Pending;
-        ErrorCode = null;
+        StartAgain();
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The system resends a message the provider cancelled, by itself (§10 <i>Sending</i>, task 10.16):
+    /// the same as <see cref="PrepareResend"/>, for a cancelled message only, at most
+    /// <see cref="MaxAutoResends"/> times. When and whether it may go now is the caller's to check.
+    /// </summary>
+    public Result PrepareAutoResend()
+    {
+        if (!IsCancelledByProvider)
+        {
+            return Result.Failure(NotificationErrors.NotCancelledByProvider);
+        }
+
+        if (AutoResends >= MaxAutoResends)
+        {
+            return Result.Failure(NotificationErrors.AutoResendsUsedUp);
+        }
+
+        AutoResends++;
+        StartAgain();
 
         return Result.Success();
     }
@@ -325,6 +456,21 @@ public sealed class Notification : Entity
         {
             throw new ArgumentException("An empty id names no record.", name);
         }
+    }
+
+    /// <summary>
+    /// Waiting to be sent again. A cancelled message also loses what its last request left: the
+    /// provider's id, the cost it gave back, the moment and the delivery belong to a message that never
+    /// arrived, and the next request brings its own. The attempts stay counted.
+    /// </summary>
+    private void StartAgain()
+    {
+        Status = NotificationStatus.Pending;
+        ErrorCode = null;
+        ProviderMessageId = null;
+        CostRial = null;
+        SentAt = null;
+        Delivery = null;
     }
 
     /// <summary>Every outcome of a request starts here: only a message still waiting can have one.</summary>

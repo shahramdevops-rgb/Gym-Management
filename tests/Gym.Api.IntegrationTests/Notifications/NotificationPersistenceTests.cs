@@ -107,6 +107,96 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     }
 
     [Fact]
+    public async Task Save_SecondReceiptForOneSubscription_RejectedByTheUniqueIndex()
+    {
+        var (member, subscription, _) = await SeedAsync();
+        await SaveAsync(Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText));
+
+        var exception = await SaveRejectedAsync(
+            Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OnePerSubscriptionAndKind);
+    }
+
+    [Fact]
+    public async Task Save_ReceiptBesideTheOtherSubscriptionKinds_IsAllowed()
+    {
+        // The receipt is its own event: a plan can also run out of days and of sessions later.
+        var (member, subscription, _) = await SeedAsync();
+
+        await SaveAsync(
+            Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText),
+            Notification.ForSubscriptionExpiring(member.Id, subscription.Id, Phone, ExpiringText),
+            Notification.ForLowSessions(member.Id, subscription.Id, Phone, LowSessionsText));
+
+        (await CountAsync()).ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task Notification_ReceiptWithoutItsSubscription_RejectedByACheckConstraint()
+    {
+        var (member, subscription, _) = await SeedAsync();
+        var receipt = Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText);
+        await SaveAsync(receipt);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET subscription_id = NULL WHERE id = '{receipt.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
+    public async Task Save_SecondWelcomeForOneMember_RejectedByTheUniqueIndex()
+    {
+        // Once per member (§10 The welcome): a first plan cancelled after its welcome went out does not
+        // earn the member's next plan a second one.
+        var (member, subscription, _) = await SeedAsync();
+        var next = Subscription.CreateMembership(member.Id, 10, 90_000m, subscription.EndDate.AddDays(1)).Value;
+        await using (var scope = Fixture.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Subscriptions.Add(next);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await SaveAsync(Notification.ForWelcome(member.Id, subscription.Id, Phone, WelcomeText));
+
+        var exception = await SaveRejectedAsync(Notification.ForWelcome(member.Id, next.Id, Phone, WelcomeText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OneWelcomePerMember);
+    }
+
+    [Fact]
+    public async Task Save_WelcomeBesideTheReceiptOfTheSamePlan_IsAllowed()
+    {
+        // A first plan paid at once gets both (decided with the developer).
+        var (member, subscription, _) = await SeedAsync();
+
+        await SaveAsync(
+            Notification.ForWelcome(member.Id, subscription.Id, Phone, WelcomeText),
+            Notification.ForSubscriptionReceipt(member.Id, subscription.Id, Phone, ReceiptText));
+
+        (await CountAsync()).ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Notification_WelcomeWithoutItsPlan_RejectedByACheckConstraint()
+    {
+        var (member, subscription, _) = await SeedAsync();
+        var welcome = Notification.ForWelcome(member.Id, subscription.Id, Phone, WelcomeText);
+        await SaveAsync(welcome);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET subscription_id = NULL WHERE id = '{welcome.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
     public async Task Save_BothSubscriptionKindsForOneSubscription_AreAllowed()
     {
         // Running out of days and running out of sessions are two events, one message each.
@@ -153,6 +243,163 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
 
         exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
         exception.ConstraintName.ShouldBe(NotificationConstraints.OnePerPayable);
+    }
+
+    [Fact]
+    public async Task Save_SecondDailyReportForOneDay_RejectedByTheUniqueIndex()
+    {
+        await SaveAsync(Notification.ForDailyReport(ReportDay, OwnerPhone, ReportText));
+
+        var exception = await SaveRejectedAsync(Notification.ForDailyReport(ReportDay, OwnerPhone, ReportText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OneDailyReportPerDay);
+    }
+
+    [Fact]
+    public async Task Save_DailyReportsOfTwoDays_AreAllowed()
+    {
+        await SaveAsync(
+            Notification.ForDailyReport(ReportDay, OwnerPhone, ReportText),
+            Notification.ForDailyReport(ReportDay.AddDays(1), OwnerPhone, ReportText));
+
+        (await CountAsync()).ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Notification_DailyReportWithoutItsDay_RejectedByACheckConstraint()
+    {
+        var report = Notification.ForDailyReport(ReportDay, OwnerPhone, ReportText);
+        await SaveAsync(report);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET report_date = NULL WHERE id = '{report.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
+    public async Task Notification_MemberKindCarryingAReportDay_RejectedByACheckConstraint()
+    {
+        var id = await SaveExpiringAsync();
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET report_date = '2026-10-19' WHERE id = '{id}'"));
+
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    // ---- The debt reminder (task 10.11) ----
+
+    [Fact]
+    public async Task Save_SecondDebtReminderForOneDebt_RejectedByTheUniqueIndex()
+    {
+        var (member, _, _) = await SeedAsync();
+        await SaveAsync(Notification.ForDebtReminder(member.Id, ReportDay, Phone, DebtText));
+
+        var exception = await SaveRejectedAsync(Notification.ForDebtReminder(member.Id, ReportDay, Phone, DebtText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OneDebtReminderPerMemberAndDebt);
+    }
+
+    [Fact]
+    public async Task Save_DebtRemindersOfTwoDebts_AreAllowedAndReadBackAsWritten()
+    {
+        var (member, _, _) = await SeedAsync();
+
+        await SaveAsync(
+            Notification.ForDebtReminder(member.Id, ReportDay, Phone, DebtText),
+            Notification.ForDebtReminder(member.Id, ReportDay.AddDays(40), Phone, DebtText));
+
+        await using var scope = Fixture.CreateScope();
+        var saved = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Notifications
+            .OrderBy(notification => notification.DebtSince)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        saved.Select(notification => notification.DebtSince).ShouldBe([ReportDay, ReportDay.AddDays(40)]);
+        saved.ShouldAllBe(notification => notification.MemberId == member.Id && notification.Kind == NotificationKind.DebtReminder);
+    }
+
+    [Fact]
+    public async Task Notification_DebtReminderWithoutItsDay_RejectedByACheckConstraint()
+    {
+        var (member, _, _) = await SeedAsync();
+        var reminder = Notification.ForDebtReminder(member.Id, ReportDay, Phone, DebtText);
+        await SaveAsync(reminder);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET debt_since = NULL WHERE id = '{reminder.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
+    public async Task Notification_MemberKindCarryingADebtDay_RejectedByACheckConstraint()
+    {
+        var id = await SaveExpiringAsync();
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET debt_since = '2026-10-19' WHERE id = '{id}'"));
+
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    // ---- The absence SMS (task 10.12) ----
+
+    [Fact]
+    public async Task Save_SecondAbsenceSmsForOneAbsence_RejectedByTheUniqueIndex()
+    {
+        var (member, _, _) = await SeedAsync();
+        await SaveAsync(Notification.ForAbsence(member.Id, ReportDay, Phone, AbsenceText));
+
+        var exception = await SaveRejectedAsync(Notification.ForAbsence(member.Id, ReportDay, Phone, AbsenceText));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.UniqueViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.OneAbsencePerMemberAndAbsence);
+    }
+
+    [Fact]
+    public async Task Save_AbsenceSmsOfTwoAbsences_AreAllowedAndReadBackAsWritten()
+    {
+        var (member, _, _) = await SeedAsync();
+
+        await SaveAsync(
+            Notification.ForAbsence(member.Id, ReportDay, Phone, AbsenceText),
+            Notification.ForAbsence(member.Id, ReportDay.AddDays(20), Phone, AbsenceText));
+
+        await using var scope = Fixture.CreateScope();
+        var saved = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Notifications
+            .OrderBy(notification => notification.AbsentSince)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        saved.Select(notification => notification.AbsentSince).ShouldBe([ReportDay, ReportDay.AddDays(20)]);
+        saved.ShouldAllBe(notification => notification.MemberId == member.Id && notification.Kind == NotificationKind.Absence);
+    }
+
+    [Fact]
+    public async Task Notification_AbsenceWithoutItsDay_RejectedByACheckConstraint()
+    {
+        var (member, _, _) = await SeedAsync();
+        var absence = Notification.ForAbsence(member.Id, ReportDay, Phone, AbsenceText);
+        await SaveAsync(absence);
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET absent_since = NULL WHERE id = '{absence.Id}'"));
+
+        exception.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
+    }
+
+    [Fact]
+    public async Task Notification_MemberKindCarryingAnAbsenceDay_RejectedByACheckConstraint()
+    {
+        var id = await SaveExpiringAsync();
+
+        var exception = await Should.ThrowAsync<PostgresException>(
+            () => ExecuteSqlAsync($"UPDATE notifications SET absent_since = '2026-10-19' WHERE id = '{id}'"));
+
+        exception.ConstraintName.ShouldBe(NotificationConstraints.EventMatchesKind);
     }
 
     // ---- Check constraints ----
@@ -250,6 +497,8 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     [InlineData("attempts = -1", "ck_notifications_attempts_not_negative")]
     [InlineData("cost_rial = -1", "ck_notifications_cost_not_negative")]
     [InlineData("text = ' '", "ck_notifications_text_not_blank")]
+    [InlineData("auto_resends = -1", NotificationConstraints.AutoResendsInRange)]
+    [InlineData("auto_resends = 6", NotificationConstraints.AutoResendsInRange)]
     public async Task Notification_InvalidColumn_RejectedByACheckConstraint(string assignment, string constraint)
     {
         var id = await SaveExpiringAsync();
@@ -293,6 +542,18 @@ public sealed class NotificationPersistenceTests(DatabaseFixture fixture) : Data
     private const string BirthdayText = "سارا محمدی عزیز، امروز ۱۴۰۵/۰۷/۲۰ روز تولد شماست. تولدتان مبارک! باشگاه پاسارگاد";
 
     private const string ChequeText = "یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۲۰، به فروشگاه تجهیزات ورزشی";
+
+    private const string DebtText = "سارا محمدی عزیز، مانده حساب شما در باشگاه پاسارگاد ۸۰۰٬۰۰۰ تومان است.";
+
+    private const string AbsenceText = "سارا محمدی عزیز، جای شما در باشگاه پاسارگاد خالی است!";
+
+    private const string ReportText = "گزارش باشگاه پاسارگاد ۰۷/۲۷\nورود: ۸۵";
+
+    private const string ReceiptText = "سارا محمدی عزیز، اشتراک ۱۰ جلسه‌ای شما در باشگاه پاسارگاد از ۰۷/۲۷ تا ۰۸/۲۶ ثبت";
+
+    private const string WelcomeText = "سارا محمدی عزیز، به باشگاه پاسارگاد خوش آمدید!";
+
+    private static readonly DateOnly ReportDay = new(2026, 10, 19);
 
     /// <summary>A member with a subscription, and a pending cheque: one event of every kind can point at them.</summary>
     private async Task<(Member Member, Subscription Subscription, Payable Payable)> SeedAsync()

@@ -8,7 +8,7 @@ namespace Gym.Application.Notifications.SendDailySms;
 
 /// <summary>
 /// The messages a run of one kind is to send today (BUSINESS_RULES.md §10 <i>The four kinds</i>), built
-/// but not yet saved.
+/// but not yet saved. The daily report has its own, <see cref="DailyReportCandidate"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,6 +27,12 @@ internal static class SmsCandidates
     public static Task<List<Notification>> FindAsync(
         IAppDbContext db, NotificationKind kind, SmsSettings settings, DateOnly today, CancellationToken cancellationToken)
     {
+        // Its number depends on the plan's size (task 10.17), so it has rows of its own.
+        if (kind == NotificationKind.LowSessions)
+        {
+            return FewSessionsLeftAsync(db, today, settings.LowSessions, cancellationToken);
+        }
+
         var kindSettings = settings.For(kind);
 
         // The database holds "on means filled" (task 10.2), and a run only starts for a kind that is on.
@@ -36,7 +42,6 @@ internal static class SmsCandidates
         return kind switch
         {
             NotificationKind.SubscriptionExpiring => RunningOutAsync(db, today, threshold, cancellationToken),
-            NotificationKind.LowSessions => FewSessionsLeftAsync(db, today, threshold, cancellationToken),
             NotificationKind.Birthday => BirthdaysAsync(db, today, threshold, cancellationToken),
             NotificationKind.PayableDue => PayablesComingDueAsync(
                 db,
@@ -65,21 +70,30 @@ internal static class SmsCandidates
                 row.Subscription.MemberId,
                 row.Subscription.Id,
                 row.PhoneNumber,
-                SmsText.ForRunningOut(row.FullName, row.Subscription.EndDate)))
+                SmsText.ForRunningOut(row.FullName, row.Subscription.EndDate, row.Subscription.RemainingSessions)))
             .ToList();
     }
 
+    /// <summary>
+    /// Each plan at its own row's number of sessions left, by the plan's size (task 10.17). The query
+    /// asks for the highest of the three; the domain rule then holds each plan to its own.
+    /// </summary>
     private static async Task<List<Notification>> FewSessionsLeftAsync(
-        IAppDbContext db, DateOnly today, int threshold, CancellationToken cancellationToken)
+        IAppDbContext db, DateOnly today, LowSessionsSettings settings, CancellationToken cancellationToken)
     {
+        // The database holds "on means filled", and a run only starts for a kind that is on.
+        var highest = settings.HighestThreshold()
+            ?? throw new InvalidOperationException("SMS kind LowSessions is on with an empty row.");
+
         var rows = await ActivePlansOfActiveMembers(db, today, NotificationKind.LowSessions)
-            .Where(row => row.Subscription.TotalSessions - row.Subscription.UsedSessions <= threshold)
+            .Where(row => row.Subscription.TotalSessions - row.Subscription.UsedSessions <= highest)
             .OrderBy(row => row.Subscription.EndDate)
             .ThenBy(row => row.Subscription.Id)
             .ToListAsync(cancellationToken);
 
         return rows
-            .Where(row => SmsAudience.HasFewSessionsLeft(row.Subscription, today, threshold))
+            .Where(row => settings.ThresholdFor(row.Subscription.TotalSessions) is { } threshold
+                && SmsAudience.HasFewSessionsLeft(row.Subscription, today, threshold))
             .Select(row => Notification.ForLowSessions(
                 row.Subscription.MemberId,
                 row.Subscription.Id,
@@ -89,21 +103,38 @@ internal static class SmsCandidates
     }
 
     /// <summary>
-    /// Every member with a birth date, active or not, with a subscription or without (§10: the one
-    /// exception to "deactivated members receive no SMS"). Read whole: the Jalali month and day cannot
-    /// be asked of a Gregorian column, and a gym's members fit in memory.
+    /// Active members who hold a plan (§10, task 10.8): the SMS tells them of the free visit on their
+    /// birthday. Read whole: the Jalali month and day cannot be asked of a Gregorian column, and a
+    /// gym's members fit in memory.
     /// </summary>
     private static async Task<List<Notification>> BirthdaysAsync(
         IAppDbContext db, DateOnly today, int daysBefore, CancellationToken cancellationToken)
     {
         var (thisYear, _, _) = JalaliCalendar.Parts(today);
 
-        var members = await db.Members
+        // The likely plans, by their columns: a membership not cancelled that is frozen, or has not
+        // ended and has sessions left (active, or bought for later). SmsAudience has the last word.
+        var plans = await db.Subscriptions
             .AsNoTracking()
-            .OrderBy(member => member.FullName)
-            .ThenBy(member => member.Id)
-            .Select(member => new { member.Id, member.FullName, member.PhoneNumber, member.BirthDate })
+            .Where(subscription => !subscription.IsSingleSession
+                && subscription.CancelledAt == null
+                && (subscription.FrozenSince != null
+                    || (subscription.EndDate >= today && subscription.UsedSessions < subscription.TotalSessions)))
             .ToListAsync(cancellationToken);
+
+        var holdsPlan = plans
+            .Where(subscription => SmsAudience.HoldsPlanForBirthday(subscription, today))
+            .Select(subscription => subscription.MemberId)
+            .ToHashSet();
+
+        var members = (await db.Members
+                .AsNoTracking()
+                .Where(member => member.IsActive)
+                .OrderBy(member => member.FullName)
+                .ThenBy(member => member.Id)
+                .Select(member => new { member.Id, member.FullName, member.PhoneNumber, member.BirthDate })
+                .ToListAsync(cancellationToken))
+            .Where(member => holdsPlan.Contains(member.Id));
 
         // A greeting sent in Esfand may be for next year's birthday, so this year's and later count.
         var greeted = (await db.Notifications
@@ -129,7 +160,7 @@ internal static class SmsCandidates
             }
 
             notifications.Add(Notification.ForBirthday(
-                member.Id, year, member.PhoneNumber, SmsText.ForBirthday(member.FullName, birthday, today)));
+                member.Id, year, member.PhoneNumber, SmsText.ForBirthday(member.FullName, birthday)));
         }
 
         return notifications;

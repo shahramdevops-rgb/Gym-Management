@@ -22,6 +22,8 @@ import { VisitSummary } from "./VisitSummary";
 export interface DeskMember {
   id: string;
   fullName: string;
+  /** When known, the check-in box says before confirming that today's visit is free (§7 *Birthday visit*). */
+  birthDate?: string | null;
 }
 
 /** The visit a check-out closes. */

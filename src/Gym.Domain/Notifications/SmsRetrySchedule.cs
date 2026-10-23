@@ -3,7 +3,7 @@ namespace Gym.Domain.Notifications;
 /// <summary>
 /// When a message that may still pass is tried again (BUSINESS_RULES.md §10 <i>The daily runs</i>):
 /// at most <see cref="MaxAttempts"/> tries, with a wait before each one after the first, and never a
-/// try that would fall after <see cref="SmsSettings.LatestSendTime"/>.
+/// try that would fall after the kind's last sending moment (<see cref="SmsSettings.LatestSendTimeFor"/>).
 /// </summary>
 /// <remarks>
 /// Built from <c>Sms:MaxAttempts</c> and <c>Sms:RetryDelays</c> (3 tries, waiting 1 minute then 5;
@@ -41,11 +41,12 @@ public sealed class SmsRetrySchedule
 
     /// <summary>
     /// How long to wait before the next try, or <c>null</c> when the message is to be given up:
-    /// every try is used, or the next one would fall after 22:00.
+    /// every try is used, or the next one would fall after 22:00 (after midnight for the daily report).
     /// </summary>
     /// <param name="attemptsMade">Tries already made for the message.</param>
     /// <param name="localTime">The gym's time of day now (Asia/Tehran).</param>
-    public TimeSpan? NextDelay(int attemptsMade, TimeOnly localTime)
+    /// <param name="kind">Whose hours the next try must fall in.</param>
+    public TimeSpan? NextDelay(int attemptsMade, TimeOnly localTime, NotificationKind kind)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attemptsMade);
 
@@ -59,6 +60,6 @@ public sealed class SmsRetrySchedule
         // TimeSpan, not TimeOnly.Add: a TimeOnly wraps around midnight, and 23:58 is not "early".
         var nextTry = localTime.ToTimeSpan() + delay;
 
-        return nextTry <= SmsSettings.LatestSendTime.ToTimeSpan() ? delay : null;
+        return nextTry <= SmsSettings.LatestSendTimeFor(kind).ToTimeSpan() ? delay : null;
     }
 }

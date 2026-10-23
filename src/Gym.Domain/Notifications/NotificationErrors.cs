@@ -25,12 +25,23 @@ public static class NotificationErrors
         "The provider gave this message's cost back; its delivery no longer changes.");
 
     /// <summary>
-    /// BUSINESS_RULES.md §10 <i>Sending</i>: only a <c>Failed</c> or <c>Unknown</c> message is resent.
-    /// A sent one would be paid for twice, and a pending one is being sent right now.
+    /// BUSINESS_RULES.md §10 <i>Sending</i>: only a <c>Failed</c> or <c>Unknown</c> message is resent, or
+    /// a sent one the provider cancelled (task 10.16). Any other sent one would be paid for twice, and a
+    /// pending one is being sent right now.
     /// </summary>
     public static readonly Error NotResendable = Error.Conflict(
         "Notifications.NotResendable",
-        "Only a failed message, or one whose outcome is unknown, can be resent.");
+        "Only a failed message, one whose outcome is unknown, or one the provider cancelled can be resent.");
+
+    /// <summary>BUSINESS_RULES.md §10 <i>Sending</i> (task 10.16): the system resends by itself only what the provider cancelled.</summary>
+    public static readonly Error NotCancelledByProvider = Error.Conflict(
+        "Notifications.NotCancelledByProvider",
+        "Only a message the provider cancelled is resent automatically.");
+
+    /// <summary>BUSINESS_RULES.md §10 <i>Sending</i> (task 10.16): at most five automatic resends; then only the Owner's.</summary>
+    public static readonly Error AutoResendsUsedUp = Error.Conflict(
+        "Notifications.AutoResendsUsedUp",
+        "The message was already resent automatically as many times as allowed.");
 
     /// <summary>BUSINESS_RULES.md §10 <i>Sending</i>: nothing is sent outside 08:00–22:00, a resend included.</summary>
     public static readonly Error OutsideSendingHours = Error.BusinessRule(

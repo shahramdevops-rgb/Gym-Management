@@ -84,12 +84,18 @@ export function presetRange(preset: RangePreset, today: string): ReportRange {
   }
 }
 
-/** The preset a range is, so its button reads pressed; undefined for a range of one's own. */
+/**
+ * The preset a range is, so its button reads pressed; undefined for a range of one's own. When
+ * several cover the same days, the page's default wins (on a month's 1st «امروز» and «این ماه» are
+ * one day, and the page opens on «این ماه»), and otherwise the first one listed.
+ */
 export function presetOf(range: ReportRange, today: string): RangePreset | undefined {
-  return rangePresets.find((preset) => {
+  const matching = rangePresets.filter((preset) => {
     const candidate = presetRange(preset, today);
     return candidate.from === range.from && candidate.to === range.to;
   });
+
+  return matching.includes(defaultRangePreset) ? defaultRangePreset : matching[0];
 }
 
 /** How many days a range covers, both ends included. */

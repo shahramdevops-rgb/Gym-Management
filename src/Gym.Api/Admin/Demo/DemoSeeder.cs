@@ -21,6 +21,8 @@ using Gym.Application.Members.SetMemberActive;
 using Gym.Application.Notifications;
 using Gym.Application.Notifications.GetSmsSettings;
 using Gym.Application.Notifications.SendDailySms;
+using Gym.Application.Notifications.SendSubscriptionReceipt;
+using Gym.Application.Notifications.SendWelcome;
 using Gym.Application.Notifications.UpdateSmsSettings;
 using Gym.Application.Payables;
 using Gym.Application.Payables.MarkPayablePaid;
@@ -253,8 +255,11 @@ public sealed class DemoSeeder
 
             foreach (var e in events)
             {
+                // A receipt or welcome put off to 10:00, then the ones this event asked for at once.
+                await SendQueuedSmsAsync(e.At);
                 _clock.Set(e.At);
                 await e.Run();
+                await SendQueuedSmsAsync(e.At);
             }
         }
     }
@@ -389,6 +394,7 @@ public sealed class DemoSeeder
         if (_smsOn)
         {
             Add(At(day, 10, 30), SendDailySmsAsync);
+            Add(At(day, 22, 45), SendDailyReportAsync);
         }
 
         AddExpenses(day, index, Add);
@@ -605,10 +611,16 @@ public sealed class DemoSeeder
         var command = new UpdateSmsSettingsCommand(
             Enabled: true,
             SubscriptionExpiring: new SmsKindSettings(true, 3, new TimeOnly(10, 0)),
-            LowSessions: new SmsKindSettings(true, 2, new TimeOnly(10, 15)),
-            Birthday: new SmsKindSettings(true, 0, new TimeOnly(9, 0)),
+            LowSessions: new LowSessionsSettings(true, 8, 15, 1, 2, 3, new TimeOnly(10, 15)),
+            Birthday: new SmsKindSettings(true, 3, new TimeOnly(9, 0)),
             PayableDue: new SmsKindSettings(true, 3, new TimeOnly(9, 30)),
             OwnerPhone: "09121112233",
+            DailyReport: new DailyReportSettings(true, "09121112233", SmsSettings.DefaultDailyReportSendTime),
+            SubscriptionReceipt: new SubscriptionReceiptSettings(true),
+            Welcome: new WelcomeSettings(true),
+            DebtReminder: new DebtReminderSettings(true, 30, new TimeOnly(11, 0), 200_000m),
+            Absence: new SmsKindSettings(true, 14, new TimeOnly(11, 30)),
+            Broadcast: new BroadcastSettings(true),
             Version: version);
 
         await MustAsync<UpdateSmsSettingsHandler, SmsSettingsResponse>(
@@ -616,15 +628,64 @@ public sealed class DemoSeeder
         _smsOn = true;
     }
 
-    /// <summary>The daily runs, as Hangfire would make them, on nobody's behalf.</summary>
+    /// <summary>The daily runs, as Hangfire would make them, on nobody's behalf. The report has its own time.</summary>
     private async Task SendDailySmsAsync()
     {
         _actor.ActAsNobody();
-        foreach (var kind in Enum.GetValues<NotificationKind>())
+        foreach (var kind in Enum.GetValues<NotificationKind>()
+            .Where(kind => kind is not (NotificationKind.DailyReport or NotificationKind.SubscriptionReceipt or NotificationKind.Welcome
+                or NotificationKind.Broadcast)))
         {
             await using var scope = _services.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<SendDailySmsHandler>().Handle(kind, _cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// The receipts (task 10.9) and welcomes (task 10.10) due by <paramref name="until"/>, each at its
+    /// own moment and on nobody's behalf, as Hangfire's jobs would send them. Whoever the seeder was
+    /// acting as is put back after.
+    /// </summary>
+    private async Task SendQueuedSmsAsync(DateTimeOffset until)
+    {
+        var due = _services.GetRequiredService<DemoSmsJobs>().TakeDue(until);
+        if (due.Count == 0)
+        {
+            return;
+        }
+
+        var (userId, isOwner) = (_actor.UserId, _actor.IsOwner);
+        _actor.ActAsNobody();
+        foreach (var (kind, subscriptionId, at) in due)
+        {
+            if (at > _clock.GetUtcNow())
+            {
+                _clock.Set(at);
+            }
+
+            await using var scope = _services.CreateAsyncScope();
+            if (kind == NotificationKind.Welcome)
+            {
+                await scope.ServiceProvider.GetRequiredService<SendWelcomeHandler>().Handle(subscriptionId, _cancellationToken);
+            }
+            else
+            {
+                await scope.ServiceProvider.GetRequiredService<SendSubscriptionReceiptHandler>().Handle(subscriptionId, _cancellationToken);
+            }
+        }
+
+        if (userId is { } id)
+        {
+            _actor.ActAs(id, isOwner);
+        }
+    }
+
+    /// <summary>The Owner's daily report at 22:45 (task 10.7), as Hangfire would make it.</summary>
+    private async Task SendDailyReportAsync()
+    {
+        _actor.ActAsNobody();
+        await using var scope = _services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<SendDailySmsHandler>().Handle(NotificationKind.DailyReport, _cancellationToken);
     }
 
     private void AddExpenses(DateOnly day, int index, Action<DateTimeOffset, Func<Task>> add)
@@ -765,6 +826,14 @@ public sealed class DemoSeeder
 
     private async Task CheckInAsync(Visit visit, int index)
     {
+        // A day's visits are planned in the morning and the freeze comes at 13:00, so the member frozen
+        // that day may still have a visit planned for the evening. They stay away: coming in would
+        // unfreeze the plan (BUSINESS_RULES.md §4 Freeze), and the demo would show no frozen plan.
+        if (visit.Member is { Frozen: true })
+        {
+            return;
+        }
+
         ActAsDesk();
         var locker = TakeLocker();
 

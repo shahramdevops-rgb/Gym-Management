@@ -35,4 +35,16 @@ public static class AttendanceConstraints
 
     /// <summary>Only a member's visit can be cardio-only (BUSINESS_RULES.md §7 <i>Cardio-only visit</i>).</summary>
     public const string CardioOnlyIsMembers = "ck_attendances_cardio_only_is_members";
+
+    /// <summary>
+    /// One birthday visit per member and Jalali year, cancelled ones aside (BUSINESS_RULES.md §7
+    /// <i>Birthday visit</i>).
+    /// </summary>
+    public const string OneBirthdayVisitPerMemberAndYear = "ix_attendances_one_birthday_visit_per_member_and_year";
+
+    /// <summary>
+    /// A birthday visit is a member's ordinary visit on a plan: never a guest's, never cardio-only,
+    /// always naming its subscription (BUSINESS_RULES.md §7 <i>Birthday visit</i>).
+    /// </summary>
+    public const string BirthdayVisitOnPlan = "ck_attendances_birthday_visit_on_plan";
 }

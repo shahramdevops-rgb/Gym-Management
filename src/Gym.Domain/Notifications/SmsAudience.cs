@@ -1,3 +1,4 @@
+using Gym.Domain.Attendances;
 using Gym.Domain.Common;
 using Gym.Domain.Payables;
 using Gym.Domain.Subscriptions;
@@ -43,10 +44,10 @@ public static class SmsAudience
     }
 
     /// <summary>
-    /// The birthday to greet today, or <c>null</c>. With <paramref name="daysBefore"/> = 0, the
-    /// birthday itself; otherwise a birthday from tomorrow to <paramref name="daysBefore"/> days ahead,
-    /// so the «پیشاپیش» greeting never lands on the day (decided with the developer, task 10.3). The
-    /// birthday's Jalali year is the year of the message: one per member and year.
+    /// The birthday to greet today, or <c>null</c>: a birthday from tomorrow to
+    /// <paramref name="daysBefore"/> days ahead, never the day itself, so the member hears of the free
+    /// visit in time (task 10.8; the settings allow 1 to 7). The birthday's Jalali year is the year of
+    /// the message: one per member and year.
     /// </summary>
     public static DateOnly? BirthdayToGreet(DateOnly birthDate, DateOnly today, int daysBefore)
     {
@@ -59,9 +60,21 @@ public static class SmsAudience
         }
 
         var daysAway = birthday.DayNumber - today.DayNumber;
-        var inWindow = daysBefore == 0 ? daysAway == 0 : daysAway >= 1 && daysAway <= daysBefore;
 
-        return inWindow ? birthday : null;
+        return daysAway >= 1 && daysAway <= daysBefore ? birthday : null;
+    }
+
+    /// <summary>
+    /// A plan that earns the birthday SMS (§10, task 10.8): a membership, not a single visit, that is
+    /// active, frozen or bought for later on the day the message is written. One used up, ended or
+    /// cancelled does not count. Whether the member is active is the run's question.
+    /// </summary>
+    public static bool HoldsPlanForBirthday(Subscription subscription, DateOnly today)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+
+        return !subscription.IsSingleSession
+            && subscription.GetStatus(today) is SubscriptionStatus.Active or SubscriptionStatus.Frozen or SubscriptionStatus.Upcoming;
     }
 
     /// <summary>
@@ -79,6 +92,167 @@ public static class SmsAudience
             && daysAway >= 0
             && daysAway <= daysBefore;
     }
+
+    /// <summary>
+    /// Whether a payment earns the receipt (§10 <i>The subscription receipt</i>, task 10.9): it is
+    /// the one that clears what was still owed on a plan, so its net paid reaches the price. A
+    /// single visit and a free plan never earn one, and a payment on a plan already paid cannot
+    /// exist (§5: no overpayment).
+    /// </summary>
+    /// <param name="owedBefore">What was still owed on it just before this payment.</param>
+    /// <param name="amount">This payment.</param>
+    public static bool EarnsReceipt(Subscription subscription, decimal owedBefore, decimal amount)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+
+        return !subscription.IsSingleSession
+            && subscription.Price > 0m
+            && owedBefore > 0m
+            && amount >= owedBefore;
+    }
+
+    /// <summary>
+    /// Whether a receipt asked for earlier is still to be sent: the plan is not cancelled and still
+    /// fully paid. Whether the member is active is the sender's question.
+    /// </summary>
+    public static bool ReceiptStillDue(Subscription subscription, decimal netPaid)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+
+        return !subscription.IsSingleSession
+            && subscription.CancelledAt is null
+            && subscription.Price > 0m
+            && netPaid >= subscription.Price;
+    }
+
+    /// <summary>
+    /// Whether a plan is the member's first (§10 <i>The welcome</i>, task 10.10): a membership, not
+    /// cancelled, sold while the member had no other membership that is not cancelled. Only the
+    /// plans sold before it count: a plan sold after the first does not make it any less the first.
+    /// Single visits never count, either way.
+    /// </summary>
+    /// <remarks>
+    /// "Sold before" is the moment it was saved, and the id when two share a moment, so of two plans
+    /// exactly one is the first, even when both are asked about after both were saved.
+    /// </remarks>
+    /// <param name="others">The member's other subscriptions; the plan itself may be among them.</param>
+    public static bool IsFirstPlan(Subscription plan, IEnumerable<Subscription> others)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(others);
+
+        if (plan.IsSingleSession || plan.CancelledAt is not null)
+        {
+            return false;
+        }
+
+        return !others.Any(other =>
+            other.Id != plan.Id
+            && !other.IsSingleSession
+            && other.CancelledAt is null
+            && SoldBefore(other, plan));
+    }
+
+    /// <summary>
+    /// A plan waiting in line behind another membership of the same member (§4): it has not started
+    /// and a live membership ends the day before it starts, so its dates are only where it stands
+    /// today. The same test as the member's history («بعد از پلن قبلی»).
+    /// </summary>
+    /// <param name="others">The member's other subscriptions; the plan itself may be among them.</param>
+    public static bool IsQueuedBehindAnother(Subscription subscription, IEnumerable<Subscription> others, DateOnly today)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        ArgumentNullException.ThrowIfNull(others);
+
+        if (subscription.IsSingleSession || subscription.GetStatus(today) != SubscriptionStatus.Upcoming)
+        {
+            return false;
+        }
+
+        var dayBefore = subscription.StartDate.AddDays(-1);
+
+        return others.Any(other =>
+            other.Id != subscription.Id
+            && !other.IsSingleSession
+            && other.CancelledAt is null
+            && other.EndDate == dayBefore);
+    }
+
+    /// <summary>
+    /// Whether a member's debt earns a reminder today (§10 <i>The debt reminder</i>, task 10.11): at
+    /// least <paramref name="minAmount"/> owed, the oldest unpaid sale at least
+    /// <paramref name="daysAfter"/> days old, and no reminder written since that sale was recorded.
+    /// </summary>
+    /// <remarks>
+    /// "Once per debt": a reminder written after the oldest unpaid sale already spoke of it. Only when
+    /// everything owed at the last reminder has been paid is the oldest unpaid sale a newer one, and
+    /// that debt earns its own. Whether the member is active does not matter for this kind.
+    /// </remarks>
+    /// <param name="lastReminderAt">When the member's latest debt reminder was written, whatever became of it; <c>null</c> for none.</param>
+    public static bool IsDebtReminderDue(
+        OpenDebt debt, DateTimeOffset? lastReminderAt, DateOnly today, int daysAfter, decimal minAmount)
+    {
+        ArgumentNullException.ThrowIfNull(debt);
+
+        return debt.Owed > 0m
+            && debt.Owed >= minAmount
+            && today.DayNumber - debt.OldestSoldOn.DayNumber >= daysAfter
+            && (lastReminderAt is not { } last || debt.OldestSoldAt > last);
+    }
+
+    /// <summary>
+    /// Whether a member earns the absence SMS today (§10 <i>The absence SMS</i>, task 10.12): their
+    /// plan is usable today (§4 <c>Active</c>: not a single visit, not frozen, not queued, not used
+    /// up), they have been away at least <paramref name="daysAway"/> days (<see cref="Absence"/>),
+    /// and this absence has had no SMS yet. Whether the member is active is the run's question.
+    /// </summary>
+    /// <remarks>
+    /// "Once per absence": an absence is named by the day it counts from. A visit, or a newer plan the
+    /// member has not come on, starts a later one, which earns its own; a cancelled check-in that
+    /// brings back an absence already texted brings no second SMS.
+    /// </remarks>
+    /// <param name="lastVisitOn">The gym's day of the member's last visit not cancelled; <c>null</c> for none.</param>
+    /// <param name="lastAbsentSince">The day the member's latest absence SMS counted from, whatever became of it; <c>null</c> for none.</param>
+    public static bool IsAbsenceDue(
+        Subscription plan, DateOnly? lastVisitOn, DateOnly? lastAbsentSince, DateOnly today, int daysAway)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+
+        var since = Absence.Since(lastVisitOn, plan.StartDate);
+
+        return IsActivePlan(plan, today)
+            && today.DayNumber - since.DayNumber >= daysAway
+            && (lastAbsentSince is not { } last || since > last);
+    }
+
+    /// <summary>
+    /// Whether an active member is in the broadcast's group (§10 <i>The broadcast</i>, task 10.13):
+    /// every one for <see cref="BroadcastAudience.ActiveMembers"/>; for
+    /// <see cref="BroadcastAudience.MembersWithUsablePlan"/>, one holding a membership plan usable
+    /// today, the plans the absence SMS looks at. A deactivated member is in no group.
+    /// </summary>
+    /// <param name="plans">The member's subscriptions; only needed for the plan group.</param>
+    public static bool IsInBroadcastGroup(
+        BroadcastAudience audience, bool memberIsActive, IEnumerable<Subscription> plans, DateOnly today)
+    {
+        ArgumentNullException.ThrowIfNull(plans);
+
+        if (!memberIsActive)
+        {
+            return false;
+        }
+
+        return audience switch
+        {
+            BroadcastAudience.ActiveMembers => true,
+            BroadcastAudience.MembersWithUsablePlan => plans.Any(plan => IsActivePlan(plan, today)),
+            _ => throw new ArgumentOutOfRangeException(nameof(audience), audience, "Unknown audience."),
+        };
+    }
+
+    private static bool SoldBefore(Subscription one, Subscription other) =>
+        one.CreatedAt < other.CreatedAt
+        || (one.CreatedAt == other.CreatedAt && one.Id.CompareTo(other.Id) < 0);
 
     private static bool IsActivePlan(Subscription subscription, DateOnly today) =>
         !subscription.IsSingleSession && subscription.GetStatus(today) == SubscriptionStatus.Active;

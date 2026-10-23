@@ -62,6 +62,22 @@ describe("CurrentlyInsidePage", () => {
     expect(within(other).queryByText("فقط هوازی")).not.toBeInTheDocument();
   });
 
+  /** BUSINESS_RULES.md §7 Birthday visit: the free visit is marked on the board. */
+  it("Board_BirthdayVisit_IsMarkedTavallod", async () => {
+    const birthday = { ...openVisit(reza.id), isBirthdayVisit: true };
+    mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/attendance/currently-inside": () =>
+        currentlyInsidePage([insideRow(reza.fullName, birthday)]),
+    });
+
+    renderApp("/attendance", { session: session() });
+
+    const row = (await screen.findByRole("link", { name: reza.fullName })).closest("tr")!;
+    expect(within(row).getByText("تولد")).toBeInTheDocument();
+    expect(within(row).queryByText("فقط هوازی")).not.toBeInTheDocument();
+  });
+
   /** Roadmap 6.5.35: a cardio-only visit needs no plan, so there is nothing to count or to expire. */
   it("Board_CardioOnlyVisitWithNoPlan_ShowsADashAndNoExpiry", async () => {
     const cardio = { ...openVisit(reza.id), isCardioOnly: true, subscriptionId: null };

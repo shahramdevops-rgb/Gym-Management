@@ -1172,6 +1172,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sms/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetSmsSamples"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sms/credit": {
         parameters: {
             query?: never;
@@ -1214,6 +1230,70 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["ResendSms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sms/broadcasts/audiences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetBroadcastAudiences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sms/broadcasts/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PreviewBroadcast"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sms/broadcasts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListBroadcasts"];
+        put?: never;
+        post: operations["SendBroadcast"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sms/broadcasts/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ResumeBroadcast"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1518,6 +1598,7 @@ export interface components {
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
             isCardioOnly: boolean;
+            isBirthdayVisit: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: date-time */
@@ -1565,6 +1646,57 @@ export interface components {
             memberFullName: null | string;
             changes: components["schemas"]["AuditChangeResponse"][];
         };
+        /** @enum {unknown} */
+        BroadcastAudience: "ActiveMembers" | "MembersWithUsablePlan";
+        BroadcastAudiencesResponse: {
+            activeMembers: components["schemas"]["BroadcastGroupResponse"];
+            membersWithUsablePlan: components["schemas"]["BroadcastGroupResponse"];
+        };
+        BroadcastGroupResponse: {
+            /** Format: int32 */
+            recipients: number | string;
+            longestFirstName: string;
+        };
+        BroadcastPreviewResponse: {
+            /** Format: int32 */
+            recipients: number | string;
+            /** Format: int32 */
+            longestMessageParts: number | string;
+            /** Format: int32 */
+            totalParts: number | string;
+            /** Format: double */
+            estimatedCostToman: null | number | string;
+            sampleText: string;
+        };
+        BroadcastResponse: {
+            /** Format: uuid */
+            id: string;
+            text: string;
+            audience: components["schemas"]["BroadcastAudience"];
+            status: components["schemas"]["BroadcastStatus"];
+            stopReason: null | components["schemas"]["BroadcastStopReason"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            endedAt: null | string;
+            /** Format: int32 */
+            sent: number | string;
+            /** Format: int32 */
+            failed: number | string;
+            /** Format: int32 */
+            unknown: number | string;
+            /** Format: int32 */
+            pending: number | string;
+            /** Format: double */
+            costToman: number | string;
+        };
+        BroadcastSettings: {
+            enabled: boolean;
+        };
+        /** @enum {unknown} */
+        BroadcastStatus: "Sending" | "Finished" | "Stopped";
+        /** @enum {unknown} */
+        BroadcastStopReason: "CreditExhausted" | "OutsideSendingHours" | "TurnedOff" | "Error" | "TooLong" | null;
         CafeOrderItemResponse: {
             /** Format: uuid */
             id: string;
@@ -1703,6 +1835,7 @@ export interface components {
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
             isCardioOnly: boolean;
+            isBirthdayVisit: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: uuid */
@@ -1730,8 +1863,29 @@ export interface components {
             roles: string[];
             mustChangePassword: boolean;
         };
+        DailyReportSettings: {
+            enabled: boolean;
+            phone: null | string;
+            /** Format: time */
+            sendTime: string;
+        };
+        DailyReportSettingsResponse: {
+            enabled: boolean;
+            phone: null | string;
+            /** Format: time */
+            sendTime: string;
+        };
         /** @enum {unknown} */
         DayOfWeek: "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
+        DebtReminderSettings: {
+            enabled: boolean;
+            /** Format: int32 */
+            daysAfter: null | number | string;
+            /** Format: time */
+            sendTime: null | string;
+            /** Format: double */
+            minAmount: null | number | string;
+        };
         ExpenseCategoryResponse: {
             /** Format: uuid */
             id: string;
@@ -1843,6 +1997,7 @@ export interface components {
             lockerNumber: null | number | string;
             usesReservePlace: boolean;
             isCardioOnly: boolean;
+            isBirthdayVisit: boolean;
             /** Format: date-time */
             checkedInAt: string;
             /** Format: date-time */
@@ -2015,6 +2170,21 @@ export interface components {
             userName: string;
             password: string;
         };
+        LowSessionsSettings: {
+            enabled: boolean;
+            /** Format: int32 */
+            smallPlanMax: null | number | string;
+            /** Format: int32 */
+            mediumPlanMax: null | number | string;
+            /** Format: int32 */
+            smallThreshold: null | number | string;
+            /** Format: int32 */
+            mediumThreshold: null | number | string;
+            /** Format: int32 */
+            largeThreshold: null | number | string;
+            /** Format: time */
+            sendTime: null | string;
+        };
         MemberCurrentVisit: {
             /** Format: uuid */
             attendanceId: string;
@@ -2142,7 +2312,7 @@ export interface components {
             payablesDue: components["schemas"]["PayableDueResponse"][];
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -2166,6 +2336,15 @@ export interface components {
         };
         PagedResponseOfAuditLogResponse: {
             items: components["schemas"]["AuditLogResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        PagedResponseOfBroadcastResponse: {
+            items: components["schemas"]["BroadcastResponse"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
@@ -2461,6 +2640,10 @@ export interface components {
             totalSessions: number | string;
             isSingleSession: boolean;
         };
+        PreviewBroadcastCommand: {
+            text: string;
+            audience: components["schemas"]["BroadcastAudience"];
+        };
         PricesResponse: {
             /** Format: double */
             sessionPrice: null | number | string;
@@ -2616,6 +2799,10 @@ export interface components {
             /** Format: double */
             unitPrice: number | string;
         };
+        SendBroadcastCommand: {
+            text: string;
+            audience: components["schemas"]["BroadcastAudience"];
+        };
         /** @enum {unknown} */
         ServiceChargeKind: "Cardio" | "Miscellaneous" | "Analysis" | "Other" | null;
         ServiceChargeResponse: {
@@ -2738,9 +2925,13 @@ export interface components {
             memberName: null | string;
             /** Format: uuid */
             payableId: null | string;
+            /** Format: uuid */
+            broadcastId: null | string;
             text: string;
             /** Format: int32 */
             attempts: number | string;
+            /** Format: int32 */
+            autoResends: number | string;
             /** Format: int32 */
             errorCode: null | number | string;
             /** Format: double */
@@ -2753,13 +2944,35 @@ export interface components {
             /** Format: date-time */
             sentAt: null | string;
         };
+        SmsSample: {
+            text: string;
+            /** Format: int32 */
+            parts: number | string;
+        };
+        SmsSamplesResponse: {
+            subscriptionExpiring: components["schemas"]["SmsSample"];
+            lowSessions: components["schemas"]["SmsSample"];
+            birthday: components["schemas"]["SmsSample"];
+            payableDue: components["schemas"]["SmsSample"];
+            dailyReport: components["schemas"]["SmsSample"];
+            subscriptionReceipt: components["schemas"]["SmsSample"];
+            welcome: components["schemas"]["SmsSample"];
+            debtReminder: components["schemas"]["SmsSample"];
+            absence: components["schemas"]["SmsSample"];
+        };
         SmsSettingsResponse: {
             enabled: boolean;
             subscriptionExpiring: components["schemas"]["SmsKindSettings"];
-            lowSessions: components["schemas"]["SmsKindSettings"];
+            lowSessions: components["schemas"]["LowSessionsSettings"];
             birthday: components["schemas"]["SmsKindSettings"];
             payableDue: components["schemas"]["SmsKindSettings"];
             ownerPhone: null | string;
+            dailyReport: components["schemas"]["DailyReportSettingsResponse"];
+            subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettingsResponse"];
+            welcome: components["schemas"]["WelcomeSettingsResponse"];
+            debtReminder: components["schemas"]["DebtReminderSettings"];
+            absence: components["schemas"]["SmsKindSettings"];
+            broadcast: components["schemas"]["BroadcastSettings"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -2771,6 +2984,14 @@ export interface components {
             isActive: boolean;
             mustChangePassword: boolean;
             isLockedOut: boolean;
+        };
+        SubscriptionReceiptSettings: {
+            enabled: boolean;
+        };
+        SubscriptionReceiptSettingsResponse: {
+            enabled: boolean;
+            /** Format: time */
+            morningSendTime: string;
         };
         SubscriptionResponse: {
             /** Format: uuid */
@@ -2906,10 +3127,16 @@ export interface components {
         UpdateSmsSettingsCommand: {
             enabled: boolean;
             subscriptionExpiring: components["schemas"]["SmsKindSettings"];
-            lowSessions: components["schemas"]["SmsKindSettings"];
+            lowSessions: components["schemas"]["LowSessionsSettings"];
             birthday: components["schemas"]["SmsKindSettings"];
             payableDue: components["schemas"]["SmsKindSettings"];
             ownerPhone: null | string;
+            dailyReport: components["schemas"]["DailyReportSettings"];
+            subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettings"];
+            welcome: components["schemas"]["WelcomeSettings"];
+            debtReminder: components["schemas"]["DebtReminderSettings"];
+            absence: components["schemas"]["SmsKindSettings"];
+            broadcast: components["schemas"]["BroadcastSettings"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -2923,6 +3150,14 @@ export interface components {
         };
         VoidServiceChargeCommand: {
             reason: string;
+        };
+        WelcomeSettings: {
+            enabled: boolean;
+        };
+        WelcomeSettingsResponse: {
+            enabled: boolean;
+            /** Format: time */
+            morningSendTime: string;
         };
     };
     responses: never;
@@ -8358,6 +8593,44 @@ export interface operations {
             };
         };
     };
+    GetSmsSamples: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSamplesResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     GetSmsCredit: {
         parameters: {
             query?: never;
@@ -8403,6 +8676,7 @@ export interface operations {
                 To?: string;
                 Kind?: components["schemas"]["NotificationKind"];
                 Status?: components["schemas"]["NotificationStatus"];
+                BroadcastId?: string;
                 Page?: number | string;
                 PageSize?: number | string;
             };
@@ -8468,6 +8742,290 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmsMessageResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetBroadcastAudiences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcastAudiencesResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PreviewBroadcast: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewBroadcastCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcastPreviewResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListBroadcasts: {
+        parameters: {
+            query?: {
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResponseOfBroadcastResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SendBroadcast: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendBroadcastCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcastResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ResumeBroadcast: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcastResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */

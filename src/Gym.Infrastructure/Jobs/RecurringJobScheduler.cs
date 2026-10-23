@@ -19,6 +19,14 @@ public static class RecurringJobScheduler
 
     public const string SmsDeliveryCheckJobId = "notifications-delivery-check";
 
+    public const string SmsCancelledResendJobId = "notifications-cancelled-resend";
+
+    /// <summary>
+    /// How often the provider is asked about today's messages, and what it cancelled is sent again
+    /// (BUSINESS_RULES.md §10 <i>Sending</i>, task 10.16): each one waits 30 minutes between tries.
+    /// </summary>
+    public const string SmsCancelledResendCron = "*/15 * * * *";
+
     /// <summary>
     /// When the nightly delivery check runs, in <c>Gym:TimeZone</c> (BUSINESS_RULES.md §10 <i>Sending</i>):
     /// after the last send of the day (22:00), and every 24 hours, inside the provider's 48.
@@ -50,6 +58,14 @@ public static class RecurringJobScheduler
             SmsDeliveryCheckJobId,
             handler => handler.Handle(CancellationToken.None),
             $"{SmsDeliveryCheckTime.Minute} {SmsDeliveryCheckTime.Hour} * * *",
+            new RecurringJobOptions { TimeZone = calendar.TimeZone });
+
+        // All day, whatever the settings: the handler sends nothing outside the hours or with SMS off,
+        // and with nothing sent today it asks the provider nothing.
+        recurringJobs.AddOrUpdate<CancelledSmsResendJob>(
+            SmsCancelledResendJobId,
+            job => job.Run(CancellationToken.None),
+            SmsCancelledResendCron,
             new RecurringJobOptions { TimeZone = calendar.TimeZone });
     }
 }

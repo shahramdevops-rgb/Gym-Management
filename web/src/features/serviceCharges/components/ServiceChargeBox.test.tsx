@@ -287,7 +287,11 @@ describe("ServiceChargeBox", () => {
     await waitFor(() =>
       expect(api.requestsTo("POST", `/api/service-charges/${charge.id}/void`)).toHaveLength(1),
     );
-    expect(await screen.findByText("مبلغ هوازی ابطال شد")).toBeInTheDocument();
+    // The notice comes once the dialog has closed and the visit is read again; on a machine busy
+    // with the whole suite that took longer than the default second (seen 2026-10-23).
+    expect(
+      await screen.findByText("مبلغ هوازی ابطال شد", {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
   });
 
   it("Box_NoChargeOnAClosedVisit_ShowsNothing", async () => {

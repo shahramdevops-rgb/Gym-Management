@@ -141,6 +141,24 @@ public static class DependencyInjection
         services.AddSingleton<ISmsRunSchedule, HangfireSmsRunSchedule>();
         services.AddScoped<DailySmsJob>();
 
+        // The receipt is a background job per payment, enqueued after the payment is saved (task 10.9).
+        services.AddSingleton<ISubscriptionReceiptScheduler, HangfireSubscriptionReceiptScheduler>();
+        services.AddScoped<SubscriptionReceiptJob>();
+
+        // The welcome likewise, one job per first plan, enqueued after the sale is saved (task 10.10).
+        services.AddSingleton<IWelcomeScheduler, HangfireWelcomeScheduler>();
+        services.AddScoped<WelcomeJob>();
+
+        // A broadcast is one job, enqueued after it is saved, which writes and sends its messages (task 10.13).
+        services.AddSingleton<IBroadcastScheduler, HangfireBroadcastScheduler>();
+        services.AddScoped<BroadcastJob>();
+
+        // What the provider cancelled is sent again by itself, checked every 15 minutes (task 10.16).
+        services.AddScoped<CancelledSmsResendJob>();
+
+        // One left «در حال ارسال» by a stopped server is handed to its job again at start.
+        services.AddHostedService<BroadcastRecoveryService>();
+
         // Without this, /health would only report that the process is running, and an
         // orchestrator would happily route traffic to an API that cannot reach its database.
         services.AddHealthChecks()

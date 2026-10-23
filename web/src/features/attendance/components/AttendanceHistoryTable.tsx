@@ -11,7 +11,7 @@ import { ServiceChargeBox } from "@/features/serviceCharges/components/ServiceCh
 import { emptyValue, formatDateTime, formatMoney, toPersianDigits } from "@/lib/format";
 
 import type { Attendance } from "../api";
-import { cardioOnlyLabel } from "../holder";
+import { birthdayVisitLabel, cardioOnlyLabel } from "../holder";
 
 /** A member's own visits, most recent first: cancelled and auto-closed ones included, marked. */
 export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
@@ -43,6 +43,8 @@ export function AttendanceHistoryTable({ items }: { items: Attendance[] }) {
                 <AttendanceStatusBadge item={item} />
                 {/* No session was consumed (BUSINESS_RULES.md §7 *Cardio-only visit*). */}
                 {item.isCardioOnly && <Badge variant="cardio">{cardioOnlyLabel}</Badge>}
+                {/* Free on the birthday: no session either (§7 *Birthday visit*). */}
+                {item.isBirthdayVisit && <Badge variant="birthday">{birthdayVisitLabel}</Badge>}
               </span>
             </TableCell>
           </TableRow>

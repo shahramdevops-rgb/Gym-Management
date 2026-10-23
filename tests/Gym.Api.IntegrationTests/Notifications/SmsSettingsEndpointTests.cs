@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -29,6 +30,34 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     private static readonly object Off = new { enabled = false, threshold = (int?)null, sendTime = (string?)null };
 
+    private static readonly object ReportOff = new { enabled = false, phone = (string?)null, sendTime = "22:45:00" };
+
+    private static readonly object LowSessionsOff = new
+    {
+        enabled = false,
+        smallPlanMax = (int?)null,
+        mediumPlanMax = (int?)null,
+        smallThreshold = (int?)null,
+        mediumThreshold = (int?)null,
+        largeThreshold = (int?)null,
+        sendTime = (string?)null,
+    };
+
+    private static readonly object ReceiptOff = new { enabled = false };
+    private static readonly object WelcomeOff = new { enabled = false };
+
+    private static readonly object BroadcastOff = new { enabled = false };
+
+    private static readonly object DebtReminderOff = new
+    {
+        enabled = false,
+        daysAfter = (int?)null,
+        sendTime = (string?)null,
+        minAmount = (decimal?)null,
+    };
+
+    private static readonly object AbsenceOff = Off;
+
     // ---- The seeded row ----
 
     [Fact]
@@ -59,9 +88,18 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [Theory]
     [InlineData("subscription_expiring_days_before = 0", "ck_sms_settings_subscription_expiring_days")]
     [InlineData("subscription_expiring_days_before = 31", "ck_sms_settings_subscription_expiring_days")]
-    [InlineData("low_sessions_threshold = 0", "ck_sms_settings_low_sessions_threshold")]
-    [InlineData("low_sessions_threshold = 11", "ck_sms_settings_low_sessions_threshold")]
-    [InlineData("birthday_days_before = -1", "ck_sms_settings_birthday_days")]
+    [InlineData("low_sessions_small_threshold = 0", "ck_sms_settings_low_sessions_thresholds")]
+    [InlineData("low_sessions_medium_threshold = 5", "ck_sms_settings_low_sessions_thresholds")]
+    [InlineData("low_sessions_large_threshold = 5", "ck_sms_settings_low_sessions_thresholds")]
+    [InlineData("low_sessions_small_plan_max = 4", "ck_sms_settings_low_sessions_plan_max")]
+    [InlineData("low_sessions_medium_plan_max = 141", "ck_sms_settings_low_sessions_plan_max")]
+    [InlineData("low_sessions_medium_plan_max = 8", "ck_sms_settings_low_sessions_plan_max")]
+    [InlineData("daily_report_send_time = '23:50'", "ck_sms_settings_daily_report_send_time")]
+    [InlineData("daily_report_send_time = '07:45'", "ck_sms_settings_daily_report_send_time")]
+    [InlineData(
+        "low_sessions_enabled = true, low_sessions_small_threshold = 1, low_sessions_send_time = '10:00'",
+        "ck_sms_settings_low_sessions_on_means_filled")]
+    [InlineData("birthday_days_before = 0", "ck_sms_settings_birthday_days")]
     [InlineData("birthday_days_before = 8", "ck_sms_settings_birthday_days")]
     [InlineData("payable_due_days_before = 31", "ck_sms_settings_payable_due_days")]
     [InlineData("birthday_send_time = '07:45'", "ck_sms_settings_send_times")]
@@ -76,6 +114,19 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [InlineData(
         "payable_due_enabled = true, payable_due_days_before = 3, payable_due_send_time = '10:00'",
         "ck_sms_settings_payable_due_on_means_filled")]
+    [InlineData("daily_report_phone = '09121234567'", "ck_sms_settings_daily_report_phone")]
+    [InlineData("daily_report_enabled = true", "ck_sms_settings_daily_report_on_means_filled")]
+    [InlineData("debt_reminder_days_after = 0", "ck_sms_settings_debt_reminder_days")]
+    [InlineData("debt_reminder_days_after = 91", "ck_sms_settings_debt_reminder_days")]
+    [InlineData("debt_reminder_min_amount = 999.99", "ck_sms_settings_debt_reminder_min_amount")]
+    [InlineData("debt_reminder_send_time = '22:15'", "ck_sms_settings_send_times")]
+    [InlineData("absence_days_away = 6", "ck_sms_settings_absence_days")]
+    [InlineData("absence_days_away = 61", "ck_sms_settings_absence_days")]
+    [InlineData("absence_send_time = '07:45'", "ck_sms_settings_send_times")]
+    [InlineData("absence_enabled = true, absence_days_away = 14", "ck_sms_settings_absence_on_means_filled")]
+    [InlineData(
+        "debt_reminder_enabled = true, debt_reminder_days_after = 30, debt_reminder_send_time = '11:00'",
+        "ck_sms_settings_debt_reminder_on_means_filled")]
     public async Task Database_RuleBroken_IsRefused(string assignments, string constraint)
     {
         var exception = await Should.ThrowAsync<PostgresException>(() => ExecuteAsync($"UPDATE sms_settings SET {assignments}"));
@@ -85,10 +136,18 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     }
 
     [Fact]
+    public async Task Database_DebtReminderOnAndFilled_IsAccepted() =>
+        await ExecuteAsync(
+            """
+            UPDATE sms_settings SET debt_reminder_enabled = true, debt_reminder_days_after = 90,
+                debt_reminder_send_time = '08:00', debt_reminder_min_amount = 1000
+            """);
+
+    [Fact]
     public async Task Database_KindOnAndFilled_IsAccepted() =>
         await ExecuteAsync(
             """
-            UPDATE sms_settings SET birthday_enabled = true, birthday_days_before = 0,
+            UPDATE sms_settings SET birthday_enabled = true, birthday_days_before = 1,
                 birthday_send_time = '22:00'
             """);
 
@@ -103,10 +162,17 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
         settings.Enabled.ShouldBeFalse();
         settings.SubscriptionExpiring.ShouldBe(SmsKindSettings.Off);
-        settings.LowSessions.ShouldBe(SmsKindSettings.Off);
+        // The plan sizes come seeded at 8 and 15 (task 10.17); the numbers are the Owner's to choose.
+        settings.LowSessions.ShouldBe(new LowSessionsSettings(false, 8, 15, null, null, null, null));
         settings.Birthday.ShouldBe(SmsKindSettings.Off);
         settings.PayableDue.ShouldBe(SmsKindSettings.Off);
         settings.OwnerPhone.ShouldBeNull();
+        settings.DailyReport.ShouldBe(new DailyReportSettingsResponse(false, null, new TimeOnly(22, 45)));
+        settings.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(false, new TimeOnly(10, 0)));
+        settings.Welcome.ShouldBe(new WelcomeSettingsResponse(false, new TimeOnly(10, 0)));
+        settings.DebtReminder.ShouldBe(new DebtReminderSettings(false, null, null, null));
+        settings.Absence.ShouldBe(SmsKindSettings.Off);
+        settings.Broadcast.ShouldBe(new BroadcastSettings(false));
     }
 
     [Fact]
@@ -147,10 +213,374 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         var reread = await GetOkAsync(client, token);
         reread.Enabled.ShouldBeTrue();
         reread.SubscriptionExpiring.ShouldBe(new SmsKindSettings(true, 7, new TimeOnly(9, 0)));
-        reread.LowSessions.ShouldBe(new SmsKindSettings(true, 2, new TimeOnly(9, 15)));
-        reread.Birthday.ShouldBe(new SmsKindSettings(true, 0, new TimeOnly(10, 30)));
+        reread.LowSessions.ShouldBe(new LowSessionsSettings(true, 8, 15, 1, 2, 3, new TimeOnly(9, 15)));
+        reread.Birthday.ShouldBe(new SmsKindSettings(true, 1, new TimeOnly(10, 30)));
         reread.PayableDue.ShouldBe(new SmsKindSettings(true, 3, new TimeOnly(22, 0)));
         reread.OwnerPhone.ShouldBe("+989121234567");
+        reread.DailyReport.ShouldBe(new DailyReportSettingsResponse(true, "+989351234567", new TimeOnly(21, 30)));
+        reread.SubscriptionReceipt.ShouldBe(new SubscriptionReceiptSettingsResponse(true, new TimeOnly(10, 0)));
+        reread.Welcome.ShouldBe(new WelcomeSettingsResponse(true, new TimeOnly(10, 0)));
+        reread.Absence.ShouldBe(new SmsKindSettings(true, 14, new TimeOnly(11, 30)));
+    }
+
+    // ---- The subscription receipt (task 10.9) ----
+
+    [Fact]
+    public async Task Update_SubscriptionReceiptOn_IsSavedWithNothingElseToFill()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, subscriptionReceipt: new { enabled = true }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).SubscriptionReceipt.Enabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Update_SubscriptionReceiptLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = LowSessionsOff,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            welcome = WelcomeOff,
+            broadcast = BroadcastOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "subscriptionReceipt", "Sms.SettingsIncomplete");
+    }
+
+    [Fact]
+    public async Task Update_SubscriptionReceiptTurnedOn_IsInTheAuditLog()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        (await UpdateAsync(client, token, Body(read.Version, subscriptionReceipt: new { enabled = true })))
+            .EnsureSuccessStatusCode().Dispose();
+
+        await using var scope = Fixture.CreateScope();
+        var update = await scope.ServiceProvider.GetRequiredService<AppDbContext>().AuditLogs.AsNoTracking()
+            .Where(log => log.EntityType == nameof(SmsSettings) && log.Action == AuditAction.Update)
+            .OrderByDescending(log => log.OccurredAt)
+            .FirstAsync(TestContext.Current.CancellationToken);
+        Value(update.OldValues, nameof(SmsSettings.SubscriptionReceiptEnabled)).GetBoolean().ShouldBeFalse();
+        Value(update.NewValues, nameof(SmsSettings.SubscriptionReceiptEnabled)).GetBoolean().ShouldBeTrue();
+    }
+
+    // ---- The welcome (task 10.10) ----
+
+    // ---- The debt reminder (task 10.11) ----
+
+    [Fact]
+    public async Task Update_DebtReminderOnAndFilled_IsSavedAndGetsItsRun()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var schedule = RecordingSchedule();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version,
+            enabled: true,
+            debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000.5m }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).DebtReminder.ShouldBe(
+            new DebtReminderSettings(true, 30, new TimeOnly(11, 0), 200_000.5m));
+        schedule.Applied.ShouldNotBeEmpty();
+        schedule.Applied[^1].For(NotificationKind.DebtReminder).SendTime.ShouldBe(new TimeOnly(11, 0));
+    }
+
+    [Fact]
+    public async Task Update_DebtReminderOnWithoutItsMinimumAmount_Returns400SettingsIncompleteUnderTheSwitch()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            read.Version,
+            debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = (decimal?)null }));
+
+        await ShouldHaveFieldErrorAsync(response, "debtReminder.enabled", "Sms.SettingsIncomplete");
+    }
+
+    [Theory]
+    [InlineData(0, null, null, "debtReminder.daysAfter", "Sms.DebtReminderDaysOutOfRange")]
+    [InlineData(91, null, null, "debtReminder.daysAfter", "Sms.DebtReminderDaysOutOfRange")]
+    [InlineData(null, "22:15:00", null, "debtReminder.sendTime", "Sms.SendTimeOutOfRange")]
+    [InlineData(null, null, "999.99", "debtReminder.minAmount", "Sms.DebtReminderMinAmountOutOfRange")]
+    [InlineData(null, null, "1000.001", "debtReminder.minAmount", "Sms.DebtReminderMinAmountOutOfRange")]
+    public async Task Update_DebtReminderFieldOutOfItsRange_Returns400WithTheFieldsCode(
+        int? daysAfter, string? sendTime, string? minAmount, string field, string code)
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+        var amount = minAmount is null ? (decimal?)null : decimal.Parse(minAmount, CultureInfo.InvariantCulture);
+
+        using var response = await UpdateAsync(client, token, Body(
+            read.Version, debtReminder: new { enabled = false, daysAfter, sendTime, minAmount = amount }));
+
+        await ShouldHaveFieldErrorAsync(response, field, code);
+    }
+
+    [Fact]
+    public async Task Update_DebtReminderLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = LowSessionsOff,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
+            broadcast = BroadcastOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "debtReminder", "Sms.SettingsIncomplete");
+    }
+
+    // ---- The absence SMS (task 10.12) ----
+
+    [Fact]
+    public async Task Update_AbsenceOnAndFilled_IsSavedAndGetsItsRun()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var schedule = RecordingSchedule();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, absence: Kind(true, 14, "11:30:00")));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).Absence.ShouldBe(new SmsKindSettings(true, 14, new TimeOnly(11, 30)));
+        schedule.Applied[^1].For(NotificationKind.Absence).SendTime.ShouldBe(new TimeOnly(11, 30));
+    }
+
+    [Theory]
+    [InlineData(6, null, "absence.threshold", "Sms.AbsenceDaysOutOfRange")]
+    [InlineData(61, null, "absence.threshold", "Sms.AbsenceDaysOutOfRange")]
+    [InlineData(null, "11:10:00", "absence.sendTime", "Sms.SendTimeOutOfRange")]
+    public async Task Update_AbsenceFieldOutOfItsRange_Returns400WithTheFieldsCode(
+        int? days, string? sendTime, string field, string code)
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(read.Version, absence: Kind(false, days, sendTime)));
+
+        await ShouldHaveFieldErrorAsync(response, field, code);
+    }
+
+    [Fact]
+    public async Task Update_AbsenceOnWithoutItsTime_Returns400SettingsIncompleteUnderTheSwitch()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(read.Version, absence: Kind(true, 14, null)));
+
+        await ShouldHaveFieldErrorAsync(response, "absence.enabled", "Sms.SettingsIncomplete");
+    }
+
+    [Fact]
+    public async Task Update_WelcomeOn_IsSavedWithNothingElseToFill()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, welcome: new { enabled = true }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).Welcome.Enabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Update_WelcomeLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = LowSessionsOff,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            broadcast = BroadcastOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "welcome", "Sms.SettingsIncomplete");
+    }
+
+    [Fact]
+    public async Task Update_WelcomeTurnedOn_IsInTheAuditLog()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        (await UpdateAsync(client, token, Body(read.Version, welcome: new { enabled = true })))
+            .EnsureSuccessStatusCode().Dispose();
+
+        await using var scope = Fixture.CreateScope();
+        var update = await scope.ServiceProvider.GetRequiredService<AppDbContext>().AuditLogs.AsNoTracking()
+            .Where(log => log.EntityType == nameof(SmsSettings) && log.Action == AuditAction.Update)
+            .OrderByDescending(log => log.OccurredAt)
+            .FirstAsync(TestContext.Current.CancellationToken);
+        Value(update.OldValues, nameof(SmsSettings.WelcomeEnabled)).GetBoolean().ShouldBeFalse();
+        Value(update.NewValues, nameof(SmsSettings.WelcomeEnabled)).GetBoolean().ShouldBeTrue();
+    }
+
+    // ---- The broadcast (task 10.13) ----
+
+    [Fact]
+    public async Task Update_BroadcastOn_IsSavedWithNothingElseToFill()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, broadcast: new { enabled = true }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).Broadcast.Enabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Update_BroadcastLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = LowSessionsOff,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
+            debtReminder = DebtReminderOff,
+            absence = AbsenceOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "broadcast", "Sms.SettingsIncomplete");
+    }
+
+    [Fact]
+    public async Task Update_BroadcastTurnedOn_IsInTheAuditLog()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        (await UpdateAsync(client, token, Body(read.Version, broadcast: new { enabled = true })))
+            .EnsureSuccessStatusCode().Dispose();
+
+        await using var scope = Fixture.CreateScope();
+        var update = await scope.ServiceProvider.GetRequiredService<AppDbContext>().AuditLogs.AsNoTracking()
+            .Where(log => log.EntityType == nameof(SmsSettings) && log.Action == AuditAction.Update)
+            .OrderByDescending(log => log.OccurredAt)
+            .FirstAsync(TestContext.Current.CancellationToken);
+        Value(update.OldValues, nameof(SmsSettings.BroadcastEnabled)).GetBoolean().ShouldBeFalse();
+        Value(update.NewValues, nameof(SmsSettings.BroadcastEnabled)).GetBoolean().ShouldBeTrue();
+    }
+
+    // ---- The daily report (task 10.7) ----
+
+    [Fact]
+    public async Task Update_DailyReportNumberInPersianDigits_IsKeptAsE164ApartFromTheOwnersNumber()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version,
+            ownerPhone: "09121234567",
+            dailyReport: new { enabled = true, phone = "۰۹۳۵ ۱۲۳ ۴۵۶۷", sendTime = "22:45:00" }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var saved = await GetOkAsync(client, token);
+        saved.DailyReport.Phone.ShouldBe("+989351234567");
+        saved.OwnerPhone.ShouldBe("+989121234567");
+    }
+
+    [Fact]
+    public async Task Update_DailyReportOnWithoutItsNumber_Returns400SettingsIncompleteUnderTheSwitch()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        // The Owner's number for the cheques does not stand in for the report's.
+        using var response = await UpdateAsync(client, token, Body(
+            read.Version, ownerPhone: "09121234567", dailyReport: new { enabled = true, phone = (string?)null, sendTime = "22:45:00" }));
+
+        await ShouldHaveFieldErrorAsync(response, "dailyReport.enabled", "Sms.SettingsIncomplete");
+    }
+
+    [Theory]
+    [InlineData("0912")]
+    [InlineData("02112345678")]
+    public async Task Update_DailyReportNumberNotAnIranianMobile_Returns400WithItsOwnCode(string phone)
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(before.Version, dailyReport: new { enabled = false, phone, sendTime = "22:45:00" }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.ReadErrorCodeAsync()).ShouldBe("Sms.DailyReportPhoneInvalid");
+        (await GetOkAsync(client, token)).DailyReport.Phone.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Update_DailyReportLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = LowSessionsOff,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
+            broadcast = BroadcastOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "dailyReport", "Sms.SettingsIncomplete");
     }
 
     [Fact]
@@ -207,7 +637,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             .OrderByDescending(log => log.OccurredAt)
             .FirstAsync(TestContext.Current.CancellationToken);
         update.UserId.ShouldBe(ownerId);
-        Value(update.OldValues, nameof(SmsSettings.BirthdayDaysBefore)).GetInt32().ShouldBe(0);
+        Value(update.OldValues, nameof(SmsSettings.BirthdayDaysBefore)).GetInt32().ShouldBe(1);
         Value(update.NewValues, nameof(SmsSettings.BirthdayDaysBefore)).GetInt32().ShouldBe(3);
         Value(update.NewValues, nameof(SmsSettings.BirthdayEnabled)).GetBoolean().ShouldBeFalse();
     }
@@ -254,6 +684,11 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         applied.Enabled.ShouldBeTrue();
         applied.For(NotificationKind.SubscriptionExpiring).SendTime.ShouldBe(new TimeOnly(9, 0));
         applied.For(NotificationKind.PayableDue).SendTime.ShouldBe(new TimeOnly(22, 0));
+        applied.For(NotificationKind.DailyReport).ShouldBe(new SmsKindSettings(true, null, new TimeOnly(21, 30)));
+
+        // On, but no send time: the receipt goes at each payment, never by a daily run.
+        applied.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
+        applied.For(NotificationKind.Welcome).ShouldBe(new SmsKindSettings(true, null, null));
     }
 
     [Fact]
@@ -328,9 +763,13 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         {
             enabled = false,
             subscriptionExpiring = Off,
-            lowSessions = Off,
+            lowSessions = LowSessionsOff,
             payableDue = Off,
             ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
+            broadcast = BroadcastOff,
             version = read.Version,
         });
 
@@ -339,7 +778,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     [Theory]
     [InlineData("subscriptionExpiring", 31, null, "subscriptionExpiring.threshold", "Sms.SubscriptionExpiringDaysOutOfRange")]
-    [InlineData("lowSessions", 11, null, "lowSessions.threshold", "Sms.LowSessionsOutOfRange")]
+    [InlineData("lowSessions", 5, null, "lowSessions.smallThreshold", "Sms.LowSessionsOutOfRange")]
+    [InlineData("birthday", 0, null, "birthday.threshold", "Sms.BirthdayDaysOutOfRange")]
     [InlineData("birthday", 8, null, "birthday.threshold", "Sms.BirthdayDaysOutOfRange")]
     [InlineData("payableDue", 31, null, "payableDue.threshold", "Sms.PayableDueDaysOutOfRange")]
     [InlineData("birthday", null, "22:15:00", "birthday.sendTime", "Sms.SendTimeOutOfRange")]
@@ -354,12 +794,62 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         using var response = await UpdateAsync(client, token, kind switch
         {
             "subscriptionExpiring" => Body(read.Version, subscriptionExpiring: refused),
-            "lowSessions" => Body(read.Version, lowSessions: refused),
+            "lowSessions" => Body(read.Version, lowSessions: new
+            {
+                enabled = false,
+                smallPlanMax = 8,
+                mediumPlanMax = 15,
+                smallThreshold = threshold,
+                mediumThreshold = (int?)null,
+                largeThreshold = (int?)null,
+                sendTime,
+            }),
             "birthday" => Body(read.Version, birthday: refused),
             _ => Body(read.Version, payableDue: refused),
         });
 
         await ShouldHaveFieldErrorAsync(response, field, code);
+    }
+
+    [Theory]
+    [InlineData(4, 15, "lowSessions.smallPlanMax", "Sms.LowSessionsSmallPlanMaxOutOfRange")]
+    [InlineData(8, 8, "lowSessions.mediumPlanMax", "Sms.LowSessionsMediumPlanMaxOutOfRange")]
+    [InlineData(8, 141, "lowSessions.mediumPlanMax", "Sms.LowSessionsMediumPlanMaxOutOfRange")]
+    public async Task Update_LowSessionsPlanSizeOutOfRange_Returns400UnderThatBox(
+        int smallPlanMax, int mediumPlanMax, string field, string code)
+    {
+        // Task 10.17: the first row ends at 5 to 139 sessions, the second above it and at most 140.
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(read.Version, lowSessions: new
+        {
+            enabled = false,
+            smallPlanMax,
+            mediumPlanMax,
+            smallThreshold = (int?)null,
+            mediumThreshold = (int?)null,
+            largeThreshold = (int?)null,
+            sendTime = (string?)null,
+        }));
+
+        await ShouldHaveFieldErrorAsync(response, field, code);
+    }
+
+    [Theory]
+    [InlineData("07:45:00")]
+    [InlineData("23:50:00")]
+    [InlineData("18:10:00")]
+    public async Task Update_DailyReportTimeOutOfItsWindow_Returns400UnderTheTime(string sendTime)
+    {
+        // Task 10.17: 08:00 to 23:45, on a quarter hour.
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(
+            client, token, Body(read.Version, dailyReport: new { enabled = false, phone = (string?)null, sendTime }));
+
+        await ShouldHaveFieldErrorAsync(response, "dailyReport.sendTime", "Sms.DailyReportSendTimeOutOfRange");
     }
 
     // ---- Helpers ----
@@ -383,15 +873,27 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         object? lowSessions = null,
         object? birthday = null,
         object? payableDue = null,
-        string? ownerPhone = null) =>
+        string? ownerPhone = null,
+        object? dailyReport = null,
+        object? subscriptionReceipt = null,
+        object? welcome = null,
+        object? debtReminder = null,
+        object? absence = null,
+        object? broadcast = null) =>
         new
         {
             enabled,
             subscriptionExpiring = subscriptionExpiring ?? Off,
-            lowSessions = lowSessions ?? Off,
+            lowSessions = lowSessions ?? LowSessionsOff,
             birthday = birthday ?? Off,
             payableDue = payableDue ?? Off,
             ownerPhone,
+            dailyReport = dailyReport ?? ReportOff,
+            subscriptionReceipt = subscriptionReceipt ?? ReceiptOff,
+            welcome = welcome ?? WelcomeOff,
+            debtReminder = debtReminder ?? DebtReminderOff,
+            absence = absence ?? AbsenceOff,
+            broadcast = broadcast ?? BroadcastOff,
             version,
         };
 
@@ -399,10 +901,24 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         version,
         enabled: true,
         subscriptionExpiring: Kind(true, 7, "09:00:00"),
-        lowSessions: Kind(true, 2, "09:15:00"),
-        birthday: Kind(true, 0, "10:30:00"),
+        lowSessions: new
+        {
+            enabled = true,
+            smallPlanMax = 8,
+            mediumPlanMax = 15,
+            smallThreshold = 1,
+            mediumThreshold = 2,
+            largeThreshold = 3,
+            sendTime = "09:15:00",
+        },
+        birthday: Kind(true, 1, "10:30:00"),
         payableDue: Kind(true, 3, "22:00:00"),
-        ownerPhone: "09121234567");
+        ownerPhone: "09121234567",
+        dailyReport: new { enabled = true, phone = "09351234567", sendTime = "21:30:00" },
+        subscriptionReceipt: new { enabled = true },
+        welcome: new { enabled = true },
+        debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000m },
+        absence: Kind(true, 14, "11:30:00"));
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {
