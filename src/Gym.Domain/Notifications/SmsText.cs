@@ -81,12 +81,12 @@ public static class SmsText
 
     /// <summary>
     /// Always sent 1 to 7 days early, so one text: the date without the year, the free visit on it
-    /// (BUSINESS_RULES.md §7 <i>Birthday visit</i>) and «پیشاپیش تولدتان مبارک» (chosen by the
-    /// developer, 1405/07/27, task 10.8).
+    /// (BUSINESS_RULES.md §7 <i>Birthday visit</i>) and «پیشاپیش تولدت مبارک» (chosen by the
+    /// developer, 1405/07/27, task 10.8; the developer's spoken wording since 1405/08/01).
     /// </summary>
     /// <param name="birthday">This year's birthday, as <c>SmsAudience.BirthdayToGreet</c> found it.</param>
     public static string ForBirthday(string fullName, DateOnly birthday) =>
-        WithOptOut($"{FirstName(fullName)} عزیز، {MonthAndDay(birthday)} روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!");
+        WithOptOut($"{FirstName(fullName)} عزیز سلام، {MonthAndDay(birthday)} روز تولدته؛ اون روز مهمون باشگاه پاسارگاد هستی و ورودت رایگانه. پیشاپیش تولدت مبارک رفیق!!");
 
     /// <summary>To the Owner: the kind, the amount, the date and the payee.</summary>
     public static string ForPayableDue(PayableKind kind, decimal amount, DateOnly dueDate, string payee)
@@ -142,11 +142,12 @@ public static class SmsText
         WithOptOut($"{FirstName(fullName)} عزیز، اشتراک {Number(sessions)} جلسه‌ای شما در باشگاه پاسارگاد ({Number(days)} روز، پس از اشتراک فعلی) ثبت و {Amount(price)} تومان کامل پرداخت شد. سپاس!");
 
     /// <summary>
-    /// To the member when their first plan is sold (task 10.10): one SMS part, and nothing in it that
-    /// would be wrong for a member moved over from the paper notebook (chosen by the developer, 1405/07/27).
+    /// To the member when their first plan is sold (task 10.10): nothing in it that would be wrong
+    /// for a member moved over from the paper notebook (chosen by the developer, 1405/07/27). The
+    /// developer's warmer wording since 1405/08/01, two SMS parts.
     /// </summary>
     public static string ForWelcome(string fullName) =>
-        WithOptOut($"{FirstName(fullName)} عزیز، به باشگاه پاسارگاد خوش آمدید!");
+        WithOptOut($"درود بر {FirstName(fullName)} عزیز، به باشگاه پاسارگاد خوش اومدی، امیدوارم ساعات خوشی رو توی باشگاه داشته باشی");
 
     /// <summary>
     /// To the member whose debt has been owed for a while (task 10.11): their whole open account,
@@ -158,10 +159,15 @@ public static class SmsText
 
     /// <summary>
     /// To the member with a usable plan who has stopped coming (task 10.12): friendly, with no offer
-    /// in it, one SMS part (chosen by the developer, 1405/07/27).
+    /// in it. Since 1405/08/01 the developer's warmer wording with the real days away, two SMS parts.
     /// </summary>
-    public static string ForAbsence(string fullName) =>
-        WithOptOut($"{FirstName(fullName)} عزیز، جای شما در باشگاه پاسارگاد خالی است!");
+    /// <param name="daysAway">Whole days since the absence began (<c>Absence.DaysAway</c>), not the settings' number.</param>
+    public static string ForAbsence(string fullName, int daysAway)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(daysAway);
+
+        return WithOptOut($"{FirstName(fullName)} عزیز، جات توی باشگاه پاسارگاد خالیه! {Number(daysAway)} روزه که باشگاه نیومدی و منتظر حضور گرمت هستیم!");
+    }
 
     /// <summary>
     /// The broadcast (task 10.13): the member's first name, then the Owner's own text, which the

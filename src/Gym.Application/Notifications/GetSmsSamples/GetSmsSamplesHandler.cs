@@ -39,7 +39,7 @@ public sealed class GetSmsSamplesHandler(IGymCalendar calendar)
             SubscriptionReceipt: Sample(SmsText.ForSubscriptionReceipt(SampleMemberName, sessions: 12, today, today.AddDays(30), 1_800_000m)),
             Welcome: Sample(SmsText.ForWelcome(SampleMemberName)),
             DebtReminder: Sample(SmsText.ForDebtReminder(SampleMemberName, 450_000m)),
-            Absence: Sample(SmsText.ForAbsence(SampleMemberName)));
+            Absence: Sample(SmsText.ForAbsence(SampleMemberName, daysAway: 12)));
     }
 
     private static SmsSample Sample(string text) => new(text, SmsParts.Count(text));

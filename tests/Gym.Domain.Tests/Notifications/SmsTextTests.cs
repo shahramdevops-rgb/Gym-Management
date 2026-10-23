@@ -74,13 +74,13 @@ public sealed class SmsTextTests
     public void ForBirthday_Birthday_IsTheAgreedTextWithTheFreeVisit()
     {
         SmsText.ForBirthday("سارا محمدی", Day)
-            .ShouldBe("سارا عزیز، ۰۷/۲۰ روز تولد شماست؛ آن روز مهمان باشگاه پاسارگاد هستید و ورودتان رایگان است. پیشاپیش تولدتان مبارک!" + OptOutLine);
+            .ShouldBe("سارا عزیز سلام، ۰۷/۲۰ روز تولدته؛ اون روز مهمون باشگاه پاسارگاد هستی و ورودت رایگانه. پیشاپیش تولدت مبارک رفیق!!" + OptOutLine);
     }
 
     [Fact]
     public void ForBirthday_TenCharacterName_FitsInTwoParts()
     {
-        // docs/sms-texts.md: about 124 characters; two parts hold 134.
+        // docs/sms-texts.md: about 118 characters; two parts hold 134.
         SmsText.ForBirthday("سارا محمدی", Day).Length.ShouldBeLessThanOrEqualTo(2 * 67);
     }
 
@@ -294,20 +294,21 @@ public sealed class SmsTextTests
     [Fact]
     public void ForWelcome_Member_GreetsThemByName()
     {
-        SmsText.ForWelcome("سارا محمدی").ShouldBe("سارا عزیز، به باشگاه پاسارگاد خوش آمدید!" + OptOutLine);
+        SmsText.ForWelcome("سارا محمدی")
+            .ShouldBe("درود بر سارا عزیز، به باشگاه پاسارگاد خوش اومدی، امیدوارم ساعات خوشی رو توی باشگاه داشته باشی" + OptOutLine);
     }
 
     [Fact]
     public void ForWelcome_NameWithSayyed_IsTheFirstNameOnly()
     {
-        SmsText.ForWelcome(LongName).ShouldStartWith("محمد عزیز،");
+        SmsText.ForWelcome(LongName).ShouldStartWith("درود بر محمد عزیز،");
     }
 
     [Fact]
-    public void ForWelcome_TenCharacterName_FitsInOnePart()
+    public void ForWelcome_TenCharacterName_IsTwoParts()
     {
-        // docs/sms-texts.md: about 52 characters, one part of 70.
-        SmsText.ForWelcome("سارا محمدی").Length.ShouldBeLessThanOrEqualTo(70);
+        // docs/sms-texts.md: about 99 characters, two parts of 67 (the developer accepted two, 1405/08/01).
+        SmsParts.Count(SmsText.ForWelcome("سارا محمدی")).ShouldBe(2);
     }
 
     // ---- The debt reminder (task 10.11) ----
@@ -336,22 +337,31 @@ public sealed class SmsTextTests
     // ---- The absence SMS (task 10.12) ----
 
     [Fact]
-    public void ForAbsence_Member_TellsThemTheirPlaceIsEmpty()
+    public void ForAbsence_Member_TellsThemTheirPlaceIsEmptyAndTheDaysAway()
     {
-        SmsText.ForAbsence("سارا محمدی").ShouldBe("سارا عزیز، جای شما در باشگاه پاسارگاد خالی است!" + OptOutLine);
+        SmsText.ForAbsence("سارا محمدی", 12)
+            .ShouldBe("سارا عزیز، جات توی باشگاه پاسارگاد خالیه! ۱۲ روزه که باشگاه نیومدی و منتظر حضور گرمت هستیم!" + OptOutLine);
     }
 
     [Fact]
     public void ForAbsence_NameWithSayyed_IsTheFirstNameOnly()
     {
-        SmsText.ForAbsence(LongName).ShouldStartWith("محمد عزیز،");
+        SmsText.ForAbsence(LongName, 12).ShouldStartWith("محمد عزیز،");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void ForAbsence_NoDaysAway_Throws(int daysAway)
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => SmsText.ForAbsence("سارا محمدی", daysAway));
     }
 
     [Fact]
-    public void ForAbsence_TenCharacterName_FitsInOnePart()
+    public void ForAbsence_TenCharacterName_IsTwoParts()
     {
-        // docs/sms-texts.md: about 59 characters, one part of 70.
-        SmsText.ForAbsence("سارا محمدی").Length.ShouldBeLessThanOrEqualTo(70);
+        // docs/sms-texts.md: about 106 characters, two parts of 67 (the developer accepted two, 1405/08/01).
+        SmsParts.Count(SmsText.ForAbsence("سارا محمدی", 60)).ShouldBe(2);
     }
 
     // ---- The first name (task 10.13) ----

@@ -14,9 +14,9 @@ Milestones:
 Release order (decided by the developer on 1405/07/26, 2026-10-18):
 1. **Done 2026-10-20:** the SMS release, 10.6 to 10.15, from `main`, as one complete version
    (`20261020-0246-099e551`, 10.6), Kavenegar live with every kind off until the Owner turns them on.
-   **Next, before the look:** 10.16 (sending again what Kavenegar cancelled) and 10.17 (three
-   changes to the SMS settings), as one small release from `main` (planned on 1405/08/01,
-   2026-10-23).
+   **Next, before the look:** 10.16 (sending again what Kavenegar cancelled), 10.17 (three
+   changes to the SMS settings) and 10.18 (new wording for the absence, welcome and birthday SMS), as one small release
+   from `main` (planned on 1405/08/01, 2026-10-23).
 2. Then, in the days after SMS works, Phase 13's look and mobile (13.1 and 13.2 are finished and
    ticked on the branch `task/13.2-visual-language`; they are merged into `main` only after the SMS
    release, so they still show open here) as a release of its own.
@@ -2985,6 +2985,28 @@ Asked by the developer on 1405/08/01 (2026-10-23), to go out with 10.16. Decided
       the sizes typed, the report's hours, what is sent)
 
 Release: with 10.16, as one release from `main`; both have migrations, so `./backup.sh run` first.
+
+### 10.18 New wording for three SMS kinds (متن تازهٔ پیامک غیبت، خوش‌آمد و تولد)
+Asked by the developer on 1405/08/01 (2026-10-23), to go out with 10.16 and 10.17, all three in
+spoken Persian. BUSINESS_RULES.md §10, docs/sms-texts.md. Messages already written keep their text.
+- [x] Absence: «{name} عزیز، جات توی باشگاه پاسارگاد خالیه! {days} روزه که باشگاه نیومدی و منتظر
+      حضور گرمت هستیم!», two SMS parts (accepted by the developer; it was one). *{days}* is the
+      member's real days away (`Absence.DaysAway`), not the settings' number (chosen by the
+      developer); the sample on «تنظیمات پیامک» says ۱۲
+- [x] Welcome: «درود بر {name} عزیز، به باشگاه پاسارگاد خوش اومدی، امیدوارم ساعات خوشی رو توی
+      باشگاه داشته باشی», two SMS parts (it was one)
+- [x] Birthday: «{name} عزیز سلام، {month/day} روز تولدته؛ اون روز مهمون باشگاه پاسارگاد هستی و
+      ورودت رایگانه. پیشاپیش تولدت مبارک رفیق!!», still two parts
+- [x] Tests: domain (each text, its parts, no zero days), integration (a member away longer than the
+      setting reads the real days; the samples; the birthday run), frontend (the samples)
+
+Found by the pre-release run on the same day, a 1st of the month, and fixed with it:
+- [x] The dashboard opened with «امروز» lit instead of «این ماه» on every Jalali month's 1st, when
+      the two are the same day (`presetOf`, §12 *Dashboard*): the default now wins a tie
+- [x] `ServiceChargeBox`'s void test waited one second for its notice and sometimes ran out under
+      the whole suite: three, as the other slow notices
+
+No migration. Release: with 10.16 and 10.17, one release from `main`.
 
 ---
 

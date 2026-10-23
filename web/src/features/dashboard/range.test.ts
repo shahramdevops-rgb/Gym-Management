@@ -64,6 +64,17 @@ describe("presetOf", () => {
     // On a Saturday "today" and "this week" are the same day; the first one listed wins.
     expect(presetOf({ from: "2026-10-03", to: "2026-10-03" }, "2026-10-03")).toBe("today");
   });
+
+  it("presetOf_FirstOfTheMonth_IsThisMonth", () => {
+    // 2026-10-23 is Friday ۱۴۰۵/۰۸/۰۱: "today" and "this month" are the same day; the page's
+    // default wins.
+    expect(presetOf({ from: "2026-10-23", to: "2026-10-23" }, "2026-10-23")).toBe("month");
+  });
+
+  it("presetOf_FirstOfTheYear_IsThisMonth", () => {
+    // 2027-03-21 is ۱۴۰۶/۰۱/۰۱: "today", "this month" and "this year" are one day.
+    expect(presetOf({ from: "2027-03-21", to: "2027-03-21" }, "2027-03-21")).toBe("month");
+  });
 });
 
 describe("rangeError", () => {

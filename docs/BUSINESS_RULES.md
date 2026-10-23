@@ -1424,7 +1424,7 @@ Decided with the developer on 1405/07/27 (2026-10-19), task 10.10.
   welcome went out sends nothing, and the next plan sold to them is then their first (a plan sold
   while that one still stood is not, being sold after it). One cancelled
   **after** sends nothing more, and no later plan gets a welcome.
-- **What it says**: the member's name and the gym's welcome (`docs/sms-texts.md`); one SMS part.
+- **What it says**: the member's name and the gym's welcome (`docs/sms-texts.md`); two SMS parts since the developer's warmer wording of 1405/08/01 (it was one).
 - **Once per member**, enforced by a unique index on the member for this kind, and once per plan by
   the index on the subscription and the kind.
 - **Written before it is sent, retries and resend** as the receipt: saved as `Pending` before the
@@ -1488,8 +1488,9 @@ Decided with the developer on 1405/07/27 (2026-10-19), task 10.12.
 - **Checked when the run writes it**; the message is sent at once, so there is no later check.
 - **One per member and absence**, enforced by a unique index on the member and the day the absence
   counts from; a run made twice sends nothing twice.
-- **What it says** (`docs/sms-texts.md`): «{name} عزیز، جای شما در باشگاه پاسارگاد خالی است!», one
-  SMS part.
+- **What it says** (`docs/sms-texts.md`; rewritten by the developer on 1405/08/01): «{name} عزیز، جات
+  توی باشگاه پاسارگاد خالیه! {days} روزه که باشگاه نیومدی و منتظر حضور گرمت هستیم!», two SMS parts.
+  *{days}* is how long the member has really been away, counted as above, not the settings' *N*.
 
 ### The broadcast (پیامک گروهی)
 Decided with the developer on 1405/07/27 (2026-10-19), task 10.13. The one kind whose wording is
@@ -1649,7 +1650,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
 - **The wording** (decided with the developer, 1405/07/14, in `docs/sms-texts.md`): the gym is
   named «باشگاه پاسارگاد»; the subscription message gives the end date, not the days left; the
   birthday has one text, always sent 1 to 7 days early, giving the birthday's month and day
-  (without the year) and the free visit and ending «پیشاپیش تولدتان مبارک!» (decided with the developer, 1405/07/27, task 10.8; replaces two
+  (without the year) and the free visit and ending «پیشاپیش تولدت مبارک رفیق!!» (decided with the developer, 1405/07/27, task 10.8, in spoken Persian since 1405/08/01; replaces two
   texts, one of them for the day itself); the Owner's message gives the kind, the amount, the date
   and the payee.
 - **Length:** a Persian SMS holds 70 characters in one part and 67 in each part of a longer one, and
@@ -1986,6 +1987,10 @@ on one page.
     last day, so the comparison with the range before covers the same number of days (07/01–07/12
     is compared with 06/19–06/30). The Iranian week starts on **Saturday**; the year on 1 Farvardin.
   - «ماه قبل» is the whole Jalali month before this one, 29, 30 or 31 days.
+  - The pressed button is the preset the range is. When several are the same days (a month's 1st:
+    «امروز» and «این ماه»; 1 Farvardin: «امسال» too), «این ماه» lights, as the page opens on it;
+    otherwise the first one listed (a Saturday: «امروز», not «این هفته»). Decided with the
+    developer, 1405/08/01.
   - A range missing a date, running backwards or longer than 366 days is refused on the page with
     the API's own messages, before anything is asked.
 - **Compared with the range before**: a card shows the change as a percent with an arrow and a word,

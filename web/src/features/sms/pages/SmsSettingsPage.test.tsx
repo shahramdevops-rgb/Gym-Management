@@ -92,13 +92,16 @@ const samples: SmsSamples = {
     "علی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۳۱ به پایان می‌رسد.\nلغو11",
   ),
   lowSessions: sample("علی عزیز، فقط ۲ جلسه از اشتراک شما در باشگاه پاسارگاد مانده است.\nلغو11"),
-  birthday: sample("علی عزیز، ۰۷/۳۱ روز تولد شماست؛ …\nلغو11", 2),
+  birthday: sample("علی عزیز سلام، ۰۷/۳۱ روز تولدته؛ …\nلغو11", 2),
   payableDue: sample("یادآوری چک: ۱۲٬۵۰۰٬۰۰۰ تومان، سررسید ۱۴۰۵/۰۷/۳۰، به فروشگاه\nلغو11"),
   dailyReport: sample("گزارش باشگاه پاسارگاد ۰۷/۲۸\nورود: ۴۸\nلغو11", 2),
   subscriptionReceipt: sample("علی عزیز، اشتراک ۱۲ جلسه‌ای شما … سپاس!\nلغو11", 2),
-  welcome: sample("علی عزیز، به باشگاه پاسارگاد خوش آمدید!\nلغو11"),
+  welcome: sample("درود بر علی عزیز، به باشگاه پاسارگاد خوش اومدی، …\nلغو11", 2),
   debtReminder: sample("علی عزیز، مانده حساب شما در باشگاه پاسارگاد ۴۵۰٬۰۰۰ تومان است.\nلغو11", 2),
-  absence: sample("علی عزیز، جای شما در باشگاه پاسارگاد خالی است!\nلغو11"),
+  absence: sample(
+    "علی عزیز، جات توی باشگاه پاسارگاد خالیه! ۱۲ روزه که باشگاه نیومدی و منتظر حضور گرمت هستیم!\nلغو11",
+    2,
+  ),
 };
 
 /** The phone-like preview inside one kind's card. */
@@ -133,9 +136,12 @@ describe("SmsSettingsPage", () => {
     renderApp("/sms-settings", { session: session() });
 
     await waitFor(() =>
-      expect(previewOf("خوش‌آمد")).toHaveTextContent("علی عزیز، به باشگاه پاسارگاد خوش آمدید!"),
+      expect(previewOf("خوش‌آمد")).toHaveTextContent(
+        "درود بر علی عزیز، به باشگاه پاسارگاد خوش اومدی، …",
+      ),
     );
-    expect(previewOf("خوش‌آمد")).toHaveTextContent("۱ بخش · نام و عددها نمونه‌اند");
+    expect(previewOf("خوش‌آمد")).toHaveTextContent("۲ بخش · نام و عددها نمونه‌اند");
+    expect(previewOf("جلسات رو به اتمام")).toHaveTextContent("۱ بخش");
     expect(previewOf("گزارش روزانه")).toHaveTextContent("گزارش باشگاه پاسارگاد ۰۷/۲۸");
     expect(previewOf("گزارش روزانه")).toHaveTextContent("۲ بخش");
     for (const name of [

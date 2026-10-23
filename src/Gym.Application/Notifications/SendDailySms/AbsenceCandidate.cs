@@ -80,7 +80,7 @@ public sealed class AbsenceCandidate(IAppDbContext db, IGymCalendar calendar)
                 row.Row.Plan.MemberId,
                 row.Since,
                 row.Row.PhoneNumber,
-                SmsText.ForAbsence(row.Row.FullName)))
+                SmsText.ForAbsence(row.Row.FullName, today.DayNumber - row.Since.DayNumber)))
             .ToList();
     }
 

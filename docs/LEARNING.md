@@ -1862,3 +1862,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **Seed data is part of the model.** The plan sizes 8 and 15 went into `HasData`, so a fresh database and the migrated one start the same, and the test fixture that puts the seeded row back after each test had to learn them too.
 - **One component, different limits, by props.** The time picker takes the hours to offer and the hour that has only :00; the kinds pass nothing and keep 8–22, the daily report passes 8–23 with every quarter. One place still decides how an hour and a minute make a time.
 - **My notes:**
+
+## 10.18 — New wording for three SMS kinds, and a test that failed on the 1st
+
+- **A rule's threshold and a message's figure are different numbers.** The settings' *N* decides who gets the absence SMS; the text says how long *this* member has really been away (`Absence.DaysAway`). Writing *N* into the text would be wrong for everyone already away longer when the kind is turned on, and «بیشتر از N» wrong on the very day it is exactly *N*.
+- **Count the parts before changing a text.** A Persian SMS is 70 characters in one part and 67 in each part of a longer one, and every part is paid for. The new absence and welcome texts went from one part to two, so the change doubled their cost; that was the developer's decision to make, not a detail of the code.
+- **History keeps its text.** Tests that store an old wording as a sent message (resend, persistence, migrations) were left alone: a message already sent stays as it reached the phone. Only the tests of what the code writes today changed.
+- **A test that reads the real clock can fail on one day a month.** On ۱۴۰۵/۰۸/۰۱ "this month" and "today" were the same day, and `presetOf` picked the first match, «امروز». The fix was a rule (the page's default wins a tie), with tests pinned to a 1st of the month and to 1 Farvardin, so the case is checked every day, not only on the day it happens.
+- **Intermittent is not the same as random.** The void test failed only under the whole suite: its notice appears after a dialog closes and the visit is read again, which can take more than the default second on a busy machine. A longer wait for that one notice, as other slow notices already have, keeps it honest without hiding a real failure.
+- **My notes:**

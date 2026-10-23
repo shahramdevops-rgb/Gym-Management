@@ -52,7 +52,7 @@ public sealed class AbsenceTests(DatabaseFixture fixture) : DatabaseTestBase(fix
 
         var request = sender.Requests.ShouldHaveSingleItem();
         request.Receptor.ShouldBe(member.PhoneNumber);
-        request.Text.ShouldBe(SmsText.ForAbsence(member.FullName));
+        request.Text.ShouldBe(SmsText.ForAbsence(member.FullName, DaysAway));
         var absence = (await NotificationsAsync()).ShouldHaveSingleItem();
         absence.Kind.ShouldBe(NotificationKind.Absence);
         absence.MemberId.ShouldBe(member.Id);
@@ -73,6 +73,22 @@ public sealed class AbsenceTests(DatabaseFixture fixture) : DatabaseTestBase(fix
 
         sender.Requests.ShouldBeEmpty();
         (await NotificationsAsync()).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_AwayLongerThanTheDays_SaysTheRealDaysAway()
+    {
+        // The setting decides who gets it; the text says how long this member has really been away.
+        var member = await AddMemberAsync("سارا محمدی");
+        // A 10-session plan runs 30 days, so this one is still usable today.
+        var plan = await AddPlanStartingAsync(member.Id, Today.AddDays(-25));
+        await AddVisitAsync(member.Id, plan, At(Today.AddDays(-23), 18));
+        await TurnOnAsync();
+        var sender = new ScriptedSmsSender();
+
+        await RunAsync(sender);
+
+        sender.Requests.ShouldHaveSingleItem().Text.ShouldBe(SmsText.ForAbsence(member.FullName, 23));
     }
 
     [Fact]

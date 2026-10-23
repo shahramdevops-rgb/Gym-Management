@@ -42,9 +42,10 @@ public sealed class SmsSamplesTests(DatabaseFixture fixture) : DatabaseTestBase(
         samples.DailyReport.Text.ShouldStartWith("گزارش باشگاه پاسارگاد ۰۷/۲۸\n");
         samples.SubscriptionReceipt.Text.ShouldBe(
             SmsText.ForSubscriptionReceipt("علی", 12, Today, Today.AddDays(30), 1_800_000m));
-        samples.Welcome.Text.ShouldBe("علی عزیز، به باشگاه پاسارگاد خوش آمدید!\nلغو11");
+        samples.Welcome.Text.ShouldBe("درود بر علی عزیز، به باشگاه پاسارگاد خوش اومدی، امیدوارم ساعات خوشی رو توی باشگاه داشته باشی\nلغو11");
         samples.DebtReminder.Text.ShouldBe(SmsText.ForDebtReminder("علی", 450_000m));
-        samples.Absence.Text.ShouldBe("علی عزیز، جای شما در باشگاه پاسارگاد خالی است!\nلغو11");
+        samples.Absence.Text.ShouldBe("علی عزیز، جات توی باشگاه پاسارگاد خالیه! ۱۲ روزه که باشگاه نیومدی و منتظر حضور گرمت هستیم!\nلغو11");
+        samples.Absence.Parts.ShouldBe(2);
 
         foreach (var sample in new[]
                  {
@@ -57,7 +58,7 @@ public sealed class SmsSamplesTests(DatabaseFixture fixture) : DatabaseTestBase(
             sample.Parts.ShouldBe(SmsParts.Count(sample.Text));
         }
 
-        samples.Welcome.Parts.ShouldBe(1);
+        samples.Welcome.Parts.ShouldBe(2);
     }
 
     [Fact]
@@ -73,7 +74,7 @@ public sealed class SmsSamplesTests(DatabaseFixture fixture) : DatabaseTestBase(
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var samples = (await response.Content.ReadFromJsonAsync<SmsSamplesResponse>(TestContext.Current.CancellationToken))
             .ShouldNotBeNull();
-        samples.Welcome.ShouldBe(new SmsSample("علی عزیز، به باشگاه پاسارگاد خوش آمدید!\nلغو11", 1));
+        samples.Welcome.ShouldBe(new SmsSample("درود بر علی عزیز، به باشگاه پاسارگاد خوش اومدی، امیدوارم ساعات خوشی رو توی باشگاه داشته باشی\nلغو11", 2));
         samples.DailyReport.Text.ShouldContain("کارت:");
     }
 
