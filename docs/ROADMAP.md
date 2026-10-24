@@ -43,15 +43,15 @@ Still open around the panel (none of it code, or waiting for someone else):
 - **Gym PC backups:** `deploy/pull-backup.ps1` on the gym's computer, once it is set up (6.5,
   *First release over real data*). Until then the dumps are on the server and in `D:\GymBackups`
 - **Server night:** the 19 apt upgrades with Docker (item 4 above)
-- **The Owner:** fills in «تنظیمات پیامک» and turns on the kinds they want; keeps the line's
-  account charged (10.6)
+- ~~**The Owner** fills in «تنظیمات پیامک»~~ **Done** by 1405/08/03 (the developer said so); the
+  line's account still has to stay charged (10.6)
 - **Optional:** releases by registry pull instead of `scp` (6.4); the edge Caddy shared with
   another site, only if that site moves onto this server
-- **GitHub history:** 189 old commits carry a `Co-Authored-By: Claude` line, so GitHub lists Claude
-  as a contributor, and the 259 commits before 2026-10-25 are by `azghandishahram@gmail.com`.
-  Removing it means rewriting the history and a force-push to `main` (a `git bundle` of the old
-  history first); proposed on 1405/08/03 and waiting for the developer's yes. Commits since then
-  are `Shahram Azghandi <shahramdevops@gmail.com>`, with no such line
+- ~~**GitHub history**~~ **Done 1405/08/03:** the `Co-Authored-By: Claude` (189) and
+  `Claude-Session:` (14) lines removed from the old messages by rewriting `main`, files, authors and
+  dates unchanged; every commit id changed, so ids written before that day are old ones:
+  docs/git-history-map.md. Old history kept in `D:\gymbackups\gym-git-before-rewrite-20261025.bundle`.
+  Commits from 2026-10-25 are `Shahram Azghandi <shahramdevops@gmail.com>`
 
 Next: **the public site (Phase 14):** 14.1 to 14.3 wait for the gym's trainers, links and photos;
   14.4 waits for the developer's decision on the buttons; 14.6 for an ADR and the Owner
@@ -2674,7 +2674,8 @@ complete version with every kind below, not the four kinds first.
       so nothing could go out; `docker compose up -d` rebuilt only the API, healthy, and the header
       shows the credit. Whether the key is limited to the server's IP in Kavenegar is the
       developer's to check
-- [ ] The Owner fills in the settings page and turns on the kinds they want
+- [x] The Owner fills in the settings page and turns on the kinds they want (done by 1405/08/03,
+      2026-10-25, the developer said)
 - [x] The menu's «آزمایشی» mark on «پیامک‌ها» and «تنظیمات پیامک» removed (1405/07/28), released
       with 10.7 to 10.15 as the SMS release
 - [x] Released in `20261020-0246-099e551` (previous `20261016-1747-c6ff9ec`) on 2026-10-20 at

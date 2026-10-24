@@ -17,7 +17,8 @@ throwing it away. The figures, cards and rules are the same in both looks; only 
 
 ## Where it is
 
-- Git tag **`dashboard-colour-v1`** (commit `1d08ce2`), pushed to GitHub. Look at any file there
+- Git tag **`dashboard-colour-v1`** (commit `2147b8c`; `1d08ce2` before the history rewrite of 2026-10-25, docs/git-history-map.md),
+  pushed to GitHub. Look at any file there
   with `git show dashboard-colour-v1:<path>`, or bring a file back with
   `git checkout dashboard-colour-v1 -- <path>`.
 - The logo stays in the tree: `web/src/assets/brand/pasargad-logo.png` (white lines on
