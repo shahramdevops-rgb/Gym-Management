@@ -20,9 +20,10 @@ Release order (decided by the developer on 1405/07/26, 2026-10-18):
 2. Then Phase 13's look and mobile (13.1 and 13.2) as a release of its own. **Merged into `main`
    on 2026-10-23 (1405/08/01)**, asked by the developer, with the SMS work of 10.7 to 10.18 brought
    into the new look (*Merged with the SMS work* under Phase 13). Not released yet: a night the
-   developer picks, frontend only (no migration), `./backup.sh run` first as always. The Docker/apt,
-   rootless and edge nights keep their own nights; their order with this release is the
-   developer's call.
+   developer picks, frontend only (no migration), `./backup.sh run` first as always. **14.5 (the
+   panel out of search results) goes with it** (1405/08/02): files in the `web` image only. The
+   Docker/apt, rootless and edge nights keep their own nights; their order with this release is
+   the developer's call.
 3. The public site (Phase 14) has no link to the panel; it is built on its own branch and released
    on its own, when the developer chooses, never inside the SMS release.
 4. **Restart done 2026-10-20, 03:21**, the same night as the SMS release, by the developer's choice
@@ -31,6 +32,20 @@ Release order (decided by the developer on 1405/07/26, 2026-10-18):
    **Still open:** 19 packages to upgrade, Docker among them (`docker-ce`, `containerd.io`,
    `docker-compose-plugin`, …), which restarts every container: `./backup.sh run`, then
    `sudo apt upgrade`, then a reboot if asked, on a night of its own, not with a release.
+
+What is left (reviewed with the developer on 1405/08/02, 2026-10-24). The panel's code is
+finished: every task of Phases 0 to 13 is done, and 14.5 is built. The rest is not code, or
+waits for someone else:
+- **Release** 13.1, 13.2 and 14.5 together (item 2 above)
+- **Gym PC backups:** `deploy/pull-backup.ps1` on the gym's computer, once it is set up (6.5,
+  *First release over real data*). Until then the dumps are on the server and in `D:\GymBackups`
+- **Server night:** the 19 apt upgrades with Docker (item 4 above)
+- **The Owner:** fills in «تنظیمات پیامک» and turns on the kinds they want; keeps the line's
+  account charged (10.6)
+- **Optional:** releases by registry pull instead of `scp` (6.4); the edge Caddy shared with
+  another site, only if that site moves onto this server
+- **The public site (Phase 14):** 14.1 to 14.3 wait for the gym's trainers, links and photos;
+  14.4 waits for the developer's decision on the buttons; 14.6 for an ADR and the Owner
 
 ---
 
@@ -3850,8 +3865,32 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
       14.6 exists (e.g. call the gym, or hidden)
 
 ### 14.5 The panel out of search results
-- [ ] Confirm `panel.pasargadgymplus.ir` stays out of Google (`noindex` and `robots.txt` on the
+Done 1405/08/02 (2026-10-24), asked by the developer. Checked on the live server first, read-only:
+the panel already sent `X-Robots-Tag: noindex, nofollow` on every response (since 6.5.0), but its
+`/robots.txt` was the panel's `index.html` (the SPA fallback), and the public page had no
+`robots.txt`, no sitemap and no canonical address.
+- [x] Confirm `panel.pasargadgymplus.ir` stays out of Google (`noindex` and `robots.txt` on the
       panel's domain) while the public site is indexed
+- [x] Panel: a real `web/public/robots.txt` that **allows** crawling, on purpose: a crawler kept
+      out by `Disallow: /` never reads the `noindex`, and a page linked from elsewhere can then be
+      listed by its address alone. `<meta name="robots" content="noindex, nofollow">` in
+      `web/index.html` too, in case the panel is ever served through another proxy (a shared edge
+      Caddy in front of the gym, discussed on 2026-10-23, not started)
+- [x] Public page: `robots.txt` open to all with the sitemap's address, `sitemap.xml` (one page),
+      and `<link rel="canonical" href="https://pasargadgymplus.ir/">`, so www and the .com count
+      as the same page
+- [x] Tests: `SearchIndexingTests` (the panel's header and meta, no `Disallow` on either host, no
+      `noindex` on the public page or its Caddy block, its canonical and sitemap)
+- [ ] Released with 13.1 and 13.2 (see *Release order* at the top). After the release, check
+      `https://panel.pasargadgymplus.ir/robots.txt` and `https://pasargadgymplus.ir/robots.txt`
+      and `/sitemap.xml`. Search Console (adding the site and sending the sitemap) is the Owner's
+      or the developer's, with the domain's DNS: not code
+
+Closed 2026-10-24: 2712 backend tests (965 domain, 1747 integration; 7 new) and 1193 frontend tests
+green, zero warnings, lint, `format:check` and production build pass; `npm run e2e` (4) and
+`npm run screenshots` pass, and the built `gym-web` image holds both `robots.txt`, the sitemap, the
+canonical link and the panel's meta. No package, no API change, no migration: nothing in `src/`
+has changed since the last release (`6bcb031`), so a rollback to `20261023-2305-6bcb031` is safe.
 
 ### 14.6 Member accounts (later)
 The «Future — Member accounts on the public site» section below, kept there until the developer
@@ -3861,6 +3900,7 @@ codes, a public API), so it needs an ADR first.
 ---
 
 ## Future — QR / Scanner (not in MVP)
+**Parked by the developer** on 1405/07/21 (2026-10-13): not wanted for a long while. Not a next task.
 - [ ] QR token design
 - [ ] Generate and revoke QR credential
 - [ ] QR identification endpoint
@@ -3872,6 +3912,8 @@ codes, a public API), so it needs an ADR first.
 ---
 
 ## Future — Group visits (not in MVP)
+**Dropped by the developer** on 1405/07/21 (2026-10-13). Kept for the history of the idea; the guest
+visit (6.5.11) is what the desk uses for a visitor without a plan.
 One person arrives with ten friends and does not want to hand over ten phone numbers. Recorded here
 rather than in 6.5.3 because the current model blocks it twice over: a subscription belongs to exactly
 one member, and a member holds one open visit at a time
@@ -3899,11 +3941,11 @@ and the daily run; the last visit is already in `attendances`. The migration onl
 off and empty, so it is safe on the server's real data. Nothing is decided yet; BUSINESS_RULES.md §10
 gets the rule once these are answered:
 
-- [ ] Who gets it: only a member with an active plan who stops coming, or also one whose plan has
+- [x] Who gets it: only a member with an active plan who stops coming, or also one whose plan has
       ended (to bring them back)? Frozen plans and deactivated members presumably not (§10)
-- [ ] How often: once per absence, so nothing more until they come again?
-- [ ] A member who bought a plan and never came at all: counted from the plan's start?
-- [ ] The wording, added to `docs/sms-texts.md` and `SmsText`
+- [x] How often: once per absence, so nothing more until they come again?
+- [x] A member who bought a plan and never came at all: counted from the plan's start?
+- [x] The wording, added to `docs/sms-texts.md` and `SmsText`
 
 ## Future — Free entry on the birthday (ورود رایگان روز تولد)
 **Done in task 10.8** (1405/07/27): every question below is answered there and in BUSINESS_RULES.md
@@ -3913,14 +3955,14 @@ gets a free visit on their birthday; the desk already knows whose birthday it is
 §6 *The desk panel*), so the desk can offer it at check-in, and no discount code is needed. And the
 SMS telling them, which may count as advertising.
 
-- [ ] Every SMS now goes out as free text from the gym's line (`sms/send`, 1405/07/16). Ask
+- [x] Every SMS now goes out as free text from the gym's line (`sms/send`, 1405/07/16). Ask
       Kavenegar's support whether «امروز ورودت رایگان است» counts as advertising there, and whether
       members who blocked advertising SMS then do not get it
-- [ ] Who: only a member with an active plan, or any member?
-- [ ] Does the visit use a session of their plan, or none?
-- [ ] How it shows in the money: a single visit at zero with the reason «تولد», never a record
+- [x] Who: only a member with an active plan, or any member?
+- [x] Does the visit use a session of their plan, or none?
+- [x] How it shows in the money: a single visit at zero with the reason «تولد», never a record
       deleted, so the financial report can count them
-- [ ] Only on the day itself, or within some days of it?
+- [x] Only on the day itself, or within some days of it?
 
 ## Future — Discount codes (کد تخفیف)
 Planned by the developer on 1405/07/15 (2026-10-07), for later. Its own phase, because it touches

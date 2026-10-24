@@ -1,0 +1,6 @@
+# The staff panel (roadmap 14.5). It is kept out of search results by "noindex", sent on every
+# response (deploy/Caddyfile, X-Robots-Tag) and in index.html. Crawling stays allowed on purpose:
+# a crawler that is told not to fetch a page never sees its "noindex", and a page linked from
+# elsewhere can then still be listed by its address alone.
+User-agent: *
+Allow: /

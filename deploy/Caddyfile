@@ -36,7 +36,8 @@
 		# A window this page opens cannot reach back into it.
 		Cross-Origin-Opener-Policy "same-origin"
 		# A staff login form has no business in a search index. This is tidiness, not a defence:
-		# it asks well-behaved crawlers to stay away and stops nobody else.
+		# it asks well-behaved crawlers to stay away and stops nobody else. robots.txt
+		# (web/public) leaves crawling allowed, or a crawler would never see this header.
 		X-Robots-Tag "noindex, nofollow"
 		-Server
 	}

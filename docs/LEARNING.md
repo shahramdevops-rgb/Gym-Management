@@ -2042,3 +2042,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **`sr-only` keeps the words for a screen reader.** Hiding the amount visually with `max-lg:sr-only` rather than `max-lg:hidden` keeps the link's accessible name, so the tests that find it by «اعتبار پیامک» still pass and nothing is lost to someone listening.
 - **A stale compiler server can report a rule `.editorconfig` turned off.** After the shell's path changed case (`d:` to `D:`), `dotnet build` raised CA1716 again; `dotnet build-server shutdown` cleared the server's cached settings and the build was clean.
 - **My notes:**
+
+## 14.5 — The panel out of search results (پنل بیرون از نتایج جستجو)
+
+- **`robots.txt` controls crawling; `noindex` controls listing.** They answer different questions. A `Disallow: /` stops a crawler from fetching the page, so it never reads the page's `noindex`, and a panel linked from somewhere else can still appear in the results as a bare address. To keep a page out of the index, let it be crawled and say `noindex`.
+- **`X-Robots-Tag` is `noindex` as a header.** It covers every response, scripts and images included, where a `<meta name="robots">` covers only the HTML page. The meta stays as a second copy that travels with the file if another proxy ever serves it.
+- **An SPA fallback answers every path.** `try_files {path} /index.html` made `/robots.txt` return the app's HTML with a 200. Nothing broke, but a crawler read a page of HTML as its rules. A real file in `web/public` is copied to the build's root and wins over the fallback.
+- **`canonical` tells a search engine which of several addresses is the page.** www and the .com redirect already, but the canonical link also covers the same page under a query string (a shared link with `?utm_source=…`) and copies of it served from elsewhere.
+- **Config that only production reads still deserves a test.** Like the CSP tests of 11.2, `SearchIndexingTests` reads the repository's files, because nothing in development would show a `Disallow` slipping in until Google had acted on it.
+- **My notes:**

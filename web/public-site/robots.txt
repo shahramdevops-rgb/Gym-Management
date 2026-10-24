@@ -1,0 +1,6 @@
+# The gym's public page, open to every search engine (roadmap 14.5). The staff panel lives on its
+# own host with its own robots.txt and "noindex".
+User-agent: *
+Allow: /
+
+Sitemap: https://pasargadgymplus.ir/sitemap.xml
