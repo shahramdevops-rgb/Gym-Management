@@ -2063,3 +2063,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Offline writes need their own time.** A mark made in the gym without signal reaches the server later, so it carries the moment it was made rather than the moment it arrived.
 - **A static QR plus a redirect you own never goes stale.** The poster encodes `pasargadgymplus.ir/qr`, and Caddy decides where that leads; an online "dynamic QR" puts someone else's server, and their trial period, between the poster and the gym.
 - **My notes:**
+
+## 13.4 — The panel on the phone's home screen (پنل روی صفحه گوشی)
+
+- **A shortcut and an installed app look alike until you open them.** Without a manifest, Chrome's «نصب» still puts an icon on the home screen, but it is a bookmark with Chrome's badge that opens a tab; with one, Android builds a real app (its own window, its name in the app list, no address bar).
+- **The manifest is the app's identity card.** `name`, `short_name`, `start_url`, `scope`, `display: standalone` and the icons are what the phone reads; `id` keeps it the same app if `start_url` ever changes.
+- **A maskable icon leaves room for the phone's mask.** Android cuts icons into circles or rounded squares; an icon marked `maskable` keeps its logo inside the central safe circle and fills the rest with colour, so nothing is cut off.
+- **An iPhone reads its own tags.** It ignores the manifest's icons and wants `apple-touch-icon` (180px, no transparency) and `apple-mobile-web-app-title`.
+- **`theme-color` is the status bar.** One `<meta>` tag colours the phone's bar in the installed app; changing its `content` from script makes it follow the theme.
+- **No service worker can be the safe choice.** A service worker is what makes a web app work offline, and also what can keep serving yesterday's files after a release; a panel of money and live check-ins wants neither, and Chrome installs without one.
+- **A file server only guesses a type from the extension.** Caddy knows no `.webmanifest`, so the header is set explicitly, and the file server keeps a `Content-Type` that is already set.
+- **Ask the browser itself.** `Page.getInstallabilityErrors` over the DevTools protocol is Chrome's own verdict on whether a page can install, which an end-to-end test can assert instead of guessing from the files.
+- **My notes:**

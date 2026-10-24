@@ -21,11 +21,20 @@ export function readSavedTheme(): Theme {
 }
 
 /**
+ * The installed app's status bar for each theme (roadmap 13.4): each theme's `--background`
+ * (index.css) as hex. index.html starts light and `public/theme-init.js` writes the dark one.
+ */
+export const themeBarColour: Record<Theme, string> = { light: "#f7f9fc", dark: "#0e0f13" };
+
+/**
  * Puts the theme on `<html>` and remembers it. The class goes on `<html>`, not on the page frame,
  * because dialogs and the date picker's calendar render in portals outside it.
  */
 export function applyTheme(theme: Theme): void {
   document.documentElement.classList.toggle("dark", theme === "dark");
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", themeBarColour[theme]);
   try {
     localStorage.setItem(themeStorageKey, theme);
   } catch {

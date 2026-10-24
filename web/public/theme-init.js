@@ -5,9 +5,13 @@
 // (deploy/Caddyfile) runs only scripts served from the panel itself, and an inline one would need
 // 'unsafe-inline', which is exactly what lets an injected script run (task 11.2). It stays a
 // classic, render-blocking script, so it still runs before the first paint.
+//
+// The installed app's status bar (the theme-color tag, roadmap 13.4) turns dark with it; the
+// colour is the dark theme's background, as in src/lib/theme.ts.
 try {
   if (localStorage.getItem("gym.theme") === "dark") {
     document.documentElement.classList.add("dark");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#0e0f13");
   }
 } catch {
   // Storage blocked: open light.

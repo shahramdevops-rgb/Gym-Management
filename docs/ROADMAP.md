@@ -3718,6 +3718,61 @@ lint. No package, no API change, no backend file.
 **Known limit.** The backup tablet's Chrome 109 cannot show `oklch` or `color-mix` (already true
 of the whole app; the fix agreed is a newer browser, not code); the tints simply do not show there.
 
+### 13.4 The panel on the phone's home screen (PWA)
+Asked by the developer on 1405/08/03 (2026-10-25), opening the closed panel for it: «نصب» in Chrome
+made only a shortcut (Chrome's badge on the icon, a browser tab with an address bar), because the
+panel had no manifest. For the Owner's phone and the Staff's, Android and iPhone both. Branch
+`task/13.4-panel-pwa`.
+
+Decided by the developer: the **dark** icon (of a dark and a light one rendered for them), the name
+**«Management»** under the icon (in full «Pasargad Gym Management»; the members' app of Phase 15
+will be «Pasargad Gym»), and Claude's proposals for the rest:
+- [x] Icons from the brand logo, in the favicon's bronze on the dark theme's background: 192 and
+      512 (`any`), 512 `maskable` (the logo inside Android's safe circle), 180 for the iPhone (no
+      transparency there). Rendered once in the installed Chrome with Playwright; no package
+- [x] `web/public/manifest.webmanifest`: standalone from `/`, `dir: auto` (English names, Persian
+      shortcuts), dark opening screen; three long-press shortcuts (Android only) to pages Staff
+      can open too: «ورود با کمد», «داخل باشگاه», «اعضا»
+- [x] `index.html`: the manifest, the iPhone's icon and title, `theme-color`; the status bar follows
+      the theme (`theme-init.js` before the first paint, `applyTheme` on every switch)
+- [x] **No offline mode and no service worker** on purpose: the panel shows money and who is
+      inside, which must never be an old copy, and a cache could keep an old version after a
+      release. Chrome no longer needs a service worker to install
+- [x] Caddy: the manifest as `application/manifest+json` (Caddy has no type for `.webmanifest`),
+      `no-cache` like every file outside `/assets`. The CSP (`default-src 'self'`) already allows it
+- [x] Tests (integration, reading the files): the manifest's display, names, every icon's real
+      size, Android's three icons, the shortcuts, `index.html`'s tags and their order, the
+      iPhone's icon, both colours written alike, Caddy's type. Frontend: the status bar follows
+      `applyTheme`; every shortcut has an icon (Android may drop one without); the four copies of the
+      two colours agree. End-to-end (`install.spec.ts`): **desktop** Chrome's own installability
+      check (`Page.getInstallabilityErrors`) finds nothing missing on the production stack, with no
+      service worker, the only error being `in-incognito` (Playwright's contexts are off the record,
+      where Chrome installs nothing); the manifest and the icons are served with their types.
+      `npm run e2e`: the four front-desk tests and the three new ones pass. Android's install, its
+      shortcuts and the iPhone's status bar are checked on the phones after the release
+- [ ] Released, late at night with `./backup.sh run` first; then on each phone the old shortcut
+      is removed and «نصب» pressed again (an iPhone: Safari, Share, «Add to Home Screen»), and
+      each person signs in once inside the app on an iPhone
+
+Not changed: every screen. Only `<head>` tags and files nobody sees in a page, so the computer's
+screens stay as they are; a desk computer's Chrome may now offer to install the panel too.
+
+Closed 2026-10-25: 2723 backend tests (965 domain, 1758 integration; 11 new) and 1194 frontend tests (1 new)
+green, zero warnings, lint, `format:check` and production build pass; `npm run e2e` (7, 3 new)
+passes; `code-reviewer` found nothing to fix and four improvements, all applied (shortcut icons,
+one test for every copy of the colours, the iPhone's status bar and the desktop-only e2e said as
+they are). No package, no API change, no migration; nothing in `src/`, so a rollback to
+`20261025-0043-0d08196` is safe.
+
+Queued by the developer the same day, not started:
+- **13.5 A live summary for the Owner's phone** (instead of a home-screen widget, which a web app
+  cannot have): who is inside now, today's money and what else the developer chooses, refreshing
+  on its own; the numbers, how often, and whether Staff see it are decided first
+- **The locker map on a phone:** the developer asked whether smaller doors would fit the map on one
+  screen. The doors are about 77px with the holder's name under the number (13.1c, the developer's
+  choice over three cabinets to a row with numbers only); smaller doors would lose the names. To be
+  looked at again from a screenshot with occupied lockers before anything changes
+
 ---
 
 ## Phase 14 — The public site (سایت اصلی)

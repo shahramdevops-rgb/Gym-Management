@@ -2171,6 +2171,10 @@ without adding up the rows.
 ## 13. Persian language
 
 - The UI is Persian and right-to-left.
+  - **One exception: the installed app's name** (roadmap 13.4, decided by the developer, 1405/08/03):
+    «Management» under the icon and «Pasargad Gym Management» in full, in English, which is short
+    and never breaks under an icon. The long-press shortcuts keep the menu's Persian names. The
+    members' and trainers' app (Phase 15) will be «Pasargad Gym», so the two are told apart.
 - Text normalization (applied to names before saving the search column, and to every search input):
   - Arabic ي (U+064A) and ى (U+0649) → Persian ی (U+06CC)
   - Arabic ك (U+0643) → Persian ک (U+06A9)
@@ -2198,6 +2202,11 @@ Decided by the developer, 1405/07/09 (2026-10-01). Roadmap 6.5.22.
   stay dark while the Owner's phone stays light, and signing in as someone else on the desk PC keeps
   the desk's theme. A browser that cannot store it (a private window) opens light every time.
 - A device that saved dark opens dark straight away, with no white flash while the page loads.
+- In the installed app (roadmap 13.4), on Android, the phone's status bar follows the theme: the
+  light or the dark background. An iPhone takes its status bar from its own setting, left at the
+  system's default; how it looks there is checked on a Staff iPhone after the release, and any
+  change to it is the developer's choice. The app's icon and its opening screen are always dark (the
+  developer's choice, 1405/08/03), whatever the theme.
 
 ## 15. The site: members and trainers (اعضا و مربیان در سایت)
 

@@ -7,6 +7,10 @@ internal static class RepositoryFiles
     public static string ReadAllText(string relativePath) =>
         File.ReadAllText(Path.Combine(FindRepositoryRoot(), relativePath));
 
+    /// <summary>The bytes of a file, by its path from the repository root (for example an icon).</summary>
+    public static byte[] ReadAllBytes(string relativePath) =>
+        File.ReadAllBytes(Path.Combine(FindRepositoryRoot(), relativePath));
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

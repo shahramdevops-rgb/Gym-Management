@@ -11,6 +11,14 @@
     <meta name="robots" content="noindex, nofollow" />
     <!-- The gym's logo in bronze (the brand file is white, unseen on a light tab) -->
     <link rel="icon" href="/favicon.png" type="image/png" />
+    <!-- Installs on a phone or a computer as an app of its own (roadmap 13.4): the manifest names
+         it and gives its icons and the long-press shortcuts; an iPhone reads its own two tags. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Management" />
+    <!-- The phone's status bar in the installed app. Light here; theme-init.js and
+         src/lib/theme.ts change it with the theme, so it must come before the theme script. -->
+    <meta name="theme-color" content="#f7f9fc" />
     <!-- The saved theme goes on before anything is drawn, so a dark choice never flashes white
          on load. A file, not an inline script, so the Content-Security-Policy can refuse every
          inline script (public/theme-init.js). -->

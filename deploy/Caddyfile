@@ -65,6 +65,11 @@
 		@shell not path /assets/*
 		header @shell Cache-Control "no-cache"
 
+		# The install manifest (roadmap 13.4). Caddy has no type for .webmanifest of its own, and
+		# a file_server leaves a Content-Type that is already set as it is.
+		@manifest path /manifest.webmanifest
+		header @manifest Content-Type "application/manifest+json"
+
 		# Client-side routes (/members/123) are not files: hand them to the SPA.
 		try_files {path} /index.html
 		file_server

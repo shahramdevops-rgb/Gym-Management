@@ -1,4 +1,4 @@
-import { applyTheme, readSavedTheme, themeStorageKey } from "./theme";
+import { applyTheme, readSavedTheme, themeBarColour, themeStorageKey } from "./theme";
 
 describe("theme", () => {
   it("readSavedTheme_NothingSaved_IsLight", () => {
@@ -38,6 +38,21 @@ describe("theme", () => {
 
     expect(document.documentElement).not.toHaveClass("dark");
     expect(localStorage.getItem(themeStorageKey)).toBe("light");
+  });
+
+  it("applyTheme_DarkThenLight_StatusBarFollows", () => {
+    const bar = document.createElement("meta");
+    bar.name = "theme-color";
+    bar.content = themeBarColour.light;
+    document.head.append(bar);
+
+    applyTheme("dark");
+    expect(bar.content).toBe(themeBarColour.dark);
+
+    applyTheme("light");
+    expect(bar.content).toBe(themeBarColour.light);
+
+    bar.remove();
   });
 
   it("applyTheme_StorageBlocked_StillSwitchesTheScreen", () => {
