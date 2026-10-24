@@ -2051,3 +2051,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **`canonical` tells a search engine which of several addresses is the page.** www and the .com redirect already, but the canonical link also covers the same page under a query string (a shared link with `?utm_source=…`) and copies of it served from elsewhere.
 - **Config that only production reads still deserves a test.** Like the CSP tests of 11.2, `SearchIndexingTests` reads the repository's files, because nothing in development would show a `Disallow` slipping in until Google had acted on it.
 - **My notes:**
+
+## 15.0 — Members and trainers on the site: the decision (اعضا و مربیان در سایت)
+
+- **A founding rule changes through a new ADR, not an edit.** "No member logins" was written into CLAUDE.md, §1 and ADR 0003; ADR 0010 records why it changed, so the old reasoning stays readable next to the new one.
+- **Two authentication schemes are a wall, not a label.** A role check (`RequireRole("Owner")`) is one line someone can get wrong; a separate issuer, audience and signing key for site tokens means a member's token is not even read by the staff scheme, so a wrong policy fails closed.
+- **A one-time code endpoint is public and costs money.** Every request may send a paid SMS, so the limits per phone and per IP run before the SMS provider is called, and the code is kept only as a hash, like a refresh token.
+- **Files belong on disk, their facts in the database.** Photos in `bytea` would make every `pg_dump` and restore gigabytes larger for data that is never queried; a volume plus a metadata row keeps the dump small, and the backup has to learn to take the files.
+- **EXIF can leak where a photo was taken.** Re-encoding an upload drops it along with anything else hidden in the file.
+- **A PWA is a website that installs.** A manifest gives it a name and an icon on the home screen, and a service worker lets it update itself and keep working offline, with no app store, which matters in Iran.
+- **Offline writes need their own time.** A mark made in the gym without signal reaches the server later, so it carries the moment it was made rather than the moment it arrived.
+- **A static QR plus a redirect you own never goes stale.** The poster encodes `pasargadgymplus.ir/qr`, and Caddy decides where that leads; an online "dynamic QR" puts someone else's server, and their trial period, between the poster and the gym.
+- **My notes:**

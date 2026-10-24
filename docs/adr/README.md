@@ -15,6 +15,7 @@ that supersedes the old one, so the history of *why* stays readable.
 | [0007](0007-invariants-enforced-by-the-database.md) | Enforce invariants in the database as well as in the code | Accepted |
 | [0008](0008-money-is-never-deleted-and-debt-is-calculated.md) | Never edit or delete money; calculate debt from named items, with no wallet | Accepted |
 | [0009](0009-demo-data-through-the-real-handlers.md) | Make the demo data through the real handlers on a moving clock | Accepted |
+| [0010](0010-site-accounts-for-members-and-trainers.md) | Let members and trainers sign in on the site, apart from the staff | Accepted |
 
 0005 to 0008 were written on 2026-10-11 (roadmap Phase 12) for decisions made earlier; each gives
 the date the decision was made and the date it was recorded. Their reasons come from

@@ -53,8 +53,9 @@ Still open around the panel (none of it code, or waiting for someone else):
   docs/git-history-map.md. Old history kept in `D:\gymbackups\gym-git-before-rewrite-20261025.bundle`.
   Commits from 2026-10-25 are `Shahram Azghandi <shahramdevops@gmail.com>`
 
-Next: **the public site (Phase 14):** 14.1 to 14.3 wait for the gym's trainers, links and photos;
-  14.4 waits for the developer's decision on the buttons; 14.6 for an ADR and the Owner
+Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
+  1405/08/03); the next task is **15.1**, when the developer starts it. Phase 14's 14.1 to 14.3
+  still wait for the gym's trainers, links and photos; 14.4 closes with 15.3
 
 ---
 
@@ -3920,6 +3921,144 @@ has changed since the last release (`6bcb031`), so a rollback to `20261023-2305-
 The «Future — Member accounts on the public site» section below, kept there until the developer
 and the Owner decide; it is the one part of the site that would touch the panel (members, SMS
 codes, a public API), so it needs an ADR first.
+- 1405/08/03 (2026-10-25): decided by the developer and moved to **Phase 15**, together with the
+  trainers' work. «انتخاب این مربی» on the trainers' cards (14.1) becomes 15.4.
+
+---
+
+## Phase 15 — Members and trainers on the site (اعضا و مربیان در سایت)
+Asked by the developer on 1405/08/03 (2026-10-25), right after the panel was closed: the site's
+main job is the work between the gym's trainers and their students, in this order of importance:
+the daily timetable and attendance, the monthly assessment, nutrition. Both sign in on the site
+with their phone and a one-time code. The decision is ADR 0010 (accepted 1405/08/03) and the rules
+are BUSINESS_RULES.md §15, where each line says whether it is decided, proposed or open. Every
+*Open* line there is asked at the start of its task, never assumed, and every *Proposed* line is
+confirmed with that task's plan.
+
+How it is built:
+- On its own branch per task, merged into `main` when the task is green, as Phase 13 was. One task
+  per session; a large one (15.1, 15.3) may be split into a and b when its plan shows it.
+- **Released in five parts**, each one useful to someone on the day it goes out, each late at night
+  with `./backup.sh run` first (docs/DEPLOYMENT.md). The production server holds real data: every
+  migration only adds, and no existing member, plan or visit changes.
+- Every task ends with green tests, a `code-reviewer` pass and a short LEARNING.md entry, as before.
+
+### 15.0 The decision (docs only)
+- [x] ADR 0010, BUSINESS_RULES.md §15 and this phase written, branch
+      `task/15.0-site-accounts-and-trainers` (1405/08/03)
+- [x] The developer read them and confirmed (1405/08/03): ADR 0010 accepted; the address
+      `app.pasargadgymplus.ir`; the program offline; a deactivated member sees only a notice;
+      photos under 18 like anyone's; students keep their history when a trainer is removed
+- [x] CLAUDE.md's "No public access, no self-registration, no member logins" and §1's "Members
+      never log in" changed: the panel is staff-only, members and trainers sign in on the site (§15)
+- [x] The QR code on the Anea sheet: a barcode reader cannot open it (the developer, 1405/08/03)
+- [ ] The developer, outside the code (not blocking 15.1): Anea asked (1405/08/03) whether their
+      software exports the results (Excel, CSV, an API, «Anea Cloud +», a PDF with text); Kavenegar
+      asked for a template for the one-time code, sent from their other line. Both answers are
+      needed by 15.1 (the code's SMS) and 15.10 (the analysis numbers)
+
+### Release 1 — Signing in, and «my plan» (15.1 to 15.5)
+A member can sign up, sign in and see their own plan; trainers exist and take students. Nothing
+of the trainers' tools yet, but nobody signs in to an empty page.
+
+#### 15.1 Site accounts and the one-time code (backend)
+- [ ] Asked first: the code's numbers (§15's proposal: 5 digits, 2 minutes, 5 tries, 1 a minute
+      and 5 an hour per phone), the per-IP limit, Kavenegar's answer (template or free text)
+- [ ] Site accounts keyed by the verified phone, linked to a member; a new phone creates the member
+      (name and birth date, §2's rules), an existing one links to it and is not asked again
+- [ ] Request and verify a code: expiry, wrong tries, limits per phone and per IP, all checked
+      before Kavenegar is called; codes stored only as a hash
+- [ ] The site's own authentication scheme (issuer, audience, key), refresh tokens and cookie;
+      every staff policy requires the staff scheme; a deactivated member gets the «غیرفعال» notice
+      and nothing else
+- [ ] Tests (integration): a site token is refused by every staff endpoint and a staff token by
+      every site endpoint; each limit; linking never duplicates a member; sign-up sends no welcome
+      SMS; a deactivated member's sign-in
+
+#### 15.2 Trainers in the panel (reopens the panel)
+- [ ] «مربیان» (Owner only): make someone a trainer (name and phone) and stop it; stopping ends
+      every link to their students, whose records stay
+- [ ] Members who signed up on the site are marked on their profile; whether they also need a tag
+      or a filter in the members list is asked in the task
+- [ ] Tests; the computer's screens elsewhere unchanged
+
+#### 15.3 The site app: address, sign-in screens, PWA
+- [ ] `app.pasargadgymplus.ir`: DNS record (the developer), Caddy site, security headers, its own
+      rate limits
+- [ ] A second entry in `web/` sharing `lib/` and none of the panel's pages; sign-up and sign-in
+      screens in Persian, phone-first
+- [ ] Installable on a phone: manifest, icons, a service worker that updates itself, an install
+      guide for iPhone
+- [ ] `https://pasargadgymplus.ir/qr`, a fixed address Caddy redirects to the app, so a printed
+      poster never has to be printed again; the desk's QR made locally (static, high error
+      correction, the gym's logo in the middle, the address written under it) and an A4 poster
+- [ ] The public page's «ورود» and «ثبت‌نام» lead to the app (closes 14.4)
+- [ ] Tests: frontend; `npm run e2e` grows a sign-in on the app's host
+
+#### 15.4 A member picks a trainer
+- [ ] The trainers' list in the app (and 14.1's cards, once the gym's photos come); a member's
+      request, the trainer's accept or decline, changing trainer; the link's start and end
+- [ ] Tests (integration): one trainer at a time, a former trainer loses access that day
+
+#### 15.5 The member's home, first part
+- [ ] My plan: sessions left, the plan's end, freeze; my visits (from the desk's check-ins); my
+      trainer. Everything here already exists in the panel's data
+- [ ] **Release 1**, late at night, backup first
+
+### Release 2 — The timetable and attendance (priority 1)
+
+#### 15.6 The trainer's timetable (سانس‌بندی)
+- [ ] Asked first: §15 *Timetable and attendance*'s open questions (group or private, capacity,
+      who puts a student in a session, changes to a single day, cancelling and its SMS)
+- [ ] The weekly pattern, the sessions it makes for each day, a single day's change or
+      cancellation, the students of each session; the member sees their next sessions
+
+#### 15.7 Attendance for the trainer (پیگیری حضور)
+- [ ] «امروز» for the trainer: today's sessions and who has checked in at the desk, live
+- [ ] Attendance per student and per month; the absence alert to the trainer
+- [ ] **Release 2**
+
+### Release 3 — The monthly assessment (priority 2)
+
+#### 15.8 File storage
+- [ ] Photos and PDFs on a Docker volume, metadata in Postgres, downloads only through a checked
+      endpoint; photos re-encoded and stripped of EXIF (an image library, asked for first)
+- [ ] `backup.sh`, `pull-backup.ps1` and the restore take the files; the restore drill covers them;
+      disk space on the server watched
+
+#### 15.9 Assessment and the analysis (ارزیابی و آنالیز)
+- [ ] Asked first: the list of numbers (§15), the other parts (circumferences, tests, goals),
+      Anea's answer about an export
+- [ ] The analysis PDF and its numbers, the comparison with the month before, charts, the reminder
+      when a month has passed; the member sees theirs
+
+#### 15.10 Progress photos (عکس‌های پیشرفت)
+- [ ] Front, side, back taken with the phone's camera; side-by-side comparison by date
+- [ ] §15's rules: only the member and the current trainer, a later trainer with permission,
+      deletion on the member's request (really removed)
+- [ ] **Release 3**
+
+### Release 4 — Programs, offline
+
+#### 15.11 Programs (برنامه تمرینی و غذایی)
+- [ ] Asked first: what a workout program holds (days, exercises, sets, reps, rest, notes, a
+      picture or video per exercise?) and what a diet program holds; what "marking done" means
+- [ ] The trainer's exercises and templates; a program per student, made from a template and
+      changed; earlier programs kept; the member sees theirs and today's part on the home page
+- [ ] Offline: the program last opened stays usable without internet, and marks made offline are
+      sent with the time they were made once the phone is online
+- [ ] **Release 4**
+
+### Release 5 — Nutrition (priority 3)
+
+#### 15.12 The daily check-in (گزارش غذایی)
+- [ ] Asked first: §15's open fields, and a field for medical conditions on the member's file
+- [ ] The member's short daily check-in and the trainer's weekly summary; reminders, if any, by SMS
+- [ ] **Release 5**
+
+Later, not in this phase: buying a plan on the site (online payment); push notifications (on
+Android they pass through Google's servers, unreliable from Iran); help from an AI model to draft
+programs (trainer-feature discussion, 1405/07/17).
 
 ---
 
@@ -4002,7 +4141,8 @@ every SMS since 1405/07/16 (see the birthday entry above).
 - [ ] A code used twice refused by the database too (a unique index), not only by the code
 
 ## Future — Member accounts on the public site (حساب اعضا)
-Phase 14's task 14.6 (1405/07/26); kept here until it is decided.
+Phase 14's task 14.6 (1405/07/26). **Decided on 1405/08/03 and moved to Phase 15**; kept here for
+the history of the idea, except buying a plan online, which is still for later.
 Asked by the developer on 2026-10-15, for later, to be reviewed in detail first. Members sign up
 and sign in on the public site; they never enter the admin panel. This changes a founding rule of
 the project ("no self-registration, no member logins"), so it needs an ADR and the Owner's decision

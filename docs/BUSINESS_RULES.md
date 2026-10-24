@@ -64,7 +64,9 @@ Decided values:
 
 ## 1. Users and access
 
-- Closed system. There is no registration endpoint. Members never log in.
+- The panel is a closed system: it has no registration endpoint, and members and trainers never
+  log in to it. They sign in on the site instead, with a phone code (§15, ADR 0010, decided
+  1405/08/03; until then "Members never log in" held everywhere).
 - Roles: `Owner` and `Staff`.
 - The Owner account is seeded at startup from configuration (`Seed:OwnerUserName`, `Seed:OwnerPassword`, optional `Seed:OwnerFullName`). Seeding is idempotent: running it twice creates nothing new.
   - "The Owner already exists" means any user already holds the Owner role, even if `Seed:OwnerUserName` has since changed. Seeding never modifies that existing Owner, including their password.
@@ -2196,3 +2198,124 @@ Decided by the developer, 1405/07/09 (2026-10-01). Roadmap 6.5.22.
   stay dark while the Owner's phone stays light, and signing in as someone else on the desk PC keeps
   the desk's theme. A browser that cannot store it (a private window) opens light every time.
 - A device that saved dark opens dark straight away, with no white flash while the page loads.
+
+## 15. The site: members and trainers (اعضا و مربیان در سایت)
+
+Decided with the developer on 1405/08/03 (2026-10-25), with ADR 0010 (accepted the same day),
+roadmap Phase 15. The panel stays for the staff only (§1). Each line says who decided it:
+- *Decided by the developer* (1405/08/03): said by the developer, who is the gym's Owner.
+- *Proposed by Claude*: suggested on 1405/08/03 and accepted by the developer in general terms
+  («بقیه چیزهایی که گفتی درسته»); each is confirmed again when its task's plan is approved.
+- *Open*: asked at the start of its task; nothing is built on it before then.
+
+### Who uses the site
+- **Two kinds of people sign in on the site: members (شاگرد) and trainers (مربی).** Both sign in
+  with their phone number and a one-time code sent by SMS; there are no passwords on the site.
+  *Decided by the developer.*
+- **The panel is never reachable from the site**, and a site account never opens the panel. Staff
+  keep their own sign-in (§1). *Decided by the developer* (2026-10-15, 14.6).
+- **The gym is for men only, and about 95% of its members are 18 or older.** *Decided by the
+  developer* (a fact of the gym, which shapes the photo rules below).
+- **The site's account area is at `app.pasargadgymplus.ir`** and installs on a phone like an app
+  (a PWA). *Decided by the developer* (1405/08/03).
+- **A member's program can be seen and followed without internet**: the program last opened stays
+  on the phone, and what the member marks done while offline is sent when the phone is online
+  again. *Decided by the developer* (1405/08/03); *Open:* what "marking done" holds (15.11).
+
+### Signing up and signing in
+- **Anyone with an Iranian mobile number can sign up** (§2's phone rules). After the code is
+  verified they give their full name and birth date, with §2's rules (required, not in the future,
+  not more than 120 years ago). *Decided by the developer.*
+- **A phone already in the panel links to that member**, never a duplicate (§2: phones are unique).
+  *Decided by the developer* (2026-10-15).
+  - *Proposed by Claude:* a linked member is not asked for a name or birth date again; the panel's
+    are shown, and corrections are made at the desk, so a sign-up never changes what the desk
+    entered.
+- **A phone not in the panel creates a member there**, active, with no plan. They cannot enter the
+  gym until they buy a plan: every visit is a check-in at the desk, which needs a plan or a single
+  visit (§7), as for anyone. *Decided by the developer.*
+- **Signing up sends no welcome SMS.** The welcome goes when the member's first membership plan is
+  sold (§10 *The welcome*), unchanged; a member who signed up on the site gets it at the desk with
+  their first plan, like anyone. *Checked against §10 on 1405/08/03; nothing changes there.*
+- **Buying a plan on the site is not part of this phase** (2026-10-15, still for later).
+- **The one-time code** (*Proposed by Claude*, the numbers confirmed in the task):
+  - 5 digits, valid for 2 minutes, at most 5 wrong tries, then a new code is needed.
+  - A new code at most once a minute and at most 5 an hour per phone; a limit per IP as well.
+  - Every code is a paid SMS, so the limits are checked before Kavenegar is called.
+  - *Open:* sent as Kavenegar's verification template (`verify/lookup`, made for codes) or as free
+    text from the gym's line like every other SMS (§10 *Sending*); Kavenegar refused templates
+    before the site was up (1405/07/16), so it is asked again. The developer is asking Kavenegar
+    (1405/08/03); a template goes from Kavenegar's other line, not the gym's dedicated one.
+- **A member deactivated in the panel** can still receive a code and sign in, but sees only a
+  notice that their membership is inactive and that they should come to the desk; nothing else on
+  the site opens for them. *Decided by the developer* (1405/08/03).
+
+### Trainers
+- **The gym has one trainer or more, and they can change over time.** *Decided by the developer.*
+- **Only the Owner makes someone a trainer**, in the panel; nobody signs up as a trainer.
+  *Proposed by Claude.* The trainer then signs in on the site with the phone the Owner entered.
+- **A trainer's fee is not in the system**: the trainer and the student settle it between
+  themselves, as today. *Decided by the developer.*
+- **Everything a trainer does is in their own area of the site**: their timetable, their students,
+  and for each student the programs, photos and analyses. The system gives the tools; the trainer
+  writes the content (their own exercises, templates and programs). *Decided by the developer.*
+- **When the Owner stops someone being a trainer**, their students go back to having no trainer
+  and keep everything recorded about them. *Decided by the developer* (1405/08/03).
+
+### A member and their trainer
+- **Each member has at most one trainer at a time.** *Decided by the developer.*
+- **The member picks a trainer on the site, and the trainer accepts or declines.** *Proposed by
+  Claude, accepted by the developer.* Changing trainer is a new request; when the new trainer
+  accepts, the old link ends that day.
+- **The link has a start and an end**, so the history of who trained whom is kept, and a former
+  trainer stops seeing the member from the day the link ends. *Proposed by Claude.*
+- **A new trainer sees the member's earlier assessments (the numbers), programs and attendance;
+  earlier photos only if the member allows it.** *Proposed by Claude, accepted by the developer.*
+- **The member sees everything their trainers record about them** (programs, analyses, photos,
+  numbers) **except the trainer's private notes.** *Proposed by Claude, accepted by the developer.*
+
+### Timetable and attendance
+- **Every visit is a check-in at the desk and uses a session of the member's plan** (§7, unchanged).
+  The site never checks anyone in and never uses a session. *Decided by the developer.*
+- **The trainer sees attendance from the desk's check-ins**: whether each student came on the
+  days of their sessions. The site does not keep a second record of entries. *Proposed by Claude,
+  accepted by the developer.*
+- *Open, decided in its task:* group sessions, private ones or both; capacity; who puts a student
+  in a session (the trainer, or the member picking a slot); a weekly pattern and changes to a
+  single day; the trainer cancelling a session, and whether an SMS goes; how a check-in counts as
+  "on time", "late" or "absent" for a session; the absence alert to the trainer.
+
+### Monthly assessment (ارزیابی ماهانه)
+- **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for
+  each of their students. *Decided by the developer.*
+- **The gym's device is an Anea BIA** (anea3d.com; «1204» printed on the sheet). Its PDF is a
+  single picture with no text in it (checked on 1405/08/03), so the system cannot read the numbers
+  from it, and a barcode reader cannot open the sheet's QR code (tried by the developer). Anea's
+  site and manual mention no export (Excel, CSV, API); the device works with Anea's own 10-inch
+  tablet app, and the site names an «Anea Cloud +» without details; the developer has asked Anea.
+  **The trainer types the main numbers beside the PDF**, and the charts are drawn from them.
+  *Proposed by Claude.* *Open:* the exact list (from the sheet: weight, muscle mass, fat mass, fat
+  percentage, BMI, visceral fat, basal metabolic rate, body water, protein, minerals, and fat and
+  lean mass of each arm, leg and the trunk); whether an export from Anea's software can fill them
+  in instead.
+- *Open:* the other parts of the assessment (circumferences, fitness tests, goals) and the
+  reminder when a month has passed.
+
+### Progress photos (عکس‌های پیشرفت)
+*Proposed by Claude, accepted by the developer:*
+- **Only the member and their current trainer see the photos**, and a later trainer only with the
+  member's permission. Not the desk, and not the Owner through the panel.
+- **A photo never has a public address**: every view is checked at that moment.
+- **The member can have their photos deleted**, and they are then really removed, files included.
+  This is the one deletion the system allows on purpose; photos are not financial records.
+- **A member under 18 has photos like anyone else**, with no extra step. *Decided by the
+  developer* (1405/08/03), instead of Claude's proposal of a guardian's agreement.
+
+### Programs and nutrition (برنامه و تغذیه)
+- **The trainer writes each student's programs**, for that student. *Decided by the developer.*
+- *Proposed by Claude:* a workout program and a diet program, each built from the trainer's own
+  templates and changed for the student; the member sees their current program and the earlier ones.
+- *Proposed by Claude:* the member's nutrition report starts as a short daily check-in (kept to
+  the program fully, partly or not; water; sleep; optional weight and a photo of a meal), with a
+  weekly summary for the trainer; no calorie counting. *Open:* the fields, and a field for medical
+  conditions on the member's file.

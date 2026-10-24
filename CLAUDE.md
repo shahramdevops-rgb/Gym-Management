@@ -1,7 +1,8 @@
 # Gym Management System
 
-Internal gym management system for 1 Owner and few Staff.
-No public access, no self-registration, no member logins.
+Gym management system with two front doors:
+- The panel, for 1 Owner and a few Staff: no public access, no self-registration, never a member's or a trainer's login.
+- The site app (`app.pasargadgymplus.ir`, Phase 15, ADR 0010): members and trainers sign in with their phone and a one-time SMS code. Rules: docs/BUSINESS_RULES.md §15.
 
 ## Where things are
 - Roadmap and task status: docs/ROADMAP.md
@@ -44,6 +45,7 @@ Keep this section up to date when commands change.
 - Organize by feature, not by technical type: `Application/Members/CreateMember/{Command, Validator, Handler, Response}.cs`.
 - Do NOT use MediatR, AutoMapper, FluentAssertions, or generic repositories. Handlers are plain injected classes, mapping is manual, Application uses `IAppDbContext`.
 - Minimal APIs: one endpoints file per feature in `Gym.Api/Endpoints/`, using `MapGroup`. Every endpoint has an explicit authorization policy.
+- Staff and site sign-ins never mix (ADR 0010): site accounts are not Identity users, site tokens have their own scheme, and every staff policy requires the staff scheme. A site token must never pass a staff endpoint, nor a staff token a site one.
 - Business failures return `Result`/`Error`. Exceptions are only for unexpected failures. The API maps errors to ProblemDetails.
 - Entities have private setters. Rules live in entity methods (e.g. `subscription.ConsumeSession(today)`).
 - Never call `DateTime.Now` or `DateTime.UtcNow`. Inject `TimeProvider`.
