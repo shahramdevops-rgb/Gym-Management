@@ -32,10 +32,14 @@ Release order (decided by the developer on 1405/07/26, 2026-10-18):
    `docker-compose-plugin`, …), which restarts every container: `./backup.sh run`, then
    `sudo apt upgrade`, then a reboot if asked, on a night of its own, not with a release.
 
-What is left (reviewed with the developer on 1405/08/02, 2026-10-24). The panel's code is
-finished: every task of Phases 0 to 13 is done, and 14.5 is built. The rest is not code, or
-waits for someone else:
-- ~~**Release** 13.1, 13.2 and 14.5 together~~ **Done** in `20261025-0043-0d08196` (item 2 above)
+## The panel is closed (1405/08/03, 2026-10-25)
+**Closed by the developer** after the release `20261025-0043-0d08196`: every task of Phases 0 to
+13 is done and on the server, with 14.5. From here the work is the public site (Phase 14). The
+panel is opened again only for a new feature or a change the developer asks for; such a task gets
+its own number in the phase it belongs to, plan first, as before. Releases keep the rules of
+docs/DEPLOYMENT.md (late at night, `./backup.sh run` first).
+
+Still open around the panel (none of it code, or waiting for someone else):
 - **Gym PC backups:** `deploy/pull-backup.ps1` on the gym's computer, once it is set up (6.5,
   *First release over real data*). Until then the dumps are on the server and in `D:\GymBackups`
 - **Server night:** the 19 apt upgrades with Docker (item 4 above)
@@ -43,7 +47,13 @@ waits for someone else:
   account charged (10.6)
 - **Optional:** releases by registry pull instead of `scp` (6.4); the edge Caddy shared with
   another site, only if that site moves onto this server
-- **The public site (Phase 14):** 14.1 to 14.3 wait for the gym's trainers, links and photos;
+- **GitHub history:** 189 old commits carry a `Co-Authored-By: Claude` line, so GitHub lists Claude
+  as a contributor, and the 259 commits before 2026-10-25 are by `azghandishahram@gmail.com`.
+  Removing it means rewriting the history and a force-push to `main` (a `git bundle` of the old
+  history first); proposed on 1405/08/03 and waiting for the developer's yes. Commits since then
+  are `Shahram Azghandi <shahramdevops@gmail.com>`, with no such line
+
+Next: **the public site (Phase 14):** 14.1 to 14.3 wait for the gym's trainers, links and photos;
   14.4 waits for the developer's decision on the buttons; 14.6 for an ADR and the Owner
 
 ---
