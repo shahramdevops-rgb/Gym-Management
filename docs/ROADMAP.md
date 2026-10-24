@@ -19,11 +19,10 @@ Release order (decided by the developer on 1405/07/26, 2026-10-18):
    small release from `main` (`20261023-2305-6bcb031`, 10.18).
 2. Then Phase 13's look and mobile (13.1 and 13.2) as a release of its own. **Merged into `main`
    on 2026-10-23 (1405/08/01)**, asked by the developer, with the SMS work of 10.7 to 10.18 brought
-   into the new look (*Merged with the SMS work* under Phase 13). Not released yet: a night the
-   developer picks, frontend only (no migration), `./backup.sh run` first as always. **14.5 (the
-   panel out of search results) goes with it** (1405/08/02): files in the `web` image only. The
-   Docker/apt, rootless and edge nights keep their own nights; their order with this release is
-   the developer's call.
+   into the new look (*Merged with the SMS work* under Phase 13). **Done 2026-10-25 (1405/08/03),
+   00:43:** released with 14.5 (the panel out of search results) as `20261025-0043-0d08196`,
+   frontend only (*Release `20261025-0043-0d08196`* under Phase 13). The Docker/apt, rootless and
+   edge nights keep their own nights.
 3. The public site (Phase 14) has no link to the panel; it is built on its own branch and released
    on its own, when the developer chooses, never inside the SMS release.
 4. **Restart done 2026-10-20, 03:21**, the same night as the SMS release, by the developer's choice
@@ -36,7 +35,7 @@ Release order (decided by the developer on 1405/07/26, 2026-10-18):
 What is left (reviewed with the developer on 1405/08/02, 2026-10-24). The panel's code is
 finished: every task of Phases 0 to 13 is done, and 14.5 is built. The rest is not code, or
 waits for someone else:
-- **Release** 13.1, 13.2 and 14.5 together (item 2 above)
+- ~~**Release** 13.1, 13.2 and 14.5 together~~ **Done** in `20261025-0043-0d08196` (item 2 above)
 - **Gym PC backups:** `deploy/pull-backup.ps1` on the gym's computer, once it is set up (6.5,
   *First release over real data*). Until then the dumps are on the server and in `D:\GymBackups`
 - **Server night:** the 19 apt upgrades with Docker (item 4 above)
@@ -3268,6 +3267,19 @@ Closed 2026-10-23: 2705 backend tests (965 domain, 1740 integration) and 1193 fr
 zero warnings, lint, `format:check` and production build pass; `npm run e2e` (4, the phone run
 included) and `npm run screenshots` pass. No package added, no API change, no migration.
 
+#### Release `20261025-0043-0d08196` (1405/08/03, 2026-10-25, 00:43)
+13.1, 13.2 and 14.5, previous `20261023-2305-6bcb031`. Frontend and Caddy files only: nothing in
+`src/` changed and no migration, so a rollback to `6bcb031` is safe.
+- [x] Before it: every test green (2712 backend, 1193 frontend), `npm run e2e` (4) and
+      `npm run screenshots` on 2026-10-24. On the server: `TAG` was `6bcb031`, all three containers
+      up, API and Postgres healthy, disk 13% used (50 GB free), 2.9 GB memory available
+- [x] `./backup.sh run` → `gym-20261025-004013.dump` (1,088,258 bytes, after 771 KB on 2026-10-20),
+      copied to `D:\gymbackups`, both `sha256sum` equal (`f972029d…b38335e`)
+- [x] `deploy/release.sh gym@94.184.45.96` → `Released 20261025-0043-0d08196`
+- [x] After it, from outside: the panel and `/health` 200, the public page 200, www and the .com
+      301. The developer checked the panel on a phone: works. The API log after the release was not
+      read that night (the developer's call; no backend change)
+
 
 ### 13.1 Mobile
 Not cosmetic. The reception PC is a Windows desktop, but the gym loses power: during an outage
@@ -3881,10 +3893,11 @@ the panel already sent `X-Robots-Tag: noindex, nofollow` on every response (sinc
       as the same page
 - [x] Tests: `SearchIndexingTests` (the panel's header and meta, no `Disallow` on either host, no
       `noindex` on the public page or its Caddy block, its canonical and sitemap)
-- [ ] Released with 13.1 and 13.2 (see *Release order* at the top). After the release, check
-      `https://panel.pasargadgymplus.ir/robots.txt` and `https://pasargadgymplus.ir/robots.txt`
-      and `/sitemap.xml`. Search Console (adding the site and sending the sitemap) is the Owner's
-      or the developer's, with the domain's DNS: not code
+- [x] Released with 13.1 and 13.2 in `20261025-0043-0d08196` (1405/08/03). Checked from outside
+      after it: both `robots.txt` and `/sitemap.xml` answer 200 with the new files, the panel sends
+      the `noindex` header and meta, the public page its canonical and no `noindex`. Search Console
+      (adding the site and sending the sitemap) is the Owner's or the developer's, with the
+      domain's DNS: not code
 
 Closed 2026-10-24: 2712 backend tests (965 domain, 1747 integration; 7 new) and 1193 frontend tests
 green, zero warnings, lint, `format:check` and production build pass; `npm run e2e` (4) and
