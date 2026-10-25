@@ -3750,9 +3750,18 @@ will be «Pasargad Gym»), and Claude's proposals for the rest:
       where Chrome installs nothing); the manifest and the icons are served with their types.
       `npm run e2e`: the four front-desk tests and the three new ones pass. Android's install, its
       shortcuts and the iPhone's status bar are checked on the phones after the release
-- [ ] Released, late at night with `./backup.sh run` first; then on each phone the old shortcut
-      is removed and «نصب» pressed again (an iPhone: Safari, Share, «Add to Home Screen»), and
-      each person signs in once inside the app on an iPhone
+- [x] **Released 1405/08/03 (2026-10-25), 03:44, as `20261025-0344-23fdcdd`** (previous
+      `20261025-0043-0d08196`), `./backup.sh run` first and the dump copied to `D:\gymbackups`.
+      The first `release.sh` stopped at "Building the migration bundle … Build failed": the
+      developer's personal site's API was running in another `dotnet` process; with it stopped and
+      `dotnet build-server shutdown`, the second run went through (the server is untouched when the
+      bundle fails, since nothing is shipped before it). After it, from outside: the manifest 200 as
+      `application/manifest+json` with `no-cache`, the icons 200 `image/png`, the panel's page carries
+      the manifest and `theme-color`, the panel and `/health` 200, the public page 200, www and the
+      .com 301
+- [ ] On each phone: the old shortcut removed and «نصب» pressed again (an iPhone: Safari, Share,
+      «Add to Home Screen»), signed in once inside the app on an iPhone; the icon without Chrome's
+      badge, the three shortcuts on Android, the iPhone's status bar looked at
 
 Not changed: every screen. Only `<head>` tags and files nobody sees in a page, so the computer's
 screens stay as they are; a desk computer's Chrome may now offer to install the panel too.
