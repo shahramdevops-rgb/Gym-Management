@@ -3763,9 +3763,9 @@ will be «Pasargad Gym»), and Claude's proposals for the rest:
       and «Management» but with Chrome's badge: Google's WebAPK server did not answer from Iran and
       Chrome fell back to a shortcut. Installed again with a VPN on: the app, without the badge. The
       steps are in docs/DEPLOYMENT.md *The panel on a phone*
-- [ ] The Staff's phones, by those steps (Android with a VPN for the install; an iPhone in Safari,
+- [x] The Staff's phones, by those steps (Android with a VPN for the install; an iPhone in Safari,
       signed in once inside the app); the three shortcuts on Android and the iPhone's status bar
-      looked at
+      looked at: everything works (the developer, 1405/08/03). 13.4 is done
 
 Not changed: every screen. Only `<head>` tags and files nobody sees in a page, so the computer's
 screens stay as they are; a desk computer's Chrome may now offer to install the panel too.
