@@ -81,13 +81,13 @@ export const reportHours = Array.from({ length: 16 }, (_, index) =>
 
 /**
  * «جلسات رو به اتمام»'s limits, the same as the API's `LowSessionsSettings` (task 10.17): the first
- * row starts at the smallest plan (5) and ends at 5 to 139, the second ends above it and at most
- * 140, and each row's number is 1 to 4.
+ * row starts at the smallest plan (5) and ends at 5 to 29, the second ends above it and at most
+ * 30 (task 6.5.38), and each row's number is 1 to 4.
  */
 export const lowSessionsLimits = {
   smallestPlan: 5,
-  smallPlanMax: { min: 5, max: 139 },
-  largestPlan: 140,
+  smallPlanMax: { min: 5, max: 29 },
+  largestPlan: 30,
   threshold: { min: 1, max: 4 },
 } as const;
 

@@ -44,7 +44,7 @@ public sealed class SubscriptionTests
     [InlineData(11, 45)]
     [InlineData(20, 45)]
     [InlineData(21, 70)]
-    [InlineData(140, 70)]
+    [InlineData(30, 70)]
     public void CreateMembership_SessionCount_DaysFollowTheTable(int sessions, int expectedDays)
     {
         var subscription = Subscription.CreateMembership(MemberId, sessions, SessionPrice, Start).Value;
@@ -57,7 +57,7 @@ public sealed class SubscriptionTests
     [InlineData(5, 500_000)]
     [InlineData(10, 1_000_000)]
     [InlineData(11, 1_100_000)] // more days, but the price is still per session
-    [InlineData(140, 14_000_000)]
+    [InlineData(30, 3_000_000)]
     public void CreateMembership_AnyPlan_PriceIsSessionsTimesTheSessionPrice(int sessions, int expected)
     {
         var subscription = Subscription.CreateMembership(MemberId, sessions, SessionPrice, Start).Value;
@@ -87,9 +87,10 @@ public sealed class SubscriptionTests
             .Error.ShouldBe(SubscriptionErrors.SessionCountTooLow);
 
     [Theory]
-    [InlineData(141)]
-    [InlineData(1_000)]
-    public void CreateMembership_MoreThan140Sessions_FailsWithSessionCountTooHigh(int sessions) =>
+    [InlineData(31)]
+    [InlineData(123)] // the mistake of 1405/08/03 that set the new ceiling (task 6.5.38)
+    [InlineData(140)] // the old ceiling
+    public void CreateMembership_MoreThan30Sessions_FailsWithSessionCountTooHigh(int sessions) =>
         Subscription.CreateMembership(MemberId, sessions, SessionPrice, Start)
             .Error.ShouldBe(SubscriptionErrors.SessionCountTooHigh);
 
@@ -100,7 +101,7 @@ public sealed class SubscriptionTests
 
     [Fact]
     public void CreateMembership_PriceBeyondTheMoneyColumn_FailsWithPriceTooLarge() =>
-        Subscription.CreateMembership(MemberId, 140, PriceList.MaxPrice, Start)
+        Subscription.CreateMembership(MemberId, 30, PriceList.MaxPrice, Start)
             .Error.ShouldBe(SubscriptionErrors.PriceTooLarge);
 
     [Fact]

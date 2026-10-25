@@ -97,7 +97,7 @@ public sealed class DemoSeeder
     private const decimal CardioPrice = 60_000m;
     private const int InitialMembers = 40;
 
-    /// <summary>Sessions per plan, as the desk might sell them (5 to 140, BUSINESS_RULES.md §3).</summary>
+    /// <summary>Sessions per plan, as the desk might sell them (5 to 30, BUSINESS_RULES.md §3).</summary>
     private static readonly int[] PlanSizes = [8, 12, 12, 16, 20, 24, 30];
 
     /// <summary>The first members' birthdays: two today, one in two days, one in four.</summary>

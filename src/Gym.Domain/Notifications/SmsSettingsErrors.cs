@@ -13,15 +13,15 @@ public static class SmsSettingsErrors
         "Sms.LowSessionsOutOfRange",
         "Sessions left must be from 1 to 4.");
 
-    /// <summary>«جلسات رو به اتمام» (task 10.17): the first row's largest plan, 5 to 139.</summary>
+    /// <summary>«جلسات رو به اتمام» (task 10.17): the first row's largest plan, 5 to 29 (task 6.5.38).</summary>
     public static readonly Error LowSessionsSmallPlanMaxOutOfRange = Error.Validation(
         "Sms.LowSessionsSmallPlanMaxOutOfRange",
-        "The first row's largest plan must be from 5 to 139 sessions.");
+        $"The first row's largest plan must be from {LowSessionsSettings.SmallPlanMaxFloor} to {LowSessionsSettings.SmallPlanMaxCeiling} sessions.");
 
-    /// <summary>The second row's largest plan: above the first row's, at most 140.</summary>
+    /// <summary>The second row's largest plan: above the first row's, at most 30.</summary>
     public static readonly Error LowSessionsMediumPlanMaxOutOfRange = Error.Validation(
         "Sms.LowSessionsMediumPlanMaxOutOfRange",
-        "The second row's largest plan must be above the first row's and at most 140 sessions.");
+        $"The second row's largest plan must be above the first row's and at most {LowSessionsSettings.MediumPlanMaxCeiling} sessions.");
 
     public static readonly Error BirthdayDaysOutOfRange = Error.Validation(
         "Sms.BirthdayDaysOutOfRange",

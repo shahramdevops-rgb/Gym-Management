@@ -253,8 +253,8 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
     [InlineData(15, 2, true)]
     [InlineData(15, 3, false)]
     [InlineData(16, 3, true)]
-    [InlineData(140, 3, true)]
-    [InlineData(140, 4, false)]
+    [InlineData(30, 3, true)]
+    [InlineData(30, 4, false)]
     public async Task Handle_LowSessionsByPlanSize_EachPlanAtItsOwnRow(int sessions, int left, bool sent)
     {
         // Task 10.17: plans of 5 to 8 sessions at 1 left, up to 15 at 2, bigger at 3.

@@ -20,6 +20,9 @@ namespace Gym.Infrastructure.Persistence.Configurations;
 /// </remarks>
 public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
 {
+    /// <summary>The ceiling before task 6.5.38, still allowed for a cancelled plan.</summary>
+    private const int CancelledMaxSessionCount = 140;
+
     public void Configure(EntityTypeBuilder<Subscription> builder)
     {
         builder.ToTable("subscriptions", table =>
@@ -27,11 +30,14 @@ public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscri
             table.HasCheckConstraint("ck_subscriptions_dates", "end_date >= start_date");
             table.HasCheckConstraint("ck_subscriptions_price_not_negative", "price >= 0");
 
-            // BUSINESS_RULES.md §3: a plan has 5 to 140 sessions; a single visit has exactly 1 (its
-            // own constraint below).
+            // BUSINESS_RULES.md §3: a plan has 5 to 30 sessions; a single visit has exactly 1 (its
+            // own constraint below). A cancelled plan may keep the old ceiling of 140 (task 6.5.38):
+            // one was sold with 123 by mistake and cancelled, and a sale is never rewritten. It
+            // covers no dates and can never be used, so every live plan is still 5 to 30.
             table.HasCheckConstraint(
                 "ck_subscriptions_total_sessions_range",
-                $"is_single_session OR total_sessions BETWEEN {Subscription.MinSessionCount} AND {Subscription.MaxSessionCount}");
+                $"is_single_session OR total_sessions BETWEEN {Subscription.MinSessionCount} AND {Subscription.MaxSessionCount}"
+                + $" OR (cancelled_at IS NOT NULL AND total_sessions BETWEEN {Subscription.MinSessionCount} AND {CancelledMaxSessionCount})");
 
             // BUSINESS_RULES.md §3 (task 6.5.18): a plan lasts the days its sessions give. A count
             // above the table matches no row and the CASE is NULL, which a check lets through; the

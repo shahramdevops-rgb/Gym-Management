@@ -92,7 +92,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [InlineData("low_sessions_medium_threshold = 5", "ck_sms_settings_low_sessions_thresholds")]
     [InlineData("low_sessions_large_threshold = 5", "ck_sms_settings_low_sessions_thresholds")]
     [InlineData("low_sessions_small_plan_max = 4", "ck_sms_settings_low_sessions_plan_max")]
-    [InlineData("low_sessions_medium_plan_max = 141", "ck_sms_settings_low_sessions_plan_max")]
+    [InlineData("low_sessions_medium_plan_max = 31", "ck_sms_settings_low_sessions_plan_max")]
     [InlineData("low_sessions_medium_plan_max = 8", "ck_sms_settings_low_sessions_plan_max")]
     [InlineData("daily_report_send_time = '23:50'", "ck_sms_settings_daily_report_send_time")]
     [InlineData("daily_report_send_time = '07:45'", "ck_sms_settings_daily_report_send_time")]
@@ -814,11 +814,11 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
     [Theory]
     [InlineData(4, 15, "lowSessions.smallPlanMax", "Sms.LowSessionsSmallPlanMaxOutOfRange")]
     [InlineData(8, 8, "lowSessions.mediumPlanMax", "Sms.LowSessionsMediumPlanMaxOutOfRange")]
-    [InlineData(8, 141, "lowSessions.mediumPlanMax", "Sms.LowSessionsMediumPlanMaxOutOfRange")]
+    [InlineData(8, 31, "lowSessions.mediumPlanMax", "Sms.LowSessionsMediumPlanMaxOutOfRange")]
     public async Task Update_LowSessionsPlanSizeOutOfRange_Returns400UnderThatBox(
         int smallPlanMax, int mediumPlanMax, string field, string code)
     {
-        // Task 10.17: the first row ends at 5 to 139 sessions, the second above it and at most 140.
+        // Task 10.17: the first row ends at 5 to 29 sessions, the second above it and at most 30 (task 6.5.38).
         var (client, token, _) = await OwnerClientAsync();
         var read = await GetOkAsync(client, token);
 

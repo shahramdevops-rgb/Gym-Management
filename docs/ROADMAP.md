@@ -1952,6 +1952,38 @@ day only (day 78 of 90), and with that day's seeded data no member qualifies (in
 active plan with sessions left), so nothing is frozen and the test's "one frozen plan" fails. Every
 other backend test passes (2190 of 2191).
 
+### 6.5.38 A plan has at most 30 sessions (سقف ۳۰ جلسه)
+Decided by the Owner on 1405/08/03 (2026-10-25): a plan is sold with 5 to 30 sessions, not 5 to
+140, and a larger number is refused with a friendly message. The days of the table do not change
+(21 to 30 sessions still last 70). BUSINESS_RULES.md §3, §4 and §10 updated. The panel was closed
+(Phase 15); this reopens it at the Owner's request, on its own branch from `main`, so it is
+released without 15.1.
+
+- [x] **Domain.** `Subscription.MaxSessionCount = 30`; the table's last row and the
+      «جلسات رو به اتمام» limits follow from it (first row 5 to 29, second at most 30)
+- [x] **Database.** `ck_subscriptions_total_sessions_range` is 5 to 30, except a cancelled plan,
+      which may keep the old 140. Checked on the server first, read-only, with the developer: one
+      plan had 123 sessions, typed by mistake, already cancelled, nothing paid. A sale is never
+      rewritten or deleted, so the check makes room for it rather than the other way round. The
+      SMS settings' row sizes come down to the new ceiling if above it (the server's 8 and 15
+      stay). Migration `SubscriptionsAtMostThirtySessions`
+- [x] **Web.** `planLimits.maxSessionCount = 30` and the SMS settings' limits;
+      `Subscriptions.SessionCountTooHigh` reads «حداکثر ۳۰ جلسه می‌شود فروخت؛ لطفاً عددی از ۵ تا ۳۰
+      بنویسید.», shown under the box before anything is sent
+- [x] Tests (domain): 30 sells for 70 days, 31, 123 and 140 refused, the SMS rows' new limits
+- [x] Tests (integration): 30 allowed and 31 refused by the API, the check-in sale and the
+      database; a cancelled plan of 123 allowed, 141 refused even cancelled; the migration keeps the
+      cancelled 123 and brings the SMS row sizes down
+- [x] Tests (frontend): 30 fills 70 days, 31 is refused with the new message
+- [ ] **Released on a night of its own** (asked by the developer, 1405/08/03), not with 15.1 or
+      anything else, so a problem is this change's alone and is put right before the morning
+- [ ] **Before the release:** run the read-only check again (no plan above 30 that is not
+      cancelled), then `./backup.sh run`
+
+Done when: the desk types 31 and sees the friendly message, and nothing is sent.
+
+Release needs a migration (check constraints only; no row is changed on the server).
+
 #### Housekeeping before Phase 9 (2026-10-04)
 Phase 6.5 closed with a check of the whole repository, so the next task starts clean:
 - [x] Full suite on `6b3159e`: 1509 backend and 785 frontend tests green, `dotnet build` with zero

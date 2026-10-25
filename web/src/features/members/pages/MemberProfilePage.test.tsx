@@ -418,9 +418,9 @@ describe("MemberProfilePage", () => {
     ["11", "۴۵"],
     ["20", "۴۵"],
     ["21", "۷۰"],
-    ["140", "۷۰"],
+    ["30", "۷۰"],
     ["4", ""],
-    ["141", ""],
+    ["31", ""],
     ["", ""],
   ])("Subscription_AssignSessions%s_FillsTheLockedDaysBox", async (sessions, days) => {
     mockApi({
@@ -439,7 +439,7 @@ describe("MemberProfilePage", () => {
     expect(daysBox).toHaveValue(days);
   });
 
-  it("Subscription_AssignMoreThan140Sessions_IsRefusedBeforeAnythingIsSent", async () => {
+  it("Subscription_AssignMoreThan30Sessions_IsRefusedBeforeAnythingIsSent", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),
       [`GET /api/members/${reza.id}`]: () => json(200, reza),
@@ -449,11 +449,13 @@ describe("MemberProfilePage", () => {
     renderApp(`/members/${reza.id}`, { session: session() });
 
     fireEvent.click(await screen.findByRole("button", { name: "فروش اشتراک" }));
-    fireEvent.change(screen.getByLabelText("تعداد جلسات"), { target: { value: "141" } });
+    fireEvent.change(screen.getByLabelText("تعداد جلسات"), { target: { value: "31" } });
     await waitFor(() => expect(screen.getByRole("button", { name: "تأیید فروش" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "تأیید فروش" }));
 
-    expect(await screen.findByText("تعداد جلسات حداکثر ۱۴۰ است.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("حداکثر ۳۰ جلسه می‌شود فروخت؛ لطفاً عددی از ۵ تا ۳۰ بنویسید."),
+    ).toBeInTheDocument();
     expect(api.requestsTo("POST", `/api/members/${reza.id}/subscriptions`)).toHaveLength(0);
   });
 

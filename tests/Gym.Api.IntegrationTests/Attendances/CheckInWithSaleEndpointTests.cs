@@ -152,13 +152,13 @@ public sealed class CheckInWithSaleEndpointTests(DatabaseFixture fixture) : Data
     }
 
     [Fact]
-    public async Task CheckIn_PlanSaleWithMoreThan140Sessions_Returns400OnTheSessionCountField()
+    public async Task CheckIn_PlanSaleWithMoreThan30Sessions_Returns400OnTheSessionCountField()
     {
         var (client, token) = await StaffClientAsync();
         await SetPricesAsync();
         var member = await AddMemberAsync();
 
-        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(sessions: 141));
+        using var response = await CheckInAsync(client, token, member.Id, lockerNumber: 1, PlanSale(sessions: 31));
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await FieldErrorCodeAsync(response, "sessionCount")).ShouldBe("Subscriptions.SessionCountTooHigh");
