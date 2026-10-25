@@ -2251,10 +2251,15 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - 5 digits, valid for 2 minutes, at most 5 wrong tries, then a new code is needed.
   - A new code at most once a minute and at most 5 an hour per phone; a limit per IP as well.
   - Every code is a paid SMS, so the limits are checked before Kavenegar is called.
-  - *Open:* sent as Kavenegar's verification template (`verify/lookup`, made for codes) or as free
-    text from the gym's line like every other SMS (§10 *Sending*); Kavenegar refused templates
-    before the site was up (1405/07/16), so it is asked again. The developer is asking Kavenegar
-    (1405/08/03); a template goes from Kavenegar's other line, not the gym's dedicated one.
+  - **Sent as Kavenegar's verification template** (`verify/lookup`, made for codes), not as free
+    text (Kavenegar's answer, 1405/08/03; it had refused templates before the site was up,
+    1405/07/16). The template is `gymExpiring`, written by the developer:
+    «کد تایید باشگاه پاسارگاد: %token» and «این کد تا %token2 دقیقه معتبر است.», where `token` is
+    the code and `token2` the minutes it is valid for. It uses the gym's Kavenegar account and the
+    same API key; Kavenegar sends it from the account's shared international line. Every other SMS
+    stays free text from the gym's dedicated line (§10 *Sending*).
+  - The code itself is never written anywhere readable: not in the logs, not in the SMS history
+    (*Proposed by Claude*, confirmed in 15.1's plan with where these messages are listed).
 - **A member deactivated in the panel** can still receive a code and sign in, but sees only a
   notice that their membership is inactive and that they should come to the desk; nothing else on
   the site opens for them. *Decided by the developer* (1405/08/03).
@@ -2301,12 +2306,17 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   single picture with no text in it (checked on 1405/08/03), so the system cannot read the numbers
   from it, and a barcode reader cannot open the sheet's QR code (tried by the developer). Anea's
   site and manual mention no export (Excel, CSV, API); the device works with Anea's own 10-inch
-  tablet app, and the site names an «Anea Cloud +» without details; the developer has asked Anea.
-  **The trainer types the main numbers beside the PDF**, and the charts are drawn from them.
-  *Proposed by Claude.* *Open:* the exact list (from the sheet: weight, muscle mass, fat mass, fat
-  percentage, BMI, visceral fat, basal metabolic rate, body water, protein, minerals, and fat and
-  lean mass of each arm, leg and the trunk); whether an export from Anea's software can fill them
-  in instead.
+  tablet app, which records each person by phone number and name. Anea's answer (1405/08/03): the
+  software gives the PDF only; an Excel export is sold separately, 8 million once, for the gym's
+  own device, with every earlier result in it. **The gym does not buy it for now** (decided by
+  the developer, 1405/08/03). **The trainer types the main numbers beside the PDF**, and the
+  charts are drawn from them. *Decided by the developer.* *Open:* the exact list (from the sheet:
+  weight, muscle mass, fat mass, fat percentage, BMI, visceral fat, basal metabolic rate, body
+  water, protein, minerals, and fat and lean mass of each arm, leg and the trunk).
+- **Filling the numbers in automatically is for later**, never in place of the trainer: whatever
+  fills them (Anea's Excel matched to members by phone, OCR on the gym's server, or an LLM
+  reading the sheet, which would send health data off the server) only proposes, and the trainer
+  confirms each number against the PDF. *Proposed by Claude*; nothing chosen.
 - *Open:* the other parts of the assessment (circumferences, fitness tests, goals) and the
   reminder when a month has passed.
 
