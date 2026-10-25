@@ -3759,9 +3759,13 @@ will be «Pasargad Gym»), and Claude's proposals for the rest:
       `application/manifest+json` with `no-cache`, the icons 200 `image/png`, the panel's page carries
       the manifest and `theme-color`, the panel and `/health` 200, the public page 200, www and the
       .com 301
-- [ ] On each phone: the old shortcut removed and «نصب» pressed again (an iPhone: Safari, Share,
-      «Add to Home Screen»), signed in once inside the app on an iPhone; the icon without Chrome's
-      badge, the three shortcuts on Android, the iPhone's status bar looked at
+- [x] The developer's Android phone (Samsung, 1405/08/03): the first install gave the dark icon
+      and «Management» but with Chrome's badge: Google's WebAPK server did not answer from Iran and
+      Chrome fell back to a shortcut. Installed again with a VPN on: the app, without the badge. The
+      steps are in docs/DEPLOYMENT.md *The panel on a phone*
+- [ ] The Staff's phones, by those steps (Android with a VPN for the install; an iPhone in Safari,
+      signed in once inside the app); the three shortcuts on Android and the iPhone's status bar
+      looked at
 
 Not changed: every screen. Only `<head>` tags and files nobody sees in a page, so the computer's
 screens stay as they are; a desk computer's Chrome may now offer to install the panel too.

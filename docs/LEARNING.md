@@ -2074,4 +2074,5 @@ The question that started this was whether a gym that is entirely internal — I
 - **No service worker can be the safe choice.** A service worker is what makes a web app work offline, and also what can keep serving yesterday's files after a release; a panel of money and live check-ins wants neither, and Chrome installs without one.
 - **A file server only guesses a type from the extension.** Caddy knows no `.webmanifest`, so the header is set explicitly, and the file server keeps a `Content-Type` that is already set.
 - **Ask the browser itself.** `Page.getInstallabilityErrors` over the DevTools protocol is Chrome's own verdict on whether a page can install, which an end-to-end test can assert instead of guessing from the files.
+- **On Android the install goes through Google.** Chrome sends the address to a Google server that builds a WebAPK; when that server cannot be reached (from Iran), Chrome falls back without a word to a shortcut with its badge. The manifest was right all along: the icon and the name were ours. A VPN for the install alone fixes it, and the app then runs without one.
 - **My notes:**

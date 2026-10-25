@@ -103,6 +103,34 @@ login form from being what a visitor sees first, and lets only that host carry
 certificate on its own. Changing `DOMAIN` signs every user out, so do it before opening time and
 tell staff the new address first.
 
+## The panel on a phone (13.4)
+
+The panel installs as an app: a dark icon named «Management», full screen with no address bar.
+Nothing on the server is needed; each person does this once on their own phone.
+
+**Android, in Chrome, with a VPN on for the install only.** Chrome does not build the app itself:
+it sends the address to a Google server, which makes a small Android app (a WebAPK) and sends it
+back. From Iran that server does not answer, and Chrome then quietly makes a shortcut instead,
+with Chrome's badge on the icon, missing from the app list and without the long-press shortcuts.
+Found on the developer's Samsung phone on 1405/08/03: without a VPN, the badge; with one, the app.
+1. Remove any old «مدیریت باشگاه» or «Management» icon from the home screen.
+2. Turn the VPN on.
+3. Open `https://panel.pasargadgymplus.ir` in Chrome, then the menu (⋮) → «Install» (the item is
+   called «Install app» or «Install and create shortcut» depending on Chrome's version; never «Add
+   to home screen», which always makes the badged shortcut).
+4. Wait for the icon to appear, then turn the VPN off. The app works without it: only building it
+   needed Google; the panel itself is on the Iranian server.
+5. Check: no Chrome badge on the icon, «Management» in the app list, and a long press on the icon
+   shows «ورود با کمد», «داخل باشگاه» and «اعضا».
+
+**iPhone, in Safari** (not Chrome): Share → «Add to Home Screen» → «Add». No VPN: Safari builds
+the app on the phone. Sign in once inside the app; it keeps its own sign-in, apart from Safari's.
+
+**The desk computer**, if wanted: Chrome shows an install icon at the end of the address bar.
+
+The app shows the same live panel as the browser, with no copy kept offline, so after a release it
+is the new version the next time it opens; nobody installs again.
+
 ## Accounts from the server
 
 The web app cannot unlock, reset or rename the Owner, so these run on the server itself (over SSH,
