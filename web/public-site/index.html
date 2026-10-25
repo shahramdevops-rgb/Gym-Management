@@ -914,24 +914,82 @@
           <h2 id="contact-title">منتظر حضور گرمتون هستیم</h2>
         </div>
 
-        <dl class="contact__list" data-reveal>
-          <div>
-            <dt>نشانی</dt>
-            <dd>کرمانشاه، کارمندان، خیابان عصر انقلاب، ۱۸ متری فرهنگیان</dd>
-          </div>
-          <div>
-            <dt>تلفن</dt>
-            <dd><a href="tel:+989939386787" dir="ltr">۰۹۹۳ ۹۳۸ ۶۷۸۷</a></dd>
-          </div>
-          <div>
-            <dt>اینستاگرام</dt>
-            <dd class="soon">به‌زودی</dd>
-          </div>
-        </dl>
+        <div class="contact__body">
+          <div class="contact__info">
+            <dl class="contact__list" data-reveal>
+              <div>
+                <dt>نشانی</dt>
+                <dd>کرمانشاه، کارمندان، خیابان عصر انقلاب، ۱۸ متری فرهنگیان</dd>
+              </div>
+              <div>
+                <dt>تلفن</dt>
+                <dd><a href="tel:+989939386787" dir="ltr">۰۹۹۳ ۹۳۸ ۶۷۸۷</a></dd>
+              </div>
+              <div>
+                <dt>اینستاگرام</dt>
+                <dd class="soon">به‌زودی</dd>
+              </div>
+            </dl>
 
-        <div class="contact__actions" data-reveal>
-          <button type="button" class="btn btn--bronze">مسیریابی با نشان</button>
-          <button type="button" class="btn btn--ghost">مسیریابی با بلد</button>
+            <div class="contact__actions" data-reveal>
+              <button type="button" class="btn btn--bronze">مسیریابی با نشان</button>
+              <button type="button" class="btn btn--ghost">مسیریابی با بلد</button>
+            </div>
+          </div>
+
+          <!-- The streets around the gym in 3D. site.js draws the town into data-town and sets
+               the viewBox; without it the figure stays hidden and the address above says it all. -->
+          <figure class="contact__map" data-reveal>
+            <svg
+              class="town"
+              preserveAspectRatio="xMidYMid slice"
+              role="img"
+              aria-label="نقشه‌ی سه‌بعدی: باشگاه در ۱۸ متری فرهنگیان، نزدیک خیابان عصر انقلاب"
+            >
+              <defs>
+                <!-- site.js centres this on the gym's door: the lit streets glow towards it -->
+                <radialGradient id="town-lit" gradientUnits="userSpaceOnUse" r="760">
+                  <stop offset="0" stop-color="#e8c07d" stop-opacity="0.7" />
+                  <stop offset="0.5" stop-color="#c89b57" stop-opacity="0.32" />
+                  <stop offset="1" stop-color="#c89b57" stop-opacity="0.08" />
+                </radialGradient>
+                <radialGradient id="town-glow">
+                  <stop offset="0" stop-color="#e8c07d" stop-opacity="0.75" />
+                  <stop offset="1" stop-color="#e8c07d" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="town-gym-front" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#f2e4c8" />
+                  <stop offset="1" stop-color="#c89b57" />
+                </linearGradient>
+                <linearGradient id="town-gym-side" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#b8894a" />
+                  <stop offset="1" stop-color="#5a4327" />
+                </linearGradient>
+                <mask id="town-logo">
+                  <image href="img/logo.png" x="50" y="-56" width="26" height="36" />
+                </mask>
+              </defs>
+              <g data-town></g>
+              <!-- The bubble over the gym: site.js moves it above the ridge -->
+              <g data-town-pin>
+                <g class="town__pop">
+                  <g class="town__bob">
+                    <rect class="town__bubble" x="-88" y="-62" width="176" height="48" rx="24" />
+                    <path class="town__bubble" d="M-9 -15 0 -2 9 -15Z" />
+                    <rect
+                      class="town__logo"
+                      x="50"
+                      y="-56"
+                      width="26"
+                      height="36"
+                      mask="url(#town-logo)"
+                    />
+                    <text class="town__name" x="-16" y="-32">پاسارگاد پلاس</text>
+                  </g>
+                </g>
+              </g>
+            </svg>
+          </figure>
         </div>
       </section>
     </main>

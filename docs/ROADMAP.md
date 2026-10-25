@@ -3944,8 +3944,33 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
 - [ ] Put them in; «انتخاب این مربی» stays «به‌زودی» (choosing a trainer needs 14.6)
 
 ### 14.2 Finding the gym (مسیریابی و اینستاگرام)
-- [ ] Waiting for the gym: its location link for Neshan and Balad, and its Instagram page
+- [ ] Waiting for the gym: its location link for Neshan and Balad
 - [ ] «مسیریابی» opens them; Instagram in the footer and contact section instead of «به‌زودی»
+      - Instagram known since 2026-10-25: `pasargad_plus` (https://instagram.com/pasargad_plus),
+        written on the sign over the gym's door; the developer: the sign makes it the official page
+- [x] The streets around the gym in 3D beside the address (section ۰۷), asked by the developer on
+      1405/08/03 (2026-10-25), branch `task/14.2-finding-the-gym`, not released yet
+      - Traced from a Neshan screenshot the developer sent: the gym is a shed at the south edge of
+        the sports complex between شهید کاظمی and ۱۸ متری فرهنگیان, its door on فرهنگیان, عصر انقلاب
+        to the east. Drawn by `site.js` (`townMap`) as isometric SVG in the site's colours: no map
+        service, no package. The two streets to the door are lit, with light running along them;
+        the shed rises and the bubble (logo, «پاسارگاد پلاس») drops in as the section comes on
+        screen. Houses and the streets past the traced ones are filler, faded at the edges
+      - A tap on the map does nothing yet: it opens Neshan once the gym's link comes (above)
+- Ideas from the photos of the gym's front (`D:\GymPicture\IMG_4245–4247.HEIC`, 2026-10-25),
+  parked by the developer ("maybe in the future"; no more work on the end of the page for now):
+  - [ ] The shed on the map as it really is: walls of brown tiles, a roof of dark grey corrugated
+        sheet with a deep eave, the gable towards فرهنگیان (already so). Before it, the yard wall
+        along the pavement: white with the black «FITNESS» bodybuilder mural to the west, then a
+        low black wall («آکادمی بدنسازی پاسارگاد+») under a black iron railing, and the gate at the
+        east end between two black pillars painted with Persepolis guards. The door behind the gate
+        rather than in the middle, a black sign with yellow letters, the floodlight on the roof
+  - [ ] «این‌جوری پیدامون می‌کنید»: a photo of the front beside the map, IMG_4245 (the whole front)
+        on a computer and IMG_4247 (the gate and the guards) on a phone; a tap on the shed opens it.
+        IMG_4247 needs straightening; both a little lift in the shadows and a crop that leaves out
+        the rubble on the pavement. IMG_4246 repeats 4245 and is not needed. Windows' own HEIF
+        decoder (WPF `BitmapDecoder`) opens the HEIC files; nothing to install
+  - [ ] Maybe later: the Persepolis guards as a motif of the site (e.g. either side of «ثبت‌نام»)
 
 ### 14.3 The gym's own photos
 - [ ] Waiting for the gym: photos of its own rooms, kit and slides, to replace the Unsplash

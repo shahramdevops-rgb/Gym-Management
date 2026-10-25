@@ -2076,3 +2076,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Ask the browser itself.** `Page.getInstallabilityErrors` over the DevTools protocol is Chrome's own verdict on whether a page can install, which an end-to-end test can assert instead of guessing from the files.
 - **On Android the install goes through Google.** Chrome sends the address to a Google server that builds a WebAPK; when that server cannot be reached (from Iran), Chrome falls back without a word to a shortcut with its badge. The manifest was right all along: the icon and the name were ours. A VPN for the install alone fixes it, and the app then runs without one.
 - **My notes:**
+
+## 14.2 — The streets around the gym in 3D (نقشه‌ی سه‌بعدی نشانی)
+
+- **Isometric view is one formula.** A point on the map `(x, y)` at height `z` lands on the screen at `((x − y)·cos30°, (x + y)/2 − z)`; every house, street and the shed go through it, so the picture is data (streets and blocks traced from Neshan) and code draws it.
+- **Painter's order instead of a 3D engine.** SVG has no depth, so what is further back is drawn first: houses sorted by their front corner, and the trees split into "behind the gym" and "in front of it". Shapes that never overlap need nothing smarter.
+- **Draw what a map service would charge for, yourself.** A hand-made scene needs no API key, no third-party tiles that may be blocked in Iran, and no new package; it also matches the site's colours, which a real map never would.
+- **`preserveAspectRatio="xMidYMid slice"` crops like `object-fit: cover`.** The same drawing fills the computer's wide box and the phone's tall one, with the middle (the gym and the crossing) always in view.
+- **`pathLength` makes a dash animation size-free.** With `pathLength="100"` and dashes every 50, moving the offset by 50 loops without a jump, whatever the path's real length.
+- **`transform-box: fill-box` lets CSS grow an SVG shape from its own base.** Without it, `transform-origin` is measured from the whole SVG, and the shed would rise from the picture's corner.
+- **My notes:**

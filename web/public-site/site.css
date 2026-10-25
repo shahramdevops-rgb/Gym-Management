@@ -2077,8 +2077,13 @@ main > section[id] {
   padding-block-end: clamp(4.5rem, 14vw, 8.5rem);
 }
 
-.contact__list {
+.contact__body {
+  display: grid;
+  gap: 2rem;
   margin-block-start: 2.5rem;
+}
+
+.contact__list {
   border-block-start: 1px solid var(--line);
 }
 
@@ -2109,6 +2114,180 @@ main > section[id] {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-block-start: 2rem;
+}
+
+/* The streets around the gym, drawn by site.js. A phone sees it first and edge to edge, cropped
+   to the gym by the slice; its edges fade into the stone. */
+.contact__map {
+  display: none;
+  order: -1;
+  margin: 0 calc(var(--gutter) * -1);
+}
+
+.js .contact__map {
+  display: block;
+}
+
+.town {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 0.9;
+  -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent);
+  mask-image: radial-gradient(closest-side, #000 70%, transparent);
+}
+
+.town__ground {
+  fill: var(--stone);
+}
+
+.town__road {
+  fill: #1a1d23;
+}
+
+.town__road--lit {
+  fill: url(#town-lit);
+}
+
+.town__park {
+  fill: #11171a;
+}
+
+.town__top {
+  fill: #2a2d35;
+  stroke: #363a44;
+  stroke-width: 0.8;
+}
+
+.town__south {
+  fill: #1c1f26;
+}
+
+.town__east {
+  fill: #14161b;
+}
+
+.town__trunk {
+  stroke: #0b0d0c;
+  stroke-width: 2;
+}
+
+.town__tree {
+  fill: #1c2a24;
+  stroke: #26382f;
+  stroke-width: 0.8;
+}
+
+.town__label {
+  fill: var(--faint);
+  font-size: 17px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.town__label--lit {
+  fill: var(--text);
+}
+
+/* The light along the streets to the door, and two dashes running down it */
+.town__beam {
+  fill: none;
+  stroke: var(--bronze-hi);
+  stroke-width: 2.5;
+  stroke-opacity: 0.45;
+  stroke-linejoin: round;
+}
+
+.town__flow {
+  fill: none;
+  stroke: #fff3dc;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 6 44;
+  stroke-dashoffset: 50;
+  animation: town-flow 5s linear infinite;
+}
+
+/* The gym: a bronze shed under the light, the sheets of its walls and roof in thin lines */
+.town__gym-front {
+  fill: url(#town-gym-front);
+}
+
+.town__gym-side {
+  fill: url(#town-gym-side);
+}
+
+.town__gym-roof {
+  fill: #e4cfa6;
+}
+
+.town__gym-roof--east {
+  fill: #c49a5c;
+}
+
+.town__sheets {
+  fill: none;
+  stroke: rgb(13 14 17 / 0.22);
+  stroke-width: 0.8;
+}
+
+.town__ridge {
+  fill: none;
+  stroke: #fff3dc;
+  stroke-width: 1.5;
+}
+
+.town__door {
+  fill: #fff3dc;
+}
+
+.town__shutter {
+  fill: none;
+  stroke: rgb(110 83 48 / 0.45);
+  stroke-width: 0.8;
+}
+
+/* The gym rises from the ground as the map comes on screen, then the bubble drops onto it */
+.town__rise {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transition: transform 1.3s var(--ease-out) 0.35s;
+}
+
+.js .contact__map:not(.is-in) .town__rise {
+  transform: scaleY(0);
+}
+
+.town__pop {
+  transition:
+    opacity 0.6s var(--ease-out) 1.4s,
+    transform 0.6s var(--ease-out) 1.4s;
+}
+
+.js .contact__map:not(.is-in) .town__pop {
+  opacity: 0;
+  transform: translateY(-16px);
+}
+
+.town__bob {
+  animation: town-bob 3.2s ease-in-out infinite alternate;
+}
+
+.town__bubble {
+  fill: var(--stone-2);
+  stroke: var(--bronze);
+  stroke-width: 1.2;
+}
+
+.town__logo {
+  fill: var(--bronze-hi);
+}
+
+.town__name {
+  fill: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  text-anchor: middle;
 }
 
 /* ---------- Footer ---------- */
@@ -2360,6 +2539,22 @@ main > section[id] {
   .contact__list dd {
     font-size: 1.35rem;
   }
+
+  /* The details at the start (right), the map beside them */
+  .contact__body {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: center;
+    gap: 3rem;
+  }
+
+  .contact__map {
+    order: 0;
+    margin: 0;
+  }
+
+  .town {
+    aspect-ratio: 10 / 6.6;
+  }
 }
 
 /* ---------- Keyframes ---------- */
@@ -2480,6 +2675,19 @@ main > section[id] {
 @keyframes band {
   to {
     translate: 50% 0;
+  }
+}
+
+/* The streets' path has pathLength 100: one dash every 50, so a shift of 50 loops seamlessly */
+@keyframes town-flow {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes town-bob {
+  to {
+    transform: translateY(-6px);
   }
 }
 

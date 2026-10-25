@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
   tour();
   coaches();
   galleryCounter();
+  townMap();
   topbar();
   dock();
 });
@@ -765,6 +766,304 @@ function galleryCounter() {
     { root: gallery, threshold: 0.6 },
   );
   items.forEach((item) => observer.observe(item));
+}
+
+// ---------- The streets around the gym, in 3D ----------
+// Traced from Neshan on 2026-10-25, in that screenshot's pixels: x runs east, y south. The
+// streets near the gym are the real ones; the houses, and the streets past the traced ones, are
+// filler that fades out at the edges. Drawn in isometric view from the south-east, so the gym's
+// door on ۱۸ متری فرهنگیان faces the reader.
+
+const town = {
+  edge: [-320, -320, 1700, 1260],
+  // North–south streets as x from–to, east–west ones as y from–to. Lit: on the way to the door;
+  // the name is written on the street at `label` along it.
+  northSouth: [
+    { from: -159, to: -141 },
+    { from: 148, to: 168 }, // ۱۸ متری شرقی دانشگاه
+    { from: 1118, to: 1146, lit: true, name: "عصر انقلاب", label: 520 },
+    { from: 1471, to: 1489 },
+  ],
+  eastWest: [
+    { from: -159, to: -141 },
+    { from: 112, to: 140, name: "شهید کاظمی", label: 820 },
+    { from: 613, to: 647, lit: true, name: "۱۸ متری فرهنگیان", label: 920 },
+    { from: 760, to: 784 }, // ده متری چهارم راه و ترابری
+    { from: 990, to: 1008 },
+  ],
+  // Streets that end before the next one, as [x0, y0, x1, y1]
+  deadEnds: [
+    [625, -141, 637, 112], // خرداد
+    [168, 510, 458, 524],
+  ],
+  // The sports complex the gym stands in, its houses along the west side
+  complex: [440, 148, 1110, 606],
+  // The gym: a shed, its ridge running north–south and its door on the south wall
+  gym: { x0: 685, y0: 457, x1: 770, y1: 585, wall: 44, ridge: 66, door: 28 },
+};
+
+function townMap() {
+  const svg = document.querySelector(".town");
+  const layer = svg?.querySelector("[data-town]");
+  if (!layer) return;
+
+  const cos30 = Math.cos(Math.PI / 6);
+  const round = (n) => Math.round(n * 10) / 10;
+  const at = (x, y, z = 0) => [round((x - y) * cos30), round((x + y) / 2 - z)];
+  const points = (...corners) => corners.map((c) => at(...c).join(",")).join(" ");
+  const noise = (n) => {
+    const s = Math.sin(n * 127.1) * 43758.5453;
+    return s - Math.floor(s);
+  };
+
+  function add(parent, tag, attributes) {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, value);
+    parent.append(element);
+    return element;
+  }
+
+  // The view: halfway between the gym's ridge and the corner of the two lit streets, so the
+  // gym and عصر انقلاب are both clear of the faded edges
+  const { gym } = town;
+  const middle = [(gym.x0 + gym.x1) / 2, (gym.y0 + gym.y1) / 2];
+  const avenue = town.northSouth.find((s) => s.lit);
+  const street = town.eastWest.find((s) => s.lit);
+  const ax = (avenue.from + avenue.to) / 2;
+  const sy = (street.from + street.to) / 2;
+  const ridge = at(...middle, gym.ridge);
+  const corner = at(ax, sy);
+  const [cx, cy] = [(ridge[0] + corner[0]) / 2, (ridge[1] + corner[1]) / 2];
+  const view = { x: cx - 600, y: cy - 400, width: 1200, height: 790 };
+  svg.setAttribute("viewBox", `${view.x} ${view.y} ${view.width} ${view.height}`);
+  const door = at(middle[0], gym.y1);
+  const lit = svg.querySelector("#town-lit");
+  lit.setAttribute("cx", door[0]);
+  lit.setAttribute("cy", door[1]);
+
+  const flat = ([x0, y0, x1, y1]) => points([x0, y0], [x1, y0], [x1, y1], [x0, y1]);
+  const [left, top, right, bottom] = town.edge;
+  add(layer, "polygon", { class: "town__ground", points: flat(town.edge) });
+
+  // Streets, the lit ones last so they sit over the crossings
+  const streets = [
+    ...town.northSouth.map((s) => ({ ...s, rect: [s.from, top, s.to, bottom] })),
+    ...town.eastWest.map((s) => ({ ...s, rect: [left, s.from, right, s.to] })),
+    ...town.deadEnds.map((rect) => ({ rect })),
+  ].sort((a, b) => Number(Boolean(a.lit)) - Number(Boolean(b.lit)));
+  for (const road of streets) {
+    const kind = road.lit ? "town__road town__road--lit" : "town__road";
+    add(layer, "polygon", { class: kind, points: flat(road.rect) });
+  }
+  add(layer, "polygon", { class: "town__park", points: flat(town.complex) });
+
+  // The way in: down عصر انقلاب or along فرهنگیان, then up to the door
+  const routes = [
+    [at(ax, top), at(ax, sy), at(middle[0], sy), door],
+    [at(left, sy), at(middle[0], sy), door],
+  ];
+  for (const route of routes) {
+    const d = roundedPath(route, 40);
+    add(layer, "path", { class: "town__beam", d });
+    add(layer, "path", { class: "town__flow", d, pathLength: 100 });
+  }
+  add(layer, "ellipse", {
+    cx: door[0],
+    cy: door[1] + 6,
+    rx: 70,
+    ry: 35,
+    fill: "url(#town-glow)",
+  });
+
+  // The blocks between the streets, each cut into houses. The ones behind the complex are drawn
+  // before it and the ones in front after, so nothing in front is hidden.
+  const lines = (list, from, to) => [from, ...list.flatMap((s) => [s.from, s.to]), to];
+  const xs = lines(town.northSouth, left, right);
+  const ys = lines(town.eastWest, top, bottom);
+  const [px0, py0, px1, py1] = town.complex;
+  const behind = [];
+  const before = [];
+  for (let i = 0; i < xs.length; i += 2) {
+    for (let j = 0; j < ys.length; j += 2) {
+      let block = [xs[i], ys[j], xs[i + 1], ys[j + 1]];
+      if (block[0] < px0 && block[2] > px1 && block[1] < py0 && block[3] > py1) {
+        block = [block[0], block[1], px0, block[3]];
+      }
+      for (const piece of cut(block)) {
+        for (const house of houses(piece, i * 31 + j * 17)) {
+          (house[2] <= px1 && house[3] <= py1 ? behind : before).push(house);
+        }
+      }
+    }
+  }
+
+  // A block split in two where a dead end runs right across it
+  function cut([x0, y0, x1, y1]) {
+    for (const [dx0, dy0, dx1, dy1] of town.deadEnds) {
+      if (dy0 <= y0 && dy1 >= y1 && dx0 > x0 && dx1 < x1) {
+        return [...cut([x0, y0, dx0, y1]), ...cut([dx1, y0, x1, y1])];
+      }
+      if (dx0 <= x0 && dx1 >= x1 && dy0 > y0 && dy1 < y1) {
+        return [...cut([x0, y0, x1, dy0]), ...cut([x0, dy1, x1, y1])];
+      }
+    }
+    return [[x0, y0, x1, y1]];
+  }
+
+  // Houses about 110 long along the block's long side, two rows in a deep block, back from the
+  // street; low, so none hides the gym. Those off the picture are skipped.
+  function houses([x0, y0, x1, y1], seed) {
+    const inset = 8;
+    const gap = 10;
+    [x0, y0, x1, y1] = [x0 + inset, y0 + inset, x1 - inset, y1 - inset];
+    const wide = x1 - x0 >= y1 - y0;
+    const long = wide ? x1 - x0 : y1 - y0;
+    const deep = wide ? y1 - y0 : x1 - x0;
+    const count = Math.max(1, Math.round(long / 110));
+    const rows = deep > 150 ? 2 : 1;
+    const step = (long + gap) / count;
+    const row = (deep + gap) / rows;
+    const result = [];
+    for (let n = 0; n < count; n++) {
+      for (let r = 0; r < rows; r++) {
+        const a = n * step;
+        const b = r * row;
+        const house = wide
+          ? [x0 + a, y0 + b, x0 + a + step - gap, y0 + b + row - gap]
+          : [x0 + b, y0 + a, x0 + b + row - gap, y0 + a + step - gap];
+        house.push(8 + 14 * noise(seed + n * 7 + r * 13));
+        if (onPicture(house)) result.push(house);
+      }
+    }
+    return result;
+  }
+
+  function onPicture([x0, y0, x1, y1, h]) {
+    const sx = [at(x0, y1)[0], at(x1, y0)[0]];
+    const sy = [at(x0, y0, h)[1], at(x1, y1)[1]];
+    return (
+      sx[1] > view.x &&
+      sx[0] < view.x + view.width &&
+      sy[1] > view.y &&
+      sy[0] < view.y + view.height
+    );
+  }
+
+  // Front corner furthest back first: houses never overlap, so that is enough
+  const byDepth = (a, b) => a[2] + a[3] - (b[2] + b[3]);
+  const solids = add(layer, "g", {});
+  behind.sort(byDepth).forEach((house) => box(solids, house));
+
+  // Trees in the complex, kept off the gym and the yard before its door. Those west or north of
+  // the gym stand behind it, the others in front.
+  const trees = [];
+  for (let x = px0 + 30; x < px1 - 10; x += 44) {
+    for (let y = py0 + 24; y < py1 - 10; y += 44) {
+      const seed = x * 3 + y;
+      if (noise(seed) < 0.45) continue;
+      const tree = [x + 28 * (noise(seed + 1) - 0.5), y + 28 * (noise(seed + 2) - 0.5)];
+      const near =
+        tree[0] > gym.x0 - 26 && tree[0] < gym.x1 + 26 && tree[1] > gym.y0 - 26 && tree[1] < py1;
+      if (!near) trees.push(tree);
+    }
+  }
+  const behindGym = ([x, y]) => x < gym.x1 && y < gym.y1;
+  const treeDepth = (a, b) => a[0] + a[1] - (b[0] + b[1]);
+  trees.filter(behindGym).sort(treeDepth).forEach(tree);
+  shed();
+  trees
+    .filter((t) => !behindGym(t))
+    .sort(treeDepth)
+    .forEach(tree);
+
+  before.sort(byDepth).forEach((house) => box(solids, house));
+
+  // The names, lying on the street: along x the text runs south-east, along y north-east. Drawn
+  // over the houses, so the roofs in front never hide them.
+  for (const s of town.eastWest.filter((s) => s.name)) {
+    const [x, y] = at(s.label, (s.from + s.to) / 2 + 5);
+    label(s, `matrix(${cos30} 0.5 ${-cos30} 0.5 ${x} ${y})`);
+  }
+  for (const s of town.northSouth.filter((s) => s.name)) {
+    const [x, y] = at((s.from + s.to) / 2 + 5, s.label);
+    label(s, `matrix(${cos30} -0.5 ${cos30} 0.5 ${x} ${y})`);
+  }
+  function label(s, transform) {
+    const kind = s.lit ? "town__label town__label--lit" : "town__label";
+    add(layer, "text", { class: kind, transform }).textContent = s.name;
+  }
+
+  function box(parent, [x0, y0, x1, y1, h]) {
+    add(parent, "polygon", {
+      class: "town__south",
+      points: points([x0, y1, 0], [x1, y1, 0], [x1, y1, h], [x0, y1, h]),
+    });
+    add(parent, "polygon", {
+      class: "town__east",
+      points: points([x1, y0, 0], [x1, y1, 0], [x1, y1, h], [x1, y0, h]),
+    });
+    add(parent, "polygon", {
+      class: "town__top",
+      points: points([x0, y0, h], [x1, y0, h], [x1, y1, h], [x0, y1, h]),
+    });
+  }
+
+  function tree([x, y]) {
+    const [bx, by] = at(x, y);
+    const [tx, ty] = at(x, y, 12);
+    add(solids, "line", { class: "town__trunk", x1: bx, y1: by, x2: tx, y2: ty });
+    add(solids, "circle", { class: "town__tree", cx: tx, cy: ty - 3, r: 8 });
+  }
+
+  function shed() {
+    const { x0, y0, x1, y1, wall, ridge } = gym;
+    const xm = middle[0];
+    const g = add(solids, "g", { class: "town__rise" });
+    add(g, "polygon", {
+      class: "town__gym-roof",
+      points: points([x0, y0, wall], [xm, y0, ridge], [xm, y1, ridge], [x0, y1, wall]),
+    });
+    add(g, "polygon", {
+      class: "town__gym-roof town__gym-roof--east",
+      points: points([xm, y0, ridge], [x1, y0, wall], [x1, y1, wall], [xm, y1, ridge]),
+    });
+    add(g, "polygon", {
+      class: "town__gym-side",
+      points: points([x1, y0, 0], [x1, y1, 0], [x1, y1, wall], [x1, y0, wall]),
+    });
+    add(g, "polygon", {
+      class: "town__gym-front",
+      points: points([x0, y1, 0], [x1, y1, 0], [x1, y1, wall], [xm, y1, ridge], [x0, y1, wall]),
+    });
+
+    // The sheets: down the side wall, across both slopes, up the front under the gable
+    const line = (a, b) => `M${at(...a)}L${at(...b)}`;
+    let sheets = "";
+    for (let y = y0 + 8; y < y1; y += 8) {
+      sheets += line([x1, y, 0], [x1, y, wall]);
+      sheets += line([x0, y, wall], [xm, y, ridge]) + line([xm, y, ridge], [x1, y, wall]);
+    }
+    const half = (x1 - x0) / 2;
+    for (let x = x0 + 7; x < x1; x += 7) {
+      const height = wall + (ridge - wall) * (1 - Math.abs(x - xm) / half);
+      sheets += line([x, y1, 0], [x, y1, height]);
+    }
+    add(g, "path", { class: "town__sheets", d: sheets });
+    add(g, "path", { class: "town__ridge", d: line([xm, y0, ridge], [xm, y1, ridge]) });
+
+    // The shutter door, lit from inside
+    const [d0, d1] = [xm - 14, xm + 14];
+    add(g, "polygon", {
+      class: "town__door",
+      points: points([d0, y1, 0], [d1, y1, 0], [d1, y1, gym.door], [d0, y1, gym.door]),
+    });
+    let shutter = "";
+    for (let z = 4; z < gym.door; z += 4) shutter += line([d0, y1, z], [d1, y1, z]);
+    add(g, "path", { class: "town__shutter", d: shutter });
+  }
+
+  const [pinX, pinY] = at(...middle, gym.ridge + 8);
+  svg.querySelector("[data-town-pin]").setAttribute("transform", `translate(${pinX} ${pinY})`);
 }
 
 // ---------- The top bar turns solid once the page moves ----------
