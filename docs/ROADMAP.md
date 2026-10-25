@@ -3952,10 +3952,10 @@ How it is built:
 - [x] CLAUDE.md's "No public access, no self-registration, no member logins" and §1's "Members
       never log in" changed: the panel is staff-only, members and trainers sign in on the site (§15)
 - [x] The QR code on the Anea sheet: a barcode reader cannot open it (the developer, 1405/08/03)
-- [ ] The developer, outside the code (not blocking 15.1): Anea asked (1405/08/03) whether their
-      software exports the results (Excel, CSV, an API, «Anea Cloud +», a PDF with text); Kavenegar
-      asked for a template for the one-time code, sent from their other line. Both answers are
-      needed by 15.1 (the code's SMS) and 15.10 (the analysis numbers)
+- [x] The developer, outside the code: Kavenegar and Anea answered (1405/08/03). The one-time code
+      goes as the verification template `gymExpiring` (same account and API key, Kavenegar's
+      shared international line); Anea gives the PDF only, its Excel export (8 million, once) is
+      not bought for now, and the trainer types the numbers (§15)
 
 ### Release 1 — Signing in, and «my plan» (15.1 to 15.5)
 A member can sign up, sign in and see their own plan; trainers exist and take students. Nothing
@@ -3963,7 +3963,8 @@ of the trainers' tools yet, but nobody signs in to an empty page.
 
 #### 15.1 Site accounts and the one-time code (backend)
 - [ ] Asked first: the code's numbers (§15's proposal: 5 digits, 2 minutes, 5 tries, 1 a minute
-      and 5 an hour per phone), the per-IP limit, Kavenegar's answer (template or free text)
+      and 5 an hour per phone) and the per-IP limit; the code goes as Kavenegar's template
+      `gymExpiring` through `verify/lookup` (§15)
 - [ ] Site accounts keyed by the verified phone, linked to a member; a new phone creates the member
       (name and birth date, §2's rules), an existing one links to it and is not asked again
 - [ ] Request and verify a code: expiry, wrong tries, limits per phone and per IP, all checked
@@ -4027,8 +4028,8 @@ of the trainers' tools yet, but nobody signs in to an empty page.
       disk space on the server watched
 
 #### 15.9 Assessment and the analysis (ارزیابی و آنالیز)
-- [ ] Asked first: the list of numbers (§15), the other parts (circumferences, tests, goals),
-      Anea's answer about an export
+- [ ] Asked first: the list of numbers (§15), the other parts (circumferences, tests, goals);
+      the numbers are typed (Anea's Excel export not bought, 1405/08/03)
 - [ ] The analysis PDF and its numbers, the comparison with the month before, charts, the reminder
       when a month has passed; the member sees theirs
 

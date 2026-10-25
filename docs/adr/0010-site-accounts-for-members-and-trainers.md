@@ -75,8 +75,9 @@ That reverses the founding rule, so it is a decision rather than a feature. Four
   server, for data that is never queried.
 - **Reading the analysis numbers out of the PDF.** The Anea BIA sheet is a single image with no
   text (checked on 2026-10-25), so it would need OCR of Persian digits. Rejected for now: the
-  trainer types about ten numbers beside the PDF. Revisit if Anea offers an export (asked on
-  2026-10-25); the QR code on the sheet cannot be read by a barcode reader.
+  trainer types about ten numbers beside the PDF. Anea sells an Excel export (once, with every
+  earlier result, matched by phone); not bought for now (2026-10-25). The QR code on the sheet
+  cannot be read by a barcode reader.
 
 ## Consequences
 
