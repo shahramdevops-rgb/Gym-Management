@@ -6,6 +6,7 @@ import {
   Coffee,
   Contact,
   DoorOpen,
+  Gauge,
   History,
   KeyRound,
   LockKeyhole,
@@ -79,6 +80,7 @@ export const navigation: NavigationGroup[] = [
     title: "مالی",
     tone: "violet",
     items: [
+      { to: paths.todaySummary, label: "خلاصهٔ امروز", icon: Gauge, role: "Owner" },
       { to: paths.dashboard, label: "داشبورد", icon: ChartColumn, role: "Owner" },
       { to: paths.expenses, label: "هزینه‌ها", icon: Wallet, role: "Owner" },
       { to: paths.payables, label: "چک و قسط", icon: BanknoteArrowUp, role: "Owner" },

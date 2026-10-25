@@ -74,15 +74,16 @@ public sealed partial class PanelInstallTests
     }
 
     [Fact]
-    public void Manifest_Shortcuts_ArePagesStaffCanOpen()
+    public void Manifest_Shortcuts_AreTheDesksPagesAndTheOwnersSummary()
     {
         // The manifest is the same for everyone, so a shortcut to an Owner-only page would open a
-        // refusal for Staff.
+        // refusal for Staff. «خلاصهٔ امروز» is the one exception (13.5): its route sends Staff to
+        // the locker map instead (RequireRole's `otherwise`). It comes first, ahead of the desk's three.
         var shortcuts = Manifest().GetProperty("shortcuts").EnumerateArray()
             .Select(shortcut => (Name: shortcut.GetProperty("name").GetString(), Url: shortcut.GetProperty("url").GetString()))
             .ToList();
 
-        shortcuts.ShouldBe([("ورود با کمد", "/"), ("داخل باشگاه", "/attendance"), ("اعضا", "/members")]);
+        shortcuts.ShouldBe([("خلاصهٔ امروز", "/today"), ("ورود با کمد", "/"), ("داخل باشگاه", "/attendance"), ("اعضا", "/members")]);
     }
 
     [Fact]

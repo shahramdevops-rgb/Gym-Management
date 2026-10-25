@@ -2076,6 +2076,35 @@ on one page.
 - **New members** are explained on the page as "members whose first membership plan was sold in
   this range" (this month, on the monthly chart), the rule of *Operational reports* above.
 
+### Today's summary (خلاصهٔ امروز)
+
+Decided with the developer, 1405/08/03 (2026-10-25). Roadmap 13.5. Today at a glance on the
+Owner's phone, instead of a home-screen widget, which a web app cannot have.
+
+- **Owner only**, like the reports (decided by the developer). Staff have no menu item for it. The
+  phone's long-press shortcut to it is on every installed panel, Staff's included (the manifest is
+  one file for everyone), so a Staff member who opens it is **sent to the locker map**, not shown a
+  refusal, and nothing is asked. The API refuses Staff (403).
+- **What it shows**, the daily report's figures (§10) for today so far, so the phone, the SMS and the
+  dashboard never disagree:
+  - **«داخل باشگاه، همین الان»**: everyone with an open visit, as the «داخل باشگاه» board lists
+    them, **guests included**, with how many of them are guests written under it when there are any
+    (Claude's proposal, confirmed by the developer). A cancelled visit or one the nightly job closed
+    is not inside.
+  - **«ورود امروز»**: members' check-ins of the day, cancelled ones and guests left out (§12
+    *Attendance*).
+  - **«دریافتی امروز»**: the dashboard's «دریافتی» for today (§12 *Financial report*): old debts
+    included, refunds taken off, without فروشگاه, آنالیز and متفرقه. One figure, without the methods.
+  - **«پلن»** and **«تک‌جلسه»**: the membership plans and the single visits sold today, cancelled
+    ones left out.
+- **No comparison** with another day: today so far has no fair "before" to set against it.
+- **When it is fresh** (decided by the developer, over every 15 seconds): the figures are asked when
+  the page opens, when the phone comes back to it (unlocked, or back from another app) and when the
+  Owner presses «به‌روزرسانی», **never on a timer**. A locked phone asks nothing. The page writes the
+  time its figures are from («به‌روز در ۱۸:۴۲»); when a refresh fails it keeps the last figures and
+  says how old they are.
+- On the computer it is the same page; it is made for a phone's width.
+
 ### History (تاریخچه)
 
 Decided with the developer, 1405/07/10 (2026-10-02). Roadmap 6.5.25. Each member's own history is

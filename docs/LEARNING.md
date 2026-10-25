@@ -2076,3 +2076,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Ask the browser itself.** `Page.getInstallabilityErrors` over the DevTools protocol is Chrome's own verdict on whether a page can install, which an end-to-end test can assert instead of guessing from the files.
 - **On Android the install goes through Google.** Chrome sends the address to a Google server that builds a WebAPK; when that server cannot be reached (from Iran), Chrome falls back without a word to a shortcut with its badge. The manifest was right all along: the icon and the name were ours. A VPN for the install alone fixes it, and the app then runs without one.
 - **My notes:**
+
+## 13.5 — Today's summary on the Owner's phone (خلاصهٔ امروز)
+
+- **Pull, not push.** The panel never hears from the server by itself: every screen asks (polls). The locker map asks every 15 seconds; this page asks only when it is opened, when the phone comes back to it and on a button. Push (SignalR, WebSockets) would need a package, a connection held open and proxy settings, and a locked phone's browser cuts it anyway.
+- **A hidden page is a stopped page.** Browsers mark a page `hidden` when the screen locks or another app comes forward (`visibilitychange`); TanStack Query pauses its timers then and, with `refetchOnWindowFocus`, asks again when the page is visible. That is the whole "only while I am looking" behaviour, with no code of our own.
+- **A query option can differ from the app's default.** `queryClient.ts` turns `refetchOnWindowFocus` off for the desk; this one query turns it back on, where coming back is exactly when the Owner wants fresh figures.
+- **Compose handlers instead of repeating rules.** The new handler asks the dashboard's financial and attendance handlers for a range of one day, as the daily SMS does. Which payments count as «دریافتی» is written once, so three screens cannot drift apart.
+- **`GroupBy(x => 1)` counts several things in one query.** Grouping on a constant gives one group holding every row, and each `Count(...)` with its own condition becomes one column of a single SELECT; no rows means no group, hence the `?? 0`.
+- **`dataUpdatedAt` says how old the figures are.** A page that does not refresh by itself should say when its numbers are from, and keep them, saying so, when a refresh fails.
+- **A redirect is kinder than a refusal for a shared link.** The manifest is one file for every phone, so Staff get the Owner's shortcut too; `RequireRole`'s `otherwise` sends them to the locker map with `<Navigate replace>`, so Back does not return them to the page they could not see.
+- **Show a mock-up before the code.** A static HTML page in the app's colours and font, rendered at 390px with Playwright, let the developer decide the layout and the refresh before anything was built.
+- **My notes:**

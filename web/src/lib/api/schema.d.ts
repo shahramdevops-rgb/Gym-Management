@@ -1508,6 +1508,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetTodaySummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audit-logs": {
         parameters: {
             query?: never;
@@ -3049,6 +3065,22 @@ export interface components {
             /** Format: int32 */
             daysAveraged: number | string;
             hours: components["schemas"]["HourCountResponse"][];
+        };
+        TodaySummaryResponse: {
+            /** Format: date */
+            today: string;
+            /** Format: int32 */
+            insideNow: number | string;
+            /** Format: int32 */
+            guestsInside: number | string;
+            /** Format: int32 */
+            checkIns: number | string;
+            /** Format: double */
+            received: number | string;
+            /** Format: int32 */
+            plansSold: number | string;
+            /** Format: int32 */
+            singleVisitsSold: number | string;
         };
         TopCafeProductResponse: {
             /** Format: uuid */
@@ -9691,6 +9723,44 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTodaySummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodaySummaryResponse"];
                 };
             };
             /** @description Unauthorized */

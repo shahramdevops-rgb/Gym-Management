@@ -6,14 +6,16 @@ using Gym.Application.Reports.GetMembersReport;
 using Gym.Application.Reports.GetNeedsAttention;
 using Gym.Application.Reports.GetReceivables;
 using Gym.Application.Reports.GetSubscriptionsSnapshot;
+using Gym.Application.Reports.GetTodaySummary;
 using Gym.Application.Reports.GetTopCafeProducts;
 
 namespace Gym.Api.Endpoints;
 
 /// <summary>
 /// The figures behind the Owner's dashboard (BUSINESS_RULES.md §12 <i>Financial report</i>,
-/// <i>Receivables</i>, <i>Operational reports</i>, <i>Needs attention</i>, roadmap 9.1 and 9.2).
-/// Owner only, reading included.
+/// <i>Receivables</i>, <i>Operational reports</i>, <i>Needs attention</i>, roadmap 9.1 and 9.2),
+/// and today's summary for the Owner's phone (<i>Today's summary</i>, 13.5). Owner only, reading
+/// included.
 /// </summary>
 public static class ReportsEndpoints
 {
@@ -87,6 +89,13 @@ public static class ReportsEndpoints
             .WithName("GetMembersReport")
             .Produces<MembersReportResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        reports.MapGet("/today", async (
+                GetTodaySummaryHandler handler,
+                CancellationToken ct) =>
+                    Results.Ok(await handler.Handle(ct)))
+            .WithName("GetTodaySummary")
+            .Produces<TodaySummaryResponse>();
 
         return app;
     }

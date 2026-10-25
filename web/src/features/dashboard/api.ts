@@ -14,6 +14,7 @@ export type TopCafeProduct = components["schemas"]["TopCafeProductResponse"];
 export type Receivables = components["schemas"]["ReceivablesResponse"];
 export type SubscriptionsSnapshot = components["schemas"]["SubscriptionsSnapshotResponse"];
 export type NeedsAttention = components["schemas"]["NeedsAttentionResponse"];
+export type TodaySummary = components["schemas"]["TodaySummaryResponse"];
 
 /**
  * The numbers the reports judge by. The API owns them (`ReportThresholds`); this copy only lets
@@ -77,6 +78,7 @@ export const reportKeys = {
   receivables: () => [...reportKeys.all, "receivables"] as const,
   subscriptions: () => [...reportKeys.all, "subscriptions"] as const,
   needsAttention: () => [...reportKeys.all, "needs-attention"] as const,
+  today: () => [...reportKeys.all, "today"] as const,
 };
 
 function rangeQuery(range: ReportRange) {
@@ -187,6 +189,29 @@ export function useNeedsAttention() {
     queryKey: reportKeys.needsAttention(),
     queryFn: async () => {
       const { data, error } = await api.GET("/api/reports/needs-attention");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/**
+ * Today at a glance, for the Owner's phone (§12 *Today's summary*, roadmap 13.5). Asked when the
+ * page opens and again when the phone comes back to it (unlocked, or back from another app), and
+ * when the Owner presses «به‌روزرسانی»; never on a timer (decided by the developer, 1405/08/03). So a
+ * locked phone asks nothing, and the figures on screen are those of the moment the page says.
+ */
+export function useTodaySummary() {
+  return useQuery({
+    queryKey: reportKeys.today(),
+    // The app turns this off for the desk (queryClient.ts); here coming back to the page is the
+    // moment the Owner wants today's figures again. TanStack Query hears it as the page becoming
+    // visible, which is what unlocking the phone or switching back to the app does.
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/reports/today");
       if (error !== undefined) {
         throw error;
       }

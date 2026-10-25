@@ -100,6 +100,22 @@ export const routes: RouteObject[] = [
                   (m) => m.ChangePasswordPage,
                 ),
               ),
+              {
+                // Owner only, but Staff are sent to the locker map rather than refused: the phone's
+                // long-press shortcut leads here on their phones too (roadmap 13.5).
+                path: paths.todaySummary,
+                lazy: async () => {
+                  const { TodaySummaryPage } =
+                    await import("@/features/dashboard/pages/TodaySummaryPage");
+                  return {
+                    element: (
+                      <RequireRole role="Owner" otherwise={paths.home}>
+                        <TodaySummaryPage />
+                      </RequireRole>
+                    ),
+                  };
+                },
+              },
               lazyPage(
                 paths.dashboard,
                 () =>
