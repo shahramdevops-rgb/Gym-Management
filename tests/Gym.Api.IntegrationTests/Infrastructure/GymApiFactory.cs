@@ -43,6 +43,10 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
     private const string SigningKeyVariable = "Jwt__SigningKey";
     private const string TestSigningKey = "integration-tests-signing-key-0123456789abcdef";
 
+    // The same for the site's one-time codes (BUSINESS_RULES.md §15).
+    private const string CodeSecretVariable = "SiteAuth__CodeSecret";
+    private const string TestCodeSecret = "integration-tests-site-code-secret-0123456789";
+
     // The real limit is 10 logins per minute per IP, and every test client shares one address,
     // so the suite would trip it within seconds. The test that proves the limiter works builds
     // its own host with a low limit (see LoginRateLimitTests).
@@ -52,6 +56,10 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
     // The same for refresh and logout (60 a minute per IP): see SessionRateLimitTests.
     private const string SessionPermitLimitVariable = "RateLimiting__Session__PermitLimit";
     private const string TestSessionPermitLimit = "100000";
+
+    // The same for the site's code requests (20 per 10 minutes per IP): see SiteCodeRateLimitTests.
+    private const string SiteCodePermitLimitVariable = "RateLimiting__SiteCode__PermitLimit";
+    private const string TestSiteCodePermitLimit = "100000";
 
     // Tests always use the fake sender (BUSINESS_RULES.md §10), whatever a developer has set for
     // their own machine: a test run must never reach the SMS provider or spend its credit.
@@ -65,8 +73,10 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable(ConnectionStringVariable, connectionString);
         Environment.SetEnvironmentVariable(EnvironmentVariable, TestingEnvironment);
         Environment.SetEnvironmentVariable(SigningKeyVariable, TestSigningKey);
+        Environment.SetEnvironmentVariable(CodeSecretVariable, TestCodeSecret);
         Environment.SetEnvironmentVariable(LoginPermitLimitVariable, TestLoginPermitLimit);
         Environment.SetEnvironmentVariable(SessionPermitLimitVariable, TestSessionPermitLimit);
+        Environment.SetEnvironmentVariable(SiteCodePermitLimitVariable, TestSiteCodePermitLimit);
         Environment.SetEnvironmentVariable(SmsProviderVariable, TestSmsProvider);
     }
 
@@ -98,8 +108,10 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable(ConnectionStringVariable, null);
         Environment.SetEnvironmentVariable(EnvironmentVariable, null);
         Environment.SetEnvironmentVariable(SigningKeyVariable, null);
+        Environment.SetEnvironmentVariable(CodeSecretVariable, null);
         Environment.SetEnvironmentVariable(LoginPermitLimitVariable, null);
         Environment.SetEnvironmentVariable(SessionPermitLimitVariable, null);
+        Environment.SetEnvironmentVariable(SiteCodePermitLimitVariable, null);
         Environment.SetEnvironmentVariable(SmsProviderVariable, null);
     }
 }

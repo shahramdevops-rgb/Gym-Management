@@ -47,6 +47,7 @@ public static class SmsRegistration
             .RemoveAllLoggers();
 
         services.AddScoped(Sender);
+        services.AddScoped(CodeSender);
         services.AddScoped(Account);
 
         // Sms:MaxAttempts and Sms:RetryDelays as the domain's schedule (BUSINESS_RULES.md §0).
@@ -70,17 +71,31 @@ public static class SmsRegistration
         }
 
         var kavenegar = provider.GetRequiredService<KavenegarSmsSender>();
-        if (provider.GetRequiredService<IHostEnvironment>().IsProduction())
+
+        return IsProduction(provider) ? kavenegar : AllowList(provider, kavenegar, fake, options);
+    }
+
+    /// <summary>The site's one-time codes (BUSINESS_RULES.md §15): the same choice as <see cref="Sender"/>.</summary>
+    private static IVerificationCodeSender CodeSender(IServiceProvider provider)
+    {
+        var options = provider.GetRequiredService<IOptions<SmsOptions>>().Value;
+        var fake = provider.GetRequiredService<FakeSmsSender>();
+        if (options.Provider != SmsProviders.Kavenegar)
         {
-            return kavenegar;
+            return fake;
         }
 
-        return new AllowListSmsSender(
-            kavenegar,
-            fake,
-            options.AllowedReceptors,
-            provider.GetRequiredService<ILogger<AllowListSmsSender>>());
+        var kavenegar = provider.GetRequiredService<KavenegarSmsSender>();
+
+        return IsProduction(provider) ? kavenegar : AllowList(provider, kavenegar, fake, options);
     }
+
+    private static bool IsProduction(IServiceProvider provider) =>
+        provider.GetRequiredService<IHostEnvironment>().IsProduction();
+
+    private static AllowListSmsSender AllowList(
+        IServiceProvider provider, KavenegarSmsSender kavenegar, FakeSmsSender fake, SmsOptions options) =>
+        new(kavenegar, kavenegar, fake, options.AllowedReceptors, provider.GetRequiredService<ILogger<AllowListSmsSender>>());
 
     private static ISmsAccount Account(IServiceProvider provider) =>
         provider.GetRequiredService<IOptions<SmsOptions>>().Value.Provider == SmsProviders.Kavenegar

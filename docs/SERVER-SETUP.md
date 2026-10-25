@@ -255,6 +255,7 @@ Copy `deploy/env.example` and fill it in, generating the secrets on the server:
 ```bash
 openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 40    # POSTGRES_PASSWORD
 openssl rand -base64 48                                      # JWT_SIGNING_KEY
+openssl rand -base64 48                                      # SITE_CODE_SECRET (another one)
 openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 20    # SEED_OWNER_PASSWORD
 chmod 600 /opt/gym/.env
 ```

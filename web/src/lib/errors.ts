@@ -83,6 +83,19 @@ export const errorMessages: Record<string, string> = {
   "RefreshTokens.Revoked": "نشست شما به پایان رسیده است. دوباره وارد شوید.",
   "RefreshTokens.Expired": "نشست شما به پایان رسیده است. دوباره وارد شوید.",
 
+  // The site's one-time code (BUSINESS_RULES.md §15)
+  "SiteAuth.CodeRequired": "کد را وارد کنید.",
+  "SiteAuth.CodeWrong": "کد درست نیست.",
+  "SiteAuth.CodeExpired": "این کد دیگر معتبر نیست. کد تازه بگیرید.",
+  "SiteAuth.CodeTooManyWrongTries": "کد چند بار اشتباه وارد شد. کد تازه بگیرید.",
+  "SiteAuth.CodeStillValid": "کد قبلاً برای شما پیامک شده است.",
+  "SiteAuth.SendAgainTooSoon": "کد قبلاً برای شما پیامک شده است. اگر نرسید، دو دقیقه صبر کنید.",
+  "SiteAuth.PhoneHourlyLimitReached":
+    "برای این شماره در یک ساعت گذشته کد زیادی فرستاده شده است. کمی بعد دوباره امتحان کنید.",
+  "SiteAuth.GymDailyLimitReached":
+    "امروز دیگر نمی‌شود کد فرستاد. فردا دوباره امتحان کنید یا به پذیرش باشگاه بگویید.",
+  "SiteAuth.CodeNotSent": "کد فرستاده نشد. چند دقیقه بعد دوباره امتحان کنید.",
+
   // Members
   "Members.NotFound": "عضو پیدا نشد.",
   "Members.PhoneAlreadyExists": "این شماره موبایل قبلاً برای عضو دیگری ثبت شده است.",

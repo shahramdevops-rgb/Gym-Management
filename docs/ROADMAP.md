@@ -4087,13 +4087,30 @@ A member can sign up, sign in and see their own plan; trainers exist and take st
 of the trainers' tools yet, but nobody signs in to an empty page.
 
 #### 15.1 Site accounts and the one-time code (backend)
-- [ ] Asked first: the code's numbers (§15's proposal: 5 digits, 2 minutes, 5 tries, 1 a minute
-      and 5 an hour per phone) and the per-IP limit; the code goes as Kavenegar's template
-      `gymExpiring` through `verify/lookup` (§15)
+- [x] Asked first (1405/08/03), written in §15: 5 digits valid 60 minutes, 5 wrong tries; no new
+      SMS while a code is valid, the same code sent again after 2 minutes unless Kavenegar reported
+      it delivered; 5 an hour per phone, 20 per 10 minutes per IP, 300 a day for the gym; code SMS
+      kept out of the SMS history (count and cost only); 60 days signed in; development sends real
+      codes to `Sms:AllowedReceptors`. Branch `task/15.1-site-sign-in`, split in two:
+- **15.1a, the one-time code**
+- [x] Request and verify a code: expiry, wrong tries, the send again, every limit checked
+      before Kavenegar is called; `verify/lookup` with `gymExpiring`, delivery asked through
+      `sms/status` (1405/08/04, not released)
+      - `POST /api/site/auth/code` (anonymous, 20 per 10 minutes per IP); the check is
+        `VerifyCodeHandler`, with no endpoint of its own until 15.1b signs the phone in
+      - Tables `sign_in_codes` (one row per phone: a random seed, never the code) and
+        `sign_in_code_sends` (each SMS that may have cost money: the limits and, later, the
+        panel's count and cost); a new migration that only adds
+      - The code is HMAC-SHA256 of the phone and the seed under `SiteAuth:CodeSecret`: locally in
+        user-secrets (set on 1405/08/04), on the server **`SITE_CODE_SECRET` in `.env`, to be
+        added before Release 1** (compose refuses to start without it; `openssl rand -base64 48`)
+      - Each phone is locked (a Postgres advisory lock) for its request, Kavenegar's call
+        included, so two presses at once send one SMS; the gym's sends too, so 300 a day is never
+        passed; once Kavenegar is called the request cannot be cancelled (found by the review)
+      - Code rows hidden on the audit screen with the other sign-in rows; the seed never audited
+- **15.1b, accounts and the site's sign-in**
 - [ ] Site accounts keyed by the verified phone, linked to a member; a new phone creates the member
       (name and birth date, §2's rules), an existing one links to it and is not asked again
-- [ ] Request and verify a code: expiry, wrong tries, limits per phone and per IP, all checked
-      before Kavenegar is called; codes stored only as a hash
 - [ ] The site's own authentication scheme (issuer, audience, key), refresh tokens and cookie;
       every staff policy requires the staff scheme; a deactivated member gets the «غیرفعال» notice
       and nothing else
@@ -4113,6 +4130,11 @@ of the trainers' tools yet, but nobody signs in to an empty page.
       rate limits
 - [ ] A second entry in `web/` sharing `lib/` and none of the panel's pages; sign-up and sign-in
       screens in Persian, phone-first
+- [ ] The code fills itself in on the phone (asked by the developer, 1405/08/03): the box has
+      `autocomplete="one-time-code"` (iPhone offers the code from the SMS above the keyboard) and
+      Android Chrome reads it with the WebOTP API, which needs the SMS's last line to be
+      `@app.pasargadgymplus.ir #12345`; the code is typed by hand when neither works. Needs the
+      template line of §15 first
 - [ ] Installable on a phone: manifest, icons, a service worker that updates itself, an install
       guide for iPhone
 - [ ] `https://pasargadgymplus.ir/qr`, a fixed address Caddy redirects to the app, so a printed
@@ -4129,7 +4151,8 @@ of the trainers' tools yet, but nobody signs in to an empty page.
 #### 15.5 The member's home, first part
 - [ ] My plan: sessions left, the plan's end, freeze; my visits (from the desk's check-ins); my
       trainer. Everything here already exists in the panel's data
-- [ ] **Release 1**, late at night, backup first
+- [ ] **Release 1**, late at night, backup first; `SITE_CODE_SECRET` added to the server's `.env`
+      first (15.1a)
 
 ### Release 2 — The timetable and attendance (priority 1)
 

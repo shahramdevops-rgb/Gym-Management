@@ -34,8 +34,23 @@ public sealed class SessionRateLimitOptions : PerAddressRateLimitOptions
 }
 
 /// <summary>
+/// The <c>RateLimiting:SiteCode</c> configuration section: asking the site for a one-time code
+/// (BUSINESS_RULES.md §15). Generous, because Iranian mobile carriers put many phones behind one
+/// address; the per-phone and per-day limits are the ones that protect the SMS credit.
+/// </summary>
+public sealed class SiteCodeRateLimitOptions : PerAddressRateLimitOptions
+{
+    public const string SectionName = "RateLimiting:SiteCode";
+
+    public override int PermitLimit { get; set; } = 20;
+
+    public SiteCodeRateLimitOptions() => Window = TimeSpan.FromMinutes(10);
+}
+
+/// <summary>
 /// Per-IP rate limiting for the endpoints a stranger can reach (BUSINESS_RULES.md §1): 10 login
-/// attempts per minute, and 60 refreshes and logouts per minute.
+/// attempts per minute, and 60 refreshes and logouts per minute; and the site's code requests, 20
+/// per 10 minutes (§15), in a bucket of their own so the site's traffic never uses up the staff's.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -59,6 +74,8 @@ public static class RateLimitingConfiguration
 
     public const string SessionPolicy = "session";
 
+    public const string SiteCodePolicy = "site-code";
+
     public static IServiceCollection AddApiRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -68,11 +85,14 @@ public static class RateLimitingConfiguration
             .Bind(configuration.GetSection(LoginRateLimitOptions.SectionName));
         services.AddOptions<SessionRateLimitOptions>()
             .Bind(configuration.GetSection(SessionRateLimitOptions.SectionName));
+        services.AddOptions<SiteCodeRateLimitOptions>()
+            .Bind(configuration.GetSection(SiteCodeRateLimitOptions.SectionName));
 
         services.AddRateLimiter(options =>
         {
             options.AddPolicy(LoginPolicy, PerAddress<LoginRateLimitOptions>);
             options.AddPolicy(SessionPolicy, PerAddress<SessionRateLimitOptions>);
+            options.AddPolicy(SiteCodePolicy, PerAddress<SiteCodeRateLimitOptions>);
 
             options.OnRejected = WriteTooManyRequestsAsync;
         });

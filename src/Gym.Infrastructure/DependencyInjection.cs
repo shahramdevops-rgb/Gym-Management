@@ -11,6 +11,7 @@ using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Jobs;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Phones;
+using Gym.Infrastructure.SiteAuth;
 using Gym.Infrastructure.Sms;
 using Gym.Infrastructure.Persistence.Interceptors;
 using Gym.Infrastructure.Subscriptions;
@@ -134,6 +135,14 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
+
+        // The site's sign-in (BUSINESS_RULES.md §15, ADR 0010): its own secrets, apart from the
+        // staff's. A missing code secret stops startup, like a missing JWT key.
+        services.AddOptions<SiteAuthOptions>()
+            .Bind(configuration.GetSection(SiteAuthOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<SiteAuthOptions>, SiteAuthOptionsValidator>();
+        services.AddSingleton<ISignInCodes, HmacSignInCodes>();
 
         // Sms:Provider chooses the sender and the account (BUSINESS_RULES.md §10): see SmsRegistration.
         // The daily runs are Hangfire recurring jobs, moved whenever the settings page is saved (task 10.3).

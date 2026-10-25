@@ -4,6 +4,7 @@ using Gym.Application.Common;
 using Gym.Application.Common.Paging;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
+using Gym.Domain.SiteAuth;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -18,9 +19,11 @@ public sealed class ListAuditLogsHandler(IAppDbContext db, IGymCalendar calendar
 {
     /// <summary>
     /// The sign-in rows, left out unless asked for: about half the log, and each says only that
-    /// someone logged in or stayed logged in.
+    /// someone logged in or stayed logged in. The site's sign-in codes too (task 15.1): one row
+    /// per code asked for.
     /// </summary>
-    public static readonly IReadOnlyList<string> SignInEntityTypes = [nameof(RefreshToken), nameof(TrustedDevice)];
+    public static readonly IReadOnlyList<string> SignInEntityTypes =
+        [nameof(RefreshToken), nameof(TrustedDevice), nameof(SignInCode), nameof(SignInCodeSend)];
 
     public async Task<PagedResponse<AuditLogResponse>> Handle(ListAuditLogsQuery query, CancellationToken cancellationToken)
     {

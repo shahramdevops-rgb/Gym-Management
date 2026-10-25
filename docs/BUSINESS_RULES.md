@@ -2251,9 +2251,21 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   sold (§10 *The welcome*), unchanged; a member who signed up on the site gets it at the desk with
   their first plan, like anyone. *Checked against §10 on 1405/08/03; nothing changes there.*
 - **Buying a plan on the site is not part of this phase** (2026-10-15, still for later).
-- **The one-time code** (*Proposed by Claude*, the numbers confirmed in the task):
-  - 5 digits, valid for 2 minutes, at most 5 wrong tries, then a new code is needed.
-  - A new code at most once a minute and at most 5 an hour per phone; a limit per IP as well.
+- **The one-time code** (*Decided by the developer* on 1405/08/03, at the start of 15.1):
+  - **5 digits, valid for 60 minutes**, as government sites (e.g. ADLIRAN) do; at most 5 wrong
+    tries, then that code is dead and a new one is needed. (Claude proposed 2 minutes, then 3;
+    the developer chose 60.)
+  - **No new SMS while a code is still valid.** Asking again within the first 2 minutes is
+    answered «کد قبلاً برای شما پیامک شده است» with the seconds left before «ارسال دوباره»; the
+    screen tells the member to wait 2 minutes if the code has not come.
+  - **«ارسال دوباره» after 2 minutes sends the same code again**, not a new one (so a late first
+    SMS still works), with the minutes it has left. **It is not sent when Kavenegar has reported
+    the first one delivered**: the answer is then that the code has reached the phone, and nothing
+    is paid. A member who lost a delivered code gets a new one when it expires.
+  - At most 5 code SMS an hour per phone, the sends again included; **20 code requests per 10
+    minutes per IP** (generous, because Iranian mobile carriers put many phones behind one
+    address); and **at most 300 code SMS a day for the whole gym**, so a flood cannot empty the
+    Kavenegar credit overnight.
   - Every code is a paid SMS, so the limits are checked before Kavenegar is called.
   - **Sent as Kavenegar's verification template** (`verify/lookup`, made for codes), not as free
     text (Kavenegar's answer, 1405/08/03; it had refused templates before the site was up,
@@ -2262,8 +2274,24 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     the code and `token2` the minutes it is valid for. It uses the gym's Kavenegar account and the
     same API key; Kavenegar sends it from the account's shared international line. Every other SMS
     stays free text from the gym's dedicated line (§10 *Sending*).
-  - The code itself is never written anywhere readable: not in the logs, not in the SMS history
-    (*Proposed by Claude*, confirmed in 15.1's plan with where these messages are listed).
+  - **The code fills itself in on the phone** (asked by the developer, 1405/08/03, for the site
+    app of 15.3): iPhones offer it from the SMS by themselves; Android needs the template's last
+    line to be `@app.pasargadgymplus.ir #%token`. *Open:* the developer asks Kavenegar to add that
+    line to `gymExpiring` (an edited template is approved again), before Release 1.
+  - The code itself is never written anywhere readable: not in the logs, not in the SMS history.
+    Code SMS are not listed in the panel's «پیامک‌ها» history; only their count and cost are kept,
+    and showing them in the panel is for 15.2. The database keeps only a random seed per code, from
+    which the code is computed with a secret in the server's settings (`SITE_CODE_SECRET`), so a
+    database backup alone reveals no code. *Decided by the developer* (1405/08/03).
+  - **Two presses at once send one SMS**, and the gym's 300 is never passed: each phone's requests
+    and checks run one at a time, and the sends of the whole gym too (15.1a). A request whose
+    browser goes away once Kavenegar has been called is still finished and counted, since the SMS
+    may already be paid for. *Decided by Claude* in 15.1a, after the code review.
+  - **Development sends real codes** through the same Kavenegar account, only to the numbers in
+    `Sms:AllowedReceptors` (§10 *Development and tests*), so the developer tests with their own
+    phones; the automated tests always use the fake sender. *Decided by the developer*.
+- **Staying signed in on the site: 60 days, renewed by every use**, because each new sign-in is a
+  paid SMS (staff: 7 days, §1). *Decided by the developer* (1405/08/03).
 - **A member deactivated in the panel** can still receive a code and sign in, but sees only a
   notice that their membership is inactive and that they should come to the desk; nothing else on
   the site opens for them. *Decided by the developer* (1405/08/03).

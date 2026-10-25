@@ -2095,3 +2095,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **A check constraint runs on UPDATE too.** `NOT VALID` only skips the check of old rows once; the next check-in that touches such a row is checked again. That is why the exception is written into the condition itself, not left to `NOT VALID`.
 - **A migration test pins the server's shape.** Migrating an empty database to the migration before, inserting the server's kind of row, then migrating to the end proves the release will not stop on that row.
 - **My notes:**
+
+## 15.1a — The site's one-time code (کد یک‌بارمصرف)
+
+- **Store what makes the secret, not the secret.** Each code row keeps a random seed; the code is HMAC-SHA256 of the phone and the seed under a key that lives only in the server's settings. A stolen backup gives seeds and no codes, yet the same seed always gives the same code, which is what lets «ارسال دوباره» send the same code again.
+- **HMAC versus a plain hash.** A 5-digit code has only 100 000 values, so a plain hash of it is reversed by trying them all in a second. A keyed hash cannot be tried without the key.
+- **An advisory lock locks a number, not a row.** `pg_advisory_xact_lock(15, hashtext(phone))` serializes one phone's requests even before its first row exists, and Postgres releases it at commit or rollback by itself. `SELECT … FOR UPDATE` could not, because there is nothing yet to select.
+- **A paid call inside the lock.** Kavenegar is called while the phone is locked, so a second press waits and then sees the code the first one sent. The price is a connection held up to 30 seconds; at a gym's traffic that is nothing, and it is the only way two presses cannot pay twice.
+- **"No answer" is not "not sent".** A request that left and got no reply may have been delivered and billed, so it is kept and counted like a sent one; only a refusal, or a request that never left, is forgotten.
+- **Limits that cost money go before the call.** Per-IP in the rate limiter (cheap, in memory), per-phone and per-day by counting rows in the database; all three answer before Kavenegar is asked.
+- **A record prints its properties.** `VerificationCodeMessage` overrides `ToString`, because the default would write the code into any log that formats the message.
+- **My notes:**

@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/auth/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RequestSiteCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/staff": {
         parameters: {
             query?: never;
@@ -2740,6 +2756,18 @@ export interface components {
             method: components["schemas"]["PaymentMethod"];
             referenceNumber: null | string;
         };
+        RequestCodeCommand: {
+            phoneNumber: string;
+        };
+        /** @enum {unknown} */
+        RequestCodeOutcome: "Sent" | "SentAgain" | "AlreadySent" | "AlreadyDelivered";
+        RequestCodeResponse: {
+            outcome: components["schemas"]["RequestCodeOutcome"];
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            sendAgainAt: string;
+        };
         ResetStaffPasswordCommand: {
             temporaryPassword: string;
         };
@@ -3364,6 +3392,57 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RequestSiteCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestCodeCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestCodeResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

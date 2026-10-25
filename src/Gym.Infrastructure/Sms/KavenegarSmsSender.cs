@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -11,8 +12,9 @@ namespace Gym.Infrastructure.Sms;
 
 /// <summary>
 /// Kavenegar's REST API (BUSINESS_RULES.md §10 <i>Sending</i>): <c>sms/send</c> to send the text from
-/// the gym's dedicated line (<c>Sms:Kavenegar:Sender</c>), <c>sms/status</c> for delivery,
-/// <c>account/info</c> for the credit.
+/// the gym's dedicated line (<c>Sms:Kavenegar:Sender</c>), <c>verify/lookup</c> for the site's
+/// one-time codes (§15, template <c>Sms:Kavenegar:VerifyTemplate</c>), <c>sms/status</c> for
+/// delivery, <c>account/info</c> for the credit.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,7 +39,7 @@ namespace Gym.Infrastructure.Sms;
 public sealed partial class KavenegarSmsSender(
     HttpClient http,
     IOptions<SmsOptions> options,
-    ILogger<KavenegarSmsSender> logger) : ISmsSender, ISmsAccount
+    ILogger<KavenegarSmsSender> logger) : ISmsSender, IVerificationCodeSender, ISmsAccount
 {
     public static readonly Uri BaseAddress = new("https://api.kavenegar.com/v1/");
 
@@ -53,6 +55,7 @@ public sealed partial class KavenegarSmsSender(
     public const int CreditUsedUp = SmsProviderCodes.CreditUsedUp;
 
     private const string SendMethod = "sms/send";
+    private const string LookupMethod = "verify/lookup";
     private const string StatusMethod = "sms/status";
     private const string AccountMethod = "account/info";
 
@@ -60,37 +63,55 @@ public sealed partial class KavenegarSmsSender(
 
     private static readonly SmsSendResult NoAnswer = new(SmsSendOutcome.Unknown);
 
-    public async Task<SmsSendResult> SendAsync(SmsMessage message, CancellationToken cancellationToken)
+    public Task<SmsSendResult> SendAsync(SmsMessage message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
 
-        using var content = new FormUrlEncodedContent(SendFields(message));
+        return PostSendAsync(SendMethod, SendFields(message), cancellationToken);
+    }
+
+    /// <summary>
+    /// A one-time code as the verification template (BUSINESS_RULES.md §15): <c>verify/lookup</c>,
+    /// which Kavenegar sends from its shared line, with the code as <c>token</c> and the minutes
+    /// left as <c>token2</c>. Its answers are read exactly as <c>sms/send</c>'s.
+    /// </summary>
+    public Task<SmsSendResult> SendCodeAsync(VerificationCodeMessage message, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        return PostSendAsync(LookupMethod, LookupFields(message), cancellationToken);
+    }
+
+    /// <summary>One request that sends an SMS, and what its answer means (see the remarks above).</summary>
+    private async Task<SmsSendResult> PostSendAsync(string method, Dictionary<string, string> fields, CancellationToken cancellationToken)
+    {
+        using var content = new FormUrlEncodedContent(fields);
 
         HttpResponseMessage response;
         try
         {
-            response = await http.PostAsync(PathOf(SendMethod), content, cancellationToken);
+            response = await http.PostAsync(PathOf(method), content, cancellationToken);
         }
         catch (HttpRequestException exception) when (NeverLeft(exception))
         {
-            LogNotReached(logger, SendMethod, exception.HttpRequestError);
+            LogNotReached(logger, method, exception.HttpRequestError);
             return new SmsSendResult(SmsSendOutcome.RetryableFailure);
         }
         catch (HttpRequestException exception)
         {
-            LogNoAnswer(logger, SendMethod, exception.HttpRequestError.ToString());
+            LogNoAnswer(logger, method, exception.HttpRequestError.ToString());
             return NoAnswer;
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             // HttpClient.Timeout: the request left and the answer did not come back in time.
-            LogNoAnswer(logger, SendMethod, "timeout");
+            LogNoAnswer(logger, method, "timeout");
             return NoAnswer;
         }
 
         using (response)
         {
-            var answer = await ReadAsync<SendEntry[]>(response, SendMethod, cancellationToken);
+            var answer = await ReadAsync<SendEntry[]>(response, method, cancellationToken);
             if (answer?.Return is not { } result)
             {
                 return NoAnswer;
@@ -102,19 +123,19 @@ public sealed partial class KavenegarSmsSender(
                     return SmsSendResult.Sent(entry.MessageId, entry.Cost);
 
                 case Accepted:
-                    LogNoAnswer(logger, SendMethod, "accepted with no message");
+                    LogNoAnswer(logger, method, "accepted with no message");
                     return NoAnswer;
 
                 case Busy or TooManyRequests:
-                    LogRefused(logger, SendMethod, result.Status);
+                    LogRefused(logger, method, result.Status);
                     return new SmsSendResult(SmsSendOutcome.RetryableFailure, ErrorCode: result.Status);
 
                 case CreditUsedUp:
-                    LogRefused(logger, SendMethod, result.Status);
+                    LogRefused(logger, method, result.Status);
                     return new SmsSendResult(SmsSendOutcome.CreditExhausted, ErrorCode: result.Status);
 
                 default:
-                    LogRefused(logger, SendMethod, result.Status);
+                    LogRefused(logger, method, result.Status);
                     return new SmsSendResult(SmsSendOutcome.PermanentFailure, ErrorCode: result.Status);
             }
         }
@@ -175,6 +196,15 @@ public sealed partial class KavenegarSmsSender(
         ["receptor"] = ToReceptor(message.Receptor),
         ["sender"] = options.Value.Kavenegar.Sender,
         ["message"] = message.Text,
+    };
+
+    /// <summary>The template and its two values; no line, Kavenegar chooses it for templates.</summary>
+    private Dictionary<string, string> LookupFields(VerificationCodeMessage message) => new()
+    {
+        ["receptor"] = ToReceptor(message.Receptor),
+        ["template"] = options.Value.Kavenegar.VerifyTemplate,
+        ["token"] = message.Code,
+        ["token2"] = message.MinutesLeft.ToString(CultureInfo.InvariantCulture),
     };
 
     /// <summary>No connection was made, so the request cannot have reached Kavenegar.</summary>

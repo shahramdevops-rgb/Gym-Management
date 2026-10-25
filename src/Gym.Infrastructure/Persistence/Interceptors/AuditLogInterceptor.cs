@@ -46,6 +46,9 @@ public sealed class AuditLogInterceptor(TimeProvider timeProvider, ICurrentUser 
         nameof(IdentityUser<Guid>.SecurityStamp),
         "TokenHash",
 
+        // With the server's secret it gives the sign-in code (BUSINESS_RULES.md §15).
+        "CodeSeed",
+
         // Change on every save.
         nameof(IdentityUser<Guid>.ConcurrencyStamp),
         "Version",

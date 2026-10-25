@@ -59,7 +59,12 @@ export const auditActionLabels: Record<AuditAction, string> = {
 };
 
 /** The rows the screen hides unless asked (BUSINESS_RULES.md §11 *The audit screen*). */
-export const signInEntityTypes: readonly string[] = ["RefreshToken", "TrustedDevice"];
+export const signInEntityTypes: readonly string[] = [
+  "RefreshToken",
+  "TrustedDevice",
+  "SignInCode",
+  "SignInCodeSend",
+];
 
 /** Every kind of record the log may hold, with its Persian name, in the JSON's order. */
 export const auditEntityTypes: readonly { type: string; label: string }[] = Object.entries(

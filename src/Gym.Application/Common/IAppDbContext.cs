@@ -10,6 +10,7 @@ using Gym.Domain.Payables;
 using Gym.Domain.Payments;
 using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
+using Gym.Domain.SiteAuth;
 using Gym.Domain.Subscriptions;
 
 using Microsoft.EntityFrameworkCore;
@@ -77,6 +78,10 @@ public interface IAppDbContext
 
     DbSet<SmsBroadcast> SmsBroadcasts { get; }
 
+    DbSet<SignInCode> SignInCodes { get; }
+
+    DbSet<SignInCodeSend> SignInCodeSends { get; }
+
     /// <summary>
     /// The audit log, for reading only (BUSINESS_RULES.md §11, task 11.1). A query, not a
     /// <see cref="DbSet{TEntity}"/>: only the audit interceptor writes it, so Application is given
@@ -105,6 +110,21 @@ public interface IAppDbContext
     /// <see cref="BeginTransactionAsync"/>.
     /// </summary>
     Task LockAttendanceAsync(Guid attendanceId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Locks one phone number's sign-in until the current transaction ends, so the requests and
+    /// checks of one phone's code run one at a time (BUSINESS_RULES.md §15). A lock on the number
+    /// rather than a row: the first request for a phone has no row yet to lock. Must be called
+    /// inside <see cref="BeginTransactionAsync"/>.
+    /// </summary>
+    Task LockPhoneAsync(string phoneNumber, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Locks the site's code sends for the whole gym until the current transaction ends, so the
+    /// day's limit is counted by one request at a time (BUSINESS_RULES.md §15). Always taken after
+    /// <see cref="LockPhoneAsync"/>, never before. Must be called inside <see cref="BeginTransactionAsync"/>.
+    /// </summary>
+    Task LockGymSignInSendsAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// For a use case whose writes must all happen or none: changing a password saves through

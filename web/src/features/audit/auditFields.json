@@ -25,7 +25,9 @@
     "IdentityRoleClaim<Guid>": "ادعای نقش",
     "IdentityUserLogin<Guid>": "ورود خارجی کاربر",
     "RefreshToken": "نشست ورود",
-    "TrustedDevice": "دستگاه مطمئن"
+    "TrustedDevice": "دستگاه مطمئن",
+    "SignInCode": "کد ورود سایت",
+    "SignInCodeSend": "پیامک کد ورود"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -199,7 +201,14 @@
     "ClaimValue": { "label": "مقدار ادعا" },
     "LoginProvider": { "label": "سرویس ورود" },
     "ProviderKey": { "label": "کلید سرویس ورود" },
-    "ProviderDisplayName": { "label": "نام سرویس ورود" }
+    "ProviderDisplayName": { "label": "نام سرویس ورود" },
+
+    "IssuedAt": { "label": "زمان ساخت کد" },
+    "LastSentAt": { "label": "آخرین ارسال" },
+    "LastProviderMessageId": { "label": "شناسه آخرین ارسال" },
+    "WrongTries": { "label": "تلاش‌های غلط" },
+    "UsedAt": { "label": "زمان استفاده" },
+    "IsSendAgain": { "label": "ارسال دوباره" }
   },
   "entityFields": {
     "Payment": { "Kind": { "label": "نوع", "format": "paymentKind" } },

@@ -141,6 +141,7 @@ try
     app.MapHealthChecks("/health").AllowAnonymous();
 
     app.MapAuthEndpoints();
+    app.MapSiteAuthEndpoints();
     app.MapStaffEndpoints();
     app.MapMembersEndpoints();
     app.MapPricingEndpoints();

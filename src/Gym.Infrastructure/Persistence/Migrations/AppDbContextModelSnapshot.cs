@@ -2430,6 +2430,151 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SignInCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CodeSeed")
+                        .IsRequired()
+                        .HasMaxLength(22)
+                        .HasColumnType("character varying(22)")
+                        .HasColumnName("code_seed");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_at");
+
+                    b.Property<long?>("LastProviderMessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_provider_message_id");
+
+                    b.Property<DateTimeOffset>("LastSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_sent_at");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("phone_number");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("WrongTries")
+                        .HasColumnType("integer")
+                        .HasColumnName("wrong_tries");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sign_in_codes");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sign_in_codes_phone_number");
+
+                    b.ToTable("sign_in_codes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sign_in_codes_expires_after_issue", "expires_at > issued_at");
+
+                            t.HasCheckConstraint("ck_sign_in_codes_sent_after_issue", "last_sent_at >= issued_at");
+
+                            t.HasCheckConstraint("ck_sign_in_codes_used_after_issue", "used_at IS NULL OR used_at >= issued_at");
+
+                            t.HasCheckConstraint("ck_sign_in_codes_wrong_tries_in_range", "wrong_tries >= 0 AND wrong_tries <= 5");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SignInCodeSend", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("CostRial")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("cost_rial");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsSendAgain")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_send_again");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("phone_number");
+
+                    b.Property<long?>("ProviderMessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("provider_message_id");
+
+                    b.Property<DateTimeOffset>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sign_in_code_sends");
+
+                    b.HasIndex("SentAt")
+                        .HasDatabaseName("ix_sign_in_code_sends_sent_at");
+
+                    b.HasIndex("PhoneNumber", "SentAt")
+                        .HasDatabaseName("ix_sign_in_code_sends_phone_number_sent_at");
+
+                    b.ToTable("sign_in_code_sends", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sign_in_code_sends_cost_not_negative", "cost_rial IS NULL OR cost_rial >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Subscriptions.Subscription", b =>
                 {
                     b.Property<Guid>("Id")

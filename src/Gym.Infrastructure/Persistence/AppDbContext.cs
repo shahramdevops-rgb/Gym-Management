@@ -12,6 +12,7 @@ using Gym.Domain.Payables;
 using Gym.Domain.Payments;
 using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
+using Gym.Domain.SiteAuth;
 using Gym.Domain.Subscriptions;
 using Gym.Infrastructure.Identity;
 
@@ -79,6 +80,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<SmsBroadcast> SmsBroadcasts => Set<SmsBroadcast>();
 
+    public DbSet<SignInCode> SignInCodes => Set<SignInCode>();
+
+    public DbSet<SignInCodeSend> SignInCodeSends => Set<SignInCodeSend>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
 
@@ -106,6 +111,45 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
         return Database.ExecuteSqlAsync($"SELECT 1 FROM attendances WHERE id = {attendanceId} FOR UPDATE", cancellationToken);
     }
+
+    /// <summary>
+    /// A transaction-scoped advisory lock: Postgres's lock on a number the application chooses,
+    /// released by itself at commit or rollback. The two-key form keeps these apart from any other
+    /// advisory lock: the first key says "a phone's sign-in", the second is the number's hash. Two
+    /// numbers with the same hash only wait for each other, which is harmless.
+    /// </summary>
+    public Task LockPhoneAsync(string phoneNumber, CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("An advisory lock outside a transaction is released at once; begin one first.");
+        }
+
+        return Database.ExecuteSqlAsync(
+            $"SELECT pg_advisory_xact_lock({SignInLockKey}, hashtext({phoneNumber}))",
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// The same kind of lock, on the gym's code sends as a whole: the same first key, and 0 as the
+    /// second. A phone whose hash happens to be 0 only shares this wait; a session that already
+    /// holds an advisory lock may take it again, so it never waits for itself.
+    /// </summary>
+    public Task LockGymSignInSendsAsync(CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("An advisory lock outside a transaction is released at once; begin one first.");
+        }
+
+        return Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({SignInLockKey}, {GymSendsLockId})", cancellationToken);
+    }
+
+    /// <summary>The first key of the site sign-in's advisory locks (15 for Phase 15).</summary>
+    private const int SignInLockKey = 15;
+
+    /// <summary>The second key of <see cref="LockGymSignInSendsAsync"/>'s lock.</summary>
+    private const int GymSendsLockId = 0;
 
     /// <inheritdoc cref="IAppDbContext.DeferSubscriptionOverlapCheckAsync"/>
     public Task DeferSubscriptionOverlapCheckAsync(CancellationToken cancellationToken)

@@ -163,6 +163,7 @@ umask 077
 
 PG_PW="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 40)"   # no $: compose eats it
 JWT="$(openssl rand -base64 48)"
+SITE_CODE="$(openssl rand -base64 48)"
 OWNER_PW="$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 20)"
 
 cat > /opt/gym/.env <<EOF
@@ -174,6 +175,7 @@ POSTGRES_USER=gym
 POSTGRES_PASSWORD=$PG_PW
 
 JWT_SIGNING_KEY=$JWT
+SITE_CODE_SECRET=$SITE_CODE
 
 # Not owner or admin: a name nobody would guess (BUSINESS_RULES.md §1 *Lockout*).
 SEED_OWNER_USERNAME=<your-own-user-name>
