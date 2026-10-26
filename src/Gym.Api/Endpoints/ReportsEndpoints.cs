@@ -1,5 +1,6 @@
 using Gym.Api.Authorization;
 using Gym.Api.Filters;
+using Gym.Application.Reports.GetAbsenceSmsEffect;
 using Gym.Application.Reports.GetAttendanceReport;
 using Gym.Application.Reports.GetFinancialReport;
 using Gym.Application.Reports.GetMembersReport;
@@ -12,7 +13,8 @@ namespace Gym.Api.Endpoints;
 
 /// <summary>
 /// The figures behind the Owner's dashboard (BUSINESS_RULES.md §12 <i>Financial report</i>,
-/// <i>Receivables</i>, <i>Operational reports</i>, <i>Needs attention</i>, roadmap 9.1 and 9.2).
+/// <i>Receivables</i>, <i>Operational reports</i>, <i>Needs attention</i>, <i>The absence SMS's
+/// effect</i>, roadmap 9.1, 9.2 and 10.19).
 /// Owner only, reading included.
 /// </summary>
 public static class ReportsEndpoints
@@ -86,6 +88,16 @@ public static class ReportsEndpoints
             .AddEndpointFilter<ValidationFilter<GetMembersReportQuery>>()
             .WithName("GetMembersReport")
             .Produces<MembersReportResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        reports.MapGet("/absence-sms", async (
+                [AsParameters] GetAbsenceSmsEffectQuery query,
+                GetAbsenceSmsEffectHandler handler,
+                CancellationToken ct) =>
+                    Results.Ok(await handler.Handle(query, ct)))
+            .AddEndpointFilter<ValidationFilter<GetAbsenceSmsEffectQuery>>()
+            .WithName("GetAbsenceSmsEffect")
+            .Produces<AbsenceSmsEffectResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
         return app;

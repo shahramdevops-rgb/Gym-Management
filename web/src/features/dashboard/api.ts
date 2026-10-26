@@ -14,6 +14,9 @@ export type TopCafeProduct = components["schemas"]["TopCafeProductResponse"];
 export type Receivables = components["schemas"]["ReceivablesResponse"];
 export type SubscriptionsSnapshot = components["schemas"]["SubscriptionsSnapshotResponse"];
 export type NeedsAttention = components["schemas"]["NeedsAttentionResponse"];
+export type AbsenceSmsEffect = components["schemas"]["AbsenceSmsEffectResponse"];
+export type AbsenceSmsMessage = components["schemas"]["AbsenceSmsMessageResponse"];
+export type AbsenceSmsOutcome = components["schemas"]["AbsenceSmsOutcome"];
 
 /**
  * The numbers the reports judge by. The API owns them (`ReportThresholds`); this copy only lets
@@ -27,6 +30,8 @@ export const reportThresholds = {
   windowDays: 30,
   /** A pending cheque or instalment is shown this many days before its date (§9 *Cheques and instalments*). */
   payableDueWithinDays: 7,
+  /** A member who comes within this many days of the absence SMS came back (§12 *The absence SMS's effect*). */
+  absenceSmsWindowDays: 14,
 } as const;
 
 /**
@@ -73,6 +78,7 @@ export const reportKeys = {
   financial: (range: ReportRange) => [...reportKeys.all, "financial", range] as const,
   attendance: (range: ReportRange) => [...reportKeys.all, "attendance", range] as const,
   members: (range: ReportRange) => [...reportKeys.all, "members", range] as const,
+  absenceSms: (range: ReportRange) => [...reportKeys.all, "absence-sms", range] as const,
   cafeProducts: (range: ReportRange) => [...reportKeys.all, "cafe-products", range] as const,
   receivables: () => [...reportKeys.all, "receivables"] as const,
   subscriptions: () => [...reportKeys.all, "subscriptions"] as const,
@@ -187,6 +193,22 @@ export function useNeedsAttention() {
     queryKey: reportKeys.needsAttention(),
     queryFn: async () => {
       const { data, error } = await api.GET("/api/reports/needs-attention");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/** The absence SMS sent in the range and who came back within 14 days (§12 *The absence SMS's effect*). */
+export function useAbsenceSmsEffect(range: ReportRange, { enabled }: RangeOptions) {
+  return useQuery({
+    queryKey: reportKeys.absenceSms(range),
+    enabled,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/reports/absence-sms", rangeQuery(range));
       if (error !== undefined) {
         throw error;
       }

@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, Minus, type LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { stateEdge } from "@/lib/edges";
 import { formatPercent } from "@/lib/format";
@@ -41,6 +42,8 @@ interface StatCardProps {
    * beside the figure rather than under it (asked by the developer, 1405/07/14).
    */
   breakdown?: BreakdownRow[];
+  /** A button under the hint, for a card that opens more than it can show («اثر پیامک غیبت»'s list). */
+  action?: ReactNode;
 }
 
 /** One line of a card's breakdown: «کارت ۳۰٬۰۰۰٬۰۰۰ تومان». */
@@ -69,6 +72,7 @@ export function StatCard({
   progress,
   outcome,
   breakdown,
+  action,
 }: StatCardProps) {
   const besideBreakdown = breakdown !== undefined && "pe-44";
 
@@ -131,6 +135,7 @@ export function StatCard({
       {hint !== undefined && (
         <dd className={cn("text-xs text-muted-foreground", besideBreakdown)}>{hint}</dd>
       )}
+      {action !== undefined && <dd className={cn(besideBreakdown)}>{action}</dd>}
     </div>
   );
 }

@@ -2086,3 +2086,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **`pathLength` makes a dash animation size-free.** With `pathLength="100"` and dashes every 50, moving the offset by 50 loops without a jump, whatever the path's real length.
 - **`transform-box: fill-box` lets CSS grow an SVG shape from its own base.** Without it, `transform-origin` is measured from the whole SVG, and the shed would rise from the picture's corner.
 - **My notes:**
+
+## 10.19 — Did the absence SMS work? (اثر پیامک غیبت)
+
+- **A report can be built from rows that were written for another reason.** Every absence SMS already kept its member, its moment and its cost so it could be sent and resent; joined with the check-ins, that answers "did they come back?" with no new table and no migration, and the messages sent before the report existed count too.
+- **Compare moments, not days, when order matters.** A member who came at 9:00 and got the SMS at 18:00 the same day did not answer it. Asking for the first check-in *after the moment it was sent* gets that right; asking by day would not.
+- **"Waiting" keeps a young range honest.** A message sent yesterday has had no chance yet; counting it as "did not come back" would make this week always look worst. It is left out of the rate, the same rule as the renewal rate.
+- **After is not because.** The figure counts who came after the message; some would have come anyway. Knowing the real effect needs a control group (members deliberately not texted), a business decision, so the card states what it measures in plain words instead of claiming more.
+- **A rule's inputs can be plain values.** `AbsenceSmsEffect.Counts(status, delivery)` takes two values rather than a `Notification`, so the handler can read small projections from the database and still ask the Domain, and the unit tests need no entity.
+- **My notes:**

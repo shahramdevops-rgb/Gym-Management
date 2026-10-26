@@ -56,6 +56,15 @@ export function conversionRate(converted: number, trials: number, waiting: numbe
   return renewalRate(converted, trials, waiting);
 }
 
+/**
+ * The share of absence SMS whose member came back within 14 days, in percent (§12 *The absence
+ * SMS's effect*, 1405/08/04): came back ÷ (sent − waiting), the renewal rate's own rule. Null
+ * when no message has had its full 14 days yet.
+ */
+export function absenceSmsRate(cameBack: number, sent: number, waiting: number): number | null {
+  return renewalRate(cameBack, sent, waiting);
+}
+
 /** The hours shown when nobody came at all, so the empty table still has the gym's day. */
 const quietDay = { first: 6, last: 23 };
 

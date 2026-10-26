@@ -3051,6 +3051,24 @@ No migration. Release: with 10.16 and 10.17, one release from `main`.
       `auto_resends` 0 everywhere. The developer then set the low-sessions rows to 1, 2 and 3 and
       the daily report to 22:30 on the new page
 
+### 10.19 Did the absence SMS work? (اثر پیامک غیبت)
+Asked by the developer on 1405/08/04 (2026-10-26); reopens the panel. BUSINESS_RULES.md §12 *The
+absence SMS's effect*. Branch `task/10.19-absence-sms-effect` from `main`, in its own worktree, so
+it does not mix with 15.1.
+- [x] Asked first (1405/08/04): came back = a visit within **14 days** of the message (not 7 or
+      30); only messages sent and not given back by the provider; by the day of sending, inside
+      the dashboard's range; the card shows the rate, the three counts, the average days to come
+      back and the cost, and opens the list of names
+- [x] Domain: `AbsenceSmsEffect` (which messages count, and each one's outcome), unit tests
+- [x] `GET /api/reports/absence-sms?from&to` (Owner only): the counts, the average, the cost and
+      the list; integration tests (the 14-day edge, waiting, a cancelled or cardio-only visit, a
+      visit before the message, a failed or cancelled message, the range by the day of sending)
+- [x] The card «اثر پیامک غیبت» beside the renewal and conversion rates, and its list in a dialog
+      opened by «فهرست نام‌ها» (`StatCard` took an `action`); a visit on the day itself reads
+      «همان روز آمد», the window's last day «امروز روز آخر است»
+
+No migration: everything is read from `notifications` and `attendances`.
+
 ---
 
 ## Phase 11 — Audit UI and Hardening

@@ -2,7 +2,13 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 import { gymToday } from "@/lib/format";
 import { json, mockApi, owner, session, signedInHandlers, staffUser } from "@/test/mockApi";
-import { ali, financialReport, needsAttention, reportHandlers } from "@/test/reports";
+import {
+  absenceSmsEffect,
+  ali,
+  financialReport,
+  needsAttention,
+  reportHandlers,
+} from "@/test/reports";
 import { renderApp } from "@/test/renderApp";
 
 import { presetRange } from "../range";
@@ -15,6 +21,7 @@ const rangeReports = [
   "/api/reports/attendance",
   "/api/reports/members",
   "/api/reports/cafe-products",
+  "/api/reports/absence-sms",
 ];
 
 function queryOf(request: Request) {
@@ -296,6 +303,74 @@ describe("DashboardPage", () => {
     const conversion = card("نرخ تبدیل تک‌جلسه‌ای به پلن");
     expect(conversion).toHaveTextContent("۵۰٪");
     expect(conversion).toHaveTextContent("۲ از ۴ نفر تا ۳۰ روز بعد پلن خریدند؛ ۲ در انتظار");
+  });
+
+  it("DashboardPage_AbsenceSms_RateLeavesThoseStillWaitingOutWithItsCountsAndCost", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    // Two came back, one waiting, one did not: 2 of 3 (§12 *The absence SMS's effect*).
+    const absence = await waitFor(() => card("اثر پیامک غیبت"));
+    expect(absence).toHaveTextContent("۶۷٪");
+    expect(absence).toHaveTextContent(
+      "از اعضایی که در این بازه پیامک غیبت گرفتند، چند درصد تا ۱۴ روز بعد به باشگاه آمدند. میانگین: ۱٫۵ روز بعد از پیامک.",
+    );
+    expect(breakdownOf(absence)).toEqual([
+      "برگشتند۲ نفر",
+      "برنگشتند۱ نفر",
+      "در انتظار۱ نفر",
+      "هزینه۵۴۰ تومان",
+    ]);
+  });
+
+  it("DashboardPage_AbsenceSmsList_GroupsTheNamesWithWhatBecameOfEach", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "فهرست نام‌ها" }));
+
+    const dialog = await screen.findByRole("dialog");
+    const headings = within(dialog)
+      .getAllByRole("heading", { level: 3 })
+      .map((heading) => heading.textContent);
+    expect(headings).toEqual(["برگشتند (۲ نفر)", "در انتظار (۱ نفر)", "برنگشتند (۱ نفر)"]);
+    expect(within(dialog).getByRole("link", { name: ali.fullName })).toHaveAttribute(
+      "href",
+      `/members/${ali.memberId}`,
+    );
+    const rows = within(dialog)
+      .getAllByRole("listitem")
+      .map((row) => row.textContent);
+    expect(rows).toEqual([
+      "ععلی محمدیپیامک: ۱۴۰۵/۰۷/۰۹همان روز آمد",
+      "ممریم احمدیپیامک: ۱۴۰۵/۰۷/۰۳بعد از ۳ روز آمد",
+      "ررضا کریمیپیامک: ۱۴۰۵/۰۷/۱۱۱۳ روز مانده",
+      "ززهرا رضاییپیامک: ۱۴۰۵/۰۶/۲۱نیامد",
+    ]);
+  });
+
+  it("DashboardPage_NoAbsenceSms_SaysSoWithNoList", async () => {
+    mockApi({
+      ...dashboard,
+      "GET /api/reports/absence-sms": () =>
+        json(200, {
+          ...absenceSmsEffect,
+          sent: 0,
+          cameBack: 0,
+          waiting: 0,
+          didNotComeBack: 0,
+          averageDaysToComeBack: null,
+          costToman: 0,
+          messages: [],
+        }),
+    });
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("خلاصهٔ بازه");
+    const absence = await waitFor(() => card("اثر پیامک غیبت"));
+    expect(absence).toHaveTextContent("در این بازه پیامک غیبتی فرستاده نشده است.");
+    expect(within(absence).queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("DashboardPage_Profit_IsShownInGreen", async () => {

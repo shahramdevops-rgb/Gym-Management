@@ -1527,6 +1527,8 @@ Decided with the developer on 1405/07/27 (2026-10-19), task 10.12.
 - **What it says** (`docs/sms-texts.md`; rewritten by the developer on 1405/08/01): «{name} عزیز، جات
   توی باشگاه پاسارگاد خالیه! {days} روزه که باشگاه نیومدی و منتظر حضور گرمت هستیم!», two SMS parts.
   *{days}* is how long the member has really been away, counted as above, not the settings' *N*.
+- **Whether it worked** is on the dashboard: how many came back within 14 days of it (§12 *The
+  absence SMS's effect*, task 10.19).
 
 ### The broadcast (پیامک گروهی)
 Decided with the developer on 1405/07/27 (2026-10-19), task 10.13. The one kind whose wording is
@@ -2015,6 +2017,38 @@ no range. One member can be on more than one list.
   cancels it. The earliest date first. Not a member list: each row is a kind, a payee, an amount
   and a date, with «قسط n از N» for an instalment.
 
+### The absence SMS's effect (اثر پیامک غیبت)
+
+Decided with the developer on 1405/08/04 (2026-10-26), roadmap 10.19. Of the members the absence
+SMS (§10 *The absence SMS*) went to, how many came again soon after it.
+
+- **Owner only**, like every report; the range is the financial report's (required, inclusive, in
+  the gym's time zone, at most 366 days).
+- **Which messages:** the absence SMS that were sent (`Sent`), by the gym's day of the moment they
+  were sent (a resend's moment, for one the Owner sent again), in the range. One the provider gave
+  back, cancelled or blocked by the receiver (§10 *Sending*), never reached the phone and is left
+  out, as is one that failed, whose fate is not known, or that is still waiting to go. One whose
+  delivery the provider has not reported yet counts. Each message once: a member who had two
+  absences in the range is two messages. A member deactivated since stays in: the message was
+  sent and paid for.
+- **Came back** («برگشتند»): the member checked in after the moment the message was sent and no
+  later than **14 days** after its day, the day of sending being day 0 (chosen by the developer,
+  over 7 and 30). A cancelled check-in is not a visit; a cardio-only one is, as for the absence SMS
+  itself. The days from the day of sending to the day of that first visit are its «روز تا برگشت».
+- **Did not come back** («برنگشتند»): the 14 days are over with no such visit.
+- **Waiting** («در انتظار»): not come back yet and the 14 days not over (today is on or before the
+  day of sending + 14). Left out of the rate, like a plan waiting to be renewed: rate = came back ÷
+  (messages − waiting).
+- **After it, not because of it:** some members would have come anyway; the figure says who came
+  after the message, and the card says it in those words: "of the members who got the absence SMS
+  in this range, what percent came back within 14 days".
+- **What it shows:** the rate, the three counts, the average «روز تا برگشت» of those who came back,
+  and what the counted messages cost, in Toman (the provider's cost, given back cost being 0, §10
+  *Sending*). No comparison with the range before, like the renewal rate.
+- **The list:** each message with the member's name (a link to their page), the day it was sent,
+  and «بعد از n روز آمد», «n روز مانده» or «نیامد». Those who came back first, then those waiting,
+  then those who did not; the latest sent first in each.
+
 ### Dashboard (داشبورد)
 
 Decided with the developer, 1405/07/12 (2026-10-04). Roadmap 9.3. The figures of the reports above,
@@ -2058,7 +2092,8 @@ on one page.
   «دریافتی متفرقه» (since 6.5.36), «دریافتی بوفه», «دریافتی هوازی», «دریافتی پلن», «دریافتی تک‌جلسه‌ای», then expenses and net
   profit, then the attendance and members' figures. Beside the renewal rate
   sits the single visit to plan conversion rate (*Operational reports* above), without a
-  comparison, like the renewal rate.
+  comparison, like the renewal rate, and then «اثر پیامک غیبت» (*The absence SMS's effect* above,
+  1405/08/04), whose button «فهرست نام‌ها» opens its list.
 - **A profit is green, a loss is red** (decided with the developer, 1405/07/14): «سود خالص»
   shows its figure in green above zero and in red below it, with its minus
   sign («−۳۰٬۵۰۰٬۰۰۰ تومان»). A month without revenue can end in a loss, and the Owner must see

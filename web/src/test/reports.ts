@@ -1,4 +1,5 @@
 import type {
+  AbsenceSmsEffect,
   AttendanceReport,
   FinancialPeriod,
   FinancialReport,
@@ -220,11 +221,65 @@ export const needsAttention: NeedsAttention = {
   payablesDue: [],
 };
 
+/**
+ * Four absence SMS: two members came back (after 0 and 3 days), one is still waiting, one did not
+ * come, so the rate is 2 of 3.
+ */
+export const absenceSmsEffect: AbsenceSmsEffect = {
+  from: "2026-09-23",
+  to: "2026-10-04",
+  sent: 4,
+  cameBack: 2,
+  waiting: 1,
+  didNotComeBack: 1,
+  averageDaysToComeBack: 1.5,
+  costToman: 540,
+  messages: [
+    {
+      notificationId: "0199a000-0000-7000-8000-0000000000e1",
+      memberId: ali.memberId,
+      fullName: ali.fullName,
+      sentOn: "2026-10-01",
+      outcome: "CameBack",
+      daysToComeBack: 0,
+      daysLeft: null,
+    },
+    {
+      notificationId: "0199a000-0000-7000-8000-0000000000e2",
+      memberId: "0199a000-0000-7000-8000-0000000000d2",
+      fullName: "مریم احمدی",
+      sentOn: "2026-09-25",
+      outcome: "CameBack",
+      daysToComeBack: 3,
+      daysLeft: null,
+    },
+    {
+      notificationId: "0199a000-0000-7000-8000-0000000000e3",
+      memberId: "0199a000-0000-7000-8000-0000000000d3",
+      fullName: "رضا کریمی",
+      sentOn: "2026-10-03",
+      outcome: "Waiting",
+      daysToComeBack: null,
+      daysLeft: 13,
+    },
+    {
+      notificationId: "0199a000-0000-7000-8000-0000000000e4",
+      memberId: "0199a000-0000-7000-8000-0000000000d4",
+      fullName: "زهرا رضایی",
+      sentOn: "2026-09-12",
+      outcome: "DidNotComeBack",
+      daysToComeBack: null,
+      daysLeft: null,
+    },
+  ],
+};
+
 /** Every report the dashboard asks for, answering with the figures above. */
 export const reportHandlers = {
   "GET /api/reports/financial": () => json(200, financialReport),
   "GET /api/reports/attendance": () => json(200, attendanceReport),
   "GET /api/reports/members": () => json(200, membersReport),
+  "GET /api/reports/absence-sms": () => json(200, absenceSmsEffect),
   "GET /api/reports/cafe-products": () => json(200, topCafeProducts),
   "GET /api/reports/receivables": () => json(200, receivables),
   "GET /api/reports/subscriptions": () => json(200, subscriptionsSnapshot),

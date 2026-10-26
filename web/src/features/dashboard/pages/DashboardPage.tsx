@@ -46,6 +46,7 @@ import {
   revenueSourceLabels,
   revenueSourceOrder,
   soldCountNouns,
+  useAbsenceSmsEffect,
   useAttendanceReport,
   useFinancialReport,
   useMembersReport,
@@ -56,6 +57,7 @@ import {
   type FinancialPeriod,
   type FinancialReport,
 } from "../api";
+import { AbsenceSmsCard } from "../components/AbsenceSmsCard";
 import { AttendanceHeatmap } from "../components/AttendanceHeatmap";
 import { BarListChart, type BarListItem } from "../components/BarListChart";
 import { MonthlyChart } from "../components/MonthlyChart";
@@ -155,13 +157,21 @@ export function DashboardPage() {
   const attendance = useAttendanceReport(range, { enabled: canAsk });
   const members = useMembersReport(range, { enabled: canAsk });
   const cafeProducts = useTopCafeProducts(range, { enabled: canAsk });
+  const absenceSms = useAbsenceSmsEffect(range, { enabled: canAsk });
   const receivables = useReceivables();
   const plans = useSubscriptionsSnapshot();
   const attention = useNeedsAttention();
 
-  const failed = [financial, attendance, members, cafeProducts, receivables, plans, attention].find(
-    (query) => query.isError,
-  );
+  const failed = [
+    financial,
+    attendance,
+    members,
+    cafeProducts,
+    absenceSms,
+    receivables,
+    plans,
+    attention,
+  ].find((query) => query.isError);
 
   const months = members.isSuccess ? byJalaliMonth(members.data.days) : [];
 
@@ -310,6 +320,7 @@ export function DashboardPage() {
                 />
               </>
             )}
+            {absenceSms.isSuccess && <AbsenceSmsCard effect={absenceSms.data} />}
           </dl>
         </section>
       )}
