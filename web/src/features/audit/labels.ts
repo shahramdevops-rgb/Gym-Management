@@ -64,6 +64,8 @@ export const signInEntityTypes: readonly string[] = [
   "TrustedDevice",
   "SignInCode",
   "SignInCodeSend",
+  "SiteAccount",
+  "SiteRefreshToken",
 ];
 
 /** Every kind of record the log may hold, with its Persian name, in the JSON's order. */
@@ -90,6 +92,7 @@ const enumLabels: Record<string, Record<string, string>> = {
     PasswordChanged: "تغییر رمز",
     PasswordReset: "بازنشانی رمز",
     PasswordSetOnServer: "رمز روی سرور تعیین شد",
+    PhoneChanged: "شماره موبایل عضو عوض شد",
   },
 };
 

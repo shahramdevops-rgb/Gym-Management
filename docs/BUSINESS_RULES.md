@@ -2241,9 +2241,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   not more than 120 years ago). *Decided by the developer.*
 - **A phone already in the panel links to that member**, never a duplicate (§2: phones are unique).
   *Decided by the developer* (2026-10-15).
-  - *Proposed by Claude:* a linked member is not asked for a name or birth date again; the panel's
-    are shown, and corrections are made at the desk, so a sign-up never changes what the desk
-    entered.
+  - **A linked member is not asked for a name or birth date again**; the panel's are shown, and
+    corrections are made at the desk, so a sign-up never changes what the desk entered.
+    *Decided by the developer* (1405/08/04, 15.1b).
 - **A phone not in the panel creates a member there**, active, with no plan. They cannot enter the
   gym until they buy a plan: every visit is a check-in at the desk, which needs a plan or a single
   visit (§7), as for anyone. *Decided by the developer.*
@@ -2292,6 +2292,26 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     phones; the automated tests always use the fake sender. *Decided by the developer*.
 - **Staying signed in on the site: 60 days, renewed by every use**, because each new sign-in is a
   paid SMS (staff: 7 days, §1). *Decided by the developer* (1405/08/03).
+- **When the desk changes a member's phone, every site session of that member ends** (within the
+  access token's 15 minutes), and the member signs in again with the new number. The site finds a
+  member by the phone the desk typed, which no code ever checked: a mistyped number may belong to a
+  stranger, who could sign in as that member until the desk corrects it. *Proposed by Claude,
+  decided by the developer* (1405/08/05, 15.1b). **No code is sent when the desk registers a
+  member**: the desk types the phone as it does today. *Decided by the developer* (1405/08/05); not
+  to be raised again for now.
+- **A new phone has 15 minutes after its code to give its name and birth date**; after that it
+  asks for a new code. *Proposed by Claude, accepted* (1405/08/04, 15.1b).
+- **15 wrong tries in one of the gym's days close the phone until the next day**, counted over all
+  its codes: no new code is sent to it, and the current one stops working. Someone guessing at one
+  person's account then gets 15 guesses a day instead of 600; the real owner of the phone never
+  types a code wrong 15 times. Counting tries rather than codes ended by 5 wrong tries, because
+  stopping at 4 a code and waiting for the next would escape a count of codes (found in 15.1b's
+  review). *Proposed by Claude, decided by the developer* (1405/08/04-05, 15.1b).
+- **When the gym's 300 a day is reached**, no SMS goes to the Owner (SMS goes live as one complete
+  version, §10); the panel shows it, in 15.2. With about 300 members, an ordinary day never comes
+  near it: reaching it means an attack. *Decided by the developer* (1405/08/04).
+- **What a member does on the site is recorded in the audit log as «سیستم»** (no staff user), as
+  sign-ins are (§11). *Proposed by Claude, accepted* (1405/08/04, 15.1b).
 - **A member deactivated in the panel** can still receive a code and sign in, but sees only a
   notice that their membership is inactive and that they should come to the desk; nothing else on
   the site opens for them. *Decided by the developer* (1405/08/03).

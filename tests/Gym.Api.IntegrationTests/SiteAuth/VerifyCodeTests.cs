@@ -4,10 +4,12 @@ using Gym.Application.Common.Security;
 using Gym.Application.SiteAuth.VerifyCode;
 using Gym.Domain.Common;
 using Gym.Domain.SiteAuth;
+using Gym.Infrastructure.Calendar;
 using Gym.Infrastructure.Persistence;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Gym.Api.IntegrationTests.SiteAuth;
@@ -108,6 +110,7 @@ public sealed class VerifyCodeTests(DatabaseFixture fixture) : DatabaseTestBase(
             services.GetRequiredService<IAppDbContext>(),
             services.GetRequiredService<IPhoneNormalizer>(),
             services.GetRequiredService<ISignInCodes>(),
+            new GymCalendar(_time, Options.Create(new GymCalendarOptions { TimeZone = "Asia/Tehran" })),
             _time);
 
         return await handler.Handle(new VerifyCodeCommand(phone, code), TestContext.Current.CancellationToken);

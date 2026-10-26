@@ -2495,6 +2495,14 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("wrong_tries");
 
+                    b.Property<DateOnly?>("WrongTriesOn")
+                        .HasColumnType("date")
+                        .HasColumnName("wrong_tries_on");
+
+                    b.Property<int>("WrongTriesThatDay")
+                        .HasColumnType("integer")
+                        .HasColumnName("wrong_tries_that_day");
+
                     b.HasKey("Id")
                         .HasName("pk_sign_in_codes");
 
@@ -2509,6 +2517,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_sign_in_codes_sent_after_issue", "last_sent_at >= issued_at");
 
                             t.HasCheckConstraint("ck_sign_in_codes_used_after_issue", "used_at IS NULL OR used_at >= issued_at");
+
+                            t.HasCheckConstraint("ck_sign_in_codes_wrong_tries_counted_with_their_day", "(wrong_tries_on IS NULL AND wrong_tries_that_day = 0) OR (wrong_tries_on IS NOT NULL AND wrong_tries_that_day > 0)");
 
                             t.HasCheckConstraint("ck_sign_in_codes_wrong_tries_in_range", "wrong_tries >= 0 AND wrong_tries <= 5");
                         });
@@ -2572,6 +2582,132 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.ToTable("sign_in_code_sends", null, t =>
                         {
                             t.HasCheckConstraint("ck_sign_in_code_sends_cost_not_negative", "cost_rial IS NULL OR cost_rial >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SiteAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("LastSignedInAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_signed_in_at");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_site_accounts");
+
+                    b.HasIndex("MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_site_accounts_member_id");
+
+                    b.ToTable("site_accounts", (string)null);
+                });
+
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SiteRefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("family_id");
+
+                    b.Property<Guid?>("ReplacedByTokenId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replaced_by_token_id");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("RevokedReason")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("revoked_reason");
+
+                    b.Property<Guid>("SiteAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_account_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_site_refresh_tokens");
+
+                    b.HasIndex("FamilyId")
+                        .HasDatabaseName("ix_site_refresh_tokens_family_id");
+
+                    b.HasIndex("ReplacedByTokenId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_site_refresh_tokens_replaced_by_token_id");
+
+                    b.HasIndex("SiteAccountId")
+                        .HasDatabaseName("ix_site_refresh_tokens_site_account_id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_site_refresh_tokens_token_hash");
+
+                    b.ToTable("site_refresh_tokens", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_site_refresh_tokens_replaced_only_when_rotated", "replaced_by_token_id IS NULL OR revoked_reason = 'Rotated'");
+
+                            t.HasCheckConstraint("ck_site_refresh_tokens_revocation_complete", "(revoked_at IS NULL) = (revoked_reason IS NULL)");
                         });
                 });
 
@@ -3185,6 +3321,32 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasForeignKey("VoidedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_service_charges_asp_net_users_voided_by_user_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SiteAccount", b =>
+                {
+                    b.HasOne("Gym.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_site_accounts_members_member_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SiteRefreshToken", b =>
+                {
+                    b.HasOne("Gym.Domain.SiteAuth.SiteRefreshToken", null)
+                        .WithOne()
+                        .HasForeignKey("Gym.Domain.SiteAuth.SiteRefreshToken", "ReplacedByTokenId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_site_refresh_tokens_site_refresh_tokens_replaced_by_token_id");
+
+                    b.HasOne("Gym.Domain.SiteAuth.SiteAccount", null)
+                        .WithMany()
+                        .HasForeignKey("SiteAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_site_refresh_tokens_site_accounts_site_account_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Subscriptions.Subscription", b =>

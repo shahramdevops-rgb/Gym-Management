@@ -84,6 +84,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<SignInCodeSend> SignInCodeSends => Set<SignInCodeSend>();
 
+    public DbSet<SiteAccount> SiteAccounts => Set<SiteAccount>();
+
+    public DbSet<SiteRefreshToken> SiteRefreshTokens => Set<SiteRefreshToken>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
 

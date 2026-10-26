@@ -4109,14 +4109,31 @@ of the trainers' tools yet, but nobody signs in to an empty page.
         passed; once Kavenegar is called the request cannot be cancelled (found by the review)
       - Code rows hidden on the audit screen with the other sign-in rows; the seed never audited
 - **15.1b, accounts and the site's sign-in**
-- [ ] Site accounts keyed by the verified phone, linked to a member; a new phone creates the member
-      (name and birth date, §2's rules), an existing one links to it and is not asked again
-- [ ] The site's own authentication scheme (issuer, audience, key), refresh tokens and cookie;
-      every staff policy requires the staff scheme; a deactivated member gets the «غیرفعال» notice
-      and nothing else
-- [ ] Tests (integration): a site token is refused by every staff endpoint and a staff token by
-      every site endpoint; each limit; linking never duplicates a member; sign-up sends no welcome
-      SMS; a deactivated member's sign-in
+- [x] Asked first (1405/08/04), written in §15: 15 wrong tries in a gym day close the phone until
+      the next day (first "three dead codes", changed after the review); no SMS to the Owner when the 300 is reached (the panel shows it,
+      15.2); a member's site actions audited as «سیستم»; a linked member is not asked again; 15
+      minutes after the code to sign up
+- [x] Site accounts linked to a member; a new phone creates the member (name and birth date, §2's
+      rules), an existing one links to it and is not asked again (1405/08/04, not released)
+      - **The account has no phone of its own**: a sign-in finds the member by the verified phone
+        and the account by the member, so a number the desk changes never opens the account for
+        whoever has the old number (decided during the task, against "keyed by the phone" above)
+      - `POST /api/site/auth/sign-in` (the code; a member signs in, a new phone gets a 15-minute
+        sign-up ticket), `sign-up`, `refresh`, `logout`, and `GET /api/site/me`
+- [x] The site's own authentication scheme (`SiteAuth:Issuer`, `Audience`, `SigningKey`), refresh
+      tokens (`site_refresh_tokens`, the staff's rules through a shared `RotatingRefreshToken`) and
+      cookie (`gym_site_refresh`, path `/api/site/auth`); every staff policy and the fallback name
+      the staff scheme, the site's `SiteAccount` policy the site's; the API refuses to start with a
+      site key, issuer or audience equal to the staff's
+      - A deactivated member signs in and `/me` says `isActive: false`, read from the database on
+        every call. The "nothing else" half is for the first site endpoint that shows anything
+        (15.4, 15.5): it needs an active-member check, not written yet because nothing uses it
+      - On the server **`SITE_JWT_SIGNING_KEY` in `.env` before Release 1**, with `SITE_CODE_SECRET`
+- [x] The desk changing a member's phone revokes the member's site sessions (`PhoneChanged`), in
+      `UpdateMemberHandler`: the panel's one change in 15.1 (§15, decided 1405/08/05)
+- [x] Tests (integration): every endpoint the app maps is called with the other kind of token
+      (`SchemeSeparationTests`); each limit; linking never duplicates a member; sign-up makes no
+      plan and no SMS; a deactivated member's sign-in; refresh, reuse and logout
 
 #### 15.2 Trainers in the panel (reopens the panel)
 - [ ] «مربیان» (Owner only): make someone a trainer (name and phone) and stop it; stopping ends
@@ -4151,8 +4168,8 @@ of the trainers' tools yet, but nobody signs in to an empty page.
 #### 15.5 The member's home, first part
 - [ ] My plan: sessions left, the plan's end, freeze; my visits (from the desk's check-ins); my
       trainer. Everything here already exists in the panel's data
-- [ ] **Release 1**, late at night, backup first; `SITE_CODE_SECRET` added to the server's `.env`
-      first (15.1a)
+- [ ] **Release 1**, late at night, backup first; `SITE_CODE_SECRET` and `SITE_JWT_SIGNING_KEY`
+      added to the server's `.env` first (15.1a, 15.1b)
 
 ### Release 2 — The timetable and attendance (priority 1)
 

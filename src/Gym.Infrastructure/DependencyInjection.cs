@@ -137,12 +137,13 @@ public static class DependencyInjection
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
 
         // The site's sign-in (BUSINESS_RULES.md §15, ADR 0010): its own secrets, apart from the
-        // staff's. A missing code secret stops startup, like a missing JWT key.
+        // staff's. A missing secret, or a key shared with the staff's, stops startup.
         services.AddOptions<SiteAuthOptions>()
             .Bind(configuration.GetSection(SiteAuthOptions.SectionName))
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<SiteAuthOptions>, SiteAuthOptionsValidator>();
         services.AddSingleton<ISignInCodes, HmacSignInCodes>();
+        services.AddSingleton<ISiteTokens, JwtSiteTokens>();
 
         // Sms:Provider chooses the sender and the account (BUSINESS_RULES.md §10): see SmsRegistration.
         // The daily runs are Hangfire recurring jobs, moved whenever the settings page is saved (task 10.3).

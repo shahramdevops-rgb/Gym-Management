@@ -28,6 +28,7 @@ const environment: NodeJS.ProcessEnv = {
   POSTGRES_PASSWORD: "e2e-database-password",
   JWT_SIGNING_KEY: "end-to-end-tests-signing-key-0123456789abcdef",
   SITE_CODE_SECRET: "end-to-end-tests-site-code-secret-0123456789",
+  SITE_JWT_SIGNING_KEY: "end-to-end-tests-site-signing-key-0123456789",
   SEED_OWNER_USERNAME: owner.userName,
   SEED_OWNER_PASSWORD: owner.password,
   // Its own image tag and network, so a local "gym-prod" smoke test keeps its own.

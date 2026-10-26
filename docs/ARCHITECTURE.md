@@ -99,6 +99,8 @@ group.MapPost("/", async (CreateMemberCommand command, CreateMemberHandler handl
     .RequireAuthorization(Policies.StaffOrOwner);
 ```
 
+Two sign-ins, never mixed (ADR 0010): staff policies (`OwnerOnly`, `StaffOrOwner`, `PasswordChangeAllowed`, the fallback) name `AuthSchemes.Staff`; the site's (`SiteAccount`) names `AuthSchemes.Site`. A new policy names its scheme too. A site endpoint reads its account from the `site_account` claim, never `sub`; `SchemeSeparationTests` calls every endpoint with the other kind of token.
+
 ### Errors
 `Error(Code, Description, ErrorType)`. Codes look like `Members.PhoneAlreadyExists`.
 

@@ -2106,3 +2106,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **Limits that cost money go before the call.** Per-IP in the rate limiter (cheap, in memory), per-phone and per-day by counting rows in the database; all three answer before Kavenegar is asked.
 - **A record prints its properties.** `VerificationCodeMessage` overrides `ToString`, because the default would write the code into any log that formats the message.
 - **My notes:**
+
+## 15.1b — Site accounts and the site's own sign-in (حساب سایت و ورود جدا)
+
+- **Two authentication schemes in one API.** `AddJwtBearer("Bearer")` and `AddJwtBearer("Site")`, each with its own issuer, audience and key. A token is only ever checked by the scheme a policy names, so a site token read by the staff's scheme simply fails, and the other way round.
+- **A policy names its scheme.** `AddAuthenticationSchemes(AuthSchemes.Staff)` on every staff policy and on the fallback makes "which key signed this token" part of the policy itself, instead of relying on the default scheme. A role written wrong on a site token could then still never open a staff endpoint.
+- **A test that walks every endpoint.** `SchemeSeparationTests` reads `EndpointDataSource`, fills the route values and calls each endpoint with the other kind of token. An endpoint added next year is covered by a test written today.
+- **A ticket is a token with another audience.** The sign-up ticket is signed like an access token, but for `gym-site-app-sign-up`, so the bearer handler refuses it and the sign-up refuses an access token. One key, two purposes that can never be swapped.
+- **Leave out `sub` on purpose.** The audit interceptor reads `sub` as a staff user's id; the site's tokens carry `site_account` instead, so what a member does is recorded as «سیستم» without any special case in the interceptor.
+- **Key a record by the source of truth.** The account first had its own copy of the phone; a number the desk changes would then still open the account for the number's new owner. Finding the member by phone and the account by the member keeps one phone in the whole system.
+- **A shared base class for security rules.** Staff and site refresh tokens live in two tables (ADR 0010) but rotate by one set of rules in `RotatingRefreshToken`; EF Core maps a base class that is not an entity as columns of each subclass, so the old table did not change.
+- **My notes:**

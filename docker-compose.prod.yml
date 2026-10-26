@@ -27,6 +27,8 @@ x-api-environment: &api-environment
   Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env (at least 32 random bytes)}
   # The site's one-time codes are computed with it (BUSINESS_RULES.md §15); never in the database.
   SiteAuth__CodeSecret: ${SITE_CODE_SECRET:?set SITE_CODE_SECRET in .env (at least 32 random bytes)}
+  # Signs the site's tokens (ADR 0010); must differ from JWT_SIGNING_KEY, or the API will not start.
+  SiteAuth__SigningKey: ${SITE_JWT_SIGNING_KEY:?set SITE_JWT_SIGNING_KEY in .env (at least 32 random bytes)}
   Seed__OwnerUserName: ${SEED_OWNER_USERNAME:?set SEED_OWNER_USERNAME in .env}
   Seed__OwnerPassword: ${SEED_OWNER_PASSWORD:?set SEED_OWNER_PASSWORD in .env}
   # SMS (BUSINESS_RULES.md §10). Left out of .env, the provider stays Fake and nothing is sent.

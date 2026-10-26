@@ -23,7 +23,12 @@ namespace Gym.Application.SiteAuth.VerifyCode;
 /// counted instead of one overwriting the other's try.
 /// </para>
 /// </remarks>
-public sealed class VerifyCodeHandler(IAppDbContext db, IPhoneNormalizer phones, ISignInCodes codes, TimeProvider timeProvider)
+public sealed class VerifyCodeHandler(
+    IAppDbContext db,
+    IPhoneNormalizer phones,
+    ISignInCodes codes,
+    IGymCalendar calendar,
+    TimeProvider timeProvider)
 {
     public async Task<Result<string>> Handle(VerifyCodeCommand command, CancellationToken cancellationToken)
     {
@@ -47,7 +52,8 @@ public sealed class VerifyCodeHandler(IAppDbContext db, IPhoneNormalizer phones,
             return Result.Failure<string>(SignInCodeErrors.Expired);
         }
 
-        var verified = code.Verify(typed, codes.CodeFor(phoneNumber, code.CodeSeed), timeProvider.GetUtcNow());
+        var now = timeProvider.GetUtcNow();
+        var verified = code.Verify(typed, codes.CodeFor(phoneNumber, code.CodeSeed), now, calendar.DayOf(now));
 
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

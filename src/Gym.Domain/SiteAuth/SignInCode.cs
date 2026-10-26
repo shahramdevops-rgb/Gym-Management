@@ -35,6 +35,12 @@ public sealed class SignInCode : Entity
     /// <summary>Code SMS the whole gym may send in one of its days, so a flood cannot empty the credit.</summary>
     public const int MaxSendsPerGymDay = 300;
 
+    /// <summary>
+    /// Wrong tries, over all of a phone's codes in one of the gym's days, that close the phone until
+    /// the next day (BUSINESS_RULES.md §15). Three codes' worth: a slip of the fingers never reaches it.
+    /// </summary>
+    public const int MaxWrongTriesPerDay = 15;
+
     /// <summary>How long a code is valid for, from the moment it is made. Sends again do not extend it.</summary>
     public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(60);
 
@@ -71,12 +77,27 @@ public sealed class SignInCode : Entity
     public DateTimeOffset? UsedAt { get; private set; }
 
     /// <summary>
+    /// The gym's day of the last wrong try, and how many wrong tries the phone made that day. Kept
+    /// across new codes in this row, so stopping at 4 tries a code and waiting for a new one does
+    /// not escape the day's count.
+    /// </summary>
+    public DateOnly? WrongTriesOn { get; private set; }
+
+    public int WrongTriesThatDay { get; private set; }
+
+    /// <summary>
     /// Postgres <c>xmin</c>. The handlers also lock the phone first; this is the database's own
     /// guard against two saves built on the same read.
     /// </summary>
     public uint Version { get; private set; }
 
     public bool IsUsable(DateTimeOffset now) => UsedAt is null && WrongTries < MaxWrongTries && now < ExpiresAt;
+
+    /// <summary>
+    /// Whether the phone is closed for <paramref name="today"/>: 15 wrong tries that day, over all its
+    /// codes (BUSINESS_RULES.md §15). No new code is sent, and the current one no longer works.
+    /// </summary>
+    public bool IsClosedOn(DateOnly today) => WrongTriesOn == today && WrongTriesThatDay >= MaxWrongTriesPerDay;
 
     /// <summary>When «ارسال دوباره» may send this code again.</summary>
     public DateTimeOffset SendAgainAt => LastSentAt + SendAgainAfter;
@@ -100,11 +121,17 @@ public sealed class SignInCode : Entity
     /// A new code in this phone's row. Refused while the current one still works: the phone is
     /// then answered with the code it already has (§15: no new SMS while a code is valid).
     /// </summary>
-    public Result Reissue(string codeSeed, DateTimeOffset now)
+    /// <param name="today">The gym's day: a phone closed for it gets no new code.</param>
+    public Result Reissue(string codeSeed, DateTimeOffset now, DateOnly today)
     {
         if (IsUsable(now))
         {
             return Result.Failure(SignInCodeErrors.StillValid);
+        }
+
+        if (IsClosedOn(today))
+        {
+            return Result.Failure(SignInCodeErrors.PhoneClosedForToday);
         }
 
         Start(codeSeed, now);
@@ -139,15 +166,23 @@ public sealed class SignInCode : Entity
     public void RecordProviderMessage(long? providerMessageId) => LastProviderMessageId = providerMessageId;
 
     /// <summary>
-    /// Checks a typed code against the one this row stands for. A wrong one costs a try, and the
-    /// fifth wrong one ends the code; the right one is used up, so it works only once.
+    /// Checks a typed code against the one this row stands for. A wrong one costs a try of the code
+    /// and of the phone's day: the fifth ends the code, the day's fifteenth closes the phone until
+    /// tomorrow. The right one is used up, so it works only once.
     /// </summary>
     /// <param name="typed">What the person typed, digits already in English.</param>
     /// <param name="expected">The code computed from <see cref="CodeSeed"/>.</param>
-    public Result Verify(string typed, string expected, DateTimeOffset now)
+    /// <param name="today">The gym's day, for the day's count of wrong tries.</param>
+    public Result Verify(string typed, string expected, DateTimeOffset now, DateOnly today)
     {
         ArgumentNullException.ThrowIfNull(typed);
         ArgumentException.ThrowIfNullOrWhiteSpace(expected);
+
+        // Before anything else: once closed, even the right code is not looked at today.
+        if (IsClosedOn(today))
+        {
+            return Result.Failure(SignInCodeErrors.PhoneClosedForToday);
+        }
 
         if (!IsUsable(now))
         {
@@ -159,6 +194,13 @@ public sealed class SignInCode : Entity
         if (!matches)
         {
             WrongTries++;
+            WrongTriesThatDay = WrongTriesOn == today ? WrongTriesThatDay + 1 : 1;
+            WrongTriesOn = today;
+
+            if (IsClosedOn(today))
+            {
+                return Result.Failure(SignInCodeErrors.PhoneClosedForToday);
+            }
 
             return Result.Failure(WrongTries < MaxWrongTries ? SignInCodeErrors.Wrong : SignInCodeErrors.TooManyWrongTries);
         }

@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Domain.Auth;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
 
@@ -17,8 +18,14 @@ namespace Gym.Application.Members.UpdateMember;
 /// <item><c>xmin</c> on save. It covers the moment between this request's read and its write,
 /// which the version check cannot.</item>
 /// </list>
+/// <para>
+/// <b>A new phone signs the member out of the site</b> (BUSINESS_RULES.md §15). The site finds a
+/// member by the phone the desk typed; if that was a stranger's number, the stranger may have signed
+/// in as this member. Correcting it ends every site session of the member in the same save, and the
+/// member signs in again with the right number.
+/// </para>
 /// </remarks>
-public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phones, IGymCalendar calendar)
+public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phones, IGymCalendar calendar, TimeProvider timeProvider)
 {
     public async Task<Result<MemberResponse>> Handle(Guid id, UpdateMemberCommand command, CancellationToken cancellationToken)
     {
@@ -53,10 +60,17 @@ public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
             return Result.Failure<MemberResponse>(MemberErrors.BirthDateRequired);
         }
 
+        var phoneChanged = member.PhoneNumber != phone.Value;
+
         var updated = member.Update(command.FullName, phone.Value, command.Notes, birthDate, calendar.Today());
         if (updated.IsFailure)
         {
             return Result.Failure<MemberResponse>(updated.Error);
+        }
+
+        if (phoneChanged)
+        {
+            await SignOutOfTheSiteAsync(id, cancellationToken);
         }
 
         try
@@ -73,5 +87,20 @@ public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
         }
 
         return MemberResponse.From(member);
+    }
+
+    /// <summary>Revokes the member's live site sessions; saved with the member's change.</summary>
+    private async Task SignOutOfTheSiteAsync(Guid memberId, CancellationToken cancellationToken)
+    {
+        var accountIds = db.SiteAccounts.Where(account => account.MemberId == memberId).Select(account => account.Id);
+        var sessions = await db.SiteRefreshTokens
+            .Where(token => token.RevokedAt == null && accountIds.Contains(token.SiteAccountId))
+            .ToListAsync(cancellationToken);
+
+        var now = timeProvider.GetUtcNow();
+        foreach (var session in sessions)
+        {
+            session.Revoke(RefreshTokenRevocationReason.PhoneChanged, now);
+        }
     }
 }

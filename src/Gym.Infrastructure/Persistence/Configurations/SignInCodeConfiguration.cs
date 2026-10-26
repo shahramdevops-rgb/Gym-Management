@@ -25,6 +25,9 @@ public sealed class SignInCodeConfiguration : IEntityTypeConfiguration<SignInCod
             table.HasCheckConstraint("ck_sign_in_codes_expires_after_issue", "expires_at > issued_at");
             table.HasCheckConstraint("ck_sign_in_codes_sent_after_issue", "last_sent_at >= issued_at");
             table.HasCheckConstraint("ck_sign_in_codes_used_after_issue", "used_at IS NULL OR used_at >= issued_at");
+            table.HasCheckConstraint(
+                "ck_sign_in_codes_wrong_tries_counted_with_their_day",
+                "(wrong_tries_on IS NULL AND wrong_tries_that_day = 0) OR (wrong_tries_on IS NOT NULL AND wrong_tries_that_day > 0)");
         });
 
         builder.Property(code => code.PhoneNumber).HasMaxLength(PhoneMaxLength).IsRequired();

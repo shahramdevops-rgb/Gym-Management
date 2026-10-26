@@ -3,6 +3,7 @@ using Gym.Application.Common;
 using Gym.Application.Common.Security;
 using Gym.Application.Common.Sms;
 using Gym.Application.SiteAuth.RequestCode;
+using Gym.Application.SiteAuth.VerifyCode;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
 using Gym.Domain.Notifications;
@@ -209,6 +210,25 @@ public sealed class RequestCodeTests(DatabaseFixture fixture) : DatabaseTestBase
         (await HandleAsync(Phone)).Value.Outcome.ShouldBe(RequestCodeOutcome.Sent);
     }
 
+    [Fact]
+    public async Task Handle_AfterFifteenWrongTriesToday_SendsNoNewCodeUntilTomorrow()
+    {
+        for (var code = 1; code <= SignInCode.MaxWrongTriesPerDay / SignInCode.MaxWrongTries; code++)
+        {
+            (await HandleAsync(Phone)).Value.Outcome.ShouldBe(RequestCodeOutcome.Sent);
+            await KillTheCodeAsync();
+        }
+
+        var refused = await HandleAsync(Phone);
+
+        refused.Error.ShouldBe(SignInCodeErrors.PhoneClosedForToday);
+        _sender.Requests.Count.ShouldBe(SignInCode.MaxWrongTriesPerDay / SignInCode.MaxWrongTries);
+
+        // 21:00 UTC is 00:30 the next day in Tehran: the gym's next day.
+        _time.SetUtcNow(new DateTimeOffset(2026, 10, 26, 21, 0, 0, TimeSpan.Zero));
+        (await HandleAsync(Phone)).Value.Outcome.ShouldBe(RequestCodeOutcome.Sent);
+    }
+
     // ---- What Kavenegar answers ----
 
     [Fact]
@@ -352,6 +372,26 @@ public sealed class RequestCodeTests(DatabaseFixture fixture) : DatabaseTestBase
             NullLogger<RequestCodeHandler>.Instance);
 
         return await handler.Handle(new RequestCodeCommand(phone), cancellationToken);
+    }
+
+    /// <summary>Five wrong tries through the real check, on this test's clock.</summary>
+    private async Task KillTheCodeAsync()
+    {
+        var right = CodeFor(await CodeAsync());
+        var wrong = right == "00000" ? "11111" : "00000";
+        for (var attempt = 1; attempt <= SignInCode.MaxWrongTries; attempt++)
+        {
+            await using var scope = Fixture.CreateScope();
+            var services = scope.ServiceProvider;
+            var handler = new VerifyCodeHandler(
+                services.GetRequiredService<IAppDbContext>(),
+                services.GetRequiredService<IPhoneNormalizer>(),
+                services.GetRequiredService<ISignInCodes>(),
+                new GymCalendar(_time, Options.Create(new GymCalendarOptions { TimeZone = "Asia/Tehran" })),
+                _time);
+
+            await handler.Handle(new VerifyCodeCommand(Phone, wrong), TestContext.Current.CancellationToken);
+        }
     }
 
     private string CodeFor(SignInCode row) =>

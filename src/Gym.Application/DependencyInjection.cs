@@ -105,7 +105,13 @@ using Gym.Application.ServiceCharges.ChangeServiceChargeAmount;
 using Gym.Application.ServiceCharges.RecordShopSale;
 using Gym.Application.ServiceCharges.RecordServiceCharge;
 using Gym.Application.ServiceCharges.VoidServiceCharge;
+using Gym.Application.SiteAuth;
+using Gym.Application.SiteAuth.GetMe;
+using Gym.Application.SiteAuth.Logout;
+using Gym.Application.SiteAuth.Refresh;
 using Gym.Application.SiteAuth.RequestCode;
+using Gym.Application.SiteAuth.SignIn;
+using Gym.Application.SiteAuth.SignUp;
 using Gym.Application.SiteAuth.VerifyCode;
 using Gym.Application.Staff.CreateStaff;
 using Gym.Application.Staff.GetStaff;
@@ -169,6 +175,12 @@ public static class DependencyInjection
         // The site's sign-in (BUSINESS_RULES.md §15, task 15.1).
         services.AddScoped<RequestCodeHandler>();
         services.AddScoped<VerifyCodeHandler>();
+        services.AddScoped<SiteSessions>();
+        services.AddScoped<SignInHandler>();
+        services.AddScoped<SignUpHandler>();
+        services.AddScoped<SiteRefreshHandler>();
+        services.AddScoped<SiteLogoutHandler>();
+        services.AddScoped<GetSiteMeHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();

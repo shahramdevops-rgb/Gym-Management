@@ -19,11 +19,11 @@ public sealed class ListAuditLogsHandler(IAppDbContext db, IGymCalendar calendar
 {
     /// <summary>
     /// The sign-in rows, left out unless asked for: about half the log, and each says only that
-    /// someone logged in or stayed logged in. The site's sign-in codes too (task 15.1): one row
-    /// per code asked for.
+    /// someone logged in or stayed logged in. The site's sign-in rows too (task 15.1): its codes,
+    /// accounts and sessions.
     /// </summary>
     public static readonly IReadOnlyList<string> SignInEntityTypes =
-        [nameof(RefreshToken), nameof(TrustedDevice), nameof(SignInCode), nameof(SignInCodeSend)];
+        [nameof(RefreshToken), nameof(TrustedDevice), nameof(SignInCode), nameof(SignInCodeSend), nameof(SiteAccount), nameof(SiteRefreshToken)];
 
     public async Task<PagedResponse<AuditLogResponse>> Handle(ListAuditLogsQuery query, CancellationToken cancellationToken)
     {

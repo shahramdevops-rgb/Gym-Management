@@ -19,7 +19,8 @@ namespace Gym.Application.SiteAuth.RequestCode;
 /// <para>
 /// <b>What the phone gets:</b>
 /// <list type="bullet">
-/// <item>No usable code (none yet, expired, used, or 5 wrong tries): a new code, valid 60 minutes.</item>
+/// <item>No usable code (none yet, expired, used, or 5 wrong tries): a new code, valid 60 minutes,
+/// unless the phone made 15 wrong tries today.</item>
 /// <item>A usable code sent less than 2 minutes ago: nothing; the screen says it was already sent.</item>
 /// <item>A usable code Kavenegar reported delivered: nothing; it is on the phone.</item>
 /// <item>Otherwise: the same code again, with the minutes it has left.</item>
@@ -97,6 +98,13 @@ public sealed partial class RequestCodeHandler(
             return await SendAsync(current, isSendAgain: true, now, transaction);
         }
 
+        // 15 wrong tries today (BUSINESS_RULES.md §15): no new code until tomorrow.
+        var today = calendar.DayOf(now);
+        if (current is not null && current.IsClosedOn(today))
+        {
+            return Result.Failure<RequestCodeResponse>(SignInCodeErrors.PhoneClosedForToday);
+        }
+
         var newCodeLimits = await CheckLimitsAsync(phoneNumber, now, cancellationToken);
         if (newCodeLimits.IsFailure)
         {
@@ -110,8 +118,8 @@ public sealed partial class RequestCodeHandler(
         }
         else
         {
-            // Cannot fail: the code was found not usable above.
-            current.Reissue(SignInCodeSeed.Generate(), now);
+            // Cannot fail: the code was found not usable, and the phone not closed, above.
+            current.Reissue(SignInCodeSeed.Generate(), now, today);
         }
 
         return await SendAsync(current, isSendAgain: false, now, transaction);

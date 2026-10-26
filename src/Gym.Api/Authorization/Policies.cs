@@ -22,4 +22,10 @@ public static class Policies
     /// change-password endpoint uses it.
     /// </summary>
     public const string PasswordChangeAllowed = "PasswordChangeAllowed";
+
+    /// <summary>
+    /// A member signed in on the site (BUSINESS_RULES.md §15): the site's scheme only, never a
+    /// staff token. Not the staff's password gate: site accounts have no password.
+    /// </summary>
+    public const string SiteAccount = "SiteAccount";
 }

@@ -23,4 +23,10 @@ public enum RefreshTokenRevocationReason
 
     /// <summary>The password was set from the server console (<c>./server.sh set-password</c>).</summary>
     PasswordSetOnServer = 7,
+
+    /// <summary>
+    /// A site token: the desk changed the member's phone, so whoever signed in with the old number
+    /// is signed out (BUSINESS_RULES.md §15).
+    /// </summary>
+    PhoneChanged = 8,
 }

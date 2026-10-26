@@ -3,15 +3,15 @@ using FluentValidation;
 using Gym.Application.Members;
 using Gym.Domain.SiteAuth;
 
-namespace Gym.Application.SiteAuth.VerifyCode;
+namespace Gym.Application.SiteAuth.SignIn;
 
 /// <summary>Shape only. Whether the code is right is the entity's to say, and it costs a try.</summary>
-public sealed class VerifyCodeValidator : AbstractValidator<VerifyCodeCommand>
+public sealed class SignInValidator : AbstractValidator<SignInCommand>
 {
     /// <summary>Room for spaces around the 5 digits; anything longer is not a code.</summary>
     public const int CodeMaxLength = 10;
 
-    public VerifyCodeValidator()
+    public SignInValidator()
     {
         RuleFor(command => command.PhoneNumber).ValidPhoneInput();
 

@@ -82,6 +82,10 @@ public interface IAppDbContext
 
     DbSet<SignInCodeSend> SignInCodeSends { get; }
 
+    DbSet<SiteAccount> SiteAccounts { get; }
+
+    DbSet<SiteRefreshToken> SiteRefreshTokens { get; }
+
     /// <summary>
     /// The audit log, for reading only (BUSINESS_RULES.md §11, task 11.1). A query, not a
     /// <see cref="DbSet{TEntity}"/>: only the audit interceptor writes it, so Application is given

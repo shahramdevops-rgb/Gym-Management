@@ -95,6 +95,12 @@ export const errorMessages: Record<string, string> = {
   "SiteAuth.GymDailyLimitReached":
     "امروز دیگر نمی‌شود کد فرستاد. فردا دوباره امتحان کنید یا به پذیرش باشگاه بگویید.",
   "SiteAuth.CodeNotSent": "کد فرستاده نشد. چند دقیقه بعد دوباره امتحان کنید.",
+  "SiteAuth.PhoneClosedForToday":
+    "کد این شماره امروز بیش از حد اشتباه وارد شد. فردا دوباره امتحان کنید یا به پذیرش باشگاه بگویید.",
+  "SiteAuth.SessionInvalid": "نشست شما به پایان رسیده است. دوباره وارد شوید.",
+  "SiteAuth.SignUpExpired": "زمان ثبت‌نام تمام شد. دوباره کد بگیرید.",
+  "SiteAuth.AccountNotFound": "حساب شما پیدا نشد. دوباره وارد شوید.",
+  "SiteAuth.SignInConflict": "ورود همزمان دیگری انجام شد. دوباره کد بگیرید و وارد شوید.",
 
   // Members
   "Members.NotFound": "عضو پیدا نشد.",

@@ -23,6 +23,11 @@ public static class SignInCodeErrors
         "SiteAuth.PhoneHourlyLimitReached",
         "This phone has been sent the most codes allowed in an hour.");
 
+    /// <summary>15 wrong tries today: no code works or is sent until the gym's next day.</summary>
+    public static readonly Error PhoneClosedForToday = Error.BusinessRule(
+        "SiteAuth.PhoneClosedForToday",
+        "The code was typed wrong too many times for this phone today; try again tomorrow.");
+
     public static readonly Error GymDailyLimitReached = Error.BusinessRule(
         "SiteAuth.GymDailyLimitReached",
         "The gym has sent the most codes allowed today.");

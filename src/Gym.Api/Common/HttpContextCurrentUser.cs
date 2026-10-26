@@ -1,3 +1,4 @@
+using Gym.Api.Authorization;
 using Gym.Application.Common;
 using Gym.Infrastructure.Identity;
 
@@ -20,6 +21,13 @@ public sealed class HttpContextCurrentUser(IHttpContextAccessor accessor) : ICur
         {
             var principal = accessor.HttpContext?.User;
             if (principal?.Identity?.IsAuthenticated != true)
+            {
+                return null;
+            }
+
+            // A site account is never a staff user (ADR 0010): what it does is recorded as
+            // «سیستم», whatever its token carries (BUSINESS_RULES.md §15).
+            if (principal.Identity.AuthenticationType == AuthSchemes.Site)
             {
                 return null;
             }

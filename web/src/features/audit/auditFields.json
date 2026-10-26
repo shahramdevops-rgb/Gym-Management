@@ -27,7 +27,9 @@
     "RefreshToken": "نشست ورود",
     "TrustedDevice": "دستگاه مطمئن",
     "SignInCode": "کد ورود سایت",
-    "SignInCodeSend": "پیامک کد ورود"
+    "SignInCodeSend": "پیامک کد ورود",
+    "SiteAccount": "حساب سایت",
+    "SiteRefreshToken": "نشست سایت"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -208,7 +210,11 @@
     "LastProviderMessageId": { "label": "شناسه آخرین ارسال" },
     "WrongTries": { "label": "تلاش‌های غلط" },
     "UsedAt": { "label": "زمان استفاده" },
-    "IsSendAgain": { "label": "ارسال دوباره" }
+    "IsSendAgain": { "label": "ارسال دوباره" },
+    "WrongTriesOn": { "label": "روز تلاش‌های غلط" },
+    "WrongTriesThatDay": { "label": "تلاش‌های غلط آن روز" },
+    "LastSignedInAt": { "label": "آخرین ورود" },
+    "SiteAccountId": { "format": "hidden" }
   },
   "entityFields": {
     "Payment": { "Kind": { "label": "نوع", "format": "paymentKind" } },
