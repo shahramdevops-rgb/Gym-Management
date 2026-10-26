@@ -31,7 +31,9 @@ export const reportThresholds = {
   /** A pending cheque or instalment is shown this many days before its date (§9 *Cheques and instalments*). */
   payableDueWithinDays: 7,
   /** A member who comes within this many days of the absence SMS came back (§12 *The absence SMS's effect*). */
-  absenceSmsWindowDays: 14,
+  absenceSmsWindowDays: 5,
+  /** «فهرست نام‌ها» of «اثر پیامک غیبت» shows this many days back, today included, so it stays short. */
+  absenceSmsListDays: 30,
 } as const;
 
 /**
@@ -78,7 +80,7 @@ export const reportKeys = {
   financial: (range: ReportRange) => [...reportKeys.all, "financial", range] as const,
   attendance: (range: ReportRange) => [...reportKeys.all, "attendance", range] as const,
   members: (range: ReportRange) => [...reportKeys.all, "members", range] as const,
-  absenceSms: (range: ReportRange) => [...reportKeys.all, "absence-sms", range] as const,
+  absenceSms: () => [...reportKeys.all, "absence-sms"] as const,
   cafeProducts: (range: ReportRange) => [...reportKeys.all, "cafe-products", range] as const,
   receivables: () => [...reportKeys.all, "receivables"] as const,
   subscriptions: () => [...reportKeys.all, "subscriptions"] as const,
@@ -201,14 +203,12 @@ export function useNeedsAttention() {
   });
 }
 
-/** The absence SMS sent in the range and who came back within 14 days (§12 *The absence SMS's effect*). */
-export function useAbsenceSmsEffect(range: ReportRange, { enabled }: RangeOptions) {
+/** Every absence SMS since the first, whatever the range: «نیاز به اقدام»'s view (§12 *The absence SMS's effect*). */
+export function useAbsenceSmsEffect() {
   return useQuery({
-    queryKey: reportKeys.absenceSms(range),
-    enabled,
-    placeholderData: keepPreviousData,
+    queryKey: reportKeys.absenceSms(),
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/reports/absence-sms", rangeQuery(range));
+      const { data, error } = await api.GET("/api/reports/absence-sms");
       if (error !== undefined) {
         throw error;
       }

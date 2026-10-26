@@ -179,11 +179,13 @@ public sealed class OperationalReportsEndpointTests(DatabaseFixture fixture) : D
 
         await TestLockers.CheckInOkAsync(owner, token, member.Id);
 
-        var effect = await GetOkAsync<AbsenceSmsEffectResponse>(owner, token, $"/api/reports/absence-sms?{TodayRange()}");
+        var effect = await GetOkAsync<AbsenceSmsEffectResponse>(owner, token, "/api/reports/absence-sms");
 
+        effect.From.ShouldBe(Today());
         effect.Sent.ShouldBe(1);
         effect.CameBack.ShouldBe(1);
         effect.AverageDaysToComeBack.ShouldBe(0m);
+        effect.CameBackByDay.ShouldBe([1, 0, 0, 0, 0, 0]);
         effect.CostToman.ShouldBe(135m);
         effect.Messages.ShouldBe(
             [new AbsenceSmsMessageResponse(sms.Id, member.Id, member.FullName, Today(), AbsenceSmsOutcome.CameBack, 0, null)]);
@@ -197,7 +199,7 @@ public sealed class OperationalReportsEndpointTests(DatabaseFixture fixture) : D
     [InlineData("/api/reports/cafe-products?from=2026-10-04&to=2026-10-04")]
     [InlineData("/api/reports/needs-attention")]
     [InlineData("/api/reports/members?from=2026-10-04&to=2026-10-04")]
-    [InlineData("/api/reports/absence-sms?from=2026-10-04&to=2026-10-04")]
+    [InlineData("/api/reports/absence-sms")]
     public async Task Report_Staff_Returns403(string path)
     {
         var (staff, token) = await StaffClientAsync();
@@ -214,8 +216,6 @@ public sealed class OperationalReportsEndpointTests(DatabaseFixture fixture) : D
     [InlineData("cafe-products", "from=2025-10-03&to=2026-10-04", "to", "Reports.RangeTooLong")]
     [InlineData("members", "to=2026-10-04", "from", "Reports.DateRangeRequired")]
     [InlineData("members", "from=2025-10-03&to=2026-10-04", "to", "Reports.RangeTooLong")]
-    [InlineData("absence-sms", "from=2026-10-04", "to", "Reports.DateRangeRequired")]
-    [InlineData("absence-sms", "from=2026-10-05&to=2026-10-04", "to", "Reports.InvalidDateRange")]
     public async Task Report_InvalidRange_Returns400WithItsCode(string report, string query, string field, string code)
     {
         var (owner, token) = await OwnerClientAsync();

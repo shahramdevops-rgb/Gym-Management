@@ -222,18 +222,22 @@ export const needsAttention: NeedsAttention = {
 };
 
 /**
- * Four absence SMS: two members came back (after 0 and 3 days), one is still waiting, one did not
- * come, so the rate is 2 of 3.
+ * Five absence SMS: two members came back (after 0 and 3 days), one is still waiting, one did not
+ * come, and one plan ended inside the window, so the rate is 2 of 3. Two Jalali months: مهر's
+ * four and شهریور's one.
  */
 export const absenceSmsEffect: AbsenceSmsEffect = {
-  from: "2026-09-23",
+  from: "2026-09-12",
   to: "2026-10-04",
-  sent: 4,
+  sent: 5,
   cameBack: 2,
   waiting: 1,
   didNotComeBack: 1,
+  notMeasurable: 1,
   averageDaysToComeBack: 1.5,
-  costToman: 540,
+  cameBackByDay: [1, 0, 0, 1, 0, 0],
+  costToman: 675,
+  costPerReturnToman: 338,
   messages: [
     {
       notificationId: "0199a000-0000-7000-8000-0000000000e1",
@@ -260,7 +264,7 @@ export const absenceSmsEffect: AbsenceSmsEffect = {
       sentOn: "2026-10-03",
       outcome: "Waiting",
       daysToComeBack: null,
-      daysLeft: 13,
+      daysLeft: 3,
     },
     {
       notificationId: "0199a000-0000-7000-8000-0000000000e4",
@@ -268,6 +272,15 @@ export const absenceSmsEffect: AbsenceSmsEffect = {
       fullName: "زهرا رضایی",
       sentOn: "2026-09-12",
       outcome: "DidNotComeBack",
+      daysToComeBack: null,
+      daysLeft: null,
+    },
+    {
+      notificationId: "0199a000-0000-7000-8000-0000000000e5",
+      memberId: "0199a000-0000-7000-8000-0000000000d5",
+      fullName: "حسن نوری",
+      sentOn: "2026-09-28",
+      outcome: "NotMeasurable",
       daysToComeBack: null,
       daysLeft: null,
     },

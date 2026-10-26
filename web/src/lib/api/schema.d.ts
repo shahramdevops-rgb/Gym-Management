@@ -1573,10 +1573,15 @@ export interface components {
             waiting: number | string;
             /** Format: int32 */
             didNotComeBack: number | string;
+            /** Format: int32 */
+            notMeasurable: number | string;
             /** Format: double */
             averageDaysToComeBack: null | number | string;
+            cameBackByDay: (number | string)[];
             /** Format: double */
             costToman: number | string;
+            /** Format: double */
+            costPerReturnToman: null | number | string;
             messages: components["schemas"]["AbsenceSmsMessageResponse"][];
         };
         AbsenceSmsMessageResponse: {
@@ -1594,7 +1599,7 @@ export interface components {
             daysLeft: null | number | string;
         };
         /** @enum {unknown} */
-        AbsenceSmsOutcome: "CameBack" | "Waiting" | "DidNotComeBack";
+        AbsenceSmsOutcome: "CameBack" | "Waiting" | "DidNotComeBack" | "NotMeasurable";
         AbsentResponse: {
             /** Format: uuid */
             memberId: string;
@@ -9766,10 +9771,7 @@ export interface operations {
     };
     GetAbsenceSmsEffect: {
         parameters: {
-            query?: {
-                From?: string;
-                To?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -9783,15 +9785,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AbsenceSmsEffectResponse"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */

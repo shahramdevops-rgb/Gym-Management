@@ -57,7 +57,6 @@ import {
   type FinancialPeriod,
   type FinancialReport,
 } from "../api";
-import { AbsenceSmsCard } from "../components/AbsenceSmsCard";
 import { AttendanceHeatmap } from "../components/AttendanceHeatmap";
 import { BarListChart, type BarListItem } from "../components/BarListChart";
 import { MonthlyChart } from "../components/MonthlyChart";
@@ -157,7 +156,7 @@ export function DashboardPage() {
   const attendance = useAttendanceReport(range, { enabled: canAsk });
   const members = useMembersReport(range, { enabled: canAsk });
   const cafeProducts = useTopCafeProducts(range, { enabled: canAsk });
-  const absenceSms = useAbsenceSmsEffect(range, { enabled: canAsk });
+  const absenceSms = useAbsenceSmsEffect();
   const receivables = useReceivables();
   const plans = useSubscriptionsSnapshot();
   const attention = useNeedsAttention();
@@ -320,7 +319,6 @@ export function DashboardPage() {
                 />
               </>
             )}
-            {absenceSms.isSuccess && <AbsenceSmsCard effect={absenceSms.data} />}
           </dl>
         </section>
       )}
@@ -371,7 +369,9 @@ export function DashboardPage() {
         </section>
       )}
 
-      {attention.isSuccess && <NeedsAttentionPanel data={attention.data} />}
+      {attention.isSuccess && (
+        <NeedsAttentionPanel data={attention.data} absenceSms={absenceSms.data} />
+      )}
 
       {canAsk &&
         (financial.isSuccess ||

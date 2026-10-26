@@ -91,14 +91,11 @@ public static class ReportsEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
         reports.MapGet("/absence-sms", async (
-                [AsParameters] GetAbsenceSmsEffectQuery query,
                 GetAbsenceSmsEffectHandler handler,
                 CancellationToken ct) =>
-                    Results.Ok(await handler.Handle(query, ct)))
-            .AddEndpointFilter<ValidationFilter<GetAbsenceSmsEffectQuery>>()
+                    Results.Ok(await handler.Handle(ct)))
             .WithName("GetAbsenceSmsEffect")
-            .Produces<AbsenceSmsEffectResponse>()
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .Produces<AbsenceSmsEffectResponse>();
 
         return app;
     }

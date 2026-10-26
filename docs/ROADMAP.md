@@ -3065,9 +3065,33 @@ it does not mix with 15.1.
       visit before the message, a failed or cancelled message, the range by the day of sending)
 - [x] The card «اثر پیامک غیبت» beside the renewal and conversion rates, and its list in a dialog
       opened by «فهرست نام‌ها» (`StatCard` took an `action`); a visit on the day itself reads
-      «همان روز آمد», the window's last day «امروز روز آخر است»
+      «همان روز آمد», the window's last day «امروز روز آخر است» (committed as `ad199ff`)
 
-No migration: everything is read from `notifications` and `attendances`.
+Second round, the same day, after the developer saw it running: "a new month empties it" and "a
+plan that ends inside the window gives wrong data". Decided with the developer:
+- [x] The window is **5 days** (14, then 7, then 5: the closer to the message, the more a visit is
+      its answer)
+- [x] **Not measurable** («قابل سنجش نیست»), apart from the rate: the plan held on the day of
+      sending ends inside the window or was cancelled (known from that day, so it leans the
+      figure neither way), or it was frozen inside the window before the member came. Rate = came
+      back ÷ (came back + did not)
+- [x] No control group (members left without the SMS): declined by the developer. Instead, how
+      soon those who came back came, day 0 to day 5, as a sign of the message's effect
+- [x] «اثر پیامک غیبت» in «نیاز به اقدام», under «بدهی قدیمی»: every message since the first,
+      whatever the range (`GET /api/reports/absence-sms/overall`), with the counts, the cost per
+      return, the days to come back and the same month by Jalali month; no names. The card in
+      «خلاصهٔ بازه» stays, with the same rules (`AbsenceSmsEffectReader` serves both)
+
+Third round, the same day, asked by the developer:
+- [x] The card in «خلاصهٔ بازه» taken off: one place only. The report has no range any more
+      (`GET /api/reports/absence-sms`; the range query, its validator, the reader and `/overall`
+      removed; `StatCard`'s `action` with them)
+- [x] «فهرست نام‌ها» moved to the box in «نیاز به اقدام»: the last **30 days** only, so it stays
+      short (`AbsenceSmsNamesDialog`, counted back from the report's own today)
+- [x] The box takes the place of «بدهی قدیمی», which moves to the end of the panel (`ListFrame`
+      moved to a file of its own, shared by the panel and the box)
+
+No migration: everything is read from `notifications`, `attendances` and `subscriptions`.
 
 ---
 

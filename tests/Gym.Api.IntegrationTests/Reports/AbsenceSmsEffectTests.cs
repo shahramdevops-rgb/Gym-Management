@@ -18,10 +18,10 @@ namespace Gym.Api.IntegrationTests.Reports;
 /// The absence SMS's effect: BUSINESS_RULES.md §12 <i>The absence SMS's effect</i> (task 10.19).
 /// </summary>
 /// <remarks>
-/// Each case turns on days between a message, a visit and today, so the handler runs against a
-/// <see cref="FakeTimeProvider"/> pinned to Monday 2026-10-26, 13:30 in Tehran, and the messages and
-/// visits are written straight into the tables at the moments each case needs. The endpoint's wiring
-/// is in <see cref="OperationalReportsEndpointTests"/>.
+/// Each case turns on days between a message, a visit, the plan's end and today, so the handlers run
+/// against a <see cref="FakeTimeProvider"/> pinned to Monday 2026-10-26, 13:30 in Tehran, and the
+/// messages, plans and visits are written straight into the tables with the moments each case needs.
+/// The endpoints' wiring is in <see cref="OperationalReportsEndpointTests"/>.
 /// </remarks>
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class AbsenceSmsEffectTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
@@ -36,32 +36,34 @@ public sealed class AbsenceSmsEffectTests(DatabaseFixture fixture) : DatabaseTes
     private static int _phoneSuffix;
 
     [Fact]
-    public async Task Effect_VisitWithin14Days_CameBackWithItsDays()
+    public async Task Effect_VisitWithin5Days_CameBackWithItsDays()
     {
-        var three = await AddMemberWithPlanAsync("علی سه‌روز");
-        await AddSentAsync(three.Member.Id, At(Today.AddDays(-20), 10));
-        await AddVisitAsync(three, At(Today.AddDays(-17), 18));
-        var fourteen = await AddMemberWithPlanAsync("مریم چهارده‌روز");
-        await AddSentAsync(fourteen.Member.Id, At(Today.AddDays(-30), 10));
-        await AddVisitAsync(fourteen, At(Today.AddDays(-16), 21));
-        var fifteen = await AddMemberWithPlanAsync("رضا پانزده‌روز");
-        await AddSentAsync(fifteen.Member.Id, At(Today.AddDays(-30), 10));
-        await AddVisitAsync(fifteen, At(Today.AddDays(-15), 8));
+        var two = await AddMemberWithPlanAsync("علی دوروز");
+        await AddSentAsync(two.Member.Id, At(Today.AddDays(-20), 10));
+        await AddVisitAsync(two, At(Today.AddDays(-18), 18));
+        var five = await AddMemberWithPlanAsync("مریم پنج‌روز");
+        await AddSentAsync(five.Member.Id, At(Today.AddDays(-25), 10));
+        await AddVisitAsync(five, At(Today.AddDays(-20), 21));
+        var six = await AddMemberWithPlanAsync("رضا شش‌روز");
+        await AddSentAsync(six.Member.Id, At(Today.AddDays(-25), 10));
+        await AddVisitAsync(six, At(Today.AddDays(-19), 8));
 
-        var effect = await EffectAsync(Today.AddDays(-30), Today);
+        var effect = await EffectAsync();
 
         effect.Sent.ShouldBe(3);
         effect.CameBack.ShouldBe(2);
-        effect.Waiting.ShouldBe(0);
         effect.DidNotComeBack.ShouldBe(1);
-        effect.AverageDaysToComeBack.ShouldBe(8.5m);
+        effect.Waiting.ShouldBe(0);
+        effect.NotMeasurable.ShouldBe(0);
+        effect.AverageDaysToComeBack.ShouldBe(3.5m);
+        effect.CameBackByDay.ShouldBe([0, 0, 1, 0, 0, 1]);
 
         // Those who came back first, the latest sent first; then those who did not.
         effect.Messages.Select(message => (message.MemberId, message.Outcome, message.DaysToComeBack)).ShouldBe(
         [
-            (three.Member.Id, AbsenceSmsOutcome.CameBack, (int?)3),
-            (fourteen.Member.Id, AbsenceSmsOutcome.CameBack, 14),
-            (fifteen.Member.Id, AbsenceSmsOutcome.DidNotComeBack, null),
+            (two.Member.Id, AbsenceSmsOutcome.CameBack, (int?)2),
+            (five.Member.Id, AbsenceSmsOutcome.CameBack, 5),
+            (six.Member.Id, AbsenceSmsOutcome.DidNotComeBack, null),
         ]);
     }
 
@@ -78,7 +80,7 @@ public sealed class AbsenceSmsEffectTests(DatabaseFixture fixture) : DatabaseTes
         await AddSentAsync(cardio.Member.Id, At(Today.AddDays(-20), 10));
         await AddVisitAsync(cardio, At(Today.AddDays(-20), 19), cardioOnly: true);
 
-        var effect = await EffectAsync(Today.AddDays(-20), Today);
+        var effect = await EffectAsync();
 
         // A visit the same evening is day 0; one that morning came before the message.
         effect.Messages.Single(message => message.MemberId == cardio.Member.Id).DaysToComeBack.ShouldBe(0);
@@ -88,63 +90,78 @@ public sealed class AbsenceSmsEffectTests(DatabaseFixture fixture) : DatabaseTes
     }
 
     [Fact]
-    public async Task Effect_14DaysNotOver_IsWaitingAndLeftOutOfTheAverage()
+    public async Task Effect_5DaysNotOver_IsWaitingAndLeftOutOfTheAverage()
     {
         var recent = await AddMemberWithPlanAsync("علی تازه");
-        await AddSentAsync(recent.Member.Id, At(Today.AddDays(-3), 10));
+        await AddSentAsync(recent.Member.Id, At(Today.AddDays(-2), 10));
         var lastDay = await AddMemberWithPlanAsync("مریم روز آخر");
-        await AddSentAsync(lastDay.Member.Id, At(Today.AddDays(-14), 10));
+        await AddSentAsync(lastDay.Member.Id, At(Today.AddDays(-5), 10));
         var over = await AddMemberWithPlanAsync("رضا تمام‌شده");
-        await AddSentAsync(over.Member.Id, At(Today.AddDays(-15), 10));
+        await AddSentAsync(over.Member.Id, At(Today.AddDays(-6), 10));
 
-        var effect = await EffectAsync(Today.AddDays(-30), Today);
+        var effect = await EffectAsync();
 
         effect.Waiting.ShouldBe(2);
         effect.DidNotComeBack.ShouldBe(1);
         effect.AverageDaysToComeBack.ShouldBeNull();
+        effect.CostPerReturnToman.ShouldBeNull();
         effect.Messages.Where(message => message.Outcome == AbsenceSmsOutcome.Waiting)
             .Select(message => (message.MemberId, message.DaysLeft))
-            .ShouldBe([(recent.Member.Id, (int?)11), (lastDay.Member.Id, 0)]);
+            .ShouldBe([(recent.Member.Id, (int?)3), (lastDay.Member.Id, 0)]);
+    }
+
+    [Fact]
+    public async Task Effect_PlanEndingOrFrozenInsideTheWindow_IsNotMeasurable()
+    {
+        var endsInside = await AddMemberWithPlanAsync("علی پلن کوتاه", planEnd: Today.AddDays(-17));
+        await AddSentAsync(endsInside.Member.Id, At(Today.AddDays(-20), 10));
+        await AddVisitAsync(endsInside, At(Today.AddDays(-19), 18));
+        var endsOnLastDay = await AddMemberWithPlanAsync("مریم پلن تا روز آخر", planEnd: Today.AddDays(-15));
+        await AddSentAsync(endsOnLastDay.Member.Id, At(Today.AddDays(-20), 10));
+        var frozen = await AddMemberWithPlanAsync("رضا فریز", frozenSince: Today.AddDays(-18));
+        await AddSentAsync(frozen.Member.Id, At(Today.AddDays(-20), 10));
+        var cancelledPlan = await AddMemberWithPlanAsync("زهرا پلن لغوشده", cancelled: true);
+        await AddSentAsync(cancelledPlan.Member.Id, At(Today.AddDays(-20), 10));
+
+        var effect = await EffectAsync();
+
+        // Even a member who came is not measured when the plan ended inside the window: that is
+        // known from the day of sending, so it leans the figure neither way.
+        effect.Messages.Where(message => message.Outcome == AbsenceSmsOutcome.NotMeasurable)
+            .Select(message => message.MemberId)
+            .ShouldBe([endsInside.Member.Id, frozen.Member.Id, cancelledPlan.Member.Id], ignoreOrder: true);
+        effect.Messages.Single(message => message.MemberId == endsOnLastDay.Member.Id).Outcome
+            .ShouldBe(AbsenceSmsOutcome.DidNotComeBack);
+        effect.Sent.ShouldBe(4);
+        effect.NotMeasurable.ShouldBe(3);
     }
 
     [Fact]
     public async Task Effect_MessagesThatNeverReachedThePhone_AreLeftOutOfCountsAndCost()
     {
         var delivered = await AddMemberWithPlanAsync("علی رسیده");
-        await AddSentAsync(delivered.Member.Id, At(Today.AddDays(-5), 10), delivery: SmsDelivery.Delivered);
+        await AddSentAsync(delivered.Member.Id, At(Today.AddDays(-10), 10), delivery: SmsDelivery.Delivered);
+        await AddVisitAsync(delivered, At(Today.AddDays(-9), 18));
         var unreported = await AddMemberWithPlanAsync("مریم بی‌گزارش");
-        await AddSentAsync(unreported.Member.Id, At(Today.AddDays(-5), 10));
+        await AddSentAsync(unreported.Member.Id, At(Today.AddDays(-10), 10));
         var cancelledByProvider = await AddMemberWithPlanAsync("رضا لغوشده");
-        await AddSentAsync(cancelledByProvider.Member.Id, At(Today.AddDays(-5), 10), delivery: SmsDelivery.Cancelled);
+        await AddSentAsync(cancelledByProvider.Member.Id, At(Today.AddDays(-10), 10), delivery: SmsDelivery.Cancelled);
         var blocked = await AddMemberWithPlanAsync("زهرا مسدود");
-        await AddSentAsync(blocked.Member.Id, At(Today.AddDays(-5), 10), delivery: SmsDelivery.BlockedByReceiver);
+        await AddSentAsync(blocked.Member.Id, At(Today.AddDays(-10), 10), delivery: SmsDelivery.BlockedByReceiver);
         var failed = await AddMemberWithPlanAsync("حسن ناموفق");
-        await SaveAsync(Failed(failed.Member.Id, At(Today.AddDays(-5), 10)));
+        await SaveAsync(Failed(failed.Member.Id, At(Today.AddDays(-10), 10)));
         var birthday = await AddMemberWithPlanAsync("سارا تولد");
         var birthdaySms = Notification.ForBirthday(birthday.Member.Id, 1405, Phone(), Text);
-        birthdaySms.MarkSent(9_000, 2_700m, At(Today.AddDays(-5), 10)).IsSuccess.ShouldBeTrue();
+        birthdaySms.MarkSent(9_000, 2_700m, At(Today.AddDays(-10), 10)).IsSuccess.ShouldBeTrue();
         await SaveAsync(birthdaySms);
 
-        var effect = await EffectAsync(Today.AddDays(-30), Today);
+        var effect = await EffectAsync();
 
         effect.Messages.Select(message => message.MemberId)
             .ShouldBe([delivered.Member.Id, unreported.Member.Id], ignoreOrder: true);
         effect.Sent.ShouldBe(2);
         effect.CostToman.ShouldBe(270m);
-    }
-
-    [Fact]
-    public async Task Effect_Range_IsByTheGymsDayOfSending()
-    {
-        var lateEvening = await AddMemberWithPlanAsync("علی دیروقت");
-        await AddSentAsync(lateEvening.Member.Id, At(Today.AddDays(-10), 23, 50));
-        var afterMidnight = await AddMemberWithPlanAsync("مریم بامداد");
-        await AddSentAsync(afterMidnight.Member.Id, At(Today.AddDays(-9), 0, 10));
-
-        var effect = await EffectAsync(Today.AddDays(-9), Today);
-
-        effect.Messages.ShouldHaveSingleItem().MemberId.ShouldBe(afterMidnight.Member.Id);
-        effect.Messages[0].SentOn.ShouldBe(Today.AddDays(-9));
+        effect.CostPerReturnToman.ShouldBe(270m);
     }
 
     [Fact]
@@ -153,12 +170,12 @@ public sealed class AbsenceSmsEffectTests(DatabaseFixture fixture) : DatabaseTes
         var twice = await AddMemberWithPlanAsync("علی دوبار");
         await AddSentAsync(twice.Member.Id, At(Today.AddDays(-28), 10), absentSince: Today.AddDays(-40));
         await AddVisitAsync(twice, At(Today.AddDays(-27), 18));
-        await AddSentAsync(twice.Member.Id, At(Today.AddDays(-5), 10), absentSince: Today.AddDays(-27));
+        await AddSentAsync(twice.Member.Id, At(Today.AddDays(-3), 10), absentSince: Today.AddDays(-27));
         var deactivated = await AddMemberWithPlanAsync("مریم غیرفعال");
-        await AddSentAsync(deactivated.Member.Id, At(Today.AddDays(-5), 10));
+        await AddSentAsync(deactivated.Member.Id, At(Today.AddDays(-3), 10));
         await DeactivateAsync(deactivated.Member.Id);
 
-        var effect = await EffectAsync(Today.AddDays(-30), Today);
+        var effect = await EffectAsync();
 
         effect.Sent.ShouldBe(3);
         effect.CameBack.ShouldBe(1);
@@ -168,17 +185,45 @@ public sealed class AbsenceSmsEffectTests(DatabaseFixture fixture) : DatabaseTes
     [Fact]
     public async Task Effect_NoMessage_IsZerosWithNoAverage()
     {
-        var effect = await EffectAsync(Today.AddDays(-30), Today);
+        var effect = await EffectAsync();
 
         effect.Sent.ShouldBe(0);
         effect.AverageDaysToComeBack.ShouldBeNull();
+        effect.CameBackByDay.ShouldBe([0, 0, 0, 0, 0, 0]);
         effect.CostToman.ShouldBe(0m);
         effect.Messages.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task Effect_EveryMessageSinceTheFirst_FromItsDay()
+    {
+        var old = await AddMemberWithPlanAsync("علی پارسال", planStart: Today.AddDays(-500), planEnd: Today.AddDays(30));
+        await AddSentAsync(old.Member.Id, At(Today.AddDays(-400), 10));
+        var recent = await AddMemberWithPlanAsync("مریم امسال");
+        await AddSentAsync(recent.Member.Id, At(Today.AddDays(-2), 10));
+
+        var effect = await EffectAsync();
+
+        // More than a year back: every message since the first, whatever the dashboard's range.
+        effect.From.ShouldBe(Today.AddDays(-400));
+        effect.To.ShouldBe(Today);
+        effect.Sent.ShouldBe(2);
+        effect.DidNotComeBack.ShouldBe(1);
+        effect.Waiting.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Effect_NoMessage_IsFromToday()
+    {
+        var effect = await EffectAsync();
+
+        effect.From.ShouldBe(Today);
+        effect.Sent.ShouldBe(0);
+    }
+
     // ---- The handler under the pinned clock ----
 
-    private async Task<AbsenceSmsEffectResponse> EffectAsync(DateOnly from, DateOnly to)
+    private async Task<AbsenceSmsEffectResponse> EffectAsync()
     {
         var calendar = new GymCalendar(
             new FakeTimeProvider(new DateTimeOffset(2026, 10, 26, 10, 0, 0, TimeSpan.Zero)),
@@ -186,8 +231,7 @@ public sealed class AbsenceSmsEffectTests(DatabaseFixture fixture) : DatabaseTes
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
 
-        return await new GetAbsenceSmsEffectHandler(db, calendar)
-            .Handle(new GetAbsenceSmsEffectQuery(from, to), TestContext.Current.CancellationToken);
+        return await new GetAbsenceSmsEffectHandler(db, calendar).Handle(TestContext.Current.CancellationToken);
     }
 
     // ---- Rows written at the moments each case needs ----
@@ -202,17 +246,37 @@ public sealed class AbsenceSmsEffectTests(DatabaseFixture fixture) : DatabaseTes
 
     private static string Phone() => $"+98917{Interlocked.Increment(ref _phoneSuffix):D7}";
 
-    /// <summary>An active member with a plan that started 50 days ago, for their visits to belong to.</summary>
-    private async Task<(Member Member, Guid PlanId)> AddMemberWithPlanAsync(string fullName)
+    /// <summary>
+    /// An active member with a plan from <paramref name="planStart"/> (50 days ago) to
+    /// <paramref name="planEnd"/> (30 days from now), for their visits to belong to.
+    /// </summary>
+    private async Task<(Member Member, Guid PlanId)> AddMemberWithPlanAsync(
+        string fullName,
+        DateOnly? planStart = null,
+        DateOnly? planEnd = null,
+        DateOnly? frozenSince = null,
+        bool cancelled = false)
     {
         var member = TestMembers.Seed(fullName, Phone());
-        var plan = Subscription.CreateMembership(member.Id, sessionCount: 30, sessionPrice: 90_000m, Today.AddDays(-50)).Value;
+        var start = planStart ?? Today.AddDays(-50);
+        var plan = Subscription.CreateMembership(member.Id, sessionCount: 30, sessionPrice: 90_000m, start).Value;
 
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Members.Add(member);
         db.Subscriptions.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var end = planEnd ?? Today.AddDays(30);
+        DateTimeOffset? cancelledAt = cancelled ? At(start, 12) : null;
+        var reason = cancelled ? "انصراف" : null;
+        await db.Database.ExecuteSqlAsync(
+            $"""
+            UPDATE subscriptions
+            SET end_date = {end}, frozen_since = {frozenSince}, cancelled_at = {cancelledAt}, cancellation_reason = {reason}
+            WHERE id = {plan.Id}
+            """,
+            TestContext.Current.CancellationToken);
 
         return (member, plan.Id);
     }

@@ -7,6 +7,15 @@ public sealed class AbsenceSmsEffectTests
 {
     private static readonly DateOnly SentOn = new(2026, 10, 10);
 
+    /// <summary>A plan that covers the whole window and more.</summary>
+    private static readonly DateOnly PlanEnd = SentOn.AddDays(30);
+
+    private static readonly DateOnly Later = SentOn.AddDays(30);
+
+    private static AbsenceSmsFollowUp FollowUp(
+        DateOnly? firstVisitOn, DateOnly? today = null, DateOnly? planEndOn = null, DateOnly? frozenSince = null) =>
+        AbsenceSmsEffect.FollowUp(SentOn, planEndOn ?? PlanEnd, frozenSince, firstVisitOn, today ?? Later);
+
     // ---- Which messages count ----
 
     [Fact]
@@ -32,39 +41,59 @@ public sealed class AbsenceSmsEffectTests
     public void Counts_NotSent_DoesNotCount(NotificationStatus status) =>
         AbsenceSmsEffect.Counts(status, null).ShouldBeFalse();
 
-    // ---- What became of it ----
+    // ---- Came back, waiting, did not ----
 
     [Fact]
     public void FollowUp_CameTheSameDay_CameBackAfterZeroDays() =>
-        AbsenceSmsEffect.FollowUp(SentOn, SentOn, SentOn.AddDays(30))
-            .ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.CameBack, 0, null));
+        FollowUp(SentOn).ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.CameBack, 0, null));
 
     [Fact]
     public void FollowUp_CameOnTheWindowsLastDay_CameBack() =>
-        AbsenceSmsEffect.FollowUp(SentOn, SentOn.AddDays(14), SentOn.AddDays(30))
-            .ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.CameBack, 14, null));
+        FollowUp(SentOn.AddDays(5)).ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.CameBack, 5, null));
 
     [Fact]
     public void FollowUp_CameTheDayAfterTheWindow_DidNotComeBack() =>
-        AbsenceSmsEffect.FollowUp(SentOn, SentOn.AddDays(15), SentOn.AddDays(30))
-            .ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.DidNotComeBack, null, null));
+        FollowUp(SentOn.AddDays(6)).ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.DidNotComeBack, null, null));
 
     [Fact]
     public void FollowUp_NotComeYetInsideTheWindow_IsWaitingWithItsDaysLeft() =>
-        AbsenceSmsEffect.FollowUp(SentOn, null, SentOn.AddDays(4))
-            .ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.Waiting, null, 10));
+        FollowUp(null, today: SentOn.AddDays(2)).ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.Waiting, null, 3));
 
     [Fact]
     public void FollowUp_NotComeOnTheWindowsLastDay_IsStillWaiting() =>
-        AbsenceSmsEffect.FollowUp(SentOn, null, SentOn.AddDays(14))
-            .ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.Waiting, null, 0));
+        FollowUp(null, today: SentOn.AddDays(5)).ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.Waiting, null, 0));
 
     [Fact]
     public void FollowUp_NotComeAndTheWindowOver_DidNotComeBack() =>
-        AbsenceSmsEffect.FollowUp(SentOn, null, SentOn.AddDays(15))
-            .ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.DidNotComeBack, null, null));
+        FollowUp(null, today: SentOn.AddDays(6)).ShouldBe(new AbsenceSmsFollowUp(AbsenceSmsOutcome.DidNotComeBack, null, null));
+
+    // ---- Not measurable ----
+
+    [Fact]
+    public void FollowUp_PlanEndsOnTheWindowsLastDay_IsMeasured() =>
+        FollowUp(null, planEndOn: SentOn.AddDays(5)).Outcome.ShouldBe(AbsenceSmsOutcome.DidNotComeBack);
+
+    [Fact]
+    public void FollowUp_PlanEndsInsideTheWindow_IsNotMeasurableEvenIfTheMemberCame() =>
+        FollowUp(SentOn.AddDays(1), planEndOn: SentOn.AddDays(4)).Outcome.ShouldBe(AbsenceSmsOutcome.NotMeasurable);
+
+    [Fact]
+    public void FollowUp_NoPlanFoundAnyMore_IsNotMeasurable() =>
+        AbsenceSmsEffect.FollowUp(SentOn, null, null, SentOn.AddDays(1), Later).Outcome.ShouldBe(AbsenceSmsOutcome.NotMeasurable);
+
+    [Fact]
+    public void FollowUp_FrozenInsideTheWindowBeforeComing_IsNotMeasurable() =>
+        FollowUp(null, frozenSince: SentOn.AddDays(2)).Outcome.ShouldBe(AbsenceSmsOutcome.NotMeasurable);
+
+    [Fact]
+    public void FollowUp_FrozenAfterComingBack_CameBack() =>
+        FollowUp(SentOn.AddDays(1), frozenSince: SentOn.AddDays(3)).Outcome.ShouldBe(AbsenceSmsOutcome.CameBack);
+
+    [Fact]
+    public void FollowUp_FrozenAfterTheWindow_DidNotComeBack() =>
+        FollowUp(null, frozenSince: SentOn.AddDays(6)).Outcome.ShouldBe(AbsenceSmsOutcome.DidNotComeBack);
 
     [Fact]
     public void FollowUp_AVisitBeforeTheMessage_Throws() =>
-        Should.Throw<ArgumentOutOfRangeException>(() => AbsenceSmsEffect.FollowUp(SentOn, SentOn.AddDays(-1), SentOn));
+        Should.Throw<ArgumentOutOfRangeException>(() => FollowUp(SentOn.AddDays(-1)));
 }

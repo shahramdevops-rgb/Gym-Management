@@ -57,12 +57,82 @@ export function conversionRate(converted: number, trials: number, waiting: numbe
 }
 
 /**
- * The share of absence SMS whose member came back within 14 days, in percent (§12 *The absence
- * SMS's effect*, 1405/08/04): came back ÷ (sent − waiting), the renewal rate's own rule. Null
- * when no message has had its full 14 days yet.
+ * The share of measured absence SMS whose member came back within 5 days, in percent (§12 *The
+ * absence SMS's effect*, 1405/08/04): came back ÷ (came back + did not). Those waiting and those
+ * not measurable are left out. Null when no message has been decided yet.
  */
-export function absenceSmsRate(cameBack: number, sent: number, waiting: number): number | null {
-  return renewalRate(cameBack, sent, waiting);
+export function absenceSmsRate(cameBack: number, didNotComeBack: number): number | null {
+  const decided = cameBack + didNotComeBack;
+
+  return decided > 0 ? (cameBack / decided) * 100 : null;
+}
+
+/** One absence SMS, as far as a month's figures need it. */
+export interface AbsenceSmsSent {
+  sentOn: string;
+  outcome: "CameBack" | "Waiting" | "DidNotComeBack" | "NotMeasurable";
+}
+
+/** One Jalali month of absence SMS, by the day each was sent. */
+export interface AbsenceSmsMonth {
+  /** `۱۴۰۵/۰۸`, sortable and unique. */
+  key: string;
+  /** «آبان ۱۴۰۵». */
+  label: string;
+  sent: number;
+  cameBack: number;
+  didNotComeBack: number;
+  waiting: number;
+  notMeasurable: number;
+  rate: number | null;
+}
+
+/**
+ * The absence SMS added up into Jalali months by the day each was sent, the latest first (§12
+ * *The absence SMS's effect*: the overall view, month by month).
+ */
+export function absenceSmsByMonth(messages: AbsenceSmsSent[]): AbsenceSmsMonth[] {
+  const months = new Map<string, AbsenceSmsMonth>();
+
+  for (const message of messages) {
+    const parts = jalaliPartsOf(message.sentOn);
+    if (parts === null) {
+      continue;
+    }
+
+    const key = `${parts.year}/${String(parts.month).padStart(2, "0")}`;
+    const month = months.get(key) ?? {
+      key,
+      label: `${jalaliMonthNames[parts.month - 1]} ${toPersianDigits(parts.year)}`,
+      sent: 0,
+      cameBack: 0,
+      didNotComeBack: 0,
+      waiting: 0,
+      notMeasurable: 0,
+      rate: null,
+    };
+
+    month.sent += 1;
+    switch (message.outcome) {
+      case "CameBack":
+        month.cameBack += 1;
+        break;
+      case "DidNotComeBack":
+        month.didNotComeBack += 1;
+        break;
+      case "Waiting":
+        month.waiting += 1;
+        break;
+      case "NotMeasurable":
+        month.notMeasurable += 1;
+        break;
+    }
+    months.set(key, month);
+  }
+
+  return [...months.values()]
+    .sort((a, b) => b.key.localeCompare(a.key))
+    .map((month) => ({ ...month, rate: absenceSmsRate(month.cameBack, month.didNotComeBack) }));
 }
 
 /** The hours shown when nobody came at all, so the empty table still has the gym's day. */
