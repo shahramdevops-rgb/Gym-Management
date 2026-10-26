@@ -2086,3 +2086,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **`pathLength` makes a dash animation size-free.** With `pathLength="100"` and dashes every 50, moving the offset by 50 loops without a jump, whatever the path's real length.
 - **`transform-box: fill-box` lets CSS grow an SVG shape from its own base.** Without it, `transform-origin` is measured from the whole SVG, and the shed would rise from the picture's corner.
 - **My notes:**
+
+## 6.5.38 — A plan has at most 30 sessions (سقف ۳۰ جلسه)
+
+- **One constant, many readers.** `Subscription.MaxSessionCount` feeds the entity, both validators, the error text, the SMS rows' limits and the check constraints, so lowering it from 140 to 30 moved all of them; only the frontend's copy and the Persian messages are written twice.
+- **Look at the live rows before tightening a constraint.** A check constraint is checked against every existing row when it is added, so one plan of 123 sessions on the server would have failed the migration and the release. A read-only query (`default_transaction_read_only=on`) found it first.
+- **Make room in the constraint, don't rewrite history.** The 123 was a cancelled mistake, but a sale is a financial record: instead of deleting it, the check says "5 to 30, or cancelled and at most the old 140". Every live plan obeys the new rule, and the old row stays true to what happened.
+- **A check constraint runs on UPDATE too.** `NOT VALID` only skips the check of old rows once; the next check-in that touches such a row is checked again. That is why the exception is written into the condition itself, not left to `NOT VALID`.
+- **A migration test pins the server's shape.** Migrating an empty database to the migration before, inserting the server's kind of row, then migrating to the end proves the release will not stop on that row.
+- **My notes:**

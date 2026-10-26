@@ -36,7 +36,7 @@ interface PlanFormProps {
 
 /**
  * Sessions, with the days and the price shown before the desk confirms. Neither is typed: the days
- * follow from the sessions (5–10 → 30, 11–20 → 45, 21–140 → 70) and the price is the sessions
+ * follow from the sessions (5–10 → 30, 11–20 → 45, 21–30 → 70) and the price is the sessions
  * times the session price the Owner set (BUSINESS_RULES.md §3, task 6.5.18). The days box fills
  * itself in as the sessions are typed and is locked.
  *

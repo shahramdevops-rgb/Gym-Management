@@ -18,8 +18,8 @@ export const cancelReasonMaxLength = 500;
 /** The same limits as the API's `Subscription.CreateMembership` (BUSINESS_RULES.md §3). */
 export const planLimits = {
   minSessionCount: 5,
-  /** Nobody trains more than once a day, so a 70-day plan tops out here. */
-  maxSessionCount: 140,
+  /** Decided by the Owner, 1405/08/03 (task 6.5.38); it was 140. */
+  maxSessionCount: 30,
 } as const;
 
 /**

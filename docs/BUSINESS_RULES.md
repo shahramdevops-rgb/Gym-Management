@@ -221,11 +221,15 @@ from.** Each member's plan is built for them at the desk, and every session cost
   |---|---|
   | 5 to 10 | 30 |
   | 11 to 20 | 45 |
-  | 21 to 140 | 70 |
+  | 21 to 30 | 70 |
 
-  - Fewer than 5 sessions is refused (`Subscriptions.SessionCountTooLow`); more than 140 is refused
-    (`Subscriptions.SessionCountTooHigh`). Nobody trains more than once a day, so 140 is the
-    ceiling of a 70-day plan with room to spare.
+  - Fewer than 5 sessions is refused (`Subscriptions.SessionCountTooLow`); more than **30** is
+    refused (`Subscriptions.SessionCountTooHigh`), at the desk with «حداکثر ۳۰ جلسه می‌شود فروخت؛
+    لطفاً عددی از ۵ تا ۳۰ بنویسید.» (decided by the Owner on 1405/08/03 (2026-10-25), roadmap
+    6.5.38, replacing the ceiling of 140 of 6.5.18). The days of the table did not change.
+  - A plan sold before then keeps its sessions; a sale is never rewritten. The only one above 30 was
+    123 sessions typed by mistake and already cancelled, with nothing paid, so it is kept as a
+    cancelled plan. Renewing a plan above 30 is refused like any other sale of that many.
   - The server works the days out. The sale form shows them, filled in by themselves as the
     sessions are typed, and does not let the desk change them.
   - There is no "unlimited sessions" plan. Every subscription has a session count.
@@ -284,7 +288,7 @@ from.** Each member's plan is built for them at the desk, and every session cost
   6. `Active`
 - `ConsumeSession(today)` fails unless the status is `Active`. It increments `UsedSessions`.
 - `RestoreSession()` decrements `UsedSessions` (used only by cancel check-in) and never goes below 0.
-- Database: `total_sessions` is required; check constraints `used_sessions <= total_sessions`, and, unless single-session, 5 to 140 sessions with the days the §3 table gives them; `xmin` concurrency token.
+- Database: `total_sessions` is required; check constraints `used_sessions <= total_sessions`, and, unless single-session, 5 to 30 sessions with the days the §3 table gives them (a cancelled plan may have up to the old 140, task 6.5.38); `xmin` concurrency token.
 
 ### Single-session subscriptions (تک‌جلسه‌ای)
 
@@ -1335,8 +1339,8 @@ sent that the Owner did not choose, and the same message is never paid for twice
   *N sessions* left, where *N* depends on the plan's size (decided with the developer, 1405/08/01,
   task 10.17): three rows, plans of 5 sessions (the smallest plan, §3) up to a size the Owner
   chooses (8 at first), up to a second size (15 at first), and every bigger plan, each with its own
-  *N* from **1 to 4**. The plan's size is the sessions bought on it. The first row ends at 5 to 139
-  sessions, the second above it and at most 140 (`Sms.LowSessionsSmallPlanMaxOutOfRange`,
+  *N* from **1 to 4**. The plan's size is the sessions bought on it. The first row ends at 5 to 29
+  sessions, the second above it and at most 30 (since 6.5.38; it was 139 and 140) (`Sms.LowSessionsSmallPlanMaxOutOfRange`,
   `Sms.LowSessionsMediumPlanMaxOutOfRange`, `Sms.LowSessionsOutOfRange`); the database holds the
   same. When the rows came in, the one number the Owner had chosen was carried into all three,
   capped at 4.
@@ -1618,7 +1622,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   |---|---|---|
   | All SMS | on/off | |
   | Subscription running out | on/off, days before `EndDate`, send time | 1–30 days |
-  | Few sessions left | on/off, two plan sizes that divide three rows, sessions left for each row, send time | 1–4 sessions; first row ends at 5–139, second above it, at most 140 |
+  | Few sessions left | on/off, two plan sizes that divide three rows, sessions left for each row, send time | 1–4 sessions; first row ends at 5–29, second above it, at most 30 |
   | Birthday | on/off, days before the birthday, send time | 1–7 days |
   | Cheques and instalments | on/off, days before the date, send time, the Owner's mobile number | 0–30 days |
   | Daily report | on/off, the mobile number it goes to, send time | 08:00–23:45 |

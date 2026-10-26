@@ -116,9 +116,9 @@ export const errorMessages: Record<string, string> = {
   // SMS settings (BUSINESS_RULES.md §10 *SMS settings*)
   "Sms.SubscriptionExpiringDaysOutOfRange": "تعداد روز باید از ۱ تا ۳۰ باشد.",
   "Sms.LowSessionsOutOfRange": "تعداد جلسه باید از ۱ تا ۴ باشد.",
-  "Sms.LowSessionsSmallPlanMaxOutOfRange": "اندازهٔ پلن ردیف اول باید از ۵ تا ۱۳۹ جلسه باشد.",
+  "Sms.LowSessionsSmallPlanMaxOutOfRange": "اندازهٔ پلن ردیف اول باید از ۵ تا ۲۹ جلسه باشد.",
   "Sms.LowSessionsMediumPlanMaxOutOfRange":
-    "اندازهٔ پلن ردیف دوم باید بزرگ‌تر از ردیف اول و حداکثر ۱۴۰ جلسه باشد.",
+    "اندازهٔ پلن ردیف دوم باید بزرگ‌تر از ردیف اول و حداکثر ۳۰ جلسه باشد.",
   "Sms.BirthdayDaysOutOfRange": "تعداد روز باید از ۱ تا ۷ باشد.",
   "Sms.PayableDueDaysOutOfRange": "تعداد روز باید از ۰ تا ۳۰ باشد (۰ یعنی خود روز سررسید).",
   "Sms.DebtReminderDaysOutOfRange": "تعداد روز باید از ۱ تا ۹۰ باشد.",
@@ -148,7 +148,8 @@ export const errorMessages: Record<string, string> = {
   // Subscriptions
   "Subscriptions.NotFound": "اشتراک پیدا نشد.",
   "Subscriptions.SessionCountTooLow": "تعداد جلسات باید حداقل ۵ باشد.",
-  "Subscriptions.SessionCountTooHigh": "تعداد جلسات حداکثر ۱۴۰ است.",
+  "Subscriptions.SessionCountTooHigh":
+    "حداکثر ۳۰ جلسه می‌شود فروخت؛ لطفاً عددی از ۵ تا ۳۰ بنویسید.",
   "Subscriptions.PriceTooLarge": "قیمت این پلن بیش از حد بزرگ است.",
   "Subscriptions.NothingToRenew": "این عضو اشتراکی برای تمدید ندارد.",
   "Subscriptions.ChangedConcurrently":

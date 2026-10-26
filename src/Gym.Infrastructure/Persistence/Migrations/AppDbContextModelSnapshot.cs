@@ -1980,7 +1980,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_sms_settings_low_sessions_on_means_filled", "NOT low_sessions_enabled OR (low_sessions_small_threshold IS NOT NULL AND low_sessions_send_time IS NOT NULL AND low_sessions_medium_threshold IS NOT NULL AND low_sessions_large_threshold IS NOT NULL AND low_sessions_small_plan_max IS NOT NULL AND low_sessions_medium_plan_max IS NOT NULL)");
 
-                            t.HasCheckConstraint("ck_sms_settings_low_sessions_plan_max", "(low_sessions_small_plan_max IS NULL OR low_sessions_small_plan_max BETWEEN 5 AND 139) AND (low_sessions_medium_plan_max IS NULL OR low_sessions_medium_plan_max <= 140) AND (low_sessions_small_plan_max IS NULL OR low_sessions_medium_plan_max IS NULL OR low_sessions_medium_plan_max > low_sessions_small_plan_max)");
+                            t.HasCheckConstraint("ck_sms_settings_low_sessions_plan_max", "(low_sessions_small_plan_max IS NULL OR low_sessions_small_plan_max BETWEEN 5 AND 29) AND (low_sessions_medium_plan_max IS NULL OR low_sessions_medium_plan_max <= 30) AND (low_sessions_small_plan_max IS NULL OR low_sessions_medium_plan_max IS NULL OR low_sessions_medium_plan_max > low_sessions_small_plan_max)");
 
                             t.HasCheckConstraint("ck_sms_settings_low_sessions_thresholds", "(low_sessions_small_threshold IS NULL OR low_sessions_small_threshold BETWEEN 1 AND 4) AND (low_sessions_medium_threshold IS NULL OR low_sessions_medium_threshold BETWEEN 1 AND 4) AND (low_sessions_large_threshold IS NULL OR low_sessions_large_threshold BETWEEN 1 AND 4)");
 
@@ -2524,7 +2524,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_subscriptions_dates", "end_date >= start_date");
 
-                            t.HasCheckConstraint("ck_subscriptions_duration_days_for_sessions", "is_single_session OR duration_days = CASE WHEN total_sessions <= 10 THEN 30 WHEN total_sessions <= 20 THEN 45 WHEN total_sessions <= 140 THEN 70 END");
+                            t.HasCheckConstraint("ck_subscriptions_duration_days_for_sessions", "is_single_session OR duration_days = CASE WHEN total_sessions <= 10 THEN 30 WHEN total_sessions <= 20 THEN 45 WHEN total_sessions <= 30 THEN 70 END");
 
                             t.HasCheckConstraint("ck_subscriptions_price_not_negative", "price >= 0");
 
@@ -2532,7 +2532,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_subscriptions_total_frozen_days", "total_frozen_days >= 0");
 
-                            t.HasCheckConstraint("ck_subscriptions_total_sessions_range", "is_single_session OR total_sessions BETWEEN 5 AND 140");
+                            t.HasCheckConstraint("ck_subscriptions_total_sessions_range", "is_single_session OR total_sessions BETWEEN 5 AND 30 OR (cancelled_at IS NOT NULL AND total_sessions BETWEEN 5 AND 140)");
 
                             t.HasCheckConstraint("ck_subscriptions_used_sessions", "used_sessions >= 0 AND used_sessions <= total_sessions");
                         });

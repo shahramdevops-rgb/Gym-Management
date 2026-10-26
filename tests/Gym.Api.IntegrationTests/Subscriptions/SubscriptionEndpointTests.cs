@@ -61,7 +61,7 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
     [InlineData(11, 45)]
     [InlineData(20, 45)]
     [InlineData(21, 70)]
-    [InlineData(140, 70)]
+    [InlineData(30, 70)]
     public async Task Assign_SessionCount_TheServerWorksOutTheDays(int sessions, int expectedDays)
     {
         // BUSINESS_RULES.md §3 (task 6.5.18): the desk sends only the sessions.
@@ -136,13 +136,13 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
     }
 
     [Fact]
-    public async Task Assign_MoreThan140Sessions_Returns400WithFieldCode()
+    public async Task Assign_MoreThan30Sessions_Returns400WithFieldCode()
     {
         var (client, token) = await StaffClientAsync();
         var member = await AddMemberAsync();
         await TestPlans.AddAsync(Fixture);
 
-        using var response = await AssignAsync(client, token, member.Id, sessionCount: 141);
+        using var response = await AssignAsync(client, token, member.Id, sessionCount: 31);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await FieldErrorCodeAsync(response, "sessionCount")).ShouldBe("Subscriptions.SessionCountTooHigh");
@@ -415,11 +415,11 @@ public sealed class SubscriptionEndpointTests(DatabaseFixture fixture) : Databas
     }
 
     [Fact]
-    public async Task Database_MembershipWithMoreThan140Sessions_IsRefused()
+    public async Task Database_MembershipWithMoreThan30Sessions_IsRefused()
     {
         var member = await AddMemberAsync();
 
-        var insert = () => InsertSubscriptionAsync(member.Id, Today(), Today().AddDays(69), totalSessions: 141, usedSessions: 0, durationDays: 70);
+        var insert = () => InsertSubscriptionAsync(member.Id, Today(), Today().AddDays(69), totalSessions: 31, usedSessions: 0, durationDays: 70);
 
         (await Should.ThrowAsync<Npgsql.PostgresException>(insert)).ConstraintName
             .ShouldBe("ck_subscriptions_total_sessions_range");

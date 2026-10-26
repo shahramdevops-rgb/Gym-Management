@@ -30,8 +30,11 @@ public sealed class Subscription : Entity
     /// <summary>BUSINESS_RULES.md §3: a plan has at least 5 sessions.</summary>
     public const int MinSessionCount = 5;
 
-    /// <summary>BUSINESS_RULES.md §3: at most 140 sessions, since nobody trains more than once a day.</summary>
-    public const int MaxSessionCount = 140;
+    /// <summary>
+    /// BUSINESS_RULES.md §3: at most 30 sessions (decided by the Owner, 1405/08/03, task 6.5.38;
+    /// it was 140).
+    /// </summary>
+    public const int MaxSessionCount = 30;
 
     /// <summary>
     /// BUSINESS_RULES.md §3 (task 6.5.18): how many days a plan of so many sessions lasts. Read top

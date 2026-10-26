@@ -656,7 +656,7 @@ describe("SmsSettingsPage", () => {
     ).toBeInTheDocument();
     expect(
       lowSessionsRow("پلن ۹ تا").getByText(
-        "اندازهٔ پلن ردیف دوم باید بزرگ‌تر از ردیف اول و حداکثر ۱۴۰ جلسه باشد.",
+        "اندازهٔ پلن ردیف دوم باید بزرگ‌تر از ردیف اول و حداکثر ۳۰ جلسه باشد.",
       ),
     ).toBeInTheDocument();
     expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);

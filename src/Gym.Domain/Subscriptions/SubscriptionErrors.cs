@@ -13,7 +13,7 @@ public static class SubscriptionErrors
         "Subscriptions.SessionCountTooLow",
         $"A plan has at least {Subscription.MinSessionCount} sessions.");
 
-    /// <summary>BUSINESS_RULES.md §3: a plan has at most 140 sessions.</summary>
+    /// <summary>BUSINESS_RULES.md §3: a plan has at most 30 sessions.</summary>
     public static readonly Error SessionCountTooHigh = Error.Validation(
         "Subscriptions.SessionCountTooHigh",
         $"A plan has at most {Subscription.MaxSessionCount} sessions.");

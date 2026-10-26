@@ -424,14 +424,14 @@ public sealed class SmsSettings : Entity
             ? null
             : SmsSettingsErrors.DailyReportSendTimeOutOfRange;
 
-    /// <summary>The first row's largest plan: 5 to 139, so the second row has room.</summary>
+    /// <summary>The first row's largest plan: 5 to 29, so the second row has room.</summary>
     public static Error? CheckLowSessionsSmallPlanMax(int? smallPlanMax) =>
         smallPlanMax is null
         || (smallPlanMax >= LowSessionsSettings.SmallPlanMaxFloor && smallPlanMax <= LowSessionsSettings.SmallPlanMaxCeiling)
             ? null
             : SmsSettingsErrors.LowSessionsSmallPlanMaxOutOfRange;
 
-    /// <summary>The second row's largest plan: above the first row's, and at most 140.</summary>
+    /// <summary>The second row's largest plan: above the first row's, and at most 30.</summary>
     public static Error? CheckLowSessionsMediumPlanMax(int? smallPlanMax, int? mediumPlanMax)
     {
         if (mediumPlanMax is not { } medium)

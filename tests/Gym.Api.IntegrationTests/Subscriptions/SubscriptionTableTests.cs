@@ -122,23 +122,36 @@ public sealed class SubscriptionTableTests(DatabaseFixture fixture) : DatabaseTe
     }
 
     [Fact]
-    public async Task Insert_140SessionsFor70Days_Allowed()
+    public async Task Insert_30SessionsFor70Days_Allowed()
     {
-        // The largest plan (BUSINESS_RULES.md §3).
+        // The largest plan (BUSINESS_RULES.md §3, task 6.5.38).
         var memberId = await AddMemberAsync();
 
-        await InsertAsync(memberId, Start, Start.AddDays(69), totalSessions: 140, usedSessions: 40, durationDays: 70);
+        await InsertAsync(memberId, Start, Start.AddDays(69), totalSessions: 30, usedSessions: 10, durationDays: 70);
     }
 
-    [Fact]
-    public async Task Insert_141Sessions_RejectedByACheckConstraint()
+    [Theory]
+    [InlineData(false, 31)]
+    [InlineData(false, 123)]
+    [InlineData(true, 141)]
+    public async Task Insert_MoreSessionsThanAllowed_RejectedByACheckConstraint(bool cancelled, int sessions)
     {
         var memberId = await AddMemberAsync();
 
         var exception = await Should.ThrowAsync<PostgresException>(
-            () => InsertAsync(memberId, Start, Start.AddDays(69), totalSessions: 141, durationDays: 70));
+            () => InsertAsync(memberId, Start, Start.AddDays(69), totalSessions: sessions, cancelled: cancelled, durationDays: 70));
 
         exception.ConstraintName.ShouldBe("ck_subscriptions_total_sessions_range");
+    }
+
+    [Fact]
+    public async Task Insert_CancelledPlanOf123Sessions_Allowed()
+    {
+        // Task 6.5.38: a cancelled plan may keep the old ceiling of 140, as the one sold with 123 by
+        // mistake does; it covers no dates and can never be used.
+        var memberId = await AddMemberAsync();
+
+        await InsertAsync(memberId, Start, Start.AddDays(69), totalSessions: 123, cancelled: true, durationDays: 70);
     }
 
     [Theory]

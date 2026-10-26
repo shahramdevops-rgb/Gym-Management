@@ -551,21 +551,21 @@ public sealed class SmsSettingsTests
     [Theory]
     [InlineData(5, 6)]
     [InlineData(8, 15)]
-    [InlineData(139, 140)]
+    [InlineData(29, 30)]
     public void Update_LowSessionsPlanSizesInRange_Succeeds(int small, int medium) =>
         Save(Empty(), lowSessions: new(true, small, medium, 1, 2, 3, Ten)).IsSuccess.ShouldBeTrue();
 
     [Theory]
     [InlineData(4)]
-    [InlineData(140)]
+    [InlineData(30)]
     public void Update_LowSessionsFirstRowOutOfRange_IsRefused(int small) =>
-        Save(Empty(), lowSessions: new(true, small, 140, 1, 2, 3, Ten))
+        Save(Empty(), lowSessions: new(true, small, 30, 1, 2, 3, Ten))
             .Error.ShouldBe(SmsSettingsErrors.LowSessionsSmallPlanMaxOutOfRange);
 
     [Theory]
     [InlineData(8, 8)]
     [InlineData(8, 7)]
-    [InlineData(8, 141)]
+    [InlineData(8, 31)]
     public void Update_LowSessionsSecondRowNotAboveTheFirstOrTooBig_IsRefused(int small, int medium) =>
         Save(Empty(), lowSessions: new(true, small, medium, 1, 2, 3, Ten))
             .Error.ShouldBe(SmsSettingsErrors.LowSessionsMediumPlanMaxOutOfRange);
@@ -584,7 +584,7 @@ public sealed class SmsSettingsTests
     [InlineData(9, 2)]
     [InlineData(15, 2)]
     [InlineData(16, 3)]
-    [InlineData(140, 3)]
+    [InlineData(30, 3)]
     public void ThresholdFor_PlanSize_IsItsRowsNumber(int totalSessions, int expected) =>
         new LowSessionsSettings(true, 8, 15, 1, 2, 3, Ten).ThresholdFor(totalSessions).ShouldBe(expected);
 
