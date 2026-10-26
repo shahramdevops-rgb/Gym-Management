@@ -411,6 +411,7 @@ public sealed class SubscriptionReceiptTests(DatabaseFixture fixture) : Database
             dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: receipt,
             welcomeEnabled: false,
+            welcomeBackEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,

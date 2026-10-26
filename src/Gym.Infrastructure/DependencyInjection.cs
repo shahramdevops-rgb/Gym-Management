@@ -149,6 +149,10 @@ public static class DependencyInjection
         services.AddSingleton<IWelcomeScheduler, HangfireWelcomeScheduler>();
         services.AddScoped<WelcomeJob>();
 
+        // The welcome back, one job per first visit after an absence SMS, half an hour later (task 10.20).
+        services.AddSingleton<IWelcomeBackScheduler, HangfireWelcomeBackScheduler>();
+        services.AddScoped<WelcomeBackJob>();
+
         // A broadcast is one job, enqueued after it is saved, which writes and sends its messages (task 10.13).
         services.AddSingleton<IBroadcastScheduler, HangfireBroadcastScheduler>();
         services.AddScoped<BroadcastJob>();

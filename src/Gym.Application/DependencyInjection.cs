@@ -87,6 +87,7 @@ using Gym.Application.Notifications.ResendCancelledSms;
 using Gym.Application.Notifications.ResendSms;
 using Gym.Application.Notifications.SendSubscriptionReceipt;
 using Gym.Application.Notifications.SendWelcome;
+using Gym.Application.Notifications.SendWelcomeBack;
 using Gym.Application.Notifications.SendDailySms;
 using Gym.Application.Notifications.UpdateSmsSettings;
 using Gym.Application.Payables.CancelPayable;
@@ -280,6 +281,8 @@ public static class DependencyInjection
         services.AddScoped<SendSubscriptionReceiptHandler>();
         services.AddScoped<Welcomes>();
         services.AddScoped<SendWelcomeHandler>();
+        services.AddScoped<WelcomeBacks>();
+        services.AddScoped<SendWelcomeBackHandler>();
         services.AddScoped<CheckSmsDeliveryHandler>();
         services.AddScoped<GetSmsCreditHandler>();
         services.AddScoped<GetSmsSamplesHandler>();

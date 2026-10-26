@@ -285,6 +285,7 @@ function SmsSettingsForm({ current, notice, onNotice, onStale, stale }: SmsSetti
         <WelcomeFieldset form={form} morningSendTime={current.welcome.morningSendTime} />
         <DebtReminderFieldset form={form} />
         <KindFieldset kind="absence" form={form} />
+        <WelcomeBackFieldset form={form} delayMinutes={current.welcomeBack.delayMinutes} />
       </KindSection>
 
       {/* Two boxes and one: side by side on a wide screen, so neither leaves a row half empty. */}
@@ -448,7 +449,7 @@ function sampleCaption(parts: number | string | undefined): string {
 }
 
 /** The kind's message from `GET /api/sms/samples`, written by the API's own `SmsText`. */
-function SamplePreview({ kind }: { kind: keyof SmsSamples }) {
+function SamplePreview({ kind }: { kind: Exclude<keyof SmsSamples, "welcomeBack"> }) {
   const samples = useSmsSamples();
   const sample = samples.data?.[kind];
 
@@ -808,6 +809,67 @@ function WelcomeFieldset({ form, morningSendTime }: WelcomeFieldsetProps) {
       preview={<SamplePreview kind="welcome" />}
       toggle={<OnSwitch {...form.register("welcome.enabled")} />}
     />
+  );
+}
+
+interface WelcomeBackFieldsetProps {
+  form: UseFormReturn<SmsSettingsValues>;
+  /** From the API: how long after the check-in it goes, fixed in the code. */
+  delayMinutes: number | string;
+}
+
+/**
+ * The member's welcome back (BUSINESS_RULES.md §10 *The welcome back*, task 10.20): only a switch. It
+ * goes once per absence, after the member's first visit since the absence SMS, with one of six texts
+ * in turn.
+ */
+function WelcomeBackFieldset({ form, delayMinutes }: WelcomeBackFieldsetProps) {
+  const minutes = Number(delayMinutes);
+  const delay = minutes === 30 ? "نیم ساعت" : `${toPersianDigits(minutes)} دقیقه`;
+
+  return (
+    <KindCard
+      title="خوش برگشتی"
+      description={`برای عضوی که پیامک غیبت به دستش رسیده و دوباره به باشگاه می‌آید، در اولین ورودش، ${delay} بعد از ورود و تا پیش از نیمه‌شب. هر بار یکی از شش متن زیر، به نوبت، تا تکراری نباشد.`}
+      preview={<WelcomeBackPreview />}
+      toggle={<OnSwitch {...form.register("welcomeBack.enabled")} />}
+    />
+  );
+}
+
+/** The welcome back's six texts, one at a time: a member gets them in this order. */
+function WelcomeBackPreview() {
+  const samples = useSmsSamples();
+  const texts = samples.data?.welcomeBack ?? [];
+  const [shown, setShown] = useState(0);
+  const sample = texts[shown];
+
+  return (
+    <div className="space-y-2">
+      <SmsPreview
+        text={samples.isError ? "پیش‌نمایش خوانده نشد." : sample?.text}
+        caption={sampleCaption(sample?.parts)}
+      />
+      {texts.length > 1 && (
+        <div role="group" aria-label="متن‌ها" className="flex flex-wrap gap-1.5">
+          {texts.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              aria-pressed={index === shown}
+              aria-label={`متن ${toPersianDigits(index + 1)}`}
+              onClick={() => setShown(index)}
+              className={cn(
+                "size-7 rounded-full border text-xs",
+                index === shown && "border-primary bg-primary/10 font-medium",
+              )}
+            >
+              {toPersianDigits(index + 1)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

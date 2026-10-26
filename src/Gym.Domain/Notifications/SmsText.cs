@@ -170,6 +170,35 @@ public static class SmsText
     }
 
     /// <summary>
+    /// The welcome back's six texts (task 10.20), each with <c>{0}</c> for the first name, chosen by
+    /// the developer on 1405/08/04. A member gets them in turn (<see cref="ForWelcomeBack"/>), so the
+    /// gym never sends the same automatic text twice in a row.
+    /// </summary>
+    public static readonly IReadOnlyList<string> WelcomeBackTexts =
+    [
+        "{0} عزیز، از اینکه به باشگاه پاسارگاد برگشتی خیلی خوشحالیم! هیچی مثل ورزش حال آدم رو خوب نمی‌کنه.",
+        "{0} جان، خوش برگشتی! باشگاه پاسارگاد بدون تو یه چیزی کم داشت. قوی ادامه بده!",
+        "{0} عزیز، دیدن دوباره‌ت توی باشگاه پاسارگاد حالمون رو خوب کرد! همین که اومدی یعنی نصف راه رو رفتی.",
+        "{0} عزیز، برگشتنت رو تبریک می‌گیم! هر جلسه یه قدم به نسخهٔ بهتر خودت نزدیک‌تره.",
+        "سلام {0} عزیز، چه خوب که دوباره اومدی! از امروز دوباره با هم ادامه می‌دیم، قدم به قدم.",
+        "سلام {0} عزیز، چه خوب که دوباره اومدی! جات اینجا همیشه محفوظه، با قدرت ادامه بده.",
+    ];
+
+    /// <summary>
+    /// To the member on their first visit after an absence SMS (task 10.20): the text whose turn it is,
+    /// starting again after the last.
+    /// </summary>
+    /// <param name="turn">How many welcome backs the member already has, whatever became of them.</param>
+    public static string ForWelcomeBack(string fullName, int turn)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(turn);
+
+        var text = WelcomeBackTexts[turn % WelcomeBackTexts.Count];
+
+        return WithOptOut(string.Format(CultureInfo.InvariantCulture, text, FirstName(fullName)));
+    }
+
+    /// <summary>
     /// The broadcast (task 10.13): the member's first name, then the Owner's own text, which the
     /// caller has already trimmed (<c>SmsBroadcast</c>).
     /// </summary>

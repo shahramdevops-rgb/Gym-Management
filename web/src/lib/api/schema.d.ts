@@ -2368,7 +2368,7 @@ export interface components {
             payablesDue: components["schemas"]["PayableDueResponse"][];
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast" | "WelcomeBack";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -3013,6 +3013,7 @@ export interface components {
             dailyReport: components["schemas"]["SmsSample"];
             subscriptionReceipt: components["schemas"]["SmsSample"];
             welcome: components["schemas"]["SmsSample"];
+            welcomeBack: components["schemas"]["SmsSample"][];
             debtReminder: components["schemas"]["SmsSample"];
             absence: components["schemas"]["SmsSample"];
         };
@@ -3026,6 +3027,7 @@ export interface components {
             dailyReport: components["schemas"]["DailyReportSettingsResponse"];
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettingsResponse"];
             welcome: components["schemas"]["WelcomeSettingsResponse"];
+            welcomeBack: components["schemas"]["WelcomeBackSettingsResponse"];
             debtReminder: components["schemas"]["DebtReminderSettings"];
             absence: components["schemas"]["SmsKindSettings"];
             broadcast: components["schemas"]["BroadcastSettings"];
@@ -3190,6 +3192,7 @@ export interface components {
             dailyReport: components["schemas"]["DailyReportSettings"];
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettings"];
             welcome: components["schemas"]["WelcomeSettings"];
+            welcomeBack: components["schemas"]["WelcomeBackSettings"];
             debtReminder: components["schemas"]["DebtReminderSettings"];
             absence: components["schemas"]["SmsKindSettings"];
             broadcast: components["schemas"]["BroadcastSettings"];
@@ -3206,6 +3209,14 @@ export interface components {
         };
         VoidServiceChargeCommand: {
             reason: string;
+        };
+        WelcomeBackSettings: {
+            enabled: boolean;
+        };
+        WelcomeBackSettingsResponse: {
+            enabled: boolean;
+            /** Format: int32 */
+            delayMinutes: number | string;
         };
         WelcomeSettings: {
             enabled: boolean;

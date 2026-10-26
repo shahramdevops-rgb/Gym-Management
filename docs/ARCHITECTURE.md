@@ -608,7 +608,10 @@ web/src/
   payment. The welcome (task 10.10) works the same way: `Welcomes` is called after the commit of a plan sale
   (`SubscriptionSeller.SellMembershipAsync` for assign and renew, `CheckInHandler` for a plan sold with a
   check-in), `IWelcomeScheduler` (`HangfireWelcomeScheduler`) hands the plan to `Jobs/WelcomeJob`, and
-  `SendWelcomeHandler` sends it, one welcome at a time. All three senders record an outcome through `SmsRequest`.
+  `SendWelcomeHandler` sends it, one welcome at a time. The welcome back (task 10.20) too: `WelcomeBacks` is
+  called after the commit of both check-ins (`CheckInHandler`, `CardioOnlyCheckInHandler`), `IWelcomeBackScheduler`
+  (`HangfireWelcomeBackScheduler`, always `Schedule`, half an hour later) hands the check-in to `Jobs/WelcomeBackJob`, and
+  `SendWelcomeBackHandler` checks it all again and sends it. All four senders record an outcome through `SmsRequest`.
   The test host swaps in the recording schedulers (`RecordingSmsJobSchedulers.cs`), and `admin seed-demo` its own
   `DemoSmsJobs`, which the seeder empties on its own clock. `Sms:MaxAttempts` and `Sms:RetryDelays` become the domain's `SmsRetrySchedule` (a singleton);
   the waits are `Task.Delay(delay, TimeProvider)`, so a test with `FakeTimeProvider` decides when they end. An

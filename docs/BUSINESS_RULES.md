@@ -1371,7 +1371,8 @@ sent that the Owner did not choose, and the same message is never paid for twice
   per cheque or instalment, one `DailyReport` per day (*The daily report* below), one
   `SubscriptionReceipt` per subscription (*The subscription receipt* below), one `Welcome` per
   member (*The welcome* below), one `DebtReminder` per member and debt (*The debt reminder*
-  below), one `Absence` per member and absence (*The absence SMS* below), one `Broadcast` per
+  below), one `Absence` per member and absence (*The absence SMS* below), one `WelcomeBack` per member and
+  absence (*The welcome back* below), one `Broadcast` per
   member and broadcast (*The broadcast* below). Running the job twice sends nothing twice. A cheque or instalment whose date is changed after its SMS went out
   gets no second one (§0).
 
@@ -1533,6 +1534,46 @@ Decided with the developer on 1405/07/27 (2026-10-19), task 10.12.
   *{days}* is how long the member has really been away, counted as above, not the settings' *N*.
 - **Whether it worked** is on the dashboard: how many came back within 5 days of it (§12 *The
   absence SMS's effect*, task 10.19).
+- **The member who comes back** gets *The welcome back* below.
+
+### The welcome back (خوش برگشتی)
+Decided with the developer on 1405/08/04 (2026-10-26), task 10.20.
+- **One warm SMS to the member (`WelcomeBack`) on their first visit after the absence SMS**: the
+  member came again, and the gym is glad of it. No offer in it.
+- **Which absence SMS**: the member's latest absence SMS (*The absence SMS*), if it **reached the
+  phone**: sent (`Sent`) and not given back by the provider (cancelled, or blocked by the receiver,
+  §10 *Sending*), the same messages as §12 *The absence SMS's effect*. One that failed, whose fate is
+  not known, or that is still waiting never earns a welcome back. One whose delivery is not reported
+  yet does.
+- **The first visit after it, however late** (the developer, 1405/08/04): the first check-in after
+  the moment the absence SMS was sent (a resend's moment, for one the Owner sent again), with no
+  window of days. A cancelled check-in is not a visit, a cardio-only one is, as for the absence SMS.
+  A member who has come once since the message gets nothing on the next visit, even if that first
+  one was before this kind existed or while it was off (the developer, 1405/08/04: a member who came
+  back before the release never gets it after it).
+- **Half an hour after the check-in** (the developer, 1405/08/04), in the background, so the desk
+  never waits and the message reaches the member while they are training. **Its own hours: 08:00
+  until midnight**, like the daily report (the developer, 1405/08/04: the gym is open until midnight,
+  and a member who came at 22:30 is still inside). A check-in whose half hour falls before 08:00 has
+  it at 08:00 the same day. One made after 23:30, whose half hour falls after midnight, never gets
+  it, nor one whose message could not go by midnight (the server was down): the next day it would
+  no longer be about coming back today. A retry, an automatic resend
+  and the Owner's resend may be made until 23:59, as for the daily report.
+- **Only while it is on**: a check-in asks for it only when all SMS and this kind are on at that
+  moment. Turning it on later sends nothing for visits made before.
+- **Checked again when it is sent**: nothing goes if all SMS or this kind has been turned off since,
+  the check-in was cancelled, another visit is now the first after the absence SMS (a check-in
+  cancelled and then made again: the new one asks for its own), or the member was deactivated.
+- **Once per absence**, enforced by a unique index on the member and the day the absence counted
+  from (the same day the absence SMS carries); a job made twice sends nothing twice.
+- **What it says: one of six texts, in turn** (the developer, 1405/08/04: the same text every time
+  would feel automatic; `docs/sms-texts.md`). A member's first welcome back is the first text, the
+  second is the second, and so on; after the sixth it starts again. The turn is the number of
+  welcome backs the member already has, whatever became of them, so a member never gets the same
+  text twice in a row. Each text names the member and takes two SMS parts.
+- **Written before it is sent, retries and resend** as the welcome: saved as `Pending` before the
+  request; one the server stopped between the two saves becomes `Unknown`, never sent again by
+  itself. Welcome backs are sent one at a time.
 
 ### The broadcast (پیامک گروهی)
 Decided with the developer on 1405/07/27 (2026-10-19), task 10.13. The one kind whose wording is
@@ -1632,6 +1673,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Welcome | on/off | sent at once; after 22:00 at 10:00, fixed |
   | Debt reminder | on/off, days since the oldest unpaid sale, the minimum amount, send time | 1–90 days; 1,000 Toman or more |
   | Absence | on/off, days away, send time | 7–60 days |
+  | Welcome back | on/off | half an hour after the check-in, 08:00 until midnight |
   | Broadcast | on/off | sent at once from its own page, 08:00–22:00 |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
@@ -1716,7 +1758,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   - **No answer after the request left** (the connection broke while waiting): the message may have
     gone. It becomes `Unknown` and is **never retried automatically**, because the request carries no
     duplicate guard for Kavenegar to check and a second try could be paid twice.
-  - Nothing is sent outside 08:00–22:00 (the daily report: until midnight). A retry that would fall after 22:00 is not made: the message
+  - Nothing is sent outside 08:00–22:00 (the daily report and the welcome back: until midnight). A retry that would fall after 22:00 is not made: the message
     is `Failed`.
 - **Delivery:** after sending, the system asks Kavenegar (which keeps it for 48 hours) whether the
   message reached the phone: delivered (`10`), not delivered (`11` the phone off or out of reach,
@@ -1773,7 +1815,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   - **One request, no retries:** a failure that may pass makes it `Failed` at once with its code, and
     the Owner can resend again. Credit used up is `Failed` too, and `Unknown` as in a run.
   - It is allowed **while all SMS or that kind is off**: the switches stop the daily runs, and a resend
-    is the Owner's own choice. It is not allowed outside 08:00–22:00 (`Notifications.OutsideSendingHours`), a daily report outside 08:00 to midnight.
+    is the Owner's own choice. It is not allowed outside 08:00–22:00 (`Notifications.OutsideSendingHours`), a daily report or a welcome back outside 08:00 to midnight.
   - Only a `Failed`, `Unknown` or cancelled message can be resent (`Notifications.NotResendable`); two resends of
     one message at once send it once. Like a run, the message is saved as `Pending` before the request,
     so a resend the server stopped in the middle becomes `Unknown` at that kind's next run.
@@ -1789,7 +1831,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
     spent inside the same bad stretch.
   - **At most 5 times** per message (`auto_resends`, held by a check constraint). After the fifth,
     only the Owner's resend is left. The Owner's resends are not counted.
-  - **The same day only**, within the kind's sending hours (08:00–22:00; the daily report until
+  - **The same day only**, within the kind's sending hours (08:00–22:00; the daily report and the welcome back until
     midnight). What is still cancelled when they end stays so, with the Owner's resend.
   - **Every kind**, the Owner's own messages included (the daily report, cheques and instalments).
   - **The switches hold**: with all SMS or the message's kind off, nothing is resent automatically, as

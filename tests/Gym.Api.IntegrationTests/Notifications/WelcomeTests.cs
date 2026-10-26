@@ -467,6 +467,7 @@ public sealed class WelcomeTests(DatabaseFixture fixture) : DatabaseTestBase(fix
             dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: false,
             welcomeEnabled: welcome,
+            welcomeBackEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,

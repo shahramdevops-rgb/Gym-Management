@@ -593,6 +593,86 @@ public sealed class SmsAudienceTests
             .ShouldBeFalse();
     }
 
+    // ---- The welcome back (task 10.20) ----
+
+    [Fact]
+    public void EarnsWelcomeBack_FirstVisitAfterTheAbsenceSms_IsTrue()
+    {
+        var visit = Now.AddDays(3);
+
+        SmsAudience.EarnsWelcomeBack(NotificationStatus.Sent, SmsDelivery.Delivered, Now, visit, visitCancelled: false, firstVisitSinceAt: visit)
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void EarnsWelcomeBack_ManyWeeksLater_IsStillTrue()
+    {
+        var visit = Now.AddDays(60);
+
+        SmsAudience.EarnsWelcomeBack(NotificationStatus.Sent, SmsDelivery.Delivered, Now, visit, visitCancelled: false, firstVisitSinceAt: visit)
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void EarnsWelcomeBack_DeliveryNotReportedYet_IsTrue()
+    {
+        var visit = Now.AddHours(2);
+
+        SmsAudience.EarnsWelcomeBack(NotificationStatus.Sent, absenceDelivery: null, Now, visit, visitCancelled: false, firstVisitSinceAt: visit)
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void EarnsWelcomeBack_CameOnceAlreadySinceTheSms_IsFalse()
+    {
+        // The member came on day 2, before the release, and comes again on day 9.
+        var visit = Now.AddDays(9);
+
+        SmsAudience.EarnsWelcomeBack(NotificationStatus.Sent, SmsDelivery.Delivered, Now, visit, visitCancelled: false, firstVisitSinceAt: Now.AddDays(2))
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EarnsWelcomeBack_VisitCancelled_IsFalse()
+    {
+        var visit = Now.AddDays(3);
+
+        SmsAudience.EarnsWelcomeBack(NotificationStatus.Sent, SmsDelivery.Delivered, Now, visit, visitCancelled: true, firstVisitSinceAt: visit)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EarnsWelcomeBack_VisitBeforeTheSms_IsFalse()
+    {
+        var visit = Now.AddHours(-1);
+
+        SmsAudience.EarnsWelcomeBack(NotificationStatus.Sent, SmsDelivery.Delivered, Now, visit, visitCancelled: false, firstVisitSinceAt: visit)
+            .ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(NotificationStatus.Failed, null)]
+    [InlineData(NotificationStatus.Unknown, null)]
+    [InlineData(NotificationStatus.Pending, null)]
+    [InlineData(NotificationStatus.Sent, SmsDelivery.Cancelled)]
+    [InlineData(NotificationStatus.Sent, SmsDelivery.BlockedByReceiver)]
+    public void EarnsWelcomeBack_AbsenceSmsNeverReachedThePhone_IsFalse(NotificationStatus status, SmsDelivery? delivery)
+    {
+        var visit = Now.AddDays(3);
+
+        SmsAudience.EarnsWelcomeBack(status, delivery, Now, visit, visitCancelled: false, firstVisitSinceAt: visit)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EarnsWelcomeBack_AbsenceSmsNotSentYet_IsFalse()
+    {
+        var visit = Now.AddDays(3);
+
+        SmsAudience.EarnsWelcomeBack(NotificationStatus.Pending, null, absenceSentAt: null, visit, visitCancelled: false, firstVisitSinceAt: visit)
+            .ShouldBeFalse();
+    }
+
     // ---- The broadcast's group (task 10.13) ----
 
     [Fact]

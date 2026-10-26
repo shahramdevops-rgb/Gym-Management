@@ -38,6 +38,7 @@ const empty: SmsSettings = {
   dailyReport: { enabled: false, phone: null, sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: false, morningSendTime: "10:00:00" },
   welcome: { enabled: false, morningSendTime: "10:00:00" },
+  welcomeBack: { enabled: false, delayMinutes: 30 },
   debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
   absence: off,
   broadcast: { enabled: false },
@@ -66,6 +67,7 @@ const filled: SmsSettings = {
   dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: true, morningSendTime: "10:00:00" },
   welcome: { enabled: true, morningSendTime: "10:00:00" },
+  welcomeBack: { enabled: false, delayMinutes: 30 },
   debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: 200000 },
   absence: { enabled: true, threshold: 14, sendTime: "11:30:00" },
   broadcast: { enabled: true },
@@ -102,6 +104,7 @@ const samples: SmsSamples = {
     "علی عزیز، جات توی باشگاه پاسارگاد خالیه! ۱۲ روزه که باشگاه نیومدی و منتظر حضور گرمت هستیم!\nلغو11",
     2,
   ),
+  welcomeBack: [1, 2, 3, 4, 5, 6].map((turn) => sample(`متن ${turn} خوش برگشتی علی\nلغو11`, 2)),
 };
 
 /** The phone-like preview inside one kind's card. */
@@ -426,6 +429,7 @@ describe("SmsSettingsPage", () => {
       dailyReport: { enabled: false, phone: null, sendTime: "22:45:00" },
       subscriptionReceipt: { enabled: false },
       welcome: { enabled: false },
+      welcomeBack: { enabled: false },
       debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
       absence: off,
       broadcast: { enabled: false },
@@ -728,6 +732,47 @@ describe("SmsSettingsPage", () => {
     expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
     const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
     expect(body.welcome).toEqual({ enabled: true });
+  });
+
+  it("SmsSettingsPage_WelcomeBack_IsOnlyASwitchAndSaysWhenItGoes", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+
+    const welcomeBack = await screen.findByRole("group", { name: "خوش برگشتی" });
+    expect(switchOf("خوش برگشتی")).toBeEnabled();
+    expect(switchOf("خوش برگشتی")).not.toBeChecked();
+    expect(within(welcomeBack).queryAllByRole("textbox")).toHaveLength(0);
+    expect(within(welcomeBack).getByText(/نیم ساعت بعد از ورود/)).toBeInTheDocument();
+  });
+
+  it("SmsSettingsPage_WelcomeBack_ShowsEachOfItsSixTexts", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+
+    await waitFor(() => expect(previewOf("خوش برگشتی")).toHaveTextContent("متن 1 خوش برگشتی علی"));
+    const texts = within(group("خوش برگشتی").getByRole("group", { name: "متن‌ها" }));
+    expect(texts.getAllByRole("button")).toHaveLength(6);
+    expect(texts.getByRole("button", { name: "متن ۱" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(texts.getByRole("button", { name: "متن ۶" }));
+
+    expect(previewOf("خوش برگشتی")).toHaveTextContent("متن 6 خوش برگشتی علی");
+    expect(previewOf("خوش برگشتی")).toHaveTextContent("۲ بخش · نام و عددها نمونه‌اند");
+  });
+
+  it("SmsSettingsPage_WelcomeBackTurnedOn_SendsItsSwitch", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "خوش برگشتی" });
+
+    fireEvent.click(switchOf("خوش برگشتی"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.welcomeBack).toEqual({ enabled: true });
   });
 
   it("SmsSettingsPage_DebtReminderEmpty_CannotBeTurnedOnUntilEveryFieldIsFilled", async () => {

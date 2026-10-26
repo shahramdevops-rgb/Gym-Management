@@ -116,6 +116,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             DailyReportSendTime = SmsSettings.DefaultDailyReportSendTime,
             SubscriptionReceiptEnabled = false,
             WelcomeEnabled = false,
+            WelcomeBackEnabled = false,
             DebtReminderEnabled = false,
             AbsenceEnabled = false,
             BroadcastEnabled = false,

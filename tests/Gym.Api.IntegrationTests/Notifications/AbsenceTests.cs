@@ -215,6 +215,7 @@ public sealed class AbsenceTests(DatabaseFixture fixture) : DatabaseTestBase(fix
             dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: false,
             welcomeEnabled: false,
+            welcomeBackEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: new SmsKindSettings(true, DaysAway, new TimeOnly(11, 0)),

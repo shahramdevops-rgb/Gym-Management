@@ -2108,3 +2108,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **A figure that depends on time needs a time frame that fits it.** Inside the dashboard's range the effect was nearly empty on every month's 1st, since the messages of the last days of the month before were not "this month". A rate that is about habits over weeks reads better over everything since the start, with a month-by-month breakdown for the trend.
 - **Delete what nothing uses.** Once the range card was gone, the range query, its validator, a shared reader and a second endpoint were dead code; keeping them "in case" would leave two ways to ask the same thing and tests guarding nothing.
 - **My notes:**
+
+## 10.20 — Welcome back (خوش برگشتی)
+
+- **Name an index when two share the same columns.** The absence SMS and the welcome back both need "one per member and absence" on `(member_id, absent_since)`, each filtered to its own kind. EF Core keys an unnamed index by its columns, so the second `HasIndex` quietly replaced the first and the migration dropped the absence SMS's index. `HasIndex(columns, name)` keeps two indexes on the same columns apart; always read the migration's `Up` before trusting it.
+- **"First since" is a query, not a flag.** Whether a check-in is the member's first after the absence SMS is answered by asking for the earliest visit after the message's moment and comparing it with this one. Nothing new is stored, so a cancelled check-in, a cardio-only visit and a visit made before the feature existed all come out right by themselves.
+- **Rotation from what is already there.** The text a member gets is the count of welcome backs they already have, modulo six. A counter column would have to be kept in step; counting the rows cannot go wrong, and it is deterministic, so a test can say which text comes next (random choice could repeat and cannot be asserted).
+- **A delayed job decides again when it runs.** The check-in only asks for a message half an hour later; when the job runs, it reads everything again (switch, cancelled visit, deactivated member, a new first visit), because thirty minutes is long enough for any of them to change.
+- **A message that is only about "now" can expire.** Unlike the welcome, which waits for 10:00, a welcome back the server could not send by midnight is dropped: "glad you came back" the next morning would be wrong. The rule lives in one place, `SmsSettings.WelcomeBackAt`, and the job checks the day again.
+- **My notes:**

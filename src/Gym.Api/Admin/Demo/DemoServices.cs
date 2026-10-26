@@ -39,9 +39,11 @@ public static class DemoServices
 
         services.RemoveAll<ISubscriptionReceiptScheduler>();
         services.RemoveAll<IWelcomeScheduler>();
+        services.RemoveAll<IWelcomeBackScheduler>();
         services.AddSingleton<DemoSmsJobs>();
         services.AddSingleton<ISubscriptionReceiptScheduler>(provider => provider.GetRequiredService<DemoSmsJobs>());
         services.AddSingleton<IWelcomeScheduler>(provider => provider.GetRequiredService<DemoSmsJobs>());
+        services.AddSingleton<IWelcomeBackScheduler>(provider => provider.GetRequiredService<DemoSmsJobs>());
 
         return services;
     }

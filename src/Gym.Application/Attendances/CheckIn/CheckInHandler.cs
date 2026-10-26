@@ -1,6 +1,7 @@
 using Gym.Application.Common;
 using Gym.Application.Members;
 using Gym.Application.Notifications.SendWelcome;
+using Gym.Application.Notifications.SendWelcomeBack;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
@@ -25,7 +26,8 @@ public sealed class CheckInHandler(
     TimeProvider time,
     SubscriptionSeller seller,
     ISubscriptionPolicy policy,
-    Welcomes welcomes)
+    Welcomes welcomes,
+    WelcomeBacks welcomeBacks)
 {
     public async Task<Result<AttendanceResponse>> Handle(Guid memberId, CheckInCommand command, CancellationToken cancellationToken)
     {
@@ -196,6 +198,9 @@ public sealed class CheckInHandler(
         {
             await welcomes.QueueIfFirstPlanAsync(soldPlan.Id, cancellationToken);
         }
+
+        // The first visit after an absence SMS (BUSINESS_RULES.md §10 The welcome back).
+        await welcomeBacks.QueueIfFirstVisitAsync(attendance.Id, cancellationToken);
 
         // BUSINESS_RULES.md §7: money owed never blocks a check-in. The visit is already committed;
         // this only tells the front desk what to mention while the member is still at the desk.

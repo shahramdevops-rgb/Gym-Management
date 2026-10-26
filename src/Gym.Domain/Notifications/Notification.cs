@@ -15,7 +15,8 @@ namespace Gym.Domain.Notifications;
 /// <see cref="NotificationKind.DailyReport"/> per day, one <see cref="NotificationKind.SubscriptionReceipt"/>
 /// per subscription, one <see cref="NotificationKind.Welcome"/> per member, one
 /// <see cref="NotificationKind.DebtReminder"/> per member and debt, one
-/// <see cref="NotificationKind.Absence"/> per member and absence, one
+/// <see cref="NotificationKind.Absence"/> and one <see cref="NotificationKind.WelcomeBack"/> per member and
+/// absence, one
 /// <see cref="NotificationKind.Broadcast"/> per member and broadcast), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
@@ -79,7 +80,8 @@ public sealed class Notification : Entity
 
     /// <summary>
     /// Set for <see cref="NotificationKind.Absence"/>: the gym's day the member's absence counts from
-    /// (their last visit, or their plan's start), one per member and absence (task 10.12).
+    /// (their last visit, or their plan's start), one per member and absence (task 10.12). Set for
+    /// <see cref="NotificationKind.WelcomeBack"/> too: the absence the member came back from (task 10.20).
     /// </summary>
     public DateOnly? AbsentSince { get; private set; }
 
@@ -207,6 +209,22 @@ public sealed class Notification : Entity
         CheckId(memberId, nameof(memberId));
 
         var notification = Create(NotificationKind.Absence, recipient, text);
+        notification.MemberId = memberId;
+        notification.AbsentSince = absentSince;
+
+        return notification;
+    }
+
+    /// <summary>
+    /// The member came again after their absence SMS (<see cref="NotificationKind.WelcomeBack"/>, task
+    /// 10.20).
+    /// </summary>
+    /// <param name="absentSince">The day the absence SMS counted from: at most one per member and absence.</param>
+    public static Notification ForWelcomeBack(Guid memberId, DateOnly absentSince, string recipient, string text)
+    {
+        CheckId(memberId, nameof(memberId));
+
+        var notification = Create(NotificationKind.WelcomeBack, recipient, text);
         notification.MemberId = memberId;
         notification.AbsentSince = absentSince;
 

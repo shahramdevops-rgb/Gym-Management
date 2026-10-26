@@ -172,6 +172,7 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
             dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: receiptOn,
             welcomeEnabled: false,
+            welcomeBackEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,

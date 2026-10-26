@@ -15,6 +15,7 @@ public sealed record SmsSettingsResponse(
     DailyReportSettingsResponse DailyReport,
     SubscriptionReceiptSettingsResponse SubscriptionReceipt,
     WelcomeSettingsResponse Welcome,
+    WelcomeBackSettingsResponse WelcomeBack,
     DebtReminderSettings DebtReminder,
     SmsKindSettings Absence,
     BroadcastSettings Broadcast,
@@ -34,6 +35,7 @@ public sealed record SmsSettingsResponse(
             new DailyReportSettingsResponse(settings.DailyReportEnabled, settings.DailyReportPhone, settings.DailyReportSendTime),
             new SubscriptionReceiptSettingsResponse(settings.SubscriptionReceiptEnabled, SmsSettings.MorningSendTime),
             new WelcomeSettingsResponse(settings.WelcomeEnabled, SmsSettings.MorningSendTime),
+            new WelcomeBackSettingsResponse(settings.WelcomeBackEnabled, (int)SmsSettings.WelcomeBackDelay.TotalMinutes),
             new DebtReminderSettings(
                 settings.DebtReminderEnabled,
                 settings.DebtReminderDaysAfter,

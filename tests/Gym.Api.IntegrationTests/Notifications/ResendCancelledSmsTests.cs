@@ -100,7 +100,8 @@ public sealed class ResendCancelledSmsTests(DatabaseFixture fixture) : DatabaseT
             enabled: true, SmsKindSettings.Off, LowSessionsSettings.Off, SmsKindSettings.Off, SmsKindSettings.Off,
             ownerPhone: null, dailyReportEnabled: true, OwnerPhone, dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: false,
-            welcomeEnabled: false, debtReminder: SmsKindSettings.Off, debtReminderMinAmount: null,
+            welcomeEnabled: false,
+            welcomeBackEnabled: false, debtReminder: SmsKindSettings.Off, debtReminderMinAmount: null,
             absence: SmsKindSettings.Off, broadcastEnabled: false));
         var report = Notification.ForDailyReport(Today, OwnerPhone, "گزارش باشگاه پاسارگاد ۰۷/۱۶\nورود: ۸۵");
         Cancel(report, At(Today, 22, 45));
@@ -331,6 +332,7 @@ public sealed class ResendCancelledSmsTests(DatabaseFixture fixture) : DatabaseT
             dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: false,
             welcomeEnabled: false,
+            welcomeBackEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,
