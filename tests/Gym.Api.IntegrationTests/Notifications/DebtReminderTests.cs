@@ -234,6 +234,7 @@ public sealed class DebtReminderTests(DatabaseFixture fixture) : DatabaseTestBas
             dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: false,
             welcomeEnabled: false,
+            welcomeBackEnabled: false,
             debtReminder: new SmsKindSettings(true, DaysAfter, new TimeOnly(11, 0)),
             debtReminderMinAmount: MinAmount,
             absence: SmsKindSettings.Off,

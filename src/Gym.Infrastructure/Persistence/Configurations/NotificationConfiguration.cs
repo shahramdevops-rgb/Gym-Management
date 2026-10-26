@@ -22,7 +22,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         {
             table.HasCheckConstraint(
                 "ck_notifications_kind",
-                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast')");
+                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack')");
             table.HasCheckConstraint(
                 "ck_notifications_status",
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
@@ -54,7 +54,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
                 "(kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL " +
                 "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
                 "AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
-                "(kind = 'Absence' AND member_id IS NOT NULL AND absent_since IS NOT NULL " +
+                "(kind IN ('Absence', 'WelcomeBack') AND member_id IS NOT NULL AND absent_since IS NOT NULL " +
                 "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
                 "AND debt_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL " +
@@ -134,10 +134,22 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
 
         // Once per absence (task 10.12): an absence is named by its member and the day it counts
         // from (the last visit, or the plan's start). Coming again starts a later one.
-        builder.HasIndex(notification => new { notification.MemberId, notification.AbsentSince })
+        // Named, because the welcome back has an index on the same columns (task 10.20).
+        builder.HasIndex(
+                notification => new { notification.MemberId, notification.AbsentSince },
+                NotificationConstraints.OneAbsencePerMemberAndAbsence)
             .IsUnique()
             .HasFilter("kind = 'Absence'")
             .HasDatabaseName(NotificationConstraints.OneAbsencePerMemberAndAbsence);
+
+        // Once per absence too (task 10.20): the member's first visit after its absence SMS earns
+        // one, named by the same day.
+        builder.HasIndex(
+                notification => new { notification.MemberId, notification.AbsentSince },
+                NotificationConstraints.OneWelcomeBackPerMemberAndAbsence)
+            .IsUnique()
+            .HasFilter("kind = 'WelcomeBack'")
+            .HasDatabaseName(NotificationConstraints.OneWelcomeBackPerMemberAndAbsence);
 
         // Once per member and broadcast (task 10.13): a job made again after a restart, or a
         // broadcast continued, cannot write to anyone a second time.

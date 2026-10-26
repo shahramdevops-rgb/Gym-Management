@@ -311,6 +311,56 @@ public sealed class SmsTextTests
         SmsParts.Count(SmsText.ForWelcome("سارا محمدی")).ShouldBe(2);
     }
 
+    // ---- The welcome back (task 10.20) ----
+
+    [Fact]
+    public void ForWelcomeBack_FirstTurn_IsTheFirstTextWithTheName()
+    {
+        SmsText.ForWelcomeBack("سارا محمدی", turn: 0).ShouldBe(
+            "سارا عزیز، از اینکه به باشگاه پاسارگاد برگشتی خیلی خوشحالیم! هیچی مثل ورزش حال آدم رو خوب نمی‌کنه."
+            + OptOutLine);
+    }
+
+    [Fact]
+    public void ForWelcomeBack_EachTurn_IsTheNextText()
+    {
+        var texts = Enumerable.Range(0, SmsText.WelcomeBackTexts.Count)
+            .Select(turn => SmsText.ForWelcomeBack("سارا محمدی", turn))
+            .ToList();
+
+        texts.Distinct().Count().ShouldBe(6);
+        texts[5].ShouldBe("سلام سارا عزیز، چه خوب که دوباره اومدی! جات اینجا همیشه محفوظه، با قدرت ادامه بده." + OptOutLine);
+    }
+
+    [Fact]
+    public void ForWelcomeBack_AfterTheSixth_StartsAgain()
+    {
+        SmsText.ForWelcomeBack("سارا محمدی", turn: 6).ShouldBe(SmsText.ForWelcomeBack("سارا محمدی", turn: 0));
+        SmsText.ForWelcomeBack("سارا محمدی", turn: 13).ShouldBe(SmsText.ForWelcomeBack("سارا محمدی", turn: 1));
+    }
+
+    [Fact]
+    public void ForWelcomeBack_NameWithSayyed_IsTheFirstNameOnly()
+    {
+        SmsText.ForWelcomeBack(LongName, turn: 4).ShouldStartWith("سلام محمد عزیز،");
+    }
+
+    [Fact]
+    public void ForWelcomeBack_EveryTextWithATenCharacterName_IsTwoParts()
+    {
+        // docs/sms-texts.md: every one of the six takes two parts.
+        for (var turn = 0; turn < SmsText.WelcomeBackTexts.Count; turn++)
+        {
+            SmsParts.Count(SmsText.ForWelcomeBack("سارا محمدی", turn)).ShouldBe(2);
+        }
+    }
+
+    [Fact]
+    public void ForWelcomeBack_NegativeTurn_Throws()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => SmsText.ForWelcomeBack("سارا محمدی", turn: -1));
+    }
+
     // ---- The debt reminder (task 10.11) ----
 
     [Fact]

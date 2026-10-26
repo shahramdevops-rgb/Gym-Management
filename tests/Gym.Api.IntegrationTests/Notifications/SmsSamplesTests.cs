@@ -52,13 +52,18 @@ public sealed class SmsSamplesTests(DatabaseFixture fixture) : DatabaseTestBase(
                      samples.SubscriptionExpiring, samples.LowSessions, samples.Birthday, samples.PayableDue,
                      samples.DailyReport, samples.SubscriptionReceipt, samples.Welcome, samples.DebtReminder,
                      samples.Absence,
-                 })
+                 }.Concat(samples.WelcomeBack))
         {
             sample.Text.ShouldEndWith($"\n{SmsText.OptOut}");
             sample.Parts.ShouldBe(SmsParts.Count(sample.Text));
         }
 
         samples.Welcome.Parts.ShouldBe(2);
+
+        // The welcome back: its six texts, in the order a member gets them (task 10.20).
+        samples.WelcomeBack.Select(sample => sample.Text)
+            .ShouldBe(Enumerable.Range(0, 6).Select(turn => SmsText.ForWelcomeBack("علی", turn)));
+        samples.WelcomeBack.ShouldAllBe(sample => sample.Parts == 2);
     }
 
     [Fact]

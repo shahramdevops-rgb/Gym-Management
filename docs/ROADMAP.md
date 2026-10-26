@@ -3125,6 +3125,29 @@ Third round, the same day, asked by the developer:
 
 No migration: everything is read from `notifications`, `attendances` and `subscriptions`.
 
+### 10.20 Welcome back (خوش برگشتی)
+Asked by the developer on 1405/08/04 (2026-10-26), right after 10.19; reopens the panel.
+BUSINESS_RULES.md §10 *The welcome back*. Branch `task/10.20-welcome-back` from `main` (10.19 and
+6.5.38 on it, not released yet).
+- [x] Asked first (1405/08/04): **half an hour after the check-in**; on the first visit after the
+      absence SMS **however late**; until midnight, not 22:00; **six texts in turn** for each
+      member, not at random; a member who came back before the release gets nothing after it
+- [x] Domain: `NotificationKind.WelcomeBack` (its event is the member and `AbsentSince`),
+      `SmsText.WelcomeBackTexts` and `ForWelcomeBack`, `SmsSettings.WelcomeBackEnabled`, its hours
+      until midnight and its moment (`WelcomeBackAt`), unit tests
+- [x] Application: `WelcomeBacks` asked after the commit of `CheckInHandler` and
+      `CardioOnlyCheckInHandler`; `IWelcomeBackScheduler`; `SendWelcomeBackHandler` checks it all
+      again and picks the text by the member's turn; the settings' switch; integration tests
+- [x] Infrastructure: `Jobs/WelcomeBackJob` one at a time; migration `AddSmsWelcomeBack` (one
+      switch, off; the unique index `ix_notifications_one_welcome_back_per_member_and_absence`, named
+      beside the absence SMS's on the same columns; the kind and event checks widened; no row touched)
+- [x] UI: «خوش برگشتی» on «تنظیمات پیامک» with its six texts, its label on «پیامک‌ها» and the
+      audit screen; the demo
+
+Release: **with 10.19 and 6.5.38, one release from `main`** (the developer, 1405/08/05, replacing "a
+night of its own"); it has a migration, so `./backup.sh run` first. The switch starts off: the Owner
+turns it on.
+
 ---
 
 ## Phase 11 — Audit UI and Hardening

@@ -166,6 +166,24 @@ public sealed class NotificationTests
     }
 
     [Fact]
+    public void ForWelcomeBack_NamesTheMemberAndTheAbsenceTheyCameBackFrom()
+    {
+        var memberId = Guid.NewGuid();
+        var since = new DateOnly(2026, 10, 1);
+
+        var notification = Notification.ForWelcomeBack(memberId, since, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.WelcomeBack);
+        notification.MemberId.ShouldBe(memberId);
+        notification.AbsentSince.ShouldBe(since);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.SubscriptionId.ShouldBeNull();
+        notification.DebtSince.ShouldBeNull();
+        notification.BroadcastId.ShouldBeNull();
+    }
+
+    [Fact]
     public void ForAbsence_EmptyMemberId_Throws() =>
         Should.Throw<ArgumentException>(() => Notification.ForAbsence(Guid.Empty, new DateOnly(2026, 10, 1), Phone, Text));
 

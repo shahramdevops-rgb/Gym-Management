@@ -23,6 +23,7 @@ using Gym.Application.Notifications.GetSmsSettings;
 using Gym.Application.Notifications.SendDailySms;
 using Gym.Application.Notifications.SendSubscriptionReceipt;
 using Gym.Application.Notifications.SendWelcome;
+using Gym.Application.Notifications.SendWelcomeBack;
 using Gym.Application.Notifications.UpdateSmsSettings;
 using Gym.Application.Payables;
 using Gym.Application.Payables.MarkPayablePaid;
@@ -618,6 +619,7 @@ public sealed class DemoSeeder
             DailyReport: new DailyReportSettings(true, "09121112233", SmsSettings.DefaultDailyReportSendTime),
             SubscriptionReceipt: new SubscriptionReceiptSettings(true),
             Welcome: new WelcomeSettings(true),
+            WelcomeBack: new WelcomeBackSettings(true),
             DebtReminder: new DebtReminderSettings(true, 30, new TimeOnly(11, 0), 200_000m),
             Absence: new SmsKindSettings(true, 14, new TimeOnly(11, 30)),
             Broadcast: new BroadcastSettings(true),
@@ -634,7 +636,7 @@ public sealed class DemoSeeder
         _actor.ActAsNobody();
         foreach (var kind in Enum.GetValues<NotificationKind>()
             .Where(kind => kind is not (NotificationKind.DailyReport or NotificationKind.SubscriptionReceipt or NotificationKind.Welcome
-                or NotificationKind.Broadcast)))
+                or NotificationKind.WelcomeBack or NotificationKind.Broadcast)))
         {
             await using var scope = _services.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<SendDailySmsHandler>().Handle(kind, _cancellationToken);
@@ -642,7 +644,7 @@ public sealed class DemoSeeder
     }
 
     /// <summary>
-    /// The receipts (task 10.9) and welcomes (task 10.10) due by <paramref name="until"/>, each at its
+    /// The receipts (task 10.9), welcomes (task 10.10) and welcome backs (task 10.20) due by <paramref name="until"/>, each at its
     /// own moment and on nobody's behalf, as Hangfire's jobs would send them. Whoever the seeder was
     /// acting as is put back after.
     /// </summary>
@@ -656,7 +658,7 @@ public sealed class DemoSeeder
 
         var (userId, isOwner) = (_actor.UserId, _actor.IsOwner);
         _actor.ActAsNobody();
-        foreach (var (kind, subscriptionId, at) in due)
+        foreach (var (kind, recordId, at) in due)
         {
             if (at > _clock.GetUtcNow())
             {
@@ -666,11 +668,15 @@ public sealed class DemoSeeder
             await using var scope = _services.CreateAsyncScope();
             if (kind == NotificationKind.Welcome)
             {
-                await scope.ServiceProvider.GetRequiredService<SendWelcomeHandler>().Handle(subscriptionId, _cancellationToken);
+                await scope.ServiceProvider.GetRequiredService<SendWelcomeHandler>().Handle(recordId, _cancellationToken);
+            }
+            else if (kind == NotificationKind.WelcomeBack)
+            {
+                await scope.ServiceProvider.GetRequiredService<SendWelcomeBackHandler>().Handle(recordId, _cancellationToken);
             }
             else
             {
-                await scope.ServiceProvider.GetRequiredService<SendSubscriptionReceiptHandler>().Handle(subscriptionId, _cancellationToken);
+                await scope.ServiceProvider.GetRequiredService<SendSubscriptionReceiptHandler>().Handle(recordId, _cancellationToken);
             }
         }
 

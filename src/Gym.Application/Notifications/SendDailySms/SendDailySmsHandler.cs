@@ -36,9 +36,11 @@ public sealed partial class SendDailySmsHandler(
     public async Task<SmsRunResult> Handle(NotificationKind kind, CancellationToken cancellationToken)
     {
         // The receipt is sent at each payment (SendSubscriptionReceiptHandler), the welcome at the
-        // sale of a first plan (SendWelcomeHandler) and the broadcast from its page
-        // (RunBroadcastHandler), never by a daily run.
-        if (kind is NotificationKind.SubscriptionReceipt or NotificationKind.Welcome or NotificationKind.Broadcast)
+        // sale of a first plan (SendWelcomeHandler), the welcome back after a check-in
+        // (SendWelcomeBackHandler) and the broadcast from its page (RunBroadcastHandler), never by a
+        // daily run.
+        if (kind is NotificationKind.SubscriptionReceipt or NotificationKind.Welcome or NotificationKind.WelcomeBack
+            or NotificationKind.Broadcast)
         {
             throw new ArgumentOutOfRangeException(nameof(kind), kind, "This kind has no daily run.");
         }

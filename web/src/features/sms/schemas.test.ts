@@ -32,6 +32,7 @@ const settings: SmsSettings = {
   dailyReport: { enabled: true, phone: "+989351234567", sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: true, morningSendTime: "10:00:00" },
   welcome: { enabled: false, morningSendTime: "10:00:00" },
+  welcomeBack: { enabled: false, delayMinutes: 30 },
   debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: 200000 },
   absence: { enabled: true, threshold: 14, sendTime: "11:30:00" },
   broadcast: { enabled: true },
@@ -50,6 +51,7 @@ describe("sms schemas", () => {
       // Only the switch: the morning time is fixed in the code.
       subscriptionReceipt: { enabled: true },
       welcome: { enabled: false },
+      welcomeBack: { enabled: false },
       // The amount goes back as text, never a float (§13).
       debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: "200000" },
     });

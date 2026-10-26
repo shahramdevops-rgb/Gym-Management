@@ -35,6 +35,12 @@ public static class NotificationConstraints
     /// </summary>
     public const string OneAbsencePerMemberAndAbsence = "ix_notifications_one_absence_per_member_and_absence";
 
+    /// <summary>
+    /// One <c>WelcomeBack</c> per member and absence, the absence named as for <c>Absence</c>
+    /// (BUSINESS_RULES.md §10 <i>The welcome back</i>).
+    /// </summary>
+    public const string OneWelcomeBackPerMemberAndAbsence = "ix_notifications_one_welcome_back_per_member_and_absence";
+
     /// <summary>One <c>Broadcast</c> per broadcast and member (BUSINESS_RULES.md §10 <i>The broadcast</i>).</summary>
     public const string OnePerBroadcastAndMember = "ix_notifications_one_per_broadcast_and_member";
 

@@ -1668,11 +1668,6 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_notifications_one_per_broadcast_and_member")
                         .HasFilter("broadcast_id IS NOT NULL");
 
-                    b.HasIndex("MemberId", "AbsentSince")
-                        .IsUnique()
-                        .HasDatabaseName("ix_notifications_one_absence_per_member_and_absence")
-                        .HasFilter("kind = 'Absence'");
-
                     b.HasIndex("MemberId", "DebtSince")
                         .IsUnique()
                         .HasDatabaseName("ix_notifications_one_debt_reminder_per_member_and_debt")
@@ -1688,6 +1683,16 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_notifications_one_per_subscription_and_kind")
                         .HasFilter("subscription_id IS NOT NULL");
 
+                    b.HasIndex(new[] { "MemberId", "AbsentSince" }, "ix_notifications_one_absence_per_member_and_absence")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_absence_per_member_and_absence")
+                        .HasFilter("kind = 'Absence'");
+
+                    b.HasIndex(new[] { "MemberId", "AbsentSince" }, "ix_notifications_one_welcome_back_per_member_and_absence")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_welcome_back_per_member_and_absence")
+                        .HasFilter("kind = 'WelcomeBack'");
+
                     b.ToTable("notifications", null, t =>
                         {
                             t.HasCheckConstraint("ck_notifications_attempts_not_negative", "attempts >= 0");
@@ -1700,9 +1705,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_notifications_delivery_only_when_sent", "delivery IS NULL OR status = 'Sent'");
 
-                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Absence' AND member_id IS NOT NULL AND absent_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL)");
+                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind IN ('Absence', 'WelcomeBack') AND member_id IS NOT NULL AND absent_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL)");
 
-                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast')");
+                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack')");
 
                             t.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
 
@@ -1949,6 +1954,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("xid")
                         .HasColumnName("xmin");
 
+                    b.Property<bool>("WelcomeBackEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("welcome_back_enabled");
+
                     b.Property<bool>("WelcomeEnabled")
                         .HasColumnType("boolean")
                         .HasColumnName("welcome_enabled");
@@ -2017,6 +2026,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             PayableDueEnabled = false,
                             SubscriptionExpiringEnabled = false,
                             SubscriptionReceiptEnabled = false,
+                            WelcomeBackEnabled = false,
                             WelcomeEnabled = false
                         });
                 });

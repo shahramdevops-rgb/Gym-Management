@@ -250,6 +250,38 @@ public static class SmsAudience
         };
     }
 
+    /// <summary>
+    /// Whether a check-in earns the welcome back (§10 <i>The welcome back</i>, task 10.20): the
+    /// member's latest absence SMS reached the phone (<see cref="AbsenceSmsEffect.Counts"/>), and this
+    /// check-in, not cancelled, is the member's first visit after the moment it was sent, however
+    /// late. Whether the member is active, and whether this absence had its welcome back already, are
+    /// the caller's questions.
+    /// </summary>
+    /// <remarks>
+    /// A member who came once after the message gets nothing on the next visit, even if that first
+    /// visit was made before the kind existed: <paramref name="firstVisitSinceAt"/> is then the older
+    /// visit, not this one.
+    /// </remarks>
+    /// <param name="absenceSentAt">When the absence SMS was sent (a resend's moment); <c>null</c> while it has not been.</param>
+    /// <param name="visitAt">When the member checked in.</param>
+    /// <param name="visitCancelled">Whether that check-in has been cancelled since.</param>
+    /// <param name="firstVisitSinceAt">
+    /// The moment of the member's first check-in after <paramref name="absenceSentAt"/> that is not
+    /// cancelled (cardio-only counts); <c>null</c> for none.
+    /// </param>
+    public static bool EarnsWelcomeBack(
+        NotificationStatus absenceStatus,
+        SmsDelivery? absenceDelivery,
+        DateTimeOffset? absenceSentAt,
+        DateTimeOffset visitAt,
+        bool visitCancelled,
+        DateTimeOffset? firstVisitSinceAt) =>
+        AbsenceSmsEffect.Counts(absenceStatus, absenceDelivery)
+        && absenceSentAt is { } sentAt
+        && !visitCancelled
+        && visitAt > sentAt
+        && firstVisitSinceAt == visitAt;
+
     private static bool SoldBefore(Subscription one, Subscription other) =>
         one.CreatedAt < other.CreatedAt
         || (one.CreatedAt == other.CreatedAt && one.Id.CompareTo(other.Id) < 0);

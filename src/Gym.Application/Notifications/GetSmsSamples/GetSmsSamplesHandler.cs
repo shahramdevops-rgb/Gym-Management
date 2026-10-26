@@ -38,6 +38,8 @@ public sealed class GetSmsSamplesHandler(IGymCalendar calendar)
                 BankTransfer: 1_500_000m))),
             SubscriptionReceipt: Sample(SmsText.ForSubscriptionReceipt(SampleMemberName, sessions: 12, today, today.AddDays(30), 1_800_000m)),
             Welcome: Sample(SmsText.ForWelcome(SampleMemberName)),
+            WelcomeBack: [.. Enumerable.Range(0, SmsText.WelcomeBackTexts.Count)
+                .Select(turn => Sample(SmsText.ForWelcomeBack(SampleMemberName, turn)))],
             DebtReminder: Sample(SmsText.ForDebtReminder(SampleMemberName, 450_000m)),
             Absence: Sample(SmsText.ForAbsence(SampleMemberName, daysAway: 12)));
     }

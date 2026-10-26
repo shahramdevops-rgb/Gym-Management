@@ -31,12 +31,16 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
         RuleFor(command => command.DailyReport).Custom(CheckDailyReport);
         RuleFor(command => command.DebtReminder).Custom(CheckDebtReminder);
 
-        // Nothing to fill in, but left out they would quietly turn the receipt or the welcome off.
+        // Nothing to fill in, but left out they would quietly turn the receipt, the welcome or the welcome back off.
         RuleFor(command => command.SubscriptionReceipt)
             .NotNull()
             .WithMessage("Every kind must be sent, on or off.")
             .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);
         RuleFor(command => command.Welcome)
+            .NotNull()
+            .WithMessage("Every kind must be sent, on or off.")
+            .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);
+        RuleFor(command => command.WelcomeBack)
             .NotNull()
             .WithMessage("Every kind must be sent, on or off.")
             .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);

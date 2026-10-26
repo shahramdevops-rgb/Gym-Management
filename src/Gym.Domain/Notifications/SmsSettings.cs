@@ -56,6 +56,12 @@ public sealed class SmsSettings : Entity
     /// </summary>
     public static readonly TimeOnly MorningSendTime = new(10, 0);
 
+    /// <summary>
+    /// The welcome back goes this long after the check-in (the developer, 1405/08/04, task 10.20), so
+    /// it reaches the member while they are training.
+    /// </summary>
+    public static readonly TimeSpan WelcomeBackDelay = TimeSpan.FromMinutes(30);
+
     /// <summary>The smallest minimum amount the debt reminder accepts, in Toman (decided with the developer, task 10.11).</summary>
     public const decimal DebtReminderMinAmountFloor = 1_000m;
 
@@ -135,6 +141,12 @@ public sealed class SmsSettings : Entity
     /// </summary>
     public bool WelcomeEnabled { get; private set; }
 
+    /// <summary>
+    /// The member's SMS on their first visit after an absence SMS (§10 <i>The welcome back</i>, task
+    /// 10.20). Only a switch, like the welcome.
+    /// </summary>
+    public bool WelcomeBackEnabled { get; private set; }
+
     /// <summary>The member's reminder of a debt owed for a while (§10 <i>The debt reminder</i>, task 10.11).</summary>
     public bool DebtReminderEnabled { get; private set; }
 
@@ -172,14 +184,14 @@ public sealed class SmsSettings : Entity
 
     /// <summary>
     /// Whether a message of this kind may be sent now (§10 <i>Sending</i>): 08:00–22:00, and for the
-    /// daily report 08:00 until midnight, so a retry or a missed 22:45 run can still be made that night.
+    /// daily report and the welcome back 08:00 until midnight, so a retry or a missed run can still be made that night.
     /// </summary>
     public static bool IsWithinSendingHours(NotificationKind kind, TimeOnly localTime) =>
         localTime >= EarliestSendTime && localTime <= LatestSendTimeFor(kind);
 
     /// <summary>The last moment a message of this kind may be sent, a retry included.</summary>
     public static TimeOnly LatestSendTimeFor(NotificationKind kind) =>
-        kind == NotificationKind.DailyReport ? DailyReportLatestSendTime : LatestSendTime;
+        kind is NotificationKind.DailyReport or NotificationKind.WelcomeBack ? DailyReportLatestSendTime : LatestSendTime;
 
     /// <summary>
     /// When a receipt or a welcome asked for now is to be sent (§10 <i>The subscription receipt</i>,
@@ -197,6 +209,26 @@ public sealed class SmsSettings : Entity
         var morning = localTime < EarliestSendTime ? today : today.AddDays(1);
 
         return morning.ToDateTime(MorningSendTime, DateTimeKind.Unspecified);
+    }
+
+    /// <summary>
+    /// When the welcome back for a check-in goes (§10 <i>The welcome back</i>): half an hour after it,
+    /// and not before 08:00 that day; <c>null</c> when that falls after midnight, since the next day
+    /// it would no longer be about coming back today. A local date and time in the gym's zone.
+    /// </summary>
+    /// <param name="checkInDay">The gym's day of the check-in.</param>
+    /// <param name="checkInTime">The gym's time of day of the check-in.</param>
+    public static DateTime? WelcomeBackAt(DateOnly checkInDay, TimeOnly checkInTime)
+    {
+        var due = checkInTime.ToTimeSpan() + WelcomeBackDelay;
+        if (due > DailyReportLatestSendTime.ToTimeSpan())
+        {
+            return null;
+        }
+
+        var at = TimeOnly.FromTimeSpan(due) < EarliestSendTime ? EarliestSendTime : TimeOnly.FromTimeSpan(due);
+
+        return checkInDay.ToDateTime(at, DateTimeKind.Unspecified);
     }
 
     /// <summary>The smallest and largest number each kind accepts (§10, the settings table).</summary>
@@ -250,6 +282,10 @@ public sealed class SmsSettings : Entity
         NotificationKind.Welcome => new(
             WelcomeEnabled, Threshold: null, SendTime: null),
 
+        // Sent half an hour after a check-in, not by a daily run.
+        NotificationKind.WelcomeBack => new(
+            WelcomeBackEnabled, Threshold: null, SendTime: null),
+
         // Sent from its own page, never by a daily run.
         NotificationKind.Broadcast => new(
             BroadcastEnabled, Threshold: null, SendTime: null),
@@ -266,6 +302,7 @@ public sealed class SmsSettings : Entity
     /// <param name="lowSessions">«جلسات رو به اتمام» with its three rows by the plan's size (task 10.17).</param>
     /// <param name="subscriptionReceiptEnabled">The receipt's switch: it has nothing to fill in.</param>
     /// <param name="welcomeEnabled">The welcome's switch: nothing to fill in either.</param>
+    /// <param name="welcomeBackEnabled">The welcome back's switch: nothing to fill in (task 10.20).</param>
     /// <param name="debtReminder">The debt reminder's switch, days and time; its minimum amount comes apart.</param>
     /// <param name="absence">The absence SMS's switch, days and time (task 10.12).</param>
     /// <param name="broadcastEnabled">The broadcast's switch: nothing to fill in (task 10.13).</param>
@@ -281,6 +318,7 @@ public sealed class SmsSettings : Entity
         TimeOnly dailyReportSendTime,
         bool subscriptionReceiptEnabled,
         bool welcomeEnabled,
+        bool welcomeBackEnabled,
         SmsKindSettings debtReminder,
         decimal? debtReminderMinAmount,
         SmsKindSettings absence,
@@ -342,6 +380,7 @@ public sealed class SmsSettings : Entity
 
         SubscriptionReceiptEnabled = subscriptionReceiptEnabled;
         WelcomeEnabled = welcomeEnabled;
+        WelcomeBackEnabled = welcomeBackEnabled;
 
         DebtReminderEnabled = debtReminder.Enabled;
         DebtReminderDaysAfter = debtReminder.Threshold;

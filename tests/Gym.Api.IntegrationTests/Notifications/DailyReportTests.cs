@@ -243,6 +243,7 @@ public sealed class DailyReportTests(DatabaseFixture fixture) : DatabaseTestBase
             dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: false,
             welcomeEnabled: false,
+            welcomeBackEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,

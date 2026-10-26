@@ -41,6 +41,7 @@ const settingsOn: SmsSettings = {
   dailyReport: { enabled: false, phone: null, sendTime: "22:45:00" },
   subscriptionReceipt: { enabled: false, morningSendTime: "10:00:00" },
   welcome: { enabled: false, morningSendTime: "10:00:00" },
+  welcomeBack: { enabled: false, delayMinutes: 30 },
   debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
   absence: off,
   broadcast: { enabled: true },
