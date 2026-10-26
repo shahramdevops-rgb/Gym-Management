@@ -17,9 +17,11 @@ import { kindText } from "@/features/payables/api";
 import { formatDate, formatMoney, formatNumber, formatPhone, toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { reportThresholds, type NeedsAttention } from "../api";
+import { reportThresholds, type AbsenceSmsEffect, type NeedsAttention } from "../api";
 import { toneStyle, type Tone } from "@/lib/tone";
+import { AbsenceSmsOverallBox } from "./AbsenceSmsOverallBox";
 import { Initial } from "./Initial";
+import { ListFrame } from "./ListFrame";
 
 const lowSessions = toPersianDigits(reportThresholds.lowSessions);
 const expiringWithinDays = toPersianDigits(reportThresholds.expiringWithinDays);
@@ -31,51 +33,6 @@ interface PersonRow {
   memberId: string;
   fullName: string;
   phoneNumber: string;
-}
-
-interface ListFrameProps {
-  headingId: string;
-  title: string;
-  icon: LucideIcon;
-  tone: Tone;
-  /** How many are on the list, with its noun: «۳ نفر», «۲ مورد». */
-  count: string;
-  /** The rule the list follows, in one line, so the Owner knows why something is on it. */
-  rule: string;
-  children: ReactNode;
-}
-
-/**
- * The box every list of the panel sits in: its icon, title and count, and its rule. Edged in the
- * list's tone like a locker door (13.2i), its count an edged tag.
- */
-function ListFrame({ headingId, title, icon: Icon, tone, count, rule, children }: ListFrameProps) {
-  return (
-    <section
-      aria-labelledby={headingId}
-      style={toneStyle(tone)}
-      className="space-y-2 rounded-xl border border-s-[3px] tone-edge p-3"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span
-            aria-hidden
-            className="grid size-7 place-items-center rounded-lg tone-soft tone-ink"
-          >
-            <Icon className="size-4" />
-          </span>
-          <h4 id={headingId} className="font-semibold">
-            {title}
-          </h4>
-        </div>
-        <span className="rounded-md border border-e-[3px] tone-edge-end px-2 py-0.5 text-xs font-bold tone-ink">
-          {count}
-        </span>
-      </div>
-      <p className="text-xs text-muted-foreground">{rule}</p>
-      {children}
-    </section>
-  );
 }
 
 interface AttentionListProps<T extends PersonRow> {
@@ -197,9 +154,18 @@ function PayablesDueList({ rows, today }: { rows: NeedsAttention["payablesDue"];
 
 /**
  * Who the Owner should call today (BUSINESS_RULES.md §12 *Needs attention*), whatever range the
- * dashboard shows. One member can be on more than one list: each list is its own question.
+ * dashboard shows. One member can be on more than one list: each list is its own question. The
+ * absence SMS's effect since the first message takes the place «بدهی قدیمی» had, which moved to
+ * the end (asked by the developer, 1405/08/04, §12 *The absence SMS's effect*); it comes with its
+ * own request.
  */
-export function NeedsAttentionPanel({ data }: { data: NeedsAttention }) {
+export function NeedsAttentionPanel({
+  data,
+  absenceSms,
+}: {
+  data: NeedsAttention;
+  absenceSms?: AbsenceSmsEffect;
+}) {
   const withoutMember = Number(data.oldDebtWithoutMember);
 
   return (
@@ -262,6 +228,8 @@ export function NeedsAttentionPanel({ data }: { data: NeedsAttention }) {
             </>
           )}
         />
+        {absenceSms !== undefined && <AbsenceSmsOverallBox effect={absenceSms} />}
+        <PayablesDueList rows={data.payablesDue} today={data.today} />
         <div className="space-y-2">
           <AttentionList
             id="old-debts"
@@ -283,7 +251,6 @@ export function NeedsAttentionPanel({ data }: { data: NeedsAttention }) {
             </p>
           )}
         </div>
-        <PayablesDueList rows={data.payablesDue} today={data.today} />
       </CardContent>
     </Card>
   );

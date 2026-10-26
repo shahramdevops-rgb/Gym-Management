@@ -50,6 +50,7 @@ using Gym.Application.History.ListSales;
 using Gym.Application.History.ListServiceCharges;
 using Gym.Application.History.PaymentTotals;
 using Gym.Application.History.SalesTotals;
+using Gym.Application.Reports.GetAbsenceSmsEffect;
 using Gym.Application.Reports.GetAttendanceReport;
 using Gym.Application.Reports.GetFinancialReport;
 using Gym.Application.Reports.GetMembersReport;
@@ -229,6 +230,7 @@ public static class DependencyInjection
         services.AddScoped<GetTopCafeProductsHandler>();
         services.AddScoped<GetNeedsAttentionHandler>();
         services.AddScoped<GetMembersReportHandler>();
+        services.AddScoped<GetAbsenceSmsEffectHandler>();
 
         services.AddScoped<CreateCafeOrderHandler>();
         services.AddScoped<GetCafeOrderHandler>();

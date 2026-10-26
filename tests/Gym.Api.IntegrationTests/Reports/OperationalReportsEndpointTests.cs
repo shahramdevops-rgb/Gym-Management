@@ -7,6 +7,7 @@ using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Application.Cafe;
 using Gym.Application.Common;
+using Gym.Application.Reports.GetAbsenceSmsEffect;
 using Gym.Application.Reports.GetAttendanceReport;
 using Gym.Application.Reports.GetMembersReport;
 using Gym.Application.Reports.GetNeedsAttention;
@@ -16,6 +17,7 @@ using Gym.Application.Reports.GetTopCafeProducts;
 using Gym.Application.ServiceCharges;
 using Gym.Application.Subscriptions;
 using Gym.Domain.Members;
+using Gym.Domain.Notifications;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Persistence;
 
@@ -157,6 +159,38 @@ public sealed class OperationalReportsEndpointTests(DatabaseFixture fixture) : D
         (needs.OldDebts.Sum(row => row.Owed) + needs.OldDebtWithoutMember).ShouldBe(receivables.Over30Days);
     }
 
+    // ---- The absence SMS's effect ----
+
+    [Fact]
+    public async Task AbsenceSms_ACheckInAfterTheMessage_CameBackTheSameDay()
+    {
+        var (owner, token) = await OwnerClientAsync();
+        var member = await AddMemberAsync("علی رضایی");
+        await AssignOkAsync(owner, token, member.Id);
+        var sentAt = Fixture.Services.GetRequiredService<TimeProvider>().GetUtcNow().AddMinutes(-1);
+        var sms = Notification.ForAbsence(member.Id, Today().AddDays(-20), member.PhoneNumber, "علی عزیز، جات خالیه!");
+        sms.MarkSent(42, 1_350m, sentAt).IsSuccess.ShouldBeTrue();
+        await using (var scope = Fixture.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Notifications.Add(sms);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await TestLockers.CheckInOkAsync(owner, token, member.Id);
+
+        var effect = await GetOkAsync<AbsenceSmsEffectResponse>(owner, token, "/api/reports/absence-sms");
+
+        effect.From.ShouldBe(Today());
+        effect.Sent.ShouldBe(1);
+        effect.CameBack.ShouldBe(1);
+        effect.AverageDaysToComeBack.ShouldBe(0m);
+        effect.CameBackByDay.ShouldBe([1, 0, 0, 0, 0, 0]);
+        effect.CostToman.ShouldBe(135m);
+        effect.Messages.ShouldBe(
+            [new AbsenceSmsMessageResponse(sms.Id, member.Id, member.FullName, Today(), AbsenceSmsOutcome.CameBack, 0, null)]);
+    }
+
     // ---- Who and which range ----
 
     [Theory]
@@ -165,6 +199,7 @@ public sealed class OperationalReportsEndpointTests(DatabaseFixture fixture) : D
     [InlineData("/api/reports/cafe-products?from=2026-10-04&to=2026-10-04")]
     [InlineData("/api/reports/needs-attention")]
     [InlineData("/api/reports/members?from=2026-10-04&to=2026-10-04")]
+    [InlineData("/api/reports/absence-sms")]
     public async Task Report_Staff_Returns403(string path)
     {
         var (staff, token) = await StaffClientAsync();
