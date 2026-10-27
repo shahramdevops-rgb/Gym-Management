@@ -762,6 +762,7 @@ public sealed class BroadcastTests(DatabaseFixture fixture) : DatabaseTestBase(f
             dailyReportSendTime: SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled: false,
             welcomeEnabled: false,
+            welcomeBackEnabled: false,
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,

@@ -9,7 +9,7 @@ import type {
   SmsMessageStatus,
 } from "./api";
 
-/** Each kind by the name the settings page gives it (BUSINESS_RULES.md §10 *The four kinds*, *The daily report*, *The subscription receipt*, *The welcome*, *The debt reminder*, *The absence SMS*, *The broadcast*). */
+/** Each kind by the name the settings page gives it (BUSINESS_RULES.md §10 *The four kinds*, *The daily report*, *The subscription receipt*, *The welcome*, *The debt reminder*, *The absence SMS*, *The welcome back*, *The broadcast*). */
 export const smsKindLabels: Record<SmsMessageKind, string> = {
   SubscriptionExpiring: "پایان اشتراک",
   LowSessions: "جلسات رو به اتمام",
@@ -20,6 +20,7 @@ export const smsKindLabels: Record<SmsMessageKind, string> = {
   Welcome: "خوش‌آمد",
   DebtReminder: "یادآوری بدهی",
   Absence: "پیامک غیبت",
+  WelcomeBack: "خوش برگشتی",
   Broadcast: "پیامک گروهی",
 };
 

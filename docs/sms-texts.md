@@ -182,6 +182,43 @@ come for the settings' number of days, counted from the last visit or from the p
   «{name} عزیز، جای شما در باشگاه پاسارگاد خالی است!») was one part; the developer accepted twice the
   cost for this one.
 
+### Welcome back (`WelcomeBack`, to the member)
+
+Chosen by the developer on 1405/08/04 (2026-10-26), task 10.20. Sent half an hour after the
+member's first visit after an absence SMS that reached the phone (BUSINESS_RULES.md §10 *The
+welcome back*). **Six texts, in turn**: a member's first welcome back is the first, the second the
+second, and after the sixth it starts again (`SmsText.WelcomeBackTexts`), so it never feels like
+the same automatic message.
+
+```
+{name} عزیز، از اینکه به باشگاه پاسارگاد برگشتی خیلی خوشحالیم! هیچی مثل ورزش حال آدم رو خوب نمی‌کنه.
+```
+
+```
+{name} جان، خوش برگشتی! باشگاه پاسارگاد بدون تو یه چیزی کم داشت. قوی ادامه بده!
+```
+
+```
+{name} عزیز، دیدن دوباره‌ت توی باشگاه پاسارگاد حالمون رو خوب کرد! همین که اومدی یعنی نصف راه رو رفتی.
+```
+
+```
+{name} عزیز، برگشتنت رو تبریک می‌گیم! هر جلسه یه قدم به نسخهٔ بهتر خودت نزدیک‌تره.
+```
+
+```
+سلام {name} عزیز، چه خوب که دوباره اومدی! از امروز دوباره با هم ادامه می‌دیم، قدم به قدم.
+```
+
+```
+سلام {name} عزیز، چه خوب که دوباره اومدی! جات اینجا همیشه محفوظه، با قدرت ادامه بده.
+```
+
+- Drafted by Claude in the developer's spoken style, chosen by the developer: of a first five, the
+  fifth («… بدنت ازت ممنونه …») was dropped and two others written in its place.
+- Friendly, with no offer in it, like the absence SMS it answers.
+- Every one takes two parts with a 10-character name.
+
 ### Broadcast (`Broadcast`, to the member)
 
 Decided with the developer on 1405/07/27 (2026-10-19), task 10.13. The one text the code does not

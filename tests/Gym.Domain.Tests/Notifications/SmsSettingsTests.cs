@@ -49,6 +49,7 @@ public sealed class SmsSettingsTests
             dailyReportSendTime: new TimeOnly(21, 30),
             subscriptionReceiptEnabled: true,
             welcomeEnabled: true,
+            welcomeBackEnabled: true,
             debtReminder: new(true, 30, new TimeOnly(11, 0)),
             debtReminderMinAmount: 500_000m,
             absence: new(true, 14, new TimeOnly(11, 30)),
@@ -69,6 +70,8 @@ public sealed class SmsSettingsTests
         settings.For(NotificationKind.SubscriptionReceipt).ShouldBe(new SmsKindSettings(true, null, null));
         settings.WelcomeEnabled.ShouldBeTrue();
         settings.For(NotificationKind.Welcome).ShouldBe(new SmsKindSettings(true, null, null));
+        settings.WelcomeBackEnabled.ShouldBeTrue();
+        settings.For(NotificationKind.WelcomeBack).ShouldBe(new SmsKindSettings(true, null, null));
         settings.For(NotificationKind.DebtReminder).ShouldBe(new SmsKindSettings(true, 30, new TimeOnly(11, 0)));
         settings.DebtReminderMinAmount.ShouldBe(500_000m);
         settings.For(NotificationKind.Absence).ShouldBe(new SmsKindSettings(true, 14, new TimeOnly(11, 30)));
@@ -305,6 +308,9 @@ public sealed class SmsSettingsTests
     [InlineData(NotificationKind.PayableDue, 22, 0, true)]
     [InlineData(NotificationKind.PayableDue, 22, 1, false)]
     [InlineData(NotificationKind.Birthday, 22, 45, false)]
+    [InlineData(NotificationKind.WelcomeBack, 7, 59, false)]
+    [InlineData(NotificationKind.WelcomeBack, 22, 45, true)]
+    [InlineData(NotificationKind.WelcomeBack, 23, 59, true)]
     public void IsWithinSendingHours_ByKind_FollowsItsOwnHours(NotificationKind kind, int hour, int minute, bool expected)
     {
         SmsSettings.IsWithinSendingHours(kind, new TimeOnly(hour, minute)).ShouldBe(expected);
@@ -314,6 +320,45 @@ public sealed class SmsSettingsTests
     public void IsWithinSendingHours_DailyReportLastMomentOfTheDay_IsAllowed()
     {
         SmsSettings.IsWithinSendingHours(NotificationKind.DailyReport, TimeOnly.MaxValue).ShouldBeTrue();
+    }
+
+    // ---- The welcome back (task 10.20) ----
+
+    [Theory]
+    [InlineData(8, 0, 8, 30)]
+    [InlineData(17, 45, 18, 15)]
+    [InlineData(22, 10, 22, 40)]
+    [InlineData(23, 29, 23, 59)]
+    public void WelcomeBackAt_CheckIn_IsHalfAnHourLater(int hour, int minute, int atHour, int atMinute)
+    {
+        SmsSettings.WelcomeBackAt(Day, new TimeOnly(hour, minute))
+            .ShouldBe(Day.ToDateTime(new TimeOnly(atHour, atMinute)));
+    }
+
+    [Theory]
+    [InlineData(6, 0)]
+    [InlineData(7, 30)]
+    public void WelcomeBackAt_HalfAnHourBefore0800_Is0800ThatDay(int hour, int minute)
+    {
+        SmsSettings.WelcomeBackAt(Day, new TimeOnly(hour, minute)).ShouldBe(Day.ToDateTime(new TimeOnly(8, 0)));
+    }
+
+    [Theory]
+    [InlineData(23, 30)]
+    [InlineData(23, 59)]
+    public void WelcomeBackAt_HalfAnHourPastMidnight_IsNever(int hour, int minute)
+    {
+        SmsSettings.WelcomeBackAt(Day, new TimeOnly(hour, minute)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void For_WelcomeBack_HasNoSendTimeSoNoDailyRun()
+    {
+        var settings = Empty();
+        Save(settings, welcomeBackEnabled: true).IsSuccess.ShouldBeTrue();
+
+        settings.For(NotificationKind.WelcomeBack).ShouldBe(new SmsKindSettings(true, null, null));
+        SmsSettings.LatestSendTimeFor(NotificationKind.WelcomeBack).ShouldBe(TimeOnly.MaxValue);
     }
 
     // ---- The subscription receipt (task 10.9) ----
@@ -611,6 +656,7 @@ public sealed class SmsSettingsTests
         TimeOnly? dailyReportSendTime = null,
         bool subscriptionReceiptEnabled = false,
         bool welcomeEnabled = false,
+        bool welcomeBackEnabled = false,
         SmsKindSettings? debtReminder = null,
         decimal? debtReminderMinAmount = null,
         SmsKindSettings? absence = null,
@@ -627,6 +673,7 @@ public sealed class SmsSettingsTests
             dailyReportSendTime ?? SmsSettings.DefaultDailyReportSendTime,
             subscriptionReceiptEnabled,
             welcomeEnabled,
+            welcomeBackEnabled,
             debtReminder ?? SmsKindSettings.Off,
             debtReminderMinAmount,
             absence ?? SmsKindSettings.Off,

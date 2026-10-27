@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Application.Members;
+using Gym.Application.Notifications.SendWelcomeBack;
 using Gym.Domain.Attendances;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
@@ -20,7 +21,7 @@ namespace Gym.Application.Attendances.CardioOnlyCheckIn;
 /// moves a plan (unfreezing, bringing a queued plan forward). Nothing in a subscription is written,
 /// so there is no overlap check to defer.
 /// </remarks>
-public sealed class CardioOnlyCheckInHandler(IAppDbContext db, IGymCalendar calendar, TimeProvider time)
+public sealed class CardioOnlyCheckInHandler(IAppDbContext db, IGymCalendar calendar, TimeProvider time, WelcomeBacks welcomeBacks)
 {
     public async Task<Result<AttendanceResponse>> Handle(Guid memberId, CardioOnlyCheckInCommand command, CancellationToken cancellationToken)
     {
@@ -98,6 +99,9 @@ public sealed class CardioOnlyCheckInHandler(IAppDbContext db, IGymCalendar cale
         {
             return Result.Failure<AttendanceResponse>(AttendanceErrors.ChangedConcurrently);
         }
+
+        // A cardio-only visit is a visit too (BUSINESS_RULES.md §10 The welcome back).
+        await welcomeBacks.QueueIfFirstVisitAsync(attendance.Id, cancellationToken);
 
         // Shown at the desk the same way as after an ordinary check-in (BUSINESS_RULES.md §7):
         // money owed never blocks coming in.

@@ -67,6 +67,7 @@ public sealed class UpdateSmsSettingsHandler(IAppDbContext db, IPhoneNormalizer 
             command.DailyReport.SendTime,
             command.SubscriptionReceipt.Enabled,
             command.Welcome.Enabled,
+            command.WelcomeBack.Enabled,
             new SmsKindSettings(command.DebtReminder.Enabled, command.DebtReminder.DaysAfter, command.DebtReminder.SendTime),
             command.DebtReminder.MinAmount,
             command.Absence,

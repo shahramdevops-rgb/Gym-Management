@@ -3,7 +3,7 @@ using Gym.Application.Common.Sms;
 namespace Gym.Api.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// The test host's schedulers for the messages sent one at a time (the receipt, the welcome): each
+/// The test host's schedulers for the messages sent one at a time (the receipt, the welcome, the welcome back): each
 /// remembers what it was asked for and sends nothing.
 /// </summary>
 /// <remarks>
@@ -58,6 +58,9 @@ internal sealed class RecordingSubscriptionReceiptScheduler : RecordingSmsJobSch
 
 /// <summary>The welcomes asked for (task 10.10).</summary>
 internal sealed class RecordingWelcomeScheduler : RecordingSmsJobScheduler, IWelcomeScheduler;
+
+/// <summary>The welcome backs asked for (task 10.20): <c>SubscriptionId</c> is then the check-in.</summary>
+internal sealed class RecordingWelcomeBackScheduler : RecordingSmsJobScheduler, IWelcomeBackScheduler;
 
 /// <summary>
 /// The broadcasts asked for (task 10.13). <see cref="Fail"/> makes the next ask throw, as a job

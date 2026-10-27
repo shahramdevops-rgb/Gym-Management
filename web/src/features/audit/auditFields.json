@@ -176,6 +176,7 @@
     "DailyReportSendTime": { "label": "گزارش روزانه: ساعت ارسال" },
     "SubscriptionReceiptEnabled": { "label": "رسید خرید اشتراک: روشن" },
     "WelcomeEnabled": { "label": "خوش‌آمد: روشن" },
+    "WelcomeBackEnabled": { "label": "خوش برگشتی: روشن" },
     "DebtReminderEnabled": { "label": "یادآوری بدهی: روشن" },
     "DebtReminderDaysAfter": { "label": "یادآوری بدهی: چند روز بعد" },
     "DebtReminderSendTime": { "label": "یادآوری بدهی: ساعت ارسال" },

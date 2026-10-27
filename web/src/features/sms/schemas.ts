@@ -192,6 +192,10 @@ export const smsSettingsSchema = z
     welcome: z.object({
       enabled: z.boolean(),
     }),
+    /** The member's welcome back (task 10.20): only a switch, like the welcome. */
+    welcomeBack: z.object({
+      enabled: z.boolean(),
+    }),
     /** The member's debt reminder (task 10.11): days, time and a minimum amount. */
     debtReminder: debtReminderSchema,
     /** The member's absence SMS (task 10.12): days away and a time, like the four kinds. */
@@ -357,6 +361,7 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
     },
     subscriptionReceipt: { enabled: settings.subscriptionReceipt.enabled },
     welcome: { enabled: settings.welcome.enabled },
+    welcomeBack: { enabled: settings.welcomeBack.enabled },
     debtReminder: {
       enabled: settings.debtReminder.enabled,
       daysAfter: numberText(settings.debtReminder.daysAfter),
@@ -422,6 +427,7 @@ export function toInput(
     },
     subscriptionReceipt: { enabled: values.subscriptionReceipt.enabled },
     welcome: { enabled: values.welcome.enabled },
+    welcomeBack: { enabled: values.welcomeBack.enabled },
     debtReminder: debtReminderInput(values.debtReminder),
     absence: kindInput(values.absence),
     broadcast: { enabled: values.broadcast.enabled },

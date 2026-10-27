@@ -50,6 +50,7 @@ using Gym.Application.History.ListSales;
 using Gym.Application.History.ListServiceCharges;
 using Gym.Application.History.PaymentTotals;
 using Gym.Application.History.SalesTotals;
+using Gym.Application.Reports.GetAbsenceSmsEffect;
 using Gym.Application.Reports.GetAttendanceReport;
 using Gym.Application.Reports.GetFinancialReport;
 using Gym.Application.Reports.GetMembersReport;
@@ -86,6 +87,7 @@ using Gym.Application.Notifications.ResendCancelledSms;
 using Gym.Application.Notifications.ResendSms;
 using Gym.Application.Notifications.SendSubscriptionReceipt;
 using Gym.Application.Notifications.SendWelcome;
+using Gym.Application.Notifications.SendWelcomeBack;
 using Gym.Application.Notifications.SendDailySms;
 using Gym.Application.Notifications.UpdateSmsSettings;
 using Gym.Application.Payables.CancelPayable;
@@ -247,6 +249,7 @@ public static class DependencyInjection
         services.AddScoped<GetTopCafeProductsHandler>();
         services.AddScoped<GetNeedsAttentionHandler>();
         services.AddScoped<GetMembersReportHandler>();
+        services.AddScoped<GetAbsenceSmsEffectHandler>();
 
         services.AddScoped<CreateCafeOrderHandler>();
         services.AddScoped<GetCafeOrderHandler>();
@@ -296,6 +299,8 @@ public static class DependencyInjection
         services.AddScoped<SendSubscriptionReceiptHandler>();
         services.AddScoped<Welcomes>();
         services.AddScoped<SendWelcomeHandler>();
+        services.AddScoped<WelcomeBacks>();
+        services.AddScoped<SendWelcomeBackHandler>();
         services.AddScoped<CheckSmsDeliveryHandler>();
         services.AddScoped<GetSmsCreditHandler>();
         services.AddScoped<GetSmsSamplesHandler>();

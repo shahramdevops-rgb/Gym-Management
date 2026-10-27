@@ -2096,6 +2096,28 @@ The question that started this was whether a gym that is entirely internal — I
 - **A migration test pins the server's shape.** Migrating an empty database to the migration before, inserting the server's kind of row, then migrating to the end proves the release will not stop on that row.
 - **My notes:**
 
+## 10.19 — Did the absence SMS work? (اثر پیامک غیبت)
+
+- **A report can be built from rows that were written for another reason.** Every absence SMS already kept its member, its moment and its cost so it could be sent and resent; joined with the check-ins, that answers "did they come back?" with no new table and no migration, and the messages sent before the report existed count too.
+- **Compare moments, not days, when order matters.** A member who came at 9:00 and got the SMS at 18:00 the same day did not answer it. Asking for the first check-in *after the moment it was sent* gets that right; asking by day would not.
+- **"Waiting" keeps a young range honest.** A message sent yesterday has had no chance yet; counting it as "did not come back" would make this week always look worst. It is left out of the rate, the same rule as the renewal rate.
+- **After is not because.** The figure counts who came after the message; some would have come anyway. Knowing the real effect needs a control group (members deliberately not texted), a business decision, so the card states what it measures in plain words instead of claiming more.
+- **A rule's inputs can be plain values.** `AbsenceSmsEffect.Counts(status, delivery)` takes two values rather than a `Notification`, so the handler can read small projections from the database and still ask the Domain, and the unit tests need no entity.
+- **Exclude by what was known at the start, not by the result.** A message whose plan ended inside the window had no fair chance, so it is "not measurable". Deciding that from the plan's end date on the day of sending, whatever the member then did, keeps the rate honest; dropping only the members who did not come would have pushed it up.
+- **Timing is evidence when there is no control group.** If a reminder works, returns bunch up in the first day or two after it; returns spread evenly look like habit. Showing "how many days after" gives the Owner that signal without holding anyone back.
+- **A figure that depends on time needs a time frame that fits it.** Inside the dashboard's range the effect was nearly empty on every month's 1st, since the messages of the last days of the month before were not "this month". A rate that is about habits over weeks reads better over everything since the start, with a month-by-month breakdown for the trend.
+- **Delete what nothing uses.** Once the range card was gone, the range query, its validator, a shared reader and a second endpoint were dead code; keeping them "in case" would leave two ways to ask the same thing and tests guarding nothing.
+- **My notes:**
+
+## 10.20 — Welcome back (خوش برگشتی)
+
+- **Name an index when two share the same columns.** The absence SMS and the welcome back both need "one per member and absence" on `(member_id, absent_since)`, each filtered to its own kind. EF Core keys an unnamed index by its columns, so the second `HasIndex` quietly replaced the first and the migration dropped the absence SMS's index. `HasIndex(columns, name)` keeps two indexes on the same columns apart; always read the migration's `Up` before trusting it.
+- **"First since" is a query, not a flag.** Whether a check-in is the member's first after the absence SMS is answered by asking for the earliest visit after the message's moment and comparing it with this one. Nothing new is stored, so a cancelled check-in, a cardio-only visit and a visit made before the feature existed all come out right by themselves.
+- **Rotation from what is already there.** The text a member gets is the count of welcome backs they already have, modulo six. A counter column would have to be kept in step; counting the rows cannot go wrong, and it is deterministic, so a test can say which text comes next (random choice could repeat and cannot be asserted).
+- **A delayed job decides again when it runs.** The check-in only asks for a message half an hour later; when the job runs, it reads everything again (switch, cancelled visit, deactivated member, a new first visit), because thirty minutes is long enough for any of them to change.
+- **A message that is only about "now" can expire.** Unlike the welcome, which waits for 10:00, a welcome back the server could not send by midnight is dropped: "glad you came back" the next morning would be wrong. The rule lives in one place, `SmsSettings.WelcomeBackAt`, and the job checks the day again.
+- **My notes:**
+
 ## 15.1a — The site's one-time code (کد یک‌بارمصرف)
 
 - **Store what makes the secret, not the secret.** Each code row keeps a random seed; the code is HMAC-SHA256 of the phone and the seed under a key that lives only in the server's settings. A stolen backup gives seeds and no codes, yet the same seed always gives the same code, which is what lets «ارسال دوباره» send the same code again.

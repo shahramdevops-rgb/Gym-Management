@@ -1975,10 +1975,10 @@ released without 15.1.
       database; a cancelled plan of 123 allowed, 141 refused even cancelled; the migration keeps the
       cancelled 123 and brings the SMS row sizes down
 - [x] Tests (frontend): 30 fills 70 days, 31 is refused with the new message
-- [ ] **Released on a night of its own** (asked by the developer, 1405/08/03), not with 15.1 or
-      anything else, so a problem is this change's alone and is put right before the morning
-- [ ] **Before the release:** run the read-only check again (no plan above 30 that is not
-      cancelled), then `./backup.sh run`
+- [x] **Released 1405/08/05 (2026-10-27), 02:20, as `20261027-0220-387aa1d`**, with 10.19 and
+      10.20 (the developer, 1405/08/05, replacing "a night of its own"); the record is under 10.20
+- [x] **Before the release:** the read-only check, the new constraint's own condition negated,
+      found 0 rows of 289; then `./backup.sh run`
 
 Done when: the desk types 31 and sees the friendly message, and nothing is sent.
 
@@ -3083,6 +3083,92 @@ No migration. Release: with 10.16 and 10.17, one release from `main`.
       `auto_resends` 0 everywhere. The developer then set the low-sessions rows to 1, 2 and 3 and
       the daily report to 22:30 on the new page
 
+### 10.19 Did the absence SMS work? (اثر پیامک غیبت)
+Asked by the developer on 1405/08/04 (2026-10-26); reopens the panel. BUSINESS_RULES.md §12 *The
+absence SMS's effect*. Branch `task/10.19-absence-sms-effect` from `main`, in its own worktree, so
+it does not mix with 15.1.
+- [x] Asked first (1405/08/04): came back = a visit within **14 days** of the message (not 7 or
+      30); only messages sent and not given back by the provider; by the day of sending, inside
+      the dashboard's range; the card shows the rate, the three counts, the average days to come
+      back and the cost, and opens the list of names
+- [x] Domain: `AbsenceSmsEffect` (which messages count, and each one's outcome), unit tests
+- [x] `GET /api/reports/absence-sms?from&to` (Owner only): the counts, the average, the cost and
+      the list; integration tests (the 14-day edge, waiting, a cancelled or cardio-only visit, a
+      visit before the message, a failed or cancelled message, the range by the day of sending)
+- [x] The card «اثر پیامک غیبت» beside the renewal and conversion rates, and its list in a dialog
+      opened by «فهرست نام‌ها» (`StatCard` took an `action`); a visit on the day itself reads
+      «همان روز آمد», the window's last day «امروز روز آخر است» (committed as `ad199ff`)
+
+Second round, the same day, after the developer saw it running: "a new month empties it" and "a
+plan that ends inside the window gives wrong data". Decided with the developer:
+- [x] The window is **5 days** (14, then 7, then 5: the closer to the message, the more a visit is
+      its answer)
+- [x] **Not measurable** («قابل سنجش نیست»), apart from the rate: the plan held on the day of
+      sending ends inside the window or was cancelled (known from that day, so it leans the
+      figure neither way), or it was frozen inside the window before the member came. Rate = came
+      back ÷ (came back + did not)
+- [x] No control group (members left without the SMS): declined by the developer. Instead, how
+      soon those who came back came, day 0 to day 5, as a sign of the message's effect
+- [x] «اثر پیامک غیبت» in «نیاز به اقدام», under «بدهی قدیمی»: every message since the first,
+      whatever the range (`GET /api/reports/absence-sms/overall`), with the counts, the cost per
+      return, the days to come back and the same month by Jalali month; no names. The card in
+      «خلاصهٔ بازه» stays, with the same rules (`AbsenceSmsEffectReader` serves both)
+
+Third round, the same day, asked by the developer:
+- [x] The card in «خلاصهٔ بازه» taken off: one place only. The report has no range any more
+      (`GET /api/reports/absence-sms`; the range query, its validator, the reader and `/overall`
+      removed; `StatCard`'s `action` with them)
+- [x] «فهرست نام‌ها» moved to the box in «نیاز به اقدام»: the last **30 days** only, so it stays
+      short (`AbsenceSmsNamesDialog`, counted back from the report's own today)
+- [x] The box takes the place of «بدهی قدیمی», which moves to the end of the panel (`ListFrame`
+      moved to a file of its own, shared by the panel and the box)
+
+No migration: everything is read from `notifications`, `attendances` and `subscriptions`.
+- [x] Released 1405/08/05 (2026-10-27) as `20261027-0220-387aa1d`, with 6.5.38 and 10.20; the
+      record is under 10.20
+
+### 10.20 Welcome back (خوش برگشتی)
+Asked by the developer on 1405/08/04 (2026-10-26), right after 10.19; reopens the panel.
+BUSINESS_RULES.md §10 *The welcome back*. Branch `task/10.20-welcome-back` from `main` (10.19 and
+6.5.38 on it, not released yet).
+- [x] Asked first (1405/08/04): **half an hour after the check-in**; on the first visit after the
+      absence SMS **however late**; until midnight, not 22:00; **six texts in turn** for each
+      member, not at random; a member who came back before the release gets nothing after it
+- [x] Domain: `NotificationKind.WelcomeBack` (its event is the member and `AbsentSince`),
+      `SmsText.WelcomeBackTexts` and `ForWelcomeBack`, `SmsSettings.WelcomeBackEnabled`, its hours
+      until midnight and its moment (`WelcomeBackAt`), unit tests
+- [x] Application: `WelcomeBacks` asked after the commit of `CheckInHandler` and
+      `CardioOnlyCheckInHandler`; `IWelcomeBackScheduler`; `SendWelcomeBackHandler` checks it all
+      again and picks the text by the member's turn; the settings' switch; integration tests
+- [x] Infrastructure: `Jobs/WelcomeBackJob` one at a time; migration `AddSmsWelcomeBack` (one
+      switch, off; the unique index `ix_notifications_one_welcome_back_per_member_and_absence`, named
+      beside the absence SMS's on the same columns; the kind and event checks widened; no row touched)
+- [x] UI: «خوش برگشتی» on «تنظیمات پیامک» with its six texts, its label on «پیامک‌ها» and the
+      audit screen; the demo
+
+Release: **with 10.19 and 6.5.38, one release from `main`** (the developer, 1405/08/05, replacing "a
+night of its own"); it has a migration, so `./backup.sh run` first. The switch starts off: the Owner
+turns it on.
+
+#### Release `20261027-0220-387aa1d` (1405/08/05, 2026-10-27, 02:20)
+6.5.38, 10.19 and 10.20 from `main`, with 14.2's map of the streets (merged into `main` with 15.0's
+docs before 6.5.38, so it went out to the public site too). 15.1 and 13.5 stay on their branches.
+- [x] Before: domain 1018, integration 1808 (`DemoSeederTests.SeedDemo_EmptyDatabase_FillsThreeMonthsUpToNow`
+      failed once just after midnight, an older flake, green again), frontend 1202; lint, format and
+      build clean; `npm run e2e` 7/7; `npm run screenshots` retaken (`387aa1d`)
+- [x] The server before: `20261025-0344-23fdcdd`, all healthy, 51 GB free, 2.9 GB memory available;
+      rows 258 members, 289 subscriptions, 507 payments, 1256 attendances, 225 notifications; no plan
+      the 30-session constraint refuses (0 rows)
+- [x] `./backup.sh run` → `gym-20261027-021839.dump` (1247072 bytes), copied to `D:\gymbackups`,
+      sha256 `0c17718116f03940d5f2dc98c1b8e3237434d1039fb6a1415f22d44d90b63f4b` the same on both
+- [x] `deploy/release.sh gym@94.184.45.96` → `Released 20261027-0220-387aa1d (previous:
+      20261025-0344-23fdcdd)`, both migrations applied
+- [x] After: the panel's `/health` and the public site 200, the live `site.js` carries `townMap`;
+      no error in the API's last 15 minutes of logs; the same row counts
+- [x] Checked on the live panel by the developer: the absence SMS's box and its names (10.19), 31
+      sessions refused with the friendly message, the sale not finished (6.5.38), the «خوش برگشتی»
+      card with its six texts (10.20)
+
 ---
 
 ## Phase 11 — Audit UI and Hardening
@@ -3981,7 +4067,8 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
       - Instagram known since 2026-10-25: `pasargad_plus` (https://instagram.com/pasargad_plus),
         written on the sign over the gym's door; the developer: the sign makes it the official page
 - [x] The streets around the gym in 3D beside the address (section ۰۷), asked by the developer on
-      1405/08/03 (2026-10-25), branch `task/14.2-finding-the-gym`, not released yet
+      1405/08/03 (2026-10-25), branch `task/14.2-finding-the-gym`; released 1405/08/05 in
+      `20261027-0220-387aa1d` (with 6.5.38, 10.19 and 10.20)
       - Traced from a Neshan screenshot the developer sent: the gym is a shed at the south edge of
         the sports complex between شهید کاظمی and ۱۸ متری فرهنگیان, its door on فرهنگیان, عصر انقلاب
         to the east. Drawn by `site.js` (`townMap`) as isometric SVG in the site's colours: no map

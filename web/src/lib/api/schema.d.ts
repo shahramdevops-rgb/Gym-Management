@@ -1604,6 +1604,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports/absence-sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetAbsenceSmsEffect"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audit-logs": {
         parameters: {
             query?: never;
@@ -1640,6 +1656,46 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AbsenceSmsEffectResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            sent: number | string;
+            /** Format: int32 */
+            cameBack: number | string;
+            /** Format: int32 */
+            waiting: number | string;
+            /** Format: int32 */
+            didNotComeBack: number | string;
+            /** Format: int32 */
+            notMeasurable: number | string;
+            /** Format: double */
+            averageDaysToComeBack: null | number | string;
+            cameBackByDay: (number | string)[];
+            /** Format: double */
+            costToman: number | string;
+            /** Format: double */
+            costPerReturnToman: null | number | string;
+            messages: components["schemas"]["AbsenceSmsMessageResponse"][];
+        };
+        AbsenceSmsMessageResponse: {
+            /** Format: uuid */
+            notificationId: string;
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            /** Format: date */
+            sentOn: string;
+            outcome: components["schemas"]["AbsenceSmsOutcome"];
+            /** Format: int32 */
+            daysToComeBack: null | number | string;
+            /** Format: int32 */
+            daysLeft: null | number | string;
+        };
+        /** @enum {unknown} */
+        AbsenceSmsOutcome: "CameBack" | "Waiting" | "DidNotComeBack" | "NotMeasurable";
         AbsentResponse: {
             /** Format: uuid */
             memberId: string;
@@ -2408,7 +2464,7 @@ export interface components {
             payablesDue: components["schemas"]["PayableDueResponse"][];
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast" | "WelcomeBack";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -3099,6 +3155,7 @@ export interface components {
             dailyReport: components["schemas"]["SmsSample"];
             subscriptionReceipt: components["schemas"]["SmsSample"];
             welcome: components["schemas"]["SmsSample"];
+            welcomeBack: components["schemas"]["SmsSample"][];
             debtReminder: components["schemas"]["SmsSample"];
             absence: components["schemas"]["SmsSample"];
         };
@@ -3112,6 +3169,7 @@ export interface components {
             dailyReport: components["schemas"]["DailyReportSettingsResponse"];
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettingsResponse"];
             welcome: components["schemas"]["WelcomeSettingsResponse"];
+            welcomeBack: components["schemas"]["WelcomeBackSettingsResponse"];
             debtReminder: components["schemas"]["DebtReminderSettings"];
             absence: components["schemas"]["SmsKindSettings"];
             broadcast: components["schemas"]["BroadcastSettings"];
@@ -3276,6 +3334,7 @@ export interface components {
             dailyReport: components["schemas"]["DailyReportSettings"];
             subscriptionReceipt: components["schemas"]["SubscriptionReceiptSettings"];
             welcome: components["schemas"]["WelcomeSettings"];
+            welcomeBack: components["schemas"]["WelcomeBackSettings"];
             debtReminder: components["schemas"]["DebtReminderSettings"];
             absence: components["schemas"]["SmsKindSettings"];
             broadcast: components["schemas"]["BroadcastSettings"];
@@ -3292,6 +3351,14 @@ export interface components {
         };
         VoidServiceChargeCommand: {
             reason: string;
+        };
+        WelcomeBackSettings: {
+            enabled: boolean;
+        };
+        WelcomeBackSettingsResponse: {
+            enabled: boolean;
+            /** Format: int32 */
+            delayMinutes: number | string;
         };
         WelcomeSettings: {
             enabled: boolean;
@@ -10098,6 +10165,44 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetAbsenceSmsEffect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AbsenceSmsEffectResponse"];
                 };
             };
             /** @description Unauthorized */
