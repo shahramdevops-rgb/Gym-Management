@@ -174,6 +174,9 @@ crontab -e
 
 # 2. A read-only account for the gym's computer. It is not in the docker group and cannot read .env.
 sudo adduser --disabled-password --gecos "" gymbackup
+# The deploy user must be in the group, or backup.sh's chgrp fails and the nightly dump stops.
+# Log out and in again before running ./backup.sh by hand; cron picks the group up on its own.
+sudo usermod -aG gymbackup "$USER"
 sudo install -d -m 700 -o gymbackup -g gymbackup /home/gymbackup/.ssh
 echo 'restrict <the public key from the gym computer>' | sudo tee /home/gymbackup/.ssh/authorized_keys
 sudo chown gymbackup:gymbackup /home/gymbackup/.ssh/authorized_keys
