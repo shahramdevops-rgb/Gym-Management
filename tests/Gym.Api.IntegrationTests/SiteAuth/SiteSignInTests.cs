@@ -41,7 +41,7 @@ public sealed class SiteSignInTests(DatabaseFixture fixture) : DatabaseTestBase(
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var body = await response.ReadJsonAsync();
         body.GetProperty("outcome").GetString().ShouldBe(nameof(SignInOutcome.SignedIn));
-        var me = body.GetProperty("access").GetProperty("me");
+        var me = body.GetProperty("access").GetProperty("me").GetProperty("member");
         me.GetProperty("memberId").GetGuid().ShouldBe(member.Id);
         me.GetProperty("fullName").GetString().ShouldBe("سارا محمدی");
         me.GetProperty("isActive").GetBoolean().ShouldBeTrue();
@@ -93,7 +93,7 @@ public sealed class SiteSignInTests(DatabaseFixture fixture) : DatabaseTestBase(
         using var response = await client.SignInWithCodeAsync(Fixture, Phone);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await response.ReadJsonAsync()).GetProperty("access").GetProperty("me").GetProperty("isActive").GetBoolean().ShouldBeFalse();
+        (await response.ReadJsonAsync()).GetProperty("access").GetProperty("me").GetProperty("member").GetProperty("isActive").GetBoolean().ShouldBeFalse();
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed class SiteSignInTests(DatabaseFixture fixture) : DatabaseTestBase(
         using var response = await client.GetMeAsync(accessToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await response.ReadJsonAsync()).GetProperty("isActive").GetBoolean().ShouldBeFalse();
+        (await response.ReadJsonAsync()).GetProperty("member").GetProperty("isActive").GetBoolean().ShouldBeFalse();
     }
 
     // ---- A new phone ----
@@ -144,7 +144,7 @@ public sealed class SiteSignInTests(DatabaseFixture fixture) : DatabaseTestBase(
         member.BirthDate.ShouldBe(BirthDate);
         member.IsActive.ShouldBeTrue();
         (await AccountsAsync()).ShouldHaveSingleItem().MemberId.ShouldBe(member.Id);
-        (await response.ReadJsonAsync()).GetProperty("me").GetProperty("memberId").GetGuid().ShouldBe(member.Id);
+        (await response.ReadJsonAsync()).GetProperty("me").GetProperty("member").GetProperty("memberId").GetGuid().ShouldBe(member.Id);
 
         // §15: no plan, and no welcome SMS: that waits for the first plan, at the desk.
         await using var scope = Fixture.CreateScope();

@@ -55,6 +55,7 @@ using Gym.Application.Reports.GetAttendanceReport;
 using Gym.Application.Reports.GetFinancialReport;
 using Gym.Application.Reports.GetMembersReport;
 using Gym.Application.Reports.GetNeedsAttention;
+using Gym.Application.Notifications.GetSignInCodeSms;
 using Gym.Application.Reports.GetReceivables;
 using Gym.Application.Reports.GetSubscriptionsSnapshot;
 using Gym.Application.Reports.GetTopCafeProducts;
@@ -130,6 +131,11 @@ using Gym.Application.Subscriptions.ListMemberSubscriptions;
 using Gym.Application.Subscriptions.RenewSubscription;
 using Gym.Application.Subscriptions.SellSingleVisit;
 using Gym.Application.Subscriptions.UnfreezeSubscription;
+using Gym.Application.Trainers.CreateTrainer;
+using Gym.Application.Trainers.ListTrainers;
+using Gym.Application.Trainers.RestartTrainer;
+using Gym.Application.Trainers.StopTrainer;
+using Gym.Application.Trainers.UpdateTrainer;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -177,12 +183,20 @@ public static class DependencyInjection
         // The site's sign-in (BUSINESS_RULES.md §15, task 15.1).
         services.AddScoped<RequestCodeHandler>();
         services.AddScoped<VerifyCodeHandler>();
+        services.AddScoped<SiteAccountLinks>();
         services.AddScoped<SiteSessions>();
         services.AddScoped<SignInHandler>();
         services.AddScoped<SignUpHandler>();
         services.AddScoped<SiteRefreshHandler>();
         services.AddScoped<SiteLogoutHandler>();
         services.AddScoped<GetSiteMeHandler>();
+
+        // Trainers in the panel (BUSINESS_RULES.md §15, task 15.2).
+        services.AddScoped<ListTrainersHandler>();
+        services.AddScoped<CreateTrainerHandler>();
+        services.AddScoped<UpdateTrainerHandler>();
+        services.AddScoped<StopTrainerHandler>();
+        services.AddScoped<RestartTrainerHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();
@@ -248,6 +262,7 @@ public static class DependencyInjection
         services.AddScoped<GetSubscriptionsSnapshotHandler>();
         services.AddScoped<GetTopCafeProductsHandler>();
         services.AddScoped<GetNeedsAttentionHandler>();
+        services.AddScoped<GetSignInCodeSmsHandler>();
         services.AddScoped<GetMembersReportHandler>();
         services.AddScoped<GetAbsenceSmsEffectHandler>();
 

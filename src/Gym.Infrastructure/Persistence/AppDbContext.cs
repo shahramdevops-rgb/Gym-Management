@@ -14,6 +14,7 @@ using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
 using Gym.Domain.SiteAuth;
 using Gym.Domain.Subscriptions;
+using Gym.Domain.Trainers;
 using Gym.Infrastructure.Identity;
 
 using Microsoft.AspNetCore.Identity;
@@ -87,6 +88,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SiteAccount> SiteAccounts => Set<SiteAccount>();
 
     public DbSet<SiteRefreshToken> SiteRefreshTokens => Set<SiteRefreshToken>();
+
+    public DbSet<Trainer> Trainers => Set<Trainer>();
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);

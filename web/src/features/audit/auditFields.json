@@ -29,7 +29,9 @@
     "SignInCode": "کد ورود سایت",
     "SignInCodeSend": "پیامک کد ورود",
     "SiteAccount": "حساب سایت",
-    "SiteRefreshToken": "نشست سایت"
+    "SiteRefreshToken": "نشست سایت",
+    "Trainer": "مربی",
+    "TrainerPeriod": "دورهٔ مربی‌گری"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -63,6 +65,7 @@
     "CostRial": { "label": "هزینه", "format": "rial" },
 
     "MemberId": { "label": "عضو", "format": "reference" },
+    "TrainerId": { "label": "مربی", "format": "reference" },
     "SubscriptionId": { "label": "اشتراک", "format": "reference" },
     "LockerId": { "label": "کمد", "format": "reference" },
     "AttendanceId": { "label": "ورود", "format": "reference" },
@@ -105,6 +108,8 @@
     "DueDate": { "label": "تاریخ سررسید" },
     "StartDate": { "label": "تاریخ شروع" },
     "EndDate": { "label": "تاریخ پایان" },
+    "StartedOn": { "label": "شروع مربی‌گری" },
+    "EndedOn": { "label": "پایان مربی‌گری" },
     "FrozenSince": { "label": "فریز از" },
 
     "ReserveSlot": { "label": "جای رزرو" },

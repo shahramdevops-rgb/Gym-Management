@@ -19,6 +19,10 @@ namespace Gym.Application.Reports.GetNeedsAttention;
 /// Pending cheques and instalments, dated within 7 days or already past their date, the earliest
 /// first (§9 <i>Cheques and instalments</i>).
 /// </param>
+/// <param name="SignInCodeLimitReached">
+/// Today's 300 code SMS of the site's sign-in are used up, so nobody can get a code until tomorrow
+/// (§15). With the gym's few hundred members it means an attack, not a busy day.
+/// </param>
 public sealed record NeedsAttentionResponse(
     DateOnly Today,
     IReadOnlyList<RunningOutResponse> RunningOut,
@@ -26,7 +30,8 @@ public sealed record NeedsAttentionResponse(
     IReadOnlyList<AbsentResponse> Absent,
     IReadOnlyList<OldDebtResponse> OldDebts,
     decimal OldDebtWithoutMember,
-    IReadOnlyList<PayableDueResponse> PayablesDue);
+    IReadOnlyList<PayableDueResponse> PayablesDue,
+    bool SignInCodeLimitReached);
 
 /// <param name="SessionsLeft">Zero when every session is used and the plan has not reached its end date.</param>
 public sealed record RunningOutResponse(

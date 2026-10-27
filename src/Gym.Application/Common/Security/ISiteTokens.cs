@@ -1,3 +1,4 @@
+using Gym.Application.SiteAuth;
 using Gym.Domain.SiteAuth;
 
 namespace Gym.Application.Common.Security;
@@ -8,8 +9,11 @@ namespace Gym.Application.Common.Security;
 /// </summary>
 public interface ISiteTokens
 {
-    /// <summary>The short-lived access token the site app sends with every request.</summary>
-    AccessToken IssueAccessToken(SiteAccount account);
+    /// <summary>
+    /// The short-lived access token the site app sends with every request, with the roles the
+    /// account has now: member, trainer, or both (BUSINESS_RULES.md §15).
+    /// </summary>
+    AccessToken IssueAccessToken(SiteAccount account, SitePerson person);
 
     /// <summary>
     /// Proof, for 15 minutes, that this phone has just typed its code: what a new phone signs up

@@ -19,10 +19,10 @@ public sealed record SignInResponse(
 
 public enum SignInOutcome
 {
-    /// <summary>The phone is a member's: signed in, linked to that member the first time.</summary>
+    /// <summary>The phone is a member's or a trainer's: signed in, linked to them the first time.</summary>
     SignedIn,
 
-    /// <summary>A phone the gym does not know: the sign-up screen comes next.</summary>
+    /// <summary>Neither a member's nor a trainer's phone: the sign-up screen comes next.</summary>
     NeedsProfile,
 }
 

@@ -2139,3 +2139,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Key a record by the source of truth.** The account first had its own copy of the phone; a number the desk changes would then still open the account for the number's new owner. Finding the member by phone and the account by the member keeps one phone in the whole system.
 - **A shared base class for security rules.** Staff and site refresh tokens live in two tables (ADR 0010) but rotate by one set of rules in `RotatingRefreshToken`; EF Core maps a base class that is not an entity as columns of each subclass, so the old table did not change.
 - **My notes:**
+
+## 15.2a — Trainers, and accounts that are a member's, a trainer's or both (مربیان)
+
+- **Stop, don't delete, and keep the periods.** Being a trainer is a list of periods with a start and an end. "Is a trainer now" is "has an open period", and a partial unique index (`WHERE ended_on IS NULL`) makes "one open period" a fact the database keeps, so two «شروع دوباره» at once cannot both win.
+- **A child added to a tracked parent needs a key EF Core does not generate.** The ids are made in C#. If EF Core believes it generates a key, an entity it finds through a navigation with the key already set looks "already saved", and the insert goes out as an update that touches no row. `ValueGeneratedNever()` on `TrainerPeriod.Id` tells it to insert.
+- **Two indexes on one column need names.** The open-period index and the foreign key's own index are both on `trainer_id`; naming the first (`HasIndex(..., "OneOpenPeriod")`) keeps EF Core from merging them into one, the 10.20 lesson again.
+- **Links that follow the source of truth.** The account still has no phone. Each sign-in finds the member and the trainer by the phone and sets the account's links to them; the Owner changing a trainer's phone clears the link. Who an account is, is always who the phone belongs to now, and another member's account can never open for the trainer.
+- **Roles in the token, read again at every refresh.** The access token carries `site_role` claims, so a policy can check them without the database; because a refresh reads the roles again, a stopped trainer loses them within the token's 15 minutes. «me» reads the database every time, so the app knows at once.
+- **A unique value can move between rows in one save.** Clearing the trainer on one account and setting it on another in the same `SaveChanges` works because EF Core orders the update that frees the value before the one that takes it.
+- **Lock what the other side locks.** A sign-in holds its phone's advisory lock until it commits. An edit that changes that phone takes the same lock before it ends the old phone's sessions, so it waits for a sign-in in flight and then sees, and ends, the session it made; without the lock, that session would outlive the change by 60 days.
+- **Count from the rows the rule counts.** The panel's "today of 300" reads `SignInCodeSend`, the same rows the 300 is checked against, so the screen and the limit can never disagree.
+- **My notes:**

@@ -91,7 +91,11 @@ public sealed partial class SchemeSeparationTests(DatabaseFixture fixture) : Dat
             .SelectMany(endpoint => endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods.Select(method => new ProtectedEndpoint(
                 method,
                 Fill(endpoint.RoutePattern.RawText!),
-                endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Any(data => data.Policy == Policies.SiteAccount))))];
+                endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Any(data => IsSitePolicy(data.Policy)))))];
+
+    /// <summary>Every policy that names the site's scheme: the member's and trainer's areas too (15.2).</summary>
+    private static bool IsSitePolicy(string? policy) =>
+        policy is Policies.SiteAccount or Policies.SiteMember or Policies.SiteTrainer;
 
     /// <summary>An int where the route wants one, a new id everywhere else.</summary>
     private static string Fill(string route) =>

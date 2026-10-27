@@ -54,7 +54,9 @@ public sealed partial class SiteRefreshHandler(
         }
 
         var account = await db.SiteAccounts.SingleAsync(row => row.Id == token.SiteAccountId, cancellationToken);
-        var member = await db.Members.SingleAsync(row => row.Id == account.MemberId, cancellationToken);
+
+        // The roles are read again, so a trainer the Owner stopped loses the trainer's area here.
+        var person = await SitePerson.LoadAsync(db, account, cancellationToken);
 
         var refreshSecret = RefreshTokenSecret.Generate();
 
@@ -76,7 +78,7 @@ public sealed partial class SiteRefreshHandler(
             return Invalid();
         }
 
-        return sessions.For(account, member, refreshSecret, child.ExpiresAt);
+        return sessions.For(account, person, refreshSecret, child.ExpiresAt);
     }
 
     /// <summary>Every unrevoked token of the family, retried as the staff's is when a save races.</summary>

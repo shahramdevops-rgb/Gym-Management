@@ -2429,6 +2429,32 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   writes the content (their own exercises, templates and programs). *Decided by the developer.*
 - **When the Owner stops someone being a trainer**, their students go back to having no trainer
   and keep everything recorded about them. *Decided by the developer* (1405/08/03).
+- **A trainer is not a member, but may also be one** (*Decided by the developer*, 1405/08/05,
+  15.2). A trainer has their own name and phone in «مربیان», and is not in the members' list, the
+  reports or the members' SMS. A trainer who also trains at the gym is registered at the desk as a
+  member too, as anyone; with the same phone, one code on the site opens both their areas.
+  - Phones are unique among trainers, inactive ones included; a trainer's phone may be a member's.
+  - **A trainer who is stopped can be made a trainer again**: a new period starts, and the earlier
+    ones stay in their history with their dates. Students are not linked back by themselves.
+    *Decided by the developer* (1405/08/05, 15.2).
+  - **A stopped trainer loses the trainer's area within 15 minutes** (the access token's life); a
+    trainer who is also a member keeps the member's area. *Proposed by Claude, 15.2.*
+  - **A stopped trainer who is still signed in and is not a member** sees «مربی‌گری شما تمام شده
+    است» and is signed out of the site. *Decided by the developer* (1405/08/05, 15.2); the screen
+    comes with the site app (15.3), where «me» already answers with neither area.
+  - **A stopped trainer who is not a member and signs in again** gets the sign-up screen, as anyone
+    whose phone is not a member's (*Signing up and signing in*). *Decided by the developer*
+    (1405/08/05, 15.2).
+  - **When the Owner changes a trainer's phone**, the old phone is no longer the trainer's: its
+    site sessions end, unless the old phone is also a member's, who stays signed in with the
+    member's area and loses the trainer's within 15 minutes. *Decided by the developer*
+    (1405/08/05, 15.2). The trainer signs in again with the new phone.
+- **A member's profile shows whether they have a site account**, with the date it was made and the
+  last sign-in; the members' list has no tag or filter for it. *Decided by the developer*
+  (1405/08/05, 15.2).
+- **The code SMS in the panel** (*Decided by the developer*, 1405/08/05, 15.2): «پیامک‌ها» shows
+  today's code SMS out of the gym's 300, and this month's count and cost; when today's 300 is
+  reached, «نیاز به اقدام» shows it too.
 
 ### A member and their trainer
 - **Each member has at most one trainer at a time.** *Decided by the developer.*

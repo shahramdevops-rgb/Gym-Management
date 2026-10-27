@@ -1,6 +1,7 @@
 using Gym.Application.SiteAuth;
 using Gym.Domain.Members;
 using Gym.Domain.SiteAuth;
+using Gym.Domain.Trainers;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -18,14 +19,26 @@ public sealed class SiteAccountConfiguration : IEntityTypeConfiguration<SiteAcco
         builder.ToTable("site_accounts");
 
         // A member has one account at most: linking twice would split their sessions in two.
+        // Postgres lets many rows hold NULL under a unique index, so trainer-only accounts fit.
         builder.HasIndex(account => account.MemberId)
             .IsUnique()
             .HasDatabaseName(SiteAuthConstraints.UniqueMember);
+
+        // And a trainer, the same.
+        builder.HasIndex(account => account.TrainerId)
+            .IsUnique()
+            .HasDatabaseName(SiteAuthConstraints.UniqueTrainer);
 
         // Members are deactivated, never deleted, so an account's member never disappears.
         builder.HasOne<Member>()
             .WithMany()
             .HasForeignKey(account => account.MemberId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Trainers are stopped, never deleted, likewise.
+        builder.HasOne<Trainer>()
+            .WithMany()
+            .HasForeignKey(account => account.TrainerId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

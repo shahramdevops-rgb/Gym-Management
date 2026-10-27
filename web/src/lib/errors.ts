@@ -102,6 +102,16 @@ export const errorMessages: Record<string, string> = {
   "SiteAuth.AccountNotFound": "حساب شما پیدا نشد. دوباره وارد شوید.",
   "SiteAuth.SignInConflict": "ورود همزمان دیگری انجام شد. دوباره کد بگیرید و وارد شوید.",
 
+  // Trainers (BUSINESS_RULES.md §15)
+  "Trainers.NotFound": "مربی پیدا نشد.",
+  "Trainers.PhoneAlreadyExists": "این شماره موبایل قبلاً برای مربی دیگری ثبت شده است.",
+  "Trainers.FullNameRequired": "نام مربی را وارد کنید.",
+  "Trainers.FullNameTooLong": "نام مربی بیش از حد طولانی است.",
+  "Trainers.AlreadyStopped": "مربی‌گری این شخص قبلاً تمام شده است.",
+  "Trainers.AlreadyActive": "این شخص هم‌اکنون مربی است.",
+  "Trainers.ChangedConcurrently":
+    "این مربی هم‌زمان تغییر کرد. صفحه را تازه کنید و دوباره امتحان کنید.",
+
   // Members
   "Members.NotFound": "عضو پیدا نشد.",
   "Members.PhoneAlreadyExists": "این شماره موبایل قبلاً برای عضو دیگری ثبت شده است.",

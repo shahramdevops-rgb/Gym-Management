@@ -158,6 +158,7 @@ try
     app.MapPayablesEndpoints();
     app.MapSmsEndpoints();
     app.MapHistoryEndpoints();
+    app.MapTrainersEndpoints();
     app.MapReportsEndpoints();
     app.MapAuditEndpoints();
 

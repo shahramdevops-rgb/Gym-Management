@@ -4223,10 +4223,41 @@ of the trainers' tools yet, but nobody signs in to an empty page.
       plan and no SMS; a deactivated member's sign-in; refresh, reuse and logout
 
 #### 15.2 Trainers in the panel (reopens the panel)
-- [ ] «مربیان» (Owner only): make someone a trainer (name and phone) and stop it; stopping ends
-      every link to their students, whose records stay
-- [ ] Members who signed up on the site are marked on their profile; whether they also need a tag
-      or a filter in the members list is asked in the task
+Split into a (backend) and b (the panel's screens) when its plan was approved (1405/08/05), on
+branch `task/15.2-trainers`, made from `task/15.1-site-sign-in` after `main` was merged into it.
+- [x] Asked first (1405/08/05), written in §15: a trainer is not a member but may also be one,
+      with the same phone; a stopped trainer can be made one again, with a new period; site
+      members are marked on the profile only, no tag or filter in the list; the code SMS shown in
+      «پیامک‌ها», and the day's 300 in «نیاز به اقدام»
+
+##### 15.2a The backend
+- [x] `Trainer` with its `TrainerPeriod`s: make, correct, stop, make again; phones unique among
+      trainers; one open period per trainer and no period ending before it starts, in the database
+- [x] `/api/trainers` (Owner only): list, create, update (with `version`), stop, restart
+- [x] Site accounts are a member's, a trainer's or both (`SiteAccountLinks`); the access token
+      carries `site_role` (`member`, `trainer`), and the policies `SiteMember` and `SiteTrainer`
+      wait for 15.4; refresh and «me» read the roles again, so a stopped trainer loses the
+      trainer's area within 15 minutes; the Owner changing a trainer's phone ends the old phone's
+      trainer-only sessions
+- [x] The member's profile carries their site account; `/api/sms/sign-in-codes` (Owner only):
+      today's code SMS of 300, this Jalali month's count and cost; «نیاز به اقدام» says when
+      today's 300 is used up
+- [x] Tests: domain (`TrainerTests`), integration (`TrainerEndpointTests`, `TrainerSignInTests`,
+      `SiteInThePanelTests`); the 15.1 tests read «me»'s new shape
+- [x] Persian messages for the `Trainers.*` codes in `errors.ts` (the error catalog test asks for them)
+- [x] After the code review: a phone change at the desk or by the Owner takes the old phone's lock,
+      so a sign-in finishing at that moment cannot outlive it (15.1's member edit too); the
+      `member` role only for an active member; the scheme test counts every site policy; three
+      answers of the developer written in §15 (a phone change with a member on it, a stopped
+      trainer signing in again, a stopped trainer still signed in)
+- [ ] Stopping a trainer ends the links to their students: with the links, in 15.4
+
+##### 15.2b The panel's screens
+- [ ] «مربیان» (Owner only) in the menu: the trainers as small boxes, add and edit in a dialog,
+      «پایان مربی‌گری» with a confirmation, «شروع دوباره», each trainer's past periods
+- [ ] The member's profile: «حساب سایت» with the last sign-in
+- [ ] «پیامک‌ها»: a box «کد ورود سایت» (today of 300, this month's count and cost); «نیاز به
+      اقدام»: the day's 300 used up
 - [ ] Tests; the computer's screens elsewhere unchanged
 
 #### 15.3 The site app: address, sign-in screens, PWA
@@ -4234,6 +4265,8 @@ of the trainers' tools yet, but nobody signs in to an empty page.
       rate limits
 - [ ] A second entry in `web/` sharing `lib/` and none of the panel's pages; sign-up and sign-in
       screens in Persian, phone-first
+- [ ] A «me» with neither area (a stopped trainer who is not a member) shows «مربی‌گری شما تمام
+      شده است» and signs out (§15 *Trainers*, 15.2)
 - [ ] The code fills itself in on the phone (asked by the developer, 1405/08/03): the box has
       `autocomplete="one-time-code"` (iPhone offers the code from the SMS above the keyboard) and
       Android Chrome reads it with the WebOTP API, which needs the SMS's last line to be

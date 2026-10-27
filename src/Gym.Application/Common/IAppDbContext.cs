@@ -12,6 +12,7 @@ using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
 using Gym.Domain.SiteAuth;
 using Gym.Domain.Subscriptions;
+using Gym.Domain.Trainers;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -85,6 +86,8 @@ public interface IAppDbContext
     DbSet<SiteAccount> SiteAccounts { get; }
 
     DbSet<SiteRefreshToken> SiteRefreshTokens { get; }
+
+    DbSet<Trainer> Trainers { get; }
 
     /// <summary>
     /// The audit log, for reading only (BUSINESS_RULES.md §11, task 11.1). A query, not a

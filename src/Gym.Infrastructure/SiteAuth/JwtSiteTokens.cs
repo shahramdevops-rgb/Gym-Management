@@ -1,6 +1,7 @@
 using System.Security.Claims;
 
 using Gym.Application.Common.Security;
+using Gym.Application.SiteAuth;
 using Gym.Domain.SiteAuth;
 
 using Microsoft.Extensions.Options;
@@ -18,21 +19,30 @@ public sealed class JwtSiteTokens(IOptions<SiteAuthOptions> options, TimeProvide
     // Stateless and thread-safe, so one instance serves every request.
     private static readonly JsonWebTokenHandler TokenHandler = new() { MapInboundClaims = false };
 
-    public AccessToken IssueAccessToken(SiteAccount account)
+    public AccessToken IssueAccessToken(SiteAccount account, SitePerson person)
     {
         ArgumentNullException.ThrowIfNull(account);
+        ArgumentNullException.ThrowIfNull(person);
 
-        return Issue(
-            options.Value.Audience,
-            SiteAuthOptions.AccessTokenLifetime,
-            new Claim(SiteClaimNames.SiteAccount, account.Id.ToString()));
+        List<Claim> claims = [new(SiteClaimNames.SiteAccount, account.Id.ToString())];
+        if (person.IsMember)
+        {
+            claims.Add(new Claim(SiteClaimNames.Role, SiteRoles.Member));
+        }
+
+        if (person.IsTrainer)
+        {
+            claims.Add(new Claim(SiteClaimNames.Role, SiteRoles.Trainer));
+        }
+
+        return Issue(options.Value.Audience, SiteAuthOptions.AccessTokenLifetime, [.. claims]);
     }
 
     public AccessToken IssueSignUpTicket(string phoneNumber)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(phoneNumber);
 
-        return Issue(options.Value.SignUpAudience, SiteAuthOptions.SignUpTicketLifetime, new Claim(SiteClaimNames.Phone, phoneNumber));
+        return Issue(options.Value.SignUpAudience, SiteAuthOptions.SignUpTicketLifetime, [new Claim(SiteClaimNames.Phone, phoneNumber)]);
     }
 
     public async Task<string?> ReadSignUpTicketAsync(string ticket)
@@ -62,7 +72,7 @@ public sealed class JwtSiteTokens(IOptions<SiteAuthOptions> options, TimeProvide
         return result.ClaimsIdentity.FindFirst(SiteClaimNames.Phone)?.Value;
     }
 
-    private AccessToken Issue(string audience, TimeSpan lifetime, Claim claim)
+    private AccessToken Issue(string audience, TimeSpan lifetime, Claim[] claims)
     {
         var site = options.Value;
         var issuedAt = timeProvider.GetUtcNow();
@@ -72,7 +82,7 @@ public sealed class JwtSiteTokens(IOptions<SiteAuthOptions> options, TimeProvide
         {
             Issuer = site.Issuer,
             Audience = audience,
-            Subject = new ClaimsIdentity([claim, new Claim(SiteClaimNames.TokenId, Guid.CreateVersion7().ToString())]),
+            Subject = new ClaimsIdentity([.. claims, new Claim(SiteClaimNames.TokenId, Guid.CreateVersion7().ToString())]),
             IssuedAt = issuedAt.UtcDateTime,
             NotBefore = issuedAt.UtcDateTime,
             Expires = expiresAt.UtcDateTime,

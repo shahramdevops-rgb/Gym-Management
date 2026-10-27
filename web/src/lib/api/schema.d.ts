@@ -1300,6 +1300,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sms/sign-in-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetSignInCodeSms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sms/messages": {
         parameters: {
             query?: never;
@@ -1486,6 +1502,70 @@ export interface paths {
         get: operations["GetSalesTotals"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trainers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListTrainers"];
+        put?: never;
+        post: operations["CreateTrainer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trainers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["UpdateTrainer"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trainers/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StopTrainer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trainers/{id}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RestartTrainer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1974,6 +2054,10 @@ export interface components {
             fullName: string;
             temporaryPassword: string;
         };
+        CreateTrainerCommand: {
+            fullName: string;
+            phoneNumber: string;
+        };
         CurrentlyInsideResponse: {
             /** Format: uuid */
             attendanceId: string;
@@ -2406,6 +2490,7 @@ export interface components {
             /** @default false */
             planEnded: boolean;
             plan?: null | components["schemas"]["MemberPlanSessions"];
+            siteAccount?: null | components["schemas"]["MemberSiteAccount"];
         };
         MembersDayResponse: {
             /** Format: date */
@@ -2418,6 +2503,12 @@ export interface components {
             waiting: number | string;
             /** Format: int32 */
             newMembers: number | string;
+        };
+        MemberSiteAccount: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSignedInAt: string;
         };
         MembersReportResponse: {
             /** Format: date */
@@ -2462,6 +2553,7 @@ export interface components {
             /** Format: double */
             oldDebtWithoutMember: number | string;
             payablesDue: components["schemas"]["PayableDueResponse"][];
+            signInCodeLimitReached: boolean;
         };
         /** @enum {unknown} */
         NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast" | "WelcomeBack";
@@ -3052,6 +3144,17 @@ export interface components {
             /** Format: double */
             unitPrice: number | string;
         };
+        SignInCodeSmsResponse: {
+            /** Format: int32 */
+            today: number | string;
+            /** Format: int32 */
+            dailyLimit: number | string;
+            /** Format: int32 */
+            thisMonth: number | string;
+            /** Format: double */
+            thisMonthCostRial: number | string;
+            limitReached?: boolean;
+        };
         SignInCommand: {
             phoneNumber: string;
             code: string;
@@ -3077,7 +3180,7 @@ export interface components {
             expiresAt: string;
             me: components["schemas"]["SiteMeResponse"];
         };
-        SiteMeResponse: {
+        SiteMemberMe: {
             /** Format: uuid */
             memberId: string;
             fullName: string;
@@ -3085,6 +3188,16 @@ export interface components {
             /** Format: date */
             birthDate: string;
             isActive: boolean;
+        };
+        SiteMeResponse: {
+            member: null | components["schemas"]["SiteMemberMe"];
+            trainer: null | components["schemas"]["SiteTrainerMe"];
+        };
+        SiteTrainerMe: {
+            /** Format: uuid */
+            trainerId: string;
+            fullName: string;
+            phoneNumber: string;
         };
         SmsCreditResponse: {
             isTestMode: boolean;
@@ -3259,6 +3372,24 @@ export interface components {
             /** Format: double */
             amount: number | string;
         };
+        TrainerPeriodResponse: {
+            /** Format: date */
+            startedOn: string;
+            /** Format: date */
+            endedOn: null | string;
+        };
+        TrainerResponse: {
+            /** Format: uuid */
+            id: string;
+            fullName: string;
+            phoneNumber: string;
+            isActive: boolean;
+            periods: components["schemas"]["TrainerPeriodResponse"][];
+            /** Format: date-time */
+            lastSignedInAt: null | string;
+            /** Format: uint32 */
+            version: number | string;
+        };
         UpdateExpenseCategoryCommand: {
             name: string;
             /** Format: uint32 */
@@ -3338,6 +3469,12 @@ export interface components {
             debtReminder: components["schemas"]["DebtReminderSettings"];
             absence: components["schemas"]["SmsKindSettings"];
             broadcast: components["schemas"]["BroadcastSettings"];
+            /** Format: uint32 */
+            version: number | string;
+        };
+        UpdateTrainerCommand: {
+            fullName: string;
+            phoneNumber: string;
             /** Format: uint32 */
             version: number | string;
         };
@@ -9143,6 +9280,44 @@ export interface operations {
             };
         };
     };
+    GetSignInCodeSms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInCodeSmsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListSmsMessages: {
         parameters: {
             query?: {
@@ -9864,6 +10039,291 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListTrainers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerResponse"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateTrainer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTrainerCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateTrainer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTrainerCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    StopTrainer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RestartTrainer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

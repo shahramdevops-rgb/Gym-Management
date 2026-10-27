@@ -2,8 +2,8 @@ using Gym.Application.Common;
 using Gym.Application.Common.Security;
 using Gym.Application.Members;
 using Gym.Domain.Common;
-using Gym.Domain.Members;
 using Gym.Domain.SiteAuth;
+using Gym.Domain.Members;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +28,7 @@ namespace Gym.Application.SiteAuth.SignUp;
 public sealed class SignUpHandler(
     IAppDbContext db,
     ISiteTokens tokens,
+    SiteAccountLinks accounts,
     SiteSessions sessions,
     IGymCalendar calendar,
     TimeProvider timeProvider)
@@ -64,18 +65,10 @@ public sealed class SignUpHandler(
             db.Members.Add(member);
         }
 
-        var account = await db.SiteAccounts.SingleOrDefaultAsync(row => row.MemberId == member.Id, cancellationToken);
-        if (account is null)
-        {
-            account = SiteAccount.ForMember(member.Id, now);
-            db.SiteAccounts.Add(account);
-        }
-        else
-        {
-            account.RecordSignIn(now);
-        }
-
-        var session = sessions.Start(account, member, now);
+        // A trainer stopped earlier who signs up keeps their trainer link, with no trainer's area.
+        var trainer = await db.Trainers.Include(row => row.Periods).SingleOrDefaultAsync(row => row.PhoneNumber == phoneNumber, cancellationToken);
+        var account = await accounts.FindOrMakeAsync(member, trainer, now, cancellationToken);
+        var session = sessions.Start(account, new SitePerson(member, trainer), now);
 
         // A member the desk saves with this phone at this very moment is the one race the phone's
         // lock cannot hold off (the desk does not take it): the unique index refuses the second.
@@ -87,7 +80,8 @@ public sealed class SignUpHandler(
         {
             return Result.Failure<SiteSession>(MemberErrors.PhoneAlreadyExists);
         }
-        catch (UniqueConstraintException exception) when (exception.ConstraintName == SiteAuthConstraints.UniqueMember)
+        catch (UniqueConstraintException exception)
+            when (exception.ConstraintName is SiteAuthConstraints.UniqueMember or SiteAuthConstraints.UniqueTrainer)
         {
             return Result.Failure<SiteSession>(SiteAuthErrors.SignInConflict);
         }

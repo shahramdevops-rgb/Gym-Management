@@ -47,6 +47,11 @@ namespace Gym.Application.Members;
 /// (<see cref="Domain.Subscriptions.SubscriptionSchedule.CurrentPlan"/>), or <c>null</c> when the
 /// member has no plan. Computed only by <see cref="ListMembers.ListMembersHandler"/>.
 /// </param>
+/// <param name="SiteAccount">
+/// The member's account on the site, or <c>null</c> when they have never signed in there
+/// (BUSINESS_RULES.md §15), for the profile. Computed only by
+/// <see cref="GetMember.GetMemberHandler"/>; every other path leaves it <c>null</c>.
+/// </param>
 public sealed record MemberResponse(
     Guid Id,
     string FullName,
@@ -62,7 +67,8 @@ public sealed record MemberResponse(
     bool IsFrozen = false,
     bool LastVisitWasSingleSession = false,
     bool PlanEnded = false,
-    MemberPlanSessions? Plan = null)
+    MemberPlanSessions? Plan = null,
+    MemberSiteAccount? SiteAccount = null)
 {
     /// <summary>
     /// The same mapping as <see cref="From"/>, as an expression EF Core translates to SQL, so a
@@ -95,6 +101,9 @@ public sealed record MemberResponse(
             member.UpdatedAt);
     }
 }
+
+/// <summary>When the member's site account was made, and when they last signed in with a code.</summary>
+public sealed record MemberSiteAccount(DateTimeOffset CreatedAt, DateTimeOffset LastSignedInAt);
 
 /// <summary>A plan's sessions as the member list's bar shows them: used of total.</summary>
 public sealed record MemberPlanSessions(int TotalSessions, int UsedSessions, int RemainingSessions);

@@ -89,7 +89,17 @@ public static class AuthenticationConfiguration
             .AddPolicy(Policies.SiteAccount, policy => policy
                 .AddAuthenticationSchemes(AuthSchemes.Site)
                 .RequireAuthenticatedUser()
-                .RequireClaim(SiteClaimNames.SiteAccount));
+                .RequireClaim(SiteClaimNames.SiteAccount))
+            .AddPolicy(Policies.SiteMember, policy => policy
+                .AddAuthenticationSchemes(AuthSchemes.Site)
+                .RequireAuthenticatedUser()
+                .RequireClaim(SiteClaimNames.SiteAccount)
+                .RequireClaim(SiteClaimNames.Role, SiteRoles.Member))
+            .AddPolicy(Policies.SiteTrainer, policy => policy
+                .AddAuthenticationSchemes(AuthSchemes.Site)
+                .RequireAuthenticatedUser()
+                .RequireClaim(SiteClaimNames.SiteAccount)
+                .RequireClaim(SiteClaimNames.Role, SiteRoles.Trainer));
 
         services.AddSingleton<IAuthorizationHandler, PasswordChangedHandler>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, ProblemDetailsAuthorizationResultHandler>();

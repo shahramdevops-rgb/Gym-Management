@@ -10,14 +10,14 @@ namespace Gym.Application.SiteAuth.SignIn;
 
 /// <summary>
 /// The code typed on the site's sign-in screen (BUSINESS_RULES.md §15 <i>Signing up and signing
-/// in</i>). A member's phone signs in, and the first time links an account to that member; a phone
-/// the gym does not know gets a ticket for the sign-up screen.
+/// in</i>). A member's or a trainer's phone signs in, and the first time links an account to them
+/// (<see cref="SiteAccountLinks"/>); any other phone gets a ticket for the sign-up screen.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The member is found by the phone, the account by the member.</b> The panel's phone is the
-/// only one there is (see <c>SiteAccount</c>), so a number the desk changed signs in as the member
-/// it now belongs to, and the old number no longer reaches them.
+/// <b>The member and the trainer are found by the phone, the account by them.</b> The panel's phones
+/// are the only ones there are (see <c>SiteAccount</c>), so a number the desk or the Owner changed
+/// signs in as whoever it now belongs to, and the old number no longer reaches them.
 /// </para>
 /// <para>
 /// <b>Two steps, two transactions.</b> The code is checked first and its try or its use is saved
@@ -29,6 +29,7 @@ namespace Gym.Application.SiteAuth.SignIn;
 public sealed class SignInHandler(
     IAppDbContext db,
     VerifyCodeHandler verifyCode,
+    SiteAccountLinks accounts,
     SiteSessions sessions,
     ISiteTokens tokens,
     TimeProvider timeProvider)
@@ -49,7 +50,11 @@ public sealed class SignInHandler(
         await db.LockPhoneAsync(phoneNumber, cancellationToken);
 
         var member = await db.Members.SingleOrDefaultAsync(row => row.PhoneNumber == phoneNumber, cancellationToken);
-        if (member is null)
+        var trainer = await db.Trainers.Include(row => row.Periods).SingleOrDefaultAsync(row => row.PhoneNumber == phoneNumber, cancellationToken);
+
+        // Neither a member nor a trainer now: the sign-up makes them a member. A stopped trainer
+        // signs up as anyone would.
+        if (member is null && trainer is not { IsActive: true })
         {
             var ticket = tokens.IssueSignUpTicket(phoneNumber);
 
@@ -57,24 +62,15 @@ public sealed class SignInHandler(
         }
 
         var now = timeProvider.GetUtcNow();
-        var account = await db.SiteAccounts.SingleOrDefaultAsync(row => row.MemberId == member.Id, cancellationToken);
-        if (account is null)
-        {
-            account = SiteAccount.ForMember(member.Id, now);
-            db.SiteAccounts.Add(account);
-        }
-        else
-        {
-            account.RecordSignIn(now);
-        }
-
-        var session = sessions.Start(account, member, now);
+        var account = await accounts.FindOrMakeAsync(member, trainer, now, cancellationToken);
+        var session = sessions.Start(account, new SitePerson(member, trainer), now);
 
         try
         {
             await db.SaveChangesAsync(cancellationToken);
         }
-        catch (UniqueConstraintException exception) when (exception.ConstraintName == SiteAuthConstraints.UniqueMember)
+        catch (UniqueConstraintException exception)
+            when (exception.ConstraintName is SiteAuthConstraints.UniqueMember or SiteAuthConstraints.UniqueTrainer)
         {
             return Result.Failure<SignInResult>(SiteAuthErrors.SignInConflict);
         }
