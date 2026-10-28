@@ -4322,6 +4322,9 @@ after 15.2b was committed.
       correction, the gym's logo in the middle, the address written under it) and an A4 poster.
       *Open:* the tool that makes the QR
 - [ ] The public page's «ورود» and «ثبت‌نام» lead to the app (closes 14.4)
+- [ ] `www.pasargadgymplus.com` redirects to the public page like the other names: its DNS record
+      points at the server, but the Caddyfile has no site for it, so HTTPS fails there (found
+      1405/08/07); `www.{$REDIRECT_DOMAIN}` joins the redirect block
 - [ ] Tests: `npm run e2e` grows a sign-in on the app's host
 
 #### 15.4 A member picks a trainer
