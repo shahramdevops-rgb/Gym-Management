@@ -2378,10 +2378,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     stays free text from the gym's dedicated line (§10 *Sending*).
   - **The code fills itself in on the phone** (asked by the developer, 1405/08/03, for the site
     app of 15.3): iPhones offer it from the SMS by themselves; Android needs the template's last
-    line to be `@app.pasargadgymplus.ir #%token`. *Open, not required:* `gymExpiring` was approved
-    with its two lines only; the developer may ask Kavenegar to add that third line (an edited
-    template is approved again). The app is ready for it; until then Android types the code.
-    The developer sent Kavenegar the edited template on 1405/08/06; awaiting approval.
+    line to be `@app.pasargadgymplus.ir #%token`. Kavenegar approved `gymExpiring` with that third
+    line (sent by the developer and approved 1405/08/07). To check on the first real code SMS: its
+    last line is `@app.pasargadgymplus.ir #` and the code, with nothing after it.
   - The code itself is never written anywhere readable: not in the logs, not in the SMS history.
     Code SMS are not listed in the panel's «پیامک‌ها» history; only their count and cost are kept,
     and showing them in the panel is for 15.2. The database keeps only a random seed per code, from

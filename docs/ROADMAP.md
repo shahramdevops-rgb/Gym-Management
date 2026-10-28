@@ -4309,8 +4309,8 @@ after 15.2b was committed.
       API says the session ended (a 401); no internet, a 5xx or a 429 keeps the person signed in
       behind «دوباره امتحان کنید» (`unreachable` in the site's store); and a trainer whose
       membership the desk deactivated gets neither area (`SitePerson.IsTrainer`, tested in
-      `TrainerSignInTests`). The WebOTP line for `gymExpiring` given to the developer, to ask
-      Kavenegar for
+      `TrainerSignInTests`). The WebOTP line for `gymExpiring` given to the developer; Kavenegar
+      approved the edited template (1405/08/07)
 
 ##### 15.3b On the server, installable, the QR
 - [ ] `app.pasargadgymplus.ir`: DNS record (the developer), Caddy site serving `dist-site/`,
