@@ -129,6 +129,29 @@ export function useSmsCredit({ refetchInterval }: { refetchInterval?: number } =
   });
 }
 
+/**
+ * The site's sign-in code SMS (BUSINESS_RULES.md §15 *Trainers*, «The code SMS in the panel»):
+ * today's count of the gym's 300, and this Jalali month's count and cost. Never a code or a phone.
+ */
+export type SignInCodeSms = components["schemas"]["SignInCodeSmsResponse"];
+
+export const signInCodeSmsKeys = {
+  all: ["sms-sign-in-codes"] as const,
+};
+
+export function useSignInCodeSms() {
+  return useQuery({
+    queryKey: signInCodeSmsKeys.all,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/sms/sign-in-codes");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
 /** The SMS history (پیامک‌ها), the latest first, with what the filter's messages cost in all. */
 export function useSmsMessages(filter: SmsMessageFilter, { enabled = true } = {}) {
   return useQuery({

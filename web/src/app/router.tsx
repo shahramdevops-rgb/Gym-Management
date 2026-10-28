@@ -141,6 +141,11 @@ export const routes: RouteObject[] = [
                 () => import("@/features/staff/pages/StaffPage").then((m) => m.StaffPage),
                 true,
               ),
+              lazyPage(
+                paths.trainers,
+                () => import("@/features/trainers/pages/TrainersPage").then((m) => m.TrainersPage),
+                true,
+              ),
             ],
           },
         ],

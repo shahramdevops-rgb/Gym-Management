@@ -3152,7 +3152,7 @@ export interface components {
             /** Format: int32 */
             thisMonth: number | string;
             /** Format: double */
-            thisMonthCostRial: number | string;
+            thisMonthCostToman: number | string;
             limitReached?: boolean;
         };
         SignInCommand: {

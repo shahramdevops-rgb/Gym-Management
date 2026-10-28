@@ -142,6 +142,21 @@ export function MemberProfilePage() {
 
                 <dt className="text-muted-foreground">تاریخ ثبت</dt>
                 <dd>{formatDateTime(current.createdAt)}</dd>
+
+                {/* Whether they have signed in on the site (§15): made by their first sign-in. */}
+                <dt className="text-muted-foreground">حساب سایت</dt>
+                <dd>
+                  {current.siteAccount == null ? (
+                    <span className="text-muted-foreground">در سایت ثبت‌نام نکرده است.</span>
+                  ) : (
+                    <>
+                      <p>ثبت‌نام: {formatDateTime(current.siteAccount.createdAt)}</p>
+                      <p className="text-muted-foreground">
+                        آخرین ورود: {formatDateTime(current.siteAccount.lastSignedInAt)}
+                      </p>
+                    </>
+                  )}
+                </dd>
               </dl>
             </CardContent>
           </Card>

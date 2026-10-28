@@ -4253,12 +4253,17 @@ branch `task/15.2-trainers`, made from `task/15.1-site-sign-in` after `main` was
 - [ ] Stopping a trainer ends the links to their students: with the links, in 15.4
 
 ##### 15.2b The panel's screens
-- [ ] «مربیان» (Owner only) in the menu: the trainers as small boxes, add and edit in a dialog,
-      «پایان مربی‌گری» with a confirmation, «شروع دوباره», each trainer's past periods
-- [ ] The member's profile: «حساب سایت» with the last sign-in
-- [ ] «پیامک‌ها»: a box «کد ورود سایت» (today of 300, this month's count and cost); «نیاز به
-      اقدام»: the day's 300 used up
-- [ ] Tests; the computer's screens elsewhere unchanged
+- [x] «مربیان» (Owner only) in the menu under «مدیریت», after «کارمندان»: the trainers as small
+      boxes (phone, since when, last sign-in on the site, past periods), add and edit in a dialog
+      (a changed phone says the trainer will be signed out), «پایان مربی‌گری» with a
+      confirmation, «شروع دوباره» in one click
+- [x] The member's profile: «حساب سایت» in «مشخصات», with when it was made and the last sign-in
+- [x] «پیامک‌ها»: a card «کد ورود سایت» (today of 300, this month's count and cost); «نیاز به
+      اقدام»: a red line when the day's 300 is used up, with a link to «پیامک‌ها»
+- [x] `/api/sms/sign-in-codes` answers the cost in Toman (`thisMonthCostToman`), like every other
+      SMS amount; 15.2a had sent Kavenegar's Rial
+- [x] Tests: `TrainersPage.test.tsx`, and the profile, «پیامک‌ها», dashboard and menu tests; the
+      computer's screens elsewhere unchanged
 
 #### 15.3 The site app: address, sign-in screens, PWA
 - [ ] `app.pasargadgymplus.ir`: DNS record (the developer), Caddy site, security headers, its own

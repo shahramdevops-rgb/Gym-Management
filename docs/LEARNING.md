@@ -2151,3 +2151,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **Lock what the other side locks.** A sign-in holds its phone's advisory lock until it commits. An edit that changes that phone takes the same lock before it ends the old phone's sessions, so it waits for a sign-in in flight and then sees, and ends, the session it made; without the lock, that session would outlive the change by 60 days.
 - **Count from the rows the rule counts.** The panel's "today of 300" reads `SignInCodeSend`, the same rows the 300 is checked against, so the screen and the limit can never disagree.
 - **My notes:**
+
+## 15.2b — The panel's screens for trainers (مربیان)
+
+- **One unit for one kind of number across the API.** Every SMS amount the API sends is in Toman; the code SMS's cost went out in Kavenegar's Rial. Dividing by ten in the browser would have been an ad hoc money rule in one screen, so the response was changed instead, while the branch was still unreleased and nothing else read it.
+- **Mount a dialog's form only while it is open.** `{open && <TrainerFormContent />}` inside the `Dialog` gives every opening a fresh `useForm` with the trainer's saved values, with no `reset()` to remember when another trainer's box opens it.
+- **A hint is not a rule.** The "phone changed" note compares the last ten digits, so `+98912…` and a typed `۰۹۱۲…` are the same number. It only decides whether a sentence shows; what the phone really is, is still the server's answer.
+- **One state for "which dialog".** `editing: Trainer | "new" | null` says closed, adding or editing in one value, so the page can never be adding and editing at once.
+- **My notes:**

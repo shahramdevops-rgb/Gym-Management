@@ -36,6 +36,6 @@ public sealed class GetSignInCodeSmsHandler(IAppDbContext db, IGymCalendar calen
             thisMonth?.Today ?? 0,
             SignInCode.MaxSendsPerGymDay,
             thisMonth?.Count ?? 0,
-            thisMonth?.CostRial ?? 0m);
+            (thisMonth?.CostRial ?? 0m) / 10m);
     }
 }

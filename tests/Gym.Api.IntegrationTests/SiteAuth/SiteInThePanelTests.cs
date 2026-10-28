@@ -72,7 +72,7 @@ public sealed class SiteInThePanelTests(DatabaseFixture fixture) : DatabaseTestB
 
         response.Today.ShouldBe(2);
         response.ThisMonth.ShouldBe(3);
-        response.ThisMonthCostRial.ShouldBe(2_400m);
+        response.ThisMonthCostToman.ShouldBe(240m);
         response.DailyLimit.ShouldBe(SignInCode.MaxSendsPerGymDay);
         response.LimitReached.ShouldBeFalse();
     }
@@ -84,7 +84,7 @@ public sealed class SiteInThePanelTests(DatabaseFixture fixture) : DatabaseTestB
 
         response.Today.ShouldBe(0);
         response.ThisMonth.ShouldBe(0);
-        response.ThisMonthCostRial.ShouldBe(0m);
+        response.ThisMonthCostToman.ShouldBe(0m);
     }
 
     [Fact]

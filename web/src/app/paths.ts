@@ -5,6 +5,8 @@ export const paths = {
   login: "/login",
   changePassword: "/change-password",
   staff: "/staff",
+  /** The gym's trainers, "مربیان", who sign in on the site (BUSINESS_RULES.md §15 *Trainers*). */
+  trainers: "/trainers",
   status: "/status",
   members: "/members",
   newMember: "/members/new",
