@@ -213,8 +213,23 @@ web/src/
 │   ├── format.ts   Persian digits, money, Jalali dates both ways (Intl out, date-fns-jalali in)
 │   ├── normalize.ts  Persian/Arabic characters and digits
 │   └── errors.ts   API error code → Persian message
+├── site/           The site app for members and trainers (roadmap 15.3): its own pages, session and client
 └── main.tsx
+web/site/           The site app's page (index.html), entry (main.ts) and public files
 ```
+
+- **Two apps in one `web/` (ADR 0010, roadmap 15.3).** The panel is `index.html` + `src/main.tsx` (`vite.config.ts`);
+  the members' and trainers' site app is `site/index.html` + `src/site/` (`vite.site.config.ts`, root `site/`, built
+  into `dist-site/`, `npm run dev:site` on :5174). They share `lib/` and `components/` only. The site never imports
+  `app/`, `features/` or the panel's client and `authFetch`, and the panel never imports `site/`:
+  `src/site/boundary.test.ts` checks both. Anything both need goes in `lib/` (`jwt.ts`, `memberFields.ts`,
+  `api/emptyFailureAsProblem.ts`, `staleChunkReload.ts`). The site has its own session (`site/auth/session.ts`), fetch
+  (`site/api/siteAuthFetch.ts`, refresh `/api/site/auth/refresh`, Web Lock `gym-site-refresh`) and client
+  (`siteApi`); a site token is never sent to a staff endpoint. Its tests run with the panel's (`npm test`), through
+  `src/site/test/renderSite.tsx`. Its first download stays under Vite's 500 kB: the sign-in screens use
+  `components/InputField.tsx` (the plain `FormField`, without the date pickers) and React Hook Form's own rules rather
+  than Zod, and heavier pages are lazy routes. It follows the phone's light or dark setting and has no theme switch.
+  Tailwind looks for classes from `web/` (`@import "tailwindcss" source("..")`), since the site's Vite root is `site/`.
 
 - One visual language (roadmap 13.2): a page starts with `PageHeader` (its one `h2`, a line under it, its buttons);
   a list is the shared `Table` (`components/ui/table.tsx`, never a hand-styled `<table>`); a list loading is
@@ -256,7 +271,7 @@ web/src/
   once. `restoreSession()` in `main.tsx` turns the refresh cookie back into a session after a reload.
 - Pages are loaded when first opened (`lazyPage` in `app/router.tsx`); only the login page and the locker board come
   with the app. A release replaces the hashed files, so a tab opened earlier can ask for one that is gone:
-  `app/staleChunkReload.ts` reloads the page once on Vite's `vite:preloadError`. A new page goes through `lazyPage`.
+  `lib/staleChunkReload.ts` reloads the page once on Vite's `vite:preloadError`. A new page goes through `lazyPage`.
   Opened straight from the address bar, a lazy page shows the `hydrateFallbackElement` («در حال بارگذاری…») until its
   file arrives. The jsdom tests are written for pages that render at once, so `test/renderApp.tsx` loads every lazy
   route before the tests and renders the same elements synchronously; the real lazy loading is covered by `npm run e2e`.

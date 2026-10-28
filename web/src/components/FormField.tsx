@@ -31,37 +31,10 @@ import { moneyDigits } from "@/lib/money";
 import { normalizeDigits } from "@/lib/normalize";
 import { cn } from "@/lib/utils";
 
-interface FormFieldProps extends ComponentProps<typeof Input> {
-  label: string;
-  error?: string;
-}
-
-/**
- * A labelled input with its error underneath, wired for screen readers: the input is marked
- * invalid and points at the message, so the message is read when the field gets focus.
- */
-export function FormField({ label, error, id, ...inputProps }: FormFieldProps) {
-  const generatedId = useId();
-  const inputId = id ?? generatedId;
-  const errorId = `${inputId}-error`;
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={inputId}>{label}</Label>
-      <Input
-        id={inputId}
-        aria-invalid={error !== undefined}
-        aria-describedby={error !== undefined ? errorId : undefined}
-        {...inputProps}
-      />
-      {error !== undefined && (
-        <p id={errorId} className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
+// The plain labelled input lives in a file of its own, so a screen that needs only it (the site
+// app's sign-in, roadmap 15.3) does not download the date pickers below. Every panel screen
+// still imports it from here.
+export { FormField } from "./InputField";
 
 interface SelectFieldProps extends ComponentProps<"select"> {
   label: string;

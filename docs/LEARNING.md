@@ -2159,3 +2159,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **A hint is not a rule.** The "phone changed" note compares the last ten digits, so `+98912…` and a typed `۰۹۱۲…` are the same number. It only decides whether a sentence shows; what the phone really is, is still the server's answer.
 - **One state for "which dialog".** `editing: Trainer | "new" | null` says closed, adding or editing in one value, so the page can never be adding and editing at once.
 - **My notes:**
+
+## 15.3a — The site app's screens (اپ سایت: ورود و ثبت‌نام)
+
+- **Two Vite apps in one folder.** A second config (`vite.site.config.ts`) with its own `root`, output folder and dev port builds a second app from the same `src/`. Sharing is by import, not by copying, and a test reads every file's imports to keep the two from reaching into each other.
+- **An HTML entry inside its root.** A page's `<script src>` is fetched by the browser relative to the page's address, so `../src/...` works in a build (resolved on disk) but not in the dev server. A one-line `site/main.ts` inside the root, importing the real code, works in both.
+- **Tailwind scans from a base.** Tailwind 4 looks for class names starting from Vite's root; with the site's root in `site/` it missed every class in `src/`. `source("..")` on the import names the base explicitly, and comparing the panel's CSS hash before and after proved the panel did not change.
+- **Bundle size is a design input.** One shared file (`FormField.tsx`) pulled the date pickers into the sign-in page. Splitting the plain field into its own module, and checking two fields with React Hook Form's rules instead of Zod, took the first download from 640 kB to 476 kB without hiding the warning.
+- **Submit on the last digit.** The code is sent from the input's change event when its fifth digit arrives, so a typed code, the iPhone's offer above the keyboard and Android's WebOTP all go the same way; no `watch` and no effect that has to silence the hooks' lint.
+- **`useEffectEvent` for a callback an effect calls later.** The WebOTP wait starts once per code; when the SMS arrives it calls the newest version of the form's functions without restarting the wait.
+- **A message for the next screen in the session store.** «مربی‌گری شما تمام شده است» must be read after the session ends, on a screen that only exists when signed out; `signOut(notice)` carries it there, so no URL or storage holds it.
+- **My notes:**

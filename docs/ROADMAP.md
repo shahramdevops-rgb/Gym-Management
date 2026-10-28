@@ -54,8 +54,9 @@ Still open around the panel (none of it code, or waiting for someone else):
   Commits from 2026-10-25 are `Shahram Azghandi <shahramdevops@gmail.com>`
 
 Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
-  1405/08/03); the next task is **15.1**, when the developer starts it. Phase 14's 14.1 to 14.3
-  still wait for the gym's trainers, links and photos; 14.4 closes with 15.3
+  1405/08/03); 15.1, 15.2 and 15.3a are done on their branches, not merged or released; the next
+  task is **15.3b** (the app on the server, installable, the QR). Phase 14's 14.1 to 14.3 still
+  wait for the gym's trainers, links and photos; 14.4 closes with 15.3b
 
 ---
 
@@ -4266,24 +4267,56 @@ branch `task/15.2-trainers`, made from `task/15.1-site-sign-in` after `main` was
       computer's screens elsewhere unchanged
 
 #### 15.3 The site app: address, sign-in screens, PWA
-- [ ] `app.pasargadgymplus.ir`: DNS record (the developer), Caddy site, security headers, its own
-      rate limits
-- [ ] A second entry in `web/` sharing `lib/` and none of the panel's pages; sign-up and sign-in
-      screens in Persian, phone-first
-- [ ] A «me» with neither area (a stopped trainer who is not a member) shows «مربی‌گری شما تمام
-      شده است» and signs out (§15 *Trainers*, 15.2)
-- [ ] The code fills itself in on the phone (asked by the developer, 1405/08/03): the box has
-      `autocomplete="one-time-code"` (iPhone offers the code from the SMS above the keyboard) and
-      Android Chrome reads it with the WebOTP API, which needs the SMS's last line to be
-      `@app.pasargadgymplus.ir #12345`; the code is typed by hand when neither works. Needs the
-      template line of §15 first
+Split into a (the app's screens, run locally) and b (on the server, installable, the QR) when its
+plan was approved (1405/08/06), on branch `task/15.3-site-app`, made from `task/15.2-trainers`
+after 15.2b was committed.
+
+##### 15.3a The app's screens
+- [x] A second entry in `web/` sharing `lib/` and `components/` and none of the panel's pages:
+      page `web/site/index.html`, code `web/src/site/`, `vite.site.config.ts` (`npm run dev:site`
+      on :5174; `npm run build` builds the panel, then the site into `dist-site/`);
+      `boundary.test.ts` fails if a site file imports the panel's pages or sign-in, or the panel
+      a site file (1405/08/06, not released)
+      - The site's own session store, fetch and client (`/api/site/auth/refresh`, Web Lock
+        `gym-site-refresh`), never the panel's; what both need moved to `lib/`
+        (`emptyFailureAsProblem`, `readTokenClaim`, `memberFields`, `staleChunkReload`)
+      - The first download kept under Vite's 500 kB: the sign-in screens use the plain field
+        (`components/InputField.tsx`, re-exported by `FormField.tsx`) and no Zod; the sign-up
+        page is downloaded when opened
+      - Light or dark as the phone is (`site/public/theme-init.js`, `site/theme.ts`); Tailwind
+        reads classes from `web/` (`source("..")` in `index.css`), the panel's CSS unchanged
+- [x] Sign-in and sign-up in Persian, phone first: the phone, then the code (sent at its fifth
+      digit), the four answers of «دریافت کد» (§15), «ارسال دوباره» counting down to the API's
+      time, «تغییر شماره»; a new phone gets «ثبت‌نام» (name and birth date, §2's rules shared
+      with the desk's form); its ticket kept in memory, so a reload asks for a new code
+- [x] The code fills itself in: `autocomplete="one-time-code"` (iPhone) and WebOTP (Android
+      Chrome), which works once the template line of §15 is added; typed by hand otherwise
+- [x] The first screen: a member's area and a trainer's (their contents come in 15.5 and from
+      15.6), both for one person; a member deactivated at the desk sees only the notice; a «me»
+      with neither area shows «مربی‌گری شما تمام شده است» on the sign-in screen and signs out
+      (§15 *Trainers*, 15.2); «خروج»
+- [x] Tests: `SignInPage`, `SignUpPage`, `HomePage`, `siteAuthFetch` (the site's token only, its
+      own refresh, a refused refresh leaves the panel's session alone) and the boundary
+- [x] After the code review: the code is sent once even when the box is filled twice at once,
+      and never with fewer than 5 digits (each would cost a try of §15's 15 a day); the WebOTP
+      wait stops once the box is full; a sign-up ticket is dropped when anyone signs in or out or
+      asks for a new code; every new token's «me» replaces the shown one, and «me» is read again
+      when the app comes back to the front, so a stopped trainer is told without a reload; no
+      phone form flashes while a reload restores the session; the boundary test covers the shared
+      `lib/` and `components/` too. Accepted as it is: the countdown uses the phone's clock (a
+      clock ahead only gets «کد قبلاً برای شما پیامک شده است» from the API)
+
+##### 15.3b On the server, installable, the QR
+- [ ] `app.pasargadgymplus.ir`: DNS record (the developer), Caddy site serving `dist-site/`,
+      security headers; the rate limits are the API's own (15.1), Caddy has none built in
 - [ ] Installable on a phone: manifest, icons, a service worker that updates itself, an install
-      guide for iPhone
+      guide for iPhone. *Open:* the app's icon
 - [ ] `https://pasargadgymplus.ir/qr`, a fixed address Caddy redirects to the app, so a printed
       poster never has to be printed again; the desk's QR made locally (static, high error
-      correction, the gym's logo in the middle, the address written under it) and an A4 poster
+      correction, the gym's logo in the middle, the address written under it) and an A4 poster.
+      *Open:* the tool that makes the QR
 - [ ] The public page's «ورود» and «ثبت‌نام» lead to the app (closes 14.4)
-- [ ] Tests: frontend; `npm run e2e` grows a sign-in on the app's host
+- [ ] Tests: `npm run e2e` grows a sign-in on the app's host
 
 #### 15.4 A member picks a trainer
 - [ ] The trainers' list in the app (and 14.1's cards, once the gym's photos come); a member's

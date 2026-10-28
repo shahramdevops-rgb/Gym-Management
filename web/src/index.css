@@ -1,4 +1,7 @@
-@import "tailwindcss";
+/* Classes are looked for from web/ (this file's parent folder), not from Vite's root: the site
+   app's root is web/site/ (roadmap 15.3), which would miss every class in src/. For the panel,
+   whose root is web/, nothing changes. */
+@import "tailwindcss" source("..");
 
 /* Self-hosted: the file is bundled from src/assets, never fetched from a public CDN.
    One variable file covers every weight, so the app ships a single 110 KB font request. */
