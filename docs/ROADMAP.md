@@ -4305,6 +4305,12 @@ after 15.2b was committed.
       phone form flashes while a reload restores the session; the boundary test covers the shared
       `lib/` and `components/` too. Accepted as it is: the countdown uses the phone's clock (a
       clock ahead only gets «کد قبلاً برای شما پیامک شده است» from the API)
+- [x] Two answers of the developer (1405/08/06), written in §15: the site signs out only when the
+      API says the session ended (a 401); no internet, a 5xx or a 429 keeps the person signed in
+      behind «دوباره امتحان کنید» (`unreachable` in the site's store); and a trainer whose
+      membership the desk deactivated gets neither area (`SitePerson.IsTrainer`, tested in
+      `TrainerSignInTests`). The WebOTP line for `gymExpiring` given to the developer, to ask
+      Kavenegar for
 
 ##### 15.3b On the server, installable, the QR
 - [ ] `app.pasargadgymplus.ir`: DNS record (the developer), Caddy site serving `dist-site/`,

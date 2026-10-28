@@ -16,9 +16,15 @@ export type SiteMe = components["schemas"]["SiteMeResponse"];
  *
  * `notice` is a message the sign-in screen shows once after the session ended, such as a stopped
  * trainer's «مربی‌گری شما تمام شده است» (BUSINESS_RULES.md §15 *Trainers*).
+ *
+ * `unreachable`: a refresh got no answer it could trust (no internet, the server restarting
+ * during a release, too many requests from one address). The cookie may well be good for weeks
+ * yet, and a new sign-in is a paid SMS, so the app waits for «دوباره امتحان کنید» instead of
+ * signing out (BUSINESS_RULES.md §15, decided by the developer 1405/08/06).
  */
 export type SiteSessionState =
   | { status: "restoring" }
+  | { status: "unreachable" }
   | { status: "signedOut"; notice?: string }
   | { status: "signedIn"; access: SiteAccess };
 
@@ -45,6 +51,11 @@ export const siteSessionStore = {
 
   signOut: (notice?: string) =>
     setState(notice === undefined ? { status: "signedOut" } : { status: "signedOut", notice }),
+
+  unreachable: () => setState({ status: "unreachable" }),
+
+  /** A refresh is under way again, after «دوباره امتحان کنید». */
+  restoring: () => setState({ status: "restoring" }),
 
   /** Back to the state before anything is known. Tests call this between cases. */
   reset: () => setState({ status: "restoring" }),

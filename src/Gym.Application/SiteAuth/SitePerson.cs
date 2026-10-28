@@ -21,8 +21,12 @@ public sealed record SitePerson(Member? Member, Trainer? Trainer)
     /// </summary>
     public bool IsMember => Member is { IsActive: true };
 
-    /// <summary>The trainer's area opens only while they are a trainer.</summary>
-    public bool IsTrainer => Trainer is { IsActive: true };
+    /// <summary>
+    /// The trainer's area opens only while they are a trainer, and not for a trainer who is also a
+    /// member the desk deactivated: they too see only the «غیرفعال» notice (BUSINESS_RULES.md §15,
+    /// decided by the developer 1405/08/06). A trainer who is no member is not affected.
+    /// </summary>
+    public bool IsTrainer => Trainer is { IsActive: true } && Member is null or { IsActive: true };
 
     public static async Task<SitePerson> LoadAsync(IAppDbContext db, SiteAccount account, CancellationToken cancellationToken)
     {

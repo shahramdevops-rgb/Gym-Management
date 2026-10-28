@@ -76,6 +76,35 @@ describe("HomePage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("مربی‌گری شما تمام شده است.");
   });
 
+  it("Home_TrainerWhoseMembershipWasDeactivated_SeesOnlyTheNotice", async () => {
+    // §15 (1405/08/06): the API sends no trainer then, so the screen shows the notice alone.
+    const inactive = { member: { ...activeMember, isActive: false }, trainer: null };
+    mockApi({ "GET /api/site/me": () => json(200, inactive) });
+
+    renderSite("/", { access: siteAccess(inactive) });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("عضویت شما در باشگاه غیرفعال است");
+    expect(screen.queryByRole("heading", { name: "بخش مربی" })).not.toBeInTheDocument();
+  });
+
+  it("Home_ServerUnreachable_OffersARetryInsteadOfSigningOut", async () => {
+    mockApi({ "POST /api/site/auth/refresh": () => json(200, siteAccess()) });
+    renderSite("/", { access: siteAccess() });
+
+    act(() => siteSessionStore.unreachable());
+
+    expect(screen.getByRole("alert")).toHaveTextContent("ارتباط با سرور برقرار نشد");
+    expect(screen.queryByRole("heading", { name: "ورود یا ثبت‌نام" })).not.toBeInTheDocument();
+
+    mockApi({
+      "POST /api/site/auth/refresh": () => json(200, siteAccess()),
+      "GET /api/site/me": () => json(200, siteAccess().me),
+    });
+    fireEvent.click(screen.getByRole("button", { name: "دوباره امتحان کنید" }));
+
+    expect(await screen.findByRole("heading", { name: "سلام علی محمدی" })).toBeInTheDocument();
+  });
+
   it("Home_SignOut_EndsTheSessionOnTheServerAndHere", async () => {
     const api = mockApi({
       "GET /api/site/me": () => json(200, siteAccess().me),

@@ -199,6 +199,40 @@ public sealed class TrainerSignInTests(DatabaseFixture fixture) : DatabaseTestBa
         Roles(access).ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task SignIn_ATrainerWhoseMembershipTheDeskDeactivated_SeesOnlyTheNotice()
+    {
+        // §15 (1405/08/06): a deactivated member who is also a trainer gets neither area.
+        var member = await AddMemberAsync(Phone);
+        await AddTrainerAsync("علی کریمی", Phone);
+        await DeactivateAsync(member.Id);
+        using var client = Fixture.CreateClient();
+
+        using var response = await client.SignInWithCodeAsync(Fixture, Phone);
+
+        var access = (await response.ReadJsonAsync()).GetProperty("access");
+        access.GetProperty("me").GetProperty("member").GetProperty("isActive").GetBoolean().ShouldBeFalse();
+        access.GetProperty("me").GetProperty("trainer").ValueKind.ShouldBe(JsonValueKind.Null);
+        Roles(access).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Refresh_AfterTheDeskDeactivatesATrainersMembership_LosesTheTrainersArea()
+    {
+        var member = await AddMemberAsync(Phone);
+        await AddTrainerAsync("علی کریمی", Phone);
+        using var client = Fixture.CreateClient();
+        using var signIn = await client.SignInWithCodeAsync(Fixture, Phone);
+
+        await DeactivateAsync(member.Id);
+        using var refreshed = await client.RefreshAsync(signIn.ReadSiteRefreshToken());
+
+        refreshed.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var access = await refreshed.ReadJsonAsync();
+        access.GetProperty("me").GetProperty("trainer").ValueKind.ShouldBe(JsonValueKind.Null);
+        Roles(access).ShouldBeEmpty();
+    }
+
     // ---- The Owner stops the trainer ----
 
     [Fact]

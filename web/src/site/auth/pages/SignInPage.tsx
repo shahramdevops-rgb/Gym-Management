@@ -12,6 +12,7 @@ import { applyServerErrors, withPersianDigits } from "@/lib/forms";
 import { normalizeDigits } from "@/lib/normalize";
 
 import { SiteFrame } from "../../components/SiteFrame";
+import { UnreachableNotice } from "../../components/UnreachableNotice";
 import { sitePaths } from "../../paths";
 import { useRequestCode, type RequestCodeResponse } from "../api";
 import { useSiteSessionState } from "../session";
@@ -50,6 +51,11 @@ export function SignInPage() {
         <LoadingState />
       </SiteFrame>
     );
+  }
+
+  // The session may be fine: asking for a code now would cost an SMS for nothing.
+  if (state.status === "unreachable") {
+    return <UnreachableNotice />;
   }
 
   // Shown once, after the session ended for a reason the person should know.

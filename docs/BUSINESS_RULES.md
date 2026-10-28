@@ -2378,8 +2378,10 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     stays free text from the gym's dedicated line (§10 *Sending*).
   - **The code fills itself in on the phone** (asked by the developer, 1405/08/03, for the site
     app of 15.3): iPhones offer it from the SMS by themselves; Android needs the template's last
-    line to be `@app.pasargadgymplus.ir #%token`. *Open:* the developer asks Kavenegar to add that
-    line to `gymExpiring` (an edited template is approved again), before Release 1.
+    line to be `@app.pasargadgymplus.ir #%token`. *Open, not required:* `gymExpiring` was approved
+    with its two lines only; the developer may ask Kavenegar to add that third line (an edited
+    template is approved again). The app is ready for it; until then Android types the code.
+    The developer sent Kavenegar the edited template on 1405/08/06; awaiting approval.
   - The code itself is never written anywhere readable: not in the logs, not in the SMS history.
     Code SMS are not listed in the panel's «پیامک‌ها» history; only their count and cost are kept,
     and showing them in the panel is for 15.2. The database keeps only a random seed per code, from
@@ -2394,6 +2396,12 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     phones; the automated tests always use the fake sender. *Decided by the developer*.
 - **Staying signed in on the site: 60 days, renewed by every use**, because each new sign-in is a
   paid SMS (staff: 7 days, §1). *Decided by the developer* (1405/08/03).
+  - **The site signs out only when the server says the session has ended**: «خروج», 60 days
+    unused, the phone changed by the desk or the Owner, a reused copy of the session, or the
+    browser's data cleared. With no internet, the server restarting during a release or too many
+    requests from one address, the person stays signed in and sees «ارتباط با سرور برقرار نشد»
+    with «دوباره امتحان کنید», instead of being sent to ask for a new, paid code. *Proposed by
+    Claude, decided by the developer* (1405/08/06, 15.3a); the panel keeps signing out (§1).
 - **When the desk changes a member's phone, every site session of that member ends** (within the
   access token's 15 minutes), and the member signs in again with the new number. The site finds a
   member by the phone the desk typed, which no code ever checked: a mistyped number may belong to a
@@ -2417,6 +2425,10 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **A member deactivated in the panel** can still receive a code and sign in, but sees only a
   notice that their membership is inactive and that they should come to the desk; nothing else on
   the site opens for them. *Decided by the developer* (1405/08/03).
+  - **This holds for a trainer too**: a trainer whose membership (same phone) the desk deactivated
+    sees only that notice, and the trainer's area stays shut until the desk activates the member
+    again. A trainer who is not a member is not affected. *Decided by the developer* (1405/08/06,
+    15.3a).
 
 ### Trainers
 - **The gym has one trainer or more, and they can change over time.** *Decided by the developer.*

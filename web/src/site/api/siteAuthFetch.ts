@@ -24,7 +24,8 @@ let refreshInFlight: Promise<boolean> | null = null;
  * through a Web Lock, across tabs: rotation is strict, and two refreshes sending the same cookie
  * look like a stolen token and end the session (BUSINESS_RULES.md §15, as §1 for the staff).
  *
- * Resolves to whether the person is signed in afterwards.
+ * Resolves to whether the person is signed in afterwards. Unlike the panel's, a refresh that gets
+ * no trustworthy answer does not sign out: the state becomes `unreachable`.
  */
 export function refreshSiteSession(): Promise<boolean> {
   refreshInFlight ??= withRefreshLock(requestRefresh).finally(() => {
@@ -47,8 +48,14 @@ async function requestRefresh(): Promise<boolean> {
       credentials: "same-origin",
     });
 
-    if (!response.ok) {
+    // Only the API's own "this session has ended" signs out (a 401: logged out, 60 days unused,
+    // the phone changed, a reused cookie). Anything else says nothing about the session.
+    if (response.status === 401) {
       siteSessionStore.signOut();
+      return false;
+    }
+    if (!response.ok) {
+      siteSessionStore.unreachable();
       return false;
     }
 
@@ -68,10 +75,16 @@ async function requestRefresh(): Promise<boolean> {
     siteSessionStore.signIn(access);
     return true;
   } catch {
-    // The server could not be reached: the sign-in screen is a safer place to wait.
-    siteSessionStore.signOut();
+    // The server could not be reached: nothing is known about the session, so it is kept.
+    siteSessionStore.unreachable();
     return false;
   }
+}
+
+/** «دوباره امتحان کنید» after the server could not be reached. */
+export async function retrySiteSession(): Promise<void> {
+  siteSessionStore.restoring();
+  await refreshSiteSession();
 }
 
 /** Called once at startup: turns the refresh cookie, if there is one, back into a session. */

@@ -4,7 +4,7 @@ import { json, mockApi, problem } from "@/test/mockApi";
 import { siteSessionStore } from "../auth/session";
 import { siteAccess } from "../test/renderSite";
 import { siteApi } from "./client";
-import { restoreSiteSession } from "./siteAuthFetch";
+import { refreshSiteSession, restoreSiteSession, retrySiteSession } from "./siteAuthFetch";
 
 describe("siteAuthFetch", () => {
   it("SiteCall_SignedInToBoth_SendsTheSitesTokenOnly", async () => {
@@ -96,6 +96,32 @@ describe("siteAuthFetch", () => {
     await siteApi.GET("/api/site/me");
 
     expect(siteSessionStore.getState().status).toBe("signedOut");
+  });
+
+  it("Refresh_ServerUnreachable_KeepsTheSessionAndWaitsForARetry", async () => {
+    siteSessionStore.signIn(siteAccess());
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    await refreshSiteSession();
+
+    expect(siteSessionStore.getState().status).toBe("unreachable");
+  });
+
+  it("Refresh_ServerRestarting_IsNotTakenForAnEndedSession", async () => {
+    mockApi({ "POST /api/site/auth/refresh": () => new Response(null, { status: 502 }) });
+
+    await restoreSiteSession();
+
+    expect(siteSessionStore.getState().status).toBe("unreachable");
+  });
+
+  it("Retry_ServerBack_RestoresTheSession", async () => {
+    siteSessionStore.unreachable();
+    mockApi({ "POST /api/site/auth/refresh": () => json(200, siteAccess()) });
+
+    await retrySiteSession();
+
+    expect(siteSessionStore.accessToken()).toBe("site-access-token");
   });
 });
 
