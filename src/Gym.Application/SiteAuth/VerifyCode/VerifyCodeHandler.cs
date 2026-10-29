@@ -14,9 +14,11 @@ namespace Gym.Application.SiteAuth.VerifyCode;
 /// </summary>
 /// <remarks>
 /// <para>
-/// It signs nobody in by itself: the site's sign-in (task 15.1b) calls it and then finds or makes
-/// the account. It saves its own change either way, because a wrong try must be counted even when
-/// the request answers with a failure.
+/// It signs nobody in by itself: the site's sign-in (task 15.1b) finds or makes the account in the
+/// same transaction, through <see cref="VerifyLockedAsync"/>, so the code is used up only when the
+/// sign-in itself is saved (15.3b). <see cref="Handle"/> checks a code alone, in a transaction of its
+/// own, and saves its change either way, because a wrong try must be counted even when the request
+/// answers with a failure.
 /// </para>
 /// <para>
 /// The phone is locked as in <c>RequestCodeHandler</c>, so two guesses at the same moment are both
@@ -40,11 +42,27 @@ public sealed class VerifyCodeHandler(
             return Result.Failure<string>(phone.Error);
         }
 
-        var phoneNumber = phone.Value;
-        var typed = PersianText.NormalizeDigits(command.Code).Trim();
-
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
-        await db.LockPhoneAsync(phoneNumber, cancellationToken);
+        await db.LockPhoneAsync(phone.Value, cancellationToken);
+
+        var verified = await VerifyLockedAsync(phone.Value, command.Code, cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return verified;
+    }
+
+    /// <summary>
+    /// The check itself, for a caller that already holds a transaction and the phone's lock
+    /// (<c>LockPhoneAsync</c>). The try or the use is saved but not committed: the caller commits it
+    /// with its own work, and a failure of that work takes the use back with it.
+    /// </summary>
+    public async Task<Result<string>> VerifyLockedAsync(string phoneNumber, string typedCode, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(phoneNumber);
+        ArgumentNullException.ThrowIfNull(typedCode);
+
+        var typed = PersianText.NormalizeDigits(typedCode).Trim();
 
         var code = await db.SignInCodes.SingleOrDefaultAsync(row => row.PhoneNumber == phoneNumber, cancellationToken);
         if (code is null)
@@ -56,7 +74,6 @@ public sealed class VerifyCodeHandler(
         var verified = code.Verify(typed, codes.CodeFor(phoneNumber, code.CodeSeed), now, calendar.DayOf(now));
 
         await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
 
         return verified.IsSuccess ? phoneNumber : Result.Failure<string>(verified.Error);
     }

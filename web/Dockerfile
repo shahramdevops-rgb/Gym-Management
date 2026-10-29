@@ -17,6 +17,9 @@ RUN npm run build
 FROM caddy:2-alpine
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /src/web/dist /srv
+# The members' and trainers' app (roadmap 15.3), the second entry of the same build, served on its
+# own host ({$SITE_DOMAIN}).
+COPY --from=build /src/web/dist-site /srv-site
 # The gym's public page. Static files only, never built and never calling the API, so it keeps
 # serving while the application is down (deploy/Caddyfile, {$PUBLIC_DOMAIN}).
 COPY web/public-site /srv-public

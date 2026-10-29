@@ -1,0 +1,6 @@
+# The members' and trainers' app (roadmap 15.3b). Kept out of search results by "noindex", sent on
+# every response (deploy/Caddyfile, X-Robots-Tag) and in index.html; the public page is what is
+# found. Crawling stays allowed on purpose, as on the panel (web/public/robots.txt): a crawler that
+# is told not to fetch a page never sees its "noindex".
+User-agent: *
+Allow: /

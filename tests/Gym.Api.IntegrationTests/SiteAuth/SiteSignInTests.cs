@@ -4,7 +4,11 @@ using Gym.Api.Common;
 using Gym.Api.Configuration;
 using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
+using Gym.Application.Common;
+using Gym.Application.Common.Security;
+using Gym.Application.SiteAuth;
 using Gym.Application.SiteAuth.SignIn;
+using Gym.Application.SiteAuth.VerifyCode;
 using Gym.Domain.Members;
 using Gym.Domain.SiteAuth;
 using Gym.Infrastructure.Persistence;
@@ -81,6 +85,21 @@ public sealed class SiteSignInTests(DatabaseFixture fixture) : DatabaseTestBase(
         (await response.ReadErrorCodeAsync()).ShouldBe(SignInCodeErrors.Wrong.Code);
         response.GetSiteRefreshCookie().ShouldBeNull();
         (await AccountsAsync()).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SignIn_FailsAfterTheRightCode_LeavesTheCodeForAnotherTry()
+    {
+        using var client = Fixture.CreateClient();
+        var code = await client.RequestCodeAsync(Fixture, Phone);
+
+        // The right code, then an unexpected failure (15.3b: a missing table did this locally).
+        await Should.ThrowAsync<InvalidOperationException>(() => SignInWithBrokenTicketsAsync(code));
+
+        // Not used up: the same code still signs in, with no new, paid SMS.
+        using var response = await client.SignInAsync(Phone, code);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.ReadJsonAsync()).GetProperty("outcome").GetString().ShouldBe(nameof(SignInOutcome.NeedsProfile));
     }
 
     [Fact]
@@ -527,5 +546,31 @@ public sealed class SiteSignInTests(DatabaseFixture fixture) : DatabaseTestBase(
         return await scope.ServiceProvider.GetRequiredService<AppDbContext>().SiteAccounts
             .AsNoTracking()
             .ToListAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>The real sign-in, except that a new phone's ticket cannot be made.</summary>
+    private async Task SignInWithBrokenTicketsAsync(string code)
+    {
+        await using var scope = Fixture.CreateScope();
+        var services = scope.ServiceProvider;
+        var handler = new SignInHandler(
+            services.GetRequiredService<IAppDbContext>(),
+            services.GetRequiredService<IPhoneNormalizer>(),
+            services.GetRequiredService<VerifyCodeHandler>(),
+            services.GetRequiredService<SiteAccountLinks>(),
+            services.GetRequiredService<SiteSessions>(),
+            new NoSignUpTickets(services.GetRequiredService<ISiteTokens>()),
+            services.GetRequiredService<TimeProvider>());
+
+        await handler.Handle(new SignInCommand(Phone, code), TestContext.Current.CancellationToken);
+    }
+
+    private sealed class NoSignUpTickets(ISiteTokens inner) : ISiteTokens
+    {
+        public AccessToken IssueAccessToken(SiteAccount account, SitePerson person) => inner.IssueAccessToken(account, person);
+
+        public AccessToken IssueSignUpTicket(string phoneNumber) => throw new InvalidOperationException("No ticket in this test.");
+
+        public Task<string?> ReadSignUpTicketAsync(string ticket) => inner.ReadSignUpTicketAsync(ticket);
     }
 }

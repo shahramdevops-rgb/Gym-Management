@@ -13,6 +13,7 @@ import { normalizeDigits } from "@/lib/normalize";
 
 import { SiteFrame } from "../../components/SiteFrame";
 import { UnreachableNotice } from "../../components/UnreachableNotice";
+import { InstallHint } from "../../install/InstallHint";
 import { sitePaths } from "../../paths";
 import { useRequestCode, type RequestCodeResponse } from "../api";
 import { useSiteSessionState } from "../session";
@@ -70,6 +71,8 @@ export function SignInPage() {
       ) : (
         <CodeStep sent={sent} onResent={setSent} onChangePhone={() => setSent(null)} />
       )}
+
+      {sent === null && <InstallHint />}
     </SiteFrame>
   );
 }

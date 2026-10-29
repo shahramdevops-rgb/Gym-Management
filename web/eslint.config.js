@@ -45,6 +45,13 @@ export default tseslint.config([
     },
   },
   {
+    // The site app's service worker (a template vite.site.config.ts fills in): plain JavaScript
+    // run in the service worker's own scope, where there is no window or document.
+    files: ["site/sw.js"],
+    extends: [js.configs.recommended, prettier],
+    languageOptions: { ecmaVersion: 2022, globals: globals.serviceworker },
+  },
+  {
     // The end-to-end tests and their configuration run in Node, not in the browser.
     files: ["e2e/**/*.ts", "playwright.config.ts", "playwright.screenshots.config.ts"],
     languageOptions: { globals: globals.node },

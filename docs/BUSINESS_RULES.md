@@ -2280,7 +2280,7 @@ without adding up the rows.
   - **One exception: the installed app's name** (roadmap 13.4, decided by the developer, 1405/08/03):
     «Management» under the icon and «Pasargad Gym Management» in full, in English, which is short
     and never breaks under an icon. The long-press shortcuts keep the menu's Persian names. The
-    members' and trainers' app (Phase 15) will be «Pasargad Gym», so the two are told apart.
+    members' and trainers' app (Phase 15) is «Pasargad Gym» (15.3b), so the two are told apart.
 - Text normalization (applied to names before saving the search column, and to every search input):
   - Arabic ي (U+064A) and ى (U+0649) → Persian ی (U+06CC)
   - Arabic ك (U+0643) → Persian ک (U+06A9)
@@ -2333,6 +2333,24 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   developer* (a fact of the gym, which shapes the photo rules below).
 - **The site's account area is at `app.pasargadgymplus.ir`** and installs on a phone like an app
   (a PWA). *Decided by the developer* (1405/08/03).
+  - **Its icon is the panel's reversed**: the gym's logo in dark stone on bronze, so the two icons
+    are told apart at a glance on a phone that has both; «Pasargad Gym» under it (§13). *Decided by
+    the developer* (1405/08/07, 15.3b).
+  - **The app asks to be installed** in a small card on the sign-in screen and the home screen:
+    on Android a «نصب برنامه» button (where the browser offers it), on an iPhone the steps of
+    Safari's Share menu. Hidden in the installed app, and for 30 days on that phone after «بعداً».
+    Shown before signing in, because an installed iPhone app keeps its own sign-in, and installing
+    after signing in would cost a second code SMS. *Proposed by Claude, accepted with 15.3b's plan*
+    (1405/08/07).
+  - **The installed app opens without internet** and then shows «ارتباط با سرور برقرار نشد», as the
+    page does (a service worker keeps the app's files, never the API's answers); a release reaches
+    it by itself the next time it opens. *Proposed by Claude, accepted* (1405/08/07, 15.3b).
+  - **The desk's QR code holds `https://pasargadgymplus.ir/qr`**, a fixed address of the public
+    page that is redirected to the app, so the printed poster (`deploy/qr/`) never has to be
+    printed again if the app moves. *Proposed by Claude, accepted* (1405/08/07, 15.3b).
+  - **The public page's top bar has one «ورود / ثبت‌نام» button** that opens the app, since signing
+    in and signing up start on the same screen there. *Decided by the developer* (1405/08/07). It
+    links `pasargadgymplus.ir/app`, redirected like `/qr`, so the page never names the app's host.
 - **A member's program can be seen and followed without internet**: the program last opened stays
   on the phone, and what the member marks done while offline is sent when the phone is online
   again. *Decided by the developer* (1405/08/03); *Open:* what "marking done" holds (15.11).
@@ -2386,6 +2404,10 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     and showing them in the panel is for 15.2. The database keeps only a random seed per code, from
     which the code is computed with a secret in the server's settings (`SITE_CODE_SECRET`), so a
     database backup alone reveals no code. *Decided by the developer* (1405/08/03).
+  - **The right code is used up only when the sign-in is saved.** If anything fails after the code
+    is checked, the same code still works, and no new, paid SMS is needed; a wrong code's try is
+    counted at once. *Proposed by Claude, accepted by the developer* (1405/08/07, 15.3b), after a
+    local error burnt a code.
   - **Two presses at once send one SMS**, and the gym's 300 is never passed: each phone's requests
     and checks run one at a time, and the sends of the whole gym too (15.1a). A request whose
     browser goes away once Kavenegar has been called is still finished and counted, since the SMS

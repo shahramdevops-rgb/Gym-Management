@@ -82,14 +82,20 @@ is safe.
 ## Domains
 
 Live since 2026-09-25, with Let's Encrypt certificates Caddy obtains and renews by itself. One
-image serves four names, and which is which comes from `/opt/gym/.env`:
+image serves six names, and which is which comes from `/opt/gym/.env`:
 
 | Variable | Serves |
 |---|---|
-| `DOMAIN` | the application, and nothing else. Also the API's `AllowedHosts` |
+| `DOMAIN` | the staff's application, and nothing else. Also the API's `AllowedHosts` |
+| `SITE_DOMAIN` | the members' and trainers' app (`web/dist-site`) and only the API's `/api/site`; the API's second `AllowedHosts` (roadmap 15.3b) |
 | `PUBLIC_DOMAIN` | the gym's public page: static files from `web/public-site`, no API |
 | `www.$PUBLIC_DOMAIN` | redirects to the public page |
 | `REDIRECT_DOMAIN` | redirects to the public page |
+| `www.$REDIRECT_DOMAIN` | redirects to the public page (since 15.3b) |
+
+`https://$PUBLIC_DOMAIN/qr` and `/app` are temporary redirects (302) to the app: the address printed
+under the desk's QR code (`deploy/qr/`) and the public page's «ورود / ثبت‌نام», so neither the poster
+nor the page names the app's host.
 
 The application lives on its own host (`panel.…`) rather than the bare domain. The refresh cookie
 is scoped to a single host, so one canonical name is not a preference — two names would sign

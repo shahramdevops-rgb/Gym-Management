@@ -3,6 +3,7 @@
 **/obj
 **/node_modules
 web/dist
+web/dist-site
 .git
 .vs
 .claude

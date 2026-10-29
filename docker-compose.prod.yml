@@ -15,8 +15,9 @@ name: gym-prod
 # same missing settings the API would.
 x-api-environment: &api-environment
   ASPNETCORE_ENVIRONMENT: Production
-  # Only requests for our own domain are answered (Caddy passes the Host header through).
-  AllowedHosts: ${DOMAIN:?set DOMAIN in .env}
+  # Only requests for our own two hosts are answered (Caddy passes the Host header through): the
+  # panel's, and the site app's, which calls /api/site on its own host (roadmap 15.3b).
+  AllowedHosts: ${DOMAIN:?set DOMAIN in .env};${SITE_DOMAIN:?set SITE_DOMAIN in .env}
   # Trust X-Forwarded-For only from Caddy's network. Same value as the pinned subnet at the
   # bottom of this file, from one variable so the two cannot drift.
   ForwardedHeaders__TrustedNetwork: ${GYM_SUBNET:-172.28.0.0/24}
@@ -138,6 +139,8 @@ services:
       # The panel's own host. AllowedHosts above is the same value: the API answers to this
       # name and no other.
       DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      # The members' and trainers' app (ADR 0010); in AllowedHosts above too.
+      SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN in .env}
       # The gym's public page, served from static files. Unset means no public site is served.
       PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-no-public-site}
       # Optional second domain, permanently redirected to the public page. Unset means no redirect.

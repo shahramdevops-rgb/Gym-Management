@@ -54,9 +54,9 @@ Still open around the panel (none of it code, or waiting for someone else):
   Commits from 2026-10-25 are `Shahram Azghandi <shahramdevops@gmail.com>`
 
 Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
-  1405/08/03); 15.1, 15.2 and 15.3a are done on their branches, not merged or released; the next
-  task is **15.3b** (the app on the server, installable, the QR). Phase 14's 14.1 to 14.3 still
-  wait for the gym's trainers, links and photos; 14.4 closes with 15.3b
+  1405/08/03); 15.1, 15.2 and 15.3 (a and b) are done on their branches, not merged or released; the
+  next task is **15.4** (a member picks a trainer). Phase 14's 14.1 to 14.3 still wait for the
+  gym's trainers, links and photos; 14.4 closed with 15.3b
 
 ---
 
@@ -4098,8 +4098,9 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
       (900×1600) cut (14.0)
 
 ### 14.4 The buttons that do nothing yet
-- [ ] The hero's two buttons and «ثبت‌نام» in the top bar do nothing. Open: what each does until
-      14.6 exists (e.g. call the gym, or hidden)
+- [x] The hero's two buttons and «ثبت‌نام» in the top bar do nothing. Open: what each does until
+      14.6 exists (e.g. call the gym, or hidden). Closed by 15.3b (1405/08/07): «ورود / ثبت‌نام» opens
+      the app, the hero's buttons lead to their sections
 
 ### 14.5 The panel out of search results
 Done 1405/08/02 (2026-10-24), asked by the developer. Checked on the live server first, read-only:
@@ -4313,19 +4314,48 @@ after 15.2b was committed.
       approved the edited template (1405/08/07)
 
 ##### 15.3b On the server, installable, the QR
-- [ ] `app.pasargadgymplus.ir`: DNS record (the developer), Caddy site serving `dist-site/`,
-      security headers; the rate limits are the API's own (15.1), Caddy has none built in
-- [ ] Installable on a phone: manifest, icons, a service worker that updates itself, an install
-      guide for iPhone. *Open:* the app's icon
-- [ ] `https://pasargadgymplus.ir/qr`, a fixed address Caddy redirects to the app, so a printed
-      poster never has to be printed again; the desk's QR made locally (static, high error
-      correction, the gym's logo in the middle, the address written under it) and an A4 poster.
-      *Open:* the tool that makes the QR
-- [ ] The public page's «ورود» and «ثبت‌نام» lead to the app (closes 14.4)
-- [ ] `www.pasargadgymplus.com` redirects to the public page like the other names: its DNS record
-      points at the server, but the Caddyfile has no site for it, so HTTPS fails there (found
-      1405/08/07); `www.{$REDIRECT_DOMAIN}` joins the redirect block
-- [ ] Tests: `npm run e2e` grows a sign-in on the app's host
+Built 1405/08/07 on `task/15.3-site-app`, not merged or released (Release 1 is at 15.5).
+- [x] `app.pasargadgymplus.ir`: DNS record (the developer, checked 1405/08/07), Caddy site
+      `{$SITE_DOMAIN}` serving `dist-site/` (`/srv-site`) and only `/api/site/*` of the API (any
+      other `/api` there is a 404, and the panel's host answers 404 for `/api/site/*`); the panel's
+      security headers and `noindex`; `sw.js` and `index.html` with `no-cache`. The API answers to
+      both hosts (`AllowedHosts: DOMAIN;SITE_DOMAIN`), and `SITE_DOMAIN` is required in `.env`.
+      The rate limits are the API's own (15.1), Caddy has none built in
+- [x] Installable on a phone: manifest «Pasargad Gym», icons (the gym's logo in dark stone on
+      bronze, the panel's reversed: the developer's choice, 1405/08/07), a hand-written service
+      worker (`site/sw.js`, filled with the build's files by `vite.site.config.ts`) that keeps the
+      app's files, never `/api`, and updates itself; the card «نصب برنامه روی گوشی» on the sign-in
+      and home screens: «نصب برنامه» on Android, Safari's steps on an iPhone, «بعداً» for 30 days
+- [x] `https://pasargadgymplus.ir/qr`, a temporary (302) redirect to the app, so a printed poster
+      never has to be printed again; the desk's QR in `deploy/qr/` (`qr.svg`, `qr.png`, level H,
+      the app's icon in the middle, read back with a decoder) and the A4 poster (`poster.html` →
+      `poster.pdf`), made with the npm package `qrcode` run once outside the repository (the
+      developer's choice of tool, 1405/08/07)
+- [x] The public page's top bar: one «ورود / ثبت‌نام» that opens the app (the developer's choice);
+      the hero's two buttons lead to «امکانات» and «ساعت کاری» on the page. Closes 14.4
+- [x] `www.pasargadgymplus.com` redirects to the public page like the other names:
+      `www.{$REDIRECT_DOMAIN}` joined the redirect block (its DNS record already pointed here)
+- [x] Tests: `npm run e2e` signs a new phone up on `https://app.localhost` (the code computed from
+      its seed, as the API does) and reloads; the app installable in Chrome; manifest and `sw.js`
+      served fresh; each host refuses the other's API; `/qr` is a 302 to the app.
+      `siteAppOffline.spec.ts`: the worker keeps `/` and `/assets`, nothing under `/api`, and the app
+      opens offline on «دوباره امتحان کنید». `InstallHint.test.tsx`; `ContentSecurityPolicyTests`
+      covers the app's policy and page
+- [x] After the code review: `deploy/release.sh` checks the new compose file against the server's
+      `.env` before copying it (a missing `SITE_DOMAIN` would otherwise stop the nightly backup and
+      the rollback while the old containers keep running); a missing `/assets/*` file is a 404 on
+      both hosts, no longer `index.html` cached for a year (the panel had it since 6.5.0); the
+      worker's plugin runs last, hashes `index.html` too and fails the build if a placeholder is
+      left. Accepted as it is: a page load waits for the browser's own timeout before the offline copy (15.11 may add one)
+- [x] After the developer tried it locally (1405/08/07): a sign-in that fails after the right code
+      no longer uses the code up (checking it and finding or making the account are one transaction;
+      a missing local migration had burnt a code and cost a second SMS); the code screen says the wait
+      in words under its buttons («اگر کد نرسید، تا ۱:۰۳ دیگر …»), and when Kavenegar has reported the code
+      delivered it says «این کد تا … دیگر معتبر است؛ بعد از آن می‌توانید کد تازه بگیرید» with «کد تازه»
+      on the button, never «اگر کد نرسید» under «کد به گوشی شما رسیده است»; the public page's button links
+      `/app`, which Caddy redirects to the app like `/qr`, and `npm run dev:site` also serves the public
+      page at `http://localhost:5174/public-site/`, so the whole way from the gym's page to signing in
+      runs on one address locally
 
 #### 15.4 A member picks a trainer
 - [ ] The trainers' list in the app (and 14.1's cards, once the gym's photos come); a member's
@@ -4335,8 +4365,12 @@ after 15.2b was committed.
 #### 15.5 The member's home, first part
 - [ ] My plan: sessions left, the plan's end, freeze; my visits (from the desk's check-ins); my
       trainer. Everything here already exists in the panel's data
-- [ ] **Release 1**, late at night, backup first; `SITE_CODE_SECRET` and `SITE_JWT_SIGNING_KEY`
-      added to the server's `.env` first (15.1a, 15.1b)
+- [ ] «خروج» asks first (asked by the developer, 1405/08/07): «با خروج، برای ورود دوباره یک کد
+      پیامکی تازه لازم است. خارج می‌شوید؟» with «خروج» and «انصراف», since signing in again costs an
+      SMS; queued here, with the home screen's other work, rather than in 15.3b
+- [ ] **Release 1**, late at night, backup first; `SITE_CODE_SECRET`, `SITE_JWT_SIGNING_KEY` (15.1a, 15.1b)
+      and `SITE_DOMAIN=app.pasargadgymplus.ir` (15.3b) added to the server's `.env` first: compose refuses
+      to start without any of the three. The poster (`deploy/qr/poster.pdf`) printed after it
 
 ### Release 2 — The timetable and attendance (priority 1)
 

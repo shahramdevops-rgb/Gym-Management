@@ -8,6 +8,7 @@ import { errorMessage } from "@/lib/errors";
 
 import { useSiteLogout, useSiteMe } from "../auth/api";
 import { SiteFrame } from "../components/SiteFrame";
+import { InstallHint } from "../install/InstallHint";
 
 /** BUSINESS_RULES.md §15 *Trainers*: shown on the sign-in screen after the session is ended. */
 export const trainerEndedNotice = "مربی‌گری شما تمام شده است.";
@@ -80,6 +81,8 @@ export function HomePage() {
           </CardHeader>
         </Card>
       )}
+
+      <InstallHint />
 
       <Button
         variant="outline"

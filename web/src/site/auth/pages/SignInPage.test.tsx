@@ -74,6 +74,20 @@ describe("SignInPage", () => {
 
     const sendAgain = await screen.findByRole("button", { name: /^ارسال دوباره \(۱:[۲۳][۰-۹]\)$/ });
     expect(sendAgain).toBeDisabled();
+    // The wait in words too, under the buttons, where it is seen.
+    expect(screen.getByRole("timer")).toHaveTextContent(
+      /^اگر کد نرسید، تا ۱:[۲۳][۰-۹] دیگر می‌توانید دوباره کد بگیرید\.$/,
+    );
+  });
+
+  it("SignIn_SendAgainOpen_ShowsNoWait", async () => {
+    mockApi({ "POST /api/site/auth/code": () => codeAnswer("Sent", 0) });
+    renderSite("/sign-in");
+
+    askForCode();
+
+    expect(await screen.findByRole("button", { name: "ارسال دوباره" })).toBeEnabled();
+    expect(screen.queryByRole("timer")).not.toBeInTheDocument();
   });
 
   it("SignIn_AlreadyDelivered_SaysTheCodeIsOnThePhone", async () => {
@@ -85,6 +99,11 @@ describe("SignInPage", () => {
     expect(
       await screen.findByText("کد به گوشی شما رسیده است؛ پیامک‌هایتان را ببینید."),
     ).toBeInTheDocument();
+    // Never «اگر کد نرسید» under «رسیده است»: the wait is the code's own life, then a new one.
+    expect(screen.getByRole("timer")).toHaveTextContent(
+      /^این کد تا (۵۰:۰۰|۴۹:۵[۰-۹]) دیگر معتبر است؛ بعد از آن می‌توانید کد تازه بگیرید\.$/,
+    );
+    expect(screen.getByRole("button", { name: /^کد تازه \((۵۰:۰۰|۴۹:۵[۰-۹])\)$/ })).toBeDisabled();
   });
 
   it("SignIn_SendAgainWhenAllowed_AsksTheApiAgainAndShowsItsAnswer", async () => {

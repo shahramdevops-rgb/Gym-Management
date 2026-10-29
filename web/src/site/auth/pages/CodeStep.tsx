@@ -1,3 +1,4 @@
+import { Clock } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
@@ -138,6 +139,11 @@ export function CodeStep({ sent, onResent, onChangePhone }: CodeStepProps) {
     Math.ceil((Date.parse(sent.response.sendAgainAt) - now.getTime()) / 1000),
   );
 
+  // Kavenegar reported the code delivered (BUSINESS_RULES.md §15): nothing is sent again while it
+  // is valid, and the wait is until it ends, when a new code is given.
+  const delivered = sent.response.outcome === "AlreadyDelivered";
+  const resendLabel = delivered ? "کد تازه" : "ارسال دوباره";
+
   const { errors, isSubmitting } = form.formState;
 
   return (
@@ -189,13 +195,44 @@ export function CodeStep({ sent, onResent, onChangePhone }: CodeStepProps) {
               onClick={() => void resend()}
             >
               {secondsToResend > 0
-                ? `ارسال دوباره (${formatCountdown(secondsToResend)})`
-                : "ارسال دوباره"}
+                ? `${resendLabel} (${formatCountdown(secondsToResend)})`
+                : resendLabel}
             </Button>
           </div>
+
+          {secondsToResend > 0 && (
+            // The wait, in words and large enough to see (asked by the developer, 15.3b): the
+            // button's own count was easy to miss.
+            <p
+              role="timer"
+              className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground"
+            >
+              <Clock aria-hidden className="size-4" />
+              {delivered ? (
+                <span>
+                  این کد تا <Countdown seconds={secondsToResend} /> دیگر معتبر است؛ بعد از آن
+                  می‌توانید کد تازه بگیرید.
+                </span>
+              ) : (
+                <span>
+                  اگر کد نرسید، تا <Countdown seconds={secondsToResend} /> دیگر می‌توانید دوباره کد
+                  بگیرید.
+                </span>
+              )}
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+/** The time left, bold and in fixed-width digits so it does not jump as it counts down. */
+function Countdown({ seconds }: { seconds: number }) {
+  return (
+    <span dir="ltr" className="font-bold text-foreground tabular-nums">
+      {formatCountdown(seconds)}
+    </span>
   );
 }
 

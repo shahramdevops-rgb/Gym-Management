@@ -230,6 +230,10 @@ web/site/           The site app's page (index.html), entry (main.ts) and public
   `components/InputField.tsx` (the plain `FormField`, without the date pickers) and React Hook Form's own rules rather
   than Zod, and heavier pages are lazy routes. It follows the phone's light or dark setting and has no theme switch.
   Tailwind looks for classes from `web/` (`@import "tailwindcss" source("..")`), since the site's Vite root is `site/`.
+  On the server it is its own Caddy host (`SITE_DOMAIN`, 15.3b) serving `dist-site/` and only `/api/site/*`. It installs
+  as «Pasargad Gym» (`site/public/manifest.webmanifest`) and has a hand-written service worker: `site/sw.js` is a
+  template that `vite.site.config.ts` fills with the build's hashed file names (the list is the version), registered
+  in builds only (`src/site/serviceWorker.ts`); it never handles `/api`. The panel still has none (13.4).
 
 - One visual language (roadmap 13.2): a page starts with `PageHeader` (its one `h2`, a line under it, its buttons);
   a list is the shared `Table` (`components/ui/table.tsx`, never a hand-styled `<table>`); a list loading is

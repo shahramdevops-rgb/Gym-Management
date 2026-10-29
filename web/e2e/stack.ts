@@ -13,21 +13,35 @@ const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 export const baseURL = "https://localhost";
 
 /**
+ * The members' and trainers' app (roadmap 15.3b). Chrome sends every *.localhost to this machine
+ * by itself; Node may not, so the tests reach these two hosts through the browser.
+ */
+export const siteURL = "https://app.localhost";
+
+/** The gym's public page, for its /qr address. */
+export const publicURL = "https://site.localhost";
+
+/**
  * Settings for the throwaway stack. Not secrets: they guard a database that lives for one test
  * run on this machine, like the signing key in the integration tests' GymApiFactory.
  */
 export const owner = { userName: "e2eowner", password: "e2e first owner password 1405" };
+
+/** Known to the tests too: they compute a sign-in code from its seed, as the API does. */
+export const siteCodeSecret = "end-to-end-tests-site-code-secret-0123456789";
 
 const environment: NodeJS.ProcessEnv = {
   ...process.env,
   // The repository's own .env configures the development database; none of it applies here.
   COMPOSE_DISABLE_ENV_FILE: "true",
   DOMAIN: "localhost",
+  SITE_DOMAIN: "app.localhost",
+  PUBLIC_DOMAIN: "site.localhost",
   POSTGRES_DB: "gym",
   POSTGRES_USER: "gym",
   POSTGRES_PASSWORD: "e2e-database-password",
   JWT_SIGNING_KEY: "end-to-end-tests-signing-key-0123456789abcdef",
-  SITE_CODE_SECRET: "end-to-end-tests-site-code-secret-0123456789",
+  SITE_CODE_SECRET: siteCodeSecret,
   SITE_JWT_SIGNING_KEY: "end-to-end-tests-site-signing-key-0123456789",
   SEED_OWNER_USERNAME: owner.userName,
   SEED_OWNER_PASSWORD: owner.password,
@@ -103,4 +117,13 @@ export function seedDemo() {
 /** Stops the stack and deletes its database. */
 export function stopStack() {
   run("docker", [...compose, "down", "--volumes", "--remove-orphans"]);
+}
+
+/** One value from the stack's database, for a test that needs what only the database holds. */
+export function queryValue(sql: string): string {
+  return execFileSync(
+    "docker",
+    [...compose, "exec", "-T", "postgres", "psql", "-U", "gym", "-d", "gym", "-tAc", sql],
+    { cwd: repoRoot, env: environment, encoding: "utf8" },
+  ).trim();
 }

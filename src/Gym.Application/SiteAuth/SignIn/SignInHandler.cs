@@ -20,14 +20,18 @@ namespace Gym.Application.SiteAuth.SignIn;
 /// signs in as whoever it now belongs to, and the old number no longer reaches them.
 /// </para>
 /// <para>
-/// <b>Two steps, two transactions.</b> The code is checked first and its try or its use is saved
-/// whatever comes next (<see cref="VerifyCodeHandler"/>). Then the phone is locked again while the
-/// account is found or made, so a sign-up for the same phone at the same moment cannot make a
-/// second one. The unique index on the account's member is the database's own guard behind that.
+/// <b>One transaction, under the phone's lock.</b> The code is checked
+/// (<see cref="VerifyCodeHandler.VerifyLockedAsync"/>) and the account found or made in the same
+/// transaction, so a sign-up for the same phone at the same moment cannot make a second account (the
+/// unique index on the account's member is the database's own guard behind that), and the code is
+/// used up only when the sign-in is saved: a sign-in that fails after the right code, on an
+/// unexpected error or a conflict, leaves the code valid for another try instead of costing a new,
+/// paid SMS (15.3b). A wrong code is committed at once, so its try always counts.
 /// </para>
 /// </remarks>
 public sealed class SignInHandler(
     IAppDbContext db,
+    IPhoneNormalizer phones,
     VerifyCodeHandler verifyCode,
     SiteAccountLinks accounts,
     SiteSessions sessions,
@@ -38,16 +42,23 @@ public sealed class SignInHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var verified = await verifyCode.Handle(new VerifyCodeCommand(command.PhoneNumber, command.Code), cancellationToken);
-        if (verified.IsFailure)
+        var phone = phones.Normalize(command.PhoneNumber);
+        if (phone.IsFailure)
         {
-            return Result.Failure<SignInResult>(verified.Error);
+            return Result.Failure<SignInResult>(phone.Error);
         }
 
-        var phoneNumber = verified.Value;
+        var phoneNumber = phone.Value;
 
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
         await db.LockPhoneAsync(phoneNumber, cancellationToken);
+
+        var verified = await verifyCode.VerifyLockedAsync(phoneNumber, command.Code, cancellationToken);
+        if (verified.IsFailure)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return Result.Failure<SignInResult>(verified.Error);
+        }
 
         var member = await db.Members.SingleOrDefaultAsync(row => row.PhoneNumber == phoneNumber, cancellationToken);
         var trainer = await db.Trainers.Include(row => row.Periods).SingleOrDefaultAsync(row => row.PhoneNumber == phoneNumber, cancellationToken);
@@ -57,6 +68,7 @@ public sealed class SignInHandler(
         if (member is null && trainer is not { IsActive: true })
         {
             var ticket = tokens.IssueSignUpTicket(phoneNumber);
+            await transaction.CommitAsync(cancellationToken);
 
             return new SignInResult(new SignInResponse(SignInOutcome.NeedsProfile, null, ticket.Value, ticket.ExpiresAt), null);
         }

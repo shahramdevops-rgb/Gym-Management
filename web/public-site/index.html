@@ -48,8 +48,8 @@
       wide photo cropped to a phone shows only a narrow strip of itself. The gym's own photos
       need both cuts.
 
-      «تماس» dials the gym; the other buttons do nothing yet, on purpose: what they open is decided
-      later. Facts not supplied by the gym (Instagram) say «به‌زودی»; a wrong number on a public
+      «تماس» dials the gym; «ورود / ثبت‌نام» opens the members' app, and the hero's two buttons
+      lead to the sections they name (roadmap 15.3b, closing 14.4). Facts not supplied by the gym (Instagram) say «به‌زودی»; a wrong number on a public
       page is worse than none. Supplied by the gym: the address and the telephone; men only; 7:30 to 23:00 every day of the year
       (docs/BUSINESS_RULES.md: no closed days); one 1000 m² hall (the page stopped saying "no columns" in the plan on 2026-10-15); the services and
       the plan of the hall, drawn by the gym (approximate, not to scale); one hard rubber floor
@@ -85,8 +85,10 @@
           <a href="#contact">تماس</a>
         </nav>
 
-        <!-- Online sign-up comes later (roadmap: member accounts); the button holds its place -->
-        <button type="button" class="btn btn--bronze btn--small topbar__join">ثبت‌نام</button>
+        <!-- The members' and trainers' app (roadmap 15.3b): signing in and signing up start on the
+             same screen there, the phone, so one button leads to both. /app is redirected to the app by
+             Caddy, so the page never names the app's address, and works the same locally -->
+        <a class="btn btn--bronze btn--small topbar__join" href="/app">ورود / ثبت‌نام</a>
 
         <button
           type="button"
@@ -156,8 +158,8 @@
           </div>
 
           <div class="hero__actions">
-            <button type="button" class="btn btn--bronze">امکانات باشگاه</button>
-            <button type="button" class="btn btn--ghost">ساعت کاری و نشانی</button>
+            <a class="btn btn--bronze" href="#facilities">امکانات باشگاه</a>
+            <a class="btn btn--ghost" href="#hours">ساعت کاری و نشانی</a>
           </div>
         </div>
 

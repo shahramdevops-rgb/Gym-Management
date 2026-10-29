@@ -2170,3 +2170,17 @@ The question that started this was whether a gym that is entirely internal — I
 - **`useEffectEvent` for a callback an effect calls later.** The WebOTP wait starts once per code; when the SMS arrives it calls the newest version of the form's functions without restarting the wait.
 - **A message for the next screen in the session store.** «مربی‌گری شما تمام شده است» must be read after the session ends, on a screen that only exists when signed out; `signOut(notice)` carries it there, so no URL or storage holds it.
 - **My notes:**
+
+## 15.3b — The app on the server, installable, the QR (اپ روی سرور، نصب و QR)
+
+- **One API, two hosts.** The app calls `/api/site` on its own host, so the API's `AllowedHosts` lists both names (`DOMAIN;SITE_DOMAIN`), and Caddy proxies only `/api/site/*` there and answers 404 for `/api/site/*` on the panel's host. The policies already keep the two sign-ins apart; the proxy makes the wrong door not exist at all (defence in depth).
+- **A service worker is a programmable proxy in the browser.** It sits between the page and the network for its origin: here it serves the hashed files from its own copy, asks the server first for everything else, and never touches `/api`, so data is never stale.
+- **The file list is the version.** A Vite plugin writes the build's hashed file names into `sw.js`; any changed file changes `sw.js`, and the browser installs a new worker by itself when it sees a byte-different script. `skipWaiting` + `clients.claim` make it take over at once; the old caches are deleted on `activate`.
+- **`beforeinstallprompt` must be caught early.** Chrome fires it once, often before React has drawn anything, so it is stored in a small module store from `main.tsx` and read with `useSyncExternalStore`, like the session.
+- **A redirect's status is a promise.** A 301 is cached by browsers forever, so `/qr` uses 302: the printed code can point somewhere else later without reprinting.
+- **High error correction pays for the logo.** QR level H can lose about 30% of its modules; the logo covers about 5%. Decoding the finished picture with a reader is the check, not the theory.
+- **Validate before you overwrite.** `release.sh` copies the new compose file under another name and runs `docker compose config` on the server first: a required variable missing from `.env` is caught before it can break the backup and the rollback.
+- **A browser test meets the page's own CSP.** `waitForFunction("…")` compiles its string inside the page, which `script-src 'self'` refuses as eval; `evaluate` goes through the DevTools protocol and is not affected. And Chrome refuses a service worker over a certificate error even when Playwright ignores HTTPS errors, so that one test launches Chrome with `--ignore-certificate-errors`.
+- **One transaction for "check, then act".** The code was used up in its own transaction before the account was made, so a crash in between burnt a paid SMS. Saving the use without committing, and committing it with the account, means a failure takes the use back; a wrong code still commits at once so its try counts.
+- **A dev-server middleware for a static folder.** `configureServer` adds a handler to Vite's server, so the public page is served beside the app on one port; `normalize` plus a prefix check keeps `..` from reading outside the folder.
+- **My notes:**

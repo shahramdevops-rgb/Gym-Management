@@ -7,11 +7,17 @@ import "@/index.css";
 import { installStaleChunkReload } from "@/lib/staleChunkReload";
 
 import { restoreSiteSession } from "./api/siteAuthFetch";
+import { captureInstallPrompt } from "./install/installPrompt";
 import { siteRoutes } from "./routes";
+import { registerServiceWorker } from "./serviceWorker";
 import { SiteProviders } from "./SiteProviders";
 import { followSystemTheme } from "./theme";
 
 followSystemTheme();
+
+// The browser's offer to install comes once, early: kept for the «نصب برنامه» card (15.3b).
+captureInstallPrompt();
+registerServiceWorker();
 
 // The sign-up page downloads when first opened; after a release its old file is gone.
 installStaleChunkReload();
