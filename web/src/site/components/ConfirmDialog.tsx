@@ -17,6 +17,8 @@ interface ConfirmDialogProps {
   pending: boolean;
   /** Called once the person says yes; the box closes when the change is done or refused. */
   onConfirm: (close: () => void) => void;
+  /** The opening button full width, as «خروج» at the foot of the home; small otherwise. */
+  wide?: boolean;
 }
 
 /**
@@ -25,12 +27,23 @@ interface ConfirmDialogProps {
  * the panel's confirmations do (13.1c). The site has its own, since the panel's sits among the
  * front desk's parts, which the site never imports (ADR 0010).
  */
-export function ConfirmDialog({ label, question, pending, onConfirm }: ConfirmDialogProps) {
+export function ConfirmDialog({
+  label,
+  question,
+  pending,
+  onConfirm,
+  wide = false,
+}: ConfirmDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button
+        variant="outline"
+        size={wide ? "default" : "sm"}
+        className={wide ? "w-full" : undefined}
+        onClick={() => setOpen(true)}
+      >
         {label}
       </Button>
       <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>

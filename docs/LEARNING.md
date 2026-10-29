@@ -2224,3 +2224,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Ask the domain, not the browser, for "the plan now".** The panel's card picks its plan in TypeScript from the history; the site asks `SubscriptionSchedule.CurrentPlan`, the rule the member list already uses, so the new app does not need a third copy of the rule.
 - **A separate output folder lets a build run beside a running app.** `dotnet build --artifacts-path <folder>` writes every project's `bin` and `obj` there, so a locally running `Gym.Api.exe` holding `bin/Debug` does not stop the build or the tests.
 - **My notes:**
+
+## 15.5b — The member's own records, the screens (صفحه‌های سوابق عضو)
+
+- **A boundary can be kept on purpose, at the cost of a copy.** The panel's Persian labels (`planLabel`, the status words) could have moved to `lib/` and been shared; the developer chose to keep the panel and the site wholly apart, so the site has `site/records/labels.ts`. A copy means two places to change a word, but no change to the panel can ever reach a member's app by accident, and `boundary.test.ts` keeps it that way.
+- **Read a tab only when it is opened.** Each history hook takes `enabled`; a member who never opens «بوفه» never asks the server for it. TanStack Query keeps a tab's pages in its cache, so going back to a tab is instant.
+- **`keepPreviousData` keeps the pager still.** While page 2 loads, the query hands back page 1 instead of `undefined`, so the list does not flash a spinner and the pager does not jump.
+- **One explicit fetcher per path, not a union of paths.** openapi-fetch types each path's answer exactly; passing `"/visits" | "/plans"` to one `GET` would lose that and need a cast. Four one-line fetchers handed to one generic `useHistory` keep the types and the shared logic.
+- **Phone-first rows instead of tables.** A table of six columns does not fit 360 pixels; each row is a title with its tags, a muted line of detail, and the amount at the end, which reads top-to-bottom on a phone.
+- **A test fixture for "everything empty".** `emptyHome` answers every request the home makes with nothing, so a test about one card spreads it and overrides only its own answer; a new card added to the home later needs one line there, not a change in every test.
+- **My notes:**

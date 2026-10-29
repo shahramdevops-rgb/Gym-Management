@@ -54,9 +54,9 @@ Still open around the panel (none of it code, or waiting for someone else):
   Commits from 2026-10-25 are `Shahram Azghandi <shahramdevops@gmail.com>`
 
 Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
-  1405/08/03); 15.1, 15.2, 15.3 (a and b) and 15.4 (a, b and c) are done on their branches,
-  not merged or released (`task/15.4-pick-a-trainer` pushed 1405/08/08); the next task is **15.5a**
-  (the member's records, backend), then 15.5b and Release 1. Phase 14's 14.1 to 14.3 still wait for the
+  1405/08/03); 15.1, 15.2, 15.3 (a and b), 15.4 (a, b and c) and 15.5 (a and b) are done on their
+  branches, not merged or released (`task/15.4-pick-a-trainer` pushed 1405/08/08); the next step is
+  **Release 1**. Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
 
 ---
@@ -4439,11 +4439,21 @@ desk's «یادداشت» and the staff's names and reasons on cancelled rows ar
       `reason`, `receivedByUserId`, `placedByUserId`, `recordedByUserId`, `voidReason` (voided
       charges are not listed at all, as in the panel). A deactivated member or a trainer who is not
       a member gets 403 `Coaching.MemberInactive`. Tests: `SiteRecordsTests` (30)
-- [ ] **15.5b, the screens**: compact cards for the plan, the debt and the trainer, the history
-      in tabs; read-only. Vitest, an e2e, and shown in the developer's Chrome
-- [ ] «خروج» asks first (asked by the developer, 1405/08/07): «با خروج، برای ورود دوباره یک کد
+- [x] **15.5b, the screens**: compact cards for the plan, the debt and the trainer, the history
+      in tabs; read-only. Vitest, an e2e, and shown in the developer's Chrome. Built 1405/08/09 on
+      `task/15.4-pick-a-trainer`, not merged or released: `web/src/site/records/`. The active
+      member's home is «اشتراک من» (sessions left, the last day and what is paid as three small
+      boxes; a frozen plan says since when; the plan bought for later under it), «بدهی من» (the
+      total and each item, or «بدهی ندارید.»), «مربی من», «سوابق من» (tabs «مراجعه‌ها»,
+      «اشتراک‌ها», «پرداخت‌ها», «بوفه», ten rows a page, each read only when opened; a cancelled row
+      marked, never explained) and «مشخصات من» (read-only, «برای اصلاح مشخصات به پذیرش باشگاه
+      مراجعه کنید.»). The site keeps its own copies of the panel's Persian labels
+      (`site/records/labels.ts`) instead of sharing them: the developer wants the panel kept apart
+      (1405/08/09). Tests: Vitest `MyRecords.test.tsx` (12) and `HomePage.test.tsx`, e2e
+      `siteRecords.spec.ts` (a desk member with a plan, a payment and a visit)
+- [x] «خروج» asks first (asked by the developer, 1405/08/07): «با خروج، برای ورود دوباره یک کد
       پیامکی تازه لازم است. خارج می‌شوید؟» with «خروج» and «انصراف», since signing in again costs an
-      SMS; queued here, with the home screen's other work, rather than in 15.3b
+      SMS; built with 15.5b (the site's `ConfirmDialog`, full width)
 - [ ] **Release 1**, late at night, backup first; `SITE_CODE_SECRET`, `SITE_JWT_SIGNING_KEY` (15.1a, 15.1b)
       and `SITE_DOMAIN=app.pasargadgymplus.ir` (15.3b) added to the server's `.env` first: compose refuses
       to start without any of the three. The poster (`deploy/qr/poster.pdf`) printed after it

@@ -85,3 +85,26 @@ export const emptyCoaching = {
   "GET /api/site/coaching/my-trainer": () => json(200, { trainer: null, request: null }),
   "GET /api/site/coaching/students": () => json(200, { requests: [], students: [] }),
 };
+
+const emptyPage = { items: [], page: 1, pageSize: 10, totalCount: 0 };
+
+/** The member's records with nothing in them (15.5), for a test about something else. */
+export const emptyRecords = {
+  "GET /api/site/me/details": () =>
+    json(200, {
+      fullName: activeMember.fullName,
+      phoneNumber: activeMember.phoneNumber,
+      birthDate: activeMember.birthDate,
+      joinedAt: "2026-09-01T08:00:00Z",
+      signedUpAt: "2026-10-28T09:00:00Z",
+    }),
+  "GET /api/site/me/plan": () => json(200, { current: null, next: null }),
+  "GET /api/site/me/debt": () => json(200, { total: 0, items: [] }),
+  "GET /api/site/me/visits": () => json(200, emptyPage),
+  "GET /api/site/me/plans": () => json(200, emptyPage),
+  "GET /api/site/me/payments": () => json(200, emptyPage),
+  "GET /api/site/me/cafe-orders": () => json(200, emptyPage),
+};
+
+/** Everything the home reads, empty. */
+export const emptyHome = { ...emptyCoaching, ...emptyRecords };
