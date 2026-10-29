@@ -2338,7 +2338,8 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     the developer* (1405/08/07, 15.3b).
   - **The app asks to be installed** in a small card on the sign-in screen and the home screen:
     on Android a «نصب برنامه» button (where the browser offers it), on an iPhone the steps of
-    Safari's Share menu. Hidden in the installed app, and for 30 days on that phone after «بعداً».
+    Safari's Share menu. Never on a computer (the developer, 1405/08/07: nobody needs the app
+    there, though Chrome offers it), hidden in the installed app, and for 30 days after «بعداً».
     Shown before signing in, because an installed iPhone app keeps its own sign-in, and installing
     after signing in would cost a second code SMS. *Proposed by Claude, accepted with 15.3b's plan*
     (1405/08/07).

@@ -4352,7 +4352,8 @@ Built 1405/08/07 on `task/15.3-site-app`, not merged or released (Release 1 is a
       a missing local migration had burnt a code and cost a second SMS); the code screen says the wait
       in words under its buttons («اگر کد نرسید، تا ۱:۰۳ دیگر …»), and when Kavenegar has reported the code
       delivered it says «این کد تا … دیگر معتبر است؛ بعد از آن می‌توانید کد تازه بگیرید» with «کد تازه»
-      on the button, never «اگر کد نرسید» under «کد به گوشی شما رسیده است»; the public page's button links
+      on the button, never «اگر کد نرسید» under «کد به گوشی شما رسیده است»; the install card shows on phones only
+      (Chrome on Windows offered it too); the public page's button links
       `/app`, which Caddy redirects to the app like `/qr`, and `npm run dev:site` also serves the public
       page at `http://localhost:5174/public-site/`, so the whole way from the gym's page to signing in
       runs on one address locally

@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { installPromptStore, isAppleMobile, isInstalledApp } from "./installPrompt";
+import { installPromptStore, isAppleMobile, isInstalledApp, isMobileDevice } from "./installPrompt";
 
 /** When «بعداً» was pressed, on this phone and in this browser only. */
 const dismissedKey = "gym-site-install-hint-dismissed-at";
@@ -31,8 +31,8 @@ function rememberDismissed() {
 /**
  * Asks to install the app on the phone (roadmap 15.3b), on the sign-in screen and the home screen.
  * On Android the browser's offer becomes a «نصب برنامه» button; on an iPhone, which has no such
- * offer, the steps of Safari's Share menu. Hidden once the app runs from its icon, when the
- * browser makes no offer, and for 30 days after «بعداً».
+ * offer, the steps of Safari's Share menu. Hidden on a computer, once the app runs from its icon,
+ * when the browser makes no offer, and for 30 days after «بعداً».
  *
  * Shown before signing in on purpose: an installed iPhone app keeps its own sign-in, apart from
  * Safari's, so installing first saves a second code SMS.
@@ -43,7 +43,7 @@ export function InstallHint() {
 
   const apple = isAppleMobile();
 
-  if (dismissed || isInstalledApp() || (!apple && offer === null)) {
+  if (dismissed || !isMobileDevice() || isInstalledApp() || (!apple && offer === null)) {
     return null;
   }
 

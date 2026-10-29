@@ -66,3 +66,11 @@ export function isAppleMobile(): boolean {
     /iPhone|iPad|iPod/.test(agent) || (agent.includes("Macintosh") && navigator.maxTouchPoints > 1)
   );
 }
+
+/**
+ * A phone or a tablet, where the app is meant to be installed. Chrome and Edge offer to install on
+ * a computer too, but nobody there needs the app (the developer, 15.3b): the card stays away.
+ */
+export function isMobileDevice(): boolean {
+  return isAppleMobile() || /Android/.test(navigator.userAgent);
+}

@@ -9,7 +9,15 @@ import { installPromptStore, type BeforeInstallPromptEvent } from "./installProm
 const iPhoneAgent =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 
-function browserOffer() {
+const androidAgent =
+  "Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
+
+const windowsAgent =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+
+/** The browser's offer to install, on a phone of this kind (Android unless said). */
+function browserOffer(agent = androidAgent) {
+  vi.spyOn(navigator, "userAgent", "get").mockReturnValue(agent);
   const prompt = vi.fn(() => Promise.resolve());
   const offer = Object.assign(new Event("beforeinstallprompt"), {
     prompt,
@@ -33,7 +41,18 @@ describe("InstallHint", () => {
     expect(screen.queryByRole("heading", { name: "نصب برنامه روی گوشی" })).not.toBeInTheDocument();
   });
 
+  it("InstallHint_ComputerWithTheBrowsersOffer_ShowsNothing", () => {
+    // Chrome and Edge offer to install on Windows too; a computer has no need of the app.
+    browserOffer(windowsAgent);
+
+    render(<InstallHint />);
+
+    expect(screen.queryByRole("heading", { name: "نصب برنامه روی گوشی" })).not.toBeInTheDocument();
+  });
+
   it("InstallHint_NoOfferAndNotAnIPhone_ShowsNothing", () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(androidAgent);
+
     render(<InstallHint />);
 
     expect(screen.queryByRole("heading", { name: "نصب برنامه روی گوشی" })).not.toBeInTheDocument();
