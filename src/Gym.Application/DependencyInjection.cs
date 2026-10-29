@@ -126,6 +126,13 @@ using Gym.Application.SiteAuth.RequestCode;
 using Gym.Application.SiteAuth.SignIn;
 using Gym.Application.SiteAuth.SignUp;
 using Gym.Application.SiteAuth.VerifyCode;
+using Gym.Application.SiteRecords.GetMyDebt;
+using Gym.Application.SiteRecords.GetMyDetails;
+using Gym.Application.SiteRecords.GetMyPlan;
+using Gym.Application.SiteRecords.ListMyCafeOrders;
+using Gym.Application.SiteRecords.ListMyPayments;
+using Gym.Application.SiteRecords.ListMyPlans;
+using Gym.Application.SiteRecords.ListMyVisits;
 using Gym.Application.Staff.CreateStaff;
 using Gym.Application.Staff.GetStaff;
 using Gym.Application.Staff.ListStaff;
@@ -218,6 +225,15 @@ public static class DependencyInjection
         services.AddScoped<AcceptTrainerRequestHandler>();
         services.AddScoped<DeclineTrainerRequestHandler>();
         services.AddScoped<EndStudentHandler>();
+
+        // The member's own records on the site (BUSINESS_RULES.md §15, task 15.5).
+        services.AddScoped<GetMyDetailsHandler>();
+        services.AddScoped<GetMyPlanHandler>();
+        services.AddScoped<GetMyDebtHandler>();
+        services.AddScoped<ListMyVisitsHandler>();
+        services.AddScoped<ListMyPlansHandler>();
+        services.AddScoped<ListMyPaymentsHandler>();
+        services.AddScoped<ListMyCafeOrdersHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();

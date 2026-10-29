@@ -4426,12 +4426,19 @@ Built 1405/08/07, not merged or released.
 Decided 1405/08/08 (§15 *The member's own records*): the member sees everything the panel's profile
 holds about them except the SMS; nothing is edited from the app (the birth date least of all); the
 desk's «یادداشت» and the staff's names and reasons on cancelled rows are left out. Split in two:
-- [ ] **15.5a, the backend**: read-only `/api/site/me/...` behind `SiteMember` (details with the
+- [x] **15.5a, the backend**: read-only `/api/site/me/...` behind `SiteMember` (details with the
       day they joined and the day they signed up on the site, the plan now and the one bought for
       later, the debt item by item, check-ins with lockers, plans, payments, cafe purchases), each
       calling the panel's own handler with the member's own id and mapped to site records without
       the staff's fields; a deactivated member gets nothing; integration tests (a staff token
-      refused, another member's data unreachable)
+      refused, another member's data unreachable). Built 1405/08/08 on `task/15.4-pick-a-trainer`,
+      not merged or released: `Application/SiteRecords/` and `SiteRecordsEndpoints.cs`, paths
+      `details`, `plan`, `debt`, `visits`, `plans`, `payments`, `cafe-orders`; no path names a
+      member. `plan` is `SubscriptionSchedule.CurrentPlan` (the member list's rule) and the soonest
+      queued one after it. Left out: `notes`, `cancellationReason`, `cancelReason`, the refund's
+      `reason`, `receivedByUserId`, `placedByUserId`, `recordedByUserId`, `voidReason` (voided
+      charges are not listed at all, as in the panel). A deactivated member or a trainer who is not
+      a member gets 403 `Coaching.MemberInactive`. Tests: `SiteRecordsTests` (30)
 - [ ] **15.5b, the screens**: compact cards for the plan, the debt and the trainer, the history
       in tabs; read-only. Vitest, an e2e, and shown in the developer's Chrome
 - [ ] «خروج» asks first (asked by the developer, 1405/08/07): «با خروج، برای ورود دوباره یک کد

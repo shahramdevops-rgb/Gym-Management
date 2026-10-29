@@ -324,6 +324,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/me/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMyDetails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/me/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMyPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/me/debt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMyDebt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/me/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListMyVisits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/me/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListMyPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/me/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListMyPayments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/me/cafe-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListMyCafeOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/staff": {
         parameters: {
             query?: never;
@@ -2687,6 +2799,80 @@ export interface components {
             /** Format: uuid */
             lockerId: string;
         };
+        MyCafeOrderResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            totalAmount: number | string;
+            /** Format: date */
+            orderedOn: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            cancelledAt: null | string;
+            /** Format: double */
+            netPaid: number | string;
+            paymentStatus: components["schemas"]["PaymentStatus"];
+            /** Format: double */
+            outstanding: number | string;
+            items: components["schemas"]["SiteCafeItemResponse"][];
+        };
+        MyDebtItemResponse: {
+            kind: components["schemas"]["PaymentTargetKind"];
+            /** Format: uuid */
+            id: string;
+            plan: null | components["schemas"]["PlanSummary"];
+            serviceKind: null | components["schemas"]["ServiceChargeKind"];
+            sale: null | components["schemas"]["SaleSummary"];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: null | string;
+            /** Format: double */
+            price: number | string;
+            /** Format: double */
+            netPaid: number | string;
+            /** Format: double */
+            outstanding: number | string;
+            cafeItems: components["schemas"]["SiteCafeItemResponse"][];
+        };
+        MyDebtResponse: {
+            /** Format: double */
+            total: number | string;
+            items: components["schemas"]["MyDebtItemResponse"][];
+        };
+        MyDetailsResponse: {
+            fullName: string;
+            phoneNumber: string;
+            /** Format: date */
+            birthDate: string;
+            /** Format: date-time */
+            joinedAt: string;
+            /** Format: date-time */
+            signedUpAt: string;
+        };
+        MyPaymentResponse: {
+            /** Format: uuid */
+            id: string;
+            targetKind: components["schemas"]["PaymentTargetKind"];
+            /** Format: uuid */
+            targetId: string;
+            subscriptionPlan: null | components["schemas"]["PlanSummary"];
+            serviceKind: null | components["schemas"]["ServiceChargeKind"];
+            serviceDescription: null | string;
+            kind: components["schemas"]["PaymentKind"];
+            /** Format: double */
+            amount: number | string;
+            method: components["schemas"]["PaymentMethod"];
+            referenceNumber: null | string;
+            /** Format: date-time */
+            paidAt: string;
+            settlement: null | components["schemas"]["SettlementSummary"];
+        };
+        MyPlanResponse: {
+            current: null | components["schemas"]["SitePlanResponse"];
+            next: null | components["schemas"]["SitePlanResponse"];
+        };
         MyTrainerLinkResponse: {
             /** Format: uuid */
             trainerId: string;
@@ -2706,6 +2892,39 @@ export interface components {
         MyTrainerResponse: {
             trainer: null | components["schemas"]["MyTrainerLinkResponse"];
             request: null | components["schemas"]["MyTrainerRequestResponse"];
+        };
+        MyVisitChargeResponse: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["ServiceChargeKind"];
+            description: null | string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            /** Format: double */
+            unitPrice: null | number | string;
+            /** Format: double */
+            amount: number | string;
+            /** Format: double */
+            netPaid: number | string;
+            paymentStatus: components["schemas"]["PaymentStatus"];
+        };
+        MyVisitResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            checkedInAt: string;
+            /** Format: date-time */
+            checkedOutAt: null | string;
+            /** Format: int32 */
+            lockerNumber: null | number | string;
+            usesReservePlace: boolean;
+            isCardioOnly: boolean;
+            isBirthdayVisit: boolean;
+            /** Format: date-time */
+            cancelledAt: null | string;
+            /** Format: date-time */
+            autoClosedAt: null | string;
+            charges: components["schemas"]["MyVisitChargeResponse"][];
         };
         NeedsAttentionResponse: {
             /** Format: date */
@@ -2841,6 +3060,33 @@ export interface components {
             /** Format: int32 */
             totalCount: number | string;
         };
+        PagedResponseOfMyCafeOrderResponse: {
+            items: components["schemas"]["MyCafeOrderResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        PagedResponseOfMyPaymentResponse: {
+            items: components["schemas"]["MyPaymentResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        PagedResponseOfMyVisitResponse: {
+            items: components["schemas"]["MyVisitResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
         PagedResponseOfPaymentHistoryResponse: {
             items: components["schemas"]["PaymentHistoryResponse"][];
             /** Format: int32 */
@@ -2861,6 +3107,15 @@ export interface components {
         };
         PagedResponseOfProductResponse: {
             items: components["schemas"]["ProductResponse"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+        };
+        PagedResponseOfSitePlanResponse: {
+            items: components["schemas"]["SitePlanResponse"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
@@ -3348,6 +3603,15 @@ export interface components {
             expiresAt: string;
             me: components["schemas"]["SiteMeResponse"];
         };
+        SiteCafeItemResponse: {
+            productName: string;
+            /** Format: double */
+            unitPrice: number | string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: double */
+            lineTotal: number | string;
+        };
         SiteMemberMe: {
             /** Format: uuid */
             memberId: string;
@@ -3360,6 +3624,35 @@ export interface components {
         SiteMeResponse: {
             member: null | components["schemas"]["SiteMemberMe"];
             trainer: null | components["schemas"]["SiteTrainerMe"];
+        };
+        SitePlanResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            price: number | string;
+            /** Format: int32 */
+            durationDays: number | string;
+            /** Format: int32 */
+            totalSessions: number | string;
+            /** Format: int32 */
+            usedSessions: number | string;
+            /** Format: int32 */
+            remainingSessions: number | string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            status: components["schemas"]["SubscriptionStatus"];
+            /** Format: date */
+            frozenSince: null | string;
+            /** Format: int32 */
+            totalFrozenDays: number | string;
+            /** Format: date-time */
+            cancelledAt: null | string;
+            isSingleSession: boolean;
+            /** Format: double */
+            netPaid: number | string;
+            paymentStatus: components["schemas"]["PaymentStatus"];
         };
         SiteTrainerMe: {
             /** Format: uuid */
@@ -4656,6 +4949,387 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMyDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyDetailsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMyPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyPlanResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMyDebt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyDebtResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMyVisits: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResponseOfMyVisitResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMyPlans: {
+        parameters: {
+            query?: {
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResponseOfSitePlanResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMyPayments: {
+        parameters: {
+            query?: {
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResponseOfMyPaymentResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMyCafeOrders: {
+        parameters: {
+            query?: {
+                From?: string;
+                To?: string;
+                Page?: number | string;
+                PageSize?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedResponseOfMyCafeOrderResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */

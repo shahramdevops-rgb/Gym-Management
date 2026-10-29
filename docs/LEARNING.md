@@ -2214,3 +2214,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Reusing a column is fine when its meaning is "the day of the event".** `report_date` already meant "the day this message is about" for the daily report; the request's day is the same idea, so no new column was needed for it, and its comment says so.
 - **A list shows who received the message, not who it was about.** The trainer's SMS names the member (for the index), but the history must say it went to the trainer; one helper (`SmsRecipientNames`) answers "who" for every kind, so the list and the resend agree.
 - **My notes:**
+
+## 15.5a — The member's own records on the site (سوابق عضو در اپ)
+
+- **Reuse the handler, not the response.** Each site handler calls the panel's own handler (`GetMemberDebtHandler`, `ListMemberAttendanceHandler`, ...) with the member's id, so "what counts as debt" or "which visits are listed" is written once. The answer is then copied into a site record of its own: a panel field added later (a staff name, say) does not reach the member unless someone adds it to the site record on purpose.
+- **Leave a field out by not having it.** The safest way to keep `cancelReason` or `receivedByUserId` from a member is a response type without them, not a serializer setting that hides them. The tests read the raw JSON and check the reason's words are not there at all.
+- **The token decides whose records, the URL never does.** No path takes a member id (`/api/site/me/visits`, not `/api/site/members/{id}/visits`), so there is no id to change to someone else's; a test still fills another member's records and checks none come back.
+- **One small mapping helper for every page.** `SitePages.Map` turns a `PagedResponse<Panel>` into a `PagedResponse<Site>` and keeps the pager's numbers, so four list handlers stay four lines each.
+- **Ask the domain, not the browser, for "the plan now".** The panel's card picks its plan in TypeScript from the history; the site asks `SubscriptionSchedule.CurrentPlan`, the rule the member list already uses, so the new app does not need a third copy of the rule.
+- **A separate output folder lets a build run beside a running app.** `dotnet build --artifacts-path <folder>` writes every project's `bin` and `obj` there, so a locally running `Gym.Api.exe` holding `bin/Debug` does not stop the build or the tests.
+- **My notes:**
