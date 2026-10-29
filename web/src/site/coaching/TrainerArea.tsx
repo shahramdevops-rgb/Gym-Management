@@ -28,7 +28,7 @@ export function TrainerArea() {
 
   if (students.data === undefined) {
     return (
-      <Card accent={false} className="shadow-raised">
+      <Card accent={false} className="gap-3 shadow-raised">
         <CardHeader>
           <CardTitle role="heading" aria-level={2}>
             شاگردان من
@@ -52,7 +52,7 @@ export function TrainerArea() {
   return (
     <>
       {(requests.length > 0 || answerFailure !== null) && (
-        <Card accent={false} className="shadow-raised">
+        <Card accent={false} className="gap-3 shadow-raised">
           <CardHeader>
             <CardTitle role="heading" aria-level={2}>
               درخواست‌ها
@@ -94,7 +94,7 @@ export function TrainerArea() {
         </Card>
       )}
 
-      <Card accent={false} className="shadow-raised">
+      <Card accent={false} className="gap-3 shadow-raised">
         <CardHeader>
           <CardTitle role="heading" aria-level={2}>
             شاگردان من

@@ -24,7 +24,7 @@ export function MyTrainerCard() {
   const failure = cancel.error ?? end.error;
 
   return (
-    <Card accent={false} className="shadow-raised">
+    <Card accent={false} className="gap-3 shadow-raised">
       <CardHeader>
         <CardTitle role="heading" aria-level={2}>
           مربی من
