@@ -21,6 +21,11 @@
     ],
     "shortcuts": [
         {
+            "name": "خلاصهٔ امروز",
+            "url": "/today",
+            "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        },
+        {
             "name": "ورود با کمد",
             "url": "/",
             "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]

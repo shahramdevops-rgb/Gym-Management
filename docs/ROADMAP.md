@@ -3898,13 +3898,55 @@ they are). No package, no API change, no migration; nothing in `src/`, so a roll
 `20261025-0043-0d08196` is safe.
 
 Queued by the developer the same day, not started:
-- **13.5 A live summary for the Owner's phone** (instead of a home-screen widget, which a web app
-  cannot have): who is inside now, today's money and what else the developer chooses, refreshing
-  on its own; the numbers, how often, and whether Staff see it are decided first
 - **The locker map on a phone:** the developer asked whether smaller doors would fit the map on one
   screen. The doors are about 77px with the holder's name under the number (13.1c, the developer's
   choice over three cabinets to a row with numbers only); smaller doors would lose the names. To be
   looked at again from a screenshot with occupied lockers before anything changes
+
+### 13.5 Today's summary on the Owner's phone (خلاصهٔ امروز)
+Asked by the developer on 1405/08/03 (2026-10-25), right after 13.4: a home-screen widget is
+something a web app cannot have, so a page instead, one press from the icon. Branch
+`task/13.5-live-summary`. Rules: BUSINESS_RULES.md §12 *Today's summary*.
+
+Decided by the developer, from a mock-up at a phone's width (light, dark and Android's long-press
+menu): the figures are «داخل باشگاه» now, «ورود امروز», «دریافتی امروز» and the plans and single
+visits sold; **Owner only**; a page of its own in the menu plus a long-press shortcut, the first
+screen staying the locker map. Asked when the page opens, when the phone comes back to it and on
+«به‌روزرسانی», **never on a timer** (first proposed every 15 seconds; the developer asked why it could
+not simply ask on opening, and chose that with a button). Claude's proposals, confirmed: guests
+count as inside, said under the figure; a Staff member who opens the shortcut lands on the locker
+map, not on a refusal.
+- [x] `GET /api/reports/today` (Owner only, in the reports group): the money and the visits come
+      from the dashboard's own handlers for a range of one day, as the daily report SMS does, so the
+      three never disagree; "inside" counts open visits in one query, guests apart
+- [x] «خلاصهٔ امروز» at `/today`: the menu's «مالی» group for the Owner; one wide card for who is
+      inside, one for the money, three small ones side by side; the time of the figures at the top;
+      a failed refresh keeps the figures and says how old they are. `refetchOnWindowFocus` for this
+      query only (the app turns it off for the desk)
+- [x] `RequireRole`'s `otherwise`: Staff are sent to the locker map from `/today`
+- [x] The manifest's fourth shortcut, «خلاصهٔ امروز», first in the list
+- [x] Tests: integration (a busy day: one inside, one left, one cancelled, a guest, matched against
+      the dashboard's reports; nothing yet gives zeros; Staff 403; no token 401; the manifest's
+      shortcuts); frontend (the figures in Persian digits, no guest line without guests, «به‌روزرسانی»
+      and the page becoming visible each ask again, a failed refresh keeps the figures, Staff sent
+      to the map without a request, the menu item for the Owner only)
+- [x] The page shown to the developer at a phone's width with real-looking figures, before the
+      release (asked by the developer). Light, dark and the menu, from the screenshots' demo stack;
+      the developer renamed the button «تازه کن» to «به‌روزرسانی»
+- [x] `code-reviewer`: nothing to fix; applied: the shortcut sends to the locker map only when the
+      role is known (a failed `/me` keeps the Owner on the page), the date stays on screen when a
+      refresh fails (figures left from yesterday cannot pass for today's), and a test that a visit
+      still open from yesterday is inside but no check-in today
+- [ ] Released, late at night with `./backup.sh run` first; then the Owner's phone. The page is
+      there at once (menu); the new long-press shortcut needs Android to rebuild the installed app,
+      which Chrome does through the same Google server as the install (13.4), so from Iran it may
+      take opening the app with the VPN on once, or installing again with it (docs/DEPLOYMENT.md
+      *The panel on a phone*). An iPhone has no long-press shortcuts
+
+Closed 2026-10-25: 2728 backend tests (965 domain, 1763 integration; 5 new) and 1202 frontend tests
+(8 new) green, zero warnings, lint, `format:check` and production build pass. No package, no
+migration; one new endpoint, read only, so a rollback to `20261025-0344-23fdcdd` is safe.
+`npm run e2e` and `npm run screenshots` are left for the release night.
 
 ---
 

@@ -28,6 +28,8 @@ export const paths = {
   smsMessages: "/sms",
   /** The broadcast's card on «تنظیمات پیامک», where one is written and sent (task 10.15). */
   smsBroadcast: "/sms-settings#broadcast",
+  /** Today at a glance on the Owner's phone, "خلاصهٔ امروز" (BUSINESS_RULES.md §12 *Today's summary*). */
+  todaySummary: "/today",
   /** The Owner's dashboard, "داشبورد" (BUSINESS_RULES.md §12 *Dashboard*). */
   dashboard: "/dashboard",
   /** Who changed what and when, "گزارش تغییرات" (BUSINESS_RULES.md §11 *The audit screen*). */
