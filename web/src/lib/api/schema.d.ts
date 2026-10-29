@@ -2720,7 +2720,7 @@ export interface components {
             signInCodeLimitReached: boolean;
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast" | "WelcomeBack";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast" | "WelcomeBack" | "TrainerRequest";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -3439,6 +3439,7 @@ export interface components {
             welcomeBack: components["schemas"]["SmsSample"][];
             debtReminder: components["schemas"]["SmsSample"];
             absence: components["schemas"]["SmsSample"];
+            trainerRequest: components["schemas"]["SmsSample"];
         };
         SmsSettingsResponse: {
             enabled: boolean;
@@ -3454,6 +3455,7 @@ export interface components {
             debtReminder: components["schemas"]["DebtReminderSettings"];
             absence: components["schemas"]["SmsKindSettings"];
             broadcast: components["schemas"]["BroadcastSettings"];
+            trainerRequest: components["schemas"]["TrainerRequestSettingsResponse"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -3574,6 +3576,14 @@ export interface components {
             /** Format: date */
             endedOn: null | string;
         };
+        TrainerRequestSettings: {
+            enabled: boolean;
+        };
+        TrainerRequestSettingsResponse: {
+            enabled: boolean;
+            /** Format: time */
+            morningSendTime: string;
+        };
         TrainerResponse: {
             /** Format: uuid */
             id: string;
@@ -3665,6 +3675,7 @@ export interface components {
             debtReminder: components["schemas"]["DebtReminderSettings"];
             absence: components["schemas"]["SmsKindSettings"];
             broadcast: components["schemas"]["BroadcastSettings"];
+            trainerRequest: components["schemas"]["TrainerRequestSettings"];
             /** Format: uint32 */
             version: number | string;
         };

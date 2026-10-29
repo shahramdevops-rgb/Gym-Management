@@ -54,8 +54,8 @@ Still open around the panel (none of it code, or waiting for someone else):
   Commits from 2026-10-25 are `Shahram Azghandi <shahramdevops@gmail.com>`
 
 Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
-  1405/08/03); 15.1, 15.2, 15.3 (a and b) and 15.4a and 15.4b are done on their branches, not
-  merged or released; the next task is **15.4c** (the trainer's SMS). Phase 14's 14.1 to 14.3 still wait for the
+  1405/08/03); 15.1, 15.2, 15.3 (a and b) and 15.4 (a, b and c) are done on their branches,
+  not merged or released; the next task is **15.5** (the member's home, first part, and Release 1). Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
 
 ---
@@ -4408,9 +4408,18 @@ Built 1405/08/07, not merged or released.
       `siteCoaching.spec.ts` (a member signs up and picks, the trainer on a second phone accepts)
 
 ##### 15.4c The trainer's SMS
-- [ ] Its own kind in «تنظیمات پیامک» (the panel's one change in 15.4, asked by the developer), off
-      at first; sent at once, after 22:00 at 10:00; one a day per member and trainer, held by a
-      unique index; the text in `SmsText` and `docs/sms-texts.md`, shown on its card (§15)
+Built 1405/08/07, not merged or released.
+- [x] Its own kind, «انتخاب مربی», in «تنظیمات پیامک» under «پیامک به مربیان» (the panel's one change
+      in 15.4, asked by the developer), off at first; sent at once, after 22:00 at 10:00; one a day
+      per member and trainer, held by a unique index (`notifications.trainer_id`, the request's day
+      in `report_date`); the text in `SmsText` and `docs/sms-texts.md`, shown on its card (§15).
+      «لغو11» stays (Kavenegar adds it anyway)
+- [x] Asked for after the request's commit (`TrainerRequestSms`), sent by a Hangfire job
+      (`TrainerRequestSmsJob`, one at a time) that checks everything again: only a request still
+      waiting, a trainer now and an active member get it (proposed by Claude, written in §15)
+- [x] «پیامک‌ها» lists it under the trainer's name, with no link to the member
+- [x] Tests: domain (`SmsTextTests`, `NotificationTests`, `SmsSettingsTests`), integration
+      (`TrainerRequestSmsTests`, `SmsSettingsEndpointTests`), Vitest (the card, the switch saved)
 
 #### 15.5 The member's home, first part
 - [ ] My plan: sessions left, the plan's end, freeze; my visits (from the desk's check-ins); my

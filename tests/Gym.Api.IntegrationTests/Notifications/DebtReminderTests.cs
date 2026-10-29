@@ -238,7 +238,7 @@ public sealed class DebtReminderTests(DatabaseFixture fixture) : DatabaseTestBas
             debtReminder: new SmsKindSettings(true, DaysAfter, new TimeOnly(11, 0)),
             debtReminderMinAmount: MinAmount,
             absence: SmsKindSettings.Off,
-            broadcastEnabled: false).IsSuccess.ShouldBeTrue();
+            broadcastEnabled: false, trainerRequestEnabled: false).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

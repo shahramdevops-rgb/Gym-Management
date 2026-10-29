@@ -42,6 +42,7 @@ const empty: SmsSettings = {
   debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
   absence: off,
   broadcast: { enabled: false },
+  trainerRequest: { enabled: false, morningSendTime: "10:00:00" },
   version: 1,
 };
 
@@ -71,6 +72,7 @@ const filled: SmsSettings = {
   debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: 200000 },
   absence: { enabled: true, threshold: 14, sendTime: "11:30:00" },
   broadcast: { enabled: true },
+  trainerRequest: { enabled: false, morningSendTime: "10:00:00" },
   version: 5,
 };
 
@@ -105,6 +107,10 @@ const samples: SmsSamples = {
     2,
   ),
   welcomeBack: [1, 2, 3, 4, 5, 6].map((turn) => sample(`متن ${turn} خوش برگشتی علی\nلغو11`, 2)),
+  trainerRequest: sample(
+    "مهدی عزیز، سید علی رضایی شما را به‌عنوان مربی خود در باشگاه پاسارگاد انتخاب کرده است.\nلغو11",
+    2,
+  ),
 };
 
 /** The phone-like preview inside one kind's card. */
@@ -433,6 +439,7 @@ describe("SmsSettingsPage", () => {
       debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
       absence: off,
       broadcast: { enabled: false },
+      trainerRequest: { enabled: false },
       version: empty.version,
     });
   });
@@ -773,6 +780,34 @@ describe("SmsSettingsPage", () => {
     expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
     const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
     expect(body.welcomeBack).toEqual({ enabled: true });
+  });
+
+  it("SmsSettingsPage_TrainerRequest_IsOnlyASwitchWithItsText", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+
+    const trainerRequest = await screen.findByRole("group", { name: "انتخاب مربی" });
+    expect(switchOf("انتخاب مربی")).not.toBeChecked();
+    expect(within(trainerRequest).queryAllByRole("textbox")).toHaveLength(0);
+    expect(within(trainerRequest).getByText(/روزی یک پیامک/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(previewOf("انتخاب مربی")).toHaveTextContent("شما را به‌عنوان مربی خود"),
+    );
+  });
+
+  it("SmsSettingsPage_TrainerRequestTurnedOn_SendsItsSwitch", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "انتخاب مربی" });
+
+    fireEvent.click(switchOf("انتخاب مربی"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.trainerRequest).toEqual({ enabled: true });
   });
 
   it("SmsSettingsPage_DebtReminderEmpty_CannotBeTurnedOnUntilEveryFieldIsFilled", async () => {

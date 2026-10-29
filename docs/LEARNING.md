@@ -2204,3 +2204,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **`tel:` turns a phone into an action.** The trainer's list shows `۰۹۱۲ ۱۲۳ ۴۵۶۷` inside `dir="ltr"` (so the groups keep their order in a right-to-left line) and links it to `tel:+989121234567`, which opens the dialler.
 - **Two people in one end-to-end test.** Playwright's `browser.newContext()` is a second phone with its own cookies, so the member and the trainer each hold their own site session in one test.
 - **My notes:**
+
+## 15.4c — The trainer's SMS (پیامک انتخاب مربی)
+
+- **A new kind follows the shape of the nearest old one.** The welcome is "at once, or 10:00 after 22:00, checked again when it runs"; the trainer's SMS is the same story, so it got the same four pieces: a queue class called after the commit, a scheduler interface, a Hangfire job with `DisableConcurrentExecution`, and a handler that writes the row before sending.
+- **Decide again when the job runs.** A job scheduled at 23:00 runs at 10:00; by then the request may be gone. The handler reads the request, the trainer and the member afresh and sends nothing when the SMS is no longer true, so a delay can never send a wrong message.
+- **A unique index makes "once a day" a fact, not a hope.** `UNIQUE (member_id, trainer_id, report_date) WHERE kind = 'TrainerRequest'`: two jobs racing, a retry after a crash, or a second request that day all hit the same row, and only one SMS is paid for.
+- **A check constraint can compare two booleans.** `(kind = 'TrainerRequest') = (trainer_id IS NOT NULL)` says "this column is filled exactly for this kind" in one line, and rows written before the column existed pass it untouched, so the migration needs no data change.
+- **Reusing a column is fine when its meaning is "the day of the event".** `report_date` already meant "the day this message is about" for the daily report; the request's day is the same idea, so no new column was needed for it, and its comment says so.
+- **A list shows who received the message, not who it was about.** The trainer's SMS names the member (for the index), but the history must say it went to the trainer; one helper (`SmsRecipientNames`) answers "who" for every kind, so the list and the resend agree.
+- **My notes:**

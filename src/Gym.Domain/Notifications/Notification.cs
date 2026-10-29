@@ -17,7 +17,8 @@ namespace Gym.Domain.Notifications;
 /// <see cref="NotificationKind.DebtReminder"/> per member and debt, one
 /// <see cref="NotificationKind.Absence"/> and one <see cref="NotificationKind.WelcomeBack"/> per member and
 /// absence, one
-/// <see cref="NotificationKind.Broadcast"/> per member and broadcast), a second
+/// <see cref="NotificationKind.Broadcast"/> per member and broadcast, one
+/// <see cref="NotificationKind.TrainerRequest"/> per member, trainer and day), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -50,10 +51,17 @@ public sealed class Notification : Entity
 
     public NotificationKind Kind { get; private set; }
 
-    /// <summary>E.164: the member's number, or the Owner's for <see cref="NotificationKind.PayableDue"/> and <see cref="NotificationKind.DailyReport"/>.</summary>
+    /// <summary>
+    /// E.164: the member's number, the Owner's for <see cref="NotificationKind.PayableDue"/> and
+    /// <see cref="NotificationKind.DailyReport"/>, the trainer's for <see cref="NotificationKind.TrainerRequest"/>.
+    /// </summary>
     public string Recipient { get; private set; } = string.Empty;
 
-    /// <summary>Set for the kinds sent to a member (the debt reminder included); <c>null</c> for the Owner's.</summary>
+    /// <summary>
+    /// Set for the kinds sent to a member (the debt reminder included); <c>null</c> for the Owner's.
+    /// For <see cref="NotificationKind.TrainerRequest"/> the member who picked the trainer: the
+    /// message is about them, but goes to <see cref="TrainerId"/>.
+    /// </summary>
     public Guid? MemberId { get; private set; }
 
     /// <summary>
@@ -69,7 +77,11 @@ public sealed class Notification : Entity
     /// <summary>Set for <see cref="NotificationKind.Birthday"/>: the Jalali year of the birthday, e.g. 1405.</summary>
     public int? JalaliYear { get; private set; }
 
-    /// <summary>Set for <see cref="NotificationKind.DailyReport"/>: the gym's day the report is about, one per day.</summary>
+    /// <summary>
+    /// Set for <see cref="NotificationKind.DailyReport"/>: the gym's day the report is about, one per
+    /// day. Set for <see cref="NotificationKind.TrainerRequest"/> too: the gym's day of the request,
+    /// one per member, trainer and day (task 15.4c).
+    /// </summary>
     public DateOnly? ReportDate { get; private set; }
 
     /// <summary>
@@ -90,6 +102,9 @@ public sealed class Notification : Entity
     /// one per member and broadcast (task 10.13).
     /// </summary>
     public Guid? BroadcastId { get; private set; }
+
+    /// <summary>Set for <see cref="NotificationKind.TrainerRequest"/> only: the trainer it goes to (task 15.4c).</summary>
+    public Guid? TrainerId { get; private set; }
 
     /// <summary>The whole text, as <see cref="SmsText"/> wrote it when the message was written.</summary>
     public string Text { get; private set; } = string.Empty;
@@ -240,6 +255,26 @@ public sealed class Notification : Entity
         var notification = Create(NotificationKind.Broadcast, recipient, text);
         notification.BroadcastId = broadcastId;
         notification.MemberId = memberId;
+
+        return notification;
+    }
+
+    /// <summary>
+    /// A member picked this trainer on the site (<see cref="NotificationKind.TrainerRequest"/>, task
+    /// 15.4c, BUSINESS_RULES.md §15 <i>A member and their trainer</i>).
+    /// </summary>
+    /// <param name="requestedOn">The gym's day of the request: at most one per member, trainer and day.</param>
+    /// <param name="trainerRecipient">The trainer's number.</param>
+    public static Notification ForTrainerRequest(
+        Guid memberId, Guid trainerId, DateOnly requestedOn, string trainerRecipient, string text)
+    {
+        CheckId(memberId, nameof(memberId));
+        CheckId(trainerId, nameof(trainerId));
+
+        var notification = Create(NotificationKind.TrainerRequest, trainerRecipient, text);
+        notification.MemberId = memberId;
+        notification.TrainerId = trainerId;
+        notification.ReportDate = requestedOn;
 
         return notification;
     }

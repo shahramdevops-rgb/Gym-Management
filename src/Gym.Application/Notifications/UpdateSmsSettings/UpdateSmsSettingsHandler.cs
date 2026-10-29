@@ -71,7 +71,8 @@ public sealed class UpdateSmsSettingsHandler(IAppDbContext db, IPhoneNormalizer 
             new SmsKindSettings(command.DebtReminder.Enabled, command.DebtReminder.DaysAfter, command.DebtReminder.SendTime),
             command.DebtReminder.MinAmount,
             command.Absence,
-            command.Broadcast.Enabled);
+            command.Broadcast.Enabled,
+            command.TrainerRequest.Enabled);
         if (updated.IsFailure)
         {
             return Result.Failure<SmsSettingsResponse>(updated.Error);

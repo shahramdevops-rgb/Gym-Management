@@ -192,6 +192,7 @@
     "AbsenceDaysAway": { "label": "پیامک غیبت: چند روز نیامده" },
     "AbsenceSendTime": { "label": "پیامک غیبت: ساعت ارسال" },
     "BroadcastEnabled": { "label": "پیامک گروهی: روشن" },
+    "TrainerRequestEnabled": { "label": "انتخاب مربی: روشن" },
 
     "Audience": { "label": "گیرندگان", "format": "broadcastAudience" },
     "StopReason": { "label": "دلیل توقف", "format": "broadcastStopReason" },

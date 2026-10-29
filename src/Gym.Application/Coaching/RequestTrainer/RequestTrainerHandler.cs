@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Notifications.SendTrainerRequestSms;
 using Gym.Domain.Coaching;
 using Gym.Domain.Common;
 
@@ -13,9 +14,10 @@ namespace Gym.Application.Coaching.RequestTrainer;
 /// </summary>
 /// <remarks>
 /// <b>Under the coaching lock</b>, so two presses at once make one request, and a trainer the Owner
-/// is stopping at that moment is either still a trainer for the whole of this, or already not.
+/// is stopping at that moment is either still a trainer for the whole of this, or already not. The
+/// trainer's SMS (task 15.4c) is asked for after the commit, and only for a new request.
 /// </remarks>
-public sealed class RequestTrainerHandler(IAppDbContext db, IGymCalendar calendar)
+public sealed class RequestTrainerHandler(IAppDbContext db, IGymCalendar calendar, TrainerRequestSms trainerRequestSms)
 {
     public async Task<Result<MyTrainerResponse>> Handle(Guid siteAccountId, RequestTrainerCommand command, CancellationToken cancellationToken)
     {
@@ -83,6 +85,8 @@ public sealed class RequestTrainerHandler(IAppDbContext db, IGymCalendar calenda
         db.TrainerRequests.Add(created.Value);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        await trainerRequestSms.QueueAsync(created.Value.Id, CancellationToken.None);
 
         return await MyTrainerResponse.ForAsync(db, member.Id, cancellationToken);
     }

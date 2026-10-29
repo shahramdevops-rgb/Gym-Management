@@ -11,6 +11,7 @@ namespace Gym.Application.Notifications.UpdateSmsSettings;
 /// <param name="DebtReminder">The debt reminder's switch, days, time and minimum amount (task 10.11).</param>
 /// <param name="Absence">The absence SMS's switch, days away and time (task 10.12).</param>
 /// <param name="Broadcast">The broadcast's switch (task 10.13).</param>
+/// <param name="TrainerRequest">The trainer's SMS switch (task 15.4c).</param>
 /// <param name="Version">The <c>version</c> from the settings as they were read before editing.</param>
 public sealed record UpdateSmsSettingsCommand(
     bool Enabled,
@@ -26,4 +27,5 @@ public sealed record UpdateSmsSettingsCommand(
     DebtReminderSettings DebtReminder,
     SmsKindSettings Absence,
     BroadcastSettings Broadcast,
+    TrainerRequestSettings TrainerRequest,
     uint Version);

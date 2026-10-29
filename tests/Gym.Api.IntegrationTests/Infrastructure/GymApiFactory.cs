@@ -98,7 +98,7 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
 
         builder.UseEnvironment(TestingEnvironment);
 
-        // No real SMS run, receipt, welcome, welcome back or broadcast is ever scheduled from a test: see RecordingSmsRunSchedule
+        // No real SMS run, receipt, welcome, welcome back, trainer's SMS or broadcast is ever scheduled from a test: see RecordingSmsRunSchedule
         // and RecordingSmsJobSchedulers.
         builder.ConfigureTestServices(services =>
         {
@@ -106,6 +106,7 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
             services.Replace(ServiceDescriptor.Singleton<ISubscriptionReceiptScheduler, RecordingSubscriptionReceiptScheduler>());
             services.Replace(ServiceDescriptor.Singleton<IWelcomeScheduler, RecordingWelcomeScheduler>());
             services.Replace(ServiceDescriptor.Singleton<IWelcomeBackScheduler, RecordingWelcomeBackScheduler>());
+            services.Replace(ServiceDescriptor.Singleton<ITrainerRequestSmsScheduler, RecordingTrainerRequestSmsScheduler>());
             services.Replace(ServiceDescriptor.Singleton<IBroadcastScheduler, RecordingBroadcastScheduler>());
 
             // It reads the database at start, and this host starts before the test database is

@@ -47,6 +47,12 @@ public static class SmsText
     /// <summary>A payee keeps its first 9 words, as the template's payee blank allowed.</summary>
     public const int MaxPayeeWords = 9;
 
+    /// <summary>
+    /// A member's full name in the trainer's SMS keeps its first 4 words (task 15.4c), so a long name
+    /// cannot make the message a third part.
+    /// </summary>
+    public const int MaxMemberNameWords = 4;
+
     /// <summary>The Persian thousands separator (U+066C), as <c>formatMoney</c> in the frontend writes it.</summary>
     public const char ThousandsSeparator = '٬';
 
@@ -301,6 +307,14 @@ public static class SmsText
 
         return kept.Length <= MaxValueLength ? kept : kept[..MaxValueLength].TrimEnd();
     }
+
+    /// <summary>
+    /// To the trainer a member picked on the site (task 15.4c, BUSINESS_RULES.md §15 <i>A member and
+    /// their trainer</i>): the trainer by first name, the member by full name, so the trainer knows
+    /// whom to look for (chosen by the developer, 1405/08/07).
+    /// </summary>
+    public static string ForTrainerRequest(string trainerFullName, string memberFullName) =>
+        WithOptOut($"{FirstName(trainerFullName)} عزیز، {Fit(memberFullName, MaxMemberNameWords)} شما را به‌عنوان مربی خود در باشگاه پاسارگاد انتخاب کرده است.");
 
     private static string WithOptOut(string text) => $"{text}\n{OptOut}";
 

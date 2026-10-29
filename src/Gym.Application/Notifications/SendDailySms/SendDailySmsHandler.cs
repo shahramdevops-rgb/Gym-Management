@@ -37,10 +37,10 @@ public sealed partial class SendDailySmsHandler(
     {
         // The receipt is sent at each payment (SendSubscriptionReceiptHandler), the welcome at the
         // sale of a first plan (SendWelcomeHandler), the welcome back after a check-in
-        // (SendWelcomeBackHandler) and the broadcast from its page (RunBroadcastHandler), never by a
-        // daily run.
+        // (SendWelcomeBackHandler), the broadcast from its page (RunBroadcastHandler) and the
+        // trainer's SMS at a member's request (SendTrainerRequestSmsHandler), never by a daily run.
         if (kind is NotificationKind.SubscriptionReceipt or NotificationKind.Welcome or NotificationKind.WelcomeBack
-            or NotificationKind.Broadcast)
+            or NotificationKind.Broadcast or NotificationKind.TrainerRequest)
         {
             throw new ArgumentOutOfRangeException(nameof(kind), kind, "This kind has no daily run.");
         }

@@ -204,6 +204,10 @@ export const smsSettingsSchema = z
     broadcast: z.object({
       enabled: z.boolean(),
     }),
+    /** The trainer's SMS when a member picks them on the site (task 15.4c): only a switch. */
+    trainerRequest: z.object({
+      enabled: z.boolean(),
+    }),
   })
   .superRefine((values, context) => {
     for (const kind of smsKinds) {
@@ -371,6 +375,7 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
     },
     absence: kindValues(settings.absence),
     broadcast: { enabled: settings.broadcast.enabled },
+    trainerRequest: { enabled: settings.trainerRequest.enabled },
   };
 }
 
@@ -431,6 +436,7 @@ export function toInput(
     debtReminder: debtReminderInput(values.debtReminder),
     absence: kindInput(values.absence),
     broadcast: { enabled: values.broadcast.enabled },
+    trainerRequest: { enabled: values.trainerRequest.enabled },
     version,
   };
 }

@@ -12,7 +12,14 @@ namespace Gym.Application.Notifications;
 /// The enums go out by name, as the list's filters take them; the converters sit here because the
 /// Domain's enums know nothing of JSON.
 /// </remarks>
-/// <param name="MemberName">The member it was for; <c>null</c> for a cheque or instalment, sent to the Owner.</param>
+/// <param name="MemberId">
+/// The member it was for, to open their profile; <c>null</c> for the Owner's and for the trainer's
+/// SMS (task 15.4c), which goes to a trainer.
+/// </param>
+/// <param name="MemberName">
+/// Who it was for: the member, or the trainer for the trainer's SMS; <c>null</c> for a cheque or
+/// instalment, sent to the Owner.
+/// </param>
 /// <param name="BroadcastId">The broadcast it was part of (task 10.13); <c>null</c> for every other kind.</param>
 /// <param name="AutoResends">How many times the system sent it again by itself after the provider cancelled it (task 10.16).</param>
 /// <param name="ErrorCode">The provider's code for the last failure; the page explains the known ones.</param>
@@ -46,7 +53,7 @@ public sealed record SmsMessageResponse(
             notification.Kind,
             notification.Status,
             notification.Recipient,
-            notification.MemberId,
+            notification.Kind == NotificationKind.TrainerRequest ? null : notification.MemberId,
             memberName,
             notification.PayableId,
             notification.BroadcastId,

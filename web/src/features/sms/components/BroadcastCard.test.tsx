@@ -45,6 +45,7 @@ const settingsOn: SmsSettings = {
   debtReminder: { enabled: false, daysAfter: null, sendTime: null, minAmount: null },
   absence: off,
   broadcast: { enabled: true },
+  trainerRequest: { enabled: false, morningSendTime: "10:00:00" },
   version: 7,
 };
 

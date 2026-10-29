@@ -1688,7 +1688,8 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   its settings, the text exactly as the code writes it, with a sample member («سید علی رضایی», named
   «علی») and sample figures, and how many SMS parts it takes. It is built by the same code as the real
   messages, so the page cannot show a wording the members do not get. The kinds are grouped by who
-  receives them: the members, the Owner, and the broadcast.
+  receives them: the members, the Owner, the broadcast, and the trainers («پیامک به مربیان», with
+  the one kind of §15, 15.4c).
 - **The broadcast is one card on this page** (*The broadcast*): its switch, and writing and sending
   one, with the message drawn as it is typed. It has no page, tab or menu item of its own, and no
   list of the broadcasts sent: their messages are on «پیامک‌ها». Only the latest, while it is
@@ -2510,14 +2511,21 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     trainer, for one student. Both ask before doing it (the screens, 15.4b). It ends that day.
   - **The trainer sees each student's name and phone** in «شاگردان من», and the same in the
     requests waiting for them.
-  - **The trainer hears of a new request in the app and by SMS** (15.4c, not built yet): its own
-    kind in «تنظیمات پیامک», off at first like every kind (§10), sent at once, at 10:00 the next
-    morning when the request comes after 22:00. The text, chosen by the developer:
+  - **The trainer hears of a new request in the app and by SMS** (15.4c): its own kind,
+    «انتخاب مربی», in «تنظیمات پیامک» under «پیامک به مربیان», off at first like every kind (§10),
+    sent at once, at 10:00 the next morning when the request comes after 22:00. The text, chosen by the developer:
     «{نام کوچک مربی} عزیز، {نام کامل شاگرد} شما را به‌عنوان مربی خود در باشگاه پاسارگاد انتخاب کرده
     است.» with «لغو11» under it, as every SMS from the line (it stays: Kavenegar adds it anyway
     when the text leaves it out, the developer said 1405/08/07).
     **At most one such SMS a day for one member and one trainer**: further requests that day
-    show in the app only.
+    show in the app only. The day is the gym's day of the request; the database holds it (one row
+    per member, trainer and day).
+  - *Proposed by Claude, built with 15.4c* (1405/08/07): **the SMS goes only for a request still
+    waiting when it is sent.** A request taken back, replaced, accepted or declined before 10:00
+    (or before a busy minute passes) costs no SMS; nor does one whose trainer was stopped or whose
+    member was deactivated meanwhile. The switch counts as it is when the request is made, and
+    again when the SMS goes, like the welcome (§10). In «پیامک‌ها» the message is listed under the
+    trainer's name, with no link to the member.
   - **At most 5 requests a day per member** (the gym's day), whatever became of them, so changing
     back and forth cannot cost many SMS (`Coaching.TooManyRequestsToday`).
   - *Proposed by Claude, accepted with the plan* (1405/08/07): a request does not expire; after a

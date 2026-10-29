@@ -72,13 +72,8 @@ public sealed class ResendSmsHandler(IAppDbContext db, IGymCalendar calendar, Ti
             return Result.Failure<SmsMessageResponse>(NotificationErrors.ChangedConcurrently);
         }
 
-        var memberName = notification.MemberId is { } memberId
-            ? await db.Members.AsNoTracking()
-                .Where(member => member.Id == memberId)
-                .Select(member => member.FullName)
-                .SingleOrDefaultAsync(CancellationToken.None)
-            : null;
+        var names = await SmsRecipientNames.ForAsync(db, [notification], CancellationToken.None);
 
-        return SmsMessageResponse.From(notification, memberName);
+        return SmsMessageResponse.From(notification, names.GetValueOrDefault(notification.Id));
     }
 }

@@ -172,6 +172,12 @@ public sealed class SmsSettings : Entity
     /// </summary>
     public bool BroadcastEnabled { get; private set; }
 
+    /// <summary>
+    /// The trainer's SMS when a member picks them on the site (§15 <i>A member and their trainer</i>,
+    /// task 15.4c). Only a switch, like the welcome: it goes to the trainer's own number, at once.
+    /// </summary>
+    public bool TrainerRequestEnabled { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
@@ -194,8 +200,8 @@ public sealed class SmsSettings : Entity
         kind is NotificationKind.DailyReport or NotificationKind.WelcomeBack ? DailyReportLatestSendTime : LatestSendTime;
 
     /// <summary>
-    /// When a receipt or a welcome asked for now is to be sent (§10 <i>The subscription receipt</i>,
-    /// <i>The welcome</i>): <c>null</c> for at once, within 08:00–22:00; otherwise 10:00 the next
+    /// When a receipt, a welcome or a trainer's SMS asked for now is to be sent (§10 <i>The
+    /// subscription receipt</i>, <i>The welcome</i>; §15): <c>null</c> for at once, within 08:00–22:00; otherwise 10:00 the next
     /// morning, which is the same day before 08:00 and the day after once it is past 22:00. A local
     /// date and time in the gym's zone.
     /// </summary>
@@ -289,6 +295,10 @@ public sealed class SmsSettings : Entity
         // Sent from its own page, never by a daily run.
         NotificationKind.Broadcast => new(
             BroadcastEnabled, Threshold: null, SendTime: null),
+
+        // Sent at each request on the site, not by a daily run.
+        NotificationKind.TrainerRequest => new(
+            TrainerRequestEnabled, Threshold: null, SendTime: null),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown notification kind."),
     };
 
@@ -306,6 +316,7 @@ public sealed class SmsSettings : Entity
     /// <param name="debtReminder">The debt reminder's switch, days and time; its minimum amount comes apart.</param>
     /// <param name="absence">The absence SMS's switch, days and time (task 10.12).</param>
     /// <param name="broadcastEnabled">The broadcast's switch: nothing to fill in (task 10.13).</param>
+    /// <param name="trainerRequestEnabled">The trainer's SMS switch: nothing to fill in (task 15.4c).</param>
     public Result Update(
         bool enabled,
         SmsKindSettings subscriptionExpiring,
@@ -322,7 +333,8 @@ public sealed class SmsSettings : Entity
         SmsKindSettings debtReminder,
         decimal? debtReminderMinAmount,
         SmsKindSettings absence,
-        bool broadcastEnabled)
+        bool broadcastEnabled,
+        bool trainerRequestEnabled)
     {
         ArgumentNullException.ThrowIfNull(subscriptionExpiring);
         ArgumentNullException.ThrowIfNull(lowSessions);
@@ -392,6 +404,7 @@ public sealed class SmsSettings : Entity
         AbsenceSendTime = absence.SendTime;
 
         BroadcastEnabled = broadcastEnabled;
+        TrainerRequestEnabled = trainerRequestEnabled;
 
         return Result.Success();
     }
