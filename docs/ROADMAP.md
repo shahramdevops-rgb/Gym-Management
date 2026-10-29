@@ -54,8 +54,8 @@ Still open around the panel (none of it code, or waiting for someone else):
   Commits from 2026-10-25 are `Shahram Azghandi <shahramdevops@gmail.com>`
 
 Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
-  1405/08/03); 15.1, 15.2, 15.3 (a and b) and 15.4a are done on their branches, not merged or
-  released; the next task is **15.4b** (the app's screens for picking a trainer), then 15.4c. Phase 14's 14.1 to 14.3 still wait for the
+  1405/08/03); 15.1, 15.2, 15.3 (a and b) and 15.4a and 15.4b are done on their branches, not
+  merged or released; the next task is **15.4c** (the trainer's SMS). Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
 
 ---
@@ -4171,8 +4171,8 @@ How it is built:
       never log in" changed: the panel is staff-only, members and trainers sign in on the site (§15)
 - [x] The QR code on the Anea sheet: a barcode reader cannot open it (the developer, 1405/08/03)
 - [x] The developer, outside the code: Kavenegar and Anea answered (1405/08/03). The one-time code
-      goes as the verification template `gymExpiring` (same account and API key, Kavenegar's
-      shared international line); Anea gives the PDF only, its Excel export (8 million, once) is
+      goes as the verification template `gymExpiring` (same account and API key, sent from the gym's
+      dedicated line `9981600378`, Kavenegar said 1405/08/07); Anea gives the PDF only, its Excel export (8 million, once) is
       not bought for now, and the trainer types the numbers (§15)
 
 ### Release 1 — Signing in, and «my plan» (15.1 to 15.5)
@@ -4390,10 +4390,22 @@ Built 1405/08/07, not merged or released.
       once, the two areas apart, the database refusing a second waiting request or open link
 
 ##### 15.4b The app's screens
-- [ ] The member: «مربی من» on the home screen, the trainers' list with «انتخاب این مربی», the
-      waiting request with «لغو», «پایان مربی‌گری» (asks first)
-- [ ] The trainer: «درخواست‌ها» with «پذیرفتن» and «رد کردن», «شاگردان من» with name, phone and
-      «پایان» (asks first)
+Built 1405/08/07, not merged or released.
+- [x] The member: «مربی من» on the home screen (no trainer, the trainer since a date, the waiting
+      request, or both while changing), «انتخاب مربی» / «تغییر مربی» to `/trainers`, the
+      trainers' list with «انتخاب این مربی» (the trainer now marked «مربی شما», the one asked «در
+      انتظار پاسخ»), «لغو», «پایان مربی‌گری» (asks first)
+- [x] The trainer: «درخواست‌ها» (only when there are any) with «پذیرفتن» and «رد کردن» (asks
+      nothing: the member may ask again), «شاگردان من» with name, phone (a tap calls) and
+      «غیرفعال», «پایان» (asks first). Both lists are read again when the app comes back to the
+      front
+- [x] The questions, chosen with the plan (the developer, 1405/08/07, «for now»): «مربی‌گری {مربی}
+      برای شما از امروز تمام می‌شود. ادامه می‌دهید؟» and «مربی‌گری شما برای {شاگرد} از امروز تمام
+      می‌شود. ادامه می‌دهید؟»; picking a trainer asks nothing
+- [x] A change refused because the other side was first shows its message and reads the lists
+      again
+- [x] Tests: Vitest (`MyTrainerCard`, `TrainersPage`, `TrainerArea`), e2e
+      `siteCoaching.spec.ts` (a member signs up and picks, the trainer on a second phone accepts)
 
 ##### 15.4c The trainer's SMS
 - [ ] Its own kind in «تنظیمات پیامک» (the panel's one change in 15.4, asked by the developer), off

@@ -109,3 +109,24 @@ export async function seedFrontDesk(api: APIRequestContext) {
     sessionCount: 10,
   });
 }
+
+/**
+ * The Owner's token whether or not an earlier spec already made the first login: the specs share
+ * one stack, and any of them may run alone.
+ */
+async function ownerToken(api: APIRequestContext) {
+  const response = await api.post("/api/auth/login", {
+    data: { userName: owner.userName, password: ownerPassword },
+  });
+  return response.ok()
+    ? ((await response.json()) as Session).accessToken
+    : changeOwnerPassword(api);
+}
+
+/** A trainer the Owner adds in «مربیان» (15.2); the phone as typed, `09…`. */
+export async function seedTrainer(
+  api: APIRequestContext,
+  trainer: { fullName: string; phoneNumber: string },
+) {
+  await send(api, await ownerToken(api), "POST", "/api/trainers", trainer);
+}

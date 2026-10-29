@@ -2393,8 +2393,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     1405/07/16). The template is `gymExpiring`, written by the developer:
     «کد تایید باشگاه پاسارگاد: %token» and «این کد تا %token2 دقیقه معتبر است.», where `token` is
     the code and `token2` the minutes it is valid for. It uses the gym's Kavenegar account and the
-    same API key; Kavenegar sends it from the account's shared international line. Every other SMS
-    stays free text from the gym's dedicated line (§10 *Sending*).
+    same API key; Kavenegar sends it from the gym's dedicated line `9981600378`, since its shared
+    international line `0018018949161` cannot send inside Iran (Kavenegar's answer, 1405/08/07).
+    Every other SMS is free text from the same dedicated line (§10 *Sending*).
   - **The code fills itself in on the phone** (asked by the developer, 1405/08/03, for the site
     app of 15.3): iPhones offer it from the SMS by themselves; Android needs the template's last
     line to be `@app.pasargadgymplus.ir #%token`. Kavenegar approved `gymExpiring` with that third

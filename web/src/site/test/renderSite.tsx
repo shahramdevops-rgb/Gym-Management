@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider, type RouteObject } from "react-router";
 
 import type { components } from "@/lib/api/schema";
+import { json } from "@/test/mockApi";
 
 import { siteSessionStore, type SiteAccess, type SiteMe } from "../auth/session";
 import { signUpTicketStore, type SignUpTicket } from "../auth/signUpTicket";
@@ -78,3 +79,9 @@ export function siteAccess(me: Partial<SiteMe> = {}): SiteAccess {
     me: { member: activeMember, trainer: null, ...me },
   };
 }
+
+/** «مربی من» and «شاگردان من» with nothing in them, for a test about something else on the home. */
+export const emptyCoaching = {
+  "GET /api/site/coaching/my-trainer": () => json(200, { trainer: null, request: null }),
+  "GET /api/site/coaching/students": () => json(200, { requests: [], students: [] }),
+};

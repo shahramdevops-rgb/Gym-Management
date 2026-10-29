@@ -2194,3 +2194,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Order before you project.** EF Core can translate `OrderBy(x => x.Member.FullName)` on entities, but not an `OrderBy` on a property of a record built by a constructor in `Select`; that ran fine in the member's queries (no order) and failed with a 500 in the trainer's.
 - **An idempotent second press.** Asking for the trainer you already asked returns the same answer instead of an error, so a double tap or a retried request on a bad connection is harmless.
 - **My notes:**
+
+## 15.4b — The app's screens for a member and their trainer (صفحه‌های مربی و شاگرد)
+
+- **The answer of a change replaces the cache.** Every coaching POST returns the whole «مربی من» (or requests and students) as it is after the change, so `setQueryData` shows it at once with no second GET and no hand-made "optimistic" guess.
+- **A refused change means the world moved.** A 409 such as `Coaching.RequestNoLongerPending` is not the person's mistake: the member took the request back first. The screen shows the message and reads the list and «me» again, so what is left on screen is what is true now.
+- **Ask first only where it cannot be taken back.** Ending a link asks; picking a trainer and declining do not, because «لغو» and asking again undo them. A confirmation on every button teaches people to press «بله» without reading.
+- **A confirmation that closes when the server answers.** `mutate(…, { onSettled: close })` keeps the box open with «در حال ثبت…» while the request travels, and closes it on success or failure, so a slow phone cannot send the same end twice.
+- **`tel:` turns a phone into an action.** The trainer's list shows `۰۹۱۲ ۱۲۳ ۴۵۶۷` inside `dir="ltr"` (so the groups keep their order in a right-to-left line) and links it to `tel:+989121234567`, which opens the dialler.
+- **Two people in one end-to-end test.** Playwright's `browser.newContext()` is a second phone with its own cookies, so the member and the trainer each hold their own site session in one test.
+- **My notes:**

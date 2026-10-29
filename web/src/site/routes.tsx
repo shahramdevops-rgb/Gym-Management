@@ -3,6 +3,7 @@ import { Navigate, type RouteObject } from "react-router";
 import { LoadingState } from "@/components/States";
 
 import { SignInPage } from "./auth/pages/SignInPage";
+import { TrainersPage } from "./coaching/TrainersPage";
 import { RequireSiteSession } from "./components/RequireSiteSession";
 import { SiteFrame } from "./components/SiteFrame";
 import { HomePage } from "./home/HomePage";
@@ -28,7 +29,10 @@ export const siteRoutes: RouteObject[] = [
   },
   {
     element: <RequireSiteSession />,
-    children: [{ path: sitePaths.home, element: <HomePage /> }],
+    children: [
+      { path: sitePaths.home, element: <HomePage /> },
+      { path: sitePaths.trainers, element: <TrainersPage /> },
+    ],
   },
   { path: "*", element: <Navigate to={sitePaths.home} replace /> },
 ];

@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHmac } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -126,4 +127,19 @@ export function queryValue(sql: string): string {
     [...compose, "exec", "-T", "postgres", "psql", "-U", "gym", "-d", "gym", "-tAc", sql],
     { cwd: repoRoot, env: environment, encoding: "utf8" },
   ).trim();
+}
+
+/**
+ * The code the fake SMS would have carried to a phone (stored as `+989…`). It is never logged or
+ * stored (BUSINESS_RULES.md §15), so a test computes it as the API does (HmacSignInCodes):
+ * HMAC-SHA256 of the phone and the row's seed under the stack's SITE_CODE_SECRET, its first 8
+ * bytes modulo 100 000.
+ */
+export function signInCode(storedPhone: string): string {
+  const seed = queryValue(
+    `select code_seed from sign_in_codes where phone_number = '${storedPhone}'`,
+  );
+  const mac = createHmac("sha256", siteCodeSecret).update(`${storedPhone}:${seed}`).digest();
+
+  return (mac.readBigUInt64BE(0) % 100_000n).toString().padStart(5, "0");
 }

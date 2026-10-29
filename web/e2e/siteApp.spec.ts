@@ -1,8 +1,6 @@
-import { createHmac } from "node:crypto";
-
 import { expect, test, type Page } from "@playwright/test";
 
-import { publicURL, queryValue, siteCodeSecret, siteURL } from "./stack";
+import { publicURL, signInCode, siteURL } from "./stack";
 
 /**
  * The members' and trainers' app on its own host (roadmap 15.3b), in the production stack: the
@@ -12,20 +10,6 @@ import { publicURL, queryValue, siteCodeSecret, siteURL } from "./stack";
 
 const phone = { typed: "09351234567", stored: "+989351234567" };
 
-/**
- * The code the fake SMS would have carried. It is never logged or stored (BUSINESS_RULES.md §15),
- * so the test computes it as the API does (HmacSignInCodes): HMAC-SHA256 of the phone and the
- * row's seed under the stack's SITE_CODE_SECRET, its first 8 bytes modulo 100 000.
- */
-function signInCode(): string {
-  const seed = queryValue(
-    `select code_seed from sign_in_codes where phone_number = '${phone.stored}'`,
-  );
-  const mac = createHmac("sha256", siteCodeSecret).update(`${phone.stored}:${seed}`).digest();
-
-  return (mac.readBigUInt64BE(0) % 100_000n).toString().padStart(5, "0");
-}
-
 test("SiteApp_NewPhone_SignsUpWithTheSmsCodeAndStaysSignedIn", async ({ page }) => {
   await page.goto(siteURL);
 
@@ -33,7 +17,7 @@ test("SiteApp_NewPhone_SignsUpWithTheSmsCodeAndStaysSignedIn", async ({ page }) 
   await page.getByRole("button", { name: "دریافت کد" }).click();
 
   // Sent by itself at the fifth digit.
-  await page.getByLabel("کد پنج‌رقمی").fill(signInCode());
+  await page.getByLabel("کد پنج‌رقمی").fill(signInCode(phone.stored));
 
   // A phone the gym does not know yet: its name and birth date.
   await page.getByLabel("نام و نام خانوادگی").fill("کاوه رستمی");

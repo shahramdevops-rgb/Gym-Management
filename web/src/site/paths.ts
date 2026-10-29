@@ -3,4 +3,6 @@ export const sitePaths = {
   home: "/",
   signIn: "/sign-in",
   signUp: "/sign-up",
+  /** The member picks a trainer (15.4). */
+  trainers: "/trainers",
 } as const;
