@@ -2544,6 +2544,23 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **The member sees everything their trainers record about them** (programs, analyses, photos,
   numbers) **except the trainer's private notes.** *Proposed by Claude, accepted by the developer.*
 
+### The member's own records (15.5)
+- **The member sees in the app everything the panel's profile holds about them, except the SMS
+  they were sent.** *Decided by the developer* (1405/08/08, 15.5): their details (name, phone,
+  birth date, the day they joined the gym, and the day they signed up on the site), the plan now
+  and any plan bought for later (sessions left, end date, freeze), their debt item by item, every
+  check-in and check-out with its locker, and the history of their plans, payments and cafe
+  purchases. Their trainer is on the same screen (*A member and their trainer*).
+- **Nothing is edited from the app**, the birth date least of all: it decides the birthday SMS and
+  the free visit (§10), and a member who could change it could make any day their birthday. The
+  desk corrects details in the panel. *Decided by the developer* (1405/08/08).
+- **Left out, proposed by Claude and not objected to** (1405/08/08): the desk's «یادداشت» on the
+  profile, which the staff write for themselves; and on a cancelled or voided row, who did it and
+  the reason written: the member sees the row marked cancelled, refunded or voided, not the staff's
+  words.
+- **A member deactivated at the desk sees only the notice** (*Signing up and signing in*), not
+  these records.
+
 ### Timetable and attendance
 - **Every visit is a check-in at the desk and uses a session of the member's plan** (§7, unchanged).
   The site never checks anyone in and never uses a session. *Decided by the developer.*

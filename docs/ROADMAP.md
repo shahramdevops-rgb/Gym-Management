@@ -55,7 +55,8 @@ Still open around the panel (none of it code, or waiting for someone else):
 
 Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
   1405/08/03); 15.1, 15.2, 15.3 (a and b) and 15.4 (a, b and c) are done on their branches,
-  not merged or released; the next task is **15.5** (the member's home, first part, and Release 1). Phase 14's 14.1 to 14.3 still wait for the
+  not merged or released (`task/15.4-pick-a-trainer` pushed 1405/08/08); the next task is **15.5a**
+  (the member's records, backend), then 15.5b and Release 1. Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
 
 ---
@@ -4422,8 +4423,17 @@ Built 1405/08/07, not merged or released.
       (`TrainerRequestSmsTests`, `SmsSettingsEndpointTests`), Vitest (the card, the switch saved)
 
 #### 15.5 The member's home, first part
-- [ ] My plan: sessions left, the plan's end, freeze; my visits (from the desk's check-ins); my
-      trainer. Everything here already exists in the panel's data
+Decided 1405/08/08 (§15 *The member's own records*): the member sees everything the panel's profile
+holds about them except the SMS; nothing is edited from the app (the birth date least of all); the
+desk's «یادداشت» and the staff's names and reasons on cancelled rows are left out. Split in two:
+- [ ] **15.5a, the backend**: read-only `/api/site/me/...` behind `SiteMember` (details with the
+      day they joined and the day they signed up on the site, the plan now and the one bought for
+      later, the debt item by item, check-ins with lockers, plans, payments, cafe purchases), each
+      calling the panel's own handler with the member's own id and mapped to site records without
+      the staff's fields; a deactivated member gets nothing; integration tests (a staff token
+      refused, another member's data unreachable)
+- [ ] **15.5b, the screens**: compact cards for the plan, the debt and the trainer, the history
+      in tabs; read-only. Vitest, an e2e, and shown in the developer's Chrome
 - [ ] «خروج» asks first (asked by the developer, 1405/08/07): «با خروج، برای ورود دوباره یک کد
       پیامکی تازه لازم است. خارج می‌شوید؟» with «خروج» and «انصراف», since signing in again costs an
       SMS; queued here, with the home screen's other work, rather than in 15.3b
