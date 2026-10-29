@@ -2281,7 +2281,7 @@ without adding up the rows.
   - **One exception: the installed app's name** (roadmap 13.4, decided by the developer, 1405/08/03):
     «Management» under the icon and «Pasargad Gym Management» in full, in English, which is short
     and never breaks under an icon. The long-press shortcuts keep the menu's Persian names. The
-    members' and trainers' app (Phase 15) is «Pasargad Gym» (15.3b), so the two are told apart.
+    members' and trainers' app (Phase 15) is «My Gym» (15.3b; the developer renamed it from «Pasargad Gym» 1405/08/08), so the two are told apart.
 - Text normalization (applied to names before saving the search column, and to every search input):
   - Arabic ي (U+064A) and ى (U+0649) → Persian ی (U+06CC)
   - Arabic ك (U+0643) → Persian ک (U+06A9)
@@ -2335,7 +2335,7 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **The site's account area is at `app.pasargadgymplus.ir`** and installs on a phone like an app
   (a PWA). *Decided by the developer* (1405/08/03).
   - **Its icon is the panel's reversed**: the gym's logo in dark stone on bronze, so the two icons
-    are told apart at a glance on a phone that has both; «Pasargad Gym» under it (§13). *Decided by
+    are told apart at a glance on a phone that has both; «My Gym» under it (§13, renamed 1405/08/08). *Decided by
     the developer* (1405/08/07, 15.3b).
   - **The app asks to be installed** in a small card on the sign-in screen and the home screen:
     on Android a «نصب برنامه» button (where the browser offers it), on an iPhone the steps of

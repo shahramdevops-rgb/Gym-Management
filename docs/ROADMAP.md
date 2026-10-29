@@ -4326,7 +4326,7 @@ Built 1405/08/07 on `task/15.3-site-app`, not merged or released (Release 1 is a
       security headers and `noindex`; `sw.js` and `index.html` with `no-cache`. The API answers to
       both hosts (`AllowedHosts: DOMAIN;SITE_DOMAIN`), and `SITE_DOMAIN` is required in `.env`.
       The rate limits are the API's own (15.1), Caddy has none built in
-- [x] Installable on a phone: manifest «Pasargad Gym», icons (the gym's logo in dark stone on
+- [x] Installable on a phone: manifest «My Gym» (named «Pasargad Gym» until the developer renamed it, 1405/08/08), icons (the gym's logo in dark stone on
       bronze, the panel's reversed: the developer's choice, 1405/08/07), a hand-written service
       worker (`site/sw.js`, filled with the build's files by `vite.site.config.ts`) that keeps the
       app's files, never `/api`, and updates itself; the card «نصب برنامه روی گوشی» on the sign-in

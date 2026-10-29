@@ -53,7 +53,7 @@ test("SiteApp_ManifestAndServiceWorker_AreServedFreshEveryTime", async ({ page }
   const manifest = (await page.goto(`${siteURL}/manifest.webmanifest`))!;
   expect(manifest.status()).toBe(200);
   expect(manifest.headers()["content-type"]).toContain("application/manifest+json");
-  expect((await manifest.json()).short_name).toBe("Pasargad Gym");
+  expect((await manifest.json()).short_name).toBe("My Gym");
 
   // A release reaches an installed app through a new sw.js: never a cached old one.
   const worker = (await page.goto(`${siteURL}/sw.js`))!;

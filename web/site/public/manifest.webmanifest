@@ -1,7 +1,7 @@
 {
     "id": "/",
-    "name": "Pasargad Gym",
-    "short_name": "Pasargad Gym",
+    "name": "My Gym",
+    "short_name": "My Gym",
     "lang": "fa",
     "dir": "auto",
     "start_url": "/",

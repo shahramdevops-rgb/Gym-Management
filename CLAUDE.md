@@ -33,7 +33,7 @@ Keep this section up to date when commands change.
 
 ## Language and UI
 - The UI is Persian (`fa`) and right-to-left. All user-facing text is Persian.
-- One exception, decided by the developer: the installed app's name under its icon is English («Management», 13.4; the site app's «Pasargad Gym», Phase 15). docs/BUSINESS_RULES.md §13.
+- One exception, decided by the developer: the installed app's name under its icon is English («Management», 13.4; the site app's «My Gym», Phase 15). docs/BUSINESS_RULES.md §13.
 - Code, identifiers, comments, commits, logs, and API error descriptions are English.
 - The API returns stable error codes (e.g. `Members.PhoneAlreadyExists`); the frontend maps codes to Persian messages in `web/src/lib/errors.ts`.
 - Use logical CSS utilities (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`), never `ml-`, `mr-`, `pl-`, `pr-`, `left-`, `right-`.
