@@ -1,0 +1,106 @@
+<!doctype html>
+<!-- The desk's A4 poster for the members' app (roadmap 15.3b). poster.pdf is this page printed by
+     Chrome; qr.svg is the code it shows. The code holds https://pasargadgymplus.ir/qr, a fixed
+     address that deploy/Caddyfile redirects to the app, so the poster stays right if the app
+     moves. Open this file in Chrome and print it (A4, no margins, background graphics on) to
+     make the PDF again after a change of wording.
+     qr.svg and qr.png were made once (1405/08/07) with the npm package "qrcode", run outside the
+     repository: error correction H, the app's favicon on a white square in the middle (about 5%
+     of the code; H recovers about 30%), and read back with a decoder before printing. The
+     address never changes, so neither does the code. -->
+
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>پوستر برنامهٔ باشگاه</title>
+    <style>
+      @font-face {
+        font-family: "Vazirmatn";
+        src: url("../../web/public-site/fonts/Vazirmatn-Variable.woff2")
+          format("woff2-variations");
+        font-weight: 100 900;
+      }
+
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+      }
+
+      body {
+        width: 210mm;
+        height: 297mm;
+        font-family: "Vazirmatn", sans-serif;
+        color: #0e0f13;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 22mm 20mm 18mm;
+        border-top: 6mm solid #c89b57;
+        border-bottom: 6mm solid #c89b57;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30pt;
+        font-weight: 900;
+      }
+
+      .lead {
+        margin: 7mm 0 0;
+        font-size: 16pt;
+        font-weight: 500;
+        line-height: 1.7;
+      }
+
+      .code {
+        margin-top: 12mm;
+        width: 125mm;
+        height: 125mm;
+      }
+
+      .address {
+        margin-top: 4mm;
+        font-size: 18pt;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .steps {
+        margin-top: auto;
+        font-size: 14pt;
+        line-height: 1.9;
+        color: #3a3b40;
+      }
+
+      .steps strong {
+        color: #0e0f13;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>باشگاه پاسارگاد، در گوشی شما</h1>
+    <p class="lead">
+      کد را با دوربین گوشی اسکن کنید<br />
+      و با شمارهٔ موبایلتان وارد شوید یا ثبت‌نام کنید.
+    </p>
+
+    <img class="code" src="qr.svg" alt="" />
+    <p class="address" dir="ltr">pasargadgymplus.ir/qr</p>
+
+    <p class="steps">
+      <strong>بدون رمز:</strong> یک کد پیامکی برای ورود کافی است.<br />
+      <strong>نصب:</strong> بعد از باز شدن، برنامه را روی صفحهٔ گوشی نصب کنید.
+    </p>
+  </body>
+</html>

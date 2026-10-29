@@ -120,6 +120,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             DebtReminderEnabled = false,
             AbsenceEnabled = false,
             BroadcastEnabled = false,
+            TrainerRequestEnabled = false,
         });
     }
 

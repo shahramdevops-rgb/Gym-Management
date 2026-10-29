@@ -6,7 +6,16 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config([
-  { ignores: ["dist", "coverage", "playwright-report", "test-results", "src/lib/api/schema.d.ts"] },
+  {
+    ignores: [
+      "dist",
+      "dist-site",
+      "coverage",
+      "playwright-report",
+      "test-results",
+      "src/lib/api/schema.d.ts",
+    ],
+  },
   {
     files: ["**/*.{ts,tsx}"],
     extends: [
@@ -34,6 +43,13 @@ export default tseslint.config([
         },
       ],
     },
+  },
+  {
+    // The site app's service worker (a template vite.site.config.ts fills in): plain JavaScript
+    // run in the service worker's own scope, where there is no window or document.
+    files: ["site/sw.js"],
+    extends: [js.configs.recommended, prettier],
+    languageOptions: { ecmaVersion: 2022, globals: globals.serviceworker },
   },
   {
     // The end-to-end tests and their configuration run in Node, not in the browser.

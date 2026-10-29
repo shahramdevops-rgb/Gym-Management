@@ -184,6 +184,29 @@ public sealed class NotificationTests
     }
 
     [Fact]
+    public void ForTrainerRequest_GoesToTheTrainerAboutTheMemberOnTheDayOfTheRequest()
+    {
+        var memberId = Guid.NewGuid();
+        var trainerId = Guid.NewGuid();
+        var day = new DateOnly(2026, 10, 29);
+
+        var notification = Notification.ForTrainerRequest(memberId, trainerId, day, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.TrainerRequest);
+        notification.MemberId.ShouldBe(memberId);
+        notification.TrainerId.ShouldBe(trainerId);
+        notification.ReportDate.ShouldBe(day);
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+        notification.SubscriptionId.ShouldBeNull();
+        notification.AbsentSince.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ForTrainerRequest_EmptyTrainerId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForTrainerRequest(Guid.NewGuid(), Guid.Empty, new DateOnly(2026, 10, 29), Phone, Text));
+
+    [Fact]
     public void ForAbsence_EmptyMemberId_Throws() =>
         Should.Throw<ArgumentException>(() => Notification.ForAbsence(Guid.Empty, new DateOnly(2026, 10, 1), Phone, Text));
 

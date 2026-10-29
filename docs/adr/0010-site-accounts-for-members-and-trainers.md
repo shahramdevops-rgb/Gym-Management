@@ -35,14 +35,24 @@ That reverses the founding rule, so it is a decision rather than a feature. Four
 - **Same monolith and database** (ADR 0001). The site's features are new feature folders in
   Application (for example `Application/Coaching/...`) that use the existing `Member`,
   `Subscription` and `Attendance`; no second service and no copy of the data.
-- **A site account is not a staff user.** Site accounts are their own table, keyed by the verified
-  phone number, with no password. They are not ASP.NET Identity users (ADR 0002 keeps Identity for
-  the staff). A site account links to a `Member`, to a `Trainer`, or to both.
+- **A site account is not a staff user.** Site accounts are their own table, with no password.
+  They are not ASP.NET Identity users (ADR 0002 keeps Identity for the staff). A site account links
+  to a `Member`, to a `Trainer`, or to both.
+  - *Amended in 15.1b (2026-10-26):* the account keeps **no phone of its own**. A sign-in finds the
+    member by the verified phone and the account by the member (unique `member_id`), so a number
+    the desk changes never opens the account for whoever has the old one. Members only for now;
+    15.2 makes `member_id` nullable (existing rows carried forward), adds `trainer_id`, finds a
+    trainer by the trainer's phone, and needs a rule for one person whose member and trainer phones
+    differ.
 - **A separate authentication scheme.** The site's tokens are issued with their own issuer,
   audience and signing key, and refreshed through their own refresh-token table and cookie on the
   site's host. Every staff policy requires the staff scheme, so a site token cannot satisfy one
   even if a policy is written wrong; every site endpoint has an explicit site policy (`Member`,
   `Trainer`). Rate limits are partitioned per phone and per IP, apart from the staff login's.
+  - *As built in 15.1b:* one site policy so far, `SiteAccount` (signed in on the site). Requests
+    under `/api/site` are authenticated with the site's scheme only, and a site identity is never
+    read as a staff user, so the audit log records site actions with no user («سیستم»). The first
+    endpoint that shows a member anything (15.4, 15.5) adds a check that the member is active.
 - **Its own address and frontend.** The account area lives on its own subdomain,
   `app.pasargadgymplus.ir` (chosen by the developer), as the panel does (6.5.0): its cookie never reaches the panel's host,
   and Caddy can limit it separately. The public page stays static files, so it keeps working while

@@ -543,6 +543,28 @@ describe("DashboardPage", () => {
     expect(screen.queryByText(/مشتری آزاد بوفه و مهمان‌ها/)).not.toBeInTheDocument();
   });
 
+  it("DashboardPage_SignInCodeLimitReached_IsInNeedsAttentionWithALinkToTheSms", async () => {
+    mockApi({
+      ...dashboard,
+      "GET /api/reports/needs-attention": () =>
+        json(200, { ...needsAttention, signInCodeLimitReached: true }),
+    });
+    renderApp("/dashboard", { session: session() });
+
+    // §15: today's code SMS for the site are used up, so nobody can sign in until tomorrow.
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/سقف روزانهٔ پیامک کد ورود سایت امروز پر شده است/);
+    expect(within(alert).getByRole("link", { name: "پیامک‌ها" })).toHaveAttribute("href", "/sms");
+  });
+
+  it("DashboardPage_SignInCodesLeft_SaysNothingAboutThem", async () => {
+    mockApi(dashboard);
+    renderApp("/dashboard", { session: session() });
+
+    await screen.findByText("نیاز به اقدام");
+    expect(screen.queryByText(/پیامک کد ورود سایت/)).not.toBeInTheDocument();
+  });
+
   it("DashboardPage_OldDebtWithoutAMember_IsOneFigureBesideTheList", async () => {
     mockApi({
       ...dashboard,

@@ -25,7 +25,15 @@
     "IdentityRoleClaim<Guid>": "ادعای نقش",
     "IdentityUserLogin<Guid>": "ورود خارجی کاربر",
     "RefreshToken": "نشست ورود",
-    "TrustedDevice": "دستگاه مطمئن"
+    "TrustedDevice": "دستگاه مطمئن",
+    "SignInCode": "کد ورود سایت",
+    "SignInCodeSend": "پیامک کد ورود",
+    "SiteAccount": "حساب سایت",
+    "SiteRefreshToken": "نشست سایت",
+    "Trainer": "مربی",
+    "TrainerPeriod": "دورهٔ مربی‌گری",
+    "TrainerRequest": "درخواست مربی",
+    "TrainerLink": "مربی عضو"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -59,6 +67,7 @@
     "CostRial": { "label": "هزینه", "format": "rial" },
 
     "MemberId": { "label": "عضو", "format": "reference" },
+    "TrainerId": { "label": "مربی", "format": "reference" },
     "SubscriptionId": { "label": "اشتراک", "format": "reference" },
     "LockerId": { "label": "کمد", "format": "reference" },
     "AttendanceId": { "label": "ورود", "format": "reference" },
@@ -101,6 +110,8 @@
     "DueDate": { "label": "تاریخ سررسید" },
     "StartDate": { "label": "تاریخ شروع" },
     "EndDate": { "label": "تاریخ پایان" },
+    "StartedOn": { "label": "شروع مربی‌گری" },
+    "EndedOn": { "label": "پایان مربی‌گری" },
     "FrozenSince": { "label": "فریز از" },
 
     "ReserveSlot": { "label": "جای رزرو" },
@@ -181,6 +192,7 @@
     "AbsenceDaysAway": { "label": "پیامک غیبت: چند روز نیامده" },
     "AbsenceSendTime": { "label": "پیامک غیبت: ساعت ارسال" },
     "BroadcastEnabled": { "label": "پیامک گروهی: روشن" },
+    "TrainerRequestEnabled": { "label": "انتخاب مربی: روشن" },
 
     "Audience": { "label": "گیرندگان", "format": "broadcastAudience" },
     "StopReason": { "label": "دلیل توقف", "format": "broadcastStopReason" },
@@ -200,13 +212,30 @@
     "ClaimValue": { "label": "مقدار ادعا" },
     "LoginProvider": { "label": "سرویس ورود" },
     "ProviderKey": { "label": "کلید سرویس ورود" },
-    "ProviderDisplayName": { "label": "نام سرویس ورود" }
+    "ProviderDisplayName": { "label": "نام سرویس ورود" },
+
+    "IssuedAt": { "label": "زمان ساخت کد" },
+    "LastSentAt": { "label": "آخرین ارسال" },
+    "LastProviderMessageId": { "label": "شناسه آخرین ارسال" },
+    "WrongTries": { "label": "تلاش‌های غلط" },
+    "UsedAt": { "label": "زمان استفاده" },
+    "IsSendAgain": { "label": "ارسال دوباره" },
+    "WrongTriesOn": { "label": "روز تلاش‌های غلط" },
+    "WrongTriesThatDay": { "label": "تلاش‌های غلط آن روز" },
+    "LastSignedInAt": { "label": "آخرین ورود" },
+    "SiteAccountId": { "format": "hidden" },
+
+    "RequestedOn": { "label": "روز درخواست" },
+    "RequestId": { "label": "درخواست", "format": "reference" },
+    "EndReason": { "label": "دلیل پایان", "format": "trainerLinkEndReason" }
   },
   "entityFields": {
     "Payment": { "Kind": { "label": "نوع", "format": "paymentKind" } },
     "Payable": { "Kind": { "label": "نوع", "format": "payableKind" } },
     "ServiceCharge": { "Kind": { "label": "نوع", "format": "serviceChargeKind" } },
     "Notification": { "Kind": { "label": "نوع", "format": "notificationKind" } },
-    "SmsBroadcast": { "Status": { "label": "وضعیت", "format": "broadcastStatus" } }
+    "SmsBroadcast": { "Status": { "label": "وضعیت", "format": "broadcastStatus" } },
+    "TrainerRequest": { "Status": { "label": "وضعیت", "format": "trainerRequestStatus" } },
+    "TrainerLink": { "StartedOn": { "label": "شروع" }, "EndedOn": { "label": "پایان" } }
   }
 }

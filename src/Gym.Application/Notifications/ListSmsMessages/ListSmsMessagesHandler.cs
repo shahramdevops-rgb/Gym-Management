@@ -59,33 +59,11 @@ public sealed class ListSmsMessagesHandler(IAppDbContext db, IGymCalendar calend
             .Take(query.PageSize)
             .ToListAsync(cancellationToken);
 
-        var names = await MemberNamesAsync(rows, cancellationToken);
+        var names = await SmsRecipientNames.ForAsync(db, rows, cancellationToken);
         var items = rows
-            .Select(notification => SmsMessageResponse.From(notification, NameOf(names, notification)))
+            .Select(notification => SmsMessageResponse.From(notification, names.GetValueOrDefault(notification.Id)))
             .ToList();
 
         return new SmsMessageListResponse(items, query.Page, query.PageSize, totalCount, totalCostRial / 10m);
     }
-
-    /// <summary>The names of the members on one page, in one query.</summary>
-    private async Task<Dictionary<Guid, string>> MemberNamesAsync(
-        IReadOnlyCollection<Notification> notifications, CancellationToken cancellationToken)
-    {
-        var memberIds = notifications
-            .Where(notification => notification.MemberId is not null)
-            .Select(notification => notification.MemberId!.Value)
-            .Distinct()
-            .ToList();
-        if (memberIds.Count == 0)
-        {
-            return [];
-        }
-
-        return await db.Members.AsNoTracking()
-            .Where(member => memberIds.Contains(member.Id))
-            .ToDictionaryAsync(member => member.Id, member => member.FullName, cancellationToken);
-    }
-
-    private static string? NameOf(Dictionary<Guid, string> names, Notification notification) =>
-        notification.MemberId is { } memberId ? names.GetValueOrDefault(memberId) : null;
 }

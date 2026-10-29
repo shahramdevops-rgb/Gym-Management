@@ -141,6 +141,9 @@ try
     app.MapHealthChecks("/health").AllowAnonymous();
 
     app.MapAuthEndpoints();
+    app.MapSiteAuthEndpoints();
+    app.MapSiteCoachingEndpoints();
+    app.MapSiteRecordsEndpoints();
     app.MapStaffEndpoints();
     app.MapMembersEndpoints();
     app.MapPricingEndpoints();
@@ -157,6 +160,7 @@ try
     app.MapPayablesEndpoints();
     app.MapSmsEndpoints();
     app.MapHistoryEndpoints();
+    app.MapTrainersEndpoints();
     app.MapReportsEndpoints();
     app.MapAuditEndpoints();
 

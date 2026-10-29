@@ -274,7 +274,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,
-            broadcastEnabled: false));
+            broadcastEnabled: false, trainerRequestEnabled: false));
         await AddPlanWithSessionsLeftAsync(await AddMemberAsync(), left, sessions: sessions);
         var sender = new ScriptedSmsSender();
 
@@ -712,7 +712,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: kind == NotificationKind.Absence ? on : SmsKindSettings.Off,
-            broadcastEnabled: false));
+            broadcastEnabled: false, trainerRequestEnabled: false));
     }
 
     private Task TurnOnBothSubscriptionKindsAsync() => SaveSettingsAsync(settings => settings.Update(
@@ -731,7 +731,7 @@ public sealed class SendDailySmsTests(DatabaseFixture fixture) : DatabaseTestBas
         debtReminder: SmsKindSettings.Off,
         debtReminderMinAmount: null,
         absence: SmsKindSettings.Off,
-        broadcastEnabled: false));
+        broadcastEnabled: false, trainerRequestEnabled: false));
 
     private async Task SaveSettingsAsync(Func<SmsSettings, Result> update)
     {

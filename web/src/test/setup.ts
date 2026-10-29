@@ -4,6 +4,8 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
 import { sessionStore } from "@/features/auth/session";
+import { siteSessionStore } from "@/site/auth/session";
+import { signUpTicketStore } from "@/site/auth/signUpTicket";
 
 // jsdom measures nothing and has no ResizeObserver, which the dashboard's charts (Recharts,
 // `responsive`) listen with. Set on the global directly rather than with vi.stubGlobal, which the
@@ -37,6 +39,8 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   sessionStore.reset();
+  siteSessionStore.reset();
+  signUpTicketStore.clear();
   document.documentElement.classList.remove("dark");
   localStorage.clear();
 });

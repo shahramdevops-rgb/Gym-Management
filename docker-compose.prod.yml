@@ -15,8 +15,9 @@ name: gym-prod
 # same missing settings the API would.
 x-api-environment: &api-environment
   ASPNETCORE_ENVIRONMENT: Production
-  # Only requests for our own domain are answered (Caddy passes the Host header through).
-  AllowedHosts: ${DOMAIN:?set DOMAIN in .env}
+  # Only requests for our own two hosts are answered (Caddy passes the Host header through): the
+  # panel's, and the site app's, which calls /api/site on its own host (roadmap 15.3b).
+  AllowedHosts: ${DOMAIN:?set DOMAIN in .env};${SITE_DOMAIN:?set SITE_DOMAIN in .env}
   # Trust X-Forwarded-For only from Caddy's network. Same value as the pinned subnet at the
   # bottom of this file, from one variable so the two cannot drift.
   ForwardedHeaders__TrustedNetwork: ${GYM_SUBNET:-172.28.0.0/24}
@@ -25,6 +26,10 @@ x-api-environment: &api-environment
   ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER}
   Postgres__Password: ${POSTGRES_PASSWORD}
   Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env (at least 32 random bytes)}
+  # The site's one-time codes are computed with it (BUSINESS_RULES.md §15); never in the database.
+  SiteAuth__CodeSecret: ${SITE_CODE_SECRET:?set SITE_CODE_SECRET in .env (at least 32 random bytes)}
+  # Signs the site's tokens (ADR 0010); must differ from JWT_SIGNING_KEY, or the API will not start.
+  SiteAuth__SigningKey: ${SITE_JWT_SIGNING_KEY:?set SITE_JWT_SIGNING_KEY in .env (at least 32 random bytes)}
   Seed__OwnerUserName: ${SEED_OWNER_USERNAME:?set SEED_OWNER_USERNAME in .env}
   Seed__OwnerPassword: ${SEED_OWNER_PASSWORD:?set SEED_OWNER_PASSWORD in .env}
   # SMS (BUSINESS_RULES.md §10). Left out of .env, the provider stays Fake and nothing is sent.
@@ -134,6 +139,8 @@ services:
       # The panel's own host. AllowedHosts above is the same value: the API answers to this
       # name and no other.
       DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      # The members' and trainers' app (ADR 0010); in AllowedHosts above too.
+      SITE_DOMAIN: ${SITE_DOMAIN:?set SITE_DOMAIN in .env}
       # The gym's public page, served from static files. Unset means no public site is served.
       PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-no-public-site}
       # Optional second domain, permanently redirected to the public page. Unset means no redirect.

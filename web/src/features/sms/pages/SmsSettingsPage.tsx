@@ -321,6 +321,13 @@ function SmsSettingsForm({ current, notice, onNotice, onStale, stale }: SmsSetti
         </KindSection>
       </div>
 
+      <KindSection title="پیامک به مربیان" description="به شمارهٔ موبایل خود مربی.">
+        <TrainerRequestFieldset
+          form={form}
+          morningSendTime={current.trainerRequest.morningSendTime}
+        />
+      </KindSection>
+
       <div className="sticky bottom-0 z-10 border-t bg-background/95 py-3 backdrop-blur">
         <SaveRow error={errors.root?.server?.message} notice={notice} stale={stale}>
           <Button type="submit" disabled={isSubmitting}>
@@ -341,7 +348,7 @@ interface KindSectionProps {
   columns?: string;
 }
 
-/** A group of kinds by who receives them: the members, the Owner, or the broadcast. */
+/** A group of kinds by who receives them: the members, the Owner, the broadcast, or the trainers. */
 function KindSection({
   title,
   description,
@@ -808,6 +815,29 @@ function WelcomeFieldset({ form, morningSendTime }: WelcomeFieldsetProps) {
       description={`یک بار برای هر عضو، وقتی اولین پلنش فروخته شد، پرداخت‌شده یا نسیه. همان لحظه فرستاده می‌شود؛ فروشی که بعد از ساعت ۲۲ ثبت شود، صبح روز بعد ساعت ${morning}. عضوی که قبلاً پلن داشته، و تک‌جلسه، خوش‌آمد نمی‌گیرد.`}
       preview={<SamplePreview kind="welcome" />}
       toggle={<OnSwitch {...form.register("welcome.enabled")} />}
+    />
+  );
+}
+
+interface TrainerRequestFieldsetProps {
+  form: UseFormReturn<SmsSettingsValues>;
+  /** `HH:mm:ss` from the API: when the SMS for a request after 22:00 goes, fixed in the code. */
+  morningSendTime: string;
+}
+
+/**
+ * The trainer's SMS (BUSINESS_RULES.md §15 *A member and their trainer*, task 15.4c): only a switch.
+ * It goes to the trainer's own number when a member picks them in the site app.
+ */
+function TrainerRequestFieldset({ form, morningSendTime }: TrainerRequestFieldsetProps) {
+  const morning = toPersianDigits(morningSendTime.slice(0, 5));
+
+  return (
+    <KindCard
+      title="انتخاب مربی"
+      description={`وقتی عضوی در اپ باشگاه مربی را انتخاب می‌کند، به خود مربی. همان لحظه فرستاده می‌شود؛ درخواستی که بعد از ساعت ۲۲ ثبت شود، صبح روز بعد ساعت ${morning}، اگر هنوز در انتظار پاسخ باشد. برای هر عضو و هر مربی روزی یک پیامک؛ درخواست‌های بعدی همان روز فقط در اپ دیده می‌شوند.`}
+      preview={<SamplePreview kind="trainerRequest" />}
+      toggle={<OnSwitch {...form.register("trainerRequest.enabled")} />}
     />
   );
 }

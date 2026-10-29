@@ -665,6 +665,149 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Coaching.TrainerLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("EndReason")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("end_reason");
+
+                    b.Property<DateOnly?>("EndedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("ended_on");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("request_id");
+
+                    b.Property<DateOnly>("StartedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("started_on");
+
+                    b.Property<Guid>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trainer_links");
+
+                    b.HasIndex("RequestId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_trainer_links_request_id");
+
+                    b.HasIndex("TrainerId", "EndedOn")
+                        .HasDatabaseName("ix_trainer_links_trainer_id_ended_on");
+
+                    b.HasIndex(new[] { "MemberId" }, "OneOpenLink")
+                        .IsUnique()
+                        .HasDatabaseName("ix_trainer_links_member_id_open")
+                        .HasFilter("ended_on IS NULL");
+
+                    b.ToTable("trainer_links", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_trainer_links_end_reason", "end_reason IS NULL OR end_reason IN ('ByMember', 'ByTrainer', 'NewTrainer', 'TrainerStopped')");
+
+                            t.HasCheckConstraint("ck_trainer_links_end_reason_with_ended_on", "(ended_on IS NULL) = (end_reason IS NULL)");
+
+                            t.HasCheckConstraint("ck_trainer_links_ended_on_not_before_started_on", "ended_on IS NULL OR ended_on >= started_on");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.Coaching.TrainerRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateOnly>("RequestedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("requested_on");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trainer_requests");
+
+                    b.HasIndex("TrainerId", "Status")
+                        .HasDatabaseName("ix_trainer_requests_trainer_id_status");
+
+                    b.HasIndex(new[] { "MemberId" }, "OnePendingRequest")
+                        .IsUnique()
+                        .HasDatabaseName("ix_trainer_requests_member_id_pending")
+                        .HasFilter("status = 'Pending'");
+
+                    b.ToTable("trainer_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_trainer_requests_status", "status IN ('Pending', 'Accepted', 'Declined', 'Cancelled', 'Replaced', 'TrainerStopped')");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Expenses.Expense", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1631,6 +1774,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("text");
 
+                    b.Property<Guid?>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1663,6 +1810,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_notifications_one_daily_report_per_day")
                         .HasFilter("kind = 'DailyReport'");
 
+                    b.HasIndex("TrainerId")
+                        .HasDatabaseName("ix_notifications_trainer_id");
+
                     b.HasIndex("BroadcastId", "MemberId")
                         .IsUnique()
                         .HasDatabaseName("ix_notifications_one_per_broadcast_and_member")
@@ -1682,6 +1832,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_notifications_one_per_subscription_and_kind")
                         .HasFilter("subscription_id IS NOT NULL");
+
+                    b.HasIndex("MemberId", "TrainerId", "ReportDate")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_trainer_request_per_member_trainer_and_day")
+                        .HasFilter("kind = 'TrainerRequest'");
 
                     b.HasIndex(new[] { "MemberId", "AbsentSince" }, "ix_notifications_one_absence_per_member_and_absence")
                         .IsUnique()
@@ -1705,9 +1860,9 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_notifications_delivery_only_when_sent", "delivery IS NULL OR status = 'Sent'");
 
-                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind IN ('Absence', 'WelcomeBack') AND member_id IS NOT NULL AND absent_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL)");
+                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind IN ('Absence', 'WelcomeBack') AND member_id IS NOT NULL AND absent_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL) OR (kind = 'TrainerRequest' AND member_id IS NOT NULL AND report_date IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL)");
 
-                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack')");
+                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack', 'TrainerRequest')");
 
                             t.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
 
@@ -1718,6 +1873,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_notifications_status", "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
 
                             t.HasCheckConstraint("ck_notifications_text_not_blank", "btrim(text) <> ''");
+
+                            t.HasCheckConstraint("ck_notifications_trainer_only_for_trainer_request", "(kind = 'TrainerRequest') = (trainer_id IS NOT NULL)");
                         });
                 });
 
@@ -1940,6 +2097,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("subscription_receipt_enabled");
 
+                    b.Property<bool>("TrainerRequestEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("trainer_request_enabled");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -2026,6 +2187,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             PayableDueEnabled = false,
                             SubscriptionExpiringEnabled = false,
                             SubscriptionReceiptEnabled = false,
+                            TrainerRequestEnabled = false,
                             WelcomeBackEnabled = false,
                             WelcomeEnabled = false
                         });
@@ -2440,6 +2602,295 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SignInCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CodeSeed")
+                        .IsRequired()
+                        .HasMaxLength(22)
+                        .HasColumnType("character varying(22)")
+                        .HasColumnName("code_seed");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_at");
+
+                    b.Property<long?>("LastProviderMessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_provider_message_id");
+
+                    b.Property<DateTimeOffset>("LastSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_sent_at");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("phone_number");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("WrongTries")
+                        .HasColumnType("integer")
+                        .HasColumnName("wrong_tries");
+
+                    b.Property<DateOnly?>("WrongTriesOn")
+                        .HasColumnType("date")
+                        .HasColumnName("wrong_tries_on");
+
+                    b.Property<int>("WrongTriesThatDay")
+                        .HasColumnType("integer")
+                        .HasColumnName("wrong_tries_that_day");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sign_in_codes");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sign_in_codes_phone_number");
+
+                    b.ToTable("sign_in_codes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sign_in_codes_expires_after_issue", "expires_at > issued_at");
+
+                            t.HasCheckConstraint("ck_sign_in_codes_sent_after_issue", "last_sent_at >= issued_at");
+
+                            t.HasCheckConstraint("ck_sign_in_codes_used_after_issue", "used_at IS NULL OR used_at >= issued_at");
+
+                            t.HasCheckConstraint("ck_sign_in_codes_wrong_tries_counted_with_their_day", "(wrong_tries_on IS NULL AND wrong_tries_that_day = 0) OR (wrong_tries_on IS NOT NULL AND wrong_tries_that_day > 0)");
+
+                            t.HasCheckConstraint("ck_sign_in_codes_wrong_tries_in_range", "wrong_tries >= 0 AND wrong_tries <= 5");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SignInCodeSend", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("CostRial")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("cost_rial");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsSendAgain")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_send_again");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("phone_number");
+
+                    b.Property<long?>("ProviderMessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("provider_message_id");
+
+                    b.Property<DateTimeOffset>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sign_in_code_sends");
+
+                    b.HasIndex("SentAt")
+                        .HasDatabaseName("ix_sign_in_code_sends_sent_at");
+
+                    b.HasIndex("PhoneNumber", "SentAt")
+                        .HasDatabaseName("ix_sign_in_code_sends_phone_number_sent_at");
+
+                    b.ToTable("sign_in_code_sends", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sign_in_code_sends_cost_not_negative", "cost_rial IS NULL OR cost_rial >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SiteAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("LastSignedInAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_signed_in_at");
+
+                    b.Property<Guid?>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<Guid?>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_site_accounts");
+
+                    b.HasIndex("MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_site_accounts_member_id");
+
+                    b.HasIndex("TrainerId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_site_accounts_trainer_id");
+
+                    b.ToTable("site_accounts", (string)null);
+                });
+
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SiteRefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("family_id");
+
+                    b.Property<Guid?>("ReplacedByTokenId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replaced_by_token_id");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("RevokedReason")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("revoked_reason");
+
+                    b.Property<Guid>("SiteAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_account_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_site_refresh_tokens");
+
+                    b.HasIndex("FamilyId")
+                        .HasDatabaseName("ix_site_refresh_tokens_family_id");
+
+                    b.HasIndex("ReplacedByTokenId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_site_refresh_tokens_replaced_by_token_id");
+
+                    b.HasIndex("SiteAccountId")
+                        .HasDatabaseName("ix_site_refresh_tokens_site_account_id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_site_refresh_tokens_token_hash");
+
+                    b.ToTable("site_refresh_tokens", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_site_refresh_tokens_replaced_only_when_rotated", "replaced_by_token_id IS NULL OR revoked_reason = 'Rotated'");
+
+                            t.HasCheckConstraint("ck_site_refresh_tokens_revocation_complete", "(revoked_at IS NULL) = (revoked_reason IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Subscriptions.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2545,6 +2996,110 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_subscriptions_total_sessions_range", "is_single_session OR total_sessions BETWEEN 5 AND 30 OR (cancelled_at IS NOT NULL AND total_sessions BETWEEN 5 AND 140)");
 
                             t.HasCheckConstraint("ck_subscriptions_used_sessions", "used_sessions >= 0 AND used_sessions <= total_sessions");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.Trainers.Trainer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("full_name");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("phone_number");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trainers");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_trainers_phone_number");
+
+                    b.ToTable("trainers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_trainers_full_name_not_blank", "btrim(full_name) <> ''");
+
+                            t.HasCheckConstraint("ck_trainers_phone_number_e164", "phone_number ~ '^\\+[0-9]{7,15}$'");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.Trainers.TrainerPeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly?>("EndedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("ended_on");
+
+                    b.Property<DateOnly>("StartedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("started_on");
+
+                    b.Property<Guid>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trainer_periods");
+
+                    b.HasIndex(new[] { "TrainerId" }, "OneOpenPeriod")
+                        .IsUnique()
+                        .HasDatabaseName("ix_trainer_periods_trainer_id_open")
+                        .HasFilter("ended_on IS NULL");
+
+                    b.ToTable("trainer_periods", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_trainer_periods_ended_on_not_before_started_on", "ended_on IS NULL OR ended_on >= started_on");
                         });
                 });
 
@@ -2910,6 +3465,47 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_products_product_categories_category_id");
                 });
 
+            modelBuilder.Entity("Gym.Domain.Coaching.TrainerLink", b =>
+                {
+                    b.HasOne("Gym.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_trainer_links_members_member_id");
+
+                    b.HasOne("Gym.Domain.Coaching.TrainerRequest", null)
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_trainer_links_trainer_requests_request_id");
+
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany()
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_trainer_links_trainers_trainer_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Coaching.TrainerRequest", b =>
+                {
+                    b.HasOne("Gym.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_trainer_requests_members_member_id");
+
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany()
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_trainer_requests_trainers_trainer_id");
+                });
+
             modelBuilder.Entity("Gym.Domain.Expenses.Expense", b =>
                 {
                     b.HasOne("Gym.Domain.Expenses.ExpenseCategory", null)
@@ -2964,6 +3560,12 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasForeignKey("SubscriptionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_notifications_subscriptions_subscription_id");
+
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany()
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_notifications_trainers_trainer_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Payables.Payable", b =>
@@ -3052,6 +3654,37 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_service_charges_asp_net_users_voided_by_user_id");
                 });
 
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SiteAccount", b =>
+                {
+                    b.HasOne("Gym.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_site_accounts_members_member_id");
+
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany()
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_site_accounts_trainers_trainer_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.SiteAuth.SiteRefreshToken", b =>
+                {
+                    b.HasOne("Gym.Domain.SiteAuth.SiteRefreshToken", null)
+                        .WithOne()
+                        .HasForeignKey("Gym.Domain.SiteAuth.SiteRefreshToken", "ReplacedByTokenId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_site_refresh_tokens_site_refresh_tokens_replaced_by_token_id");
+
+                    b.HasOne("Gym.Domain.SiteAuth.SiteAccount", null)
+                        .WithMany()
+                        .HasForeignKey("SiteAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_site_refresh_tokens_site_accounts_site_account_id");
+                });
+
             modelBuilder.Entity("Gym.Domain.Subscriptions.Subscription", b =>
                 {
                     b.HasOne("Gym.Domain.Members.Member", null)
@@ -3060,6 +3693,16 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_subscriptions_members_member_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Trainers.TrainerPeriod", b =>
+                {
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany("Periods")
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_trainer_periods_trainers_trainer_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -3122,6 +3765,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Gym.Domain.Cafe.CafeOrder", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Trainers.Trainer", b =>
+                {
+                    b.Navigation("Periods");
                 });
 #pragma warning restore 612, 618
         }

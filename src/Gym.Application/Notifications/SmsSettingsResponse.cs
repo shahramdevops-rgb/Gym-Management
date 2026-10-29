@@ -19,6 +19,7 @@ public sealed record SmsSettingsResponse(
     DebtReminderSettings DebtReminder,
     SmsKindSettings Absence,
     BroadcastSettings Broadcast,
+    TrainerRequestSettingsResponse TrainerRequest,
     uint Version)
 {
     public static SmsSettingsResponse From(SmsSettings settings)
@@ -43,6 +44,7 @@ public sealed record SmsSettingsResponse(
                 settings.DebtReminderMinAmount),
             settings.For(NotificationKind.Absence),
             new BroadcastSettings(settings.BroadcastEnabled),
+            new TrainerRequestSettingsResponse(settings.TrainerRequestEnabled, SmsSettings.MorningSendTime),
             settings.Version);
     }
 }

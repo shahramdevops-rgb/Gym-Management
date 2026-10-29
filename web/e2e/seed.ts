@@ -80,16 +80,7 @@ export async function changeOwnerPassword(api: APIRequestContext) {
  */
 export async function seedFrontDesk(api: APIRequestContext) {
   const ownerToken = await changeOwnerPassword(api);
-
-  const pricesResponse = await api.get("/api/pricing", {
-    headers: { Authorization: `Bearer ${ownerToken}` },
-  });
-  const { version } = (await pricesResponse.json()) as { version: number };
-  await send(api, ownerToken, "PUT", "/api/pricing", {
-    sessionPrice: 90_000,
-    singleVisitPrice: 150_000,
-    version,
-  });
+  await setPrices(api, ownerToken);
 
   await send(api, ownerToken, "POST", "/api/staff", {
     userName: staff.userName,
@@ -108,4 +99,72 @@ export async function seedFrontDesk(api: APIRequestContext) {
   await send(api, ownerToken, "POST", `/api/members/${created!.id}/subscriptions`, {
     sessionCount: 10,
   });
+}
+
+/** The prices every plan is sold at; setting them twice changes nothing. */
+async function setPrices(api: APIRequestContext, token: string) {
+  const pricesResponse = await api.get("/api/pricing", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const { version } = (await pricesResponse.json()) as { version: number };
+  await send(api, token, "PUT", "/api/pricing", {
+    sessionPrice: 90_000,
+    singleVisitPrice: 150_000,
+    version,
+  });
+}
+
+/**
+ * The Owner's token whether or not an earlier spec already made the first login: the specs share
+ * one stack, and any of them may run alone.
+ */
+async function ownerToken(api: APIRequestContext) {
+  const response = await api.post("/api/auth/login", {
+    data: { userName: owner.userName, password: ownerPassword },
+  });
+  return response.ok()
+    ? ((await response.json()) as Session).accessToken
+    : changeOwnerPassword(api);
+}
+
+/** A trainer the Owner adds in «مربیان» (15.2); the phone as typed, `09…`. */
+export async function seedTrainer(
+  api: APIRequestContext,
+  trainer: { fullName: string; phoneNumber: string },
+) {
+  await send(api, await ownerToken(api), "POST", "/api/trainers", trainer);
+}
+
+/**
+ * A member as the desk leaves them after a few days (15.5b): a 12-session plan with part of it
+ * paid by card, and one visit with locker 7, checked out. The phone as typed, `09…`.
+ */
+export async function seedMemberWithRecords(
+  api: APIRequestContext,
+  member: { fullName: string; phoneNumber: string; birthDate: string },
+) {
+  const token = await ownerToken(api);
+  await setPrices(api, token);
+
+  const created = await send(api, token, "POST", "/api/members", { ...member, notes: null });
+  const plan = await send(api, token, "POST", `/api/members/${created!.id}/subscriptions`, {
+    sessionCount: 12,
+  });
+  await send(api, token, "POST", `/api/subscriptions/${plan!.id}/payments`, {
+    amount: 500_000,
+    method: "Card",
+    referenceNumber: null,
+  });
+
+  const lockersResponse = await api.get("/api/lockers?PageSize=100", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const lockers = (await lockersResponse.json()) as { items: { id: string; number: number }[] };
+  const locker = lockers.items.find((item) => item.number === 7);
+  expect(locker, "locker 7").toBeDefined();
+
+  const visit = await send(api, token, "POST", `/api/members/${created!.id}/attendance/check-in`, {
+    lockerId: locker!.id,
+  });
+  await send(api, token, "POST", `/api/attendance/${visit!.id}/check-out`, undefined);
 }

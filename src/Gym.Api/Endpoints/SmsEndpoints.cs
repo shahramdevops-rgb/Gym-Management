@@ -9,6 +9,7 @@ using Gym.Application.Notifications.Broadcasts.ListBroadcasts;
 using Gym.Application.Notifications.Broadcasts.PreviewBroadcast;
 using Gym.Application.Notifications.Broadcasts.ResumeBroadcast;
 using Gym.Application.Notifications.Broadcasts.SendBroadcast;
+using Gym.Application.Notifications.GetSignInCodeSms;
 using Gym.Application.Notifications.GetSmsCredit;
 using Gym.Application.Notifications.GetSmsSamples;
 using Gym.Application.Notifications.GetSmsSettings;
@@ -64,6 +65,13 @@ public static class SmsEndpoints
             .RequireAuthorization(Policies.OwnerOnly)
             .WithName("GetSmsCredit")
             .Produces<SmsCreditResponse>();
+
+        // The site's sign-in codes: counts and cost only, never a code (BUSINESS_RULES.md §15).
+        sms.MapGet("/sign-in-codes", async (GetSignInCodeSmsHandler handler, CancellationToken ct) =>
+                Results.Ok(await handler.Handle(ct)))
+            .RequireAuthorization(Policies.OwnerOnly)
+            .WithName("GetSignInCodeSms")
+            .Produces<SignInCodeSmsResponse>();
 
         sms.MapGet("/messages", async (
                 [AsParameters] ListSmsMessagesQuery query,

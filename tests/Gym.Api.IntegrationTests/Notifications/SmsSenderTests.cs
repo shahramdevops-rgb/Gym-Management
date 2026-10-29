@@ -24,6 +24,8 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
     private const string Line = "2000500666";
     private const string Listed = "+989121234567";
     private const string NotListed = "+989359876543";
+    private const string Template = "gymExpiring";
+    private const string SecretCode = "73916";
 
     private static readonly SmsMessage Message = To(Listed);
 
@@ -35,6 +37,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
         await using var scope = fixture.CreateScope();
 
         scope.ServiceProvider.GetRequiredService<ISmsSender>().ShouldBeOfType<FakeSmsSender>();
+        scope.ServiceProvider.GetRequiredService<IVerificationCodeSender>().ShouldBeOfType<FakeSmsSender>();
         scope.ServiceProvider.GetRequiredService<ISmsAccount>().ShouldBeOfType<FakeSmsSender>();
     }
 
@@ -83,6 +86,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
         using var app = Build(environment, SmsProviders.Fake);
 
         app.Sender.ShouldBeOfType<FakeSmsSender>();
+        app.CodeSender.ShouldBeOfType<FakeSmsSender>();
         app.Account.ShouldBeOfType<FakeSmsSender>();
     }
 
@@ -92,6 +96,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
         using var app = Build("Production", SmsProviders.Kavenegar);
 
         app.Sender.ShouldBeOfType<KavenegarSmsSender>();
+        app.CodeSender.ShouldBeOfType<KavenegarSmsSender>();
         app.Account.ShouldBeOfType<KavenegarSmsSender>();
     }
 
@@ -103,6 +108,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
         using var app = Build(environment, SmsProviders.Kavenegar);
 
         app.Sender.ShouldBeOfType<AllowListSmsSender>();
+        app.CodeSender.ShouldBeOfType<AllowListSmsSender>();
         app.Account.ShouldBeOfType<KavenegarSmsSender>();
     }
 
@@ -130,6 +136,42 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
         Fields(app.Kavenegar.Requests.ShouldHaveSingleItem().Body).ShouldContain("receptor=09121234567");
         listed.ProviderMessageId.ShouldBe(StubMessageId);
         notListed.CostRial.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task SendCodeAsync_KavenegarOutsideProduction_ReachesOnlyTheListedNumbers()
+    {
+        // BUSINESS_RULES.md §15: the developer tests the site's codes with their own phones only.
+        using var app = Build("Development", SmsProviders.Kavenegar, allowed: [Listed]);
+
+        var listed = await app.CodeSender.SendCodeAsync(new(Listed, SecretCode, 60), TestContext.Current.CancellationToken);
+        var notListed = await app.CodeSender.SendCodeAsync(new(NotListed, SecretCode, 60), TestContext.Current.CancellationToken);
+
+        var request = app.Kavenegar.Requests.ShouldHaveSingleItem();
+        request.Uri.AbsolutePath.ShouldEndWith("/verify/lookup.json");
+        Fields(request.Body).ShouldContain("receptor=09121234567");
+        listed.ProviderMessageId.ShouldBe(StubMessageId);
+        notListed.CostRial.ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task SendCodeAsync_ListedAndNotListed_NeverWritesTheCodeToTheLogs()
+    {
+        // Development: the listed number reaches the stub, the other one the fake sender; both
+        // log a line, neither the code. (In Production a sent code logs nothing at all.)
+        using var app = Build("Development", SmsProviders.Kavenegar, allowed: [Listed]);
+
+        await app.CodeSender.SendCodeAsync(new(Listed, SecretCode, 60), TestContext.Current.CancellationToken);
+        await app.CodeSender.SendCodeAsync(new(NotListed, SecretCode, 60), TestContext.Current.CancellationToken);
+
+        app.Logs.ShouldNotBeEmpty();
+        app.Logs.ShouldAllBe(line => !line.Contains(SecretCode));
+    }
+
+    [Fact]
+    public void VerificationCodeMessage_ToString_LeavesOutTheCode()
+    {
+        new VerificationCodeMessage(Listed, SecretCode, 60).ToString().ShouldNotContain(SecretCode);
     }
 
     [Fact]
@@ -227,6 +269,21 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
 
         result.Failed.ShouldBeTrue();
         result.FailureMessage.ShouldContain("Sms:Kavenegar:Sender");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void SmsOptionsValidator_KavenegarWithNoVerifyTemplate_Fails(string template)
+    {
+        var options = Valid();
+        options.Provider = SmsProviders.Kavenegar;
+        options.Kavenegar.VerifyTemplate = template;
+
+        var result = Validate(options);
+
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain("Sms:Kavenegar:VerifyTemplate");
     }
 
     [Fact]
@@ -343,7 +400,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
         Provider = SmsProviders.Fake,
         MaxAttempts = 3,
         RetryDelays = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5)],
-        Kavenegar = { ApiKey = ApiKey, Sender = Line },
+        Kavenegar = { ApiKey = ApiKey, Sender = Line, VerifyTemplate = Template },
     };
 
     private static Microsoft.Extensions.Options.ValidateOptionsResult Validate(SmsOptions options, string environment = "Development") =>
@@ -365,6 +422,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
             ["Sms:RetryDelays:1"] = "00:05:00",
             ["Sms:Kavenegar:ApiKey"] = ApiKey,
             ["Sms:Kavenegar:Sender"] = Line,
+            ["Sms:Kavenegar:VerifyTemplate"] = Template,
         };
         for (var i = 0; i < (allowed ?? []).Length; i++)
         {
@@ -376,7 +434,7 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
         // The delivery question is refused, so the sender itself writes a line the key could be in.
         var kavenegar = new StubKavenegar(request => request.RequestUri!.AbsolutePath switch
         {
-            var path when path.EndsWith("/sms/send.json", StringComparison.Ordinal) =>
+            var path when path.EndsWith("/sms/send.json", StringComparison.Ordinal) || path.EndsWith("/verify/lookup.json", StringComparison.Ordinal) =>
                 StubKavenegar.Answer(200, $$"""[{"messageid":{{StubMessageId}},"cost":1350}]"""),
             var path when path.EndsWith("/sms/status.json", StringComparison.Ordinal) => StubKavenegar.Answer(409),
             _ => StubKavenegar.Answer(200, """{"remaincredit":1250000}"""),
@@ -397,6 +455,8 @@ public sealed class SmsSenderTests(DatabaseFixture fixture)
     private sealed class BuiltSms(ServiceProvider provider, IServiceScope scope, StubKavenegar kavenegar, List<string> logs) : IDisposable
     {
         public ISmsSender Sender => scope.ServiceProvider.GetRequiredService<ISmsSender>();
+
+        public IVerificationCodeSender CodeSender => scope.ServiceProvider.GetRequiredService<IVerificationCodeSender>();
 
         public ISmsAccount Account => scope.ServiceProvider.GetRequiredService<ISmsAccount>();
 

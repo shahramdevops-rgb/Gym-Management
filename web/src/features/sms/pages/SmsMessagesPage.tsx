@@ -20,6 +20,7 @@ import { paths } from "@/app/paths";
 import { dateFromParams, pageFromParams } from "@/lib/searchParams";
 
 import { useSmsMessages, type SmsMessageKind, type SmsMessageStatus } from "../api";
+import { SignInCodeSmsCard } from "../components/SignInCodeSmsCard";
 import { SmsCreditLine } from "../components/SmsCreditLine";
 import { SmsMessagesTable } from "../components/SmsMessagesTable";
 import { smsKindLabels, smsStatusLabels } from "../labels";
@@ -108,6 +109,8 @@ export function SmsMessagesPage() {
       />
 
       <SmsCreditLine />
+
+      <SignInCodeSmsCard />
 
       <Card>
         <CardHeader>

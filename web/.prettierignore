@@ -1,4 +1,5 @@
 dist
+dist-site
 coverage
 src/lib/api/schema.d.ts
 playwright-report

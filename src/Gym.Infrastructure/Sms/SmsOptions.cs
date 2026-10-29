@@ -60,6 +60,13 @@ public sealed class KavenegarOptions
     /// server (BUSINESS_RULES.md §10 <i>Sending</i>).
     /// </summary>
     public string Sender { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The verification template the site's one-time codes are sent as (BUSINESS_RULES.md §15):
+    /// <c>gymExpiring</c>, made in the Kavenegar account by the developer. Not a secret; in
+    /// appsettings.json.
+    /// </summary>
+    public string VerifyTemplate { get; set; } = string.Empty;
 }
 
 /// <summary>The values <see cref="SmsOptions.Provider"/> accepts.</summary>
@@ -98,6 +105,12 @@ public sealed partial class SmsOptionsValidator(IHostEnvironment environment) : 
         {
             return ValidateOptionsResult.Fail(
                 "Sms:Kavenegar:Sender, the dedicated line's number in digits, is required when Sms:Provider is Kavenegar.");
+        }
+
+        if (options.Provider == SmsProviders.Kavenegar && string.IsNullOrWhiteSpace(options.Kavenegar.VerifyTemplate))
+        {
+            return ValidateOptionsResult.Fail(
+                "Sms:Kavenegar:VerifyTemplate, the template the site's one-time codes go as, is required when Sms:Provider is Kavenegar.");
         }
 
         if (options.MaxAttempts < 1 || options.MaxAttempts > SmsOptions.MaxAttemptsLimit)

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { errorMessages } from "@/lib/errors";
-import { gymToday, isoYearsAgo } from "@/lib/format";
+import { memberBirthDate, memberFullName } from "@/lib/memberFields";
 
 /** The Persian text for a code. Throws at import if the catalogue lacks it, so a typo fails every test. */
 function message(code: string): string {
@@ -15,43 +15,20 @@ function message(code: string): string {
 /**
  * The same limits as the API's MemberRules (docs/BUSINESS_RULES.md §2), with the same Persian
  * messages the API's error codes map to, so a mistake reads the same whichever side caught it.
+ * The name and birth date are shared with the site's sign-up (`lib/memberFields.ts`).
  *
  * Whether a phone number is a real Iranian mobile, and whether another member already has it,
  * only the server can say (libphonenumber, the unique index). The form shows those answers
  * under the phone field.
  */
-/** docs/BUSINESS_RULES.md §2, and Member.MaxAgeYears on the API side. */
-export const maxAgeYears = 120;
-
 export const memberSchema = z.object({
-  fullName: z
-    .string()
-    .trim()
-    .min(1, message("Members.FullNameRequired"))
-    .max(200, message("Members.FullNameTooLong")),
+  fullName: memberFullName,
   phoneNumber: z
     .string()
     .trim()
     .min(1, message("Members.PhoneRequired"))
     .max(30, message("Members.PhoneInvalid")),
-  /**
-   * An ISO business date or empty: BirthDateField never produces anything else. Empty is refused
-   * (Members.BirthDateRequired: every member has one). The range rules are the entity's
-   * (Members.BirthDateInFuture, Members.BirthDateTooOld), repeated here so the form can answer
-   * before the request, with the same Persian text the API's codes map to.
-   *
-   * ISO dates are fixed-width and zero-padded, so comparing them as strings is comparing them as
-   * dates. gymToday() is called per validation, not captured at import: a tab left open
-   * overnight must not keep validating against yesterday.
-   */
-  birthDate: z
-    .string()
-    .min(1, message("Members.BirthDateRequired"))
-    .refine((value) => value === "" || value <= gymToday(), message("Members.BirthDateInFuture"))
-    .refine(
-      (value) => value === "" || value >= isoYearsAgo(gymToday(), maxAgeYears),
-      message("Members.BirthDateTooOld"),
-    ),
+  birthDate: memberBirthDate,
   notes: z.string().trim().max(1000, message("Members.NotesTooLong")),
 });
 

@@ -53,7 +53,8 @@ public sealed class SmsSettingsTests
             debtReminder: new(true, 30, new TimeOnly(11, 0)),
             debtReminderMinAmount: 500_000m,
             absence: new(true, 14, new TimeOnly(11, 30)),
-            broadcastEnabled: true);
+            broadcastEnabled: true,
+            trainerRequestEnabled: true);
 
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
@@ -77,6 +78,8 @@ public sealed class SmsSettingsTests
         settings.For(NotificationKind.Absence).ShouldBe(new SmsKindSettings(true, 14, new TimeOnly(11, 30)));
         settings.BroadcastEnabled.ShouldBeTrue();
         settings.For(NotificationKind.Broadcast).ShouldBe(new SmsKindSettings(true, null, null));
+        settings.TrainerRequestEnabled.ShouldBeTrue();
+        settings.For(NotificationKind.TrainerRequest).ShouldBe(new SmsKindSettings(true, null, null));
     }
 
     [Fact]
@@ -660,7 +663,8 @@ public sealed class SmsSettingsTests
         SmsKindSettings? debtReminder = null,
         decimal? debtReminderMinAmount = null,
         SmsKindSettings? absence = null,
-        bool broadcastEnabled = false) =>
+        bool broadcastEnabled = false,
+        bool trainerRequestEnabled = false) =>
         settings.Update(
             enabled,
             subscriptionExpiring ?? SmsKindSettings.Off,
@@ -677,7 +681,8 @@ public sealed class SmsSettingsTests
             debtReminder ?? SmsKindSettings.Off,
             debtReminderMinAmount,
             absence ?? SmsKindSettings.Off,
-            broadcastEnabled);
+            broadcastEnabled,
+            trainerRequestEnabled);
 
     /// <summary>
     /// The one row the migration seeds. There is no public constructor, on purpose: nothing in the

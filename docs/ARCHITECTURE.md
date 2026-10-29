@@ -99,6 +99,8 @@ group.MapPost("/", async (CreateMemberCommand command, CreateMemberHandler handl
     .RequireAuthorization(Policies.StaffOrOwner);
 ```
 
+Two sign-ins, never mixed (ADR 0010): staff policies (`OwnerOnly`, `StaffOrOwner`, `PasswordChangeAllowed`, the fallback) name `AuthSchemes.Staff`; the site's (`SiteAccount`) names `AuthSchemes.Site`. A new policy names its scheme too. A site endpoint reads its account from the `site_account` claim, never `sub`; `SchemeSeparationTests` calls every endpoint with the other kind of token.
+
 ### Errors
 `Error(Code, Description, ErrorType)`. Codes look like `Members.PhoneAlreadyExists`.
 
@@ -211,8 +213,27 @@ web/src/
 │   ├── format.ts   Persian digits, money, Jalali dates both ways (Intl out, date-fns-jalali in)
 │   ├── normalize.ts  Persian/Arabic characters and digits
 │   └── errors.ts   API error code → Persian message
+├── site/           The site app for members and trainers (roadmap 15.3): its own pages, session and client
 └── main.tsx
+web/site/           The site app's page (index.html), entry (main.ts) and public files
 ```
+
+- **Two apps in one `web/` (ADR 0010, roadmap 15.3).** The panel is `index.html` + `src/main.tsx` (`vite.config.ts`);
+  the members' and trainers' site app is `site/index.html` + `src/site/` (`vite.site.config.ts`, root `site/`, built
+  into `dist-site/`, `npm run dev:site` on :5174). They share `lib/` and `components/` only. The site never imports
+  `app/`, `features/` or the panel's client and `authFetch`, and the panel never imports `site/`:
+  `src/site/boundary.test.ts` checks both. Anything both need goes in `lib/` (`jwt.ts`, `memberFields.ts`,
+  `api/emptyFailureAsProblem.ts`, `staleChunkReload.ts`). The site has its own session (`site/auth/session.ts`), fetch
+  (`site/api/siteAuthFetch.ts`, refresh `/api/site/auth/refresh`, Web Lock `gym-site-refresh`) and client
+  (`siteApi`); a site token is never sent to a staff endpoint. Its tests run with the panel's (`npm test`), through
+  `src/site/test/renderSite.tsx`. Its first download stays under Vite's 500 kB: the sign-in screens use
+  `components/InputField.tsx` (the plain `FormField`, without the date pickers) and React Hook Form's own rules rather
+  than Zod, and heavier pages are lazy routes. It follows the phone's light or dark setting and has no theme switch.
+  Tailwind looks for classes from `web/` (`@import "tailwindcss" source("..")`), since the site's Vite root is `site/`.
+  On the server it is its own Caddy host (`SITE_DOMAIN`, 15.3b) serving `dist-site/` and only `/api/site/*`. It installs
+  as «My Gym» (`site/public/manifest.webmanifest`) and has a hand-written service worker: `site/sw.js` is a
+  template that `vite.site.config.ts` fills with the build's hashed file names (the list is the version), registered
+  in builds only (`src/site/serviceWorker.ts`); it never handles `/api`. The panel still has none (13.4).
 
 - One visual language (roadmap 13.2): a page starts with `PageHeader` (its one `h2`, a line under it, its buttons);
   a list is the shared `Table` (`components/ui/table.tsx`, never a hand-styled `<table>`); a list loading is
@@ -254,7 +275,7 @@ web/src/
   once. `restoreSession()` in `main.tsx` turns the refresh cookie back into a session after a reload.
 - Pages are loaded when first opened (`lazyPage` in `app/router.tsx`); only the login page and the locker board come
   with the app. A release replaces the hashed files, so a tab opened earlier can ask for one that is gone:
-  `app/staleChunkReload.ts` reloads the page once on Vite's `vite:preloadError`. A new page goes through `lazyPage`.
+  `lib/staleChunkReload.ts` reloads the page once on Vite's `vite:preloadError`. A new page goes through `lazyPage`.
   Opened straight from the address bar, a lazy page shows the `hydrateFallbackElement` («در حال بارگذاری…») until its
   file arrives. The jsdom tests are written for pages that render at once, so `test/renderApp.tsx` loads every lazy
   route before the tests and renders the same elements synchronously; the real lazy loading is covered by `npm run e2e`.
@@ -287,6 +308,8 @@ web/src/
 - `postgres:18` image: mount the volume at `/var/lib/postgresql`, not `/var/lib/postgresql/data`.
 - Npgsql `timestamptz`: use `DateTimeOffset` with offset zero (or `DateTime` with `Kind = Utc`). Non-UTC values throw.
 - `xmin` concurrency: a `uint Version` property configured with `.IsRowVersion()`.
+- A lock for something with no row yet (the first code for a phone): `IAppDbContext.LockPhoneAsync`, a transaction-scoped Postgres advisory lock (`pg_advisory_xact_lock`). Call it inside a transaction; outside one it is released at once.
+- One lock for a whole small area: `IAppDbContext.LockCoachingAsync` (15.4), the same kind of advisory lock for every change to trainer requests and links, the Owner's «توقف» included. Take it first in the transaction and read after it.
 - Do not use `MapIdentityApi()`: it adds a register endpoint and uses its own token format.
 - Migrations are never applied automatically at app startup in production. Use an EF migration bundle during deployment.
 - A consequence of that, and the one that actually bites: after pulling changes, run

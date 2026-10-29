@@ -36,6 +36,15 @@ using Gym.Application.Cafe.SetProductActive;
 using Gym.Application.Cafe.SetProductCategoryActive;
 using Gym.Application.Cafe.UpdateProduct;
 using Gym.Application.Cafe.UpdateProductCategory;
+using Gym.Application.Coaching.AcceptTrainerRequest;
+using Gym.Application.Coaching.CancelTrainerRequest;
+using Gym.Application.Coaching.DeclineTrainerRequest;
+using Gym.Application.Coaching.EndMyTrainer;
+using Gym.Application.Coaching.EndStudent;
+using Gym.Application.Coaching.GetMyTrainer;
+using Gym.Application.Coaching.GetStudents;
+using Gym.Application.Coaching.ListTrainerChoices;
+using Gym.Application.Coaching.RequestTrainer;
 using Gym.Application.Expenses.CreateExpenseCategory;
 using Gym.Application.Expenses.GetExpense;
 using Gym.Application.Expenses.ListExpenseCategories;
@@ -55,6 +64,7 @@ using Gym.Application.Reports.GetAttendanceReport;
 using Gym.Application.Reports.GetFinancialReport;
 using Gym.Application.Reports.GetMembersReport;
 using Gym.Application.Reports.GetNeedsAttention;
+using Gym.Application.Notifications.GetSignInCodeSms;
 using Gym.Application.Reports.GetReceivables;
 using Gym.Application.Reports.GetSubscriptionsSnapshot;
 using Gym.Application.Reports.GetTopCafeProducts;
@@ -87,6 +97,7 @@ using Gym.Application.Notifications.ResendCancelledSms;
 using Gym.Application.Notifications.ResendSms;
 using Gym.Application.Notifications.SendSubscriptionReceipt;
 using Gym.Application.Notifications.SendWelcome;
+using Gym.Application.Notifications.SendTrainerRequestSms;
 using Gym.Application.Notifications.SendWelcomeBack;
 using Gym.Application.Notifications.SendDailySms;
 using Gym.Application.Notifications.UpdateSmsSettings;
@@ -107,6 +118,21 @@ using Gym.Application.ServiceCharges.ChangeServiceChargeAmount;
 using Gym.Application.ServiceCharges.RecordShopSale;
 using Gym.Application.ServiceCharges.RecordServiceCharge;
 using Gym.Application.ServiceCharges.VoidServiceCharge;
+using Gym.Application.SiteAuth;
+using Gym.Application.SiteAuth.GetMe;
+using Gym.Application.SiteAuth.Logout;
+using Gym.Application.SiteAuth.Refresh;
+using Gym.Application.SiteAuth.RequestCode;
+using Gym.Application.SiteAuth.SignIn;
+using Gym.Application.SiteAuth.SignUp;
+using Gym.Application.SiteAuth.VerifyCode;
+using Gym.Application.SiteRecords.GetMyDebt;
+using Gym.Application.SiteRecords.GetMyDetails;
+using Gym.Application.SiteRecords.GetMyPlan;
+using Gym.Application.SiteRecords.ListMyCafeOrders;
+using Gym.Application.SiteRecords.ListMyPayments;
+using Gym.Application.SiteRecords.ListMyPlans;
+using Gym.Application.SiteRecords.ListMyVisits;
 using Gym.Application.Staff.CreateStaff;
 using Gym.Application.Staff.GetStaff;
 using Gym.Application.Staff.ListStaff;
@@ -122,6 +148,11 @@ using Gym.Application.Subscriptions.ListMemberSubscriptions;
 using Gym.Application.Subscriptions.RenewSubscription;
 using Gym.Application.Subscriptions.SellSingleVisit;
 using Gym.Application.Subscriptions.UnfreezeSubscription;
+using Gym.Application.Trainers.CreateTrainer;
+using Gym.Application.Trainers.ListTrainers;
+using Gym.Application.Trainers.RestartTrainer;
+using Gym.Application.Trainers.StopTrainer;
+using Gym.Application.Trainers.UpdateTrainer;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -165,6 +196,44 @@ public static class DependencyInjection
         services.AddScoped<LogoutHandler>();
         services.AddScoped<ChangePasswordHandler>();
         services.AddScoped<GetCurrentUserHandler>();
+
+        // The site's sign-in (BUSINESS_RULES.md §15, task 15.1).
+        services.AddScoped<RequestCodeHandler>();
+        services.AddScoped<VerifyCodeHandler>();
+        services.AddScoped<SiteAccountLinks>();
+        services.AddScoped<SiteSessions>();
+        services.AddScoped<SignInHandler>();
+        services.AddScoped<SignUpHandler>();
+        services.AddScoped<SiteRefreshHandler>();
+        services.AddScoped<SiteLogoutHandler>();
+        services.AddScoped<GetSiteMeHandler>();
+
+        // Trainers in the panel (BUSINESS_RULES.md §15, task 15.2).
+        services.AddScoped<ListTrainersHandler>();
+        services.AddScoped<CreateTrainerHandler>();
+        services.AddScoped<UpdateTrainerHandler>();
+        services.AddScoped<StopTrainerHandler>();
+        services.AddScoped<RestartTrainerHandler>();
+
+        // A member and their trainer on the site (BUSINESS_RULES.md §15, task 15.4).
+        services.AddScoped<ListTrainerChoicesHandler>();
+        services.AddScoped<GetMyTrainerHandler>();
+        services.AddScoped<RequestTrainerHandler>();
+        services.AddScoped<CancelTrainerRequestHandler>();
+        services.AddScoped<EndMyTrainerHandler>();
+        services.AddScoped<GetStudentsHandler>();
+        services.AddScoped<AcceptTrainerRequestHandler>();
+        services.AddScoped<DeclineTrainerRequestHandler>();
+        services.AddScoped<EndStudentHandler>();
+
+        // The member's own records on the site (BUSINESS_RULES.md §15, task 15.5).
+        services.AddScoped<GetMyDetailsHandler>();
+        services.AddScoped<GetMyPlanHandler>();
+        services.AddScoped<GetMyDebtHandler>();
+        services.AddScoped<ListMyVisitsHandler>();
+        services.AddScoped<ListMyPlansHandler>();
+        services.AddScoped<ListMyPaymentsHandler>();
+        services.AddScoped<ListMyCafeOrdersHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();
@@ -230,6 +299,7 @@ public static class DependencyInjection
         services.AddScoped<GetSubscriptionsSnapshotHandler>();
         services.AddScoped<GetTopCafeProductsHandler>();
         services.AddScoped<GetNeedsAttentionHandler>();
+        services.AddScoped<GetSignInCodeSmsHandler>();
         services.AddScoped<GetMembersReportHandler>();
         services.AddScoped<GetAbsenceSmsEffectHandler>();
 
@@ -283,6 +353,8 @@ public static class DependencyInjection
         services.AddScoped<SendWelcomeHandler>();
         services.AddScoped<WelcomeBacks>();
         services.AddScoped<SendWelcomeBackHandler>();
+        services.AddScoped<TrainerRequestSms>();
+        services.AddScoped<SendTrainerRequestSmsHandler>();
         services.AddScoped<CheckSmsDeliveryHandler>();
         services.AddScoped<GetSmsCreditHandler>();
         services.AddScoped<GetSmsSamplesHandler>();

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Gym.Application.Members.GetMember;
 
-/// <summary>One member, active or not.</summary>
+/// <summary>One member, active or not, with their site account if they have one (BUSINESS_RULES.md §15).</summary>
 public sealed class GetMemberHandler(IAppDbContext db)
 {
     public async Task<Result<MemberResponse>> Handle(Guid id, CancellationToken cancellationToken)
@@ -18,6 +18,17 @@ public sealed class GetMemberHandler(IAppDbContext db)
             .Select(MemberResponse.Projection)
             .SingleOrDefaultAsync(cancellationToken);
 
-        return member is null ? Result.Failure<MemberResponse>(MemberErrors.NotFound) : member;
+        if (member is null)
+        {
+            return Result.Failure<MemberResponse>(MemberErrors.NotFound);
+        }
+
+        var siteAccount = await db.SiteAccounts
+            .AsNoTracking()
+            .Where(account => account.MemberId == id)
+            .Select(account => new MemberSiteAccount(account.CreatedAt, account.LastSignedInAt))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return member with { SiteAccount = siteAccount };
     }
 }

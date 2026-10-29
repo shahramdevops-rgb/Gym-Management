@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import type { components } from "@/lib/api/schema";
+import { readTokenClaim } from "@/lib/jwt";
 
 export type AccessTokenResponse = components["schemas"]["AccessTokenResponse"];
 
@@ -52,7 +53,7 @@ export const sessionStore = {
  * it receives; the browser only needs to tell whether two tokens belong to the same person.
  */
 export function tokenSubject(accessToken: string): string | undefined {
-  return tokenClaim(accessToken, "sub");
+  return readTokenClaim(accessToken, "sub");
 }
 
 /**
@@ -61,26 +62,7 @@ export function tokenSubject(accessToken: string): string | undefined {
  * checks that rule itself too.
  */
 export function tokenUserName(accessToken: string): string | undefined {
-  return tokenClaim(accessToken, "name");
-}
-
-function tokenClaim(accessToken: string, claim: string): string | undefined {
-  try {
-    const payload = accessToken.split(".")[1];
-    if (payload === undefined) {
-      return undefined;
-    }
-
-    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const json = JSON.parse(
-      atob(base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=")),
-    ) as Record<string, unknown>;
-
-    const value = json[claim];
-    return typeof value === "string" ? value : undefined;
-  } catch {
-    return undefined;
-  }
+  return readTokenClaim(accessToken, "name");
 }
 
 /** Re-renders the component whenever the user signs in, signs out or gets a new token. */

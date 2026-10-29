@@ -1,6 +1,7 @@
 using Gym.Application.Common;
 using Gym.Application.History.ListSales;
 using Gym.Domain.Attendances;
+using Gym.Domain.SiteAuth;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -36,8 +37,18 @@ public sealed class GetNeedsAttentionHandler(IAppDbContext db, IGymCalendar cale
         var absent = await AbsentAsync(today, cancellationToken);
         var (oldDebts, withoutMember) = await OldDebtsAsync(today, cancellationToken);
         var payablesDue = await PayablesDueAsync(today, cancellationToken);
+        var signInCodeLimitReached = await SignInCodeLimitReachedAsync(today, cancellationToken);
 
-        return new NeedsAttentionResponse(today, runningOut, left, absent, oldDebts, withoutMember, payablesDue);
+        return new NeedsAttentionResponse(today, runningOut, left, absent, oldDebts, withoutMember, payablesDue, signInCodeLimitReached);
+    }
+
+    /// <summary>The gym's code SMS today, counted as the site's sign-in counts them (§15).</summary>
+    private async Task<bool> SignInCodeLimitReachedAsync(DateOnly today, CancellationToken cancellationToken)
+    {
+        var startOfToday = calendar.StartOfDayUtc(today);
+        var sendsToday = await db.SignInCodeSends.CountAsync(send => send.SentAt >= startOfToday, cancellationToken);
+
+        return sendsToday >= SignInCode.MaxSendsPerGymDay;
     }
 
     /// <summary>

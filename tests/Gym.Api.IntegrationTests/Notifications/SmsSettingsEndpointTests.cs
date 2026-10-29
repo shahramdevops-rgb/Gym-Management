@@ -50,6 +50,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     private static readonly object BroadcastOff = new { enabled = false };
 
+    private static readonly object TrainerRequestOff = new { enabled = false };
+
     private static readonly object DebtReminderOff = new
     {
         enabled = false,
@@ -176,6 +178,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         settings.DebtReminder.ShouldBe(new DebtReminderSettings(false, null, null, null));
         settings.Absence.ShouldBe(SmsKindSettings.Off);
         settings.Broadcast.ShouldBe(new BroadcastSettings(false));
+        settings.TrainerRequest.ShouldBe(new TrainerRequestSettingsResponse(false, new TimeOnly(10, 0)));
     }
 
     [Fact]
@@ -259,6 +262,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             welcome = WelcomeOff,
             welcomeBack = WelcomeBackOff,
             broadcast = BroadcastOff,
+            trainerRequest = TrainerRequestOff,
             version = read.Version,
         });
 
@@ -357,6 +361,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             welcome = WelcomeOff,
             welcomeBack = WelcomeBackOff,
             broadcast = BroadcastOff,
+            trainerRequest = TrainerRequestOff,
             version = read.Version,
         });
 
@@ -436,6 +441,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             dailyReport = ReportOff,
             subscriptionReceipt = ReceiptOff,
             broadcast = BroadcastOff,
+            trainerRequest = TrainerRequestOff,
             version = read.Version,
         });
 
@@ -495,6 +501,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             debtReminder = DebtReminderOff,
             absence = AbsenceOff,
             broadcast = BroadcastOff,
+            trainerRequest = TrainerRequestOff,
             version = read.Version,
         });
 
@@ -578,6 +585,48 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         Value(update.NewValues, nameof(SmsSettings.BroadcastEnabled)).GetBoolean().ShouldBeTrue();
     }
 
+    // ---- The trainer's SMS (task 15.4c) ----
+
+    [Fact]
+    public async Task Update_TrainerRequestOn_IsSavedWithNothingElseToFill()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, trainerRequest: new { enabled = true }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).TrainerRequest.Enabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Update_TrainerRequestLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = LowSessionsOff,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
+            welcomeBack = WelcomeBackOff,
+            debtReminder = DebtReminderOff,
+            absence = AbsenceOff,
+            broadcast = BroadcastOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "trainerRequest", "Sms.SettingsIncomplete");
+    }
+
     // ---- The daily report (task 10.7) ----
 
     [Fact]
@@ -643,6 +692,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             welcome = WelcomeOff,
             welcomeBack = WelcomeBackOff,
             broadcast = BroadcastOff,
+            trainerRequest = TrainerRequestOff,
             version = read.Version,
         });
 
@@ -838,6 +888,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             welcome = WelcomeOff,
             welcomeBack = WelcomeBackOff,
             broadcast = BroadcastOff,
+            trainerRequest = TrainerRequestOff,
             version = read.Version,
         });
 
@@ -948,7 +999,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         object? welcomeBack = null,
         object? debtReminder = null,
         object? absence = null,
-        object? broadcast = null) =>
+        object? broadcast = null,
+        object? trainerRequest = null) =>
         new
         {
             enabled,
@@ -964,6 +1016,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             debtReminder = debtReminder ?? DebtReminderOff,
             absence = absence ?? AbsenceOff,
             broadcast = broadcast ?? BroadcastOff,
+            trainerRequest = trainerRequest ?? TrainerRequestOff,
             version,
         };
 
@@ -989,7 +1042,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         welcome: new { enabled = true },
         welcomeBack: new { enabled = true },
         debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000m },
-        absence: Kind(true, 14, "11:30:00"));
+        absence: Kind(true, 14, "11:30:00"),
+        trainerRequest: new { enabled = true });
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {

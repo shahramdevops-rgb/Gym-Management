@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- The site app for members and trainers (roadmap 15.3). Persian and right-to-left from the
+     first byte, as the panel's page is. -->
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>باشگاه پاسارگاد</title>
+    <!-- A sign-in screen has nothing for a search index; the public page is what is found. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <!-- Installs on a phone as an app of its own, «My Gym» (roadmap 15.3b, BUSINESS_RULES.md
+         §13): the manifest names it and gives its icons; an iPhone reads its own two tags. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="My Gym" />
+    <meta name="theme-color" content="#f7f9fc" />
+    <!-- Dark when the phone is, before anything is drawn (public/theme-init.js). A file, not an
+         inline script, so the Content-Security-Policy can refuse every inline script. -->
+    <script src="/theme-init.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>

@@ -83,6 +83,51 @@ export const errorMessages: Record<string, string> = {
   "RefreshTokens.Revoked": "نشست شما به پایان رسیده است. دوباره وارد شوید.",
   "RefreshTokens.Expired": "نشست شما به پایان رسیده است. دوباره وارد شوید.",
 
+  // The site's one-time code (BUSINESS_RULES.md §15)
+  "SiteAuth.CodeRequired": "کد را وارد کنید.",
+  "SiteAuth.CodeWrong": "کد درست نیست.",
+  "SiteAuth.CodeExpired": "این کد دیگر معتبر نیست. کد تازه بگیرید.",
+  "SiteAuth.CodeTooManyWrongTries": "کد چند بار اشتباه وارد شد. کد تازه بگیرید.",
+  "SiteAuth.CodeStillValid": "کد قبلاً برای شما پیامک شده است.",
+  "SiteAuth.SendAgainTooSoon": "کد قبلاً برای شما پیامک شده است. اگر نرسید، دو دقیقه صبر کنید.",
+  "SiteAuth.PhoneHourlyLimitReached":
+    "برای این شماره در یک ساعت گذشته کد زیادی فرستاده شده است. کمی بعد دوباره امتحان کنید.",
+  "SiteAuth.GymDailyLimitReached":
+    "امروز دیگر نمی‌شود کد فرستاد. فردا دوباره امتحان کنید یا به پذیرش باشگاه بگویید.",
+  "SiteAuth.CodeNotSent": "کد فرستاده نشد. چند دقیقه بعد دوباره امتحان کنید.",
+  "SiteAuth.PhoneClosedForToday":
+    "کد این شماره امروز بیش از حد اشتباه وارد شد. فردا دوباره امتحان کنید یا به پذیرش باشگاه بگویید.",
+  "SiteAuth.SessionInvalid": "نشست شما به پایان رسیده است. دوباره وارد شوید.",
+  "SiteAuth.SignUpExpired": "زمان ثبت‌نام تمام شد. دوباره کد بگیرید.",
+  "SiteAuth.AccountNotFound": "حساب شما پیدا نشد. دوباره وارد شوید.",
+  "SiteAuth.SignInConflict": "ورود همزمان دیگری انجام شد. دوباره کد بگیرید و وارد شوید.",
+
+  // Trainers (BUSINESS_RULES.md §15)
+  "Trainers.NotFound": "مربی پیدا نشد.",
+  "Trainers.PhoneAlreadyExists": "این شماره موبایل قبلاً برای مربی دیگری ثبت شده است.",
+  "Trainers.FullNameRequired": "نام مربی را وارد کنید.",
+  "Trainers.FullNameTooLong": "نام مربی بیش از حد طولانی است.",
+  "Trainers.AlreadyStopped": "مربی‌گری این شخص قبلاً تمام شده است.",
+  "Trainers.AlreadyActive": "این شخص هم‌اکنون مربی است.",
+  "Trainers.ChangedConcurrently":
+    "این مربی هم‌زمان تغییر کرد. صفحه را تازه کنید و دوباره امتحان کنید.",
+
+  // A member and their trainer (site)
+  "Coaching.MemberInactive":
+    "عضویت شما در باشگاه غیرفعال است. برای فعال شدن آن به پذیرش باشگاه مراجعه کنید.",
+  "Coaching.NotATrainer": "مربی‌گری شما تمام شده است.",
+  "Coaching.TrainerNotFound": "این مربی دیگر در باشگاه مربی نیست.",
+  "Coaching.CannotPickYourself": "نمی‌توانید خودتان را به‌عنوان مربی انتخاب کنید.",
+  "Coaching.AlreadyYourTrainer": "این مربی هم‌اکنون مربی شماست.",
+  "Coaching.TooManyRequestsToday":
+    "امروز به اندازهٔ کافی درخواست مربی داده‌اید. فردا دوباره امتحان کنید.",
+  "Coaching.NoPendingRequest": "درخواستی در انتظار پاسخ ندارید.",
+  "Coaching.RequestNotFound": "این درخواست پیدا نشد.",
+  "Coaching.RequestNoLongerPending": "این درخواست دیگر در انتظار پاسخ نیست. صفحه تازه شد.",
+  "Coaching.NoTrainer": "در حال حاضر مربی ندارید.",
+  "Coaching.StudentNotFound": "این عضو دیگر شاگرد شما نیست.",
+  "Coaching.LinkAlreadyEnded": "مربی‌گری این شاگرد قبلاً تمام شده است.",
+
   // Members
   "Members.NotFound": "عضو پیدا نشد.",
   "Members.PhoneAlreadyExists": "این شماره موبایل قبلاً برای عضو دیگری ثبت شده است.",

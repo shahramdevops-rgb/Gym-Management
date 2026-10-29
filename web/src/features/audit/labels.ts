@@ -34,7 +34,9 @@ type FieldFormat =
   | "broadcastAudience"
   | "broadcastStatus"
   | "broadcastStopReason"
-  | "revocationReason";
+  | "revocationReason"
+  | "trainerRequestStatus"
+  | "trainerLinkEndReason";
 
 interface FieldSpec {
   label?: string;
@@ -59,7 +61,14 @@ export const auditActionLabels: Record<AuditAction, string> = {
 };
 
 /** The rows the screen hides unless asked (BUSINESS_RULES.md §11 *The audit screen*). */
-export const signInEntityTypes: readonly string[] = ["RefreshToken", "TrustedDevice"];
+export const signInEntityTypes: readonly string[] = [
+  "RefreshToken",
+  "TrustedDevice",
+  "SignInCode",
+  "SignInCodeSend",
+  "SiteAccount",
+  "SiteRefreshToken",
+];
 
 /** Every kind of record the log may hold, with its Persian name, in the JSON's order. */
 export const auditEntityTypes: readonly { type: string; label: string }[] = Object.entries(
@@ -85,6 +94,21 @@ const enumLabels: Record<string, Record<string, string>> = {
     PasswordChanged: "تغییر رمز",
     PasswordReset: "بازنشانی رمز",
     PasswordSetOnServer: "رمز روی سرور تعیین شد",
+    PhoneChanged: "شماره موبایل عضو عوض شد",
+  },
+  trainerRequestStatus: {
+    Pending: "در انتظار پاسخ",
+    Accepted: "پذیرفته شد",
+    Declined: "رد شد",
+    Cancelled: "عضو لغو کرد",
+    Replaced: "عضو مربی دیگری انتخاب کرد",
+    TrainerStopped: "مربی‌گری مربی تمام شد",
+  },
+  trainerLinkEndReason: {
+    ByMember: "عضو پایان داد",
+    ByTrainer: "مربی پایان داد",
+    NewTrainer: "مربی تازه",
+    TrainerStopped: "مربی‌گری مربی تمام شد",
   },
 };
 

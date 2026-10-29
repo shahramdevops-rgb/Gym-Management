@@ -18,6 +18,9 @@ public sealed class GetSmsSamplesHandler(IGymCalendar calendar)
     /// <summary>The sample member: «سید» is skipped, as in every real message.</summary>
     public const string SampleMemberName = "سید علی رضایی";
 
+    /// <summary>The sample trainer, for the trainer's SMS (task 15.4c).</summary>
+    public const string SampleTrainerName = "مهدی نوری";
+
     public SmsSamplesResponse Handle()
     {
         var today = calendar.Today();
@@ -41,7 +44,8 @@ public sealed class GetSmsSamplesHandler(IGymCalendar calendar)
             WelcomeBack: [.. Enumerable.Range(0, SmsText.WelcomeBackTexts.Count)
                 .Select(turn => Sample(SmsText.ForWelcomeBack(SampleMemberName, turn)))],
             DebtReminder: Sample(SmsText.ForDebtReminder(SampleMemberName, 450_000m)),
-            Absence: Sample(SmsText.ForAbsence(SampleMemberName, daysAway: 12)));
+            Absence: Sample(SmsText.ForAbsence(SampleMemberName, daysAway: 12)),
+            TrainerRequest: Sample(SmsText.ForTrainerRequest(SampleTrainerName, SampleMemberName)));
     }
 
     private static SmsSample Sample(string text) => new(text, SmsParts.Count(text));

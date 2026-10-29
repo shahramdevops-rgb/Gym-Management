@@ -8,7 +8,8 @@ public sealed record SmsSample(string Text, int Parts);
 /// <summary>
 /// Every kind with a fixed wording, as «تنظیمات پیامک» shows it beside the kind's settings
 /// (BUSINESS_RULES.md §10 <i>SMS settings</i>). The broadcast is not here: the Owner writes it.
-/// The welcome back has its six texts, in the order a member gets them (task 10.20).
+/// The welcome back has its six texts, in the order a member gets them (task 10.20). The trainer's
+/// SMS (task 15.4c) names a sample trainer and member.
 /// </summary>
 public sealed record SmsSamplesResponse(
     SmsSample SubscriptionExpiring,
@@ -20,4 +21,5 @@ public sealed record SmsSamplesResponse(
     SmsSample Welcome,
     IReadOnlyList<SmsSample> WelcomeBack,
     SmsSample DebtReminder,
-    SmsSample Absence);
+    SmsSample Absence,
+    SmsSample TrainerRequest);

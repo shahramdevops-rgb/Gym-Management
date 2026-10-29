@@ -75,6 +75,20 @@ docker save "${IMAGES[@]}" | gzip > "$ARCHIVE"
 
 echo "==> Copying to the server"
 ssh "$HOST" "mkdir -p '$REMOTE_DIR'"
+
+# The new compose file may require a value the server's .env does not have yet (SITE_DOMAIN in
+# 15.3b). Copied over the old one, it would stop every docker compose command there, the nightly
+# backup and the rollback included, while the running containers stay up and hide it. So it is
+# checked under another name first, and nothing is shipped until the .env satisfies it.
+scp docker-compose.prod.yml "$HOST:$REMOTE_DIR/docker-compose.prod.yml.new"
+if ! ssh "$HOST" "cd '$REMOTE_DIR' && docker compose -f docker-compose.prod.yml.new config --quiet"; then
+  ssh "$HOST" "rm -f '$REMOTE_DIR/docker-compose.prod.yml.new'"
+  echo "error: $REMOTE_DIR/.env lacks a value the new docker-compose.prod.yml requires (named" >&2
+  echo "above). Add it (deploy/env.example), then release again. Nothing was changed." >&2
+  exit 1
+fi
+ssh "$HOST" "rm -f '$REMOTE_DIR/docker-compose.prod.yml.new'"
+
 # The bundle is a 140 MB single file; -C compresses it on the wire.
 scp -C "$ARCHIVE" "$HOST:$REMOTE_DIR/"
 scp -C artifacts/efbundle "$HOST:$REMOTE_DIR/efbundle"

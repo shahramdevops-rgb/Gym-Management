@@ -19,7 +19,7 @@ import {
 } from "@/test/mockApi";
 import { renderApp } from "@/test/renderApp";
 
-import type { SmsCredit, SmsMessage } from "../api";
+import type { SignInCodeSms, SmsCredit, SmsMessage } from "../api";
 
 const failedBirthday: SmsMessage = {
   id: "01990000-0000-7000-8000-000000000001",
@@ -73,11 +73,20 @@ function messagesPage(items: SmsMessage[], totalCostToman = 135) {
 
 const credit: SmsCredit = { isTestMode: false, remainingToman: 125000, creditUsedUp: false };
 
+const signInCodes: SignInCodeSms = {
+  today: 12,
+  dailyLimit: 300,
+  thisMonth: 85,
+  thisMonthCostToman: 10200,
+  limitReached: false,
+};
+
 function ownerWith(extra: Record<string, Handler> = {}) {
   return mockApi({
     ...signedInHandlers(owner),
     "GET /api/sms/messages": () => messagesPage([failedBirthday, unknownExpiring, sentCheque]),
     "GET /api/sms/credit": () => json(200, credit),
+    "GET /api/sms/sign-in-codes": () => json(200, signInCodes),
     ...extra,
   });
 }
@@ -225,6 +234,34 @@ describe("SmsMessagesPage", () => {
 
     // The header shows it too (§10 *The credit in the header*); this is the page's own line.
     expect(await within(screen.getByRole("main")).findByText("۱۲۵٬۰۰۰ تومان")).toBeInTheDocument();
+  });
+
+  // ---- The site's sign-in codes (§15) ----
+
+  it("SmsMessagesPage_SignInCodes_ShowsTodayOfTheLimitAndThisMonth", async () => {
+    ownerWith();
+
+    renderApp("/sms", { session: session() });
+
+    expect(await screen.findByLabelText("پیامک‌های کد ورود امروز")).toHaveTextContent("۱۲ از ۳۰۰");
+    expect(screen.getByLabelText("پیامک‌های کد ورود این ماه")).toHaveTextContent("۸۵ پیامک");
+    expect(screen.getByLabelText("هزینهٔ پیامک‌های کد ورود این ماه")).toHaveTextContent(
+      "۱۰٬۲۰۰ تومان",
+    );
+    expect(screen.queryByText(/پیامک کد ورود امروز پر شده/)).not.toBeInTheDocument();
+  });
+
+  it("SmsMessagesPage_SignInCodeLimitReached_Warns", async () => {
+    ownerWith({
+      "GET /api/sms/sign-in-codes": () =>
+        json(200, { ...signInCodes, today: 300, limitReached: true }),
+    });
+
+    renderApp("/sms", { session: session() });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /سقف ۳۰۰ پیامک کد ورود امروز پر شده است/,
+    );
   });
 
   // ---- Resend ----

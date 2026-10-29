@@ -20,7 +20,7 @@ namespace Gym.Infrastructure.Sms;
 /// As the <see cref="ISmsAccount"/> it has no account: it knows no delivery, and says it is in test mode.
 /// </para>
 /// </remarks>
-public sealed partial class FakeSmsSender(ILogger<FakeSmsSender> logger) : ISmsSender, ISmsAccount
+public sealed partial class FakeSmsSender(ILogger<FakeSmsSender> logger) : ISmsSender, IVerificationCodeSender, ISmsAccount
 {
     private static readonly IReadOnlyDictionary<long, SmsDelivery> NothingKnown = new Dictionary<long, SmsDelivery>();
 
@@ -33,6 +33,18 @@ public sealed partial class FakeSmsSender(ILogger<FakeSmsSender> logger) : ISmsS
         var messageId = Interlocked.Increment(ref _lastMessageId);
         var maskedReceptor = Mask(message.Receptor);
         LogFakeSend(logger, message.Text.Length, maskedReceptor, messageId);
+
+        return Task.FromResult(SmsSendResult.Sent(messageId, costRial: 0m));
+    }
+
+    /// <summary>The same for a one-time code. Never logs the code: logs outlive it and reach more people.</summary>
+    public Task<SmsSendResult> SendCodeAsync(VerificationCodeMessage message, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        var messageId = Interlocked.Increment(ref _lastMessageId);
+        var maskedReceptor = Mask(message.Receptor);
+        LogFakeCode(logger, maskedReceptor, messageId);
 
         return Task.FromResult(SmsSendResult.Sent(messageId, costRial: 0m));
     }
@@ -51,4 +63,9 @@ public sealed partial class FakeSmsSender(ILogger<FakeSmsSender> logger) : ISmsS
         Level = LogLevel.Information,
         Message = "SMS not sent (fake sender): {Length} characters to {Receptor}, fake message id {MessageId}")]
     private static partial void LogFakeSend(ILogger logger, int length, string receptor, long messageId);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Sign-in code not sent (fake sender) to {Receptor}, fake message id {MessageId}")]
+    private static partial void LogFakeCode(ILogger logger, string receptor, long messageId);
 }

@@ -19,6 +19,8 @@ public sealed class KavenegarSmsSenderTests
 
     private const string Line = "2000500666";
 
+    private const string Template = "gymExpiring";
+
     private const string Text = "سارا محمدی عزیز، اشتراک شما در باشگاه پاسارگاد ۱۴۰۵/۰۷/۲۰ به پایان می‌رسد.";
 
     private static readonly SmsMessage Message = new("+989121234567", Text);
@@ -53,6 +55,54 @@ public sealed class KavenegarSmsSenderTests
         fields["receptor"].ShouldBe("09121234567");
         fields["sender"].ShouldBe(Line);
         fields["message"].ShouldBe(Text);
+    }
+
+    // ---- The one-time code (BUSINESS_RULES.md §15) ----
+
+    [Fact]
+    public async Task SendCodeAsync_Request_PostsTheTemplateWithTheCodeAndMinutesAndNoLine()
+    {
+        var stub = new StubKavenegar(_ => StubKavenegar.Answer(200, """[{"messageid":1,"cost":0}]"""));
+        using var client = StubKavenegar.Client(stub);
+
+        await Sender(client).SendCodeAsync(new VerificationCodeMessage("+989121234567", "04217", 55), TestContext.Current.CancellationToken);
+
+        var request = stub.Requests.ShouldHaveSingleItem();
+        request.Method.ShouldBe(HttpMethod.Post);
+        request.Uri.AbsolutePath.ShouldBe($"/v1/{ApiKey}/verify/lookup.json");
+        var fields = Fields(request.Body);
+        fields.Keys.ShouldBe(["receptor", "template", "token", "token2"], ignoreOrder: true);
+        fields["receptor"].ShouldBe("09121234567");
+        fields["template"].ShouldBe(Template);
+        fields["token"].ShouldBe("04217");
+        fields["token2"].ShouldBe("55");
+    }
+
+    [Fact]
+    public async Task SendCodeAsync_Accepted_IsSentWithKavenegarsIdAndCost()
+    {
+        var stub = new StubKavenegar(_ => StubKavenegar.Answer(200, """[{"messageid":8792343,"status":5,"cost":1150}]"""));
+        using var client = StubKavenegar.Client(stub);
+
+        var result = await Sender(client).SendCodeAsync(new VerificationCodeMessage("+989121234567", "04217", 60), TestContext.Current.CancellationToken);
+
+        result.Outcome.ShouldBe(SmsSendOutcome.Sent);
+        result.ProviderMessageId.ShouldBe(8792343);
+        result.CostRial.ShouldBe(1150m);
+    }
+
+    [Theory]
+    [InlineData(424, SmsSendOutcome.PermanentFailure)]
+    [InlineData(418, SmsSendOutcome.CreditExhausted)]
+    [InlineData(409, SmsSendOutcome.RetryableFailure)]
+    public async Task SendCodeAsync_KavenegarsCode_BecomesItsOutcome(int code, SmsSendOutcome outcome)
+    {
+        using var client = StubKavenegar.Client(new StubKavenegar(_ => StubKavenegar.Answer(code)));
+
+        var result = await Sender(client).SendCodeAsync(new VerificationCodeMessage("+989121234567", "04217", 60), TestContext.Current.CancellationToken);
+
+        result.Outcome.ShouldBe(outcome);
+        result.ErrorCode.ShouldBe(code);
     }
 
     [Theory]
@@ -237,7 +287,7 @@ public sealed class KavenegarSmsSenderTests
 
     private static KavenegarSmsSender Sender(HttpClient client) => new(
         client,
-        Options.Create(new SmsOptions { Provider = SmsProviders.Kavenegar, Kavenegar = { ApiKey = ApiKey, Sender = Line } }),
+        Options.Create(new SmsOptions { Provider = SmsProviders.Kavenegar, Kavenegar = { ApiKey = ApiKey, Sender = Line, VerifyTemplate = Template } }),
         NullLogger<KavenegarSmsSender>.Instance);
 
     private static Dictionary<string, string> Fields(string body) => body

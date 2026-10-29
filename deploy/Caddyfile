@@ -1,12 +1,14 @@
-# Four names, three jobs. {$DOMAIN}, {$PUBLIC_DOMAIN} and {$REDIRECT_DOMAIN} come from the
-# environment (docker-compose.prod.yml). A real domain gets a Let's Encrypt certificate
-# automatically; "localhost" gets one from Caddy's own local CA, which is how the stack is
-# smoke-tested on a development machine.
+# Six names, four jobs. {$DOMAIN}, {$SITE_DOMAIN}, {$PUBLIC_DOMAIN} and {$REDIRECT_DOMAIN} come
+# from the environment (docker-compose.prod.yml). A real domain gets a Let's Encrypt certificate
+# automatically; "localhost" (and "app.localhost") gets one from Caddy's own local CA, which is how
+# the stack is smoke-tested on a development machine.
 #
-#   {$DOMAIN}           panel.example.ir   the application, and nothing else
+#   {$DOMAIN}           panel.example.ir   the staff's application, and nothing else
+#   {$SITE_DOMAIN}      app.example.ir     the members' and trainers' app (roadmap 15.3, ADR 0010)
 #   {$PUBLIC_DOMAIN}    example.ir         the gym's public page: static files, no API
 #   www.{$PUBLIC_DOMAIN}                   redirects to the public page
 #   {$REDIRECT_DOMAIN}  example.com        redirects to the public page
+#   www.{$REDIRECT_DOMAIN}                 redirects to the public page
 #
 # The panel is on its own host rather than a path under the public one. The refresh cookie is
 # scoped to a single host, so this keeps it off the public page entirely; the panel can be given
@@ -42,6 +44,13 @@
 		-Server
 	}
 
+	# The site app's endpoints belong to its own host (ADR 0010: the two sign-ins never mix). A
+	# site token could not pass a staff policy anyway; this keeps the site's sign-in, and its
+	# refresh cookie, off the panel's address altogether. More specific than /api/*, so it wins.
+	handle /api/site/* {
+		respond 404
+	}
+
 	# The API. Anything under /api that does not exist is the API's 404, not the SPA's page.
 	handle /api/* {
 		reverse_proxy api:8080
@@ -54,16 +63,20 @@
 
 	# The React build. Not a public path to /hangfire, /openapi or /scalar: those exist only
 	# in Development, and nothing here proxies them.
+	# File names under /assets carry a content hash, so they can be cached forever. A name that is
+	# not there (an old page asking for a file of the release before) is a 404, never index.html:
+	# the SPA's fallback below would answer it 200, with a year's caching (found in 15.3b's review).
+	handle /assets/* {
+		root * /srv
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
 	handle {
 		root * /srv
 
-		# File names under /assets carry a content hash, so they can be cached forever.
-		@hashed path /assets/*
-		header @hashed Cache-Control "public, max-age=31536000, immutable"
-
 		# index.html names those hashed files, so a browser must ask again after each release.
-		@shell not path /assets/*
-		header @shell Cache-Control "no-cache"
+		header Cache-Control "no-cache"
 
 		# The install manifest (roadmap 13.4). Caddy has no type for .webmanifest of its own, and
 		# a file_server leaves a Content-Type that is already set as it is.
@@ -71,6 +84,64 @@
 		header @manifest Content-Type "application/manifest+json"
 
 		# Client-side routes (/members/123) are not files: hand them to the SPA.
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# The members' and trainers' app (roadmap 15.3, ADR 0010): web/dist-site, and the API's /api/site
+# endpoints, nothing else of the API. Its own host, as the panel has, so its refresh cookie
+# (path /api/site/auth) never reaches the panel's host, and the panel's never reaches it.
+# Unset (local smoke tests) it falls back to a single-label name, like the public page below.
+{$SITE_DOMAIN:no-site-app} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# The panel's policy, for the same reasons: only the app's own files run, load or are
+		# framed. Its theme script is a file too (web/site/public/theme-init.js), and
+		# ContentSecurityPolicyTests checks web/site/index.html has no inline script. The service
+		# worker (sw.js) is a script of this origin, which script-src 'self' already allows.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		# Nothing here uses them yet. The progress photos (15.10) will open the camera for this
+		# host, and only then. The SMS code's WebOTP is allowed for the page itself by default.
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		# A sign-in screen has nothing for a search index: the public page is what is found.
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+
+	# The site's endpoints only. The staff's /api would refuse a site token anyway (every staff
+	# policy requires the staff scheme); here they are not even reachable.
+	handle /api/site/* {
+		reverse_proxy api:8080
+	}
+
+	handle /api/* {
+		respond 404
+	}
+
+	# As on the panel: forever for a hashed name, a 404 for one that is not there.
+	handle /assets/* {
+		root * /srv-site
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	handle {
+		root * /srv-site
+
+		# index.html and sw.js above all: a phone asks for both again on every opening, which is
+		# how a release reaches an installed app (src/site/serviceWorker.ts).
+		header Cache-Control "no-cache"
+
+		@manifest path /manifest.webmanifest
+		header @manifest Content-Type "application/manifest+json"
+
 		try_files {path} /index.html
 		file_server
 	}
@@ -103,13 +174,23 @@
 	# copies a browser already holds.
 	header Cache-Control "no-cache"
 
+	# The address printed under the desk's QR code (roadmap 15.3b). A fixed address of the public
+	# page that leads to the app, so the poster never has to be printed again if the app moves.
+	# /app is the page's own «ورود / ثبت‌نام», so the page never names the app's host either (and the
+	# same link works in development, web/vite.site.config.ts).
+	# A temporary redirect (302), on purpose: a permanent one is remembered by phones, and the
+	# destination could then never change for them.
+	@toApp path /qr /app
+	redir @toApp https://{$SITE_DOMAIN:no-site-app}/ 302
+
 	root * /srv-public
 	file_server
 }
 
 # www and the second domain are not second homes: they point at the public page. A visitor who
-# types either of them is a member of the public, not a member of staff, so neither is sent to
-# the panel's login form.
-www.{$PUBLIC_DOMAIN:no-public-site}, {$REDIRECT_DOMAIN:no-redirect} {
+# types any of them is a member of the public, not a member of staff, so none is sent to the
+# panel's login form. www of the second domain has an A record too; until 15.3b it had no site
+# here, and HTTPS failed on it.
+www.{$PUBLIC_DOMAIN:no-public-site}, {$REDIRECT_DOMAIN:no-redirect}, www.{$REDIRECT_DOMAIN:no-redirect} {
 	redir https://{$PUBLIC_DOMAIN:no-public-site}{uri} permanent
 }

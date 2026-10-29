@@ -22,4 +22,22 @@ public static class Policies
     /// change-password endpoint uses it.
     /// </summary>
     public const string PasswordChangeAllowed = "PasswordChangeAllowed";
+
+    /// <summary>
+    /// Anyone signed in on the site, member or trainer (BUSINESS_RULES.md §15): the site's scheme
+    /// only, never a staff token. Not the staff's password gate: site accounts have no password.
+    /// </summary>
+    public const string SiteAccount = "SiteAccount";
+
+    /// <summary>
+    /// A site account that is an active member: the member's area. The site's scheme only; a member
+    /// the desk deactivates loses it at the next refresh and sees only the notice in «me».
+    /// </summary>
+    public const string SiteMember = "SiteMember";
+
+    /// <summary>
+    /// A site account that is a trainer now: the trainer's area (15.4 on). The site's scheme only;
+    /// a stopped trainer's next token no longer passes it.
+    /// </summary>
+    public const string SiteTrainer = "SiteTrainer";
 }

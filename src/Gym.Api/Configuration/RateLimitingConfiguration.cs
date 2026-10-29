@@ -34,8 +34,49 @@ public sealed class SessionRateLimitOptions : PerAddressRateLimitOptions
 }
 
 /// <summary>
+/// The <c>RateLimiting:SiteCode</c> configuration section: asking the site for a one-time code
+/// (BUSINESS_RULES.md §15). Generous, because Iranian mobile carriers put many phones behind one
+/// address; the per-phone and per-day limits are the ones that protect the SMS credit.
+/// </summary>
+public sealed class SiteCodeRateLimitOptions : PerAddressRateLimitOptions
+{
+    public const string SectionName = "RateLimiting:SiteCode";
+
+    public override int PermitLimit { get; set; } = 20;
+
+    public SiteCodeRateLimitOptions() => Window = TimeSpan.FromMinutes(10);
+}
+
+/// <summary>
+/// The <c>RateLimiting:SiteSignIn</c> configuration section: typing a code and signing up on the
+/// site (BUSINESS_RULES.md §15), 30 per 10 minutes per IP. Each code has its own 5 tries; this
+/// stops one address from spreading its guesses over many phones.
+/// </summary>
+public sealed class SiteSignInRateLimitOptions : PerAddressRateLimitOptions
+{
+    public const string SectionName = "RateLimiting:SiteSignIn";
+
+    public override int PermitLimit { get; set; } = 30;
+
+    public SiteSignInRateLimitOptions() => Window = TimeSpan.FromMinutes(10);
+}
+
+/// <summary>
+/// The <c>RateLimiting:SiteSession</c> configuration section: the site's refresh and logout, 60 a
+/// minute per IP, as the staff's are, in a bucket of their own.
+/// </summary>
+public sealed class SiteSessionRateLimitOptions : PerAddressRateLimitOptions
+{
+    public const string SectionName = "RateLimiting:SiteSession";
+
+    public override int PermitLimit { get; set; } = 60;
+}
+
+/// <summary>
 /// Per-IP rate limiting for the endpoints a stranger can reach (BUSINESS_RULES.md §1): 10 login
-/// attempts per minute, and 60 refreshes and logouts per minute.
+/// attempts per minute, and 60 refreshes and logouts per minute; and the site's code requests, 20
+/// per 10 minutes, its sign-ins and sign-ups, 30 per 10 minutes, and its refreshes and logouts, 60 a
+/// minute (§15), each in a bucket of its own so the site's traffic never uses up the staff's.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -59,6 +100,12 @@ public static class RateLimitingConfiguration
 
     public const string SessionPolicy = "session";
 
+    public const string SiteCodePolicy = "site-code";
+
+    public const string SiteSignInPolicy = "site-sign-in";
+
+    public const string SiteSessionPolicy = "site-session";
+
     public static IServiceCollection AddApiRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -68,11 +115,20 @@ public static class RateLimitingConfiguration
             .Bind(configuration.GetSection(LoginRateLimitOptions.SectionName));
         services.AddOptions<SessionRateLimitOptions>()
             .Bind(configuration.GetSection(SessionRateLimitOptions.SectionName));
+        services.AddOptions<SiteCodeRateLimitOptions>()
+            .Bind(configuration.GetSection(SiteCodeRateLimitOptions.SectionName));
+        services.AddOptions<SiteSignInRateLimitOptions>()
+            .Bind(configuration.GetSection(SiteSignInRateLimitOptions.SectionName));
+        services.AddOptions<SiteSessionRateLimitOptions>()
+            .Bind(configuration.GetSection(SiteSessionRateLimitOptions.SectionName));
 
         services.AddRateLimiter(options =>
         {
             options.AddPolicy(LoginPolicy, PerAddress<LoginRateLimitOptions>);
             options.AddPolicy(SessionPolicy, PerAddress<SessionRateLimitOptions>);
+            options.AddPolicy(SiteCodePolicy, PerAddress<SiteCodeRateLimitOptions>);
+            options.AddPolicy(SiteSignInPolicy, PerAddress<SiteSignInRateLimitOptions>);
+            options.AddPolicy(SiteSessionPolicy, PerAddress<SiteSessionRateLimitOptions>);
 
             options.OnRejected = WriteTooManyRequestsAsync;
         });

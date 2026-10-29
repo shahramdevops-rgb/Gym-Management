@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 import { paths } from "@/app/paths";
+import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { kindText } from "@/features/payables/api";
 import { formatDate, formatMoney, formatNumber, formatPhone, toPersianDigits } from "@/lib/format";
@@ -184,6 +185,19 @@ export function NeedsAttentionPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3 lg:grid-cols-2">
+        {/* The site's 300 code SMS a day are used up (§15): with a few hundred members that is an
+            attack, not a busy day, so it comes first and across both columns. */}
+        {data.signInCodeLimitReached && (
+          <Alert variant="destructive" role="alert" className="lg:col-span-2">
+            <p>
+              سقف روزانهٔ پیامک کد ورود سایت امروز پر شده است؛ تا فردا برای کسی کد ورود فرستاده
+              نمی‌شود.{" "}
+              <Link to={paths.smsMessages} className="font-medium underline">
+                پیامک‌ها
+              </Link>
+            </p>
+          </Alert>
+        )}
         <AttentionList
           id="running-out"
           icon={Hourglass}

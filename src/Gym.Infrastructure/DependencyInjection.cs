@@ -11,6 +11,7 @@ using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Jobs;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Phones;
+using Gym.Infrastructure.SiteAuth;
 using Gym.Infrastructure.Sms;
 using Gym.Infrastructure.Persistence.Interceptors;
 using Gym.Infrastructure.Subscriptions;
@@ -135,6 +136,15 @@ public static class DependencyInjection
         services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
 
+        // The site's sign-in (BUSINESS_RULES.md §15, ADR 0010): its own secrets, apart from the
+        // staff's. A missing secret, or a key shared with the staff's, stops startup.
+        services.AddOptions<SiteAuthOptions>()
+            .Bind(configuration.GetSection(SiteAuthOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<SiteAuthOptions>, SiteAuthOptionsValidator>();
+        services.AddSingleton<ISignInCodes, HmacSignInCodes>();
+        services.AddSingleton<ISiteTokens, JwtSiteTokens>();
+
         // Sms:Provider chooses the sender and the account (BUSINESS_RULES.md §10): see SmsRegistration.
         // The daily runs are Hangfire recurring jobs, moved whenever the settings page is saved (task 10.3).
         services.AddSms(configuration);
@@ -152,6 +162,10 @@ public static class DependencyInjection
         // The welcome back, one job per first visit after an absence SMS, half an hour later (task 10.20).
         services.AddSingleton<IWelcomeBackScheduler, HangfireWelcomeBackScheduler>();
         services.AddScoped<WelcomeBackJob>();
+
+        // The trainer's SMS, one job per request on the site, enqueued after it is saved (task 15.4c).
+        services.AddSingleton<ITrainerRequestSmsScheduler, HangfireTrainerRequestSmsScheduler>();
+        services.AddScoped<TrainerRequestSmsJob>();
 
         // A broadcast is one job, enqueued after it is saved, which writes and sends its messages (task 10.13).
         services.AddSingleton<IBroadcastScheduler, HangfireBroadcastScheduler>();

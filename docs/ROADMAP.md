@@ -54,8 +54,10 @@ Still open around the panel (none of it code, or waiting for someone else):
   Commits from 2026-10-25 are `Shahram Azghandi <shahramdevops@gmail.com>`
 
 Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
-  1405/08/03); the next task is **15.1**, when the developer starts it. Phase 14's 14.1 to 14.3
-  still wait for the gym's trainers, links and photos; 14.4 closes with 15.3
+  1405/08/03); 15.1, 15.2, 15.3 (a and b), 15.4 (a, b and c) and 15.5 (a and b) are done on their
+  branches, not merged or released (`task/15.4-pick-a-trainer` pushed 1405/08/08); the next step is
+  **Release 1**. Phase 14's 14.1 to 14.3 still wait for the
+  gym's trainers, links and photos; 14.4 closed with 15.3b
 
 ---
 
@@ -4060,6 +4062,10 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
 - [ ] Waiting for the gym: two or three trainers' names, photos (portrait 4:5, one plain dark wall
       for all) and details (specialty, experience, certificates, honours, hours at the gym)
 - [ ] Put them in; «انتخاب این مربی» stays «به‌زودی» (choosing a trainer needs 14.6)
+- [ ] Asked by the developer (1405/08/07, at 15.4's start), for when the photos come: the app's
+      trainers' list shows each trainer's photo too, and pressing one opens that trainer's own page
+      with everything about them (specialty, experience, certificates); the details then live with
+      the trainer (the Owner enters them in «مربیان»), not only on the public page
 
 ### 14.2 Finding the gym (مسیریابی و اینستاگرام)
 - [ ] Waiting for the gym: its location link for Neshan and Balad
@@ -4097,8 +4103,9 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
       (900×1600) cut (14.0)
 
 ### 14.4 The buttons that do nothing yet
-- [ ] The hero's two buttons and «ثبت‌نام» in the top bar do nothing. Open: what each does until
-      14.6 exists (e.g. call the gym, or hidden)
+- [x] The hero's two buttons and «ثبت‌نام» in the top bar do nothing. Open: what each does until
+      14.6 exists (e.g. call the gym, or hidden). Closed by 15.3b (1405/08/07): «ورود / ثبت‌نام» opens
+      the app, the hero's buttons lead to their sections
 
 ### 14.5 The panel out of search results
 Done 1405/08/02 (2026-10-24), asked by the developer. Checked on the live server first, read-only:
@@ -4165,8 +4172,8 @@ How it is built:
       never log in" changed: the panel is staff-only, members and trainers sign in on the site (§15)
 - [x] The QR code on the Anea sheet: a barcode reader cannot open it (the developer, 1405/08/03)
 - [x] The developer, outside the code: Kavenegar and Anea answered (1405/08/03). The one-time code
-      goes as the verification template `gymExpiring` (same account and API key, Kavenegar's
-      shared international line); Anea gives the PDF only, its Excel export (8 million, once) is
+      goes as the verification template `gymExpiring` (same account and API key, sent from the gym's
+      dedicated line `9981600378`, Kavenegar said 1405/08/07); Anea gives the PDF only, its Excel export (8 million, once) is
       not bought for now, and the trainer types the numbers (§15)
 
 ### Release 1 — Signing in, and «my plan» (15.1 to 15.5)
@@ -4174,49 +4181,282 @@ A member can sign up, sign in and see their own plan; trainers exist and take st
 of the trainers' tools yet, but nobody signs in to an empty page.
 
 #### 15.1 Site accounts and the one-time code (backend)
-- [ ] Asked first: the code's numbers (§15's proposal: 5 digits, 2 minutes, 5 tries, 1 a minute
-      and 5 an hour per phone) and the per-IP limit; the code goes as Kavenegar's template
-      `gymExpiring` through `verify/lookup` (§15)
-- [ ] Site accounts keyed by the verified phone, linked to a member; a new phone creates the member
-      (name and birth date, §2's rules), an existing one links to it and is not asked again
-- [ ] Request and verify a code: expiry, wrong tries, limits per phone and per IP, all checked
-      before Kavenegar is called; codes stored only as a hash
-- [ ] The site's own authentication scheme (issuer, audience, key), refresh tokens and cookie;
-      every staff policy requires the staff scheme; a deactivated member gets the «غیرفعال» notice
-      and nothing else
-- [ ] Tests (integration): a site token is refused by every staff endpoint and a staff token by
-      every site endpoint; each limit; linking never duplicates a member; sign-up sends no welcome
-      SMS; a deactivated member's sign-in
+- [x] Asked first (1405/08/03), written in §15: 5 digits valid 60 minutes, 5 wrong tries; no new
+      SMS while a code is valid, the same code sent again after 2 minutes unless Kavenegar reported
+      it delivered; 5 an hour per phone, 20 per 10 minutes per IP, 300 a day for the gym; code SMS
+      kept out of the SMS history (count and cost only); 60 days signed in; development sends real
+      codes to `Sms:AllowedReceptors`. Branch `task/15.1-site-sign-in`, split in two:
+- **15.1a, the one-time code**
+- [x] Request and verify a code: expiry, wrong tries, the send again, every limit checked
+      before Kavenegar is called; `verify/lookup` with `gymExpiring`, delivery asked through
+      `sms/status` (1405/08/04, not released)
+      - `POST /api/site/auth/code` (anonymous, 20 per 10 minutes per IP); the check is
+        `VerifyCodeHandler`, with no endpoint of its own until 15.1b signs the phone in
+      - Tables `sign_in_codes` (one row per phone: a random seed, never the code) and
+        `sign_in_code_sends` (each SMS that may have cost money: the limits and, later, the
+        panel's count and cost); a new migration that only adds
+      - The code is HMAC-SHA256 of the phone and the seed under `SiteAuth:CodeSecret`: locally in
+        user-secrets (set on 1405/08/04), on the server **`SITE_CODE_SECRET` in `.env`, to be
+        added before Release 1** (compose refuses to start without it; `openssl rand -base64 48`)
+      - Each phone is locked (a Postgres advisory lock) for its request, Kavenegar's call
+        included, so two presses at once send one SMS; the gym's sends too, so 300 a day is never
+        passed; once Kavenegar is called the request cannot be cancelled (found by the review)
+      - Code rows hidden on the audit screen with the other sign-in rows; the seed never audited
+- **15.1b, accounts and the site's sign-in**
+- [x] Asked first (1405/08/04), written in §15: 15 wrong tries in a gym day close the phone until
+      the next day (first "three dead codes", changed after the review); no SMS to the Owner when the 300 is reached (the panel shows it,
+      15.2); a member's site actions audited as «سیستم»; a linked member is not asked again; 15
+      minutes after the code to sign up
+- [x] Site accounts linked to a member; a new phone creates the member (name and birth date, §2's
+      rules), an existing one links to it and is not asked again (1405/08/04, not released)
+      - **The account has no phone of its own**: a sign-in finds the member by the verified phone
+        and the account by the member, so a number the desk changes never opens the account for
+        whoever has the old number (decided during the task, against "keyed by the phone" above)
+      - `POST /api/site/auth/sign-in` (the code; a member signs in, a new phone gets a 15-minute
+        sign-up ticket), `sign-up`, `refresh`, `logout`, and `GET /api/site/me`
+- [x] The site's own authentication scheme (`SiteAuth:Issuer`, `Audience`, `SigningKey`), refresh
+      tokens (`site_refresh_tokens`, the staff's rules through a shared `RotatingRefreshToken`) and
+      cookie (`gym_site_refresh`, path `/api/site/auth`); every staff policy and the fallback name
+      the staff scheme, the site's `SiteAccount` policy the site's; the API refuses to start with a
+      site key, issuer or audience equal to the staff's
+      - A deactivated member signs in and `/me` says `isActive: false`, read from the database on
+        every call. The "nothing else" half is for the first site endpoint that shows anything
+        (15.4, 15.5): it needs an active-member check, not written yet because nothing uses it
+      - On the server **`SITE_JWT_SIGNING_KEY` in `.env` before Release 1**, with `SITE_CODE_SECRET`
+- [x] The desk changing a member's phone revokes the member's site sessions (`PhoneChanged`), in
+      `UpdateMemberHandler`: the panel's one change in 15.1 (§15, decided 1405/08/05)
+- [x] Tests (integration): every endpoint the app maps is called with the other kind of token
+      (`SchemeSeparationTests`); each limit; linking never duplicates a member; sign-up makes no
+      plan and no SMS; a deactivated member's sign-in; refresh, reuse and logout
 
 #### 15.2 Trainers in the panel (reopens the panel)
-- [ ] «مربیان» (Owner only): make someone a trainer (name and phone) and stop it; stopping ends
-      every link to their students, whose records stay
-- [ ] Members who signed up on the site are marked on their profile; whether they also need a tag
-      or a filter in the members list is asked in the task
-- [ ] Tests; the computer's screens elsewhere unchanged
+Split into a (backend) and b (the panel's screens) when its plan was approved (1405/08/05), on
+branch `task/15.2-trainers`, made from `task/15.1-site-sign-in` after `main` was merged into it.
+- [x] Asked first (1405/08/05), written in §15: a trainer is not a member but may also be one,
+      with the same phone; a stopped trainer can be made one again, with a new period; site
+      members are marked on the profile only, no tag or filter in the list; the code SMS shown in
+      «پیامک‌ها», and the day's 300 in «نیاز به اقدام»
+
+##### 15.2a The backend
+- [x] `Trainer` with its `TrainerPeriod`s: make, correct, stop, make again; phones unique among
+      trainers; one open period per trainer and no period ending before it starts, in the database
+- [x] `/api/trainers` (Owner only): list, create, update (with `version`), stop, restart
+- [x] Site accounts are a member's, a trainer's or both (`SiteAccountLinks`); the access token
+      carries `site_role` (`member`, `trainer`), and the policies `SiteMember` and `SiteTrainer`
+      wait for 15.4; refresh and «me» read the roles again, so a stopped trainer loses the
+      trainer's area within 15 minutes; the Owner changing a trainer's phone ends the old phone's
+      trainer-only sessions
+- [x] The member's profile carries their site account; `/api/sms/sign-in-codes` (Owner only):
+      today's code SMS of 300, this Jalali month's count and cost; «نیاز به اقدام» says when
+      today's 300 is used up
+- [x] Tests: domain (`TrainerTests`), integration (`TrainerEndpointTests`, `TrainerSignInTests`,
+      `SiteInThePanelTests`); the 15.1 tests read «me»'s new shape
+- [x] Persian messages for the `Trainers.*` codes in `errors.ts` (the error catalog test asks for them)
+- [x] After the code review: a phone change at the desk or by the Owner takes the old phone's lock,
+      so a sign-in finishing at that moment cannot outlive it (15.1's member edit too); the
+      `member` role only for an active member; the scheme test counts every site policy; three
+      answers of the developer written in §15 (a phone change with a member on it, a stopped
+      trainer signing in again, a stopped trainer still signed in)
+- [x] Stopping a trainer ends the links to their students: with the links, in 15.4a (1405/08/07)
+
+##### 15.2b The panel's screens
+- [x] «مربیان» (Owner only) in the menu under «مدیریت», after «کارمندان»: the trainers as small
+      boxes (phone, since when, last sign-in on the site, past periods), add and edit in a dialog
+      (a changed phone says the trainer will be signed out), «پایان مربی‌گری» with a
+      confirmation, «شروع دوباره» in one click
+- [x] The member's profile: «حساب سایت» in «مشخصات», with when it was made and the last sign-in
+- [x] «پیامک‌ها»: a card «کد ورود سایت» (today of 300, this month's count and cost); «نیاز به
+      اقدام»: a red line when the day's 300 is used up, with a link to «پیامک‌ها»
+- [x] `/api/sms/sign-in-codes` answers the cost in Toman (`thisMonthCostToman`), like every other
+      SMS amount; 15.2a had sent Kavenegar's Rial
+- [x] Tests: `TrainersPage.test.tsx`, and the profile, «پیامک‌ها», dashboard and menu tests; the
+      computer's screens elsewhere unchanged
 
 #### 15.3 The site app: address, sign-in screens, PWA
-- [ ] `app.pasargadgymplus.ir`: DNS record (the developer), Caddy site, security headers, its own
-      rate limits
-- [ ] A second entry in `web/` sharing `lib/` and none of the panel's pages; sign-up and sign-in
-      screens in Persian, phone-first
-- [ ] Installable on a phone: manifest, icons, a service worker that updates itself, an install
-      guide for iPhone
-- [ ] `https://pasargadgymplus.ir/qr`, a fixed address Caddy redirects to the app, so a printed
-      poster never has to be printed again; the desk's QR made locally (static, high error
-      correction, the gym's logo in the middle, the address written under it) and an A4 poster
-- [ ] The public page's «ورود» and «ثبت‌نام» lead to the app (closes 14.4)
-- [ ] Tests: frontend; `npm run e2e` grows a sign-in on the app's host
+Split into a (the app's screens, run locally) and b (on the server, installable, the QR) when its
+plan was approved (1405/08/06), on branch `task/15.3-site-app`, made from `task/15.2-trainers`
+after 15.2b was committed.
+
+##### 15.3a The app's screens
+- [x] A second entry in `web/` sharing `lib/` and `components/` and none of the panel's pages:
+      page `web/site/index.html`, code `web/src/site/`, `vite.site.config.ts` (`npm run dev:site`
+      on :5174; `npm run build` builds the panel, then the site into `dist-site/`);
+      `boundary.test.ts` fails if a site file imports the panel's pages or sign-in, or the panel
+      a site file (1405/08/06, not released)
+      - The site's own session store, fetch and client (`/api/site/auth/refresh`, Web Lock
+        `gym-site-refresh`), never the panel's; what both need moved to `lib/`
+        (`emptyFailureAsProblem`, `readTokenClaim`, `memberFields`, `staleChunkReload`)
+      - The first download kept under Vite's 500 kB: the sign-in screens use the plain field
+        (`components/InputField.tsx`, re-exported by `FormField.tsx`) and no Zod; the sign-up
+        page is downloaded when opened
+      - Light or dark as the phone is (`site/public/theme-init.js`, `site/theme.ts`); Tailwind
+        reads classes from `web/` (`source("..")` in `index.css`), the panel's CSS unchanged
+- [x] Sign-in and sign-up in Persian, phone first: the phone, then the code (sent at its fifth
+      digit), the four answers of «دریافت کد» (§15), «ارسال دوباره» counting down to the API's
+      time, «تغییر شماره»; a new phone gets «ثبت‌نام» (name and birth date, §2's rules shared
+      with the desk's form); its ticket kept in memory, so a reload asks for a new code
+- [x] The code fills itself in: `autocomplete="one-time-code"` (iPhone) and WebOTP (Android
+      Chrome), which works once the template line of §15 is added; typed by hand otherwise
+- [x] The first screen: a member's area and a trainer's (their contents come in 15.5 and from
+      15.6), both for one person; a member deactivated at the desk sees only the notice; a «me»
+      with neither area shows «مربی‌گری شما تمام شده است» on the sign-in screen and signs out
+      (§15 *Trainers*, 15.2); «خروج»
+- [x] Tests: `SignInPage`, `SignUpPage`, `HomePage`, `siteAuthFetch` (the site's token only, its
+      own refresh, a refused refresh leaves the panel's session alone) and the boundary
+- [x] After the code review: the code is sent once even when the box is filled twice at once,
+      and never with fewer than 5 digits (each would cost a try of §15's 15 a day); the WebOTP
+      wait stops once the box is full; a sign-up ticket is dropped when anyone signs in or out or
+      asks for a new code; every new token's «me» replaces the shown one, and «me» is read again
+      when the app comes back to the front, so a stopped trainer is told without a reload; no
+      phone form flashes while a reload restores the session; the boundary test covers the shared
+      `lib/` and `components/` too. Accepted as it is: the countdown uses the phone's clock (a
+      clock ahead only gets «کد قبلاً برای شما پیامک شده است» from the API)
+- [x] Two answers of the developer (1405/08/06), written in §15: the site signs out only when the
+      API says the session ended (a 401); no internet, a 5xx or a 429 keeps the person signed in
+      behind «دوباره امتحان کنید» (`unreachable` in the site's store); and a trainer whose
+      membership the desk deactivated gets neither area (`SitePerson.IsTrainer`, tested in
+      `TrainerSignInTests`). The WebOTP line for `gymExpiring` given to the developer; Kavenegar
+      approved the edited template (1405/08/07)
+
+##### 15.3b On the server, installable, the QR
+Built 1405/08/07 on `task/15.3-site-app`, not merged or released (Release 1 is at 15.5).
+- [x] `app.pasargadgymplus.ir`: DNS record (the developer, checked 1405/08/07), Caddy site
+      `{$SITE_DOMAIN}` serving `dist-site/` (`/srv-site`) and only `/api/site/*` of the API (any
+      other `/api` there is a 404, and the panel's host answers 404 for `/api/site/*`); the panel's
+      security headers and `noindex`; `sw.js` and `index.html` with `no-cache`. The API answers to
+      both hosts (`AllowedHosts: DOMAIN;SITE_DOMAIN`), and `SITE_DOMAIN` is required in `.env`.
+      The rate limits are the API's own (15.1), Caddy has none built in
+- [x] Installable on a phone: manifest «My Gym» (named «Pasargad Gym» until the developer renamed it, 1405/08/08), icons (the gym's logo in dark stone on
+      bronze, the panel's reversed: the developer's choice, 1405/08/07), a hand-written service
+      worker (`site/sw.js`, filled with the build's files by `vite.site.config.ts`) that keeps the
+      app's files, never `/api`, and updates itself; the card «نصب برنامه روی گوشی» on the sign-in
+      and home screens: «نصب برنامه» on Android, Safari's steps on an iPhone, «بعداً» for 30 days
+- [x] `https://pasargadgymplus.ir/qr`, a temporary (302) redirect to the app, so a printed poster
+      never has to be printed again; the desk's QR in `deploy/qr/` (`qr.svg`, `qr.png`, level H,
+      the app's icon in the middle, read back with a decoder) and the A4 poster (`poster.html` →
+      `poster.pdf`), made with the npm package `qrcode` run once outside the repository (the
+      developer's choice of tool, 1405/08/07)
+- [x] The public page's top bar: one «ورود / ثبت‌نام» that opens the app (the developer's choice);
+      the hero's two buttons lead to «امکانات» and «ساعت کاری» on the page. Closes 14.4
+- [x] `www.pasargadgymplus.com` redirects to the public page like the other names:
+      `www.{$REDIRECT_DOMAIN}` joined the redirect block (its DNS record already pointed here)
+- [x] Tests: `npm run e2e` signs a new phone up on `https://app.localhost` (the code computed from
+      its seed, as the API does) and reloads; the app installable in Chrome; manifest and `sw.js`
+      served fresh; each host refuses the other's API; `/qr` is a 302 to the app.
+      `siteAppOffline.spec.ts`: the worker keeps `/` and `/assets`, nothing under `/api`, and the app
+      opens offline on «دوباره امتحان کنید». `InstallHint.test.tsx`; `ContentSecurityPolicyTests`
+      covers the app's policy and page
+- [x] After the code review: `deploy/release.sh` checks the new compose file against the server's
+      `.env` before copying it (a missing `SITE_DOMAIN` would otherwise stop the nightly backup and
+      the rollback while the old containers keep running); a missing `/assets/*` file is a 404 on
+      both hosts, no longer `index.html` cached for a year (the panel had it since 6.5.0); the
+      worker's plugin runs last, hashes `index.html` too and fails the build if a placeholder is
+      left. Accepted as it is: a page load waits for the browser's own timeout before the offline copy (15.11 may add one)
+- [x] After the developer tried it locally (1405/08/07): a sign-in that fails after the right code
+      no longer uses the code up (checking it and finding or making the account are one transaction;
+      a missing local migration had burnt a code and cost a second SMS); the code screen says the wait
+      in words under its buttons («اگر کد نرسید، تا ۱:۰۳ دیگر …»), and when Kavenegar has reported the code
+      delivered it says «این کد تا … دیگر معتبر است؛ بعد از آن می‌توانید کد تازه بگیرید» with «کد تازه»
+      on the button, never «اگر کد نرسید» under «کد به گوشی شما رسیده است»; the install card shows on phones only
+      (Chrome on Windows offered it too); the public page's button links
+      `/app`, which Caddy redirects to the app like `/qr`, and `npm run dev:site` also serves the public
+      page at `http://localhost:5174/public-site/`, so the whole way from the gym's page to signing in
+      runs on one address locally
 
 #### 15.4 A member picks a trainer
-- [ ] The trainers' list in the app (and 14.1's cards, once the gym's photos come); a member's
-      request, the trainer's accept or decline, changing trainer; the link's start and end
-- [ ] Tests (integration): one trainer at a time, a former trainer loses access that day
+Plan approved 1405/08/07 (2026-10-29), on branch `task/15.4-pick-a-trainer`, made from
+`task/15.3-site-app`; split in three: a (backend), b (the app's screens), c (the trainer's SMS).
+- [x] Asked first, written in §15 *A member and their trainer*: one request waiting at a time, a
+      new one replaces it; either side ends the link; the trainer sees name and phone; the trainer
+      hears in the app and by SMS (one a day per member and trainer, 5 requests a day per member)
+
+##### 15.4a The backend
+Built 1405/08/07, not merged or released.
+- [x] `Domain/Coaching`: `TrainerRequest` (waiting, accepted, declined, cancelled, replaced,
+      trainer stopped; at most 5 a gym day) and `TrainerLink` (start, end, why it ended); one
+      waiting request and one open link per member as partial unique indexes, ends not before
+      starts and a reason exactly when ended as check constraints, `xmin` on both
+- [x] One gym-wide advisory lock for every change to them (`LockCoachingAsync`): the member's
+      request, cancel and end, the trainer's accept, decline and end, and the Owner's «توقف», so
+      two presses at once, or an accept and a cancel at once, make one outcome
+- [x] `/api/site/coaching`: the member's (`SiteMember`) `trainers`, `my-trainer`,
+      `my-trainer/request`, `my-trainer/cancel-request`, `my-trainer/end`; the trainer's
+      (`SiteTrainer`) `students`, `requests/{id}/accept`, `requests/{id}/decline`,
+      `students/{memberId}/end`. Every handler reads the member or trainer from the database, so a
+      deactivation at the desk or a stop by the Owner is refused at once, not 15 minutes later
+- [x] The Owner stopping a trainer ends their links and waiting requests that day
+- [x] Persian names for the two tables in the audit screen; Persian messages for `Coaching.*`
+- [x] Tests: domain (`TrainerRequestTests`, `TrainerLinkTests`), integration (`CoachingTests`):
+      one trainer at a time, the former trainer loses the member that day, accept and cancel at
+      once, the two areas apart, the database refusing a second waiting request or open link
+
+##### 15.4b The app's screens
+Built 1405/08/07, not merged or released.
+- [x] The member: «مربی من» on the home screen (no trainer, the trainer since a date, the waiting
+      request, or both while changing), «انتخاب مربی» / «تغییر مربی» to `/trainers`, the
+      trainers' list with «انتخاب این مربی» (the trainer now marked «مربی شما», the one asked «در
+      انتظار پاسخ»), «لغو», «پایان مربی‌گری» (asks first)
+- [x] The trainer: «درخواست‌ها» (only when there are any) with «پذیرفتن» and «رد کردن» (asks
+      nothing: the member may ask again), «شاگردان من» with name, phone (a tap calls) and
+      «غیرفعال», «پایان» (asks first). Both lists are read again when the app comes back to the
+      front
+- [x] The questions, chosen with the plan (the developer, 1405/08/07, «for now»): «مربی‌گری {مربی}
+      برای شما از امروز تمام می‌شود. ادامه می‌دهید؟» and «مربی‌گری شما برای {شاگرد} از امروز تمام
+      می‌شود. ادامه می‌دهید؟»; picking a trainer asks nothing
+- [x] A change refused because the other side was first shows its message and reads the lists
+      again
+- [x] Tests: Vitest (`MyTrainerCard`, `TrainersPage`, `TrainerArea`), e2e
+      `siteCoaching.spec.ts` (a member signs up and picks, the trainer on a second phone accepts)
+
+##### 15.4c The trainer's SMS
+Built 1405/08/07, not merged or released.
+- [x] Its own kind, «انتخاب مربی», in «تنظیمات پیامک» under «پیامک به مربیان» (the panel's one change
+      in 15.4, asked by the developer), off at first; sent at once, after 22:00 at 10:00; one a day
+      per member and trainer, held by a unique index (`notifications.trainer_id`, the request's day
+      in `report_date`); the text in `SmsText` and `docs/sms-texts.md`, shown on its card (§15).
+      «لغو11» stays (Kavenegar adds it anyway)
+- [x] Asked for after the request's commit (`TrainerRequestSms`), sent by a Hangfire job
+      (`TrainerRequestSmsJob`, one at a time) that checks everything again: only a request still
+      waiting, a trainer now and an active member get it (proposed by Claude, written in §15)
+- [x] «پیامک‌ها» lists it under the trainer's name, with no link to the member
+- [x] Tests: domain (`SmsTextTests`, `NotificationTests`, `SmsSettingsTests`), integration
+      (`TrainerRequestSmsTests`, `SmsSettingsEndpointTests`), Vitest (the card, the switch saved)
 
 #### 15.5 The member's home, first part
-- [ ] My plan: sessions left, the plan's end, freeze; my visits (from the desk's check-ins); my
-      trainer. Everything here already exists in the panel's data
-- [ ] **Release 1**, late at night, backup first
+Decided 1405/08/08 (§15 *The member's own records*): the member sees everything the panel's profile
+holds about them except the SMS; nothing is edited from the app (the birth date least of all); the
+desk's «یادداشت» and the staff's names and reasons on cancelled rows are left out. Split in two:
+- [x] **15.5a, the backend**: read-only `/api/site/me/...` behind `SiteMember` (details with the
+      day they joined and the day they signed up on the site, the plan now and the one bought for
+      later, the debt item by item, check-ins with lockers, plans, payments, cafe purchases), each
+      calling the panel's own handler with the member's own id and mapped to site records without
+      the staff's fields; a deactivated member gets nothing; integration tests (a staff token
+      refused, another member's data unreachable). Built 1405/08/08 on `task/15.4-pick-a-trainer`,
+      not merged or released: `Application/SiteRecords/` and `SiteRecordsEndpoints.cs`, paths
+      `details`, `plan`, `debt`, `visits`, `plans`, `payments`, `cafe-orders`; no path names a
+      member. `plan` is `SubscriptionSchedule.CurrentPlan` (the member list's rule) and the soonest
+      queued one after it. Left out: `notes`, `cancellationReason`, `cancelReason`, the refund's
+      `reason`, `receivedByUserId`, `placedByUserId`, `recordedByUserId`, `voidReason` (voided
+      charges are not listed at all, as in the panel). A deactivated member or a trainer who is not
+      a member gets 403 `Coaching.MemberInactive`. Tests: `SiteRecordsTests` (30)
+- [x] **15.5b, the screens**: compact cards for the plan, the debt and the trainer, the history
+      in tabs; read-only. Vitest, an e2e, and shown in the developer's Chrome. Built 1405/08/09 on
+      `task/15.4-pick-a-trainer`, not merged or released: `web/src/site/records/`. The active
+      member's home is «اشتراک من» (sessions left, the last day and what is paid as three small
+      boxes; a frozen plan says since when; the plan bought for later under it), «بدهی من» (the
+      total and each item, or «بدهی ندارید.»), «مربی من», «سوابق من» (tabs «مراجعه‌ها»,
+      «اشتراک‌ها», «پرداخت‌ها», «بوفه», ten rows a page, each read only when opened; a cancelled row
+      marked, never explained) and «مشخصات من» (read-only, «برای اصلاح مشخصات به پذیرش باشگاه
+      مراجعه کنید.»). The site keeps its own copies of the panel's Persian labels
+      (`site/records/labels.ts`) instead of sharing them: the developer wants the panel kept apart
+      (1405/08/09). Tests: Vitest `MyRecords.test.tsx` (12) and `HomePage.test.tsx`, e2e
+      `siteRecords.spec.ts` (a desk member with a plan, a payment and a visit)
+- [x] «خروج» asks first (asked by the developer, 1405/08/07): «با خروج، برای ورود دوباره یک کد
+      پیامکی تازه لازم است. خارج می‌شوید؟» with «خروج» and «انصراف», since signing in again costs an
+      SMS; built with 15.5b (the site's `ConfirmDialog`, full width)
+- [ ] **Release 1**, late at night, backup first; `SITE_CODE_SECRET`, `SITE_JWT_SIGNING_KEY` (15.1a, 15.1b)
+      and `SITE_DOMAIN=app.pasargadgymplus.ir` (15.3b) added to the server's `.env` first: compose refuses
+      to start without any of the three. The poster (`deploy/qr/poster.pdf`) printed after it
 
 ### Release 2 — The timetable and attendance (priority 1)
 

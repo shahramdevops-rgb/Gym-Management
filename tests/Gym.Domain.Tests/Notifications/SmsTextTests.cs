@@ -462,4 +462,25 @@ public sealed class SmsTextTests
     {
         Should.Throw<ArgumentException>(() => SmsText.ForBroadcast("علی", "  "));
     }
+
+    // ---- The trainer's SMS (task 15.4c) ----
+
+    [Fact]
+    public void ForTrainerRequest_NamesTheTrainerByFirstNameAndTheMemberInFull()
+    {
+        SmsText.ForTrainerRequest("مهدی نوری", "لیلا کاظمی")
+            .ShouldBe("مهدی عزیز، لیلا کاظمی شما را به‌عنوان مربی خود در باشگاه پاسارگاد انتخاب کرده است." + OptOutLine);
+    }
+
+    [Fact]
+    public void ForTrainerRequest_LongMemberName_KeepsItsFirstFourWords()
+    {
+        SmsText.ForTrainerRequest("مهدی نوری", LongName).ShouldContain("، سید محمد حسین علی شما را");
+    }
+
+    [Fact]
+    public void ForTrainerRequest_LongestNames_StayTwoParts()
+    {
+        SmsParts.Count(SmsText.ForTrainerRequest(LongName, LongName)).ShouldBeLessThanOrEqualTo(2);
+    }
 }

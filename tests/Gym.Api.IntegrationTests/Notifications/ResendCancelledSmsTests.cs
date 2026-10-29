@@ -102,7 +102,7 @@ public sealed class ResendCancelledSmsTests(DatabaseFixture fixture) : DatabaseT
             subscriptionReceiptEnabled: false,
             welcomeEnabled: false,
             welcomeBackEnabled: false, debtReminder: SmsKindSettings.Off, debtReminderMinAmount: null,
-            absence: SmsKindSettings.Off, broadcastEnabled: false));
+            absence: SmsKindSettings.Off, broadcastEnabled: false, trainerRequestEnabled: false));
         var report = Notification.ForDailyReport(Today, OwnerPhone, "گزارش باشگاه پاسارگاد ۰۷/۱۶\nورود: ۸۵");
         Cancel(report, At(Today, 22, 45));
         await SaveAsync(report);
@@ -336,7 +336,7 @@ public sealed class ResendCancelledSmsTests(DatabaseFixture fixture) : DatabaseT
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,
-            broadcastEnabled: false));
+            broadcastEnabled: false, trainerRequestEnabled: false));
 
     private async Task SaveSettingsAsync(Func<SmsSettings, Result> update)
     {

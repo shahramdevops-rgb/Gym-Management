@@ -4,7 +4,7 @@ import { RouterProvider } from "react-router/dom";
 
 import { Providers } from "./app/providers";
 import { router } from "./app/router";
-import { installStaleChunkReload } from "./app/staleChunkReload";
+import { installStaleChunkReload } from "./lib/staleChunkReload";
 import { restoreSession } from "./lib/api/authFetch";
 import "./index.css";
 

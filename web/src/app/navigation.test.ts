@@ -14,6 +14,7 @@ describe("sectionFor", () => {
     [paths.expenses, "مالی", "هزینه‌ها"],
     [paths.payables, "مالی", "چک و قسط"],
     [paths.staff, "مدیریت", "کارمندان"],
+    [paths.trainers, "مدیریت", "مربیان"],
     [paths.settings, "مدیریت", "تنظیمات"],
     [paths.smsMessages, "مدیریت", "پیامک‌ها"],
     [paths.smsSettings, "مدیریت", "تنظیمات پیامک"],

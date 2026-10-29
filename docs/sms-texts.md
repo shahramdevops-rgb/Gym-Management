@@ -232,3 +232,18 @@ broadcast*).
 - The Owner's text is trimmed at both ends and keeps its line breaks (`SmsText.ForBroadcast`).
 - **At most 3 parts** (201 characters) with the opt-out line, measured with the longest first name
   among the recipients (`SmsParts`).
+
+### A member picked the trainer (`TrainerRequest`, to the trainer)
+
+Chosen by the developer on 1405/08/07 (2026-10-29), task 15.4c. Sent when a member picks the
+trainer in the site app (BUSINESS_RULES.md §15 *A member and their trainer*).
+
+```
+{trainer's first name} عزیز، {member's full name} شما را به‌عنوان مربی خود در باشگاه پاسارگاد انتخاب کرده است.
+```
+
+- The trainer by first name, as every message names its reader (`SmsText.FirstName`); the member
+  in full, so the trainer knows whom to look for. A full name keeps its first 4 words
+  (`SmsText.MaxMemberNameWords`), so the message stays two parts.
+- «لغو11» stays under it like every message: Kavenegar adds it anyway when a text leaves it out
+  (the developer, 1405/08/07).

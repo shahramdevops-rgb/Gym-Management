@@ -176,7 +176,7 @@ public sealed class SmsRunScheduleTests(DatabaseFixture fixture) : DatabaseTestB
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,
-            broadcastEnabled: false).IsSuccess.ShouldBeTrue();
+            broadcastEnabled: false, trainerRequestEnabled: false).IsSuccess.ShouldBeTrue();
 
         return settings;
     }

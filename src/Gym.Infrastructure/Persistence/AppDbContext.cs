@@ -4,6 +4,7 @@ using Gym.Domain.Attendances;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Cafe;
+using Gym.Domain.Coaching;
 using Gym.Domain.Expenses;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
@@ -12,7 +13,9 @@ using Gym.Domain.Payables;
 using Gym.Domain.Payments;
 using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
+using Gym.Domain.SiteAuth;
 using Gym.Domain.Subscriptions;
+using Gym.Domain.Trainers;
 using Gym.Infrastructure.Identity;
 
 using Microsoft.AspNetCore.Identity;
@@ -79,6 +82,20 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<SmsBroadcast> SmsBroadcasts => Set<SmsBroadcast>();
 
+    public DbSet<SignInCode> SignInCodes => Set<SignInCode>();
+
+    public DbSet<SignInCodeSend> SignInCodeSends => Set<SignInCodeSend>();
+
+    public DbSet<SiteAccount> SiteAccounts => Set<SiteAccount>();
+
+    public DbSet<SiteRefreshToken> SiteRefreshTokens => Set<SiteRefreshToken>();
+
+    public DbSet<Trainer> Trainers => Set<Trainer>();
+
+    public DbSet<TrainerRequest> TrainerRequests => Set<TrainerRequest>();
+
+    public DbSet<TrainerLink> TrainerLinks => Set<TrainerLink>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
 
@@ -106,6 +123,63 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
         return Database.ExecuteSqlAsync($"SELECT 1 FROM attendances WHERE id = {attendanceId} FOR UPDATE", cancellationToken);
     }
+
+    /// <summary>
+    /// A transaction-scoped advisory lock: Postgres's lock on a number the application chooses,
+    /// released by itself at commit or rollback. The two-key form keeps these apart from any other
+    /// advisory lock: the first key says "a phone's sign-in", the second is the number's hash. Two
+    /// numbers with the same hash only wait for each other, which is harmless.
+    /// </summary>
+    public Task LockPhoneAsync(string phoneNumber, CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("An advisory lock outside a transaction is released at once; begin one first.");
+        }
+
+        return Database.ExecuteSqlAsync(
+            $"SELECT pg_advisory_xact_lock({SignInLockKey}, hashtext({phoneNumber}))",
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// The same kind of lock, on the gym's code sends as a whole: the same first key, and 0 as the
+    /// second. A phone whose hash happens to be 0 only shares this wait; a session that already
+    /// holds an advisory lock may take it again, so it never waits for itself.
+    /// </summary>
+    public Task LockGymSignInSendsAsync(CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("An advisory lock outside a transaction is released at once; begin one first.");
+        }
+
+        return Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({SignInLockKey}, {GymSendsLockId})", cancellationToken);
+    }
+
+    /// <summary>
+    /// The same kind of lock, on the gym's trainer requests and links as a whole: its own first key,
+    /// so it never waits for a sign-in. Few members change trainer, so one lock for the gym costs
+    /// nothing and leaves no order of locks to get wrong.
+    /// </summary>
+    public Task LockCoachingAsync(CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("An advisory lock outside a transaction is released at once; begin one first.");
+        }
+
+        return Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({CoachingLockKey}, 0)", cancellationToken);
+    }
+
+    /// <summary>The first key of the site sign-in's advisory locks (15 for Phase 15).</summary>
+    private const int SignInLockKey = 15;
+
+    /// <summary>The second key of <see cref="LockGymSignInSendsAsync"/>'s lock.</summary>
+    private const int GymSendsLockId = 0;
+
+    /// <summary>The first key of <see cref="LockCoachingAsync"/>'s lock (154 for task 15.4).</summary>
+    private const int CoachingLockKey = 154;
 
     /// <inheritdoc cref="IAppDbContext.DeferSubscriptionOverlapCheckAsync"/>
     public Task DeferSubscriptionOverlapCheckAsync(CancellationToken cancellationToken)

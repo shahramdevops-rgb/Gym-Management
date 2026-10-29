@@ -1,4 +1,6 @@
 using Gym.Application.Common;
+using Gym.Application.SiteAuth;
+using Gym.Domain.Auth;
 using Gym.Domain.Common;
 using Gym.Domain.Members;
 
@@ -17,8 +19,14 @@ namespace Gym.Application.Members.UpdateMember;
 /// <item><c>xmin</c> on save. It covers the moment between this request's read and its write,
 /// which the version check cannot.</item>
 /// </list>
+/// <para>
+/// <b>A new phone signs the member out of the site</b> (BUSINESS_RULES.md §15). The site finds a
+/// member by the phone the desk typed; if that was a stranger's number, the stranger may have signed
+/// in as this member. Correcting it ends every site session of the member in the same save, and the
+/// member signs in again with the right number.
+/// </para>
 /// </remarks>
-public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phones, IGymCalendar calendar)
+public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phones, IGymCalendar calendar, TimeProvider timeProvider)
 {
     public async Task<Result<MemberResponse>> Handle(Guid id, UpdateMemberCommand command, CancellationToken cancellationToken)
     {
@@ -53,10 +61,22 @@ public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
             return Result.Failure<MemberResponse>(MemberErrors.BirthDateRequired);
         }
 
+        var oldPhone = member.PhoneNumber;
+        var phoneChanged = oldPhone != phone.Value;
+
         var updated = member.Update(command.FullName, phone.Value, command.Notes, birthDate, calendar.Today());
         if (updated.IsFailure)
         {
             return Result.Failure<MemberResponse>(updated.Error);
+        }
+
+        // A sign-in with the old phone may be finishing at this moment: the phone's lock waits for
+        // it, so the session it makes is revoked here too instead of outliving the change.
+        await using var transaction = phoneChanged ? await db.BeginTransactionAsync(cancellationToken) : null;
+        if (phoneChanged)
+        {
+            await db.LockPhoneAsync(oldPhone, cancellationToken);
+            await SignOutOfTheSiteAsync(id, cancellationToken);
         }
 
         try
@@ -72,6 +92,19 @@ public sealed class UpdateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
             return Result.Failure<MemberResponse>(MemberErrors.ChangedConcurrently);
         }
 
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
         return MemberResponse.From(member);
     }
+
+    /// <summary>Revokes the member's live site sessions; saved with the member's change.</summary>
+    private Task SignOutOfTheSiteAsync(Guid memberId, CancellationToken cancellationToken) =>
+        db.RevokeSiteSessionsAsync(
+            db.SiteAccounts.Where(account => account.MemberId == memberId).Select(account => account.Id),
+            RefreshTokenRevocationReason.PhoneChanged,
+            timeProvider.GetUtcNow(),
+            cancellationToken);
 }

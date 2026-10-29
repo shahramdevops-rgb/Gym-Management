@@ -1688,7 +1688,8 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   its settings, the text exactly as the code writes it, with a sample member («سید علی رضایی», named
   «علی») and sample figures, and how many SMS parts it takes. It is built by the same code as the real
   messages, so the page cannot show a wording the members do not get. The kinds are grouped by who
-  receives them: the members, the Owner, and the broadcast.
+  receives them: the members, the Owner, the broadcast, and the trainers («پیامک به مربیان», with
+  the one kind of §15, 15.4c).
 - **The broadcast is one card on this page** (*The broadcast*): its switch, and writing and sending
   one, with the message drawn as it is typed. It has no page, tab or menu item of its own, and no
   list of the broadcasts sent: their messages are on «پیامک‌ها». Only the latest, while it is
@@ -2280,7 +2281,7 @@ without adding up the rows.
   - **One exception: the installed app's name** (roadmap 13.4, decided by the developer, 1405/08/03):
     «Management» under the icon and «Pasargad Gym Management» in full, in English, which is short
     and never breaks under an icon. The long-press shortcuts keep the menu's Persian names. The
-    members' and trainers' app (Phase 15) will be «Pasargad Gym», so the two are told apart.
+    members' and trainers' app (Phase 15) is «My Gym» (15.3b; the developer renamed it from «Pasargad Gym» 1405/08/08), so the two are told apart.
 - Text normalization (applied to names before saving the search column, and to every search input):
   - Arabic ي (U+064A) and ى (U+0649) → Persian ی (U+06CC)
   - Arabic ك (U+0643) → Persian ک (U+06A9)
@@ -2333,6 +2334,25 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   developer* (a fact of the gym, which shapes the photo rules below).
 - **The site's account area is at `app.pasargadgymplus.ir`** and installs on a phone like an app
   (a PWA). *Decided by the developer* (1405/08/03).
+  - **Its icon is the panel's reversed**: the gym's logo in dark stone on bronze, so the two icons
+    are told apart at a glance on a phone that has both; «My Gym» under it (§13, renamed 1405/08/08). *Decided by
+    the developer* (1405/08/07, 15.3b).
+  - **The app asks to be installed** in a small card on the sign-in screen and the home screen:
+    on Android a «نصب برنامه» button (where the browser offers it), on an iPhone the steps of
+    Safari's Share menu. Never on a computer (the developer, 1405/08/07: nobody needs the app
+    there, though Chrome offers it), hidden in the installed app, and for 30 days after «بعداً».
+    Shown before signing in, because an installed iPhone app keeps its own sign-in, and installing
+    after signing in would cost a second code SMS. *Proposed by Claude, accepted with 15.3b's plan*
+    (1405/08/07).
+  - **The installed app opens without internet** and then shows «ارتباط با سرور برقرار نشد», as the
+    page does (a service worker keeps the app's files, never the API's answers); a release reaches
+    it by itself the next time it opens. *Proposed by Claude, accepted* (1405/08/07, 15.3b).
+  - **The desk's QR code holds `https://pasargadgymplus.ir/qr`**, a fixed address of the public
+    page that is redirected to the app, so the printed poster (`deploy/qr/`) never has to be
+    printed again if the app moves. *Proposed by Claude, accepted* (1405/08/07, 15.3b).
+  - **The public page's top bar has one «ورود / ثبت‌نام» button** that opens the app, since signing
+    in and signing up start on the same screen there. *Decided by the developer* (1405/08/07). It
+    links `pasargadgymplus.ir/app`, redirected like `/qr`, so the page never names the app's host.
 - **A member's program can be seen and followed without internet**: the program last opened stays
   on the phone, and what the member marks done while offline is sent when the phone is online
   again. *Decided by the developer* (1405/08/03); *Open:* what "marking done" holds (15.11).
@@ -2343,9 +2363,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   not more than 120 years ago). *Decided by the developer.*
 - **A phone already in the panel links to that member**, never a duplicate (§2: phones are unique).
   *Decided by the developer* (2026-10-15).
-  - *Proposed by Claude:* a linked member is not asked for a name or birth date again; the panel's
-    are shown, and corrections are made at the desk, so a sign-up never changes what the desk
-    entered.
+  - **A linked member is not asked for a name or birth date again**; the panel's are shown, and
+    corrections are made at the desk, so a sign-up never changes what the desk entered.
+    *Decided by the developer* (1405/08/04, 15.1b).
 - **A phone not in the panel creates a member there**, active, with no plan. They cannot enter the
   gym until they buy a plan: every visit is a check-in at the desk, which needs a plan or a single
   visit (§7), as for anyone. *Decided by the developer.*
@@ -2353,22 +2373,86 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   sold (§10 *The welcome*), unchanged; a member who signed up on the site gets it at the desk with
   their first plan, like anyone. *Checked against §10 on 1405/08/03; nothing changes there.*
 - **Buying a plan on the site is not part of this phase** (2026-10-15, still for later).
-- **The one-time code** (*Proposed by Claude*, the numbers confirmed in the task):
-  - 5 digits, valid for 2 minutes, at most 5 wrong tries, then a new code is needed.
-  - A new code at most once a minute and at most 5 an hour per phone; a limit per IP as well.
+- **The one-time code** (*Decided by the developer* on 1405/08/03, at the start of 15.1):
+  - **5 digits, valid for 60 minutes**, as government sites (e.g. ADLIRAN) do; at most 5 wrong
+    tries, then that code is dead and a new one is needed. (Claude proposed 2 minutes, then 3;
+    the developer chose 60.)
+  - **No new SMS while a code is still valid.** Asking again within the first 2 minutes is
+    answered «کد قبلاً برای شما پیامک شده است» with the seconds left before «ارسال دوباره»; the
+    screen tells the member to wait 2 minutes if the code has not come.
+  - **«ارسال دوباره» after 2 minutes sends the same code again**, not a new one (so a late first
+    SMS still works), with the minutes it has left. **It is not sent when Kavenegar has reported
+    the first one delivered**: the answer is then that the code has reached the phone, and nothing
+    is paid. A member who lost a delivered code gets a new one when it expires.
+  - At most 5 code SMS an hour per phone, the sends again included; **20 code requests per 10
+    minutes per IP** (generous, because Iranian mobile carriers put many phones behind one
+    address); and **at most 300 code SMS a day for the whole gym**, so a flood cannot empty the
+    Kavenegar credit overnight.
   - Every code is a paid SMS, so the limits are checked before Kavenegar is called.
   - **Sent as Kavenegar's verification template** (`verify/lookup`, made for codes), not as free
     text (Kavenegar's answer, 1405/08/03; it had refused templates before the site was up,
     1405/07/16). The template is `gymExpiring`, written by the developer:
     «کد تایید باشگاه پاسارگاد: %token» and «این کد تا %token2 دقیقه معتبر است.», where `token` is
     the code and `token2` the minutes it is valid for. It uses the gym's Kavenegar account and the
-    same API key; Kavenegar sends it from the account's shared international line. Every other SMS
-    stays free text from the gym's dedicated line (§10 *Sending*).
-  - The code itself is never written anywhere readable: not in the logs, not in the SMS history
-    (*Proposed by Claude*, confirmed in 15.1's plan with where these messages are listed).
+    same API key; Kavenegar sends it from the gym's dedicated line `9981600378`, since its shared
+    international line `0018018949161` cannot send inside Iran (Kavenegar's answer, 1405/08/07).
+    Every other SMS is free text from the same dedicated line (§10 *Sending*).
+  - **The code fills itself in on the phone** (asked by the developer, 1405/08/03, for the site
+    app of 15.3): iPhones offer it from the SMS by themselves; Android needs the template's last
+    line to be `@app.pasargadgymplus.ir #%token`. Kavenegar approved `gymExpiring` with that third
+    line (sent by the developer and approved 1405/08/07). To check on the first real code SMS: its
+    last line is `@app.pasargadgymplus.ir #` and the code, with nothing after it.
+  - The code itself is never written anywhere readable: not in the logs, not in the SMS history.
+    Code SMS are not listed in the panel's «پیامک‌ها» history; only their count and cost are kept,
+    and showing them in the panel is for 15.2. The database keeps only a random seed per code, from
+    which the code is computed with a secret in the server's settings (`SITE_CODE_SECRET`), so a
+    database backup alone reveals no code. *Decided by the developer* (1405/08/03).
+  - **The right code is used up only when the sign-in is saved.** If anything fails after the code
+    is checked, the same code still works, and no new, paid SMS is needed; a wrong code's try is
+    counted at once. *Proposed by Claude, accepted by the developer* (1405/08/07, 15.3b), after a
+    local error burnt a code.
+  - **Two presses at once send one SMS**, and the gym's 300 is never passed: each phone's requests
+    and checks run one at a time, and the sends of the whole gym too (15.1a). A request whose
+    browser goes away once Kavenegar has been called is still finished and counted, since the SMS
+    may already be paid for. *Decided by Claude* in 15.1a, after the code review.
+  - **Development sends real codes** through the same Kavenegar account, only to the numbers in
+    `Sms:AllowedReceptors` (§10 *Development and tests*), so the developer tests with their own
+    phones; the automated tests always use the fake sender. *Decided by the developer*.
+- **Staying signed in on the site: 60 days, renewed by every use**, because each new sign-in is a
+  paid SMS (staff: 7 days, §1). *Decided by the developer* (1405/08/03).
+  - **The site signs out only when the server says the session has ended**: «خروج», 60 days
+    unused, the phone changed by the desk or the Owner, a reused copy of the session, or the
+    browser's data cleared. With no internet, the server restarting during a release or too many
+    requests from one address, the person stays signed in and sees «ارتباط با سرور برقرار نشد»
+    with «دوباره امتحان کنید», instead of being sent to ask for a new, paid code. *Proposed by
+    Claude, decided by the developer* (1405/08/06, 15.3a); the panel keeps signing out (§1).
+- **When the desk changes a member's phone, every site session of that member ends** (within the
+  access token's 15 minutes), and the member signs in again with the new number. The site finds a
+  member by the phone the desk typed, which no code ever checked: a mistyped number may belong to a
+  stranger, who could sign in as that member until the desk corrects it. *Proposed by Claude,
+  decided by the developer* (1405/08/05, 15.1b). **No code is sent when the desk registers a
+  member**: the desk types the phone as it does today. *Decided by the developer* (1405/08/05); not
+  to be raised again for now.
+- **A new phone has 15 minutes after its code to give its name and birth date**; after that it
+  asks for a new code. *Proposed by Claude, accepted* (1405/08/04, 15.1b).
+- **15 wrong tries in one of the gym's days close the phone until the next day**, counted over all
+  its codes: no new code is sent to it, and the current one stops working. Someone guessing at one
+  person's account then gets 15 guesses a day instead of 600; the real owner of the phone never
+  types a code wrong 15 times. Counting tries rather than codes ended by 5 wrong tries, because
+  stopping at 4 a code and waiting for the next would escape a count of codes (found in 15.1b's
+  review). *Proposed by Claude, decided by the developer* (1405/08/04-05, 15.1b).
+- **When the gym's 300 a day is reached**, no SMS goes to the Owner (SMS goes live as one complete
+  version, §10); the panel shows it, in 15.2. With about 300 members, an ordinary day never comes
+  near it: reaching it means an attack. *Decided by the developer* (1405/08/04).
+- **What a member does on the site is recorded in the audit log as «سیستم»** (no staff user), as
+  sign-ins are (§11). *Proposed by Claude, accepted* (1405/08/04, 15.1b).
 - **A member deactivated in the panel** can still receive a code and sign in, but sees only a
   notice that their membership is inactive and that they should come to the desk; nothing else on
   the site opens for them. *Decided by the developer* (1405/08/03).
+  - **This holds for a trainer too**: a trainer whose membership (same phone) the desk deactivated
+    sees only that notice, and the trainer's area stays shut until the desk activates the member
+    again. A trainer who is not a member is not affected. *Decided by the developer* (1405/08/06,
+    15.3a).
 
 ### Trainers
 - **The gym has one trainer or more, and they can change over time.** *Decided by the developer.*
@@ -2381,18 +2465,101 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   writes the content (their own exercises, templates and programs). *Decided by the developer.*
 - **When the Owner stops someone being a trainer**, their students go back to having no trainer
   and keep everything recorded about them. *Decided by the developer* (1405/08/03).
+- **A trainer is not a member, but may also be one** (*Decided by the developer*, 1405/08/05,
+  15.2). A trainer has their own name and phone in «مربیان», and is not in the members' list, the
+  reports or the members' SMS. A trainer who also trains at the gym is registered at the desk as a
+  member too, as anyone; with the same phone, one code on the site opens both their areas.
+  - Phones are unique among trainers, inactive ones included; a trainer's phone may be a member's.
+  - **A trainer who is stopped can be made a trainer again**: a new period starts, and the earlier
+    ones stay in their history with their dates. Students are not linked back by themselves.
+    *Decided by the developer* (1405/08/05, 15.2).
+  - **A stopped trainer loses the trainer's area within 15 minutes** (the access token's life); a
+    trainer who is also a member keeps the member's area. *Proposed by Claude, 15.2.*
+  - **A stopped trainer who is still signed in and is not a member** sees «مربی‌گری شما تمام شده
+    است» and is signed out of the site. *Decided by the developer* (1405/08/05, 15.2); the screen
+    comes with the site app (15.3), where «me» already answers with neither area.
+  - **A stopped trainer who is not a member and signs in again** gets the sign-up screen, as anyone
+    whose phone is not a member's (*Signing up and signing in*). *Decided by the developer*
+    (1405/08/05, 15.2).
+  - **When the Owner changes a trainer's phone**, the old phone is no longer the trainer's: its
+    site sessions end, unless the old phone is also a member's, who stays signed in with the
+    member's area and loses the trainer's within 15 minutes. *Decided by the developer*
+    (1405/08/05, 15.2). The trainer signs in again with the new phone.
+- **A member's profile shows whether they have a site account**, with the date it was made and the
+  last sign-in; the members' list has no tag or filter for it. *Decided by the developer*
+  (1405/08/05, 15.2).
+- **The code SMS in the panel** (*Decided by the developer*, 1405/08/05, 15.2): «پیامک‌ها» shows
+  today's code SMS out of the gym's 300, and this month's count and cost; when today's 300 is
+  reached, «نیاز به اقدام» shows it too.
 
 ### A member and their trainer
-- **Each member has at most one trainer at a time.** *Decided by the developer.*
+- **Each member has at most one trainer at a time.** *Decided by the developer.* The database
+  holds it too (one open link per member).
 - **The member picks a trainer on the site, and the trainer accepts or declines.** *Proposed by
   Claude, accepted by the developer.* Changing trainer is a new request; when the new trainer
-  accepts, the old link ends that day.
+  accepts, the old link ends that day. Until then the old trainer stays the member's trainer.
 - **The link has a start and an end**, so the history of who trained whom is kept, and a former
-  trainer stops seeing the member from the day the link ends. *Proposed by Claude.*
+  trainer stops seeing the member from the day the link ends. *Proposed by Claude.* A link ends
+  on the gym's today, so «from the day it ends» is at once.
+- **The details, decided with 15.4's plan** (*Decided by the developer*, 1405/08/07, unless
+  marked otherwise):
+  - **One request waiting at a time**: picking another trainer while a request waits replaces it
+    (the first is closed as «عضو مربی دیگری انتخاب کرد»). Pressing the same trainer again makes no
+    second request.
+  - **The member may take a waiting request back** («لغو»). *Proposed by Claude, accepted.*
+  - **Either side may end the link with no new trainer**: the member («پایان مربی‌گری») or the
+    trainer, for one student. Both ask before doing it (the screens, 15.4b). It ends that day.
+  - **The trainer sees each student's name and phone** in «شاگردان من», and the same in the
+    requests waiting for them.
+  - **The trainer hears of a new request in the app and by SMS** (15.4c): its own kind,
+    «انتخاب مربی», in «تنظیمات پیامک» under «پیامک به مربیان», off at first like every kind (§10),
+    sent at once, at 10:00 the next morning when the request comes after 22:00. The text, chosen by the developer:
+    «{نام کوچک مربی} عزیز، {نام کامل شاگرد} شما را به‌عنوان مربی خود در باشگاه پاسارگاد انتخاب کرده
+    است.» with «لغو11» under it, as every SMS from the line (it stays: Kavenegar adds it anyway
+    when the text leaves it out, the developer said 1405/08/07).
+    **At most one such SMS a day for one member and one trainer**: further requests that day
+    show in the app only. The day is the gym's day of the request; the database holds it (one row
+    per member, trainer and day).
+  - *Proposed by Claude, built with 15.4c* (1405/08/07): **the SMS goes only for a request still
+    waiting when it is sent.** A request taken back, replaced, accepted or declined before 10:00
+    (or before a busy minute passes) costs no SMS; nor does one whose trainer was stopped or whose
+    member was deactivated meanwhile. The switch counts as it is when the request is made, and
+    again when the SMS goes, like the welcome (§10). In «پیامک‌ها» the message is listed under the
+    trainer's name, with no link to the member.
+  - **At most 5 requests a day per member** (the gym's day), whatever became of them, so changing
+    back and forth cannot cost many SMS (`Coaching.TooManyRequestsToday`).
+  - *Proposed by Claude, accepted with the plan* (1405/08/07): a request does not expire; after a
+    decline the member may ask again, the same trainer too; no plan is needed to ask (picking a
+    trainer is not entering the gym, §7); a trainer who is also a member cannot pick themselves
+    (same phone); only trainers now are listed, by name only until 14.1's photos and details.
+  - **A member the desk deactivates** cannot ask (their area is shut, *Signing up and signing
+    in*). Their link stays, and their trainer sees them marked «غیرفعال»; a request they made
+    before is left out of the trainer's list and cannot be accepted until the desk activates them
+    again. *Proposed by Claude, accepted with the plan.*
+  - **When the Owner stops a trainer**, their links end that day and the requests waiting for them
+    end too (*Trainers* above). The member's area shows no trainer, and they may pick another.
+  - **Everything here is in the audit log as «سیستم»** (§11), as the site's other actions.
 - **A new trainer sees the member's earlier assessments (the numbers), programs and attendance;
   earlier photos only if the member allows it.** *Proposed by Claude, accepted by the developer.*
 - **The member sees everything their trainers record about them** (programs, analyses, photos,
   numbers) **except the trainer's private notes.** *Proposed by Claude, accepted by the developer.*
+
+### The member's own records (15.5)
+- **The member sees in the app everything the panel's profile holds about them, except the SMS
+  they were sent.** *Decided by the developer* (1405/08/08, 15.5): their details (name, phone,
+  birth date, the day they joined the gym, and the day they signed up on the site), the plan now
+  and any plan bought for later (sessions left, end date, freeze), their debt item by item, every
+  check-in and check-out with its locker, and the history of their plans, payments and cafe
+  purchases. Their trainer is on the same screen (*A member and their trainer*).
+- **Nothing is edited from the app**, the birth date least of all: it decides the birthday SMS and
+  the free visit (§10), and a member who could change it could make any day their birthday. The
+  desk corrects details in the panel. *Decided by the developer* (1405/08/08).
+- **Left out, proposed by Claude and not objected to** (1405/08/08): the desk's «یادداشت» on the
+  profile, which the staff write for themselves; and on a cancelled or voided row, who did it and
+  the reason written: the member sees the row marked cancelled, refunded or voided, not the staff's
+  words.
+- **A member deactivated at the desk sees only the notice** (*Signing up and signing in*), not
+  these records.
 
 ### Timetable and attendance
 - **Every visit is a check-in at the desk and uses a session of the member's plan** (§7, unchanged).

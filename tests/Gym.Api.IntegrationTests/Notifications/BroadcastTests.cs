@@ -766,7 +766,7 @@ public sealed class BroadcastTests(DatabaseFixture fixture) : DatabaseTestBase(f
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: SmsKindSettings.Off,
-            broadcastEnabled: broadcast).IsSuccess.ShouldBeTrue();
+            broadcastEnabled: broadcast, trainerRequestEnabled: false).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

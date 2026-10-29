@@ -44,8 +44,17 @@ public static class NotificationConstraints
     /// <summary>One <c>Broadcast</c> per broadcast and member (BUSINESS_RULES.md §10 <i>The broadcast</i>).</summary>
     public const string OnePerBroadcastAndMember = "ix_notifications_one_per_broadcast_and_member";
 
+    /// <summary>
+    /// One <c>TrainerRequest</c> per member, trainer and gym day (BUSINESS_RULES.md §15 <i>A member and
+    /// their trainer</i>, task 15.4c): further requests that day show in the app only.
+    /// </summary>
+    public const string OneTrainerRequestPerMemberTrainerAndDay = "ix_notifications_one_trainer_request_per_member_trainer_and_day";
+
     /// <summary>Each kind fills the ids of its own event and leaves the others empty.</summary>
     public const string EventMatchesKind = "ck_notifications_event_matches_kind";
+
+    /// <summary>Only the trainer's SMS names a trainer, and it always does (task 15.4c).</summary>
+    public const string TrainerOnlyForTrainerRequest = "ck_notifications_trainer_only_for_trainer_request";
 
     /// <summary>A sent message has the provider's id and the moment it was sent.</summary>
     public const string SentHasProviderId = "ck_notifications_sent_has_provider_id";

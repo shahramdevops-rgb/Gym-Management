@@ -2117,3 +2117,120 @@ The question that started this was whether a gym that is entirely internal — I
 - **A delayed job decides again when it runs.** The check-in only asks for a message half an hour later; when the job runs, it reads everything again (switch, cancelled visit, deactivated member, a new first visit), because thirty minutes is long enough for any of them to change.
 - **A message that is only about "now" can expire.** Unlike the welcome, which waits for 10:00, a welcome back the server could not send by midnight is dropped: "glad you came back" the next morning would be wrong. The rule lives in one place, `SmsSettings.WelcomeBackAt`, and the job checks the day again.
 - **My notes:**
+
+## 15.1a — The site's one-time code (کد یک‌بارمصرف)
+
+- **Store what makes the secret, not the secret.** Each code row keeps a random seed; the code is HMAC-SHA256 of the phone and the seed under a key that lives only in the server's settings. A stolen backup gives seeds and no codes, yet the same seed always gives the same code, which is what lets «ارسال دوباره» send the same code again.
+- **HMAC versus a plain hash.** A 5-digit code has only 100 000 values, so a plain hash of it is reversed by trying them all in a second. A keyed hash cannot be tried without the key.
+- **An advisory lock locks a number, not a row.** `pg_advisory_xact_lock(15, hashtext(phone))` serializes one phone's requests even before its first row exists, and Postgres releases it at commit or rollback by itself. `SELECT … FOR UPDATE` could not, because there is nothing yet to select.
+- **A paid call inside the lock.** Kavenegar is called while the phone is locked, so a second press waits and then sees the code the first one sent. The price is a connection held up to 30 seconds; at a gym's traffic that is nothing, and it is the only way two presses cannot pay twice.
+- **"No answer" is not "not sent".** A request that left and got no reply may have been delivered and billed, so it is kept and counted like a sent one; only a refusal, or a request that never left, is forgotten.
+- **Limits that cost money go before the call.** Per-IP in the rate limiter (cheap, in memory), per-phone and per-day by counting rows in the database; all three answer before Kavenegar is asked.
+- **A record prints its properties.** `VerificationCodeMessage` overrides `ToString`, because the default would write the code into any log that formats the message.
+- **My notes:**
+
+## 15.1b — Site accounts and the site's own sign-in (حساب سایت و ورود جدا)
+
+- **Two authentication schemes in one API.** `AddJwtBearer("Bearer")` and `AddJwtBearer("Site")`, each with its own issuer, audience and key. A token is only ever checked by the scheme a policy names, so a site token read by the staff's scheme simply fails, and the other way round.
+- **A policy names its scheme.** `AddAuthenticationSchemes(AuthSchemes.Staff)` on every staff policy and on the fallback makes "which key signed this token" part of the policy itself, instead of relying on the default scheme. A role written wrong on a site token could then still never open a staff endpoint.
+- **A test that walks every endpoint.** `SchemeSeparationTests` reads `EndpointDataSource`, fills the route values and calls each endpoint with the other kind of token. An endpoint added next year is covered by a test written today.
+- **A ticket is a token with another audience.** The sign-up ticket is signed like an access token, but for `gym-site-app-sign-up`, so the bearer handler refuses it and the sign-up refuses an access token. One key, two purposes that can never be swapped.
+- **Leave out `sub` on purpose.** The audit interceptor reads `sub` as a staff user's id; the site's tokens carry `site_account` instead, so what a member does is recorded as «سیستم» without any special case in the interceptor.
+- **Key a record by the source of truth.** The account first had its own copy of the phone; a number the desk changes would then still open the account for the number's new owner. Finding the member by phone and the account by the member keeps one phone in the whole system.
+- **A shared base class for security rules.** Staff and site refresh tokens live in two tables (ADR 0010) but rotate by one set of rules in `RotatingRefreshToken`; EF Core maps a base class that is not an entity as columns of each subclass, so the old table did not change.
+- **My notes:**
+
+## 15.2a — Trainers, and accounts that are a member's, a trainer's or both (مربیان)
+
+- **Stop, don't delete, and keep the periods.** Being a trainer is a list of periods with a start and an end. "Is a trainer now" is "has an open period", and a partial unique index (`WHERE ended_on IS NULL`) makes "one open period" a fact the database keeps, so two «شروع دوباره» at once cannot both win.
+- **A child added to a tracked parent needs a key EF Core does not generate.** The ids are made in C#. If EF Core believes it generates a key, an entity it finds through a navigation with the key already set looks "already saved", and the insert goes out as an update that touches no row. `ValueGeneratedNever()` on `TrainerPeriod.Id` tells it to insert.
+- **Two indexes on one column need names.** The open-period index and the foreign key's own index are both on `trainer_id`; naming the first (`HasIndex(..., "OneOpenPeriod")`) keeps EF Core from merging them into one, the 10.20 lesson again.
+- **Links that follow the source of truth.** The account still has no phone. Each sign-in finds the member and the trainer by the phone and sets the account's links to them; the Owner changing a trainer's phone clears the link. Who an account is, is always who the phone belongs to now, and another member's account can never open for the trainer.
+- **Roles in the token, read again at every refresh.** The access token carries `site_role` claims, so a policy can check them without the database; because a refresh reads the roles again, a stopped trainer loses them within the token's 15 minutes. «me» reads the database every time, so the app knows at once.
+- **A unique value can move between rows in one save.** Clearing the trainer on one account and setting it on another in the same `SaveChanges` works because EF Core orders the update that frees the value before the one that takes it.
+- **Lock what the other side locks.** A sign-in holds its phone's advisory lock until it commits. An edit that changes that phone takes the same lock before it ends the old phone's sessions, so it waits for a sign-in in flight and then sees, and ends, the session it made; without the lock, that session would outlive the change by 60 days.
+- **Count from the rows the rule counts.** The panel's "today of 300" reads `SignInCodeSend`, the same rows the 300 is checked against, so the screen and the limit can never disagree.
+- **My notes:**
+
+## 15.2b — The panel's screens for trainers (مربیان)
+
+- **One unit for one kind of number across the API.** Every SMS amount the API sends is in Toman; the code SMS's cost went out in Kavenegar's Rial. Dividing by ten in the browser would have been an ad hoc money rule in one screen, so the response was changed instead, while the branch was still unreleased and nothing else read it.
+- **Mount a dialog's form only while it is open.** `{open && <TrainerFormContent />}` inside the `Dialog` gives every opening a fresh `useForm` with the trainer's saved values, with no `reset()` to remember when another trainer's box opens it.
+- **A hint is not a rule.** The "phone changed" note compares the last ten digits, so `+98912…` and a typed `۰۹۱۲…` are the same number. It only decides whether a sentence shows; what the phone really is, is still the server's answer.
+- **One state for "which dialog".** `editing: Trainer | "new" | null` says closed, adding or editing in one value, so the page can never be adding and editing at once.
+- **My notes:**
+
+## 15.3a — The site app's screens (اپ سایت: ورود و ثبت‌نام)
+
+- **Two Vite apps in one folder.** A second config (`vite.site.config.ts`) with its own `root`, output folder and dev port builds a second app from the same `src/`. Sharing is by import, not by copying, and a test reads every file's imports to keep the two from reaching into each other.
+- **An HTML entry inside its root.** A page's `<script src>` is fetched by the browser relative to the page's address, so `../src/...` works in a build (resolved on disk) but not in the dev server. A one-line `site/main.ts` inside the root, importing the real code, works in both.
+- **Tailwind scans from a base.** Tailwind 4 looks for class names starting from Vite's root; with the site's root in `site/` it missed every class in `src/`. `source("..")` on the import names the base explicitly, and comparing the panel's CSS hash before and after proved the panel did not change.
+- **Bundle size is a design input.** One shared file (`FormField.tsx`) pulled the date pickers into the sign-in page. Splitting the plain field into its own module, and checking two fields with React Hook Form's rules instead of Zod, took the first download from 640 kB to 476 kB without hiding the warning.
+- **Submit on the last digit.** The code is sent from the input's change event when its fifth digit arrives, so a typed code, the iPhone's offer above the keyboard and Android's WebOTP all go the same way; no `watch` and no effect that has to silence the hooks' lint.
+- **`useEffectEvent` for a callback an effect calls later.** The WebOTP wait starts once per code; when the SMS arrives it calls the newest version of the form's functions without restarting the wait.
+- **A message for the next screen in the session store.** «مربی‌گری شما تمام شده است» must be read after the session ends, on a screen that only exists when signed out; `signOut(notice)` carries it there, so no URL or storage holds it.
+- **My notes:**
+
+## 15.3b — The app on the server, installable, the QR (اپ روی سرور، نصب و QR)
+
+- **One API, two hosts.** The app calls `/api/site` on its own host, so the API's `AllowedHosts` lists both names (`DOMAIN;SITE_DOMAIN`), and Caddy proxies only `/api/site/*` there and answers 404 for `/api/site/*` on the panel's host. The policies already keep the two sign-ins apart; the proxy makes the wrong door not exist at all (defence in depth).
+- **A service worker is a programmable proxy in the browser.** It sits between the page and the network for its origin: here it serves the hashed files from its own copy, asks the server first for everything else, and never touches `/api`, so data is never stale.
+- **The file list is the version.** A Vite plugin writes the build's hashed file names into `sw.js`; any changed file changes `sw.js`, and the browser installs a new worker by itself when it sees a byte-different script. `skipWaiting` + `clients.claim` make it take over at once; the old caches are deleted on `activate`.
+- **`beforeinstallprompt` must be caught early.** Chrome fires it once, often before React has drawn anything, so it is stored in a small module store from `main.tsx` and read with `useSyncExternalStore`, like the session.
+- **A redirect's status is a promise.** A 301 is cached by browsers forever, so `/qr` uses 302: the printed code can point somewhere else later without reprinting.
+- **High error correction pays for the logo.** QR level H can lose about 30% of its modules; the logo covers about 5%. Decoding the finished picture with a reader is the check, not the theory.
+- **Validate before you overwrite.** `release.sh` copies the new compose file under another name and runs `docker compose config` on the server first: a required variable missing from `.env` is caught before it can break the backup and the rollback.
+- **A browser test meets the page's own CSP.** `waitForFunction("…")` compiles its string inside the page, which `script-src 'self'` refuses as eval; `evaluate` goes through the DevTools protocol and is not affected. And Chrome refuses a service worker over a certificate error even when Playwright ignores HTTPS errors, so that one test launches Chrome with `--ignore-certificate-errors`.
+- **One transaction for "check, then act".** The code was used up in its own transaction before the account was made, so a crash in between burnt a paid SMS. Saving the use without committing, and committing it with the account, means a failure takes the use back; a wrong code still commits at once so its try counts.
+- **A dev-server middleware for a static folder.** `configureServer` adds a handler to Vite's server, so the public page is served beside the app on one port; `normalize` plus a prefix check keeps `..` from reading outside the folder.
+- **My notes:**
+
+## 15.4a — A member and their trainer (شاگرد و مربی)
+
+- **A request and a link are two tables, not one with a status.** The request is the conversation (waiting, accepted, declined, taken back); the link is the fact that holds afterwards (who trained whom, from when to when). Keeping them apart lets each carry its own partial unique index: one waiting request per member, one open link per member.
+- **A partial unique index holds a rule about *some* rows.** `UNIQUE (member_id) WHERE ended_on IS NULL` lets a member have any number of ended links but only one open one. EF Core cannot evaluate the filter, so a change that ends one row and opens another saves twice inside one transaction: the end first, then the new row.
+- **One coarse lock is sometimes the simple, correct choice.** Locking member rows, then trainer rows, in a fixed order would let more run at once but leaves an order to get wrong (and a deadlock to find). A gym of about 300 members changes trainer a few times a week, so one transaction-scoped advisory lock (`pg_advisory_xact_lock(154, 0)`) serializes every coaching change, the Owner's «توقف» included, and each one reads only after taking it.
+- **Don't trust the token's roles for a state change.** The access token says "member" or "trainer" for up to 15 minutes; the policy uses it as a cheap first gate, and each handler reads the member or trainer from the database for the real answer.
+- **Order before you project.** EF Core can translate `OrderBy(x => x.Member.FullName)` on entities, but not an `OrderBy` on a property of a record built by a constructor in `Select`; that ran fine in the member's queries (no order) and failed with a 500 in the trainer's.
+- **An idempotent second press.** Asking for the trainer you already asked returns the same answer instead of an error, so a double tap or a retried request on a bad connection is harmless.
+- **My notes:**
+
+## 15.4b — The app's screens for a member and their trainer (صفحه‌های مربی و شاگرد)
+
+- **The answer of a change replaces the cache.** Every coaching POST returns the whole «مربی من» (or requests and students) as it is after the change, so `setQueryData` shows it at once with no second GET and no hand-made "optimistic" guess.
+- **A refused change means the world moved.** A 409 such as `Coaching.RequestNoLongerPending` is not the person's mistake: the member took the request back first. The screen shows the message and reads the list and «me» again, so what is left on screen is what is true now.
+- **Ask first only where it cannot be taken back.** Ending a link asks; picking a trainer and declining do not, because «لغو» and asking again undo them. A confirmation on every button teaches people to press «بله» without reading.
+- **A confirmation that closes when the server answers.** `mutate(…, { onSettled: close })` keeps the box open with «در حال ثبت…» while the request travels, and closes it on success or failure, so a slow phone cannot send the same end twice.
+- **`tel:` turns a phone into an action.** The trainer's list shows `۰۹۱۲ ۱۲۳ ۴۵۶۷` inside `dir="ltr"` (so the groups keep their order in a right-to-left line) and links it to `tel:+989121234567`, which opens the dialler.
+- **Two people in one end-to-end test.** Playwright's `browser.newContext()` is a second phone with its own cookies, so the member and the trainer each hold their own site session in one test.
+- **My notes:**
+
+## 15.4c — The trainer's SMS (پیامک انتخاب مربی)
+
+- **A new kind follows the shape of the nearest old one.** The welcome is "at once, or 10:00 after 22:00, checked again when it runs"; the trainer's SMS is the same story, so it got the same four pieces: a queue class called after the commit, a scheduler interface, a Hangfire job with `DisableConcurrentExecution`, and a handler that writes the row before sending.
+- **Decide again when the job runs.** A job scheduled at 23:00 runs at 10:00; by then the request may be gone. The handler reads the request, the trainer and the member afresh and sends nothing when the SMS is no longer true, so a delay can never send a wrong message.
+- **A unique index makes "once a day" a fact, not a hope.** `UNIQUE (member_id, trainer_id, report_date) WHERE kind = 'TrainerRequest'`: two jobs racing, a retry after a crash, or a second request that day all hit the same row, and only one SMS is paid for.
+- **A check constraint can compare two booleans.** `(kind = 'TrainerRequest') = (trainer_id IS NOT NULL)` says "this column is filled exactly for this kind" in one line, and rows written before the column existed pass it untouched, so the migration needs no data change.
+- **Reusing a column is fine when its meaning is "the day of the event".** `report_date` already meant "the day this message is about" for the daily report; the request's day is the same idea, so no new column was needed for it, and its comment says so.
+- **A list shows who received the message, not who it was about.** The trainer's SMS names the member (for the index), but the history must say it went to the trainer; one helper (`SmsRecipientNames`) answers "who" for every kind, so the list and the resend agree.
+- **My notes:**
+
+## 15.5a — The member's own records on the site (سوابق عضو در اپ)
+
+- **Reuse the handler, not the response.** Each site handler calls the panel's own handler (`GetMemberDebtHandler`, `ListMemberAttendanceHandler`, ...) with the member's id, so "what counts as debt" or "which visits are listed" is written once. The answer is then copied into a site record of its own: a panel field added later (a staff name, say) does not reach the member unless someone adds it to the site record on purpose.
+- **Leave a field out by not having it.** The safest way to keep `cancelReason` or `receivedByUserId` from a member is a response type without them, not a serializer setting that hides them. The tests read the raw JSON and check the reason's words are not there at all.
+- **The token decides whose records, the URL never does.** No path takes a member id (`/api/site/me/visits`, not `/api/site/members/{id}/visits`), so there is no id to change to someone else's; a test still fills another member's records and checks none come back.
+- **One small mapping helper for every page.** `SitePages.Map` turns a `PagedResponse<Panel>` into a `PagedResponse<Site>` and keeps the pager's numbers, so four list handlers stay four lines each.
+- **Ask the domain, not the browser, for "the plan now".** The panel's card picks its plan in TypeScript from the history; the site asks `SubscriptionSchedule.CurrentPlan`, the rule the member list already uses, so the new app does not need a third copy of the rule.
+- **A separate output folder lets a build run beside a running app.** `dotnet build --artifacts-path <folder>` writes every project's `bin` and `obj` there, so a locally running `Gym.Api.exe` holding `bin/Debug` does not stop the build or the tests.
+- **My notes:**
+
+## 15.5b — The member's own records, the screens (صفحه‌های سوابق عضو)
+
+- **A boundary can be kept on purpose, at the cost of a copy.** The panel's Persian labels (`planLabel`, the status words) could have moved to `lib/` and been shared; the developer chose to keep the panel and the site wholly apart, so the site has `site/records/labels.ts`. A copy means two places to change a word, but no change to the panel can ever reach a member's app by accident, and `boundary.test.ts` keeps it that way.
+- **Read a tab only when it is opened.** Each history hook takes `enabled`; a member who never opens «بوفه» never asks the server for it. TanStack Query keeps a tab's pages in its cache, so going back to a tab is instant.
+- **`keepPreviousData` keeps the pager still.** While page 2 loads, the query hands back page 1 instead of `undefined`, so the list does not flash a spinner and the pager does not jump.
+- **One explicit fetcher per path, not a union of paths.** openapi-fetch types each path's answer exactly; passing `"/visits" | "/plans"` to one `GET` would lose that and need a cast. Four one-line fetchers handed to one generic `useHistory` keep the types and the shared logic.
+- **Phone-first rows instead of tables.** A table of six columns does not fit 360 pixels; each row is a title with its tags, a muted line of detail, and the amount at the end, which reads top-to-bottom on a phone.
+- **A test fixture for "everything empty".** `emptyHome` answers every request the home makes with nothing, so a test about one card spreads it and overrides only its own answer; a new card added to the home later needs one line there, not a change in every test.
+- **My notes:**

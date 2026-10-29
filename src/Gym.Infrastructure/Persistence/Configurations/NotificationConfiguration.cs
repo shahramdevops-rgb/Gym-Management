@@ -3,6 +3,7 @@ using Gym.Domain.Members;
 using Gym.Domain.Notifications;
 using Gym.Domain.Payables;
 using Gym.Domain.Subscriptions;
+using Gym.Domain.Trainers;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -22,7 +23,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         {
             table.HasCheckConstraint(
                 "ck_notifications_kind",
-                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack')");
+                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack', 'TrainerRequest')");
             table.HasCheckConstraint(
                 "ck_notifications_status",
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
@@ -59,7 +60,16 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
                 "AND debt_since IS NULL AND broadcast_id IS NULL) OR " +
                 "(kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL " +
                 "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
-                "AND debt_since IS NULL AND absent_since IS NULL)");
+                "AND debt_since IS NULL AND absent_since IS NULL) OR " +
+                "(kind = 'TrainerRequest' AND member_id IS NOT NULL AND report_date IS NOT NULL " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL " +
+                "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL)");
+
+            // Task 15.4c: the trainer's SMS always names its trainer, and no other kind does. Apart
+            // from the check above, so the rows written before it need nothing new.
+            table.HasCheckConstraint(
+                NotificationConstraints.TrainerOnlyForTrainerRequest,
+                "(kind = 'TrainerRequest') = (trainer_id IS NOT NULL)");
 
             table.HasCheckConstraint(
                 NotificationConstraints.SentHasProviderId,
@@ -95,6 +105,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.HasOne<Subscription>().WithMany().HasForeignKey(notification => notification.SubscriptionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Payable>().WithMany().HasForeignKey(notification => notification.PayableId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<SmsBroadcast>().WithMany().HasForeignKey(notification => notification.BroadcastId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Trainer>().WithMany().HasForeignKey(notification => notification.TrainerId).OnDelete(DeleteBehavior.Restrict);
 
         // Each event once (BUSINESS_RULES.md §10). The kind is in the first index because a
         // subscription can get each of its kinds (running out, few sessions, receipt, welcome) once.
@@ -157,6 +168,13 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             .IsUnique()
             .HasFilter("broadcast_id IS NOT NULL")
             .HasDatabaseName(NotificationConstraints.OnePerBroadcastAndMember);
+
+        // Once a day per member and trainer (task 15.4c): further requests that day reach the
+        // trainer in the app only, so changing back and forth cannot cost many SMS.
+        builder.HasIndex(notification => new { notification.MemberId, notification.TrainerId, notification.ReportDate })
+            .IsUnique()
+            .HasFilter("kind = 'TrainerRequest'")
+            .HasDatabaseName(NotificationConstraints.OneTrainerRequestPerMemberTrainerAndDay);
 
         builder.Property(notification => notification.Version).IsRowVersion();
     }

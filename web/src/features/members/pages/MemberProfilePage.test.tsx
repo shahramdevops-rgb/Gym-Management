@@ -71,6 +71,43 @@ describe("MemberProfilePage", () => {
     );
   });
 
+  it("Profile_NeverSignedInOnTheSite_SaysSo", async () => {
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, { ...reza, siteAccount: null }),
+      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+    });
+
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    expect(await screen.findByText("در سایت ثبت‌نام نکرده است.")).toBeInTheDocument();
+  });
+
+  it("Profile_SiteAccount_ShowsWhenItWasMadeAndTheLastSignIn", async () => {
+    const siteAccount = {
+      createdAt: "2026-10-20T06:30:00Z",
+      lastSignedInAt: "2026-10-27T15:10:00Z",
+    };
+    mockApi({
+      ...signedInHandlers(staffUser),
+      [`GET /api/members/${reza.id}`]: () => json(200, { ...reza, siteAccount }),
+      [`GET /api/members/${reza.id}/attendance`]: () => attendanceHistoryPage([]),
+      [`GET /api/members/${reza.id}/subscriptions`]: () => subscriptionsPage([]),
+    });
+
+    renderApp(`/members/${reza.id}`, { session: session() });
+
+    // §15: the date it was made and the last sign-in, on the profile only.
+    expect(
+      await screen.findByText(`ثبت‌نام: ${formatDateTime(siteAccount.createdAt)}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(`آخرین ورود: ${formatDateTime(siteAccount.lastSignedInAt)}`),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("در سایت ثبت‌نام نکرده است.")).not.toBeInTheDocument();
+  });
+
   it("Profile_Deactivate_CallsTheApiAndShowsTheMemberAsInactive", async () => {
     const api = mockApi({
       ...signedInHandlers(staffUser),
