@@ -2184,3 +2184,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **One transaction for "check, then act".** The code was used up in its own transaction before the account was made, so a crash in between burnt a paid SMS. Saving the use without committing, and committing it with the account, means a failure takes the use back; a wrong code still commits at once so its try counts.
 - **A dev-server middleware for a static folder.** `configureServer` adds a handler to Vite's server, so the public page is served beside the app on one port; `normalize` plus a prefix check keeps `..` from reading outside the folder.
 - **My notes:**
+
+## 15.4a — A member and their trainer (شاگرد و مربی)
+
+- **A request and a link are two tables, not one with a status.** The request is the conversation (waiting, accepted, declined, taken back); the link is the fact that holds afterwards (who trained whom, from when to when). Keeping them apart lets each carry its own partial unique index: one waiting request per member, one open link per member.
+- **A partial unique index holds a rule about *some* rows.** `UNIQUE (member_id) WHERE ended_on IS NULL` lets a member have any number of ended links but only one open one. EF Core cannot evaluate the filter, so a change that ends one row and opens another saves twice inside one transaction: the end first, then the new row.
+- **One coarse lock is sometimes the simple, correct choice.** Locking member rows, then trainer rows, in a fixed order would let more run at once but leaves an order to get wrong (and a deadlock to find). A gym of about 300 members changes trainer a few times a week, so one transaction-scoped advisory lock (`pg_advisory_xact_lock(154, 0)`) serializes every coaching change, the Owner's «توقف» included, and each one reads only after taking it.
+- **Don't trust the token's roles for a state change.** The access token says "member" or "trainer" for up to 15 minutes; the policy uses it as a cheap first gate, and each handler reads the member or trainer from the database for the real answer.
+- **Order before you project.** EF Core can translate `OrderBy(x => x.Member.FullName)` on entities, but not an `OrderBy` on a property of a record built by a constructor in `Select`; that ran fine in the member's queries (no order) and failed with a 500 in the trainer's.
+- **An idempotent second press.** Asking for the trainer you already asked returns the same answer instead of an error, so a double tap or a retried request on a bad connection is harmless.
+- **My notes:**

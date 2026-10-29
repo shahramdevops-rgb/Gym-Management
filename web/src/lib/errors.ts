@@ -112,6 +112,22 @@ export const errorMessages: Record<string, string> = {
   "Trainers.ChangedConcurrently":
     "این مربی هم‌زمان تغییر کرد. صفحه را تازه کنید و دوباره امتحان کنید.",
 
+  // A member and their trainer (site)
+  "Coaching.MemberInactive":
+    "عضویت شما در باشگاه غیرفعال است. برای فعال شدن آن به پذیرش باشگاه مراجعه کنید.",
+  "Coaching.NotATrainer": "مربی‌گری شما تمام شده است.",
+  "Coaching.TrainerNotFound": "این مربی دیگر در باشگاه مربی نیست.",
+  "Coaching.CannotPickYourself": "نمی‌توانید خودتان را به‌عنوان مربی انتخاب کنید.",
+  "Coaching.AlreadyYourTrainer": "این مربی هم‌اکنون مربی شماست.",
+  "Coaching.TooManyRequestsToday":
+    "امروز به اندازهٔ کافی درخواست مربی داده‌اید. فردا دوباره امتحان کنید.",
+  "Coaching.NoPendingRequest": "درخواستی در انتظار پاسخ ندارید.",
+  "Coaching.RequestNotFound": "این درخواست پیدا نشد.",
+  "Coaching.RequestNoLongerPending": "این درخواست دیگر در انتظار پاسخ نیست. صفحه تازه شد.",
+  "Coaching.NoTrainer": "در حال حاضر مربی ندارید.",
+  "Coaching.StudentNotFound": "این عضو دیگر شاگرد شما نیست.",
+  "Coaching.LinkAlreadyEnded": "مربی‌گری این شاگرد قبلاً تمام شده است.",
+
   // Members
   "Members.NotFound": "عضو پیدا نشد.",
   "Members.PhoneAlreadyExists": "این شماره موبایل قبلاً برای عضو دیگری ثبت شده است.",

@@ -142,6 +142,7 @@ try
 
     app.MapAuthEndpoints();
     app.MapSiteAuthEndpoints();
+    app.MapSiteCoachingEndpoints();
     app.MapStaffEndpoints();
     app.MapMembersEndpoints();
     app.MapPricingEndpoints();

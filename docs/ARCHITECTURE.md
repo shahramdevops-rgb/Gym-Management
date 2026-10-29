@@ -309,6 +309,7 @@ web/site/           The site app's page (index.html), entry (main.ts) and public
 - Npgsql `timestamptz`: use `DateTimeOffset` with offset zero (or `DateTime` with `Kind = Utc`). Non-UTC values throw.
 - `xmin` concurrency: a `uint Version` property configured with `.IsRowVersion()`.
 - A lock for something with no row yet (the first code for a phone): `IAppDbContext.LockPhoneAsync`, a transaction-scoped Postgres advisory lock (`pg_advisory_xact_lock`). Call it inside a transaction; outside one it is released at once.
+- One lock for a whole small area: `IAppDbContext.LockCoachingAsync` (15.4), the same kind of advisory lock for every change to trainer requests and links, the Owner's «توقف» included. Take it first in the transaction and read after it.
 - Do not use `MapIdentityApi()`: it adds a register endpoint and uses its own token format.
 - Migrations are never applied automatically at app startup in production. Use an EF migration bundle during deployment.
 - A consequence of that, and the one that actually bites: after pulling changes, run

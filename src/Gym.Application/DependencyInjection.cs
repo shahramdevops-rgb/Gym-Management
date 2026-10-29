@@ -36,6 +36,15 @@ using Gym.Application.Cafe.SetProductActive;
 using Gym.Application.Cafe.SetProductCategoryActive;
 using Gym.Application.Cafe.UpdateProduct;
 using Gym.Application.Cafe.UpdateProductCategory;
+using Gym.Application.Coaching.AcceptTrainerRequest;
+using Gym.Application.Coaching.CancelTrainerRequest;
+using Gym.Application.Coaching.DeclineTrainerRequest;
+using Gym.Application.Coaching.EndMyTrainer;
+using Gym.Application.Coaching.EndStudent;
+using Gym.Application.Coaching.GetMyTrainer;
+using Gym.Application.Coaching.GetStudents;
+using Gym.Application.Coaching.ListTrainerChoices;
+using Gym.Application.Coaching.RequestTrainer;
 using Gym.Application.Expenses.CreateExpenseCategory;
 using Gym.Application.Expenses.GetExpense;
 using Gym.Application.Expenses.ListExpenseCategories;
@@ -197,6 +206,17 @@ public static class DependencyInjection
         services.AddScoped<UpdateTrainerHandler>();
         services.AddScoped<StopTrainerHandler>();
         services.AddScoped<RestartTrainerHandler>();
+
+        // A member and their trainer on the site (BUSINESS_RULES.md §15, task 15.4).
+        services.AddScoped<ListTrainerChoicesHandler>();
+        services.AddScoped<GetMyTrainerHandler>();
+        services.AddScoped<RequestTrainerHandler>();
+        services.AddScoped<CancelTrainerRequestHandler>();
+        services.AddScoped<EndMyTrainerHandler>();
+        services.AddScoped<GetStudentsHandler>();
+        services.AddScoped<AcceptTrainerRequestHandler>();
+        services.AddScoped<DeclineTrainerRequestHandler>();
+        services.AddScoped<EndStudentHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();

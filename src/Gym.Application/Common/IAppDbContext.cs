@@ -2,6 +2,7 @@ using Gym.Domain.Attendances;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Cafe;
+using Gym.Domain.Coaching;
 using Gym.Domain.Expenses;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
@@ -89,6 +90,10 @@ public interface IAppDbContext
 
     DbSet<Trainer> Trainers { get; }
 
+    DbSet<TrainerRequest> TrainerRequests { get; }
+
+    DbSet<TrainerLink> TrainerLinks { get; }
+
     /// <summary>
     /// The audit log, for reading only (BUSINESS_RULES.md §11, task 11.1). A query, not a
     /// <see cref="DbSet{TEntity}"/>: only the audit interceptor writes it, so Application is given
@@ -132,6 +137,14 @@ public interface IAppDbContext
     /// <see cref="LockPhoneAsync"/>, never before. Must be called inside <see cref="BeginTransactionAsync"/>.
     /// </summary>
     Task LockGymSignInSendsAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Locks the gym's trainer requests and links until the current transaction ends, so the
+    /// members' requests, the trainers' answers and the Owner stopping a trainer change them one at
+    /// a time (BUSINESS_RULES.md §15 <i>A member and their trainer</i>). Each then reads what the
+    /// one before it saved. Must be called inside <see cref="BeginTransactionAsync"/>.
+    /// </summary>
+    Task LockCoachingAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// For a use case whose writes must all happen or none: changing a password saves through

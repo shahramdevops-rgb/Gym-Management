@@ -4,6 +4,7 @@ using Gym.Domain.Attendances;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
 using Gym.Domain.Cafe;
+using Gym.Domain.Coaching;
 using Gym.Domain.Expenses;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
@@ -91,6 +92,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Trainer> Trainers => Set<Trainer>();
 
+    public DbSet<TrainerRequest> TrainerRequests => Set<TrainerRequest>();
+
+    public DbSet<TrainerLink> TrainerLinks => Set<TrainerLink>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
 
@@ -152,11 +157,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         return Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({SignInLockKey}, {GymSendsLockId})", cancellationToken);
     }
 
+    /// <summary>
+    /// The same kind of lock, on the gym's trainer requests and links as a whole: its own first key,
+    /// so it never waits for a sign-in. Few members change trainer, so one lock for the gym costs
+    /// nothing and leaves no order of locks to get wrong.
+    /// </summary>
+    public Task LockCoachingAsync(CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("An advisory lock outside a transaction is released at once; begin one first.");
+        }
+
+        return Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({CoachingLockKey}, 0)", cancellationToken);
+    }
+
     /// <summary>The first key of the site sign-in's advisory locks (15 for Phase 15).</summary>
     private const int SignInLockKey = 15;
 
     /// <summary>The second key of <see cref="LockGymSignInSendsAsync"/>'s lock.</summary>
     private const int GymSendsLockId = 0;
+
+    /// <summary>The first key of <see cref="LockCoachingAsync"/>'s lock (154 for task 15.4).</summary>
+    private const int CoachingLockKey = 154;
 
     /// <inheritdoc cref="IAppDbContext.DeferSubscriptionOverlapCheckAsync"/>
     public Task DeferSubscriptionOverlapCheckAsync(CancellationToken cancellationToken)

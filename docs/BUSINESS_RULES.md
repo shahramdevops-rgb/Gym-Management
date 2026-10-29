@@ -2491,12 +2491,45 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   reached, «نیاز به اقدام» shows it too.
 
 ### A member and their trainer
-- **Each member has at most one trainer at a time.** *Decided by the developer.*
+- **Each member has at most one trainer at a time.** *Decided by the developer.* The database
+  holds it too (one open link per member).
 - **The member picks a trainer on the site, and the trainer accepts or declines.** *Proposed by
   Claude, accepted by the developer.* Changing trainer is a new request; when the new trainer
-  accepts, the old link ends that day.
+  accepts, the old link ends that day. Until then the old trainer stays the member's trainer.
 - **The link has a start and an end**, so the history of who trained whom is kept, and a former
-  trainer stops seeing the member from the day the link ends. *Proposed by Claude.*
+  trainer stops seeing the member from the day the link ends. *Proposed by Claude.* A link ends
+  on the gym's today, so «from the day it ends» is at once.
+- **The details, decided with 15.4's plan** (*Decided by the developer*, 1405/08/07, unless
+  marked otherwise):
+  - **One request waiting at a time**: picking another trainer while a request waits replaces it
+    (the first is closed as «عضو مربی دیگری انتخاب کرد»). Pressing the same trainer again makes no
+    second request.
+  - **The member may take a waiting request back** («لغو»). *Proposed by Claude, accepted.*
+  - **Either side may end the link with no new trainer**: the member («پایان مربی‌گری») or the
+    trainer, for one student. Both ask before doing it (the screens, 15.4b). It ends that day.
+  - **The trainer sees each student's name and phone** in «شاگردان من», and the same in the
+    requests waiting for them.
+  - **The trainer hears of a new request in the app and by SMS** (15.4c, not built yet): its own
+    kind in «تنظیمات پیامک», off at first like every kind (§10), sent at once, at 10:00 the next
+    morning when the request comes after 22:00. The text, chosen by the developer:
+    «{نام کوچک مربی} عزیز، {نام کامل شاگرد} شما را به‌عنوان مربی خود در باشگاه پاسارگاد انتخاب کرده
+    است.» with «لغو11» under it, as every SMS from the line (it stays: Kavenegar adds it anyway
+    when the text leaves it out, the developer said 1405/08/07).
+    **At most one such SMS a day for one member and one trainer**: further requests that day
+    show in the app only.
+  - **At most 5 requests a day per member** (the gym's day), whatever became of them, so changing
+    back and forth cannot cost many SMS (`Coaching.TooManyRequestsToday`).
+  - *Proposed by Claude, accepted with the plan* (1405/08/07): a request does not expire; after a
+    decline the member may ask again, the same trainer too; no plan is needed to ask (picking a
+    trainer is not entering the gym, §7); a trainer who is also a member cannot pick themselves
+    (same phone); only trainers now are listed, by name only until 14.1's photos and details.
+  - **A member the desk deactivates** cannot ask (their area is shut, *Signing up and signing
+    in*). Their link stays, and their trainer sees them marked «غیرفعال»; a request they made
+    before is left out of the trainer's list and cannot be accepted until the desk activates them
+    again. *Proposed by Claude, accepted with the plan.*
+  - **When the Owner stops a trainer**, their links end that day and the requests waiting for them
+    end too (*Trainers* above). The member's area shows no trainer, and they may pick another.
+  - **Everything here is in the audit log as «سیستم»** (§11), as the site's other actions.
 - **A new trainer sees the member's earlier assessments (the numbers), programs and attendance;
   earlier photos only if the member allows it.** *Proposed by Claude, accepted by the developer.*
 - **The member sees everything their trainers record about them** (programs, analyses, photos,

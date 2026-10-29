@@ -104,7 +104,7 @@ public static class SiteAuthEndpoints
 
         // The first endpoint behind the site's own policy: a staff token never passes it.
         app.MapGet($"{SitePaths.Root}/me", async (ClaimsPrincipal user, GetSiteMeHandler handler, CancellationToken ct) =>
-                (await handler.Handle(SiteAccountId(user), ct)).ToHttpResult())
+                (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
             .WithTags("Site sign-in")
             .RequireAuthorization(Policies.SiteAccount)
             .WithName("GetSiteMe")
@@ -114,13 +114,6 @@ public static class SiteAuthEndpoints
 
         return app;
     }
-
-    /// <summary>
-    /// The account the site's token was issued for. The site's policy has already required the
-    /// claim, so a token without one never reaches an endpoint.
-    /// </summary>
-    private static Guid SiteAccountId(ClaimsPrincipal user) =>
-        Guid.Parse(user.FindFirst(SiteClaimNames.SiteAccount)!.Value);
 
     /// <summary>
     /// Success puts the refresh token in the site's cookie and the access token in the body;

@@ -31,7 +31,9 @@
     "SiteAccount": "حساب سایت",
     "SiteRefreshToken": "نشست سایت",
     "Trainer": "مربی",
-    "TrainerPeriod": "دورهٔ مربی‌گری"
+    "TrainerPeriod": "دورهٔ مربی‌گری",
+    "TrainerRequest": "درخواست مربی",
+    "TrainerLink": "مربی عضو"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -220,13 +222,19 @@
     "WrongTriesOn": { "label": "روز تلاش‌های غلط" },
     "WrongTriesThatDay": { "label": "تلاش‌های غلط آن روز" },
     "LastSignedInAt": { "label": "آخرین ورود" },
-    "SiteAccountId": { "format": "hidden" }
+    "SiteAccountId": { "format": "hidden" },
+
+    "RequestedOn": { "label": "روز درخواست" },
+    "RequestId": { "label": "درخواست", "format": "reference" },
+    "EndReason": { "label": "دلیل پایان", "format": "trainerLinkEndReason" }
   },
   "entityFields": {
     "Payment": { "Kind": { "label": "نوع", "format": "paymentKind" } },
     "Payable": { "Kind": { "label": "نوع", "format": "payableKind" } },
     "ServiceCharge": { "Kind": { "label": "نوع", "format": "serviceChargeKind" } },
     "Notification": { "Kind": { "label": "نوع", "format": "notificationKind" } },
-    "SmsBroadcast": { "Status": { "label": "وضعیت", "format": "broadcastStatus" } }
+    "SmsBroadcast": { "Status": { "label": "وضعیت", "format": "broadcastStatus" } },
+    "TrainerRequest": { "Status": { "label": "وضعیت", "format": "trainerRequestStatus" } },
+    "TrainerLink": { "StartedOn": { "label": "شروع" }, "EndedOn": { "label": "پایان" } }
   }
 }

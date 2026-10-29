@@ -54,8 +54,8 @@ Still open around the panel (none of it code, or waiting for someone else):
   Commits from 2026-10-25 are `Shahram Azghandi <shahramdevops@gmail.com>`
 
 Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
-  1405/08/03); 15.1, 15.2 and 15.3 (a and b) are done on their branches, not merged or released; the
-  next task is **15.4** (a member picks a trainer). Phase 14's 14.1 to 14.3 still wait for the
+  1405/08/03); 15.1, 15.2, 15.3 (a and b) and 15.4a are done on their branches, not merged or
+  released; the next task is **15.4b** (the app's screens for picking a trainer), then 15.4c. Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
 
 ---
@@ -4061,6 +4061,10 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
 - [ ] Waiting for the gym: two or three trainers' names, photos (portrait 4:5, one plain dark wall
       for all) and details (specialty, experience, certificates, honours, hours at the gym)
 - [ ] Put them in; «انتخاب این مربی» stays «به‌زودی» (choosing a trainer needs 14.6)
+- [ ] Asked by the developer (1405/08/07, at 15.4's start), for when the photos come: the app's
+      trainers' list shows each trainer's photo too, and pressing one opens that trainer's own page
+      with everything about them (specialty, experience, certificates); the details then live with
+      the trainer (the Owner enters them in «مربیان»), not only on the public page
 
 ### 14.2 Finding the gym (مسیریابی و اینستاگرام)
 - [ ] Waiting for the gym: its location link for Neshan and Balad
@@ -4252,7 +4256,7 @@ branch `task/15.2-trainers`, made from `task/15.1-site-sign-in` after `main` was
       `member` role only for an active member; the scheme test counts every site policy; three
       answers of the developer written in §15 (a phone change with a member on it, a stopped
       trainer signing in again, a stopped trainer still signed in)
-- [ ] Stopping a trainer ends the links to their students: with the links, in 15.4
+- [x] Stopping a trainer ends the links to their students: with the links, in 15.4a (1405/08/07)
 
 ##### 15.2b The panel's screens
 - [x] «مربیان» (Owner only) in the menu under «مدیریت», after «کارمندان»: the trainers as small
@@ -4359,9 +4363,42 @@ Built 1405/08/07 on `task/15.3-site-app`, not merged or released (Release 1 is a
       runs on one address locally
 
 #### 15.4 A member picks a trainer
-- [ ] The trainers' list in the app (and 14.1's cards, once the gym's photos come); a member's
-      request, the trainer's accept or decline, changing trainer; the link's start and end
-- [ ] Tests (integration): one trainer at a time, a former trainer loses access that day
+Plan approved 1405/08/07 (2026-10-29), on branch `task/15.4-pick-a-trainer`, made from
+`task/15.3-site-app`; split in three: a (backend), b (the app's screens), c (the trainer's SMS).
+- [x] Asked first, written in §15 *A member and their trainer*: one request waiting at a time, a
+      new one replaces it; either side ends the link; the trainer sees name and phone; the trainer
+      hears in the app and by SMS (one a day per member and trainer, 5 requests a day per member)
+
+##### 15.4a The backend
+Built 1405/08/07, not merged or released.
+- [x] `Domain/Coaching`: `TrainerRequest` (waiting, accepted, declined, cancelled, replaced,
+      trainer stopped; at most 5 a gym day) and `TrainerLink` (start, end, why it ended); one
+      waiting request and one open link per member as partial unique indexes, ends not before
+      starts and a reason exactly when ended as check constraints, `xmin` on both
+- [x] One gym-wide advisory lock for every change to them (`LockCoachingAsync`): the member's
+      request, cancel and end, the trainer's accept, decline and end, and the Owner's «توقف», so
+      two presses at once, or an accept and a cancel at once, make one outcome
+- [x] `/api/site/coaching`: the member's (`SiteMember`) `trainers`, `my-trainer`,
+      `my-trainer/request`, `my-trainer/cancel-request`, `my-trainer/end`; the trainer's
+      (`SiteTrainer`) `students`, `requests/{id}/accept`, `requests/{id}/decline`,
+      `students/{memberId}/end`. Every handler reads the member or trainer from the database, so a
+      deactivation at the desk or a stop by the Owner is refused at once, not 15 minutes later
+- [x] The Owner stopping a trainer ends their links and waiting requests that day
+- [x] Persian names for the two tables in the audit screen; Persian messages for `Coaching.*`
+- [x] Tests: domain (`TrainerRequestTests`, `TrainerLinkTests`), integration (`CoachingTests`):
+      one trainer at a time, the former trainer loses the member that day, accept and cancel at
+      once, the two areas apart, the database refusing a second waiting request or open link
+
+##### 15.4b The app's screens
+- [ ] The member: «مربی من» on the home screen, the trainers' list with «انتخاب این مربی», the
+      waiting request with «لغو», «پایان مربی‌گری» (asks first)
+- [ ] The trainer: «درخواست‌ها» with «پذیرفتن» and «رد کردن», «شاگردان من» with name, phone and
+      «پایان» (asks first)
+
+##### 15.4c The trainer's SMS
+- [ ] Its own kind in «تنظیمات پیامک» (the panel's one change in 15.4, asked by the developer), off
+      at first; sent at once, after 22:00 at 10:00; one a day per member and trainer, held by a
+      unique index; the text in `SmsText` and `docs/sms-texts.md`, shown on its card (§15)
 
 #### 15.5 The member's home, first part
 - [ ] My plan: sessions left, the plan's end, freeze; my visits (from the desk's check-ins); my
