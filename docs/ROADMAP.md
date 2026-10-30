@@ -4519,7 +4519,7 @@ desk's «یادداشت» and the staff's names and reasons on cancelled rows ar
       - Still open: the first real code SMS ends with `@app.pasargadgymplus.ir #<code>`; the
         poster printed when the trial is over
 
-#### After Release 1: the logos and a name (no hurry)
+#### After Release 1: logos, a name, a colour (no hurry)
 Asked by the developer on 1405/08/08 (2026-10-30), after Release 1, for later ("much later is
 fine"), to go out with the next release:
 - [ ] **The icon.** The dark lines of the logo on the bronze icon are too faint, and the logo is
@@ -4535,6 +4535,14 @@ fine"), to go out with the next release:
 - [ ] **«حساب سایت» becomes «باشگاه من»** on the member's profile in the panel (asked 1405/08/08):
       the app's name in Persian, which the developer finds nicer; the empty line with it
       («در باشگاه من ثبت‌نام نکرده است.»)
+- [ ] **A single visit (تک‌جلسه) gets its own colour on the locker map** (asked 1405/08/08), so
+      the desk tells it apart: today it is red like a member on a plan (`lockerState.ts`,
+      `doorStyle.ts`). Taken: green free, red member, blue guest, yellow cardio. Claude proposes
+      violet, confirmed at the start. Needs the API to say the open visit is a single visit (the
+      locker response has no such field today), a state, its door colour, a count above the map
+      and a legend entry; §6 *The desk screen's look* and §7 updated
+- [ ] Each icon keeps its own colours (the developer, 1405/08/08): the app dark on bronze, the
+      panel bronze on dark
 - [ ] All of the above goes out with the next release
 
 ### Release 2 — The timetable and attendance (priority 1)
