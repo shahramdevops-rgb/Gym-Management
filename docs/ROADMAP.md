@@ -4548,10 +4548,24 @@ fine"), to go out with the next release:
 ### Release 2 — The timetable and attendance (priority 1)
 
 #### 15.6 The trainer's timetable (سانس‌بندی)
-- [ ] Asked first: §15 *Timetable and attendance*'s open questions (group or private, capacity,
-      who puts a student in a session, changes to a single day, cancelling and its SMS)
-- [ ] The weekly pattern, the sessions it makes for each day, a single day's change or
-      cancellation, the students of each session; the member sees their next sessions
+- [x] First answers of the developer (1405/08/08), written in §15 *Timetable and attendance*: each
+      trainer makes their own sessions (times, capacity, a day may differ from another); the member
+      and the trainer both put a member in a session, within capacity; a cancellation goes by SMS
+      and an in-app notice; on time up to 10 minutes after the start
+- [x] Researched first, asked by the developer: how existing booking apps (a trainer's sessions,
+      members booking them, then training at the gym) handle the pattern, booking and cancelling;
+      shown to the developer before 15.6a's plan (1405/08/08). Mindbody and Glofox: a weekly
+      repeating schedule with a single date's change, capacity per session, a booking window (how
+      far ahead and how close to the start), a cancellation window, a waitlist, a member booking
+      one date or the same slot every week. Claude's proposals for each part were given in the
+      session, to be confirmed at each part's start
+- [ ] Split into parts, each one thought through and decided at its start (the developer,
+      1405/08/08), with §15's open lines asked there:
+  - [ ] **15.6a** the trainer's sessions: the pattern and how it repeats, each day's sessions,
+        times and capacity, a single day's change
+  - [ ] **15.6b** putting students in sessions: by the trainer and by the member, within
+        capacity; the member sees their next sessions
+  - [ ] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
 
 #### 15.7 Attendance for the trainer (پیگیری حضور)
 - [ ] «امروز» for the trainer: today's sessions and who has checked in at the desk, live

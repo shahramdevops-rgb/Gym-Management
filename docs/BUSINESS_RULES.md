@@ -2596,10 +2596,24 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **The trainer sees attendance from the desk's check-ins**: whether each student came on the
   days of their sessions. The site does not keep a second record of entries. *Proposed by Claude,
   accepted by the developer.*
-- *Open, decided in its task:* group sessions, private ones or both; capacity; who puts a student
-  in a session (the trainer, or the member picking a slot); a weekly pattern and changes to a
-  single day; the trainer cancelling a session, and whether an SMS goes; how a check-in counts as
-  "on time", "late" or "absent" for a session; the absence alert to the trainer.
+- **Each trainer makes their own sessions** (1405/08/08): how many in a day, each one's start and
+  end time and its capacity (e.g. 13:00 to 14:00 for X students, 14:00 to 15:00 for Y), and a day
+  of the week may differ from another (Saturday's sessions are not Sunday's). No gym-wide session
+  types: the trainer decides. *Decided by the developer.*
+- **Both the member and the trainer can put the member in a session**, within its capacity.
+  *Decided by the developer.*
+- **The trainer cancelling a session tells the students who had it that day**, by SMS and by a
+  notice in the app. *Decided by the developer.* (A phone notification outside the app is not
+  reliable from Iran for the site app, a PWA: the notice is shown when the app is opened.)
+- **On time, late, absent** (for now; the developer: "not important yet"): a check-in up to 10
+  minutes after the session's start is on time, a later one is late, no check-in is absent.
+  *Decided by the developer.*
+- *Open, asked in its part of 15.6 and 15.7:* how the pattern repeats (weekly, monthly, or as the
+  trainer wants: to be researched first, the developer asked to see how existing booking apps do
+  it); a single day's change; whether the trainer may go past the capacity; whether a member sees
+  only their own trainer's sessions; until when a member can join or leave a session; a check-in
+  after the session ended; whether the cancellation SMS has its own switch in «تنظیمات پیامک»; the
+  absence alert to the trainer.
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for
