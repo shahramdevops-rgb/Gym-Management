@@ -15,6 +15,7 @@ using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
 using Gym.Domain.SiteAuth;
 using Gym.Domain.Subscriptions;
+using Gym.Domain.Timetables;
 using Gym.Domain.Trainers;
 using Gym.Infrastructure.Identity;
 
@@ -96,6 +97,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<TrainerLink> TrainerLinks => Set<TrainerLink>();
 
+    public DbSet<WeekPattern> WeekPatterns => Set<WeekPattern>();
+
+    public DbSet<TimetableDay> TimetableDays => Set<TimetableDay>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
 
@@ -111,6 +116,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         }
 
         return Database.ExecuteSqlAsync($"SELECT 1 FROM members WHERE id = {memberId} FOR UPDATE", cancellationToken);
+    }
+
+    /// <summary>The same row lock as <see cref="LockMemberAsync"/>, on one trainer.</summary>
+    public Task LockTrainerAsync(Guid trainerId, CancellationToken cancellationToken)
+    {
+        if (Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("A row lock outside a transaction is released at once; begin one first.");
+        }
+
+        return Database.ExecuteSqlAsync($"SELECT 1 FROM trainers WHERE id = {trainerId} FOR UPDATE", cancellationToken);
     }
 
     /// <summary>The same row lock as <see cref="LockMemberAsync"/>, on one visit.</summary>

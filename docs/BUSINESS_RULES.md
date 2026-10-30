@@ -2420,17 +2420,21 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - Every code is a paid SMS, so the limits are checked before Kavenegar is called.
   - **Sent as Kavenegar's verification template** (`verify/lookup`, made for codes), not as free
     text (Kavenegar's answer, 1405/08/03; it had refused templates before the site was up,
-    1405/07/16). The template is `gymExpiring`, written by the developer:
-    «کد تایید باشگاه پاسارگاد: %token» and «این کد تا %token2 دقیقه معتبر است.», where `token` is
-    the code and `token2` the minutes it is valid for. It uses the gym's Kavenegar account and the
+    1405/07/16). The template is `gymExpiring`, written by the developer. Since 1405/08/09 it is
+    two lines only, «این کد تا %token2 دقیقه معتبر است.» and `@app.pasargadgymplus.ir #%token`, so
+    the code is written once, on the last line (it began with a first line «کد تایید باشگاه
+    پاسارگاد: %token», removed by the developer after the first real code SMS; Kavenegar approved
+    the two-line version the same day). `token` is the
+    code and `token2` the minutes it is valid for; the wording lives in Kavenegar, not in code. It uses the gym's Kavenegar account and the
     same API key; Kavenegar sends it from the gym's dedicated line `9981600378`, since its shared
     international line `0018018949161` cannot send inside Iran (Kavenegar's answer, 1405/08/07).
     Every other SMS is free text from the same dedicated line (§10 *Sending*).
   - **The code fills itself in on the phone** (asked by the developer, 1405/08/03, for the site
     app of 15.3): iPhones offer it from the SMS by themselves; Android needs the template's last
-    line to be `@app.pasargadgymplus.ir #%token`. Kavenegar approved `gymExpiring` with that third
-    line (sent by the developer and approved 1405/08/07). To check on the first real code SMS: its
-    last line is `@app.pasargadgymplus.ir #` and the code, with nothing after it.
+    line to be `@app.pasargadgymplus.ir #%token`. Kavenegar approved `gymExpiring` with that
+    line (sent by the developer and approved 1405/08/07). Checked on the first real code SMS
+    (1405/08/09): on Android the code fills itself in after Chrome's one-tap consent sheet, which
+    Android always shows for WebOTP and the site cannot remove.
   - The code itself is never written anywhere readable: not in the logs, not in the SMS history.
     Code SMS are not listed in the panel's «پیامک‌ها» history; only their count and cost are kept,
     and showing them in the panel is for 15.2. The database keeps only a random seed per code, from
@@ -2608,12 +2612,48 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **On time, late, absent** (for now; the developer: "not important yet"): a check-in up to 10
   minutes after the session's start is on time, a later one is late, no check-in is absent.
   *Decided by the developer.*
-- *Open, asked in its part of 15.6 and 15.7:* how the pattern repeats (weekly, monthly, or as the
-  trainer wants: to be researched first, the developer asked to see how existing booking apps do
-  it); a single day's change; whether the trainer may go past the capacity; whether a member sees
-  only their own trainer's sessions; until when a member can join or leave a session; a check-in
-  after the session ended; whether the cancellation SMS has its own switch in «تنظیمات پیامک»; the
-  absence alert to the trainer.
+- **The trainer's sessions, decided with 15.6a's plan** (*Decided by the developer*, 1405/08/09,
+  unless marked otherwise):
+  - **A weekly pattern with no end**: each day of the week has its own sessions, and the week
+    repeats until the trainer changes it.
+  - **A change of the pattern applies from a date the trainer picks**, tomorrow at the earliest
+    (and by default), within the 12 weeks below. The days before it stay as they were, so
+    attendance on them stays true. A pattern saved from a date replaces any the trainer had saved
+    from a later one.
+  - **One date can be changed on its own**: sessions added or removed, their times and capacity
+    changed, or the day closed (no sessions). The other weeks stay as they are. A session that
+    has already started today cannot be changed or removed, and a new one cannot start in the
+    past.
+  - **A day changed by hand keeps its change** when the pattern changes later, until the trainer
+    presses «برگرداندن به الگو» for it. *Proposed by Claude, accepted.*
+  - **Sessions may overlap**, e.g. 13:00 to 15:00 and 14:45 to 17:00: the next group may come
+    early. Two sessions of one day cannot have the same start and the same end. A check-in a
+    little before a session's start is counted for the session the member is in (15.7).
+  - **The timetable reaches 12 weeks ahead** (today and the 83 days after it), so a program of
+    6 to 8 weeks (15.11) fits in it whole. *Proposed by Claude, accepted.*
+  - *Proposed by Claude, built with 15.6a:* a session's capacity is 1 to 50; times are on
+    5-minute steps, a session ends the day it starts (no session past midnight), and a day holds
+    20 sessions at most. The gym has no opening hours in the system (§7), so the sessions are not
+    held to any.
+  - **A stopped trainer's sessions are gone** from the site with their area (the member sees
+    only trainers now); the pattern is kept, and comes back if the Owner makes them a trainer
+    again. *Proposed by Claude, accepted.*
+- **Who puts a member in a session** (*Decided by the developer*, 1405/08/09; built in 15.6b):
+  the trainer's program lasts 6 to 8 weeks, and the trainer tells the student which days and
+  times to come, so **the trainer puts the student in a fixed weekly slot** (e.g. Saturday,
+  Monday and Wednesday at 13:00) **with an end date**, and the student is in every one of those
+  dates. **The student does not pick the plan or the slots**: they see their next sessions, and
+  may leave or move one single date (to another session of the same trainer with room). The
+  booking records who made it, and the fixed slot is its own record, so the next point can come
+  later.
+  - *Queued, not built:* the student picking their own days and times within what the trainer
+    allows (e.g. "three days a week, eight weeks"), and the trainer confirming it, as a request
+    like 15.4's. Only if it is needed, after the trainer's way has been used (ROADMAP 15.6d).
+- *Open, asked in its part of 15.6 and 15.7:* whether the trainer may go past the capacity; whether
+  a member sees only their own trainer's sessions; until when a member can leave or move a
+  session; a check-in after the session ended, and how early before the start a check-in counts;
+  whether the cancellation SMS has its own switch in «تنظیمات پیامک»; the absence alert to the
+  trainer.
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

@@ -33,7 +33,11 @@
     "Trainer": "مربی",
     "TrainerPeriod": "دورهٔ مربی‌گری",
     "TrainerRequest": "درخواست مربی",
-    "TrainerLink": "مربی عضو"
+    "TrainerLink": "مربی عضو",
+    "WeekPattern": "الگوی هفتگی مربی",
+    "WeekPatternSession": "سانس الگوی هفتگی",
+    "TimetableDay": "روز جداگانهٔ برنامهٔ مربی",
+    "TimetableDaySession": "سانس روز جداگانه"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -236,6 +240,21 @@
     "Notification": { "Kind": { "label": "نوع", "format": "notificationKind" } },
     "SmsBroadcast": { "Status": { "label": "وضعیت", "format": "broadcastStatus" } },
     "TrainerRequest": { "Status": { "label": "وضعیت", "format": "trainerRequestStatus" } },
-    "TrainerLink": { "StartedOn": { "label": "شروع" }, "EndedOn": { "label": "پایان" } }
+    "TrainerLink": { "StartedOn": { "label": "شروع" }, "EndedOn": { "label": "پایان" } },
+    "WeekPattern": { "StartsOn": { "label": "از تاریخ" } },
+    "WeekPatternSession": {
+      "PatternId": { "label": "الگو", "format": "reference" },
+      "Day": { "label": "روز هفته", "format": "dayOfWeek" },
+      "Start": { "label": "شروع" },
+      "End": { "label": "پایان" },
+      "Capacity": { "label": "ظرفیت" }
+    },
+    "TimetableDay": { "Date": { "label": "تاریخ" } },
+    "TimetableDaySession": {
+      "DayId": { "label": "روز", "format": "reference" },
+      "Start": { "label": "شروع" },
+      "End": { "label": "پایان" },
+      "Capacity": { "label": "ظرفیت" }
+    }
   }
 }

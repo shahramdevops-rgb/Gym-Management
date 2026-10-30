@@ -149,6 +149,10 @@ using Gym.Application.Subscriptions.ListMemberSubscriptions;
 using Gym.Application.Subscriptions.RenewSubscription;
 using Gym.Application.Subscriptions.SellSingleVisit;
 using Gym.Application.Subscriptions.UnfreezeSubscription;
+using Gym.Application.Timetables.GetTimetable;
+using Gym.Application.Timetables.ResetTimetableDay;
+using Gym.Application.Timetables.SetTimetableDay;
+using Gym.Application.Timetables.SetWeekPattern;
 using Gym.Application.Trainers.CreateTrainer;
 using Gym.Application.Trainers.ListTrainers;
 using Gym.Application.Trainers.RestartTrainer;
@@ -235,6 +239,12 @@ public static class DependencyInjection
         services.AddScoped<ListMyPlansHandler>();
         services.AddScoped<ListMyPaymentsHandler>();
         services.AddScoped<ListMyCafeOrdersHandler>();
+
+        // The trainer's timetable on the site (BUSINESS_RULES.md §15, task 15.6a).
+        services.AddScoped<GetTimetableHandler>();
+        services.AddScoped<SetWeekPatternHandler>();
+        services.AddScoped<SetTimetableDayHandler>();
+        services.AddScoped<ResetTimetableDayHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();

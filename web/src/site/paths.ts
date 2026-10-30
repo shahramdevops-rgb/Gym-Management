@@ -5,4 +5,6 @@ export const sitePaths = {
   signUp: "/sign-up",
   /** The member picks a trainer (15.4). */
   trainers: "/trainers",
+  /** The trainer's «برنامه سانس‌ها» (15.6a). */
+  timetable: "/timetable",
 } as const;

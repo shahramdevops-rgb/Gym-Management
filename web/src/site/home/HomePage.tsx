@@ -14,6 +14,7 @@ import { MyDebtCard } from "../records/MyDebtCard";
 import { MyDetailsCard } from "../records/MyDetailsCard";
 import { MyHistoryCard } from "../records/MyHistoryCard";
 import { MyPlanCard } from "../records/MyPlanCard";
+import { TimetableCard } from "../timetable/TimetableCard";
 
 /** BUSINESS_RULES.md §15 *Trainers*: shown on the sign-in screen after the session is ended. */
 export const trainerEndedNotice = "مربی‌گری شما تمام شده است.";
@@ -72,7 +73,12 @@ export function HomePage() {
           </Alert>
         ))}
 
-      {trainer !== null && <TrainerArea />}
+      {trainer !== null && (
+        <>
+          <TimetableCard />
+          <TrainerArea />
+        </>
+      )}
 
       <InstallHint />
 

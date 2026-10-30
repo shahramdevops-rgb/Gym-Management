@@ -144,6 +144,7 @@ try
     app.MapSiteAuthEndpoints();
     app.MapSiteCoachingEndpoints();
     app.MapSiteRecordsEndpoints();
+    app.MapSiteTimetableEndpoints();
     app.MapStaffEndpoints();
     app.MapMembersEndpoints();
     app.MapPricingEndpoints();

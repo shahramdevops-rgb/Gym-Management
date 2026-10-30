@@ -36,7 +36,8 @@ type FieldFormat =
   | "broadcastStopReason"
   | "revocationReason"
   | "trainerRequestStatus"
-  | "trainerLinkEndReason";
+  | "trainerLinkEndReason"
+  | "dayOfWeek";
 
 interface FieldSpec {
   label?: string;
@@ -109,6 +110,16 @@ const enumLabels: Record<string, Record<string, string>> = {
     ByTrainer: "مربی پایان داد",
     NewTrainer: "مربی تازه",
     TrainerStopped: "مربی‌گری مربی تمام شد",
+  },
+  // A day of a trainer's weekly pattern (15.6a).
+  dayOfWeek: {
+    Saturday: "شنبه",
+    Sunday: "یکشنبه",
+    Monday: "دوشنبه",
+    Tuesday: "سه‌شنبه",
+    Wednesday: "چهارشنبه",
+    Thursday: "پنجشنبه",
+    Friday: "جمعه",
   },
 };
 

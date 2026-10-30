@@ -2999,6 +2999,220 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Timetables.TimetableDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<Guid>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_timetable_days");
+
+                    b.HasIndex("TrainerId", "Date")
+                        .IsUnique()
+                        .HasDatabaseName("ix_timetable_days_trainer_id_date");
+
+                    b.ToTable("timetable_days", (string)null);
+                });
+
+            modelBuilder.Entity("Gym.Domain.Timetables.TimetableDaySession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("DayId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("day_id");
+
+                    b.Property<TimeOnly>("End")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<TimeOnly>("Start")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_timetable_day_sessions");
+
+                    b.HasIndex("DayId", "Start", "End")
+                        .IsUnique()
+                        .HasDatabaseName("ix_timetable_day_sessions_day_id_start_time_end_time");
+
+                    b.ToTable("timetable_day_sessions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_timetable_day_sessions_capacity", "capacity BETWEEN 1 AND 50");
+
+                            t.HasCheckConstraint("ck_timetable_day_sessions_end_after_start", "end_time > start_time");
+
+                            t.HasCheckConstraint("ck_timetable_day_sessions_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 5 = 0");
+
+                            t.HasCheckConstraint("ck_timetable_day_sessions_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 5 = 0");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.Timetables.WeekPattern", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("StartsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("starts_on");
+
+                    b.Property<Guid>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_week_patterns");
+
+                    b.HasIndex("TrainerId", "StartsOn")
+                        .IsUnique()
+                        .HasDatabaseName("ix_week_patterns_trainer_id_starts_on");
+
+                    b.ToTable("week_patterns", (string)null);
+                });
+
+            modelBuilder.Entity("Gym.Domain.Timetables.WeekPatternSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer")
+                        .HasColumnName("capacity");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("Day")
+                        .HasColumnType("integer")
+                        .HasColumnName("day");
+
+                    b.Property<TimeOnly>("End")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<Guid>("PatternId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pattern_id");
+
+                    b.Property<TimeOnly>("Start")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_week_pattern_sessions");
+
+                    b.HasIndex("PatternId", "Day", "Start", "End")
+                        .IsUnique()
+                        .HasDatabaseName("ix_week_pattern_sessions_pattern_id_day_start_time_end_time");
+
+                    b.ToTable("week_pattern_sessions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_week_pattern_sessions_capacity", "capacity BETWEEN 1 AND 50");
+
+                            t.HasCheckConstraint("ck_week_pattern_sessions_day", "day BETWEEN 0 AND 6");
+
+                            t.HasCheckConstraint("ck_week_pattern_sessions_end_after_start", "end_time > start_time");
+
+                            t.HasCheckConstraint("ck_week_pattern_sessions_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 5 = 0");
+
+                            t.HasCheckConstraint("ck_week_pattern_sessions_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 5 = 0");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Trainers.Trainer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3695,6 +3909,46 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_subscriptions_members_member_id");
                 });
 
+            modelBuilder.Entity("Gym.Domain.Timetables.TimetableDay", b =>
+                {
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany()
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_timetable_days_trainers_trainer_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Timetables.TimetableDaySession", b =>
+                {
+                    b.HasOne("Gym.Domain.Timetables.TimetableDay", null)
+                        .WithMany("Sessions")
+                        .HasForeignKey("DayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_timetable_day_sessions_timetable_days_day_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Timetables.WeekPattern", b =>
+                {
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany()
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_week_patterns_trainers_trainer_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Timetables.WeekPatternSession", b =>
+                {
+                    b.HasOne("Gym.Domain.Timetables.WeekPattern", null)
+                        .WithMany("Sessions")
+                        .HasForeignKey("PatternId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_week_pattern_sessions_week_patterns_pattern_id");
+                });
+
             modelBuilder.Entity("Gym.Domain.Trainers.TrainerPeriod", b =>
                 {
                     b.HasOne("Gym.Domain.Trainers.Trainer", null)
@@ -3765,6 +4019,16 @@ namespace Gym.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Gym.Domain.Cafe.CafeOrder", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Timetables.TimetableDay", b =>
+                {
+                    b.Navigation("Sessions");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Timetables.WeekPattern", b =>
+                {
+                    b.Navigation("Sessions");
                 });
 
             modelBuilder.Entity("Gym.Domain.Trainers.Trainer", b =>

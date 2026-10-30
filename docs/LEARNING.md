@@ -2246,3 +2246,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **A redirect is kinder than a refusal for a shared link.** The manifest is one file for every phone, so Staff get the Owner's shortcut too; `RequireRole`'s `otherwise` sends them to the locker map with `<Navigate replace>`, so Back does not return them to the page they could not see.
 - **Show a mock-up before the code.** A static HTML page in the app's colours and font, rendered at 390px with Playwright, let the developer decide the layout and the refresh before anything was built.
 - **My notes:**
+
+## 15.6a — The trainer's sessions (سانس‌های مربی)
+
+- **Store what people did, work out the rest.** The trainer saves a weekly pattern from a date and the dates they changed on their own; each date's sessions are computed when read (`TimetableRules.SessionsOn`). Making rows for twelve weeks ahead would have needed a nightly job to add each new day, and every pattern change would have rewritten hundreds of rows, each one an audit-log entry the Owner would have to scroll past.
+- **A change "from a date" is a new version, not an edit.** `WeekPattern` has `StartsOn`; the pattern in force on a day is the one that started last on or before it. Earlier patterns stay, so the past keeps the sessions it really had, which 15.7's attendance will need.
+- **An exception to a rule is its own row.** A date changed by hand is a `TimetableDay`; it wins over the pattern for that date and survives later patterns. "Give it back to the pattern" is just deleting that row: a timetable is not a financial record, so a real delete is allowed.
+- **A value record makes "the same session" exact.** `PlannedSession(Start, End, Capacity)` is a C# `record`, compared by its parts, so "a started session stays as it was" is `next.Contains(session)`, with no hand-written comparison.
+- **A row lock serialises one person's edits.** `LockTrainerAsync` is `SELECT ... FOR UPDATE` on the trainer's row: a save from a second phone waits for the first and then replaces it, instead of both inserting a pattern for the same date. It locks only this trainer, unlike the gym-wide coaching lock.
+- **Name columns around SQL's reserved words.** `end` is reserved in SQL, so the columns are `start_time`/`end_time` while the C# properties stay `Start`/`End`; every check constraint can then be written without quoting.
+- **A shared helper for two configurations.** Both session tables need the same three checks (capacity 1 to 50, end after start, 5-minute steps); `TimetableSessionColumns.AddChecks` writes them once, named per table.
+- **Dropdowns that can only make valid values.** The time is an hour box and a minute box on 5-minute steps, and capacity is a list from 1 to 50, so the phone never shows a keyboard and no typed digits need converting; the rules that need the whole day (end after start, duplicates) are left to the API's error codes.
+- **My notes:**

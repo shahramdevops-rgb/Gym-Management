@@ -8,6 +8,7 @@ import { RequireSiteSession } from "./components/RequireSiteSession";
 import { SiteFrame } from "./components/SiteFrame";
 import { HomePage } from "./home/HomePage";
 import { sitePaths } from "./paths";
+import { TimetablePage } from "./timetable/TimetablePage";
 
 /** The site app's routes; the tests render the same table (src/site/test/renderSite.tsx). */
 export const siteRoutes: RouteObject[] = [
@@ -32,6 +33,7 @@ export const siteRoutes: RouteObject[] = [
     children: [
       { path: sitePaths.home, element: <HomePage /> },
       { path: sitePaths.trainers, element: <TrainersPage /> },
+      { path: sitePaths.timetable, element: <TimetablePage /> },
     ],
   },
   { path: "*", element: <Navigate to={sitePaths.home} replace /> },

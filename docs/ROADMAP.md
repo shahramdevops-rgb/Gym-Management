@@ -4561,11 +4561,22 @@ fine"), to go out with the next release:
       session, to be confirmed at each part's start
 - [ ] Split into parts, each one thought through and decided at its start (the developer,
       1405/08/08), with §15's open lines asked there:
-  - [ ] **15.6a** the trainer's sessions: the pattern and how it repeats, each day's sessions,
-        times and capacity, a single day's change
-  - [ ] **15.6b** putting students in sessions: by the trainer and by the member, within
-        capacity; the member sees their next sessions
+  - [x] **15.6a** the trainer's sessions: the pattern and how it repeats, each day's sessions,
+        times and capacity, a single day's change. Decided 1405/08/09 (§15 *The trainer's
+        sessions*): weekly with no end, a change from a date the trainer picks, one date changed
+        on its own and kept through later pattern changes, overlaps allowed, 12 weeks ahead.
+        Stored as the pattern and the changed days only; each date's sessions are worked out when
+        read (no rows made ahead, no nightly job). Built 1405/08/09 on `task/15.6-timetable`:
+        `/api/site/timetable`, «برنامه سانس‌ها» and «سانس‌های امروز» in the site app
+  - [ ] **15.6b** putting students in sessions (decided 1405/08/09, §15 *Who puts a member in a
+        session*): the trainer puts a student in a fixed weekly slot with an end date; the member
+        sees their next sessions and leaves or moves one date; within capacity. A program is 6 to
+        8 weeks, so the fixed slot covers it at once
   - [ ] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
+  - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
+        days and times within what the trainer allows (e.g. three days a week for eight weeks),
+        and the trainer confirms, as a request like 15.4's. Decided to wait until 15.6b's way,
+        the trainer placing the student, has been used
 
 #### 15.7 Attendance for the trainer (پیگیری حضور)
 - [ ] «امروز» for the trainer: today's sessions and who has checked in at the desk, live

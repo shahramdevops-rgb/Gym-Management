@@ -128,6 +128,19 @@ export const errorMessages: Record<string, string> = {
   "Coaching.StudentNotFound": "این عضو دیگر شاگرد شما نیست.",
   "Coaching.LinkAlreadyEnded": "مربی‌گری این شاگرد قبلاً تمام شده است.",
 
+  // The trainer's timetable (site)
+  "Timetable.CapacityOutOfRange": "ظرفیت هر سانس باید بین ۱ تا ۵۰ نفر باشد.",
+  "Timetable.TimeNotOnStep": "ساعت سانس باید مضربی از ۵ دقیقه باشد.",
+  "Timetable.EndNotAfterStart": "پایان سانس باید بعد از شروع آن و در همان روز باشد.",
+  "Timetable.DuplicateSession": "دو سانس با ساعت شروع و پایان یکسان در یک روز نمی‌شود.",
+  "Timetable.TooManySessions": "هر روز حداکثر ۲۰ سانس می‌تواند داشته باشد.",
+  "Timetable.InvalidDay": "روز هفته معتبر نیست.",
+  "Timetable.PatternStartOutOfRange":
+    "الگوی تازه از فردا تا آخرین روز برنامه (۱۲ هفته) می‌تواند شروع شود.",
+  "Timetable.DayOutOfRange": "فقط روزهای امروز تا ۱۲ هفتهٔ آینده را می‌توان تغییر داد.",
+  "Timetable.SessionStarted": "سانسی که شروع شده را نمی‌توان تغییر داد یا حذف کرد.",
+  "Timetable.SessionInThePast": "سانس تازه نمی‌تواند در ساعتی که گذشته شروع شود.",
+
   // Members
   "Members.NotFound": "عضو پیدا نشد.",
   "Members.PhoneAlreadyExists": "این شماره موبایل قبلاً برای عضو دیگری ثبت شده است.",
