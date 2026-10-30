@@ -4512,11 +4512,22 @@ desk's «یادداشت» and the staff's names and reasons on cancelled rows ar
         applied, every one of the 40 tables kept its row count, 8 new empty tables
       - After: the panel, `/health`, the app (Let's Encrypt), its manifest «My Gym», `/qr` 302,
         the public page all answer; `/api/site` is 404 on the panel's host and the staff API 404 on
-        the app's; members 284, plans 326, payments 554, visits 1541 as in the dump, trainers 0
+        the app's; members 284, plans 326, payments 554, visits 1541 as in the dump, trainers 0; no error in the API log
       - A rollback to `20261027-0220-387aa1d` is safe: the migrations add tables, and to `notifications` and
         `sms_settings` columns the old code never names (a null trainer, a switch that starts off)
       - Still open: the first real code SMS ends with `@app.pasargadgymplus.ir #<code>`; the
         poster printed when the trial is over
+
+#### After Release 1: the app's logo (no hurry)
+Asked by the developer on 1405/08/08 (2026-10-30), after Release 1, for later ("much later is
+fine"):
+- [ ] **The icon.** The dark lines of the logo on the bronze icon are too faint, and the logo is
+      too small inside it: there is room to make it bigger. Every size changes together
+      (`web/site/public/icon-192.png`, `icon-512.png`, `icon-maskable-512.png`,
+      `apple-touch-icon.png`, `favicon.png`); shown to the developer before it is replaced. An
+      installed app takes the new icon only when Android rebuilds it (13.4)
+- [ ] **The logo on top of the app's first screen** (`SiteFrame`, today the panel's white logo in
+      the panel's square) becomes the same as the app's icon: the logo in dark stone on bronze
 
 ### Release 2 — The timetable and attendance (priority 1)
 
