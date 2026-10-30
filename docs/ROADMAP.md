@@ -55,8 +55,8 @@ Still open around the panel (none of it code, or waiting for someone else):
 
 Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 accepted
   1405/08/03); 15.1, 15.2, 15.3 (a and b), 15.4 (a, b and c) and 15.5 (a and b) are done on their
-  branches, not merged or released (`task/15.4-pick-a-trainer` pushed 1405/08/08); the next step is
-  **Release 1**. Phase 14's 14.1 to 14.3 still wait for the
+  merged and released as Release 1 (`20261030-0329-ad005a3`, 1405/08/08, a quiet launch); the next
+  step is **15.6, the trainer's timetable**. Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
 
 ---
@@ -3937,7 +3937,8 @@ map, not on a refusal.
       role is known (a failed `/me` keeps the Owner on the page), the date stays on screen when a
       refresh fails (figures left from yesterday cannot pass for today's), and a test that a visit
       still open from yesterday is inside but no check-in today
-- [ ] Released, late at night with `./backup.sh run` first; then the Owner's phone. The page is
+- [x] Released 1405/08/08 (2026-10-30) as `20261030-0329-ad005a3`, with Phase 15's Release 1
+      (the record is under Release 1). Then the Owner's phone. The page is
       there at once (menu); the new long-press shortcut needs Android to rebuild the installed app,
       which Chrome does through the same Google server as the install (13.4), so from Iran it may
       take opening the app with the VPN on once, or installing again with it (docs/DEPLOYMENT.md
@@ -4496,9 +4497,26 @@ desk's «یادداشت» and the staff's names and reasons on cancelled rows ar
 - [x] «خروج» asks first (asked by the developer, 1405/08/07): «با خروج، برای ورود دوباره یک کد
       پیامکی تازه لازم است. خارج می‌شوید؟» with «خروج» and «انصراف», since signing in again costs an
       SMS; built with 15.5b (the site's `ConfirmDialog`, full width)
-- [ ] **Release 1**, late at night, backup first; `SITE_CODE_SECRET`, `SITE_JWT_SIGNING_KEY` (15.1a, 15.1b)
-      and `SITE_DOMAIN=app.pasargadgymplus.ir` (15.3b) added to the server's `.env` first: compose refuses
-      to start without any of the three. The poster (`deploy/qr/poster.pdf`) printed after it
+- [x] **Release 1, 1405/08/08 (2026-10-30), 03:29, as `20261030-0329-ad005a3`** (previous
+      `20261027-0220-387aa1d`), with 13.5 and the app's new name «My Gym». A quiet launch (the
+      developer, 1405/08/08): no poster and no announcement until the developer, one or two
+      trainers and a few trusted members have used it for some days; the trainers are entered in
+      the panel's «مربیان» after the release, since the screen only exists from it on
+      - Before: full suite on the merged `main` (3095 backend, 1307 Vitest, zero warnings, lint,
+        `format:check`, build), `npm run e2e` 16 green, `npm run screenshots` committed
+      - On the server: tag, health, 50 GB free; `SITE_DOMAIN`, `SITE_CODE_SECRET` and
+        `SITE_JWT_SIGNING_KEY` appended to `.env` (two `openssl rand -base64 48`; the file before
+        it kept as `.env.before-site`); `./backup.sh run` → `gym-20261030-031424.dump`, copied to
+        `D:\gymbackups`, `sha256sum` equal on both sides
+      - Tried first on a copy: that dump restored into a local database, the five migrations
+        applied, every one of the 40 tables kept its row count, 8 new empty tables
+      - After: the panel, `/health`, the app (Let's Encrypt), its manifest «My Gym», `/qr` 302,
+        the public page all answer; `/api/site` is 404 on the panel's host and the staff API 404 on
+        the app's; members 284, plans 326, payments 554, visits 1541 as in the dump, trainers 0
+      - A rollback to `20261027-0220-387aa1d` is safe: the migrations add tables, and to `notifications` and
+        `sms_settings` columns the old code never names (a null trainer, a switch that starts off)
+      - Still open: the first real code SMS ends with `@app.pasargadgymplus.ir #<code>`; the
+        poster printed when the trial is over
 
 ### Release 2 — The timetable and attendance (priority 1)
 
