@@ -4515,12 +4515,13 @@ desk's «یادداشت» and the staff's names and reasons on cancelled rows ar
         the app's; members 284, plans 326, payments 554, visits 1541 as in the dump, trainers 0; no error in the API log
       - A rollback to `20261027-0220-387aa1d` is safe: the migrations add tables, and to `notifications` and
         `sms_settings` columns the old code never names (a null trainer, a switch that starts off)
+      - The developer signed in on the app with their own phone: it worked
       - Still open: the first real code SMS ends with `@app.pasargadgymplus.ir #<code>`; the
         poster printed when the trial is over
 
-#### After Release 1: the app's logo (no hurry)
+#### After Release 1: the logos and a name (no hurry)
 Asked by the developer on 1405/08/08 (2026-10-30), after Release 1, for later ("much later is
-fine"):
+fine"), to go out with the next release:
 - [ ] **The icon.** The dark lines of the logo on the bronze icon are too faint, and the logo is
       too small inside it: there is room to make it bigger. Every size changes together
       (`web/site/public/icon-192.png`, `icon-512.png`, `icon-maskable-512.png`,
@@ -4528,6 +4529,13 @@ fine"):
       installed app takes the new icon only when Android rebuilds it (13.4)
 - [ ] **The logo on top of the app's first screen** (`SiteFrame`, today the panel's white logo in
       the panel's square) becomes the same as the app's icon: the logo in dark stone on bronze
+- [ ] **The panel's logo** (asked 1405/08/08): the white logo on the blue-to-violet square (the
+      menu's top, the sign-in page) becomes the panel's own icon, the bronze logo on dark (13.4).
+      This reopens the panel on purpose; the computer's screens change with it
+- [ ] **«حساب سایت» becomes «باشگاه من»** on the member's profile in the panel (asked 1405/08/08):
+      the app's name in Persian, which the developer finds nicer; the empty line with it
+      («در باشگاه من ثبت‌نام نکرده است.»)
+- [ ] All of the above goes out with the next release
 
 ### Release 2 — The timetable and attendance (priority 1)
 
