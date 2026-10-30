@@ -134,6 +134,9 @@ try
         // require a token just to read the API documentation.
         app.MapOpenApi().AllowAnonymous();
         app.MapScalarApiReference(options => options.WithTitle("Gym Management API")).AllowAnonymous();
+
+        // The site's sign-in code on the code screen, for trying the app without a phone.
+        app.MapSiteDevelopmentCodeEndpoints();
     }
 
     // Reports the database, not just the process: see AddDbContextCheck in AddInfrastructure.

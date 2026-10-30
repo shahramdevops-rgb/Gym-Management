@@ -17,6 +17,7 @@ import { sitePaths } from "../../paths";
 import { useRequestCode, useSignIn } from "../api";
 import { signUpTicketStore } from "../signUpTicket";
 import { readCodeFromSms } from "../webOtp";
+import { DevelopmentCode } from "./DevelopmentCode";
 import type { SentCode } from "./SignInPage";
 
 /** BUSINESS_RULES.md §15: the code has 5 digits. */
@@ -148,6 +149,8 @@ export function CodeStep({ sent, onResent, onChangePhone }: CodeStepProps) {
 
   return (
     <Card accent={false} className="shadow-raised">
+      {/* A development build only: a production bundle drops it with the condition. */}
+      {import.meta.env.DEV && <DevelopmentCode sent={sent} />}
       <CardHeader>
         <CardTitle role="heading" aria-level={1} className="text-xl">
           کد ورود
