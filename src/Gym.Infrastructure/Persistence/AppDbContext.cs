@@ -3,6 +3,7 @@ using Gym.Application.Subscriptions;
 using Gym.Domain.Attendances;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
+using Gym.Domain.Bookings;
 using Gym.Domain.Cafe;
 using Gym.Domain.Coaching;
 using Gym.Domain.Expenses;
@@ -100,6 +101,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<WeekPattern> WeekPatterns => Set<WeekPattern>();
 
     public DbSet<TimetableDay> TimetableDays => Set<TimetableDay>();
+
+    public DbSet<FixedSchedule> FixedSchedules => Set<FixedSchedule>();
+
+    public DbSet<SessionSkip> SessionSkips => Set<SessionSkip>();
+
+    public DbSet<SessionBooking> SessionBookings => Set<SessionBooking>();
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);

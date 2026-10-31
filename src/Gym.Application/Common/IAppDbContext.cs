@@ -1,6 +1,7 @@
 using Gym.Domain.Attendances;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
+using Gym.Domain.Bookings;
 using Gym.Domain.Cafe;
 using Gym.Domain.Coaching;
 using Gym.Domain.Expenses;
@@ -98,6 +99,12 @@ public interface IAppDbContext
     DbSet<WeekPattern> WeekPatterns { get; }
 
     DbSet<TimetableDay> TimetableDays { get; }
+
+    DbSet<FixedSchedule> FixedSchedules { get; }
+
+    DbSet<SessionSkip> SessionSkips { get; }
+
+    DbSet<SessionBooking> SessionBookings { get; }
 
     /// <summary>
     /// The audit log, for reading only (BUSINESS_RULES.md §11, task 11.1). A query, not a

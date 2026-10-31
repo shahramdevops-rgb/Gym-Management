@@ -148,6 +148,7 @@ try
     app.MapSiteCoachingEndpoints();
     app.MapSiteRecordsEndpoints();
     app.MapSiteTimetableEndpoints();
+    app.MapSiteBookingEndpoints();
     app.MapStaffEndpoints();
     app.MapMembersEndpoints();
     app.MapPricingEndpoints();

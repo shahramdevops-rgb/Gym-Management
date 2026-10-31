@@ -4,6 +4,9 @@ using Gym.Api.Authorization;
 using Gym.Api.Common;
 using Gym.Api.Filters;
 using Gym.Application.Timetables;
+using Gym.Application.Timetables.CheckResetTimetableDay;
+using Gym.Application.Timetables.CheckTimetableDay;
+using Gym.Application.Timetables.CheckWeekPattern;
 using Gym.Application.Timetables.GetTimetable;
 using Gym.Application.Timetables.ResetTimetableDay;
 using Gym.Application.Timetables.SetTimetableDay;
@@ -55,6 +58,29 @@ public static class SiteTimetableEndpoints
                 (await handler.Handle(SiteUser.AccountId(user), date, ct)).ToHttpResult())
             .WithName("ResetTimetableDay")
             .Produces<TimetableResponse>()
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // The warning before each change (15.6b): reads that take the change's body, with nothing kept.
+        group.MapPost("/pattern/check", async (ClaimsPrincipal user, SetWeekPatternCommand command, CheckWeekPatternHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), command, ct)).ToHttpResult())
+            .AddEndpointFilter<ValidationFilter<SetWeekPatternCommand>>()
+            .WithName("CheckWeekPattern")
+            .Produces<TimetableImpactResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        group.MapPost("/days/{date}/check", async (DateOnly date, ClaimsPrincipal user, SetTimetableDayCommand command, CheckTimetableDayHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), date, command, ct)).ToHttpResult())
+            .AddEndpointFilter<ValidationFilter<SetTimetableDayCommand>>()
+            .WithName("CheckTimetableDay")
+            .Produces<TimetableImpactResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        group.MapGet("/days/{date}/reset-check", async (DateOnly date, ClaimsPrincipal user, CheckResetTimetableDayHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), date, ct)).ToHttpResult())
+            .WithName("CheckResetTimetableDay")
+            .Produces<TimetableImpactResponse>()
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         return app;

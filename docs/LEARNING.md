@@ -2258,3 +2258,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **A shared helper for two configurations.** Both session tables need the same three checks (capacity 1 to 50, end after start, 5-minute steps); `TimetableSessionColumns.AddChecks` writes them once, named per table.
 - **Dropdowns that can only make valid values.** The time is an hour box and a minute box on 5-minute steps, and capacity is a list from 1 to 50, so the phone never shows a keyboard and no typed digits need converting; the rules that need the whole day (end after start, duplicates) are left to the API's error codes.
 - **My notes:**
+
+## 15.6b-1 — Students in sessions, the backend (شاگردان در سانس‌ها)
+
+- **The same idea twice: store the decisions, compute the dates.** A fixed schedule is one row with its weekly slots; a date the student leaves is a `SessionSkip`; a date they move to is a `SessionBooking`. Who is in which session on which date comes from `BookingRules.Places`, so eight weeks of three sessions is one row, not twenty-four.
+- **A pure function is easy to test.** `Places`, `Fit` and `Impact` take plain lists and return plain lists, with no database and no clock; the Domain tests build a schedule, call them and check the answer in microseconds.
+- **Some rules a database cannot hold.** The capacity ceiling counts places that are computed, not rows, so no check constraint can say it. The handlers count under the trainer's row lock instead, so two moves at the same moment run one after the other and the second sees the first.
+- **An exclusion constraint for "one at a time".** `EXCLUDE USING gist (link_id WITH =, daterange(starts_on, ends_on, '[]') WITH &&)` lets no two schedules of one link share a date. It is per link, not per member, so a link that ended does not block the member's next trainer.
+- **"Check, then save" by doing the save and rolling it back.** `/schedule/check` runs the same code as the save inside a transaction, counts the room, and never commits. The warning can then never disagree with what the save would do.
+- **Something that ends by being left out.** When a link ends, nothing rewrites the schedule's row; `Places` stops reading after the link's last day. Fewer writes means fewer places for two copies of the truth to drift apart.
+- **An endpoint that reads but takes a body is a POST.** `/pattern/check` needs the whole new pattern to answer, and a GET has no body, so it is a POST that changes nothing.
+- **Build beside a running app: `UseArtifactsOutput` as environment variables.** `dotnet ef` has no `--artifacts-path`, but MSBuild reads environment variables as properties, so `UseArtifactsOutput=true ArtifactsPath=...` sends its build there too.
+- **My notes:**

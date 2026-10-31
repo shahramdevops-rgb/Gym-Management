@@ -37,7 +37,8 @@ type FieldFormat =
   | "revocationReason"
   | "trainerRequestStatus"
   | "trainerLinkEndReason"
-  | "dayOfWeek";
+  | "dayOfWeek"
+  | "bookedBy";
 
 interface FieldSpec {
   label?: string;
@@ -121,6 +122,8 @@ const enumLabels: Record<string, Record<string, string>> = {
     Thursday: "پنجشنبه",
     Friday: "جمعه",
   },
+  // Who took a student out of a date, or moved it (15.6b).
+  bookedBy: { Trainer: "مربی", Member: "عضو" },
 };
 
 /** A kind of record by its Persian name; one with no name yet keeps its English one. */

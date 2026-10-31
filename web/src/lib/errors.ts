@@ -141,6 +141,24 @@ export const errorMessages: Record<string, string> = {
   "Timetable.SessionStarted": "سانسی که شروع شده را نمی‌توان تغییر داد یا حذف کرد.",
   "Timetable.SessionInThePast": "سانس تازه نمی‌تواند در ساعتی که گذشته شروع شود.",
 
+  // Students in sessions (site, 15.6b)
+  "Bookings.ScheduleDatesOutOfRange":
+    "برنامه از امروز به بعد شروع می‌شود و تا آخرین روز برنامهٔ سانس‌ها (۱۲ هفته) تمام می‌شود.",
+  "Bookings.ScheduleChangeFromTomorrow":
+    "برنامهٔ این شاگرد شروع شده؛ تغییر آن از فردا اعمال می‌شود.",
+  "Bookings.ScheduleWithoutSessions": "دست‌کم یک سانس هفتگی برای برنامه انتخاب کنید.",
+  "Bookings.TooManySlots": "تعداد سانس‌های هفتگی برنامه بیش از حد است.",
+  "Bookings.DuplicateSlot": "یک سانس هفتگی دو بار انتخاب شده است.",
+  "Bookings.InvalidSlot": "روز یا ساعت یکی از سانس‌های برنامه معتبر نیست.",
+  "Bookings.NoSuchSession": "این سانس در برنامهٔ سانس‌های مربی نیست.",
+  "Bookings.SessionFull": "این سانس جای خالی ندارد.",
+  "Bookings.NotAStudent": "این عضو الان شاگرد شما نیست.",
+  "Bookings.NoSchedule": "این شاگرد برنامهٔ ثابتی ندارد.",
+  "Bookings.NotInSession": "در این سانس نیستید.",
+  "Bookings.SessionStarted": "این سانس شروع شده و دیگر نمی‌توان آن را لغو یا جابه‌جا کرد.",
+  "Bookings.AlreadyInSession": "در این سانس هستید.",
+  "Bookings.MoveOutOfSchedule": "فقط به سانسی تا آخرین روز برنامه‌تان می‌توان جابه‌جا شد.",
+
   // Members
   "Members.NotFound": "عضو پیدا نشد.",
   "Members.PhoneAlreadyExists": "این شماره موبایل قبلاً برای عضو دیگری ثبت شده است.",

@@ -1,15 +1,16 @@
 using System.Text.Json.Serialization;
 
+using Gym.Application.Bookings;
 using Gym.Application.Common;
+using Gym.Domain.Bookings;
 using Gym.Domain.Timetables;
-
-using Microsoft.EntityFrameworkCore;
 
 namespace Gym.Application.Timetables;
 
 /// <summary>
 /// The trainer's «برنامه سانس‌ها» (BUSINESS_RULES.md §15 <i>The trainer's sessions</i>): their latest
-/// weekly pattern, to edit, and every date of the timetable's 12 weeks with its sessions as they are.
+/// weekly pattern, to edit, and every date of the timetable's 12 weeks with its sessions as they are
+/// and the students in each (15.6b).
 /// </summary>
 /// <param name="Pattern">The pattern saved last, which may start in the future; <c>null</c> before the first.</param>
 /// <param name="Days">Today to <paramref name="LastDay"/>, each one.</param>
@@ -20,24 +21,22 @@ public sealed record TimetableResponse(DateOnly Today, DateOnly LastDay, WeekPat
         ArgumentNullException.ThrowIfNull(db);
 
         var lastDay = TimetableRules.LastDay(today);
-        var patterns = await TrainerTimetable.PatternsFromAsync(db, trainerId, today, cancellationToken);
-        var changed = await db.TimetableDays.AsNoTracking()
-            .Include(day => day.Sessions)
-            .Where(day => day.TrainerId == trainerId && day.Date >= today && day.Date <= lastDay)
-            .ToDictionaryAsync(day => day.Date, cancellationToken);
+        var timetable = await TrainerTimetable.DatesAsync(db, trainerId, today, lastDay, cancellationToken);
+        var places = await BookedPlaces.OfTrainerAsync(db, trainerId, today, lastDay, cancellationToken);
 
         var days = Enumerable.Range(0, TimetableRules.DaysAhead)
             .Select(today.AddDays)
             .Select(date =>
             {
-                var changedDay = changed.GetValueOrDefault(date);
-                var sessions = TimetableRules.SessionsOn(date, patterns, changedDay).Select(SessionResponse.From).ToList();
+                var sessions = timetable.SessionsOn(date)
+                    .Select(session => SessionResponse.From(session, BookingRules.In(places, date, session).Count()))
+                    .ToList();
 
-                return new TimetableDayResponse(date, changedDay is not null, sessions);
+                return new TimetableDayResponse(date, timetable.Changed.ContainsKey(date), sessions);
             })
             .ToList();
 
-        var latest = patterns.MaxBy(pattern => pattern.StartsOn);
+        var latest = timetable.Patterns.MaxBy(pattern => pattern.StartsOn);
         var pattern = latest is null
             ? null
             : new WeekPatternResponse(
@@ -62,12 +61,13 @@ public sealed record WeeklySessionResponse(
 /// <param name="ChangedByHand">The trainer changed this date on its own; no sessions then means closed.</param>
 public sealed record TimetableDayResponse(DateOnly Date, bool ChangedByHand, IReadOnlyList<SessionResponse> Sessions);
 
-public sealed record SessionResponse(TimeOnly Start, TimeOnly End, int Capacity)
+/// <param name="Students">The students in it that date (15.6b); above <paramref name="Capacity"/> only when the trainer lowered it.</param>
+public sealed record SessionResponse(TimeOnly Start, TimeOnly End, int Capacity, int Students)
 {
-    public static SessionResponse From(PlannedSession session)
+    public static SessionResponse From(PlannedSession session, int students)
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        return new SessionResponse(session.Start, session.End, session.Capacity);
+        return new SessionResponse(session.Start, session.End, session.Capacity, students);
     }
 }

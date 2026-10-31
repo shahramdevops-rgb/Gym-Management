@@ -37,7 +37,11 @@
     "WeekPattern": "الگوی هفتگی مربی",
     "WeekPatternSession": "سانس الگوی هفتگی",
     "TimetableDay": "روز جداگانهٔ برنامهٔ مربی",
-    "TimetableDaySession": "سانس روز جداگانه"
+    "TimetableDaySession": "سانس روز جداگانه",
+    "FixedSchedule": "برنامهٔ ثابت شاگرد",
+    "FixedScheduleSlot": "سانس برنامهٔ ثابت",
+    "SessionSkip": "غیبت شاگرد از یک سانس",
+    "SessionBooking": "سانس جابه‌جاشدهٔ شاگرد"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -255,6 +259,31 @@
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
       "Capacity": { "label": "ظرفیت" }
+    },
+    "FixedSchedule": {
+      "LinkId": { "label": "مربی عضو", "format": "reference" },
+      "StartsOn": { "label": "از تاریخ" },
+      "EndsOn": { "label": "تا تاریخ" }
+    },
+    "FixedScheduleSlot": {
+      "ScheduleId": { "label": "برنامه", "format": "reference" },
+      "Day": { "label": "روز هفته", "format": "dayOfWeek" },
+      "Start": { "label": "شروع" },
+      "End": { "label": "پایان" }
+    },
+    "SessionSkip": {
+      "ScheduleId": { "label": "برنامه", "format": "reference" },
+      "Date": { "label": "تاریخ" },
+      "Start": { "label": "شروع" },
+      "End": { "label": "پایان" },
+      "By": { "label": "به دست", "format": "bookedBy" }
+    },
+    "SessionBooking": {
+      "LinkId": { "label": "مربی عضو", "format": "reference" },
+      "Date": { "label": "تاریخ" },
+      "Start": { "label": "شروع" },
+      "End": { "label": "پایان" },
+      "By": { "label": "به دست", "format": "bookedBy" }
     }
   }
 }

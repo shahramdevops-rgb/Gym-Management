@@ -33,6 +33,12 @@ internal static class TimetableSessionColumns
             $"ck_{tableName}_capacity",
             $"capacity BETWEEN {TimetableRules.MinCapacity} AND {TimetableRules.MaxCapacity}");
 
+        AddTimeChecks(table, tableName);
+    }
+
+    /// <summary>The time checks alone, for a table that names a session by its times (15.6b) and has no capacity.</summary>
+    public static void AddTimeChecks(TableBuilder table, string tableName)
+    {
         // The same day: no session past midnight.
         table.HasCheckConstraint($"ck_{tableName}_end_after_start", "end_time > start_time");
 

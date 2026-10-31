@@ -4569,9 +4569,20 @@ fine"), to go out with the next release:
         read (no rows made ahead, no nightly job). Built 1405/08/09 on `task/15.6-timetable`:
         `/api/site/timetable`, «برنامه سانس‌ها» and «سانس‌های امروز» in the site app
   - [ ] **15.6b** putting students in sessions (decided 1405/08/09, §15 *Who puts a member in a
-        session*): the trainer puts a student in a fixed weekly slot with an end date; the member
-        sees their next sessions and leaves or moves one date; within capacity. A program is 6 to
-        8 weeks, so the fixed slot covers it at once
+        session* and *Students in sessions*): the trainer puts a student in a fixed weekly slot
+        with an end date; the member sees their next sessions and leaves or moves one date; within
+        capacity. A program is 6 to 8 weeks, so the fixed slot covers it at once. Split in two:
+    - [x] **15.6b-1, the backend** (1405/08/09, `task/15.6-timetable`): `FixedSchedule`,
+          `SessionSkip`, `SessionBooking` (migration `AddFixedSchedules`, one schedule per link
+          held by an exclusion constraint); the places worked out like the timetable
+          (`BookingRules.Places`); `/api/site/coaching/students/{memberId}/schedule` (+ `/check`),
+          `/api/site/timetable/days/{date}/students` (+ `/remove`), `/api/site/me/sessions`
+          (+ `/leave`, `/move`), and the warning before a timetable change
+          (`/timetable/pattern/check`, `/days/{date}/check`, `/days/{date}/reset-check`); each
+          session's `students` in «برنامه سانس‌ها»
+    - [ ] **15.6b-2, the screens**: the trainer's «برنامهٔ ثابت» form on a student, «شاگردان سانس»
+          for a date, the warning dialog before a timetable change; the member's «سانس‌های من»
+          with «نمی‌آیم» and «جابه‌جایی»; the Persian error texts; e2e and screenshots
   - [ ] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
   - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
         days and times within what the trainer allows (e.g. three days a week for eight weeks),

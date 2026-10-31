@@ -2649,11 +2649,37 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - *Queued, not built:* the student picking their own days and times within what the trainer
     allows (e.g. "three days a week, eight weeks"), and the trainer confirming it, as a request
     like 15.4's. Only if it is needed, after the trainer's way has been used (ROADMAP 15.6d).
-- *Open, asked in its part of 15.6 and 15.7:* whether the trainer may go past the capacity; whether
-  a member sees only their own trainer's sessions; until when a member can leave or move a
-  session; a check-in after the session ended, and how early before the start a check-in counts;
-  whether the cancellation SMS has its own switch in «تنظیمات پیامک»; the absence alert to the
-  trainer.
+- **Students in sessions, decided with 15.6b's plan** (*Decided by the developer*, 1405/08/09: the
+  first four asked one by one, the rest proposed by Claude and accepted as a whole):
+  - **The capacity is a ceiling**, for the trainer too: a session with no room takes no one, and a
+    trainer who wants more raises the session's capacity.
+  - **A member leaves or moves a date until the session starts**; from its start it is fixed.
+  - **A member sees only their own trainer's sessions**, and moves a date only to one of them.
+  - **The trainer may change the timetable under their students, with a warning**: before a change
+    that removes a session students are in, changes its times, or lowers its capacity below its
+    students, the trainer is told how many students it touches, and saves anyway or not. A
+    student whose session is gone sees that date as «سانس برداشته شد»; the SMS and the in-app
+    notice are 15.6c's.
+  - **Only the trainer's students now** (an open link, 15.4) are put in sessions. When the link
+    ends, from either side or by the trainer being stopped, the member's sessions after that day
+    are gone; the day itself stays.
+  - **One fixed program per student at a time**: one or more weekly sessions, a first date and a
+    last date. The first date is today or later; the last is 8 weeks on by default, within the
+    timetable's 12 weeks. A change of the program applies from tomorrow (today's sessions stay as
+    they were, for attendance, 15.7); a program not started yet is simply replaced. The trainer
+    may also end it.
+  - **A program is saved whole or not at all**: if one of its dates has no room, nothing is saved
+    and the trainer sees those dates. A date with no such session (closed by hand, or not in the
+    pattern then) is passed over.
+  - **A move goes to any session of the same trainer** that has not started, has room, and is not
+    after the program's last date.
+  - **The trainer sees each session's students on each date** and may take a student out of one
+    date, as the student may.
+  - **The member's plan is not checked**: a visit is still a check-in at the desk that uses a
+    session of the plan (above).
+- *Open, asked in its part of 15.6 and 15.7:* a check-in after the session ended, and how early
+  before the start a check-in counts; whether the cancellation SMS has its own switch in
+  «تنظیمات پیامک»; the absence alert to the trainer.
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

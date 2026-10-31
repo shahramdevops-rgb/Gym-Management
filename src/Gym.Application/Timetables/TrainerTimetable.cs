@@ -25,4 +25,33 @@ internal static class TrainerTimetable
             .Where(pattern => pattern.TrainerId == trainerId && pattern.StartsOn >= earliest)
             .ToListAsync(cancellationToken);
     }
+
+    /// <summary>The dates from <paramref name="from"/> to <paramref name="to"/> the trainer changed on their own.</summary>
+    public static Task<Dictionary<DateOnly, TimetableDay>> ChangedDaysAsync(
+        IAppDbContext db, Guid trainerId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        db.TimetableDays.AsNoTracking()
+            .Include(day => day.Sessions)
+            .Where(day => day.TrainerId == trainerId && day.Date >= from && day.Date <= to)
+            .ToDictionaryAsync(day => day.Date, cancellationToken);
+
+    /// <summary>Each date's sessions from <paramref name="from"/> to <paramref name="to"/>, as <see cref="TimetableRules.SessionsOn"/> works them out.</summary>
+    public static async Task<TimetableDates> DatesAsync(IAppDbContext db, Guid trainerId, DateOnly from, DateOnly to, CancellationToken cancellationToken)
+    {
+        var patterns = await PatternsFromAsync(db, trainerId, from, cancellationToken);
+        var changed = await ChangedDaysAsync(db, trainerId, from, to, cancellationToken);
+
+        return new TimetableDates(patterns, changed);
+    }
+}
+
+/// <summary>A trainer's timetable over some dates, read once: a date's sessions are then worked out in memory.</summary>
+internal sealed class TimetableDates(IReadOnlyList<WeekPattern> patterns, IReadOnlyDictionary<DateOnly, TimetableDay> changed)
+{
+    public IReadOnlyList<WeekPattern> Patterns => patterns;
+
+    public IReadOnlyDictionary<DateOnly, TimetableDay> Changed => changed;
+
+    /// <summary>The date's sessions, earliest first; the date must be in the range read.</summary>
+    public IReadOnlyList<PlannedSession> SessionsOn(DateOnly date) =>
+        TimetableRules.SessionsOn(date, patterns, changed.GetValueOrDefault(date));
 }
