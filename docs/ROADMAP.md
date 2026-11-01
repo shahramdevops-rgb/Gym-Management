@@ -4602,6 +4602,13 @@ fine"), to go out with the next release:
           check also names the students whose fixed schedule loses sessions (`toReschedule`); after
           a pattern saved under the warning, «برنامهٔ تازه لازم است» lists them with links to their
           «برنامهٔ ثابت». Held in the page only: it is gone when the trainer leaves the page
+    - [x] **15.6b-5, found while trying it** (1405/08/10, `task/15.6-timetable`): a session's
+          problem (end not after start, the same times twice in a day) shows in red in its own box
+          before anything is sent, with a line by the save button, in the pattern and a single
+          date; a day stops adding at 20; «برنامهٔ ثابت» shows a session the pattern no longer has
+          as «دیگر نیست», off, so the save is not refused for it
+  - [ ] **15.6e** VIP sessions (decided 1405/08/10, §15 *VIP sessions*): the trainer marks a session
+        VIP, a label only for now; the student sees it. Plan first
   - [ ] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
   - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
         days and times within what the trainer allows (e.g. three days a week for eight weeks),

@@ -2672,6 +2672,17 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     student is not moved to a new session by itself: when times change, which new session is
     "the same" one cannot be known. A single date's change only cancels that date, so it names no
     one; a session whose capacity drops keeps its students.
+  - **A student's session the pattern no longer has** shows in «برنامهٔ ثابت» struck through,
+    «دیگر نیست», off and not to be picked, so the new schedule is made of the trainer's sessions
+    only. *Proposed by Claude, accepted by the developer* (1405/08/10), after a schedule kept the
+    old sessions and was refused.
+- **VIP sessions** (*decided by the developer*, 1405/08/10): each session is normal or VIP, marked
+  by the trainer. **For now only a label**: it changes nothing else; the capacity is the trainer's,
+  as for any session. **The student sees it** on their sessions. **Money for a VIP session is
+  between the member and the trainer**: the desk and the Owner take no part, and the system records
+  no payment for it. *Proposed by Claude, not yet confirmed:* the label is on a session of the
+  weekly pattern and of a single date alike, and changing it touches no student, so it gives no
+  warning. *Open, for later:* a VIP price, who may be in a VIP session, any link with the desk.
   - **Only the trainer's students now** (an open link, 15.4) are put in sessions. When the link
     ends, from either side or by the trainer being stopped, the member's sessions after that day
     are gone; the day itself stays.

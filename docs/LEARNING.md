@@ -2305,3 +2305,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **State that lives only in the page.** The list sits in `PatternCard`'s state: cheap, and enough to try the idea. The trade-off is that it is gone once the trainer leaves the page; keeping it would need the server to remember it.
 - **Look at the screen, not only the tests.** The tests passed, but the screenshot showed the notice above the screen: the long editor had left the page scrolled down. `scrollIntoView` on first render fixed it; jsdom has no such method, hence the `?.()` call.
 - **My notes:**
+
+## 15.6b-5 — Errors where they are, and sessions that are gone (خطا سر جای خودش)
+
+- **Say where, not only what.** One message for a whole week («پایان سانس باید بعد از شروع باشد») leaves the trainer searching twenty boxes. The page now runs the same simple checks as the API before sending (`sessionProblems`) and marks the box itself; the message by the save button only says how many, because that button may be far below.
+- **Validate in both places, for different reasons.** The browser checks for the trainer's comfort; the API checks because it is the only one that can be trusted (another app, an old tab). The rules are written once in §15 and the two must agree.
+- **Show errors after the first try, then live.** Red boxes while the trainer is still typing would nag; after «ذخیره» they appear and then follow every change, so a fixed box turns back at once.
+- **A list built from two sources must say which is which.** «برنامهٔ ثابت» offered the pattern's sessions and the student's own; after a pattern change the student's old ones looked like real choices and were already on, so the save was refused. Each choice now knows whether the pattern still has it.
+- **My notes:**
+

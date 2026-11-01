@@ -157,6 +157,43 @@ describe("the trainer's «برنامهٔ ثابت» of a student", () => {
     });
   });
 
+  it("Change_ASessionThePatternNoLongerHas_IsShownOffAndNotSent", async () => {
+    const old = {
+      ...saturdays,
+      startsOn: "2026-10-24",
+      slots: [
+        { day: "Saturday", start: "13:00:00", end: "14:00:00" },
+        { day: "Sunday", start: "10:00:00", end: "12:00:00" },
+      ],
+    };
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetable),
+      [`GET ${schedulePath}`]: () => json(200, student(old)),
+      [`POST ${schedulePath}/check`]: () => json(200, { sessions: 8, full: [] }),
+      [`PUT ${schedulePath}`]: () => json(200, student(saturdays)),
+    });
+    renderSite(`/students/${memberId}`, { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر برنامه" }));
+    const gone = await screen.findByRole("button", {
+      name: "یکشنبه ۱۰:۰۰ تا ۱۲:۰۰، دیگر در الگوی شما نیست",
+    });
+    expect(gone).toBeDisabled();
+    expect(gone).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "شنبه ۱۳:۰۰ تا ۱۴:۰۰" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره برنامه" }));
+
+    await screen.findByRole("button", { name: "تغییر برنامه" });
+    const [sent] = api.requestsTo("PUT", schedulePath);
+    expect(await bodyOf(sent!)).toMatchObject({
+      slots: [{ day: "Saturday", start: "13:00:00", end: "14:00:00" }],
+    });
+  });
+
   it("Dates_OneWeekAtATime_ShowEachOneWithWhatChanged", async () => {
     mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),

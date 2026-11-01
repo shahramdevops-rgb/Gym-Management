@@ -14,6 +14,7 @@ const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "
 // On 5-minute steps (BUSINESS_RULES.md §15 *The trainer's sessions*).
 const minutes = Array.from({ length: 12 }, (_, step) => String(step * 5).padStart(2, "0"));
 const capacities = Array.from({ length: 50 }, (_, index) => index + 1);
+const maxSessions = 20;
 
 // The site keeps its own copy of the panel's select look (FormField's), as it does its labels.
 const selectClassName = cn(
@@ -24,19 +25,22 @@ const selectClassName = cn(
 
 /**
  * One day's sessions, each a small box: start, end, capacity and «حذف». The times are an hour and
- * a minute on 5-minute steps, so the boxes only make times the API accepts; whether the end comes
- * after the start, and the day as a whole, is the API's to say.
+ * a minute on 5-minute steps, so the boxes only make times the API accepts; a box with a problem
+ * (`sessionProblems`) turns red and says it under its own times, and a day stops at 20 sessions.
  */
 export function SessionsEditor({
   label,
   sessions,
   onChange,
+  problems,
   disabled = false,
 }: {
   /** Who the sessions belong to, for the buttons read aloud: «شنبه». */
   label: string;
   sessions: DraftSession[];
   onChange: (sessions: DraftSession[]) => void;
+  /** Each session's problem by its key, once the trainer has tried to save. */
+  problems?: ReadonlyMap<string, string>;
   disabled?: boolean;
 }) {
   function change(key: string, part: Partial<SessionInput>) {
@@ -47,46 +51,59 @@ export function SessionsEditor({
     <div className="space-y-2">
       {sessions.length === 0 && <p className="text-sm text-muted-foreground">بدون سانس</p>}
       <ul aria-label={`سانس‌های ${label}`} className="space-y-2">
-        {sessions.map((session, index) => (
-          <li
-            key={session.key}
-            aria-label={`سانس ${toPersianDigits(index + 1)}`}
-            className="flex flex-wrap items-end gap-x-2 gap-y-2 rounded-lg border bg-muted/30 p-2"
-          >
-            <TimeField
-              label="شروع"
-              value={session.start}
-              disabled={disabled}
-              onChange={(start) => change(session.key, { start })}
-            />
-            <TimeField
-              label="پایان"
-              value={session.end}
-              disabled={disabled}
-              onChange={(end) => change(session.key, { end })}
-            />
-            <CapacityField
-              value={session.capacity}
-              disabled={disabled}
-              onChange={(capacity) => change(session.key, { capacity })}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ms-auto"
-              aria-label={`حذف سانس ${toPersianDigits(index + 1)}`}
-              disabled={disabled}
-              onClick={() => onChange(sessions.filter((other) => other.key !== session.key))}
+        {sessions.map((session, index) => {
+          const problem = problems?.get(session.key);
+          return (
+            <li
+              key={session.key}
+              aria-label={`سانس ${toPersianDigits(index + 1)}`}
+              data-session-problem={problem === undefined ? undefined : ""}
+              className={cn(
+                "flex flex-wrap items-end gap-x-2 gap-y-2 rounded-lg border bg-muted/30 p-2",
+                problem !== undefined && "border-destructive bg-destructive/8",
+              )}
             >
-              <Trash2 aria-hidden />
-            </Button>
-          </li>
-        ))}
+              <TimeField
+                label="شروع"
+                value={session.start}
+                disabled={disabled}
+                onChange={(start) => change(session.key, { start })}
+              />
+              <TimeField
+                label="پایان"
+                value={session.end}
+                disabled={disabled}
+                onChange={(end) => change(session.key, { end })}
+              />
+              <CapacityField
+                value={session.capacity}
+                disabled={disabled}
+                onChange={(capacity) => change(session.key, { capacity })}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ms-auto"
+                aria-label={`حذف سانس ${toPersianDigits(index + 1)}`}
+                disabled={disabled}
+                onClick={() => onChange(sessions.filter((other) => other.key !== session.key))}
+              >
+                <Trash2 aria-hidden />
+              </Button>
+              {problem !== undefined && (
+                <p className="w-full text-sm text-destructive">{problem}</p>
+              )}
+            </li>
+          );
+        })}
       </ul>
+      {sessions.length >= maxSessions && (
+        <p className="text-xs text-muted-foreground">هر روز حداکثر ۲۰ سانس می‌تواند داشته باشد.</p>
+      )}
       <Button
         variant="outline"
         size="sm"
-        disabled={disabled}
+        disabled={disabled || sessions.length >= maxSessions}
         aria-label={`افزودن سانس به ${label}`}
         onClick={() => onChange([...sessions, toDraft(nextSession(sessions))])}
       >

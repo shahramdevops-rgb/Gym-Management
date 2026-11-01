@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { errorMessage } from "@/lib/errors";
-import { formatDate } from "@/lib/format";
+import { formatDate, toPersianDigits } from "@/lib/format";
 
 import { useSiteMe } from "../auth/api";
 import { SessionStudentsList } from "../bookings/SessionStudentsList";
@@ -38,7 +38,14 @@ import {
   type TimetableImpact,
 } from "./api";
 import { CopyToDays } from "./CopyToDays";
-import { draftOf, inputsOf, toDraft, type DraftSession } from "./drafts";
+import {
+  draftOf,
+  inputsOf,
+  sessionProblems,
+  showFirstProblem,
+  toDraft,
+  type DraftSession,
+} from "./drafts";
 import { ImpactWarning, type HeldChange } from "./ImpactWarning";
 import {
   addDays,
@@ -237,6 +244,9 @@ function PatternEditor({
   const check = useCheckWeekPattern();
   const save = useSetWeekPattern();
   const [held, setHeld] = useState<HeldChange | null>(null);
+  // Shown from the first try to save on, then kept up to date as the trainer fixes them.
+  const [showProblems, setShowProblems] = useState(false);
+  const problems = new Map(weekDays.flatMap((day) => [...sessionProblems(drafts[day])]));
   const pending = check.isPending || save.isPending;
   // Nothing changes under a warning: the save it holds is the change it was given for.
   const locked = pending || held !== null;
@@ -248,6 +258,11 @@ function PatternEditor({
   }
 
   function submit() {
+    if (problems.size > 0) {
+      setShowProblems(true);
+      showFirstProblem();
+      return;
+    }
     const pattern = {
       startsOn,
       sessions: weekDays.flatMap((day) =>
@@ -273,6 +288,7 @@ function PatternEditor({
             label={dayNames[day]}
             sessions={drafts[day]}
             disabled={locked}
+            problems={showProblems ? problems : undefined}
             onChange={(sessions) => setDrafts({ ...drafts, [day]: sessions })}
           />
           {drafts[day].length > 0 && (
@@ -294,6 +310,7 @@ function PatternEditor({
         </p>
       </div>
 
+      {showProblems && <ProblemsAlert count={problems.size} />}
       {failure !== null && <Alert variant="destructive">{errorMessage(failure)}</Alert>}
 
       {held !== null ? (
@@ -314,6 +331,20 @@ function PatternEditor({
         </div>
       )}
     </div>
+  );
+}
+
+/** Beside the save buttons, which may be far below the red box: what to look for. */
+function ProblemsAlert({ count }: { count: number }) {
+  if (count === 0) {
+    return null;
+  }
+  return (
+    <Alert variant="destructive">
+      {count === 1
+        ? "یک سانس ایراد دارد. کادر قرمز را درست کنید."
+        : `${toPersianDigits(count)} سانس ایراد دارند. کادرهای قرمز را درست کنید.`}
+    </Alert>
   );
 }
 
@@ -450,6 +481,8 @@ function DayEditor({ day, onDone }: { day: TimetableDay; onDone: () => void }) {
   const save = useSetTimetableDay();
   const reset = useResetTimetableDay();
   const [held, setHeld] = useState<HeldChange | null>(null);
+  const [showProblems, setShowProblems] = useState(false);
+  const problems = sessionProblems(drafts);
   const pending = checkDay.isPending || checkReset.isPending || save.isPending || reset.isPending;
   const failure = checkDay.error ?? checkReset.error ?? save.error ?? reset.error;
 
@@ -461,6 +494,12 @@ function DayEditor({ day, onDone }: { day: TimetableDay; onDone: () => void }) {
   }
 
   function saveDay(sessions: DraftSession[]) {
+    // Closing the day sends no session, so the boxes' problems do not stand in its way.
+    if (sessions.length > 0 && problems.size > 0) {
+      setShowProblems(true);
+      showFirstProblem();
+      return;
+    }
     const input = { date: day.date, sessions: inputsOf(sessions) };
     checkDay.mutate(
       input,
@@ -481,9 +520,11 @@ function DayEditor({ day, onDone }: { day: TimetableDay; onDone: () => void }) {
         label={formatDayLabel(day.date)}
         sessions={drafts}
         disabled={pending || held !== null}
+        problems={showProblems ? problems : undefined}
         onChange={setDrafts}
       />
 
+      {showProblems && <ProblemsAlert count={problems.size} />}
       {failure !== null && <Alert variant="destructive">{errorMessage(failure)}</Alert>}
 
       {held !== null ? (

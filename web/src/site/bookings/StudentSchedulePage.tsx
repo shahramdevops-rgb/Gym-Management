@@ -149,6 +149,15 @@ function ScheduleCard({ student }: { student: StudentSchedule }) {
 const slotKey = (slot: SlotInput) => `${slot.day} ${slot.start} ${slot.end}`;
 
 /** The weekly sessions to pick from: the pattern's, and the schedule's own if the pattern has since lost one. */
+/** The weekly pattern's sessions, by `slotKey`: a schedule's session outside them is gone. */
+function patternKeys(timetable: Timetable): Set<string> {
+  return new Set(
+    (timetable.pattern?.sessions ?? []).map((session) =>
+      slotKey({ day: session.day, start: toMinutes(session.start), end: toMinutes(session.end) }),
+    ),
+  );
+}
+
 function choicesOf(timetable: Timetable, student: StudentSchedule): SlotInput[] {
   const all = [...(timetable.pattern?.sessions ?? []), ...(student.schedule?.slots ?? [])].map(
     (session) => ({
@@ -198,15 +207,21 @@ function ScheduleForm({
 }) {
   const current = student.schedule;
   const choices = choicesOf(timetable, student);
+  // The student's sessions the pattern no longer has (it changed under them): shown, off, and not
+  // to be picked, since the API refuses a schedule with a session the trainer does not hold.
+  const inPattern = patternKeys(timetable);
+  const isGone = (slot: SlotInput) => !inPattern.has(slotKey(slot));
   const firstDay = student.today;
   const defaultEnd = (startsOn: string) => earlier(addDays(startsOn, defaultDays), student.lastDay);
 
   const [picked, setPicked] = useState(
     () =>
       new Set(
-        (current?.slots ?? []).map((slot) =>
-          slotKey({ day: slot.day, start: toMinutes(slot.start), end: toMinutes(slot.end) }),
-        ),
+        (current?.slots ?? [])
+          .map((slot) =>
+            slotKey({ day: slot.day, start: toMinutes(slot.start), end: toMinutes(slot.end) }),
+          )
+          .filter((key) => inPattern.has(key)),
       ),
   );
   const [startsOn, setStartsOn] = useState(firstDay);
@@ -273,17 +288,24 @@ function ScheduleForm({
                   .filter((slot) => slot.day === day)
                   .map((slot) => {
                     const on = picked.has(slotKey(slot));
+                    const gone = isGone(slot);
                     return (
                       <Button
                         key={slotKey(slot)}
                         size="sm"
                         variant={on ? "default" : "outline"}
                         aria-pressed={on}
-                        aria-label={formatSlot(slot)}
-                        disabled={pending}
+                        aria-label={
+                          gone ? `${formatSlot(slot)}، دیگر در الگوی شما نیست` : formatSlot(slot)
+                        }
+                        disabled={pending || gone}
+                        className={gone ? "border-dashed" : undefined}
                         onClick={() => toggle(slot)}
                       >
-                        {formatSessionTimes(slot)}
+                        <span className={gone ? "line-through" : undefined}>
+                          {formatSessionTimes(slot)}
+                        </span>
+                        {gone && <span className="text-xs">دیگر نیست</span>}
                       </Button>
                     );
                   })}

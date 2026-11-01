@@ -246,6 +246,71 @@ describe("the trainer's timetable", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("SavePattern_EndBeforeStart_MarksThatSessionAndSendsNothing", async () => {
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
+      "POST /api/site/timetable/pattern/check": noImpact,
+      "PUT /api/site/timetable/pattern": () => json(200, timetableWith(saturdayPattern)),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    const saturday = within(screen.getByRole("list", { name: "سانس‌های شنبه" }));
+    const second = within(saturday.getByRole("listitem", { name: "سانس ۲" }));
+    fireEvent.change(second.getByRole("combobox", { name: "ساعت پایان" }), {
+      target: { value: "12" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+
+    expect(second.getByText("ساعت پایان باید بعد از ساعت شروع باشد.")).toBeInTheDocument();
+    expect(
+      within(saturday.getByRole("listitem", { name: "سانس ۱" })).queryByText(
+        "ساعت پایان باید بعد از ساعت شروع باشد.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("یک سانس ایراد دارد. کادر قرمز را درست کنید.")).toBeInTheDocument();
+    expect(api.requestsTo("POST", "/api/site/timetable/pattern/check")).toHaveLength(0);
+
+    fireEvent.change(second.getByRole("combobox", { name: "ساعت پایان" }), {
+      target: { value: "16" },
+    });
+    expect(second.queryByText("ساعت پایان باید بعد از ساعت شروع باشد.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+
+    await vi.waitFor(() =>
+      expect(api.requestsTo("PUT", "/api/site/timetable/pattern")).toHaveLength(1),
+    );
+  });
+
+  it("SavePattern_TwoSessionsWithTheSameTimes_MarksTheSecond", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () =>
+        json(
+          200,
+          timetableWith({
+            startsOn: tomorrow,
+            sessions: [saturdayPattern.sessions[0]!, saturdayPattern.sessions[0]!],
+          }),
+        ),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+
+    const saturday = within(screen.getByRole("list", { name: "سانس‌های شنبه" }));
+    expect(
+      within(saturday.getByRole("listitem", { name: "سانس ۲" })).getByText(
+        "سانسی با همین ساعت شروع و پایان در این روز هست.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(saturday.getByRole("listitem", { name: "سانس ۱" })).queryByText(/سانسی با همین/),
+    ).not.toBeInTheDocument();
+  });
+
   it("SavePattern_Refused_ShowsTheReasonInPersian", async () => {
     mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
