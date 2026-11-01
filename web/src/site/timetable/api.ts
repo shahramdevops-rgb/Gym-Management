@@ -20,6 +20,8 @@ export interface SessionInput {
   start: string;
   end: string;
   capacity: number;
+  /** Marked VIP by the trainer (15.6e): for now only a label. */
+  isVip: boolean;
 }
 
 const withSeconds = (time: string) => `${time}:00`;
@@ -28,6 +30,7 @@ const toBody = (session: SessionInput) => ({
   start: withSeconds(session.start),
   end: withSeconds(session.end),
   capacity: session.capacity,
+  isVip: session.isVip,
 });
 
 /*

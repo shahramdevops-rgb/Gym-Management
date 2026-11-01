@@ -260,11 +260,12 @@ function MoveDialog({
                           size="sm"
                           variant={on ? "default" : "outline"}
                           aria-pressed={on}
-                          aria-label={`${formatDayLabel(date)}، ${formatSessionTimes(opening)}`}
+                          aria-label={`${formatDayLabel(date)}، ${formatSessionTimes(opening)}${opening.isVip ? "، VIP" : ""}`}
                           disabled={move.isPending}
                           onClick={() => setPicked(opening)}
                         >
                           {formatSessionTimes(opening)}
+                          {opening.isVip && <span className="text-xs font-semibold">VIP</span>}
                           <span className="text-xs opacity-80">
                             {toPersianDigits(opening.free)} جا
                           </span>

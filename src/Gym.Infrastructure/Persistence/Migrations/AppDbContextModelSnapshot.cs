@@ -3346,6 +3346,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("time without time zone")
                         .HasColumnName("end_time");
 
+                    b.Property<bool>("IsVip")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_vip");
+
                     b.Property<TimeOnly>("Start")
                         .HasColumnType("time without time zone")
                         .HasColumnName("start_time");
@@ -3449,6 +3453,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                     b.Property<TimeOnly>("End")
                         .HasColumnType("time without time zone")
                         .HasColumnName("end_time");
+
+                    b.Property<bool>("IsVip")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_vip");
 
                     b.Property<Guid>("PatternId")
                         .HasColumnType("uuid")

@@ -84,6 +84,26 @@ public sealed class TimetableTests(DatabaseFixture fixture) : DatabaseTestBase(f
     }
 
     [Fact]
+    public async Task SetPattern_AVipSession_IsVipInThePatternAndOnItsDates_AndOneSentWithoutTheLabelIsNormal()
+    {
+        var (client, token) = await TrainerClientAsync();
+        var tomorrow = Today().AddDays(1);
+
+        using var response = await SetPatternAsync(client, token, tomorrow,
+            VipWeekly(DayOfWeek.Saturday, "13:00", "14:00", 8),
+            Weekly(DayOfWeek.Saturday, "14:00", "15:00", 6));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.ReadJsonAsync();
+        body.GetProperty("pattern").GetProperty("sessions").EnumerateArray()
+            .Select(session => session.GetProperty("isVip").GetBoolean()).ShouldBe([true, false]);
+        var saturday = Next(DayOfWeek.Saturday, tomorrow);
+        Vips(body, saturday).ShouldBe([true, false]);
+        Vips(body, saturday.AddDays(7)).ShouldBe([true, false]);
+        (await PatternsAsync()).ShouldHaveSingleItem().Sessions.Count(session => session.IsVip).ShouldBe(1);
+    }
+
+    [Fact]
     public async Task SetPattern_OverlappingSessions_Succeeds()
     {
         var (client, token) = await TrainerClientAsync();
@@ -226,6 +246,19 @@ public sealed class TimetableTests(DatabaseFixture fixture) : DatabaseTestBase(f
     }
 
     [Fact]
+    public async Task SetDay_AVipSession_KeepsItsLabel()
+    {
+        var (client, token) = await TrainerClientAsync();
+        var date = Today().AddDays(3);
+
+        using var changed = await SetDayAsync(client, token, date, VipSession("13:00", "14:00", 8), Session("15:00", "16:00", 8));
+
+        changed.StatusCode.ShouldBe(HttpStatusCode.OK);
+        Vips(await changed.ReadJsonAsync(), date).ShouldBe([true, false]);
+        (await ChangedDaysAsync()).ShouldHaveSingleItem().Sessions.Count(session => session.IsVip).ShouldBe(1);
+    }
+
+    [Fact]
     public async Task SetDay_Yesterday_Returns422()
     {
         var (client, token) = await TrainerClientAsync();
@@ -363,6 +396,13 @@ public sealed class TimetableTests(DatabaseFixture fixture) : DatabaseTestBase(f
     private static object Session(string start, string end, int capacity) =>
         new { start = $"{start}:00", end = $"{end}:00", capacity };
 
+    /// <summary>As <see cref="Weekly"/>, marked VIP (15.6e); <see cref="Weekly"/> leaves the label out.</summary>
+    private static object VipWeekly(DayOfWeek day, string start, string end, int capacity) =>
+        new { day = day.ToString(), start = $"{start}:00", end = $"{end}:00", capacity, isVip = true };
+
+    private static object VipSession(string start, string end, int capacity) =>
+        new { start = $"{start}:00", end = $"{end}:00", capacity, isVip = true };
+
     private static string Iso(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private static string DayPath(DateOnly date) => $"{TimetablePath}/days/{Iso(date)}";
@@ -378,6 +418,10 @@ public sealed class TimetableTests(DatabaseFixture fixture) : DatabaseTestBase(f
         Day(timetable, date).GetProperty("sessions").EnumerateArray()
             .Select(session => $"{session.GetProperty("start").GetString()}-{session.GetProperty("end").GetString()}/{session.GetProperty("capacity").GetInt32()}")
             .ToList();
+
+    /// <summary>Whether each of a date's sessions is VIP, in the response's order.</summary>
+    private static List<bool> Vips(JsonElement timetable, DateOnly date) =>
+        Day(timetable, date).GetProperty("sessions").EnumerateArray().Select(session => session.GetProperty("isVip").GetBoolean()).ToList();
 
     private static HttpRequestMessage Send(HttpMethod method, string path, string token) => new HttpRequestMessage(method, path).WithBearer(token);
 

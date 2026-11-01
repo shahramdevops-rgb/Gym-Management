@@ -43,7 +43,7 @@ public sealed record TimetableResponse(DateOnly Today, DateOnly LastDay, WeekPat
                 latest.StartsOn,
                 latest.Sessions
                     .OrderBy(session => session.Day).ThenBy(session => session.Start).ThenBy(session => session.End)
-                    .Select(session => new WeeklySessionResponse(session.Day, session.Start, session.End, session.Capacity))
+                    .Select(session => new WeeklySessionResponse(session.Day, session.Start, session.End, session.Capacity, session.IsVip))
                     .ToList());
 
         return new TimetableResponse(today, lastDay, pattern, days);
@@ -56,18 +56,19 @@ public sealed record WeeklySessionResponse(
     [property: JsonConverter(typeof(JsonStringEnumConverter<DayOfWeek>))] DayOfWeek Day,
     TimeOnly Start,
     TimeOnly End,
-    int Capacity);
+    int Capacity,
+    bool IsVip);
 
 /// <param name="ChangedByHand">The trainer changed this date on its own; no sessions then means closed.</param>
 public sealed record TimetableDayResponse(DateOnly Date, bool ChangedByHand, IReadOnlyList<SessionResponse> Sessions);
 
 /// <param name="Students">The students in it that date (15.6b); above <paramref name="Capacity"/> only when the trainer lowered it.</param>
-public sealed record SessionResponse(TimeOnly Start, TimeOnly End, int Capacity, int Students)
+public sealed record SessionResponse(TimeOnly Start, TimeOnly End, int Capacity, bool IsVip, int Students)
 {
     public static SessionResponse From(PlannedSession session, int students)
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        return new SessionResponse(session.Start, session.End, session.Capacity, students);
+        return new SessionResponse(session.Start, session.End, session.Capacity, session.IsVip, students);
     }
 }

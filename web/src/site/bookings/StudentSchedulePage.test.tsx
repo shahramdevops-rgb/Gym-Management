@@ -194,6 +194,51 @@ describe("the trainer's «برنامهٔ ثابت» of a student", () => {
     });
   });
 
+  it("Build_AVipSessionOfThePattern_SaysSoOnItsChoice", async () => {
+    const vipMonday = {
+      ...pattern,
+      sessions: [{ day: "Monday", start: "13:00:00", end: "14:00:00", capacity: 8, isVip: true }],
+    };
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, { ...timetable, pattern: vipMonday }),
+      [`GET ${schedulePath}`]: () => json(200, student()),
+    });
+    renderSite(`/students/${memberId}`, { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "ساختن برنامه" }));
+
+    expect(
+      await screen.findByRole("button", { name: "دوشنبه ۱۳:۰۰ تا ۱۴:۰۰، VIP" }),
+    ).toHaveTextContent("VIP");
+  });
+
+  it("Dates_AVipSession_IsLabelled", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      [`GET ${schedulePath}`]: () =>
+        json(
+          200,
+          student(saturdays, [
+            {
+              date: "2026-11-02",
+              start: "13:00:00",
+              end: "14:00:00",
+              isVip: true,
+              moved: false,
+              removed: false,
+              started: false,
+              left: false,
+            },
+          ]),
+        ),
+    });
+    renderSite(`/students/${memberId}`, { access: siteAccess(trainerOnly) });
+
+    const dates = within(await screen.findByRole("list", { name: "سانس‌های پیش رو" }));
+    expect(dates.getByRole("listitem")).toHaveTextContent("VIP");
+  });
+
   it("Dates_OneWeekAtATime_ShowEachOneWithWhatChanged", async () => {
     mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),

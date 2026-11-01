@@ -4607,8 +4607,11 @@ fine"), to go out with the next release:
           before anything is sent, with a line by the save button, in the pattern and a single
           date; a day stops adding at 20; «برنامهٔ ثابت» shows a session the pattern no longer has
           as «دیگر نیست», off, so the save is not refused for it
-  - [ ] **15.6e** VIP sessions (decided 1405/08/10, §15 *VIP sessions*): the trainer marks a session
-        VIP, a label only for now; the student sees it. Plan first
+  - [x] **15.6e** VIP sessions (decided 1405/08/10, built 1405/08/11, `task/15.6-timetable`, §15
+        *VIP sessions*): a «VIP» toggle in each session box of the pattern and of a single date,
+        kept by «کپی به روزهای دیگر»; the label beside the session in the pattern, the days ahead,
+        today's sessions, «شاگردان سانس», «برنامهٔ ثابت»'s choices, and the student's «سانس‌های من»
+        and «جابه‌جایی». A label only; a migration adds `is_vip` (false) to both session tables
   - [ ] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
   - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
         days and times within what the trainer allows (e.g. three days a week for eight weeks),

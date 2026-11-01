@@ -25,7 +25,7 @@ public sealed class CheckTimetableDayHandler(IAppDbContext db, IGymCalendar cale
 
         var trainerId = trainer.Value.Id;
         var timetable = await TrainerTimetable.DatesAsync(db, trainerId, date, date, cancellationToken);
-        var next = command.Sessions.Select(item => new PlannedSession(item.Start, item.End, item.Capacity)).ToList();
+        var next = command.Sessions.Select(item => new PlannedSession(item.Start, item.End, item.Capacity, item.IsVip)).ToList();
 
         var allowed = TimetableRules.CheckChange(date, timetable.SessionsOn(date).ToList(), next, calendar.Today(), calendar.TimeOfDay());
         if (allowed.IsFailure)

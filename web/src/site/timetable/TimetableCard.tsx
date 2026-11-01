@@ -10,6 +10,7 @@ import { errorMessage } from "@/lib/errors";
 import { sitePaths } from "../paths";
 import { useTimetable } from "./api";
 import { formatSessionTimes, formatTaken } from "./labels";
+import { VipBadge } from "./VipBadge";
 
 /**
  * The trainer's sessions today on the home screen, each with its students out of its capacity
@@ -45,9 +46,10 @@ export function TimetableCard() {
             {today.sessions.map((session) => (
               <li
                 key={session.start + session.end}
-                className="rounded-md bg-muted px-2 py-1 text-sm"
+                className="flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-sm"
               >
                 {formatSessionTimes(session)} · {formatTaken(session.students, session.capacity)}
+                {session.isVip && <VipBadge />}
               </li>
             ))}
           </ul>

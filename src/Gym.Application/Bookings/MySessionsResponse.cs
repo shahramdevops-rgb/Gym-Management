@@ -91,9 +91,10 @@ public sealed record MySessionsResponse(
 
         return skips
             .Where(skip => skip.Date <= byId[skip.ScheduleId].EndsOn && !BookingRules.HasStarted(skip.Date, skip.Start, today, timeOfDay))
-            .Where(skip => timetable.SessionsOn(skip.Date).Any(session => session.Start == skip.Start && session.End == skip.End))
             .Where(skip => !mine.Any(place => place.Date == skip.Date && place.Start == skip.Start && place.End == skip.End))
-            .Select(PlaceResponse.LeftBy)
+            .Select(skip => (Skip: skip, Session: timetable.SessionsOn(skip.Date).FirstOrDefault(session => session.Start == skip.Start && session.End == skip.End)))
+            .Where(left => left.Session is not null)
+            .Select(left => PlaceResponse.LeftBy(left.Skip, left.Session!))
             .ToList();
     }
 
@@ -111,7 +112,7 @@ public sealed record MySessionsResponse(
                 }
 
                 var taken = BookingRules.In(places, date, session).Count();
-                openings.Add(new OpeningResponse(date, session.Start, session.End, session.Capacity - taken));
+                openings.Add(new OpeningResponse(date, session.Start, session.End, session.IsVip, session.Capacity - taken));
             }
         }
 
@@ -119,5 +120,6 @@ public sealed record MySessionsResponse(
     }
 }
 
+/// <param name="IsVip">Marked VIP by the trainer (15.6e).</param>
 /// <param name="Free">The places left in it.</param>
-public sealed record OpeningResponse(DateOnly Date, TimeOnly Start, TimeOnly End, int Free);
+public sealed record OpeningResponse(DateOnly Date, TimeOnly Start, TimeOnly End, bool IsVip, int Free);

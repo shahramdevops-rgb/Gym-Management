@@ -148,16 +148,20 @@ function ScheduleCard({ student }: { student: StudentSchedule }) {
 
 const slotKey = (slot: SlotInput) => `${slot.day} ${slot.start} ${slot.end}`;
 
-/** The weekly sessions to pick from: the pattern's, and the schedule's own if the pattern has since lost one. */
-/** The weekly pattern's sessions, by `slotKey`: a schedule's session outside them is gone. */
-function patternKeys(timetable: Timetable): Set<string> {
-  return new Set(
-    (timetable.pattern?.sessions ?? []).map((session) =>
+/**
+ * Whether each of the weekly pattern's sessions is VIP, by `slotKey`: a schedule's session outside
+ * them is gone.
+ */
+function patternSessions(timetable: Timetable): Map<string, boolean> {
+  return new Map(
+    (timetable.pattern?.sessions ?? []).map((session) => [
       slotKey({ day: session.day, start: toMinutes(session.start), end: toMinutes(session.end) }),
-    ),
+      session.isVip,
+    ]),
   );
 }
 
+/** The weekly sessions to pick from: the pattern's, and the schedule's own if the pattern has since lost one. */
 function choicesOf(timetable: Timetable, student: StudentSchedule): SlotInput[] {
   const all = [...(timetable.pattern?.sessions ?? []), ...(student.schedule?.slots ?? [])].map(
     (session) => ({
@@ -209,7 +213,7 @@ function ScheduleForm({
   const choices = choicesOf(timetable, student);
   // The student's sessions the pattern no longer has (it changed under them): shown, off, and not
   // to be picked, since the API refuses a schedule with a session the trainer does not hold.
-  const inPattern = patternKeys(timetable);
+  const inPattern = patternSessions(timetable);
   const isGone = (slot: SlotInput) => !inPattern.has(slotKey(slot));
   const firstDay = student.today;
   const defaultEnd = (startsOn: string) => earlier(addDays(startsOn, defaultDays), student.lastDay);
@@ -289,6 +293,7 @@ function ScheduleForm({
                   .map((slot) => {
                     const on = picked.has(slotKey(slot));
                     const gone = isGone(slot);
+                    const vip = inPattern.get(slotKey(slot)) === true;
                     return (
                       <Button
                         key={slotKey(slot)}
@@ -296,7 +301,9 @@ function ScheduleForm({
                         variant={on ? "default" : "outline"}
                         aria-pressed={on}
                         aria-label={
-                          gone ? `${formatSlot(slot)}، دیگر در الگوی شما نیست` : formatSlot(slot)
+                          gone
+                            ? `${formatSlot(slot)}، دیگر در الگوی شما نیست`
+                            : `${formatSlot(slot)}${vip ? "، VIP" : ""}`
                         }
                         disabled={pending || gone}
                         className={gone ? "border-dashed" : undefined}
@@ -305,6 +312,7 @@ function ScheduleForm({
                         <span className={gone ? "line-through" : undefined}>
                           {formatSessionTimes(slot)}
                         </span>
+                        {vip && <span className="text-xs font-semibold">VIP</span>}
                         {gone && <span className="text-xs">دیگر نیست</span>}
                       </Button>
                     );

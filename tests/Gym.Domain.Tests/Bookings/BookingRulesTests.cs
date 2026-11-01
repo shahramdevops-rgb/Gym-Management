@@ -373,6 +373,14 @@ public sealed class BookingRulesTests
         BookingRules.Impact(places.ToList(), _ => [Session(13, 5), Session(17, 5)], _ => [Session(13, 1)]).ShouldBeEmpty();
     }
 
+    [Fact]
+    public void Impact_OnlyTheVipLabelChanged_TouchesNothing()
+    {
+        var places = BookingRules.Places(Today, Today, [Schedule(Today, Today, Slot(DayOfWeek.Saturday, 13))], NoLinkEnded, [], []);
+
+        BookingRules.Impact(places.ToList(), _ => [Session(13, 5)], _ => [Session(13, 5) with { IsVip = true }]).ShouldBeEmpty();
+    }
+
     // ---- Helpers ----
 
     internal static WeeklySlot Slot(DayOfWeek day, int hour) => new(day, new TimeOnly(hour, 0), new TimeOnly(hour + 1, 0));

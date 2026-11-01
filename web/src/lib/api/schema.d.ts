@@ -3255,6 +3255,7 @@ export interface components {
             start: string;
             /** Format: time */
             end: string;
+            isVip: boolean;
             /** Format: int32 */
             free: number | string;
         };
@@ -3609,6 +3610,7 @@ export interface components {
             start: string;
             /** Format: time */
             end: string;
+            isVip: boolean;
             moved: boolean;
             removed: boolean;
             started: boolean;
@@ -3867,6 +3869,8 @@ export interface components {
             end: string;
             /** Format: int32 */
             capacity: number | string;
+            /** @default false */
+            isVip: boolean;
         };
         SessionResponse: {
             /** Format: time */
@@ -3875,6 +3879,7 @@ export interface components {
             end: string;
             /** Format: int32 */
             capacity: number | string;
+            isVip: boolean;
             /** Format: int32 */
             students: number | string;
         };
@@ -3892,6 +3897,7 @@ export interface components {
             end: string;
             /** Format: int32 */
             capacity: null | number | string;
+            isVip: boolean;
             removed: boolean;
             started: boolean;
             students: components["schemas"]["SessionStudentResponse"][];
@@ -4463,6 +4469,8 @@ export interface components {
             end: string;
             /** Format: int32 */
             capacity: number | string;
+            /** @default false */
+            isVip: boolean;
         };
         WeeklySessionResponse: {
             day: components["schemas"]["DayOfWeek"];
@@ -4472,6 +4480,7 @@ export interface components {
             end: string;
             /** Format: int32 */
             capacity: number | string;
+            isVip: boolean;
         };
         WeeklySlotItem: {
             day: components["schemas"]["DayOfWeek"];

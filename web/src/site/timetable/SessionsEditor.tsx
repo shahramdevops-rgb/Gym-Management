@@ -24,7 +24,7 @@ const selectClassName = cn(
 );
 
 /**
- * One day's sessions, each a small box: start, end, capacity and «حذف». The times are an hour and
+ * One day's sessions, each a small box: start, end, capacity, «VIP» and «حذف». The times are an hour and
  * a minute on 5-minute steps, so the boxes only make times the API accepts; a box with a problem
  * (`sessionProblems`) turns red and says it under its own times, and a day stops at 20 sessions.
  */
@@ -80,6 +80,17 @@ export function SessionsEditor({
                 disabled={disabled}
                 onChange={(capacity) => change(session.key, { capacity })}
               />
+              {/* A toggle, as the days of «کپی به روزهای دیگر» are (BUSINESS_RULES.md §15 *VIP sessions*). */}
+              <Button
+                variant={session.isVip ? "default" : "outline"}
+                className="h-11"
+                aria-pressed={session.isVip}
+                aria-label={`VIP سانس ${toPersianDigits(index + 1)}`}
+                disabled={disabled}
+                onClick={() => change(session.key, { isVip: !session.isVip })}
+              >
+                VIP
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"

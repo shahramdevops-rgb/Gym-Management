@@ -94,11 +94,14 @@ export function daysBetween(from: string, to: string): number {
   );
 }
 
-/** What «افزودن سانس» puts in: right after the day's last session, as long and as full, or 08:00. */
+/**
+ * What «افزودن سانس» puts in: right after the day's last session, as long and as full, or 08:00.
+ * A normal session: VIP is the trainer's choice for each one.
+ */
 export function nextSession(sessions: readonly SessionInput[]): SessionInput {
   const last = sessions.at(-1);
   if (last === undefined) {
-    return { start: "08:00", end: "09:00", capacity: 10 };
+    return { start: "08:00", end: "09:00", capacity: 10, isVip: false };
   }
 
   const toMinute = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
@@ -110,6 +113,6 @@ export function nextSession(sessions: readonly SessionInput[]): SessionInput {
     `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 
   return start >= end
-    ? { ...last }
-    : { start: asTime(start), end: asTime(end), capacity: last.capacity };
+    ? { ...last, isVip: false }
+    : { start: asTime(start), end: asTime(end), capacity: last.capacity, isVip: false };
 }

@@ -6,6 +6,7 @@ import { errorMessage } from "@/lib/errors";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Person } from "../components/Person";
 import { formatDayLabel, formatSessionTimes, formatTaken } from "../timetable/labels";
+import { VipBadge } from "../timetable/VipBadge";
 import { useRemoveSessionStudent, useSessionStudents, type SessionStudentsItem } from "./api";
 
 /**
@@ -42,6 +43,7 @@ export function SessionStudentsList({ date }: { date: string }) {
           >
             <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
               {times}
+              {session.isVip && <VipBadge />}
               <SessionNote session={session} />
             </h3>
             {session.students.length === 0 ? (

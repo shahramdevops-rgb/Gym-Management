@@ -251,14 +251,16 @@
       "Day": { "label": "روز هفته", "format": "dayOfWeek" },
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
-      "Capacity": { "label": "ظرفیت" }
+      "Capacity": { "label": "ظرفیت" },
+      "IsVip": { "label": "VIP" }
     },
     "TimetableDay": { "Date": { "label": "تاریخ" } },
     "TimetableDaySession": {
       "DayId": { "label": "روز", "format": "reference" },
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
-      "Capacity": { "label": "ظرفیت" }
+      "Capacity": { "label": "ظرفیت" },
+      "IsVip": { "label": "VIP" }
     },
     "FixedSchedule": {
       "LinkId": { "label": "مربی عضو", "format": "reference" },

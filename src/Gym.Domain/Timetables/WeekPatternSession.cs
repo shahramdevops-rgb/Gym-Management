@@ -20,6 +20,9 @@ public sealed class WeekPatternSession : Entity
 
     public int Capacity { get; private set; }
 
+    /// <summary>Marked VIP by the trainer: for now only a label (BUSINESS_RULES.md §15 <i>VIP sessions</i>).</summary>
+    public bool IsVip { get; private set; }
+
     internal static WeekPatternSession For(Guid patternId, WeeklySession session) => new()
     {
         PatternId = patternId,
@@ -27,9 +30,10 @@ public sealed class WeekPatternSession : Entity
         Start = session.Start,
         End = session.End,
         Capacity = session.Capacity,
+        IsVip = session.IsVip,
     };
 
-    public PlannedSession ToPlanned() => new(Start, End, Capacity);
+    public PlannedSession ToPlanned() => new(Start, End, Capacity, IsVip);
 
-    public WeeklySession ToWeekly() => new(Day, Start, End, Capacity);
+    public WeeklySession ToWeekly() => new(Day, Start, End, Capacity, IsVip);
 }

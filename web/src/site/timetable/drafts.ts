@@ -14,17 +14,20 @@ export function toDraft(session: SessionInput): DraftSession {
 }
 
 /** A session from the API, ready to edit. */
-export function draftOf(session: Pick<Session, "start" | "end" | "capacity">): DraftSession {
+export function draftOf(
+  session: Pick<Session, "start" | "end" | "capacity" | "isVip">,
+): DraftSession {
   return toDraft({
     start: toMinutes(session.start),
     end: toMinutes(session.end),
     capacity: Number(session.capacity),
+    isVip: session.isVip,
   });
 }
 
 /** What the API is sent: the drafts without their keys. */
 export function inputsOf(drafts: readonly DraftSession[]): SessionInput[] {
-  return drafts.map(({ start, end, capacity }) => ({ start, end, capacity }));
+  return drafts.map(({ start, end, capacity, isVip }) => ({ start, end, capacity, isVip }));
 }
 
 /**

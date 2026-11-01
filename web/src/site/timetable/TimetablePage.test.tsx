@@ -144,8 +144,93 @@ describe("the trainer's timetable", () => {
     const [sent] = api.requestsTo("PUT", "/api/site/timetable/pattern");
     expect(await bodyOf(sent!)).toEqual({
       startsOn: tomorrow,
-      sessions: [{ day: "Saturday", start: "13:00:00", end: "14:00:00", capacity: 8 }],
+      sessions: [
+        { day: "Saturday", start: "13:00:00", end: "14:00:00", capacity: 8, isVip: false },
+      ],
     });
+  });
+
+  it("BuildPattern_ASessionMarkedVip_SendsItAsVip", async () => {
+    const vip = { day: "Saturday", start: "08:00:00", end: "09:00:00", capacity: 10, isVip: true };
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(null)),
+      "POST /api/site/timetable/pattern/check": noImpact,
+      "PUT /api/site/timetable/pattern": () =>
+        json(200, timetableWith({ startsOn: tomorrow, sessions: [vip] })),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "ساختن الگو" }));
+    const saturday = within(screen.getByRole("region", { name: "شنبه" }));
+    fireEvent.click(saturday.getByRole("button", { name: "افزودن سانس به شنبه" }));
+    const toggle = saturday.getByRole("button", { name: "VIP سانس ۱" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+
+    const shown = await screen.findByRole("list", { name: "الگوی هفتگی" });
+    expect(within(shown).getAllByRole("listitem")[0]).toHaveTextContent(
+      "۰۸:۰۰ تا ۰۹:۰۰ · ۱۰ نفر VIP",
+    );
+    const [sent] = api.requestsTo("PUT", "/api/site/timetable/pattern");
+    expect(await bodyOf(sent!)).toEqual({ startsOn: tomorrow, sessions: [vip] });
+  });
+
+  it("CopyDay_AVipSession_StaysVipOnTheOtherDay", async () => {
+    const vipSaturday = {
+      startsOn: tomorrow,
+      sessions: [{ day: "Saturday", start: "13:00:00", end: "14:00:00", capacity: 8, isVip: true }],
+    };
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(vipSaturday)),
+      "POST /api/site/timetable/pattern/check": noImpact,
+      "PUT /api/site/timetable/pattern": () => json(200, timetableWith(vipSaturday)),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    fireEvent.click(screen.getByRole("button", { name: "کپی شنبه به روزهای دیگر" }));
+    const copy = within(screen.getByRole("group", { name: "کپی شنبه به روزهای دیگر" }));
+    fireEvent.click(copy.getByRole("button", { name: "دوشنبه" }));
+    fireEvent.click(copy.getByRole("button", { name: "کپی" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+
+    await screen.findByRole("list", { name: "الگوی هفتگی" });
+    const [sent] = api.requestsTo("PUT", "/api/site/timetable/pattern");
+    expect(await bodyOf(sent!)).toMatchObject({
+      sessions: [
+        { day: "Saturday", start: "13:00:00", isVip: true },
+        { day: "Monday", start: "13:00:00", isVip: true },
+      ],
+    });
+  });
+
+  it("Days_AVipSession_IsLabelledOnItsDate", async () => {
+    mockApi({
+      ...emptyHome,
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () =>
+        json(
+          200,
+          timetableWith(saturdayPattern, {
+            [today]: {
+              changedByHand: true,
+              sessions: [
+                { start: "13:00:00", end: "14:00:00", capacity: 8, isVip: true, students: 3 },
+              ],
+            },
+          }),
+        ),
+    });
+
+    renderSite("/", { access: siteAccess(trainerOnly) });
+
+    expect(await screen.findByRole("list", { name: "سانس‌های امروز" })).toHaveTextContent(
+      "۱۳:۰۰ تا ۱۴:۰۰ · ۳ از ۸ نفرVIP",
+    );
   });
 
   it("AddSession_AfterAnother_StartsWhereTheLastOneEnds", async () => {

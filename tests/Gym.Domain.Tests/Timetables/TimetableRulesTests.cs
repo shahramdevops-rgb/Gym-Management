@@ -138,6 +138,23 @@ public sealed class TimetableRulesTests
     }
 
     [Fact]
+    public void CheckChange_TodayMarkingAStartedSessionVip_FailsWithSessionStarted()
+    {
+        var started = Session(11, 0, 13, 0);
+
+        TimetableRules.CheckChange(Today, [started], [started with { IsVip = true }], Today, Noon)
+            .Error.ShouldBe(TimetableErrors.SessionStarted);
+    }
+
+    [Fact]
+    public void CheckChange_TodayMarkingALaterSessionVip_Succeeds()
+    {
+        var later = Session(15, 0, 16, 0);
+
+        TimetableRules.CheckChange(Today, [later], [later with { IsVip = true }], Today, Noon).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
     public void CheckChange_TodayASessionStartingNow_CountsAsStarted()
     {
         TimetableRules.CheckChange(Today, [Session(12, 0, 13, 0)], [], Today, Noon).Error.ShouldBe(TimetableErrors.SessionStarted);
@@ -171,6 +188,19 @@ public sealed class TimetableRulesTests
 
         TimetableRules.SessionsOn(saturday, [pattern], changedDay: null).ShouldBe([Session(13, 0, 14, 0), Session(17, 0, 18, 0)]);
         TimetableRules.SessionsOn(saturday.AddDays(7), [pattern], changedDay: null).ShouldBe([Session(13, 0, 14, 0), Session(17, 0, 18, 0)]);
+    }
+
+    [Fact]
+    public void SessionsOn_AVipSessionOfThePatternOrOfAChangedDay_KeepsItsLabel()
+    {
+        var saturday = new DateOnly(2026, 10, 31);
+        var pattern = Pattern(Today.AddDays(1), Weekly(DayOfWeek.Saturday, 13) with { IsVip = true }, Weekly(DayOfWeek.Saturday, 17));
+        var vip = Session(19, 0, 20, 0) with { IsVip = true };
+        var changed = TimetableDay.Create(TrainerId, saturday, [], [vip], Today, Noon).Value;
+
+        TimetableRules.SessionsOn(saturday.AddDays(7), [pattern], changedDay: null)
+            .Select(session => session.IsVip).ShouldBe([true, false]);
+        TimetableRules.SessionsOn(saturday, [pattern], changed).ShouldBe([vip]);
     }
 
     [Fact]

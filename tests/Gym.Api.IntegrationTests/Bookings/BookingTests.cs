@@ -253,6 +253,33 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
     }
 
     [Fact]
+    public async Task MySessions_AVipSession_IsMarkedForTheStudentAndTheTrainer()
+    {
+        var gym = await GymAsync();
+        using var vip = await SendJsonAsync(gym, HttpMethod.Put, $"/api/site/timetable/days/{Iso(gym.Monday)}", new
+        {
+            sessions = new[]
+            {
+                new { start = "13:00:00", end = "14:00:00", capacity = 2, isVip = true },
+                new { start = "18:00:00", end = "19:00:00", capacity = 2, isVip = true },
+            },
+        });
+        vip.StatusCode.ShouldBe(HttpStatusCode.OK);
+        using var mine = await SetScheduleAsync(gym, gym.MemberId, gym.Monday, gym.Monday.AddDays(6), Slot(DayOfWeek.Monday, 13));
+
+        var body = await GetJsonAsync(gym.Client, MySessionsPath, gym.MemberToken);
+
+        body.GetProperty("sessions").EnumerateArray().ShouldHaveSingleItem().GetProperty("isVip").GetBoolean().ShouldBeTrue();
+        var openings = body.GetProperty("openings").EnumerateArray()
+            .Select(opening => (Date: opening.GetProperty("date").GetString(), Start: opening.GetProperty("start").GetString(), IsVip: opening.GetProperty("isVip").GetBoolean()))
+            .ToList();
+        openings.ShouldContain((Iso(gym.Monday), "18:00:00", true));
+        openings.ShouldContain((Iso(gym.Saturday), "17:00:00", false));
+        var students = await GetJsonAsync(gym.Client, StudentsPath(gym.Monday), gym.TrainerToken);
+        students.GetProperty("sessions")[0].GetProperty("isVip").GetBoolean().ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task MySessions_WithoutATrainer_IsEmpty()
     {
         await AddMemberAsync(MemberPhone);

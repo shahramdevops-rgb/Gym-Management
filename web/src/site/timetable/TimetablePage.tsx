@@ -57,6 +57,7 @@ import {
   weekDays,
 } from "./labels";
 import { SessionsEditor } from "./SessionsEditor";
+import { VipBadge } from "./VipBadge";
 import { WeekNav } from "./WeekNav";
 
 /**
@@ -165,6 +166,12 @@ function PatternCard({ timetable }: { timetable: Timetable }) {
                                 {" "}
                                 · {formatCapacity(session.capacity)}
                               </span>
+                              {session.isVip && (
+                                <>
+                                  {" "}
+                                  <VipBadge />
+                                </>
+                              )}
                             </p>
                           ))
                         )}
@@ -421,9 +428,10 @@ function DaySessions({ day }: { day: TimetableDay }) {
       {day.sessions.map((session) => (
         <span
           key={session.start + session.end}
-          className="rounded-md bg-muted px-1.5 py-0.5 text-xs"
+          className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-xs"
         >
           {formatSessionTimes(session)} · {formatTaken(session.students, session.capacity)}
+          {session.isVip && <VipBadge />}
         </span>
       ))}
     </span>

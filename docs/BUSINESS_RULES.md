@@ -2311,6 +2311,8 @@ without adding up the rows.
     «Management» under the icon and «Pasargad Gym Management» in full, in English, which is short
     and never breaks under an icon. The long-press shortcuts keep the menu's Persian names. The
     members' and trainers' app (Phase 15) is «My Gym» (15.3b; the developer renamed it from «Pasargad Gym» 1405/08/08), so the two are told apart.
+  - **A second one: a session's «VIP» label** (15.6e, decided by the developer, 1405/08/11), §15
+    *VIP sessions*.
 - Text normalization (applied to names before saving the search column, and to every search input):
   - Arabic ي (U+064A) and ى (U+0649) → Persian ی (U+06CC)
   - Arabic ك (U+0643) → Persian ک (U+06A9)
@@ -2680,9 +2682,13 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   by the trainer. **For now only a label**: it changes nothing else; the capacity is the trainer's,
   as for any session. **The student sees it** on their sessions. **Money for a VIP session is
   between the member and the trainer**: the desk and the Owner take no part, and the system records
-  no payment for it. *Proposed by Claude, not yet confirmed:* the label is on a session of the
-  weekly pattern and of a single date alike, and changing it touches no student, so it gives no
-  warning. *Open, for later:* a VIP price, who may be in a VIP session, any link with the desk.
+  no payment for it. The label is on a session of the weekly pattern and of a single date alike,
+  and changing it touches no student, so it gives no warning (*proposed by Claude, accepted by the
+  developer*, 1405/08/11). A session of today that has started keeps its label too, as it keeps its
+  times and capacity. **The label reads «VIP», in English** (*decided by the developer*, 1405/08/11:
+  «ویژه» reads oddly), the UI's second exception to Persian after the app names (§13). Sessions
+  saved before 15.6e are normal. *Open, for later:* a VIP price, who may be in a VIP session, any
+  link with the desk.
   - **Only the trainer's students now** (an open link, 15.4) are put in sessions. When the link
     ends, from either side or by the trainer being stopped, the member's sessions after that day
     are gone; the day itself stays.

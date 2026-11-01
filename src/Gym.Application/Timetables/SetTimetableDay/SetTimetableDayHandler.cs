@@ -32,7 +32,7 @@ public sealed class SetTimetableDayHandler(IAppDbContext db, IGymCalendar calend
 
         var today = calendar.Today();
         var timeOfDay = calendar.TimeOfDay();
-        var sessions = command.Sessions.Select(item => new PlannedSession(item.Start, item.End, item.Capacity)).ToList();
+        var sessions = command.Sessions.Select(item => new PlannedSession(item.Start, item.End, item.Capacity, item.IsVip)).ToList();
 
         var day = await db.TimetableDays.Include(row => row.Sessions)
             .SingleOrDefaultAsync(row => row.TrainerId == trainerId && row.Date == date, cancellationToken);

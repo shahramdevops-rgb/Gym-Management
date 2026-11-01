@@ -2314,3 +2314,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **A list built from two sources must say which is which.** «برنامهٔ ثابت» offered the pattern's sessions and the student's own; after a pattern change the student's old ones looked like real choices and were already on, so the save was refused. Each choice now knows whether the pattern still has it.
 - **My notes:**
 
+## 15.6e — VIP sessions (سانس VIP)
+
+- **A new column on a table with real rows.** `is_vip` is added `NOT NULL DEFAULT false`, so every session already saved on the server becomes a normal one in the same statement; nothing is refused and nothing has to be filled by hand. A column without a default could not be `NOT NULL` on a table that has rows.
+- **An optional field keeps old pages working.** `IsVip = false` in the command records means a request without it still saves: a phone holding the page from before the release does not get an error. The answers always carry it, so the new page can rely on it.
+- **A value's equality decides what "unchanged" means.** `PlannedSession` is a record, compared by all its parts. Adding `IsVip` to it made "a started session stays as it was" cover the label for free, while the warning to the trainer (`Impact`) compares only times and capacity, so marking a session VIP warns no one. Choosing where a new field takes part in equality is a rule decision, not a detail.
+- **One small component for one look.** `VipBadge` is used in six places; if the developer wants another colour, it changes once.
+- **My notes:**
+

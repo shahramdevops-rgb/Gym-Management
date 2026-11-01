@@ -35,6 +35,7 @@ public sealed record SessionStudentsResponse(DateOnly Date, IReadOnlyList<Sessio
                 session.Start,
                 session.End,
                 session.Capacity,
+                session.IsVip,
                 Removed: false,
                 BookingRules.HasStarted(date, session.Start, today, timeOfDay),
                 StudentsOf(BookingRules.In(places, date, session))))
@@ -48,6 +49,7 @@ public sealed record SessionStudentsResponse(DateOnly Date, IReadOnlyList<Sessio
                 group.Key.Start,
                 group.Key.End,
                 Capacity: null,
+                IsVip: false,
                 Removed: true,
                 BookingRules.HasStarted(date, group.Key.Start, today, timeOfDay),
                 StudentsOf(group))));
@@ -57,12 +59,14 @@ public sealed record SessionStudentsResponse(DateOnly Date, IReadOnlyList<Sessio
 }
 
 /// <param name="Capacity"><c>null</c> for a session removed since its students were put in it.</param>
+/// <param name="IsVip">Marked VIP by the trainer (15.6e); never for a removed session.</param>
 /// <param name="Removed">The trainer removed the session, or moved its times, after these students were put in it.</param>
 /// <param name="Started">It has started: no one is taken out of it any more.</param>
 public sealed record SessionStudentsItem(
     TimeOnly Start,
     TimeOnly End,
     int? Capacity,
+    bool IsVip,
     bool Removed,
     bool Started,
     IReadOnlyList<SessionStudentResponse> Students);

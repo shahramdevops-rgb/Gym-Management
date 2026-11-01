@@ -40,7 +40,7 @@ public static class TimetableErrors
         "Timetable.DayOutOfRange",
         "Only a day from today to the timetable's last day can be changed.");
 
-    /// <summary>A session of today that has started stays as it was: its time and capacity, and that it is there.</summary>
+    /// <summary>A session of today that has started stays as it was: its time, capacity and label, and that it is there.</summary>
     public static readonly Error SessionStarted = Error.BusinessRule(
         "Timetable.SessionStarted",
         "A session that has already started cannot be changed or removed.");
