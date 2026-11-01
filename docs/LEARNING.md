@@ -2289,3 +2289,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **A flag for what a record is, not where it came from.** A booking used to mean "moved"; now a kept session is a booking too. `IsMoved` became "a booking the member made", so the trainer's kept sessions don't show «جابه‌جا شده».
 - **Undo without asking.** «نمی‌آیم» asks first because it gives the place away; «می‌آیم» does not ask, because a wrong tap is undone the same way.
 - **My notes:**
+
+## 15.6a-2 — «کپی به روزهای دیگر» (کپی سانس‌های یک روز)
+
+- **Make the hard part once, then copy.** A trainer with the same day five times a week used to build each one by hand. Copying one finished day to the others keeps every freedom of the editor (any length, overlaps, capacities) and removes the repetition; a step-by-step wizard was weighed first and dropped, because rebuilding a pattern from a few answers moves every session's times and breaks the students' fixed schedules.
+- **A convenience that only touches the draft.** The copy changes the editor's state, nothing else; the same check, warning and save run when the trainer presses «ذخیره الگو». No new endpoint, no new rule, so no backend test changes.
+- **New keys for copies.** Each copied session gets a fresh `key` (`toDraft`), because React tells list items apart by key: two days holding the same keys would still work, but a fresh key per draft keeps "one draft, one identity" true.
+- **Replace, not add.** Adding a day's sessions on top of another's quickly makes the same session twice, which the API refuses anyway; replacing is what "copy" means, and the box says so under the days.
+- **My notes:**

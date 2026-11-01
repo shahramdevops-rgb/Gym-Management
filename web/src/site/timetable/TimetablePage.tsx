@@ -36,7 +36,8 @@ import {
   type TimetableDay,
   type TimetableImpact,
 } from "./api";
-import { draftOf, inputsOf, type DraftSession } from "./drafts";
+import { CopyToDays } from "./CopyToDays";
+import { draftOf, inputsOf, toDraft, type DraftSession } from "./drafts";
 import { ImpactWarning, type HeldChange } from "./ImpactWarning";
 import {
   addDays,
@@ -181,6 +182,11 @@ function PatternEditor({ timetable, onDone }: { timetable: Timetable; onDone: ()
   const locked = pending || held !== null;
   const failure = check.error ?? save.error;
 
+  function copy(from: DayOfWeek, days: readonly DayOfWeek[]) {
+    const copies = days.map((day) => [day, inputsOf(drafts[from]).map((input) => toDraft(input))]);
+    setDrafts({ ...drafts, ...(Object.fromEntries(copies) as Partial<WeekDrafts>) });
+  }
+
   function submit() {
     const pattern = {
       startsOn,
@@ -205,6 +211,9 @@ function PatternEditor({ timetable, onDone }: { timetable: Timetable; onDone: ()
             disabled={locked}
             onChange={(sessions) => setDrafts({ ...drafts, [day]: sessions })}
           />
+          {drafts[day].length > 0 && (
+            <CopyToDays from={day} disabled={locked} onCopy={(days) => copy(day, days)} />
+          )}
         </section>
       ))}
 

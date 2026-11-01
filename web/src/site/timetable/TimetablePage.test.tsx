@@ -165,6 +165,87 @@ describe("the trainer's timetable", () => {
     expect(third.getByRole("combobox", { name: "ظرفیت" })).toHaveValue("6");
   });
 
+  it("CopyDay_ToTwoDays_SendsTheSameSessionsForEachOnSave", async () => {
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
+      "POST /api/site/timetable/pattern/check": noImpact,
+      "PUT /api/site/timetable/pattern": () => json(200, timetableWith(saturdayPattern)),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    fireEvent.click(screen.getByRole("button", { name: "کپی شنبه به روزهای دیگر" }));
+    const copy = within(screen.getByRole("group", { name: "کپی شنبه به روزهای دیگر" }));
+    expect(copy.queryByRole("button", { name: "شنبه" })).not.toBeInTheDocument();
+    fireEvent.click(copy.getByRole("button", { name: "دوشنبه" }));
+    fireEvent.click(copy.getByRole("button", { name: "چهارشنبه" }));
+    fireEvent.click(copy.getByRole("button", { name: "کپی" }));
+
+    expect(
+      screen.queryByRole("group", { name: "کپی شنبه به روزهای دیگر" }),
+    ).not.toBeInTheDocument();
+    expect(api.requestsTo("POST", "/api/site/timetable/pattern/check")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+
+    await vi.waitFor(() =>
+      expect(api.requestsTo("PUT", "/api/site/timetable/pattern")).toHaveLength(1),
+    );
+    const [sent] = api.requestsTo("PUT", "/api/site/timetable/pattern");
+    const sessionsOf = (day: string) =>
+      saturdayPattern.sessions.map((session) => ({ ...session, day }));
+    expect(await bodyOf(sent!)).toEqual({
+      startsOn: tomorrow,
+      sessions: [...sessionsOf("Saturday"), ...sessionsOf("Monday"), ...sessionsOf("Wednesday")],
+    });
+  });
+
+  it("CopyDay_ToADayWithSessions_TakesTheirPlace", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () =>
+        json(
+          200,
+          timetableWith({
+            startsOn: tomorrow,
+            sessions: [
+              ...saturdayPattern.sessions,
+              { day: "Sunday", start: "09:00:00", end: "12:00:00", capacity: 4 },
+            ],
+          }),
+        ),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    fireEvent.click(screen.getByRole("button", { name: "کپی شنبه به روزهای دیگر" }));
+    const copy = within(screen.getByRole("group", { name: "کپی شنبه به روزهای دیگر" }));
+    fireEvent.click(copy.getByRole("button", { name: "یکشنبه" }));
+    fireEvent.click(copy.getByRole("button", { name: "کپی" }));
+
+    const sunday = within(screen.getByRole("list", { name: "سانس‌های یکشنبه" }));
+    const values = (name: string) =>
+      sunday.getAllByRole("combobox", { name }).map((box) => (box as HTMLSelectElement).value);
+    expect(values("ساعت شروع")).toEqual(["13", "14"]);
+    expect(values("ساعت پایان")).toEqual(["14", "15"]);
+    expect(values("ظرفیت")).toEqual(["8", "6"]);
+  });
+
+  it("CopyDay_DayWithNoSessions_HasNoCopyButton", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+
+    expect(screen.getByRole("button", { name: "کپی شنبه به روزهای دیگر" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "کپی یکشنبه به روزهای دیگر" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("SavePattern_Refused_ShowsTheReasonInPersian", async () => {
     mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),

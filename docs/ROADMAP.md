@@ -4568,6 +4568,10 @@ fine"), to go out with the next release:
         Stored as the pattern and the changed days only; each date's sessions are worked out when
         read (no rows made ahead, no nightly job). Built 1405/08/09 on `task/15.6-timetable`:
         `/api/site/timetable`, «برنامه سانس‌ها» and «سانس‌های امروز» in the site app
+  - [x] **15.6a-2** «کپی به روزهای دیگر» (the developer, 1405/08/10): in «تغییر الگو», a day
+        with sessions copies them to the other days the trainer picks, in place of theirs; only
+        the editor's draft changes, saved with «ذخیره الگو» as before. A step-by-step builder
+        (length, hours, days off, a grid to cross out) was weighed first and dropped as too complex
   - [x] **15.6b** putting students in sessions (decided 1405/08/09, §15 *Who puts a member in a
         session* and *Students in sessions*): the trainer puts a student in a fixed weekly slot
         with an end date; the member sees their next sessions and leaves or moves one date; within
