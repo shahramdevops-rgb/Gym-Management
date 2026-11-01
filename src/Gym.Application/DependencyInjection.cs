@@ -29,6 +29,7 @@ using Gym.Application.Bookings.GetStudentSchedule;
 using Gym.Application.Bookings.LeaveMySession;
 using Gym.Application.Bookings.MoveMySession;
 using Gym.Application.Bookings.RemoveSessionStudent;
+using Gym.Application.Bookings.ReturnToMySession;
 using Gym.Application.Bookings.SetStudentSchedule;
 using Gym.Application.Cafe.CancelCafeOrder;
 using Gym.Application.Cafe.CreateCafeOrder;
@@ -270,6 +271,7 @@ public static class DependencyInjection
         services.AddScoped<RemoveSessionStudentHandler>();
         services.AddScoped<GetMySessionsHandler>();
         services.AddScoped<LeaveMySessionHandler>();
+        services.AddScoped<ReturnToMySessionHandler>();
         services.AddScoped<MoveMySessionHandler>();
 
         services.AddScoped<CreateMemberHandler>();

@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Link, Navigate } from "react-router";
 
@@ -16,36 +16,46 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { errorMessage } from "@/lib/errors";
-import { formatDate, toPersianDigits } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 
 import { useSiteMe } from "../auth/api";
+import { SessionStudentsList } from "../bookings/SessionStudentsList";
 import { SiteFrame } from "../components/SiteFrame";
 import { sitePaths } from "../paths";
 import {
+  useCheckResetTimetableDay,
+  useCheckTimetableDay,
+  useCheckWeekPattern,
   useResetTimetableDay,
   useSetTimetableDay,
   useSetWeekPattern,
+  touchesNoOne,
   useTimetable,
   type DayOfWeek,
   type Timetable,
   type TimetableDay,
+  type TimetableImpact,
 } from "./api";
+import { draftOf, inputsOf, type DraftSession } from "./drafts";
+import { ImpactWarning, type HeldChange } from "./ImpactWarning";
 import {
+  addDays,
   dayNames,
   formatCapacity,
   formatDayLabel,
-  formatDayMonth,
   formatSessionTimes,
+  formatTaken,
   weekDays,
 } from "./labels";
-import { draftOf, inputsOf, type DraftSession } from "./drafts";
 import { SessionsEditor } from "./SessionsEditor";
+import { WeekNav } from "./WeekNav";
 
 /**
  * The trainer's «برنامه سانس‌ها» (BUSINESS_RULES.md §15 *The trainer's sessions*, roadmap 15.6a):
  * the weekly pattern, repeated every week from the date it starts, and the timetable's twelve
- * weeks one week at a time, where a date can be changed on its own, closed, or given back to the
- * pattern. Only a trainer reaches it; anyone else is sent home.
+ * weeks one week at a time, where a date shows its students (15.6b) and can be changed on its own,
+ * closed, or given back to the pattern. A change that touches students warns first (§15 *Students
+ * in sessions*). Only a trainer reaches it; anyone else is sent home.
  */
 export function TimetablePage() {
   const me = useSiteMe();
@@ -92,13 +102,6 @@ function draftsOf(timetable: Timetable): WeekDrafts {
   return Object.fromEntries(
     weekDays.map((day) => [day, sessions.filter((session) => session.day === day).map(draftOf)]),
   ) as WeekDrafts;
-}
-
-/** The day after the timetable's today: the earliest a new pattern can start. */
-function dayAfter(iso: string): string {
-  const date = new Date(`${iso}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + 1);
-  return date.toISOString().slice(0, 10);
 }
 
 function PatternCard({ timetable }: { timetable: Timetable }) {
@@ -168,15 +171,27 @@ function PatternCard({ timetable }: { timetable: Timetable }) {
  */
 function PatternEditor({ timetable, onDone }: { timetable: Timetable; onDone: () => void }) {
   const [drafts, setDrafts] = useState(() => draftsOf(timetable));
-  const tomorrow = dayAfter(timetable.today);
+  const tomorrow = addDays(timetable.today, 1);
   const [startsOn, setStartsOn] = useState(tomorrow);
+  const check = useCheckWeekPattern();
   const save = useSetWeekPattern();
+  const [held, setHeld] = useState<HeldChange | null>(null);
+  const pending = check.isPending || save.isPending;
+  // Nothing changes under a warning: the save it holds is the change it was given for.
+  const locked = pending || held !== null;
+  const failure = check.error ?? save.error;
 
   function submit() {
-    const sessions = weekDays.flatMap((day) =>
-      inputsOf(drafts[day]).map((session) => ({ day, ...session })),
-    );
-    save.mutate({ startsOn, sessions }, { onSuccess: onDone });
+    const pattern = {
+      startsOn,
+      sessions: weekDays.flatMap((day) =>
+        inputsOf(drafts[day]).map((session) => ({ day, ...session })),
+      ),
+    };
+    const saveIt = () => save.mutate(pattern, { onSuccess: onDone });
+    check.mutate(pattern, {
+      onSuccess: (impact) => (touchesNoOne(impact) ? saveIt() : setHeld({ impact, save: saveIt })),
+    });
   }
 
   return (
@@ -187,7 +202,7 @@ function PatternEditor({ timetable, onDone }: { timetable: Timetable; onDone: ()
           <SessionsEditor
             label={dayNames[day]}
             sessions={drafts[day]}
-            disabled={save.isPending}
+            disabled={locked}
             onChange={(sessions) => setDrafts({ ...drafts, [day]: sessions })}
           />
         </section>
@@ -197,7 +212,7 @@ function PatternEditor({ timetable, onDone }: { timetable: Timetable; onDone: ()
         <JalaliDateField
           label="از تاریخ"
           value={startsOn}
-          disabled={save.isPending}
+          disabled={locked}
           onChange={(iso) => setStartsOn(iso === "" ? tomorrow : iso)}
         />
         <p className="text-xs text-muted-foreground">
@@ -206,16 +221,25 @@ function PatternEditor({ timetable, onDone }: { timetable: Timetable; onDone: ()
         </p>
       </div>
 
-      {save.isError && <Alert variant="destructive">{errorMessage(save.error)}</Alert>}
+      {failure !== null && <Alert variant="destructive">{errorMessage(failure)}</Alert>}
 
-      <div className="flex gap-2">
-        <Button className="flex-1" disabled={save.isPending} onClick={submit}>
-          ذخیره الگو
-        </Button>
-        <Button variant="outline" disabled={save.isPending} onClick={onDone}>
-          انصراف
-        </Button>
-      </div>
+      {held !== null ? (
+        <ImpactWarning
+          impact={held.impact}
+          pending={pending}
+          onSave={held.save}
+          onCancel={() => setHeld(null)}
+        />
+      ) : (
+        <div className="flex gap-2">
+          <Button className="flex-1" disabled={pending} onClick={submit}>
+            ذخیره الگو
+          </Button>
+          <Button variant="outline" disabled={pending} onClick={onDone}>
+            انصراف
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -239,34 +263,13 @@ function WeeksCard({ timetable }: { timetable: Timetable }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label="هفتهٔ قبل"
-            disabled={weekIndex === 0}
-            onClick={() => setWeekIndex(weekIndex - 1)}
-          >
-            <ChevronRight aria-hidden />
-          </Button>
-          <p className="text-sm font-semibold" aria-live="polite">
-            هفتهٔ {toPersianDigits(weekIndex + 1)} از {toPersianDigits(weeks.length)}
-            {week.length > 0 && (
-              <span className="block text-center text-xs font-normal text-muted-foreground">
-                {formatDayMonth(week[0]!.date)} تا {formatDayMonth(week.at(-1)!.date)}
-              </span>
-            )}
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label="هفتهٔ بعد"
-            disabled={weekIndex >= weeks.length - 1}
-            onClick={() => setWeekIndex(weekIndex + 1)}
-          >
-            <ChevronLeft aria-hidden />
-          </Button>
-        </div>
+        <WeekNav
+          index={weekIndex}
+          count={weeks.length}
+          from={week[0]?.date}
+          to={week.at(-1)?.date}
+          onChange={setWeekIndex}
+        />
 
         <ul aria-label="روزهای هفته" className="space-y-2">
           {week.map((day) => (
@@ -316,7 +319,7 @@ function DaySessions({ day }: { day: TimetableDay }) {
           key={session.start + session.end}
           className="rounded-md bg-muted px-1.5 py-0.5 text-xs"
         >
-          {formatSessionTimes(session)} · {formatCapacity(session.capacity)}
+          {formatSessionTimes(session)} · {formatTaken(session.students, session.capacity)}
         </span>
       ))}
     </span>
@@ -324,8 +327,9 @@ function DaySessions({ day }: { day: TimetableDay }) {
 }
 
 /**
- * One date on its own: its sessions changed, the day closed, or given back to the pattern. On
- * today a session that has started stays as it was; the API says so if it is touched.
+ * One date: first «شاگردان سانس», each session's students (15.6b); then, behind «تغییر سانس‌های
+ * این روز», its sessions changed, the day closed, or given back to the pattern. On today a
+ * session that has started stays as it was; the API says so if it is touched.
  */
 function DayDialog({
   day,
@@ -336,42 +340,87 @@ function DayDialog({
   isToday: boolean;
   onClose: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{formatDayLabel(day.date)}</DialogTitle>
+          <DialogDescription>
+            {editing
+              ? `این تغییر فقط برای همین روز است؛ هفته‌های دیگر همان الگو را دارند.${isToday ? " سانسی که شروع شده تغییر نمی‌کند." : ""}`
+              : "شاگردان هر سانس در این روز."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {editing ? (
+          <DayEditor day={day} onDone={onClose} />
+        ) : (
+          <>
+            <SessionStudentsList date={day.date} />
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              تغییر سانس‌های این روز
+            </Button>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** A date's sessions changed on their own; a change that touches students warns first. */
+function DayEditor({ day, onDone }: { day: TimetableDay; onDone: () => void }) {
   const [drafts, setDrafts] = useState(() => day.sessions.map(draftOf));
+  const checkDay = useCheckTimetableDay();
+  const checkReset = useCheckResetTimetableDay();
   const save = useSetTimetableDay();
   const reset = useResetTimetableDay();
-  const pending = save.isPending || reset.isPending;
-  const failure = save.error ?? reset.error;
+  const [held, setHeld] = useState<HeldChange | null>(null);
+  const pending = checkDay.isPending || checkReset.isPending || save.isPending || reset.isPending;
+  const failure = checkDay.error ?? checkReset.error ?? save.error ?? reset.error;
+
+  function hold(saveIt: () => void) {
+    return {
+      onSuccess: (impact: TimetableImpact) =>
+        touchesNoOne(impact) ? saveIt() : setHeld({ impact, save: saveIt }),
+    };
+  }
 
   function saveDay(sessions: DraftSession[]) {
-    save.mutate(
-      {
-        date: day.date,
-        sessions: inputsOf(sessions),
-      },
-      { onSuccess: onClose },
+    const input = { date: day.date, sessions: inputsOf(sessions) };
+    checkDay.mutate(
+      input,
+      hold(() => save.mutate(input, { onSuccess: onDone })),
+    );
+  }
+
+  function resetDay() {
+    checkReset.mutate(
+      day.date,
+      hold(() => reset.mutate(day.date, { onSuccess: onDone })),
     );
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && !pending && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{formatDayLabel(day.date)}</DialogTitle>
-          <DialogDescription>
-            این تغییر فقط برای همین روز است؛ هفته‌های دیگر همان الگو را دارند.
-            {isToday && " سانسی که شروع شده تغییر نمی‌کند."}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <SessionsEditor
+        label={formatDayLabel(day.date)}
+        sessions={drafts}
+        disabled={pending || held !== null}
+        onChange={setDrafts}
+      />
 
-        <SessionsEditor
-          label={formatDayLabel(day.date)}
-          sessions={drafts}
-          disabled={pending}
-          onChange={setDrafts}
+      {failure !== null && <Alert variant="destructive">{errorMessage(failure)}</Alert>}
+
+      {held !== null ? (
+        <ImpactWarning
+          impact={held.impact}
+          pending={pending}
+          onSave={held.save}
+          onCancel={() => setHeld(null)}
         />
-
-        {failure !== null && <Alert variant="destructive">{errorMessage(failure)}</Alert>}
-
+      ) : (
         <div className="flex flex-wrap gap-2">
           <Button disabled={pending} onClick={() => saveDay(drafts)}>
             ذخیره
@@ -380,16 +429,12 @@ function DayDialog({
             تعطیل کردن این روز
           </Button>
           {day.changedByHand && (
-            <Button
-              variant="outline"
-              disabled={pending}
-              onClick={() => reset.mutate(day.date, { onSuccess: onClose })}
-            >
+            <Button variant="outline" disabled={pending} onClick={resetDay}>
               برگرداندن به الگو
             </Button>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </>
   );
 }

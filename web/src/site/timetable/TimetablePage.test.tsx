@@ -42,9 +42,15 @@ function timetableWith(
 const todaysSessions = {
   [today]: {
     changedByHand: false,
-    sessions: [{ start: "13:00:00", end: "14:00:00", capacity: 8 }],
+    sessions: [{ start: "13:00:00", end: "14:00:00", capacity: 8, students: 3 }],
   },
 };
+
+/** A change's check that touches no student: saved without asking. */
+const noImpact = () => json(200, { students: 0, sessions: [] });
+
+/** A date's «شاگردان سانس» with no session. */
+const noStudents = (date: string) => () => json(200, { date, sessions: [] });
 
 async function bodyOf(request: Request) {
   return (await request.json()) as unknown;
@@ -61,7 +67,7 @@ describe("the trainer's timetable", () => {
     renderSite("/", { access: siteAccess(trainerOnly) });
 
     const list = await screen.findByRole("list", { name: "سانس‌های امروز" });
-    expect(list).toHaveTextContent("۱۳:۰۰ تا ۱۴:۰۰ · ۸ نفر");
+    expect(list).toHaveTextContent("۱۳:۰۰ تا ۱۴:۰۰ · ۳ از ۸ نفر");
     expect(screen.getByRole("link", { name: "برنامه سانس‌ها" })).toHaveAttribute(
       "href",
       "/timetable",
@@ -114,6 +120,7 @@ describe("the trainer's timetable", () => {
     const api = mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
       "GET /api/site/timetable": () => json(200, timetableWith(null)),
+      "POST /api/site/timetable/pattern/check": noImpact,
       "PUT /api/site/timetable/pattern": () =>
         json(200, timetableWith({ startsOn: tomorrow, sessions: [saturdayPattern.sessions[0]!] })),
     });
@@ -162,7 +169,7 @@ describe("the trainer's timetable", () => {
     mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
       "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
-      "PUT /api/site/timetable/pattern": () => problem(400, "Timetable.EndNotAfterStart"),
+      "POST /api/site/timetable/pattern/check": () => problem(400, "Timetable.EndNotAfterStart"),
     });
     renderSite("/timetable", { access: siteAccess(trainerOnly) });
 
@@ -204,6 +211,8 @@ describe("the trainer's timetable", () => {
             [date]: { changedByHand: false, sessions: [saturdayPattern.sessions[0]] },
           }),
         ),
+      [`GET /api/site/timetable/days/${date}/students`]: noStudents(date),
+      [`POST /api/site/timetable/days/${date}/check`]: noImpact,
       [`PUT /api/site/timetable/days/${date}`]: () =>
         json(
           200,
@@ -214,6 +223,7 @@ describe("the trainer's timetable", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /دوشنبه ۱۱ آبان/ }));
     const dialog = within(await screen.findByRole("dialog"));
+    fireEvent.click(dialog.getByRole("button", { name: "تغییر سانس‌های این روز" }));
     expect(dialog.queryByRole("button", { name: "برگرداندن به الگو" })).not.toBeInTheDocument();
     fireEvent.click(dialog.getByRole("button", { name: "تعطیل کردن این روز" }));
 
@@ -232,6 +242,8 @@ describe("the trainer's timetable", () => {
           200,
           timetableWith(saturdayPattern, { [date]: { changedByHand: true, sessions: [] } }),
         ),
+      [`GET /api/site/timetable/days/${date}/students`]: noStudents(date),
+      [`GET /api/site/timetable/days/${date}/reset-check`]: noImpact,
       [`DELETE /api/site/timetable/days/${date}`]: () => json(200, timetableWith(saturdayPattern)),
     });
     renderSite("/timetable", { access: siteAccess(trainerOnly) });
@@ -239,14 +251,158 @@ describe("the trainer's timetable", () => {
     const day = await screen.findByRole("button", { name: /دوشنبه ۱۱ آبان/ });
     expect(day).toHaveTextContent("تغییر جداگانه");
     fireEvent.click(day);
-    fireEvent.click(
-      within(await screen.findByRole("dialog")).getByRole("button", { name: "برگرداندن به الگو" }),
-    );
+    const dialog = within(await screen.findByRole("dialog"));
+    fireEvent.click(dialog.getByRole("button", { name: "تغییر سانس‌های این روز" }));
+    fireEvent.click(dialog.getByRole("button", { name: "برگرداندن به الگو" }));
 
     await vi.waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(api.requestsTo("DELETE", `/api/site/timetable/days/${date}`)).toHaveLength(1);
     expect(screen.getByRole("button", { name: /دوشنبه ۱۱ آبان/ })).not.toHaveTextContent(
       "تغییر جداگانه",
     );
+  });
+});
+
+describe("students in the trainer's sessions", () => {
+  const date = "2026-11-02";
+  const touched = {
+    students: 2,
+    sessions: [
+      { date, start: "13:00:00", end: "14:00:00", students: 2, removed: true },
+      { date: "2026-11-09", start: "14:00:00", end: "15:00:00", students: 1, removed: false },
+    ],
+  };
+
+  it("SavePattern_TouchesStudents_WarnsAndSavesOnlyOnYes", async () => {
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
+      "POST /api/site/timetable/pattern/check": () => json(200, touched),
+      "PUT /api/site/timetable/pattern": () => json(200, timetableWith(saturdayPattern)),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+
+    const warning = await screen.findByRole("alert");
+    expect(warning).toHaveTextContent("این تغییر به ۲ شاگرد می‌رسد");
+    const sessions = within(warning).getAllByRole("listitem");
+    expect(sessions[0]).toHaveTextContent(
+      "دوشنبه ۱۱ آبان، ۱۳:۰۰ تا ۱۴:۰۰: ۲ شاگرد، سانس لغو می‌شود",
+    );
+    expect(sessions[1]).toHaveTextContent("ظرفیت از شاگردانش کمتر می‌شود");
+    expect(api.requestsTo("PUT", "/api/site/timetable/pattern")).toHaveLength(0);
+
+    fireEvent.click(within(warning).getByRole("button", { name: "انصراف" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(api.requestsTo("PUT", "/api/site/timetable/pattern")).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+    fireEvent.click(await screen.findByRole("button", { name: "ذخیره با این حال" }));
+
+    await screen.findByRole("button", { name: "تغییر الگو" });
+    expect(api.requestsTo("PUT", "/api/site/timetable/pattern")).toHaveLength(1);
+  });
+
+  it("Day_ShowsEachSessionsStudents_AndTakesOneOutAfterAsking", async () => {
+    const sara = {
+      memberId: "0199a000-0000-7000-8000-000000000301",
+      fullName: "سارا احمدی",
+      phoneNumber: "+989121112233",
+      moved: false,
+    };
+    const roster = (students: (typeof sara)[]) => ({
+      date,
+      sessions: [
+        {
+          start: "13:00:00",
+          end: "14:00:00",
+          capacity: 8,
+          removed: false,
+          started: false,
+          students,
+        },
+        {
+          start: "16:00:00",
+          end: "17:00:00",
+          capacity: null,
+          removed: true,
+          started: false,
+          students: [
+            { ...sara, memberId: "0199a000-0000-7000-8000-000000000302", fullName: "مینا رضایی" },
+          ],
+        },
+      ],
+    });
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () =>
+        json(
+          200,
+          timetableWith(saturdayPattern, {
+            [date]: {
+              changedByHand: false,
+              sessions: [{ start: "13:00:00", end: "14:00:00", capacity: 8, students: 1 }],
+            },
+          }),
+        ),
+      [`GET /api/site/timetable/days/${date}/students`]: () => json(200, roster([sara])),
+      [`POST /api/site/timetable/days/${date}/students/remove`]: () => json(200, roster([])),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    const day = await screen.findByRole("button", { name: /دوشنبه ۱۱ آبان/ });
+    expect(day).toHaveTextContent("۱۳:۰۰ تا ۱۴:۰۰ · ۱ از ۸ نفر");
+    fireEvent.click(day);
+
+    const dialog = within(await screen.findByRole("dialog"));
+    const first = within(await dialog.findByRole("region", { name: "۱۳:۰۰ تا ۱۴:۰۰" }));
+    expect(first.getByRole("heading")).toHaveTextContent("۱ از ۸ نفر");
+    expect(first.getByRole("link", { name: "۰۹۱۲ ۱۱۱ ۲۲۳۳" })).toHaveAttribute(
+      "href",
+      "tel:+989121112233",
+    );
+    const removed = within(dialog.getByRole("region", { name: "۱۶:۰۰ تا ۱۷:۰۰" }));
+    expect(removed.getByText("لغو شد")).toBeInTheDocument();
+    expect(removed.getByText("مینا رضایی")).toBeInTheDocument();
+
+    fireEvent.click(first.getByRole("button", { name: "حذف از این روز" }));
+    const confirm = await screen.findByRole("dialog", { name: "حذف از این روز" });
+    expect(confirm).toHaveTextContent("سارا احمدی از سانس ۱۳:۰۰ تا ۱۴:۰۰ دوشنبه ۱۱ آبان");
+    fireEvent.click(within(confirm).getByRole("button", { name: "حذف از این روز" }));
+
+    expect(await first.findByText("شاگردی در این سانس نیست.")).toBeInTheDocument();
+    const [sent] = api.requestsTo("POST", `/api/site/timetable/days/${date}/students/remove`);
+    expect(await bodyOf(sent!)).toEqual({
+      memberId: sara.memberId,
+      start: "13:00:00",
+      end: "14:00:00",
+    });
+  });
+
+  it("Day_CloseItUnderStudents_WarnsFirst", async () => {
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
+      [`GET /api/site/timetable/days/${date}/students`]: noStudents(date),
+      [`POST /api/site/timetable/days/${date}/check`]: () =>
+        json(200, { students: 2, sessions: [touched.sessions[0]] }),
+      [`PUT /api/site/timetable/days/${date}`]: () => json(200, timetableWith(saturdayPattern)),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: /دوشنبه ۱۱ آبان/ }));
+    const dialog = within(await screen.findByRole("dialog"));
+    fireEvent.click(dialog.getByRole("button", { name: "تغییر سانس‌های این روز" }));
+    fireEvent.click(dialog.getByRole("button", { name: "تعطیل کردن این روز" }));
+
+    expect(await dialog.findByRole("alert")).toHaveTextContent("این تغییر به ۲ شاگرد می‌رسد");
+    expect(api.requestsTo("PUT", `/api/site/timetable/days/${date}`)).toHaveLength(0);
+    fireEvent.click(dialog.getByRole("button", { name: "ذخیره با این حال" }));
+
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    const [sent] = api.requestsTo("PUT", `/api/site/timetable/days/${date}`);
+    expect(await bodyOf(sent!)).toEqual({ sessions: [] });
   });
 });

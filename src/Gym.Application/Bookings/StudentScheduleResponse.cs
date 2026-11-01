@@ -11,7 +11,7 @@ namespace Gym.Application.Bookings;
 /// One student's sessions on the trainer's side (BUSINESS_RULES.md §15 <i>Students in sessions</i>):
 /// their «برنامهٔ ثابت» to edit, and every date they are in from today to the timetable's last day.
 /// </summary>
-/// <param name="Schedule">The latest schedule, the one in force or the one from tomorrow; <c>null</c> when none reaches today.</param>
+/// <param name="Schedule">The latest schedule, the one in force or one from a later date; <c>null</c> when none reaches today.</param>
 public sealed record StudentScheduleResponse(
     DateOnly Today,
     DateOnly LastDay,

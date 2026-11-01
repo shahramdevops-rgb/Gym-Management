@@ -9,11 +9,12 @@ import { errorMessage } from "@/lib/errors";
 
 import { sitePaths } from "../paths";
 import { useTimetable } from "./api";
-import { formatCapacity, formatSessionTimes } from "./labels";
+import { formatSessionTimes, formatTaken } from "./labels";
 
 /**
- * The trainer's sessions today on the home screen, and the way into «برنامه سانس‌ها»
- * (BUSINESS_RULES.md §15 *The trainer's sessions*, roadmap 15.6a).
+ * The trainer's sessions today on the home screen, each with its students out of its capacity
+ * (15.6b), and the way into «برنامه سانس‌ها» (BUSINESS_RULES.md §15 *The trainer's sessions*,
+ * roadmap 15.6a).
  */
 export function TimetableCard() {
   const timetable = useTimetable();
@@ -46,7 +47,7 @@ export function TimetableCard() {
                 key={session.start + session.end}
                 className="rounded-md bg-muted px-2 py-1 text-sm"
               >
-                {formatSessionTimes(session)} · {formatCapacity(session.capacity)}
+                {formatSessionTimes(session)} · {formatTaken(session.students, session.capacity)}
               </li>
             ))}
           </ul>

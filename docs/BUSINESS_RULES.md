@@ -2654,23 +2654,32 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **The capacity is a ceiling**, for the trainer too: a session with no room takes no one, and a
     trainer who wants more raises the session's capacity.
   - **A member leaves or moves a date until the session starts**; from its start it is fixed.
+  - **A member may take back their own «نمی‌آیم» («می‌آیم»)** until the session starts, while the
+    session is still there and has room (*decided by the developer*, 1405/08/09: a tap may be a
+    mistake). The date stays in «سانس‌های من», faded, marked «نمی‌آیم». A date moved, or taken out
+    by the trainer, does not come back this way. *Proposed by Claude, accepted:* «سانس‌های من»
+    leaves out today's sessions that are over, and its home card only the dates the member is
+    coming to.
   - **A member sees only their own trainer's sessions**, and moves a date only to one of them.
   - **The trainer may change the timetable under their students, with a warning**: before a change
     that removes a session students are in, changes its times, or lowers its capacity below its
     students, the trainer is told how many students it touches, and saves anyway or not. A
-    student whose session is gone sees that date as «سانس برداشته شد»; the SMS and the in-app
-    notice are 15.6c's.
+    student whose session is gone sees that date as «لغو شد» (the developer, 1405/08/09, in place
+    of «سانس برداشته شد», which read as unclear); the SMS and the in-app notice are 15.6c's.
   - **Only the trainer's students now** (an open link, 15.4) are put in sessions. When the link
     ends, from either side or by the trainer being stopped, the member's sessions after that day
     are gone; the day itself stays.
   - **One fixed program per student at a time**: one or more weekly sessions, a first date and a
     last date. The first date is today or later; the last is 8 weeks on by default, within the
-    timetable's 12 weeks. A change of the program applies from tomorrow (today's sessions stay as
-    they were, for attendance, 15.7); a program not started yet is simply replaced. The trainer
-    may also end it.
+    timetable's 12 weeks. **A change of the program applies from now** (the developer, 1405/08/09,
+    in place of "from tomorrow"; "for now"): today's sessions that have started stay as they were,
+    for attendance (15.7), and the rest of today follows the new program; a program not started
+    yet is simply replaced. The trainer may also end it, from now in the same way.
   - **A program is saved whole or not at all**: if one of its dates has no room, nothing is saved
     and the trainer sees those dates. A date with no such session (closed by hand, or not in the
-    pattern then) is passed over.
+    pattern then), and today's session that has already started, is passed over: it is not one of
+    the program's dates, never «لغو شد», and stays out if that session comes back later
+    (the trainer saves the program again to put the student in it).
   - **A move goes to any session of the same trainer** that has not started, has room, and is not
     after the program's last date.
   - **The trainer sees each session's students on each date** and may take a student out of one

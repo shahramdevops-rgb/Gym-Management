@@ -61,6 +61,8 @@ test("SiteTimetable_TrainerBuildsAWeek_ClosesOneDateAndGivesItBack", async ({ pa
 
   await monday.click();
   const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("شاگردی در این سانس نیست.").first()).toBeVisible();
+  await dialog.getByRole("button", { name: "تغییر سانس‌های این روز" }).click();
   await shot(page, "3-day-dialog");
   await dialog.getByRole("button", { name: "تعطیل کردن این روز" }).click();
   await expect(dialog).toBeHidden();
@@ -69,7 +71,8 @@ test("SiteTimetable_TrainerBuildsAWeek_ClosesOneDateAndGivesItBack", async ({ pa
   await shot(page, "4-day-closed");
 
   await monday.click();
-  await page.getByRole("dialog").getByRole("button", { name: "برگرداندن به الگو" }).click();
+  await dialog.getByRole("button", { name: "تغییر سانس‌های این روز" }).click();
+  await dialog.getByRole("button", { name: "برگرداندن به الگو" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(monday).toContainText("۱۳:۰۰ تا ۱۴:۰۰");
   await expect(monday).not.toContainText("تغییر جداگانه");

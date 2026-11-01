@@ -4,8 +4,9 @@ namespace Gym.Domain.Bookings;
 
 /// <summary>
 /// A student in one session on one date, outside their fixed schedule (BUSINESS_RULES.md §15
-/// <i>Students in sessions</i>): the date they moved one of their sessions to. Taking them out of
-/// it removes the row: a timetable is not a financial record.
+/// <i>Students in sessions</i>): the date they moved one of their sessions to (by the member), or
+/// today's started session kept when the trainer changed the schedule (by the trainer, <see cref="Keep"/>).
+/// Taking them out of it removes the row: a timetable is not a financial record.
 /// </summary>
 /// <remarks>
 /// Tied to the link it was made under, as <see cref="FixedSchedule"/> is. One per member, date and
@@ -35,7 +36,7 @@ public sealed class SessionBooking : Entity
     /// <summary>
     /// Puts the student in a session of <paramref name="date"/> that has not started. Whether the
     /// session is the trainer's and has room is read by the caller, from the timetable and the
-    /// places taken (<see cref="BookingRules.CheckMoveTarget"/>).
+    /// places taken (<see cref="BookingRules.CheckJoin"/>).
     /// </summary>
     /// <param name="today">The gym's today.</param>
     /// <param name="timeOfDay">The time of day now, in the gym's time zone.</param>
@@ -64,6 +65,34 @@ public sealed class SessionBooking : Entity
             Start = start,
             End = end,
             By = by,
+        };
+    }
+
+    /// <summary>
+    /// Keeps the student in today's session of their fixed schedule that has started, as the trainer
+    /// changes or ends the schedule and the new one does not have it (<see cref="ScheduleHandOver.Keep"/>):
+    /// what has started stays as it was, for attendance (15.7). By the trainer, who changed it.
+    /// </summary>
+    /// <param name="place">The place the schedule gave, before the change.</param>
+    /// <param name="linkId">The link the schedule was made under.</param>
+    public static SessionBooking Keep(BookedPlace place, Guid linkId)
+    {
+        ArgumentNullException.ThrowIfNull(place);
+
+        if (place.ScheduleId is null)
+        {
+            throw new ArgumentException("A date moved to is a booking already.", nameof(place));
+        }
+
+        return new SessionBooking
+        {
+            TrainerId = place.TrainerId,
+            MemberId = place.MemberId,
+            LinkId = linkId,
+            Date = place.Date,
+            Start = place.Start,
+            End = place.End,
+            By = BookedBy.Trainer,
         };
     }
 

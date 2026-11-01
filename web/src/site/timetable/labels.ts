@@ -70,6 +70,30 @@ export function formatCapacity(capacity: number | string): string {
   return `${toPersianDigits(capacity)} نفر`;
 }
 
+/** «۳ از ۸ نفر»: the students in a session of a date, out of its capacity (15.6b). */
+export function formatTaken(students: number | string, capacity: number | string): string {
+  return `${toPersianDigits(students)} از ${formatCapacity(capacity)}`;
+}
+
+/** «شنبه ۱۳:۰۰ تا ۱۴:۰۰»: a weekly session of a student's fixed schedule. */
+export function formatSlot(slot: { day: DayOfWeek; start: string; end: string }): string {
+  return `${dayNames[slot.day]} ${formatSessionTimes(slot)}`;
+}
+
+/** The ISO business date `days` after `iso`. */
+export function addDays(iso: string, days: number): string {
+  const date = new Date(`${iso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/** The days from ISO date `from` to `to`; negative when `to` is earlier. */
+export function daysBetween(from: string, to: string): number {
+  return Math.round(
+    (new Date(`${to}T00:00:00Z`).getTime() - new Date(`${from}T00:00:00Z`).getTime()) / 86_400_000,
+  );
+}
+
 /** What «افزودن سانس» puts in: right after the day's last session, as long and as full, or 08:00. */
 export function nextSession(sessions: readonly SessionInput[]): SessionInput {
   const last = sessions.at(-1);

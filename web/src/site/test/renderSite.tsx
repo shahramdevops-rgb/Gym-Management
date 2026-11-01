@@ -97,6 +97,14 @@ export const emptyCoaching = {
   "GET /api/site/coaching/my-trainer": () => json(200, { trainer: null, request: null }),
   "GET /api/site/coaching/students": () => json(200, { requests: [], students: [] }),
   "GET /api/site/timetable": () => json(200, emptyTimetable()),
+  "GET /api/site/me/sessions": () =>
+    json(200, {
+      today: "2026-10-31",
+      trainerName: null,
+      schedule: null,
+      sessions: [],
+      openings: [],
+    }),
 };
 
 const emptyPage = { items: [], page: 1, pageSize: 10, totalCount: 0 };

@@ -20,8 +20,8 @@ internal static class StudentSessions
     }
 
     /// <summary>
-    /// The link's fixed schedules from today on, earliest first: the one in force, and the next one
-    /// when the trainer changed it from tomorrow (the first then ends today). Tracked, for changing.
+    /// The link's fixed schedules that reach today or later, earliest first: the one in force, and
+    /// the next one when the trainer set one from a later date. Tracked, for changing.
     /// </summary>
     public static Task<List<FixedSchedule>> FromTodayAsync(IAppDbContext db, Guid linkId, DateOnly today, CancellationToken cancellationToken) =>
         db.FixedSchedules
@@ -31,16 +31,35 @@ internal static class StudentSessions
             .ToListAsync(cancellationToken);
 
     /// <summary>
-    /// The trainer changes or ends the schedules from today on: one that has started keeps its dates
-    /// up to today, one that has not is removed, its skipped dates with it. The caller saves.
+    /// The places in today's sessions that have started, from <paramref name="schedules"/>: what a
+    /// change or an end of them keeps (<see cref="BookingRules.HandOver"/>). Read before they change.
     /// </summary>
-    public static void EndAfterToday(IAppDbContext db, IEnumerable<FixedSchedule> schedules, DateOnly today)
+    public static async Task<IReadOnlyList<BookedPlace>> StartedTodayAsync(
+        IAppDbContext db, IReadOnlyCollection<FixedSchedule> schedules, DateOnly today, TimeOnly timeOfDay, CancellationToken cancellationToken)
+    {
+        if (schedules.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = schedules.Select(schedule => schedule.Id).ToHashSet();
+        var places = await BookedPlaces.OfMemberAsync(db, schedules.First().MemberId, today, today, cancellationToken);
+
+        return BookingRules.StartedToday(places.Where(place => place.ScheduleId is { } id && ids.Contains(id)), today, timeOfDay);
+    }
+
+    /// <summary>
+    /// The trainer changes or ends the schedules from now on: one with dates before today keeps
+    /// them, one without is removed, its skipped dates with it. Today's sessions that have started
+    /// are the caller's to keep (<see cref="StartedTodayAsync"/>). The caller saves.
+    /// </summary>
+    public static void StopFromToday(IAppDbContext db, IEnumerable<FixedSchedule> schedules, DateOnly today)
     {
         foreach (var schedule in schedules)
         {
-            if (schedule.HasStartedBy(today))
+            if (schedule.StartedBefore(today))
             {
-                schedule.EndAfter(today);
+                schedule.EndBefore(today);
             }
             else
             {
@@ -53,8 +72,9 @@ internal static class StudentSessions
     /// Takes the student out of <paramref name="place"/> until the session starts: a date of their
     /// fixed schedule is skipped, a date they moved to is removed. The caller saves.
     /// </summary>
+    /// <param name="reason">Why: left, moved or taken out; it decides whether «می‌آیم» brings the date back.</param>
     public static async Task<Result> TakeOutAsync(
-        IAppDbContext db, BookedPlace place, BookedBy by, DateOnly today, TimeOnly timeOfDay, CancellationToken cancellationToken)
+        IAppDbContext db, BookedPlace place, SkipReason reason, DateOnly today, TimeOnly timeOfDay, CancellationToken cancellationToken)
     {
         if (place.BookingId is { } bookingId)
         {
@@ -70,7 +90,7 @@ internal static class StudentSessions
             return Result.Success();
         }
 
-        var skip = SessionSkip.Create(place, by, today, timeOfDay);
+        var skip = SessionSkip.Create(place, reason, today, timeOfDay);
         if (skip.IsFailure)
         {
             return skip;

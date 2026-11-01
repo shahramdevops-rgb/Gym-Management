@@ -12,6 +12,7 @@ using Gym.Application.Bookings.GetStudentSchedule;
 using Gym.Application.Bookings.LeaveMySession;
 using Gym.Application.Bookings.MoveMySession;
 using Gym.Application.Bookings.RemoveSessionStudent;
+using Gym.Application.Bookings.ReturnToMySession;
 using Gym.Application.Bookings.SetStudentSchedule;
 
 namespace Gym.Api.Endpoints;
@@ -95,6 +96,12 @@ public static class SiteBookingEndpoints
         mine.MapPost("/leave", async (ClaimsPrincipal user, LeaveMySessionCommand command, LeaveMySessionHandler handler, CancellationToken ct) =>
                 (await handler.Handle(SiteUser.AccountId(user), command, ct)).ToHttpResult())
             .WithName("LeaveMySession")
+            .Produces<MySessionsResponse>()
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        mine.MapPost("/return", async (ClaimsPrincipal user, ReturnToMySessionCommand command, ReturnToMySessionHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), command, ct)).ToHttpResult())
+            .WithName("ReturnToMySession")
             .Produces<MySessionsResponse>()
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 

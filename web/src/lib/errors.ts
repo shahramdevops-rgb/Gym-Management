@@ -144,8 +144,6 @@ export const errorMessages: Record<string, string> = {
   // Students in sessions (site, 15.6b)
   "Bookings.ScheduleDatesOutOfRange":
     "برنامه از امروز به بعد شروع می‌شود و تا آخرین روز برنامهٔ سانس‌ها (۱۲ هفته) تمام می‌شود.",
-  "Bookings.ScheduleChangeFromTomorrow":
-    "برنامهٔ این شاگرد شروع شده؛ تغییر آن از فردا اعمال می‌شود.",
   "Bookings.ScheduleWithoutSessions": "دست‌کم یک سانس هفتگی برای برنامه انتخاب کنید.",
   "Bookings.TooManySlots": "تعداد سانس‌های هفتگی برنامه بیش از حد است.",
   "Bookings.DuplicateSlot": "یک سانس هفتگی دو بار انتخاب شده است.",
@@ -155,7 +153,8 @@ export const errorMessages: Record<string, string> = {
   "Bookings.NotAStudent": "این عضو الان شاگرد شما نیست.",
   "Bookings.NoSchedule": "این شاگرد برنامهٔ ثابتی ندارد.",
   "Bookings.NotInSession": "در این سانس نیستید.",
-  "Bookings.SessionStarted": "این سانس شروع شده و دیگر نمی‌توان آن را لغو یا جابه‌جا کرد.",
+  "Bookings.SessionStarted": "این سانس شروع شده و دیگر نمی‌توان آن را تغییر داد.",
+  "Bookings.NotLeft": "این سانس را با «نمی‌آیم» کنار نگذاشته‌اید.",
   "Bookings.AlreadyInSession": "در این سانس هستید.",
   "Bookings.MoveOutOfSchedule": "فقط به سانسی تا آخرین روز برنامه‌تان می‌توان جابه‌جا شد.",
 

@@ -4568,7 +4568,7 @@ fine"), to go out with the next release:
         Stored as the pattern and the changed days only; each date's sessions are worked out when
         read (no rows made ahead, no nightly job). Built 1405/08/09 on `task/15.6-timetable`:
         `/api/site/timetable`, «برنامه سانس‌ها» and «سانس‌های امروز» in the site app
-  - [ ] **15.6b** putting students in sessions (decided 1405/08/09, §15 *Who puts a member in a
+  - [x] **15.6b** putting students in sessions (decided 1405/08/09, §15 *Who puts a member in a
         session* and *Students in sessions*): the trainer puts a student in a fixed weekly slot
         with an end date; the member sees their next sessions and leaves or moves one date; within
         capacity. A program is 6 to 8 weeks, so the fixed slot covers it at once. Split in two:
@@ -4580,9 +4580,20 @@ fine"), to go out with the next release:
           (+ `/leave`, `/move`), and the warning before a timetable change
           (`/timetable/pattern/check`, `/days/{date}/check`, `/days/{date}/reset-check`); each
           session's `students` in «برنامه سانس‌ها»
-    - [ ] **15.6b-2, the screens**: the trainer's «برنامهٔ ثابت» form on a student, «شاگردان سانس»
-          for a date, the warning dialog before a timetable change; the member's «سانس‌های من»
-          with «نمی‌آیم» and «جابه‌جایی»; the Persian error texts; e2e and screenshots
+    - [x] **15.6b-2, the screens** (1405/08/09, `task/15.6-timetable`, `web/src/site/bookings/`):
+          «برنامهٔ ثابت» on each student of «شاگردان من» (its own page: the pattern's sessions as
+          toggles, first date today, last date 8 weeks on; a full date named and nothing
+          saved; «پایان برنامه» asks first); a date of «روزهای پیش رو» opens on «شاگردان سانس», with
+          «حذف از این روز», and its editor behind «تغییر سانس‌های این روز»; each session shows
+          «۳ از ۸ نفر»; the warning stands in place of the save buttons when a change touches
+          students; the member's «سانس‌های من» card (next three dates) and page with «نمی‌آیم» and
+          «جابه‌جایی». e2e `siteBookings.spec.ts`. Layout chosen by Claude, accepted by the
+          developer "for now"
+    - [x] **15.6b-3, after trying it** (1405/08/09, `task/15.6-timetable`): a change or an end of
+          the fixed schedule applies from now (today's started sessions kept); «سانس برداشته شد»
+          became «لغو شد» and wraps in a narrow box; «نمی‌آیم» leaves the date listed, faded, with
+          «می‌آیم» to take it back (`POST /api/site/me/sessions/return`, `SkipReason`, migration
+          `AddSessionSkipReason`); today's sessions that are over leave «سانس‌های من»
   - [ ] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
   - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
         days and times within what the trainer allows (e.g. three days a week for eight weeks),

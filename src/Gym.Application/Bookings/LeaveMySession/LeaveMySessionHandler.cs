@@ -46,7 +46,7 @@ public sealed class LeaveMySessionHandler(IAppDbContext db, IGymCalendar calenda
 
         var today = calendar.Today();
         var timeOfDay = calendar.TimeOfDay();
-        var takenOut = await StudentSessions.TakeOutAsync(db, place.Value, BookedBy.Member, today, timeOfDay, cancellationToken);
+        var takenOut = await StudentSessions.TakeOutAsync(db, place.Value, SkipReason.Left, today, timeOfDay, cancellationToken);
         if (takenOut.IsFailure)
         {
             return Result.Failure<MySessionsResponse>(takenOut.Error);

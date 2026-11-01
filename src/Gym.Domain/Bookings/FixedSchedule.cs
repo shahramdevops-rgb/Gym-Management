@@ -82,23 +82,25 @@ public sealed class FixedSchedule : Entity
         return schedule;
     }
 
-    /// <summary>Whether its first date has come: one that has not is replaced or removed whole.</summary>
-    public bool HasStartedBy(DateOnly today) => StartsOn <= today;
+    /// <summary>Whether it has dates before today: one that has none is replaced or removed whole.</summary>
+    public bool StartedBefore(DateOnly today) => StartsOn < today;
 
     /// <summary>
-    /// The trainer changes or ends the schedule: its dates up to today stay as they were, for
-    /// attendance (15.7), and none after it is left.
+    /// The trainer changes or ends the schedule, from now on: its dates before today stay as they
+    /// were, for attendance (15.7), and none from today is left. Today's sessions that have started
+    /// are kept by the caller (<see cref="BookingRules.HandOver"/>).
     /// </summary>
-    public void EndAfter(DateOnly today)
+    public void EndBefore(DateOnly today)
     {
-        if (!HasStartedBy(today))
+        if (!StartedBefore(today))
         {
-            throw new InvalidOperationException("A schedule that has not started is removed, not ended.");
+            throw new InvalidOperationException("A schedule with no date before today is removed, not ended.");
         }
 
-        if (EndsOn > today)
+        var yesterday = today.AddDays(-1);
+        if (EndsOn > yesterday)
         {
-            EndsOn = today;
+            EndsOn = yesterday;
         }
     }
 

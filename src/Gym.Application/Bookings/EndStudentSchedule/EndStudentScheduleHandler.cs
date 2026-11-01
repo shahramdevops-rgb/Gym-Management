@@ -7,8 +7,9 @@ namespace Gym.Application.Bookings.EndStudentSchedule;
 
 /// <summary>
 /// «پایان برنامه» (BUSINESS_RULES.md §15 <i>Students in sessions</i>): the student's fixed schedule
-/// stops after today; today's sessions stay, for attendance (15.7). One not started yet is removed.
-/// The dates the student moved to stay: each is its own booking.
+/// stops from now; today's sessions that have started stay, for attendance (15.7), each as its own
+/// booking. One not started yet is removed. The dates the student moved to stay: each is its own
+/// booking already.
 /// </summary>
 /// <remarks>Under the trainer's row lock, as <see cref="SetStudentSchedule.SetStudentScheduleHandler"/>.</remarks>
 public sealed class EndStudentScheduleHandler(IAppDbContext db, IGymCalendar calendar)
@@ -32,16 +33,20 @@ public sealed class EndStudentScheduleHandler(IAppDbContext db, IGymCalendar cal
         }
 
         var today = calendar.Today();
+        var timeOfDay = calendar.TimeOfDay();
         var current = await StudentSessions.FromTodayAsync(db, link.Value.Id, today, cancellationToken);
-        if (!current.Any(schedule => schedule.EndsOn > today || !schedule.HasStartedBy(today)))
+        if (current.Count == 0)
         {
             return Result.Failure<StudentScheduleResponse>(BookingErrors.NoSchedule);
         }
 
-        StudentSessions.EndAfterToday(db, current, today);
+        var started = await StudentSessions.StartedTodayAsync(db, current, today, timeOfDay, cancellationToken);
+        StudentSessions.StopFromToday(db, current, today);
+        var handOver = BookingRules.HandOver(started, passedOver: []);
+        db.SessionBookings.AddRange(handOver.Keep.Select(place => SessionBooking.Keep(place, link.Value.Id)));
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return await StudentScheduleResponse.ForAsync(db, link.Value, today, calendar.TimeOfDay(), cancellationToken);
+        return await StudentScheduleResponse.ForAsync(db, link.Value, today, timeOfDay, cancellationToken);
     }
 }

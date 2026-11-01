@@ -39,7 +39,7 @@ public sealed class RemoveSessionStudentHandler(IAppDbContext db, IGymCalendar c
 
         var today = calendar.Today();
         var timeOfDay = calendar.TimeOfDay();
-        var takenOut = await StudentSessions.TakeOutAsync(db, place.Value, BookedBy.Trainer, today, timeOfDay, cancellationToken);
+        var takenOut = await StudentSessions.TakeOutAsync(db, place.Value, SkipReason.TakenOut, today, timeOfDay, cancellationToken);
         if (takenOut.IsFailure)
         {
             return Result.Failure<SessionStudentsResponse>(takenOut.Error);

@@ -10,11 +10,13 @@ namespace Gym.Application.Bookings;
 
 /// <summary>
 /// «سانس‌های من» on the member's side (BUSINESS_RULES.md §15 <i>Students in sessions</i>): their
-/// fixed schedule with their trainer now, the dates they are in from today on, and the trainer's
-/// sessions they may move a date to. A member sees only their own trainer's sessions.
+/// fixed schedule with their trainer now, the dates they are in from now on, those they left and may
+/// take back, and the trainer's sessions they may move a date to. A member sees only their own
+/// trainer's sessions.
 /// </summary>
+/// <param name="Sessions">By date and time: today's sessions that are over are not among them.</param>
 /// <param name="TrainerName"><c>null</c> without a trainer now; everything else is empty then.</param>
-/// <param name="Schedule">The latest schedule, the one in force or the one from tomorrow.</param>
+/// <param name="Schedule">The latest schedule, the one in force or one from a later date.</param>
 /// <param name="Openings">
 /// The trainer's sessions from now to the schedule's last date that have not started, have room,
 /// and the member is not in: where a date can be moved to.
@@ -47,9 +49,13 @@ public sealed record MySessionsResponse(
         var timetable = await TrainerTimetable.DatesAsync(db, link.TrainerId, today, lastDay, cancellationToken);
         var trainerPlaces = await BookedPlaces.OfTrainerAsync(db, link.TrainerId, today, lastDay, cancellationToken);
 
-        var sessions = trainerPlaces
-            .Where(place => place.MemberId == memberId)
+        var mine = trainerPlaces.Where(place => place.MemberId == memberId).ToList();
+        var left = await LeftAsync(db, schedules, mine, timetable, today, timeOfDay, cancellationToken);
+        var sessions = mine
+            .Where(place => !BookingRules.HasEnded(place.Date, place.End, today, timeOfDay))
             .Select(place => PlaceResponse.From(place, timetable, today, timeOfDay))
+            .Concat(left)
+            .OrderBy(place => place.Date).ThenBy(place => place.Start).ThenBy(place => place.End)
             .ToList();
 
         List<OpeningResponse> openings = latest is null ? [] : OpeningsUntil(link, schedules.Max(schedule => schedule.EndsOn), timetable, trainerPlaces, today, timeOfDay);
@@ -63,6 +69,34 @@ public sealed record MySessionsResponse(
             .Where(schedule => schedule.LinkId == link.Id && schedule.EndsOn >= today)
             .MaxAsync(schedule => (DateOnly?)schedule.EndsOn, cancellationToken);
 
+    /// <summary>
+    /// The dates the member left with «نمی‌آیم» that they may still take back: of their schedules
+    /// now, not started, the session still there, and not one they are in again some other way.
+    /// Whether it has room is read only when they take it back.
+    /// </summary>
+    private static async Task<List<PlaceResponse>> LeftAsync(
+        IAppDbContext db,
+        IReadOnlyCollection<FixedSchedule> schedules,
+        IReadOnlyCollection<BookedPlace> mine,
+        TimetableDates timetable,
+        DateOnly today,
+        TimeOnly timeOfDay,
+        CancellationToken cancellationToken)
+    {
+        var byId = schedules.ToDictionary(schedule => schedule.Id);
+        var ids = byId.Keys.ToList();
+        var skips = await db.SessionSkips.AsNoTracking()
+            .Where(skip => ids.Contains(skip.ScheduleId) && skip.Reason == SkipReason.Left && skip.Date >= today)
+            .ToListAsync(cancellationToken);
+
+        return skips
+            .Where(skip => skip.Date <= byId[skip.ScheduleId].EndsOn && !BookingRules.HasStarted(skip.Date, skip.Start, today, timeOfDay))
+            .Where(skip => timetable.SessionsOn(skip.Date).Any(session => session.Start == skip.Start && session.End == skip.End))
+            .Where(skip => !mine.Any(place => place.Date == skip.Date && place.Start == skip.Start && place.End == skip.End))
+            .Select(PlaceResponse.LeftBy)
+            .ToList();
+    }
+
     private static List<OpeningResponse> OpeningsUntil(
         TrainerLink link, DateOnly lastDate, TimetableDates timetable, IReadOnlyList<BookedPlace> places, DateOnly today, TimeOnly timeOfDay)
     {
@@ -71,7 +105,7 @@ public sealed record MySessionsResponse(
         {
             foreach (var session in timetable.SessionsOn(date))
             {
-                if (BookingRules.CheckMoveTarget(link.MemberId, date, session, places.Where(place => place.Date == date).ToList(), lastDate, today, timeOfDay).IsFailure)
+                if (BookingRules.CheckJoin(link.MemberId, date, session, places.Where(place => place.Date == date).ToList(), lastDate, today, timeOfDay).IsFailure)
                 {
                     continue;
                 }

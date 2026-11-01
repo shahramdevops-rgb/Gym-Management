@@ -7,4 +7,9 @@ export const sitePaths = {
   trainers: "/trainers",
   /** The trainer's «برنامه سانس‌ها» (15.6a). */
   timetable: "/timetable",
+  /** The trainer's «برنامهٔ ثابت» of one student (15.6b). */
+  student: (memberId: string) => `/students/${memberId}`,
+  studentPattern: "/students/:memberId",
+  /** The member's «سانس‌های من» (15.6b). */
+  mySessions: "/sessions",
 } as const;

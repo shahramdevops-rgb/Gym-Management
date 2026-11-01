@@ -10,11 +10,6 @@ public static class BookingErrors
         "Bookings.ScheduleDatesOutOfRange",
         "A fixed schedule runs from today or later to the timetable's last day, and ends on or after its start.");
 
-    /// <summary>A fixed schedule that has started changes from tomorrow: its dates up to today stay.</summary>
-    public static readonly Error ScheduleChangeFromTomorrow = Error.BusinessRule(
-        "Bookings.ScheduleChangeFromTomorrow",
-        "The student's fixed schedule has started; a new one starts tomorrow at the earliest.");
-
     public static readonly Error ScheduleWithoutSessions = Error.Validation(
         "Bookings.ScheduleWithoutSessions",
         "A fixed schedule has one weekly session at least.");
@@ -54,10 +49,15 @@ public static class BookingErrors
         "Bookings.NotInSession",
         "The member is not in that session on that date.");
 
-    /// <summary>A date is left or moved until the session starts (decided by the developer, 1405/08/09).</summary>
+    /// <summary>A date is left, moved or taken back until the session starts (decided by the developer, 1405/08/09).</summary>
     public static readonly Error SessionStarted = Error.BusinessRule(
         "Bookings.SessionStarted",
-        "The session has started; it can no longer be left or moved.");
+        "The session has started; it can no longer be left, moved or taken back.");
+
+    /// <summary>«می‌آیم» takes back only a date the member left themselves, not one moved or taken out.</summary>
+    public static readonly Error NotLeft = Error.NotFound(
+        "Bookings.NotLeft",
+        "The member has not left that session on that date.");
 
     public static readonly Error AlreadyInSession = Error.BusinessRule(
         "Bookings.AlreadyInSession",

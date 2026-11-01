@@ -107,7 +107,7 @@ public sealed class BookingRulesTests
     public void Places_ADateSkipped_IsLeftOut()
     {
         var schedule = Schedule(Today, Today.AddDays(14), Slot(DayOfWeek.Saturday, 13));
-        var skip = SessionSkip.Create(Place(schedule, Today.AddDays(7), 13), BookedBy.Member, Today, Noon).Value;
+        var skip = SessionSkip.Create(Place(schedule, Today.AddDays(7), 13), SkipReason.Left, Today, Noon).Value;
 
         BookingRules.Places(Today, Today.AddDays(14), [schedule], NoLinkEnded, [skip], [])
             .Select(place => place.Date).ShouldBe([Today, Today.AddDays(14)]);
@@ -152,7 +152,7 @@ public sealed class BookingRulesTests
         var schedule = Schedule(Today, Today.AddDays(13), Slot(DayOfWeek.Saturday, 13));
         var places = BookingRules.Places(Today, Today.AddDays(13), [schedule], NoLinkEnded, [], []);
 
-        var fit = BookingRules.Fit(schedule, places.ToList(), _ => [Session(13, 2)]).Value;
+        var fit = BookingRules.Fit(schedule, places.ToList(), _ => [Session(13, 2)], Today, Noon).Value;
 
         fit.Held.Count.ShouldBe(2);
         fit.Full.ShouldBeEmpty();
@@ -165,7 +165,7 @@ public sealed class BookingRulesTests
         var other = OtherSchedule(Today.AddDays(7), Today.AddDays(7), Slot(DayOfWeek.Saturday, 13));
         var places = BookingRules.Places(Today, Today.AddDays(13), [schedule, other], NoLinkEnded, [], []);
 
-        var fit = BookingRules.Fit(schedule, places.ToList(), _ => [Session(13, 1)]).Value;
+        var fit = BookingRules.Fit(schedule, places.ToList(), _ => [Session(13, 1)], Today, Noon).Value;
 
         fit.Full.ShouldHaveSingleItem().Date.ShouldBe(Today.AddDays(7));
     }
@@ -176,9 +176,36 @@ public sealed class BookingRulesTests
         var schedule = Schedule(Today, Today.AddDays(13), Slot(DayOfWeek.Saturday, 13));
         var places = BookingRules.Places(Today, Today.AddDays(13), [schedule], NoLinkEnded, [], []);
 
-        var fit = BookingRules.Fit(schedule, places.ToList(), date => date == Today ? [] : [Session(13, 5)]).Value;
+        var fit = BookingRules.Fit(schedule, places.ToList(), date => date == Today ? [] : [Session(13, 5)], Today, Noon).Value;
 
         fit.Held.ShouldHaveSingleItem().Date.ShouldBe(Today.AddDays(7));
+        fit.PassedOver.ShouldHaveSingleItem().Date.ShouldBe(Today);
+    }
+
+    [Fact]
+    public void Fit_TodaysSessionThatHasStarted_IsPassedOverNotFull()
+    {
+        var schedule = Schedule(Today, Today.AddDays(13), Slot(DayOfWeek.Saturday, 11));
+        var other = OtherSchedule(Today, Today, Slot(DayOfWeek.Saturday, 11));
+        var places = BookingRules.Places(Today, Today.AddDays(13), [schedule, other], NoLinkEnded, [], []);
+
+        var fit = BookingRules.Fit(schedule, places.ToList(), _ => [Session(11, 1)], Today, Noon).Value;
+
+        fit.PassedOver.ShouldHaveSingleItem().Date.ShouldBe(Today);
+        fit.Full.ShouldBeEmpty();
+        fit.Held.ShouldHaveSingleItem().Date.ShouldBe(Today.AddDays(7));
+    }
+
+    [Fact]
+    public void Fit_AWeeklySessionStartedTodayAndNotOnLaterDates_IsStillTheTrainers()
+    {
+        var schedule = Schedule(Today, Today, Slot(DayOfWeek.Saturday, 11));
+        var places = BookingRules.Places(Today, Today, [schedule], NoLinkEnded, [], []);
+
+        var fit = BookingRules.Fit(schedule, places.ToList(), _ => [Session(11, 5)], Today, Noon);
+
+        fit.IsSuccess.ShouldBeTrue();
+        fit.Value.Held.ShouldBeEmpty();
     }
 
     [Fact]
@@ -187,53 +214,112 @@ public sealed class BookingRulesTests
         var schedule = Schedule(Today, Today.AddDays(13), Slot(DayOfWeek.Saturday, 13), Slot(DayOfWeek.Saturday, 17));
         var places = BookingRules.Places(Today, Today.AddDays(13), [schedule], NoLinkEnded, [], []);
 
-        BookingRules.Fit(schedule, places.ToList(), _ => [Session(13, 5)]).Error.ShouldBe(BookingErrors.NoSuchSession);
+        BookingRules.Fit(schedule, places.ToList(), _ => [Session(13, 5)], Today, Noon).Error.ShouldBe(BookingErrors.NoSuchSession);
     }
 
-    // ---- Moving a date ----
+    // ---- A change of the schedule, from now ----
 
     [Fact]
-    public void CheckMoveTarget_ASessionWithRoom_Succeeds()
+    public void StartedToday_OnlyTodaysStartedSessionsOfASchedule()
     {
-        BookingRules.CheckMoveTarget(MemberId, Today.AddDays(1), Session(13, 1), [], Today.AddDays(7), Today, Noon).IsSuccess.ShouldBeTrue();
+        var schedule = Schedule(Today, Today.AddDays(7), Slot(DayOfWeek.Saturday, 11), Slot(DayOfWeek.Saturday, 13));
+        var places = BookingRules.Places(Today, Today.AddDays(7), [schedule], NoLinkEnded, [], [Booking(Today, 15)]).ToList();
+        places.Add(Place(schedule, Today, 10) with { ScheduleId = null, BookingId = Guid.CreateVersion7(), By = BookedBy.Member });
+
+        var started = BookingRules.StartedToday(places, Today, Noon);
+
+        started.ShouldHaveSingleItem().Start.ShouldBe(new TimeOnly(11, 0));
+    }
+
+    [Fact]
+    public void HandOver_AStartedSessionTheNewScheduleHasToo_StaysInItAndIsNotPassedOver()
+    {
+        var old = Schedule(Today, Today, Slot(DayOfWeek.Saturday, 11));
+        var renewed = Schedule(Today, Today.AddDays(7), Slot(DayOfWeek.Saturday, 11));
+
+        var handOver = BookingRules.HandOver([Place(old, Today, 11)], [Place(renewed, Today, 11)]);
+
+        handOver.PassOver.ShouldBeEmpty();
+        handOver.Keep.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void HandOver_AStartedSessionTheNewScheduleHasNot_IsKept()
+    {
+        var old = Schedule(Today, Today, Slot(DayOfWeek.Saturday, 11));
+        var renewed = Schedule(Today, Today.AddDays(7), Slot(DayOfWeek.Saturday, 10));
+
+        var handOver = BookingRules.HandOver([Place(old, Today, 11)], [Place(renewed, Today, 10)]);
+
+        handOver.Keep.ShouldHaveSingleItem().Start.ShouldBe(new TimeOnly(11, 0));
+        handOver.PassOver.ShouldHaveSingleItem().Start.ShouldBe(new TimeOnly(10, 0));
+    }
+
+    [Fact]
+    public void HandOver_TheScheduleJustEnds_KeepsEveryStartedSession()
+    {
+        var old = Schedule(Today, Today, Slot(DayOfWeek.Saturday, 10), Slot(DayOfWeek.Saturday, 11));
+
+        var handOver = BookingRules.HandOver([Place(old, Today, 10), Place(old, Today, 11)], passedOver: []);
+
+        handOver.Keep.Count.ShouldBe(2);
+        handOver.PassOver.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(-1, 23, true)]
+    [InlineData(0, 12, true)]
+    [InlineData(0, 13, false)]
+    [InlineData(1, 1, false)]
+    public void HasEnded_BeforeOrAtItsEnd(int daysFromToday, int endHour, bool ended)
+    {
+        BookingRules.HasEnded(Today.AddDays(daysFromToday), new TimeOnly(endHour, 0), Today, Noon).ShouldBe(ended);
+    }
+
+    // ---- Moving a date, or taking back «نمی‌آیم» ----
+
+    [Fact]
+    public void CheckJoin_ASessionWithRoom_Succeeds()
+    {
+        BookingRules.CheckJoin(MemberId, Today.AddDays(1), Session(13, 1), [], Today.AddDays(7), Today, Noon).IsSuccess.ShouldBeTrue();
     }
 
     [Theory]
     [InlineData(-1)]
     [InlineData(8)]
-    public void CheckMoveTarget_BeforeTodayOrAfterTheScheduleEnds_FailsWithMoveOutOfSchedule(int daysFromToday)
+    public void CheckJoin_BeforeTodayOrAfterTheScheduleEnds_FailsWithMoveOutOfSchedule(int daysFromToday)
     {
-        BookingRules.CheckMoveTarget(MemberId, Today.AddDays(daysFromToday), Session(13, 5), [], Today.AddDays(7), Today, Noon)
+        BookingRules.CheckJoin(MemberId, Today.AddDays(daysFromToday), Session(13, 5), [], Today.AddDays(7), Today, Noon)
             .Error.ShouldBe(BookingErrors.MoveOutOfSchedule);
     }
 
     [Fact]
-    public void CheckMoveTarget_NoSuchSession_FailsWithNoSuchSession()
+    public void CheckJoin_NoSuchSession_FailsWithNoSuchSession()
     {
-        BookingRules.CheckMoveTarget(MemberId, Today.AddDays(1), target: null, [], Today.AddDays(7), Today, Noon).Error.ShouldBe(BookingErrors.NoSuchSession);
+        BookingRules.CheckJoin(MemberId, Today.AddDays(1), target: null, [], Today.AddDays(7), Today, Noon).Error.ShouldBe(BookingErrors.NoSuchSession);
     }
 
     [Fact]
-    public void CheckMoveTarget_StartedToday_FailsWithSessionStarted()
+    public void CheckJoin_StartedToday_FailsWithSessionStarted()
     {
-        BookingRules.CheckMoveTarget(MemberId, Today, Session(11, 5), [], Today.AddDays(7), Today, Noon).Error.ShouldBe(BookingErrors.SessionStarted);
+        BookingRules.CheckJoin(MemberId, Today, Session(11, 5), [], Today.AddDays(7), Today, Noon).Error.ShouldBe(BookingErrors.SessionStarted);
     }
 
     [Fact]
-    public void CheckMoveTarget_AlreadyInIt_FailsWithAlreadyInSession()
+    public void CheckJoin_AlreadyInIt_FailsWithAlreadyInSession()
     {
         var places = BookingRules.Places(Today, Today, [Schedule(Today, Today, Slot(DayOfWeek.Saturday, 13))], NoLinkEnded, [], []);
 
-        BookingRules.CheckMoveTarget(MemberId, Today, Session(13, 5), places.ToList(), Today.AddDays(7), Today, Noon).Error.ShouldBe(BookingErrors.AlreadyInSession);
+        BookingRules.CheckJoin(MemberId, Today, Session(13, 5), places.ToList(), Today.AddDays(7), Today, Noon).Error.ShouldBe(BookingErrors.AlreadyInSession);
     }
 
     [Fact]
-    public void CheckMoveTarget_NoRoom_FailsWithSessionFull()
+    public void CheckJoin_NoRoom_FailsWithSessionFull()
     {
         var other = OtherSchedule(Today, Today, Slot(DayOfWeek.Saturday, 13));
         var places = BookingRules.Places(Today, Today, [other], NoLinkEnded, [], []);
 
-        BookingRules.CheckMoveTarget(MemberId, Today, Session(13, 1), places.ToList(), Today.AddDays(7), Today, Noon).Error.ShouldBe(BookingErrors.SessionFull);
+        BookingRules.CheckJoin(MemberId, Today, Session(13, 1), places.ToList(), Today.AddDays(7), Today, Noon).Error.ShouldBe(BookingErrors.SessionFull);
     }
 
     // ---- A change of the timetable ----
@@ -288,7 +374,7 @@ public sealed class BookingRulesTests
         FixedSchedule.Create(TrainerId, Guid.CreateVersion7(), Guid.CreateVersion7(), startsOn, endsOn, [slot], Today).Value;
 
     private static BookedPlace Place(FixedSchedule schedule, DateOnly date, int hour) =>
-        new(TrainerId, schedule.MemberId, date, new TimeOnly(hour, 0), new TimeOnly(hour + 1, 0), schedule.Id, BookingId: null);
+        new(TrainerId, schedule.MemberId, date, new TimeOnly(hour, 0), new TimeOnly(hour + 1, 0), schedule.Id, BookingId: null, By: null);
 
     private static SessionBooking Booking(DateOnly date, int hour) =>
         SessionBooking.Create(TrainerId, MemberId, LinkId, date, new TimeOnly(hour, 0), new TimeOnly(hour + 1, 0), BookedBy.Member, Today, Noon).Value;

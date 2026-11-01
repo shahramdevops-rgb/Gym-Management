@@ -57,13 +57,13 @@ public sealed class MoveMySessionHandler(IAppDbContext db, IGymCalendar calendar
         var target = timetable.SessionsOn(command.ToDate).FirstOrDefault(session => session.Start == command.ToStart && session.End == command.ToEnd);
         var targetPlaces = await BookedPlaces.OfTrainerAsync(db, link.TrainerId, command.ToDate, command.ToDate, cancellationToken);
 
-        var allowed = BookingRules.CheckMoveTarget(memberId, command.ToDate, target, targetPlaces.ToList(), lastDate.Value, today, timeOfDay);
+        var allowed = BookingRules.CheckJoin(memberId, command.ToDate, target, targetPlaces.ToList(), lastDate.Value, today, timeOfDay);
         if (allowed.IsFailure)
         {
             return Result.Failure<MySessionsResponse>(allowed.Error);
         }
 
-        var takenOut = await StudentSessions.TakeOutAsync(db, place.Value, BookedBy.Member, today, timeOfDay, cancellationToken);
+        var takenOut = await StudentSessions.TakeOutAsync(db, place.Value, SkipReason.Moved, today, timeOfDay, cancellationToken);
         if (takenOut.IsFailure)
         {
             return Result.Failure<MySessionsResponse>(takenOut.Error);

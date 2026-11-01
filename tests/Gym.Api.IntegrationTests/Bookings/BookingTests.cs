@@ -105,6 +105,25 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
     }
 
     [Fact]
+    public async Task SetSchedule_DatesWithoutTheSession_ArePassedOverAndNeverReadAsRemoved()
+    {
+        var gym = await GymAsync();
+        var today = gym.Tomorrow.AddDays(-1);
+        using var closed = await SendJsonAsync(gym, HttpMethod.Put, $"/api/site/timetable/days/{Iso(gym.Saturday)}", new { sessions = Array.Empty<object>() });
+        closed.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // From today, before the week starts: today has no session either.
+        using var set = await SetScheduleAsync(gym, gym.MemberId, today, gym.Saturday.AddDays(7), Slot(DayOfWeek.Saturday, 13));
+
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var sessions = (await GetJsonAsync(gym.Client, MySessionsPath, gym.MemberToken)).GetProperty("sessions");
+        Dates(sessions).ShouldBe([gym.Saturday.AddDays(7)]);
+        sessions.EnumerateArray().ShouldAllBe(session => !session.GetProperty("removed").GetBoolean());
+        (await SkipsAsync()).Select(skip => skip.Date).ShouldContain(gym.Saturday);
+        (await SkipsAsync()).ShouldAllBe(skip => skip.By == BookedBy.Trainer);
+    }
+
+    [Fact]
     public async Task CheckSchedule_SavesNothing()
     {
         var gym = await GymAsync();
@@ -134,23 +153,50 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
     }
 
     [Fact]
-    public async Task SetSchedule_OneThatHasStarted_ChangesFromTomorrowAndKeepsToday()
+    public async Task SetSchedule_OneFromToday_IsReplacedFromNow()
     {
         var gym = await GymAsync();
         var today = gym.Tomorrow.AddDays(-1);
         using var first = await SetScheduleAsync(gym, gym.MemberId, today, today.AddDays(27), Slot(DayOfWeek.Saturday, 13));
         first.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        using var fromToday = await SetScheduleAsync(gym, gym.MemberId, today, today.AddDays(27), Slot(DayOfWeek.Monday, 13));
-        using var fromTomorrow = await SetScheduleAsync(gym, gym.MemberId, gym.Tomorrow, today.AddDays(27), Slot(DayOfWeek.Monday, 13));
+        using var again = await SetScheduleAsync(gym, gym.MemberId, today, today.AddDays(27), Slot(DayOfWeek.Monday, 13));
 
-        fromToday.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
-        (await fromToday.ReadErrorCodeAsync()).ShouldBe(BookingErrors.ScheduleChangeFromTomorrow.Code);
-        fromTomorrow.StatusCode.ShouldBe(HttpStatusCode.OK);
+        again.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var schedule = (await SchedulesAsync()).ShouldHaveSingleItem();
+        (schedule.StartsOn, schedule.EndsOn).ShouldBe((today, today.AddDays(27)));
+        schedule.Slots.ShouldHaveSingleItem().Day.ShouldBe(DayOfWeek.Monday);
+    }
+
+    [Fact]
+    public async Task SetSchedule_OneWithEarlierDates_EndsYesterdayAndKeepsTodaysStartedSession()
+    {
+        var gym = await GymAsync();
+        var today = await StartedTodayAsync(gym);
+
+        using var changed = await SetScheduleAsync(gym, gym.MemberId, today, today.AddDays(27), Slot(DayOfWeek.Monday, 13));
+
+        changed.StatusCode.ShouldBe(HttpStatusCode.OK);
         var schedules = (await SchedulesAsync()).OrderBy(schedule => schedule.StartsOn).ToList();
-        schedules.Select(schedule => (schedule.StartsOn, schedule.EndsOn)).ShouldBe([(today, today), (gym.Tomorrow, today.AddDays(27))]);
-        var body = await fromTomorrow.ReadJsonAsync();
-        body.GetProperty("schedule").GetProperty("slots")[0].GetProperty("day").GetString().ShouldBe("Monday");
+        schedules.Select(schedule => (schedule.StartsOn, schedule.EndsOn)).ShouldBe([(today.AddDays(-7), today.AddDays(-1)), (today, today.AddDays(27))]);
+        KeptMidnight(await BookingsAsync(), today);
+        var midnight = (await changed.ReadJsonAsync()).GetProperty("sessions").EnumerateArray()
+            .Single(session => session.GetProperty("date").GetString() == Iso(today) && session.GetProperty("start").GetString() == "00:00:00");
+        midnight.GetProperty("moved").GetBoolean().ShouldBeFalse();
+        midnight.GetProperty("started").GetBoolean().ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task EndSchedule_FromNow_KeepsTodaysStartedSession()
+    {
+        var gym = await GymAsync();
+        var today = await StartedTodayAsync(gym);
+
+        using var ended = await gym.Client.SendAsync(Send(HttpMethod.Delete, SchedulePath(gym.MemberId), gym.TrainerToken), TestContext.Current.CancellationToken);
+
+        ended.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await SchedulesAsync()).ShouldHaveSingleItem().EndsOn.ShouldBe(today.AddDays(-1));
+        KeptMidnight(await BookingsAsync(), today);
     }
 
     [Fact]
@@ -230,10 +276,69 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
         using var again = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/leave", Place(gym.Saturday, 13), gym.MemberToken);
 
         left.StatusCode.ShouldBe(HttpStatusCode.OK);
-        Dates((await left.ReadJsonAsync()).GetProperty("sessions")).ShouldBe([gym.Saturday.AddDays(7)]);
-        (await SkipsAsync()).ShouldHaveSingleItem().By.ShouldBe(BookedBy.Member);
+        var sessions = (await left.ReadJsonAsync()).GetProperty("sessions").EnumerateArray().ToList();
+        sessions.Select(session => (session.GetProperty("date").GetString(), session.GetProperty("left").GetBoolean()))
+            .ShouldBe([(Iso(gym.Saturday), true), (Iso(gym.Saturday.AddDays(7)), false)]);
+        var skip = (await SkipsAsync()).ShouldHaveSingleItem();
+        (skip.By, skip.Reason).ShouldBe((BookedBy.Member, SkipReason.Left));
         again.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await again.ReadErrorCodeAsync()).ShouldBe(BookingErrors.NotInSession.Code);
+        Students(await GetJsonAsync(gym.Client, "/api/site/timetable", gym.TrainerToken), gym.Saturday, "13:00:00").ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Return_ADateTheyLeft_ComesBack()
+    {
+        var gym = await GymAsync();
+        using var set = await SetScheduleAsync(gym, gym.MemberId, gym.Tomorrow, gym.Tomorrow.AddDays(13), Slot(DayOfWeek.Saturday, 13));
+        using var left = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/leave", Place(gym.Saturday, 13), gym.MemberToken);
+
+        using var back = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/return", Place(gym.Saturday, 13), gym.MemberToken);
+
+        back.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var sessions = (await back.ReadJsonAsync()).GetProperty("sessions");
+        sessions.EnumerateArray().ShouldAllBe(session => !session.GetProperty("left").GetBoolean());
+        Dates(sessions).ShouldBe([gym.Saturday, gym.Saturday.AddDays(7)]);
+        (await SkipsAsync()).ShouldBeEmpty();
+        Students(await GetJsonAsync(gym.Client, "/api/site/timetable", gym.TrainerToken), gym.Saturday, "13:00:00").ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Return_ADateMovedOrTakenOut_Returns404NotLeft()
+    {
+        var gym = await GymAsync();
+        using var set = await SetScheduleAsync(gym, gym.MemberId, gym.Tomorrow, gym.Tomorrow.AddDays(13), Slot(DayOfWeek.Saturday, 13));
+        using var moved = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/move", Move(gym.Saturday, 13, gym.Saturday, 17), gym.MemberToken);
+        using var removed = await SendJsonAsync(
+            gym, HttpMethod.Post, $"{StudentsPath(gym.Saturday.AddDays(7))}/remove", new { memberId = gym.MemberId, start = "13:00:00", end = "14:00:00" });
+        removed.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var fromMove = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/return", Place(gym.Saturday, 13), gym.MemberToken);
+        using var fromTrainer = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/return", Place(gym.Saturday.AddDays(7), 13), gym.MemberToken);
+
+        fromMove.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await fromMove.ReadErrorCodeAsync()).ShouldBe(BookingErrors.NotLeft.Code);
+        fromTrainer.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await fromTrainer.ReadErrorCodeAsync()).ShouldBe(BookingErrors.NotLeft.Code);
+        (await GetJsonAsync(gym.Client, MySessionsPath, gym.MemberToken)).GetProperty("sessions").EnumerateArray()
+            .ShouldAllBe(session => !session.GetProperty("left").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Return_ASessionFilledMeanwhile_Returns422AndStaysLeft()
+    {
+        var gym = await GymAsync(saturdayCapacity: 1);
+        var other = await AddStudentAsync(gym, OtherMemberPhone);
+        using var set = await SetScheduleAsync(gym, gym.MemberId, gym.Saturday, gym.Saturday, Slot(DayOfWeek.Saturday, 13));
+        using var left = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/leave", Place(gym.Saturday, 13), gym.MemberToken);
+        using var theirs = await SetScheduleAsync(gym, other, gym.Saturday, gym.Saturday, Slot(DayOfWeek.Saturday, 13));
+        theirs.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var back = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/return", Place(gym.Saturday, 13), gym.MemberToken);
+
+        back.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await back.ReadErrorCodeAsync()).ShouldBe(BookingErrors.SessionFull.Code);
+        (await SkipsAsync()).ShouldHaveSingleItem().Reason.ShouldBe(SkipReason.Left);
     }
 
     [Fact]
@@ -455,6 +560,36 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
         pattern.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         return gym;
+    }
+
+    /// <summary>
+    /// Today with a session from 00:00 to 01:00, which has started (the clock here is the real one),
+    /// and the student in it by a fixed schedule from a week ago. Written straight to the database:
+    /// neither can be made through the API once the session has started.
+    /// </summary>
+    /// <returns>Today.</returns>
+    private async Task<DateOnly> StartedTodayAsync(Gym gym)
+    {
+        var today = Today();
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var linkId = await db.TrainerLinks.Where(link => link.MemberId == gym.MemberId).Select(link => link.Id).SingleAsync(TestContext.Current.CancellationToken);
+
+        var midnight = new PlannedSession(TimeOnly.MinValue, new TimeOnly(1, 0), 5);
+        db.TimetableDays.Add(TimetableDay.Create(gym.TrainerId, today, [], [midnight], today.AddDays(-1), new TimeOnly(12, 0)).Value);
+        db.FixedSchedules.Add(FixedSchedule.Create(
+            gym.TrainerId, gym.MemberId, linkId, today.AddDays(-7), today.AddDays(13),
+            [new WeeklySlot(today.DayOfWeek, midnight.Start, midnight.End)], today.AddDays(-7)).Value);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return today;
+    }
+
+    /// <summary>Today's started session, kept for the student as the trainer's single booking.</summary>
+    private static void KeptMidnight(List<SessionBooking> bookings, DateOnly today)
+    {
+        var kept = bookings.ShouldHaveSingleItem();
+        (kept.Date, kept.Start, kept.By).ShouldBe((today, TimeOnly.MinValue, BookedBy.Trainer));
     }
 
     /// <summary>Another member made the trainer's student, as <see cref="GymAsync"/>'s is.</summary>

@@ -29,7 +29,8 @@ public sealed class SetStudentScheduleHandler(IAppDbContext db, IGymCalendar cal
         await db.LockTrainerAsync(trainer.Value.Id, cancellationToken);
 
         var today = calendar.Today();
-        var applied = await FixedScheduleChange.ApplyAsync(db, trainer.Value.Id, memberId, command, today, cancellationToken);
+        var timeOfDay = calendar.TimeOfDay();
+        var applied = await FixedScheduleChange.ApplyAsync(db, trainer.Value.Id, memberId, command, today, timeOfDay, cancellationToken);
         if (applied.IsFailure)
         {
             return Result.Failure<StudentScheduleResponse>(applied.Error);
@@ -43,6 +44,6 @@ public sealed class SetStudentScheduleHandler(IAppDbContext db, IGymCalendar cal
 
         await transaction.CommitAsync(cancellationToken);
 
-        return await StudentScheduleResponse.ForAsync(db, applied.Value.Link, today, calendar.TimeOfDay(), cancellationToken);
+        return await StudentScheduleResponse.ForAsync(db, applied.Value.Link, today, timeOfDay, cancellationToken);
     }
 }

@@ -7,9 +7,13 @@ namespace Gym.Application.Bookings;
 
 /// <summary>A date a student is in one of the trainer's sessions (BUSINESS_RULES.md §15 <i>Students in sessions</i>).</summary>
 /// <param name="Moved">A date moved to, not one of the fixed schedule's.</param>
-/// <param name="Removed">The trainer has since removed the session or moved its times: «سانس برداشته شد».</param>
+/// <param name="Removed">The trainer has since removed the session or moved its times: «لغو شد».</param>
 /// <param name="Started">It has started: it can no longer be left or moved.</param>
-public sealed record PlaceResponse(DateOnly Date, TimeOnly Start, TimeOnly End, bool Moved, bool Removed, bool Started)
+/// <param name="Left">
+/// The member is out of it by their own «نمی‌آیم», and may take it back («می‌آیم»): only in the
+/// member's «سانس‌های من», where such a date is still listed until the session starts.
+/// </param>
+public sealed record PlaceResponse(DateOnly Date, TimeOnly Start, TimeOnly End, bool Moved, bool Removed, bool Started, bool Left)
 {
     internal static PlaceResponse From(BookedPlace place, TimetableDates timetable, DateOnly today, TimeOnly timeOfDay) => new(
         place.Date,
@@ -17,7 +21,12 @@ public sealed record PlaceResponse(DateOnly Date, TimeOnly Start, TimeOnly End, 
         place.End,
         place.IsMoved,
         BookingRules.SessionOf(place, timetable.SessionsOn(place.Date)) is null,
-        BookingRules.HasStarted(place.Date, place.Start, today, timeOfDay));
+        BookingRules.HasStarted(place.Date, place.Start, today, timeOfDay),
+        Left: false);
+
+    /// <summary>A date the member left, its session still there and not started.</summary>
+    internal static PlaceResponse LeftBy(SessionSkip skip) =>
+        new(skip.Date, skip.Start, skip.End, Moved: false, Removed: false, Started: false, Left: true);
 }
 
 /// <summary>A student's «برنامهٔ ثابت»: the weekly sessions, from <paramref name="StartsOn"/> to <paramref name="EndsOn"/>.</summary>

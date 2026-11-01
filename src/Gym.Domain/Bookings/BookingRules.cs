@@ -13,7 +13,7 @@ namespace Gym.Domain.Bookings;
 /// <b>A session is named by its date and times.</b> The timetable keeps no id for a date's session
 /// (15.6a), so a place in one is the date, the start and the end. A change of the timetable that
 /// removes the session, or moves its times, leaves the place pointing at nothing: the student sees
-/// «سانس برداشته شد», and the place counts in no session.
+/// «لغو شد», and the place counts in no session.
 /// </para>
 /// <para>
 /// <b>The capacity is a ceiling</b> (decided by the developer, 1405/08/09), but the database cannot
@@ -57,6 +57,10 @@ public static class BookingRules
     public static bool HasStarted(DateOnly date, TimeOnly start, DateOnly today, TimeOnly timeOfDay) =>
         date < today || (date == today && start <= timeOfDay);
 
+    /// <summary>Whether the session of <paramref name="date"/> ending at <paramref name="end"/> is over.</summary>
+    public static bool HasEnded(DateOnly date, TimeOnly end, DateOnly today, TimeOnly timeOfDay) =>
+        date < today || (date == today && end <= timeOfDay);
+
     /// <summary>
     /// Every student's place from <paramref name="from"/> to <paramref name="to"/>, by date, then
     /// session, then member: each fixed schedule's weekly sessions on its dates, less the dates taken
@@ -92,14 +96,14 @@ public static class BookingRules
             {
                 places.AddRange(schedule.SlotsOn(date.DayOfWeek)
                     .Where(slot => !skipped.Contains((schedule.Id, date, slot.Start, slot.End)))
-                    .Select(slot => new BookedPlace(schedule.TrainerId, schedule.MemberId, date, slot.Start, slot.End, schedule.Id, BookingId: null)));
+                    .Select(slot => new BookedPlace(schedule.TrainerId, schedule.MemberId, date, slot.Start, slot.End, schedule.Id, BookingId: null, By: null)));
             }
         }
 
         places.AddRange(bookings
             .Where(booking => booking.Date >= from && booking.Date <= to)
             .Where(booking => !linkEnds.TryGetValue(booking.LinkId, out var ended) || booking.Date <= ended)
-            .Select(booking => new BookedPlace(booking.TrainerId, booking.MemberId, booking.Date, booking.Start, booking.End, ScheduleId: null, booking.Id)));
+            .Select(booking => new BookedPlace(booking.TrainerId, booking.MemberId, booking.Date, booking.Start, booking.End, ScheduleId: null, booking.Id, booking.By)));
 
         return places
             .DistinctBy(place => (place.MemberId, place.Date, place.Start, place.End))
@@ -126,14 +130,15 @@ public static class BookingRules
     }
 
     /// <summary>
-    /// Whether <paramref name="memberId"/> may move a date to <paramref name="target"/> on
-    /// <paramref name="date"/>: a date from today to <paramref name="lastDate"/>, a session of the
-    /// trainer's that has not started, that they are not in, with room.
+    /// Whether <paramref name="memberId"/> may come into <paramref name="target"/> on
+    /// <paramref name="date"/>, by moving a date to it or taking back their «نمی‌آیم»: a date from
+    /// today to <paramref name="lastDate"/>, a session of the trainer's that has not started, that
+    /// they are not in, with room.
     /// </summary>
     /// <param name="target">The session of that date with the times asked for; <c>null</c> when the date has none.</param>
     /// <param name="places">Every place of that date.</param>
     /// <param name="lastDate">The last date of the member's fixed schedule.</param>
-    public static Result CheckMoveTarget(
+    public static Result CheckJoin(
         Guid memberId,
         DateOnly date,
         PlannedSession? target,
@@ -171,15 +176,20 @@ public static class BookingRules
     /// <summary>
     /// What <paramref name="schedule"/>, already among <paramref name="places"/>, puts its student in:
     /// the dates whose session is there, and those of them with no room for one more. A date with no
-    /// such session is passed over (decided by the developer, 1405/08/09), but a weekly session
-    /// that is on none of its dates is not one of the trainer's.
+    /// such session is passed over (decided by the developer, 1405/08/09), and so is today's session
+    /// that has started: the student cannot join it. A weekly session that is on none of its dates
+    /// is not one of the trainer's.
     /// </summary>
     /// <param name="places">Every place over the schedule's dates, its own among them.</param>
     /// <param name="sessionsOn">The trainer's sessions of a date, from the timetable.</param>
+    /// <param name="today">The gym's today.</param>
+    /// <param name="timeOfDay">The time of day now, in the gym's time zone.</param>
     public static Result<ScheduleFit> Fit(
         FixedSchedule schedule,
         IReadOnlyCollection<BookedPlace> places,
-        Func<DateOnly, IReadOnlyList<PlannedSession>> sessionsOn)
+        Func<DateOnly, IReadOnlyList<PlannedSession>> sessionsOn,
+        DateOnly today,
+        TimeOnly timeOfDay)
     {
         ArgumentNullException.ThrowIfNull(schedule);
         ArgumentNullException.ThrowIfNull(places);
@@ -187,6 +197,7 @@ public static class BookingRules
 
         var held = new List<BookedPlace>();
         var full = new List<BookedPlace>();
+        var passedOver = new List<BookedPlace>();
         var slotsFound = new HashSet<WeeklySlot>();
 
         foreach (var place in places.Where(place => place.ScheduleId == schedule.Id))
@@ -194,10 +205,18 @@ public static class BookingRules
             var session = SessionOf(place, sessionsOn(place.Date));
             if (session is null)
             {
+                passedOver.Add(place);
                 continue;
             }
 
+            // Still one of the trainer's sessions, though the student is not put in it.
             slotsFound.Add(new WeeklySlot(place.Date.DayOfWeek, place.Start, place.End));
+            if (HasStarted(place.Date, place.Start, today, timeOfDay))
+            {
+                passedOver.Add(place);
+                continue;
+            }
+
             held.Add(place);
 
             var others = In(places, place.Date, session).Count(other => other.MemberId != schedule.MemberId);
@@ -212,7 +231,43 @@ public static class BookingRules
             return Result.Failure<ScheduleFit>(BookingErrors.NoSuchSession);
         }
 
-        return new ScheduleFit(held, full);
+        return new ScheduleFit(held, full, passedOver);
+    }
+
+    /// <summary>
+    /// The places of today's sessions that have started, from the fixed schedules among
+    /// <paramref name="places"/>: what a change or an end of those schedules keeps (decided by the
+    /// developer, 1405/08/09: the change applies from now, and what has started stays as it was).
+    /// </summary>
+    public static IReadOnlyList<BookedPlace> StartedToday(IEnumerable<BookedPlace> places, DateOnly today, TimeOnly timeOfDay)
+    {
+        ArgumentNullException.ThrowIfNull(places);
+
+        return places
+            .Where(place => place.ScheduleId is not null && place.Date == today && HasStarted(place.Date, place.Start, today, timeOfDay))
+            .ToList();
+    }
+
+    /// <summary>
+    /// How the student's places pass from the schedules that stop now to the new one, if any: the
+    /// new one's dates it passes over are taken out of it, except today's started sessions the
+    /// student was in already; those the new one does not have stay as single bookings.
+    /// </summary>
+    /// <param name="started">The stopped schedules' places of today that had started (<see cref="StartedToday"/>).</param>
+    /// <param name="passedOver">The new schedule's <see cref="ScheduleFit.PassedOver"/>; empty when the schedule just ends.</param>
+    public static ScheduleHandOver HandOver(IReadOnlyCollection<BookedPlace> started, IReadOnlyCollection<BookedPlace> passedOver)
+    {
+        ArgumentNullException.ThrowIfNull(started);
+        ArgumentNullException.ThrowIfNull(passedOver);
+
+        static (DateOnly, TimeOnly, TimeOnly) Session(BookedPlace place) => (place.Date, place.Start, place.End);
+
+        var wasIn = started.Select(Session).ToHashSet();
+        var stillIn = passedOver.Select(Session).ToHashSet();
+
+        return new ScheduleHandOver(
+            PassOver: passedOver.Where(place => !wasIn.Contains(Session(place))).ToList(),
+            Keep: started.Where(place => !stillIn.Contains(Session(place))).ToList());
     }
 
     /// <summary>
@@ -258,17 +313,25 @@ public static class BookingRules
 
 /// <summary>
 /// A student in a session: the date and the session's times. From their fixed schedule
-/// (<see cref="ScheduleId"/>) or a date moved to (<see cref="BookingId"/>), one of the two.
+/// (<see cref="ScheduleId"/>) or a single booking (<see cref="BookingId"/>, made <see cref="By"/>), one of the two.
 /// </summary>
-public sealed record BookedPlace(Guid TrainerId, Guid MemberId, DateOnly Date, TimeOnly Start, TimeOnly End, Guid? ScheduleId, Guid? BookingId)
+public sealed record BookedPlace(Guid TrainerId, Guid MemberId, DateOnly Date, TimeOnly Start, TimeOnly End, Guid? ScheduleId, Guid? BookingId, BookedBy? By)
 {
-    /// <summary>A date the student moved to, not one of their fixed schedule's.</summary>
-    public bool IsMoved => BookingId is not null;
+    /// <summary>A date the student moved to, not one of their fixed schedule's nor one kept as it changed.</summary>
+    public bool IsMoved => BookingId is not null && By == BookedBy.Member;
 }
 
 /// <param name="Held">The dates the schedule puts its student in a session.</param>
 /// <param name="Full">Those of them with no room: the schedule is not saved while there is one.</param>
-public sealed record ScheduleFit(IReadOnlyList<BookedPlace> Held, IReadOnlyList<BookedPlace> Full);
+/// <param name="PassedOver">
+/// The dates with no such session, or whose session has started. Saved as taken out
+/// (<see cref="SessionSkip.PassOver"/>), so they read as never in the schedule, not as «لغو شد».
+/// </param>
+public sealed record ScheduleFit(IReadOnlyList<BookedPlace> Held, IReadOnlyList<BookedPlace> Full, IReadOnlyList<BookedPlace> PassedOver);
+
+/// <param name="PassOver">The new schedule's dates to take out (<see cref="SessionSkip.PassOver"/>).</param>
+/// <param name="Keep">Today's started sessions to keep as single bookings (<see cref="SessionBooking.Keep"/>).</param>
+public sealed record ScheduleHandOver(IReadOnlyList<BookedPlace> PassOver, IReadOnlyList<BookedPlace> Keep);
 
 /// <param name="Students">The members in it.</param>
 /// <param name="Removed">The change removes the session or moves its times; else it lowers its capacity below its students.</param>

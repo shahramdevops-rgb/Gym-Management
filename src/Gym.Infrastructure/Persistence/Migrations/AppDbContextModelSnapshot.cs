@@ -604,6 +604,12 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("time without time zone")
                         .HasColumnName("end_time");
 
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("reason");
+
                     b.Property<Guid>("ScheduleId")
                         .HasColumnType("uuid")
                         .HasColumnName("schedule_id");
@@ -634,6 +640,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_session_skips_end_after_start", "end_time > start_time");
 
                             t.HasCheckConstraint("ck_session_skips_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 5 = 0");
+
+                            t.HasCheckConstraint("ck_session_skips_reason", "(reason IN ('Left', 'Moved') AND booked_by = 'Member') OR (reason IN ('TakenOut', 'PassedOver') AND booked_by = 'Trainer')");
 
                             t.HasCheckConstraint("ck_session_skips_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 5 = 0");
                         });

@@ -31,7 +31,7 @@ public sealed class CheckStudentScheduleHandler(IAppDbContext db, IGymCalendar c
 
         await db.LockTrainerAsync(trainer.Value.Id, cancellationToken);
 
-        var applied = await FixedScheduleChange.ApplyAsync(db, trainer.Value.Id, memberId, command, calendar.Today(), cancellationToken);
+        var applied = await FixedScheduleChange.ApplyAsync(db, trainer.Value.Id, memberId, command, calendar.Today(), calendar.TimeOfDay(), cancellationToken);
         if (applied.IsFailure)
         {
             return Result.Failure<ScheduleCheckResponse>(applied.Error);

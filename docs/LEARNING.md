@@ -2270,3 +2270,22 @@ The question that started this was whether a gym that is entirely internal — I
 - **An endpoint that reads but takes a body is a POST.** `/pattern/check` needs the whole new pattern to answer, and a GET has no body, so it is a POST that changes nothing.
 - **Build beside a running app: `UseArtifactsOutput` as environment variables.** `dotnet ef` has no `--artifacts-path`, but MSBuild reads environment variables as properties, so `UseArtifactsOutput=true ArtifactsPath=...` sends its build there too.
 - **My notes:**
+
+## 15.6b-2 — Students in sessions, the screens (شاگردان در سانس‌ها)
+
+- **Check first, then save, in the browser too.** Each timetable change calls its `check` endpoint, and saves at once when no student is touched; otherwise the save waits as a function in state (`HeldChange`) until the trainer answers the warning. The check and the save are sent the same body, so what the warning describes is what gets saved.
+- **Lock the form while a warning is open.** If the trainer could keep editing under the warning, «ذخیره با این حال» would save the version that was checked, not the one on the screen. The editors are disabled until the trainer answers.
+- **A warning in place of the buttons, not a second dialog.** The day's editor is already a dialog; the warning takes the place of its buttons. A dialog over a dialog moves the focus twice and is easy to lose on a phone.
+- **Invalidate the neighbours after a change.** A change answers with what it changed, which replaces that cached read (`setQueryData`); the other reads that depend on it (the timetable's student counts, the student's dates, the day's students) are marked stale with one key prefix, `["site", "bookings"]`, and read again.
+- **Show nothing while a card does not yet know if it applies.** «سانس‌های من» is only for a member with a trainer; it renders nothing until the answer comes, so a member without one never sees an empty card flash.
+- **Toggle buttons say their state.** Each weekly session in the schedule form is a button with `aria-pressed`, which a screen reader reads as "pressed" and a test finds with `getByRole("button", { pressed: true })`.
+- **My notes:**
+
+## 15.6b-3 — A change from now, «لغو شد» and «می‌آیم» (تغییر در لحظه)
+
+- **Store why, not only who.** A skipped date already kept who made it (`BookedBy`), but «می‌آیم» must bring back only a date the member *left*, not one they moved (that would put them in two sessions). So `SessionSkip` now keeps a `SkipReason` too, and a check constraint ties the two together in the database (a leave or a move is the member's, a removal or a pass-over the trainer's).
+- **Carry old rows forward in the migration.** The new column can't be filled by a default alone: the migration works out each existing row's reason with one `UPDATE` (a member's skip saved in the same save as their booking was a move) before the check constraint is added, so no row is refused.
+- **A change "from now" when the model counts in days.** A fixed schedule is a range of dates, and the database allows one per link at a time, so two schedules can't share today. The old one ends yesterday, the new one starts today, and today's sessions that have already started, which the old one gave, are kept: still in the new schedule where it has them, else as a single booking by the trainer (`BookingRules.HandOver`, a pure function, so the Domain tests cover every case without a clock or a database).
+- **A flag for what a record is, not where it came from.** A booking used to mean "moved"; now a kept session is a booking too. `IsMoved` became "a booking the member made", so the trainer's kept sessions don't show «جابه‌جا شده».
+- **Undo without asking.** «نمی‌آیم» asks first because it gives the place away; «می‌آیم» does not ask, because a wrong tap is undone the same way.
+- **My notes:**

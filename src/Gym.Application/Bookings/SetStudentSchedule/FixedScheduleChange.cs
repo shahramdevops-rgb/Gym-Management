@@ -12,25 +12,18 @@ namespace Gym.Application.Bookings.SetStudentSchedule;
 /// </summary>
 /// <remarks>
 /// The new schedule is written before its room is counted, so the count reads the places exactly as
-/// they would be: the old schedule ended today or removed, the new one in. The caller holds the
-/// trainer's lock and a transaction, and commits only when no date is full.
+/// they would be: the old schedule stopped from today or removed, the new one in. The caller holds
+/// the trainer's lock and a transaction, and commits only when no date is full.
 /// </remarks>
 internal static class FixedScheduleChange
 {
     public static async Task<Result<(TrainerLink Link, ScheduleFit Fit)>> ApplyAsync(
-        IAppDbContext db, Guid trainerId, Guid memberId, SetStudentScheduleCommand command, DateOnly today, CancellationToken cancellationToken)
+        IAppDbContext db, Guid trainerId, Guid memberId, SetStudentScheduleCommand command, DateOnly today, TimeOnly timeOfDay, CancellationToken cancellationToken)
     {
         var link = await StudentSessions.LinkAsync(db, trainerId, memberId, cancellationToken);
         if (link.IsFailure)
         {
             return Result.Failure<(TrainerLink, ScheduleFit)>(link.Error);
-        }
-
-        // A schedule that has started changes from tomorrow: today's sessions stay as they were.
-        var current = await StudentSessions.FromTodayAsync(db, link.Value.Id, today, cancellationToken);
-        if (command.StartsOn <= today && current.Any(schedule => schedule.HasStartedBy(today)))
-        {
-            return Result.Failure<(TrainerLink, ScheduleFit)>(BookingErrors.ScheduleChangeFromTomorrow);
         }
 
         var slots = command.Slots.Select(slot => new WeeklySlot(slot.Day, slot.Start, slot.End)).ToList();
@@ -40,9 +33,14 @@ internal static class FixedScheduleChange
             return Result.Failure<(TrainerLink, ScheduleFit)>(created.Error);
         }
 
+        // The change applies from now (decided by the developer, 1405/08/09): what has started today
+        // stays as it was, read before the old schedule stops.
+        var current = await StudentSessions.FromTodayAsync(db, link.Value.Id, today, cancellationToken);
+        var started = await StudentSessions.StartedTodayAsync(db, current, today, timeOfDay, cancellationToken);
+
         // Saved before the new one goes in: the exclusion constraint holds one schedule per link at
         // every write.
-        StudentSessions.EndAfterToday(db, current, today);
+        StudentSessions.StopFromToday(db, current, today);
         await db.SaveChangesAsync(cancellationToken);
 
         var schedule = created.Value;
@@ -51,8 +49,19 @@ internal static class FixedScheduleChange
 
         var timetable = await TrainerTimetable.DatesAsync(db, trainerId, schedule.StartsOn, schedule.EndsOn, cancellationToken);
         var places = await BookedPlaces.OfTrainerAsync(db, trainerId, schedule.StartsOn, schedule.EndsOn, cancellationToken);
-        var fit = BookingRules.Fit(schedule, places.ToList(), timetable.SessionsOn);
+        var fit = BookingRules.Fit(schedule, places.ToList(), timetable.SessionsOn, today, timeOfDay);
+        if (fit.IsFailure)
+        {
+            return Result.Failure<(TrainerLink, ScheduleFit)>(fit.Error);
+        }
 
-        return fit.IsFailure ? Result.Failure<(TrainerLink, ScheduleFit)>(fit.Error) : (link.Value, fit.Value);
+        // The dates it passes over are taken out now, so a session that comes or goes later does not
+        // make them read as «لغو شد»; today's started sessions it does not have are kept on their own.
+        var handOver = BookingRules.HandOver(started, fit.Value.PassedOver);
+        db.SessionSkips.AddRange(handOver.PassOver.Select(SessionSkip.PassOver));
+        db.SessionBookings.AddRange(handOver.Keep.Select(place => SessionBooking.Keep(place, link.Value.Id)));
+        await db.SaveChangesAsync(cancellationToken);
+
+        return (link.Value, fit.Value);
     }
 }
