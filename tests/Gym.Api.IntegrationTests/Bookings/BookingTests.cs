@@ -480,6 +480,7 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
         var impact = await check.ReadJsonAsync();
         impact.GetProperty("students").GetInt32().ShouldBe(1);
         impact.GetProperty("sessions").EnumerateArray().Select(session => session.GetProperty("removed").GetBoolean()).ShouldBe([true, true]);
+        impact.GetProperty("toReschedule").EnumerateArray().Select(student => student.GetProperty("memberId").GetGuid()).ShouldBe([gym.MemberId]);
         save.StatusCode.ShouldBe(HttpStatusCode.OK);
         var sessions = (await GetJsonAsync(gym.Client, MySessionsPath, gym.MemberToken)).GetProperty("sessions").EnumerateArray().ToList();
         sessions.Count.ShouldBe(2);
@@ -503,6 +504,7 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
         var session = impact.GetProperty("sessions").EnumerateArray().ShouldHaveSingleItem();
         session.GetProperty("removed").GetBoolean().ShouldBeFalse();
         session.GetProperty("students").GetInt32().ShouldBe(2);
+        impact.GetProperty("toReschedule").GetArrayLength().ShouldBe(0);
     }
 
     [Fact]

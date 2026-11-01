@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, Navigate } from "react-router";
 
 import { JalaliDateField } from "@/components/FormField";
@@ -32,6 +32,7 @@ import {
   touchesNoOne,
   useTimetable,
   type DayOfWeek,
+  type StudentToReschedule,
   type Timetable,
   type TimetableDay,
   type TimetableImpact,
@@ -107,6 +108,7 @@ function draftsOf(timetable: Timetable): WeekDrafts {
 
 function PatternCard({ timetable }: { timetable: Timetable }) {
   const [editing, setEditing] = useState(false);
+  const [toReschedule, setToReschedule] = useState<StudentToReschedule[]>([]);
   const pattern = timetable.pattern;
 
   return (
@@ -118,9 +120,18 @@ function PatternCard({ timetable }: { timetable: Timetable }) {
       </CardHeader>
       <CardContent className="space-y-3">
         {editing ? (
-          <PatternEditor timetable={timetable} onDone={() => setEditing(false)} />
+          <PatternEditor
+            timetable={timetable}
+            onDone={(saved = []) => {
+              setEditing(false);
+              setToReschedule(saved);
+            }}
+          />
         ) : (
           <>
+            {toReschedule.length > 0 && (
+              <RescheduleNotice students={toReschedule} onClose={() => setToReschedule([])} />
+            )}
             {pattern === null ? (
               <p className="text-sm text-muted-foreground">
                 هنوز الگویی نساخته‌اید. سانس‌های هر روز هفته را یک بار بسازید؛ هر هفته تکرار
@@ -167,10 +178,59 @@ function PatternCard({ timetable }: { timetable: Timetable }) {
 }
 
 /**
+ * After a pattern saved under the warning (roadmap 15.6b-4): the students whose fixed schedule lost
+ * sessions to it, each a way to their «برنامهٔ ثابت». It stays until closed or the page is left.
+ * The long editor left the page scrolled far below it, so it brings itself into view.
+ */
+function RescheduleNotice({
+  students,
+  onClose,
+}: {
+  students: StudentToReschedule[];
+  onClose: () => void;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    box.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+  }, []);
+
+  return (
+    <div
+      ref={box}
+      role="status"
+      aria-label="برنامهٔ تازه لازم است"
+      className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/8 p-3 text-sm"
+    >
+      <p className="font-semibold">
+        برنامهٔ ثابت این شاگردان سانس‌هایی دارد که دیگر نیست. برای هر کدام برنامهٔ تازه بچینید:
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {students.map((student) => (
+          <Button key={student.memberId} asChild variant="outline" size="sm">
+            <Link to={sitePaths.student(student.memberId)}>{student.fullName}</Link>
+          </Button>
+        ))}
+      </div>
+      <Button variant="ghost" size="sm" onClick={onClose}>
+        بستن
+      </Button>
+    </div>
+  );
+}
+
+/**
  * Every day of the week with its sessions, and the date the change applies from: tomorrow by
  * default, and the days before it keep what they had. A date changed on its own keeps its change.
+ * Saved under the warning, it hands back the students whose fixed schedule lost sessions.
  */
-function PatternEditor({ timetable, onDone }: { timetable: Timetable; onDone: () => void }) {
+function PatternEditor({
+  timetable,
+  onDone,
+}: {
+  timetable: Timetable;
+  onDone: (toReschedule?: StudentToReschedule[]) => void;
+}) {
   const [drafts, setDrafts] = useState(() => draftsOf(timetable));
   const tomorrow = addDays(timetable.today, 1);
   const [startsOn, setStartsOn] = useState(tomorrow);
@@ -194,9 +254,13 @@ function PatternEditor({ timetable, onDone }: { timetable: Timetable; onDone: ()
         inputsOf(drafts[day]).map((session) => ({ day, ...session })),
       ),
     };
-    const saveIt = () => save.mutate(pattern, { onSuccess: onDone });
+    const saveIt = (toReschedule: StudentToReschedule[]) =>
+      save.mutate(pattern, { onSuccess: () => onDone(toReschedule) });
     check.mutate(pattern, {
-      onSuccess: (impact) => (touchesNoOne(impact) ? saveIt() : setHeld({ impact, save: saveIt })),
+      onSuccess: (impact) =>
+        touchesNoOne(impact)
+          ? saveIt([])
+          : setHeld({ impact, save: () => saveIt(impact.toReschedule) }),
     });
   }
 
@@ -244,7 +308,7 @@ function PatternEditor({ timetable, onDone }: { timetable: Timetable; onDone: ()
           <Button className="flex-1" disabled={pending} onClick={submit}>
             ذخیره الگو
           </Button>
-          <Button variant="outline" disabled={pending} onClick={onDone}>
+          <Button variant="outline" disabled={pending} onClick={() => onDone()}>
             انصراف
           </Button>
         </div>

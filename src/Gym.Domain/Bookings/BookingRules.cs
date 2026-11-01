@@ -293,16 +293,22 @@ public static class BookingRules
             var next = after(date);
             foreach (var session in before(date))
             {
-                var students = In(places, date, session).Select(place => place.MemberId).ToList();
-                if (students.Count == 0)
+                var inIt = In(places, date, session).ToList();
+                if (inIt.Count == 0)
                 {
                     continue;
                 }
 
                 var kept = next.FirstOrDefault(other => other.Start == session.Start && other.End == session.End);
-                if (kept is null || kept.Capacity < students.Count)
+                if (kept is null || kept.Capacity < inIt.Count)
                 {
-                    touched.Add(new TouchedSession(date, session.Start, session.End, students, Removed: kept is null));
+                    touched.Add(new TouchedSession(
+                        date,
+                        session.Start,
+                        session.End,
+                        inIt.Select(place => place.MemberId).ToList(),
+                        inIt.Where(place => place.ScheduleId is not null).Select(place => place.MemberId).ToList(),
+                        Removed: kept is null));
                 }
             }
         }
@@ -334,5 +340,6 @@ public sealed record ScheduleFit(IReadOnlyList<BookedPlace> Held, IReadOnlyList<
 public sealed record ScheduleHandOver(IReadOnlyList<BookedPlace> PassOver, IReadOnlyList<BookedPlace> Keep);
 
 /// <param name="Students">The members in it.</param>
+/// <param name="OnSchedule">Those of them in it by their fixed schedule, not by a single booking.</param>
 /// <param name="Removed">The change removes the session or moves its times; else it lowers its capacity below its students.</param>
-public sealed record TouchedSession(DateOnly Date, TimeOnly Start, TimeOnly End, IReadOnlyList<Guid> Students, bool Removed);
+public sealed record TouchedSession(DateOnly Date, TimeOnly Start, TimeOnly End, IReadOnlyList<Guid> Students, IReadOnlyList<Guid> OnSchedule, bool Removed);

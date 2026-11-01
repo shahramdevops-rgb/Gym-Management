@@ -4598,6 +4598,10 @@ fine"), to go out with the next release:
           became «لغو شد» and wraps in a narrow box; «نمی‌آیم» leaves the date listed, faded, with
           «می‌آیم» to take it back (`POST /api/site/me/sessions/return`, `SkipReason`, migration
           `AddSessionSkipReason`); today's sessions that are over leave «سانس‌های من»
+    - [x] **15.6b-4, students to reschedule** (1405/08/10, `task/15.6-timetable`): the warning's
+          check also names the students whose fixed schedule loses sessions (`toReschedule`); after
+          a pattern saved under the warning, «برنامهٔ تازه لازم است» lists them with links to their
+          «برنامهٔ ثابت». Held in the page only: it is gone when the trainer leaves the page
   - [ ] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
   - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
         days and times within what the trainer allows (e.g. three days a week for eight weeks),

@@ -2297,3 +2297,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **New keys for copies.** Each copied session gets a fresh `key` (`toDraft`), because React tells list items apart by key: two days holding the same keys would still work, but a fresh key per draft keeps "one draft, one identity" true.
 - **Replace, not add.** Adding a day's sessions on top of another's quickly makes the same session twice, which the API refuses anyway; replacing is what "copy" means, and the box says so under the days.
 - **My notes:**
+
+## 15.6b-4 — Students to reschedule (شاگردانی که برنامهٔ تازه می‌خواهند)
+
+- **Answer the next question in the same response.** The warning's check already knew which students a change touches; it now also says which of them were there by their fixed schedule (`TouchedSession.OnSchedule`) and returns their names. The screen asks nothing more of the API after the save.
+- **Why not move students automatically.** When a session's times change, nothing says which new session is "the same" one (16:00 to 18:00 became 16:30 to 18:30, or 17:00 to 19:00?). A guess could put a student where they never agreed to come, so the trainer decides, with the list in front of them.
+- **State that lives only in the page.** The list sits in `PatternCard`'s state: cheap, and enough to try the idea. The trade-off is that it is gone once the trainer leaves the page; keeping it would need the server to remember it.
+- **Look at the screen, not only the tests.** The tests passed, but the screenshot showed the notice above the screen: the long editor had left the page scrolled down. `scrollIntoView` on first render fixed it; jsdom has no such method, hence the `?.()` call.
+- **My notes:**

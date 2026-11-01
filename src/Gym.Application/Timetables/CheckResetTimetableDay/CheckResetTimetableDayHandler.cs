@@ -24,7 +24,7 @@ public sealed class CheckResetTimetableDayHandler(IAppDbContext db, IGymCalendar
         var timetable = await TrainerTimetable.DatesAsync(db, trainerId, date, date, cancellationToken);
         if (!timetable.Changed.TryGetValue(date, out var day))
         {
-            return new TimetableImpactResponse(0, []);
+            return TimetableImpactResponse.None;
         }
 
         var patternSessions = TimetableRules.SessionsOn(date, timetable.Patterns, changedDay: null);

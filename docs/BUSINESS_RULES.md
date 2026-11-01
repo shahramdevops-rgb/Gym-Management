@@ -2666,6 +2666,12 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     students, the trainer is told how many students it touches, and saves anyway or not. A
     student whose session is gone sees that date as «لغو شد» (the developer, 1405/08/09, in place
     of «سانس برداشته شد», which read as unclear); the SMS and the in-app notice are 15.6c's.
+  - **After a change of the pattern saved under the warning, the trainer is shown the students
+    whose fixed schedule lost sessions to it**, each a way to their «برنامهٔ ثابت», to give them a
+    new one (*decided by the developer*, 1405/08/10, "for now, to see what comes out of it"). A
+    student is not moved to a new session by itself: when times change, which new session is
+    "the same" one cannot be known. A single date's change only cancels that date, so it names no
+    one; a session whose capacity drops keeps its students.
   - **Only the trainer's students now** (an open link, 15.4) are put in sessions. When the link
     ends, from either side or by the trainer being stopped, the member's sessions after that day
     are gone; the day itself stays.

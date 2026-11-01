@@ -124,6 +124,7 @@ export function useResetTimetableDay() {
 // ---- The warning before a change (BUSINESS_RULES.md §15 *Students in sessions*, 15.6b) ----
 
 export type TimetableImpact = components["schemas"]["TimetableImpactResponse"];
+export type StudentToReschedule = components["schemas"]["StudentToRescheduleResponse"];
 
 /** Whether a checked change touches no student and can be saved without asking. */
 export const touchesNoOne = (impact: TimetableImpact) => Number(impact.students) === 0;

@@ -47,7 +47,7 @@ const todaysSessions = {
 };
 
 /** A change's check that touches no student: saved without asking. */
-const noImpact = () => json(200, { students: 0, sessions: [] });
+const noImpact = () => json(200, { students: 0, sessions: [], toReschedule: [] });
 
 /** A date's «شاگردان سانس» with no session. */
 const noStudents = (date: string) => () => json(200, { date, sessions: [] });
@@ -352,6 +352,10 @@ describe("students in the trainer's sessions", () => {
       { date, start: "13:00:00", end: "14:00:00", students: 2, removed: true },
       { date: "2026-11-09", start: "14:00:00", end: "15:00:00", students: 1, removed: false },
     ],
+    toReschedule: [
+      { memberId: "0199a000-0000-7000-8000-000000000301", fullName: "سارا احمدی" },
+      { memberId: "0199a000-0000-7000-8000-000000000302", fullName: "مینا رضایی" },
+    ],
   };
 
   it("SavePattern_TouchesStudents_WarnsAndSavesOnlyOnYes", async () => {
@@ -384,6 +388,46 @@ describe("students in the trainer's sessions", () => {
 
     await screen.findByRole("button", { name: "تغییر الگو" });
     expect(api.requestsTo("PUT", "/api/site/timetable/pattern")).toHaveLength(1);
+  });
+
+  it("SavePattern_UnderTheWarning_NamesTheStudentsToGiveANewSchedule", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
+      "POST /api/site/timetable/pattern/check": () => json(200, touched),
+      "PUT /api/site/timetable/pattern": () => json(200, timetableWith(saturdayPattern)),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+    fireEvent.click(await screen.findByRole("button", { name: "ذخیره با این حال" }));
+
+    const notice = await screen.findByRole("status", { name: "برنامهٔ تازه لازم است" });
+    expect(within(notice).getByRole("link", { name: "سارا احمدی" })).toHaveAttribute(
+      "href",
+      "/students/0199a000-0000-7000-8000-000000000301",
+    );
+    expect(within(notice).getByRole("link", { name: "مینا رضایی" })).toBeInTheDocument();
+
+    fireEvent.click(within(notice).getByRole("button", { name: "بستن" }));
+    expect(screen.queryByRole("status", { name: "برنامهٔ تازه لازم است" })).not.toBeInTheDocument();
+  });
+
+  it("SavePattern_TouchingNoOne_NamesNoOne", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
+      "POST /api/site/timetable/pattern/check": noImpact,
+      "PUT /api/site/timetable/pattern": () => json(200, timetableWith(saturdayPattern)),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+
+    await screen.findByRole("button", { name: "تغییر الگو" });
+    expect(screen.queryByRole("status", { name: "برنامهٔ تازه لازم است" })).not.toBeInTheDocument();
   });
 
   it("Day_ShowsEachSessionsStudents_AndTakesOneOutAfterAsking", async () => {

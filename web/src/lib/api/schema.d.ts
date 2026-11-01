@@ -4198,6 +4198,11 @@ export interface components {
             requests: components["schemas"]["StudentRequestResponse"][];
             students: components["schemas"]["StudentResponse"][];
         };
+        StudentToRescheduleResponse: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+        };
         SubscriptionReceiptSettings: {
             enabled: boolean;
         };
@@ -4266,6 +4271,7 @@ export interface components {
             /** Format: int32 */
             students: number | string;
             sessions: components["schemas"]["TouchedSessionResponse"][];
+            toReschedule: components["schemas"]["StudentToRescheduleResponse"][];
         };
         TimetableResponse: {
             /** Format: date */

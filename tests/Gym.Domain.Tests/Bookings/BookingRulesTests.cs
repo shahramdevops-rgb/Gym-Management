@@ -338,6 +338,19 @@ public sealed class BookingRulesTests
     }
 
     [Fact]
+    public void Impact_AStudentMovedIn_IsInTheSessionButNotOnSchedule()
+    {
+        var other = OtherSchedule(Today, Today, Slot(DayOfWeek.Saturday, 13));
+        var places = BookingRules.Places(Today, Today, [other], NoLinkEnded, [], [Booking(Today, 13)]);
+
+        var touched = BookingRules.Impact(places.ToList(), _ => [Session(13, 5)], _ => []);
+
+        var session = touched.ShouldHaveSingleItem();
+        session.Students.ShouldBe([other.MemberId, MemberId], ignoreOrder: true);
+        session.OnSchedule.ShouldBe([other.MemberId]);
+    }
+
+    [Fact]
     public void Impact_ACapacityBelowItsStudents_IsTouchedNotRemoved()
     {
         var places = BookingRules.Places(Today, Today, [
