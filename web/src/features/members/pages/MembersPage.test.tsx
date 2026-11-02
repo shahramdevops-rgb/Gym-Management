@@ -182,6 +182,7 @@ describe("MembersPage", () => {
   it.each([
     { label: "تک‌جلسه", param: "single", query: "SingleSessionOnly" },
     { label: "پلن تمام‌شده", param: "ended", query: "PlanEndedOnly" },
+    { label: "فریز", param: "frozen", query: "FrozenOnly" },
   ])("MembersPage_$query_AsksTheApiAndKeepsItInTheUrl", async ({ label, param, query }) => {
     // BUSINESS_RULES.md §2: the API filters before paging, so the page only has to ask.
     const api = mockApi({
@@ -200,6 +201,14 @@ describe("MembersPage", () => {
     expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "true");
     expect(router.state.location.search).toBe(`?status=active&${param}=1`);
     expect(queryOf(api.requestsTo("GET", "/api/members").at(-1)!).get("IsActive")).toBe("true");
+  });
+
+  it("MembersPage_NoFrozenPlans_SaysSo", async () => {
+    mockApi({ ...signedInHandlers(staffUser), "GET /api/members": () => membersPage([]) });
+
+    renderApp("/members?frozen=1", { session: session() });
+
+    expect(await screen.findByText("عضوی با پلن فریز نیست.")).toBeInTheDocument();
   });
 
   it("MembersPage_NoSingleSessionVisitors_SaysSo", async () => {

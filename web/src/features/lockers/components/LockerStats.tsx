@@ -95,7 +95,7 @@ export function LockerStats({
           <li className="flex items-center gap-2 text-xs text-muted-foreground max-lg:hidden">
             <span
               aria-hidden
-              className="rounded-es-sm bg-destructive/20 px-1 text-[9px] leading-snug font-bold text-destructive"
+              className="rounded-es-sm px-1 text-[10px] leading-snug font-bold text-destructive"
             >
               بدهکار
             </span>

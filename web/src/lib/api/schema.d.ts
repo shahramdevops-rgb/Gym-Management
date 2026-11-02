@@ -5777,6 +5777,7 @@ export interface operations {
                 DebtorsOnly?: boolean;
                 SingleSessionOnly?: boolean;
                 PlanEndedOnly?: boolean;
+                FrozenOnly?: boolean;
                 Page?: number | string;
                 PageSize?: number | string;
             };

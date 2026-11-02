@@ -4560,6 +4560,13 @@ fine"), to go out with the next release:
   - On a phone the legend's five (free, occupied, single visit, guest, cardio) stay on one line
     beside each other, never under (asked by the developer, 1405/08/12): tighter gaps, a smaller
     swatch and text, measured at 390 and 360px with two-digit counts; the computer unchanged
+  - Asked the same night, to go out with these (1405/08/12): the «بدهکار» tag in red letters with
+    no ground, a little larger (12px on a door, 10px in the legend); and a «فریز» filter on the
+    members list (`frozenOnly`, the row's `IsFrozen` test: frozen and not cancelled), with the
+    phone's seven filter buttons tightened to stay on one line at 360px
+  - And the doors' tint, softer and gathered on the left, fading out toward the coloured edge
+    (`to right`, gone by 60%; the other states mixed 60% into the door, the free green at full
+    strength since it is the palest)
 
 ### Release 2 — The timetable and attendance (priority 1)
 

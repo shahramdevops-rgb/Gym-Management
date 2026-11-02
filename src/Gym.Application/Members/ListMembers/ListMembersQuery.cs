@@ -21,11 +21,16 @@ namespace Gym.Application.Members.ListMembers;
 /// Only members tagged «پلن تمام‌شده» (BUSINESS_RULES.md §2, <see cref="MemberListRow.PlanEnded"/>).
 /// Combines with the other filters.
 /// </param>
+/// <param name="FrozenOnly">
+/// Only members with a plan frozen right now (BUSINESS_RULES.md §2, §4 <i>Freeze</i>), so the Owner
+/// sees how many are frozen. No tag on the rows. Combines with the other filters.
+/// </param>
 public sealed record ListMembersQuery(
     string? Search = null,
     bool? IsActive = null,
     bool DebtorsOnly = false,
     bool SingleSessionOnly = false,
     bool PlanEndedOnly = false,
+    bool FrozenOnly = false,
     int Page = 1,
     int PageSize = PagingRules.DefaultPageSize);

@@ -192,6 +192,11 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
   - **«تک‌جلسه» tag** (red): the member's latest visit (cancelled ones left out) used a single-session subscription (§4), whatever they had before it.
   - **Never both tags** (developer, 1405/07/15): a member whose latest visit was a single visit and whose plan has ended shows only what happened more recently. A plan that still had sessions ended with its last day, so it is the more recent when that day is the single visit's day or later; a plan whose sessions ran out ended at its last session, a visit before the single visit, so the single visit is the more recent. The filters follow the tags.
   - **Each tag is also a filter** («تک‌جلسه», «پلن تمام‌شده»), beside «بدهکار» and working the same way: applied before paging, combined with the status, the search and each other. A filter lists exactly the members its tag is shown on (asked by the developer, 1405/07/15).
+  - **«فریز» filter** (asked by the developer, 1405/08/12): only members with a plan frozen right
+    now (§4 *Freeze*: frozen and not cancelled), so the count beside the list's title says how many
+    are frozen. No tag on the rows (the status column was removed, above). It combines with the
+    status, the search and the other filters like they do. On a phone the seven filter buttons
+    still share one line.
   - **«پلن تمام‌شده» tag:** the member's plan is over, by its dates (`Expired`) or its sessions (`Exhausted`), and they have no active, frozen or queued plan after it. Single visits are not plans: one bought after the plan ended does not clear the tag, and a member who only ever bought single visits never gets it. Deactivated members never get it (the gym has let them go, as in §9 *Needs attention*).
   - **«جلسات» column:** the sessions bar of the «داخل باشگاه» board (§7: used of total, marked at 3 or fewer left) for the member's plan: the active one, else the frozen one, else the soonest queued one, else the one that ended last. Nothing for a member with no plan.
 - Deactivating an inactive member, or reactivating an active one, succeeds and changes nothing.
@@ -532,8 +537,8 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
   tells it apart from a member on a plan. A reserve place on a single visit is drawn the same way.
   A cardio-only visit keeps its yellow whatever the member holds.
 - **A holder who owes money is marked on the map** (asked by the developer, 1405/07/06): a small
-  «بدهکار» tag in red letters on a faint red ground (the ground was solid red until 1405/07/20,
-  softened by the developer) hanging from the door's top edge at its top-right corner (changed by
+  «بدهکار» tag in red letters with no ground of its own, a little larger than before (the
+  developer, 1405/08/12; the ground was solid red until 1405/07/20, then a faint red) hanging from the door's top edge at its top-right corner (changed by
   the developer, 1405/07/07, from a band across the top-left corner), whenever the member holding
   the locker has any debt at all (§5 *Member debt*: a subscription, a service such as هوازی, or a
   cafe order). It is information only, like the debt shown at check-in; the amount and what it is for are in the
@@ -660,12 +665,15 @@ Decided by the developer, 1405/07/07 (2026-09-29). Roadmap 6.5.16.
 Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadmap 6.5.16.
 - The screen has no theme of its own: it is light or dark with the rest of the app (§14). (It was
   always dark from 1405/07/07 until the developer turned it light on 1405/07/08, roadmap 6.5.21.)
-- A free door is tinted green from its top corner, like an occupied one in red, with a green edge
+- A free door is tinted green, like an occupied one in red, with a green edge
   down its right side and the number a soft grey, lighter than an out-of-service door's (changed by
   the developer, 1405/07/20: the face was plain and the number green, then white was too bright).
-  An occupied door is tinted red from its top corner, with a red edge, the number in the text
+  An occupied door is tinted red, with a red edge, the number in the text
   colour and the holder's name under it. An out-of-service door is hatched, with a grey number and
   a lock under it.
+- **The tint sits on the door's left** and fades out by 60% of its width toward the coloured edge
+  on the right, and is softer than the edge (asked by the developer, 1405/08/12: it came from the
+  top corner); a free door's green, already the palest, keeps its full strength so it still shows.
 - No door has a frame or a face of its own: it is the page's own colour, and only its edge and its
   tint mark it (changed by the developer, 1405/07/20: it was a tile in a thin frame).
 - A door rises a little under the mouse, so the map feels alive. A door whose state changed since

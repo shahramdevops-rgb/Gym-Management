@@ -442,7 +442,7 @@ function DebtorTag() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute end-0 top-0 rounded-es-md bg-destructive/20 px-1.5 pb-0.5 text-[10px] leading-snug font-bold whitespace-nowrap text-destructive"
+      className="pointer-events-none absolute end-0 top-0 rounded-es-md px-1.5 pb-0.5 text-xs leading-snug font-bold whitespace-nowrap text-destructive"
     >
       {debtorLabel}
     </span>
