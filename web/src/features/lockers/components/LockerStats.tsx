@@ -58,7 +58,10 @@ export function LockerStats({
       // On a phone the box dissolves into the banner's row (`spreadOnPhone` there, 13.1a): the
       // search stands beside the title and the counts take the row under them (asked by the
       // developer).
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 max-lg:contents"
+      // From 1840px, where both fit on one row, the tools never drop under the legend (asked by the developer, 1405/08/12):
+      // the legend takes what room is left and wraps its own items instead. Narrower screens keep
+      // the legend on one line with the tools under it, as before.
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 max-lg:contents min-[1840px]:flex-nowrap"
     >
       {legend ?? (
         // On a phone only free, occupied, single visit, guest and cardio, smaller and on one line (BUSINESS_RULES.md
@@ -66,7 +69,7 @@ export function LockerStats({
         // 360px phone, never wrapping under each other (asked by the developer, 1405/08/12).
         <ul
           aria-label="راهنمای کمدها"
-          className="flex flex-wrap items-center gap-x-3 gap-y-2 max-lg:order-last max-lg:w-full max-lg:flex-nowrap max-lg:justify-between max-lg:gap-x-0.5"
+          className="flex flex-wrap items-center gap-x-3 gap-y-2 max-lg:order-last min-[1840px]:min-w-0 min-[1840px]:flex-1 max-lg:w-full max-lg:flex-nowrap max-lg:justify-between max-lg:gap-x-0.5"
         >
           {states.map((state) => (
             <li

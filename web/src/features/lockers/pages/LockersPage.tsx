@@ -197,7 +197,7 @@ export function LockersPage() {
           lockers={lockers.data}
           tools={
             // On a phone the search stands beside the title, taking the rest of its row (13.1a).
-            <div className="flex flex-wrap items-center gap-3 max-lg:min-w-0 max-lg:flex-1">
+            <div className="flex flex-wrap items-center gap-3 max-lg:min-w-0 max-lg:flex-1 min-[1840px]:shrink-0">
               {!usageView && (
                 <NameSearch
                   value={nameQuery}
