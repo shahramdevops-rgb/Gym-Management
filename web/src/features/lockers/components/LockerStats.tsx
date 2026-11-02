@@ -66,13 +66,13 @@ export function LockerStats({
         // 360px phone, never wrapping under each other (asked by the developer, 1405/08/12).
         <ul
           aria-label="راهنمای کمدها"
-          className="flex flex-wrap items-center gap-x-6 gap-y-2 max-lg:order-last max-lg:w-full max-lg:flex-nowrap max-lg:justify-between max-lg:gap-x-0.5"
+          className="flex flex-wrap items-center gap-x-3 gap-y-2 max-lg:order-last max-lg:w-full max-lg:flex-nowrap max-lg:justify-between max-lg:gap-x-0.5"
         >
           {states.map((state) => (
             <li
               key={state}
               className={cn(
-                "flex items-center gap-2 max-lg:gap-0.5 max-lg:whitespace-nowrap",
+                "flex items-center gap-1.5 max-lg:gap-0.5 max-lg:whitespace-nowrap",
                 state === "outOfService" && "max-lg:hidden",
               )}
             >
@@ -83,7 +83,7 @@ export function LockerStats({
                   swatchClass[state],
                 )}
               />
-              <span className="text-2xl leading-none font-extrabold tabular-nums max-lg:text-[0.9rem]">
+              <span className="text-xl leading-none font-extrabold tabular-nums max-lg:text-[0.9rem]">
                 {toPersianDigits(counts[state])}
               </span>{" "}
               <span className="text-xs text-muted-foreground max-lg:text-[0.65rem]">
