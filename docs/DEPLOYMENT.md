@@ -93,9 +93,10 @@ image serves six names, and which is which comes from `/opt/gym/.env`:
 | `REDIRECT_DOMAIN` | redirects to the public page |
 | `www.$REDIRECT_DOMAIN` | redirects to the public page (since 15.3b) |
 
-`https://$PUBLIC_DOMAIN/qr` and `/app` are temporary redirects (302) to the app: the address printed
-under the desk's QR code (`deploy/qr/`) and the public page's «ورود / ثبت‌نام», so neither the poster
-nor the page names the app's host.
+`https://$PUBLIC_DOMAIN/qr` is a temporary redirect (302) to the public page itself: the address
+under the gym's QR code (`deploy/qr/`), on the desk's poster and the business card, so where it
+leads can change without printing either again. `/app` is a temporary redirect to the app, the
+public page's «ورود / ثبت‌نام», so the page never names the app's host.
 
 The application lives on its own host (`panel.…`) rather than the bare domain. The refresh cookie
 is scoped to a single host, so one canonical name is not a preference — two names would sign

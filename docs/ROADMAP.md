@@ -4567,6 +4567,13 @@ fine"), to go out with the next release:
   - And the doors' tint, softer and gathered on the left, fading out toward the coloured edge
     (`to right`, gone by 60%; the other states mixed 60% into the door, the free green at full
     strength since it is the palest)
+  - The QR for everyone (asked by the developer, 1405/08/12, for a business card handed to the
+    public): `/qr` now leads to the public page itself, not the app, so the poster and the card
+    share one code (`deploy/qr/qr.png`, unchanged) and a member signs in from the page's
+    «ورود / ثبت‌نام»; `/app` still leads to the app. A second code for the card was offered and
+    turned down. Caddy's change goes out with the release; until then the printed code opens the app
+  - «سایت باشگاه» at the foot of the app's home, above «خروج» (asked the same night): a quiet link
+    to the public page, opened in the browser so an installed app keeps its place
 
 ### Release 2 — The timetable and attendance (priority 1)
 

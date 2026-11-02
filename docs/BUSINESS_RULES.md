@@ -2390,9 +2390,16 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **The installed app opens without internet** and then shows «ارتباط با سرور برقرار نشد», as the
     page does (a service worker keeps the app's files, never the API's answers); a release reaches
     it by itself the next time it opens. *Proposed by Claude, accepted* (1405/08/07, 15.3b).
-  - **The desk's QR code holds `https://pasargadgymplus.ir/qr`**, a fixed address of the public
-    page that is redirected to the app, so the printed poster (`deploy/qr/`) never has to be
-    printed again if the app moves. *Proposed by Claude, accepted* (1405/08/07, 15.3b).
+  - **The gym's one QR code holds `https://pasargadgymplus.ir/qr`**, a fixed address of the public
+    page, so nothing printed has to be printed again when its destination changes. *Proposed by
+    Claude, accepted* (1405/08/07, 15.3b). The same code is on the desk's poster (`deploy/qr/`)
+    and the business card handed to the public, and it **leads to the public page**, where a
+    member taps «ورود / ثبت‌نام» and anyone else sees the gym: one code for everyone, rather than
+    a second one for the card. A member scans it once, before installing the app, so the extra
+    tap is paid once. *Decided by the developer* (1405/08/12); until then it led to the app.
+  - **The app's home ends with «سایت باشگاه»** above «خروج»: a small link to the public page,
+    opened in the browser so an installed app stays where it was. *Decided by the developer*
+    (1405/08/12).
   - **The public page's top bar has one «ورود / ثبت‌نام» button** that opens the app, since signing
     in and signing up start on the same screen there. *Decided by the developer* (1405/08/07). It
     links `pasargadgymplus.ir/app`, redirected like `/qr`, so the page never names the app's host.

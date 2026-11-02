@@ -32,6 +32,11 @@ test("SiteApp_NewPhone_SignsUpWithTheSmsCodeAndStaysSignedIn", async ({ page }) 
   const greeting = page.getByRole("heading", { name: "سلام کاوه رستمی" });
   await expect(greeting).toBeVisible();
 
+  // The way back to the gym's public page, in the browser rather than in the app.
+  const gymSite = page.getByRole("link", { name: "سایت باشگاه" });
+  await expect(gymSite).toHaveAttribute("href", "https://pasargadgymplus.ir/");
+  await expect(gymSite).toHaveAttribute("target", "_blank");
+
   // The refresh cookie lives on the app's host, path /api/site/auth: a reload keeps the session.
   await page.reload();
   await expect(greeting).toBeVisible();
@@ -83,13 +88,14 @@ test("SiteApp_Hosts_ServeOnlyTheirOwnApi", async ({ page }) => {
   expect(await statusOf(page, "/assets/gone-0000.js")).toBe(404);
 });
 
-test("PublicPage_QrAddress_RedirectsToTheAppForNow", async ({ page }) => {
+test("PublicPage_QrAddress_RedirectsToThePublicPage", async ({ page }) => {
   const opened = (await page.goto(`${publicURL}/qr`))!;
 
   // Temporary, so phones never remember it and the destination can change.
   const redirect = await opened.request().redirectedFrom()!.response();
   expect(redirect!.status()).toBe(302);
-  await expect(page).toHaveURL(`${siteURL}/sign-in`);
+  await expect(page).toHaveURL(`${publicURL}/`);
+  await expect(page.getByRole("link", { name: "ورود / ثبت‌نام" })).toBeVisible();
 });
 
 test("PublicPage_SignInButton_OpensTheApp", async ({ page }) => {
