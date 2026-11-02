@@ -62,30 +62,31 @@ export function LockerStats({
     >
       {legend ?? (
         // On a phone only free, occupied, single visit, guest and cardio, smaller and on one line (BUSINESS_RULES.md
-        // §6, 13.1a, asked by the developer).
+        // §6, 13.1a, asked by the developer); the gaps are tight so the five fit side by side on a
+        // 360px phone, never wrapping under each other (asked by the developer, 1405/08/12).
         <ul
           aria-label="راهنمای کمدها"
-          className="flex flex-wrap items-center gap-x-6 gap-y-2 max-lg:order-last max-lg:w-full max-lg:flex-nowrap max-lg:justify-between max-lg:gap-x-2"
+          className="flex flex-wrap items-center gap-x-6 gap-y-2 max-lg:order-last max-lg:w-full max-lg:flex-nowrap max-lg:justify-between max-lg:gap-x-0.5"
         >
           {states.map((state) => (
             <li
               key={state}
               className={cn(
-                "flex items-center gap-2 max-lg:gap-1 max-lg:whitespace-nowrap",
+                "flex items-center gap-2 max-lg:gap-0.5 max-lg:whitespace-nowrap",
                 state === "outOfService" && "max-lg:hidden",
               )}
             >
               <span
                 aria-hidden
                 className={cn(
-                  "inline-block size-3.5 rounded-[3px] border-e-[3px] border-door-border bg-door max-lg:size-3",
+                  "inline-block size-3.5 rounded-[3px] border-e-[3px] border-door-border bg-door max-lg:size-2.5 max-lg:border-e-2",
                   swatchClass[state],
                 )}
               />
-              <span className="text-2xl leading-none font-extrabold tabular-nums max-lg:text-base">
+              <span className="text-2xl leading-none font-extrabold tabular-nums max-lg:text-[0.9rem]">
                 {toPersianDigits(counts[state])}
               </span>{" "}
-              <span className="text-xs text-muted-foreground max-lg:text-[0.7rem]">
+              <span className="text-xs text-muted-foreground max-lg:text-[0.65rem]">
                 {lockerStateLabel[state]}
               </span>
             </li>

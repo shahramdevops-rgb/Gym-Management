@@ -4557,6 +4557,9 @@ fine"), to go out with the next release:
     visit consumed a single-session subscription, never on a cardio-only one), the `singleVisit`
     state, door, legend and count, and a reserve place from the board's `isSingleSession`; the audit
     log still names the record «حساب سایت», as it is the record, not the profile's row
+  - On a phone the legend's five (free, occupied, single visit, guest, cardio) stay on one line
+    beside each other, never under (asked by the developer, 1405/08/12): tighter gaps, a smaller
+    swatch and text, measured at 390 and 360px with two-digit counts; the computer unchanged
 
 ### Release 2 — The timetable and attendance (priority 1)
 
