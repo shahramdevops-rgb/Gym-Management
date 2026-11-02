@@ -2246,3 +2246,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **A redirect is kinder than a refusal for a shared link.** The manifest is one file for every phone, so Staff get the Owner's shortcut too; `RequireRole`'s `otherwise` sends them to the locker map with `<Navigate replace>`, so Back does not return them to the page they could not see.
 - **Show a mock-up before the code.** A static HTML page in the app's colours and font, rendered at 390px with Playwright, let the developer decide the layout and the refresh before anything was built.
 - **My notes:**
+
+## After Release 1 — Logos, a name, a colour (لوگوها، یک نام، یک رنگ)
+
+- **A flag the server derives beats one the screen guesses.** The locker map only sees lockers, not subscriptions, so `occupiedOnSingleVisit` is worked out in the same SQL projection as `occupiedOnCardioOnly` (a correlated `Any` over the subscriptions), rather than the page fetching every holder's plan to find out.
+- **Order decides overlapping states.** A visit can be cardio-only and hold a single visit at once; `lockerState` checks guest, then cardio, then single visit, so each door has exactly one colour, and the API says `false` on a cardio-only visit so the two never disagree.
+- **A colour is a token, not a hex in a class.** `--single-visit` and `--door-single-visit` are defined once for light and once for dark in `index.css` and exposed to Tailwind under `@theme`; every door, swatch and ring reads them, so a later change is one place.
+- **Generated images can be reproducible without a package.** The icons are drawn on a `<canvas>` in the installed Chrome through Playwright: the logo stamped around a small circle to make its lines bolder, tinted with `source-in`, then scaled. The script lives outside the repo; the PNGs are what ship.
+- **A maskable icon is sized by its diagonal.** Android may cut the icon to a circle of 80% of the side, so the logo's box must fit inside it: its height is `2 × 0.42 × side / √(1 + aspect²)`, smaller than the plain icon's.
+- **My notes:**

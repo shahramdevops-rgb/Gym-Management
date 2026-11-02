@@ -448,6 +448,29 @@ public sealed class CardioOnlyVisitEndpointTests(DatabaseFixture fixture) : Data
     }
 
     [Fact]
+    public async Task ListLockers_SingleVisitHolder_IsMarkedOnTheMap()
+    {
+        var (client, token) = await StaffClientAsync();
+        var single = await AddMemberAsync();
+        var ordinary = await AddMemberAsync();
+        var cardio = await AddMemberAsync();
+        await InsertSingleVisitAsync(single.Id);
+        await InsertMembershipAsync(ordinary.Id);
+        await InsertSingleVisitAsync(cardio.Id);
+        await TestLockers.CheckInOkAsync(client, token, single.Id, lockerNumber: 1);
+        await TestLockers.CheckInOkAsync(client, token, ordinary.Id, lockerNumber: 2);
+        await CardioOnlyCheckInOkAsync(client, token, cardio.Id, lockerNumber: 3);
+
+        using var response = await SendAsync(client, token, HttpMethod.Get, $"/api/lockers?pageSize={PagingRules.MaxPageSize}");
+
+        var lockers = (await response.Content.ReadFromJsonAsync<PagedResponse<LockerResponse>>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+        lockers.Items.Single(locker => locker.Number == 1).OccupiedOnSingleVisit.ShouldBeTrue();
+        lockers.Items.Single(locker => locker.Number == 2).OccupiedOnSingleVisit.ShouldBeFalse();
+        lockers.Items.Single(locker => locker.Number == 3).OccupiedOnSingleVisit.ShouldBeFalse();
+        lockers.Items.Single(locker => locker.Number == 4).OccupiedOnSingleVisit.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task ListCurrentlyInside_CardioOnly_ShowsThePlanAndTheMark()
     {
         var (client, token) = await StaffClientAsync();

@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 
-import logo from "@/assets/brand/pasargad-logo.png";
-
 /**
  * The site app's page: the gym's logo and name on top, then the screen, in one narrow column
- * made for a phone held in one hand. The logo square and the soft glow are the panel's sign-in
- * look (13.2g), so the two read as the same gym.
+ * made for a phone held in one hand. The logo is the app's own icon, dark stone on bronze, so the
+ * first screen looks like what the member tapped (asked by the developer, 1405/08/08); the soft
+ * glow is the panel's sign-in look (13.2g).
  */
 export function SiteFrame({ children }: { children: ReactNode }) {
   return (
@@ -17,12 +16,12 @@ export function SiteFrame({ children }: { children: ReactNode }) {
         </div>
 
         <div className="flex flex-col items-center gap-3 text-center">
-          <span
+          <img
+            src="/icon-192.png"
+            alt=""
             aria-hidden
-            className="flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-(--tone-violet) p-2 shadow-lg shadow-primary/30"
-          >
-            <img src={logo} alt="" className="size-full object-contain" />
-          </span>
+            className="size-16 rounded-2xl shadow-lg shadow-black/25"
+          />
           <p className="text-lg font-extrabold">باشگاه پاسارگاد</p>
         </div>
 

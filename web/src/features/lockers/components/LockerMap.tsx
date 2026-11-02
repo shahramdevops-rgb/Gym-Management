@@ -55,6 +55,7 @@ const changedRingClass: Record<LockerState, string> = {
   occupied: "ring-destructive",
   guest: "ring-guest",
   cardio: "ring-cardio",
+  singleVisit: "ring-single-visit",
   outOfService: "ring-muted-foreground",
 };
 

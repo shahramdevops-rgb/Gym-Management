@@ -4522,28 +4522,41 @@ desk's «یادداشت» and the staff's names and reasons on cancelled rows ar
 #### After Release 1: logos, a name, a colour (no hurry)
 Asked by the developer on 1405/08/08 (2026-10-30), after Release 1, for later ("much later is
 fine"), to go out with the next release:
-- [ ] **The icon.** The dark lines of the logo on the bronze icon are too faint, and the logo is
+- [x] **The icon.** The dark lines of the logo on the bronze icon are too faint, and the logo is
       too small inside it: there is room to make it bigger. Every size changes together
       (`web/site/public/icon-192.png`, `icon-512.png`, `icon-maskable-512.png`,
       `apple-touch-icon.png`, `favicon.png`); shown to the developer before it is replaced. An
       installed app takes the new icon only when Android rebuilds it (13.4)
-- [ ] **The logo on top of the app's first screen** (`SiteFrame`, today the panel's white logo in
+- [x] **The logo on top of the app's first screen** (`SiteFrame`, today the panel's white logo in
       the panel's square) becomes the same as the app's icon: the logo in dark stone on bronze
-- [ ] **The panel's logo** (asked 1405/08/08): the white logo on the blue-to-violet square (the
+- [x] **The panel's logo** (asked 1405/08/08): the white logo on the blue-to-violet square (the
       menu's top, the sign-in page) becomes the panel's own icon, the bronze logo on dark (13.4).
       This reopens the panel on purpose; the computer's screens change with it
-- [ ] **«حساب سایت» becomes «باشگاه من»** on the member's profile in the panel (asked 1405/08/08):
+- [x] **«حساب سایت» becomes «باشگاه من»** on the member's profile in the panel (asked 1405/08/08):
       the app's name in Persian, which the developer finds nicer; the empty line with it
       («در باشگاه من ثبت‌نام نکرده است.»)
-- [ ] **A single visit (تک‌جلسه) gets its own colour on the locker map** (asked 1405/08/08), so
+- [x] **A single visit (تک‌جلسه) gets its own colour on the locker map** (asked 1405/08/08), so
       the desk tells it apart: today it is red like a member on a plan (`lockerState.ts`,
       `doorStyle.ts`). Taken: green free, red member, blue guest, yellow cardio. Claude proposes
       violet, confirmed at the start. Needs the API to say the open visit is a single visit (the
       locker response has no such field today), a state, its door colour, a count above the map
       and a legend entry; §6 *The desk screen's look* and §7 updated
-- [ ] Each icon keeps its own colours (the developer, 1405/08/08): the app dark on bronze, the
+- [x] Each icon keeps its own colours (the developer, 1405/08/08): the app dark on bronze, the
       panel bronze on dark
 - [ ] All of the above goes out with the next release
+- Done 1405/08/11 (2026-11-02) on `task/after-release-1`, made from `main` so 15.6 stays out:
+  - The icon: the logo stands 84% of the side (it was about 75%), 68% inside the maskable one's
+    safe circle, its lines stamped a little bolder (1px of the brand file's own) in the same dark
+    stone `#0e0f13` on bronze `#c89b57`; rendered once in the installed Chrome with Playwright as
+    before (no package), shown to the developer beside the old ones and accepted. The panel's
+    icons are unchanged
+  - The app's first screen shows its own icon (`/icon-192.png` of `web/site/public`), and the
+    panel's menu and sign-in page the panel's (`web/public`), with a thin ring so it keeps its edge
+    on the dark theme's page; the blue-to-violet glow on both sign-in pages stays
+  - The single visit's violet: `occupiedOnSingleVisit` on the locker response (true when the open
+    visit consumed a single-session subscription, never on a cardio-only one), the `singleVisit`
+    state, door, legend and count, and a reserve place from the board's `isSingleSession`; the audit
+    log still names the record «حساب سایت», as it is the record, not the profile's row
 
 ### Release 2 — The timetable and attendance (priority 1)
 

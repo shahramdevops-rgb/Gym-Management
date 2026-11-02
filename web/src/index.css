@@ -79,6 +79,11 @@
      usage view's unused amber, which is never on the same map. */
   --cardio: oklch(0.72 0.15 100);
   --door-cardio: oklch(0.95 0.07 100);
+  /* A single visit's door (BUSINESS_RULES.md §6, §4 تک‌جلسه): a violet of its own (asked by the
+     developer, 1405/08/08), so the desk tells it from a member on a plan. The usage view's violet is
+     never on the same map. */
+  --single-visit: oklch(0.56 0.17 300);
+  --door-single-visit: oklch(0.93 0.045 300);
   /* The purchase tiles of a visit's locker box (task 6.5.29): one soft background and one strong
      ink per tile, so each reads at a glance and its text stays readable. هوازی keeps the
      cardio-only yellow; بوفه is orange, فروشگاه violet, آنالیز teal and متفرقه rose, all apart from
@@ -189,6 +194,8 @@
   --door-guest: oklch(0.28 0.05 235);
   --cardio: oklch(0.86 0.15 100);
   --door-cardio: oklch(0.3 0.06 100);
+  --single-visit: oklch(0.72 0.15 300);
+  --door-single-visit: oklch(0.29 0.06 300);
   --tile-cardio: oklch(0.3 0.06 100);
   --tile-cardio-ink: oklch(0.9 0.12 100);
   --tile-cafe: oklch(0.3 0.06 50);
@@ -538,6 +545,8 @@
   --color-door-guest: var(--door-guest);
   --color-cardio: var(--cardio);
   --color-door-cardio: var(--door-cardio);
+  --color-single-visit: var(--single-visit);
+  --color-door-single-visit: var(--door-single-visit);
   --color-tile-cardio: var(--tile-cardio);
   --color-tile-cardio-ink: var(--tile-cardio-ink);
   --color-tile-cafe: var(--tile-cafe);

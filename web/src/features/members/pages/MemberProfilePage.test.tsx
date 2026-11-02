@@ -81,7 +81,7 @@ describe("MemberProfilePage", () => {
 
     renderApp(`/members/${reza.id}`, { session: session() });
 
-    expect(await screen.findByText("در سایت ثبت‌نام نکرده است.")).toBeInTheDocument();
+    expect(await screen.findByText("در باشگاه من ثبت‌نام نکرده است.")).toBeInTheDocument();
   });
 
   it("Profile_SiteAccount_ShowsWhenItWasMadeAndTheLastSignIn", async () => {
@@ -105,7 +105,7 @@ describe("MemberProfilePage", () => {
     expect(
       screen.getByText(`آخرین ورود: ${formatDateTime(siteAccount.lastSignedInAt)}`),
     ).toBeInTheDocument();
-    expect(screen.queryByText("در سایت ثبت‌نام نکرده است.")).not.toBeInTheDocument();
+    expect(screen.queryByText("در باشگاه من ثبت‌نام نکرده است.")).not.toBeInTheDocument();
   });
 
   it("Profile_Deactivate_CallsTheApiAndShowsTheMemberAsInactive", async () => {

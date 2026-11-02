@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import type { Locker } from "../api";
 import { lockerState, lockerStateLabel, type LockerState } from "../lockerState";
 
-const states = ["free", "occupied", "guest", "cardio", "outOfService"] as const;
+const states = ["free", "occupied", "singleVisit", "guest", "cardio", "outOfService"] as const;
 
 /** A small door, drawn the way the map draws that state, for the legend. */
 const swatchClass: Record<LockerState, string> = {
@@ -14,13 +14,14 @@ const swatchClass: Record<LockerState, string> = {
   occupied: "border-e-destructive bg-door-held",
   guest: "border-e-guest bg-door-guest",
   cardio: "border-e-cardio bg-door-cardio",
+  singleVisit: "border-e-single-visit bg-door-single-visit",
   outOfService:
     "bg-[repeating-linear-gradient(135deg,var(--door-hatch)_0_2px,var(--door)_2px_4px)]",
 };
 
 /**
  * The strip above the map (BUSINESS_RULES.md §6 *The desk screen's look*): how many lockers are
- * free, occupied, held by a guest, held on a cardio-only visit and out of service, each beside a small door drawn like the map draws it, and what
+ * free, occupied, held on a single visit, held by a guest, held on a cardio-only visit and out of service, each beside a small door drawn like the map draws it, and what
  * the «بدهکار» tag and the long-stay bar mean.
  *
  * It is the map's legend too, and sits in the page's banner beside the title (13.2h), on no colour
@@ -44,6 +45,7 @@ export function LockerStats({
     occupied: 0,
     guest: 0,
     cardio: 0,
+    singleVisit: 0,
     outOfService: 0,
   };
   for (const locker of lockers) {
@@ -59,7 +61,7 @@ export function LockerStats({
       className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 max-lg:contents"
     >
       {legend ?? (
-        // On a phone only free, occupied, guest and cardio, smaller and on one line (BUSINESS_RULES.md
+        // On a phone only free, occupied, single visit, guest and cardio, smaller and on one line (BUSINESS_RULES.md
         // §6, 13.1a, asked by the developer).
         <ul
           aria-label="راهنمای کمدها"

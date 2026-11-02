@@ -526,6 +526,11 @@ Rewritten as decided by the Owner, 1405/07/05 (2026-09-27). Roadmap 6.5.5. This 
 - **A locker held on a cardio-only visit** (§7 *Cardio-only visit*) is drawn in yellow, its own
   colour, with «هوازی» in its label and its own line in the legend: the desk sees that no session
   was taken and that the treadmill must be charged before the key comes back.
+- **A locker held on a single visit** (§4 *Single-session subscriptions*) is drawn in violet, its
+  own colour (asked by the developer, 1405/08/08; it was red like a member on a plan), with
+  «تک‌جلسه» in its label, its own count above the map and its own line in the legend: the desk
+  tells it apart from a member on a plan. A reserve place on a single visit is drawn the same way.
+  A cardio-only visit keeps its yellow whatever the member holds.
 - **A holder who owes money is marked on the map** (asked by the developer, 1405/07/06): a small
   «بدهکار» tag in red letters on a faint red ground (the ground was solid red until 1405/07/20,
   softened by the developer) hanging from the door's top edge at its top-right corner (changed by
@@ -666,12 +671,13 @@ Decided by the developer, 1405/07/07 (2026-09-29), from their own sketch. Roadma
 - A door rises a little under the mouse, so the map feels alive. A door whose state changed since
   the last refresh pulses once in its new colour. Neither moves for anyone who has asked their
   system for less motion.
-- Above the map: the counts of free, occupied and out-of-service lockers, and what the «بدهکار»
+- Above the map: the counts of free, occupied, single-visit, guest, cardio-only and out-of-service
+  lockers, and what the «بدهکار»
   tag and the long-stay bar mean. (A strip of 72 marks showing how full the lockers are, and a
   "refreshed N seconds ago" mark, were tried and removed by the developer, 1405/07/07: the desk
   does not need them.)
 - On a phone (roadmap 13.1a, decided by the developer, 1405/07/20 (2026-10-12)): above the map
-  only the counts of free, occupied, guest and cardio-only lockers, on one line, and the name
+  only the counts of free, occupied, single-visit, guest and cardio-only lockers, on one line, and the name
   search beside the title; no out-of-service count, no meaning of the «بدهکار» tag or the
   long-stay bar, no usage view (*Locker usage map* below) and no hourly chart (*Today by hour*
   below). The cabinets wrap to the next row, each keeping its six doors as they stand: two to a
@@ -2516,7 +2522,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     (1405/08/05, 15.2). The trainer signs in again with the new phone.
 - **A member's profile shows whether they have a site account**, with the date it was made and the
   last sign-in; the members' list has no tag or filter for it. *Decided by the developer*
-  (1405/08/05, 15.2).
+  (1405/08/05, 15.2). The row is named «باشگاه من», the app's Persian name, and reads «در باشگاه
+  من ثبت‌نام نکرده است.» when there is none (asked by the developer, 1405/08/08; it was «حساب
+  سایت»).
 - **The code SMS in the panel** (*Decided by the developer*, 1405/08/05, 15.2): «پیامک‌ها» shows
   today's code SMS out of the gym's 300, and this month's count and cost; when today's 300 is
   reached, «نیاز به اقدام» shows it too.

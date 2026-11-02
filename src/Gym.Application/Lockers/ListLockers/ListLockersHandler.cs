@@ -25,7 +25,7 @@ public sealed class ListLockersHandler(IAppDbContext db)
             .OrderBy(locker => locker.Number)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(LockerResponse.Projection(openAttendances, members))
+            .Select(LockerResponse.Projection(openAttendances, members, db.Subscriptions))
             .ToListAsync(cancellationToken);
 
         // Batched for the whole page (MemberDebt), not one query per held locker.

@@ -2629,6 +2629,7 @@ export interface components {
             occupiedByMemberFullName: null | string;
             occupiedByGuestName: null | string;
             occupiedOnCardioOnly: boolean;
+            occupiedOnSingleVisit: boolean;
             /** Format: uint32 */
             version: number | string;
             /** Format: date-time */

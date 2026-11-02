@@ -2,7 +2,6 @@ import { useForm } from "react-hook-form";
 import { Navigate, useLocation, useNavigate } from "react-router";
 
 import { paths } from "@/app/paths";
-import logo from "@/assets/brand/pasargad-logo.png";
 import { FormField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -47,8 +46,8 @@ export function LoginPage() {
 
   const { errors, isSubmitting } = form.formState;
 
-  // The panel's look before the panel (roadmap 13.2g): the logo in the menu's blue-to-violet
-  // square, a soft glow of the same two colours behind the card, and the card's top edge in them.
+  // The panel's look before the panel (roadmap 13.2g): the panel's own icon, bronze on dark, as in
+  // the menu (1405/08/08), a soft blue-to-violet glow behind the card, and the card's top edge in it.
   // All of it is decoration; the card's title says where the user is.
   return (
     <div className="isolate flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
@@ -60,13 +59,12 @@ export function LoginPage() {
         </div>
 
         <div className="flex flex-col items-center gap-3 text-center">
-          {/* White lines on transparency, so it sits on the brand blue in both themes. */}
-          <span
+          <img
+            src="/icon-192.png"
+            alt=""
             aria-hidden
-            className="flex size-20 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-(--tone-violet) p-2.5 shadow-lg shadow-primary/30"
-          >
-            <img src={logo} alt="" className="size-full object-contain" />
-          </span>
+            className="size-20 rounded-2xl shadow-lg ring-1 shadow-black/25 ring-border"
+          />
           <p className="text-lg font-extrabold">باشگاه پاسارگاد</p>
         </div>
 
