@@ -577,8 +577,13 @@ describe("MemberProfilePage", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^فریز / }));
 
     const dialog = await screen.findByRole("dialog");
-    expect(dialog).toHaveTextContent("هر اشتراک حداکثر ۳۰ روز فریز دارد.");
-    expect(dialog).toHaveTextContent("تاکنون ۱۲ روز استفاده شده و ۱۸ روز باقی مانده است.");
+    // Several freezes are allowed; only their days in total are capped.
+    expect(dialog).toHaveTextContent(
+      "هر اشتراک در مجموع ۳۰ روز فریز دارد؛ تعداد دفعات فریز مهم نیست.",
+    );
+    expect(dialog).toHaveTextContent(
+      "روزهای همهٔ فریزها با هم جمع می‌شود. تاکنون ۱۲ روز استفاده شده و ۱۸ روز باقی مانده است.",
+    );
   });
 
   it("Subscription_FreezeAnsweredNo_ClosesTheBoxAndSendsNothing", async () => {

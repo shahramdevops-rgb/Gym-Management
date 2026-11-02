@@ -70,13 +70,15 @@ export function ConfirmFreezeDialog({
             </DialogHeader>
             <div className="space-y-1 rounded-lg border bg-muted/40 p-3 text-sm">
               <p className="font-medium">
-                هر اشتراک حداکثر {formatNumber(maxFreezeDays)} روز فریز دارد.
+                هر اشتراک در مجموع {formatNumber(maxFreezeDays)} روز فریز دارد؛ تعداد دفعات فریز مهم
+                نیست.
               </p>
               <p className="text-muted-foreground">
-                تاکنون {formatNumber(Math.min(totalFrozenDays, maxFreezeDays))} روز استفاده شده و{" "}
+                روزهای همهٔ فریزها با هم جمع می‌شود. تاکنون{" "}
+                {formatNumber(Math.min(totalFrozenDays, maxFreezeDays))} روز استفاده شده و{" "}
                 {formatNumber(daysLeft)} روز باقی مانده است.{" "}
                 {freezing
-                  ? `اگر فریز بیشتر از ${formatNumber(daysLeft)} روز طول بکشد، فقط ${formatNumber(daysLeft)} روز به تاریخ پایان اضافه می‌شود.`
+                  ? `اگر این فریز بیشتر از ${formatNumber(daysLeft)} روز طول بکشد، فقط ${formatNumber(daysLeft)} روز به تاریخ پایان اضافه می‌شود.`
                   : `از این فریز حداکثر ${formatNumber(daysLeft)} روز به تاریخ پایان اضافه می‌شود.`}
               </p>
             </div>
