@@ -2262,3 +2262,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **`target="_blank"` from an installed app opens the browser.** Inside an installed PWA, a link that leaves in place would replace the app's screen; opening it in a new tab leaves the app where it was. `rel="noopener"` keeps the new page from reaching back into the app's window.
 - **`asChild` styles a link as a button.** shadcn's `Button asChild` hands its classes to the `<a>` inside (Radix `Slot`), so the link looks like the other buttons and stays a link to screen readers and to the tests' `getByRole("link")`.
 - **My notes:**
+
+## Samsung Internet (مرورگر سامسونگ)
+
+- **A browser's dark mode can repaint a page that is already dark.** Samsung Internet darkens every page that does not say it has its own dark. `<meta name="color-scheme">` and a `prefers-color-scheme: dark` rule in the stylesheet say so; the rule may change nothing visible, it only has to exist.
+- **An install is only as trusted as whoever builds the package.** An installed web app on Android is a small real app (a WebAPK). Chrome's are built and signed by Google, so Play Protect trusts them; Samsung Internet's are built by Samsung for an older Android, and Play Protect blocks them. The site cannot change that, only send people to Chrome.
+- **`intent://` opens a page in a named Android app.** `intent://host/path#Intent;scheme=https;package=com.android.chrome;end` asks Android to open that address in Chrome; it is how one browser hands a page to another.
+- **The user agent is the last resort, and the right one here.** Feature checks find what a browser can do, not who built its install; `SamsungBrowser` in the user agent is the only sign that the install would be blocked.
+- **An installed app's icon is copied at install time.** Changing the icon on the server reaches an installed app only when its browser checks the manifest again, every few days, or when it is reinstalled.
+- **My notes:**

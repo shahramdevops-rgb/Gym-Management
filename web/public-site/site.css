@@ -32,6 +32,14 @@
   interpolate-size: allow-keywords;
 }
 
+/* Samsung Internet's dark mode leaves a page alone only when its stylesheet answers
+   prefers-color-scheme: dark. The page is already dark, so the answer changes nothing. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
 *,
 *::before,
 *::after {

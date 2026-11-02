@@ -4596,6 +4596,22 @@ fine"), to go out with the next release:
       trainers 1, as before
     - A rollback to `20261103-0103-e49e0a9` is safe: no migration; `/qr` would lead to the app again
 
+#### Samsung Internet (asked by the developer, 1405/08/12)
+
+A Samsung phone's camera opens the QR in Samsung Internet, not Chrome. Seen on the developer's own
+phone the same night: its dark mode repainted the public page and the bronze turned red; the code
+SMS did not fill the box (WebOTP answers in Chrome only); and the app it installed, a package of
+Samsung's making, was blocked by Google Play Protect as «Unsafe app». Chrome showed none of these.
+- [x] The colours: `<meta name="color-scheme">` (`dark` on the public page, `light dark` on the
+      app) and a `prefers-color-scheme: dark` rule in each stylesheet (`public-site/site.css`, the
+      app's own `src/site/site.css`), which tell the browser the page has its own dark. Nothing
+      changes in Chrome or on a computer
+- [x] The install card in Samsung Internet on Android offers «باز کردن در Chrome» (an Android
+      `intent://` link to the same page in Chrome) instead of «نصب برنامه», with one line on why;
+      chosen by the developer over showing both. Samsung's own menu can still install; nothing stops it
+- [ ] The developer checks both on the phone after the release (Samsung Internet can't be run here)
+- Not fixable from the site: the code SMS filling itself in Samsung Internet; it is typed by hand
+
 ### Release 2 — The timetable and attendance (priority 1)
 
 #### 15.6 The trainer's timetable (سانس‌بندی)

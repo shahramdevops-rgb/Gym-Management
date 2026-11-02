@@ -12,6 +12,9 @@ const iPhoneAgent =
 const androidAgent =
   "Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
 
+const samsungAgent =
+  "Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/26.0 Chrome/122.0.0.0 Mobile Safari/537.36";
+
 const windowsAgent =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 
@@ -66,6 +69,28 @@ describe("InstallHint", () => {
     expect(screen.getByRole("heading", { name: "نصب برنامه روی گوشی" })).toBeInTheDocument();
     expect(screen.getByText("«Add to Home Screen»")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "نصب برنامه" })).not.toBeInTheDocument();
+  });
+
+  it("InstallHint_SamsungInternetWithTheBrowsersOffer_OpensThePageInChrome", () => {
+    // Play Protect blocks Samsung's install, so the card never offers it.
+    const prompt = browserOffer(samsungAgent);
+
+    render(<InstallHint />);
+
+    expect(screen.queryByRole("button", { name: "نصب برنامه" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "باز کردن در Chrome" })).toHaveAttribute(
+      "href",
+      `intent://${location.host}/#Intent;scheme=http;package=com.android.chrome;end`,
+    );
+    expect(prompt).not.toHaveBeenCalled();
+  });
+
+  it("InstallHint_SamsungInternetWithoutAnOffer_StillOffersChrome", () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(samsungAgent);
+
+    render(<InstallHint />);
+
+    expect(screen.getByRole("link", { name: "باز کردن در Chrome" })).toBeInTheDocument();
   });
 
   it("InstallHint_OpenedFromTheIcon_ShowsNothing", () => {

@@ -4,6 +4,7 @@ import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 
 import "@/index.css";
+import "./site.css";
 import { installStaleChunkReload } from "@/lib/staleChunkReload";
 
 import { restoreSiteSession } from "./api/siteAuthFetch";

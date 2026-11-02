@@ -15,6 +15,9 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="My Gym" />
     <meta name="theme-color" content="#f7f9fc" />
+    <!-- Light and dark of its own, so a browser's dark mode (Samsung Internet) leaves the colours
+         alone; src/site/site.css carries the stylesheet's half of the same answer. -->
+    <meta name="color-scheme" content="light dark" />
     <!-- Dark when the phone is, before anything is drawn (public/theme-init.js). A file, not an
          inline script, so the Content-Security-Policy can refuse every inline script. -->
     <script src="/theme-init.js"></script>
