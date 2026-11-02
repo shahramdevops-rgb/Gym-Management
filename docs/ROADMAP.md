@@ -4543,7 +4543,7 @@ fine"), to go out with the next release:
       and a legend entry; §6 *The desk screen's look* and §7 updated
 - [x] Each icon keeps its own colours (the developer, 1405/08/08): the app dark on bronze, the
       panel bronze on dark
-- [ ] All of the above goes out with the next release
+- [x] All of the above goes out with the next release (released 1405/08/12, below)
 - Done 1405/08/11 (2026-11-02) on `task/after-release-1`, made from `main` so 15.6 stays out:
   - The icon: the logo stands 84% of the side (it was about 75%), 68% inside the maskable one's
     safe circle, its lines stamped a little bolder (1px of the brand file's own) in the same dark
@@ -4574,6 +4574,27 @@ fine"), to go out with the next release:
     turned down. Caddy's change goes out with the release; until then the printed code opens the app
   - «سایت باشگاه» at the foot of the app's home, above «خروج» (asked the same night): a quiet link
     to the public page, opened in the browser so an installed app keeps its place
+  - The freeze question's wording (asked the same night): «هر اشتراک در مجموع ۳۰ روز فریز دارد؛
+    تعداد دفعات فریز مهم نیست.» and «روزهای همهٔ فریزها با هم جمع می‌شود.», so the desk knows a plan
+    can be frozen several times (§4 *Freeze* already said so); the rule itself is unchanged
+- [x] **Released 1405/08/12 (2026-11-03) in two steps, both without a migration:**
+  - `20261103-0103-e49e0a9` at 01:03, from another session that night, with everything above up to
+    the doors' tint; its checks were not recorded here. It was running healthy when the next one began
+  - `20261103-0247-3e3c7d0` at 02:47 (previous `20261103-0103-e49e0a9`), with the locker map's name
+    search and usage switch back beside the legend on a computer (`33977ee`, `090635b`), the QR to
+    the public page, «سایت باشگاه» and the freeze wording
+    - Before: full suite on `main` at `3e3c7d0` (3098 backend, 1312 Vitest, zero build warnings,
+      lint, `format:check`, build; Vite's 500 kB chunk notice for the site app's 545 kB script,
+      to look at later), `npm run e2e` 16 green, `npm run screenshots` committed (`cf35a3b`)
+    - On the server: tag, health, 50 GB free, 2.9 GB memory available; `./backup.sh run` →
+      `gym-20261103-021204.dump`, copied to `D:\gymbackups`, `sha256sum` equal on both sides
+    - Released with `--allow-dirty`: an untracked `deploy/qr/business-card/` (pictures for the
+      card, made outside this release) was in the tree; no image or copied file includes it
+    - After: the new tag healthy, no error in the API log; the panel, `/health`, the app and the
+      public page answer 200; `/qr` 302 to the public page, `/app` 302 to the app; the app's script
+      holds «سایت باشگاه»; members 319, plans 379, payments 679, visits 1959, site accounts 2,
+      trainers 1, as before
+    - A rollback to `20261103-0103-e49e0a9` is safe: no migration; `/qr` would lead to the app again
 
 ### Release 2 — The timetable and attendance (priority 1)
 
