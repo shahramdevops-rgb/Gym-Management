@@ -4629,6 +4629,23 @@ Samsung's making, was blocked by Google Play Protect as «Unsafe app». Chrome s
 - Not fixable from the site: the code SMS filling itself in Samsung Internet; it is typed by hand;
   and the colours under Samsung Internet's dark mode, which is the person's own setting
 
+#### Held doors red again (fix, 1405/08/13)
+Seen by the developer on the panel the day after `20261103-0103-e49e0a9`: a held door's tint was
+violet, not red. The softer tints of e35623e were mixed with `color-mix(in oklch, …)`; oklch
+interpolates the hue, and from the red (hue 20) to the dark ground (hue 268) the shorter way runs
+through magenta (about 335 at 60%). A cardio door turned greenish the same way.
+- [x] The four state tints in `doorStyle.ts` mix in oklab, which does not turn the hue (`5a5a13c`)
+- [x] **Released 1405/08/13 (2026-11-03) as `20261103-1408-cd5de81`** (previous
+      `20261103-0337-346bf42`), by day at the developer's choice, without a migration
+  - Before: on `main` 1314 Vitest, lint, `format:check`; the backend unchanged since the previous
+    release; `npm run e2e` 16 green, `npm run screenshots` committed (`cd5de81`)
+  - Server before: `TAG=20261103-0337-346bf42`, api and postgres healthy, disk 12%, 2.8 GiB memory
+    available; `./backup.sh run` → `gym-20261103-140613.dump` (1,795,990 bytes, sha256
+    `1f543741…096d`), copied to `D:\gymbackups`
+  - After, from outside: the panel, `/health`, the public page and the app answer 200; the panel's
+    stylesheet carries `color-mix(in oklab,var(--door-held) 60%,…)` and no oklch mix of it
+  - A rollback to `20261103-0337-346bf42` is safe: no migration
+
 ### Release 2 — The timetable and attendance (priority 1)
 
 #### 15.6 The trainer's timetable (سانس‌بندی)
