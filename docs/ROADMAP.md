@@ -4605,12 +4605,29 @@ Samsung's making, was blocked by Google Play Protect as «Unsafe app». Chrome s
 - [x] The colours: `<meta name="color-scheme">` (`dark` on the public page, `light dark` on the
       app) and a `prefers-color-scheme: dark` rule in each stylesheet (`public-site/site.css`, the
       app's own `src/site/site.css`), which tell the browser the page has its own dark. Nothing
-      changes in Chrome or on a computer
+      changes in Chrome or on a computer. **It did not help in Samsung Internet** (checked on the
+      developer's phone after the release, the new files served with `no-cache`): its dark mode
+      repaints the page anyway, and the bronze comes back only when the person turns the browser's
+      dark mode off (the menu's light-mode item). Kept: harmless, and it keeps Chrome's automatic
+      dark off the page
 - [x] The install card in Samsung Internet on Android offers «باز کردن در Chrome» (an Android
       `intent://` link to the same page in Chrome) instead of «نصب برنامه», with one line on why;
       chosen by the developer over showing both. Samsung's own menu can still install; nothing stops it
-- [ ] The developer checks both on the phone after the release (Samsung Internet can't be run here)
-- Not fixable from the site: the code SMS filling itself in Samsung Internet; it is typed by hand
+- [x] The developer checks both on the phone after the release (Samsung Internet can't be run here):
+      the colours, see above
+- [x] **Released 1405/08/12 (2026-11-03) as `20261103-0337-346bf42`** (previous
+      `20261103-0247-3e3c7d0`), without a migration
+  - Before: full suite on `main` at `dd5a3cb` (1080 domain, 2013 integration, 1314 Vitest, zero
+    build warnings, lint, `format:check`, build; Vite's 546 kB notice for the site app's script,
+    as before), `npm run e2e` 16 green, `npm run screenshots` committed (`346bf42`)
+  - The commands were typed by the developer from one list (ssh-agent, server state, row counts,
+    `./backup.sh run`, copy and `sha256sum`, `release.sh`, checks after); their outputs were not
+    sent back, so the backup's name and the row counts are not recorded here
+  - After, from outside: the panel, `/health`, the public page and the app answer 200, `/qr` 302;
+    the `color-scheme` tag on both pages and the Chrome link in the app's script
+  - A rollback to `20261103-0247-3e3c7d0` is safe: no migration
+- Not fixable from the site: the code SMS filling itself in Samsung Internet; it is typed by hand;
+  and the colours under Samsung Internet's dark mode, which is the person's own setting
 
 ### Release 2 — The timetable and attendance (priority 1)
 
