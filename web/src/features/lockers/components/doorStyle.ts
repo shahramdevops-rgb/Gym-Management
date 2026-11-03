@@ -29,18 +29,20 @@ export const doorMotion = [
  * free, the number a soft grey, lighter than an out-of-service door's (both changed by the
  * developer, 1405/07/20: the number was green, the face plain); tinted red with a red edge when held by a member, the same in blue when held
  * by a guest, in yellow on a cardio-only visit and in violet on a single visit; hatched when out of
- * service.
+ * service. The tints mix in oklab, not oklch: oklch walks the hue wheel between the two colours, and
+ * from the red (hue 20) to the dark ground (hue 268) that walk passes through magenta, so a held
+ * door looked violet (fixed 1405/08/13).
  */
 export const doorStateClass: Record<LockerState, string> = {
   free: "border-e-success text-foreground/75 bg-[linear-gradient(to_right,var(--door-free),var(--door)_60%)]",
   occupied:
-    "border-e-destructive text-foreground bg-[linear-gradient(to_right,color-mix(in_oklch,var(--door-held)_60%,var(--door)),var(--door)_60%)]",
+    "border-e-destructive text-foreground bg-[linear-gradient(to_right,color-mix(in_oklab,var(--door-held)_60%,var(--door)),var(--door)_60%)]",
   guest:
-    "border-e-guest text-foreground bg-[linear-gradient(to_right,color-mix(in_oklch,var(--door-guest)_60%,var(--door)),var(--door)_60%)]",
+    "border-e-guest text-foreground bg-[linear-gradient(to_right,color-mix(in_oklab,var(--door-guest)_60%,var(--door)),var(--door)_60%)]",
   cardio:
-    "border-e-cardio text-foreground bg-[linear-gradient(to_right,color-mix(in_oklch,var(--door-cardio)_60%,var(--door)),var(--door)_60%)]",
+    "border-e-cardio text-foreground bg-[linear-gradient(to_right,color-mix(in_oklab,var(--door-cardio)_60%,var(--door)),var(--door)_60%)]",
   singleVisit:
-    "border-e-single-visit text-foreground bg-[linear-gradient(to_right,color-mix(in_oklch,var(--door-single-visit)_60%,var(--door)),var(--door)_60%)]",
+    "border-e-single-visit text-foreground bg-[linear-gradient(to_right,color-mix(in_oklab,var(--door-single-visit)_60%,var(--door)),var(--door)_60%)]",
   outOfService:
     "text-muted-foreground bg-[repeating-linear-gradient(135deg,var(--door-hatch)_0_6px,var(--door)_6px_12px)]",
 };
