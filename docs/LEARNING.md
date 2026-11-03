@@ -2271,3 +2271,9 @@ The question that started this was whether a gym that is entirely internal — I
 - **The user agent is the last resort, and the right one here.** Feature checks find what a browser can do, not who built its install; `SamsungBrowser` in the user agent is the only sign that the install would be blocked.
 - **An installed app's icon is copied at install time.** Changing the icon on the server reaches an installed app only when its browser checks the manifest again, every few days, or when it is reinstalled.
 - **My notes:**
+
+## Held doors red again (قرمز دوباره)
+
+- **`color-mix` in oklch walks around the hue wheel; in oklab it goes straight.** oklch describes a colour by lightness, chroma and hue (an angle), so mixing two colours also mixes their angles, the short way round: from red (20°) to the dark blue-grey ground (268°) the short way runs through magenta, and a red tint came out violet. oklab describes the same colours as points on two axes, so a mix is the point between them and only fades toward the ground. Use oklch to pick colours, oklab to blend a colour into a background.
+- **A grey is not hue-free.** The dark ground has almost no chroma, but its hue still counts in an oklch mix; nearly invisible in the colour itself, it decided which way the mix turned.
+- **My notes:**
