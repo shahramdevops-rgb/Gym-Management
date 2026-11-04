@@ -2395,3 +2395,10 @@ The question that started this was whether a gym that is entirely internal — I
 - **Container units find a picture inside its box.** With `container-type: size` on the frame, `100cqw` and `100cqh` are its width and height, so `min(100cqw, 100cqh * var(--ar))` is the drawn photo's width; site.js gives `--ar` from the image's natural size, since photos differ in shape.
 - **A mask fades without cutting.** Two `linear-gradient` masks, one per axis, combined with `mask-composite: intersect`, make the photo's edges transparent from a little inside, so it melts into its mirror; a side with no mirror room gets a fade of zero and stays sharp.
 - **My notes:**
+
+## 14.2 — Finding the gym, the links (مسیریابی و اینستاگرام)
+
+- **A link that leaves the page is an `<a>`, not a `<button>`.** A button runs code on this page; an `<a href>` goes somewhere, so the browser lets people long-press, copy or open it in a new tab, and a phone can hand a Neshan or Instagram address to the installed app.
+- **`target="_blank"` with `rel="noopener"`.** The map opens in a new tab so the gym's page stays behind it; `noopener` stops the new page from reaching back to ours through `window.opener`.
+- **A short share link is a pointer, not the place.** `nshn.ir/…` and `balad.ir/p/…` name the gym's place on each service; moving the pin on Balad later changes what the link shows, not the link, so the site needs no change.
+- **My notes:**

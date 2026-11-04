@@ -69,8 +69,10 @@
       need both cuts.
 
       «تماس» dials the gym; «ورود / ثبت‌نام» opens the members' app, and the hero's two buttons
-      lead to the sections they name (roadmap 15.3b, closing 14.4). Facts not supplied by the gym (Instagram) say «به‌زودی»; a wrong number on a public
-      page is worse than none. Supplied by the gym: the address and the telephone; men only; 7:30 to 23:00 every day of the year
+      lead to the sections they name (roadmap 15.3b, closing 14.4); «مسیریابی» opens the gym's place on Neshan or Balad
+      (14.2). Facts not supplied by the gym (the trainers) say «به‌زودی»; a wrong number on a public
+      page is worse than none. Supplied by the gym: the address and the telephone; Instagram
+      (pasargad_plus, on the sign over the door); men only; 7:30 to 23:00 every day of the year
       (docs/BUSINESS_RULES.md: no closed days); one 1000 m² hall (the page stopped saying "no columns" in the plan on 2026-10-15); the services and
       the plan of the hall, drawn by the gym (approximate, not to scale); one hard rubber floor
       everywhere.
@@ -970,68 +972,97 @@
               </div>
               <div>
                 <dt>اینستاگرام</dt>
-                <dd class="soon">به‌زودی</dd>
+                <dd>
+                  <a
+                    href="https://instagram.com/pasargad_plus"
+                    target="_blank"
+                    rel="noopener"
+                    dir="ltr"
+                    >@pasargad_plus</a
+                  >
+                </dd>
               </div>
             </dl>
 
+            <!-- The gym's own place pages, made by the developer on 1405/08/13 (roadmap 14.2). -->
             <div class="contact__actions" data-reveal>
-              <button type="button" class="btn btn--bronze">مسیریابی با نشان</button>
-              <button type="button" class="btn btn--ghost">مسیریابی با بلد</button>
+              <a
+                class="btn btn--bronze"
+                href="https://nshn.ir/edrbrtVFp5Ew3a"
+                target="_blank"
+                rel="noopener"
+                >مسیریابی با نشان</a
+              >
+              <a
+                class="btn btn--ghost"
+                href="https://balad.ir/p/43U8VBwuxUeApa"
+                target="_blank"
+                rel="noopener"
+                >مسیریابی با بلد</a
+              >
             </div>
           </div>
 
           <!-- The streets around the gym in 3D. site.js draws the town into data-town and sets
-               the viewBox; without it the figure stays hidden and the address above says it all. -->
+               the viewBox; without it the figure stays hidden and the address above says it all.
+               A tap on it opens Neshan, like the first button. -->
           <figure class="contact__map" data-reveal>
-            <svg
-              class="town"
-              preserveAspectRatio="xMidYMid slice"
-              role="img"
-              aria-label="نقشه‌ی سه‌بعدی: باشگاه در ۱۸ متری فرهنگیان، نزدیک خیابان عصر انقلاب"
+            <a
+              class="contact__map-link"
+              href="https://nshn.ir/edrbrtVFp5Ew3a"
+              target="_blank"
+              rel="noopener"
             >
-              <defs>
-                <!-- site.js centres this on the gym's door: the lit streets glow towards it -->
-                <radialGradient id="town-lit" gradientUnits="userSpaceOnUse" r="760">
-                  <stop offset="0" stop-color="#e8c07d" stop-opacity="0.7" />
-                  <stop offset="0.5" stop-color="#c89b57" stop-opacity="0.32" />
-                  <stop offset="1" stop-color="#c89b57" stop-opacity="0.08" />
-                </radialGradient>
-                <radialGradient id="town-glow">
-                  <stop offset="0" stop-color="#e8c07d" stop-opacity="0.75" />
-                  <stop offset="1" stop-color="#e8c07d" stop-opacity="0" />
-                </radialGradient>
-                <linearGradient id="town-gym-front" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#f2e4c8" />
-                  <stop offset="1" stop-color="#c89b57" />
-                </linearGradient>
-                <linearGradient id="town-gym-side" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#b8894a" />
-                  <stop offset="1" stop-color="#5a4327" />
-                </linearGradient>
-                <mask id="town-logo">
-                  <image href="img/logo.png" x="50" y="-56" width="26" height="36" />
-                </mask>
-              </defs>
-              <g data-town></g>
-              <!-- The bubble over the gym: site.js moves it above the ridge -->
-              <g data-town-pin>
-                <g class="town__pop">
-                  <g class="town__bob">
-                    <rect class="town__bubble" x="-88" y="-62" width="176" height="48" rx="24" />
-                    <path class="town__bubble" d="M-9 -15 0 -2 9 -15Z" />
-                    <rect
-                      class="town__logo"
-                      x="50"
-                      y="-56"
-                      width="26"
-                      height="36"
-                      mask="url(#town-logo)"
-                    />
-                    <text class="town__name" x="-16" y="-32">پاسارگاد پلاس</text>
+              <svg
+                class="town"
+                preserveAspectRatio="xMidYMid slice"
+                role="img"
+                aria-label="نقشه‌ی سه‌بعدی: باشگاه در ۱۸ متری فرهنگیان، نزدیک خیابان عصر انقلاب"
+              >
+                <defs>
+                  <!-- site.js centres this on the gym's door: the lit streets glow towards it -->
+                  <radialGradient id="town-lit" gradientUnits="userSpaceOnUse" r="760">
+                    <stop offset="0" stop-color="#e8c07d" stop-opacity="0.7" />
+                    <stop offset="0.5" stop-color="#c89b57" stop-opacity="0.32" />
+                    <stop offset="1" stop-color="#c89b57" stop-opacity="0.08" />
+                  </radialGradient>
+                  <radialGradient id="town-glow">
+                    <stop offset="0" stop-color="#e8c07d" stop-opacity="0.75" />
+                    <stop offset="1" stop-color="#e8c07d" stop-opacity="0" />
+                  </radialGradient>
+                  <linearGradient id="town-gym-front" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#f2e4c8" />
+                    <stop offset="1" stop-color="#c89b57" />
+                  </linearGradient>
+                  <linearGradient id="town-gym-side" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#b8894a" />
+                    <stop offset="1" stop-color="#5a4327" />
+                  </linearGradient>
+                  <mask id="town-logo">
+                    <image href="img/logo.png" x="50" y="-56" width="26" height="36" />
+                  </mask>
+                </defs>
+                <g data-town></g>
+                <!-- The bubble over the gym: site.js moves it above the ridge -->
+                <g data-town-pin>
+                  <g class="town__pop">
+                    <g class="town__bob">
+                      <rect class="town__bubble" x="-88" y="-62" width="176" height="48" rx="24" />
+                      <path class="town__bubble" d="M-9 -15 0 -2 9 -15Z" />
+                      <rect
+                        class="town__logo"
+                        x="50"
+                        y="-56"
+                        width="26"
+                        height="36"
+                        mask="url(#town-logo)"
+                      />
+                      <text class="town__name" x="-16" y="-32">پاسارگاد پلاس</text>
+                    </g>
                   </g>
                 </g>
-              </g>
-            </svg>
+              </svg>
+            </a>
           </figure>
         </div>
       </section>
@@ -1042,6 +1073,13 @@
       <div class="footer__bar wrap">
         <span class="logo footer__logo" aria-hidden="true"></span>
         <p>© ۱۴۰۵ باشگاه پاسارگاد پلاس</p>
+        <a
+          class="footer__instagram"
+          href="https://instagram.com/pasargad_plus"
+          target="_blank"
+          rel="noopener"
+          >اینستاگرام</a
+        >
       </div>
     </footer>
 
@@ -1052,7 +1090,13 @@
         <span data-status-text></span>
       </p>
       <div class="dock__actions">
-        <button type="button" class="btn btn--ghost btn--small">مسیریابی</button>
+        <a
+          class="btn btn--ghost btn--small"
+          href="https://nshn.ir/edrbrtVFp5Ew3a"
+          target="_blank"
+          rel="noopener"
+          >مسیریابی</a
+        >
         <a class="btn btn--bronze btn--small" href="tel:+989939386787">تماس</a>
       </div>
     </div>
