@@ -30,11 +30,15 @@
       mask, so it takes any colour. The tab's icon (img/favicon.png) is the same logo in bronze, a
       copy of the panel's (web/public/favicon.png): white would not show on a light tab.
 
-      The gym's own photos (D:\GymPicture on the developer's PC, iPhone HEIC), cut to fit and
-      darkened about 12% so the words over them stay readable:
+      The gym's own photos (D:\GymPicture on the developer's PC, iPhone HEIC), cut to fit. They
+      were darkened about 12% at first; on 2026-11-05 each was brought back to its own light
+      (multiplied by 255 / its brightest value), as the developer wants every photo undarkened:
         slide-1.webp IMG_4208   slide-2.webp IMG_4227   slide-3.webp IMG_4167   slide-4.webp IMG_4190
-        slide-5.webp IMG_4182 (darkened about 18%: white tiles)
-      The tour's (darkened about 10%; the wide and the -tall cut of each):
+        slide-5.webp IMG_4192 (since 2026-11-05, in place of IMG_4182)
+      The tour's, the wide and the -tall version of each, whole and NOT darkened: since 2026-11-05
+      the developer wants every tour photo with its colours as they are, like the hall's first
+      (cardio, calisthenics and crossfit were remade from their sources that day; Gemini's star
+      taken out of their bottom-right corner):
         band D:\GymPicture\door-wide-ai-clean.png, -tall: door-tall-ai-clean.png
         tour-barber D:\GymPicture\barber-wide-ai-clean.png, -tall: barber-tall-ai-clean.png
         tour-lockers D:\GymPicture\lockers-wide-ai-clean.png, -tall: lockers-tall-ai-clean.png
@@ -45,16 +49,14 @@
         tour-stage D:\GymPicture\stage-wide-ai-clean.png, -tall: stage-tall-ai-clean.png
         tour-calisthenics D:\GymPicture\calisthenics-wide.png, -tall: calisthenics-tall.png (2026-11-05)
         tour-crossfit D:\GymPicture\crossfit-wide.png, -tall: crossfit-tall.png (2026-11-05)
+        tour-bodybuilding D:\GymPicture\bodybuilding-wide.png, -tall: bodybuilding-tall.png (2026-11-05)
+        tour-bodybuilding-2 D:\GymPicture\bodybuilding-2-wide.png, -tall: bodybuilding-2-tall.png (2026-11-05)
       The hero has five slides since 2026-11-04 (the sixth and its line «استیج فیگور، برای تمرین
       ژست‌ها.» were dropped by the developer).
       Every other photo in img/ except logo.png is still a PLACEHOLDER from Unsplash (free licence,
       no credit required), to be replaced by the gym's own photos under the same file names:
         tour-massage.webp J1trUf0Lj3Q
-        tour-bodybuilding.webp k47w6BeapCs
-        tour-bodybuilding-2.webp m4Jqyv5VwqY
         (The hall had four stops until 2026-11-05; the developer made it two.)
-        gym-curl.webp b5boYWIR2vU   gym-deadlift.webp KaxVB5xh4Nw   gym-press.webp 8Hip5Ntz1WM
-        gym-athlete.webp GLivMZcDfY0   rack.webp 3uWgVRLbJwI
       Since 2026-11-04 the gym's photos go in WHOLE, never cut or zoomed by hand (the developer
       found the cut ones far too close): the screen's own shape crops only what it must. The one
       exception is a wide photo's -tall twin, cut full height around its subject (for a phone
@@ -135,8 +137,7 @@
           <a href="#facilities">امکانات</a>
           <a href="#coaches">مربیان</a>
           <a href="#shop">فروشگاه</a>
-          <a href="#hours">ساعت کاری</a>
-          <a href="#contact">تماس</a>
+          <a href="#contact">ساعت کاری و نشانی</a>
         </nav>
 
         <!-- The members' and trainers' app (roadmap 15.3b): signing in and signing up start on the
@@ -209,7 +210,7 @@
 
           <div class="hero__actions">
             <a class="btn btn--bronze" href="#facilities">امکانات باشگاه</a>
-            <a class="btn btn--ghost" href="#hours">ساعت کاری و نشانی</a>
+            <a class="btn btn--ghost" href="#contact">ساعت کاری و نشانی</a>
           </div>
         </div>
 
@@ -621,55 +622,71 @@
           <h2 id="space-title">یه جای خاص و دوست داشتنی</h2>
         </div>
 
+        <!--
+          The gym's own photos (2026-11-05, chosen from D:\GymPicture by Claude at the developer's
+          request), whole and not darkened, each in its own shape: gallery-1 IMG_4175,
+          gallery-2 IMG_4247, gallery-3 IMG_4181, gallery-4 IMG_4183, gallery-5 IMG_4193,
+          gallery-6 IMG_4196. On a computer three columns, a wide and a tall one in each; on a
+          phone a row to swipe, all the same height.
+        -->
         <div class="gallery" data-gallery tabindex="0" aria-label="عکس‌های باشگاه">
           <figure class="photo gallery__item">
             <img
-              src="./img/gym-curl.webp"
-              alt="جلو بازو با دمبل"
+              src="./img/gallery-1.webp"
+              alt="دیوار «STOP WISHING, START DOING» و نشان باشگاه"
               loading="lazy"
-              width="900"
-              height="1347"
+              width="1600"
+              height="1200"
             />
           </figure>
           <figure class="photo gallery__item">
             <img
-              src="./img/gym-deadlift.webp"
-              alt="آماده‌ی ددلیفت"
+              src="./img/gallery-2.webp"
+              alt="ورودی باشگاه از کوچه"
               loading="lazy"
               width="1200"
-              height="800"
+              height="1600"
             />
           </figure>
           <figure class="photo gallery__item">
             <img
-              src="./img/rack.webp"
-              alt="ردیف دمبل‌ها"
+              src="./img/gallery-3.webp"
+              alt="توپ‌های مدیسین‌بال کنار آینه"
               loading="lazy"
-              width="900"
-              height="1350"
+              width="1200"
+              height="1600"
             />
           </figure>
           <figure class="photo gallery__item">
             <img
-              src="./img/gym-press.webp"
-              alt="پرس بالای سر با دمبل"
+              src="./img/gallery-4.webp"
+              alt="ردیف دمبل‌ها در سالن"
               loading="lazy"
-              width="900"
-              height="1350"
+              width="1600"
+              height="1200"
             />
           </figure>
           <figure class="photo gallery__item">
             <img
-              src="./img/gym-athlete.webp"
-              alt="ورزشکار در سالن"
+              src="./img/gallery-5.webp"
+              alt="نیمکت‌ها و هالترها زیر «STAY FOCUSED»"
               loading="lazy"
-              width="900"
-              height="1125"
+              width="1600"
+              height="1200"
+            />
+          </figure>
+          <figure class="photo gallery__item">
+            <img
+              src="./img/gallery-6.webp"
+              alt="دستگاه‌ها زیر «STOP WISHING»"
+              loading="lazy"
+              width="1200"
+              height="1600"
             />
           </figure>
         </div>
         <p class="gallery__count wrap" aria-hidden="true">
-          <span data-gallery-index>۰۱</span> <span class="gallery__of">/ ۰۵</span>
+          <span data-gallery-index>۰۱</span> <span class="gallery__of">/ ۰۶</span>
         </p>
       </section>
 
@@ -905,48 +922,43 @@
         </ul>
       </section>
 
-      <!-- Hours -->
-      <section class="hours wrap" id="hours" aria-labelledby="hours-title">
-        <div class="section-head" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۶</span> ساعت کاری</p>
-          <h2 id="hours-title">هر روز سال، حتی روزهای تعطیل.</h2>
-        </div>
-
-        <div class="hours__card" data-reveal>
-          <p class="hours__range">
-            <span>۷:۰۰</span>
-            <span class="hours__dash" aria-hidden="true"></span>
-            <span>۲۲:۳۰</span>
-          </p>
-          <p class="hours__words">از هفت صبح تا ده و نیم شب؛ تعطیلات رسمی هم همین‌طور.</p>
-          <p class="hours__words">جمعه‌ها از دوازده ظهر تا ده و نیم شب.</p>
-
-          <div class="dial" aria-hidden="true">
-            <div class="dial__track">
-              <span class="dial__open" data-open-band></span>
-              <span class="dial__now" data-now hidden></span>
-            </div>
-            <div class="dial__ticks">
-              <span>۰</span><span>۶</span><span>۱۲</span><span>۱۸</span><span>۲۴</span>
-            </div>
-          </div>
-
-          <p class="status status--inline" data-status hidden>
-            <span class="status__dot"></span>
-            <span data-status-text></span>
-          </p>
-        </div>
-      </section>
-
-      <!-- Contact -->
+      <!-- Hours and contact, one section since 2026-11-05: the hours, the address and the phone
+           at the start, the map beside them (on a phone the map first) -->
       <section class="contact wrap" id="contact" aria-labelledby="contact-title">
         <div class="section-head" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۷</span> نشانی و تماس</p>
+          <p class="eyebrow"><span class="eyebrow__num">۰۶</span> ساعت کاری و نشانی</p>
           <h2 id="contact-title">منتظر حضور گرمتون هستیم</h2>
         </div>
 
         <div class="contact__body">
           <div class="contact__info">
+            <div class="hours__card" data-reveal>
+              <p class="hours__range">
+                <span>۷:۰۰</span>
+                <span class="hours__dash" aria-hidden="true"></span>
+                <span>۲۲:۳۰</span>
+              </p>
+              <p class="hours__words">
+                هر روز سال، از هفت صبح تا ده و نیم شب؛ تعطیلات رسمی هم همین‌طور.
+              </p>
+              <p class="hours__words">جمعه‌ها از دوازده ظهر تا ده و نیم شب.</p>
+
+              <div class="dial" aria-hidden="true">
+                <div class="dial__track">
+                  <span class="dial__open" data-open-band></span>
+                  <span class="dial__now" data-now hidden></span>
+                </div>
+                <div class="dial__ticks">
+                  <span>۰</span><span>۶</span><span>۱۲</span><span>۱۸</span><span>۲۴</span>
+                </div>
+              </div>
+
+              <p class="status status--inline" data-status hidden>
+                <span class="status__dot"></span>
+                <span data-status-text></span>
+              </p>
+            </div>
+
             <dl class="contact__list" data-reveal>
               <div>
                 <dt>نشانی</dt>
