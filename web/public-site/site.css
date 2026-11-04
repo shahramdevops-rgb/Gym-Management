@@ -1184,14 +1184,50 @@ main > section[id] {
   opacity: 1;
 }
 
-/* The picture only chooses the file (the tall one on a phone); the img still fills the figure */
-.tour__photo picture {
-  display: contents;
-}
-
-/* Like the hero's slides: the whole photo, never cut or zoomed, and it only fades in */
+/* Like the hero's slides: the whole photo, never cut or zoomed. A stop's photo arrives soft and
+   dim and comes into focus (2026-11-05); the filters keep the same order so they blend. */
 .tour__photo img {
   object-fit: contain;
+  filter: saturate(0.6) sepia(0.18) contrast(1.08) brightness(0.6) blur(14px);
+  transition: filter 1.8s var(--ease-out);
+}
+
+.tour__photo.is-active img {
+  filter: saturate(0.6) sepia(0.18) contrast(1.08) brightness(0.9) blur(0);
+}
+
+/* And a band of warm light crosses it once, from the reading side, as the walker comes in. It
+   lies on the picture (a box over the whole frame, under the bronze breath) and adds light
+   (screen); twice and a half as wide as the frame, its bright middle is off the frame at either
+   end of the run. */
+.tour__photo picture {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.tour__photo picture::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 40%, rgb(255 222 165 / 0.32) 50%, transparent 60%)
+    100% 0 / 250% 100% no-repeat;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.tour__photo.is-active picture::after {
+  animation: sweep 2s 0.2s ease-in-out both;
+}
+
+@keyframes sweep {
+  from {
+    background-position-x: 0%;
+  }
+
+  to {
+    background-position-x: 100%;
+  }
 }
 
 /* The room a whole photo leaves on a screen of another shape: the same photo behind it, blurred
