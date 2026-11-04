@@ -699,9 +699,7 @@ function coaches() {
   const section = document.querySelector("[data-coaches]");
   if (!section) return;
   const deck = section.querySelector(".coaches__deck");
-  const ghost = section.querySelector("[data-coach-ghost]");
   const cards = [...section.querySelectorAll("[data-coach]")];
-  const nameOf = (card) => card.querySelector(".coach__name").textContent;
   let current = 0;
 
   function place() {
@@ -719,11 +717,6 @@ function coaches() {
   function go(index) {
     current = (index + cards.length) % cards.length;
     place();
-    ghost.classList.add("is-changing");
-    setTimeout(() => {
-      ghost.textContent = nameOf(cards[current]);
-      ghost.classList.remove("is-changing");
-    }, 350);
   }
 
   let swiped = false;

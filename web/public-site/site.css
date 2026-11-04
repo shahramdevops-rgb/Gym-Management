@@ -1749,27 +1749,6 @@ main > section[id] {
     radial-gradient(ellipse 45% 30% at 50% 88%, rgb(200 155 87 / 0.14), transparent 70%);
 }
 
-/* The name in front, huge and hollow, behind the cards */
-.coaches__ghost {
-  position: absolute;
-  inset-inline: 0;
-  inset-block-start: 50%;
-  z-index: -1;
-  translate: 0 -50%;
-  color: transparent;
-  font-size: clamp(5rem, 17vw, 14rem);
-  font-weight: 900;
-  line-height: 1;
-  text-align: center;
-  white-space: nowrap;
-  -webkit-text-stroke: 1px rgb(200 155 87 / 0.28);
-  transition: opacity 0.35s;
-}
-
-.coaches__ghost.is-changing {
-  opacity: 0;
-}
-
 .coaches__deck {
   position: relative;
   height: calc(var(--card-w) * 1.4 + 1rem);
