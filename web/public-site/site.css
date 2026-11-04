@@ -2113,8 +2113,8 @@ main > section[id] {
   font-weight: 700;
 }
 
-.soon {
-  color: var(--faint);
+.contact__list a:hover {
+  color: var(--bronze);
 }
 
 .contact__actions {
@@ -2133,6 +2133,11 @@ main > section[id] {
 }
 
 .js .contact__map {
+  display: block;
+}
+
+/* A tap on the map opens Neshan */
+.contact__map-link {
   display: block;
 }
 
@@ -2330,6 +2335,14 @@ main > section[id] {
 
 .footer__logo {
   height: 2rem;
+}
+
+.footer__instagram {
+  margin-inline-start: auto;
+}
+
+.footer__instagram:hover {
+  color: var(--bronze);
 }
 
 /* ---------- The phone's bar ---------- */

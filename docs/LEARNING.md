@@ -2277,3 +2277,10 @@ The question that started this was whether a gym that is entirely internal — I
 - **`color-mix` in oklch walks around the hue wheel; in oklab it goes straight.** oklch describes a colour by lightness, chroma and hue (an angle), so mixing two colours also mixes their angles, the short way round: from red (20°) to the dark blue-grey ground (268°) the short way runs through magenta, and a red tint came out violet. oklab describes the same colours as points on two axes, so a mix is the point between them and only fades toward the ground. Use oklch to pick colours, oklab to blend a colour into a background.
 - **A grey is not hue-free.** The dark ground has almost no chroma, but its hue still counts in an oklch mix; nearly invisible in the colour itself, it decided which way the mix turned.
 - **My notes:**
+
+## 14.2 — Finding the gym, the links (مسیریابی و اینستاگرام)
+
+- **A link that leaves the page is an `<a>`, not a `<button>`.** A button runs code on this page; an `<a href>` goes somewhere, so the browser lets people long-press, copy or open it in a new tab, and a phone can hand a Neshan or Instagram address to the installed app.
+- **`target="_blank"` with `rel="noopener"`.** The map opens in a new tab so the gym's page stays behind it; `noopener` stops the new page from reaching back to ours through `window.opener`.
+- **A short share link is a pointer, not the place.** `nshn.ir/…` and `balad.ir/p/…` name the gym's place on each service; moving the pin on Balad later changes what the link shows, not the link, so the site needs no change.
+- **My notes:**

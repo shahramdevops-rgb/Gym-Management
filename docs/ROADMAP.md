@@ -4111,10 +4111,16 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
       the trainer (the Owner enters them in «مربیان»), not only on the public page
 
 ### 14.2 Finding the gym (مسیریابی و اینستاگرام)
-- [ ] Waiting for the gym: its location link for Neshan and Balad
-- [ ] «مسیریابی» opens them; Instagram in the footer and contact section instead of «به‌زودی»
+- [x] Waiting for the gym: its location link for Neshan and Balad
+      - 1405/08/13 (2026-11-04): the developer made the gym's place on both,
+        https://nshn.ir/edrbrtVFp5Ew3a and https://balad.ir/p/43U8VBwuxUeApa. Balad's pin is one
+        alley off; the developer fixes it on Balad later, and the link stays the same
+- [x] «مسیریابی» opens them; Instagram in the footer and contact section instead of «به‌زودی»
       - Instagram known since 2026-10-25: `pasargad_plus` (https://instagram.com/pasargad_plus),
         written on the sign over the gym's door; the developer: the sign makes it the official page
+      - 2026-11-04, branch `task/14.2-map-links`: the two buttons in section ۰۷ open Neshan and
+        Balad; the phone's bar «مسیریابی» and a tap on the 3D map open Neshan; «@pasargad_plus» in
+        the contact list and «اینستاگرام» at the end of the footer. All open in a new tab
 - [x] The streets around the gym in 3D beside the address (section ۰۷), asked by the developer on
       1405/08/03 (2026-10-25), branch `task/14.2-finding-the-gym`; released 1405/08/05 in
       `20261027-0220-387aa1d` (with 6.5.38, 10.19 and 10.20)
@@ -4124,7 +4130,7 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
         service, no package. The two streets to the door are lit, with light running along them;
         the shed rises and the bubble (logo, «پاسارگاد پلاس») drops in as the section comes on
         screen. Houses and the streets past the traced ones are filler, faded at the edges
-      - A tap on the map does nothing yet: it opens Neshan once the gym's link comes (above)
+      - A tap on the map opens Neshan (2026-11-04, above)
 - Ideas from the photos of the gym's front (`D:\GymPicture\IMG_4245–4247.HEIC`, 2026-10-25),
   parked by the developer ("maybe in the future"; no more work on the end of the page for now):
   - [ ] The shed on the map as it really is: walls of brown tiles, a roof of dark grey corrugated
