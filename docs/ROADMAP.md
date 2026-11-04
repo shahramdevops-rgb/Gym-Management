@@ -4471,6 +4471,22 @@ Built 1405/08/07, not merged or released.
 - [x] Tests: domain (`SmsTextTests`, `NotificationTests`, `SmsSettingsTests`), integration
       (`TrainerRequestSmsTests`, `SmsSettingsEndpointTests`), Vitest (the card, the switch saved)
 
+##### 15.4d Coaching news in the app, and «انتخاب این مربی» on the public page
+Plan approved by the developer 1405/08/14 (2026-11-05), after Release 2; not started.
+- [ ] In the app only (no SMS; push is not used, see *Later* below): a card with «دیدم» on the
+      home, as «سانس لغو شد», for: the trainer accepted / declined (to the member), the trainer
+      ended the link (to the member), the member ended it (to the trainer)
+- [ ] Asked, not yet answered: how long a card stays (Claude: until «دیدم», at most 30 days);
+      whether a member who changes trainer tells the old one («{شاگرد} مربی دیگری انتخاب کرد»);
+      whether the Owner stopping a trainer tells their students
+- [ ] No new table: when the member saw the answer (on the request) and when the other side saw
+      the end (on the link); the migration marks every earlier answer and end as seen, so the
+      server's real rows bring no old news
+- [ ] The public page's «انتخاب این مربی» opens `pasargadgymplus.ir/app/trainers` (a Caddy
+      redirect to the app's `/trainers`); the app keeps where a signed-out person was going and
+      opens it after signing in or up
+- [ ] §15 written with the decisions; tests (domain, integration, Vitest, screenshots)
+
 #### 15.5 The member's home, first part
 Decided 1405/08/08 (§15 *The member's own records*): the member sees everything the panel's profile
 holds about them except the SMS; nothing is edited from the app (the birth date least of all); the
@@ -4762,7 +4778,10 @@ alert is in the app only. Worked out from the check-ins, no table and no migrati
       page of its own rather than a tab): a Jalali month with «ماه قبل» / «ماه بعد» up to this
       one, the totals in five small boxes, each session with its state and an earlier trainer's name
 - [ ] **Release 2** *held* (the developer, 1405/08/13): nothing goes out after 15.7; the work goes
-      on until a trainer can manage a student, and the release comes then, with all of it
+      on until a trainer can manage a student, and the release comes then, with all of it.
+      **Released after all on 1405/08/14** (the developer: «همه چی میخام بره»): 15.6, 15.7, 14.2's
+      links and the public page's day of work (the tour, the gym's own photos undarkened, the
+      gallery, the first trainer's card, hours and contact in one section) go out; 15.4d next
 
 ### Release 3 — The monthly assessment (priority 2)
 
