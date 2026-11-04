@@ -23,6 +23,7 @@ export const smsKindLabels: Record<SmsMessageKind, string> = {
   WelcomeBack: "خوش برگشتی",
   Broadcast: "پیامک گروهی",
   TrainerRequest: "انتخاب مربی",
+  SessionCancelled: "لغو سانس",
 };
 
 export const smsStatusLabels: Record<SmsMessageStatus, string> = {

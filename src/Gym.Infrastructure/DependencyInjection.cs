@@ -167,6 +167,10 @@ public static class DependencyInjection
         services.AddSingleton<ITrainerRequestSmsScheduler, HangfireTrainerRequestSmsScheduler>();
         services.AddScoped<TrainerRequestSmsJob>();
 
+        // The cancelled session's SMS, one job per student and trainer's save (task 15.6c).
+        services.AddSingleton<ISessionCancelledSmsScheduler, HangfireSessionCancelledSmsScheduler>();
+        services.AddScoped<SessionCancelledSmsJob>();
+
         // A broadcast is one job, enqueued after it is saved, which writes and sends its messages (task 10.13).
         services.AddSingleton<IBroadcastScheduler, HangfireBroadcastScheduler>();
         services.AddScoped<BroadcastJob>();

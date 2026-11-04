@@ -4111,10 +4111,16 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
       the trainer (the Owner enters them in «مربیان»), not only on the public page
 
 ### 14.2 Finding the gym (مسیریابی و اینستاگرام)
-- [ ] Waiting for the gym: its location link for Neshan and Balad
-- [ ] «مسیریابی» opens them; Instagram in the footer and contact section instead of «به‌زودی»
+- [x] Waiting for the gym: its location link for Neshan and Balad
+      - 1405/08/13 (2026-11-04): the developer made the gym's place on both,
+        https://nshn.ir/edrbrtVFp5Ew3a and https://balad.ir/p/43U8VBwuxUeApa. Balad's pin is one
+        alley off; the developer fixes it on Balad later, and the link stays the same
+- [x] «مسیریابی» opens them; Instagram in the footer and contact section instead of «به‌زودی»
       - Instagram known since 2026-10-25: `pasargad_plus` (https://instagram.com/pasargad_plus),
         written on the sign over the gym's door; the developer: the sign makes it the official page
+      - 2026-11-04, branch `task/14.2-map-links`: the two buttons in section ۰۷ open Neshan and
+        Balad; the phone's bar «مسیریابی» and a tap on the 3D map open Neshan; «@pasargad_plus» in
+        the contact list and «اینستاگرام» at the end of the footer. All open in a new tab
 - [x] The streets around the gym in 3D beside the address (section ۰۷), asked by the developer on
       1405/08/03 (2026-10-25), branch `task/14.2-finding-the-gym`; released 1405/08/05 in
       `20261027-0220-387aa1d` (with 6.5.38, 10.19 and 10.20)
@@ -4124,7 +4130,7 @@ The stage is built (14.0, section ۰۵) with placeholder photos and «به‌ز�
         service, no package. The two streets to the door are lit, with light running along them;
         the shed rises and the bubble (logo, «پاسارگاد پلاس») drops in as the section comes on
         screen. Houses and the streets past the traced ones are filler, faded at the edges
-      - A tap on the map does nothing yet: it opens Neshan once the gym's link comes (above)
+      - A tap on the map opens Neshan (2026-11-04, above)
 - Ideas from the photos of the gym's front (`D:\GymPicture\IMG_4245–4247.HEIC`, 2026-10-25),
   parked by the developer ("maybe in the future"; no more work on the end of the page for now):
   - [ ] The shed on the map as it really is: walls of brown tiles, a roof of dark grey corrugated
@@ -4465,6 +4471,22 @@ Built 1405/08/07, not merged or released.
 - [x] Tests: domain (`SmsTextTests`, `NotificationTests`, `SmsSettingsTests`), integration
       (`TrainerRequestSmsTests`, `SmsSettingsEndpointTests`), Vitest (the card, the switch saved)
 
+##### 15.4d Coaching news in the app, and «انتخاب این مربی» on the public page
+Plan approved by the developer 1405/08/14 (2026-11-05), after Release 2; not started.
+- [ ] In the app only (no SMS; push is not used, see *Later* below): a card with «دیدم» on the
+      home, as «سانس لغو شد», for: the trainer accepted / declined (to the member), the trainer
+      ended the link (to the member), the member ended it (to the trainer)
+- [ ] Asked, not yet answered: how long a card stays (Claude: until «دیدم», at most 30 days);
+      whether a member who changes trainer tells the old one («{شاگرد} مربی دیگری انتخاب کرد»);
+      whether the Owner stopping a trainer tells their students
+- [ ] No new table: when the member saw the answer (on the request) and when the other side saw
+      the end (on the link); the migration marks every earlier answer and end as seen, so the
+      server's real rows bring no old news
+- [ ] The public page's «انتخاب این مربی» opens `pasargadgymplus.ir/app/trainers` (a Caddy
+      redirect to the app's `/trainers`); the app keeps where a signed-out person was going and
+      opens it after signing in or up
+- [ ] §15 written with the decisions; tests (domain, integration, Vitest, screenshots)
+
 #### 15.5 The member's home, first part
 Decided 1405/08/08 (§15 *The member's own records*): the member sees everything the panel's profile
 holds about them except the SMS; nothing is edited from the app (the birth date least of all); the
@@ -4662,16 +4684,104 @@ through magenta (about 335 at 60%). A cardio door turned greenish the same way.
       session, to be confirmed at each part's start
 - [ ] Split into parts, each one thought through and decided at its start (the developer,
       1405/08/08), with §15's open lines asked there:
-  - [ ] **15.6a** the trainer's sessions: the pattern and how it repeats, each day's sessions,
-        times and capacity, a single day's change
-  - [ ] **15.6b** putting students in sessions: by the trainer and by the member, within
-        capacity; the member sees their next sessions
-  - [ ] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
+  - [x] **15.6a** the trainer's sessions: the pattern and how it repeats, each day's sessions,
+        times and capacity, a single day's change. Decided 1405/08/09 (§15 *The trainer's
+        sessions*): weekly with no end, a change from a date the trainer picks, one date changed
+        on its own and kept through later pattern changes, overlaps allowed, 12 weeks ahead.
+        Stored as the pattern and the changed days only; each date's sessions are worked out when
+        read (no rows made ahead, no nightly job). Built 1405/08/09 on `task/15.6-timetable`:
+        `/api/site/timetable`, «برنامه سانس‌ها» and «سانس‌های امروز» in the site app
+  - [x] **15.6a-2** «کپی به روزهای دیگر» (the developer, 1405/08/10): in «تغییر الگو», a day
+        with sessions copies them to the other days the trainer picks, in place of theirs; only
+        the editor's draft changes, saved with «ذخیره الگو» as before. A step-by-step builder
+        (length, hours, days off, a grid to cross out) was weighed first and dropped as too complex
+  - [x] **15.6b** putting students in sessions (decided 1405/08/09, §15 *Who puts a member in a
+        session* and *Students in sessions*): the trainer puts a student in a fixed weekly slot
+        with an end date; the member sees their next sessions and leaves or moves one date; within
+        capacity. A program is 6 to 8 weeks, so the fixed slot covers it at once. Split in two:
+    - [x] **15.6b-1, the backend** (1405/08/09, `task/15.6-timetable`): `FixedSchedule`,
+          `SessionSkip`, `SessionBooking` (migration `AddFixedSchedules`, one schedule per link
+          held by an exclusion constraint); the places worked out like the timetable
+          (`BookingRules.Places`); `/api/site/coaching/students/{memberId}/schedule` (+ `/check`),
+          `/api/site/timetable/days/{date}/students` (+ `/remove`), `/api/site/me/sessions`
+          (+ `/leave`, `/move`), and the warning before a timetable change
+          (`/timetable/pattern/check`, `/days/{date}/check`, `/days/{date}/reset-check`); each
+          session's `students` in «برنامه سانس‌ها»
+    - [x] **15.6b-2, the screens** (1405/08/09, `task/15.6-timetable`, `web/src/site/bookings/`):
+          «برنامهٔ ثابت» on each student of «شاگردان من» (its own page: the pattern's sessions as
+          toggles, first date today, last date 8 weeks on; a full date named and nothing
+          saved; «پایان برنامه» asks first); a date of «روزهای پیش رو» opens on «شاگردان سانس», with
+          «حذف از این روز», and its editor behind «تغییر سانس‌های این روز»; each session shows
+          «۳ از ۸ نفر»; the warning stands in place of the save buttons when a change touches
+          students; the member's «سانس‌های من» card (next three dates) and page with «نمی‌آیم» and
+          «جابه‌جایی». e2e `siteBookings.spec.ts`. Layout chosen by Claude, accepted by the
+          developer "for now"
+    - [x] **15.6b-3, after trying it** (1405/08/09, `task/15.6-timetable`): a change or an end of
+          the fixed schedule applies from now (today's started sessions kept); «سانس برداشته شد»
+          became «لغو شد» and wraps in a narrow box; «نمی‌آیم» leaves the date listed, faded, with
+          «می‌آیم» to take it back (`POST /api/site/me/sessions/return`, `SkipReason`, migration
+          `AddSessionSkipReason`); today's sessions that are over leave «سانس‌های من»
+    - [x] **15.6b-4, students to reschedule** (1405/08/10, `task/15.6-timetable`): the warning's
+          check also names the students whose fixed schedule loses sessions (`toReschedule`); after
+          a pattern saved under the warning, «برنامهٔ تازه لازم است» lists them with links to their
+          «برنامهٔ ثابت». Held in the page only: it is gone when the trainer leaves the page
+    - [x] **15.6b-5, found while trying it** (1405/08/10, `task/15.6-timetable`): a session's
+          problem (end not after start, the same times twice in a day) shows in red in its own box
+          before anything is sent, with a line by the save button, in the pattern and a single
+          date; a day stops adding at 20; «برنامهٔ ثابت» shows a session the pattern no longer has
+          as «دیگر نیست», off, so the save is not refused for it
+  - [x] **15.6e** VIP sessions (decided 1405/08/10, built 1405/08/11, `task/15.6-timetable`, §15
+        *VIP sessions*): a «VIP» toggle in each session box of the pattern and of a single date,
+        kept by «کپی به روزهای دیگر»; the label beside the session in the pattern, the days ahead,
+        today's sessions, «شاگردان سانس», «برنامهٔ ثابت»'s choices, and the student's «سانس‌های من»
+        and «جابه‌جایی». A label only; a migration adds `is_vip` (false) to both session tables
+  - [x] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
+        (decided and built 1405/08/12, `task/15.6-timetable`, §15 *A cancelled session*; the
+        developer took Claude's four proposals). A save of the timetable (one date,
+        «برگرداندن به الگو», the weekly pattern) that removes a session a student is in or moves its
+        times writes a `session_cancellations` row per student and session, under one change id.
+        The member's home opens with «سانس لغو شد» and «دیدم»
+        (`/api/site/me/sessions/cancelled`, `/seen`); the student gets one SMS per save, kind
+        `SessionCancelled` («لغو سانس» under «اپ باشگاه» in «تنظیمات پیامک», off at first), only for
+        a date within 7 days, at 08:00 for a save after 22:00, checked again when it goes. Migration
+        `AddSessionCancellations` (a new table, `notifications.timetable_change_id`,
+        `sms_settings.session_cancelled_enabled` false); the panel's section «پیامک به مربیان» is
+        now «اپ باشگاه»
+  - [x] **15.6f** after trying it (the developer, 1405/08/13, `task/15.6-timetable`, §15 *The
+        trainer's sessions*): the trainer's page is «تمام سانس‌های من»; «روزهای پیش رو» shows 4
+        weeks (`TimetableRules.DaysShown`, 28 days; the timetable still reaches 12); a session runs
+        from 07:00 to 22:00 on the quarter hour (`Timetable.OutsideHours`, `MinuteStep` 15), the
+        hour boxes 07 to 22 and the minutes 00/15/30/45. Migration `LimitSessionHours` changes the
+        time checks of the six session tables (none on the server yet)
+  - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
+        days and times within what the trainer allows (e.g. three days a week for eight weeks),
+        and the trainer confirms, as a request like 15.4's. Decided to wait until 15.6b's way,
+        the trainer placing the student, has been used
 
 #### 15.7 Attendance for the trainer (پیگیری حضور)
-- [ ] «امروز» for the trainer: today's sessions and who has checked in at the desk, live
-- [ ] Attendance per student and per month; the absence alert to the trainer
-- [ ] **Release 2**
+Decided 1405/08/13 (§15 *Attendance for the trainer*): on time up to 15 minutes after the start,
+a check-in counts from 30 minutes before (earlier when the visit was still open at the start),
+after the end it stays absent with «بعد از سانس آمد», leave and cancelled are not absent, the
+alert is in the app only. Worked out from the check-ins, no table and no migration.
+- [x] **15.7a, the backend** (built 1405/08/13, `task/15.6-timetable`): `PresenceRules` (Domain)
+      gives each place its state from that day's check-ins (on time, late, absent with «بعد از
+      سانس آمد», not yet; leave and cancelled from the place itself); `/api/site/coaching/today`
+      (today's sessions, removed ones under their old times, each student's state and check-in
+      time; the absent card reads it) and `/api/site/coaching/students/{memberId}/attendance?from&to`
+      (62 days at most, up to today, each session with its state and an earlier trainer's name,
+      the totals). Error `Bookings.AttendanceRangeInvalid`
+- [x] **15.7b, the screens** (built 1405/08/13, `task/15.6-timetable`, `web/src/site/attendance/`):
+      «حضور امروز» (`/today`, from «سانس‌های امروز»; a box per session with each student's
+      state and check-in time, refreshes every minute and says when it last did); the card
+      «غایبان امروز» at the top of the trainer's home, only when a session has ended with someone
+      absent; «حضور» beside «برنامهٔ ثابت» in «شاگردان من» (`/students/:memberId/attendance`, a
+      page of its own rather than a tab): a Jalali month with «ماه قبل» / «ماه بعد» up to this
+      one, the totals in five small boxes, each session with its state and an earlier trainer's name
+- [ ] **Release 2** *held* (the developer, 1405/08/13): nothing goes out after 15.7; the work goes
+      on until a trainer can manage a student, and the release comes then, with all of it.
+      **Released after all on 1405/08/14** (the developer: «همه چی میخام بره»): 15.6, 15.7, 14.2's
+      links and the public page's day of work (the tour, the gym's own photos undarkened, the
+      gallery, the first trainer's card, hours and contact in one section) go out; 15.4d next
 
 ### Release 3 — The monthly assessment (priority 2)
 

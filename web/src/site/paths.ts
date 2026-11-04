@@ -5,6 +5,18 @@ export const sitePaths = {
   signUp: "/sign-up",
   /** The member picks a trainer (15.4). */
   trainers: "/trainers",
+  /** The trainer's «تمام سانس‌های من» (15.6a). */
+  timetable: "/timetable",
+  /** The trainer's «برنامهٔ ثابت» of one student (15.6b). */
+  student: (memberId: string) => `/students/${memberId}`,
+  studentPattern: "/students/:memberId",
+  /** The member's «سانس‌های من» (15.6b). */
+  mySessions: "/sessions",
+  /** The trainer's «حضور امروز» (15.7). */
+  today: "/today",
+  /** The trainer's «حضور» of one student, by Jalali month (15.7). */
+  studentAttendance: (memberId: string) => `/students/${memberId}/attendance`,
+  studentAttendancePattern: "/students/:memberId/attendance",
 } as const;
 
 /**

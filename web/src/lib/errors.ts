@@ -128,6 +128,38 @@ export const errorMessages: Record<string, string> = {
   "Coaching.StudentNotFound": "این عضو دیگر شاگرد شما نیست.",
   "Coaching.LinkAlreadyEnded": "مربی‌گری این شاگرد قبلاً تمام شده است.",
 
+  // The trainer's timetable (site)
+  "Timetable.CapacityOutOfRange": "ظرفیت هر سانس باید بین ۱ تا ۵۰ نفر باشد.",
+  "Timetable.TimeNotOnStep": "دقیقهٔ سانس فقط می‌تواند ۰۰، ۱۵، ۳۰ یا ۴۵ باشد.",
+  "Timetable.OutsideHours": "سانس باید از ساعت ۷ صبح به بعد شروع شود و تا ۱۰ شب تمام شود.",
+  "Timetable.EndNotAfterStart": "پایان سانس باید بعد از شروع آن و در همان روز باشد.",
+  "Timetable.DuplicateSession": "دو سانس با ساعت شروع و پایان یکسان در یک روز نمی‌شود.",
+  "Timetable.TooManySessions": "هر روز حداکثر ۲۰ سانس می‌تواند داشته باشد.",
+  "Timetable.InvalidDay": "روز هفته معتبر نیست.",
+  "Timetable.PatternStartOutOfRange":
+    "الگوی تازه از فردا تا آخرین روز برنامه (۱۲ هفته) می‌تواند شروع شود.",
+  "Timetable.DayOutOfRange": "فقط روزهای امروز تا ۱۲ هفتهٔ آینده را می‌توان تغییر داد.",
+  "Timetable.SessionStarted": "سانسی که شروع شده را نمی‌توان تغییر داد یا حذف کرد.",
+  "Timetable.SessionInThePast": "سانس تازه نمی‌تواند در ساعتی که گذشته شروع شود.",
+
+  // Students in sessions (site, 15.6b)
+  "Bookings.ScheduleDatesOutOfRange":
+    "برنامه از امروز به بعد شروع می‌شود و تا آخرین روز برنامهٔ سانس‌ها (۱۲ هفته) تمام می‌شود.",
+  "Bookings.ScheduleWithoutSessions": "دست‌کم یک سانس هفتگی برای برنامه انتخاب کنید.",
+  "Bookings.TooManySlots": "تعداد سانس‌های هفتگی برنامه بیش از حد است.",
+  "Bookings.DuplicateSlot": "یک سانس هفتگی دو بار انتخاب شده است.",
+  "Bookings.InvalidSlot": "روز یا ساعت یکی از سانس‌های برنامه معتبر نیست.",
+  "Bookings.NoSuchSession": "این سانس در برنامهٔ سانس‌های مربی نیست.",
+  "Bookings.SessionFull": "این سانس جای خالی ندارد.",
+  "Bookings.NotAStudent": "این عضو الان شاگرد شما نیست.",
+  "Bookings.NoSchedule": "این شاگرد برنامهٔ ثابتی ندارد.",
+  "Bookings.NotInSession": "در این سانس نیستید.",
+  "Bookings.SessionStarted": "این سانس شروع شده و دیگر نمی‌توان آن را تغییر داد.",
+  "Bookings.NotLeft": "این سانس را با «نمی‌آیم» کنار نگذاشته‌اید.",
+  "Bookings.AlreadyInSession": "در این سانس هستید.",
+  "Bookings.MoveOutOfSchedule": "فقط به سانسی تا آخرین روز برنامه‌تان می‌توان جابه‌جا شد.",
+  "Bookings.AttendanceRangeInvalid": "بازهٔ تاریخ حضور معتبر نیست.",
+
   // Members
   "Members.NotFound": "عضو پیدا نشد.",
   "Members.PhoneAlreadyExists": "این شماره موبایل قبلاً برای عضو دیگری ثبت شده است.",

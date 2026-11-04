@@ -219,7 +219,7 @@ public sealed class AbsenceTests(DatabaseFixture fixture) : DatabaseTestBase(fix
             debtReminder: SmsKindSettings.Off,
             debtReminderMinAmount: null,
             absence: new SmsKindSettings(true, DaysAway, new TimeOnly(11, 0)),
-            broadcastEnabled: false, trainerRequestEnabled: false).IsSuccess.ShouldBeTrue();
+            broadcastEnabled: false, trainerRequestEnabled: false, sessionCancelledEnabled: false).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

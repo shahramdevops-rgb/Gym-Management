@@ -483,4 +483,46 @@ public sealed class SmsTextTests
     {
         SmsParts.Count(SmsText.ForTrainerRequest(LongName, LongName)).ShouldBeLessThanOrEqualTo(2);
     }
+
+    // ---- The cancelled session's SMS (task 15.6c) ----
+
+    /// <summary>A Saturday: 1405/08/16.</summary>
+    private static readonly DateOnly CancelledDate = new(2026, 11, 7);
+
+    [Fact]
+    public void ForSessionCancelled_OneSession_NamesItsDayDateTimeAndTrainer()
+    {
+        SmsText.ForSessionCancelled("سید علی رضایی", "مهدی نوری", CancelledDate, new TimeOnly(18, 30), others: 0)
+            .ShouldBe("علی عزیز، سانس شنبه ۰۸/۱۶ ساعت ۱۸:۳۰ شما با مربی مهدی نوری لغو شد." + OptOutLine);
+    }
+
+    [Fact]
+    public void ForSessionCancelled_SeveralSessions_CountsTheOthersAndPointsToTheApp()
+    {
+        SmsText.ForSessionCancelled("علی رضایی", "مهدی نوری", CancelledDate, new TimeOnly(7, 5), others: 5)
+            .ShouldBe("علی عزیز، سانس شنبه ۰۸/۱۶ ساعت ۰۷:۰۵ شما با مربی مهدی نوری و ۵ سانس دیگر لغو شد؛ همه را در اپ «باشگاه من» ببینید." + OptOutLine);
+    }
+
+    [Fact]
+    public void ForSessionCancelled_LongTrainerName_KeepsItsFirstThreeWords()
+    {
+        SmsText.ForSessionCancelled("علی رضایی", LongName, CancelledDate, new TimeOnly(18, 30), others: 0)
+            .ShouldContain("با مربی سید محمد حسین لغو شد.");
+    }
+
+    [Fact]
+    public void ForSessionCancelled_TenCharacterNames_StayTwoParts()
+    {
+        SmsParts.Count(SmsText.ForSessionCancelled("علیرضا رضایی", "مهدی نوری‌زاده", CancelledDate, new TimeOnly(18, 30), others: 12))
+            .ShouldBeLessThanOrEqualTo(2);
+    }
+
+    [Theory]
+    [InlineData(2026, 11, 7, "شنبه")]
+    [InlineData(2026, 11, 10, "سه‌شنبه")]
+    [InlineData(2026, 11, 13, "جمعه")]
+    public void DayName_IsTheSiteAppsName(int year, int month, int day, string expected)
+    {
+        SmsText.DayName(new DateOnly(year, month, day)).ShouldBe(expected);
+    }
 }

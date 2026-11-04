@@ -50,11 +50,20 @@ public static class NotificationConstraints
     /// </summary>
     public const string OneTrainerRequestPerMemberTrainerAndDay = "ix_notifications_one_trainer_request_per_member_trainer_and_day";
 
+    /// <summary>
+    /// One <c>SessionCancelled</c> per member and trainer's save (BUSINESS_RULES.md §15 <i>Timetable
+    /// and attendance</i>, task 15.6c), however many of their sessions it cancelled.
+    /// </summary>
+    public const string OneSessionCancelledPerMemberAndChange = "ix_notifications_one_session_cancelled_per_member_and_change";
+
     /// <summary>Each kind fills the ids of its own event and leaves the others empty.</summary>
     public const string EventMatchesKind = "ck_notifications_event_matches_kind";
 
     /// <summary>Only the trainer's SMS names a trainer, and it always does (task 15.4c).</summary>
     public const string TrainerOnlyForTrainerRequest = "ck_notifications_trainer_only_for_trainer_request";
+
+    /// <summary>Only the cancelled session's SMS names a trainer's save, and it always does (task 15.6c).</summary>
+    public const string ChangeOnlyForSessionCancelled = "ck_notifications_change_only_for_session_cancelled";
 
     /// <summary>A sent message has the provider's id and the moment it was sent.</summary>
     public const string SentHasProviderId = "ck_notifications_sent_has_provider_id";

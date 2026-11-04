@@ -115,16 +115,29 @@ async function setPrices(api: APIRequestContext, token: string) {
 }
 
 /**
+ * The Owner's token, kept for the specs after it: the login allows 10 tries a minute from one
+ * address, and the specs, which run one after another in one worker, would pass that. Read again
+ * after 10 minutes, well before the 15 a token lasts.
+ */
+let ownerSession: { token: string; at: number } | undefined;
+
+/**
  * The Owner's token whether or not an earlier spec already made the first login: the specs share
  * one stack, and any of them may run alone.
  */
 async function ownerToken(api: APIRequestContext) {
+  if (ownerSession !== undefined && Date.now() - ownerSession.at < 10 * 60_000) {
+    return ownerSession.token;
+  }
+
   const response = await api.post("/api/auth/login", {
     data: { userName: owner.userName, password: ownerPassword },
   });
-  return response.ok()
+  const token = response.ok()
     ? ((await response.json()) as Session).accessToken
-    : changeOwnerPassword(api);
+    : await changeOwnerPassword(api);
+  ownerSession = { token, at: Date.now() };
+  return token;
 }
 
 /** A trainer the Owner adds in «مربیان» (15.2); the phone as typed, `09…`. */

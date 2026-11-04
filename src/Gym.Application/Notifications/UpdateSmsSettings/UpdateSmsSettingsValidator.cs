@@ -32,7 +32,7 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
         RuleFor(command => command.DebtReminder).Custom(CheckDebtReminder);
 
         // Nothing to fill in, but left out they would quietly turn the receipt, the welcome, the
-        // welcome back, the broadcast or the trainer's SMS off.
+        // welcome back, the broadcast, the trainer's SMS or the cancelled session's SMS off.
         RuleFor(command => command.SubscriptionReceipt)
             .NotNull()
             .WithMessage("Every kind must be sent, on or off.")
@@ -50,6 +50,10 @@ public sealed class UpdateSmsSettingsValidator : AbstractValidator<UpdateSmsSett
             .WithMessage("Every kind must be sent, on or off.")
             .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);
         RuleFor(command => command.TrainerRequest)
+            .NotNull()
+            .WithMessage("Every kind must be sent, on or off.")
+            .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);
+        RuleFor(command => command.SessionCancelled)
             .NotNull()
             .WithMessage("Every kind must be sent, on or off.")
             .WithErrorCode(SmsSettingsErrors.SettingsIncomplete.Code);

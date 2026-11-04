@@ -43,6 +43,7 @@ const empty: SmsSettings = {
   absence: off,
   broadcast: { enabled: false },
   trainerRequest: { enabled: false, morningSendTime: "10:00:00" },
+  sessionCancelled: { enabled: false, openingSendTime: "08:00:00", daysAhead: 7 },
   version: 1,
 };
 
@@ -73,6 +74,7 @@ const filled: SmsSettings = {
   absence: { enabled: true, threshold: 14, sendTime: "11:30:00" },
   broadcast: { enabled: true },
   trainerRequest: { enabled: false, morningSendTime: "10:00:00" },
+  sessionCancelled: { enabled: false, openingSendTime: "08:00:00", daysAhead: 7 },
   version: 5,
 };
 
@@ -111,6 +113,10 @@ const samples: SmsSamples = {
     "مهدی عزیز، سید علی رضایی شما را به‌عنوان مربی خود در باشگاه پاسارگاد انتخاب کرده است.\nلغو11",
     2,
   ),
+  sessionCancelled: [
+    sample("علی عزیز، سانس چهارشنبه ۰۸/۱۳ ساعت ۱۸:۳۰ شما با مربی مهدی نوری لغو شد.\nلغو11", 2),
+    sample("علی عزیز، … و ۵ سانس دیگر لغو شد؛ همه را در اپ «باشگاه من» ببینید.\nلغو11", 2),
+  ],
 };
 
 /** The phone-like preview inside one kind's card. */
@@ -440,6 +446,7 @@ describe("SmsSettingsPage", () => {
       absence: off,
       broadcast: { enabled: false },
       trainerRequest: { enabled: false },
+      sessionCancelled: { enabled: false },
       version: empty.version,
     });
   });
@@ -808,6 +815,37 @@ describe("SmsSettingsPage", () => {
     expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
     const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
     expect(body.trainerRequest).toEqual({ enabled: true });
+  });
+
+  it("SmsSettingsPage_SessionCancelled_IsOnlyASwitchWithItsTwoTexts", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+
+    const cancelled = await screen.findByRole("group", { name: "لغو سانس" });
+    expect(switchOf("لغو سانس")).not.toBeChecked();
+    expect(within(cancelled).queryAllByRole("textbox")).toHaveLength(0);
+    expect(within(cancelled).getByText(/تا ۷ روز بعد/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(previewOf("لغو سانس")).toHaveTextContent("شما با مربی مهدی نوری لغو شد"),
+    );
+
+    fireEvent.click(within(cancelled).getByRole("button", { name: "متن ۲" }));
+    expect(previewOf("لغو سانس")).toHaveTextContent("و ۵ سانس دیگر لغو شد");
+  });
+
+  it("SmsSettingsPage_SessionCancelledTurnedOn_SendsItsSwitch", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "لغو سانس" });
+
+    fireEvent.click(switchOf("لغو سانس"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.sessionCancelled).toEqual({ enabled: true });
   });
 
   it("SmsSettingsPage_DebtReminderEmpty_CannotBeTurnedOnUntilEveryFieldIsFilled", async () => {

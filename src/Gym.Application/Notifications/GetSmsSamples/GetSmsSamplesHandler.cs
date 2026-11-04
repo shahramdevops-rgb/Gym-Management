@@ -21,6 +21,9 @@ public sealed class GetSmsSamplesHandler(IGymCalendar calendar)
     /// <summary>The sample trainer, for the trainer's SMS (task 15.4c).</summary>
     public const string SampleTrainerName = "مهدی نوری";
 
+    /// <summary>The sample session's start, for the cancelled session's SMS (task 15.6c).</summary>
+    public static readonly TimeOnly SampleSessionStart = new(18, 30);
+
     public SmsSamplesResponse Handle()
     {
         var today = calendar.Today();
@@ -45,7 +48,12 @@ public sealed class GetSmsSamplesHandler(IGymCalendar calendar)
                 .Select(turn => Sample(SmsText.ForWelcomeBack(SampleMemberName, turn)))],
             DebtReminder: Sample(SmsText.ForDebtReminder(SampleMemberName, 450_000m)),
             Absence: Sample(SmsText.ForAbsence(SampleMemberName, daysAway: 12)),
-            TrainerRequest: Sample(SmsText.ForTrainerRequest(SampleTrainerName, SampleMemberName)));
+            TrainerRequest: Sample(SmsText.ForTrainerRequest(SampleTrainerName, SampleMemberName)),
+            SessionCancelled:
+            [
+                Sample(SmsText.ForSessionCancelled(SampleMemberName, SampleTrainerName, today.AddDays(1), SampleSessionStart, others: 0)),
+                Sample(SmsText.ForSessionCancelled(SampleMemberName, SampleTrainerName, today.AddDays(1), SampleSessionStart, others: 5)),
+            ]);
     }
 
     private static SmsSample Sample(string text) => new(text, SmsParts.Count(text));

@@ -208,6 +208,10 @@ export const smsSettingsSchema = z
     trainerRequest: z.object({
       enabled: z.boolean(),
     }),
+    /** The student's SMS when their trainer cancels a session they are in (task 15.6c): only a switch. */
+    sessionCancelled: z.object({
+      enabled: z.boolean(),
+    }),
   })
   .superRefine((values, context) => {
     for (const kind of smsKinds) {
@@ -376,6 +380,7 @@ export function toFormValues(settings: SmsSettings): SmsSettingsValues {
     absence: kindValues(settings.absence),
     broadcast: { enabled: settings.broadcast.enabled },
     trainerRequest: { enabled: settings.trainerRequest.enabled },
+    sessionCancelled: { enabled: settings.sessionCancelled.enabled },
   };
 }
 
@@ -437,6 +442,7 @@ export function toInput(
     absence: kindInput(values.absence),
     broadcast: { enabled: values.broadcast.enabled },
     trainerRequest: { enabled: values.trainerRequest.enabled },
+    sessionCancelled: { enabled: values.sessionCancelled.enabled },
     version,
   };
 }

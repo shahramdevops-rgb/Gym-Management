@@ -23,7 +23,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         {
             table.HasCheckConstraint(
                 "ck_notifications_kind",
-                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack', 'TrainerRequest')");
+                "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack', 'TrainerRequest', 'SessionCancelled')");
             table.HasCheckConstraint(
                 "ck_notifications_status",
                 "status IN ('Pending', 'Sent', 'Failed', 'Unknown')");
@@ -63,6 +63,9 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
                 "AND debt_since IS NULL AND absent_since IS NULL) OR " +
                 "(kind = 'TrainerRequest' AND member_id IS NOT NULL AND report_date IS NOT NULL " +
                 "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL " +
+                "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR " +
+                "(kind = 'SessionCancelled' AND member_id IS NOT NULL " +
+                "AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL " +
                 "AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL)");
 
             // Task 15.4c: the trainer's SMS always names its trainer, and no other kind does. Apart
@@ -70,6 +73,12 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             table.HasCheckConstraint(
                 NotificationConstraints.TrainerOnlyForTrainerRequest,
                 "(kind = 'TrainerRequest') = (trainer_id IS NOT NULL)");
+
+            // Task 15.6c: the cancelled session's SMS always names the trainer's save, and no other
+            // kind does. Apart from the check above, for the same reason.
+            table.HasCheckConstraint(
+                NotificationConstraints.ChangeOnlyForSessionCancelled,
+                "(kind = 'SessionCancelled') = (timetable_change_id IS NOT NULL)");
 
             table.HasCheckConstraint(
                 NotificationConstraints.SentHasProviderId,
@@ -175,6 +184,12 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
             .IsUnique()
             .HasFilter("kind = 'TrainerRequest'")
             .HasDatabaseName(NotificationConstraints.OneTrainerRequestPerMemberTrainerAndDay);
+
+        // Once per member and trainer's save (task 15.6c): however many of their sessions it cancelled.
+        builder.HasIndex(notification => new { notification.MemberId, notification.TimetableChangeId })
+            .IsUnique()
+            .HasFilter("kind = 'SessionCancelled'")
+            .HasDatabaseName(NotificationConstraints.OneSessionCancelledPerMemberAndChange);
 
         builder.Property(notification => notification.Version).IsRowVersion();
     }

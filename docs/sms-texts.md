@@ -247,3 +247,20 @@ trainer in the site app (BUSINESS_RULES.md §15 *A member and their trainer*).
   (`SmsText.MaxMemberNameWords`), so the message stays two parts.
 - «لغو11» stays under it like every message: Kavenegar adds it anyway when a text leaves it out
   (the developer, 1405/08/07).
+
+### A cancelled session (`SessionCancelled`, to the student)
+
+Proposed by Claude and taken with 15.6c's plan on 1405/08/12 (2026-11-03). Sent when the trainer
+saves a change of the timetable that cancels sessions the student is in (BUSINESS_RULES.md §15
+*A cancelled session*), only for a date within 7 days.
+
+```
+{first name} عزیز، سانس {day} {month/day} ساعت {start} شما با مربی {trainer} لغو شد.
+{first name} عزیز، سانس {day} {month/day} ساعت {start} شما با مربی {trainer} و {n} سانس دیگر لغو شد؛ همه را در اپ «باشگاه من» ببینید.
+```
+
+- The second when the same save cancelled more of the student's sessions, any date ahead: the SMS
+  names the nearest, the app lists them all.
+- The day as the site app writes it («سه‌شنبه», «پنجشنبه»), the date without the year as in the
+  daily report (`۰۸/۱۶`), the start as `۱۸:۳۰`. The trainer keeps the first 3 words of their name
+  (`SmsText.MaxTrainerNameWords`). Two parts with 10-character names.

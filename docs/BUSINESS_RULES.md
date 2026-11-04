@@ -2325,6 +2325,8 @@ without adding up the rows.
     «Management» under the icon and «Pasargad Gym Management» in full, in English, which is short
     and never breaks under an icon. The long-press shortcuts keep the menu's Persian names. The
     members' and trainers' app (Phase 15) is «My Gym» (15.3b; the developer renamed it from «Pasargad Gym» 1405/08/08), so the two are told apart.
+  - **A second one: a session's «VIP» label** (15.6e, decided by the developer, 1405/08/11), §15
+    *VIP sessions*.
 - Text normalization (applied to names before saving the search column, and to every search input):
   - Arabic ي (U+064A) and ى (U+0649) → Persian ی (U+06CC)
   - Arabic ك (U+0643) → Persian ک (U+06A9)
@@ -2441,17 +2443,21 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - Every code is a paid SMS, so the limits are checked before Kavenegar is called.
   - **Sent as Kavenegar's verification template** (`verify/lookup`, made for codes), not as free
     text (Kavenegar's answer, 1405/08/03; it had refused templates before the site was up,
-    1405/07/16). The template is `gymExpiring`, written by the developer:
-    «کد تایید باشگاه پاسارگاد: %token» and «این کد تا %token2 دقیقه معتبر است.», where `token` is
-    the code and `token2` the minutes it is valid for. It uses the gym's Kavenegar account and the
+    1405/07/16). The template is `gymExpiring`, written by the developer. Since 1405/08/09 it is
+    two lines only, «این کد تا %token2 دقیقه معتبر است.» and `@app.pasargadgymplus.ir #%token`, so
+    the code is written once, on the last line (it began with a first line «کد تایید باشگاه
+    پاسارگاد: %token», removed by the developer after the first real code SMS; Kavenegar approved
+    the two-line version the same day). `token` is the
+    code and `token2` the minutes it is valid for; the wording lives in Kavenegar, not in code. It uses the gym's Kavenegar account and the
     same API key; Kavenegar sends it from the gym's dedicated line `9981600378`, since its shared
     international line `0018018949161` cannot send inside Iran (Kavenegar's answer, 1405/08/07).
     Every other SMS is free text from the same dedicated line (§10 *Sending*).
   - **The code fills itself in on the phone** (asked by the developer, 1405/08/03, for the site
     app of 15.3): iPhones offer it from the SMS by themselves; Android needs the template's last
-    line to be `@app.pasargadgymplus.ir #%token`. Kavenegar approved `gymExpiring` with that third
-    line (sent by the developer and approved 1405/08/07). To check on the first real code SMS: its
-    last line is `@app.pasargadgymplus.ir #` and the code, with nothing after it.
+    line to be `@app.pasargadgymplus.ir #%token`. Kavenegar approved `gymExpiring` with that
+    line (sent by the developer and approved 1405/08/07). Checked on the first real code SMS
+    (1405/08/09): on Android the code fills itself in after Chrome's one-tap consent sheet, which
+    Android always shows for WebOTP and the site cannot remove.
   - The code itself is never written anywhere readable: not in the logs, not in the SMS history.
     Code SMS are not listed in the panel's «پیامک‌ها» history; only their count and cost are kept,
     and showing them in the panel is for 15.2. The database keeps only a random seed per code, from
@@ -2628,15 +2634,160 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **The trainer cancelling a session tells the students who had it that day**, by SMS and by a
   notice in the app. *Decided by the developer.* (A phone notification outside the app is not
   reliable from Iran for the site app, a PWA: the notice is shown when the app is opened.)
-- **On time, late, absent** (for now; the developer: "not important yet"): a check-in up to 10
-  minutes after the session's start is on time, a later one is late, no check-in is absent.
-  *Decided by the developer.*
-- *Open, asked in its part of 15.6 and 15.7:* how the pattern repeats (weekly, monthly, or as the
-  trainer wants: to be researched first, the developer asked to see how existing booking apps do
-  it); a single day's change; whether the trainer may go past the capacity; whether a member sees
-  only their own trainer's sessions; until when a member can join or leave a session; a check-in
-  after the session ended; whether the cancellation SMS has its own switch in «تنظیمات پیامک»; the
-  absence alert to the trainer.
+- **On time, late, absent**: a check-in up to **15 minutes** after the session's start is on time
+  (*decided by the developer*, 1405/08/13, in place of 10), a later one before the session ends is
+  late, no check-in is absent. The rest is the attendance of 15.7 (*Attendance for the trainer*
+  below).
+- **The trainer's sessions, decided with 15.6a's plan** (*Decided by the developer*, 1405/08/09,
+  unless marked otherwise):
+  - **A weekly pattern with no end**: each day of the week has its own sessions, and the week
+    repeats until the trainer changes it.
+  - **A change of the pattern applies from a date the trainer picks**, tomorrow at the earliest
+    (and by default), within the 12 weeks below. The days before it stay as they were, so
+    attendance on them stays true. A pattern saved from a date replaces any the trainer had saved
+    from a later one.
+  - **One date can be changed on its own**: sessions added or removed, their times and capacity
+    changed, or the day closed (no sessions). The other weeks stay as they are. A session that
+    has already started today cannot be changed or removed, and a new one cannot start in the
+    past.
+  - **A day changed by hand keeps its change** when the pattern changes later, until the trainer
+    presses «برگرداندن به الگو» for it. *Proposed by Claude, accepted.*
+  - **Sessions may overlap**, e.g. 13:00 to 15:00 and 14:45 to 17:00: the next group may come
+    early. Two sessions of one day cannot have the same start and the same end. A check-in a
+    little before a session's start is counted for the session the member is in (15.7).
+  - **The timetable reaches 12 weeks ahead** (today and the 83 days after it), so a program of
+    6 to 8 weeks (15.11) fits in it whole. *Proposed by Claude, accepted.* **«روزهای پیش رو»
+    shows only the next 4 weeks** (today and the 27 days after it; *decided by the developer*,
+    1405/08/13): the dates after them keep their sessions and their students, and a fixed program
+    still reaches the 12 weeks, but the trainer does not see or change them there.
+  - *Proposed by Claude, built with 15.6a:* a session's capacity is 1 to 50, a session ends the day
+    it starts, and a day holds 20 sessions at most.
+  - **A session's hours: from 07:00 to 22:00, on the quarter hour** (*decided by the developer*,
+    1405/08/13, in place of 5-minute steps at any hour): it starts at 07:00 or later and ends by
+    22:00, and its times are :00, :15, :30 or :45. The hour boxes offer 07 to 22. This is the
+    sessions' own rule: the gym itself still has no opening hours in the system (§7), and check-in
+    is not held to these hours.
+  - **The trainer's page is «تمام سانس‌های من»** (*decided by the developer*, 1405/08/13, in place
+    of «برنامه سانس‌ها»).
+  - **A stopped trainer's sessions are gone** from the site with their area (the member sees
+    only trainers now); the pattern is kept, and comes back if the Owner makes them a trainer
+    again. *Proposed by Claude, accepted.*
+- **Who puts a member in a session** (*Decided by the developer*, 1405/08/09; built in 15.6b):
+  the trainer's program lasts 6 to 8 weeks, and the trainer tells the student which days and
+  times to come, so **the trainer puts the student in a fixed weekly slot** (e.g. Saturday,
+  Monday and Wednesday at 13:00) **with an end date**, and the student is in every one of those
+  dates. **The student does not pick the plan or the slots**: they see their next sessions, and
+  may leave or move one single date (to another session of the same trainer with room). The
+  booking records who made it, and the fixed slot is its own record, so the next point can come
+  later.
+  - *Queued, not built:* the student picking their own days and times within what the trainer
+    allows (e.g. "three days a week, eight weeks"), and the trainer confirming it, as a request
+    like 15.4's. Only if it is needed, after the trainer's way has been used (ROADMAP 15.6d).
+- **Students in sessions, decided with 15.6b's plan** (*Decided by the developer*, 1405/08/09: the
+  first four asked one by one, the rest proposed by Claude and accepted as a whole):
+  - **The capacity is a ceiling**, for the trainer too: a session with no room takes no one, and a
+    trainer who wants more raises the session's capacity.
+  - **A member leaves or moves a date until the session starts**; from its start it is fixed.
+  - **A member may take back their own «نمی‌آیم» («می‌آیم»)** until the session starts, while the
+    session is still there and has room (*decided by the developer*, 1405/08/09: a tap may be a
+    mistake). The date stays in «سانس‌های من», faded, marked «نمی‌آیم». A date moved, or taken out
+    by the trainer, does not come back this way. *Proposed by Claude, accepted:* «سانس‌های من»
+    leaves out today's sessions that are over, and its home card only the dates the member is
+    coming to.
+  - **A member sees only their own trainer's sessions**, and moves a date only to one of them.
+  - **The trainer may change the timetable under their students, with a warning**: before a change
+    that removes a session students are in, changes its times, or lowers its capacity below its
+    students, the trainer is told how many students it touches, and saves anyway or not. A
+    student whose session is gone sees that date as «لغو شد» (the developer, 1405/08/09, in place
+    of «سانس برداشته شد», which read as unclear); the SMS and the in-app notice are 15.6c's.
+  - **After a change of the pattern saved under the warning, the trainer is shown the students
+    whose fixed schedule lost sessions to it**, each a way to their «برنامهٔ ثابت», to give them a
+    new one (*decided by the developer*, 1405/08/10, "for now, to see what comes out of it"). A
+    student is not moved to a new session by itself: when times change, which new session is
+    "the same" one cannot be known. A single date's change only cancels that date, so it names no
+    one; a session whose capacity drops keeps its students.
+  - **A student's session the pattern no longer has** shows in «برنامهٔ ثابت» struck through,
+    «دیگر نیست», off and not to be picked, so the new schedule is made of the trainer's sessions
+    only. *Proposed by Claude, accepted by the developer* (1405/08/10), after a schedule kept the
+    old sessions and was refused.
+- **VIP sessions** (*decided by the developer*, 1405/08/10): each session is normal or VIP, marked
+  by the trainer. **For now only a label**: it changes nothing else; the capacity is the trainer's,
+  as for any session. **The student sees it** on their sessions. **Money for a VIP session is
+  between the member and the trainer**: the desk and the Owner take no part, and the system records
+  no payment for it. The label is on a session of the weekly pattern and of a single date alike,
+  and changing it touches no student, so it gives no warning (*proposed by Claude, accepted by the
+  developer*, 1405/08/11). A session of today that has started keeps its label too, as it keeps its
+  times and capacity. **The label reads «VIP», in English** (*decided by the developer*, 1405/08/11:
+  «ویژه» reads oddly), the UI's second exception to Persian after the app names (§13). Sessions
+  saved before 15.6e are normal. *Open, for later:* a VIP price, who may be in a VIP session, any
+  link with the desk.
+  - **Only the trainer's students now** (an open link, 15.4) are put in sessions. When the link
+    ends, from either side or by the trainer being stopped, the member's sessions after that day
+    are gone; the day itself stays.
+  - **One fixed program per student at a time**: one or more weekly sessions, a first date and a
+    last date. The first date is today or later; the last is 8 weeks on by default, within the
+    timetable's 12 weeks. **A change of the program applies from now** (the developer, 1405/08/09,
+    in place of "from tomorrow"; "for now"): today's sessions that have started stay as they were,
+    for attendance (15.7), and the rest of today follows the new program; a program not started
+    yet is simply replaced. The trainer may also end it, from now in the same way.
+  - **A program is saved whole or not at all**: if one of its dates has no room, nothing is saved
+    and the trainer sees those dates. A date with no such session (closed by hand, or not in the
+    pattern then), and today's session that has already started, is passed over: it is not one of
+    the program's dates, never «لغو شد», and stays out if that session comes back later
+    (the trainer saves the program again to put the student in it).
+  - **A move goes to any session of the same trainer** that has not started, has room, and is not
+    after the program's last date.
+  - **The trainer sees each session's students on each date** and may take a student out of one
+    date, as the student may.
+  - **The member's plan is not checked**: a visit is still a check-in at the desk that uses a
+    session of the plan (above).
+- **A cancelled session, decided with 15.6c's plan** (*decided by the developer*, 1405/08/12: Claude's
+  four proposals, each taken as offered):
+  - **What tells the students: both kinds of change.** A save of one date, «برگرداندن به الگو», or
+    the weekly pattern that removes a session students are in, or changes its times. The sessions
+    and students are the warning's (above); a session whose capacity drops keeps its students and
+    tells no one. *Proposed by Claude, not yet confirmed:* the trainer taking one student out of
+    one date («شاگردان سانس») is not a cancellation, and tells no one.
+  - **The notice in the app: a card with «دیدم».** «سانس لغو شد» opens the member's home with each
+    cancelled date and time, until the member presses «دیدم» or the date passes. *Proposed by
+    Claude, built with it:* a session the trainer brings back leaves the card; one cancelled twice
+    shows once; only the trainer now's; «دیدم» covers what the member read, so a cancellation saved
+    meanwhile stays to be seen. The dates are kept as they were cancelled, so whether the member saw
+    one is known.
+  - **The SMS only for a date from today to 7 days after it.** A later date is told in the app only.
+    One SMS per student and save, however many of their sessions it cancelled: the nearest one by
+    day, date and time, and how many others the same save cancelled (`docs/sms-texts.md`).
+  - **Its own switch, «لغو سانس»**, in «تنظیمات پیامک», off at first, sent at once within
+    08:00–22:00; a save after 22:00 goes at **08:00** the next morning, not 10:00, so it reaches the
+    student before a morning session. *Proposed by Claude, built with it:* when it goes, it is
+    checked again: only a session still cancelled, not started, and not seen in the app («دیدم»)
+    counts, and the member must still be active and the trainer's student.
+- **Attendance for the trainer (15.7)** (*proposed by Claude, accepted by the developer*,
+  1405/08/13):
+  - **Worked out, never stored**: from the desk's check-ins (a cancelled check-in does not count,
+    §7) and the student's places in the trainer's sessions, as a locker's occupancy is (§6). No
+    table holds it, so a check-in cancelled at the desk changes it at once.
+  - **Which check-in counts for a session**: one from **30 minutes before its start** to its end.
+    A check-in earlier than that counts too when the visit was still open at the start (the member
+    came early and stayed). From the start to 15 minutes after it is on time, as above; later and
+    before the end, late.
+  - **A check-in after the session ended** leaves it absent, with «بعد از سانس آمد» beside it, so
+    the trainer knows the member came to the gym that day.
+  - **Not absent**: a session the student left («نمی‌آیم», shown «مرخصی»), a session the trainer
+    removed or whose times changed after the student was put in it (shown «لغو شد»), and a session
+    not yet ended with no check-in (shown «هنوز نیامده» until it ends). A date the student moved to
+    counts at its new session, the old one is not theirs any more.
+  - **Overlapping sessions**: a check-in counts for the session the student is in, not for one
+    they are not.
+  - **«امروز»**: today's sessions with each student's state and check-in time; the page refreshes
+    itself every minute while it is open.
+  - **The absence alert is in the app only, no SMS**: a card «غایبان امروز» on the trainer's home
+    lists today's absent students of the sessions that have ended. It goes the next day; the month
+    view keeps them.
+  - **Per student and per month**: each session of the student in a Jalali month, with its state
+    and the month's totals. Sessions with an earlier trainer show too, with that trainer's name
+    (*A member and their trainer*: a new trainer sees the earlier attendance).
+  - **The member does not see their monthly attendance yet**: left for later, only if asked.
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

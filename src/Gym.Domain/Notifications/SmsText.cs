@@ -53,6 +53,12 @@ public static class SmsText
     /// </summary>
     public const int MaxMemberNameWords = 4;
 
+    /// <summary>A trainer's full name in the student's SMS keeps its first 3 words (task 15.6c).</summary>
+    public const int MaxTrainerNameWords = 3;
+
+    /// <summary>The days of the week as the site app writes them, by <see cref="DayOfWeek"/> (Sunday first).</summary>
+    private static readonly string[] DayNames = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
+
     /// <summary>The Persian thousands separator (U+066C), as <c>formatMoney</c> in the frontend writes it.</summary>
     public const char ThousandsSeparator = '٬';
 
@@ -315,6 +321,30 @@ public static class SmsText
     /// </summary>
     public static string ForTrainerRequest(string trainerFullName, string memberFullName) =>
         WithOptOut($"{FirstName(trainerFullName)} عزیز، {Fit(memberFullName, MaxMemberNameWords)} شما را به‌عنوان مربی خود در باشگاه پاسارگاد انتخاب کرده است.");
+
+    /// <summary>
+    /// To the student whose trainer cancelled a session they were in (task 15.6c, BUSINESS_RULES.md §15
+    /// <i>Timetable and attendance</i>): the nearest date cancelled, its day of the week and time, and
+    /// how many more the same save cancelled, which the app lists.
+    /// </summary>
+    /// <param name="others">The other sessions of the student the same save cancelled, any date.</param>
+    public static string ForSessionCancelled(string memberFullName, string trainerFullName, DateOnly date, TimeOnly start, int others)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(others);
+
+        var session = $"سانس {DayName(date)} {MonthAndDay(date)} ساعت {Time(start)} شما با مربی {Fit(trainerFullName, MaxTrainerNameWords)}";
+
+        return WithOptOut(others == 0
+            ? $"{FirstName(memberFullName)} عزیز، {session} لغو شد."
+            : $"{FirstName(memberFullName)} عزیز، {session} و {Number(others)} سانس دیگر لغو شد؛ همه را در اپ «باشگاه من» ببینید.");
+    }
+
+    /// <summary><c>2026-11-07</c> → <c>شنبه</c>.</summary>
+    public static string DayName(DateOnly date) => DayNames[(int)date.DayOfWeek];
+
+    /// <summary><c>13:05</c> → <c>۱۳:۰۵</c>.</summary>
+    public static string Time(TimeOnly time) =>
+        ToPersianDigits(time.ToString("HH:mm", CultureInfo.InvariantCulture));
 
     private static string WithOptOut(string text) => $"{text}\n{OptOut}";
 

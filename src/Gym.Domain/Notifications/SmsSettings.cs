@@ -57,6 +57,12 @@ public sealed class SmsSettings : Entity
     public static readonly TimeOnly MorningSendTime = new(10, 0);
 
     /// <summary>
+    /// A cancelled session's SMS goes only for a date from today to this many days after it (the
+    /// developer, 1405/08/12, task 15.6c); a later one is told in the app only.
+    /// </summary>
+    public const int SessionCancelledDaysAhead = 7;
+
+    /// <summary>
     /// The welcome back goes this long after the check-in (the developer, 1405/08/04, task 10.20), so
     /// it reaches the member while they are training.
     /// </summary>
@@ -178,6 +184,13 @@ public sealed class SmsSettings : Entity
     /// </summary>
     public bool TrainerRequestEnabled { get; private set; }
 
+    /// <summary>
+    /// The student's SMS when their trainer cancels a session they are in (§15 <i>Timetable and
+    /// attendance</i>, task 15.6c). Only a switch: it goes at the trainer's save, for a date within
+    /// <see cref="SessionCancelledDaysAhead"/> days.
+    /// </summary>
+    public bool SessionCancelledEnabled { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>, so a stale edit cannot overwrite a newer one.</summary>
     public uint Version { get; private set; }
 
@@ -215,6 +228,24 @@ public sealed class SmsSettings : Entity
         var morning = localTime < EarliestSendTime ? today : today.AddDays(1);
 
         return morning.ToDateTime(MorningSendTime, DateTimeKind.Unspecified);
+    }
+
+    /// <summary>
+    /// When a cancelled session's SMS asked for now is to be sent (§15 <i>Timetable and attendance</i>,
+    /// task 15.6c): <c>null</c> for at once, within 08:00–22:00; otherwise at 08:00, not 10:00, so a
+    /// late cancellation reaches the student before a morning session. The same day before 08:00, the
+    /// day after once it is past 22:00. A local date and time in the gym's zone.
+    /// </summary>
+    public static DateTime? DeferredToOpening(DateOnly today, TimeOnly localTime)
+    {
+        if (IsWithinSendingHours(localTime))
+        {
+            return null;
+        }
+
+        var morning = localTime < EarliestSendTime ? today : today.AddDays(1);
+
+        return morning.ToDateTime(EarliestSendTime, DateTimeKind.Unspecified);
     }
 
     /// <summary>
@@ -299,6 +330,10 @@ public sealed class SmsSettings : Entity
         // Sent at each request on the site, not by a daily run.
         NotificationKind.TrainerRequest => new(
             TrainerRequestEnabled, Threshold: null, SendTime: null),
+
+        // Sent at the trainer's save on the site, not by a daily run.
+        NotificationKind.SessionCancelled => new(
+            SessionCancelledEnabled, Threshold: null, SendTime: null),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown notification kind."),
     };
 
@@ -317,6 +352,7 @@ public sealed class SmsSettings : Entity
     /// <param name="absence">The absence SMS's switch, days and time (task 10.12).</param>
     /// <param name="broadcastEnabled">The broadcast's switch: nothing to fill in (task 10.13).</param>
     /// <param name="trainerRequestEnabled">The trainer's SMS switch: nothing to fill in (task 15.4c).</param>
+    /// <param name="sessionCancelledEnabled">The cancelled session's SMS switch: nothing to fill in (task 15.6c).</param>
     public Result Update(
         bool enabled,
         SmsKindSettings subscriptionExpiring,
@@ -334,7 +370,8 @@ public sealed class SmsSettings : Entity
         decimal? debtReminderMinAmount,
         SmsKindSettings absence,
         bool broadcastEnabled,
-        bool trainerRequestEnabled)
+        bool trainerRequestEnabled,
+        bool sessionCancelledEnabled)
     {
         ArgumentNullException.ThrowIfNull(subscriptionExpiring);
         ArgumentNullException.ThrowIfNull(lowSessions);
@@ -405,6 +442,7 @@ public sealed class SmsSettings : Entity
 
         BroadcastEnabled = broadcastEnabled;
         TrainerRequestEnabled = trainerRequestEnabled;
+        SessionCancelledEnabled = sessionCancelledEnabled;
 
         return Result.Success();
     }

@@ -1,6 +1,7 @@
 using Gym.Domain.Attendances;
 using Gym.Domain.Audit;
 using Gym.Domain.Auth;
+using Gym.Domain.Bookings;
 using Gym.Domain.Cafe;
 using Gym.Domain.Coaching;
 using Gym.Domain.Expenses;
@@ -13,6 +14,7 @@ using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
 using Gym.Domain.SiteAuth;
 using Gym.Domain.Subscriptions;
+using Gym.Domain.Timetables;
 using Gym.Domain.Trainers;
 
 using Microsoft.EntityFrameworkCore;
@@ -94,6 +96,18 @@ public interface IAppDbContext
 
     DbSet<TrainerLink> TrainerLinks { get; }
 
+    DbSet<WeekPattern> WeekPatterns { get; }
+
+    DbSet<TimetableDay> TimetableDays { get; }
+
+    DbSet<FixedSchedule> FixedSchedules { get; }
+
+    DbSet<SessionSkip> SessionSkips { get; }
+
+    DbSet<SessionBooking> SessionBookings { get; }
+
+    DbSet<SessionCancellation> SessionCancellations { get; }
+
     /// <summary>
     /// The audit log, for reading only (BUSINESS_RULES.md §11, task 11.1). A query, not a
     /// <see cref="DbSet{TEntity}"/>: only the audit interceptor writes it, so Application is given
@@ -145,6 +159,14 @@ public interface IAppDbContext
     /// one before it saved. Must be called inside <see cref="BeginTransactionAsync"/>.
     /// </summary>
     Task LockCoachingAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Locks one trainer's row until the current transaction ends, so the changes to that trainer's
+    /// timetable run one at a time (BUSINESS_RULES.md §15 <i>The trainer's sessions</i>): a second
+    /// save from another phone waits, then reads the first. Must be called inside
+    /// <see cref="BeginTransactionAsync"/>.
+    /// </summary>
+    Task LockTrainerAsync(Guid trainerId, CancellationToken cancellationToken);
 
     /// <summary>
     /// For a use case whose writes must all happen or none: changing a password saves through

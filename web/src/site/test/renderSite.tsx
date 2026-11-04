@@ -80,10 +80,35 @@ export function siteAccess(me: Partial<SiteMe> = {}): SiteAccess {
   };
 }
 
-/** «مربی من» and «شاگردان من» with nothing in them, for a test about something else on the home. */
+/** The trainer's next four weeks from `today`, of a timetable reaching twelve, with no pattern and no sessions (15.6a). */
+export function emptyTimetable(today = "2026-10-31") {
+  const start = new Date(`${today}T00:00:00Z`).getTime();
+  const days = Array.from({ length: 28 }, (_, index) => ({
+    date: new Date(start + index * 86_400_000).toISOString().slice(0, 10),
+    changedByHand: false,
+    sessions: [],
+  }));
+
+  const lastDay = new Date(start + 83 * 86_400_000).toISOString().slice(0, 10);
+
+  return { today, lastDay, pattern: null, days };
+}
+
+/** «مربی من», «شاگردان من» and the trainer's sessions with nothing in them, for a test about something else on the home. */
 export const emptyCoaching = {
   "GET /api/site/coaching/my-trainer": () => json(200, { trainer: null, request: null }),
   "GET /api/site/coaching/students": () => json(200, { requests: [], students: [] }),
+  "GET /api/site/timetable": () => json(200, emptyTimetable()),
+  "GET /api/site/coaching/today": () => json(200, { date: "2026-10-31", sessions: [] }),
+  "GET /api/site/me/sessions": () =>
+    json(200, {
+      today: "2026-10-31",
+      trainerName: null,
+      schedule: null,
+      sessions: [],
+      openings: [],
+    }),
+  "GET /api/site/me/sessions/cancelled": () => json(200, { sessions: [], latest: null }),
 };
 
 const emptyPage = { items: [], page: 1, pageSize: 10, totalCount: 0 };

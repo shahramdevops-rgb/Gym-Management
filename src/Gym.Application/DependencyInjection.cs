@@ -21,6 +21,20 @@ using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
 using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
+using Gym.Application.Bookings.CheckStudentSchedule;
+using Gym.Application.Bookings.EndStudentSchedule;
+using Gym.Application.Bookings.GetMyCancellations;
+using Gym.Application.Bookings.GetMySessions;
+using Gym.Application.Bookings.GetSessionStudents;
+using Gym.Application.Bookings.GetStudentAttendance;
+using Gym.Application.Bookings.GetStudentSchedule;
+using Gym.Application.Bookings.GetTrainerToday;
+using Gym.Application.Bookings.LeaveMySession;
+using Gym.Application.Bookings.MoveMySession;
+using Gym.Application.Bookings.RemoveSessionStudent;
+using Gym.Application.Bookings.ReturnToMySession;
+using Gym.Application.Bookings.SeeMyCancellations;
+using Gym.Application.Bookings.SetStudentSchedule;
 using Gym.Application.Cafe.CancelCafeOrder;
 using Gym.Application.Cafe.CreateCafeOrder;
 using Gym.Application.Cafe.CreateProduct;
@@ -98,6 +112,7 @@ using Gym.Application.Notifications.ResendCancelledSms;
 using Gym.Application.Notifications.ResendSms;
 using Gym.Application.Notifications.SendSubscriptionReceipt;
 using Gym.Application.Notifications.SendWelcome;
+using Gym.Application.Notifications.SendSessionCancelledSms;
 using Gym.Application.Notifications.SendTrainerRequestSms;
 using Gym.Application.Notifications.SendWelcomeBack;
 using Gym.Application.Notifications.SendDailySms;
@@ -149,6 +164,13 @@ using Gym.Application.Subscriptions.ListMemberSubscriptions;
 using Gym.Application.Subscriptions.RenewSubscription;
 using Gym.Application.Subscriptions.SellSingleVisit;
 using Gym.Application.Subscriptions.UnfreezeSubscription;
+using Gym.Application.Timetables.CheckResetTimetableDay;
+using Gym.Application.Timetables.CheckTimetableDay;
+using Gym.Application.Timetables.CheckWeekPattern;
+using Gym.Application.Timetables.GetTimetable;
+using Gym.Application.Timetables.ResetTimetableDay;
+using Gym.Application.Timetables.SetTimetableDay;
+using Gym.Application.Timetables.SetWeekPattern;
 using Gym.Application.Trainers.CreateTrainer;
 using Gym.Application.Trainers.ListTrainers;
 using Gym.Application.Trainers.RestartTrainer;
@@ -235,6 +257,35 @@ public static class DependencyInjection
         services.AddScoped<ListMyPlansHandler>();
         services.AddScoped<ListMyPaymentsHandler>();
         services.AddScoped<ListMyCafeOrdersHandler>();
+
+        // The trainer's timetable on the site (BUSINESS_RULES.md §15, task 15.6a).
+        services.AddScoped<GetTimetableHandler>();
+        services.AddScoped<SetWeekPatternHandler>();
+        services.AddScoped<SetTimetableDayHandler>();
+        services.AddScoped<ResetTimetableDayHandler>();
+        services.AddScoped<CheckWeekPatternHandler>();
+        services.AddScoped<CheckTimetableDayHandler>();
+        services.AddScoped<CheckResetTimetableDayHandler>();
+
+        // Students in the trainer's sessions (BUSINESS_RULES.md §15, task 15.6b).
+        services.AddScoped<GetStudentScheduleHandler>();
+        services.AddScoped<SetStudentScheduleHandler>();
+        services.AddScoped<CheckStudentScheduleHandler>();
+        services.AddScoped<EndStudentScheduleHandler>();
+        services.AddScoped<GetSessionStudentsHandler>();
+        services.AddScoped<RemoveSessionStudentHandler>();
+        services.AddScoped<GetMySessionsHandler>();
+        services.AddScoped<LeaveMySessionHandler>();
+        services.AddScoped<ReturnToMySessionHandler>();
+        services.AddScoped<MoveMySessionHandler>();
+
+        // A cancelled session told to its students (BUSINESS_RULES.md §15, task 15.6c).
+        services.AddScoped<GetMyCancellationsHandler>();
+        services.AddScoped<SeeMyCancellationsHandler>();
+
+        // Attendance for the trainer, from the desk's check-ins (BUSINESS_RULES.md §15, task 15.7).
+        services.AddScoped<GetTrainerTodayHandler>();
+        services.AddScoped<GetStudentAttendanceHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();
@@ -357,6 +408,8 @@ public static class DependencyInjection
         services.AddScoped<SendWelcomeBackHandler>();
         services.AddScoped<TrainerRequestSms>();
         services.AddScoped<SendTrainerRequestSmsHandler>();
+        services.AddScoped<SessionCancelledSms>();
+        services.AddScoped<SendSessionCancelledSmsHandler>();
         services.AddScoped<CheckSmsDeliveryHandler>();
         services.AddScoped<GetSmsCreditHandler>();
         services.AddScoped<GetSmsSamplesHandler>();

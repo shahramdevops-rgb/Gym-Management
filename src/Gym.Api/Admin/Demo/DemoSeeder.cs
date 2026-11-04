@@ -624,6 +624,7 @@ public sealed class DemoSeeder
             Absence: new SmsKindSettings(true, 14, new TimeOnly(11, 30)),
             Broadcast: new BroadcastSettings(true),
             TrainerRequest: new TrainerRequestSettings(true),
+            SessionCancelled: new SessionCancelledSettings(true),
             Version: version);
 
         await MustAsync<UpdateSmsSettingsHandler, SmsSettingsResponse>(
@@ -637,7 +638,8 @@ public sealed class DemoSeeder
         _actor.ActAsNobody();
         foreach (var kind in Enum.GetValues<NotificationKind>()
             .Where(kind => kind is not (NotificationKind.DailyReport or NotificationKind.SubscriptionReceipt or NotificationKind.Welcome
-                or NotificationKind.WelcomeBack or NotificationKind.Broadcast or NotificationKind.TrainerRequest)))
+                or NotificationKind.WelcomeBack or NotificationKind.Broadcast or NotificationKind.TrainerRequest
+                or NotificationKind.SessionCancelled)))
         {
             await using var scope = _services.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<SendDailySmsHandler>().Handle(kind, _cancellationToken);

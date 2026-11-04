@@ -2247,6 +2247,99 @@ The question that started this was whether a gym that is entirely internal — I
 - **Show a mock-up before the code.** A static HTML page in the app's colours and font, rendered at 390px with Playwright, let the developer decide the layout and the refresh before anything was built.
 - **My notes:**
 
+## 15.6a — The trainer's sessions (سانس‌های مربی)
+
+- **Store what people did, work out the rest.** The trainer saves a weekly pattern from a date and the dates they changed on their own; each date's sessions are computed when read (`TimetableRules.SessionsOn`). Making rows for twelve weeks ahead would have needed a nightly job to add each new day, and every pattern change would have rewritten hundreds of rows, each one an audit-log entry the Owner would have to scroll past.
+- **A change "from a date" is a new version, not an edit.** `WeekPattern` has `StartsOn`; the pattern in force on a day is the one that started last on or before it. Earlier patterns stay, so the past keeps the sessions it really had, which 15.7's attendance will need.
+- **An exception to a rule is its own row.** A date changed by hand is a `TimetableDay`; it wins over the pattern for that date and survives later patterns. "Give it back to the pattern" is just deleting that row: a timetable is not a financial record, so a real delete is allowed.
+- **A value record makes "the same session" exact.** `PlannedSession(Start, End, Capacity)` is a C# `record`, compared by its parts, so "a started session stays as it was" is `next.Contains(session)`, with no hand-written comparison.
+- **A row lock serialises one person's edits.** `LockTrainerAsync` is `SELECT ... FOR UPDATE` on the trainer's row: a save from a second phone waits for the first and then replaces it, instead of both inserting a pattern for the same date. It locks only this trainer, unlike the gym-wide coaching lock.
+- **Name columns around SQL's reserved words.** `end` is reserved in SQL, so the columns are `start_time`/`end_time` while the C# properties stay `Start`/`End`; every check constraint can then be written without quoting.
+- **A shared helper for two configurations.** Both session tables need the same three checks (capacity 1 to 50, end after start, 5-minute steps); `TimetableSessionColumns.AddChecks` writes them once, named per table.
+- **Dropdowns that can only make valid values.** The time is an hour box and a minute box on 5-minute steps, and capacity is a list from 1 to 50, so the phone never shows a keyboard and no typed digits need converting; the rules that need the whole day (end after start, duplicates) are left to the API's error codes.
+- **My notes:**
+
+## 15.6b-1 — Students in sessions, the backend (شاگردان در سانس‌ها)
+
+- **The same idea twice: store the decisions, compute the dates.** A fixed schedule is one row with its weekly slots; a date the student leaves is a `SessionSkip`; a date they move to is a `SessionBooking`. Who is in which session on which date comes from `BookingRules.Places`, so eight weeks of three sessions is one row, not twenty-four.
+- **A pure function is easy to test.** `Places`, `Fit` and `Impact` take plain lists and return plain lists, with no database and no clock; the Domain tests build a schedule, call them and check the answer in microseconds.
+- **Some rules a database cannot hold.** The capacity ceiling counts places that are computed, not rows, so no check constraint can say it. The handlers count under the trainer's row lock instead, so two moves at the same moment run one after the other and the second sees the first.
+- **An exclusion constraint for "one at a time".** `EXCLUDE USING gist (link_id WITH =, daterange(starts_on, ends_on, '[]') WITH &&)` lets no two schedules of one link share a date. It is per link, not per member, so a link that ended does not block the member's next trainer.
+- **"Check, then save" by doing the save and rolling it back.** `/schedule/check` runs the same code as the save inside a transaction, counts the room, and never commits. The warning can then never disagree with what the save would do.
+- **Something that ends by being left out.** When a link ends, nothing rewrites the schedule's row; `Places` stops reading after the link's last day. Fewer writes means fewer places for two copies of the truth to drift apart.
+- **An endpoint that reads but takes a body is a POST.** `/pattern/check` needs the whole new pattern to answer, and a GET has no body, so it is a POST that changes nothing.
+- **Build beside a running app: `UseArtifactsOutput` as environment variables.** `dotnet ef` has no `--artifacts-path`, but MSBuild reads environment variables as properties, so `UseArtifactsOutput=true ArtifactsPath=...` sends its build there too.
+- **My notes:**
+
+## 15.6b-2 — Students in sessions, the screens (شاگردان در سانس‌ها)
+
+- **Check first, then save, in the browser too.** Each timetable change calls its `check` endpoint, and saves at once when no student is touched; otherwise the save waits as a function in state (`HeldChange`) until the trainer answers the warning. The check and the save are sent the same body, so what the warning describes is what gets saved.
+- **Lock the form while a warning is open.** If the trainer could keep editing under the warning, «ذخیره با این حال» would save the version that was checked, not the one on the screen. The editors are disabled until the trainer answers.
+- **A warning in place of the buttons, not a second dialog.** The day's editor is already a dialog; the warning takes the place of its buttons. A dialog over a dialog moves the focus twice and is easy to lose on a phone.
+- **Invalidate the neighbours after a change.** A change answers with what it changed, which replaces that cached read (`setQueryData`); the other reads that depend on it (the timetable's student counts, the student's dates, the day's students) are marked stale with one key prefix, `["site", "bookings"]`, and read again.
+- **Show nothing while a card does not yet know if it applies.** «سانس‌های من» is only for a member with a trainer; it renders nothing until the answer comes, so a member without one never sees an empty card flash.
+- **Toggle buttons say their state.** Each weekly session in the schedule form is a button with `aria-pressed`, which a screen reader reads as "pressed" and a test finds with `getByRole("button", { pressed: true })`.
+- **My notes:**
+
+## 15.6b-3 — A change from now, «لغو شد» and «می‌آیم» (تغییر در لحظه)
+
+- **Store why, not only who.** A skipped date already kept who made it (`BookedBy`), but «می‌آیم» must bring back only a date the member *left*, not one they moved (that would put them in two sessions). So `SessionSkip` now keeps a `SkipReason` too, and a check constraint ties the two together in the database (a leave or a move is the member's, a removal or a pass-over the trainer's).
+- **Carry old rows forward in the migration.** The new column can't be filled by a default alone: the migration works out each existing row's reason with one `UPDATE` (a member's skip saved in the same save as their booking was a move) before the check constraint is added, so no row is refused.
+- **A change "from now" when the model counts in days.** A fixed schedule is a range of dates, and the database allows one per link at a time, so two schedules can't share today. The old one ends yesterday, the new one starts today, and today's sessions that have already started, which the old one gave, are kept: still in the new schedule where it has them, else as a single booking by the trainer (`BookingRules.HandOver`, a pure function, so the Domain tests cover every case without a clock or a database).
+- **A flag for what a record is, not where it came from.** A booking used to mean "moved"; now a kept session is a booking too. `IsMoved` became "a booking the member made", so the trainer's kept sessions don't show «جابه‌جا شده».
+- **Undo without asking.** «نمی‌آیم» asks first because it gives the place away; «می‌آیم» does not ask, because a wrong tap is undone the same way.
+- **My notes:**
+
+## 15.6a-2 — «کپی به روزهای دیگر» (کپی سانس‌های یک روز)
+
+- **Make the hard part once, then copy.** A trainer with the same day five times a week used to build each one by hand. Copying one finished day to the others keeps every freedom of the editor (any length, overlaps, capacities) and removes the repetition; a step-by-step wizard was weighed first and dropped, because rebuilding a pattern from a few answers moves every session's times and breaks the students' fixed schedules.
+- **A convenience that only touches the draft.** The copy changes the editor's state, nothing else; the same check, warning and save run when the trainer presses «ذخیره الگو». No new endpoint, no new rule, so no backend test changes.
+- **New keys for copies.** Each copied session gets a fresh `key` (`toDraft`), because React tells list items apart by key: two days holding the same keys would still work, but a fresh key per draft keeps "one draft, one identity" true.
+- **Replace, not add.** Adding a day's sessions on top of another's quickly makes the same session twice, which the API refuses anyway; replacing is what "copy" means, and the box says so under the days.
+- **My notes:**
+
+## 15.6b-4 — Students to reschedule (شاگردانی که برنامهٔ تازه می‌خواهند)
+
+- **Answer the next question in the same response.** The warning's check already knew which students a change touches; it now also says which of them were there by their fixed schedule (`TouchedSession.OnSchedule`) and returns their names. The screen asks nothing more of the API after the save.
+- **Why not move students automatically.** When a session's times change, nothing says which new session is "the same" one (16:00 to 18:00 became 16:30 to 18:30, or 17:00 to 19:00?). A guess could put a student where they never agreed to come, so the trainer decides, with the list in front of them.
+- **State that lives only in the page.** The list sits in `PatternCard`'s state: cheap, and enough to try the idea. The trade-off is that it is gone once the trainer leaves the page; keeping it would need the server to remember it.
+- **Look at the screen, not only the tests.** The tests passed, but the screenshot showed the notice above the screen: the long editor had left the page scrolled down. `scrollIntoView` on first render fixed it; jsdom has no such method, hence the `?.()` call.
+- **My notes:**
+
+## 15.6b-5 — Errors where they are, and sessions that are gone (خطا سر جای خودش)
+
+- **Say where, not only what.** One message for a whole week («پایان سانس باید بعد از شروع باشد») leaves the trainer searching twenty boxes. The page now runs the same simple checks as the API before sending (`sessionProblems`) and marks the box itself; the message by the save button only says how many, because that button may be far below.
+- **Validate in both places, for different reasons.** The browser checks for the trainer's comfort; the API checks because it is the only one that can be trusted (another app, an old tab). The rules are written once in §15 and the two must agree.
+- **Show errors after the first try, then live.** Red boxes while the trainer is still typing would nag; after «ذخیره» they appear and then follow every change, so a fixed box turns back at once.
+- **A list built from two sources must say which is which.** «برنامهٔ ثابت» offered the pattern's sessions and the student's own; after a pattern change the student's old ones looked like real choices and were already on, so the save was refused. Each choice now knows whether the pattern still has it.
+- **My notes:**
+
+## 15.6e — VIP sessions (سانس VIP)
+
+- **A new column on a table with real rows.** `is_vip` is added `NOT NULL DEFAULT false`, so every session already saved on the server becomes a normal one in the same statement; nothing is refused and nothing has to be filled by hand. A column without a default could not be `NOT NULL` on a table that has rows.
+- **An optional field keeps old pages working.** `IsVip = false` in the command records means a request without it still saves: a phone holding the page from before the release does not get an error. The answers always carry it, so the new page can rely on it.
+- **A value's equality decides what "unchanged" means.** `PlannedSession` is a record, compared by all its parts. Adding `IsVip` to it made "a started session stays as it was" cover the label for free, while the warning to the trainer (`Impact`) compares only times and capacity, so marking a session VIP warns no one. Choosing where a new field takes part in equality is a rule decision, not a detail.
+- **One small component for one look.** `VipBadge` is used in six places; if the developer wants another colour, it changes once.
+- **My notes:**
+
+## 15.6c — A cancelled session (لغو سانس)
+
+- **Keep an event when "now" cannot answer the question.** «لغو شد» was always worked out from the timetable as it is. Whether the student has seen a cancellation, and which save one SMS belongs to, cannot be worked out later, so the save writes a `SessionCancellation` row. Derive what you can; store only what would otherwise be lost.
+- **Compare before and after, in one place.** All three saves (one date, «برگرداندن به الگو», the pattern) read the timetable before the change, save, read it again, and hand both to the same `BookingRules.Impact` the warning uses. One helper, `TimetableCancellations.RecordAsync`, so the warning and what is recorded can never disagree.
+- **A change id groups what one action did.** Every row of one save shares a `ChangeId`, and the notification's unique index is (member, change): one SMS per student per save, held by the database even if the job runs twice.
+- **Queue after the commit, check again when it runs.** The job may run at 08:00 for a save at 23:00. By then the session may be back, started, or seen in the app; the job reads everything again rather than trusting what was true at the save.
+- **"Seen up to" instead of a list of ids.** «دیدم» sends back the `latest` moment the page read; everything saved up to it is seen. A cancellation saved while the card was open stays, and duplicates of one session are covered without the page knowing about them.
+- **Generated code needs a safe source.** `gen:api` would start the API against the developer's database with the real SMS key; the types were made from a temporary API on another port, a fresh scratch database (every SMS off), and the fake SMS sender.
+- **My notes:**
+
+## 15.6f — Four weeks, 07:00 to 22:00, on the quarter hour (چهار هفته و ساعت‌های سانس)
+
+- **What is shown is not what is allowed.** «روزهای پیش رو» now sends 28 days (`DaysShown`), but the timetable still reaches 84 (`DaysAhead`): an 8-week program has to fit, so its last weeks stay valid without being on the screen. Two constants, because they answer two questions.
+- **A rule lives in three places that must agree.** 07:00 to 22:00 and the quarter hour are checked in the Domain (`TimetableRules.CheckDay`), held by the database (`ck_*_within_hours`, `*_on_step`), and offered by the boxes (hours 07 to 22, minutes 00/15/30/45). The boxes are comfort; the Domain is the rule; the database is the last guard against any other way in.
+- **A changed check constraint is a migration.** The step is part of the constraint's SQL, so `MinuteStep` 15 drops and adds six constraints in `LimitSessionHours`. It would refuse old rows at 13:05; it is safe here only because these tables are not on the server yet. Once they hold real rows, such a change would first have to carry those rows forward.
+- **When a test needs "a session that has started".** It used 00:00, which is always in the past. With 07:00 the earliest, the two tests run on a host whose `IGymCalendar` reads 07:30 or later. Only the calendar is replaced, not `TimeProvider`, so tokens and sign-in codes still match the real clock.
+- **My notes:**
+
 ## After Release 1 — Logos, a name, a colour (لوگوها، یک نام، یک رنگ)
 
 - **A flag the server derives beats one the screen guesses.** The locker map only sees lockers, not subscriptions, so `occupiedOnSingleVisit` is worked out in the same SQL projection as `occupiedOnCardioOnly` (a correlated `Any` over the subscriptions), rather than the page fetching every holder's plan to find out.
@@ -2276,4 +2369,36 @@ The question that started this was whether a gym that is entirely internal — I
 
 - **`color-mix` in oklch walks around the hue wheel; in oklab it goes straight.** oklch describes a colour by lightness, chroma and hue (an angle), so mixing two colours also mixes their angles, the short way round: from red (20°) to the dark blue-grey ground (268°) the short way runs through magenta, and a red tint came out violet. oklab describes the same colours as points on two axes, so a mix is the point between them and only fades toward the ground. Use oklch to pick colours, oklab to blend a colour into a background.
 - **A grey is not hue-free.** The dark ground has almost no chroma, but its hue still counts in an oklch mix; nearly invisible in the colour itself, it decided which way the mix turned.
+- **My notes:**
+
+## 15.7a — Attendance for the trainer, the backend (پیگیری حضور)
+
+- **Derive what you can instead of storing it.** Attendance is worked out on each read from the desk's check-ins and the students' places; no table holds it, so a check-in cancelled at the desk changes the trainer's screen at once and there is nothing to keep in step.
+- **A pure rule is easy to test at its edges.** `PresenceRules.Mark` takes the session's times, that day's visits and the clock, and returns a state; the boundary minutes (12:29, 12:30, 13:15, 13:16, 14:30) are one-line `InlineData` cases with no database.
+- **Convert moments to the gym's clock once, at the edge.** Check-ins are UTC `timestamptz`; `PresenceReading` turns each into the gym's date and time of day with `TimeZoneInfo.ConvertTime`, and everything after it compares `TimeOnly` values.
+- **When the API's clock is the real one, call the handler with a fake one.** The timetable can only be built from tomorrow, so the tests build it through the API, write check-ins as the desk would, then construct the handler with a `GymCalendar` over a `FakeTimeProvider` set to that later day.
+- **A database rule shows up in test setup too.** One open visit per member (a partial unique index) refused the second check-in of a test until the first was checked out: the invariant holds even for test data.
+- **My notes:**
+
+## 15.7b — Attendance for the trainer, the screens (صفحه‌های حضور)
+
+- **`refetchInterval` makes a page live without a socket.** TanStack Query asks again every 60 seconds while «حضور امروز» is mounted; the home's card uses the same query key with no interval, so both read one cache and the page's refresh updates the card too.
+- **Say how old the figures are.** `dataUpdatedAt` is shown under the page, and when a refresh fails the last answer stays on screen with a line saying from what time it is.
+- **One query key family for related reads.** The attendance keys sit under the bookings' key, so a change of a schedule or of the timetable (which invalidates that family) reads attendance again without naming it.
+- **Mock the API at the browser's edge for screenshots.** Playwright's `page.route` answered `/api/...` while the real dev server served the real app; a route pattern like `**/api/**` also caught a source file whose path held `/api/`, so the filter checks the pathname's start.
+- **My notes:**
+
+## The tour's photos, whole and filling the screen (عکس کامل، صفحه‌ی پر)
+
+- **Fill the room a whole photo leaves with its own mirror.** The photo is shown with `object-fit: contain`, so it is never cut; behind it the same file is tiled at its own whole size and the layer flipped about the centre (`scale: -1 1`), which puts a mirrored copy against each edge. Blurred and a little darker, the hall seems to carry on past the photo.
+- **`background-origin: content-box` measures the tiles on one box and paints them on a bigger one.** The blurred layer reaches 3rem past the stage so the blur has no faded rim; with padding of the same size, `contain` still sizes each tile to the stage itself.
+- **Container units find a picture inside its box.** With `container-type: size` on the frame, `100cqw` and `100cqh` are its width and height, so `min(100cqw, 100cqh * var(--ar))` is the drawn photo's width; site.js gives `--ar` from the image's natural size, since photos differ in shape.
+- **A mask fades without cutting.** Two `linear-gradient` masks, one per axis, combined with `mask-composite: intersect`, make the photo's edges transparent from a little inside, so it melts into its mirror; a side with no mirror room gets a fade of zero and stays sharp.
+- **My notes:**
+
+## 14.2 — Finding the gym, the links (مسیریابی و اینستاگرام)
+
+- **A link that leaves the page is an `<a>`, not a `<button>`.** A button runs code on this page; an `<a href>` goes somewhere, so the browser lets people long-press, copy or open it in a new tab, and a phone can hand a Neshan or Instagram address to the installed app.
+- **`target="_blank"` with `rel="noopener"`.** The map opens in a new tab so the gym's page stays behind it; `noopener` stops the new page from reaching back to ours through `window.opener`.
+- **A short share link is a pointer, not the place.** `nshn.ir/…` and `balad.ir/p/…` name the gym's place on each service; moving the pin on Balad later changes what the link shows, not the link, so the site needs no change.
 - **My notes:**

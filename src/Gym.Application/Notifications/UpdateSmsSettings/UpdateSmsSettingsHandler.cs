@@ -72,7 +72,8 @@ public sealed class UpdateSmsSettingsHandler(IAppDbContext db, IPhoneNormalizer 
             command.DebtReminder.MinAmount,
             command.Absence,
             command.Broadcast.Enabled,
-            command.TrainerRequest.Enabled);
+            command.TrainerRequest.Enabled,
+            command.SessionCancelled.Enabled);
         if (updated.IsFailure)
         {
             return Result.Failure<SmsSettingsResponse>(updated.Error);
