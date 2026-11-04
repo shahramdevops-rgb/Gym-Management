@@ -4522,28 +4522,129 @@ desk's «یادداشت» and the staff's names and reasons on cancelled rows ar
 #### After Release 1: logos, a name, a colour (no hurry)
 Asked by the developer on 1405/08/08 (2026-10-30), after Release 1, for later ("much later is
 fine"), to go out with the next release:
-- [ ] **The icon.** The dark lines of the logo on the bronze icon are too faint, and the logo is
+- [x] **The icon.** The dark lines of the logo on the bronze icon are too faint, and the logo is
       too small inside it: there is room to make it bigger. Every size changes together
       (`web/site/public/icon-192.png`, `icon-512.png`, `icon-maskable-512.png`,
       `apple-touch-icon.png`, `favicon.png`); shown to the developer before it is replaced. An
       installed app takes the new icon only when Android rebuilds it (13.4)
-- [ ] **The logo on top of the app's first screen** (`SiteFrame`, today the panel's white logo in
+- [x] **The logo on top of the app's first screen** (`SiteFrame`, today the panel's white logo in
       the panel's square) becomes the same as the app's icon: the logo in dark stone on bronze
-- [ ] **The panel's logo** (asked 1405/08/08): the white logo on the blue-to-violet square (the
+- [x] **The panel's logo** (asked 1405/08/08): the white logo on the blue-to-violet square (the
       menu's top, the sign-in page) becomes the panel's own icon, the bronze logo on dark (13.4).
       This reopens the panel on purpose; the computer's screens change with it
-- [ ] **«حساب سایت» becomes «باشگاه من»** on the member's profile in the panel (asked 1405/08/08):
+- [x] **«حساب سایت» becomes «باشگاه من»** on the member's profile in the panel (asked 1405/08/08):
       the app's name in Persian, which the developer finds nicer; the empty line with it
       («در باشگاه من ثبت‌نام نکرده است.»)
-- [ ] **A single visit (تک‌جلسه) gets its own colour on the locker map** (asked 1405/08/08), so
+- [x] **A single visit (تک‌جلسه) gets its own colour on the locker map** (asked 1405/08/08), so
       the desk tells it apart: today it is red like a member on a plan (`lockerState.ts`,
       `doorStyle.ts`). Taken: green free, red member, blue guest, yellow cardio. Claude proposes
       violet, confirmed at the start. Needs the API to say the open visit is a single visit (the
       locker response has no such field today), a state, its door colour, a count above the map
       and a legend entry; §6 *The desk screen's look* and §7 updated
-- [ ] Each icon keeps its own colours (the developer, 1405/08/08): the app dark on bronze, the
+- [x] Each icon keeps its own colours (the developer, 1405/08/08): the app dark on bronze, the
       panel bronze on dark
-- [ ] All of the above goes out with the next release
+- [x] All of the above goes out with the next release (released 1405/08/12, below)
+- Done 1405/08/11 (2026-11-02) on `task/after-release-1`, made from `main` so 15.6 stays out:
+  - The icon: the logo stands 84% of the side (it was about 75%), 68% inside the maskable one's
+    safe circle, its lines stamped a little bolder (1px of the brand file's own) in the same dark
+    stone `#0e0f13` on bronze `#c89b57`; rendered once in the installed Chrome with Playwright as
+    before (no package), shown to the developer beside the old ones and accepted. The panel's
+    icons are unchanged
+  - The app's first screen shows its own icon (`/icon-192.png` of `web/site/public`), and the
+    panel's menu and sign-in page the panel's (`web/public`), with a thin ring so it keeps its edge
+    on the dark theme's page; the blue-to-violet glow on both sign-in pages stays
+  - The single visit's violet: `occupiedOnSingleVisit` on the locker response (true when the open
+    visit consumed a single-session subscription, never on a cardio-only one), the `singleVisit`
+    state, door, legend and count, and a reserve place from the board's `isSingleSession`; the audit
+    log still names the record «حساب سایت», as it is the record, not the profile's row
+  - On a phone the legend's five (free, occupied, single visit, guest, cardio) stay on one line
+    beside each other, never under (asked by the developer, 1405/08/12): tighter gaps, a smaller
+    swatch and text, measured at 390 and 360px with two-digit counts; the computer unchanged
+  - Asked the same night, to go out with these (1405/08/12): the «بدهکار» tag in red letters with
+    no ground, a little larger (12px on a door, 10px in the legend); and a «فریز» filter on the
+    members list (`frozenOnly`, the row's `IsFrozen` test: frozen and not cancelled), with the
+    phone's seven filter buttons tightened to stay on one line at 360px
+  - And the doors' tint, softer and gathered on the left, fading out toward the coloured edge
+    (`to right`, gone by 60%; the other states mixed 60% into the door, the free green at full
+    strength since it is the palest)
+  - The QR for everyone (asked by the developer, 1405/08/12, for a business card handed to the
+    public): `/qr` now leads to the public page itself, not the app, so the poster and the card
+    share one code (`deploy/qr/qr.png`, unchanged) and a member signs in from the page's
+    «ورود / ثبت‌نام»; `/app` still leads to the app. A second code for the card was offered and
+    turned down. Caddy's change goes out with the release; until then the printed code opens the app
+  - «سایت باشگاه» at the foot of the app's home, above «خروج» (asked the same night): a quiet link
+    to the public page, opened in the browser so an installed app keeps its place
+  - The freeze question's wording (asked the same night): «هر اشتراک در مجموع ۳۰ روز فریز دارد؛
+    تعداد دفعات فریز مهم نیست.» and «روزهای همهٔ فریزها با هم جمع می‌شود.», so the desk knows a plan
+    can be frozen several times (§4 *Freeze* already said so); the rule itself is unchanged
+- [x] **Released 1405/08/12 (2026-11-03) in two steps, both without a migration:**
+  - `20261103-0103-e49e0a9` at 01:03, from another session that night, with everything above up to
+    the doors' tint; its checks were not recorded here. It was running healthy when the next one began
+  - `20261103-0247-3e3c7d0` at 02:47 (previous `20261103-0103-e49e0a9`), with the locker map's name
+    search and usage switch back beside the legend on a computer (`33977ee`, `090635b`), the QR to
+    the public page, «سایت باشگاه» and the freeze wording
+    - Before: full suite on `main` at `3e3c7d0` (3098 backend, 1312 Vitest, zero build warnings,
+      lint, `format:check`, build; Vite's 500 kB chunk notice for the site app's 545 kB script,
+      to look at later), `npm run e2e` 16 green, `npm run screenshots` committed (`cf35a3b`)
+    - On the server: tag, health, 50 GB free, 2.9 GB memory available; `./backup.sh run` →
+      `gym-20261103-021204.dump`, copied to `D:\gymbackups`, `sha256sum` equal on both sides
+    - Released with `--allow-dirty`: an untracked `deploy/qr/business-card/` (pictures for the
+      card, made outside this release) was in the tree; no image or copied file includes it
+    - After: the new tag healthy, no error in the API log; the panel, `/health`, the app and the
+      public page answer 200; `/qr` 302 to the public page, `/app` 302 to the app; the app's script
+      holds «سایت باشگاه»; members 319, plans 379, payments 679, visits 1959, site accounts 2,
+      trainers 1, as before
+    - A rollback to `20261103-0103-e49e0a9` is safe: no migration; `/qr` would lead to the app again
+
+#### Samsung Internet (asked by the developer, 1405/08/12)
+
+A Samsung phone's camera opens the QR in Samsung Internet, not Chrome. Seen on the developer's own
+phone the same night: its dark mode repainted the public page and the bronze turned red; the code
+SMS did not fill the box (WebOTP answers in Chrome only); and the app it installed, a package of
+Samsung's making, was blocked by Google Play Protect as «Unsafe app». Chrome showed none of these.
+- [x] The colours: `<meta name="color-scheme">` (`dark` on the public page, `light dark` on the
+      app) and a `prefers-color-scheme: dark` rule in each stylesheet (`public-site/site.css`, the
+      app's own `src/site/site.css`), which tell the browser the page has its own dark. Nothing
+      changes in Chrome or on a computer. **It did not help in Samsung Internet** (checked on the
+      developer's phone after the release, the new files served with `no-cache`): its dark mode
+      repaints the page anyway, and the bronze comes back only when the person turns the browser's
+      dark mode off (the menu's light-mode item). Kept: harmless, and it keeps Chrome's automatic
+      dark off the page
+- [x] The install card in Samsung Internet on Android offers «باز کردن در Chrome» (an Android
+      `intent://` link to the same page in Chrome) instead of «نصب برنامه», with one line on why;
+      chosen by the developer over showing both. Samsung's own menu can still install; nothing stops it
+- [x] The developer checks both on the phone after the release (Samsung Internet can't be run here):
+      the colours, see above
+- [x] **Released 1405/08/12 (2026-11-03) as `20261103-0337-346bf42`** (previous
+      `20261103-0247-3e3c7d0`), without a migration
+  - Before: full suite on `main` at `dd5a3cb` (1080 domain, 2013 integration, 1314 Vitest, zero
+    build warnings, lint, `format:check`, build; Vite's 546 kB notice for the site app's script,
+    as before), `npm run e2e` 16 green, `npm run screenshots` committed (`346bf42`)
+  - The commands were typed by the developer from one list (ssh-agent, server state, row counts,
+    `./backup.sh run`, copy and `sha256sum`, `release.sh`, checks after); their outputs were not
+    sent back, so the backup's name and the row counts are not recorded here
+  - After, from outside: the panel, `/health`, the public page and the app answer 200, `/qr` 302;
+    the `color-scheme` tag on both pages and the Chrome link in the app's script
+  - A rollback to `20261103-0247-3e3c7d0` is safe: no migration
+- Not fixable from the site: the code SMS filling itself in Samsung Internet; it is typed by hand;
+  and the colours under Samsung Internet's dark mode, which is the person's own setting
+
+#### Held doors red again (fix, 1405/08/13)
+Seen by the developer on the panel the day after `20261103-0103-e49e0a9`: a held door's tint was
+violet, not red. The softer tints of e35623e were mixed with `color-mix(in oklch, …)`; oklch
+interpolates the hue, and from the red (hue 20) to the dark ground (hue 268) the shorter way runs
+through magenta (about 335 at 60%). A cardio door turned greenish the same way.
+- [x] The four state tints in `doorStyle.ts` mix in oklab, which does not turn the hue (`5a5a13c`)
+- [x] **Released 1405/08/13 (2026-11-03) as `20261103-1408-cd5de81`** (previous
+      `20261103-0337-346bf42`), by day at the developer's choice, without a migration
+  - Before: on `main` 1314 Vitest, lint, `format:check`; the backend unchanged since the previous
+    release; `npm run e2e` 16 green, `npm run screenshots` committed (`cd5de81`)
+  - Server before: `TAG=20261103-0337-346bf42`, api and postgres healthy, disk 12%, 2.8 GiB memory
+    available; `./backup.sh run` → `gym-20261103-140613.dump` (1,795,990 bytes, sha256
+    `1f543741…096d`), copied to `D:\gymbackups`
+  - After, from outside: the panel, `/health`, the public page and the app answer 200; the panel's
+    stylesheet carries `color-mix(in oklab,var(--door-held) 60%,…)` and no oklch mix of it
+  - A rollback to `20261103-0337-346bf42` is safe: no migration
 
 ### Release 2 — The timetable and attendance (priority 1)
 

@@ -1,7 +1,9 @@
+import { Globe } from "lucide-react";
 import { useEffect } from "react";
 
 import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 
 import { useSiteLogout, useSiteMe } from "../auth/api";
@@ -15,6 +17,7 @@ import { InstallHint } from "../install/InstallHint";
 import { MyDebtCard } from "../records/MyDebtCard";
 import { MyDetailsCard } from "../records/MyDetailsCard";
 import { MyHistoryCard } from "../records/MyHistoryCard";
+import { gymSiteAddress } from "../paths";
 import { MyPlanCard } from "../records/MyPlanCard";
 import { TimetableCard } from "../timetable/TimetableCard";
 
@@ -28,7 +31,8 @@ export const trainerEndedNotice = "مربی‌گری شما تمام شده اس
  * trainer's timetable from 15.6.
  * This screen also answers the two cases the rules decided: a member deactivated at the desk sees
  * only a notice, and a trainer who was stopped and is not a member is told so and signed out.
- * «خروج» asks first, since signing in again costs an SMS (roadmap 15.5).
+ * «خروج» asks first, since signing in again costs an SMS (roadmap 15.5); «سایت باشگاه» above it
+ * leads back to the gym's public page.
  */
 export function HomePage() {
   const me = useSiteMe();
@@ -87,6 +91,14 @@ export function HomePage() {
       )}
 
       <InstallHint />
+
+      {/* In the browser, not in place: an installed app stays where the member left it. */}
+      <Button asChild variant="ghost" className="w-full">
+        <a href={gymSiteAddress} target="_blank" rel="noopener">
+          <Globe aria-hidden />
+          سایت باشگاه
+        </a>
+      </Button>
 
       <ConfirmDialog
         wide

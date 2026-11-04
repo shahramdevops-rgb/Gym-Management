@@ -1,0 +1,11 @@
+/* The site app's own stylesheet, beside the panel's shared index.css.
+
+   Samsung Internet's dark mode, where a Samsung phone's camera opens the QR code, repaints a page
+   darker unless its stylesheet answers prefers-color-scheme: dark; it turned the bronze icon and
+   buttons red (seen on the developer's phone, 1405/08/12). The app already has its own dark
+   (theme-init.js and theme.ts turn .dark on with the phone), so this answer only says so. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}

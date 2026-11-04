@@ -3,7 +3,6 @@ import { LogOut, Menu, X } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 
-import logo from "@/assets/brand/pasargad-logo.png";
 import { PageSectionContext } from "@/components/pageSection";
 import { Button } from "@/components/ui/button";
 import { hasRole, useCurrentUser, useLogout } from "@/features/auth/api";
@@ -209,10 +208,9 @@ function SideMenu({
     <div className="flex h-full flex-col">
       {/* As tall as the header beside it, so the header's bottom line runs on under it. */}
       <div className="flex h-12 shrink-0 items-center gap-2.5 border-b px-4">
-        {/* White lines on transparency, so it sits on the brand blue in both themes. */}
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary p-0.5">
-          <img src={logo} alt="" className="size-full object-contain" />
-        </span>
+        {/* The panel's own icon, bronze on dark (13.4), as on the phone's home screen (asked by the
+            developer, 1405/08/08); the ring keeps its edge on the dark theme's equally dark page. */}
+        <img src="/icon-192.png" alt="" className="size-8 shrink-0 rounded-lg ring-1 ring-border" />
         <div className="min-w-0 leading-tight">
           <h1 className="text-sm font-extrabold">مدیریت باشگاه</h1>
           <p className="text-xs text-muted-foreground">باشگاه پاسارگاد</p>

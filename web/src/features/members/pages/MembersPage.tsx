@@ -46,16 +46,20 @@ function statusFromParams(params: URLSearchParams): StatusFilter {
  * Filters that each narrow the list on their own and combine with the status and with each other
  * (BUSINESS_RULES.md §2). Each is kept in the URL as `<param>=1`.
  */
-type Toggle = "debtorsOnly" | "singleSessionOnly" | "planEndedOnly";
+type Toggle = "debtorsOnly" | "singleSessionOnly" | "planEndedOnly" | "frozenOnly";
 
 const toggles: { value: Toggle; param: string; label: string }[] = [
   { value: "debtorsOnly", param: "debt", label: "بدهکار" },
   { value: "singleSessionOnly", param: "single", label: "تک‌جلسه" },
   { value: "planEndedOnly", param: "ended", label: "پلن تمام‌شده" },
+  { value: "frozenOnly", param: "frozen", label: "فریز" },
 ];
 
-/** A filter button on a phone: small enough that all six share one line (13.1b). */
-const phoneChoice = "max-lg:h-7 max-lg:px-1 max-lg:text-xs";
+/**
+ * A filter button on a phone: small enough that all seven share one line (13.1b; tightened for
+ * «فریز», 1405/08/12, measured at 360px).
+ */
+const phoneChoice = "max-lg:h-7 max-lg:px-0.5 max-lg:text-[0.7rem]";
 
 type ToggleState = Record<Toggle, boolean>;
 
@@ -64,6 +68,7 @@ function togglesFromParams(params: URLSearchParams): ToggleState {
     debtorsOnly: params.get("debt") === "1",
     singleSessionOnly: params.get("single") === "1",
     planEndedOnly: params.get("ended") === "1",
+    frozenOnly: params.get("frozen") === "1",
   };
 }
 
@@ -74,6 +79,9 @@ function emptyToggleMessage(on: ToggleState): string | null {
   }
   if (on.planEndedOnly) {
     return "عضوی با پلن تمام‌شده نیست.";
+  }
+  if (on.frozenOnly) {
+    return "عضوی با پلن فریز نیست.";
   }
   if (on.debtorsOnly) {
     return "عضو بدهکاری نیست.";
@@ -94,7 +102,7 @@ function emptyToggleMessage(on: ToggleState): string | null {
  * the link all return to the same list. The box updates the URL once typing pauses, and the query
  * reads the URL.
  *
- * «بدهکار», «تک‌جلسه» and «پلن تمام‌شده» are toggles rather than more statuses, so they combine
+ * «بدهکار», «تک‌جلسه», «پلن تمام‌شده» and «فریز» are toggles rather than more statuses, so they combine
  * with the status and with each other: inactive members who still owe is a list the desk chases.
  * The API filters before paging (roadmap 6.5.20, 6.5.34).
  */
@@ -127,6 +135,7 @@ export function MembersPage() {
     debtorsOnly: on.debtorsOnly || undefined,
     singleSessionOnly: on.singleSessionOnly || undefined,
     planEndedOnly: on.planEndedOnly || undefined,
+    frozenOnly: on.frozenOnly || undefined,
     page,
   });
 
@@ -260,7 +269,7 @@ export function MembersPage() {
           </CardTitle>
           {/* On a phone, every filter on one line under the title (asked by the developer, 13.1b):
               smaller and closer together. */}
-          <div className="flex flex-wrap items-center gap-2 max-lg:flex-nowrap max-lg:gap-1">
+          <div className="flex flex-wrap items-center gap-2 max-lg:flex-nowrap max-lg:gap-0.5">
             <div role="group" aria-label="وضعیت عضویت" className="flex gap-1 max-lg:gap-px">
               {filters.map((filter) => (
                 <Button

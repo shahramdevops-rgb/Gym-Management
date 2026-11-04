@@ -2919,6 +2919,7 @@ export interface components {
             occupiedByMemberFullName: null | string;
             occupiedByGuestName: null | string;
             occupiedOnCardioOnly: boolean;
+            occupiedOnSingleVisit: boolean;
             /** Format: uint32 */
             version: number | string;
             /** Format: date-time */
@@ -7485,6 +7486,7 @@ export interface operations {
                 DebtorsOnly?: boolean;
                 SingleSessionOnly?: boolean;
                 PlanEndedOnly?: boolean;
+                FrozenOnly?: boolean;
                 Page?: number | string;
                 PageSize?: number | string;
             };

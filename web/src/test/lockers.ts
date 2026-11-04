@@ -18,6 +18,7 @@ export function locker(number: number, overrides: Partial<Locker> = {}): Locker 
     occupiedByMemberFullName: null,
     occupiedByGuestName: null,
     occupiedOnCardioOnly: false,
+    occupiedOnSingleVisit: false,
     holderDebt: 0,
     version: 1,
     createdAt: "2026-09-27T00:00:00Z",
@@ -58,6 +59,25 @@ export function cardioLocker(number: number, memberId: string, fullName: string,
     occupiedByMemberId: memberId,
     occupiedByMemberFullName: fullName,
     occupiedOnCardioOnly: true,
+    holderDebt: debt,
+  });
+}
+
+/**
+ * Locker `number` held by a member who came in on a single visit (BUSINESS_RULES.md §4 تک‌جلسه):
+ * the map draws the door violet.
+ */
+export function singleVisitLocker(
+  number: number,
+  memberId: string,
+  fullName: string,
+  debt = 0,
+): Locker {
+  return locker(number, {
+    isOccupied: true,
+    occupiedByMemberId: memberId,
+    occupiedByMemberFullName: fullName,
+    occupiedOnSingleVisit: true,
     holderDebt: debt,
   });
 }

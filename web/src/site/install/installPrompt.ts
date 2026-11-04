@@ -74,3 +74,19 @@ export function isAppleMobile(): boolean {
 export function isMobileDevice(): boolean {
   return isAppleMobile() || /Android/.test(navigator.userAgent);
 }
+
+/**
+ * Samsung Internet on Android, where a Samsung phone's camera opens a QR code. It installs the
+ * app as a package of Samsung's making, which Google Play Protect blocks as «Unsafe app» on a
+ * recent Android (seen on the developer's phone, 1405/08/12); Chrome's own install is trusted.
+ */
+export function isSamsungInternet(): boolean {
+  const agent = navigator.userAgent;
+  return /SamsungBrowser/.test(agent) && /Android/.test(agent);
+}
+
+/** This page in Chrome: an Android intent link, which Samsung Internet hands to Chrome. */
+export function chromeUrl(location: Location = window.location): string {
+  const scheme = location.protocol.replace(":", "");
+  return `intent://${location.host}${location.pathname}${location.search}#Intent;scheme=${scheme};package=com.android.chrome;end`;
+}

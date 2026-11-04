@@ -174,14 +174,17 @@
 	# copies a browser already holds.
 	header Cache-Control "no-cache"
 
-	# The address printed under the desk's QR code (roadmap 15.3b). A fixed address of the public
-	# page that leads to the app, so the poster never has to be printed again if the app moves.
-	# /app is the page's own «ورود / ثبت‌نام», so the page never names the app's host either (and the
-	# same link works in development, web/vite.site.config.ts).
-	# A temporary redirect (302), on purpose: a permanent one is remembered by phones, and the
+	# The address printed under the gym's one QR code, on the desk's poster and the business card
+	# (roadmap 15.3b). Since 2026-11-03 it leads to this page, not the app: the card goes to people
+	# who are not members yet, and a member signs in from the page's «ورود / ثبت‌نام» (decided by the
+	# developer, BUSINESS_RULES.md §15). A fixed address, so nothing printed has to be printed again
+	# when its destination changes.
+	# /app is the page's own «ورود / ثبت‌نام», so the page never names the app's host (and the same
+	# link works in development, web/vite.site.config.ts).
+	# Temporary redirects (302), on purpose: a permanent one is remembered by phones, and the
 	# destination could then never change for them.
-	@toApp path /qr /app
-	redir @toApp https://{$SITE_DOMAIN:no-site-app}/ 302
+	redir /qr / 302
+	redir /app https://{$SITE_DOMAIN:no-site-app}/ 302
 
 	root * /srv-public
 	file_server

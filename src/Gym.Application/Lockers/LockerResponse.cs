@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using Gym.Domain.Attendances;
 using Gym.Domain.Lockers;
 using Gym.Domain.Members;
+using Gym.Domain.Subscriptions;
 
 namespace Gym.Application.Lockers;
 
@@ -10,7 +11,7 @@ namespace Gym.Application.Lockers;
 /// Who an open attendance holds this locker for: a member, or a guest by name (BUSINESS_RULES.md §7
 /// <i>Guest visit</i>). <c>null</c> as a whole when the locker is free.
 /// </summary>
-public sealed record LockerHolder(Guid? MemberId, string? FullName, string? GuestName, bool IsCardioOnly);
+public sealed record LockerHolder(Guid? MemberId, string? FullName, string? GuestName, bool IsCardioOnly, bool IsSingleVisit);
 
 /// <param name="OccupiedByMemberId">
 /// Whoever the open attendance against this locker belongs to, or <c>null</c> when nobody holds
@@ -24,6 +25,11 @@ public sealed record LockerHolder(Guid? MemberId, string? FullName, string? Gues
 /// <param name="OccupiedOnCardioOnly">
 /// The member holding the locker came in only for هوازی (§7 <i>Cardio-only visit</i>): the map draws
 /// the door in the cardio colour. <c>false</c> for a free locker and a guest's.
+/// </param>
+/// <param name="OccupiedOnSingleVisit">
+/// The member holding the locker came in on a single visit (تک‌جلسه, §4): the map draws the door in
+/// the single visit's colour (§6). <c>false</c> for a free locker, a guest's and a cardio-only visit,
+/// which keeps its yellow.
 /// </param>
 /// <param name="Version">Sent back with a status change, so a stale request is refused.</param>
 /// <param name="HolderDebt">
@@ -41,6 +47,7 @@ public sealed record LockerResponse(
     string? OccupiedByMemberFullName,
     string? OccupiedByGuestName,
     bool OccupiedOnCardioOnly,
+    bool OccupiedOnSingleVisit,
     uint Version,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
@@ -56,10 +63,10 @@ public sealed record LockerResponse(
     /// The same mapping as <see cref="From"/>, as an expression EF Core translates to SQL. Takes
     /// the open attendances as a queryable, not <c>IAppDbContext</c> directly, so the caller
     /// decides "open" once (<c>CheckedOutAt == null</c>) and this only correlates it by locker.
-    /// The members are correlated the same way, in the one query, rather than per row.
+    /// The members and subscriptions are correlated the same way, in the one query, rather than per row.
     /// </summary>
     public static Expression<Func<Locker, LockerResponse>> Projection(
-        IQueryable<Attendance> openAttendances, IQueryable<Member> members) =>
+        IQueryable<Attendance> openAttendances, IQueryable<Member> members, IQueryable<Subscription> subscriptions) =>
         locker => new LockerResponse(
             locker.Id,
             locker.Number,
@@ -77,6 +84,9 @@ public sealed record LockerResponse(
                 .Select(a => a.GuestName)
                 .FirstOrDefault(),
             openAttendances.Any(a => a.LockerId == locker.Id && a.IsCardioOnly),
+            openAttendances.Any(a => a.LockerId == locker.Id
+                && !a.IsCardioOnly
+                && subscriptions.Any(s => s.Id == a.SubscriptionId && s.IsSingleSession)),
             locker.Version,
             locker.CreatedAt,
             locker.UpdatedAt,
@@ -95,6 +105,7 @@ public sealed record LockerResponse(
             holder?.FullName,
             holder?.GuestName,
             holder?.IsCardioOnly ?? false,
+            holder?.IsSingleVisit ?? false,
             locker.Version,
             locker.CreatedAt,
             locker.UpdatedAt);

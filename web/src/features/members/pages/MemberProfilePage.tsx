@@ -144,10 +144,10 @@ export function MemberProfilePage() {
                 <dd>{formatDateTime(current.createdAt)}</dd>
 
                 {/* Whether they have signed in on the site (§15): made by their first sign-in. */}
-                <dt className="text-muted-foreground">حساب سایت</dt>
+                <dt className="text-muted-foreground">باشگاه من</dt>
                 <dd>
                   {current.siteAccount == null ? (
-                    <span className="text-muted-foreground">در سایت ثبت‌نام نکرده است.</span>
+                    <span className="text-muted-foreground">در باشگاه من ثبت‌نام نکرده است.</span>
                   ) : (
                     <>
                       <p>ثبت‌نام: {formatDateTime(current.siteAccount.createdAt)}</p>

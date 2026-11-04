@@ -31,6 +31,8 @@ export interface MemberListFilter {
   singleSessionOnly?: boolean;
   /** Only members whose plan is over with nothing after it (BUSINESS_RULES.md §2, «پلن تمام‌شده»). */
   planEndedOnly?: boolean;
+  /** Only members with a plan frozen now (BUSINESS_RULES.md §2, «فریز»): how many are frozen. */
+  frozenOnly?: boolean;
   page: number;
 }
 
@@ -51,6 +53,7 @@ export function useMemberList(filter: MemberListFilter, { enabled = true } = {})
             DebtorsOnly: filter.debtorsOnly,
             SingleSessionOnly: filter.singleSessionOnly,
             PlanEndedOnly: filter.planEndedOnly,
+            FrozenOnly: filter.frozenOnly,
             Page: filter.page,
             PageSize: membersPageSize,
           },

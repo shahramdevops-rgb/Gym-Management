@@ -16,6 +16,16 @@ describe("HomePage", () => {
     expect(screen.queryByRole("heading", { name: "شاگردان من" })).not.toBeInTheDocument();
   });
 
+  it("Home_GymSiteLink_OpensThePublicPageInTheBrowser", async () => {
+    mockApi({ ...emptyHome, "GET /api/site/me": () => json(200, siteAccess().me) });
+
+    renderSite("/", { access: siteAccess() });
+
+    const link = await screen.findByRole("link", { name: "سایت باشگاه" });
+    expect(link).toHaveAttribute("href", "/public-site/");
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
   it("Home_MemberDeactivatedAtTheDesk_SeesOnlyTheNotice", async () => {
     const inactive = { member: { ...activeMember, isActive: false }, trainer: null };
     mockApi({ ...emptyHome, "GET /api/site/me": () => json(200, inactive) });

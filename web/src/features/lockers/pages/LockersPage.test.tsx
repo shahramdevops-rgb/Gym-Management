@@ -20,6 +20,7 @@ import {
   lockersPage,
   lockerUsage,
   lockerVisit,
+  singleVisitLocker,
 } from "@/test/lockers";
 import {
   json,
@@ -141,6 +142,28 @@ describe("LockersPage", () => {
     expect(legend).toHaveTextContent("۷۰ آزاد");
     expect(legend).toHaveTextContent("۱ اشغال");
     expect(legend).toHaveTextContent("۱ خارج از سرویس");
+  });
+
+  it("Map_SingleVisitHolder_DrawsTheDoorInItsOwnStateWithItsCount", async () => {
+    mockApi(
+      mapHandlers(
+        allLockers(
+          singleVisitLocker(2, reza.id, reza.fullName),
+          heldLocker(6, "other", "علی رضایی"),
+        ),
+        [insideRow(reza.fullName, rezaVisit, { isSingleSession: true })],
+      ),
+    );
+    renderMap();
+
+    const single = await door("۲");
+    expect(single).toHaveAttribute("data-state", "singleVisit");
+    expect(single).toHaveAccessibleName("کمد ۲، تک‌جلسه — رضا احمدی");
+    expect(await door("۶")).toHaveAttribute("data-state", "occupied");
+    // Counted on its own, not among the occupied (§6 *The desk screen's look*).
+    const legend = screen.getByRole("list", { name: "راهنمای کمدها" });
+    expect(legend).toHaveTextContent("۱ اشغال");
+    expect(legend).toHaveTextContent("۱ تک‌جلسه");
   });
 
   it("Map_HolderOwesMoney_MarksTheirDoorDebtorAndNoOtherDoor", async () => {
@@ -1152,6 +1175,21 @@ describe("LockersPage", () => {
     expect(empty).toHaveLength(14);
     expect(empty[0]).toBeDisabled();
     expect(screen.getByText(/تا وقتی کمد آزادی هست، ورود بدون کمد ممکن نیست/)).toBeInTheDocument();
+  });
+
+  it("ReservePlaces_SingleVisit_IsDrawnInTheSingleVisitColourAndSaysSo", async () => {
+    mockApi(
+      mapHandlers(allLockers(), [
+        insideRow(reza.fullName, reserveVisit, { isSingleSession: true }),
+      ]),
+    );
+    renderMap();
+
+    fireEvent.click(await screen.findByRole("button", { name: /ورود بدون کمد/ }));
+
+    const places = screen.getByRole("list", { name: "جاهای ورود بدون کمد" });
+    const place = within(places).getByRole("button", { name: "رضا احمدی، تک‌جلسه" });
+    expect(place).toHaveClass("border-e-single-visit");
   });
 
   it("ReservePlaces_UsedOneOpened_OffersNoLockerHistory", async () => {

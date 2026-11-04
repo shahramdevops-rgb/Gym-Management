@@ -471,6 +471,50 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         (await SingleAsync(client, token, member.Id)).IsFrozen.ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task ListMembers_FrozenOnly_ListsOnlyMembersFrozenNowAndCountsThem()
+    {
+        var (client, token) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var frozen = await CreateMemberAsync(client, token, "رضا", "09121234567");
+        var unfrozen = await CreateMemberAsync(client, token, "علی", "09351234567");
+        var cancelledFrozen = await CreateMemberAsync(client, token, "مریم", "09131234567");
+        await CreateMemberAsync(client, token, "هادی", "09141234567");
+        var frozenPlan = await SellSubscriptionAsync(client, token, frozen.Id, 900_000m);
+        var unfrozenPlan = await SellSubscriptionAsync(client, token, unfrozen.Id, 900_000m);
+        var cancelledPlan = await SellSubscriptionAsync(client, token, cancelledFrozen.Id, 900_000m);
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{frozenPlan.Id}/freeze");
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{unfrozenPlan.Id}/freeze");
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{unfrozenPlan.Id}/unfreeze");
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{cancelledPlan.Id}/freeze");
+        var cancelRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/subscriptions/{cancelledPlan.Id}/cancel")
+        {
+            Content = JsonContent.Create(new { reason = "اشتباه ثبت شد" }),
+        };
+        using var cancelled = await ownerClient.SendAsync(cancelRequest.WithBearer(ownerToken), TestContext.Current.CancellationToken);
+        cancelled.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var page = await ListAsync(client, token, "?frozenOnly=true");
+
+        page.TotalCount.ShouldBe(1);
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(frozen.Id);
+    }
+
+    [Fact]
+    public async Task ListMembers_FrozenOnlyWithSearch_AppliesBoth()
+    {
+        var (client, token) = await StaffClientAsync();
+        var (ownerClient, ownerToken) = await OwnerClientAsync();
+        var reza = await CreateMemberAsync(client, token, "رضا احمدی", "09121234567");
+        var ali = await CreateMemberAsync(client, token, "علی احمدی", "09351234567");
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{(await SellSubscriptionAsync(client, token, reza.Id, 900_000m)).Id}/freeze");
+        await PostOkAsync(ownerClient, ownerToken, $"/api/subscriptions/{(await SellSubscriptionAsync(client, token, ali.Id, 900_000m)).Id}/freeze");
+
+        var page = await ListAsync(client, token, $"?frozenOnly=true&search={Uri.EscapeDataString("رضا")}");
+
+        page.Items.ShouldHaveSingleItem().Id.ShouldBe(reza.Id);
+    }
+
     // ---- Order: the latest visit first (BUSINESS_RULES.md §2) ----
 
     [Fact]

@@ -11,6 +11,7 @@ import {
 import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { lockerStateLabel } from "../lockerState";
 import { longStayLabel, stayProgress } from "../longStay";
 import { birthdayLabel, Celebration } from "./Celebration";
 import { doorFace, doorMotion, doorStateClass } from "./doorStyle";
@@ -114,6 +115,7 @@ export function ReservePlaces({
               const extras = [
                 guest ? guestLabel : null,
                 visit.isCardioOnly ? cardioOnlyLabel : null,
+                !visit.isCardioOnly && visit.isSingleSession ? lockerStateLabel.singleVisit : null,
                 birthday ? birthdayLabel : null,
                 stay.isLong ? longStayLabel : null,
               ].filter((part) => part !== null);
@@ -134,7 +136,9 @@ export function ReservePlaces({
                         ? doorStateClass.guest
                         : visit.isCardioOnly
                           ? doorStateClass.cardio
-                          : doorStateClass.occupied,
+                          : visit.isSingleSession
+                            ? doorStateClass.singleVisit
+                            : doorStateClass.occupied,
                       "px-2 text-center text-xs leading-tight font-medium",
                       birthday && "shadow-[0_0_18px_-4px_var(--party-pink)]",
                       found &&

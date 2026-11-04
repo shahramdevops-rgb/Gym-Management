@@ -17,7 +17,7 @@ public sealed class GetLockerHandler(IAppDbContext db)
         var locker = await db.Lockers
             .AsNoTracking()
             .Where(l => l.Id == id)
-            .Select(LockerResponse.Projection(openAttendances, members))
+            .Select(LockerResponse.Projection(openAttendances, members, db.Subscriptions))
             .SingleOrDefaultAsync(cancellationToken);
 
         return locker is null ? Result.Failure<LockerResponse>(LockerErrors.NotFound) : locker;

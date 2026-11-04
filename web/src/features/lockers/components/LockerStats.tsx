@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import type { Locker } from "../api";
 import { lockerState, lockerStateLabel, type LockerState } from "../lockerState";
 
-const states = ["free", "occupied", "guest", "cardio", "outOfService"] as const;
+const states = ["free", "occupied", "singleVisit", "guest", "cardio", "outOfService"] as const;
 
 /** A small door, drawn the way the map draws that state, for the legend. */
 const swatchClass: Record<LockerState, string> = {
@@ -14,13 +14,14 @@ const swatchClass: Record<LockerState, string> = {
   occupied: "border-e-destructive bg-door-held",
   guest: "border-e-guest bg-door-guest",
   cardio: "border-e-cardio bg-door-cardio",
+  singleVisit: "border-e-single-visit bg-door-single-visit",
   outOfService:
     "bg-[repeating-linear-gradient(135deg,var(--door-hatch)_0_2px,var(--door)_2px_4px)]",
 };
 
 /**
  * The strip above the map (BUSINESS_RULES.md §6 *The desk screen's look*): how many lockers are
- * free, occupied, held by a guest, held on a cardio-only visit and out of service, each beside a small door drawn like the map draws it, and what
+ * free, occupied, held on a single visit, held by a guest, held on a cardio-only visit and out of service, each beside a small door drawn like the map draws it, and what
  * the «بدهکار» tag and the long-stay bar mean.
  *
  * It is the map's legend too, and sits in the page's banner beside the title (13.2h), on no colour
@@ -44,6 +45,7 @@ export function LockerStats({
     occupied: 0,
     guest: 0,
     cardio: 0,
+    singleVisit: 0,
     outOfService: 0,
   };
   for (const locker of lockers) {
@@ -56,34 +58,38 @@ export function LockerStats({
       // On a phone the box dissolves into the banner's row (`spreadOnPhone` there, 13.1a): the
       // search stands beside the title and the counts take the row under them (asked by the
       // developer).
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 max-lg:contents"
+      // From 1840px, where both fit on one row, the tools never drop under the legend (asked by the developer, 1405/08/12):
+      // the legend takes what room is left and wraps its own items instead. Narrower screens keep
+      // the legend on one line with the tools under it, as before.
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 max-lg:contents min-[1840px]:flex-nowrap"
     >
       {legend ?? (
-        // On a phone only free, occupied, guest and cardio, smaller and on one line (BUSINESS_RULES.md
-        // §6, 13.1a, asked by the developer).
+        // On a phone only free, occupied, single visit, guest and cardio, smaller and on one line (BUSINESS_RULES.md
+        // §6, 13.1a, asked by the developer); the gaps are tight so the five fit side by side on a
+        // 360px phone, never wrapping under each other (asked by the developer, 1405/08/12).
         <ul
           aria-label="راهنمای کمدها"
-          className="flex flex-wrap items-center gap-x-6 gap-y-2 max-lg:order-last max-lg:w-full max-lg:flex-nowrap max-lg:justify-between max-lg:gap-x-2"
+          className="flex flex-wrap items-center gap-x-3 gap-y-2 max-lg:order-last min-[1840px]:min-w-0 min-[1840px]:flex-1 max-lg:w-full max-lg:flex-nowrap max-lg:justify-between max-lg:gap-x-0.5"
         >
           {states.map((state) => (
             <li
               key={state}
               className={cn(
-                "flex items-center gap-2 max-lg:gap-1 max-lg:whitespace-nowrap",
+                "flex items-center gap-1.5 max-lg:gap-0.5 max-lg:whitespace-nowrap",
                 state === "outOfService" && "max-lg:hidden",
               )}
             >
               <span
                 aria-hidden
                 className={cn(
-                  "inline-block size-3.5 rounded-[3px] border-e-[3px] border-door-border bg-door max-lg:size-3",
+                  "inline-block size-3.5 rounded-[3px] border-e-[3px] border-door-border bg-door max-lg:size-2.5 max-lg:border-e-2",
                   swatchClass[state],
                 )}
               />
-              <span className="text-2xl leading-none font-extrabold tabular-nums max-lg:text-base">
+              <span className="text-xl leading-none font-extrabold tabular-nums max-lg:text-[0.9rem]">
                 {toPersianDigits(counts[state])}
               </span>{" "}
-              <span className="text-xs text-muted-foreground max-lg:text-[0.7rem]">
+              <span className="text-xs text-muted-foreground max-lg:text-[0.65rem]">
                 {lockerStateLabel[state]}
               </span>
             </li>
@@ -92,7 +98,7 @@ export function LockerStats({
           <li className="flex items-center gap-2 text-xs text-muted-foreground max-lg:hidden">
             <span
               aria-hidden
-              className="rounded-es-sm bg-destructive/20 px-1 text-[9px] leading-snug font-bold text-destructive"
+              className="rounded-es-sm px-1 text-[10px] leading-snug font-bold text-destructive"
             >
               بدهکار
             </span>

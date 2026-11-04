@@ -53,6 +53,13 @@ public sealed class ListMembersHandler(IAppDbContext db, IPhoneNormalizer phones
             members = members.Where(MemberDebt.OwesSomething(db));
         }
 
+        if (query.FrozenOnly)
+        {
+            // A cancelled plan is never frozen in effect (§4 Cancellation), and a single visit cannot be.
+            members = members.Where(member => db.Subscriptions.Any(s =>
+                s.MemberId == member.Id && s.FrozenSince != null && s.CancelledAt == null));
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             members = Search(members, PersianText.Normalize(query.Search));

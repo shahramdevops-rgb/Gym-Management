@@ -2339,3 +2339,34 @@ The question that started this was whether a gym that is entirely internal — I
 - **A changed check constraint is a migration.** The step is part of the constraint's SQL, so `MinuteStep` 15 drops and adds six constraints in `LimitSessionHours`. It would refuse old rows at 13:05; it is safe here only because these tables are not on the server yet. Once they hold real rows, such a change would first have to carry those rows forward.
 - **When a test needs "a session that has started".** It used 00:00, which is always in the past. With 07:00 the earliest, the two tests run on a host whose `IGymCalendar` reads 07:30 or later. Only the calendar is replaced, not `TimeProvider`, so tokens and sign-in codes still match the real clock.
 - **My notes:**
+
+## After Release 1 — Logos, a name, a colour (لوگوها، یک نام، یک رنگ)
+
+- **A flag the server derives beats one the screen guesses.** The locker map only sees lockers, not subscriptions, so `occupiedOnSingleVisit` is worked out in the same SQL projection as `occupiedOnCardioOnly` (a correlated `Any` over the subscriptions), rather than the page fetching every holder's plan to find out.
+- **Order decides overlapping states.** A visit can be cardio-only and hold a single visit at once; `lockerState` checks guest, then cardio, then single visit, so each door has exactly one colour, and the API says `false` on a cardio-only visit so the two never disagree.
+- **A colour is a token, not a hex in a class.** `--single-visit` and `--door-single-visit` are defined once for light and once for dark in `index.css` and exposed to Tailwind under `@theme`; every door, swatch and ring reads them, so a later change is one place.
+- **Generated images can be reproducible without a package.** The icons are drawn on a `<canvas>` in the installed Chrome through Playwright: the logo stamped around a small circle to make its lines bolder, tinted with `source-in`, then scaled. The script lives outside the repo; the PNGs are what ship.
+- **A maskable icon is sized by its diagonal.** Android may cut the icon to a circle of 80% of the side, so the logo's box must fit inside it: its height is `2 × 0.42 × side / √(1 + aspect²)`, smaller than the plain icon's.
+- **A filter that shares the row's test cannot disagree with it.** `frozenOnly` uses exactly the condition `IsFrozen` already used on each row (frozen and not cancelled), so a member shown by the filter is always one the row calls frozen.
+- **Measure a phone layout, don't eyeball it.** A seventh button looked fine at 390px but went 10px off a 360px screen; reading each button's box with Playwright found it, and `max-lg:` classes fixed only the phone.
+- **A gradient's stop is its reach.** `linear-gradient(to right, tint, door 60%)` puts the colour on the left and ends it at 60% of the width; `color-mix(in oklch, tint 60%, door)` softens the tint itself. A tint that is already pale (the free green) vanishes when softened again, so it keeps its strength.
+- **A redirect you own pays off the day the plan changes.** The poster's code holds `/qr`, not the app's address, so sending it to the public page for the business card was one line in Caddy, and nothing printed had to be printed again.
+- **Google does not count QR scans.** Ranking comes from links from other sites, the page's own content and, for "a gym near me", the Google Maps listing; a member opening the page from a code is a visit, not a signal. The page is for strangers, so the card's code goes there for the reader's sake, not for the ranking.
+- **`target="_blank"` from an installed app opens the browser.** Inside an installed PWA, a link that leaves in place would replace the app's screen; opening it in a new tab leaves the app where it was. `rel="noopener"` keeps the new page from reaching back into the app's window.
+- **`asChild` styles a link as a button.** shadcn's `Button asChild` hands its classes to the `<a>` inside (Radix `Slot`), so the link looks like the other buttons and stays a link to screen readers and to the tests' `getByRole("link")`.
+- **My notes:**
+
+## Samsung Internet (مرورگر سامسونگ)
+
+- **A browser's dark mode can repaint a page that is already dark, and the page may not be able to stop it.** `<meta name="color-scheme">` and a `prefers-color-scheme: dark` rule are the standard way to say "I have my own dark", and Chrome's automatic dark respects them; Samsung Internet's dark mode ignored both on the developer's phone. A guess about another company's browser is only tested on that browser.
+- **An install is only as trusted as whoever builds the package.** An installed web app on Android is a small real app (a WebAPK). Chrome's are built and signed by Google, so Play Protect trusts them; Samsung Internet's are built by Samsung for an older Android, and Play Protect blocks them. The site cannot change that, only send people to Chrome.
+- **`intent://` opens a page in a named Android app.** `intent://host/path#Intent;scheme=https;package=com.android.chrome;end` asks Android to open that address in Chrome; it is how one browser hands a page to another.
+- **The user agent is the last resort, and the right one here.** Feature checks find what a browser can do, not who built its install; `SamsungBrowser` in the user agent is the only sign that the install would be blocked.
+- **An installed app's icon is copied at install time.** Changing the icon on the server reaches an installed app only when its browser checks the manifest again, every few days, or when it is reinstalled.
+- **My notes:**
+
+## Held doors red again (قرمز دوباره)
+
+- **`color-mix` in oklch walks around the hue wheel; in oklab it goes straight.** oklch describes a colour by lightness, chroma and hue (an angle), so mixing two colours also mixes their angles, the short way round: from red (20°) to the dark blue-grey ground (268°) the short way runs through magenta, and a red tint came out violet. oklab describes the same colours as points on two axes, so a mix is the point between them and only fades toward the ground. Use oklch to pick colours, oklab to blend a colour into a background.
+- **A grey is not hue-free.** The dark ground has almost no chroma, but its hue still counts in an oklch mix; nearly invisible in the colour itself, it decided which way the mix turned.
+- **My notes:**
