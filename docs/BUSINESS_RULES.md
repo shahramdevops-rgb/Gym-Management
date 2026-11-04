@@ -2632,11 +2632,19 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     early. Two sessions of one day cannot have the same start and the same end. A check-in a
     little before a session's start is counted for the session the member is in (15.7).
   - **The timetable reaches 12 weeks ahead** (today and the 83 days after it), so a program of
-    6 to 8 weeks (15.11) fits in it whole. *Proposed by Claude, accepted.*
-  - *Proposed by Claude, built with 15.6a:* a session's capacity is 1 to 50; times are on
-    5-minute steps, a session ends the day it starts (no session past midnight), and a day holds
-    20 sessions at most. The gym has no opening hours in the system (§7), so the sessions are not
-    held to any.
+    6 to 8 weeks (15.11) fits in it whole. *Proposed by Claude, accepted.* **«روزهای پیش رو»
+    shows only the next 4 weeks** (today and the 27 days after it; *decided by the developer*,
+    1405/08/14): the dates after them keep their sessions and their students, and a fixed program
+    still reaches the 12 weeks, but the trainer does not see or change them there.
+  - *Proposed by Claude, built with 15.6a:* a session's capacity is 1 to 50, a session ends the day
+    it starts, and a day holds 20 sessions at most.
+  - **A session's hours: from 07:00 to 22:00, on the quarter hour** (*decided by the developer*,
+    1405/08/14, in place of 5-minute steps at any hour): it starts at 07:00 or later and ends by
+    22:00, and its times are :00, :15, :30 or :45. The hour boxes offer 07 to 22. This is the
+    sessions' own rule: the gym itself still has no opening hours in the system (§7), and check-in
+    is not held to these hours.
+  - **The trainer's page is «تمام سانس‌های من»** (*decided by the developer*, 1405/08/14, in place
+    of «برنامه سانس‌ها»).
   - **A stopped trainer's sessions are gone** from the site with their area (the member sees
     only trainers now); the pattern is kept, and comes back if the Owner makes them a trainer
     again. *Proposed by Claude, accepted.*
@@ -2709,9 +2717,29 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     date, as the student may.
   - **The member's plan is not checked**: a visit is still a check-in at the desk that uses a
     session of the plan (above).
-- *Open, asked in its part of 15.6 and 15.7:* a check-in after the session ended, and how early
-  before the start a check-in counts; whether the cancellation SMS has its own switch in
-  «تنظیمات پیامک»; the absence alert to the trainer.
+- **A cancelled session, decided with 15.6c's plan** (*decided by the developer*, 1405/08/12: Claude's
+  four proposals, each taken as offered):
+  - **What tells the students: both kinds of change.** A save of one date, «برگرداندن به الگو», or
+    the weekly pattern that removes a session students are in, or changes its times. The sessions
+    and students are the warning's (above); a session whose capacity drops keeps its students and
+    tells no one. *Proposed by Claude, not yet confirmed:* the trainer taking one student out of
+    one date («شاگردان سانس») is not a cancellation, and tells no one.
+  - **The notice in the app: a card with «دیدم».** «سانس لغو شد» opens the member's home with each
+    cancelled date and time, until the member presses «دیدم» or the date passes. *Proposed by
+    Claude, built with it:* a session the trainer brings back leaves the card; one cancelled twice
+    shows once; only the trainer now's; «دیدم» covers what the member read, so a cancellation saved
+    meanwhile stays to be seen. The dates are kept as they were cancelled, so whether the member saw
+    one is known.
+  - **The SMS only for a date from today to 7 days after it.** A later date is told in the app only.
+    One SMS per student and save, however many of their sessions it cancelled: the nearest one by
+    day, date and time, and how many others the same save cancelled (`docs/sms-texts.md`).
+  - **Its own switch, «لغو سانس»**, in «تنظیمات پیامک», off at first, sent at once within
+    08:00–22:00; a save after 22:00 goes at **08:00** the next morning, not 10:00, so it reaches the
+    student before a morning session. *Proposed by Claude, built with it:* when it goes, it is
+    checked again: only a session still cancelled, not started, and not seen in the app («دیدم»)
+    counts, and the member must still be active and the trainer's student.
+- *Open, asked in its part of 15.7:* a check-in after the session ended, and how early before the
+  start a check-in counts; the absence alert to the trainer.
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

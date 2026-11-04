@@ -46,6 +46,7 @@ const settingsOn: SmsSettings = {
   absence: off,
   broadcast: { enabled: true },
   trainerRequest: { enabled: false, morningSendTime: "10:00:00" },
+  sessionCancelled: { enabled: false, openingSendTime: "08:00:00", daysAhead: 7 },
   version: 7,
 };
 

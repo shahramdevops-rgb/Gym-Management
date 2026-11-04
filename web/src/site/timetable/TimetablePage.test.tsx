@@ -68,7 +68,7 @@ describe("the trainer's timetable", () => {
 
     const list = await screen.findByRole("list", { name: "سانس‌های امروز" });
     expect(list).toHaveTextContent("۱۳:۰۰ تا ۱۴:۰۰ · ۳ از ۸ نفر");
-    expect(screen.getByRole("link", { name: "برنامه سانس‌ها" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "تمام سانس‌های من" })).toHaveAttribute(
       "href",
       "/timetable",
     );
@@ -368,6 +368,73 @@ describe("the trainer's timetable", () => {
     );
   });
 
+  it("EditPattern_TimeBoxes_OfferHoursSevenToTwentyTwoOnTheQuarterHour", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    const first = within(
+      within(screen.getByRole("list", { name: "سانس‌های شنبه" })).getByRole("listitem", {
+        name: "سانس ۱",
+      }),
+    );
+    const options = (name: string) =>
+      within(first.getByRole("combobox", { name }))
+        .getAllByRole("option")
+        .map((option) => option.getAttribute("value"));
+
+    expect(options("ساعت شروع")).toEqual([
+      "07",
+      "08",
+      "09",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+    ]);
+    expect(options("دقیقه پایان")).toEqual(["00", "15", "30", "45"]);
+  });
+
+  it("SavePattern_EndAfterTen_MarksThatSessionAndSendsNothing", async () => {
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/timetable": () => json(200, timetableWith(saturdayPattern)),
+      "POST /api/site/timetable/pattern/check": noImpact,
+    });
+    renderSite("/timetable", { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "تغییر الگو" }));
+    const second = within(
+      within(screen.getByRole("list", { name: "سانس‌های شنبه" })).getByRole("listitem", {
+        name: "سانس ۲",
+      }),
+    );
+    fireEvent.change(second.getByRole("combobox", { name: "ساعت پایان" }), {
+      target: { value: "22" },
+    });
+    fireEvent.change(second.getByRole("combobox", { name: "دقیقه پایان" }), {
+      target: { value: "15" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره الگو" }));
+
+    expect(
+      second.getByText("سانس باید از ساعت ۷ صبح به بعد شروع شود و تا ۱۰ شب تمام شود."),
+    ).toBeInTheDocument();
+    expect(api.requestsTo("POST", "/api/site/timetable/pattern/check")).toHaveLength(0);
+  });
+
   it("SavePattern_TwoSessionsWithTheSameTimes_MarksTheSecond", async () => {
     mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
@@ -427,7 +494,7 @@ describe("the trainer's timetable", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "هفتهٔ بعد" }));
 
-    expect(screen.getByText("هفتهٔ ۲ از ۱۲")).toBeInTheDocument();
+    expect(screen.getByText("هفتهٔ ۲ از ۴")).toBeInTheDocument();
     expect(within(days).getAllByRole("listitem")[0]).toHaveTextContent("شنبه ۱۶ آبان");
   });
 

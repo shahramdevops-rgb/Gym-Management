@@ -8,11 +8,15 @@ import { cn } from "@/lib/utils";
 
 import type { SessionInput } from "./api";
 import { toDraft, type DraftSession } from "./drafts";
-import { nextSession } from "./labels";
+import { firstHour, lastHour, minuteStep, nextSession } from "./labels";
 
-const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"));
-// On 5-minute steps (BUSINESS_RULES.md §15 *The trainer's sessions*).
-const minutes = Array.from({ length: 12 }, (_, step) => String(step * 5).padStart(2, "0"));
+// From 07 to 22, on the quarter hour (BUSINESS_RULES.md §15 *The trainer's sessions*).
+const hours = Array.from({ length: lastHour - firstHour + 1 }, (_, index) =>
+  String(firstHour + index).padStart(2, "0"),
+);
+const minutes = Array.from({ length: 60 / minuteStep }, (_, step) =>
+  String(step * minuteStep).padStart(2, "0"),
+);
 const capacities = Array.from({ length: 50 }, (_, index) => index + 1);
 const maxSessions = 20;
 
@@ -24,8 +28,9 @@ const selectClassName = cn(
 );
 
 /**
- * One day's sessions, each a small box: start, end, capacity, «VIP» and «حذف». The times are an hour and
- * a minute on 5-minute steps, so the boxes only make times the API accepts; a box with a problem
+ * One day's sessions, each a small box: start, end, capacity, «VIP» and «حذف». The times are an hour
+ * from 07 to 22 and a minute on the quarter hour; a time past 22:00 or one before the start is the
+ * box's problem, not refused while choosing. A box with a problem
  * (`sessionProblems`) turns red and says it under its own times, and a day stops at 20 sessions.
  */
 export function SessionsEditor({
@@ -138,7 +143,7 @@ function TimeField({
   disabled: boolean;
 }) {
   const labelId = useId();
-  const [hour = "00", minute = "00"] = value.split(":");
+  const [hour = "07", minute = "00"] = value.split(":");
 
   return (
     <div className="space-y-1">

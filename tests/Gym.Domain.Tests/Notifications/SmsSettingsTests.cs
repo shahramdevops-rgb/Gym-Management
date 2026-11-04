@@ -54,7 +54,8 @@ public sealed class SmsSettingsTests
             debtReminderMinAmount: 500_000m,
             absence: new(true, 14, new TimeOnly(11, 30)),
             broadcastEnabled: true,
-            trainerRequestEnabled: true);
+            trainerRequestEnabled: true,
+            sessionCancelledEnabled: true);
 
         result.IsSuccess.ShouldBeTrue();
         settings.Enabled.ShouldBeTrue();
@@ -80,6 +81,8 @@ public sealed class SmsSettingsTests
         settings.For(NotificationKind.Broadcast).ShouldBe(new SmsKindSettings(true, null, null));
         settings.TrainerRequestEnabled.ShouldBeTrue();
         settings.For(NotificationKind.TrainerRequest).ShouldBe(new SmsKindSettings(true, null, null));
+        settings.SessionCancelledEnabled.ShouldBeTrue();
+        settings.For(NotificationKind.SessionCancelled).ShouldBe(new SmsKindSettings(true, null, null));
     }
 
     [Fact]
@@ -393,6 +396,30 @@ public sealed class SmsSettingsTests
             .ShouldBe(Day.ToDateTime(new TimeOnly(10, 0)));
     }
 
+    // ---- The cancelled session's SMS (task 15.6c) ----
+
+    [Theory]
+    [InlineData(8, 0)]
+    [InlineData(22, 0)]
+    public void DeferredToOpening_WithinTheHours_IsNow(int hour, int minute)
+    {
+        SmsSettings.DeferredToOpening(Day, new TimeOnly(hour, minute)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void DeferredToOpening_After2200_IsEightTheNextMorning()
+    {
+        SmsSettings.DeferredToOpening(Day, new TimeOnly(23, 10))
+            .ShouldBe(Day.AddDays(1).ToDateTime(new TimeOnly(8, 0)));
+    }
+
+    [Fact]
+    public void DeferredToOpening_Before0800_IsEightThatMorning()
+    {
+        SmsSettings.DeferredToOpening(Day, new TimeOnly(6, 30))
+            .ShouldBe(Day.ToDateTime(new TimeOnly(8, 0)));
+    }
+
     [Fact]
     public void For_SubscriptionReceipt_HasNoSendTimeSoNoDailyRun()
     {
@@ -664,7 +691,8 @@ public sealed class SmsSettingsTests
         decimal? debtReminderMinAmount = null,
         SmsKindSettings? absence = null,
         bool broadcastEnabled = false,
-        bool trainerRequestEnabled = false) =>
+        bool trainerRequestEnabled = false,
+        bool sessionCancelledEnabled = false) =>
         settings.Update(
             enabled,
             subscriptionExpiring ?? SmsKindSettings.Off,
@@ -682,7 +710,8 @@ public sealed class SmsSettingsTests
             debtReminderMinAmount,
             absence ?? SmsKindSettings.Off,
             broadcastEnabled,
-            trainerRequestEnabled);
+            trainerRequestEnabled,
+            sessionCancelledEnabled);
 
     /// <summary>
     /// The one row the migration seeds. There is no public constructor, on purpose: nothing in the

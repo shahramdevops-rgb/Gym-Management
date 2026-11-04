@@ -34,7 +34,7 @@ const toBody = (session: SessionInput) => ({
 });
 
 /*
- * The trainer's «برنامه سانس‌ها» (BUSINESS_RULES.md §15 *The trainer's sessions*, roadmap 15.6a).
+ * The trainer's «تمام سانس‌های من» (BUSINESS_RULES.md §15 *The trainer's sessions*, roadmap 15.6a).
  * Every change answers with the whole timetable as it is after it, which replaces the cached one;
  * a refused change reads it and «me» again, since the Owner may have stopped the trainer.
  */

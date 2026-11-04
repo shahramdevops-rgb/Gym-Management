@@ -20,6 +20,7 @@ public sealed record SmsSettingsResponse(
     SmsKindSettings Absence,
     BroadcastSettings Broadcast,
     TrainerRequestSettingsResponse TrainerRequest,
+    SessionCancelledSettingsResponse SessionCancelled,
     uint Version)
 {
     public static SmsSettingsResponse From(SmsSettings settings)
@@ -45,6 +46,7 @@ public sealed record SmsSettingsResponse(
             settings.For(NotificationKind.Absence),
             new BroadcastSettings(settings.BroadcastEnabled),
             new TrainerRequestSettingsResponse(settings.TrainerRequestEnabled, SmsSettings.MorningSendTime),
+            new SessionCancelledSettingsResponse(settings.SessionCancelledEnabled, SmsSettings.EarliestSendTime, SmsSettings.SessionCancelledDaysAhead),
             settings.Version);
     }
 }

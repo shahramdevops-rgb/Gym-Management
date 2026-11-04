@@ -2322,3 +2322,20 @@ The question that started this was whether a gym that is entirely internal — I
 - **One small component for one look.** `VipBadge` is used in six places; if the developer wants another colour, it changes once.
 - **My notes:**
 
+## 15.6c — A cancelled session (لغو سانس)
+
+- **Keep an event when "now" cannot answer the question.** «لغو شد» was always worked out from the timetable as it is. Whether the student has seen a cancellation, and which save one SMS belongs to, cannot be worked out later, so the save writes a `SessionCancellation` row. Derive what you can; store only what would otherwise be lost.
+- **Compare before and after, in one place.** All three saves (one date, «برگرداندن به الگو», the pattern) read the timetable before the change, save, read it again, and hand both to the same `BookingRules.Impact` the warning uses. One helper, `TimetableCancellations.RecordAsync`, so the warning and what is recorded can never disagree.
+- **A change id groups what one action did.** Every row of one save shares a `ChangeId`, and the notification's unique index is (member, change): one SMS per student per save, held by the database even if the job runs twice.
+- **Queue after the commit, check again when it runs.** The job may run at 08:00 for a save at 23:00. By then the session may be back, started, or seen in the app; the job reads everything again rather than trusting what was true at the save.
+- **"Seen up to" instead of a list of ids.** «دیدم» sends back the `latest` moment the page read; everything saved up to it is seen. A cancellation saved while the card was open stays, and duplicates of one session are covered without the page knowing about them.
+- **Generated code needs a safe source.** `gen:api` would start the API against the developer's database with the real SMS key; the types were made from a temporary API on another port, a fresh scratch database (every SMS off), and the fake SMS sender.
+- **My notes:**
+
+## 15.6f — Four weeks, 07:00 to 22:00, on the quarter hour (چهار هفته و ساعت‌های سانس)
+
+- **What is shown is not what is allowed.** «روزهای پیش رو» now sends 28 days (`DaysShown`), but the timetable still reaches 84 (`DaysAhead`): an 8-week program has to fit, so its last weeks stay valid without being on the screen. Two constants, because they answer two questions.
+- **A rule lives in three places that must agree.** 07:00 to 22:00 and the quarter hour are checked in the Domain (`TimetableRules.CheckDay`), held by the database (`ck_*_within_hours`, `*_on_step`), and offered by the boxes (hours 07 to 22, minutes 00/15/30/45). The boxes are comfort; the Domain is the rule; the database is the last guard against any other way in.
+- **A changed check constraint is a migration.** The step is part of the constraint's SQL, so `MinuteStep` 15 drops and adds six constraints in `LimitSessionHours`. It would refuse old rows at 13:05; it is safe here only because these tables are not on the server yet. Once they hold real rows, such a change would first have to carry those rows forward.
+- **When a test needs "a session that has started".** It used 00:00, which is always in the past. With 07:00 the earliest, the two tests run on a host whose `IGymCalendar` reads 07:30 or later. Only the calendar is replaced, not `TimeProvider`, so tokens and sign-in codes still match the real clock.
+- **My notes:**

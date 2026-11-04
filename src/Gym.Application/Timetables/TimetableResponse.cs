@@ -8,12 +8,13 @@ using Gym.Domain.Timetables;
 namespace Gym.Application.Timetables;
 
 /// <summary>
-/// The trainer's «برنامه سانس‌ها» (BUSINESS_RULES.md §15 <i>The trainer's sessions</i>): their latest
-/// weekly pattern, to edit, and every date of the timetable's 12 weeks with its sessions as they are
-/// and the students in each (15.6b).
+/// The trainer's «تمام سانس‌های من» (BUSINESS_RULES.md §15 <i>The trainer's sessions</i>): their latest
+/// weekly pattern, to edit, and every date of the next 4 weeks with its sessions as they are and the
+/// students in each (15.6b).
 /// </summary>
+/// <param name="LastDay">The timetable's last day, 12 weeks on: later than the last of <paramref name="Days"/>.</param>
 /// <param name="Pattern">The pattern saved last, which may start in the future; <c>null</c> before the first.</param>
-/// <param name="Days">Today to <paramref name="LastDay"/>, each one.</param>
+/// <param name="Days">Today and the days after it, <see cref="TimetableRules.DaysShown"/> in all.</param>
 public sealed record TimetableResponse(DateOnly Today, DateOnly LastDay, WeekPatternResponse? Pattern, IReadOnlyList<TimetableDayResponse> Days)
 {
     public static async Task<TimetableResponse> ForAsync(IAppDbContext db, Guid trainerId, DateOnly today, CancellationToken cancellationToken)
@@ -21,10 +22,11 @@ public sealed record TimetableResponse(DateOnly Today, DateOnly LastDay, WeekPat
         ArgumentNullException.ThrowIfNull(db);
 
         var lastDay = TimetableRules.LastDay(today);
-        var timetable = await TrainerTimetable.DatesAsync(db, trainerId, today, lastDay, cancellationToken);
-        var places = await BookedPlaces.OfTrainerAsync(db, trainerId, today, lastDay, cancellationToken);
+        var lastShown = today.AddDays(TimetableRules.DaysShown - 1);
+        var timetable = await TrainerTimetable.DatesAsync(db, trainerId, today, lastShown, cancellationToken);
+        var places = await BookedPlaces.OfTrainerAsync(db, trainerId, today, lastShown, cancellationToken);
 
-        var days = Enumerable.Range(0, TimetableRules.DaysAhead)
+        var days = Enumerable.Range(0, TimetableRules.DaysShown)
             .Select(today.AddDays)
             .Select(date =>
             {

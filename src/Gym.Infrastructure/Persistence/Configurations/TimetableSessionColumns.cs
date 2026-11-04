@@ -42,12 +42,17 @@ internal static class TimetableSessionColumns
         // The same day: no session past midnight.
         table.HasCheckConstraint($"ck_{tableName}_end_after_start", "end_time > start_time");
 
-        // On 5-minute steps, whole minutes. A time's "second" part holds its fractions too.
+        // On the quarter hour, whole minutes. A time's "second" part holds its fractions too.
         foreach (var column in (string[])["start_time", "end_time"])
         {
             table.HasCheckConstraint(
                 $"ck_{tableName}_{column}_on_step",
                 $"extract(second FROM {column}) = 0 AND extract(minute FROM {column})::int % {TimetableRules.MinuteStep} = 0");
         }
+
+        // From 07:00 to 22:00 (BUSINESS_RULES.md §15, the developer, 1405/08/14).
+        table.HasCheckConstraint(
+            $"ck_{tableName}_within_hours",
+            "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");
     }
 }

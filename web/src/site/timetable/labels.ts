@@ -95,6 +95,16 @@ export function daysBetween(from: string, to: string): number {
 }
 
 /**
+ * A session's hours (BUSINESS_RULES.md §15 *The trainer's sessions*, the developer, 1405/08/14): it
+ * starts at 07:00 or later and ends by 22:00, on the quarter hour.
+ */
+export const firstHour = 7;
+export const lastHour = 22;
+export const minuteStep = 15;
+export const earliestStart = "07:00";
+export const latestEnd = "22:00";
+
+/**
  * What «افزودن سانس» puts in: right after the day's last session, as long and as full, or 08:00.
  * A normal session: VIP is the trainer's choice for each one.
  */
@@ -107,8 +117,8 @@ export function nextSession(sessions: readonly SessionInput[]): SessionInput {
   const toMinute = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
   const length = toMinute(last.end) - toMinute(last.start);
   const start = toMinute(last.end);
-  // Nothing past 23:55, the last start a session can have and still end the same day.
-  const end = Math.min(start + Math.max(length, 5), 23 * 60 + 55);
+  // Nothing past 22:00, the latest a session may end.
+  const end = Math.min(start + Math.max(length, minuteStep), lastHour * 60);
   const asTime = (minute: number) =>
     `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 

@@ -4612,7 +4612,24 @@ fine"), to go out with the next release:
         kept by «کپی به روزهای دیگر»; the label beside the session in the pattern, the days ahead,
         today's sessions, «شاگردان سانس», «برنامهٔ ثابت»'s choices, and the student's «سانس‌های من»
         and «جابه‌جایی». A label only; a migration adds `is_vip` (false) to both session tables
-  - [ ] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
+  - [x] **15.6c** cancelling a session: the SMS and the in-app notice to that day's students
+        (decided and built 1405/08/12, `task/15.6-timetable`, §15 *A cancelled session*; the
+        developer took Claude's four proposals). A save of the timetable (one date,
+        «برگرداندن به الگو», the weekly pattern) that removes a session a student is in or moves its
+        times writes a `session_cancellations` row per student and session, under one change id.
+        The member's home opens with «سانس لغو شد» and «دیدم»
+        (`/api/site/me/sessions/cancelled`, `/seen`); the student gets one SMS per save, kind
+        `SessionCancelled` («لغو سانس» under «اپ باشگاه» in «تنظیمات پیامک», off at first), only for
+        a date within 7 days, at 08:00 for a save after 22:00, checked again when it goes. Migration
+        `AddSessionCancellations` (a new table, `notifications.timetable_change_id`,
+        `sms_settings.session_cancelled_enabled` false); the panel's section «پیامک به مربیان» is
+        now «اپ باشگاه»
+  - [x] **15.6f** after trying it (the developer, 1405/08/14, `task/15.6-timetable`, §15 *The
+        trainer's sessions*): the trainer's page is «تمام سانس‌های من»; «روزهای پیش رو» shows 4
+        weeks (`TimetableRules.DaysShown`, 28 days; the timetable still reaches 12); a session runs
+        from 07:00 to 22:00 on the quarter hour (`Timetable.OutsideHours`, `MinuteStep` 15), the
+        hour boxes 07 to 22 and the minutes 00/15/30/45. Migration `LimitSessionHours` changes the
+        time checks of the six session tables (none on the server yet)
   - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
         days and times within what the trainer allows (e.g. three days a week for eight weeks),
         and the trainer confirms, as a request like 15.4's. Decided to wait until 15.6b's way,

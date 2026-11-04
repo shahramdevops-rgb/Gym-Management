@@ -19,7 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gym.Api.IntegrationTests.Timetables;
 
 /// <summary>
-/// The trainer's «برنامه سانس‌ها» on the site (BUSINESS_RULES.md §15 <i>The trainer's sessions</i>,
+/// The trainer's «تمام سانس‌های من» on the site (BUSINESS_RULES.md §15 <i>The trainer's sessions</i>,
 /// task 15.6a): a weekly pattern from a date, one date changed on its own and kept through later
 /// patterns, and the twelve weeks worked out from them.
 /// </summary>
@@ -39,7 +39,7 @@ public sealed class TimetableTests(DatabaseFixture fixture) : DatabaseTestBase(f
     // ---- Reading ----
 
     [Fact]
-    public async Task Get_BeforeAnyPattern_TwelveWeeksOfDaysWithNoSessions()
+    public async Task Get_BeforeAnyPattern_FourWeeksOfDaysWithNoSessions_AndTheLastDayTwelveWeeksOn()
     {
         var (client, token) = await TrainerClientAsync();
 
@@ -50,7 +50,7 @@ public sealed class TimetableTests(DatabaseFixture fixture) : DatabaseTestBase(f
         body.GetProperty("lastDay").GetString().ShouldBe(Iso(today.AddDays(83)));
         body.GetProperty("pattern").ValueKind.ShouldBe(JsonValueKind.Null);
         var days = body.GetProperty("days").EnumerateArray().ToList();
-        days.Count.ShouldBe(TimetableRules.DaysAhead);
+        days.Count.ShouldBe(TimetableRules.DaysShown);
         days[0].GetProperty("date").GetString().ShouldBe(Iso(today));
         days.ShouldAllBe(day => day.GetProperty("sessions").GetArrayLength() == 0 && !day.GetProperty("changedByHand").GetBoolean());
     }
@@ -129,7 +129,9 @@ public sealed class TimetableTests(DatabaseFixture fixture) : DatabaseTestBase(f
 
     [Theory]
     [InlineData("13:00", "14:00", 0, "Timetable.CapacityOutOfRange")]
-    [InlineData("13:03", "14:00", 5, "Timetable.TimeNotOnStep")]
+    [InlineData("13:05", "14:00", 5, "Timetable.TimeNotOnStep")]
+    [InlineData("06:45", "08:00", 5, "Timetable.OutsideHours")]
+    [InlineData("21:00", "22:15", 5, "Timetable.OutsideHours")]
     [InlineData("14:00", "13:00", 5, "Timetable.EndNotAfterStart")]
     public async Task SetPattern_ABadSession_Returns400WithItsCode(string start, string end, int capacity, string code)
     {
@@ -383,9 +385,27 @@ public sealed class TimetableTests(DatabaseFixture fixture) : DatabaseTestBase(f
         await using var scope = Fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var update = () => db.Database.ExecuteSqlAsync($"UPDATE week_pattern_sessions SET start_time = '13:02'", TestContext.Current.CancellationToken);
+        var update = () => db.Database.ExecuteSqlAsync($"UPDATE week_pattern_sessions SET start_time = '13:05'", TestContext.Current.CancellationToken);
 
         (await Should.ThrowAsync<Npgsql.PostgresException>(update)).ConstraintName.ShouldBe("ck_week_pattern_sessions_start_time_on_step");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Database_ATimeOutsideTheHours_IsRefused(bool tooEarly)
+    {
+        var (client, token) = await TrainerClientAsync();
+        using var pattern = await SetPatternAsync(client, token, Today().AddDays(1), Weekly(DayOfWeek.Saturday, "13:00", "14:00", 8));
+
+        await using var scope = Fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        Func<Task<int>> update = tooEarly
+            ? () => db.Database.ExecuteSqlAsync($"UPDATE week_pattern_sessions SET start_time = '06:45'", TestContext.Current.CancellationToken)
+            : () => db.Database.ExecuteSqlAsync($"UPDATE week_pattern_sessions SET end_time = '22:15'", TestContext.Current.CancellationToken);
+
+        (await Should.ThrowAsync<Npgsql.PostgresException>(update)).ConstraintName.ShouldBe("ck_week_pattern_sessions_within_hours");
     }
 
     // ---- Helpers ----

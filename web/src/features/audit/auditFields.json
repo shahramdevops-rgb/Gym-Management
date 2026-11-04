@@ -41,7 +41,8 @@
     "FixedSchedule": "برنامهٔ ثابت شاگرد",
     "FixedScheduleSlot": "سانس برنامهٔ ثابت",
     "SessionSkip": "غیبت شاگرد از یک سانس",
-    "SessionBooking": "سانس جابه‌جاشدهٔ شاگرد"
+    "SessionBooking": "سانس جابه‌جاشدهٔ شاگرد",
+    "SessionCancellation": "سانس لغوشدهٔ شاگرد"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -149,6 +150,7 @@
     "DebtSince": { "label": "بدهی از روز" },
     "AbsentSince": { "label": "غیبت از روز" },
     "BroadcastId": { "label": "پیامک گروهی", "format": "reference" },
+    "TimetableChangeId": { "label": "ذخیرهٔ برنامهٔ مربی", "format": "reference" },
     "Text": { "label": "متن" },
     "Status": { "label": "وضعیت", "format": "notificationStatus" },
     "Attempts": { "label": "دفعات تلاش" },
@@ -201,6 +203,7 @@
     "AbsenceSendTime": { "label": "پیامک غیبت: ساعت ارسال" },
     "BroadcastEnabled": { "label": "پیامک گروهی: روشن" },
     "TrainerRequestEnabled": { "label": "انتخاب مربی: روشن" },
+    "SessionCancelledEnabled": { "label": "لغو سانس: روشن" },
 
     "Audience": { "label": "گیرندگان", "format": "broadcastAudience" },
     "StopReason": { "label": "دلیل توقف", "format": "broadcastStopReason" },
@@ -286,6 +289,13 @@
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
       "By": { "label": "به دست", "format": "bookedBy" }
+    },
+    "SessionCancellation": {
+      "ChangeId": { "label": "ذخیرهٔ برنامهٔ مربی", "format": "reference" },
+      "Date": { "label": "تاریخ" },
+      "Start": { "label": "شروع" },
+      "End": { "label": "پایان" },
+      "SeenAt": { "label": "زمان دیدن" }
     }
   }
 }

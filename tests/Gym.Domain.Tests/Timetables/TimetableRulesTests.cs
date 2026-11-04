@@ -42,9 +42,25 @@ public sealed class TimetableRulesTests
     }
 
     [Fact]
-    public void CheckDay_TimeOffTheFiveMinuteStep_FailsWithTimeNotOnStep()
+    public void CheckDay_TimeOffTheQuarterHour_FailsWithTimeNotOnStep()
     {
-        TimetableRules.CheckDay([Session(13, 2, 14, 0)]).Error.ShouldBe(TimetableErrors.TimeNotOnStep);
+        TimetableRules.CheckDay([Session(13, 5, 14, 0)]).Error.ShouldBe(TimetableErrors.TimeNotOnStep);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 1, 0)]
+    [InlineData(6, 45, 8, 0)]
+    [InlineData(21, 0, 22, 15)]
+    [InlineData(22, 0, 23, 0)]
+    public void CheckDay_OutsideSevenToTwentyTwo_FailsWithOutsideHours(int startHour, int startMinute, int endHour, int endMinute)
+    {
+        TimetableRules.CheckDay([Session(startHour, startMinute, endHour, endMinute)]).Error.ShouldBe(TimetableErrors.OutsideHours);
+    }
+
+    [Fact]
+    public void CheckDay_FromSevenToTwentyTwo_Succeeds()
+    {
+        TimetableRules.CheckDay([Session(7, 0, 22, 0)]).IsSuccess.ShouldBeTrue();
     }
 
     [Fact]
@@ -169,7 +185,7 @@ public sealed class TimetableRulesTests
     [Fact]
     public void CheckChange_TomorrowAnyChange_IgnoresTheTimeOfDay()
     {
-        TimetableRules.CheckChange(Today.AddDays(1), [Session(8, 0, 9, 0)], [Session(6, 0, 7, 0)], Today, Noon).IsSuccess.ShouldBeTrue();
+        TimetableRules.CheckChange(Today.AddDays(1), [Session(10, 0, 11, 0)], [Session(9, 0, 10, 0)], Today, Noon).IsSuccess.ShouldBeTrue();
     }
 
     // ---- A date's sessions ----

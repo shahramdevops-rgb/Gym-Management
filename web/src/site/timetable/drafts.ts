@@ -1,5 +1,5 @@
 import type { Session, SessionInput } from "./api";
-import { toMinutes } from "./labels";
+import { earliestStart, latestEnd, toMinutes } from "./labels";
 
 /** A session being edited, with a key that stays while its times change. */
 export interface DraftSession extends SessionInput {
@@ -40,6 +40,8 @@ export function sessionProblems(sessions: readonly DraftSession[]): Map<string, 
   sessions.forEach((session, index) => {
     if (session.end <= session.start) {
       problems.set(session.key, "ساعت پایان باید بعد از ساعت شروع باشد.");
+    } else if (session.start < earliestStart || session.end > latestEnd) {
+      problems.set(session.key, "سانس باید از ساعت ۷ صبح به بعد شروع شود و تا ۱۰ شب تمام شود.");
     } else if (
       sessions
         .slice(0, index)

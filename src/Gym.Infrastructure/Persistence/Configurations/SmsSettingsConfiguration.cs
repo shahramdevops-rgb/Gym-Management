@@ -121,6 +121,7 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             AbsenceEnabled = false,
             BroadcastEnabled = false,
             TrainerRequestEnabled = false,
+            SessionCancelledEnabled = false,
         });
     }
 

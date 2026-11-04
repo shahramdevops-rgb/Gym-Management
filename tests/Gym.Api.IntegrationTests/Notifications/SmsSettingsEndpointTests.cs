@@ -52,6 +52,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     private static readonly object TrainerRequestOff = new { enabled = false };
 
+    private static readonly object SessionCancelledOff = new { enabled = false };
+
     private static readonly object DebtReminderOff = new
     {
         enabled = false,
@@ -179,6 +181,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         settings.Absence.ShouldBe(SmsKindSettings.Off);
         settings.Broadcast.ShouldBe(new BroadcastSettings(false));
         settings.TrainerRequest.ShouldBe(new TrainerRequestSettingsResponse(false, new TimeOnly(10, 0)));
+        settings.SessionCancelled.ShouldBe(new SessionCancelledSettingsResponse(false, new TimeOnly(8, 0), 7));
     }
 
     [Fact]
@@ -263,6 +266,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             welcomeBack = WelcomeBackOff,
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
+            sessionCancelled = SessionCancelledOff,
             version = read.Version,
         });
 
@@ -362,6 +366,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             welcomeBack = WelcomeBackOff,
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
+            sessionCancelled = SessionCancelledOff,
             version = read.Version,
         });
 
@@ -442,6 +447,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             subscriptionReceipt = ReceiptOff,
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
+            sessionCancelled = SessionCancelledOff,
             version = read.Version,
         });
 
@@ -502,6 +508,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             absence = AbsenceOff,
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
+            sessionCancelled = SessionCancelledOff,
             version = read.Version,
         });
 
@@ -621,10 +628,54 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             debtReminder = DebtReminderOff,
             absence = AbsenceOff,
             broadcast = BroadcastOff,
+            sessionCancelled = SessionCancelledOff,
             version = read.Version,
         });
 
         await ShouldHaveFieldErrorAsync(response, "trainerRequest", "Sms.SettingsIncomplete");
+    }
+
+    // ---- The cancelled session's SMS (task 15.6c) ----
+
+    [Fact]
+    public async Task Update_SessionCancelledOn_IsSavedWithNothingElseToFill()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, sessionCancelled: new { enabled = true }));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).SessionCancelled.Enabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Update_SessionCancelledLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = LowSessionsOff,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
+            welcomeBack = WelcomeBackOff,
+            debtReminder = DebtReminderOff,
+            absence = AbsenceOff,
+            broadcast = BroadcastOff,
+            trainerRequest = TrainerRequestOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "sessionCancelled", "Sms.SettingsIncomplete");
     }
 
     // ---- The daily report (task 10.7) ----
@@ -693,6 +744,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             welcomeBack = WelcomeBackOff,
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
+            sessionCancelled = SessionCancelledOff,
             version = read.Version,
         });
 
@@ -889,6 +941,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             welcomeBack = WelcomeBackOff,
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
+            sessionCancelled = SessionCancelledOff,
             version = read.Version,
         });
 
@@ -1000,7 +1053,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         object? debtReminder = null,
         object? absence = null,
         object? broadcast = null,
-        object? trainerRequest = null) =>
+        object? trainerRequest = null,
+        object? sessionCancelled = null) =>
         new
         {
             enabled,
@@ -1017,6 +1071,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             absence = absence ?? AbsenceOff,
             broadcast = broadcast ?? BroadcastOff,
             trainerRequest = trainerRequest ?? TrainerRequestOff,
+            sessionCancelled = sessionCancelled ?? SessionCancelledOff,
             version,
         };
 
@@ -1043,7 +1098,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         welcomeBack: new { enabled = true },
         debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000m },
         absence: Kind(true, 14, "11:30:00"),
-        trainerRequest: new { enabled = true });
+        trainerRequest: new { enabled = true },
+        sessionCancelled: new { enabled = true });
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {

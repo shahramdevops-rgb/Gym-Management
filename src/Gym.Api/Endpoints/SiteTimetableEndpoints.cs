@@ -15,7 +15,7 @@ using Gym.Application.Timetables.SetWeekPattern;
 namespace Gym.Api.Endpoints;
 
 /// <summary>
-/// The trainer's «برنامه سانس‌ها» on the site (BUSINESS_RULES.md §15 <i>The trainer's sessions</i>,
+/// The trainer's «تمام سانس‌های من» on the site (BUSINESS_RULES.md §15 <i>The trainer's sessions</i>,
 /// task 15.6a), behind <see cref="Policies.SiteTrainer"/>. No path names a trainer: it is always the
 /// signed-in account's own timetable. The handlers read the trainer again from the database, since
 /// a token's roles may be 15 minutes old.

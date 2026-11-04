@@ -265,11 +265,11 @@ function ScheduleForm({
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          هنوز الگوی هفتگی ندارید. اول در «برنامه سانس‌ها» سانس‌های هفته را بسازید.
+          هنوز الگوی هفتگی ندارید. اول در «تمام سانس‌های من» سانس‌های هفته را بسازید.
         </p>
         <div className="flex gap-2">
           <Button asChild className="flex-1">
-            <Link to={sitePaths.timetable}>برنامه سانس‌ها</Link>
+            <Link to={sitePaths.timetable}>تمام سانس‌های من</Link>
           </Button>
           <Button variant="outline" onClick={onDone}>
             انصراف

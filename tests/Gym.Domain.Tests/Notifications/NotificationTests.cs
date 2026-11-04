@@ -207,6 +207,27 @@ public sealed class NotificationTests
         Should.Throw<ArgumentException>(() => Notification.ForTrainerRequest(Guid.NewGuid(), Guid.Empty, new DateOnly(2026, 10, 29), Phone, Text));
 
     [Fact]
+    public void ForSessionCancelled_GoesToTheMemberAboutTheTrainersSave()
+    {
+        var memberId = Guid.NewGuid();
+        var changeId = Guid.NewGuid();
+
+        var notification = Notification.ForSessionCancelled(memberId, changeId, Phone, Text);
+
+        notification.Kind.ShouldBe(NotificationKind.SessionCancelled);
+        notification.MemberId.ShouldBe(memberId);
+        notification.TimetableChangeId.ShouldBe(changeId);
+        notification.TrainerId.ShouldBeNull();
+        notification.ReportDate.ShouldBeNull();
+        notification.Recipient.ShouldBe(Phone);
+        notification.Status.ShouldBe(NotificationStatus.Pending);
+    }
+
+    [Fact]
+    public void ForSessionCancelled_EmptyChangeId_Throws() =>
+        Should.Throw<ArgumentException>(() => Notification.ForSessionCancelled(Guid.NewGuid(), Guid.Empty, Phone, Text));
+
+    [Fact]
     public void ForAbsence_EmptyMemberId_Throws() =>
         Should.Throw<ArgumentException>(() => Notification.ForAbsence(Guid.Empty, new DateOnly(2026, 10, 1), Phone, Text));
 

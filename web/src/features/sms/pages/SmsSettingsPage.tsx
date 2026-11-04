@@ -321,10 +321,18 @@ function SmsSettingsForm({ current, notice, onNotice, onStale, stale }: SmsSetti
         </KindSection>
       </div>
 
-      <KindSection title="پیامک به مربیان" description="به شمارهٔ موبایل خود مربی.">
+      <KindSection
+        title="اپ باشگاه"
+        description="وقتی کاری در اپ باشگاه انجام می‌شود: به مربی، یا به شاگرد."
+      >
         <TrainerRequestFieldset
           form={form}
           morningSendTime={current.trainerRequest.morningSendTime}
+        />
+        <SessionCancelledFieldset
+          form={form}
+          openingSendTime={current.sessionCancelled.openingSendTime}
+          daysAhead={current.sessionCancelled.daysAhead}
         />
       </KindSection>
 
@@ -456,7 +464,11 @@ function sampleCaption(parts: number | string | undefined): string {
 }
 
 /** The kind's message from `GET /api/sms/samples`, written by the API's own `SmsText`. */
-function SamplePreview({ kind }: { kind: Exclude<keyof SmsSamples, "welcomeBack"> }) {
+function SamplePreview({
+  kind,
+}: {
+  kind: Exclude<keyof SmsSamples, "welcomeBack" | "sessionCancelled">;
+}) {
   const samples = useSmsSamples();
   const sample = samples.data?.[kind];
 
@@ -842,6 +854,37 @@ function TrainerRequestFieldset({ form, morningSendTime }: TrainerRequestFieldse
   );
 }
 
+interface SessionCancelledFieldsetProps {
+  form: UseFormReturn<SmsSettingsValues>;
+  /** `HH:mm:ss` from the API: when the SMS for a session cancelled after 22:00 goes, fixed in the code. */
+  openingSendTime: string;
+  /** From the API: only a session this many days ahead or nearer gets an SMS, fixed in the code. */
+  daysAhead: number | string;
+}
+
+/**
+ * The student's SMS when their trainer cancels a session they are in (BUSINESS_RULES.md §15
+ * *Timetable and attendance*, task 15.6c): only a switch. It goes to the student's own number, one
+ * per trainer's save, with its two texts: one session, or several.
+ */
+function SessionCancelledFieldset({
+  form,
+  openingSendTime,
+  daysAhead,
+}: SessionCancelledFieldsetProps) {
+  const opening = toPersianDigits(openingSendTime.slice(0, 5));
+  const days = toPersianDigits(Number(daysAhead));
+
+  return (
+    <KindCard
+      title="لغو سانس"
+      description={`وقتی مربی در اپ سانسی را که شاگرد در آن است حذف می‌کند یا ساعتش را عوض می‌کند، به خود شاگرد؛ فقط برای سانس امروز تا ${days} روز بعد. همان لحظه فرستاده می‌شود؛ لغوی که بعد از ساعت ۲۲ ثبت شود، صبح روز بعد ساعت ${opening}، اگر سانس هنوز لغو باشد و شاگرد آن را در اپ ندیده باشد. هر بار ذخیرهٔ مربی برای هر شاگرد یک پیامک است، هر تعداد سانس که لغو شده باشد.`}
+      preview={<TextsPreview kind="sessionCancelled" />}
+      toggle={<OnSwitch {...form.register("sessionCancelled.enabled")} />}
+    />
+  );
+}
+
 interface WelcomeBackFieldsetProps {
   form: UseFormReturn<SmsSettingsValues>;
   /** From the API: how long after the check-in it goes, fixed in the code. */
@@ -861,16 +904,19 @@ function WelcomeBackFieldset({ form, delayMinutes }: WelcomeBackFieldsetProps) {
     <KindCard
       title="خوش برگشتی"
       description={`برای عضوی که پیامک غیبت به دستش رسیده و دوباره به باشگاه می‌آید، در اولین ورودش، ${delay} بعد از ورود و تا پیش از نیمه‌شب. هر بار یکی از شش متن زیر، به نوبت، تا تکراری نباشد.`}
-      preview={<WelcomeBackPreview />}
+      preview={<TextsPreview kind="welcomeBack" />}
       toggle={<OnSwitch {...form.register("welcomeBack.enabled")} />}
     />
   );
 }
 
-/** The welcome back's six texts, one at a time: a member gets them in this order. */
-function WelcomeBackPreview() {
+/**
+ * A kind with several texts, one at a time: the welcome back's six, in the order a member gets them,
+ * or the cancelled session's two, one session and several.
+ */
+function TextsPreview({ kind }: { kind: "welcomeBack" | "sessionCancelled" }) {
   const samples = useSmsSamples();
-  const texts = samples.data?.welcomeBack ?? [];
+  const texts = samples.data?.[kind] ?? [];
   const [shown, setShown] = useState(0);
   const sample = texts[shown];
 

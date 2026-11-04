@@ -23,6 +23,7 @@ using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
 using Gym.Application.Bookings.CheckStudentSchedule;
 using Gym.Application.Bookings.EndStudentSchedule;
+using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
 using Gym.Application.Bookings.GetStudentSchedule;
@@ -30,6 +31,7 @@ using Gym.Application.Bookings.LeaveMySession;
 using Gym.Application.Bookings.MoveMySession;
 using Gym.Application.Bookings.RemoveSessionStudent;
 using Gym.Application.Bookings.ReturnToMySession;
+using Gym.Application.Bookings.SeeMyCancellations;
 using Gym.Application.Bookings.SetStudentSchedule;
 using Gym.Application.Cafe.CancelCafeOrder;
 using Gym.Application.Cafe.CreateCafeOrder;
@@ -108,6 +110,7 @@ using Gym.Application.Notifications.ResendCancelledSms;
 using Gym.Application.Notifications.ResendSms;
 using Gym.Application.Notifications.SendSubscriptionReceipt;
 using Gym.Application.Notifications.SendWelcome;
+using Gym.Application.Notifications.SendSessionCancelledSms;
 using Gym.Application.Notifications.SendTrainerRequestSms;
 using Gym.Application.Notifications.SendWelcomeBack;
 using Gym.Application.Notifications.SendDailySms;
@@ -274,6 +277,10 @@ public static class DependencyInjection
         services.AddScoped<ReturnToMySessionHandler>();
         services.AddScoped<MoveMySessionHandler>();
 
+        // A cancelled session told to its students (BUSINESS_RULES.md §15, task 15.6c).
+        services.AddScoped<GetMyCancellationsHandler>();
+        services.AddScoped<SeeMyCancellationsHandler>();
+
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();
         services.AddScoped<GetMemberHandler>();
@@ -395,6 +402,8 @@ public static class DependencyInjection
         services.AddScoped<SendWelcomeBackHandler>();
         services.AddScoped<TrainerRequestSms>();
         services.AddScoped<SendTrainerRequestSmsHandler>();
+        services.AddScoped<SessionCancelledSms>();
+        services.AddScoped<SendSessionCancelledSmsHandler>();
         services.AddScoped<CheckSmsDeliveryHandler>();
         services.AddScoped<GetSmsCreditHandler>();
         services.AddScoped<GetSmsSamplesHandler>();

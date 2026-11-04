@@ -78,7 +78,7 @@ async function linkThem(memberPage: Page, trainerPage: Page) {
 
 /** Two sessions on each of `days`: 13:00 to 14:00, then 14:00 to 15:00, from tomorrow. */
 async function buildPattern(page: Page) {
-  await page.getByRole("link", { name: "برنامه سانس‌ها" }).click();
+  await page.getByRole("link", { name: "تمام سانس‌های من" }).click();
   await page.getByRole("button", { name: "ساختن الگو" }).click();
   for (const day of days) {
     const region = page.getByRole("region", { name: day });
@@ -129,7 +129,7 @@ test("SiteBookings_TrainerPlacesAStudent_MemberLeavesAndMovesADate", async ({ pa
 
   // «شاگردان سانس» of next Monday: the student, taken out of that date only.
   await trainerPage.getByRole("link", { name: "بازگشت" }).click();
-  await trainerPage.getByRole("link", { name: "برنامه سانس‌ها" }).click();
+  await trainerPage.getByRole("link", { name: "تمام سانس‌های من" }).click();
   await trainerPage.getByRole("button", { name: "هفتهٔ بعد" }).click();
   const mondayButton = trainerPage.getByRole("button", { name: new RegExp(`^${monday}`) });
   await expect(mondayButton).toContainText("۱۳:۰۰ تا ۱۴:۰۰ · ۱ از ۱۰ نفر");
@@ -158,7 +158,16 @@ test("SiteBookings_TrainerPlacesAStudent_MemberLeavesAndMovesADate", async ({ pa
   // The member: the next dates on the home, then «سانس‌های من».
   await page.reload();
   await expect(page.getByRole("list", { name: "سانس‌های بعدی" })).toBeVisible();
+  // The closed Tuesday at the top of the home (15.6c), until «دیدم».
+  const cancelled = page.getByRole("list", { name: "سانس‌های لغوشده" });
+  await expect(cancelled).toContainText(`${tuesday}۱۳:۰۰ تا ۱۴:۰۰`);
   await shot(page, "5-member-home");
+  await page.getByRole("button", { name: "دیدم" }).click();
+  await expect(cancelled).toBeHidden();
+  await page.reload();
+  await expect(page.getByRole("list", { name: "سانس‌های بعدی" })).toBeVisible();
+  await expect(cancelled).toBeHidden();
+  await shot(page, "5b-member-home-seen");
   await page.getByRole("link", { name: "همهٔ سانس‌ها" }).click();
   await page.getByRole("button", { name: "هفتهٔ بعد" }).click();
 

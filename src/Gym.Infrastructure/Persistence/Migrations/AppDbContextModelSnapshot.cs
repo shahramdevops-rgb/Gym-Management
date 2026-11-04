@@ -491,9 +491,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_fixed_schedule_slots_end_after_start", "end_time > start_time");
 
-                            t.HasCheckConstraint("ck_fixed_schedule_slots_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_fixed_schedule_slots_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
 
-                            t.HasCheckConstraint("ck_fixed_schedule_slots_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_fixed_schedule_slots_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_fixed_schedule_slots_within_hours", "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");
                         });
                 });
 
@@ -569,9 +571,88 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_session_bookings_end_after_start", "end_time > start_time");
 
-                            t.HasCheckConstraint("ck_session_bookings_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_session_bookings_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
 
-                            t.HasCheckConstraint("ck_session_bookings_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_session_bookings_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_session_bookings_within_hours", "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.Bookings.SessionCancellation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ChangeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("change_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<TimeOnly>("End")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateTimeOffset?>("SeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("seen_at");
+
+                    b.Property<TimeOnly>("Start")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
+                    b.Property<Guid>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_session_cancellations");
+
+                    b.HasIndex("TrainerId")
+                        .HasDatabaseName("ix_session_cancellations_trainer_id");
+
+                    b.HasIndex("MemberId", "Date")
+                        .HasDatabaseName("ix_session_cancellations_member_id_date")
+                        .HasFilter("seen_at IS NULL");
+
+                    b.HasIndex("ChangeId", "MemberId", "Date", "Start", "End")
+                        .IsUnique()
+                        .HasDatabaseName("ix_session_cancellations_change_id_member_id_date_start_time_e");
+
+                    b.ToTable("session_cancellations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_session_cancellations_end_after_start", "end_time > start_time");
+
+                            t.HasCheckConstraint("ck_session_cancellations_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_session_cancellations_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_session_cancellations_within_hours", "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");
                         });
                 });
 
@@ -639,11 +720,13 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_session_skips_end_after_start", "end_time > start_time");
 
-                            t.HasCheckConstraint("ck_session_skips_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_session_skips_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
 
                             t.HasCheckConstraint("ck_session_skips_reason", "(reason IN ('Left', 'Moved') AND booked_by = 'Member') OR (reason IN ('TakenOut', 'PassedOver') AND booked_by = 'Trainer')");
 
-                            t.HasCheckConstraint("ck_session_skips_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_session_skips_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_session_skips_within_hours", "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");
                         });
                 });
 
@@ -2048,6 +2131,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("text");
 
+                    b.Property<Guid?>("TimetableChangeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("timetable_change_id");
+
                     b.Property<Guid?>("TrainerId")
                         .HasColumnType("uuid")
                         .HasColumnName("trainer_id");
@@ -2102,6 +2189,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_notifications_one_birthday_per_member_and_year")
                         .HasFilter("kind = 'Birthday'");
 
+                    b.HasIndex("MemberId", "TimetableChangeId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_one_session_cancelled_per_member_and_change")
+                        .HasFilter("kind = 'SessionCancelled'");
+
                     b.HasIndex("SubscriptionId", "Kind")
                         .IsUnique()
                         .HasDatabaseName("ix_notifications_one_per_subscription_and_kind")
@@ -2128,15 +2220,17 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_notifications_auto_resends_in_range", "auto_resends BETWEEN 0 AND 5");
 
+                            t.HasCheckConstraint("ck_notifications_change_only_for_session_cancelled", "(kind = 'SessionCancelled') = (timetable_change_id IS NOT NULL)");
+
                             t.HasCheckConstraint("ck_notifications_cost_not_negative", "cost_rial IS NULL OR cost_rial >= 0");
 
                             t.HasCheckConstraint("ck_notifications_delivery", "delivery IS NULL OR delivery IN ('Delivered', 'NotDelivered', 'BlockedByReceiver', 'Cancelled')");
 
                             t.HasCheckConstraint("ck_notifications_delivery_only_when_sent", "delivery IS NULL OR status = 'Sent'");
 
-                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind IN ('Absence', 'WelcomeBack') AND member_id IS NOT NULL AND absent_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL) OR (kind = 'TrainerRequest' AND member_id IS NOT NULL AND report_date IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL)");
+                            t.HasCheckConstraint("ck_notifications_event_matches_kind", "(kind IN ('SubscriptionExpiring', 'LowSessions', 'SubscriptionReceipt', 'Welcome') AND member_id IS NOT NULL AND subscription_id IS NOT NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Birthday' AND member_id IS NOT NULL AND jalali_year IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'PayableDue' AND payable_id IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DailyReport' AND report_date IS NOT NULL AND member_id IS NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'DebtReminder' AND member_id IS NOT NULL AND debt_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind IN ('Absence', 'WelcomeBack') AND member_id IS NOT NULL AND absent_since IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND broadcast_id IS NULL) OR (kind = 'Broadcast' AND member_id IS NOT NULL AND broadcast_id IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL) OR (kind = 'TrainerRequest' AND member_id IS NOT NULL AND report_date IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL) OR (kind = 'SessionCancelled' AND member_id IS NOT NULL AND subscription_id IS NULL AND payable_id IS NULL AND jalali_year IS NULL AND report_date IS NULL AND debt_since IS NULL AND absent_since IS NULL AND broadcast_id IS NULL)");
 
-                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack', 'TrainerRequest')");
+                            t.HasCheckConstraint("ck_notifications_kind", "kind IN ('SubscriptionExpiring', 'LowSessions', 'Birthday', 'PayableDue', 'DailyReport', 'SubscriptionReceipt', 'Welcome', 'DebtReminder', 'Absence', 'Broadcast', 'WelcomeBack', 'TrainerRequest', 'SessionCancelled')");
 
                             t.HasCheckConstraint("ck_notifications_recipient_not_blank", "btrim(recipient) <> ''");
 
@@ -2355,6 +2449,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("time without time zone")
                         .HasColumnName("payable_due_send_time");
 
+                    b.Property<bool>("SessionCancelledEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("session_cancelled_enabled");
+
                     b.Property<int?>("SubscriptionExpiringDaysBefore")
                         .HasColumnType("integer")
                         .HasColumnName("subscription_expiring_days_before");
@@ -2459,6 +2557,7 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             LowSessionsMediumPlanMax = 15,
                             LowSessionsSmallPlanMax = 8,
                             PayableDueEnabled = false,
+                            SessionCancelledEnabled = false,
                             SubscriptionExpiringEnabled = false,
                             SubscriptionReceiptEnabled = false,
                             TrainerRequestEnabled = false,
@@ -3375,9 +3474,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_timetable_day_sessions_end_after_start", "end_time > start_time");
 
-                            t.HasCheckConstraint("ck_timetable_day_sessions_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_timetable_day_sessions_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
 
-                            t.HasCheckConstraint("ck_timetable_day_sessions_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_timetable_day_sessions_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_timetable_day_sessions_within_hours", "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");
                         });
                 });
 
@@ -3489,9 +3590,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_week_pattern_sessions_end_after_start", "end_time > start_time");
 
-                            t.HasCheckConstraint("ck_week_pattern_sessions_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_week_pattern_sessions_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
 
-                            t.HasCheckConstraint("ck_week_pattern_sessions_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 5 = 0");
+                            t.HasCheckConstraint("ck_week_pattern_sessions_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_week_pattern_sessions_within_hours", "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");
                         });
                 });
 
@@ -3962,6 +4065,23 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_session_bookings_trainers_trainer_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Bookings.SessionCancellation", b =>
+                {
+                    b.HasOne("Gym.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_session_cancellations_members_member_id");
+
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany()
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_session_cancellations_trainers_trainer_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Bookings.SessionSkip", b =>

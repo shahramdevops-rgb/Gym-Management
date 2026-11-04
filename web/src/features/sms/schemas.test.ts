@@ -37,6 +37,7 @@ const settings: SmsSettings = {
   absence: { enabled: true, threshold: 14, sendTime: "11:30:00" },
   broadcast: { enabled: true },
   trainerRequest: { enabled: true, morningSendTime: "10:00:00" },
+  sessionCancelled: { enabled: true, openingSendTime: "08:00:00", daysAhead: 7 },
   version: 3,
 };
 
@@ -54,6 +55,7 @@ describe("sms schemas", () => {
       welcome: { enabled: false },
       welcomeBack: { enabled: false },
       trainerRequest: { enabled: true },
+      sessionCancelled: { enabled: true },
       // The amount goes back as text, never a float (§13).
       debtReminder: { enabled: true, daysAfter: 30, sendTime: "11:00:00", minAmount: "200000" },
     });

@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   smoke(document.querySelector('[data-smoke="back"]'), "back");
   smoke(document.querySelector('[data-smoke="front"]'), "front");
   slider();
+  backdrops();
   reveal();
   manifesto();
   features();
@@ -27,6 +28,22 @@ document.addEventListener("DOMContentLoaded", () => {
   topbar();
   dock();
 });
+
+// ---------- Behind a whole photo ----------
+// The hero's slides and the tour's photos are shown whole (site.css, "contain"), so a screen of
+// another shape leaves room around them. That room shows the same photo, blurred: each frame gets
+// the file the browser actually chose, again whenever it chooses another (a phone turned round).
+
+function backdrops() {
+  for (const img of document.querySelectorAll(".slide img, .tour__photo img")) {
+    const frame = img.closest(".slide, .tour__photo");
+    const set = () => {
+      if (img.currentSrc) frame.style.setProperty("--backdrop", `url("${img.currentSrc}")`);
+    };
+    img.addEventListener("load", set);
+    if (img.complete) set();
+  }
+}
 
 // One scroll listener for everything that follows the scroll, run at most once per frame.
 const scrollJobs = [];
@@ -60,37 +77,55 @@ function whileVisible(element, start, stop) {
 }
 
 // ---------- Open now ----------
-// The gym is open every day of the year, 7:30 to 23:00 (docs/BUSINESS_RULES.md), in Tehran's
-// time whatever the visitor's own clock says.
+// The gym is open every day of the year, official holidays included, 7:00 to 22:30; on Fridays it
+// opens at 12:00 (the Owner, 2026-11-04). The system itself has no opening hours
+// (docs/BUSINESS_RULES.md §7): these are the page's alone. Tehran's time, whatever the visitor's
+// own clock says.
 
-const OPENS = 7 * 60 + 30;
-const CLOSES = 23 * 60;
+const OPENS = 7 * 60;
+const OPENS_FRIDAY = 12 * 60;
+const CLOSES = 22 * 60 + 30;
 
-function minutesInTehran() {
+function nowInTehran() {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Tehran",
+    weekday: "short",
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
   }).formatToParts(new Date());
-  const value = (type) => Number(parts.find((p) => p.type === type).value);
-  return value("hour") * 60 + value("minute");
+  const value = (type) => parts.find((p) => p.type === type).value;
+  return {
+    minutes: Number(value("hour")) * 60 + Number(value("minute")),
+    weekday: value("weekday"), // "Fri", "Thu", ...
+  };
 }
 
 function openNow() {
   const statuses = document.querySelectorAll("[data-status]");
   const now = document.querySelector("[data-now]");
+  const band = document.querySelector("[data-open-band]");
 
   function update() {
-    let minutes;
+    let minutes, weekday;
     try {
-      minutes = minutesInTehran();
+      ({ minutes, weekday } = nowInTehran());
     } catch {
       return; // A browser without time zones: the page simply shows the hours, no status.
     }
 
-    const open = minutes >= OPENS && minutes < CLOSES;
-    const text = open ? "الان باز است · تا ۱۱ شب" : "الان بسته است · از ۷:۳۰ صبح باز می‌شود";
+    const opens = weekday === "Fri" ? OPENS_FRIDAY : OPENS;
+    const open = minutes >= opens && minutes < CLOSES;
+    // Before today's opening the next one is today's; after closing it is tomorrow's, and
+    // tomorrow is a Friday when today is a Thursday.
+    const tomorrow = minutes >= CLOSES;
+    const next = !tomorrow ? opens : weekday === "Thu" ? OPENS_FRIDAY : OPENS;
+    const from = next === OPENS_FRIDAY ? "۱۲ ظهر" : "۷ صبح";
+    const text = open
+      ? "الان باز است · تا ۱۰:۳۰ شب"
+      : `الان بسته است · ${tomorrow ? "فردا " : ""}از ${from} باز می‌شود`;
+
+    if (band) band.classList.toggle("is-friday", weekday === "Fri");
 
     for (const status of statuses) {
       status.classList.toggle("is-closed", !open);

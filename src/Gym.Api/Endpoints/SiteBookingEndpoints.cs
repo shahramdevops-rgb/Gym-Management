@@ -6,6 +6,7 @@ using Gym.Api.Filters;
 using Gym.Application.Bookings;
 using Gym.Application.Bookings.CheckStudentSchedule;
 using Gym.Application.Bookings.EndStudentSchedule;
+using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
 using Gym.Application.Bookings.GetStudentSchedule;
@@ -13,6 +14,7 @@ using Gym.Application.Bookings.LeaveMySession;
 using Gym.Application.Bookings.MoveMySession;
 using Gym.Application.Bookings.RemoveSessionStudent;
 using Gym.Application.Bookings.ReturnToMySession;
+using Gym.Application.Bookings.SeeMyCancellations;
 using Gym.Application.Bookings.SetStudentSchedule;
 
 namespace Gym.Api.Endpoints;
@@ -110,6 +112,17 @@ public static class SiteBookingEndpoints
             .WithName("MoveMySession")
             .Produces<MySessionsResponse>()
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // «سانس لغو شد» on the home (task 15.6c): the sessions the trainer cancelled, and «دیدم».
+        mine.MapGet("/cancelled", async (ClaimsPrincipal user, GetMyCancellationsHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
+            .WithName("GetMyCancellations")
+            .Produces<MyCancellationsResponse>();
+
+        mine.MapPost("/cancelled/seen", async (ClaimsPrincipal user, SeeMyCancellationsCommand command, SeeMyCancellationsHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), command, ct)).ToHttpResult())
+            .WithName("SeeMyCancellations")
+            .Produces<MyCancellationsResponse>();
 
         return app;
     }

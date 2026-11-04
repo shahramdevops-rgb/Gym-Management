@@ -5,6 +5,7 @@ import { Alert } from "@/components/ui/alert";
 import { errorMessage } from "@/lib/errors";
 
 import { useSiteLogout, useSiteMe } from "../auth/api";
+import { CancelledSessionsCard } from "../bookings/CancelledSessionsCard";
 import { MySessionsCard } from "../bookings/MySessionsCard";
 import { MyTrainerCard } from "../coaching/MyTrainerCard";
 import { TrainerArea } from "../coaching/TrainerArea";
@@ -64,6 +65,7 @@ export function HomePage() {
       {member !== null &&
         (member.isActive ? (
           <>
+            <CancelledSessionsCard />
             <MyPlanCard />
             <MyDebtCard />
             <MyTrainerCard />

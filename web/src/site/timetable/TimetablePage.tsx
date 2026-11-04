@@ -61,9 +61,9 @@ import { VipBadge } from "./VipBadge";
 import { WeekNav } from "./WeekNav";
 
 /**
- * The trainer's «برنامه سانس‌ها» (BUSINESS_RULES.md §15 *The trainer's sessions*, roadmap 15.6a):
- * the weekly pattern, repeated every week from the date it starts, and the timetable's twelve
- * weeks one week at a time, where a date shows its students (15.6b) and can be changed on its own,
+ * The trainer's «تمام سانس‌های من» (BUSINESS_RULES.md §15 *The trainer's sessions*, roadmap 15.6a):
+ * the weekly pattern, repeated every week from the date it starts, and the next four weeks (of the
+ * timetable's twelve) one week at a time, where a date shows its students (15.6b) and can be changed on its own,
  * closed, or given back to the pattern. A change that touches students warns first (§15 *Students
  * in sessions*). Only a trainer reaches it; anyone else is sent home.
  */
@@ -83,7 +83,7 @@ export function TimetablePage() {
             <ArrowRight aria-hidden />
           </Link>
         </Button>
-        <h1 className="text-xl font-bold">برنامه سانس‌ها</h1>
+        <h1 className="text-xl font-bold">تمام سانس‌های من</h1>
       </div>
 
       {timetable.data === undefined ? (
@@ -355,7 +355,7 @@ function ProblemsAlert({ count }: { count: number }) {
   );
 }
 
-// ---- The twelve weeks ----
+// ---- The next four weeks ----
 
 function WeeksCard({ timetable }: { timetable: Timetable }) {
   const weeks = Array.from({ length: Math.ceil(timetable.days.length / 7) }, (_, index) =>

@@ -18,6 +18,11 @@ public static class TimetableErrors
         "Timetable.EndNotAfterStart",
         "A session ends after it starts, on the same day.");
 
+    /// <summary>A session starts at <see cref="TimetableRules.EarliestStart"/> or later and ends by <see cref="TimetableRules.LatestEnd"/>.</summary>
+    public static readonly Error OutsideHours = Error.Validation(
+        "Timetable.OutsideHours",
+        "A session starts at 07:00 or later and ends by 22:00.");
+
     public static readonly Error DuplicateSession = Error.Validation(
         "Timetable.DuplicateSession",
         "Two sessions of one day have the same start and end.");

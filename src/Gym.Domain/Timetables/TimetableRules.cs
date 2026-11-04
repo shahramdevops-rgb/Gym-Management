@@ -21,16 +21,28 @@ public static class TimetableRules
 
     public const int MaxCapacity = 50;
 
-    /// <summary>Times are on 5-minute steps (proposed by Claude, built with 15.6a).</summary>
-    public const int MinuteStep = 5;
+    /// <summary>Times are on the quarter hour, :00, :15, :30 and :45 (the developer, 1405/08/14; 5 minutes before).</summary>
+    public const int MinuteStep = 15;
 
     public const int MaxSessionsPerDay = 20;
+
+    /// <summary>No session starts before 07:00 (the developer, 1405/08/14).</summary>
+    public static readonly TimeOnly EarliestStart = new(7, 0);
+
+    /// <summary>No session ends after 22:00 (the developer, 1405/08/14).</summary>
+    public static readonly TimeOnly LatestEnd = new(22, 0);
 
     /// <summary>
     /// How far the timetable reaches: today and the 83 days after it, 12 weeks, so a program of 6 to 8
     /// weeks fits in it whole (accepted by the developer, 1405/08/09).
     /// </summary>
     public const int DaysAhead = 84;
+
+    /// <summary>
+    /// How many of those days the trainer's «روزهای پیش رو» shows: today and the 27 after it, 4 weeks
+    /// (the developer, 1405/08/14). The timetable still reaches <see cref="DaysAhead"/> days.
+    /// </summary>
+    public const int DaysShown = 28;
 
     /// <summary>The timetable's last day, seen from <paramref name="today"/>.</summary>
     public static DateOnly LastDay(DateOnly today) => today.AddDays(DaysAhead - 1);
@@ -61,6 +73,11 @@ public static class TimetableRules
             if (session.End <= session.Start)
             {
                 return Result.Failure(TimetableErrors.EndNotAfterStart);
+            }
+
+            if (session.Start < EarliestStart || session.End > LatestEnd)
+            {
+                return Result.Failure(TimetableErrors.OutsideHours);
             }
         }
 

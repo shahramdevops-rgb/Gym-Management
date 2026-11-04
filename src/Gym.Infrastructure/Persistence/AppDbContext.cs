@@ -108,6 +108,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<SessionBooking> SessionBookings => Set<SessionBooking>();
 
+    public DbSet<SessionCancellation> SessionCancellations => Set<SessionCancellation>();
+
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         Database.BeginTransactionAsync(cancellationToken);
 

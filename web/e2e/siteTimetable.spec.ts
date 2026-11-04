@@ -4,9 +4,9 @@ import { seedTrainer } from "./seed";
 import { signInCode, siteURL } from "./stack";
 
 /**
- * The trainer's «برنامه سانس‌ها» (roadmap 15.6a) on a phone, against the production stack: a week
+ * The trainer's «تمام سانس‌های من» (roadmap 15.6a) on a phone, against the production stack: a week
  * built once, a date of the next week closed on its own, then given back to the pattern. What the
- * unit tests cannot show is the twelve weeks worked out by the API from what was saved.
+ * unit tests cannot show is the four weeks shown, worked out by the API from what was saved.
  */
 
 const trainer = { fullName: "سارا امینی", typed: "09151112233", stored: "+989151112233" };
@@ -39,12 +39,21 @@ test("SiteTimetable_TrainerBuildsAWeek_ClosesOneDateAndGivesItBack", async ({ pa
   await page.getByLabel("کد پنج‌رقمی").fill(signInCode(trainer.stored));
 
   await expect(page.getByText("هنوز برنامهٔ سانسی نساخته‌اید.")).toBeVisible();
-  await page.getByRole("link", { name: "برنامه سانس‌ها" }).click();
+  await page.getByRole("link", { name: "تمام سانس‌های من" }).click();
   await page.getByRole("button", { name: "ساختن الگو" }).click();
 
   for (const day of ["شنبه", "دوشنبه", "چهارشنبه"]) {
     await addTwoSessions(page, day);
   }
+  // Hours 07 to 22 and the quarter hour only (§15, 1405/08/14).
+  const firstBox = page.getByRole("region", { name: "شنبه" }).getByRole("listitem").first();
+  const hours = firstBox.getByRole("combobox", { name: "ساعت شروع" }).locator("option");
+  await expect(hours).toHaveCount(16);
+  await expect(hours.first()).toHaveAttribute("value", "07");
+  await expect(hours.last()).toHaveAttribute("value", "22");
+  await expect(firstBox.getByRole("combobox", { name: "دقیقه شروع" }).locator("option")).toHaveText(
+    ["۰۰", "۱۵", "۳۰", "۴۵"],
+  );
   await shot(page, "1-pattern-editor");
   await page.getByRole("button", { name: "ذخیره الگو" }).click();
 
@@ -56,6 +65,7 @@ test("SiteTimetable_TrainerBuildsAWeek_ClosesOneDateAndGivesItBack", async ({ pa
 
   // A Monday of next week, so the time of day the test runs at plays no part.
   await page.getByRole("button", { name: "هفتهٔ بعد" }).click();
+  await expect(page.getByText("هفتهٔ ۲ از ۴")).toBeVisible();
   const monday = page.getByRole("button", { name: /^دوشنبه/ });
   await expect(monday).toContainText("۱۳:۰۰ تا ۱۴:۰۰");
 

@@ -461,24 +461,22 @@ main > section[id] {
   transition: opacity 1.1s ease;
   -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 88%);
   mask-image: linear-gradient(to bottom, #000 40%, transparent 88%);
+  isolation: isolate;
 }
 
+/* The whole photo, never cut (2026-11-04, the developer: cut and zoomed photos showed too little
+   of the gym): "contain", not "cover". The room left around it is filled by .backdrop below. */
 .slide img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: 50% 20%;
   filter: saturate(0.75) sepia(0.12) contrast(1.08) brightness(0.82);
-  transform: scale(1.12);
-  transition: transform calc(var(--slide-ms) + 1500ms) linear;
 }
 
+/* The slide only fades in, no zoom (removed with the cutting) */
 .slide.is-active {
   opacity: 1;
-}
-
-.slide.is-active img {
-  transform: scale(1);
 }
 
 .hero__content {
@@ -1162,7 +1160,7 @@ main > section[id] {
     radial-gradient(ellipse at 50% 45%, transparent 35%, rgb(13 14 17 / 0.55));
 }
 
-/* The photos lie on top of each other; the stop's own fades in and slowly settles */
+/* The photos lie on top of each other; the stop's own fades in */
 .tour__photos {
   position: absolute;
   inset: 0;
@@ -1184,15 +1182,22 @@ main > section[id] {
   display: contents;
 }
 
+/* Like the hero's slides: the whole photo, never cut or zoomed, and it only fades in */
 .tour__photo img {
-  transform: scale(1.16);
-  transition:
-    transform 9s cubic-bezier(0.15, 0.6, 0.2, 1),
-    filter 1.2s var(--ease-out);
+  object-fit: contain;
 }
 
-.tour__photo.is-active img {
-  transform: scale(1);
+/* The room a whole photo leaves on a screen of another shape: the same photo behind it, blurred
+   and dark, so the photo never sits in an empty frame. site.js sets --backdrop to the file the
+   browser chose (a phone's -tall one included); without it the stone shows. */
+.slide::before,
+.tour__photo::before {
+  content: "";
+  position: absolute;
+  inset: -3rem;
+  z-index: -1;
+  background: var(--backdrop, none) center / cover no-repeat;
+  filter: blur(2rem) brightness(0.4) saturate(0.7);
 }
 
 /* The name of the stop, large, with its count above */
@@ -2043,10 +2048,16 @@ main > section[id] {
 .dial__open {
   position: absolute;
   inset-block: 0;
-  inset-inline-start: 31.25%; /* 7:30 */
-  width: 64.5833%; /* to 23:00 */
+  inset-inline-start: 29.1667%; /* 7:00 */
+  width: 64.5833%; /* to 22:30 */
   background: linear-gradient(to left, var(--bronze-hi), var(--bronze));
   box-shadow: 0 0 18px rgb(200 155 87 / 0.35);
+}
+
+/* On a Friday in Tehran, site.js shows that day's hours instead. */
+.dial__open.is-friday {
+  inset-inline-start: 50%; /* 12:00 */
+  width: 43.75%; /* to 22:30 */
 }
 
 .dial__now {
@@ -2709,13 +2720,5 @@ main > section[id] {
 
   .manifesto .w {
     color: var(--text);
-  }
-
-  .slide img {
-    transform: none;
-  }
-
-  .tour__photo img {
-    transform: none;
   }
 }

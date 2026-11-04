@@ -14,10 +14,12 @@ export type SessionStudentsItem = components["schemas"]["SessionStudentsItem"];
 export type MySessions = components["schemas"]["MySessionsResponse"];
 export type Opening = components["schemas"]["OpeningResponse"];
 export type SessionDate = components["schemas"]["SessionDateResponse"];
+export type MyCancellations = components["schemas"]["MyCancellationsResponse"];
 
 const studentScheduleKey = (memberId: string) => [...bookingsQueryKey, "student", memberId];
 const sessionStudentsKey = (date: string) => [...bookingsQueryKey, "day", date];
 export const mySessionsQueryKey = [...bookingsQueryKey, "mine"] as const;
+export const myCancellationsQueryKey = [...bookingsQueryKey, "cancelled"] as const;
 
 /** A weekly session as the form sends it: times as `HH:mm`, which the API reads as `HH:mm:00`. */
 export interface SlotInput {
@@ -223,4 +225,37 @@ export function useMoveMySession() {
     }
     return data;
   }, mySessionsQueryKey);
+}
+
+// ---- The member: «سانس لغو شد» (roadmap 15.6c) ----
+
+/** The sessions the member's trainer cancelled that they have not pressed «دیدم» for. */
+export function useMyCancellations() {
+  return useQuery({
+    queryKey: myCancellationsQueryKey,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await siteApi.GET("/api/site/me/sessions/cancelled");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/**
+ * «دیدم»: every cancellation up to `upTo`, the `latest` the member read, is seen; one saved after it
+ * stays on the home.
+ */
+export function useSeeMyCancellations() {
+  return useBookingChange(async (upTo: string) => {
+    const { data, error } = await siteApi.POST("/api/site/me/sessions/cancelled/seen", {
+      body: { upTo },
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  }, myCancellationsQueryKey);
 }

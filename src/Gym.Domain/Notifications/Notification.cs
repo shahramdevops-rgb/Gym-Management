@@ -18,7 +18,8 @@ namespace Gym.Domain.Notifications;
 /// <see cref="NotificationKind.Absence"/> and one <see cref="NotificationKind.WelcomeBack"/> per member and
 /// absence, one
 /// <see cref="NotificationKind.Broadcast"/> per member and broadcast, one
-/// <see cref="NotificationKind.TrainerRequest"/> per member, trainer and day), a second
+/// <see cref="NotificationKind.TrainerRequest"/> per member, trainer and day, one
+/// <see cref="NotificationKind.SessionCancelled"/> per member and change of the timetable), a second
 /// run, or a second server, cannot write the same event again, so it cannot pay for it twice.
 /// </para>
 /// <para>
@@ -105,6 +106,12 @@ public sealed class Notification : Entity
 
     /// <summary>Set for <see cref="NotificationKind.TrainerRequest"/> only: the trainer it goes to (task 15.4c).</summary>
     public Guid? TrainerId { get; private set; }
+
+    /// <summary>
+    /// Set for <see cref="NotificationKind.SessionCancelled"/> only: the trainer's save that cancelled
+    /// the sessions (<c>SessionCancellation.ChangeId</c>), one per member and save (task 15.6c).
+    /// </summary>
+    public Guid? TimetableChangeId { get; private set; }
 
     /// <summary>The whole text, as <see cref="SmsText"/> wrote it when the message was written.</summary>
     public string Text { get; private set; } = string.Empty;
@@ -275,6 +282,23 @@ public sealed class Notification : Entity
         notification.MemberId = memberId;
         notification.TrainerId = trainerId;
         notification.ReportDate = requestedOn;
+
+        return notification;
+    }
+
+    /// <summary>
+    /// The member's trainer cancelled sessions they were in (<see cref="NotificationKind.SessionCancelled"/>,
+    /// task 15.6c, BUSINESS_RULES.md §15 <i>Timetable and attendance</i>).
+    /// </summary>
+    /// <param name="changeId">The trainer's save: at most one per member and save.</param>
+    public static Notification ForSessionCancelled(Guid memberId, Guid changeId, string recipient, string text)
+    {
+        CheckId(memberId, nameof(memberId));
+        CheckId(changeId, nameof(changeId));
+
+        var notification = Create(NotificationKind.SessionCancelled, recipient, text);
+        notification.MemberId = memberId;
+        notification.TimetableChangeId = changeId;
 
         return notification;
     }

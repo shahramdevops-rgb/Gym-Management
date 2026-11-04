@@ -25,7 +25,7 @@ public static class BookingErrors
     /// <summary>A weekly session's day and times, as a timetable session's: on the steps, the same day.</summary>
     public static readonly Error InvalidSlot = Error.Validation(
         "Bookings.InvalidSlot",
-        $"A weekly session is on one of the seven days, on {TimetableRules.MinuteStep}-minute steps, and ends after it starts.");
+        $"A weekly session is on one of the seven days, on {TimetableRules.MinuteStep}-minute steps, from 07:00 to 22:00, and ends after it starts.");
 
     /// <summary>A fixed schedule's weekly session that is on none of its dates: not one of the trainer's sessions.</summary>
     public static readonly Error NoSuchSession = Error.BusinessRule(

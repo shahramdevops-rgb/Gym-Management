@@ -130,7 +130,8 @@ export const errorMessages: Record<string, string> = {
 
   // The trainer's timetable (site)
   "Timetable.CapacityOutOfRange": "ظرفیت هر سانس باید بین ۱ تا ۵۰ نفر باشد.",
-  "Timetable.TimeNotOnStep": "ساعت سانس باید مضربی از ۵ دقیقه باشد.",
+  "Timetable.TimeNotOnStep": "دقیقهٔ سانس فقط می‌تواند ۰۰، ۱۵، ۳۰ یا ۴۵ باشد.",
+  "Timetable.OutsideHours": "سانس باید از ساعت ۷ صبح به بعد شروع شود و تا ۱۰ شب تمام شود.",
   "Timetable.EndNotAfterStart": "پایان سانس باید بعد از شروع آن و در همان روز باشد.",
   "Timetable.DuplicateSession": "دو سانس با ساعت شروع و پایان یکسان در یک روز نمی‌شود.",
   "Timetable.TooManySessions": "هر روز حداکثر ۲۰ سانس می‌تواند داشته باشد.",

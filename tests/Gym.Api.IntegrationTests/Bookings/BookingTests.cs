@@ -11,10 +11,14 @@ using Gym.Domain.Bookings;
 using Gym.Domain.Members;
 using Gym.Domain.Timetables;
 using Gym.Domain.Trainers;
+using Gym.Infrastructure.Calendar;
 using Gym.Infrastructure.Persistence;
 
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Gym.Api.IntegrationTests.Bookings;
 
@@ -25,7 +29,8 @@ namespace Gym.Api.IntegrationTests.Bookings;
 /// </summary>
 /// <remarks>
 /// The clock here is the real one, so the sessions are tomorrow or later, where the time of day
-/// plays no part; a session that has started is the Domain tests'.
+/// plays no part; a session that has started is the Domain tests', but for the two tests that keep
+/// one, whose host has the gym's time of day after 07:00 (<see cref="AfterSevenHost"/>).
 /// </remarks>
 [Collection(DatabaseCollectionDefinition.Name)]
 public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fixture)
@@ -171,7 +176,8 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
     [Fact]
     public async Task SetSchedule_OneWithEarlierDates_EndsYesterdayAndKeepsTodaysStartedSession()
     {
-        var gym = await GymAsync();
+        await using var host = AfterSevenHost();
+        var gym = await GymAsync(client: DatabaseFixture.CreateClient(host));
         var today = await StartedTodayAsync(gym);
 
         using var changed = await SetScheduleAsync(gym, gym.MemberId, today, today.AddDays(27), Slot(DayOfWeek.Monday, 13));
@@ -179,24 +185,25 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
         changed.StatusCode.ShouldBe(HttpStatusCode.OK);
         var schedules = (await SchedulesAsync()).OrderBy(schedule => schedule.StartsOn).ToList();
         schedules.Select(schedule => (schedule.StartsOn, schedule.EndsOn)).ShouldBe([(today.AddDays(-7), today.AddDays(-1)), (today, today.AddDays(27))]);
-        KeptMidnight(await BookingsAsync(), today);
-        var midnight = (await changed.ReadJsonAsync()).GetProperty("sessions").EnumerateArray()
-            .Single(session => session.GetProperty("date").GetString() == Iso(today) && session.GetProperty("start").GetString() == "00:00:00");
-        midnight.GetProperty("moved").GetBoolean().ShouldBeFalse();
-        midnight.GetProperty("started").GetBoolean().ShouldBeTrue();
+        KeptStarted(await BookingsAsync(), today);
+        var started = (await changed.ReadJsonAsync()).GetProperty("sessions").EnumerateArray()
+            .Single(session => session.GetProperty("date").GetString() == Iso(today) && session.GetProperty("start").GetString() == "07:00:00");
+        started.GetProperty("moved").GetBoolean().ShouldBeFalse();
+        started.GetProperty("started").GetBoolean().ShouldBeTrue();
     }
 
     [Fact]
     public async Task EndSchedule_FromNow_KeepsTodaysStartedSession()
     {
-        var gym = await GymAsync();
+        await using var host = AfterSevenHost();
+        var gym = await GymAsync(client: DatabaseFixture.CreateClient(host));
         var today = await StartedTodayAsync(gym);
 
         using var ended = await gym.Client.SendAsync(Send(HttpMethod.Delete, SchedulePath(gym.MemberId), gym.TrainerToken), TestContext.Current.CancellationToken);
 
         ended.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await SchedulesAsync()).ShouldHaveSingleItem().EndsOn.ShouldBe(today.AddDays(-1));
-        KeptMidnight(await BookingsAsync(), today);
+        KeptStarted(await BookingsAsync(), today);
     }
 
     [Fact]
@@ -569,11 +576,12 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
     /// A trainer and their student, both signed in, and the trainer's week from tomorrow: Saturday
     /// 13:00 and 17:00, Monday 13:00.
     /// </summary>
-    private async Task<Gym> GymAsync(int saturdayCapacity = 2)
+    /// <param name="client">A client of another host (<see cref="AfterSevenHost"/>), or the usual one.</param>
+    private async Task<Gym> GymAsync(int saturdayCapacity = 2, HttpClient? client = null)
     {
         var member = await AddMemberAsync(MemberPhone);
         var trainer = await AddTrainerAsync();
-        var client = Fixture.CreateClient();
+        client ??= Fixture.CreateClient();
         var memberToken = await SignInAsync(client, MemberPhone);
         var trainerToken = await SignInAsync(client, TrainerPhone);
         var tomorrow = Today().AddDays(1);
@@ -592,9 +600,9 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
     }
 
     /// <summary>
-    /// Today with a session from 00:00 to 01:00, which has started (the clock here is the real one),
-    /// and the student in it by a fixed schedule from a week ago. Written straight to the database:
-    /// neither can be made through the API once the session has started.
+    /// Today with a session from 07:00 to 08:00, the earliest a session can be, and the student in it
+    /// by a fixed schedule from a week ago. Written straight to the database: neither can be made
+    /// through the API once the session has started, which it has on <see cref="AfterSevenHost"/>.
     /// </summary>
     /// <returns>Today.</returns>
     private async Task<DateOnly> StartedTodayAsync(Gym gym)
@@ -604,21 +612,39 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var linkId = await db.TrainerLinks.Where(link => link.MemberId == gym.MemberId).Select(link => link.Id).SingleAsync(TestContext.Current.CancellationToken);
 
-        var midnight = new PlannedSession(TimeOnly.MinValue, new TimeOnly(1, 0), 5);
-        db.TimetableDays.Add(TimetableDay.Create(gym.TrainerId, today, [], [midnight], today.AddDays(-1), new TimeOnly(12, 0)).Value);
+        var first = new PlannedSession(TimetableRules.EarliestStart, new TimeOnly(8, 0), 5);
+        db.TimetableDays.Add(TimetableDay.Create(gym.TrainerId, today, [], [first], today.AddDays(-1), new TimeOnly(12, 0)).Value);
         db.FixedSchedules.Add(FixedSchedule.Create(
             gym.TrainerId, gym.MemberId, linkId, today.AddDays(-7), today.AddDays(13),
-            [new WeeklySlot(today.DayOfWeek, midnight.Start, midnight.End)], today.AddDays(-7)).Value);
+            [new WeeklySlot(today.DayOfWeek, first.Start, first.End)], today.AddDays(-7)).Value);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return today;
     }
 
     /// <summary>Today's started session, kept for the student as the trainer's single booking.</summary>
-    private static void KeptMidnight(List<SessionBooking> bookings, DateOnly today)
+    private static void KeptStarted(List<SessionBooking> bookings, DateOnly today)
     {
         var kept = bookings.ShouldHaveSingleItem();
-        (kept.Date, kept.Start, kept.By).ShouldBe((today, TimeOnly.MinValue, BookedBy.Trainer));
+        (kept.Date, kept.Start, kept.By).ShouldBe((today, TimetableRules.EarliestStart, BookedBy.Trainer));
+    }
+
+    /// <summary>
+    /// A host whose gym calendar reads 07:30 today, or now if that is later, so the 07:00 session of
+    /// <see cref="StartedTodayAsync"/> has started whatever the hour the tests run. Only the
+    /// calendar is moved: tokens and sign-in codes keep the real clock.
+    /// </summary>
+    private WebApplicationFactory<Program> AfterSevenHost()
+    {
+        using var scope = Fixture.CreateScope();
+        var real = scope.ServiceProvider.GetRequiredService<IGymCalendar>();
+        var now = TimeProvider.System.GetUtcNow();
+        var sevenThirty = real.StartOfDayUtc(real.Today()).AddHours(7.5);
+        var calendar = new GymCalendar(
+            new FakeTimeProvider(now > sevenThirty ? now : sevenThirty),
+            Options.Create(new GymCalendarOptions { TimeZone = real.TimeZone.Id }));
+
+        return Fixture.CreateHost(services => services.AddSingleton<IGymCalendar>(calendar));
     }
 
     /// <summary>Another member made the trainer's student, as <see cref="GymAsync"/>'s is.</summary>
@@ -676,7 +702,7 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
     private static List<DateOnly> Dates(JsonElement sessions) =>
         sessions.EnumerateArray().Select(session => DateOnly.Parse(session.GetProperty("date").GetString()!, CultureInfo.InvariantCulture)).ToList();
 
-    /// <summary>The students of the session of <paramref name="date"/> starting at <paramref name="start"/>, in «برنامه سانس‌ها».</summary>
+    /// <summary>The students of the session of <paramref name="date"/> starting at <paramref name="start"/>, in «تمام سانس‌های من».</summary>
     private static int Students(JsonElement timetable, DateOnly date, string start) =>
         timetable.GetProperty("days").EnumerateArray()
             .Single(day => day.GetProperty("date").GetString() == Iso(date))

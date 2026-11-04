@@ -49,6 +49,8 @@ public sealed class BookingRulesTests
     [InlineData(7, 13, 0, 14, 0)]
     [InlineData(6, 13, 3, 14, 0)]
     [InlineData(6, 14, 0, 13, 0)]
+    [InlineData(6, 6, 0, 7, 0)]
+    [InlineData(6, 21, 30, 22, 30)]
     public void CheckSlots_ABadDayOrTime_FailsWithInvalidSlot(int day, int startHour, int startMinute, int endHour, int endMinute)
     {
         var slot = new WeeklySlot((DayOfWeek)day, new TimeOnly(startHour, startMinute), new TimeOnly(endHour, endMinute));

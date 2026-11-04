@@ -5,7 +5,7 @@ export const sitePaths = {
   signUp: "/sign-up",
   /** The member picks a trainer (15.4). */
   trainers: "/trainers",
-  /** The trainer's «برنامه سانس‌ها» (15.6a). */
+  /** The trainer's «تمام سانس‌های من» (15.6a). */
   timetable: "/timetable",
   /** The trainer's «برنامهٔ ثابت» of one student (15.6b). */
   student: (memberId: string) => `/students/${memberId}`,

@@ -4,7 +4,7 @@ namespace Gym.Api.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// The test host's schedulers for the messages sent one at a time (the receipt, the welcome, the welcome back, the
-/// trainer's SMS): each
+/// trainer's SMS, the cancelled session's): each
 /// remembers what it was asked for and sends nothing.
 /// </summary>
 /// <remarks>
@@ -65,6 +65,52 @@ internal sealed class RecordingWelcomeBackScheduler : RecordingSmsJobScheduler, 
 
 /// <summary>The trainer's SMS asked for (task 15.4c): <c>SubscriptionId</c> is then the request.</summary>
 internal sealed class RecordingTrainerRequestSmsScheduler : RecordingSmsJobScheduler, ITrainerRequestSmsScheduler;
+
+/// <summary>
+/// The cancelled session's SMS asked for (task 15.6c), named by the trainer's save and the student, as
+/// the others are by one id.
+/// </summary>
+internal sealed class RecordingSessionCancelledSmsScheduler : ISessionCancelledSmsScheduler
+{
+    private readonly List<(Guid ChangeId, Guid MemberId, DateTimeOffset? At)> _asked = [];
+    private readonly Lock _lock = new();
+
+    /// <summary>Each message asked for, oldest first: <c>At</c> is <c>null</c> for one sent at once.</summary>
+    public IReadOnlyList<(Guid ChangeId, Guid MemberId, DateTimeOffset? At)> Asked
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return [.. _asked];
+            }
+        }
+    }
+
+    public void SendNow(Guid changeId, Guid memberId)
+    {
+        lock (_lock)
+        {
+            _asked.Add((changeId, memberId, null));
+        }
+    }
+
+    public void SendAt(Guid changeId, Guid memberId, DateTimeOffset at)
+    {
+        lock (_lock)
+        {
+            _asked.Add((changeId, memberId, at));
+        }
+    }
+
+    public void Clear()
+    {
+        lock (_lock)
+        {
+            _asked.Clear();
+        }
+    }
+}
 
 /// <summary>
 /// The broadcasts asked for (task 10.13). <see cref="Fail"/> makes the next ask throw, as a job

@@ -6,7 +6,7 @@
     <title>باشگاه پاسارگاد پلاس</title>
     <meta
       name="description"
-      content="پاسارگاد پلاس، باشگاه بدنسازی، کراس‌فیت و کلیستنیکس آقایان. سوله‌ی ۱۰۰۰ متر؛ هر روز سال، از ۷:۳۰ صبح تا ۱۱ شب."
+      content="پاسارگاد پلاس، باشگاه بدنسازی، کراس‌فیت و کلیستنیکس آقایان. سوله‌ی ۱۰۰۰ متر؛ هر روز سال، از ۷ صبح تا ۱۰:۳۰ شب و جمعه‌ها از ۱۲ ظهر."
     />
     <meta name="theme-color" content="#0d0e11" />
     <!-- The one address search engines should list (roadmap 14.5): www and the .com redirect here. -->
@@ -27,21 +27,35 @@
       mask, so it takes any colour. The tab's icon (img/favicon.png) is the same logo in bronze, a
       copy of the panel's (web/public/favicon.png): white would not show on a light tab.
 
-      Every photo in img/ except logo.png is a PLACEHOLDER from Unsplash (free licence, no credit
-      required), to be replaced by the gym's own photos under the same file names:
-        slide-1.webp oytTrK0Oho0   slide-2.webp SrTXkanaqtU   slide-3.webp EsgoXQef7PI
-        slide-4.webp 6aHmLVmw1qk   slide-5.webp 3dmbSaXZ22c   slide-6.webp juHWRzZCxVw
-        band.webp 8LWo8v0mKik (the tour's first stop, the door)
-        tour-massage.webp J1trUf0Lj3Q   tour-barber.webp cftRv45BNRU   tour-cafe.webp y2Dfk2Kt89o
-        tour-shop.webp -1W7mesKxYg   tour-analysis.webp DBvEoaU3ICs   tour-lockers.webp 4UbSaPKGRqc
-        tour-cardio.webp _cUZkx0wTyM   tour-bodybuilding.webp k47w6BeapCs
+      The gym's own photos (D:\GymPicture on the developer's PC, iPhone HEIC), cut to fit and
+      darkened about 12% so the words over them stay readable:
+        slide-1.webp IMG_4208   slide-2.webp IMG_4227   slide-3.webp IMG_4167   slide-4.webp IMG_4190
+        slide-5.webp IMG_4182 (darkened about 18%: white tiles)
+      The tour's (darkened about 10%; the wide and the -tall cut of each):
+        band D:\GymPicture\door-wide-ai-clean.png, -tall: door-tall-ai-clean.png
+        tour-barber D:\GymPicture\barber-wide-ai-clean.png, -tall: barber-tall-ai-clean.png
+        tour-lockers D:\GymPicture\lockers-wide-ai-clean.png, -tall: lockers-tall-ai-clean.png
+        tour-shop D:\GymPicture\shop-wide-ai-clean.png, -tall: shop-tall-ai-clean.png
+        tour-cafe D:\GymPicture\cafe-wide-ai-clean.png, -tall: cafe-tall-ai-clean.png
+        tour-analysis D:\GymPicture\analysis-wide-ai-clean.png, -tall: analysis-tall-ai-clean.png
+        tour-cardio D:\GymPicture\cardio-wide-ai-clean.png, -tall: cardio-tall-ai-clean.png
+        tour-stage D:\GymPicture\stage-wide-ai-clean.png, -tall: stage-tall-ai-clean.png
+      The hero has five slides since 2026-11-04 (the sixth and its line «استیج فیگور، برای تمرین
+      ژست‌ها.» were dropped by the developer).
+      Every other photo in img/ except logo.png is still a PLACEHOLDER from Unsplash (free licence,
+      no credit required), to be replaced by the gym's own photos under the same file names:
+        tour-massage.webp J1trUf0Lj3Q
+        tour-bodybuilding.webp k47w6BeapCs
         tour-bodybuilding-2.webp m4Jqyv5VwqY   tour-bodybuilding-3.webp gzeTjGu3b_k
         tour-bodybuilding-4.webp Hb_EpXSTL4I   tour-crossfit.webp 0Wra5YYVQJE
-        tour-calisthenics.webp uH8JDWuxFX8   tour-stage.webp uckFugBOBhM
+        tour-calisthenics.webp uH8JDWuxFX8
         gym-curl.webp b5boYWIR2vU   gym-deadlift.webp KaxVB5xh4Nw   gym-press.webp 8Hip5Ntz1WM
         gym-athlete.webp GLivMZcDfY0   rack.webp 3uWgVRLbJwI
-      The slides are 1100×1650, the originals' own 2:3, so a phone and a computer each cut what
-      they need. No face shows clearly in any of them (since 2026-10-16: the earlier slides showed
+      Since 2026-11-04 the gym's photos go in WHOLE, never cut or zoomed by hand (the developer
+      found the cut ones far too close): the screen's own shape crops only what it must. The one
+      exception is a wide photo's -tall twin, cut full height around its subject (for a phone
+      shows only a narrow strip of a wide photo). The placeholders below keep their old cuts:
+      the slides 1100×1650, so a phone and a computer each cut what they need. No face shows clearly in any of them (since 2026-10-16: the earlier slides showed
       one model's face, which could be taken for someone local).
       The tour-*.webp are 1920×1080, for the tour's full-screen stage. Each has a 900×1600 twin,
       *-tall.webp (band-tall.webp too), cut from the same original for a phone's tall screen: a
@@ -66,6 +80,42 @@
     <link rel="preload" href="./img/slide-1.webp" as="image" fetchpriority="high" />
     <link rel="stylesheet" href="./site.css" />
     <script src="./site.js"></script>
+
+    <!-- What search engines read about the gym (schema.org ExerciseGym). Keep it in step with the
+         page: the same name, address, phone and hours as the contact and hours sections below. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "ExerciseGym",
+        "name": "باشگاه پاسارگاد پلاس",
+        "alternateName": "Pasargad Gym Plus",
+        "url": "https://pasargadgymplus.ir/",
+        "logo": "https://pasargadgymplus.ir/img/favicon.png",
+        "image": "https://pasargadgymplus.ir/img/favicon.png",
+        "telephone": "+989939386787",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "کارمندان، خیابان عصر انقلاب، ۱۸ متری فرهنگیان",
+          "addressLocality": "کرمانشاه",
+          "addressRegion": "کرمانشاه",
+          "addressCountry": "IR"
+        },
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
+            "opens": "07:00",
+            "closes": "22:30"
+          },
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": "Friday",
+            "opens": "12:00",
+            "closes": "22:30"
+          }
+        ]
+      }
+    </script>
   </head>
 
   <body>
@@ -128,9 +178,6 @@
           <div class="slide" data-slide>
             <img src="./img/slide-5.webp" alt="" width="1100" height="1650" fetchpriority="low" />
           </div>
-          <div class="slide" data-slide>
-            <img src="./img/slide-6.webp" alt="" width="1100" height="1650" fetchpriority="low" />
-          </div>
         </div>
 
         <canvas class="smoke smoke--front" data-smoke="front" aria-hidden="true"></canvas>
@@ -149,12 +196,11 @@
           <div class="hero__lines" aria-live="polite">
             <p class="hero__line is-active" data-line>قدرت، ریشه در سنگ دارد.</p>
             <p class="hero__line" data-line>۱۰۰۰ متر سالن یه تیکه</p>
-            <p class="hero__line" data-line>هر روز سال، از ۷:۳۰ تا ۲۳.</p>
+            <p class="hero__line" data-line>هر روز سال، از ۷ تا ۲۲:۳۰؛ جمعه‌ها از ۱۲.</p>
             <p class="hero__line" data-line>
               کراس‌فیت، کلیستنیکس، ماساژ، آرایشگاه و کافه؛ زیر یک سقف.
             </p>
             <p class="hero__line" data-line>نور عالی، تهویه مناسب، طبقه همکف.</p>
-            <p class="hero__line" data-line>استیج فیگور، برای تمرین ژست‌ها.</p>
           </div>
 
           <div class="hero__actions">
@@ -174,7 +220,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
             </button>
             <p class="slider-nav__count" aria-hidden="true">
-              <span data-slide-index>۰۱</span><span class="slider-nav__of"> / ۰۶</span>
+              <span data-slide-index>۰۱</span><span class="slider-nav__of"> / ۰۵</span>
             </p>
             <button type="button" class="slider-nav__arrow" data-next aria-label="عکس بعدی">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
@@ -886,15 +932,16 @@
 
         <div class="hours__card" data-reveal>
           <p class="hours__range">
-            <span>۷:۳۰</span>
+            <span>۷:۰۰</span>
             <span class="hours__dash" aria-hidden="true"></span>
-            <span>۲۳:۰۰</span>
+            <span>۲۲:۳۰</span>
           </p>
-          <p class="hours__words">از هفت و نیم صبح تا یازده شب</p>
+          <p class="hours__words">از هفت صبح تا ده و نیم شب؛ تعطیلات رسمی هم همین‌طور.</p>
+          <p class="hours__words">جمعه‌ها از دوازده ظهر تا ده و نیم شب.</p>
 
           <div class="dial" aria-hidden="true">
             <div class="dial__track">
-              <span class="dial__open"></span>
+              <span class="dial__open" data-open-band></span>
               <span class="dial__now" data-now hidden></span>
             </div>
             <div class="dial__ticks">

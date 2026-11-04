@@ -14,7 +14,7 @@ import { VipBadge } from "./VipBadge";
 
 /**
  * The trainer's sessions today on the home screen, each with its students out of its capacity
- * (15.6b), and the way into «برنامه سانس‌ها» (BUSINESS_RULES.md §15 *The trainer's sessions*,
+ * (15.6b), and the way into «تمام سانس‌های من» (BUSINESS_RULES.md §15 *The trainer's sessions*,
  * roadmap 15.6a).
  */
 export function TimetableCard() {
@@ -57,7 +57,7 @@ export function TimetableCard() {
         <Button asChild variant="outline" className="w-full">
           <Link to={sitePaths.timetable}>
             <CalendarDays aria-hidden />
-            برنامه سانس‌ها
+            تمام سانس‌های من
           </Link>
         </Button>
       </CardContent>

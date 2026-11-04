@@ -676,6 +676,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/me/sessions/cancelled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMyCancellations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/me/sessions/cancelled/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SeeMyCancellations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/staff": {
         parameters: {
             query?: never;
@@ -3105,6 +3137,11 @@ export interface components {
             outstanding: number | string;
             items: components["schemas"]["SiteCafeItemResponse"][];
         };
+        MyCancellationsResponse: {
+            sessions: components["schemas"]["SessionDateResponse"][];
+            /** Format: date-time */
+            latest: null | string;
+        };
         MyDebtItemResponse: {
             kind: components["schemas"]["PaymentTargetKind"];
             /** Format: uuid */
@@ -3235,7 +3272,7 @@ export interface components {
             signInCodeLimitReached: boolean;
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast" | "WelcomeBack" | "TrainerRequest";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast" | "WelcomeBack" | "TrainerRequest" | "SessionCancelled";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -3819,6 +3856,10 @@ export interface components {
             sessions: number | string;
             full: components["schemas"]["SessionDateResponse"][];
         };
+        SeeMyCancellationsCommand: {
+            /** Format: date-time */
+            upTo: string;
+        };
         SendBroadcastCommand: {
             text: string;
             audience: components["schemas"]["BroadcastAudience"];
@@ -3853,6 +3894,16 @@ export interface components {
             canChangeAmount: boolean;
             /** Format: date-time */
             createdAt: string;
+        };
+        SessionCancelledSettings: {
+            enabled: boolean;
+        };
+        SessionCancelledSettingsResponse: {
+            enabled: boolean;
+            /** Format: time */
+            openingSendTime: string;
+            /** Format: int32 */
+            daysAhead: number | string;
         };
         SessionDateResponse: {
             /** Format: date */
@@ -4142,6 +4193,7 @@ export interface components {
             debtReminder: components["schemas"]["SmsSample"];
             absence: components["schemas"]["SmsSample"];
             trainerRequest: components["schemas"]["SmsSample"];
+            sessionCancelled: components["schemas"]["SmsSample"][];
         };
         SmsSettingsResponse: {
             enabled: boolean;
@@ -4158,6 +4210,7 @@ export interface components {
             absence: components["schemas"]["SmsKindSettings"];
             broadcast: components["schemas"]["BroadcastSettings"];
             trainerRequest: components["schemas"]["TrainerRequestSettingsResponse"];
+            sessionCancelled: components["schemas"]["SessionCancelledSettingsResponse"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -4441,6 +4494,7 @@ export interface components {
             absence: components["schemas"]["SmsKindSettings"];
             broadcast: components["schemas"]["BroadcastSettings"];
             trainerRequest: components["schemas"]["TrainerRequestSettings"];
+            sessionCancelled: components["schemas"]["SessionCancelledSettings"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -6941,6 +6995,104 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMyCancellations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyCancellationsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SeeMyCancellations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeeMyCancellationsCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyCancellationsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
