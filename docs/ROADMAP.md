@@ -4777,11 +4777,27 @@ alert is in the app only. Worked out from the check-ins, no table and no migrati
       absent; «حضور» beside «برنامهٔ ثابت» in «شاگردان من» (`/students/:memberId/attendance`, a
       page of its own rather than a tab): a Jalali month with «ماه قبل» / «ماه بعد» up to this
       one, the totals in five small boxes, each session with its state and an earlier trainer's name
-- [ ] **Release 2** *held* (the developer, 1405/08/13): nothing goes out after 15.7; the work goes
-      on until a trainer can manage a student, and the release comes then, with all of it.
-      **Released after all on 1405/08/14** (the developer: «همه چی میخام بره»): 15.6, 15.7, 14.2's
-      links and the public page's day of work (the tour, the gym's own photos undarkened, the
-      gallery, the first trainer's card, hours and contact in one section) go out; 15.4d next
+- [x] **Release 2, released 1405/08/14 (2026-11-05), 02:39, as `20261105-0239-0ed5c54`** (previous
+      `20261103-1408-cd5de81`). It had been *held* (the developer, 1405/08/13) until a trainer
+      could manage a student; released after all (the developer: «همه چی میخام بره»): 15.6, 15.7,
+      14.2's links and the public page's day of work (the tour, the gym's own photos undarkened,
+      the gallery, the first trainer's card, hours and contact in one section); 15.4d next
+  - Before: on `task/15.6-timetable`, `dotnet build` 0 warnings, `dotnet test` 3365 green (1244
+    domain, 2121 integration), 1379 Vitest, lint, `format:check`, `npm run build`; `npm run e2e`
+    18 green; `npm run screenshots` committed (`a8d67d2`); merged into `main` as `0ed5c54`
+  - Server before: `TAG=20261103-1408-cd5de81`, api and postgres healthy, disk 12%, 2.8 GiB memory
+    available; six migrations (`AddTrainerTimetable` to `LimitSessionHours`), only
+    `AddSessionCancellations` touches rows already there (three checks on `notifications`,
+    widened): a read-only count of rows outside the new kinds gave 0. Rows: 342 members, 419
+    subscriptions, 780 payments, 2204 attendances, 540 notifications. `./backup.sh run` →
+    `gym-20261105-023452.dump` (1,967,310 bytes, sha256 `2c59e9d5…948bc`), copied to
+    `D:\gymbackups`, the hashes matching
+  - After: the new tag running, api healthy, no error in the API's log; the same row counts, 65
+    migrations applied (the repository's 65); from outside the panel, `/health`, the public page
+    and the app answer 200, and the public page is the new one (Ali Sharifipour's card, the
+    Neshan links, the gallery, the 12-stop tour)
+  - A rollback to `20261103-1408-cd5de81` is safe: the migrations only add tables, nullable
+    columns and columns with defaults, and widen checks; the old version ignores them
 
 ### Release 3 — The monthly assessment (priority 2)
 
