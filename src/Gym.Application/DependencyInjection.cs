@@ -26,7 +26,9 @@ using Gym.Application.Bookings.EndStudentSchedule;
 using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
+using Gym.Application.Bookings.GetStudentAttendance;
 using Gym.Application.Bookings.GetStudentSchedule;
+using Gym.Application.Bookings.GetTrainerToday;
 using Gym.Application.Bookings.LeaveMySession;
 using Gym.Application.Bookings.MoveMySession;
 using Gym.Application.Bookings.RemoveSessionStudent;
@@ -280,6 +282,10 @@ public static class DependencyInjection
         // A cancelled session told to its students (BUSINESS_RULES.md §15, task 15.6c).
         services.AddScoped<GetMyCancellationsHandler>();
         services.AddScoped<SeeMyCancellationsHandler>();
+
+        // Attendance for the trainer, from the desk's check-ins (BUSINESS_RULES.md §15, task 15.7).
+        services.AddScoped<GetTrainerTodayHandler>();
+        services.AddScoped<GetStudentAttendanceHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();

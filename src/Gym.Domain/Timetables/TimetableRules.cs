@@ -21,15 +21,15 @@ public static class TimetableRules
 
     public const int MaxCapacity = 50;
 
-    /// <summary>Times are on the quarter hour, :00, :15, :30 and :45 (the developer, 1405/08/14; 5 minutes before).</summary>
+    /// <summary>Times are on the quarter hour, :00, :15, :30 and :45 (the developer, 1405/08/13; 5 minutes before).</summary>
     public const int MinuteStep = 15;
 
     public const int MaxSessionsPerDay = 20;
 
-    /// <summary>No session starts before 07:00 (the developer, 1405/08/14).</summary>
+    /// <summary>No session starts before 07:00 (the developer, 1405/08/13).</summary>
     public static readonly TimeOnly EarliestStart = new(7, 0);
 
-    /// <summary>No session ends after 22:00 (the developer, 1405/08/14).</summary>
+    /// <summary>No session ends after 22:00 (the developer, 1405/08/13).</summary>
     public static readonly TimeOnly LatestEnd = new(22, 0);
 
     /// <summary>
@@ -40,7 +40,7 @@ public static class TimetableRules
 
     /// <summary>
     /// How many of those days the trainer's «روزهای پیش رو» shows: today and the 27 after it, 4 weeks
-    /// (the developer, 1405/08/14). The timetable still reaches <see cref="DaysAhead"/> days.
+    /// (the developer, 1405/08/13). The timetable still reaches <see cref="DaysAhead"/> days.
     /// </summary>
     public const int DaysShown = 28;
 

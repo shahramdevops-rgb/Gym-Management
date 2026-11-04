@@ -2370,3 +2370,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **`color-mix` in oklch walks around the hue wheel; in oklab it goes straight.** oklch describes a colour by lightness, chroma and hue (an angle), so mixing two colours also mixes their angles, the short way round: from red (20°) to the dark blue-grey ground (268°) the short way runs through magenta, and a red tint came out violet. oklab describes the same colours as points on two axes, so a mix is the point between them and only fades toward the ground. Use oklch to pick colours, oklab to blend a colour into a background.
 - **A grey is not hue-free.** The dark ground has almost no chroma, but its hue still counts in an oklch mix; nearly invisible in the colour itself, it decided which way the mix turned.
 - **My notes:**
+
+## 15.7a — Attendance for the trainer, the backend (پیگیری حضور)
+
+- **Derive what you can instead of storing it.** Attendance is worked out on each read from the desk's check-ins and the students' places; no table holds it, so a check-in cancelled at the desk changes the trainer's screen at once and there is nothing to keep in step.
+- **A pure rule is easy to test at its edges.** `PresenceRules.Mark` takes the session's times, that day's visits and the clock, and returns a state; the boundary minutes (12:29, 12:30, 13:15, 13:16, 14:30) are one-line `InlineData` cases with no database.
+- **Convert moments to the gym's clock once, at the edge.** Check-ins are UTC `timestamptz`; `PresenceReading` turns each into the gym's date and time of day with `TimeZoneInfo.ConvertTime`, and everything after it compares `TimeOnly` values.
+- **When the API's clock is the real one, call the handler with a fake one.** The timetable can only be built from tomorrow, so the tests build it through the API, write check-ins as the desk would, then construct the handler with a `GymCalendar` over a `FakeTimeProvider` set to that later day.
+- **A database rule shows up in test setup too.** One open visit per member (a partial unique index) refused the second check-in of a test until the first was checked out: the invariant holds even for test data.
+- **My notes:**

@@ -9,7 +9,9 @@ using Gym.Application.Bookings.EndStudentSchedule;
 using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
+using Gym.Application.Bookings.GetStudentAttendance;
 using Gym.Application.Bookings.GetStudentSchedule;
+using Gym.Application.Bookings.GetTrainerToday;
 using Gym.Application.Bookings.LeaveMySession;
 using Gym.Application.Bookings.MoveMySession;
 using Gym.Application.Bookings.RemoveSessionStudent;
@@ -82,6 +84,26 @@ public static class SiteBookingEndpoints
                 (await handler.Handle(SiteUser.AccountId(user), date, command, ct)).ToHttpResult())
             .WithName("RemoveSessionStudent")
             .Produces<SessionStudentsResponse>();
+
+        // Attendance from the desk's check-ins (BUSINESS_RULES.md §15 Attendance for the trainer, 15.7).
+        var attendance = app.MapGroup($"{SitePaths.Root}/coaching")
+            .WithTags("Site bookings")
+            .RequireAuthorization(Policies.SiteTrainer)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        attendance.MapGet("/today", async (ClaimsPrincipal user, GetTrainerTodayHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
+            .WithName("GetTrainerToday")
+            .Produces<TrainerTodayResponse>();
+
+        attendance.MapGet("/students/{memberId:guid}/attendance", async (Guid memberId, DateOnly from, DateOnly to, ClaimsPrincipal user, GetStudentAttendanceHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), memberId, from, to, ct)).ToHttpResult())
+            .WithName("GetStudentAttendance")
+            .Produces<StudentAttendanceResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
 
         var mine = app.MapGroup($"{SitePaths.Root}/me/sessions")
             .WithTags("Site bookings")

@@ -95,7 +95,7 @@ export function daysBetween(from: string, to: string): number {
 }
 
 /**
- * A session's hours (BUSINESS_RULES.md §15 *The trainer's sessions*, the developer, 1405/08/14): it
+ * A session's hours (BUSINESS_RULES.md §15 *The trainer's sessions*, the developer, 1405/08/13): it
  * starts at 07:00 or later and ends by 22:00, on the quarter hour.
  */
 export const firstHour = 7;

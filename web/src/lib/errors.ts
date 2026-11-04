@@ -158,6 +158,7 @@ export const errorMessages: Record<string, string> = {
   "Bookings.NotLeft": "این سانس را با «نمی‌آیم» کنار نگذاشته‌اید.",
   "Bookings.AlreadyInSession": "در این سانس هستید.",
   "Bookings.MoveOutOfSchedule": "فقط به سانسی تا آخرین روز برنامه‌تان می‌توان جابه‌جا شد.",
+  "Bookings.AttendanceRangeInvalid": "بازهٔ تاریخ حضور معتبر نیست.",
 
   // Members
   "Members.NotFound": "عضو پیدا نشد.",

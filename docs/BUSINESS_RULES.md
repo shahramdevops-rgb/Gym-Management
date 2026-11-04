@@ -2634,9 +2634,10 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **The trainer cancelling a session tells the students who had it that day**, by SMS and by a
   notice in the app. *Decided by the developer.* (A phone notification outside the app is not
   reliable from Iran for the site app, a PWA: the notice is shown when the app is opened.)
-- **On time, late, absent** (for now; the developer: "not important yet"): a check-in up to 10
-  minutes after the session's start is on time, a later one is late, no check-in is absent.
-  *Decided by the developer.*
+- **On time, late, absent**: a check-in up to **15 minutes** after the session's start is on time
+  (*decided by the developer*, 1405/08/13, in place of 10), a later one before the session ends is
+  late, no check-in is absent. The rest is the attendance of 15.7 (*Attendance for the trainer*
+  below).
 - **The trainer's sessions, decided with 15.6a's plan** (*Decided by the developer*, 1405/08/09,
   unless marked otherwise):
   - **A weekly pattern with no end**: each day of the week has its own sessions, and the week
@@ -2657,16 +2658,16 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **The timetable reaches 12 weeks ahead** (today and the 83 days after it), so a program of
     6 to 8 weeks (15.11) fits in it whole. *Proposed by Claude, accepted.* **«روزهای پیش رو»
     shows only the next 4 weeks** (today and the 27 days after it; *decided by the developer*,
-    1405/08/14): the dates after them keep their sessions and their students, and a fixed program
+    1405/08/13): the dates after them keep their sessions and their students, and a fixed program
     still reaches the 12 weeks, but the trainer does not see or change them there.
   - *Proposed by Claude, built with 15.6a:* a session's capacity is 1 to 50, a session ends the day
     it starts, and a day holds 20 sessions at most.
   - **A session's hours: from 07:00 to 22:00, on the quarter hour** (*decided by the developer*,
-    1405/08/14, in place of 5-minute steps at any hour): it starts at 07:00 or later and ends by
+    1405/08/13, in place of 5-minute steps at any hour): it starts at 07:00 or later and ends by
     22:00, and its times are :00, :15, :30 or :45. The hour boxes offer 07 to 22. This is the
     sessions' own rule: the gym itself still has no opening hours in the system (§7), and check-in
     is not held to these hours.
-  - **The trainer's page is «تمام سانس‌های من»** (*decided by the developer*, 1405/08/14, in place
+  - **The trainer's page is «تمام سانس‌های من»** (*decided by the developer*, 1405/08/13, in place
     of «برنامه سانس‌ها»).
   - **A stopped trainer's sessions are gone** from the site with their area (the member sees
     only trainers now); the pattern is kept, and comes back if the Owner makes them a trainer
@@ -2761,8 +2762,32 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     student before a morning session. *Proposed by Claude, built with it:* when it goes, it is
     checked again: only a session still cancelled, not started, and not seen in the app («دیدم»)
     counts, and the member must still be active and the trainer's student.
-- *Open, asked in its part of 15.7:* a check-in after the session ended, and how early before the
-  start a check-in counts; the absence alert to the trainer.
+- **Attendance for the trainer (15.7)** (*proposed by Claude, accepted by the developer*,
+  1405/08/13):
+  - **Worked out, never stored**: from the desk's check-ins (a cancelled check-in does not count,
+    §7) and the student's places in the trainer's sessions, as a locker's occupancy is (§6). No
+    table holds it, so a check-in cancelled at the desk changes it at once.
+  - **Which check-in counts for a session**: one from **30 minutes before its start** to its end.
+    A check-in earlier than that counts too when the visit was still open at the start (the member
+    came early and stayed). From the start to 15 minutes after it is on time, as above; later and
+    before the end, late.
+  - **A check-in after the session ended** leaves it absent, with «بعد از سانس آمد» beside it, so
+    the trainer knows the member came to the gym that day.
+  - **Not absent**: a session the student left («نمی‌آیم», shown «مرخصی»), a session the trainer
+    removed or whose times changed after the student was put in it (shown «لغو شد»), and a session
+    not yet ended with no check-in (shown «هنوز نیامده» until it ends). A date the student moved to
+    counts at its new session, the old one is not theirs any more.
+  - **Overlapping sessions**: a check-in counts for the session the student is in, not for one
+    they are not.
+  - **«امروز»**: today's sessions with each student's state and check-in time; the page refreshes
+    itself every minute while it is open.
+  - **The absence alert is in the app only, no SMS**: a card «غایبان امروز» on the trainer's home
+    lists today's absent students of the sessions that have ended. It goes the next day; the month
+    view keeps them.
+  - **Per student and per month**: each session of the student in a Jalali month, with its state
+    and the month's totals. Sessions with an earlier trainer show too, with that trainer's name
+    (*A member and their trainer*: a new trainer sees the earlier attendance).
+  - **The member does not see their monthly attendance yet**: left for later, only if asked.
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

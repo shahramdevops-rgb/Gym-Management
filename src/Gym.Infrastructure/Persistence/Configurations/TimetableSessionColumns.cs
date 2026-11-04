@@ -50,7 +50,7 @@ internal static class TimetableSessionColumns
                 $"extract(second FROM {column}) = 0 AND extract(minute FROM {column})::int % {TimetableRules.MinuteStep} = 0");
         }
 
-        // From 07:00 to 22:00 (BUSINESS_RULES.md §15, the developer, 1405/08/14).
+        // From 07:00 to 22:00 (BUSINESS_RULES.md §15, the developer, 1405/08/13).
         table.HasCheckConstraint(
             $"ck_{tableName}_within_hours",
             "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");

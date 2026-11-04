@@ -612,6 +612,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/coaching/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetTrainerToday"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/coaching/students/{memberId}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetStudentAttendance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/site/me/sessions": {
         parameters: {
             query?: never;
@@ -2346,6 +2378,20 @@ export interface components {
             /** Format: int32 */
             visits: number | string;
         };
+        AttendanceItem: {
+            /** Format: date */
+            date: string;
+            /** Format: time */
+            start: string;
+            /** Format: time */
+            end: string;
+            trainerName: null | string;
+            isVip: boolean;
+            state: components["schemas"]["SessionPresence"];
+            /** Format: time */
+            checkedInAt: null | string;
+            cameAfter: boolean;
+        };
         AttendanceReportResponse: {
             /** Format: date */
             from: string;
@@ -2393,6 +2439,18 @@ export interface components {
             memberDebt: number | string;
             /** Format: int32 */
             unfrozenDays?: null | number | string;
+        };
+        AttendanceTotals: {
+            /** Format: int32 */
+            onTime: number | string;
+            /** Format: int32 */
+            late: number | string;
+            /** Format: int32 */
+            absent: number | string;
+            /** Format: int32 */
+            leave: number | string;
+            /** Format: int32 */
+            cancelled: number | string;
         };
         AttendanceWeekdayResponse: {
             weekday: components["schemas"]["DayOfWeek"];
@@ -3924,6 +3982,8 @@ export interface components {
             /** @default false */
             isVip: boolean;
         };
+        /** @enum {unknown} */
+        SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled";
         SessionResponse: {
             /** Format: time */
             start: string;
@@ -4224,6 +4284,16 @@ export interface components {
             mustChangePassword: boolean;
             isLockedOut: boolean;
         };
+        StudentAttendanceResponse: {
+            /** Format: uuid */
+            memberId: string;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            sessions: components["schemas"]["AttendanceItem"][];
+            totals: components["schemas"]["AttendanceTotals"];
+        };
         StudentRequestResponse: {
             /** Format: uuid */
             requestId: string;
@@ -4348,6 +4418,27 @@ export interface components {
             daysAveraged: number | string;
             hours: components["schemas"]["HourCountResponse"][];
         };
+        TodaySession: {
+            /** Format: time */
+            start: string;
+            /** Format: time */
+            end: string;
+            isVip: boolean;
+            removed: boolean;
+            started: boolean;
+            ended: boolean;
+            students: components["schemas"]["TodayStudent"][];
+        };
+        TodayStudent: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            state: components["schemas"]["SessionPresence"];
+            /** Format: time */
+            checkedInAt: null | string;
+            cameAfter: boolean;
+        };
         TodaySummaryResponse: {
             /** Format: date */
             today: string;
@@ -4414,6 +4505,11 @@ export interface components {
             lastSignedInAt: null | string;
             /** Format: uint32 */
             version: number | string;
+        };
+        TrainerTodayResponse: {
+            /** Format: date */
+            date: string;
+            sessions: components["schemas"]["TodaySession"][];
         };
         UpdateExpenseCategoryCommand: {
             name: string;
@@ -6738,6 +6834,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionStudentsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTrainerToday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerTodayResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetStudentAttendance: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path: {
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentAttendanceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */

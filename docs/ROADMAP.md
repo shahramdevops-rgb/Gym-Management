@@ -4725,7 +4725,7 @@ through magenta (about 335 at 60%). A cardio door turned greenish the same way.
         `AddSessionCancellations` (a new table, `notifications.timetable_change_id`,
         `sms_settings.session_cancelled_enabled` false); the panel's section «پیامک به مربیان» is
         now «اپ باشگاه»
-  - [x] **15.6f** after trying it (the developer, 1405/08/14, `task/15.6-timetable`, §15 *The
+  - [x] **15.6f** after trying it (the developer, 1405/08/13, `task/15.6-timetable`, §15 *The
         trainer's sessions*): the trainer's page is «تمام سانس‌های من»; «روزهای پیش رو» shows 4
         weeks (`TimetableRules.DaysShown`, 28 days; the timetable still reaches 12); a session runs
         from 07:00 to 22:00 on the quarter hour (`Timetable.OutsideHours`, `MinuteStep` 15), the
@@ -4737,8 +4737,19 @@ through magenta (about 335 at 60%). A cardio door turned greenish the same way.
         the trainer placing the student, has been used
 
 #### 15.7 Attendance for the trainer (پیگیری حضور)
-- [ ] «امروز» for the trainer: today's sessions and who has checked in at the desk, live
-- [ ] Attendance per student and per month; the absence alert to the trainer
+Decided 1405/08/13 (§15 *Attendance for the trainer*): on time up to 15 minutes after the start,
+a check-in counts from 30 minutes before (earlier when the visit was still open at the start),
+after the end it stays absent with «بعد از سانس آمد», leave and cancelled are not absent, the
+alert is in the app only. Worked out from the check-ins, no table and no migration.
+- [x] **15.7a, the backend** (built 1405/08/13, `task/15.6-timetable`): `PresenceRules` (Domain)
+      gives each place its state from that day's check-ins (on time, late, absent with «بعد از
+      سانس آمد», not yet; leave and cancelled from the place itself); `/api/site/coaching/today`
+      (today's sessions, removed ones under their old times, each student's state and check-in
+      time; the absent card reads it) and `/api/site/coaching/students/{memberId}/attendance?from&to`
+      (62 days at most, up to today, each session with its state and an earlier trainer's name,
+      the totals). Error `Bookings.AttendanceRangeInvalid`
+- [ ] **15.7b, the screens**: «امروز» (refreshes every minute), the card «غایبان امروز» on the
+      trainer's home, the tab «حضور» on the student's page by Jalali month
 - [ ] **Release 2**
 
 ### Release 3 — The monthly assessment (priority 2)

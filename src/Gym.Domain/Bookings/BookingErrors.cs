@@ -67,4 +67,9 @@ public static class BookingErrors
     public static readonly Error MoveOutOfSchedule = Error.BusinessRule(
         "Bookings.MoveOutOfSchedule",
         "A session can be moved to a date up to the fixed schedule's last one.");
+
+    /// <summary>A student's attendance is read from a date to one on or after it, <see cref="PresenceRules.MaxRangeDays"/> days at most.</summary>
+    public static readonly Error AttendanceRangeInvalid = Error.Validation(
+        "Bookings.AttendanceRangeInvalid",
+        $"Attendance is read from a date to one on or after it, {PresenceRules.MaxRangeDays} days at most.");
 }
