@@ -4748,9 +4748,15 @@ alert is in the app only. Worked out from the check-ins, no table and no migrati
       time; the absent card reads it) and `/api/site/coaching/students/{memberId}/attendance?from&to`
       (62 days at most, up to today, each session with its state and an earlier trainer's name,
       the totals). Error `Bookings.AttendanceRangeInvalid`
-- [ ] **15.7b, the screens**: «امروز» (refreshes every minute), the card «غایبان امروز» on the
-      trainer's home, the tab «حضور» on the student's page by Jalali month
-- [ ] **Release 2**
+- [x] **15.7b, the screens** (built 1405/08/13, `task/15.6-timetable`, `web/src/site/attendance/`):
+      «حضور امروز» (`/today`, from «سانس‌های امروز»; a box per session with each student's
+      state and check-in time, refreshes every minute and says when it last did); the card
+      «غایبان امروز» at the top of the trainer's home, only when a session has ended with someone
+      absent; «حضور» beside «برنامهٔ ثابت» in «شاگردان من» (`/students/:memberId/attendance`, a
+      page of its own rather than a tab): a Jalali month with «ماه قبل» / «ماه بعد» up to this
+      one, the totals in five small boxes, each session with its state and an earlier trainer's name
+- [ ] **Release 2** *held* (the developer, 1405/08/13): nothing goes out after 15.7; the work goes
+      on until a trainer can manage a student, and the release comes then, with all of it
 
 ### Release 3 — The monthly assessment (priority 2)
 

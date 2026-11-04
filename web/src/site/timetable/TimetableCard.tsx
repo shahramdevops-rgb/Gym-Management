@@ -1,4 +1,4 @@
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, UserCheck } from "lucide-react";
 import { Link } from "react-router";
 
 import { LoadingState } from "@/components/States";
@@ -14,8 +14,8 @@ import { VipBadge } from "./VipBadge";
 
 /**
  * The trainer's sessions today on the home screen, each with its students out of its capacity
- * (15.6b), and the way into «تمام سانس‌های من» (BUSINESS_RULES.md §15 *The trainer's sessions*,
- * roadmap 15.6a).
+ * (15.6b), and the ways into «حضور امروز» (15.7) and «تمام سانس‌های من» (BUSINESS_RULES.md §15
+ * *The trainer's sessions*, roadmap 15.6a).
  */
 export function TimetableCard() {
   const timetable = useTimetable();
@@ -54,12 +54,20 @@ export function TimetableCard() {
             ))}
           </ul>
         )}
-        <Button asChild variant="outline" className="w-full">
-          <Link to={sitePaths.timetable}>
-            <CalendarDays aria-hidden />
-            تمام سانس‌های من
-          </Link>
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button asChild variant="outline">
+            <Link to={sitePaths.today}>
+              <UserCheck aria-hidden />
+              حضور امروز
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to={sitePaths.timetable}>
+              <CalendarDays aria-hidden />
+              تمام سانس‌های من
+            </Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

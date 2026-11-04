@@ -2379,3 +2379,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **When the API's clock is the real one, call the handler with a fake one.** The timetable can only be built from tomorrow, so the tests build it through the API, write check-ins as the desk would, then construct the handler with a `GymCalendar` over a `FakeTimeProvider` set to that later day.
 - **A database rule shows up in test setup too.** One open visit per member (a partial unique index) refused the second check-in of a test until the first was checked out: the invariant holds even for test data.
 - **My notes:**
+
+## 15.7b — Attendance for the trainer, the screens (صفحه‌های حضور)
+
+- **`refetchInterval` makes a page live without a socket.** TanStack Query asks again every 60 seconds while «حضور امروز» is mounted; the home's card uses the same query key with no interval, so both read one cache and the page's refresh updates the card too.
+- **Say how old the figures are.** `dataUpdatedAt` is shown under the page, and when a refresh fails the last answer stays on screen with a line saying from what time it is.
+- **One query key family for related reads.** The attendance keys sit under the bookings' key, so a change of a schedule or of the timetable (which invalidates that family) reads attendance again without naming it.
+- **Mock the API at the browser's edge for screenshots.** Playwright's `page.route` answered `/api/...` while the real dev server served the real app; a route pattern like `**/api/**` also caught a source file whose path held `/api/`, so the filter checks the pathname's start.
+- **My notes:**

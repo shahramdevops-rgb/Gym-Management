@@ -124,6 +124,14 @@ export function TrainerArea() {
                   <div className="flex gap-2">
                     <Button asChild variant="secondary" size="sm">
                       <Link
+                        to={sitePaths.studentAttendance(student.memberId)}
+                        aria-label={`حضور ${student.fullName}`}
+                      >
+                        حضور
+                      </Link>
+                    </Button>
+                    <Button asChild variant="secondary" size="sm">
+                      <Link
                         to={sitePaths.student(student.memberId)}
                         aria-label={`برنامهٔ ثابت ${student.fullName}`}
                       >

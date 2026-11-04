@@ -2,6 +2,8 @@ import { Navigate, type RouteObject } from "react-router";
 
 import { LoadingState } from "@/components/States";
 
+import { StudentAttendancePage } from "./attendance/StudentAttendancePage";
+import { TodayPage } from "./attendance/TodayPage";
 import { SignInPage } from "./auth/pages/SignInPage";
 import { MySessionsPage } from "./bookings/MySessionsPage";
 import { StudentSchedulePage } from "./bookings/StudentSchedulePage";
@@ -38,6 +40,8 @@ export const siteRoutes: RouteObject[] = [
       { path: sitePaths.timetable, element: <TimetablePage /> },
       { path: sitePaths.studentPattern, element: <StudentSchedulePage /> },
       { path: sitePaths.mySessions, element: <MySessionsPage /> },
+      { path: sitePaths.today, element: <TodayPage /> },
+      { path: sitePaths.studentAttendancePattern, element: <StudentAttendancePage /> },
     ],
   },
   { path: "*", element: <Navigate to={sitePaths.home} replace /> },

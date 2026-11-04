@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 
+import { AbsentTodayCard } from "../attendance/AbsentTodayCard";
 import { useSiteLogout, useSiteMe } from "../auth/api";
 import { CancelledSessionsCard } from "../bookings/CancelledSessionsCard";
 import { MySessionsCard } from "../bookings/MySessionsCard";
@@ -85,6 +86,7 @@ export function HomePage() {
 
       {trainer !== null && (
         <>
+          <AbsentTodayCard />
           <TimetableCard />
           <TrainerArea />
         </>

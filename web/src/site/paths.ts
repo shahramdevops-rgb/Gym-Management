@@ -12,6 +12,11 @@ export const sitePaths = {
   studentPattern: "/students/:memberId",
   /** The member's «سانس‌های من» (15.6b). */
   mySessions: "/sessions",
+  /** The trainer's «حضور امروز» (15.7). */
+  today: "/today",
+  /** The trainer's «حضور» of one student, by Jalali month (15.7). */
+  studentAttendance: (memberId: string) => `/students/${memberId}/attendance`,
+  studentAttendancePattern: "/students/:memberId/attendance",
 } as const;
 
 /**
