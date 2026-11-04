@@ -41,17 +41,18 @@
         tour-shop D:\GymPicture\shop-wide-ai-clean.png, -tall: shop-tall-ai-clean.png
         tour-cafe D:\GymPicture\cafe-wide-ai-clean.png, -tall: cafe-tall-ai-clean.png
         tour-analysis D:\GymPicture\analysis-wide-ai-clean.png, -tall: analysis-tall-ai-clean.png
-        tour-cardio D:\GymPicture\cardio-wide-ai-clean.png, -tall: cardio-tall-ai-clean.png
+        tour-cardio D:\GymPicture\cardio-wide-2.png (2026-11-05, 4:3, whole), -tall: cardio-tall-ai-clean.png
         tour-stage D:\GymPicture\stage-wide-ai-clean.png, -tall: stage-tall-ai-clean.png
+        tour-calisthenics D:\GymPicture\calisthenics-wide.png, -tall: calisthenics-tall.png (2026-11-05)
+        tour-crossfit D:\GymPicture\crossfit-wide.png, -tall: crossfit-tall.png (2026-11-05)
       The hero has five slides since 2026-11-04 (the sixth and its line «استیج فیگور، برای تمرین
       ژست‌ها.» were dropped by the developer).
       Every other photo in img/ except logo.png is still a PLACEHOLDER from Unsplash (free licence,
       no credit required), to be replaced by the gym's own photos under the same file names:
         tour-massage.webp J1trUf0Lj3Q
         tour-bodybuilding.webp k47w6BeapCs
-        tour-bodybuilding-2.webp m4Jqyv5VwqY   tour-bodybuilding-3.webp gzeTjGu3b_k
-        tour-bodybuilding-4.webp Hb_EpXSTL4I   tour-crossfit.webp 0Wra5YYVQJE
-        tour-calisthenics.webp uH8JDWuxFX8
+        tour-bodybuilding-2.webp m4Jqyv5VwqY
+        (The hall had four stops until 2026-11-05; the developer made it two.)
         gym-curl.webp b5boYWIR2vU   gym-deadlift.webp KaxVB5xh4Nw   gym-press.webp 8Hip5Ntz1WM
         gym-athlete.webp GLivMZcDfY0   rack.webp 3uWgVRLbJwI
       Since 2026-11-04 the gym's photos go in WHOLE, never cut or zoomed by hand (the developer
@@ -329,8 +330,10 @@
 
       <!--
         The hall as a walk: the stage stays on screen while the page scrolls past it; a bronze
-        line leaves the door and stops at each room, the plan zooms onto it and its photo fills
-        the stage. site.js drives it from the scroll; without it the stage shows the whole plan.
+        line leaves the door and stops at each room and its photo fills the stage, whole, with
+        its blurred mirror in the room left over; the plan is a small pane in a corner (on a
+        phone only the rooms and the line). site.js drives it from the scroll; without it the
+        stage shows the whole plan.
       -->
       <section class="plan" id="facilities" aria-labelledby="plan-title" data-plan>
         <div class="section-head wrap" data-reveal>
@@ -403,18 +406,6 @@
               </figure>
               <figure class="photo tour__photo">
                 <picture>
-                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-3-tall.webp" />
-                  <img src="./img/tour-bodybuilding-3.webp" alt="" loading="lazy" />
-                </picture>
-              </figure>
-              <figure class="photo tour__photo">
-                <picture>
-                  <source media="(max-width: 899px)" srcset="./img/tour-bodybuilding-4-tall.webp" />
-                  <img src="./img/tour-bodybuilding-4.webp" alt="" loading="lazy" />
-                </picture>
-              </figure>
-              <figure class="photo tour__photo">
-                <picture>
                   <source media="(max-width: 899px)" srcset="./img/tour-stage-tall.webp" />
                   <img src="./img/tour-stage.webp" alt="" loading="lazy" />
                 </picture>
@@ -435,7 +426,7 @@
 
             <div class="tour__caption">
               <p class="tour__count">
-                <span data-tour-count>۰۰</span><span class="tour__of"> / ۱۴</span>
+                <span data-tour-count>۰۰</span><span class="tour__of"> / ۱۲</span>
               </p>
               <ol class="tour__names">
                 <li class="is-active">
@@ -472,19 +463,11 @@
                 </li>
                 <li>
                   <h3><span>سالن بدنسازی</span></h3>
-                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۱ از ۴</p>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۱ از ۲</p>
                 </li>
                 <li>
                   <h3><span>سالن بدنسازی</span></h3>
-                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۲ از ۴</p>
-                </li>
-                <li>
-                  <h3><span>سالن بدنسازی</span></h3>
-                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۳ از ۴</p>
-                </li>
-                <li>
-                  <h3><span>سالن بدنسازی</span></h3>
-                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۴ از ۴</p>
+                  <p>وزنه‌ی آزاد و دستگاه؛ بخش ۲ از ۲</p>
                 </li>
                 <li>
                   <h3><span>استیج فیگور</span></h3>
@@ -521,7 +504,7 @@
                 <rect class="plan__floor" x="56" y="16" width="1005" height="382" />
 
                 <!-- data-steps: the stops of the walk inside this room; a click goes to the first -->
-                <g class="zone" data-steps="8 9 10 11" tabindex="0" role="button">
+                <g class="zone" data-steps="8 9" tabindex="0" role="button">
                   <path
                     fill-rule="evenodd"
                     d="M256 16H1061V398H256Z M256 16H364V143H256Z M256 210H383V398H256Z M416 16H549V143H416Z M863 226H1061V398H863Z M1021 134H1061V226H1021Z"
@@ -529,15 +512,15 @@
                   <text x="562" y="240">سالن بدنسازی</text>
                 </g>
                 <!-- The old CrossFit room, split along the hall: calisthenics above, CrossFit below -->
-                <g class="zone" data-steps="13" tabindex="0" role="button">
+                <g class="zone" data-steps="11" tabindex="0" role="button">
                   <rect x="863" y="226" width="198" height="86" />
                   <text x="980" y="269">کلیستنیکس</text>
                 </g>
-                <g class="zone" data-steps="14" tabindex="0" role="button">
+                <g class="zone" data-steps="12" tabindex="0" role="button">
                   <rect x="863" y="312" width="198" height="86" />
                   <text x="980" y="355">کراس‌فیت</text>
                 </g>
-                <g class="zone zone--tiny" data-steps="12" tabindex="0" role="button">
+                <g class="zone zone--tiny" data-steps="10" tabindex="0" role="button">
                   <rect x="1021" y="134" width="40" height="92" />
                   <text class="zone__long" x="1041" y="180" transform="rotate(-90 1041 180)">
                     استیج فیگور
@@ -596,10 +579,8 @@
                 />
 
                 <!-- The spots inside the big rooms, one per stop (and per photo) -->
-                <circle class="spot" data-step="8" cx="470" cy="316" r="7" />
-                <circle class="spot" data-step="9" cx="655" cy="316" r="7" />
-                <circle class="spot" data-step="10" cx="655" cy="100" r="7" />
-                <circle class="spot" data-step="11" cx="890" cy="100" r="7" />
+                <circle class="spot" data-step="8" cx="560" cy="316" r="7" />
+                <circle class="spot" data-step="9" cx="775" cy="100" r="7" />
 
                 <!-- The walk: a faint track, the bronze line drawn over it, and the walker -->
                 <path class="route route--track" data-route-track />
@@ -622,8 +603,6 @@
                 <button type="button" aria-label="هوازی"></button>
                 <button type="button" aria-label="سالن بدنسازی، بخش ۱"></button>
                 <button type="button" aria-label="سالن بدنسازی، بخش ۲"></button>
-                <button type="button" aria-label="سالن بدنسازی، بخش ۳"></button>
-                <button type="button" aria-label="سالن بدنسازی، بخش ۴"></button>
                 <button type="button" aria-label="استیج فیگور"></button>
                 <button type="button" aria-label="کلیستنیکس"></button>
                 <button type="button" aria-label="کراس‌فیت"></button>

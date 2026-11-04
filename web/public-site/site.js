@@ -39,6 +39,8 @@ function backdrops() {
     const frame = img.closest(".slide, .tour__photo");
     const set = () => {
       if (img.currentSrc) frame.style.setProperty("--backdrop", `url("${img.currentSrc}")`);
+      // The photo's shape, so site.css can find its edges inside the frame and soften them
+      if (img.naturalHeight) frame.style.setProperty("--ar", img.naturalWidth / img.naturalHeight);
     };
     img.addEventListener("load", set);
     if (img.complete) set();
@@ -553,15 +555,16 @@ const walk = [
   [404, 30],
   [404, 165],
   [470, 165, 7], // cardio
-  [470, 316, 8], // bodybuilding, its four spots
-  [655, 316, 9],
-  [655, 100, 10],
-  [890, 100, 11],
+  [470, 316],
+  [560, 316, 8], // bodybuilding, its two spots
+  [655, 316],
+  [655, 100],
+  [775, 100, 9],
   [995, 100],
-  [995, 180, 12], // the figure stage, on the wall
+  [995, 180, 10], // the figure stage, on the wall
   [890, 180],
-  [890, 269, 13], // calisthenics, the upper half of the old CrossFit room
-  [890, 355, 14], // crossfit, the lower half
+  [890, 269, 11], // calisthenics, the upper half of the old CrossFit room
+  [890, 355, 12], // crossfit, the lower half
 ];
 
 const lerp = (a, b, t) => a + (b - a) * t;

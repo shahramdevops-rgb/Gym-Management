@@ -2387,3 +2387,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **One query key family for related reads.** The attendance keys sit under the bookings' key, so a change of a schedule or of the timetable (which invalidates that family) reads attendance again without naming it.
 - **Mock the API at the browser's edge for screenshots.** Playwright's `page.route` answered `/api/...` while the real dev server served the real app; a route pattern like `**/api/**` also caught a source file whose path held `/api/`, so the filter checks the pathname's start.
 - **My notes:**
+
+## The tour's photos, whole and filling the screen (عکس کامل، صفحه‌ی پر)
+
+- **Fill the room a whole photo leaves with its own mirror.** The photo is shown with `object-fit: contain`, so it is never cut; behind it the same file is tiled at its own whole size and the layer flipped about the centre (`scale: -1 1`), which puts a mirrored copy against each edge. Blurred and a little darker, the hall seems to carry on past the photo.
+- **`background-origin: content-box` measures the tiles on one box and paints them on a bigger one.** The blurred layer reaches 3rem past the stage so the blur has no faded rim; with padding of the same size, `contain` still sizes each tile to the stage itself.
+- **Container units find a picture inside its box.** With `container-type: size` on the frame, `100cqw` and `100cqh` are its width and height, so `min(100cqw, 100cqh * var(--ar))` is the drawn photo's width; site.js gives `--ar` from the image's natural size, since photos differ in shape.
+- **A mask fades without cutting.** Two `linear-gradient` masks, one per axis, combined with `mask-composite: intersect`, make the photo's edges transparent from a little inside, so it melts into its mirror; a side with no mirror room gets a fade of zero and stays sharp.
+- **My notes:**

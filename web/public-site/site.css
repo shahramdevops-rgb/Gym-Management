@@ -141,7 +141,7 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(0.6) sepia(0.18) contrast(1.08) brightness(0.8);
+  filter: saturate(0.6) sepia(0.18) contrast(1.08) brightness(0.9);
   transition:
     transform 1.2s var(--ease-out),
     filter 1.2s var(--ease-out);
@@ -479,7 +479,7 @@ main > section[id] {
   height: 100%;
   object-fit: contain;
   object-position: 50% 20%;
-  filter: saturate(0.75) sepia(0.12) contrast(1.08) brightness(0.82);
+  filter: saturate(0.75) sepia(0.12) contrast(1.08) brightness(0.92);
 }
 
 /* The slide only fades in, no zoom (removed with the cutting) */
@@ -1139,7 +1139,7 @@ main > section[id] {
 }
 
 .js .tour.is-live {
-  height: calc(100svh + 14 * 45svh);
+  height: calc(100svh + 12 * 45svh);
 }
 
 .tour__stage {
@@ -1205,7 +1205,63 @@ main > section[id] {
   inset: -3rem;
   z-index: -1;
   background: var(--backdrop, none) center / cover no-repeat;
-  filter: blur(2rem) brightness(0.4) saturate(0.7);
+  filter: blur(2rem) brightness(0.46) saturate(0.7);
+}
+
+/* The tour's room is a mirror instead (2026-11-05): the photo, tiled at its own whole size and
+   the layer flipped about the centre, puts a mirrored copy against each edge, so the hall seems
+   to carry on past the photo, blurred and a little darker. The padding keeps the tiles measured
+   on the stage itself while the layer reaches past it, so the blur has no faded rim. The flip
+   follows the side the room is on: left and right when the screen is wider than the photo
+   (a computer's 16:9 files, a phone's 9:16 ones), above and below when it is taller. */
+.tour__photo::before {
+  inset: -3rem;
+  padding: 3rem;
+  background: var(--backdrop, none) center / contain repeat;
+  background-origin: content-box;
+  background-clip: border-box;
+  scale: -1 1;
+  filter: blur(0.45rem) saturate(0.6) sepia(0.18) brightness(0.8);
+}
+
+@media (min-width: 900px) and (max-aspect-ratio: 16/9),
+  (max-width: 899px) and (max-aspect-ratio: 9/16) {
+  .tour__photo::before {
+    scale: 1 -1;
+  }
+}
+
+/* The photo's own edges fade into its mirror, from a little inside the photo, so no frame line
+   shows where they meet. The drawn photo is found from the frame's size (container units) and
+   the photo's shape (--ar, from site.js). Only a side with mirror room fades: the band's width
+   times fifty is near zero only when there is no band, and a screen's own edge stays sharp. */
+.tour__photo {
+  container-type: size;
+}
+
+.tour__photo img {
+  --pw: min(100cqw, 100cqh * var(--ar, 1.7778));
+  --ph: min(100cqh, 100cqw / var(--ar, 1.7778));
+  --bx: calc((100cqw - var(--pw)) / 2);
+  --by: calc((100cqh - var(--ph)) / 2);
+  --fx: min(var(--bx) * 50, var(--pw) * 0.09);
+  --fy: min(var(--by) * 50, var(--ph) * 0.09);
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent var(--bx),
+      #000 calc(var(--bx) + var(--fx)),
+      #000 calc(100% - var(--bx) - var(--fx)),
+      transparent calc(100% - var(--bx))
+    ),
+    linear-gradient(
+      to bottom,
+      transparent var(--by),
+      #000 calc(var(--by) + var(--fy)),
+      #000 calc(100% - var(--by) - var(--fy)),
+      transparent calc(100% - var(--by))
+    );
+  mask-composite: intersect;
 }
 
 /* The name of the stop, large, with its count above */
@@ -1534,26 +1590,14 @@ main > section[id] {
   animation: ping 1.8s var(--ease-out) infinite;
 }
 
-@media (max-width: 899px) {
-  /* A phone: the plan across the top, the name at the bottom above the bar */
+@media (min-width: 900px) {
+  /* A computer, option A (2026-11-05): the photo still fills the stage; the plan a small pane
+     in the corner, its names drawn larger so they stay readable at this size */
   .tour__hud {
-    inset-inline: 0.5rem;
-    inset-block: calc(4.75rem + env(safe-area-inset-top)) auto;
-    width: auto;
-    padding: 0.4rem;
+    width: 24rem;
+    padding: 0.5rem;
   }
 
-  .tour__caption {
-    inset-block-end: 6.5rem;
-  }
-
-  .tour__hint {
-    display: none;
-  }
-
-  /* The whole hall, nearly the screen's width: every name is drawn larger so it can be read at
-     this size, each as large as its room allows, with a thinner outline. The figure stage is
-     too narrow for its full name and says «فیگور» */
   .room text,
   .zone text {
     stroke-width: 3px;
@@ -1563,7 +1607,6 @@ main > section[id] {
     font-size: 30px;
   }
 
-  /* The barber's long name in its narrow room */
   .zone--small text,
   .zone[data-steps="2"] text {
     font-size: 24px;
@@ -1577,12 +1620,54 @@ main > section[id] {
     font-size: 20px;
   }
 
+  /* The figure stage is too narrow for its full name at this size: «فیگور» */
   .zone .zone__long {
     display: none;
   }
 
   .zone .zone__short {
     display: inline;
+  }
+}
+
+@media (max-width: 899px) {
+  /* A phone (2026-11-05): the plan a small chip in the top corner, only the rooms, the line
+     and the walker (the name at the bottom says where it is); the photo has the screen */
+  .tour__hud {
+    inset-inline: auto 0.75rem;
+    inset-block: calc(4.75rem + env(safe-area-inset-top)) auto;
+    width: min(44vw, 12rem);
+    padding: 0.3rem;
+    background: rgb(13 14 17 / 0.45);
+  }
+
+  .tour__ticks,
+  .room text,
+  .zone text {
+    display: none;
+  }
+
+  /* Drawn thicker, or they vanish at this size */
+  .route--done {
+    stroke-width: 12;
+  }
+
+  .route--track {
+    stroke-width: 6;
+    stroke-dasharray: 4 16;
+  }
+
+  .spot {
+    r: 12;
+    stroke-width: 4;
+  }
+
+  .tour__caption {
+    inset-block-end: 6.5rem;
+  }
+
+  .tour__hint {
+    display: none;
   }
 }
 
@@ -1618,7 +1703,7 @@ main > section[id] {
 @media (hover: hover) {
   .gallery__item:hover img {
     transform: scale(1.04);
-    filter: saturate(0.9) sepia(0.05) contrast(1.05) brightness(0.92);
+    filter: saturate(0.9) sepia(0.05) contrast(1.05) brightness(1);
   }
 }
 
@@ -1779,7 +1864,7 @@ main > section[id] {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(0.6) sepia(0.18) contrast(1.08) brightness(0.85);
+  filter: saturate(0.6) sepia(0.18) contrast(1.08) brightness(0.95);
 }
 
 .coach__num {
@@ -1995,7 +2080,7 @@ main > section[id] {
 @media (hover: hover) {
   .shelf:hover .shelf__photo img {
     transform: scale(1.07);
-    filter: saturate(0.85) sepia(0.12) contrast(1.08) brightness(0.9);
+    filter: saturate(0.85) sepia(0.12) contrast(1.08) brightness(1);
   }
 
   .shelf:hover::after {
