@@ -183,7 +183,7 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 - Name search is partial, case-insensitive, and uses the normalized form. Phone search normalizes the input first.
 - Search and list (decided with the developer in task 2.2):
   - One search box takes a name or a phone number. Input made only of digits, `+`, spaces, dashes and brackets is a phone search; anything else is a name search.
-  - A whole phone number, in any format, finds the member with exactly that number. At least 4 digits that are not a whole number match anywhere in the stored number (leading zeros are dropped first, so `0912 123` works). Fewer digits, or a number that matches nobody, returns an empty list, not an error.
+  - A whole phone number, in any format, finds the member with exactly that number. At least 4 digits that are not a whole number match anywhere in the stored number (leading zeros are dropped first, so `0912 123` works). Fewer digits, or a number that matches nobody, returns an empty list, not an error. *Changes in 16.1 to the last 4 digits only (§16 *Phone search*).*
   - A search needs at least 2 characters after normalization (`Members.SearchTooShort`). A blank search lists everyone.
   - The list and search include inactive members by default, so staff can find someone to reactivate or correct. An optional filter shows only active or only inactive members.
   - A second, separate filter shows only members who owe something (§5 *Member debt*: debt above zero, counted the same way as the amount on their row). It combines with the status filter and the search, so "inactive and still owing" is one list. Asked by the developer on 1405/07/07, roadmap 6.5.20.
@@ -2828,3 +2828,124 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   the program fully, partly or not; water; sleep; optional weight and a photo of a meal), with a
   weekly summary for the trainer; no calorie counting. *Open:* the fields, and a field for medical
   conditions on the member's file.
+
+## 16. The online shop and site users (فروشگاه آنلاین و کاربران سایت)
+
+Decided with the developer on 1405/08/19 (2026-11-10), with ADR 0011 (proposed the same day),
+roadmap Phase 16. Each line says who decided it, as in §15:
+- *Decided by the developer* (1405/08/19): said by the developer, who is the gym's Owner.
+- *Proposed by Claude*: confirmed when its task's plan is approved.
+- *Open*: asked at the start of its task; nothing is built on it before then.
+
+### What the shop is
+- **An extra online sale, and nothing more.** The shop's sales, stock, payments and refunds never
+  enter any of the panel's sums: the till, the dashboard's figures, net profit, the reports or the
+  SMS report, and have nothing to do with the counter's shop items (§5, 6.5.29). *Decided by the
+  developer.*
+- **The panel may show the online sales in one place of their own**, for reading only, apart from
+  every figure above. *Decided by the developer* (1405/08/19). *Open:* who sees it (Claude proposes
+  the Owner only) and what it shows (Claude proposes the orders and their totals by day and month,
+  refunds apart).
+- **Buyers from anywhere in Iran**, who pay online on the site; the goods go by Tipax. *Decided by
+  the developer.* *Open:* whether a courier (پیک) inside the city stays as a second way.
+- **On the gym's site**, not on a separate shop site. *Decided by the developer.* Where on the site
+  (the site app, with the public page's «فروشگاه» section showing the products): *Proposed by
+  Claude* (ADR 0011), confirmed with 16.4.
+- **The payment gateway is in the name of whoever the eNamad is taken for.** The gym has no eNamad
+  yet; it is applied for meanwhile, and everything is built against the gateway's test environment
+  until it arrives. *Decided by the developer.* **The gateway is Zarinpal.** *Decided by the
+  developer* (1405/08/19).
+- **The shop's SMS go through the gym's Kavenegar account**, as every other SMS. *Decided by the
+  developer.* Their texts stay in the code (`SmsText`), as every kind's do except the broadcast.
+
+### The shop admin (مدیر فروشگاه)
+- **The Owner adds the shop admin like a staff account**: a user name and a temporary password, with
+  §1's password, lockout and trusted-device rules. *Decided by the developer.*
+- **The shop admin has a panel of their own** and sees only the shop: categories, products and their
+  photos, stock, orders, shipping, messages with customers, and their own contact links. Never the
+  members, the money, the lockers, the SMS settings or the audit log. *Decided by the developer.*
+  The role's name, `Shop` (فروشگاه): *Proposed by Claude.*
+- **Stock is typed by the shop admin by hand.** A sale at the counter does not change it; the shop
+  admin corrects it themselves. *Decided by the developer.*
+- **The shop admin's contact ways are shown to customers**: phone, Telegram, Rubika and others they
+  enter. *Decided by the developer.* *Open:* the list of kinds, and where on the site they show.
+- *Open:* whether the Owner sees the shop's pages too, and whether there may be more than one shop
+  admin.
+
+### Site users (کاربران سایت)
+- **A site user is someone who signed up on the site and has never had a plan or a visit.** In the
+  database they are the member §15's sign-up created; what they entered when signing up (name,
+  phone, birth date and anything later asked) stays on their profile. *Decided by the developer.*
+- **Site users are left out of the gym's work and counted nowhere**: not in the member list, not
+  in any of the gym's searches (the member list's, the check-in box's, the cafe's or any other),
+  not in the dashboard's or the reports' figures, not in the broadcast groups, not in the desk
+  panel's birthdays, and in no other list. As the site grows they would be many, and the gym's
+  screens must stay the gym's. *Decided by the developer* (1405/08/19, replacing the same day's
+  "the desk's search still finds a site user, marked «کاربر سایت»", proposed by Claude).
+- **They are shown on a page of their own, «کاربران سایت»**, with what they entered on the site,
+  for reading only. *Decided by the developer* (1405/08/19). *Proposed by Claude:* the Owner and
+  Staff see it, as the member list; it has its own search (a name, the last 4 digits or a whole
+  number, as §16 *Phone search*), newest first and paged, and it is the only search that finds
+  them.
+- **The first plan sold or the first visit checked in makes them a member like any other**, with the
+  same profile; nothing is copied or entered again. *Decided by the developer.* A member the desk
+  registered is never a site user, with or without a plan. *Proposed by Claude.*
+- **A site user who comes to the gym is brought in from the new-member form.** When the desk types
+  a whole phone number that belongs to a site user, the form says «این شماره در سایت ثبت‌نام کرده
+  است», shows the name and birth date they entered, and «ثبت به‌عنوان عضو» brings them in, so they
+  are never registered twice (which §2's unique phone would refuse). Only that exact number finds
+  them there. *Proposed by Claude, accepted by the developer* (1405/08/19).
+
+### Phone search (جست‌وجوی شماره)
+Decided by the developer on 1405/08/19, built in 16.1; it replaces §2's "at least 4 digits match
+anywhere in the stored number". Until 16.1 is released, §2's rule stands.
+- **Exactly 4 digits find every member whose number ends with them**: «4567» finds 0912 123 4567.
+  The digits are compared as typed, so «0567» finds a number ending in 0567.
+- **A whole number, in any format, still finds exactly that member**, as today.
+- **Anything else finds nothing**: the start of a number («0912»), its middle, or more or fewer than
+  4 digits that are not a whole number. An empty list, not an error.
+- **The same rule everywhere a phone is searched**: the member list, the desk's check-in box and the
+  «کاربران سایت» page. Only that page finds a site user (*Site users* above).
+
+### Products (کالا)
+- **A product may come in variants**: size, flavour, colour, weight and anything else a gym's shop
+  sells, defined by the shop admin rather than fixed in the code. *Decided by the developer.*
+- *Proposed by Claude:* each variant (for example «پروتئین وی، شکلاتی، ۲ کیلو») has its own stock,
+  and may have its own price; a product without variants is one variant.
+
+### Customers
+- **A customer signs in with the site's phone and one-time code** (§15); one account serves the shop
+  and the gym, and a buyer who never comes to the gym stays a site user. *Proposed by Claude,
+  accepted by the developer* (1405/08/19).
+- **The shop admin sees of a customer only what an order needs**: name, phone, the delivery address
+  and the order. *Proposed by Claude.*
+
+### Orders, payment and delivery
+- **The buyer pays only the goods online, at checkout.** **The Tipax fee is the buyer's, paid to
+  Tipax when the parcel reaches them** (پس‌کرایه); the site never charges or records it, and says
+  so before payment. *Decided by the developer* (1405/08/19, replacing "the goods and the delivery
+  fee online").
+- **Returns and refunds follow Iran's law and common practice, and are documented.** The money goes
+  back after the returned goods reach the shop, and every refund is an entry with its reason, never
+  a deletion (ADR 0008). *Decided by the developer.*
+  - What the law says, to be checked when 16.9's returns page is written: Iran's E-Commerce Law
+    (قانون تجارت الکترونیکی), article 37, gives a buyer at a distance at least 7 working days to
+    withdraw without a reason, with only the cost of sending the goods back on them; some goods may
+    be excepted (for example an opened food supplement). The returns page states the days, the
+    conditions and who pays the return, and the Owner approves its text.
+  - *Proposed by Claude:* the money goes back through Zarinpal's refund where the account allows it,
+    otherwise by the shop admin's bank transfer to the card the buyer gives, recorded with its
+    tracking number.
+- *Proposed by Claude:* an order's steps are paid → being prepared → sent (with the Tipax tracking
+  code) → delivered, or cancelled; the customer gets an SMS at the steps the developer picks
+  (*Open*).
+- *Open:* when stock is taken (at payment, Claude proposes), and what happens when two people pay
+  for the last item at once (the database refuses stock below zero; the second payment is refunded).
+
+### Messages with customers
+- **The customer and the shop admin write to each other under an order**, on the site and in the
+  shop admin's panel. *Decided by the developer.* *Open:* whether a new message is also told by SMS.
+
+### Pages the eNamad needs
+- *Proposed by Claude:* about us, contact, terms and returns on the site; the Owner gives their
+  texts.

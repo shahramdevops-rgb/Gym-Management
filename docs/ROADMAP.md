@@ -58,6 +58,8 @@ Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 ac
   merged and released as Release 1 (`20261030-0329-ad005a3`, 1405/08/08, a quiet launch); the next
   step is **15.6, the trainer's timetable**. Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
+- **Queued: the online shop and site users (Phase 16)**, asked by the developer on 1405/08/19
+  (2026-11-10); 16.0's documents written, waiting for the developer's confirmation
 
 ---
 
@@ -4840,6 +4842,117 @@ alert is in the app only. Worked out from the check-ins, no table and no migrati
 Later, not in this phase: buying a plan on the site (online payment); push notifications (on
 Android they pass through Google's servers, unreliable from Iran); help from an AI model to draft
 programs (trainer-feature discussion, 1405/07/17).
+
+---
+
+## Phase 16 — The online shop and site users (فروشگاه آنلاین و کاربران سایت)
+Asked by the developer on 1405/08/19 (2026-11-10): an online shop on the gym's site for buyers
+anywhere in Iran, run by a shop admin with a panel of their own, separate from the gym's money and
+the counter's stock; and a «کاربران سایت» page for people who signed up on the site and never came.
+The decision is ADR 0011 (proposed) and the rules are BUSINESS_RULES.md §16, where each line says
+whether it is decided, proposed or open, as in Phase 15.
+
+How it is built:
+- On its own branch per task, plan first, one task per session, as Phase 15. Every task ends with
+  green tests, a `code-reviewer` pass and a short LEARNING.md entry.
+- The production server holds real data: every migration only adds, and no existing member, plan,
+  visit or payment changes. Releases late at night with `./backup.sh run` first.
+- The gym has no eNamad yet (applied for meanwhile): payment is built against the gateway's test
+  environment, and the real merchant account is plugged in when the eNamad arrives, as the last
+  step before the shop opens.
+- *Open:* how the phase is released (16.1 alone first, Claude proposes, since it is useful on its
+  own; the shop as one release once payment works).
+
+### 16.0 The decision (docs only)
+- [x] ADR 0011, BUSINESS_RULES.md §16 and this phase written, branch `task/16-shop-plan`
+      (1405/08/19)
+- [ ] The developer reads them and confirms; ADR 0011 accepted
+- [ ] CLAUDE.md's "The panel, for 1 Owner and a few Staff" and §1's roles changed: the panel also
+      has shop admins, who see only the shop
+
+### 16.1 Site users and the phone search (کاربران سایت، جست‌وجو با ۴ رقم آخر)
+- [ ] Asked first: §16's proposed lines under *Site users* (who sees the page, its search)
+- [ ] A site user: signed up on the site, never a plan, never a visit (§16). **Left out of the
+      gym's work** (the developer, 1405/08/19): every query that lists, searches or counts members
+      is found and leaves them out (member list, check-in box, cafe, dashboard, reports, broadcast
+      groups, the desk panel's birthdays, …), with a test per place; the first plan or visit makes
+      them a member with nothing copied
+- [ ] The «کاربران سایت» page: read-only, what they entered on the site, its own search, newest
+      first and paged; the only place that finds them
+- [ ] The new-member form: a whole phone that belongs to a site user shows «این شماره در سایت
+      ثبت‌نام کرده است» with their name and birth date, and «ثبت به‌عنوان عضو» brings them in
+- [ ] **Phone search by the last 4 digits only** (§16 *Phone search*, asked by the developer
+      1405/08/19): exactly 4 digits match the end of the number, compared as typed (today's code
+      drops leading zeros, `ListMembersHandler`); a whole number still finds exactly that member;
+      the start, the middle or any other length finds nothing. In the member list, the
+      check-in box and the «کاربران سایت» page. §2's line is then replaced by §16's
+- [ ] Tests: integration (a site user missing from every list, search and figure but on its page,
+      brought in from
+      the new-member form, becoming a member by a plan and by a visit, the search's four cases
+      including «0567»); the screens walked in Chrome
+
+### 16.2 The shop admin and their panel (مدیر فروشگاه)
+- [ ] Asked first: whether the Owner sees the shop's pages, and more than one shop admin
+- [ ] The `Shop` role and the `ShopAdmin` policy (ADR 0011); the Owner adds a shop admin on the
+      staff page like a staff account; every existing staff endpoint refuses them (a test walks
+      them all, as `EndpointAuthorizationTests` does)
+- [ ] The panel shows a shop admin a layout of its own with the shop's pages only (empty until
+      16.3); the admin's contact ways (phone, Telegram, Rubika, …) entered there
+
+### 16.3 Categories, products and photos (دسته‌بندی، کالا و گالری)
+- [ ] Asked first: the image library (ADR 0010 and 0011), a product's fields (name, description,
+      more than one photo), and the variants' design (§16 *Products*: a price per variant or not)
+- [ ] Categories and products with **variants the shop admin defines** (size, flavour, weight, …;
+      decided by the developer 1405/08/19), each variant with its stock typed by hand (never below
+      zero, a check constraint); a product hidden or shown on the site; never deleted once sold
+- [ ] Photos uploaded, re-encoded and stored on a volume, in `backup.sh` and the restore (the
+      restore drill in docs/DEPLOYMENT.md covers files)
+
+### 16.4 The shop on the site (ویترین)
+- [ ] Asked first: where the catalogue lives (ADR 0011 proposes the site app, with the public
+      page's «فروشگاه» section showing the products and linking in)
+- [ ] The catalogue by category and each product's page, open to anyone without signing in; the
+      public page's placeholder shelves replaced; it still works when the API is down
+
+### 16.5 Cart, address and order (سبد خرید و سفارش)
+- [ ] Asked first: what an address holds, and whether a courier (پیک) stays beside Tipax
+- [ ] A signed-in customer's cart (product variants), delivery address, and the order, unpaid until
+      16.6; the Tipax fee is paid by the buyer on delivery (پس‌کرایه, decided 1405/08/19), and the
+      checkout says so before payment
+
+### 16.6 Online payment (پرداخت آنلاین)
+- [ ] Asked first: when stock is taken, two payments for the last item
+- [ ] `IPaymentGateway` in Application, **Zarinpal** (decided 1405/08/19) in Infrastructure against
+      its test environment;
+      the server verifies every payment; each attempt its own row, the gateway's reference unique;
+      verifying twice records once; payments the gateway took but the system never confirmed are
+      found and settled
+- [ ] The real merchant account once the eNamad is there (server settings, proposed and confirmed
+      first)
+
+### 16.7 Handling and delivery (رسیدگی و ارسال)
+- [ ] Asked first: the order's steps, which steps send an SMS, how a refund goes back (§16 proposes
+      Zarinpal's refund, else a bank transfer with its tracking number)
+- [ ] The shop admin's orders: new, being prepared, sent (with the Tipax tracking code), delivered,
+      cancelled; «my orders» for the customer; SMS through Kavenegar with texts in `SmsText`;
+      a return is refunded after the goods reach the shop, as an entry with its reason, never a
+      deletion (§16: Iran's law and common practice, documented)
+- [ ] Asked first as well: who sees the online sales in the panel and what it shows (§16)
+- [ ] **The online sales in the panel** (the developer, 1405/08/19): a read-only page of their own;
+      no figure of the dashboard, the reports, the till or net profit changes (a test proves the
+      dashboard's numbers are the same with and without shop orders)
+
+### 16.8 Messages with customers (پیام با مشتری)
+- [ ] Asked first: an SMS for a new message or not
+- [ ] Messages under an order, on the customer's side and the shop admin's; the admin's contact ways
+      shown to the customer
+
+### 16.9 The eNamad pages (صفحه‌های اینماد)
+- [ ] About us, contact, terms and returns on the site, with the Owner's texts; early, so the eNamad
+      application is not held up by them. The returns page follows the E-Commerce Law (article 37:
+      at least 7 working days to withdraw, return postage on the buyer; exceptions checked), §16
+- [ ] **The shop opens**: the real gateway, a test purchase on the server, then the public page links
+      the shop
 
 ---
 
