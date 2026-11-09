@@ -162,7 +162,11 @@ test("SiteBookings_TrainerPlacesAStudent_MemberLeavesAndMovesADate", async ({ pa
   const cancelled = page.getByRole("list", { name: "سانس‌های لغوشده" });
   await expect(cancelled).toContainText(`${tuesday}۱۳:۰۰ تا ۱۴:۰۰`);
   await shot(page, "5-member-home");
-  await page.getByRole("button", { name: "دیدم" }).click();
+  // «خبر مربی» (15.4d) is on the home too, with its own «دیدم»: this one is the card's.
+  await page
+    .locator('[data-slot="card"]', { has: cancelled })
+    .getByRole("button", { name: "دیدم" })
+    .click();
   await expect(cancelled).toBeHidden();
   await page.reload();
   await expect(page.getByRole("list", { name: "سانس‌های بعدی" })).toBeVisible();

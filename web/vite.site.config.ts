@@ -97,6 +97,11 @@ function publicSitePreview(): Plugin {
     configureServer(server) {
       server.middlewares.use((request, response, next) => {
         const path = (request.url ?? "").split("?")[0];
+        // The trainer card's «انتخاب این مربی» (15.4d), as Caddy's redirect on the server.
+        if (path === "/app/trainers") {
+          response.writeHead(302, { Location: "/trainers" }).end();
+          return;
+        }
         if (path === publicSitePrefix.slice(0, -1)) {
           response.writeHead(302, { Location: publicSitePrefix }).end();
           return;

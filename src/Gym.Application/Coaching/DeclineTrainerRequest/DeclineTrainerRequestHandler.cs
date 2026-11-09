@@ -10,7 +10,7 @@ namespace Gym.Application.Coaching.DeclineTrainerRequest;
 /// The trainer declines a member's request (BUSINESS_RULES.md §15). The member keeps their trainer
 /// now, if any, and may ask again, this trainer too.
 /// </summary>
-public sealed class DeclineTrainerRequestHandler(IAppDbContext db)
+public sealed class DeclineTrainerRequestHandler(IAppDbContext db, IGymCalendar calendar)
 {
     public async Task<Result<StudentsResponse>> Handle(Guid siteAccountId, Guid requestId, CancellationToken cancellationToken)
     {
@@ -31,7 +31,7 @@ public sealed class DeclineTrainerRequestHandler(IAppDbContext db)
             return Result.Failure<StudentsResponse>(CoachingErrors.RequestNotFound);
         }
 
-        var declined = request.Decline();
+        var declined = request.Decline(calendar.Today());
         if (declined.IsFailure)
         {
             return Result.Failure<StudentsResponse>(declined.Error);

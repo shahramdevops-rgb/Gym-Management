@@ -77,10 +77,85 @@ public sealed class TrainerRequestTests
     {
         var request = Pending();
 
-        request.Decline().IsSuccess.ShouldBeTrue();
+        request.Decline(Today).IsSuccess.ShouldBeTrue();
 
         request.Status.ShouldBe(TrainerRequestStatus.Declined);
         request.IsPending.ShouldBeFalse();
+    }
+
+    // ---- The answer the member is told of (15.4d) ----
+
+    [Fact]
+    public void Accept_Pending_KeepsTheDayOfTheAnswerUnseen()
+    {
+        var request = Pending();
+
+        request.Accept(Today.AddDays(2)).IsSuccess.ShouldBeTrue();
+
+        request.AnsweredOn.ShouldBe(Today.AddDays(2));
+        request.AnswerSeenAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Decline_Pending_KeepsTheDayOfTheAnswerUnseen()
+    {
+        var request = Pending();
+
+        request.Decline(Today.AddDays(1)).IsSuccess.ShouldBeTrue();
+
+        request.AnsweredOn.ShouldBe(Today.AddDays(1));
+        request.AnswerSeenAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Decline_NoLongerPending_FailsAndKeepsNoAnswer()
+    {
+        var request = Closed(TrainerRequestStatus.Cancelled);
+
+        request.Decline(Today).Error.ShouldBe(CoachingErrors.RequestNoLongerPending);
+
+        request.Status.ShouldBe(TrainerRequestStatus.Cancelled);
+        request.AnsweredOn.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(TrainerRequestStatus.Cancelled)]
+    [InlineData(TrainerRequestStatus.Replaced)]
+    [InlineData(TrainerRequestStatus.TrainerStopped)]
+    public void Close_WithoutTheTrainersAnswer_KeepsNoAnswer(TrainerRequestStatus closedAs)
+    {
+        Closed(closedAs).AnsweredOn.ShouldBeNull();
+    }
+
+    [Fact]
+    public void MarkAnswerSeen_Answered_KeepsTheMoment()
+    {
+        var request = Closed(TrainerRequestStatus.Declined);
+        var now = new DateTimeOffset(2026, 10, 30, 8, 0, 0, TimeSpan.Zero);
+
+        request.MarkAnswerSeen(now);
+
+        request.AnswerSeenAt.ShouldBe(now);
+    }
+
+    [Fact]
+    public void MarkAnswerSeen_Twice_KeepsTheFirstMoment()
+    {
+        var request = Closed(TrainerRequestStatus.Declined);
+        var first = new DateTimeOffset(2026, 10, 30, 8, 0, 0, TimeSpan.Zero);
+
+        request.MarkAnswerSeen(first);
+        request.MarkAnswerSeen(first.AddHours(1));
+
+        request.AnswerSeenAt.ShouldBe(first);
+    }
+
+    [Fact]
+    public void MarkAnswerSeen_NoAnswer_Throws()
+    {
+        var request = Pending();
+
+        Should.Throw<InvalidOperationException>(() => request.MarkAnswerSeen(DateTimeOffset.UnixEpoch));
     }
 
     [Fact]
@@ -130,7 +205,7 @@ public sealed class TrainerRequestTests
         var request = Pending();
         var closed = status switch
         {
-            TrainerRequestStatus.Declined => request.Decline(),
+            TrainerRequestStatus.Declined => request.Decline(Today),
             TrainerRequestStatus.Cancelled => request.Cancel(),
             TrainerRequestStatus.Replaced => request.Replace(),
             TrainerRequestStatus.TrainerStopped => request.EndForStoppedTrainer(),

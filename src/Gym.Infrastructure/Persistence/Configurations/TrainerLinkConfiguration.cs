@@ -22,6 +22,9 @@ public sealed class TrainerLinkConfiguration : IEntityTypeConfiguration<TrainerL
             table.HasCheckConstraint(
                 "ck_trainer_links_end_reason",
                 "end_reason IS NULL OR end_reason IN ('ByMember', 'ByTrainer', 'NewTrainer', 'TrainerStopped')");
+
+            // Only an end can be seen (task 15.4d).
+            table.HasCheckConstraint("ck_trainer_links_end_seen_at_with_ended_on", "end_seen_at IS NULL OR ended_on IS NOT NULL");
         });
 
         builder.Property(link => link.EndReason).HasConversion<string>().HasMaxLength(20);

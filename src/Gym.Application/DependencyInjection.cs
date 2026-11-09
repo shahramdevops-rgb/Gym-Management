@@ -55,10 +55,14 @@ using Gym.Application.Coaching.CancelTrainerRequest;
 using Gym.Application.Coaching.DeclineTrainerRequest;
 using Gym.Application.Coaching.EndMyTrainer;
 using Gym.Application.Coaching.EndStudent;
+using Gym.Application.Coaching.GetMyCoachingNews;
 using Gym.Application.Coaching.GetMyTrainer;
+using Gym.Application.Coaching.GetStudentNews;
 using Gym.Application.Coaching.GetStudents;
 using Gym.Application.Coaching.ListTrainerChoices;
 using Gym.Application.Coaching.RequestTrainer;
+using Gym.Application.Coaching.SeeMyCoachingNews;
+using Gym.Application.Coaching.SeeStudentNews;
 using Gym.Application.Expenses.CreateExpenseCategory;
 using Gym.Application.Expenses.GetExpense;
 using Gym.Application.Expenses.ListExpenseCategories;
@@ -248,6 +252,10 @@ public static class DependencyInjection
         services.AddScoped<AcceptTrainerRequestHandler>();
         services.AddScoped<DeclineTrainerRequestHandler>();
         services.AddScoped<EndStudentHandler>();
+        services.AddScoped<GetMyCoachingNewsHandler>();
+        services.AddScoped<SeeMyCoachingNewsHandler>();
+        services.AddScoped<GetStudentNewsHandler>();
+        services.AddScoped<SeeStudentNewsHandler>();
 
         // The member's own records on the site (BUSINESS_RULES.md §15, task 15.5).
         services.AddScoped<GetMyDetailsHandler>();

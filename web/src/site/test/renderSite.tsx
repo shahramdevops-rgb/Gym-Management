@@ -109,6 +109,8 @@ export const emptyCoaching = {
       openings: [],
     }),
   "GET /api/site/me/sessions/cancelled": () => json(200, { sessions: [], latest: null }),
+  "GET /api/site/coaching/my-trainer/news": () => json(200, { items: [] }),
+  "GET /api/site/coaching/students/news": () => json(200, { items: [] }),
 };
 
 const emptyPage = { items: [], page: 1, pageSize: 10, totalCount: 0 };

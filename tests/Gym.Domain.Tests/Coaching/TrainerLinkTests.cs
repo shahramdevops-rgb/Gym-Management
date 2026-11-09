@@ -54,6 +54,39 @@ public sealed class TrainerLinkTests
         link.EndReason.ShouldBe(TrainerLinkEndReason.NewTrainer);
     }
 
+    // ---- The end the other side is told of (15.4d) ----
+
+    [Fact]
+    public void End_Open_IsNotSeenYet()
+    {
+        var link = Open();
+
+        link.End(StartedOn, TrainerLinkEndReason.ByTrainer).IsSuccess.ShouldBeTrue();
+
+        link.EndSeenAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void MarkEndSeen_Twice_KeepsTheFirstMoment()
+    {
+        var link = Open();
+        link.End(StartedOn, TrainerLinkEndReason.ByMember).IsSuccess.ShouldBeTrue();
+        var first = new DateTimeOffset(2026, 10, 21, 8, 0, 0, TimeSpan.Zero);
+
+        link.MarkEndSeen(first);
+        link.MarkEndSeen(first.AddHours(1));
+
+        link.EndSeenAt.ShouldBe(first);
+    }
+
+    [Fact]
+    public void MarkEndSeen_Open_Throws()
+    {
+        var link = Open();
+
+        Should.Throw<InvalidOperationException>(() => link.MarkEndSeen(DateTimeOffset.UnixEpoch));
+    }
+
     private static TrainerLink Open() =>
         TrainerRequest.Create(Guid.CreateVersion7(), Guid.CreateVersion7(), StartedOn, madeToday: 0).Value.Accept(StartedOn).Value;
 }

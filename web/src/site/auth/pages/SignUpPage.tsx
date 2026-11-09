@@ -13,6 +13,7 @@ import { normalizePersianText } from "@/lib/normalize";
 
 import { SiteFrame } from "../../components/SiteFrame";
 import { sitePaths } from "../../paths";
+import { returnToStore } from "../returnTo";
 import { useSignUp } from "../api";
 import { useSiteSessionState } from "../session";
 import { signUpTicketStore } from "../signUpTicket";
@@ -37,8 +38,9 @@ export function SignUpPage() {
     defaultValues: { fullName: "", birthDate: "" },
   });
 
+  // On to the page they were opening, if any (roadmap 15.4d), or the home.
   if (state.status === "signedIn") {
-    return <Navigate to={sitePaths.home} replace />;
+    return <Navigate to={returnToStore.target()} replace />;
   }
 
   // Opened without a code just before it (a reload, a bookmark): the phone is proved first.

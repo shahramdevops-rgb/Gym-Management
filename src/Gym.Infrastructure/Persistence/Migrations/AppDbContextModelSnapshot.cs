@@ -1042,6 +1042,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("end_reason");
 
+                    b.Property<DateTimeOffset?>("EndSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_seen_at");
+
                     b.Property<DateOnly?>("EndedOn")
                         .HasColumnType("date")
                         .HasColumnName("ended_on");
@@ -1097,6 +1101,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_trainer_links_end_reason_with_ended_on", "(ended_on IS NULL) = (end_reason IS NULL)");
 
+                            t.HasCheckConstraint("ck_trainer_links_end_seen_at_with_ended_on", "end_seen_at IS NULL OR ended_on IS NOT NULL");
+
                             t.HasCheckConstraint("ck_trainer_links_ended_on_not_before_started_on", "ended_on IS NULL OR ended_on >= started_on");
                         });
                 });
@@ -1107,6 +1113,14 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AnswerSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("answer_seen_at");
+
+                    b.Property<DateOnly?>("AnsweredOn")
+                        .HasColumnType("date")
+                        .HasColumnName("answered_on");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1161,6 +1175,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                     b.ToTable("trainer_requests", null, t =>
                         {
+                            t.HasCheckConstraint("ck_trainer_requests_answer_seen_at_with_answer", "answer_seen_at IS NULL OR status IN ('Accepted', 'Declined')");
+
+                            t.HasCheckConstraint("ck_trainer_requests_answered_on_with_answer", "answered_on IS NULL OR status IN ('Accepted', 'Declined')");
+
                             t.HasCheckConstraint("ck_trainer_requests_status", "status IN ('Pending', 'Accepted', 'Declined', 'Cancelled', 'Replaced', 'TrainerStopped')");
                         });
                 });

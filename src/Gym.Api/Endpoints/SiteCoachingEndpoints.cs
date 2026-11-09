@@ -9,10 +9,14 @@ using Gym.Application.Coaching.CancelTrainerRequest;
 using Gym.Application.Coaching.DeclineTrainerRequest;
 using Gym.Application.Coaching.EndMyTrainer;
 using Gym.Application.Coaching.EndStudent;
+using Gym.Application.Coaching.GetMyCoachingNews;
 using Gym.Application.Coaching.GetMyTrainer;
+using Gym.Application.Coaching.GetStudentNews;
 using Gym.Application.Coaching.GetStudents;
 using Gym.Application.Coaching.ListTrainerChoices;
 using Gym.Application.Coaching.RequestTrainer;
+using Gym.Application.Coaching.SeeMyCoachingNews;
+using Gym.Application.Coaching.SeeStudentNews;
 
 namespace Gym.Api.Endpoints;
 
@@ -72,6 +76,18 @@ public static class SiteCoachingEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        member.MapGet("/my-trainer/news", async (ClaimsPrincipal user, GetMyCoachingNewsHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
+            .WithName("GetMyCoachingNews")
+            .Produces<CoachingNewsResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        member.MapPost("/my-trainer/news/seen", async (ClaimsPrincipal user, SeeCoachingNewsCommand command, SeeMyCoachingNewsHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), command, ct)).ToHttpResult())
+            .WithName("SeeMyCoachingNews")
+            .Produces<CoachingNewsResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         var trainer = app.MapGroup(root)
             .WithTags("Site coaching")
             .RequireAuthorization(Policies.SiteTrainer)
@@ -102,6 +118,18 @@ public static class SiteCoachingEndpoints
                 (await handler.Handle(SiteUser.AccountId(user), memberId, ct)).ToHttpResult())
             .WithName("EndStudent")
             .Produces<StudentsResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        trainer.MapGet("/students/news", async (ClaimsPrincipal user, GetStudentNewsHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
+            .WithName("GetStudentNews")
+            .Produces<CoachingNewsResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        trainer.MapPost("/students/news/seen", async (ClaimsPrincipal user, SeeCoachingNewsCommand command, SeeStudentNewsHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), command, ct)).ToHttpResult())
+            .WithName("SeeStudentNews")
+            .Produces<CoachingNewsResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         return app;

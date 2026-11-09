@@ -14,9 +14,20 @@ public sealed class TrainerRequestConfiguration : IEntityTypeConfiguration<Train
     public void Configure(EntityTypeBuilder<TrainerRequest> builder)
     {
         builder.ToTable("trainer_requests", table =>
+        {
             table.HasCheckConstraint(
                 "ck_trainer_requests_status",
-                "status IN ('Pending', 'Accepted', 'Declined', 'Cancelled', 'Replaced', 'TrainerStopped')"));
+                "status IN ('Pending', 'Accepted', 'Declined', 'Cancelled', 'Replaced', 'TrainerStopped')");
+
+            // Only the trainer's answer has a day and can be seen (task 15.4d). The answers given
+            // before 15.4d have no day, and were marked seen by its migration.
+            table.HasCheckConstraint(
+                "ck_trainer_requests_answered_on_with_answer",
+                "answered_on IS NULL OR status IN ('Accepted', 'Declined')");
+            table.HasCheckConstraint(
+                "ck_trainer_requests_answer_seen_at_with_answer",
+                "answer_seen_at IS NULL OR status IN ('Accepted', 'Declined')");
+        });
 
         builder.Property(request => request.Status).HasConversion<string>().HasMaxLength(20);
 

@@ -4472,20 +4472,32 @@ Built 1405/08/07, not merged or released.
       (`TrainerRequestSmsTests`, `SmsSettingsEndpointTests`), Vitest (the card, the switch saved)
 
 ##### 15.4d Coaching news in the app, and «انتخاب این مربی» on the public page
-Plan approved by the developer 1405/08/14 (2026-11-05), after Release 2; not started.
-- [ ] In the app only (no SMS; push is not used, see *Later* below): a card with «دیدم» on the
+Plan approved by the developer 1405/08/14 (2026-11-05), after Release 2; built 1405/08/19
+(2026-11-10) on `task/15.4d-coaching-news`, not merged or released.
+- [x] In the app only (no SMS; push is not used, see *Later* below): a card with «دیدم» on the
       home, as «سانس لغو شد», for: the trainer accepted / declined (to the member), the trainer
-      ended the link (to the member), the member ended it (to the trainer)
-- [ ] Asked, not yet answered: how long a card stays (Claude: until «دیدم», at most 30 days);
-      whether a member who changes trainer tells the old one («{شاگرد} مربی دیگری انتخاب کرد»);
-      whether the Owner stopping a trainer tells their students
-- [ ] No new table: when the member saw the answer (on the request) and when the other side saw
-      the end (on the link); the migration marks every earlier answer and end as seen, so the
-      server's real rows bring no old news
-- [ ] The public page's «انتخاب این مربی» opens `pasargadgymplus.ir/app/trainers` (a Caddy
-      redirect to the app's `/trainers`); the app keeps where a signed-out person was going and
-      opens it after signing in or up
-- [ ] §15 written with the decisions; tests (domain, integration, Vitest, screenshots)
+      ended the link (to the member), the member ended it (to the trainer). Built as «خبر مربی»
+      (`MyCoachingNewsCard`, under «سانس لغو شد») and «خبر شاگردان» (`StudentNewsCard`, at the top
+      of the trainer's area), `web/src/site/coaching/CoachingNewsCard.tsx`; one «دیدم» sends the ids
+      the card showed. API: `GET /api/site/coaching/my-trainer/news` + `POST .../news/seen`
+      (`SiteMember`), `GET /api/site/coaching/students/news` + `POST .../news/seen` (`SiteTrainer`)
+- [x] Answered 1405/08/19: a card stays until «دیدم», 30 days at most (Claude's proposal,
+      `CoachingNews.ShownForDays`); a member who changes trainer tells the old one nothing, and the
+      Owner stopping a trainer tells their students nothing ("not needed for now")
+- [x] No new table: `trainer_requests.answered_on` + `answer_seen_at`, `trainer_links.end_seen_at`,
+      with check constraints (only an answer has a day or is seen, only an end is seen); migration
+      `AddCoachingNews` marks every earlier answer and end as seen, so the server's real rows bring
+      no old news
+- [x] The public page's «انتخاب این مربی» (the first trainer's card; the empty two keep «به‌زودی»)
+      opens `pasargadgymplus.ir/app/trainers` (a Caddy redirect to the app's `/trainers`, and the
+      same in `vite.site.config.ts` for development); the app keeps where a signed-out person was
+      going (`site/auth/returnTo.ts`, `sessionStorage`) and opens it after signing in or up
+- [x] §15 written with the decisions; tests: domain (`CoachingNewsTests`, request and link),
+      integration `CoachingNewsTests` (19), Vitest `CoachingNewsCard.test.tsx` (8) and
+      `returnTo.test.tsx` (4), e2e (`siteCoaching.spec.ts` extended, a new public page test in
+      `siteApp.spec.ts`)
+- [ ] The developer looks at the wording on the screenshots
+- [x] Also on this branch: the public page hero's status wraps on a narrow phone (`66ebe2a`)
 
 #### 15.5 The member's home, first part
 Decided 1405/08/08 (§15 *The member's own records*): the member sees everything the panel's profile
@@ -4798,6 +4810,17 @@ alert is in the app only. Worked out from the check-ins, no table and no migrati
     Neshan links, the gallery, the 12-stop tour)
   - A rollback to `20261103-1408-cd5de81` is safe: the migrations only add tables, nullable
     columns and columns with defaults, and widen checks; the old version ignores them
+
+#### 15.7c The app's first download back under 500 kB (queued)
+Asked for by the developer 1405/08/19 (2026-11-10), after 15.4d. The site app's main script is
+689 kB (545 kB on 1405/08/12), over Vite's 500 kB, so the first opening on a weak mobile connection
+waits for every screen, the trainer's too. Not started.
+- [ ] The heavier pages become lazy routes, as the sign-up page already is: «تمام سانس‌های من»,
+      «برنامهٔ ثابت», «حضور امروز», a student's «حضور», «سانس‌های من», «انتخاب مربی»; each shows
+      `LoadingState` while its file downloads the first time
+- [ ] Measured before and after (`npm run build`), Vite's warning gone, ARCHITECTURE.md's line on
+      the first download true again; the installed app's service worker still keeps every file
+      for offline (`siteAppOffline.spec.ts`)
 
 ### Release 3 — The monthly assessment (priority 2)
 

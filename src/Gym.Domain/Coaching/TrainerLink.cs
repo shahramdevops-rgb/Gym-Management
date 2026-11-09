@@ -34,6 +34,14 @@ public sealed class TrainerLink : Entity
     /// <summary><c>null</c> while open.</summary>
     public TrainerLinkEndReason? EndReason { get; private set; }
 
+    /// <summary>
+    /// A moment (UTC): when the side told of the end pressed «دیدم» on it (task 15.4d), the member
+    /// when the trainer ended it, the trainer when the member did; <c>null</c> until then, and always
+    /// for an end nobody is told of (<see cref="CoachingNews.TellsMember"/>,
+    /// <see cref="CoachingNews.TellsTrainer"/>).
+    /// </summary>
+    public DateTimeOffset? EndSeenAt { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>: the second of two changes at once fails instead of overwriting.</summary>
     public uint Version { get; private set; }
 
@@ -55,5 +63,17 @@ public sealed class TrainerLink : Entity
         EndReason = reason;
 
         return Result.Success();
+    }
+
+    /// <summary>The side told of the end pressed «دیدم» (task 15.4d). A second press keeps the first moment.</summary>
+    /// <exception cref="InvalidOperationException">The link is still open.</exception>
+    public void MarkEndSeen(DateTimeOffset now)
+    {
+        if (IsOpen)
+        {
+            throw new InvalidOperationException("Only an ended link has an end to see.");
+        }
+
+        EndSeenAt ??= now;
     }
 }

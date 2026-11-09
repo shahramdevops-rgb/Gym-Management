@@ -721,13 +721,16 @@ function coaches() {
 
   let swiped = false;
   cards.forEach((card, i) => {
-    card.addEventListener("click", () => {
+    card.addEventListener("click", (e) => {
+      // The «انتخاب این مربی» link on the back leaves the page; the card does not flip under it.
+      if (e.target.closest("a")) return;
       if (swiped) return;
       if (i === current) card.classList.toggle("is-flipped");
       else go(i);
     });
     card.addEventListener("keydown", (e) => {
       if (e.key !== "Enter" && e.key !== " ") return;
+      if (e.target.closest("a")) return; // Enter on the link follows it
       e.preventDefault();
       card.click();
     });

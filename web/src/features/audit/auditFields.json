@@ -246,8 +246,16 @@
     "ServiceCharge": { "Kind": { "label": "نوع", "format": "serviceChargeKind" } },
     "Notification": { "Kind": { "label": "نوع", "format": "notificationKind" } },
     "SmsBroadcast": { "Status": { "label": "وضعیت", "format": "broadcastStatus" } },
-    "TrainerRequest": { "Status": { "label": "وضعیت", "format": "trainerRequestStatus" } },
-    "TrainerLink": { "StartedOn": { "label": "شروع" }, "EndedOn": { "label": "پایان" } },
+    "TrainerRequest": {
+      "Status": { "label": "وضعیت", "format": "trainerRequestStatus" },
+      "AnsweredOn": { "label": "روز پاسخ مربی" },
+      "AnswerSeenAt": { "label": "زمان دیدن پاسخ" }
+    },
+    "TrainerLink": {
+      "StartedOn": { "label": "شروع" },
+      "EndedOn": { "label": "پایان" },
+      "EndSeenAt": { "label": "زمان دیدن پایان" }
+    },
     "WeekPattern": { "StartsOn": { "label": "از تاریخ" } },
     "WeekPatternSession": {
       "PatternId": { "label": "الگو", "format": "reference" },

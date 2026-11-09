@@ -2405,6 +2405,11 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **The public page's top bar has one «ورود / ثبت‌نام» button** that opens the app, since signing
     in and signing up start on the same screen there. *Decided by the developer* (1405/08/07). It
     links `pasargadgymplus.ir/app`, redirected like `/qr`, so the page never names the app's host.
+  - **A trainer's card on the public page has «انتخاب این مربی»** (15.4d, plan approved by the
+    developer 1405/08/14): it links `pasargadgymplus.ir/app/trainers`, which opens the app's
+    «انتخاب مربی» list (not the one trainer: the app names no trainer in an address). A signed-out
+    visitor signs in or signs up first and is then taken there. Only the cards of real trainers
+    have it; the empty ones keep «به‌زودی».
 - **A member's program can be seen and followed without internet**: the program last opened stays
   on the phone, and what the member marks done while offline is sent when the phone is online
   again. *Decided by the developer* (1405/08/03); *Open:* what "marking done" holds (15.11).
@@ -2596,6 +2601,21 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     again. *Proposed by Claude, accepted with the plan.*
   - **When the Owner stops a trainer**, their links end that day and the requests waiting for them
     end too (*Trainers* above). The member's area shows no trainer, and they may pick another.
+  - **Each side hears of the other's answer or end in the app** (15.4d, plan approved by the
+    developer 1405/08/14, the rest decided 1405/08/19): a card with «دیدم» at the top of the home,
+    like «سانس لغو شد»; no SMS (a phone notification is not reliable from Iran for the app).
+    - The member's «خبر مربی»: the trainer accepted («{مربی} درخواست شما را پذیرفت و مربی شما
+      شد.»), declined («{مربی} درخواست شما را نپذیرفت.») or ended the link («{مربی} شما را از
+      شاگردانش برداشت.»). An acceptance whose link has ended since is no longer shown.
+    - The trainer's «خبر شاگردان»: a student ended the link («{شاگرد} مربی‌گری شما را تمام کرد.»).
+    - **Nobody is told** when another trainer takes the member over (the former trainer), nor when
+      the Owner stops a trainer (their students). *Decided by the developer, 1405/08/19, "for now".*
+    - **A card stays until «دیدم», 30 days at most** (its own day the first). *Proposed by Claude,
+      accepted by the developer 1405/08/19.* «دیدم» sees what the card showed; news that came after
+      stays.
+    - The answers and ends from before 15.4d are marked seen by its migration: the server's real
+      rows bring no old news. Those answers keep no day, since none was kept then.
+    - Wording by Claude, to be looked at by the developer with the screenshots.
   - **Everything here is in the audit log as «سیستم»** (§11), as the site's other actions.
 - **A new trainer sees the member's earlier assessments (the numbers), programs and attendance;
   earlier photos only if the member allows it.** *Proposed by Claude, accepted by the developer.*

@@ -1954,6 +1954,11 @@ main > section[id] {
   color: var(--muted);
 }
 
+/* A trainer who can be picked in the app (15.4d): the whole width of the card's back. */
+.coach__choose {
+  width: 100%;
+}
+
 .coach__pick {
   padding: 0.75rem;
   border: 1px dashed rgb(200 155 87 / 0.5);

@@ -747,7 +747,13 @@
                       <dd>همه‌روزه جز جمعه، ۱۰ صبح تا ۱۲ ظهر و ۳ عصر تا ۱۰ شب</dd>
                     </div>
                   </dl>
-                  <p class="coach__pick">انتخاب این مربی، به‌زودی</p>
+                  <!-- 15.4d: /app/trainers is redirected to the app's «انتخاب مربی» (Caddy on the
+                       server, web/vite.site.config.ts in development); a signed-out visitor signs in
+                       or up first and is then taken there. The list, not this trainer: the app
+                       names no trainer in an address. -->
+                  <a class="btn btn--bronze btn--small coach__choose" href="/app/trainers"
+                    >انتخاب این مربی</a
+                  >
                 </div>
               </div>
             </article>

@@ -10,6 +10,7 @@ import { AbsentTodayCard } from "../attendance/AbsentTodayCard";
 import { useSiteLogout, useSiteMe } from "../auth/api";
 import { CancelledSessionsCard } from "../bookings/CancelledSessionsCard";
 import { MySessionsCard } from "../bookings/MySessionsCard";
+import { MyCoachingNewsCard, StudentNewsCard } from "../coaching/CoachingNewsCard";
 import { MyTrainerCard } from "../coaching/MyTrainerCard";
 import { TrainerArea } from "../coaching/TrainerArea";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -71,6 +72,7 @@ export function HomePage() {
         (member.isActive ? (
           <>
             <CancelledSessionsCard />
+            <MyCoachingNewsCard />
             <MyPlanCard />
             <MyDebtCard />
             <MyTrainerCard />
@@ -86,6 +88,7 @@ export function HomePage() {
 
       {trainer !== null && (
         <>
+          <StudentNewsCard />
           <AbsentTodayCard />
           <TimetableCard />
           <TrainerArea />

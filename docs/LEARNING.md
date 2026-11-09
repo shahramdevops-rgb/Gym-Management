@@ -2402,3 +2402,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **`target="_blank"` with `rel="noopener"`.** The map opens in a new tab so the gym's page stays behind it; `noopener` stops the new page from reaching back to ours through `window.opener`.
 - **A short share link is a pointer, not the place.** `nshn.ir/…` and `balad.ir/p/…` name the gym's place on each service; moving the pin on Balad later changes what the link shows, not the link, so the site needs no change.
 - **My notes:**
+
+## 15.4d — Coaching news in the app, and the public page's trainer button (خبر مربی)
+
+- **"Seen" can live on the row the news is about.** Instead of a notifications table, the request keeps when its answer was seen and the link when its end was seen; the news is a query over rows that already exist, and nothing has to be written when the trainer acts.
+- **A migration that adds a feature must decide about old rows.** The server already holds answered requests and ended links; without `UPDATE … SET answer_seen_at = now()`, every member would wake up to old news after the release. Data migrations go in `migrationBuilder.Sql` beside the schema change.
+- **«دیدم» sends what was shown, not "everything".** The card posts the ids it displayed, so news that arrived between reading and pressing stays to be seen. The cancellations card does the same with a moment (`upTo`); ids fit here because the items are few and each has its own row.
+- **Ignoring other people's ids is quieter than refusing them.** The handler filters by the caller's own member or trainer id; an id that is not theirs simply changes nothing, and the answer gives no hint whether it exists.
+- **An enum needs `JsonStringEnumConverter` to reach the frontend as text.** Without it `Kind` came out as `0, 1, 2`; the attribute on the record's property makes the JSON and the generated TypeScript type say `"Accepted" | "Declined" | …`.
+- **Remember the way, not just the place.** `RequireSiteSession` writes the page a signed-out person was opening into `sessionStorage`, the sign-in and sign-up screens send them there when the session appears, and the protected page clears it once shown. Only the app's own paths are kept (`/…`, never `//host`), so the stored value can never send someone to another site.
+- **A render may run twice; only repeat-safe work belongs in it.** Remembering the page while rendering is safe (writing the same value twice changes nothing), and so is reading the target; clearing is not, so it waits for a `useEffect` after the page is shown. Cleared during render, React's strict mode could lose the value before the redirect used it.
+- **My notes:**
