@@ -2413,3 +2413,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **Remember the way, not just the place.** `RequireSiteSession` writes the page a signed-out person was opening into `sessionStorage`, the sign-in and sign-up screens send them there when the session appears, and the protected page clears it once shown. Only the app's own paths are kept (`/…`, never `//host`), so the stored value can never send someone to another site.
 - **A render may run twice; only repeat-safe work belongs in it.** Remembering the page while rendering is safe (writing the same value twice changes nothing), and so is reading the target; clearing is not, so it waits for a `useEffect` after the page is shown. Cleared during render, React's strict mode could lose the value before the redirect used it.
 - **My notes:**
+
+## 15.7c — The app's pages downloaded when first opened (جدا بارگذاری)
+
+- **A lazy route is a page in its own file.** `lazy: () => import("./TimetablePage")` makes Vite cut the page into a separate script that the router downloads the first time the page is opened; the first opening of the app no longer waits for it.
+- **Weigh before cutting.** The source map says which file and package produced each byte of the bundle; the pages themselves were 2–8 kB each, and the real weight was a calendar package that two pages pulled in through `FormField.tsx`. Making those two pages lazy moved 85 kB at once.
+- **A warning that disappears is not a goal reached.** Vite warns per file. After the cut, the shared code became its own 212 kB file next to a 345 kB one, so the warning went while the first download was still 552 kB. Measure what `index.html` actually loads (its script and the files it imports), not the warning.
+- **Some weight cannot move.** React, the router and the query library are needed by every screen; about 370 kB of the first download is the foundation, and only what a person may never use (the sign-in screen for someone signed in, the panel's error messages) is still worth moving.
+- **Lazy files need a plan for releases and offline.** A tab opened before a release may ask for a file that no longer exists (`installStaleChunkReload` reloads once), and the installed app's service worker keeps every file of the build, the lazy ones too, so nothing is missing offline.
+- **My notes:**

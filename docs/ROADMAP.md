@@ -4811,16 +4811,25 @@ alert is in the app only. Worked out from the check-ins, no table and no migrati
   - A rollback to `20261103-1408-cd5de81` is safe: the migrations only add tables, nullable
     columns and columns with defaults, and widen checks; the old version ignores them
 
-#### 15.7c The app's first download back under 500 kB (queued)
-Asked for by the developer 1405/08/19 (2026-11-10), after 15.4d. The site app's main script is
-689 kB (545 kB on 1405/08/12), over Vite's 500 kB, so the first opening on a weak mobile connection
-waits for every screen, the trainer's too. Not started.
-- [ ] The heavier pages become lazy routes, as the sign-up page already is: «تمام سانس‌های من»,
-      «برنامهٔ ثابت», «حضور امروز», a student's «حضور», «سانس‌های من», «انتخاب مربی»; each shows
-      `LoadingState` while its file downloads the first time
-- [ ] Measured before and after (`npm run build`), Vite's warning gone, ARCHITECTURE.md's line on
-      the first download true again; the installed app's service worker still keeps every file
-      for offline (`siteAppOffline.spec.ts`)
+#### 15.7c The app's pages downloaded when first opened
+Asked for by the developer 1405/08/19 (2026-11-10), after 15.4d, and built the same day on
+`task/15.7c-lazy-routes` (made from 15.4d's branch), not merged or released. The site app's main
+script was 689 kB (545 kB on 1405/08/12), over Vite's 500 kB, so the first opening on a weak mobile
+connection waited for every screen, the trainer's too.
+- [x] The heavier pages became lazy routes, as the sign-up page already was (`lazyPage` in
+      `site/routes.tsx`): «انتخاب مربی», «تمام سانس‌های من», «برنامهٔ ثابت», «سانس‌های من»,
+      «حضور امروز», a student's «حضور»; each shows `LoadingState` when opened straight on its
+      address. The two timetable pages took `JalaliDateField`, and with it the calendar package
+      (`components/FormField.tsx`, 85 kB), out of the first download
+- [x] Measured (the scripts `index.html` loads and what they import): the first download 689 →
+      552 kB; Vite's warning is gone only because the shared code became its own file
+      (`api-*.js`, 212 kB), not because the first download is under 500 kB. Left in it: React,
+      the router and the other base packages (~370 kB), the sign-in screen with React Hook Form
+      (~40 kB, never used by someone already signed in), `lib/errors.ts` (24 kB, every panel code)
+- [ ] Later, if wanted (the developer, 1405/08/19: "not needed for now, we decide when we add
+      more pages"): the sign-in screen as a lazy route (→ ~512 kB; a newcomer from the QR waits a
+      moment more) and the site's own copy of the error messages it needs (→ ~490 kB, with a test
+      that no site code is missing)
 
 ### Release 3 — The monthly assessment (priority 2)
 

@@ -226,9 +226,12 @@ web/site/           The site app's page (index.html), entry (main.ts) and public
   `api/emptyFailureAsProblem.ts`, `staleChunkReload.ts`). The site has its own session (`site/auth/session.ts`), fetch
   (`site/api/siteAuthFetch.ts`, refresh `/api/site/auth/refresh`, Web Lock `gym-site-refresh`) and client
   (`siteApi`); a site token is never sent to a staff endpoint. Its tests run with the panel's (`npm test`), through
-  `src/site/test/renderSite.tsx`. Its first download stays under Vite's 500 kB: the sign-in screens use
+  `src/site/test/renderSite.tsx`. Its first download is kept small: the sign-in screens use
   `components/InputField.tsx` (the plain `FormField`, without the date pickers) and React Hook Form's own rules rather
-  than Zod, and heavier pages are lazy routes. It follows the phone's light or dark setting and has no theme switch.
+  than Zod, and every page but the sign-in screen and the home is a lazy route (`lazyPage` in `site/routes.tsx`, 15.7c),
+  so the calendar package comes only with a page that has a date field. Since 15.7c it is 552 kB (React, the router and
+  the base packages about 370 of it); Vite's 500 kB warning is per file, so check the scripts `index.html` loads, not
+  the warning. A new page is a lazy route too. It follows the phone's light or dark setting and has no theme switch.
   Tailwind looks for classes from `web/` (`@import "tailwindcss" source("..")`), since the site's Vite root is `site/`.
   On the server it is its own Caddy host (`SITE_DOMAIN`, 15.3b) serving `dist-site/` and only `/api/site/*`. It installs
   as «My Gym» (`site/public/manifest.webmanifest`) and has a hand-written service worker: `site/sw.js` is a
