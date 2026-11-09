@@ -59,7 +59,7 @@ Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 ac
   step is **15.6, the trainer's timetable**. Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
 - **Queued: the online shop and site users (Phase 16)**, asked by the developer on 1405/08/19
-  (2026-11-10); 16.0's documents written, waiting for the developer's confirmation
+  (2026-11-10); 16.0 done (ADR 0011 accepted 1405/08/19); next **16.1**, site users and the phone search
 
 ---
 
@@ -4866,8 +4866,8 @@ How it is built:
 ### 16.0 The decision (docs only)
 - [x] ADR 0011, BUSINESS_RULES.md §16 and this phase written, branch `task/16-shop-plan`
       (1405/08/19)
-- [ ] The developer reads them and confirms; ADR 0011 accepted
-- [ ] CLAUDE.md's "The panel, for 1 Owner and a few Staff" and §1's roles changed: the panel also
+- [x] The developer read them and confirmed; ADR 0011 accepted (1405/08/19)
+- [x] CLAUDE.md's "The panel, for 1 Owner and a few Staff" and §1's roles changed: the panel also
       has shop admins, who see only the shop
 
 ### 16.1 Site users and the phone search (کاربران سایت، جست‌وجو با ۴ رقم آخر)

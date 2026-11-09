@@ -1,6 +1,6 @@
 # 0011. Run the online shop inside the system, with a shop admin role in the panel
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-10
 
 ## Context

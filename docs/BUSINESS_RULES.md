@@ -67,7 +67,7 @@ Decided values:
 - The panel is a closed system: it has no registration endpoint, and members and trainers never
   log in to it. They sign in on the site instead, with a phone code (§15, ADR 0010, decided
   1405/08/03; until then "Members never log in" held everywhere).
-- Roles: `Owner` and `Staff`.
+- Roles: `Owner` and `Staff`, and from Phase 16 `Shop`, the shop admin, who sees only the online shop and none of the gym (§16, ADR 0011, accepted 1405/08/19).
 - The Owner account is seeded at startup from configuration (`Seed:OwnerUserName`, `Seed:OwnerPassword`, optional `Seed:OwnerFullName`). Seeding is idempotent: running it twice creates nothing new.
   - "The Owner already exists" means any user already holds the Owner role, even if `Seed:OwnerUserName` has since changed. Seeding never modifies that existing Owner, including their password.
   - If `Seed:OwnerUserName` or `Seed:OwnerPassword` is missing, seeding logs a warning and does nothing — it never queries the database. Startup does not fail.
@@ -2831,7 +2831,7 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 
 ## 16. The online shop and site users (فروشگاه آنلاین و کاربران سایت)
 
-Decided with the developer on 1405/08/19 (2026-11-10), with ADR 0011 (proposed the same day),
+Decided with the developer on 1405/08/19 (2026-11-10), with ADR 0011 (accepted the same day),
 roadmap Phase 16. Each line says who decided it, as in §15:
 - *Decided by the developer* (1405/08/19): said by the developer, who is the gym's Owner.
 - *Proposed by Claude*: confirmed when its task's plan is approved.
@@ -2864,7 +2864,7 @@ roadmap Phase 16. Each line says who decided it, as in §15:
 - **The shop admin has a panel of their own** and sees only the shop: categories, products and their
   photos, stock, orders, shipping, messages with customers, and their own contact links. Never the
   members, the money, the lockers, the SMS settings or the audit log. *Decided by the developer.*
-  The role's name, `Shop` (فروشگاه): *Proposed by Claude.*
+  The role's name, `Shop` (فروشگاه): *Proposed by Claude, accepted with ADR 0011* (1405/08/19).
 - **Stock is typed by the shop admin by hand.** A sale at the counter does not change it; the shop
   admin corrects it themselves. *Decided by the developer.*
 - **The shop admin's contact ways are shown to customers**: phone, Telegram, Rubika and others they
