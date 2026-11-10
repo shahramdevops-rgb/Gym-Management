@@ -2422,3 +2422,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Some weight cannot move.** React, the router and the query library are needed by every screen; about 370 kB of the first download is the foundation, and only what a person may never use (the sign-in screen for someone signed in, the panel's error messages) is still worth moving.
 - **Lazy files need a plan for releases and offline.** A tab opened before a release may ask for a file that no longer exists (`installStaleChunkReload` reloads once), and the installed app's service worker keeps every file of the build, the lazy ones too, so nothing is missing offline.
 - **My notes:**
+
+## 15.7d — More in the attendance (ساعت خروج، زودتر آمد، روزهای قبل، خارج از سانس)
+
+- **A rule's answer can carry its evidence.** `PresenceMark` used to hold only the check-in time; now it holds the `DayVisit` that counted and how many minutes early or late it was, so the handler reads the check-out and the minutes from the same visit the rule chose, and two places can never disagree.
+- **Keep the rule's input apart from what is shown.** `DayVisit.LeftAt` (a check-out on that same day, `null` otherwise) is what `CountsFor` reasons about; `CheckedOutAt` and `AutoClosed` are only for the screen. Mixing them would have made the nightly auto-checkout's midnight look like a real exit and change who counts as "still inside at the start".
+- **`init` properties extend a record without breaking its callers.** Adding `CheckedOutAt { get; init; }` to `DayVisit` left every `new DayVisit(in, left)` in the tests compiling; the new values are set with `{ CheckedOutAt = … }` only where they exist.
+- **Generalise a handler instead of copying it.** «امروز» became "a day": `Handle(account, DateOnly? date)`, where `null` means today. One handler serves `/today` and `/days/{date}`, and `/today` stays so an installed app still on the old page keeps working after the release.
+- **Counts belong to the server when they carry a rule.** Which states count as present, and that leave and cancelled count nowhere, is business logic; `DayTotals` is worked out in the handler and tested there, so the home card and the day page can never disagree.
+- **The address can hold a page's state.** The day page keeps its date in `?date=` (`useSearchParams`), so a reload or a shared link opens the same day; `replace: true` stops each «روز قبل» from filling the back button's history.
+- **Search a small list in the browser.** The trainer's students are already loaded, so a filter over them answers at once with no request; the digits are normalised (`۰۹۱۲` = `0912`) and the leading `0` or `+98` dropped, so a phone matches however it is typed.
+- **A new state beats a flag on an old one.** «بعد از سانس آمد» first lived as `Absent` plus a `CameAfter` flag, so every count and card had to remember the flag; as its own `SessionPresence.CameAfter` it is simply not `Absent`, and the absent card, the counts and the badge colour follow by themselves. A new enum value is added at the end (`= 7`), so the numbers of the old ones never change.
+- **A git worktree lets two sessions share one repository.** Another session had this folder on its own branch; `git worktree add` gave 15.7d a second folder with its own branch, so neither session switched branches under the other.
+- **My notes:**

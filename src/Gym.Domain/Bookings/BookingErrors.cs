@@ -72,4 +72,9 @@ public static class BookingErrors
     public static readonly Error AttendanceRangeInvalid = Error.Validation(
         "Bookings.AttendanceRangeInvalid",
         $"Attendance is read from a date to one on or after it, {PresenceRules.MaxRangeDays} days at most.");
+
+    /// <summary>The trainer's day of attendance is today or an earlier day: a later one has none (task 15.7d).</summary>
+    public static readonly Error AttendanceDayInFuture = Error.Validation(
+        "Bookings.AttendanceDayInFuture",
+        "Attendance is read for today or an earlier day.");
 }

@@ -11,7 +11,7 @@ using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
 using Gym.Application.Bookings.GetStudentAttendance;
 using Gym.Application.Bookings.GetStudentSchedule;
-using Gym.Application.Bookings.GetTrainerToday;
+using Gym.Application.Bookings.GetTrainerDay;
 using Gym.Application.Bookings.LeaveMySession;
 using Gym.Application.Bookings.MoveMySession;
 using Gym.Application.Bookings.RemoveSessionStudent;
@@ -94,10 +94,18 @@ public static class SiteBookingEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
-        attendance.MapGet("/today", async (ClaimsPrincipal user, GetTrainerTodayHandler handler, CancellationToken ct) =>
-                (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
+        // Today's, as 15.7 had it (the home's cards; an app still on the old page keeps working).
+        attendance.MapGet("/today", async (ClaimsPrincipal user, GetTrainerDayHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), date: null, ct)).ToHttpResult())
             .WithName("GetTrainerToday")
-            .Produces<TrainerTodayResponse>();
+            .Produces<TrainerDayResponse>();
+
+        // Any day up to today (15.7d).
+        attendance.MapGet("/days/{date}", async (DateOnly date, ClaimsPrincipal user, GetTrainerDayHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), date, ct)).ToHttpResult())
+            .WithName("GetTrainerDay")
+            .Produces<TrainerDayResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
 
         attendance.MapGet("/students/{memberId:guid}/attendance", async (Guid memberId, DateOnly from, DateOnly to, ClaimsPrincipal user, GetStudentAttendanceHandler handler, CancellationToken ct) =>
                 (await handler.Handle(SiteUser.AccountId(user), memberId, from, to, ct)).ToHttpResult())

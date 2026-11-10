@@ -2656,8 +2656,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   reliable from Iran for the site app, a PWA: the notice is shown when the app is opened.)
 - **On time, late, absent**: a check-in up to **15 minutes** after the session's start is on time
   (*decided by the developer*, 1405/08/13, in place of 10), a later one before the session ends is
-  late, no check-in is absent. The rest is the attendance of 15.7 (*Attendance for the trainer*
-  below).
+  late, no check-in that day for it or after it is absent (a check-in after the end is «بعد از
+  سانس آمد», not absent: 1405/08/19, below). The rest is the attendance of 15.7 (*Attendance for
+  the trainer* below).
 - **The trainer's sessions, decided with 15.6a's plan** (*Decided by the developer*, 1405/08/09,
   unless marked otherwise):
   - **A weekly pattern with no end**: each day of the week has its own sessions, and the week
@@ -2702,7 +2703,10 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   later.
   - *Queued, not built:* the student picking their own days and times within what the trainer
     allows (e.g. "three days a week, eight weeks"), and the trainer confirming it, as a request
-    like 15.4's. Only if it is needed, after the trainer's way has been used (ROADMAP 15.6d).
+    like 15.4's. **Wanted later** (*the developer*, 1405/08/19, in place of "only if it is
+    needed"): the student picks their own sessions from the trainer's times, and the trainer can
+    still place them too: both can. A short video showing a student how to find and pick sessions
+    waits for it (ROADMAP 15.6d).
 - **Students in sessions, decided with 15.6b's plan** (*Decided by the developer*, 1405/08/09: the
   first four asked one by one, the rest proposed by Claude and accepted as a whole):
   - **The capacity is a ceiling**, for the trainer too: a session with no room takes no one, and a
@@ -2791,9 +2795,11 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     A check-in earlier than that counts too when the visit was still open at the start (the member
     came early and stayed). From the start to 15 minutes after it is on time, as above; later and
     before the end, late.
-  - **A check-in after the session ended** leaves it absent, with «بعد از سانس آمد» beside it, so
-    the trainer knows the member came to the gym that day.
-  - **Not absent**: a session the student left («نمی‌آیم», shown «مرخصی»), a session the trainer
+  - **A check-in after the session ended** is **«بعد از سانس آمد», not absent** (*decided by the
+    developer*, 1405/08/19: "absent is someone who is truly absent; someone who came very late still
+    came"; in place of 15.7's absent with «بعد از سانس آمد» beside it). It shows the check-in time,
+    has its own count (*More for the trainer* below), and is not in «غایبان امروز».
+  - **Not absent**: a session the student came to after it ended (above), a session the student left («نمی‌آیم», shown «مرخصی»), a session the trainer
     removed or whose times changed after the student was put in it (shown «لغو شد»), and a session
     not yet ended with no check-in (shown «هنوز نیامده» until it ends). A date the student moved to
     counts at its new session, the old one is not theirs any more.
@@ -2808,6 +2814,44 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     and the month's totals. Sessions with an earlier trainer show too, with that trainer's name
     (*A member and their trainer*: a new trainer sees the earlier attendance).
   - **The member does not see their monthly attendance yet**: left for later, only if asked.
+- **More for the trainer, decided with 15.7d** (*decided by the developer*, 1405/08/19, from the
+  developer's list for attendance; the points marked *proposed* were Claude's and the developer
+  took them all):
+  - **«زودتر آمد»**: a check-in before the session's start, however early, is marked «زودتر آمد»
+    **with how many minutes early** («۱۰ دقیقه زودتر آمد»; *decided by the developer*, 1405/08/19).
+    It is still on time and counts as present (the counted check-in is the one above: from 30
+    minutes before, or earlier when the visit was still open at the start).
+  - **A late student shows how many minutes late, counted from the start** («۲۵ دقیقه تأخیر» for
+    13:25 at a 13:00 session; *decided by the developer*, 1405/08/19, over counting from the end of
+    the 15 minutes). An hour or more reads «۱ ساعت و ۵ دقیقه». A check-in within the 15 minutes is
+    on time and shows no minutes.
+  - **The check-out time** shows beside the check-in, from the same visit at the desk. A visit
+    still open reads «داخل است»; one the nightly auto-checkout closed (§7) reads «خروج ثبت نشد»,
+    not a midnight time. *Proposed by Claude.*
+  - **Any earlier day**: the day page (from «سانس‌های امروز», as before) moves back a day at a time
+    or to a date picked, with no limit; a day after today does not open, since it has no
+    attendance. Only today's refreshes every minute. *Proposed by Claude.*
+  - **Counts: students, present, late, came after, absent**, at the top of the day page and in a
+    card «امروز» on the trainer's home: **both places for now**, the developer will say which to
+    remove. Each student's place in a session counts once; present is everyone who came to the
+    session (late and early included), late is those of them who came late; «بعد از سانس» has a box
+    of its own, neither present nor absent (*decided by the developer*, 1405/08/19), as in the
+    month's totals; «مرخصی» and «لغو شد» are in none, and «هنوز نیامده» only among the students.
+    *Proposed by Claude.*
+  - **Visits outside the sessions («خارج از سانس»)**: a check-in of the student that counts for none
+    of their sessions that day, with its date, check-in and check-out time. In the student's month
+    as a list of its own, and on the day page as «آمدند، بدون سانس» for the trainer's students that
+    day. *Proposed by Claude.* *Proposed by Claude while building, to confirm:* only visits from the
+    day the student became this trainer's student (the trainer sees the earlier trainers' sessions,
+    not the member's gym visits before them); a visit already shown as «بعد از سانس آمد» is in the
+    list too, since it was outside the session.
+  - **Search in «شاگردان من»** by name or phone, typed in Persian or English digits.
+  - **The waiting requests show their count**, «درخواست‌ها (۲)», and come first on the trainer's
+    home. A number on the app's icon is not possible: Chrome on Android shows one only with a
+    notification, and notifications are not reliable from Iran (above). *Proposed by Claude.*
+  - *Queued for 15.7e, not decided:* a note on a session, seen by the trainer and the students
+    (*decided by the developer*), and "extra time" outside the pattern (which of the two meanings
+    is still to ask).
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

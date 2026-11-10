@@ -692,6 +692,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/coaching/days/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetTrainerDay"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/site/coaching/students/{memberId}/attendance": {
         parameters: {
             query?: never;
@@ -2454,7 +2470,13 @@ export interface components {
             state: components["schemas"]["SessionPresence"];
             /** Format: time */
             checkedInAt: null | string;
-            cameAfter: boolean;
+            /** Format: time */
+            checkedOutAt: null | string;
+            autoCheckedOut: boolean;
+            /** Format: int32 */
+            minutesEarly: null | number | string;
+            /** Format: int32 */
+            minutesLate: null | number | string;
         };
         AttendanceReportResponse: {
             /** Format: date */
@@ -2509,6 +2531,8 @@ export interface components {
             onTime: number | string;
             /** Format: int32 */
             late: number | string;
+            /** Format: int32 */
+            cameAfter: number | string;
             /** Format: int32 */
             absent: number | string;
             /** Format: int32 */
@@ -2792,6 +2816,45 @@ export interface components {
         };
         /** @enum {unknown} */
         DayOfWeek: "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
+        DaySession: {
+            /** Format: time */
+            start: string;
+            /** Format: time */
+            end: string;
+            isVip: boolean;
+            removed: boolean;
+            started: boolean;
+            ended: boolean;
+            students: components["schemas"]["DayStudent"][];
+        };
+        DayStudent: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            state: components["schemas"]["SessionPresence"];
+            /** Format: time */
+            checkedInAt: null | string;
+            /** Format: time */
+            checkedOutAt: null | string;
+            autoCheckedOut: boolean;
+            /** Format: int32 */
+            minutesEarly: null | number | string;
+            /** Format: int32 */
+            minutesLate: null | number | string;
+        };
+        DayTotals: {
+            /** Format: int32 */
+            students: number | string;
+            /** Format: int32 */
+            present: number | string;
+            /** Format: int32 */
+            late: number | string;
+            /** Format: int32 */
+            cameAfter: number | string;
+            /** Format: int32 */
+            absent: number | string;
+        };
         DebtReminderSettings: {
             enabled: boolean;
             /** Format: int32 */
@@ -3432,6 +3495,18 @@ export interface components {
             /** Format: int32 */
             free: number | string;
         };
+        OutsideStudent: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            visits: components["schemas"]["VisitTimes"][];
+        };
+        OutsideVisit: {
+            /** Format: date */
+            date: string;
+            visit: components["schemas"]["VisitTimes"];
+        };
         PagedResponseOfAttendanceResponse: {
             items: components["schemas"]["AttendanceResponse"][];
             /** Format: int32 */
@@ -4063,7 +4138,7 @@ export interface components {
             isVip: boolean;
         };
         /** @enum {unknown} */
-        SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled";
+        SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled" | "CameAfter";
         SessionResponse: {
             /** Format: time */
             start: string;
@@ -4373,6 +4448,7 @@ export interface components {
             to: string;
             sessions: components["schemas"]["AttendanceItem"][];
             totals: components["schemas"]["AttendanceTotals"];
+            outside: components["schemas"]["OutsideVisit"][];
         };
         StudentRequestResponse: {
             /** Format: uuid */
@@ -4498,27 +4574,6 @@ export interface components {
             daysAveraged: number | string;
             hours: components["schemas"]["HourCountResponse"][];
         };
-        TodaySession: {
-            /** Format: time */
-            start: string;
-            /** Format: time */
-            end: string;
-            isVip: boolean;
-            removed: boolean;
-            started: boolean;
-            ended: boolean;
-            students: components["schemas"]["TodayStudent"][];
-        };
-        TodayStudent: {
-            /** Format: uuid */
-            memberId: string;
-            fullName: string;
-            phoneNumber: string;
-            state: components["schemas"]["SessionPresence"];
-            /** Format: time */
-            checkedInAt: null | string;
-            cameAfter: boolean;
-        };
         TodaySummaryResponse: {
             /** Format: date */
             today: string;
@@ -4560,6 +4615,14 @@ export interface components {
             trainerId: string;
             fullName: string;
         };
+        TrainerDayResponse: {
+            /** Format: date */
+            date: string;
+            isToday: boolean;
+            totals: components["schemas"]["DayTotals"];
+            sessions: components["schemas"]["DaySession"][];
+            outside: components["schemas"]["OutsideStudent"][];
+        };
         TrainerPeriodResponse: {
             /** Format: date */
             startedOn: string;
@@ -4585,11 +4648,6 @@ export interface components {
             lastSignedInAt: null | string;
             /** Format: uint32 */
             version: number | string;
-        };
-        TrainerTodayResponse: {
-            /** Format: date */
-            date: string;
-            sessions: components["schemas"]["TodaySession"][];
         };
         UpdateExpenseCategoryCommand: {
             name: string;
@@ -4685,6 +4743,13 @@ export interface components {
             /** Format: uuid */
             id: string;
             fullName: string;
+        };
+        VisitTimes: {
+            /** Format: time */
+            checkedInAt: string;
+            /** Format: time */
+            checkedOutAt: null | string;
+            autoCheckedOut: boolean;
         };
         VoidExpenseCommand: {
             reason: string;
@@ -7165,7 +7230,74 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TrainerTodayResponse"];
+                    "application/json": components["schemas"]["TrainerDayResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTrainerDay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerDayResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */

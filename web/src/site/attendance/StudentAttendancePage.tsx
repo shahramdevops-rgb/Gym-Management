@@ -15,14 +15,23 @@ import { sitePaths } from "../paths";
 import { formatDayLabel, formatSessionTimes } from "../timetable/labels";
 import { VipBadge } from "../timetable/VipBadge";
 import { useStudentAttendance, type StudentAttendance } from "./api";
-import { formatMonth, monthOf, monthRange, presenceLabels, sameMonth, shiftMonth } from "./labels";
+import {
+  formatMonth,
+  formatVisit,
+  monthOf,
+  monthRange,
+  presenceLabels,
+  sameMonth,
+  shiftMonth,
+} from "./labels";
 import { PresenceBadge } from "./PresenceBadge";
 
 /**
  * A student's «حضور» (BUSINESS_RULES.md §15 *Attendance for the trainer*, roadmap 15.7b): their
  * sessions of one Jalali month up to today, each with its state, and the month's totals in small
  * boxes. A session with an earlier trainer shows that trainer's name. The month moves back as far
- * as the trainer likes and forward up to this one. Only a trainer reaches it.
+ * as the trainer likes and forward up to this one. Under them, «خارج از سانس» (15.7d): the visits
+ * that counted for none of the student's sessions. Only a trainer reaches it.
  */
 export function StudentAttendancePage() {
   const { memberId = "" } = useParams();
@@ -92,6 +101,7 @@ function MonthView({ attendance }: { attendance: StudentAttendance }) {
   const boxes = [
     { label: presenceLabels.OnTime, count: totals.onTime },
     { label: presenceLabels.Late, count: totals.late },
+    { label: "بعد از سانس", count: totals.cameAfter },
     { label: presenceLabels.Absent, count: totals.absent },
     { label: presenceLabels.Leave, count: totals.leave },
     { label: presenceLabels.Cancelled, count: totals.cancelled },
@@ -99,7 +109,7 @@ function MonthView({ attendance }: { attendance: StudentAttendance }) {
 
   return (
     <>
-      <ul aria-label="جمع ماه" className="grid grid-cols-5 gap-1.5">
+      <ul aria-label="جمع ماه" className="grid grid-cols-3 gap-1.5">
         {boxes.map((box) => (
           <li key={box.label} className="rounded-lg bg-muted px-1 py-2 text-center">
             <p className="text-lg font-bold">{toPersianDigits(box.count)}</p>
@@ -131,11 +141,36 @@ function MonthView({ attendance }: { attendance: StudentAttendance }) {
               <PresenceBadge
                 state={item.state}
                 checkedInAt={item.checkedInAt}
-                cameAfter={item.cameAfter}
+                checkedOutAt={item.checkedOutAt}
+                autoCheckedOut={item.autoCheckedOut}
+                minutesEarly={item.minutesEarly}
+                minutesLate={item.minutesLate}
               />
             </li>
           ))}
         </ul>
+      )}
+
+      {attendance.outside.length > 0 && (
+        <section aria-labelledby="outside-heading" className="space-y-2">
+          <h2 id="outside-heading" className="font-semibold">
+            خارج از سانس
+          </h2>
+          <ul
+            aria-label="خارج از سانس"
+            className="divide-y rounded-xl border bg-card px-3 shadow-raised"
+          >
+            {attendance.outside.map((item) => (
+              <li
+                key={`${item.date}-${item.visit.checkedInAt}`}
+                className="flex flex-wrap items-center justify-between gap-x-2 py-2.5"
+              >
+                <span className="font-semibold">{formatDayLabel(item.date)}</span>
+                <span className="text-sm text-muted-foreground">{formatVisit(item.visit)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </>
   );

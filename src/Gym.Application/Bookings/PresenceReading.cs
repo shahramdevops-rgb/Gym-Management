@@ -29,7 +29,7 @@ internal static class PresenceReading
         var rows = await db.Attendances.AsNoTracking()
             .Where(visit => visit.MemberId != null && memberIds.Contains(visit.MemberId.Value))
             .Where(visit => visit.CancelledAt == null && visit.CheckedInAt >= since && visit.CheckedInAt < until)
-            .Select(visit => new { MemberId = visit.MemberId!.Value, visit.CheckedInAt, visit.CheckedOutAt })
+            .Select(visit => new { MemberId = visit.MemberId!.Value, visit.CheckedInAt, visit.CheckedOutAt, AutoClosed = visit.AutoClosedAt != null })
             .ToListAsync(cancellationToken);
 
         return rows
@@ -38,15 +38,21 @@ internal static class PresenceReading
                 var checkedIn = TimeZoneInfo.ConvertTime(row.CheckedInAt, calendar.TimeZone);
                 var day = DateOnly.FromDateTime(checkedIn.DateTime);
                 TimeOnly? left = null;
+                TimeOnly? shown = null;
                 if (row.CheckedOutAt is { } outAt)
                 {
                     var checkedOut = TimeZoneInfo.ConvertTime(outAt, calendar.TimeZone);
 
                     // Closed on a later day: open for the whole of this one.
                     left = DateOnly.FromDateTime(checkedOut.DateTime) == day ? TimeOnly.FromDateTime(checkedOut.DateTime) : null;
+
+                    // The auto-checkout's midnight is no one's check-out: «خروج ثبت نشد» (15.7d).
+                    shown = row.AutoClosed ? null : TimeOnly.FromDateTime(checkedOut.DateTime);
                 }
 
-                return (Key: (row.MemberId, day), Visit: new DayVisit(TimeOnly.FromDateTime(checkedIn.DateTime), left));
+                var visit = new DayVisit(TimeOnly.FromDateTime(checkedIn.DateTime), left) { CheckedOutAt = shown, AutoClosed = row.AutoClosed };
+
+                return (Key: (row.MemberId, day), Visit: visit);
             })
             .GroupBy(row => row.Key, row => row.Visit)
             .ToDictionary(group => group.Key, group => group.ToList());

@@ -4765,10 +4765,11 @@ through magenta (about 335 at 60%). A cardio door turned greenish the same way.
         from 07:00 to 22:00 on the quarter hour (`Timetable.OutsideHours`, `MinuteStep` 15), the
         hour boxes 07 to 22 and the minutes 00/15/30/45. Migration `LimitSessionHours` changes the
         time checks of the six session tables (none on the server yet)
-  - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
-        days and times within what the trainer allows (e.g. three days a week for eight weeks),
-        and the trainer confirms, as a request like 15.4's. Decided to wait until 15.6b's way,
-        the trainer placing the student, has been used
+  - [ ] **15.6d** *queued* (the developer, 1405/08/09; **wanted later**, 1405/08/19): the member
+        picks their own sessions from the trainer's times (e.g. three days a week for eight weeks),
+        and the trainer can still place them too: both can. Confirming by the trainer, as a
+        request like 15.4's, is to decide at its plan. With it, a short video for students: how
+        to find and pick sessions (asked 1405/08/19; a screen recording, opened from the app)
 
 #### 15.7 Attendance for the trainer (پیگیری حضور)
 Decided 1405/08/13 (§15 *Attendance for the trainer*): on time up to 15 minutes after the start,
@@ -4830,6 +4831,54 @@ connection waited for every screen, the trainer's too.
       more pages"): the sign-in screen as a lazy route (→ ~512 kB; a newcomer from the QR waits a
       moment more) and the site's own copy of the error messages it needs (→ ~490 kB, with a test
       that no site code is missing)
+
+#### 15.7d More in the attendance (from the developer's list)
+Decided 1405/08/19 (2026-11-10), §15 *More for the trainer, decided with 15.7d*; on
+`task/15.7d-attendance-more` (worktree `D:\GymManagement-15.7d`, made from 15.7c's branch), not
+merged or released. Worked out from the desk's check-ins as before: no table, no migration.
+- [x] **Backend** (built 1405/08/19): «زودتر آمد» (`PresenceMark.MinutesEarly`) and the check-out
+      (`PresenceMark.Visit`; `DayVisit.CheckedOutAt` and `AutoClosed`, read beside `LeftAt`, which
+      the rules keep using) in both responses; `GetTrainerToday` became `GetTrainerDay`, behind
+      `/api/site/coaching/today` (kept, for an app still on the old page) and the new
+      `/coaching/days/{date}` (error `Bookings.AttendanceDayInFuture`), with `DayTotals` and
+      «آمدند، بدون سانس» (`PresenceRules.OutsideSessions`, the trainer's links that day); the
+      student's month lists `Outside` from the link's start. No migration
+- [x] **Screens** (built 1405/08/19, `web/src/site/attendance/`, `coaching/`): `DayPage` replaces
+      `TodayPage` (`/today?date=`, «روز قبل» / «روز بعد» and `JalaliCalendarField`, a later date
+      opens today; only today refreshes), `DayTotalsBoxes` on it and in `TodayCountsCard` («امروز»
+      on the home, only on a day with sessions), the check-out and «زودتر آمد» under
+      `PresenceBadge`, «خارج از سانس» in the month, `TrainerRequestsCard` («درخواست‌ها (n)», the
+      home's first card) split from `TrainerArea`, whose search box uses `matchesStudent`
+- [x] **After seeing it** (the developer, 1405/08/19): a check-in after the session ended is its
+      own state, `SessionPresence.CameAfter` («بعد از سانس آمد», not absent, out of «غایبان
+      امروز»), with its own box in the day's counts and the month's totals; early and late show
+      their minutes from the start (`MinutesEarly`, `MinutesLate`: «۱۰ دقیقه زودتر آمد», «۲۵ دقیقه
+      تأخیر»)
+- [ ] **15.7e, queued**: a note on a session (the trainer and the students see it), and "extra
+      time" outside the pattern (to ask: a session on one date, which exists, or a student put in
+      one date outside their fixed schedule)
+
+#### The developer's list, part two (asked 1405/08/19, after 15.7d's screenshots)
+Each part on its own branch and session, in this order (proposed by Claude); 15.7e fits anywhere.
+- [ ] **15.7f, the counts open their students** (screens only, no rule): a box of «امروز» on the
+      home opens the day page filtered to it; on the day page a box filters the sessions to its
+      students («شاگردان» shows all), pressed again it shows all
+- [ ] **15.7g, «پایان» off the home** (screens only): out of «شاگردان من», so a finger cannot hit it
+      by mistake. *Proposed by Claude:* at the foot of the student's «برنامهٔ ثابت» page, asking first
+      as now
+- [ ] **15.7h, the coaching period (دورهٔ مربی‌گری)** (backend, screens, migration). *Decided by the
+      developer:* a period is **one month** by default; **the trainer types the number of days when
+      accepting a request**; this replaces the 6-to-8-week program (the fixed schedule's 8-week
+      default). *Open, asked before its plan:* one month as 30 days; the smallest and largest
+      number of days; what happens at the end (the link ends by itself, or only the sessions stop
+      and the trainer renews); renewing; what the student sees; the links already on the server
+      (real data: carried forward, never refused)
+- [ ] **15.7i, leave by request (مرخصی با درخواست)** (backend, screens, migration). *Decided by the
+      developer:* the student asks, the trainer accepts, then the student may stay away; a student
+      who comes anyway is counted as usual, marked «مرخصی داشت». This replaces the free «نمی‌آیم»
+      of 15.6b. *Open, asked before its plan:* until when a student may ask; a request the trainer
+      has not answered when the session starts; whether an accepted leave keeps the place; «می‌آیم»
+      and moving a date; how the trainer is told
 
 ### Release 3 — The monthly assessment (priority 2)
 

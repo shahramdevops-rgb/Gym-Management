@@ -65,7 +65,7 @@ export const siteRoutes: RouteObject[] = [
       },
       {
         path: sitePaths.today,
-        ...lazyPage(async () => (await import("./attendance/TodayPage")).TodayPage),
+        ...lazyPage(async () => (await import("./attendance/DayPage")).DayPage),
       },
       {
         path: sitePaths.studentAttendancePattern,

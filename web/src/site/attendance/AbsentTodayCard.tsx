@@ -3,12 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Person } from "../components/Person";
 import { formatSessionTimes } from "../timetable/labels";
 import { useTrainerToday } from "./api";
-import { cameAfterLabel, formatClock } from "./labels";
 
 /**
  * «غایبان امروز» on the trainer's home (BUSINESS_RULES.md §15 *Attendance for the trainer*: the
  * absence alert is in the app only, no SMS): the absent students of today's sessions that have
- * ended. Shown only when there is one; it goes the next day, and the student's «حضور» keeps them.
+ * ended. Only the truly absent: one who came after the session is not (15.7d, the developer). Shown only when there is one; it goes the next day, and the student's «حضور» keeps them.
  * Nothing shows while it loads or when it cannot be read: «حضور امروز» says so.
  */
 export function AbsentTodayCard() {
@@ -43,11 +42,7 @@ export function AbsentTodayCard() {
               <Person
                 fullName={student.fullName}
                 phoneNumber={student.phoneNumber}
-                detail={
-                  student.cameAfter && student.checkedInAt !== null
-                    ? `${formatSessionTimes(session)} · ${cameAfterLabel} ${formatClock(student.checkedInAt)}`
-                    : formatSessionTimes(session)
-                }
+                detail={formatSessionTimes(session)}
               />
             </li>
           ))}

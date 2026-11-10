@@ -99,7 +99,14 @@ export const emptyCoaching = {
   "GET /api/site/coaching/my-trainer": () => json(200, { trainer: null, request: null }),
   "GET /api/site/coaching/students": () => json(200, { requests: [], students: [] }),
   "GET /api/site/timetable": () => json(200, emptyTimetable()),
-  "GET /api/site/coaching/today": () => json(200, { date: "2026-10-31", sessions: [] }),
+  "GET /api/site/coaching/today": () =>
+    json(200, {
+      date: "2026-10-31",
+      isToday: true,
+      totals: { students: 0, present: 0, late: 0, absent: 0 },
+      sessions: [],
+      outside: [],
+    }),
   "GET /api/site/me/sessions": () =>
     json(200, {
       today: "2026-10-31",

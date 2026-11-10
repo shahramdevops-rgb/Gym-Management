@@ -41,7 +41,7 @@ public sealed class GetStudentAttendanceHandler(IAppDbContext db, IGymCalendar c
         var last = to < today ? to : today;
         if (last < from)
         {
-            return new StudentAttendanceResponse(memberId, from, to, [], new AttendanceTotals(0, 0, 0, 0, 0));
+            return new StudentAttendanceResponse(memberId, from, to, [], new AttendanceTotals(0, 0, 0, 0, 0, 0), []);
         }
 
         var places = await BookedPlaces.OfMemberAsync(db, memberId, from, last, cancellationToken);
@@ -65,26 +65,38 @@ public sealed class GetStudentAttendanceHandler(IAppDbContext db, IGymCalendar c
         PlannedSession? SessionAt(Guid trainerId, DateOnly date, TimeOnly start, TimeOnly end) =>
             timetables[trainerId].SessionsOn(date).FirstOrDefault(session => session.Start == start && session.End == end);
 
+        IEnumerable<DayVisit> VisitsOn(DateOnly date) => visits.GetValueOrDefault((memberId, date)) ?? [];
+
+        AttendanceItem Item(DateOnly date, TimeOnly start, TimeOnly end, Guid trainerId, bool isVip, PresenceMark mark) => new(
+            date,
+            start,
+            end,
+            NameOf(trainerId),
+            isVip,
+            mark.State,
+            mark.CheckedInAt,
+            mark.Visit?.CheckedOutAt,
+            mark.Visit?.AutoClosed ?? false,
+            mark.MinutesEarly,
+            mark.MinutesLate);
+
         var items = places
             .Select(place =>
             {
                 var session = SessionAt(place.TrainerId, place.Date, place.Start, place.End);
                 var mark = session is null
-                    ? new PresenceMark(SessionPresence.Cancelled, CheckedInAt: null, CameAfter: false)
-                    : PresenceRules.Mark(place.Date, place.Start, place.End, visits.GetValueOrDefault((memberId, place.Date)) ?? [], today, now);
+                    ? PresenceMark.Without(SessionPresence.Cancelled)
+                    : PresenceRules.Mark(place.Date, place.Start, place.End, VisitsOn(place.Date), today, now);
 
-                return new AttendanceItem(
-                    place.Date, place.Start, place.End, NameOf(place.TrainerId), session?.IsVip ?? false, mark.State, mark.CheckedInAt, mark.CameAfter);
+                return Item(place.Date, place.Start, place.End, place.TrainerId, session?.IsVip ?? false, mark);
             })
-            .Concat(leaves.Select(leave => new AttendanceItem(
+            .Concat(leaves.Select(leave => Item(
                 leave.Date,
                 leave.Start,
                 leave.End,
-                NameOf(leave.TrainerId),
+                leave.TrainerId,
                 SessionAt(leave.TrainerId, leave.Date, leave.Start, leave.End)?.IsVip ?? false,
-                SessionPresence.Leave,
-                CheckedInAt: null,
-                CameAfter: false)))
+                PresenceMark.Without(SessionPresence.Leave))))
             .OrderBy(item => item.Date).ThenBy(item => item.Start).ThenBy(item => item.End)
             .ToList();
 
@@ -93,10 +105,28 @@ public sealed class GetStudentAttendanceHandler(IAppDbContext db, IGymCalendar c
         var totals = new AttendanceTotals(
             Count(SessionPresence.OnTime),
             Count(SessionPresence.Late),
+            Count(SessionPresence.CameAfter),
             Count(SessionPresence.Absent),
             Count(SessionPresence.Leave),
             Count(SessionPresence.Cancelled));
 
-        return new StudentAttendanceResponse(memberId, from, to, items, totals);
+        // «خارج از سانس» (15.7d): the check-ins that count for none of the student's sessions that
+        // day, from the day they became this trainer's student, not their gym visits before it.
+        var since = link.Value.StartedOn > from ? link.Value.StartedOn : from;
+        var outside = visits
+            .Where(entry => entry.Key.Date >= since)
+            .OrderBy(entry => entry.Key.Date)
+            .SelectMany(entry =>
+            {
+                var theirs = places
+                    .Where(place => place.Date == entry.Key.Date && SessionAt(place.TrainerId, place.Date, place.Start, place.End) is not null)
+                    .Select(place => (place.Start, place.End));
+
+                return PresenceRules.OutsideSessions(entry.Value, theirs)
+                    .Select(visit => new OutsideVisit(entry.Key.Date, VisitTimes.Of(visit)));
+            })
+            .ToList();
+
+        return new StudentAttendanceResponse(memberId, from, to, items, totals, outside);
     }
 }
