@@ -12,6 +12,8 @@ export const paths = {
   newMember: "/members/new",
   member: (id: string) => `/members/${id}`,
   editMember: (id: string) => `/members/${id}/edit`,
+  /** People who signed up on the site and never came, "کاربران سایت" (BUSINESS_RULES.md §16 *Site users*). */
+  siteUsers: "/site-users",
   settings: "/settings",
   attendance: "/attendance",
   /** The gym's history, "تاریخچه": check-ins, payments and هوازی (BUSINESS_RULES.md §12). */

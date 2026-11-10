@@ -58,6 +58,9 @@ Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 ac
   merged and released as Release 1 (`20261030-0329-ad005a3`, 1405/08/08, a quiet launch); the next
   step is **15.6, the trainer's timetable**. Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
+- **Queued: the online shop and site users (Phase 16)**, asked by the developer on 1405/08/19
+  (2026-11-10); 16.0 done (ADR 0011 accepted 1405/08/19); **16.1** built 1405/08/19 on
+  `task/16.1-site-users` (site users and the phone search), not released; next 16.2
 
 ---
 
@@ -4957,6 +4960,129 @@ Each part on its own branch and session, in this order (proposed by Claude); 15.
 Later, not in this phase: buying a plan on the site (online payment); push notifications (on
 Android they pass through Google's servers, unreliable from Iran); help from an AI model to draft
 programs (trainer-feature discussion, 1405/07/17).
+
+---
+
+## Phase 16 — The online shop and site users (فروشگاه آنلاین و کاربران سایت)
+Asked by the developer on 1405/08/19 (2026-11-10): an online shop on the gym's site for buyers
+anywhere in Iran, run by a shop admin with a panel of their own, separate from the gym's money and
+the counter's stock; and a «کاربران سایت» page for people who signed up on the site and never came.
+The decision is ADR 0011 (proposed) and the rules are BUSINESS_RULES.md §16, where each line says
+whether it is decided, proposed or open, as in Phase 15.
+
+How it is built:
+- On its own branch per task, plan first, one task per session, as Phase 15. Every task ends with
+  green tests, a `code-reviewer` pass and a short LEARNING.md entry.
+- The production server holds real data: every migration only adds, and no existing member, plan,
+  visit or payment changes. Releases late at night with `./backup.sh run` first.
+- The gym has no eNamad yet (applied for meanwhile): payment is built against the gateway's test
+  environment, and the real merchant account is plugged in when the eNamad arrives, as the last
+  step before the shop opens.
+- *Open:* how the phase is released (16.1 alone first, Claude proposes, since it is useful on its
+  own; the shop as one release once payment works).
+
+### 16.0 The decision (docs only)
+- [x] ADR 0011, BUSINESS_RULES.md §16 and this phase written, branch `task/16-shop-plan`
+      (1405/08/19)
+- [x] The developer read them and confirmed; ADR 0011 accepted (1405/08/19)
+- [x] CLAUDE.md's "The panel, for 1 Owner and a few Staff" and §1's roles changed: the panel also
+      has shop admins, who see only the shop
+
+### 16.1 Site users and the phone search (کاربران سایت، جست‌وجو با ۴ رقم آخر)
+Built 1405/08/19 on branch `task/16.1-site-users`, not released.
+- [x] Asked first: §16's proposed lines under *Site users*. The developer chose, 1405/08/19: the
+      Owner and Staff see the page; its search takes a name, the last 4 digits or a whole number;
+      «ثبت به‌عنوان عضو» keeps what they entered on the site; a cancelled plan or visit never turns
+      a member back into a site user
+- [x] A site user: signed up on the site, never a plan, a visit or a cafe order (§16; the cafe
+      decided by the developer after the review). Only the origin is
+      stored (`members.registered_at_desk`); "never a plan, a visit or a cafe order" is worked out when asked
+      (`SiteUserRule`), so no sale or check-in has to change a flag. Left out of the member list
+      (with every filter), the check-in box and the cafe (all `ListMembersHandler`) and the
+      broadcast groups; the dashboard, the reports, the birthday SMS and the desk panel read plans
+      and visits, which a site user has none of. The first plan or visit makes them a member with
+      nothing copied
+- [x] The migration carries the server's rows forward: every member starts as registered at the
+      desk, then those made by the site's sign-up (no staff user, a site account) are marked; a
+      test runs its SQL on rows of each kind. *Before the release:* count them on the server with a
+      read-only query, and how many of them have a cafe order
+- [x] The «کاربران سایت» page (`GET /api/site-users`, in «پذیرش» after «اعضا»): read-only, name,
+      phone, birth date and sign-up time, its own search, newest first and paged
+- [x] The new-member form (the page and the member list's «ثبت این شخص»): a whole phone that
+      belongs to a site user shows «این شماره در سایت ثبت‌نام کرده است» with their name and birth
+      date, and «ثبت به‌عنوان عضو» (`POST /api/site-users/{id}/register`) brings them in and opens
+      their profile; saving the form with that number anyway is `Members.PhoneBelongsToSiteUser`
+- [x] **Phone search by the last 4 digits only**: exactly 4 digits match the end of the number as
+      typed, a whole number finds exactly that member, anything else nothing (`MemberSearch`,
+      shared by the member list, the check-in box and «کاربران سایت»). §2's line replaced by §16's
+- [x] Tests: integration (`SiteUserTests`: missing from the list with any search or filter and from
+      the broadcast, on its page, its search's cases including «0567», the form's look and
+      «ثبت به‌عنوان عضو», a member by a plan, by a cardio-only visit and for good after a
+      cancellation, the migration's SQL; `MemberQueryTests`' phone cases rewritten); frontend
+      (the page, the form's notice); the screens walked with Playwright on a throwaway stack
+
+### 16.2 The shop admin and their panel (مدیر فروشگاه)
+- [ ] Asked first: whether the Owner sees the shop's pages, and more than one shop admin
+- [ ] The `Shop` role and the `ShopAdmin` policy (ADR 0011); the Owner adds a shop admin on the
+      staff page like a staff account; every existing staff endpoint refuses them (a test walks
+      them all, as `EndpointAuthorizationTests` does)
+- [ ] The panel shows a shop admin a layout of its own with the shop's pages only (empty until
+      16.3); the admin's contact ways (phone, Telegram, Rubika, …) entered there
+
+### 16.3 Categories, products and photos (دسته‌بندی، کالا و گالری)
+- [ ] Asked first: the image library (ADR 0010 and 0011), a product's fields (name, description,
+      more than one photo), and the variants' design (§16 *Products*: a price per variant or not)
+- [ ] Categories and products with **variants the shop admin defines** (size, flavour, weight, …;
+      decided by the developer 1405/08/19), each variant with its stock typed by hand (never below
+      zero, a check constraint); a product hidden or shown on the site; never deleted once sold
+- [ ] Photos uploaded, re-encoded and stored on a volume, in `backup.sh` and the restore (the
+      restore drill in docs/DEPLOYMENT.md covers files)
+
+### 16.4 The shop on the site (ویترین)
+- [ ] Asked first: where the catalogue lives (ADR 0011 proposes the site app, with the public
+      page's «فروشگاه» section showing the products and linking in)
+- [ ] The catalogue by category and each product's page, open to anyone without signing in; the
+      public page's placeholder shelves replaced; it still works when the API is down
+
+### 16.5 Cart, address and order (سبد خرید و سفارش)
+- [ ] Asked first: what an address holds, and whether a courier (پیک) stays beside Tipax
+- [ ] A signed-in customer's cart (product variants), delivery address, and the order, unpaid until
+      16.6; the Tipax fee is paid by the buyer on delivery (پس‌کرایه, decided 1405/08/19), and the
+      checkout says so before payment
+
+### 16.6 Online payment (پرداخت آنلاین)
+- [ ] Asked first: when stock is taken, two payments for the last item
+- [ ] `IPaymentGateway` in Application, **Zarinpal** (decided 1405/08/19) in Infrastructure against
+      its test environment;
+      the server verifies every payment; each attempt its own row, the gateway's reference unique;
+      verifying twice records once; payments the gateway took but the system never confirmed are
+      found and settled
+- [ ] The real merchant account once the eNamad is there (server settings, proposed and confirmed
+      first)
+
+### 16.7 Handling and delivery (رسیدگی و ارسال)
+- [ ] Asked first: the order's steps, which steps send an SMS, how a refund goes back (§16 proposes
+      Zarinpal's refund, else a bank transfer with its tracking number)
+- [ ] The shop admin's orders: new, being prepared, sent (with the Tipax tracking code), delivered,
+      cancelled; «my orders» for the customer; SMS through Kavenegar with texts in `SmsText`;
+      a return is refunded after the goods reach the shop, as an entry with its reason, never a
+      deletion (§16: Iran's law and common practice, documented)
+- [ ] Asked first as well: who sees the online sales in the panel and what it shows (§16)
+- [ ] **The online sales in the panel** (the developer, 1405/08/19): a read-only page of their own;
+      no figure of the dashboard, the reports, the till or net profit changes (a test proves the
+      dashboard's numbers are the same with and without shop orders)
+
+### 16.8 Messages with customers (پیام با مشتری)
+- [ ] Asked first: an SMS for a new message or not
+- [ ] Messages under an order, on the customer's side and the shop admin's; the admin's contact ways
+      shown to the customer
+
+### 16.9 The eNamad pages (صفحه‌های اینماد)
+- [ ] About us, contact, terms and returns on the site, with the Owner's texts; early, so the eNamad
+      application is not held up by them. The returns page follows the E-Commerce Law (article 37:
+      at least 7 working days to withdraw, return postage on the buyer; exceptions checked), §16
+- [ ] **The shop opens**: the real gateway, a test purchase on the server, then the public page links
+      the shop
 
 ---
 

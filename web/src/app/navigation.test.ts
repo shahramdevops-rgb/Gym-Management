@@ -7,6 +7,7 @@ describe("sectionFor", () => {
     [paths.attendance, "پذیرش", "داخل باشگاه"],
     [paths.history, "پذیرش", "تاریخچه"],
     [paths.members, "پذیرش", "اعضا"],
+    [paths.siteUsers, "پذیرش", "کاربران سایت"],
     [paths.cafe, "فروش بوفه", "بوفه"],
     [paths.cafeOrders, "فروش بوفه", "سفارش‌های بوفه"],
     [paths.cafeMenu, "فروش بوفه", "منوی بوفه"],

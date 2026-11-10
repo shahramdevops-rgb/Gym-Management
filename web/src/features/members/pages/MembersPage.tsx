@@ -215,7 +215,7 @@ export function MembersPage() {
           <Input
             type="search"
             aria-label="نام یا شماره موبایل"
-            placeholder="نام، بخشی از نام یا شماره موبایل عضو…"
+            placeholder="نام، ۴ رقم آخر یا شمارهٔ موبایل عضو…"
             // Edged like every filter box, the thick edge at its end (13.2i).
             className={cn(filterEdge, "h-10 ps-9 text-base")}
             autoFocus
@@ -247,6 +247,7 @@ export function MembersPage() {
                 const member = await createMember.mutateAsync(input);
                 void navigate(paths.member(member.id));
               }}
+              onSiteUserRegistered={(member) => void navigate(paths.member(member.id))}
               actions={
                 <Button type="button" variant="ghost" onClick={() => setRegistering(false)}>
                   انصراف

@@ -383,8 +383,8 @@ public sealed class MemberEndpointTests(DatabaseFixture fixture) : DatabaseTestB
 
     private static string InsertSql(string phone, string birthDate = $"DATE '{BirthDate}'") =>
         $"""
-        INSERT INTO members (id, full_name, normalized_full_name, phone_number, birth_date, is_active, created_at)
-        VALUES ('{Guid.CreateVersion7()}', 'x', 'x', '{phone}', {birthDate}, true, now())
+        INSERT INTO members (id, full_name, normalized_full_name, phone_number, birth_date, is_active, registered_at_desk, created_at)
+        VALUES ('{Guid.CreateVersion7()}', 'x', 'x', '{phone}', {birthDate}, true, true, now())
         """;
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()

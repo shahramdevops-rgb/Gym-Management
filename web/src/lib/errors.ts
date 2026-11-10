@@ -172,6 +172,9 @@ export const errorMessages: Record<string, string> = {
   // Members
   "Members.NotFound": "عضو پیدا نشد.",
   "Members.PhoneAlreadyExists": "این شماره موبایل قبلاً برای عضو دیگری ثبت شده است.",
+  "Members.PhoneBelongsToSiteUser":
+    "این شماره در سایت ثبت‌نام کرده است؛ با «ثبت به‌عنوان عضو» او را عضو کنید.",
+  "Members.SiteUserNotFound": "این کاربر سایت پیدا نشد؛ شاید همین حالا عضو شده باشد.",
   "Members.PhoneInvalid": "شماره موبایل معتبر نیست.",
   "Members.PhoneNotMobile": "شماره باید موبایل باشد؛ شمارهٔ ثابت پذیرفته نمی‌شود.",
   "Members.PhoneNotIranian": "فقط شماره موبایل ایران پذیرفته می‌شود.",

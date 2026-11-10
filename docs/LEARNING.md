@@ -2471,3 +2471,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **`with` on a record copies it with one change.** `mark with { HadLeave = true }` keeps the visit and the minutes and sets the flag, without a second constructor.
 - **Keep an old address, change what it means, on purpose.** An installed app still on the old page posts «نمی‌آیم» to `/me/sessions/leave`; now that address asks for leave, so the old button does the safe thing (a request) rather than freeing a place on its own.
 - **My notes:**
+
+## 16.1 — Site users and the phone search (کاربران سایت، جست‌وجو با ۴ رقم آخر)
+
+- **Store the fact, derive the state.** Only where a member came from is a column (`registered_at_desk`); "a site user" is that plus "never a plan, never a visit", read from those tables each time (`SiteUserRule`). A stored "is site user" flag would need every sale and check-in, today's and future ones, to remember to clear it; a derived one cannot be forgotten.
+- **A rule as an `Expression<Func<T, bool>>`.** `SiteUserRule.IsSiteUser(db)` is a lambda EF Core translates to `NOT EXISTS (...)` inside whatever query uses it, so the member list, the broadcast and the new page all draw the same line in SQL, the way `MemberDebt.OwesSomething` already did.
+- **A data migration carries the existing rows.** `AddColumn` with `defaultValue: true` fills every existing member, an `UPDATE` marks the site sign-ups, and the default is dropped so a forgotten value fails instead of silently becoming true. The SQL is a public constant so a test can run it on rows made the way the server's were.
+- **A boolean default in the EF model is a trap.** With `HasDefaultValue(true)` EF Core leaves out a `false` it thinks is "not set" (the CLR default), and the database writes `true`: a site sign-up would quietly become a desk member. The default lives only in the migration.
+- **Old migration tests write with that day's columns.** A test that migrates to an older version and then saves through today's model fails as soon as the model gains a column; raw SQL with the columns of that day keeps it honest.
+- **`LIKE '%4567'` is "ends with".** The trigram index already on the phone column serves it; the four digits are compared as typed because E.164 keeps every digit after the country code.
+- **`useWatch` instead of `form.watch`.** The React Compiler cannot memoize a component that calls `watch()`; the `useWatch` hook subscribes to one field and keeps the form memoizable (the lint warning `react-hooks/incompatible-library`).
+- **My notes:**

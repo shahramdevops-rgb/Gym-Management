@@ -51,6 +51,19 @@ public sealed class Member : Entity
     public bool IsActive { get; private set; }
 
     /// <summary>
+    /// The desk registered this member (BUSINESS_RULES.md §16 <i>Site users</i>): <c>false</c> only
+    /// for someone who signed up on the site (<see cref="SignUpOnSite"/>) and has not been brought
+    /// in at the desk since (<see cref="RegisterAtDesk"/>).
+    /// </summary>
+    /// <remarks>
+    /// Only half of "site user": the other half is "never a plan, a visit or a cafe order", which
+    /// is worked out from those tables when asked (<c>SiteUserRule</c> in the Application layer)
+    /// rather than stored here, so no sale or check-in has to remember to change a flag. None of
+    /// those is ever deleted, so a site user who became a member never becomes one again.
+    /// </remarks>
+    public bool RegisteredAtDesk { get; private set; }
+
+    /// <summary>
     /// Postgres <c>xmin</c>. Two receptionists editing the same member: the second save fails
     /// instead of silently overwriting the first person's change.
     /// </summary>
@@ -62,10 +75,27 @@ public sealed class Member : Entity
     /// </param>
     public static Result<Member> Create(string fullName, string phoneNumber, string? notes, DateOnly birthDate, DateOnly today)
     {
-        var member = new Member { IsActive = true };
+        var member = new Member { IsActive = true, RegisteredAtDesk = true };
         var result = member.Update(fullName, phoneNumber, notes, birthDate, today);
 
         return result.IsSuccess ? member : Result.Failure<Member>(result.Error);
+    }
+
+    /// <summary>
+    /// Someone who signed up on the site with their phone (BUSINESS_RULES.md §15): a member like
+    /// any other, with the same rules, who stays a site user (§16) until the desk brings them in or
+    /// their first plan or visit.
+    /// </summary>
+    /// <param name="today">The gym's today, as in <see cref="Create"/>.</param>
+    public static Result<Member> SignUpOnSite(string fullName, string phoneNumber, DateOnly birthDate, DateOnly today)
+    {
+        var created = Create(fullName, phoneNumber, notes: null, birthDate, today);
+        if (created.IsSuccess)
+        {
+            created.Value.RegisteredAtDesk = false;
+        }
+
+        return created;
     }
 
     /// <summary>
@@ -130,6 +160,13 @@ public sealed class Member : Entity
 
     /// <summary>Reactivating an active member succeeds and changes nothing.</summary>
     public void Reactivate() => IsActive = true;
+
+    /// <summary>
+    /// «ثبت به‌عنوان عضو» on the new-member form (BUSINESS_RULES.md §16 <i>Site users</i>): the desk
+    /// takes in someone who signed up on the site, keeping what they entered there. Registering a
+    /// member the desk already registered succeeds and changes nothing.
+    /// </summary>
+    public void RegisterAtDesk() => RegisteredAtDesk = true;
 
     /// <summary>
     /// BUSINESS_RULES.md §2: inactive members cannot receive new subscriptions. Selling asks this

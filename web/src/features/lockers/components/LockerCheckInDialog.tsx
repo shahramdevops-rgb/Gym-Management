@@ -631,7 +631,7 @@ function MemberSearch({
         <Input
           type="search"
           aria-label="نام یا شماره موبایل"
-          placeholder="نام یا شماره موبایل عضو…"
+          placeholder="نام یا ۴ رقم آخر موبایل عضو…"
           className="h-11 ps-9 text-base"
           autoFocus
           onKeyDown={onKeyDown}

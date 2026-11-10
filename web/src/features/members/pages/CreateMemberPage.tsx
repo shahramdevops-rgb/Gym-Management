@@ -26,6 +26,7 @@ export function CreateMemberPage() {
               const member = await createMember.mutateAsync(input);
               navigate(paths.member(member.id));
             }}
+            onSiteUserRegistered={(member) => void navigate(paths.member(member.id))}
             actions={
               <Button asChild variant="ghost">
                 <Link to={paths.members}>انصراف</Link>

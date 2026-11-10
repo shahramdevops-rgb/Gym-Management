@@ -96,6 +96,7 @@ using Gym.Application.Lockers.ListLockers;
 using Gym.Application.Lockers.ListLockerVisitsToday;
 using Gym.Application.Lockers.LockerUsage;
 using Gym.Application.Lockers.SetLockerOutOfService;
+using Gym.Application.Members;
 using Gym.Application.Members.CreateMember;
 using Gym.Application.Members.GetMember;
 using Gym.Application.Members.GetMemberDebt;
@@ -152,6 +153,9 @@ using Gym.Application.SiteAuth.SignUp;
 using Gym.Application.SiteAuth.VerifyCode;
 using Gym.Application.SiteRecords.GetMyDebt;
 using Gym.Application.SiteRecords.GetMyDetails;
+using Gym.Application.SiteUsers.FindSiteUserByPhone;
+using Gym.Application.SiteUsers.ListSiteUsers;
+using Gym.Application.SiteUsers.RegisterSiteUser;
 using Gym.Application.SiteRecords.GetMyPlan;
 using Gym.Application.SiteRecords.ListMyCafeOrders;
 using Gym.Application.SiteRecords.ListMyPayments;
@@ -309,6 +313,12 @@ public static class DependencyInjection
         services.AddScoped<GetMemberDebtHandler>();
         services.AddScoped<ListMembersHandler>();
         services.AddScoped<SetMemberActiveHandler>();
+        services.AddScoped<MemberSearch>();
+
+        // Site users, apart from the gym's members (BUSINESS_RULES.md §16, task 16.1).
+        services.AddScoped<ListSiteUsersHandler>();
+        services.AddScoped<FindSiteUserByPhoneHandler>();
+        services.AddScoped<RegisterSiteUserHandler>();
 
         services.AddScoped<GetPricesHandler>();
         services.AddScoped<UpdatePricesHandler>();
