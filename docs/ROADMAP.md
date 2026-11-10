@@ -4897,6 +4897,11 @@ Each part on its own branch and session, in this order (proposed by Claude); 15.
       by mistake. *Proposed by Claude, accepted by the developer:* a card «پایان مربی‌گری» at the foot
       of the student's «برنامهٔ ثابت» page, asking first as before; once ended, back to the home
       (`bookings/StudentSchedulePage.tsx`)
+  - **The member's side too** (asked by the developer 1405/08/20, with 15.7e: "not so much in
+    sight"): in «مربی من» on the member's home, «تغییر مربی» and «پایان مربی‌گری» are small grey
+    text at the card's foot (`ConfirmDialog`'s `quiet`); not removed, since §15 lets the member end
+    the link and change trainer. «انتخاب مربی», with no trainer, stays the card's button
+    (`coaching/MyTrainerCard.tsx`)
 - [x] **15.7h, the coaching period (دورهٔ مربی‌گری)** (backend, screens, migration; built 1405/08/19
       on `task/15.7h-coaching-period`, from 15.7g's branch). *Decided by the developer:* a period is
       **one month** by default; **the trainer types the number of days when accepting a request**;
