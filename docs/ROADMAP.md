@@ -60,7 +60,9 @@ Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 ac
   gym's trainers, links and photos; 14.4 closed with 15.3b
 - **Queued: the online shop and site users (Phase 16)**, asked by the developer on 1405/08/19
   (2026-11-10); 16.0 done (ADR 0011 accepted 1405/08/19); **16.1** built 1405/08/19 on
-  `task/16.1-site-users` (site users and the phone search), not released; next 16.2
+  `task/16.1-site-users` (site users and the phone search), merged, not released; next 16.2. The
+  eNamad first (1405/08/20): 16.2 to 16.4 and 16.9 make a showcase to apply with, the rest is built
+  while it is reviewed
 
 ---
 
@@ -4975,11 +4977,20 @@ How it is built:
   green tests, a `code-reviewer` pass and a short LEARNING.md entry.
 - The production server holds real data: every migration only adds, and no existing member, plan,
   visit or payment changes. Releases late at night with `./backup.sh run` first.
-- The gym has no eNamad yet (applied for meanwhile): payment is built against the gateway's test
-  environment, and the real merchant account is plugged in when the eNamad arrives, as the last
-  step before the shop opens.
+- **The eNamad is not left for the end** (the developer, 1405/08/20): it may take time, so it runs
+  beside the work. The eNamad is given only to a site whose shop is up, with products, prices,
+  details and photos, and Zarinpal gives no gateway without it. So the order is the showcase first,
+  the application next, and the rest while it is reviewed:
+  1. **For the application**: 16.2 (the shop admin), 16.3 (products and photos), 16.4 (the
+     showcase), 16.9 (the eNamad pages, brought forward from the end)
+  2. **The showcase release** (in 16.9): the shop admin enters real products, the site shows
+     them on the server with buying closed, and the Owner applies for the eNamad
+  3. **While the eNamad is reviewed**: 16.5 (cart and order), 16.6 (payment against Zarinpal's
+     test environment), 16.7 (handling and delivery), 16.8 (messages)
+  4. **The shop opens** (16.10): the eNamad arrives, the real merchant account is plugged in
+- The task numbers stay as they were; the sections below are in the order above.
 - *Open:* how the phase is released (16.1 alone first, Claude proposes, since it is useful on its
-  own; the shop as one release once payment works).
+  own; then the showcase release; then the shop once payment works).
 
 ### 16.0 The decision (docs only)
 - [x] ADR 0011, BUSINESS_RULES.md §16 and this phase written, branch `task/16-shop-plan`
@@ -5044,6 +5055,22 @@ Built 1405/08/19 on branch `task/16.1-site-users`, not released.
 - [ ] The catalogue by category and each product's page, open to anyone without signing in; the
       public page's placeholder shelves replaced; it still works when the API is down
 
+### 16.9 The eNamad pages and the showcase release (صفحه‌های اینماد و انتشار ویترین)
+Brought forward from the end (the developer, 1405/08/20), so the eNamad is applied for early.
+- [ ] Outside the code, for the Owner, from now on (the eNamad's terms as found 1405/08/20 on
+      Zarinpal's blog and others, to be checked on the eNamad's own site): the applicant owns the
+      domain (`pasargadgymplus.ir`'s holder at IRNIC is the same person, and the code comes to the
+      domain's registered email); a phone and an address in that person's name; their identity
+      papers; a Sheba in the same name for the gateway; whether selling food supplements needs a
+      licence of its own
+- [ ] About us, contact, terms and returns on the site, with the Owner's texts. The returns page
+      follows the E-Commerce Law (article 37: at least 7 working days to withdraw, return postage on
+      the buyer; exceptions checked), §16
+- [ ] Asked first: how the showcase says buying is not open yet, and whether that is enough for the
+      eNamad's review
+- [ ] **The showcase release**: 16.2 to 16.4 and these pages on the server, the shop admin's real
+      products in, buying closed; then the Owner applies for the eNamad
+
 ### 16.5 Cart, address and order (سبد خرید و سفارش)
 - [ ] Asked first: what an address holds, and whether a courier (پیک) stays beside Tipax
 - [ ] A signed-in customer's cart (product variants), delivery address, and the order, unpaid until
@@ -5077,12 +5104,10 @@ Built 1405/08/19 on branch `task/16.1-site-users`, not released.
 - [ ] Messages under an order, on the customer's side and the shop admin's; the admin's contact ways
       shown to the customer
 
-### 16.9 The eNamad pages (صفحه‌های اینماد)
-- [ ] About us, contact, terms and returns on the site, with the Owner's texts; early, so the eNamad
-      application is not held up by them. The returns page follows the E-Commerce Law (article 37:
-      at least 7 working days to withdraw, return postage on the buyer; exceptions checked), §16
-- [ ] **The shop opens**: the real gateway, a test purchase on the server, then the public page links
-      the shop
+### 16.10 The shop opens (باز شدن فروشگاه)
+- [ ] The eNamad arrived; the real merchant account (16.6's last line) plugged in
+- [ ] **The shop opens**: a test purchase on the server, then buying is opened and the public page
+      links the shop
 
 ---
 

@@ -2989,6 +2989,10 @@ roadmap Phase 16. Each line says who decided it, as in §15:
   yet; it is applied for meanwhile, and everything is built against the gateway's test environment
   until it arrives. *Decided by the developer.* **The gateway is Zarinpal.** *Decided by the
   developer* (1405/08/19).
+- **The eNamad is applied for as soon as the showcase is up, not at the end.** The site goes to the
+  server with real products and buying closed, the Owner applies, and the cart, payment and
+  delivery are built while the eNamad is reviewed; buying opens once it arrives. *Decided by the
+  developer* (1405/08/20). *Open:* how the showcase says buying is not open yet.
 - **The shop's SMS go through the gym's Kavenegar account**, as every other SMS. *Decided by the
   developer.* Their texts stay in the code (`SmsText`), as every kind's do except the broadcast.
 
@@ -3104,5 +3108,9 @@ anywhere in the stored number" (§2 now says the same as here).
   shop admin's panel. *Decided by the developer.* *Open:* whether a new message is also told by SMS.
 
 ### Pages the eNamad needs
-- *Proposed by Claude:* about us, contact, terms and returns on the site; the Owner gives their
-  texts.
+- **About us, contact, terms and returns on the site**; the Owner gives their texts. *Decided by
+  the developer* (1405/08/20, with the eNamad first).
+- What the eNamad asks, as found 1405/08/20 on Zarinpal's blog and others, to be checked on the
+  eNamad's own site: a site whose shop is up, with products, prices, details and photos; an
+  applicant who owns the domain (confirmed by a code sent to the domain's registered email), with a
+  phone in their own name; contact details and an address on the site; HTTPS.
