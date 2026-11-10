@@ -181,7 +181,9 @@ using Gym.Application.Timetables.CheckResetTimetableDay;
 using Gym.Application.Timetables.CheckTimetableDay;
 using Gym.Application.Timetables.CheckWeekPattern;
 using Gym.Application.Timetables.GetTimetable;
+using Gym.Application.Timetables.RemoveSessionNote;
 using Gym.Application.Timetables.ResetTimetableDay;
+using Gym.Application.Timetables.SetSessionNote;
 using Gym.Application.Timetables.SetTimetableDay;
 using Gym.Application.Timetables.SetWeekPattern;
 using Gym.Application.Trainers.CreateTrainer;
@@ -292,6 +294,8 @@ public static class DependencyInjection
         services.AddScoped<EndStudentScheduleHandler>();
         services.AddScoped<GetSessionStudentsHandler>();
         services.AddScoped<RemoveSessionStudentHandler>();
+        services.AddScoped<SetSessionNoteHandler>();
+        services.AddScoped<RemoveSessionNoteHandler>();
         services.AddScoped<GetMySessionsHandler>();
         services.AddScoped<LeaveMySessionHandler>();
         services.AddScoped<CancelMyLeaveHandler>();

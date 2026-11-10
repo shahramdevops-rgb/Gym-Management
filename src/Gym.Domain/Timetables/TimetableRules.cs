@@ -79,6 +79,11 @@ public static class TimetableRules
             {
                 return Result.Failure(TimetableErrors.OutsideHours);
             }
+
+            if (session.Note?.Length > SessionNoteText.MaxStandingLength)
+            {
+                return Result.Failure(TimetableErrors.NoteTooLong);
+            }
         }
 
         // Overlaps are allowed (the developer, 1405/08/09); the same start and end twice is not.

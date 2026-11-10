@@ -36,8 +36,11 @@ public sealed record SessionStudentsResponse(DateOnly Date, IReadOnlyList<Sessio
                 session.End,
                 session.Capacity,
                 session.IsVip,
+                session.Note,
+                timetable.DateNoteOf(date, session),
                 Removed: false,
                 BookingRules.HasStarted(date, session.Start, today, timeOfDay),
+                BookingRules.HasEnded(date, session.End, today, timeOfDay),
                 StudentsOf(BookingRules.In(places, date, session))))
             .ToList();
 
@@ -50,8 +53,11 @@ public sealed record SessionStudentsResponse(DateOnly Date, IReadOnlyList<Sessio
                 group.Key.End,
                 Capacity: null,
                 IsVip: false,
+                Note: null,
+                DateNote: null,
                 Removed: true,
                 BookingRules.HasStarted(date, group.Key.Start, today, timeOfDay),
+                BookingRules.HasEnded(date, group.Key.End, today, timeOfDay),
                 StudentsOf(group))));
 
         return new SessionStudentsResponse(date, items);
@@ -60,15 +66,21 @@ public sealed record SessionStudentsResponse(DateOnly Date, IReadOnlyList<Sessio
 
 /// <param name="Capacity"><c>null</c> for a session removed since its students were put in it.</param>
 /// <param name="IsVip">Marked VIP by the trainer (15.6e); never for a removed session.</param>
+/// <param name="Note">The session's standing note (15.7e); never for a removed session.</param>
+/// <param name="DateNote">The trainer's note on this date's session alone (15.7e); never for a removed session.</param>
 /// <param name="Removed">The trainer removed the session, or moved its times, after these students were put in it.</param>
 /// <param name="Started">It has started: no one is taken out of it any more.</param>
+/// <param name="Ended">It is over: its date's note no longer changes (15.7e).</param>
 public sealed record SessionStudentsItem(
     TimeOnly Start,
     TimeOnly End,
     int? Capacity,
     bool IsVip,
+    string? Note,
+    string? DateNote,
     bool Removed,
     bool Started,
+    bool Ended,
     IReadOnlyList<SessionStudentResponse> Students);
 
 /// <param name="Moved">Here for this date only: the student moved one of their sessions to it.</param>

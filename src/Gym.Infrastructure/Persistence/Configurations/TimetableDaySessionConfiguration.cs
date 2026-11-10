@@ -16,6 +16,7 @@ public sealed class TimetableDaySessionConfiguration : IEntityTypeConfiguration<
         builder.Property(session => session.Id).ValueGeneratedNever();
 
         TimetableSessionColumns.Map(builder, session => session.Start, session => session.End);
+        TimetableSessionColumns.MapNote(builder, session => session.Note);
 
         builder.HasIndex(session => new { session.DayId, session.Start, session.End }).IsUnique();
     }

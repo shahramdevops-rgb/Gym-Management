@@ -3535,6 +3535,78 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Timetables.SessionNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<TimeOnly>("End")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<TimeOnly>("Start")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("text");
+
+                    b.Property<Guid>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_session_notes");
+
+                    b.HasIndex("TrainerId", "Date", "Start", "End")
+                        .IsUnique()
+                        .HasDatabaseName("ix_session_notes_trainer_id_date_start_time_end_time");
+
+                    b.ToTable("session_notes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_session_notes_end_after_start", "end_time > start_time");
+
+                            t.HasCheckConstraint("ck_session_notes_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_session_notes_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_session_notes_text_not_blank", "text IS NULL OR (text <> '' AND text = btrim(text, E' \\t\\r\\n'))");
+
+                            t.HasCheckConstraint("ck_session_notes_within_hours", "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Timetables.TimetableDay", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3612,6 +3684,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_vip");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("note");
+
                     b.Property<TimeOnly>("Start")
                         .HasColumnType("time without time zone")
                         .HasColumnName("start_time");
@@ -3638,6 +3715,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_timetable_day_sessions_end_after_start", "end_time > start_time");
 
                             t.HasCheckConstraint("ck_timetable_day_sessions_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_timetable_day_sessions_note_not_blank", "note IS NULL OR (note <> '' AND note = btrim(note, E' \\t\\r\\n'))");
 
                             t.HasCheckConstraint("ck_timetable_day_sessions_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
 
@@ -3722,6 +3801,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_vip");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("note");
+
                     b.Property<Guid>("PatternId")
                         .HasColumnType("uuid")
                         .HasColumnName("pattern_id");
@@ -3754,6 +3838,8 @@ namespace Gym.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_week_pattern_sessions_end_after_start", "end_time > start_time");
 
                             t.HasCheckConstraint("ck_week_pattern_sessions_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_week_pattern_sessions_note_not_blank", "note IS NULL OR (note <> '' AND note = btrim(note, E' \\t\\r\\n'))");
 
                             t.HasCheckConstraint("ck_week_pattern_sessions_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
 
@@ -4574,6 +4660,16 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_subscriptions_members_member_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Timetables.SessionNote", b =>
+                {
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany()
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_session_notes_trainers_trainer_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Timetables.TimetableDay", b =>

@@ -3,12 +3,15 @@ using System.Security.Claims;
 using Gym.Api.Authorization;
 using Gym.Api.Common;
 using Gym.Api.Filters;
+using Gym.Application.Bookings;
 using Gym.Application.Timetables;
 using Gym.Application.Timetables.CheckResetTimetableDay;
 using Gym.Application.Timetables.CheckTimetableDay;
 using Gym.Application.Timetables.CheckWeekPattern;
 using Gym.Application.Timetables.GetTimetable;
+using Gym.Application.Timetables.RemoveSessionNote;
 using Gym.Application.Timetables.ResetTimetableDay;
+using Gym.Application.Timetables.SetSessionNote;
 using Gym.Application.Timetables.SetTimetableDay;
 using Gym.Application.Timetables.SetWeekPattern;
 
@@ -81,6 +84,21 @@ public static class SiteTimetableEndpoints
                 (await handler.Handle(SiteUser.AccountId(user), date, ct)).ToHttpResult())
             .WithName("CheckResetTimetableDay")
             .Produces<TimetableImpactResponse>()
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // «یادداشت این روز» (BUSINESS_RULES.md §15 Session notes, 15.7e): from «شاگردان سانس», which
+        // both give back. The standing note is part of the sessions saved above.
+        group.MapPut("/days/{date}/note", async (DateOnly date, ClaimsPrincipal user, SetSessionNoteCommand command, SetSessionNoteHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), date, command, ct)).ToHttpResult())
+            .WithName("SetSessionNote")
+            .Produces<SessionStudentsResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        group.MapPost("/days/{date}/note/remove", async (DateOnly date, ClaimsPrincipal user, RemoveSessionNoteCommand command, RemoveSessionNoteHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), date, command, ct)).ToHttpResult())
+            .WithName("RemoveSessionNote")
+            .Produces<SessionStudentsResponse>()
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 
         return app;

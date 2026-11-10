@@ -14,6 +14,7 @@ import { Person } from "../components/Person";
 import { SiteFrame } from "../components/SiteFrame";
 import { sitePaths } from "../paths";
 import { formatDayLabel, formatSessionTimes } from "../timetable/labels";
+import { SessionNotes } from "../timetable/SessionNotes";
 import { VipBadge } from "../timetable/VipBadge";
 import { useTrainerDay, useTrainerToday, type DaySession, type TrainerDay } from "./api";
 import { inFilter, parseDayFilter, type DayFilter } from "./dayFilter";
@@ -227,6 +228,7 @@ function SessionBox({ session }: { session: DaySession }) {
           session.started && <Badge variant="outline">در حال برگزاری</Badge>
         )}
       </div>
+      <SessionNotes note={session.note} dateNote={session.dateNote} />
       {session.students.length === 0 ? (
         <p className="text-sm text-muted-foreground">شاگردی در این سانس نیست.</p>
       ) : (

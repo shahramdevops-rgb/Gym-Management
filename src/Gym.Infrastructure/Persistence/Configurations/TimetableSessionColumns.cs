@@ -33,8 +33,23 @@ internal static class TimetableSessionColumns
             $"ck_{tableName}_capacity",
             $"capacity BETWEEN {TimetableRules.MinCapacity} AND {TimetableRules.MaxCapacity}");
 
+        // A standing note (15.7e) is kept trimmed, and a blank one is none.
+        table.HasCheckConstraint($"ck_{tableName}_note_not_blank", NotBlank("note"));
+
         AddTimeChecks(table, tableName);
     }
+
+    /// <summary>The standing note's column on a session table: none, or up to <see cref="SessionNoteText.MaxStandingLength"/> characters.</summary>
+    public static void MapNote<TSession>(EntityTypeBuilder<TSession> builder, Expression<Func<TSession, string?>> note)
+        where TSession : class =>
+        builder.Property(note).HasMaxLength(SessionNoteText.MaxStandingLength);
+
+    /// <summary>
+    /// A note column is null or holds text with no space, tab or line break at either end, as the
+    /// Domain keeps it (it trims every kind of white space, so it never writes what this refuses).
+    /// </summary>
+    public static string NotBlank(string column) =>
+        $@"{column} IS NULL OR ({column} <> '' AND {column} = btrim({column}, E' \t\r\n'))";
 
     /// <summary>The time checks alone, for a table that names a session by its times (15.6b) and has no capacity.</summary>
     public static void AddTimeChecks(TableBuilder table, string tableName)

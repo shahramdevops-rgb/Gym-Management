@@ -2489,3 +2489,12 @@ The question that started this was whether a gym that is entirely internal — I
 - **Leave out by not asking, not by hiding.** The member's response has no `Outside` and no `MemberId` at all (`MyAttendanceResponse`), rather than the trainer's response with fields set to empty: what is not in the payload cannot leak through the browser's network tab.
 - **Extract a component when a second page needs it.** `AttendanceMonth` and `MonthNavigator` came out of the trainer's page the moment the member's page needed the same view; before that, one page with the code inline was the simpler choice.
 - **My notes:**
+
+## 15.7e — Notes on sessions (یادداشت سانس)
+
+- **Where a value lives decides what it drags along.** The standing note is a property of the session (beside `IsVip`), so every editor, copy and "a started session stays as it was" check carries it for free. The date's note could not live in the day's row: writing it would make the date "changed by hand" and cut it off from later patterns. So it is a row of its own, named by the session's date and times, as a booking is.
+- **Normalize in the value's constructor.** `PlannedSession`'s `Note` property is initialized from the positional parameter through `SessionNoteText.Normalize`, so "  x " and "x" are the same session and a blank note is `null` everywhere, records' equality included. A get-only property means `with` cannot slip an untrimmed note past it.
+- **A check constraint mirrors the Domain's normal form.** `note = btrim(note, ...)` and `note <> ''` hold in Postgres what `Normalize` does in C#, so a hand-written UPDATE cannot store a note the app would never write.
+- **Read related data with the data it belongs to.** The date notes load inside `TrainerTimetable.DatesAsync`, so every response that already reads the timetable (four of them) gets `DateNoteOf(date, session)` without a new query in each handler.
+- **Ask the Domain first, then the database.** `SetSessionNoteHandler` lets `SessionNote` refuse an ended session or a date out of range before checking that the session exists, so the trainer hears the real reason, not "no such session".
+- **My notes:**

@@ -32,6 +32,7 @@ import {
   type Opening,
   type Place,
 } from "./api";
+import { SessionNotes } from "../timetable/SessionNotes";
 import { PlaceBadges } from "./PlaceBadges";
 import { PlacesByWeek } from "./PlacesByWeek";
 
@@ -236,6 +237,7 @@ function DatesCard({ mine }: { mine: MySessions }) {
                         </div>
                       )
                     )}
+                    <SessionNotes note={place.note} dateNote={place.dateNote} className="w-full" />
                   </li>
                 );
               })}

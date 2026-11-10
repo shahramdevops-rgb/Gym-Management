@@ -4857,10 +4857,33 @@ merged or released. Worked out from the desk's check-ins as before: no table, no
       امروز»), with its own box in the day's counts and the month's totals; early and late show
       their minutes from the start (`MinutesEarly`, `MinutesLate`: «۱۰ دقیقه زودتر آمد», «۲۵ دقیقه
       تأخیر»)
-- [ ] **15.7e, queued**: a note on a session (the trainer and the students see it). "Extra time"
-      was asked on 1405/08/19: the trainer putting a student in a date outside their fixed schedule,
-      for those who work and cannot come at their time; **dropped for now** by the developer the
-      same day (not to be raised again unless asked); the note stays, to be built
+- [x] **15.7e, notes on sessions (یادداشت سانس)** (backend, screens, migration; built 1405/08/20 on
+      `task/15.7e-session-notes`, from 15.7j's branch; §15 *Session notes*). "Extra time" was asked
+      on 1405/08/19 (the trainer putting a student in a date outside their fixed schedule, for those
+      who work and cannot come at their time) and **dropped for now** by the developer the same day,
+      not to be raised again unless asked. *Asked first, 1405/08/20:* both kinds of note; every
+      student of the session sees them, those on leave too; only under the session; only the trainer
+      writes
+  - **Domain**: `PlannedSession`/`WeeklySession.Note` (kept trimmed, blank is none) on
+    `WeekPatternSession` and `TimetableDaySession`, checked by `TimetableRules.CheckDay`
+    (`SessionNoteText.MaxStandingLength`, 100); `SessionNote` (`Write`, `Rewrite`, `CheckChange`:
+    until the session ends, 300 characters); errors `Timetable.NoteTooLong`, `DateNoteTooLong`,
+    `NoteEmpty`, `NoteSessionEnded`, `NoteNotFound`
+  - **Database**: migration `AddSessionNotes`: a nullable `note varchar(100)` on both session tables
+    with `ck_…_note_not_blank`; `session_notes` (trainer, date, times, `text varchar(300)`, `xmin`),
+    unique per trainer, date and times, the time checks and `ck_session_notes_text_not_blank`. It
+    only adds: no existing row changes. In «گزارش تغییرات» as «یادداشت سانس یک روز» and
+    «یادداشت ثابت» (`auditFields.json`)
+  - **API**: `note` in the pattern and day saves and in «تمام سانس‌های من»;
+    `PUT /api/site/timetable/days/{date}/note` and `POST …/note/remove` (under the trainer's lock,
+    answering with «شاگردان سانس», which also gained `ended`); `note` and `dateNote` on each session
+    of «شاگردان سانس», the day of attendance, and on every place of «سانس‌های من» and «برنامهٔ ثابت»
+    (`TimetableDates.DateNoteOf`, read with the timetable)
+  - **Screens**: «یادداشت ثابت» box under each session in the editors; `SessionNotes` (pin for the
+    standing note, calendar for the date's) under the session in «الگوی هفتگی», «شاگردان سانس», the
+    day page, «سانس‌های من», the home's card and «برنامهٔ ثابت»; a mark on a noted session in «روزهای
+    پیش رو»; `DateNoteEditor` in «شاگردان سانس» («یادداشت این روز», «ویرایش یادداشت», «پاک کردن
+    یادداشت»)
 
 #### The developer's list, part two (asked 1405/08/19, after 15.7d's screenshots)
 Each part on its own branch and session, in this order (proposed by Claude); 15.7e fits anywhere.

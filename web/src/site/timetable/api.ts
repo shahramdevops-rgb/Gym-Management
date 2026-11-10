@@ -22,6 +22,8 @@ export interface SessionInput {
   capacity: number;
   /** Marked VIP by the trainer (15.6e): for now only a label. */
   isVip: boolean;
+  /** The standing note («یادداشت ثابت», 15.7e), as typed; blank is none. */
+  note: string;
 }
 
 const withSeconds = (time: string) => `${time}:00`;
@@ -31,6 +33,7 @@ const toBody = (session: SessionInput) => ({
   end: withSeconds(session.end),
   capacity: session.capacity,
   isVip: session.isVip,
+  note: session.note.trim() === "" ? null : session.note.trim(),
 });
 
 /*

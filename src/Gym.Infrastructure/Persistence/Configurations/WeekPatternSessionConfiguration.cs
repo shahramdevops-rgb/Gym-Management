@@ -21,6 +21,7 @@ public sealed class WeekPatternSessionConfiguration : IEntityTypeConfiguration<W
         builder.Property(session => session.Id).ValueGeneratedNever();
 
         TimetableSessionColumns.Map(builder, session => session.Start, session => session.End);
+        TimetableSessionColumns.MapNote(builder, session => session.Note);
 
         // Two sessions of one day never start and end together (BUSINESS_RULES.md §15).
         builder.HasIndex(session => new { session.PatternId, session.Day, session.Start, session.End }).IsUnique();

@@ -6,13 +6,16 @@ import { errorMessage } from "@/lib/errors";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Person } from "../components/Person";
 import { formatDayLabel, formatSessionTimes, formatTaken } from "../timetable/labels";
+import { SessionNotes } from "../timetable/SessionNotes";
 import { VipBadge } from "../timetable/VipBadge";
 import { useRemoveSessionStudent, useSessionStudents, type SessionStudentsItem } from "./api";
+import { DateNoteEditor } from "./DateNoteEditor";
 
 /**
  * «شاگردان سانس» of one date (BUSINESS_RULES.md §15 *Students in sessions*, roadmap 15.6b): each
- * session with its students, then the sessions removed since their students were put in them. The
- * trainer takes a student out of the date until the session starts, and is asked first.
+ * session with its notes (15.7e) and its students, then the sessions removed since their students
+ * were put in them. The trainer writes the date's note here, and takes a student out of the date
+ * until the session starts, asked first.
  */
 export function SessionStudentsList({ date }: { date: string }) {
   const roster = useSessionStudents(date);
@@ -44,8 +47,10 @@ export function SessionStudentsList({ date }: { date: string }) {
             <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
               {times}
               {session.isVip && <VipBadge />}
-              <SessionNote session={session} />
+              <SessionState session={session} />
             </h3>
+            <SessionNotes note={session.note} dateNote={session.dateNote} />
+            {!session.removed && <DateNoteEditor date={date} session={session} times={times} />}
             {session.students.length === 0 ? (
               <p className="text-xs text-muted-foreground">شاگردی در این سانس نیست.</p>
             ) : (
@@ -85,7 +90,7 @@ export function SessionStudentsList({ date }: { date: string }) {
 }
 
 /** «۳ از ۸ نفر», or why the session is not as its students were put in it. */
-function SessionNote({ session }: { session: SessionStudentsItem }) {
+function SessionState({ session }: { session: SessionStudentsItem }) {
   if (session.removed) {
     return <Badge variant="destructive">لغو شد</Badge>;
   }

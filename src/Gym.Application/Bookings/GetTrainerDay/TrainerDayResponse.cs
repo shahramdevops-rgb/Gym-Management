@@ -19,12 +19,16 @@ public sealed record TrainerDayResponse(
     IReadOnlyList<DaySession> Sessions,
     IReadOnlyList<OutsideStudent> Outside);
 
+/// <param name="Note">The session's standing note (15.7e); never for a removed session.</param>
+/// <param name="DateNote">The trainer's note on this date's session alone (15.7e); never for a removed session.</param>
 /// <param name="Removed">The trainer removed the session, or moved its times, after these students were put in it: «لغو شد».</param>
 /// <param name="Ended">The session is over: whoever did not come is absent.</param>
 public sealed record DaySession(
     TimeOnly Start,
     TimeOnly End,
     bool IsVip,
+    string? Note,
+    string? DateNote,
     bool Removed,
     bool Started,
     bool Ended,

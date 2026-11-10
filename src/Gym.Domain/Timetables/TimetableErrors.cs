@@ -53,4 +53,29 @@ public static class TimetableErrors
     public static readonly Error SessionInThePast = Error.BusinessRule(
         "Timetable.SessionInThePast",
         "A new session cannot start in the past.");
+
+    /// <summary>A session's standing note («یادداشت ثابت», 15.7e) is <see cref="SessionNoteText.MaxStandingLength"/> characters at most.</summary>
+    public static readonly Error NoteTooLong = Error.Validation(
+        "Timetable.NoteTooLong",
+        $"A session's standing note is {SessionNoteText.MaxStandingLength} characters at most.");
+
+    /// <summary>A date's note (15.7e) is <see cref="SessionNoteText.MaxDateLength"/> characters at most.</summary>
+    public static readonly Error DateNoteTooLong = Error.Validation(
+        "Timetable.DateNoteTooLong",
+        $"A date's note on a session is {SessionNoteText.MaxDateLength} characters at most.");
+
+    /// <summary>A date's note has some text; removing it is its own action.</summary>
+    public static readonly Error NoteEmpty = Error.Validation(
+        "Timetable.NoteEmpty",
+        "A note has some text.");
+
+    /// <summary>A date's note is written, changed or removed until the session ends; then it stays as it was.</summary>
+    public static readonly Error NoteSessionEnded = Error.BusinessRule(
+        "Timetable.NoteSessionEnded",
+        "A session's note cannot change once the session has ended.");
+
+    /// <summary>There is no note on that session of that date to remove.</summary>
+    public static readonly Error NoteNotFound = Error.NotFound(
+        "Timetable.NoteNotFound",
+        "That session has no note on that date.");
 }
