@@ -323,4 +323,41 @@ describe("the trainer's «برنامهٔ ثابت» of a student", () => {
       await screen.findByText("این عضو الان شاگرد شما نیست.", {}, { timeout: 3000 }),
     ).toBeInTheDocument();
   });
+
+  it("EndCoaching_AsksFirst_EndsAndGoesHome", async () => {
+    const api = mockApi({
+      ...emptyHome,
+      "GET /api/site/me": () => json(200, trainerOnly),
+      [`GET ${schedulePath}`]: () => json(200, student()),
+      [`POST /api/site/coaching/students/${memberId}/end`]: () =>
+        json(200, { requests: [], students: [] }),
+    });
+    renderSite(`/students/${memberId}`, { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "پایان مربی‌گری" }));
+    const question = await screen.findByRole("dialog");
+    expect(question).toHaveTextContent(
+      "مربی‌گری شما برای سارا احمدی از امروز تمام می‌شود. ادامه می‌دهید؟",
+    );
+    fireEvent.click(within(question).getByRole("button", { name: "پایان مربی‌گری" }));
+
+    expect(await screen.findByText("هنوز شاگردی ندارید.")).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/site/coaching/students/${memberId}/end`)).toHaveLength(1);
+  });
+
+  it("EndCoaching_Cancel_SendsNothing", async () => {
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      [`GET ${schedulePath}`]: () => json(200, student()),
+    });
+    renderSite(`/students/${memberId}`, { access: siteAccess(trainerOnly) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "پایان مربی‌گری" }));
+    fireEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "انصراف" }),
+    );
+
+    expect(screen.getByRole("heading", { name: "برنامهٔ ثابت", level: 1 })).toBeInTheDocument();
+    expect(api.requestsTo("POST", `/api/site/coaching/students/${memberId}/end`)).toHaveLength(0);
+  });
 });

@@ -9,10 +9,9 @@ import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 
-import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Person } from "../components/Person";
 import { sitePaths } from "../paths";
-import { useEndStudent, useStudents } from "./api";
+import { useStudents } from "./api";
 import { matchesStudent } from "./studentSearch";
 
 /**
@@ -20,11 +19,11 @@ import { matchesStudent } from "./studentSearch";
  * 15.4b; the requests are their own card since 15.7d, `TrainerRequestsCard`). The trainer sees
  * each member's name and phone; the phone opens the dialler, «حضور» the student's attendance
  * (15.7) and «برنامهٔ ثابت» their fixed weekly sessions (15.6b). A search box finds a student by
- * name or phone (15.7d). «پایان» asks first.
+ * name or phone (15.7d). «پایان مربی‌گری» is no longer here but at the foot of «برنامهٔ ثابت», so a
+ * finger cannot hit it by mistake (15.7g).
  */
 export function TrainerArea() {
   const students = useStudents();
-  const end = useEndStudent();
   const [query, setQuery] = useState("");
 
   if (students.data === undefined) {
@@ -57,7 +56,6 @@ export function TrainerArea() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {end.isError && <Alert variant="destructive">{errorMessage(end.error)}</Alert>}
         {list.length === 0 ? (
           <p className="text-sm text-muted-foreground">هنوز شاگردی ندارید.</p>
         ) : (
@@ -101,12 +99,6 @@ export function TrainerArea() {
                           برنامهٔ ثابت
                         </Link>
                       </Button>
-                      <ConfirmDialog
-                        label="پایان"
-                        question={`مربی‌گری شما برای ${student.fullName} از امروز تمام می‌شود. ادامه می‌دهید؟`}
-                        pending={end.isPending}
-                        onConfirm={(close) => end.mutate(student.memberId, { onSettled: close })}
-                      />
                     </div>
                   </li>
                 ))}

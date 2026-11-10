@@ -2572,6 +2572,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **The member may take a waiting request back** («لغو»). *Proposed by Claude, accepted.*
   - **Either side may end the link with no new trainer**: the member («پایان مربی‌گری») or the
     trainer, for one student. Both ask before doing it (the screens, 15.4b). It ends that day.
+    The trainer's button, «پایان مربی‌گری», is at the foot of the student's «برنامهٔ ثابت», not in
+    «شاگردان من» on the home, so a finger cannot hit it by mistake (*asked by the developer*,
+    1405/08/19, 15.7g).
   - **The trainer sees each student's name and phone** in «شاگردان من», and the same in the
     requests waiting for them.
   - **The trainer hears of a new request in the app and by SMS** (15.4c): its own kind,

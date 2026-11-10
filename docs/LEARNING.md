@@ -2443,3 +2443,9 @@ The question that started this was whether a gym that is entirely internal — I
 - **Filter the data, not the markup.** The page builds a filtered copy of the sessions (`inFilter` over each student's state) and draws that, so an empty session disappears and "no one" is a simple length check.
 - **The address carries the filter between pages.** The home's box links to `/today?show=late`; the day page reads `show` with `useSearchParams`, and keeps it when moving to another day, so the same idea works for a link, a reload and the back button.
 - **My notes:**
+
+## 15.7g — «پایان» off the home (دکمهٔ پایان به برنامهٔ ثابت)
+
+- **Put a button that cannot be undone where it is hard to hit.** A list of students is pressed many times a day; ending a coaching link is rare and final, so it moved one page deeper, alone in its own card at the foot, still asking first. Distance is a second guard beside the question.
+- **Leave a page whose subject is gone.** After «پایان مربی‌گری» the student is no longer the trainer's, so `useNavigate` goes back to the home with `replace: true`: the back button does not return to a page that would only show an error.
+- **My notes:**

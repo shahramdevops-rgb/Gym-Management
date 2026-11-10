@@ -187,29 +187,16 @@ describe("TrainerArea", () => {
     expect(screen.queryByRole("list", { name: "شاگردان من" })).not.toBeInTheDocument();
   });
 
-  it("Trainer_EndStudent_AsksFirst", async () => {
-    const api = mockApi({
+  it("Trainer_Home_HasNoEndButton", async () => {
+    mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
       "GET /api/site/coaching/students": () => json(200, { requests: [], students: [ali] }),
-      [`POST /api/site/coaching/students/${ali.memberId}/end`]: () =>
-        json(200, { requests: [], students: [] }),
     });
     renderSite("/", { access: siteAccess(trainerOnly) });
 
-    fireEvent.click(
-      within(await screen.findByRole("list", { name: "شاگردان من" })).getByRole("button", {
-        name: "پایان",
-      }),
-    );
-    const question = await screen.findByRole("dialog");
-    expect(question).toHaveTextContent(
-      "مربی‌گری شما برای علی محمدی از امروز تمام می‌شود. ادامه می‌دهید؟",
-    );
-    fireEvent.click(within(question).getByRole("button", { name: "پایان" }));
+    const students = within(await screen.findByRole("list", { name: "شاگردان من" }));
 
-    expect(await screen.findByText("هنوز شاگردی ندارید.")).toBeInTheDocument();
-    expect(api.requestsTo("POST", `/api/site/coaching/students/${ali.memberId}/end`)).toHaveLength(
-      1,
-    );
+    // «پایان مربی‌گری» is at the foot of «برنامهٔ ثابت» since 15.7g.
+    expect(students.queryByRole("button", { name: /پایان/ })).not.toBeInTheDocument();
   });
 });

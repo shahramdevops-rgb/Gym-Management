@@ -4866,9 +4866,10 @@ Each part on its own branch and session, in this order (proposed by Claude); 15.
       and the sessions with one of them, pressed again everything; «شاگردان» is the counted ones (no
       «مرخصی», no «لغو شد»); «آمدند، بدون سانس» only unfiltered; «کسی در این دسته نیست.» when empty;
       the filter stays on «روز قبل» / «روز بعد» (`inFilter`, `parseDayFilter` in `attendance/dayFilter.ts`)
-- [ ] **15.7g, «پایان» off the home** (screens only): out of «شاگردان من», so a finger cannot hit it
-      by mistake. *Proposed by Claude:* at the foot of the student's «برنامهٔ ثابت» page, asking first
-      as now
+- [x] **15.7g, «پایان» off the home** (screens only): out of «شاگردان من», so a finger cannot hit it
+      by mistake. *Proposed by Claude, accepted by the developer:* a card «پایان مربی‌گری» at the foot
+      of the student's «برنامهٔ ثابت» page, asking first as before; once ended, back to the home
+      (`bookings/StudentSchedulePage.tsx`)
 - [ ] **15.7h, the coaching period (دورهٔ مربی‌گری)** (backend, screens, migration). *Decided by the
       developer:* a period is **one month** by default; **the trainer types the number of days when
       accepting a request**; this replaces the 6-to-8-week program (the fixed schedule's 8-week

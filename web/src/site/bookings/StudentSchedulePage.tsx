@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
-import { Link, Navigate, useParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 
 import { JalaliDateField } from "@/components/FormField";
 import { LoadingState } from "@/components/States";
@@ -11,6 +11,7 @@ import { errorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 
 import { useSiteMe } from "../auth/api";
+import { useEndStudent } from "../coaching/api";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { SiteFrame } from "../components/SiteFrame";
 import { sitePaths } from "../paths";
@@ -43,7 +44,8 @@ const defaultDays = 8 * 7 - 1;
  * The trainer's «برنامهٔ ثابت» of one student (BUSINESS_RULES.md §15 *Who puts a member in a
  * session* and *Students in sessions*, roadmap 15.6b): the weekly sessions they come to, from a
  * first date to a last, and every date that puts them in. Saved whole or not at all: a date with
- * no room keeps everything as it was and is named. Only a trainer reaches it.
+ * no room keeps everything as it was and is named. Only a trainer reaches it. Ending the coaching
+ * («پایان مربی‌گری») sits at its foot, away from the home, so a finger cannot hit it by mistake (15.7g).
  */
 export function StudentSchedulePage() {
   const { memberId = "" } = useParams();
@@ -80,6 +82,7 @@ export function StudentSchedulePage() {
         <>
           <ScheduleCard student={schedule.data} />
           <PlacesCard student={schedule.data} />
+          <EndCoachingCard student={schedule.data} />
         </>
       )}
     </SiteFrame>
@@ -377,6 +380,45 @@ function ScheduleForm({
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * «پایان مربی‌گری» for this student (BUSINESS_RULES.md §15 *A member and their trainer*: either side
+ * may end the link, asking first; it ends that day). Moved here from «شاگردان من» on the home
+ * (15.7g). Once ended the student is no longer the trainer's, so the page goes back to the home.
+ */
+function EndCoachingCard({ student }: { student: StudentSchedule }) {
+  const end = useEndStudent();
+  const navigate = useNavigate();
+
+  return (
+    <Card accent={false} className="gap-3 shadow-raised">
+      <CardHeader>
+        <CardTitle role="heading" aria-level={2}>
+          پایان مربی‌گری
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          اگر {student.fullName} دیگر شاگرد شما نیست، مربی‌گری را تمام کنید؛ از امروز در «شاگردان
+          من» نیست.
+        </p>
+        {end.isError && <Alert variant="destructive">{errorMessage(end.error)}</Alert>}
+        <ConfirmDialog
+          wide
+          label="پایان مربی‌گری"
+          question={`مربی‌گری شما برای ${student.fullName} از امروز تمام می‌شود. ادامه می‌دهید؟`}
+          pending={end.isPending}
+          onConfirm={(close) =>
+            end.mutate(student.memberId, {
+              onSettled: close,
+              onSuccess: () => void navigate(sitePaths.home, { replace: true }),
+            })
+          }
+        />
+      </CardContent>
+    </Card>
   );
 }
 
