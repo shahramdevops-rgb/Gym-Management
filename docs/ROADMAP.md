@@ -4894,12 +4894,27 @@ Each part on its own branch and session, in this order (proposed by Claude); 15.
       before, «روزهای باقی‌مانده» with a warning when the program is cut); the program's last date
       is the period's by default, no new program once it is over; marks in «شاگردان من»
       (`coaching/period.ts`); the member's line under the trainer's name
-- [ ] **15.7i, leave by request (مرخصی با درخواست)** (backend, screens, migration). *Decided by the
-      developer:* the student asks, the trainer accepts, then the student may stay away; a student
-      who comes anyway is counted as usual, marked «مرخصی داشت». This replaces the free «نمی‌آیم»
-      of 15.6b. *Open, asked before its plan:* until when a student may ask; a request the trainer
-      has not answered when the session starts; whether an accepted leave keeps the place; «می‌آیم»
-      and moving a date; how the trainer is told
+- [x] **15.7i, leave by request (مرخصی با درخواست)** (backend, screens, migration; built 1405/08/19
+      on `task/15.7i-leave-requests`, from 15.7h's branch). *Decided by the developer:* the student
+      asks, the trainer accepts, then the student may stay away; coming anyway counts, «مرخصی داشت».
+      *Answered 1405/08/19* (§15 *Leave by request*): by the day before; unanswered at the start is
+      declined; an accepted leave frees the place; the trainer is told in their app; «می‌آیم» and
+      moving left to Claude («می‌آیم» while there is room, moving free)
+- [x] **Domain**: `LeaveRequest` (`Create` by the day before, `Accept`/`Decline` until the start,
+      `TakeBack`, `StateOn`: waiting at the start reads declined), `LeaveRequestStatus`,
+      `PresenceRules.MarkOnLeave` and `PresenceMark.HadLeave`; errors `Bookings.LeaveTooLate`,
+      `LeaveAlreadyAsked`, `LeaveRequestNotFound`, `LeaveNotWaiting`
+- [x] **Database**: migration `AddLeaveRequests` (`leave_requests`; the partial unique index
+      `ux_leave_requests_one_live_per_place` on waiting or accepted; checks on status, times, and
+      `requested_on < date`). The «نمی‌آیم» skips already saved stay leaves
+- [x] **API**: `POST /me/sessions/leave` now asks (an app on the old page asks too);
+      `POST /me/sessions/leave/cancel`; «می‌آیم» takes the accepted request back;
+      `GET /coaching/leave-requests`, `POST /coaching/leave-requests/{id}/accept|decline` (accept
+      skips the date as «نمی‌آیم» did, or removes a date moved to); `leave` on the member's dates;
+      `hadLeave` in the day and the month; leaves read from the skips and the accepted requests
+- [x] **Screens**: «درخواست مرخصی» (greyed out for today), «در انتظار تأیید مربی» with «لغو درخواست»,
+      «مرخصی رد شد», «مرخصی» with «می‌آیم» in «سانس‌های من»; `LeaveRequestsCard` on the trainer's
+      home; «مرخصی داشت» under the badge in the day and the month; e2e asks, accepts and takes back
 
 ### Release 3 — The monthly assessment (priority 2)
 

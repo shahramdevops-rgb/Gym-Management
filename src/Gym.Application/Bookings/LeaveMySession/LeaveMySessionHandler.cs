@@ -8,10 +8,15 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Bookings.LeaveMySession;
 
 /// <summary>
-/// «نمی‌آیم» (BUSINESS_RULES.md §15 <i>Students in sessions</i>): the member leaves one date of their
-/// trainer's sessions, until it starts. The other weeks stay as they are.
+/// «درخواست مرخصی» (BUSINESS_RULES.md §15 <i>Leave by request</i>, task 15.7i): the member asks
+/// their trainer for leave from one date of a session, by the day before. Nothing changes in the
+/// session until the trainer accepts; the free «نمی‌آیم» of 15.6b is gone.
 /// </summary>
-/// <remarks>Under the trainer's row lock, as every change of the places.</remarks>
+/// <remarks>
+/// Under the trainer's row lock, as every change of the places, so the trainer's answer and this
+/// come one after the other. An app still on the page before 15.7i calls the same address, and
+/// gets a request in place of the leave.
+/// </remarks>
 public sealed class LeaveMySessionHandler(IAppDbContext db, IGymCalendar calendar)
 {
     public async Task<Result<MySessionsResponse>> Handle(Guid siteAccountId, LeaveMySessionCommand command, CancellationToken cancellationToken)
@@ -27,31 +32,40 @@ public sealed class LeaveMySessionHandler(IAppDbContext db, IGymCalendar calenda
         }
 
         var memberId = member.Value.Id;
-        var trainerId = await db.TrainerLinks
-            .Where(link => link.MemberId == memberId && link.EndedOn == null)
-            .Select(link => (Guid?)link.TrainerId)
-            .SingleOrDefaultAsync(cancellationToken);
-        if (trainerId is null)
+        var link = await db.TrainerLinks.AsNoTracking()
+            .SingleOrDefaultAsync(row => row.MemberId == memberId && row.EndedOn == null, cancellationToken);
+        if (link is null)
         {
             return Result.Failure<MySessionsResponse>(BookingErrors.NotInSession);
         }
 
-        await db.LockTrainerAsync(trainerId.Value, cancellationToken);
+        await db.LockTrainerAsync(link.TrainerId, cancellationToken);
 
-        var place = await StudentSessions.PlaceAsync(db, trainerId.Value, memberId, command.Date, command.Start, command.End, cancellationToken);
+        var place = await StudentSessions.PlaceAsync(db, link.TrainerId, memberId, command.Date, command.Start, command.End, cancellationToken);
         if (place.IsFailure)
         {
             return Result.Failure<MySessionsResponse>(place.Error);
         }
 
-        var today = calendar.Today();
-        var timeOfDay = calendar.TimeOfDay();
-        var takenOut = await StudentSessions.TakeOutAsync(db, place.Value, SkipReason.Left, today, timeOfDay, cancellationToken);
-        if (takenOut.IsFailure)
+        var asked = await db.LeaveRequests.AnyAsync(
+            request => request.MemberId == memberId
+                && request.Date == command.Date && request.Start == command.Start && request.End == command.End
+                && (request.Status == LeaveRequestStatus.Pending || request.Status == LeaveRequestStatus.Accepted),
+            cancellationToken);
+        if (asked)
         {
-            return Result.Failure<MySessionsResponse>(takenOut.Error);
+            return Result.Failure<MySessionsResponse>(BookingErrors.LeaveAlreadyAsked);
         }
 
+        var today = calendar.Today();
+        var timeOfDay = calendar.TimeOfDay();
+        var request = LeaveRequest.Create(place.Value, link.Id, today);
+        if (request.IsFailure)
+        {
+            return Result.Failure<MySessionsResponse>(request.Error);
+        }
+
+        db.LeaveRequests.Add(request.Value);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

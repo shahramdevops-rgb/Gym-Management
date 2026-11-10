@@ -149,6 +149,10 @@ export const errorMessages: Record<string, string> = {
     "برنامه از امروز به بعد شروع می‌شود و تا آخرین روز برنامهٔ سانس‌ها (۱۲ هفته) تمام می‌شود.",
   "Bookings.ScheduleAfterPeriod":
     "برنامه نمی‌تواند بعد از پایان دورهٔ مربی‌گری ادامه پیدا کند. اول دوره را تمدید کنید.",
+  "Bookings.LeaveTooLate": "مرخصی را باید تا روز قبل از سانس درخواست کنید.",
+  "Bookings.LeaveAlreadyAsked": "برای این سانس قبلاً درخواست مرخصی داده‌اید.",
+  "Bookings.LeaveRequestNotFound": "این درخواست مرخصی دیگر نیست. صفحه تازه شد.",
+  "Bookings.LeaveNotWaiting": "این درخواست مرخصی دیگر در انتظار پاسخ نیست. صفحه تازه شد.",
   "Bookings.ScheduleWithoutSessions": "دست‌کم یک سانس هفتگی برای برنامه انتخاب کنید.",
   "Bookings.TooManySlots": "تعداد سانس‌های هفتگی برنامه بیش از حد است.",
   "Bookings.DuplicateSlot": "یک سانس هفتگی دو بار انتخاب شده است.",

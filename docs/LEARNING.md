@@ -2461,3 +2461,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **An optional request body keeps old apps working.** `AcceptTrainerRequestCommand?` in the endpoint lets an installed app still on the old page post with no body and get the 30 days; a required body would answer it 400 the morning after the release.
 - **Two locks, always in the same order.** The renewal takes the coaching lock (so the link cannot end meanwhile) and then the trainer's lock (so «ذخیره برنامه» reads the period before or after, never half). As long as no handler takes them the other way round, two requests cannot wait for each other forever (a deadlock).
 - **My notes:**
+
+## 15.7i — Leave by request (مرخصی با درخواست)
+
+- **A deadline need not be a job.** "Not answered by the start is declined" is read, not written: `LeaveRequest.StateOn(today, time)` says declined for a request still `Pending` once its session started. Nothing runs at the start, nothing can fail to run, and the row keeps what really happened (nobody answered).
+- **A request is a row of its own, the effect stays where it was.** The request lives in `leave_requests`; accepting it does what «نمی‌آیم» did (a skip, or removing a moved date), so the places, the room count and «می‌آیم» kept working unchanged.
+- **A partial unique index states "one live at a time".** `UNIQUE (member, date, times) WHERE status IN ('Pending', 'Accepted')` lets declined and cancelled requests pile up as history, but never two live ones for one place.
+- **Wrap a rule instead of changing it.** `MarkOnLeave` calls the existing `Mark` and only decides what a leave turns into: on time or late with `HadLeave`, else «مرخصی». The attendance rules themselves did not change, so their tests still hold.
+- **`with` on a record copies it with one change.** `mark with { HadLeave = true }` keeps the visit and the minutes and sets the flag, without a second constructor.
+- **Keep an old address, change what it means, on purpose.** An installed app still on the old page posts «نمی‌آیم» to `/me/sessions/leave`; now that address asks for leave, so the old button does the safe thing (a request) rather than freeing a place on its own.
+- **My notes:**

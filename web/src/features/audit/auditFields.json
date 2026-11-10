@@ -43,7 +43,8 @@
     "FixedScheduleSlot": "سانس برنامهٔ ثابت",
     "SessionSkip": "غیبت شاگرد از یک سانس",
     "SessionBooking": "سانس جابه‌جاشدهٔ شاگرد",
-    "SessionCancellation": "سانس لغوشدهٔ شاگرد"
+    "SessionCancellation": "سانس لغوشدهٔ شاگرد",
+    "LeaveRequest": "درخواست مرخصی شاگرد"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -303,6 +304,13 @@
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
       "By": { "label": "به دست", "format": "bookedBy" }
+    },
+    "LeaveRequest": {
+      "LinkId": { "label": "مربی عضو", "format": "reference" },
+      "Date": { "label": "تاریخ" },
+      "Start": { "label": "شروع" },
+      "End": { "label": "پایان" },
+      "Status": { "label": "وضعیت", "format": "leaveRequestStatus" }
     },
     "SessionCancellation": {
       "ChangeId": { "label": "ذخیرهٔ برنامهٔ مربی", "format": "reference" },

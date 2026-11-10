@@ -16,11 +16,14 @@ export type MySessions = components["schemas"]["MySessionsResponse"];
 export type Opening = components["schemas"]["OpeningResponse"];
 export type SessionDate = components["schemas"]["SessionDateResponse"];
 export type MyCancellations = components["schemas"]["MyCancellationsResponse"];
+export type LeaveRequests = components["schemas"]["LeaveRequestsResponse"];
+export type LeaveRequestItem = components["schemas"]["LeaveRequestItem"];
 
 const studentScheduleKey = (memberId: string) => [...bookingsQueryKey, "student", memberId];
 const sessionStudentsKey = (date: string) => [...bookingsQueryKey, "day", date];
 export const mySessionsQueryKey = [...bookingsQueryKey, "mine"] as const;
 export const myCancellationsQueryKey = [...bookingsQueryKey, "cancelled"] as const;
+export const leaveRequestsQueryKey = [...bookingsQueryKey, "leave-requests"] as const;
 
 /** A weekly session as the form sends it: times as `HH:mm`, which the API reads as `HH:mm:00`. */
 export interface SlotInput {
@@ -213,7 +216,10 @@ export function useMySessions() {
   });
 }
 
-/** «نمی‌آیم»: out of one date's session, which frees the place. Times as the API gave them. */
+/**
+ * «درخواست مرخصی» (roadmap 15.7i): asks the trainer for leave from one date's session, by the day
+ * before; the member stays in it until the trainer accepts. Times as the API gave them.
+ */
 export function useLeaveMySession() {
   return useBookingChange(async (place: { date: string; start: string; end: string }) => {
     const { data, error } = await siteApi.POST("/api/site/me/sessions/leave", { body: place });
@@ -224,7 +230,20 @@ export function useLeaveMySession() {
   }, mySessionsQueryKey);
 }
 
-/** «می‌آیم»: back in a date the member left, until it starts, while it has room. */
+/** «لغو درخواست»: a leave request the trainer has not answered (15.7i). */
+export function useCancelMyLeave() {
+  return useBookingChange(async (place: { date: string; start: string; end: string }) => {
+    const { data, error } = await siteApi.POST("/api/site/me/sessions/leave/cancel", {
+      body: place,
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  }, mySessionsQueryKey);
+}
+
+/** «می‌آیم»: back in a date the member has leave from, until it starts, while it has room. */
 export function useReturnToMySession() {
   return useBookingChange(async (place: { date: string; start: string; end: string }) => {
     const { data, error } = await siteApi.POST("/api/site/me/sessions/return", { body: place });
@@ -286,4 +305,40 @@ export function useSeeMyCancellations() {
     }
     return data;
   }, myCancellationsQueryKey);
+}
+
+// ---- The trainer: «درخواست‌های مرخصی» (roadmap 15.7i) ----
+
+export function useLeaveRequests() {
+  return useQuery({
+    queryKey: leaveRequestsQueryKey,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await siteApi.GET("/api/site/coaching/leave-requests");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/**
+ * «قبول» or «رد». Accepting frees the student's place: the timetable's counts and the day's
+ * attendance (under the bookings' key) are read again.
+ */
+export function useAnswerLeaveRequest() {
+  return useBookingChange(async ({ requestId, accept }: { requestId: string; accept: boolean }) => {
+    const { data, error } = accept
+      ? await siteApi.POST("/api/site/coaching/leave-requests/{id}/accept", {
+          params: { path: { id: requestId } },
+        })
+      : await siteApi.POST("/api/site/coaching/leave-requests/{id}/decline", {
+          params: { path: { id: requestId } },
+        });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  }, leaveRequestsQueryKey);
 }

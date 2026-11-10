@@ -21,8 +21,11 @@ using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
 using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
+using Gym.Application.Bookings.AnswerLeaveRequest;
+using Gym.Application.Bookings.CancelMyLeave;
 using Gym.Application.Bookings.CheckStudentSchedule;
 using Gym.Application.Bookings.EndStudentSchedule;
+using Gym.Application.Bookings.GetLeaveRequests;
 using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
@@ -286,6 +289,9 @@ public static class DependencyInjection
         services.AddScoped<RemoveSessionStudentHandler>();
         services.AddScoped<GetMySessionsHandler>();
         services.AddScoped<LeaveMySessionHandler>();
+        services.AddScoped<CancelMyLeaveHandler>();
+        services.AddScoped<GetLeaveRequestsHandler>();
+        services.AddScoped<AnswerLeaveRequestHandler>();
         services.AddScoped<ReturnToMySessionHandler>();
         services.AddScoped<MoveMySessionHandler>();
 

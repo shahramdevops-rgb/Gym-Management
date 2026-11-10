@@ -67,7 +67,8 @@ public sealed class GetTrainerDayHandler(IAppDbContext db, IGymCalendar calendar
             mark.Visit?.CheckedOutAt,
             mark.Visit?.AutoClosed ?? false,
             mark.MinutesEarly,
-            mark.MinutesLate);
+            mark.MinutesLate,
+            mark.HadLeave);
 
         List<DayStudent> Sorted(IEnumerable<DayStudent> students) => students.OrderBy(student => student.FullName).ToList();
 
@@ -83,7 +84,9 @@ public sealed class GetTrainerDayHandler(IAppDbContext db, IGymCalendar calendar
                     .Select(place => Student(place.MemberId, PresenceRules.Mark(day, session.Start, session.End, VisitsOf(place.MemberId), today, now)))
                     .Concat(leaves
                         .Where(leave => leave.Start == session.Start && leave.End == session.End)
-                        .Select(leave => Student(leave.MemberId, PresenceMark.Without(SessionPresence.Leave)))))))
+                        .Select(leave => Student(
+                            leave.MemberId,
+                            PresenceRules.MarkOnLeave(day, session.Start, session.End, VisitsOf(leave.MemberId), today, now)))))))
             .ToList();
 
         // A session gone from the day's timetable: its students are «لغو شد», those who had left it «مرخصی».
@@ -109,10 +112,14 @@ public sealed class GetTrainerDayHandler(IAppDbContext db, IGymCalendar calendar
         var outside = linked
             .Select(memberId =>
             {
-                // Only the sessions the student was really in that day: not left, not cancelled.
+                // Only the sessions the student was really in that day, not cancelled; a session they
+                // had leave from and came to anyway is theirs too (15.7i).
                 var theirs = places
                     .Where(place => place.MemberId == memberId && BookingRules.SessionOf(place, sessions) is not null)
-                    .Select(place => (place.Start, place.End));
+                    .Select(place => (place.Start, place.End))
+                    .Concat(leaves
+                        .Where(leave => leave.MemberId == memberId && sessions.Any(session => session.Start == leave.Start && session.End == leave.End))
+                        .Select(leave => (leave.Start, leave.End)));
 
                 return (MemberId: memberId, Visits: PresenceRules.OutsideSessions(VisitsOf(memberId), theirs));
             })

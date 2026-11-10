@@ -35,6 +35,7 @@ public sealed record DaySession(
 /// <param name="AutoCheckedOut">The nightly auto-checkout closed that visit: «خروج ثبت نشد».</param>
 /// <param name="MinutesEarly">Checked in this many minutes before the start: «۱۰ دقیقه زودتر آمد», still on time.</param>
 /// <param name="MinutesLate">Late by this many minutes from the start: «۲۵ دقیقه تأخیر».</param>
+/// <param name="HadLeave">The student had leave from the session and came anyway: «مرخصی داشت» (15.7i).</param>
 public sealed record DayStudent(
     Guid MemberId,
     string FullName,
@@ -44,7 +45,8 @@ public sealed record DayStudent(
     TimeOnly? CheckedOutAt,
     bool AutoCheckedOut,
     int? MinutesEarly,
-    int? MinutesLate);
+    int? MinutesLate,
+    bool HadLeave);
 
 /// <summary>
 /// The day's counts (15.7d): each student's place in a session once. <paramref name="Present"/> is

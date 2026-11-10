@@ -108,6 +108,8 @@ public interface IAppDbContext
 
     DbSet<SessionBooking> SessionBookings { get; }
 
+    DbSet<LeaveRequest> LeaveRequests { get; }
+
     DbSet<SessionCancellation> SessionCancellations { get; }
 
     /// <summary>

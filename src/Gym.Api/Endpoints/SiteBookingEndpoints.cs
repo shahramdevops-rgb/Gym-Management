@@ -4,8 +4,11 @@ using Gym.Api.Authorization;
 using Gym.Api.Common;
 using Gym.Api.Filters;
 using Gym.Application.Bookings;
+using Gym.Application.Bookings.AnswerLeaveRequest;
+using Gym.Application.Bookings.CancelMyLeave;
 using Gym.Application.Bookings.CheckStudentSchedule;
 using Gym.Application.Bookings.EndStudentSchedule;
+using Gym.Application.Bookings.GetLeaveRequests;
 using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
@@ -113,6 +116,24 @@ public static class SiteBookingEndpoints
             .Produces<StudentAttendanceResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
+        // «درخواست‌های مرخصی» on the trainer's home (BUSINESS_RULES.md §15 Leave by request, 15.7i).
+        attendance.MapGet("/leave-requests", async (ClaimsPrincipal user, GetLeaveRequestsHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
+            .WithName("GetLeaveRequests")
+            .Produces<LeaveRequestsResponse>();
+
+        attendance.MapPost("/leave-requests/{id:guid}/accept", async (Guid id, ClaimsPrincipal user, AnswerLeaveRequestHandler handler, CancellationToken ct) =>
+                (await handler.AcceptAsync(SiteUser.AccountId(user), id, ct)).ToHttpResult())
+            .WithName("AcceptLeaveRequest")
+            .Produces<LeaveRequestsResponse>()
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        attendance.MapPost("/leave-requests/{id:guid}/decline", async (Guid id, ClaimsPrincipal user, AnswerLeaveRequestHandler handler, CancellationToken ct) =>
+                (await handler.DeclineAsync(SiteUser.AccountId(user), id, ct)).ToHttpResult())
+            .WithName("DeclineLeaveRequest")
+            .Produces<LeaveRequestsResponse>()
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         var mine = app.MapGroup($"{SitePaths.Root}/me/sessions")
             .WithTags("Site bookings")
             .RequireAuthorization(Policies.SiteMember)
@@ -128,6 +149,14 @@ public static class SiteBookingEndpoints
         mine.MapPost("/leave", async (ClaimsPrincipal user, LeaveMySessionCommand command, LeaveMySessionHandler handler, CancellationToken ct) =>
                 (await handler.Handle(SiteUser.AccountId(user), command, ct)).ToHttpResult())
             .WithName("LeaveMySession")
+            .Produces<MySessionsResponse>()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // «لغو درخواست»: a leave request the trainer has not answered (15.7i).
+        mine.MapPost("/leave/cancel", async (ClaimsPrincipal user, CancelMyLeaveCommand command, CancelMyLeaveHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), command, ct)).ToHttpResult())
+            .WithName("CancelMyLeave")
             .Produces<MySessionsResponse>()
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
 

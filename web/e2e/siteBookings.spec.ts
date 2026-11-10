@@ -6,7 +6,8 @@ import { signInCode, siteURL } from "./stack";
 /**
  * Students in the trainer's sessions (roadmap 15.6b) on two phones, against the production stack:
  * the trainer builds a week and a student's «برنامهٔ ثابت», takes the student out of one date and
- * closes another under the warning; the member sees their dates, leaves one and moves another.
+ * closes another under the warning; the member sees their dates, asks leave from one (the trainer
+ * accepts, 15.7i) and moves another.
  * What the unit tests cannot show is the places worked out by the API from the pattern, the fixed
  * schedule and each change, read the same way on both sides.
  */
@@ -180,17 +181,30 @@ test("SiteBookings_TrainerPlacesAStudent_MemberLeavesAndMovesADate", async ({ pa
   await expect(row(`${tuesday}، ۱۳:۰۰ تا ۱۴:۰۰`)).toContainText("لغو شد");
   await shot(page, "6-my-sessions");
 
-  await row(`${wednesday}، ۱۳:۰۰ تا ۱۴:۰۰`).getByRole("button", { name: "نمی‌آیم" }).click();
+  // Leave by request (15.7i): asked, accepted by the trainer, then taken back with «می‌آیم».
+  await row(`${wednesday}، ۱۳:۰۰ تا ۱۴:۰۰`).getByRole("button", { name: "درخواست مرخصی" }).click();
   await page
-    .getByRole("dialog", { name: "نمی‌آیم" })
-    .getByRole("button", { name: "نمی‌آیم" })
+    .getByRole("dialog", { name: "درخواست مرخصی" })
+    .getByRole("button", { name: "درخواست مرخصی" })
     .click();
-  // A date left stays, faded, to take back.
   const left = row(`${wednesday}، ۱۳:۰۰ تا ۱۴:۰۰`);
+  await expect(left).toContainText("در انتظار تأیید مربی");
+
+  await trainerPage.goto(new URL("/", trainerPage.url()).toString());
+  const leaveRequests = trainerPage.getByRole("list", { name: "درخواست‌های مرخصی" });
+  await expect(leaveRequests).toContainText(member.fullName);
+  await shot(trainerPage, "6a-leave-requests");
+  await leaveRequests.getByRole("button", { name: "قبول" }).click();
+  await expect(leaveRequests).toBeHidden();
+
+  // A date with leave stays, faded, to take back.
+  await page.reload();
+  await page.getByRole("button", { name: "هفتهٔ بعد" }).click();
   await expect(left.getByRole("button", { name: "می‌آیم" })).toBeVisible();
+  await expect(left).toContainText("مرخصی");
   await shot(page, "6b-left");
   await left.getByRole("button", { name: "می‌آیم" }).click();
-  await expect(left.getByRole("button", { name: "نمی‌آیم" })).toBeVisible();
+  await expect(left.getByRole("button", { name: "درخواست مرخصی" })).toBeVisible();
 
   await row(`${thursday}، ۱۳:۰۰ تا ۱۴:۰۰`).getByRole("button", { name: "جابه‌جایی" }).click();
   const move = page.getByRole("dialog", { name: "جابه‌جایی" });

@@ -25,6 +25,7 @@ public sealed record StudentAttendanceResponse(
 /// <param name="AutoCheckedOut">The nightly auto-checkout closed that visit: «خروج ثبت نشد».</param>
 /// <param name="MinutesEarly">Checked in this many minutes before the start, still on time.</param>
 /// <param name="MinutesLate">Late by this many minutes from the start.</param>
+/// <param name="HadLeave">The student had leave from the session and came anyway: «مرخصی داشت» (15.7i).</param>
 public sealed record AttendanceItem(
     DateOnly Date,
     TimeOnly Start,
@@ -36,7 +37,8 @@ public sealed record AttendanceItem(
     TimeOnly? CheckedOutAt,
     bool AutoCheckedOut,
     int? MinutesEarly,
-    int? MinutesLate);
+    int? MinutesLate,
+    bool HadLeave);
 
 /// <summary>A visit to the gym outside the student's sessions, on <paramref name="Date"/>.</summary>
 public sealed record OutsideVisit(DateOnly Date, VisitTimes Visit);

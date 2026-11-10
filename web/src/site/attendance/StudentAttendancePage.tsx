@@ -145,6 +145,7 @@ function MonthView({ attendance }: { attendance: StudentAttendance }) {
                 autoCheckedOut={item.autoCheckedOut}
                 minutesEarly={item.minutesEarly}
                 minutesLate={item.minutesLate}
+                hadLeave={item.hadLeave}
               />
             </li>
           ))}

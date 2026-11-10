@@ -244,6 +244,7 @@ function SessionBox({ session }: { session: DaySession }) {
                 autoCheckedOut={student.autoCheckedOut}
                 minutesEarly={student.minutesEarly}
                 minutesLate={student.minutesLate}
+                hadLeave={student.hadLeave}
               />
             </li>
           ))}

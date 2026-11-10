@@ -78,7 +78,8 @@ public sealed class GetStudentAttendanceHandler(IAppDbContext db, IGymCalendar c
             mark.Visit?.CheckedOutAt,
             mark.Visit?.AutoClosed ?? false,
             mark.MinutesEarly,
-            mark.MinutesLate);
+            mark.MinutesLate,
+            mark.HadLeave);
 
         var items = places
             .Select(place =>
@@ -96,7 +97,9 @@ public sealed class GetStudentAttendanceHandler(IAppDbContext db, IGymCalendar c
                 leave.End,
                 leave.TrainerId,
                 SessionAt(leave.TrainerId, leave.Date, leave.Start, leave.End)?.IsVip ?? false,
-                PresenceMark.Without(SessionPresence.Leave))))
+                SessionAt(leave.TrainerId, leave.Date, leave.Start, leave.End) is null
+                    ? PresenceMark.Without(SessionPresence.Leave)
+                    : PresenceRules.MarkOnLeave(leave.Date, leave.Start, leave.End, VisitsOn(leave.Date), today, now))))
             .OrderBy(item => item.Date).ThenBy(item => item.Start).ThenBy(item => item.End)
             .ToList();
 
@@ -120,7 +123,10 @@ public sealed class GetStudentAttendanceHandler(IAppDbContext db, IGymCalendar c
             {
                 var theirs = places
                     .Where(place => place.Date == entry.Key.Date && SessionAt(place.TrainerId, place.Date, place.Start, place.End) is not null)
-                    .Select(place => (place.Start, place.End));
+                    .Select(place => (place.Start, place.End))
+                    .Concat(leaves
+                        .Where(leave => leave.Date == entry.Key.Date && SessionAt(leave.TrainerId, leave.Date, leave.Start, leave.End) is not null)
+                        .Select(leave => (leave.Start, leave.End)));
 
                 return PresenceRules.OutsideSessions(entry.Value, theirs)
                     .Select(visit => new OutsideVisit(entry.Key.Date, VisitTimes.Of(visit)));

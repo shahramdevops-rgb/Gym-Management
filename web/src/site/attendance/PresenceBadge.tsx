@@ -26,8 +26,9 @@ function minutesOf(value: Minutes): number | null {
 /**
  * A student's state in one session with the check-in that counted: «به‌موقع ۱۳:۱۰», «بعد از سانس
  * آمد ۱۶:۰۰». Under a check-in, how early or late it was from the start («۱۰ دقیقه زودتر آمد»,
- * «۲۵ دقیقه تأخیر») and its check-out («خروج ۱۴:۴۰», «داخل است», «خروج ثبت نشد») (15.7d).
- * May wrap, so it never runs out of a narrow box.
+ * «۲۵ دقیقه تأخیر») and its check-out («خروج ۱۴:۴۰», «داخل است», «خروج ثبت نشد») (15.7d), and
+ * «مرخصی داشت» for a student who had leave and came anyway (15.7i). May wrap, so it never runs out
+ * of a narrow box.
  */
 export function PresenceBadge({
   state,
@@ -36,6 +37,7 @@ export function PresenceBadge({
   autoCheckedOut = false,
   minutesEarly,
   minutesLate,
+  hadLeave = false,
 }: {
   state: SessionPresence;
   checkedInAt?: string | null;
@@ -43,11 +45,13 @@ export function PresenceBadge({
   autoCheckedOut?: boolean;
   minutesEarly?: Minutes;
   minutesLate?: Minutes;
+  hadLeave?: boolean;
 }) {
   const time = checkedInAt === null || checkedInAt === undefined ? null : formatClock(checkedInAt);
   const early = minutesOf(minutesEarly);
   const late = minutesOf(minutesLate);
   const notes = [
+    hadLeave ? "مرخصی داشت" : null,
     early !== null ? formatEarly(early) : null,
     late !== null ? formatLate(late) : null,
     time !== null ? formatCheckOut(checkedOutAt, autoCheckedOut) : null,

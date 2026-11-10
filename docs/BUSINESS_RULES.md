@@ -2747,7 +2747,10 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **The capacity is a ceiling**, for the trainer too: a session with no room takes no one, and a
     trainer who wants more raises the session's capacity.
   - **A member leaves or moves a date until the session starts**; from its start it is fixed.
-  - **A member may take back their own «نمی‌آیم» («می‌آیم»)** until the session starts, while the
+    *Since 15.7i, leaving is a request to the trainer, by the day before (Leave by request, below);
+    moving stays free.*
+  - **A member may take back their own «نمی‌آیم» («می‌آیم»)** (since 15.7i, an accepted leave)
+    until the session starts, while the
     session is still there and has room (*decided by the developer*, 1405/08/09: a tap may be a
     mistake). The date stays in «سانس‌های من», faded, marked «نمی‌آیم». A date moved, or taken out
     by the trainer, does not come back this way. *Proposed by Claude, accepted:* «سانس‌های من»
@@ -2891,6 +2894,33 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - *Queued for 15.7e, not decided:* a note on a session, seen by the trainer and the students
     (*decided by the developer*), and "extra time" outside the pattern (which of the two meanings
     is still to ask).
+
+### Leave by request (مرخصی با درخواست, 15.7i)
+*Decided by the developer*, 1405/08/19: the student asks, the trainer accepts, then the student may
+stay away; this replaces the free «نمی‌آیم» of 15.6b. The details answered the same day; the points
+marked *proposed* were Claude's, accepted with the plan.
+- **The student asks by the day before the session** («درخواست مرخصی», asked first): not on the day
+  itself, however late the session; that day the button shows greyed out, not pressable (*asked by
+  the developer*, 1405/08/19). The place stays theirs while the request waits.
+- **A request the trainer has not answered when the session starts is declined**: the student is
+  in the session as before, and absent if they do not come.
+- **An accepted leave frees the place**: someone else may take it. A student who comes anyway is
+  counted as usual, on time or late, marked **«مرخصی داشت»** (*decided by the developer*,
+  1405/08/19, before the plan); a check-in only after the session leaves it «مرخصی».
+- **The trainer hears of it in their app**: a card «درخواست‌های مرخصی (n)» on the home, the nearest
+  session first, each with «قبول» and «رد», neither asking first. No SMS. A request whose student
+  is no longer in that session (moved, taken out, cancelled) leaves the card.
+- **The student sees the answer on the date** in «سانس‌های من»: «در انتظار تأیید مربی», «مرخصی رد
+  شد» (by the trainer or unanswered), or «مرخصی» with «می‌آیم». *Proposed by Claude.*
+- **Taking it back** (*proposed by Claude*, the developer left «می‌آیم» and moving to Claude):
+  - A request still waiting is taken back with «لغو درخواست», until the session starts.
+  - An accepted leave is taken back with **«می‌آیم»**, until the session starts, **only while the
+    session has room**, since the place was freed.
+  - A declined request may be asked again, by the day before.
+  - **Moving a date stays free**, with no request: the student does not stay away, they come to
+    another of the same trainer's sessions with room, until the session starts.
+- **The «نمی‌آیم»s saved before 15.7i stay leaves** («مرخصی»), as if accepted; nothing is refused
+  or removed.
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

@@ -16,7 +16,7 @@ const schedule = {
   ],
 };
 
-const place = (date: string, extra: Record<string, boolean> = {}) => ({
+const place = (date: string, extra: Record<string, boolean | string | null> = {}) => ({
   date,
   start: "13:00:00",
   end: "14:00:00",
@@ -146,11 +146,61 @@ describe("the member's «سانس‌های من»", () => {
     expect(started.getByText("شروع شده")).toBeInTheDocument();
     expect(started.queryByRole("button")).not.toBeInTheDocument();
     const next = within(screen.getByRole("listitem", { name: "دوشنبه ۱۱ آبان، ۱۳:۰۰ تا ۱۴:۰۰" }));
-    expect(next.getByRole("button", { name: "نمی‌آیم" })).toBeInTheDocument();
+    expect(next.getByRole("button", { name: "درخواست مرخصی" })).toBeInTheDocument();
     expect(next.getByRole("button", { name: "جابه‌جایی" })).toBeInTheDocument();
   });
 
-  it("Leave_AsksFirst_ThenSendsThatDate_AndItStaysToTakeBack", async () => {
+  it("Leave_TodaysSessionNotStarted_CanBeMovedAndLeaveIsGreyedOut", async () => {
+    // By the day before (decided by the developer, 1405/08/19, task 15.7i).
+    mockApi({
+      "GET /api/site/me": () => json(200, siteAccess().me),
+      "GET /api/site/me/sessions": () => json(200, mine([place(today)])),
+    });
+    renderSite("/sessions", { access: siteAccess() });
+
+    const row = within(
+      await screen.findByRole("listitem", { name: "شنبه ۹ آبان، ۱۳:۰۰ تا ۱۴:۰۰" }),
+    );
+    expect(row.getByRole("button", { name: "جابه‌جایی" })).toBeInTheDocument();
+    expect(row.getByRole("button", { name: "درخواست مرخصی" })).toBeDisabled();
+  });
+
+  it("Leave_Pending_SaysItWaitsAndCanBeCancelled", async () => {
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, siteAccess().me),
+      "GET /api/site/me/sessions": () =>
+        json(200, mine([place("2026-11-02", { leave: "Pending" })])),
+      "POST /api/site/me/sessions/leave/cancel": () => json(200, mine([place("2026-11-02")])),
+    });
+    renderSite("/sessions", { access: siteAccess() });
+
+    const row = within(
+      await screen.findByRole("listitem", { name: "دوشنبه ۱۱ آبان، ۱۳:۰۰ تا ۱۴:۰۰" }),
+    );
+    expect(row.getByText("در انتظار تأیید مربی")).toBeInTheDocument();
+    fireEvent.click(row.getByRole("button", { name: "لغو درخواست" }));
+
+    expect(await row.findByRole("button", { name: "درخواست مرخصی" })).toBeInTheDocument();
+    const [sent] = api.requestsTo("POST", "/api/site/me/sessions/leave/cancel");
+    expect(await bodyOf(sent!)).toEqual({ date: "2026-11-02", start: "13:00:00", end: "14:00:00" });
+  });
+
+  it("Leave_Declined_SaysSoAndCanBeAskedAgain", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, siteAccess().me),
+      "GET /api/site/me/sessions": () =>
+        json(200, mine([place("2026-11-02", { leave: "Declined" })])),
+    });
+    renderSite("/sessions", { access: siteAccess() });
+
+    const row = within(
+      await screen.findByRole("listitem", { name: "دوشنبه ۱۱ آبان، ۱۳:۰۰ تا ۱۴:۰۰" }),
+    );
+    expect(row.getByText("مرخصی رد شد")).toBeInTheDocument();
+    expect(row.getByRole("button", { name: "درخواست مرخصی" })).toBeInTheDocument();
+  });
+
+  it("Leave_AsksFirst_ThenSendsThatDate_AndWaitsForTheTrainer", async () => {
     const api = mockApi({
       "GET /api/site/me": () => json(200, siteAccess().me),
       "GET /api/site/me/sessions": () => json(200, mine()),
@@ -158,7 +208,9 @@ describe("the member's «سانس‌های من»", () => {
         json(
           200,
           mine(
-            sessions.map((item) => (item.date === "2026-11-02" ? { ...item, left: true } : item)),
+            sessions.map((item) =>
+              item.date === "2026-11-02" ? { ...item, leave: "Pending" } : item,
+            ),
           ),
         ),
     });
@@ -167,17 +219,16 @@ describe("the member's «سانس‌های من»", () => {
     const row = within(
       await screen.findByRole("listitem", { name: "دوشنبه ۱۱ آبان، ۱۳:۰۰ تا ۱۴:۰۰" }),
     );
-    fireEvent.click(row.getByRole("button", { name: "نمی‌آیم" }));
-    const confirm = await screen.findByRole("dialog", { name: "نمی‌آیم" });
-    expect(confirm).toHaveTextContent("جایتان آزاد می‌شود");
-    fireEvent.click(within(confirm).getByRole("button", { name: "نمی‌آیم" }));
+    fireEvent.click(row.getByRole("button", { name: "درخواست مرخصی" }));
+    const confirm = await screen.findByRole("dialog", { name: "درخواست مرخصی" });
+    expect(confirm).toHaveTextContent("تا مربی قبول نکند، جایتان در سانس می‌ماند");
+    fireEvent.click(within(confirm).getByRole("button", { name: "درخواست مرخصی" }));
 
-    const left = within(
+    const asked = within(
       await screen.findByRole("listitem", { name: "دوشنبه ۱۱ آبان، ۱۳:۰۰ تا ۱۴:۰۰" }),
     );
-    expect(await left.findByRole("button", { name: "می‌آیم" })).toBeInTheDocument();
-    expect(left.getByText("نمی‌آیم")).toBeInTheDocument();
-    expect(left.queryByRole("button", { name: "جابه‌جایی" })).not.toBeInTheDocument();
+    expect(await asked.findByText("در انتظار تأیید مربی")).toBeInTheDocument();
+    expect(asked.getByRole("button", { name: "لغو درخواست" })).toBeInTheDocument();
     const [sent] = api.requestsTo("POST", "/api/site/me/sessions/leave");
     expect(await bodyOf(sent!)).toEqual({ date: "2026-11-02", start: "13:00:00", end: "14:00:00" });
   });
@@ -196,9 +247,10 @@ describe("the member's «سانس‌های من»", () => {
     const row = within(
       await screen.findByRole("listitem", { name: "دوشنبه ۱۱ آبان، ۱۳:۰۰ تا ۱۴:۰۰" }),
     );
+    expect(row.getByText("مرخصی")).toBeInTheDocument();
     fireEvent.click(row.getByRole("button", { name: "می‌آیم" }));
 
-    expect(await row.findByRole("button", { name: "نمی‌آیم" })).toBeInTheDocument();
+    expect(await row.findByRole("button", { name: "درخواست مرخصی" })).toBeInTheDocument();
     const [sent] = api.requestsTo("POST", "/api/site/me/sessions/return");
     expect(await bodyOf(sent!)).toEqual({ date: "2026-11-02", start: "13:00:00", end: "14:00:00" });
   });

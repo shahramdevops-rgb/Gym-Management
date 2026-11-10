@@ -14,6 +14,7 @@ import { MySessionsCard } from "../bookings/MySessionsCard";
 import { MyCoachingNewsCard, StudentNewsCard } from "../coaching/CoachingNewsCard";
 import { MyTrainerCard } from "../coaching/MyTrainerCard";
 import { TrainerArea } from "../coaching/TrainerArea";
+import { LeaveRequestsCard } from "../bookings/LeaveRequestsCard";
 import { TrainerRequestsCard } from "../coaching/TrainerRequestsCard";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { SiteFrame } from "../components/SiteFrame";
@@ -91,6 +92,7 @@ export function HomePage() {
       {trainer !== null && (
         <>
           <TrainerRequestsCard />
+          <LeaveRequestsCard />
           <StudentNewsCard />
           <TodayCountsCard />
           <AbsentTodayCard />

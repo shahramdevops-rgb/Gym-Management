@@ -143,8 +143,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
     public async Task Today_StudentLeftTheDate_IsLeaveNotAbsent()
     {
         var gym = await GymAsync();
-        using var left = await SendJsonAsync(gym, HttpMethod.Post, "/api/site/me/sessions/leave", Place(gym.Saturday, 13), gym.MemberToken);
-        left.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await LeaveAcceptedAsync(gym, gym.Saturday, 13);
 
         var today = await TodayAsync(gym, At(gym.Saturday, 15, 0));
 
@@ -362,16 +361,32 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
     }
 
     [Fact]
-    public async Task Day_CheckInOnALeftDate_IsListedOutside()
+    public async Task Day_CameAnywayOnALeaveDate_CountsAsUsualWithHadLeave()
+    {
+        // Decided by the developer, 1405/08/19 (15.7i): counted as usual, marked «مرخصی داشت».
+        var gym = await GymAsync();
+        await LeaveAcceptedAsync(gym, gym.Saturday, 13);
+        await VisitAsync(gym.MemberId, At(gym.Saturday, 13, 25));
+
+        var day = await DayAsync(gym, gym.Saturday, At(gym.Saturday, 20, 0));
+
+        var student = StudentAt(day, 13);
+        (student.State, student.HadLeave, student.MinutesLate).ShouldBe((SessionPresence.Late, true, 25));
+        day.Totals.ShouldBe(new DayTotals(Students: 1, Present: 1, Late: 1, CameAfter: 0, Absent: 0));
+        day.Outside.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Day_CheckInOutsideTheSessionOnALeaveDate_StaysLeaveAndIsListedOutside()
     {
         var gym = await GymAsync();
-        using var left = await SendJsonAsync(gym, HttpMethod.Post, "/api/site/me/sessions/leave", Place(gym.Saturday, 13), gym.MemberToken);
-        left.StatusCode.ShouldBe(HttpStatusCode.OK);
-        await VisitAsync(gym.MemberId, At(gym.Saturday, 13, 0));
+        await LeaveAcceptedAsync(gym, gym.Saturday, 13);
+        await VisitAsync(gym.MemberId, At(gym.Saturday, 18, 0));
 
         var day = await DayAsync(gym, gym.Saturday, At(gym.Saturday, 20, 0));
 
         StudentAt(day, 13).State.ShouldBe(SessionPresence.Leave);
+        StudentAt(day, 13).HadLeave.ShouldBeFalse();
         day.Outside.ShouldHaveSingleItem().MemberId.ShouldBe(gym.MemberId);
     }
 
@@ -496,8 +511,7 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
     public async Task Attendance_LeaveAndRemovedSession_AreCountedApart()
     {
         var gym = await GymAsync();
-        using var left = await SendJsonAsync(gym, HttpMethod.Post, "/api/site/me/sessions/leave", Place(gym.Saturday, 13), gym.MemberToken);
-        left.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await LeaveAcceptedAsync(gym, gym.Saturday, 13);
         await SetDayAsync(gym, gym.Saturday.AddDays(2), Session(15, 2));
 
         var attendance = await AttendanceAsync(gym, gym.Saturday, gym.Saturday.AddDays(3), At(gym.Saturday.AddDays(3), 20, 0));
@@ -633,6 +647,28 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
         await SetScheduleAsync(gym, member.Id, Slot(DayOfWeek.Saturday, 13), Slot(DayOfWeek.Monday, 13));
 
         return gym;
+    }
+
+    /// <summary>
+    /// The member asks for leave from that date and the trainer accepts (15.7i): what «نمی‌آیم» did
+    /// alone before.
+    /// </summary>
+    private static async Task LeaveAcceptedAsync(Gym gym, DateOnly date, int hour)
+    {
+        using var asked = await SendJsonAsync(gym, HttpMethod.Post, "/api/site/me/sessions/leave", Place(date, hour), gym.MemberToken);
+        asked.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var listed = await gym.Client.SendAsync(
+            new HttpRequestMessage(HttpMethod.Get, "/api/site/coaching/leave-requests").WithBearer(gym.TrainerToken), TestContext.Current.CancellationToken);
+        listed.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var requestId = (await listed.ReadJsonAsync()).GetProperty("requests").EnumerateArray()
+            .Single(request => request.GetProperty("date").GetString() == Iso(date))
+            .GetProperty("requestId").GetGuid();
+
+        using var accepted = await gym.Client.SendAsync(
+            new HttpRequestMessage(HttpMethod.Post, $"/api/site/coaching/leave-requests/{requestId}/accept").WithBearer(gym.TrainerToken),
+            TestContext.Current.CancellationToken);
+        accepted.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     /// <summary>The member asks the trainer, and the trainer accepts.</summary>

@@ -75,6 +75,26 @@ public static class PresenceRules
     }
 
     /// <summary>
+    /// The mark of a date the student had leave from (task 15.7i): «مرخصی», unless they came to the
+    /// session anyway, which counts as usual, on time or late, marked «مرخصی داشت» (decided by the
+    /// developer, 1405/08/19). A check-in only after the session leaves it «مرخصی».
+    /// </summary>
+    public static PresenceMark MarkOnLeave(
+        DateOnly date,
+        TimeOnly start,
+        TimeOnly end,
+        IEnumerable<DayVisit> visits,
+        DateOnly today,
+        TimeOnly timeOfDay)
+    {
+        var mark = Mark(date, start, end, visits, today, timeOfDay);
+
+        return mark.State is SessionPresence.OnTime or SessionPresence.Late
+            ? mark with { HadLeave = true }
+            : PresenceMark.Without(SessionPresence.Leave);
+    }
+
+    /// <summary>
     /// The check-ins that count for none of <paramref name="sessions"/>, earliest first: the visits
     /// outside the student's sessions that day («خارج از سانس», task 15.7d). A visit after a session
     /// the student missed is one of them, as well as a visit on a date they left or whose session
@@ -144,6 +164,9 @@ public sealed record DayVisit(TimeOnly CheckedInAt, TimeOnly? LeftAt)
 /// <param name="MinutesLate">Late by this many minutes from the start (task 15.7d).</param>
 public sealed record PresenceMark(SessionPresence State, DayVisit? Visit, int? MinutesEarly = null, int? MinutesLate = null)
 {
+    /// <summary>The student had leave from the date and came anyway («مرخصی داشت», task 15.7i).</summary>
+    public bool HadLeave { get; init; }
+
     /// <summary>When <see cref="Visit"/> checked in.</summary>
     public TimeOnly? CheckedInAt => Visit?.CheckedInAt;
 
@@ -166,7 +189,7 @@ public enum SessionPresence
     /// <summary>The session ended with no check-in that day for it or after it: truly absent.</summary>
     Absent = 4,
 
-    /// <summary>The student left that date («نمی‌آیم»), shown «مرخصی»: not absent.</summary>
+    /// <summary>The student had leave from that date (an accepted request, or «نمی‌آیم» before 15.7i), shown «مرخصی»: not absent.</summary>
     Leave = 5,
 
     /// <summary>The trainer removed the session, or moved its times, after the student was put in it («لغو شد»): not absent.</summary>

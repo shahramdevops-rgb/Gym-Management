@@ -499,6 +499,99 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Bookings.LeaveRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<TimeOnly>("End")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<Guid>("LinkId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("link_id");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<DateOnly>("RequestedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("requested_on");
+
+                    b.Property<TimeOnly>("Start")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TrainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("trainer_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_leave_requests");
+
+                    b.HasIndex("LinkId")
+                        .HasDatabaseName("ix_leave_requests_link_id");
+
+                    b.HasIndex("TrainerId", "Status", "Date")
+                        .HasDatabaseName("ix_leave_requests_trainer_id_status_date");
+
+                    b.HasIndex(new[] { "MemberId", "Date", "Start", "End" }, "OneLivePerPlace")
+                        .IsUnique()
+                        .HasDatabaseName("ux_leave_requests_one_live_per_place")
+                        .HasFilter("status IN ('Pending', 'Accepted')");
+
+                    b.ToTable("leave_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_leave_requests_asked_before_the_date", "requested_on < date");
+
+                            t.HasCheckConstraint("ck_leave_requests_end_after_start", "end_time > start_time");
+
+                            t.HasCheckConstraint("ck_leave_requests_end_time_on_step", "extract(second FROM end_time) = 0 AND extract(minute FROM end_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_leave_requests_start_time_on_step", "extract(second FROM start_time) = 0 AND extract(minute FROM start_time)::int % 15 = 0");
+
+                            t.HasCheckConstraint("ck_leave_requests_status", "status IN ('Pending', 'Accepted', 'Declined', 'Cancelled')");
+
+                            t.HasCheckConstraint("ck_leave_requests_within_hours", "start_time >= TIME '07:00' AND end_time <= TIME '22:00'");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Bookings.SessionBooking", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4107,6 +4200,30 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_fixed_schedule_slots_fixed_schedules_schedule_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Bookings.LeaveRequest", b =>
+                {
+                    b.HasOne("Gym.Domain.Coaching.TrainerLink", null)
+                        .WithMany()
+                        .HasForeignKey("LinkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_requests_trainer_links_link_id");
+
+                    b.HasOne("Gym.Domain.Members.Member", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_requests_members_member_id");
+
+                    b.HasOne("Gym.Domain.Trainers.Trainer", null)
+                        .WithMany()
+                        .HasForeignKey("TrainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_requests_trainers_trainer_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Bookings.SessionBooking", b =>

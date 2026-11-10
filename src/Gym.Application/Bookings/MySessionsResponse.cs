@@ -10,8 +10,9 @@ namespace Gym.Application.Bookings;
 
 /// <summary>
 /// «سانس‌های من» on the member's side (BUSINESS_RULES.md §15 <i>Students in sessions</i>): their
-/// fixed schedule with their trainer now, the dates they are in from now on, those they left and may
-/// take back, and the trainer's sessions they may move a date to. A member sees only their own
+/// fixed schedule with their trainer now, the dates they are in from now on with any leave request
+/// on them (15.7i), those they have leave from and may take back, and the trainer's sessions they
+/// may move a date to. A member sees only their own
 /// trainer's sessions.
 /// </summary>
 /// <param name="Sessions">By date and time: today's sessions that are over are not among them.</param>
@@ -51,9 +52,13 @@ public sealed record MySessionsResponse(
 
         var mine = trainerPlaces.Where(place => place.MemberId == memberId).ToList();
         var left = await LeftAsync(db, schedules, mine, timetable, today, timeOfDay, cancellationToken);
+        var asked = await AskedAsync(db, link, today, timeOfDay, cancellationToken);
         var sessions = mine
             .Where(place => !BookingRules.HasEnded(place.Date, place.End, today, timeOfDay))
-            .Select(place => PlaceResponse.From(place, timetable, today, timeOfDay))
+            .Select(place => PlaceResponse.From(place, timetable, today, timeOfDay) with
+            {
+                Leave = asked.TryGetValue((place.Date, place.Start, place.End), out var leave) ? leave : null,
+            })
             .Concat(left)
             .OrderBy(place => place.Date).ThenBy(place => place.Start).ThenBy(place => place.End)
             .ToList();
@@ -96,6 +101,29 @@ public sealed record MySessionsResponse(
             .Where(left => left.Session is not null)
             .Select(left => PlaceResponse.LeftBy(left.Skip, left.Session!))
             .ToList();
+    }
+
+    /// <summary>
+    /// The member's leave requests from today on that are still in the session (15.7i), by date and
+    /// times: waiting, or declined (by the trainer, or not answered by the start). The latest of a
+    /// place, since one declined may be asked again.
+    /// </summary>
+    private static async Task<Dictionary<(DateOnly Date, TimeOnly Start, TimeOnly End), LeaveRequestStatus>> AskedAsync(
+        IAppDbContext db, TrainerLink link, DateOnly today, TimeOnly timeOfDay, CancellationToken cancellationToken)
+    {
+        var requests = await db.LeaveRequests.AsNoTracking()
+            .Where(request => request.LinkId == link.Id && request.Date >= today
+                && (request.Status == LeaveRequestStatus.Pending || request.Status == LeaveRequestStatus.Declined))
+            .OrderBy(request => request.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var asked = new Dictionary<(DateOnly, TimeOnly, TimeOnly), LeaveRequestStatus>();
+        foreach (var request in requests)
+        {
+            asked[(request.Date, request.Start, request.End)] = request.StateOn(today, timeOfDay);
+        }
+
+        return asked;
     }
 
     private static List<OpeningResponse> OpeningsUntil(
