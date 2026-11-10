@@ -106,3 +106,31 @@ test("PublicPage_SignInButton_OpensTheApp", async ({ page }) => {
   await expect(page).toHaveURL(`${siteURL}/sign-in`);
   await expect(page.getByRole("button", { name: "دریافت کد" })).toBeVisible();
 });
+
+test("PublicPage_PickThisTrainer_OpensTheAppsTrainersAfterSigningUp", async ({ page }) => {
+  const newcomer = { typed: "09191112233", stored: "+989191112233" };
+  await page.goto(publicURL);
+
+  // The first trainer's card turns over to show its button (15.4d).
+  const card = page.getByRole("article", { name: "علی شریفی پور" });
+  await card.scrollIntoViewIfNeeded();
+  await card.click();
+  await card.getByRole("link", { name: "انتخاب این مربی" }).click();
+
+  // Signed out: the phone and its code first, then the page they were opening.
+  await expect(page).toHaveURL(`${siteURL}/sign-in`);
+  await page.getByLabel("شماره موبایل").fill(newcomer.typed);
+  await page.getByRole("button", { name: "دریافت کد" }).click();
+  await page.getByLabel("کد پنج‌رقمی").fill(signInCode(newcomer.stored));
+  await page.getByLabel("نام و نام خانوادگی").fill("سارا نیکو");
+  await page.getByRole("combobox", { name: "روز" }).click();
+  await page.getByRole("option", { name: "۱", exact: true }).click();
+  await page.getByRole("combobox", { name: "ماه" }).click();
+  await page.getByRole("option", { name: "تیر", exact: true }).click();
+  await page.getByRole("combobox", { name: "سال" }).click();
+  await page.getByRole("option", { name: "۱۳۸۰", exact: true }).click();
+  await page.getByRole("button", { name: "ثبت‌نام" }).click();
+
+  await expect(page).toHaveURL(`${siteURL}/trainers`);
+  await expect(page.getByRole("heading", { name: "انتخاب مربی" })).toBeVisible();
+});

@@ -4472,20 +4472,32 @@ Built 1405/08/07, not merged or released.
       (`TrainerRequestSmsTests`, `SmsSettingsEndpointTests`), Vitest (the card, the switch saved)
 
 ##### 15.4d Coaching news in the app, and «انتخاب این مربی» on the public page
-Plan approved by the developer 1405/08/14 (2026-11-05), after Release 2; not started.
-- [ ] In the app only (no SMS; push is not used, see *Later* below): a card with «دیدم» on the
+Plan approved by the developer 1405/08/14 (2026-11-05), after Release 2; built 1405/08/19
+(2026-11-10) on `task/15.4d-coaching-news`, not merged or released.
+- [x] In the app only (no SMS; push is not used, see *Later* below): a card with «دیدم» on the
       home, as «سانس لغو شد», for: the trainer accepted / declined (to the member), the trainer
-      ended the link (to the member), the member ended it (to the trainer)
-- [ ] Asked, not yet answered: how long a card stays (Claude: until «دیدم», at most 30 days);
-      whether a member who changes trainer tells the old one («{شاگرد} مربی دیگری انتخاب کرد»);
-      whether the Owner stopping a trainer tells their students
-- [ ] No new table: when the member saw the answer (on the request) and when the other side saw
-      the end (on the link); the migration marks every earlier answer and end as seen, so the
-      server's real rows bring no old news
-- [ ] The public page's «انتخاب این مربی» opens `pasargadgymplus.ir/app/trainers` (a Caddy
-      redirect to the app's `/trainers`); the app keeps where a signed-out person was going and
-      opens it after signing in or up
-- [ ] §15 written with the decisions; tests (domain, integration, Vitest, screenshots)
+      ended the link (to the member), the member ended it (to the trainer). Built as «خبر مربی»
+      (`MyCoachingNewsCard`, under «سانس لغو شد») and «خبر شاگردان» (`StudentNewsCard`, at the top
+      of the trainer's area), `web/src/site/coaching/CoachingNewsCard.tsx`; one «دیدم» sends the ids
+      the card showed. API: `GET /api/site/coaching/my-trainer/news` + `POST .../news/seen`
+      (`SiteMember`), `GET /api/site/coaching/students/news` + `POST .../news/seen` (`SiteTrainer`)
+- [x] Answered 1405/08/19: a card stays until «دیدم», 30 days at most (Claude's proposal,
+      `CoachingNews.ShownForDays`); a member who changes trainer tells the old one nothing, and the
+      Owner stopping a trainer tells their students nothing ("not needed for now")
+- [x] No new table: `trainer_requests.answered_on` + `answer_seen_at`, `trainer_links.end_seen_at`,
+      with check constraints (only an answer has a day or is seen, only an end is seen); migration
+      `AddCoachingNews` marks every earlier answer and end as seen, so the server's real rows bring
+      no old news
+- [x] The public page's «انتخاب این مربی» (the first trainer's card; the empty two keep «به‌زودی»)
+      opens `pasargadgymplus.ir/app/trainers` (a Caddy redirect to the app's `/trainers`, and the
+      same in `vite.site.config.ts` for development); the app keeps where a signed-out person was
+      going (`site/auth/returnTo.ts`, `sessionStorage`) and opens it after signing in or up
+- [x] §15 written with the decisions; tests: domain (`CoachingNewsTests`, request and link),
+      integration `CoachingNewsTests` (19), Vitest `CoachingNewsCard.test.tsx` (8) and
+      `returnTo.test.tsx` (4), e2e (`siteCoaching.spec.ts` extended, a new public page test in
+      `siteApp.spec.ts`)
+- [ ] The developer looks at the wording on the screenshots
+- [x] Also on this branch: the public page hero's status wraps on a narrow phone (`66ebe2a`)
 
 #### 15.5 The member's home, first part
 Decided 1405/08/08 (§15 *The member's own records*): the member sees everything the panel's profile
@@ -4753,10 +4765,11 @@ through magenta (about 335 at 60%). A cardio door turned greenish the same way.
         from 07:00 to 22:00 on the quarter hour (`Timetable.OutsideHours`, `MinuteStep` 15), the
         hour boxes 07 to 22 and the minutes 00/15/30/45. Migration `LimitSessionHours` changes the
         time checks of the six session tables (none on the server yet)
-  - [ ] **15.6d** *queued, only if needed* (the developer, 1405/08/09): the member picks their own
-        days and times within what the trainer allows (e.g. three days a week for eight weeks),
-        and the trainer confirms, as a request like 15.4's. Decided to wait until 15.6b's way,
-        the trainer placing the student, has been used
+  - [ ] **15.6d** *queued* (the developer, 1405/08/09; **wanted later**, 1405/08/19): the member
+        picks their own sessions from the trainer's times (e.g. three days a week for eight weeks),
+        and the trainer can still place them too: both can. Confirming by the trainer, as a
+        request like 15.4's, is to decide at its plan. With it, a short video for students: how
+        to find and pick sessions (asked 1405/08/19; a screen recording, opened from the app)
 
 #### 15.7 Attendance for the trainer (پیگیری حضور)
 Decided 1405/08/13 (§15 *Attendance for the trainer*): on time up to 15 minutes after the start,
@@ -4798,6 +4811,110 @@ alert is in the app only. Worked out from the check-ins, no table and no migrati
     Neshan links, the gallery, the 12-stop tour)
   - A rollback to `20261103-1408-cd5de81` is safe: the migrations only add tables, nullable
     columns and columns with defaults, and widen checks; the old version ignores them
+
+#### 15.7c The app's pages downloaded when first opened
+Asked for by the developer 1405/08/19 (2026-11-10), after 15.4d, and built the same day on
+`task/15.7c-lazy-routes` (made from 15.4d's branch), not merged or released. The site app's main
+script was 689 kB (545 kB on 1405/08/12), over Vite's 500 kB, so the first opening on a weak mobile
+connection waited for every screen, the trainer's too.
+- [x] The heavier pages became lazy routes, as the sign-up page already was (`lazyPage` in
+      `site/routes.tsx`): «انتخاب مربی», «تمام سانس‌های من», «برنامهٔ ثابت», «سانس‌های من»,
+      «حضور امروز», a student's «حضور»; each shows `LoadingState` when opened straight on its
+      address. The two timetable pages took `JalaliDateField`, and with it the calendar package
+      (`components/FormField.tsx`, 85 kB), out of the first download
+- [x] Measured (the scripts `index.html` loads and what they import): the first download 689 →
+      552 kB; Vite's warning is gone only because the shared code became its own file
+      (`api-*.js`, 212 kB), not because the first download is under 500 kB. Left in it: React,
+      the router and the other base packages (~370 kB), the sign-in screen with React Hook Form
+      (~40 kB, never used by someone already signed in), `lib/errors.ts` (24 kB, every panel code)
+- [ ] Later, if wanted (the developer, 1405/08/19: "not needed for now, we decide when we add
+      more pages"): the sign-in screen as a lazy route (→ ~512 kB; a newcomer from the QR waits a
+      moment more) and the site's own copy of the error messages it needs (→ ~490 kB, with a test
+      that no site code is missing)
+
+#### 15.7d More in the attendance (from the developer's list)
+Decided 1405/08/19 (2026-11-10), §15 *More for the trainer, decided with 15.7d*; on
+`task/15.7d-attendance-more` (worktree `D:\GymManagement-15.7d`, made from 15.7c's branch), not
+merged or released. Worked out from the desk's check-ins as before: no table, no migration.
+- [x] **Backend** (built 1405/08/19): «زودتر آمد» (`PresenceMark.MinutesEarly`) and the check-out
+      (`PresenceMark.Visit`; `DayVisit.CheckedOutAt` and `AutoClosed`, read beside `LeftAt`, which
+      the rules keep using) in both responses; `GetTrainerToday` became `GetTrainerDay`, behind
+      `/api/site/coaching/today` (kept, for an app still on the old page) and the new
+      `/coaching/days/{date}` (error `Bookings.AttendanceDayInFuture`), with `DayTotals` and
+      «آمدند، بدون سانس» (`PresenceRules.OutsideSessions`, the trainer's links that day); the
+      student's month lists `Outside` from the link's start. No migration
+- [x] **Screens** (built 1405/08/19, `web/src/site/attendance/`, `coaching/`): `DayPage` replaces
+      `TodayPage` (`/today?date=`, «روز قبل» / «روز بعد» and `JalaliCalendarField`, a later date
+      opens today; only today refreshes), `DayTotalsBoxes` on it and in `TodayCountsCard` («امروز»
+      on the home, only on a day with sessions), the check-out and «زودتر آمد» under
+      `PresenceBadge`, «خارج از سانس» in the month, `TrainerRequestsCard` («درخواست‌ها (n)», the
+      home's first card) split from `TrainerArea`, whose search box uses `matchesStudent`
+- [x] **After seeing it** (the developer, 1405/08/19): a check-in after the session ended is its
+      own state, `SessionPresence.CameAfter` («بعد از سانس آمد», not absent, out of «غایبان
+      امروز»), with its own box in the day's counts and the month's totals; early and late show
+      their minutes from the start (`MinutesEarly`, `MinutesLate`: «۱۰ دقیقه زودتر آمد», «۲۵ دقیقه
+      تأخیر»)
+- [ ] **15.7e, queued**: a note on a session (the trainer and the students see it), and "extra
+      time" outside the pattern (to ask: a session on one date, which exists, or a student put in
+      one date outside their fixed schedule)
+
+#### The developer's list, part two (asked 1405/08/19, after 15.7d's screenshots)
+Each part on its own branch and session, in this order (proposed by Claude); 15.7e fits anywhere.
+- [x] **15.7f, the counts open their students** (screens only, no rule; built 1405/08/19 on
+      `task/15.7f-count-filters`, from 15.7d's branch): a box of «امروز» on the home is a link to
+      `/today?show=…`; on the day page a box is a toggle (`aria-pressed`) that keeps only its students
+      and the sessions with one of them, pressed again everything; «شاگردان» is the counted ones (no
+      «مرخصی», no «لغو شد»); «آمدند، بدون سانس» only unfiltered; «کسی در این دسته نیست.» when empty;
+      the filter stays on «روز قبل» / «روز بعد» (`inFilter`, `parseDayFilter` in `attendance/dayFilter.ts`)
+- [x] **15.7g, «پایان» off the home** (screens only): out of «شاگردان من», so a finger cannot hit it
+      by mistake. *Proposed by Claude, accepted by the developer:* a card «پایان مربی‌گری» at the foot
+      of the student's «برنامهٔ ثابت» page, asking first as before; once ended, back to the home
+      (`bookings/StudentSchedulePage.tsx`)
+- [x] **15.7h, the coaching period (دورهٔ مربی‌گری)** (backend, screens, migration; built 1405/08/19
+      on `task/15.7h-coaching-period`, from 15.7g's branch). *Decided by the developer:* a period is
+      **one month** by default; **the trainer types the number of days when accepting a request**;
+      this replaces the 6-to-8-week program. *Answered 1405/08/19* (§15 *The coaching period*): 30
+      days to start with, 7 to 84; at the end the sessions stop and the link stays; «تمدید» always,
+      after the last day; the links already on the server get no period and the trainer types their
+      days left (1 to 84), the developer's own answer
+- [x] **Domain**: `CoachingPeriod` (`DefaultDays`, `MinDays`, `MaxDays`, `MinDaysLeft`),
+      `TrainerLink.Periods` and `Renew(days, today)`, `TrainerRequest.Accept(today, days = 30)`
+      (a wrong number leaves the request waiting), `FixedSchedule.Create(…, periodEndsOn)` and
+      `EndOnPeriodEnd`; errors `Coaching.PeriodDaysOutOfRange`, `Bookings.ScheduleAfterPeriod`
+- [x] **Database**: migration `AddCoachingPeriods` (`coaching_periods`: link, first and last day;
+      checks `ends_on >= starts_on` and at most 84 days; the exclusion constraint
+      `ex_coaching_periods_link_id_dates`, by hand). No row for the existing links: nothing refused
+- [x] **API**: `POST /coaching/requests/{id}/accept` takes an optional `{ days }` (none: 30, for an
+      app still on the old page); `POST /coaching/students/{memberId}/period { days }` renews, or
+      gives the days left, and cuts the old program past them (`RenewCoachingPeriodHandler`, the
+      coaching lock then the trainer's); `periodEndsOn` in «شاگردان من», «مربی من» and the student's
+      «برنامهٔ ثابت»
+- [x] **Screens**: `PeriodDaysForm` (Persian or English digits, the dates under the box) on
+      «پذیرفتن» and in the card «دورهٔ مربی‌گری» on «برنامهٔ ثابت» («تمدید»; for a student from
+      before, «روزهای باقی‌مانده» with a warning when the program is cut); the program's last date
+      is the period's by default, no new program once it is over; marks in «شاگردان من»
+      (`coaching/period.ts`); the member's line under the trainer's name
+- [x] **15.7i, leave by request (مرخصی با درخواست)** (backend, screens, migration; built 1405/08/19
+      on `task/15.7i-leave-requests`, from 15.7h's branch). *Decided by the developer:* the student
+      asks, the trainer accepts, then the student may stay away; coming anyway counts, «مرخصی داشت».
+      *Answered 1405/08/19* (§15 *Leave by request*): by the day before; unanswered at the start is
+      declined; an accepted leave frees the place; the trainer is told in their app; «می‌آیم» and
+      moving left to Claude («می‌آیم» while there is room, moving free)
+- [x] **Domain**: `LeaveRequest` (`Create` by the day before, `Accept`/`Decline` until the start,
+      `TakeBack`, `StateOn`: waiting at the start reads declined), `LeaveRequestStatus`,
+      `PresenceRules.MarkOnLeave` and `PresenceMark.HadLeave`; errors `Bookings.LeaveTooLate`,
+      `LeaveAlreadyAsked`, `LeaveRequestNotFound`, `LeaveNotWaiting`
+- [x] **Database**: migration `AddLeaveRequests` (`leave_requests`; the partial unique index
+      `ux_leave_requests_one_live_per_place` on waiting or accepted; checks on status, times, and
+      `requested_on < date`). The «نمی‌آیم» skips already saved stay leaves
+- [x] **API**: `POST /me/sessions/leave` now asks (an app on the old page asks too);
+      `POST /me/sessions/leave/cancel`; «می‌آیم» takes the accepted request back;
+      `GET /coaching/leave-requests`, `POST /coaching/leave-requests/{id}/accept|decline` (accept
+      skips the date as «نمی‌آیم» did, or removes a date moved to); `leave` on the member's dates;
+      `hadLeave` in the day and the month; leaves read from the skips and the accepted requests
+- [x] **Screens**: «درخواست مرخصی» (greyed out for today), «در انتظار تأیید مربی» with «لغو درخواست»,
+      «مرخصی رد شد», «مرخصی» with «می‌آیم» in «سانس‌های من»; `LeaveRequestsCard` on the trainer's
+      home; «مرخصی داشت» under the badge in the day and the month; e2e asks, accepts and takes back
 
 ### Release 3 — The monthly assessment (priority 2)
 

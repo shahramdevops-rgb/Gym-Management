@@ -755,12 +755,18 @@ main > section[id] {
 }
 
 @media (max-width: 899px) {
+  /* The status gives way to the arrows: it wraps onto a second line rather than push the arrows
+     off a narrow phone («الان بسته است · از ۷ صبح باز می‌شود» is the longest, 2026-11-05) */
   .hero .status {
+    flex: 0 1 auto;
+    min-width: 0;
     padding-inline: 0.7rem;
     font-size: 0.8rem;
+    white-space: normal;
   }
 
   .slider-nav {
+    flex: none;
     gap: 0.25rem;
   }
 
@@ -1946,6 +1952,11 @@ main > section[id] {
 
 .coach__about dd {
   color: var(--muted);
+}
+
+/* A trainer who can be picked in the app (15.4d): the whole width of the card's back. */
+.coach__choose {
+  width: 100%;
 }
 
 .coach__pick {

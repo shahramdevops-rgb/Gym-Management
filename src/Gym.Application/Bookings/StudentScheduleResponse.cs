@@ -1,3 +1,4 @@
+using Gym.Application.Coaching;
 using Gym.Application.Common;
 using Gym.Application.Timetables;
 using Gym.Domain.Coaching;
@@ -12,11 +13,16 @@ namespace Gym.Application.Bookings;
 /// their «برنامهٔ ثابت» to edit, and every date they are in from today to the timetable's last day.
 /// </summary>
 /// <param name="Schedule">The latest schedule, the one in force or one from a later date; <c>null</c> when none reaches today.</param>
+/// <param name="PeriodEndsOn">
+/// The coaching period's last day (15.7h): a schedule ends on it or before. <c>null</c> for a link
+/// made before 15.7h whose days left the trainer has not typed yet.
+/// </param>
 public sealed record StudentScheduleResponse(
     DateOnly Today,
     DateOnly LastDay,
     Guid MemberId,
     string FullName,
+    DateOnly? PeriodEndsOn,
     FixedScheduleResponse? Schedule,
     IReadOnlyList<PlaceResponse> Sessions)
 {
@@ -24,6 +30,7 @@ public sealed record StudentScheduleResponse(
         IAppDbContext db, TrainerLink link, DateOnly today, TimeOnly timeOfDay, CancellationToken cancellationToken)
     {
         var lastDay = TimetableRules.LastDay(today);
+        var periodEndsOn = await CoachingPeriods.EndsOnAsync(db, link.Id, cancellationToken);
         var fullName = await db.Members.Where(member => member.Id == link.MemberId).Select(member => member.FullName).SingleAsync(cancellationToken);
 
         var latest = await db.FixedSchedules.AsNoTracking()
@@ -40,6 +47,6 @@ public sealed record StudentScheduleResponse(
             .ToList();
 
         return new StudentScheduleResponse(
-            today, lastDay, link.MemberId, fullName, latest is null ? null : FixedScheduleResponse.From(latest), sessions);
+            today, lastDay, link.MemberId, fullName, periodEndsOn, latest is null ? null : FixedScheduleResponse.From(latest), sessions);
     }
 }

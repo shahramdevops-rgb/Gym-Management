@@ -10,6 +10,14 @@ public static class BookingErrors
         "Bookings.ScheduleDatesOutOfRange",
         "A fixed schedule runs from today or later to the timetable's last day, and ends on or after its start.");
 
+    /// <summary>
+    /// A fixed schedule ends on the coaching period's last day or before (15.7h); a period that is
+    /// over takes no schedule until the trainer renews it.
+    /// </summary>
+    public static readonly Error ScheduleAfterPeriod = Error.BusinessRule(
+        "Bookings.ScheduleAfterPeriod",
+        "A fixed schedule ends on the coaching period's last day or before.");
+
     public static readonly Error ScheduleWithoutSessions = Error.Validation(
         "Bookings.ScheduleWithoutSessions",
         "A fixed schedule has one weekly session at least.");
@@ -72,4 +80,28 @@ public static class BookingErrors
     public static readonly Error AttendanceRangeInvalid = Error.Validation(
         "Bookings.AttendanceRangeInvalid",
         $"Attendance is read from a date to one on or after it, {PresenceRules.MaxRangeDays} days at most.");
+
+    /// <summary>The trainer's day of attendance is today or an earlier day: a later one has none (task 15.7d).</summary>
+    public static readonly Error AttendanceDayInFuture = Error.Validation(
+        "Bookings.AttendanceDayInFuture",
+        "Attendance is read for today or an earlier day.");
+
+    /// <summary>Leave is asked for by the day before the session (decided by the developer, 1405/08/19, task 15.7i).</summary>
+    public static readonly Error LeaveTooLate = Error.BusinessRule(
+        "Bookings.LeaveTooLate",
+        "Leave is asked for by the day before the session.");
+
+    /// <summary>A waiting or accepted request for that session already exists.</summary>
+    public static readonly Error LeaveAlreadyAsked = Error.Conflict(
+        "Bookings.LeaveAlreadyAsked",
+        "A leave request for that session is already waiting or accepted.");
+
+    public static readonly Error LeaveRequestNotFound = Error.NotFound(
+        "Bookings.LeaveRequestNotFound",
+        "No leave request with that id waits for this trainer.");
+
+    /// <summary>Answered, taken back, or the session started meanwhile (not answered by then is declined).</summary>
+    public static readonly Error LeaveNotWaiting = Error.Conflict(
+        "Bookings.LeaveNotWaiting",
+        "The leave request is no longer waiting for an answer.");
 }

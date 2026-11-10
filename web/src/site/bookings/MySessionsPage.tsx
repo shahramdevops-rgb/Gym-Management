@@ -23,6 +23,7 @@ import { SiteFrame } from "../components/SiteFrame";
 import { sitePaths } from "../paths";
 import { formatDayLabel, formatSessionTimes, formatSlot } from "../timetable/labels";
 import {
+  useCancelMyLeave,
   useLeaveMySession,
   useMoveMySession,
   useMySessions,
@@ -37,10 +38,11 @@ import { PlacesByWeek } from "./PlacesByWeek";
 /**
  * The member's «سانس‌های من» (BUSINESS_RULES.md §15 *Who puts a member in a session* and *Students
  * in sessions*, roadmap 15.6b): the fixed schedule their trainer made, and every date it puts them
- * in. Until a session starts, the member leaves it («نمی‌آیم», asked first) or moves it to another
- * of the same trainer's sessions with room, up to the schedule's last date. A date they left stays
- * listed, faded, with «می‌آیم» to take it back while it has room. They never pick the schedule
- * itself. Only a member reaches it.
+ * in. Until a session starts, the member moves it to another of the same trainer's sessions with
+ * room, up to the schedule's last date. By the day before, they ask the trainer for leave from it
+ * («درخواست مرخصی», asked first, 15.7i): it waits for the trainer («لغو درخواست» takes it back), and
+ * a declined one says so. A date they have leave from stays listed, faded, «مرخصی», with «می‌آیم» to
+ * take it back while it has room. They never pick the schedule itself. Only a member reaches it.
  */
 export function MySessionsPage() {
   const me = useSiteMe();
@@ -128,6 +130,7 @@ function ScheduleCard({ mine }: { mine: MySessions }) {
 
 function DatesCard({ mine }: { mine: MySessions }) {
   const leave = useLeaveMySession();
+  const cancelLeave = useCancelMyLeave();
   const comeBack = useReturnToMySession();
   const [moving, setMoving] = useState<Place | null>(null);
 
@@ -140,6 +143,9 @@ function DatesCard({ mine }: { mine: MySessions }) {
       </CardHeader>
       <CardContent className="space-y-3">
         {leave.isError && <Alert variant="destructive">{errorMessage(leave.error)}</Alert>}
+        {cancelLeave.isError && (
+          <Alert variant="destructive">{errorMessage(cancelLeave.error)}</Alert>
+        )}
         {comeBack.isError && <Alert variant="destructive">{errorMessage(comeBack.error)}</Alert>}
         <PlacesByWeek today={mine.today} places={mine.sessions} empty="سانسی در پیش ندارید.">
           {(week) => (
@@ -158,11 +164,21 @@ function DatesCard({ mine }: { mine: MySessions }) {
                         {formatSessionTimes(place)}
                         <PlaceBadges place={place} />
                         {place.started && <Badge variant="secondary">شروع شده</Badge>}
-                        {place.left && <Badge variant="outline">نمی‌آیم</Badge>}
+                        {place.left && <Badge variant="outline">مرخصی</Badge>}
+                        {place.leave === "Pending" && (
+                          <Badge variant="warning" className="max-w-full whitespace-normal">
+                            در انتظار تأیید مربی
+                          </Badge>
+                        )}
+                        {place.leave === "Declined" && (
+                          <Badge variant="destructive" className="max-w-full whitespace-normal">
+                            مرخصی رد شد
+                          </Badge>
+                        )}
                       </p>
                     </div>
                     {place.left ? (
-                      // Taking a «نمی‌آیم» back needs no question: it is undone the same way.
+                      // Taking a leave back needs no question: it is asked for again the same way.
                       <Button
                         variant="secondary"
                         size="sm"
@@ -175,21 +191,44 @@ function DatesCard({ mine }: { mine: MySessions }) {
                       </Button>
                     ) : (
                       !place.started && (
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button variant="secondary" size="sm" onClick={() => setMoving(place)}>
                             جابه‌جایی
                           </Button>
-                          <ConfirmDialog
-                            label="نمی‌آیم"
-                            question={`در سانس ${label} نمی‌آیید و جایتان آزاد می‌شود. ادامه می‌دهید؟`}
-                            pending={leave.isPending}
-                            onConfirm={(close) =>
-                              leave.mutate(
-                                { date: place.date, start: place.start, end: place.end },
-                                { onSettled: close },
-                              )
-                            }
-                          />
+                          {place.leave === "Pending" ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={cancelLeave.isPending}
+                              onClick={() =>
+                                cancelLeave.mutate({
+                                  date: place.date,
+                                  start: place.start,
+                                  end: place.end,
+                                })
+                              }
+                            >
+                              لغو درخواست
+                            </Button>
+                          ) : // By the day before (decided by the developer, 1405/08/19): today's
+                          // button is shown greyed out, not pressable (asked by the developer).
+                          place.date > mine.today ? (
+                            <ConfirmDialog
+                              label="درخواست مرخصی"
+                              question={`از مربی برای سانس ${label} مرخصی می‌خواهید. تا مربی قبول نکند، جایتان در سانس می‌ماند. ادامه می‌دهید؟`}
+                              pending={leave.isPending}
+                              onConfirm={(close) =>
+                                leave.mutate(
+                                  { date: place.date, start: place.start, end: place.end },
+                                  { onSettled: close },
+                                )
+                              }
+                            />
+                          ) : (
+                            <Button variant="outline" size="sm" disabled>
+                              درخواست مرخصی
+                            </Button>
+                          )}
                         </div>
                       )
                     )}

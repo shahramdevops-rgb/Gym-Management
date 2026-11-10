@@ -34,6 +34,7 @@
     "TrainerPeriod": "دورهٔ مربی‌گری",
     "TrainerRequest": "درخواست مربی",
     "TrainerLink": "مربی عضو",
+    "CoachingPeriod": "دورهٔ مربی‌گری شاگرد",
     "WeekPattern": "الگوی هفتگی مربی",
     "WeekPatternSession": "سانس الگوی هفتگی",
     "TimetableDay": "روز جداگانهٔ برنامهٔ مربی",
@@ -42,7 +43,8 @@
     "FixedScheduleSlot": "سانس برنامهٔ ثابت",
     "SessionSkip": "غیبت شاگرد از یک سانس",
     "SessionBooking": "سانس جابه‌جاشدهٔ شاگرد",
-    "SessionCancellation": "سانس لغوشدهٔ شاگرد"
+    "SessionCancellation": "سانس لغوشدهٔ شاگرد",
+    "LeaveRequest": "درخواست مرخصی شاگرد"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -246,8 +248,21 @@
     "ServiceCharge": { "Kind": { "label": "نوع", "format": "serviceChargeKind" } },
     "Notification": { "Kind": { "label": "نوع", "format": "notificationKind" } },
     "SmsBroadcast": { "Status": { "label": "وضعیت", "format": "broadcastStatus" } },
-    "TrainerRequest": { "Status": { "label": "وضعیت", "format": "trainerRequestStatus" } },
-    "TrainerLink": { "StartedOn": { "label": "شروع" }, "EndedOn": { "label": "پایان" } },
+    "TrainerRequest": {
+      "Status": { "label": "وضعیت", "format": "trainerRequestStatus" },
+      "AnsweredOn": { "label": "روز پاسخ مربی" },
+      "AnswerSeenAt": { "label": "زمان دیدن پاسخ" }
+    },
+    "TrainerLink": {
+      "StartedOn": { "label": "شروع" },
+      "EndedOn": { "label": "پایان" },
+      "EndSeenAt": { "label": "زمان دیدن پایان" }
+    },
+    "CoachingPeriod": {
+      "LinkId": { "label": "مربی عضو", "format": "reference" },
+      "StartsOn": { "label": "از تاریخ" },
+      "EndsOn": { "label": "تا تاریخ" }
+    },
     "WeekPattern": { "StartsOn": { "label": "از تاریخ" } },
     "WeekPatternSession": {
       "PatternId": { "label": "الگو", "format": "reference" },
@@ -289,6 +304,13 @@
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
       "By": { "label": "به دست", "format": "bookedBy" }
+    },
+    "LeaveRequest": {
+      "LinkId": { "label": "مربی عضو", "format": "reference" },
+      "Date": { "label": "تاریخ" },
+      "Start": { "label": "شروع" },
+      "End": { "label": "پایان" },
+      "Status": { "label": "وضعیت", "format": "leaveRequestStatus" }
     },
     "SessionCancellation": {
       "ChangeId": { "label": "ذخیرهٔ برنامهٔ مربی", "format": "reference" },

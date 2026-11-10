@@ -8,7 +8,7 @@ namespace Gym.Application.Coaching.AcceptTrainerRequest;
 
 /// <summary>
 /// The trainer accepts a member's request (BUSINESS_RULES.md §15 <i>A member and their trainer</i>):
-/// the member becomes their student today, and the member's link to an earlier trainer ends today,
+/// the member becomes their student today for the days the trainer typed (15.7h), and the member's link to an earlier trainer ends today,
 /// so that trainer stops seeing them today.
 /// </summary>
 /// <remarks>
@@ -17,7 +17,9 @@ namespace Gym.Application.Coaching.AcceptTrainerRequest;
 /// </remarks>
 public sealed class AcceptTrainerRequestHandler(IAppDbContext db, IGymCalendar calendar)
 {
-    public async Task<Result<StudentsResponse>> Handle(Guid siteAccountId, Guid requestId, CancellationToken cancellationToken)
+    /// <param name="command">The coaching period's days (15.7h); <c>null</c>, from an app still on the page before it, is <see cref="CoachingPeriod.DefaultDays"/>.</param>
+    public async Task<Result<StudentsResponse>> Handle(
+        Guid siteAccountId, Guid requestId, AcceptTrainerRequestCommand? command, CancellationToken cancellationToken)
     {
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
         await db.LockCoachingAsync(cancellationToken);
@@ -48,7 +50,7 @@ public sealed class AcceptTrainerRequestHandler(IAppDbContext db, IGymCalendar c
         }
 
         var today = calendar.Today();
-        var link = request.Accept(today);
+        var link = request.Accept(today, command?.Days ?? CoachingPeriod.DefaultDays);
         if (link.IsFailure)
         {
             return Result.Failure<StudentsResponse>(link.Error);

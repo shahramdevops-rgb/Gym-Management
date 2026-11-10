@@ -36,6 +36,7 @@ type FieldFormat =
   | "broadcastStopReason"
   | "revocationReason"
   | "trainerRequestStatus"
+  | "leaveRequestStatus"
   | "trainerLinkEndReason"
   | "dayOfWeek"
   | "bookedBy";
@@ -105,6 +106,12 @@ const enumLabels: Record<string, Record<string, string>> = {
     Cancelled: "عضو لغو کرد",
     Replaced: "عضو مربی دیگری انتخاب کرد",
     TrainerStopped: "مربی‌گری مربی تمام شد",
+  },
+  leaveRequestStatus: {
+    Pending: "در انتظار پاسخ مربی",
+    Accepted: "مربی پذیرفت",
+    Declined: "مربی رد کرد",
+    Cancelled: "شاگرد پس گرفت",
   },
   trainerLinkEndReason: {
     ByMember: "عضو پایان داد",

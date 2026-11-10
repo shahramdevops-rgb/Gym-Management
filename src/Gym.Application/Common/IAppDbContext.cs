@@ -96,6 +96,8 @@ public interface IAppDbContext
 
     DbSet<TrainerLink> TrainerLinks { get; }
 
+    DbSet<CoachingPeriod> CoachingPeriods { get; }
+
     DbSet<WeekPattern> WeekPatterns { get; }
 
     DbSet<TimetableDay> TimetableDays { get; }
@@ -105,6 +107,8 @@ public interface IAppDbContext
     DbSet<SessionSkip> SessionSkips { get; }
 
     DbSet<SessionBooking> SessionBookings { get; }
+
+    DbSet<LeaveRequest> LeaveRequests { get; }
 
     DbSet<SessionCancellation> SessionCancellations { get; }
 

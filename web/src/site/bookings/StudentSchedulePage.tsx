@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
-import { Link, Navigate, useParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 
 import { JalaliDateField } from "@/components/FormField";
 import { LoadingState } from "@/components/States";
@@ -11,6 +11,17 @@ import { errorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 
 import { useSiteMe } from "../auth/api";
+import { useEndStudent } from "../coaching/api";
+import {
+  nextPeriodStart,
+  periodDefaultDays,
+  periodEnd,
+  periodLine,
+  periodMinDays,
+  periodMinDaysLeft,
+  periodState,
+} from "../coaching/period";
+import { PeriodDaysForm } from "../coaching/PeriodDaysForm";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { SiteFrame } from "../components/SiteFrame";
 import { sitePaths } from "../paths";
@@ -27,6 +38,7 @@ import {
 import {
   useCheckStudentSchedule,
   useEndStudentSchedule,
+  useRenewCoachingPeriod,
   useSetStudentSchedule,
   useStudentSchedule,
   type SessionDate,
@@ -36,14 +48,20 @@ import {
 import { PlaceBadges } from "./PlaceBadges";
 import { PlacesByWeek } from "./PlacesByWeek";
 
-/** A program lasts 6 to 8 weeks (BUSINESS_RULES.md §15): the last date by default, from the first. */
-const defaultDays = 8 * 7 - 1;
+/**
+ * A student from before the coaching period (15.7h) has none until the trainer types the days left:
+ * their program's last date is still 8 weeks on by default, from the first, as before.
+ */
+const daysWithoutPeriod = 8 * 7 - 1;
 
 /**
  * The trainer's «برنامهٔ ثابت» of one student (BUSINESS_RULES.md §15 *Who puts a member in a
  * session* and *Students in sessions*, roadmap 15.6b): the weekly sessions they come to, from a
  * first date to a last, and every date that puts them in. Saved whole or not at all: a date with
- * no room keeps everything as it was and is named. Only a trainer reaches it.
+ * no room keeps everything as it was and is named. Only a trainer reaches it. Ending the coaching
+ * («پایان مربی‌گری») sits at its foot, away from the home, so a finger cannot hit it by mistake (15.7g).
+ * The coaching period comes first (15.7h): the program ends on its last day or before, and a period
+ * that is over takes no program until «تمدید».
  */
 export function StudentSchedulePage() {
   const { memberId = "" } = useParams();
@@ -78,8 +96,10 @@ export function StudentSchedulePage() {
         )
       ) : (
         <>
+          <PeriodCard student={schedule.data} />
           <ScheduleCard student={schedule.data} />
           <PlacesCard student={schedule.data} />
+          <EndCoachingCard student={schedule.data} />
         </>
       )}
     </SiteFrame>
@@ -90,6 +110,7 @@ function ScheduleCard({ student }: { student: StudentSchedule }) {
   const [editing, setEditing] = useState(false);
   const end = useEndStudentSchedule(student.memberId);
   const schedule = student.schedule;
+  const periodOver = periodState(student.periodEndsOn, student.today).kind === "over";
 
   return (
     <Card accent={false} className="gap-3 shadow-raised">
@@ -126,8 +147,13 @@ function ScheduleCard({ student }: { student: StudentSchedule }) {
               </>
             )}
             {end.isError && <Alert variant="destructive">{errorMessage(end.error)}</Alert>}
+            {periodOver && (
+              <p className="text-sm text-muted-foreground">
+                دورهٔ مربی‌گری تمام شده است؛ برای برنامهٔ تازه اول دوره را تمدید کنید.
+              </p>
+            )}
             <div className="flex gap-2">
-              <Button className="flex-1" onClick={() => setEditing(true)}>
+              <Button className="flex-1" disabled={periodOver} onClick={() => setEditing(true)}>
                 {schedule === null ? "ساختن برنامه" : "تغییر برنامه"}
               </Button>
               {schedule !== null && (
@@ -216,7 +242,9 @@ function ScheduleForm({
   const inPattern = patternSessions(timetable);
   const isGone = (slot: SlotInput) => !inPattern.has(slotKey(slot));
   const firstDay = student.today;
-  const defaultEnd = (startsOn: string) => earlier(addDays(startsOn, defaultDays), student.lastDay);
+  // The period's last day, or 8 weeks on for a student from before it; never past the timetable.
+  const defaultEnd = (startsOn: string) =>
+    earlier(student.periodEndsOn ?? addDays(startsOn, daysWithoutPeriod), student.lastDay);
 
   const [picked, setPicked] = useState(
     () =>
@@ -377,6 +405,101 @@ function ScheduleForm({
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * The coaching period (BUSINESS_RULES.md §15 *The coaching period*, roadmap 15.7h): its last day
+ * and the days left, and «تمدید», which adds the days typed after the last day so none is lost. A
+ * student from before it has none: the trainer types the days left from today, as few as one, and
+ * is warned when that cuts the fixed schedule.
+ */
+function PeriodCard({ student }: { student: StudentSchedule }) {
+  const [renewing, setRenewing] = useState(false);
+  const renew = useRenewCoachingPeriod(student.memberId);
+  const state = periodState(student.periodEndsOn, student.today);
+  const unset = state.kind === "unset";
+  const scheduleEndsOn = student.schedule?.endsOn ?? null;
+
+  const cutNote = (days: number) => {
+    const endsOn = periodEnd(student.today, days);
+    return scheduleEndsOn !== null && scheduleEndsOn > endsOn
+      ? `برنامهٔ ثابت او تا ${formatDate(scheduleEndsOn)} است و با این دوره ${formatDate(endsOn)} تمام می‌شود.`
+      : null;
+  };
+
+  return (
+    <Card accent={false} className="gap-3 shadow-raised">
+      <CardHeader>
+        <CardTitle role="heading" aria-level={2}>
+          دورهٔ مربی‌گری
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className={unset ? "text-sm" : "text-sm text-muted-foreground"}>
+          {unset
+            ? "این شاگرد پیش از دوره‌ها شاگرد شما شده است. چند روز از مربی‌گری او مانده؟"
+            : periodLine(state)}
+        </p>
+        {renew.isError && <Alert variant="destructive">{errorMessage(renew.error)}</Alert>}
+        {renewing || unset ? (
+          <PeriodDaysForm
+            label={unset ? "روزهای باقی‌مانده" : "تمدید"}
+            startsOn={nextPeriodStart(student.periodEndsOn, student.today)}
+            defaultDays={unset ? null : periodDefaultDays}
+            minDays={unset ? periodMinDaysLeft : periodMinDays}
+            submitLabel={unset ? "ثبت" : "تمدید"}
+            pending={renew.isPending}
+            note={unset ? cutNote : undefined}
+            onSubmit={(days) => renew.mutate(days, { onSuccess: () => setRenewing(false) })}
+            onCancel={unset ? undefined : () => setRenewing(false)}
+          />
+        ) : (
+          <Button variant="secondary" className="w-full" onClick={() => setRenewing(true)}>
+            تمدید
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * «پایان مربی‌گری» for this student (BUSINESS_RULES.md §15 *A member and their trainer*: either side
+ * may end the link, asking first; it ends that day). Moved here from «شاگردان من» on the home
+ * (15.7g). Once ended the student is no longer the trainer's, so the page goes back to the home.
+ */
+function EndCoachingCard({ student }: { student: StudentSchedule }) {
+  const end = useEndStudent();
+  const navigate = useNavigate();
+
+  return (
+    <Card accent={false} className="gap-3 shadow-raised">
+      <CardHeader>
+        <CardTitle role="heading" aria-level={2}>
+          پایان مربی‌گری
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          اگر {student.fullName} دیگر شاگرد شما نیست، مربی‌گری را تمام کنید؛ از امروز در «شاگردان
+          من» نیست.
+        </p>
+        {end.isError && <Alert variant="destructive">{errorMessage(end.error)}</Alert>}
+        <ConfirmDialog
+          wide
+          label="پایان مربی‌گری"
+          question={`مربی‌گری شما برای ${student.fullName} از امروز تمام می‌شود. ادامه می‌دهید؟`}
+          pending={end.isPending}
+          onConfirm={(close) =>
+            end.mutate(student.memberId, {
+              onSettled: close,
+              onSuccess: () => void navigate(sitePaths.home, { replace: true }),
+            })
+          }
+        />
+      </CardContent>
+    </Card>
   );
 }
 

@@ -40,6 +40,16 @@ public sealed class TrainerRequest : Entity
 
     public TrainerRequestStatus Status { get; private set; }
 
+    /// <summary>
+    /// The gym's day the trainer accepted or declined it (task 15.4d): the member is told in the app
+    /// from then on, for <see cref="CoachingNews.ShownForDays"/> days at most. <c>null</c> for every
+    /// other outcome, and for the answers given before 15.4d, which nobody is told of.
+    /// </summary>
+    public DateOnly? AnsweredOn { get; private set; }
+
+    /// <summary>A moment (UTC): when the member pressed «دیدم» on the answer; <c>null</c> until then.</summary>
+    public DateTimeOffset? AnswerSeenAt { get; private set; }
+
     /// <summary>Postgres <c>xmin</c>: the second of two changes at once fails instead of overwriting.</summary>
     public uint Version { get; private set; }
 
@@ -66,21 +76,41 @@ public sealed class TrainerRequest : Entity
     }
 
     /// <summary>
-    /// The trainer accepts: the member's link to them starts today. Ending the member's earlier link
-    /// is the caller's, since that link is another row.
+    /// The trainer accepts: the member's link to them starts today, with a coaching period of
+    /// <paramref name="days"/> days (15.7h). Ending the member's earlier link is the caller's, since
+    /// that link is another row.
     /// </summary>
-    public Result<TrainerLink> Accept(DateOnly today)
+    /// <param name="days">Typed by the trainer, <see cref="CoachingPeriod.MinDays"/> to <see cref="CoachingPeriod.MaxDays"/>.</param>
+    public Result<TrainerLink> Accept(DateOnly today, int days = CoachingPeriod.DefaultDays)
     {
+        // Checked first: a wrong number leaves the request waiting.
+        if (!CoachingPeriod.IsAllowed(days, CoachingPeriod.MinDays))
+        {
+            return Result.Failure<TrainerLink>(CoachingErrors.PeriodDaysOutOfRange);
+        }
+
         var closed = Close(TrainerRequestStatus.Accepted);
         if (closed.IsFailure)
         {
             return Result.Failure<TrainerLink>(closed.Error);
         }
 
-        return TrainerLink.Start(MemberId, TrainerId, Id, today);
+        AnsweredOn = today;
+
+        return TrainerLink.Start(MemberId, TrainerId, Id, today, days);
     }
 
-    public Result Decline() => Close(TrainerRequestStatus.Declined);
+    /// <param name="today">The gym's today: the day the member is told of it.</param>
+    public Result Decline(DateOnly today)
+    {
+        var closed = Close(TrainerRequestStatus.Declined);
+        if (closed.IsSuccess)
+        {
+            AnsweredOn = today;
+        }
+
+        return closed;
+    }
 
     /// <summary>The member takes it back.</summary>
     public Result Cancel() => Close(TrainerRequestStatus.Cancelled);
@@ -90,6 +120,21 @@ public sealed class TrainerRequest : Entity
 
     /// <summary>The Owner stopped the trainer while this was waiting for them.</summary>
     public Result EndForStoppedTrainer() => Close(TrainerRequestStatus.TrainerStopped);
+
+    /// <summary>
+    /// The member pressed «دیدم» on the trainer's answer (task 15.4d). A second press keeps the first
+    /// moment.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The request has no answer to see.</exception>
+    public void MarkAnswerSeen(DateTimeOffset now)
+    {
+        if (AnsweredOn is null)
+        {
+            throw new InvalidOperationException("Only an accepted or declined request has an answer to see.");
+        }
+
+        AnswerSeenAt ??= now;
+    }
 
     private Result Close(TrainerRequestStatus outcome)
     {

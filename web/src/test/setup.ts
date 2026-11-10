@@ -43,4 +43,5 @@ afterEach(() => {
   signUpTicketStore.clear();
   document.documentElement.classList.remove("dark");
   localStorage.clear();
+  sessionStorage.clear();
 });

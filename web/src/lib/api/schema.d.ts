@@ -276,6 +276,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/coaching/my-trainer/news": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMyCoachingNews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/coaching/my-trainer/news/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SeeMyCoachingNews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/site/coaching/students": {
         parameters: {
             query?: never;
@@ -334,6 +366,54 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["EndStudent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/coaching/students/{memberId}/period": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RenewCoachingPeriod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/coaching/students/news": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetStudentNews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/coaching/students/news/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SeeStudentNews"];
         delete?: never;
         options?: never;
         head?: never;
@@ -628,6 +708,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/coaching/days/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetTrainerDay"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/site/coaching/students/{memberId}/attendance": {
         parameters: {
             query?: never;
@@ -638,6 +734,54 @@ export interface paths {
         get: operations["GetStudentAttendance"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/coaching/leave-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetLeaveRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/coaching/leave-requests/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AcceptLeaveRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/coaching/leave-requests/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DeclineLeaveRequest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -670,6 +814,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["LeaveMySession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/me/sessions/leave/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CancelMyLeave"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2362,6 +2522,10 @@ export interface components {
             /** Format: int32 */
             daysAway: number | string;
         };
+        AcceptTrainerRequestCommand: {
+            /** Format: int32 */
+            days: null | number | string;
+        };
         AccessTokenResponse: {
             accessToken: string;
             /** Format: date-time */
@@ -2390,7 +2554,14 @@ export interface components {
             state: components["schemas"]["SessionPresence"];
             /** Format: time */
             checkedInAt: null | string;
-            cameAfter: boolean;
+            /** Format: time */
+            checkedOutAt: null | string;
+            autoCheckedOut: boolean;
+            /** Format: int32 */
+            minutesEarly: null | number | string;
+            /** Format: int32 */
+            minutesLate: null | number | string;
+            hadLeave: boolean;
         };
         AttendanceReportResponse: {
             /** Format: date */
@@ -2445,6 +2616,8 @@ export interface components {
             onTime: number | string;
             /** Format: int32 */
             late: number | string;
+            /** Format: int32 */
+            cameAfter: number | string;
             /** Format: int32 */
             absent: number | string;
             /** Format: int32 */
@@ -2593,6 +2766,14 @@ export interface components {
             cafeOrderIds: null | string[];
             saleIds: null | string[];
         };
+        CancelMyLeaveCommand: {
+            /** Format: date */
+            date: string;
+            /** Format: time */
+            start: string;
+            /** Format: time */
+            end: string;
+        };
         CancelPayableCommand: {
             reason: string;
         };
@@ -2623,6 +2804,19 @@ export interface components {
         };
         /** @enum {unknown} */
         CheckInSaleKind: "SingleVisit" | "Membership";
+        CoachingNewsItemResponse: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["CoachingNewsKind"];
+            fullName: string;
+            /** Format: date */
+            on: string;
+        };
+        /** @enum {unknown} */
+        CoachingNewsKind: "Accepted" | "Declined" | "EndedByTrainer" | "EndedByStudent";
+        CoachingNewsResponse: {
+            items: components["schemas"]["CoachingNewsItemResponse"][];
+        };
         CreateCafeOrderCommand: {
             /** Format: uuid */
             memberId: null | string;
@@ -2715,6 +2909,46 @@ export interface components {
         };
         /** @enum {unknown} */
         DayOfWeek: "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
+        DaySession: {
+            /** Format: time */
+            start: string;
+            /** Format: time */
+            end: string;
+            isVip: boolean;
+            removed: boolean;
+            started: boolean;
+            ended: boolean;
+            students: components["schemas"]["DayStudent"][];
+        };
+        DayStudent: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            state: components["schemas"]["SessionPresence"];
+            /** Format: time */
+            checkedInAt: null | string;
+            /** Format: time */
+            checkedOutAt: null | string;
+            autoCheckedOut: boolean;
+            /** Format: int32 */
+            minutesEarly: null | number | string;
+            /** Format: int32 */
+            minutesLate: null | number | string;
+            hadLeave: boolean;
+        };
+        DayTotals: {
+            /** Format: int32 */
+            students: number | string;
+            /** Format: int32 */
+            present: number | string;
+            /** Format: int32 */
+            late: number | string;
+            /** Format: int32 */
+            cameAfter: number | string;
+            /** Format: int32 */
+            absent: number | string;
+        };
         DebtReminderSettings: {
             enabled: boolean;
             /** Format: int32 */
@@ -2949,6 +3183,17 @@ export interface components {
             /** Format: double */
             average: number | string;
         };
+        HttpValidationProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number | string;
+            detail?: null | string;
+            instance?: null | string;
+            errors?: {
+                [key: string]: string[];
+            };
+        };
         JsonElement: unknown;
         LeaveMySessionCommand: {
             /** Format: date */
@@ -2958,6 +3203,27 @@ export interface components {
             /** Format: time */
             end: string;
         };
+        LeaveRequestItem: {
+            /** Format: uuid */
+            requestId: string;
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            /** Format: date */
+            date: string;
+            /** Format: time */
+            start: string;
+            /** Format: time */
+            end: string;
+            /** Format: date */
+            requestedOn: string;
+        };
+        LeaveRequestsResponse: {
+            requests: components["schemas"]["LeaveRequestItem"][];
+        };
+        /** @enum {unknown} */
+        LeaveRequestStatus: "Pending" | "Accepted" | "Declined" | "Cancelled" | null;
         LeftResponse: {
             /** Format: uuid */
             memberId: string;
@@ -3271,6 +3537,8 @@ export interface components {
             fullName: string;
             /** Format: date */
             since: string;
+            /** Format: date */
+            periodEndsOn: null | string;
         };
         MyTrainerRequestResponse: {
             /** Format: uuid */
@@ -3354,6 +3622,18 @@ export interface components {
             isVip: boolean;
             /** Format: int32 */
             free: number | string;
+        };
+        OutsideStudent: {
+            /** Format: uuid */
+            memberId: string;
+            fullName: string;
+            phoneNumber: string;
+            visits: components["schemas"]["VisitTimes"][];
+        };
+        OutsideVisit: {
+            /** Format: date */
+            date: string;
+            visit: components["schemas"]["VisitTimes"];
         };
         PagedResponseOfAttendanceResponse: {
             items: components["schemas"]["AttendanceResponse"][];
@@ -3711,6 +3991,7 @@ export interface components {
             removed: boolean;
             started: boolean;
             left: boolean;
+            leave?: null | components["schemas"]["LeaveRequestStatus"];
         };
         PlanSummary: {
             /** Format: int32 */
@@ -3827,6 +4108,10 @@ export interface components {
             /** Format: time */
             end: string;
         };
+        RenewCoachingPeriodCommand: {
+            /** Format: int32 */
+            days: number | string;
+        };
         RequestCodeCommand: {
             phoneNumber: string;
         };
@@ -3915,6 +4200,9 @@ export interface components {
             sessions: number | string;
             full: components["schemas"]["SessionDateResponse"][];
         };
+        SeeCoachingNewsCommand: {
+            ids: null | string[];
+        };
         SeeMyCancellationsCommand: {
             /** Format: date-time */
             upTo: string;
@@ -3983,7 +4271,7 @@ export interface components {
             isVip: boolean;
         };
         /** @enum {unknown} */
-        SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled";
+        SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled" | "CameAfter";
         SessionResponse: {
             /** Format: time */
             start: string;
@@ -4293,6 +4581,7 @@ export interface components {
             to: string;
             sessions: components["schemas"]["AttendanceItem"][];
             totals: components["schemas"]["AttendanceTotals"];
+            outside: components["schemas"]["OutsideVisit"][];
         };
         StudentRequestResponse: {
             /** Format: uuid */
@@ -4312,6 +4601,8 @@ export interface components {
             /** Format: date */
             since: string;
             isActive: boolean;
+            /** Format: date */
+            periodEndsOn: null | string;
         };
         StudentScheduleResponse: {
             /** Format: date */
@@ -4321,6 +4612,8 @@ export interface components {
             /** Format: uuid */
             memberId: string;
             fullName: string;
+            /** Format: date */
+            periodEndsOn: null | string;
             schedule: null | components["schemas"]["FixedScheduleResponse"];
             sessions: components["schemas"]["PlaceResponse"][];
         };
@@ -4418,27 +4711,6 @@ export interface components {
             daysAveraged: number | string;
             hours: components["schemas"]["HourCountResponse"][];
         };
-        TodaySession: {
-            /** Format: time */
-            start: string;
-            /** Format: time */
-            end: string;
-            isVip: boolean;
-            removed: boolean;
-            started: boolean;
-            ended: boolean;
-            students: components["schemas"]["TodayStudent"][];
-        };
-        TodayStudent: {
-            /** Format: uuid */
-            memberId: string;
-            fullName: string;
-            phoneNumber: string;
-            state: components["schemas"]["SessionPresence"];
-            /** Format: time */
-            checkedInAt: null | string;
-            cameAfter: boolean;
-        };
         TodaySummaryResponse: {
             /** Format: date */
             today: string;
@@ -4480,6 +4752,14 @@ export interface components {
             trainerId: string;
             fullName: string;
         };
+        TrainerDayResponse: {
+            /** Format: date */
+            date: string;
+            isToday: boolean;
+            totals: components["schemas"]["DayTotals"];
+            sessions: components["schemas"]["DaySession"][];
+            outside: components["schemas"]["OutsideStudent"][];
+        };
         TrainerPeriodResponse: {
             /** Format: date */
             startedOn: string;
@@ -4505,11 +4785,6 @@ export interface components {
             lastSignedInAt: null | string;
             /** Format: uint32 */
             version: number | string;
-        };
-        TrainerTodayResponse: {
-            /** Format: date */
-            date: string;
-            sessions: components["schemas"]["TodaySession"][];
         };
         UpdateExpenseCategoryCommand: {
             name: string;
@@ -4605,6 +4880,13 @@ export interface components {
             /** Format: uuid */
             id: string;
             fullName: string;
+        };
+        VisitTimes: {
+            /** Format: time */
+            checkedInAt: string;
+            /** Format: time */
+            checkedOutAt: null | string;
+            autoCheckedOut: boolean;
         };
         VoidExpenseCommand: {
             reason: string;
@@ -5460,6 +5742,104 @@ export interface operations {
             };
         };
     };
+    GetMyCoachingNews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingNewsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SeeMyCoachingNews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeeCoachingNewsCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingNewsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     GetStudents: {
         parameters: {
             query?: never;
@@ -5516,7 +5896,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["AcceptTrainerRequestCommand"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -5525,6 +5909,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
             /** @description Unauthorized */
@@ -5641,6 +6034,175 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RenewCoachingPeriod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenewCoachingPeriodCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentScheduleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetStudentNews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingNewsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SeeStudentNews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeeCoachingNewsCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingNewsResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -6889,7 +7451,74 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TrainerTodayResponse"];
+                    "application/json": components["schemas"]["TrainerDayResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTrainerDay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerDayResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */
@@ -7000,6 +7629,196 @@ export interface operations {
             };
         };
     };
+    GetLeaveRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AcceptLeaveRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DeclineLeaveRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     GetMySessions: {
         parameters: {
             query?: never;
@@ -7057,6 +7876,75 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["LeaveMySessionCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MySessionsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CancelMyLeave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelMyLeaveCommand"];
             };
         };
         responses: {

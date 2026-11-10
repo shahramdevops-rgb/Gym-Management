@@ -14,7 +14,7 @@ import { normalizeDigits } from "@/lib/normalize";
 import { SiteFrame } from "../../components/SiteFrame";
 import { UnreachableNotice } from "../../components/UnreachableNotice";
 import { InstallHint } from "../../install/InstallHint";
-import { sitePaths } from "../../paths";
+import { returnToStore } from "../returnTo";
 import { useRequestCode, type RequestCodeResponse } from "../api";
 import { useSiteSessionState } from "../session";
 import { signUpTicketStore } from "../signUpTicket";
@@ -41,8 +41,9 @@ export function SignInPage() {
   const state = useSiteSessionState();
   const [sent, setSent] = useState<SentCode | null>(null);
 
+  // On to the page they were opening, if any (roadmap 15.4d), or the home.
   if (state.status === "signedIn") {
-    return <Navigate to={sitePaths.home} replace />;
+    return <Navigate to={returnToStore.target()} replace />;
   }
 
   // A reload with a live cookie: no phone form flashes before the home screen.

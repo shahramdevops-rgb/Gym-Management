@@ -2402,3 +2402,72 @@ The question that started this was whether a gym that is entirely internal — I
 - **`target="_blank"` with `rel="noopener"`.** The map opens in a new tab so the gym's page stays behind it; `noopener` stops the new page from reaching back to ours through `window.opener`.
 - **A short share link is a pointer, not the place.** `nshn.ir/…` and `balad.ir/p/…` name the gym's place on each service; moving the pin on Balad later changes what the link shows, not the link, so the site needs no change.
 - **My notes:**
+
+## 15.4d — Coaching news in the app, and the public page's trainer button (خبر مربی)
+
+- **"Seen" can live on the row the news is about.** Instead of a notifications table, the request keeps when its answer was seen and the link when its end was seen; the news is a query over rows that already exist, and nothing has to be written when the trainer acts.
+- **A migration that adds a feature must decide about old rows.** The server already holds answered requests and ended links; without `UPDATE … SET answer_seen_at = now()`, every member would wake up to old news after the release. Data migrations go in `migrationBuilder.Sql` beside the schema change.
+- **«دیدم» sends what was shown, not "everything".** The card posts the ids it displayed, so news that arrived between reading and pressing stays to be seen. The cancellations card does the same with a moment (`upTo`); ids fit here because the items are few and each has its own row.
+- **Ignoring other people's ids is quieter than refusing them.** The handler filters by the caller's own member or trainer id; an id that is not theirs simply changes nothing, and the answer gives no hint whether it exists.
+- **An enum needs `JsonStringEnumConverter` to reach the frontend as text.** Without it `Kind` came out as `0, 1, 2`; the attribute on the record's property makes the JSON and the generated TypeScript type say `"Accepted" | "Declined" | …`.
+- **Remember the way, not just the place.** `RequireSiteSession` writes the page a signed-out person was opening into `sessionStorage`, the sign-in and sign-up screens send them there when the session appears, and the protected page clears it once shown. Only the app's own paths are kept (`/…`, never `//host`), so the stored value can never send someone to another site.
+- **A render may run twice; only repeat-safe work belongs in it.** Remembering the page while rendering is safe (writing the same value twice changes nothing), and so is reading the target; clearing is not, so it waits for a `useEffect` after the page is shown. Cleared during render, React's strict mode could lose the value before the redirect used it.
+- **My notes:**
+
+## 15.7c — The app's pages downloaded when first opened (جدا بارگذاری)
+
+- **A lazy route is a page in its own file.** `lazy: () => import("./TimetablePage")` makes Vite cut the page into a separate script that the router downloads the first time the page is opened; the first opening of the app no longer waits for it.
+- **Weigh before cutting.** The source map says which file and package produced each byte of the bundle; the pages themselves were 2–8 kB each, and the real weight was a calendar package that two pages pulled in through `FormField.tsx`. Making those two pages lazy moved 85 kB at once.
+- **A warning that disappears is not a goal reached.** Vite warns per file. After the cut, the shared code became its own 212 kB file next to a 345 kB one, so the warning went while the first download was still 552 kB. Measure what `index.html` actually loads (its script and the files it imports), not the warning.
+- **Some weight cannot move.** React, the router and the query library are needed by every screen; about 370 kB of the first download is the foundation, and only what a person may never use (the sign-in screen for someone signed in, the panel's error messages) is still worth moving.
+- **Lazy files need a plan for releases and offline.** A tab opened before a release may ask for a file that no longer exists (`installStaleChunkReload` reloads once), and the installed app's service worker keeps every file of the build, the lazy ones too, so nothing is missing offline.
+- **My notes:**
+
+## 15.7d — More in the attendance (ساعت خروج، زودتر آمد، روزهای قبل، خارج از سانس)
+
+- **A rule's answer can carry its evidence.** `PresenceMark` used to hold only the check-in time; now it holds the `DayVisit` that counted and how many minutes early or late it was, so the handler reads the check-out and the minutes from the same visit the rule chose, and two places can never disagree.
+- **Keep the rule's input apart from what is shown.** `DayVisit.LeftAt` (a check-out on that same day, `null` otherwise) is what `CountsFor` reasons about; `CheckedOutAt` and `AutoClosed` are only for the screen. Mixing them would have made the nightly auto-checkout's midnight look like a real exit and change who counts as "still inside at the start".
+- **`init` properties extend a record without breaking its callers.** Adding `CheckedOutAt { get; init; }` to `DayVisit` left every `new DayVisit(in, left)` in the tests compiling; the new values are set with `{ CheckedOutAt = … }` only where they exist.
+- **Generalise a handler instead of copying it.** «امروز» became "a day": `Handle(account, DateOnly? date)`, where `null` means today. One handler serves `/today` and `/days/{date}`, and `/today` stays so an installed app still on the old page keeps working after the release.
+- **Counts belong to the server when they carry a rule.** Which states count as present, and that leave and cancelled count nowhere, is business logic; `DayTotals` is worked out in the handler and tested there, so the home card and the day page can never disagree.
+- **The address can hold a page's state.** The day page keeps its date in `?date=` (`useSearchParams`), so a reload or a shared link opens the same day; `replace: true` stops each «روز قبل» from filling the back button's history.
+- **Search a small list in the browser.** The trainer's students are already loaded, so a filter over them answers at once with no request; the digits are normalised (`۰۹۱۲` = `0912`) and the leading `0` or `+98` dropped, so a phone matches however it is typed.
+- **A new state beats a flag on an old one.** «بعد از سانس آمد» first lived as `Absent` plus a `CameAfter` flag, so every count and card had to remember the flag; as its own `SessionPresence.CameAfter` it is simply not `Absent`, and the absent card, the counts and the badge colour follow by themselves. A new enum value is added at the end (`= 7`), so the numbers of the old ones never change.
+- **A git worktree lets two sessions share one repository.** Another session had this folder on its own branch; `git worktree add` gave 15.7d a second folder with its own branch, so neither session switched branches under the other.
+- **My notes:**
+
+## 15.7f — The counts open their students (فیلتر با جعبه‌های شمارش)
+
+- **One component, three behaviours.** `DayTotalsBoxes` draws the same boxes as plain text, as links (`linkTo`, on the home) or as toggles (`onSelect`, on the day page); the caller decides, so the counts look the same everywhere.
+- **A toggle says it is pressed.** `aria-pressed` tells a screen reader (and the tests) which box is on; the colour alone would tell only those who can see it.
+- **Filter the data, not the markup.** The page builds a filtered copy of the sessions (`inFilter` over each student's state) and draws that, so an empty session disappears and "no one" is a simple length check.
+- **The address carries the filter between pages.** The home's box links to `/today?show=late`; the day page reads `show` with `useSearchParams`, and keeps it when moving to another day, so the same idea works for a link, a reload and the back button.
+- **My notes:**
+
+## 15.7g — «پایان» off the home (دکمهٔ پایان به برنامهٔ ثابت)
+
+- **Put a button that cannot be undone where it is hard to hit.** A list of students is pressed many times a day; ending a coaching link is rare and final, so it moved one page deeper, alone in its own card at the foot, still asking first. Distance is a second guard beside the question.
+- **Leave a page whose subject is gone.** After «پایان مربی‌گری» the student is no longer the trainer's, so `useNavigate` goes back to the home with `replace: true`: the back button does not return to a page that would only show an error.
+- **My notes:**
+
+## 15.7h — The coaching period (دورهٔ مربی‌گری)
+
+- **A history table beats a column you overwrite.** The period could have been one `ends_on` on the link, pushed later at each renewal; a row per period (`coaching_periods`) keeps who renewed when and for how long, and the last day is simply the largest `ends_on`.
+- **A child collection keeps the rule in the parent.** `TrainerLink.Periods` is loaded with the link (`Include`), and `link.Renew(days, today)` decides where the next period starts; the handler only saves. Without the collection, the "start after the last day" rule would sit in a handler.
+- **`ValueGeneratedNever` for ids made in C#.** A period added to a link that is already saved has its id set before EF Core sees it; without this line EF Core would read a set key as "already in the database" and send an UPDATE that touches no row.
+- **An exclusion constraint guards ranges, not just values.** `EXCLUDE USING gist (link_id WITH =, daterange(starts_on, ends_on, '[]') WITH &&)` refuses two periods of one link that share a day, which a unique index cannot express; EF Core cannot declare it, so it is written by hand in the migration.
+- **"No row yet" is a state, so carry old data forward.** Links made before 15.7h get no period in the migration, and `null` means "the trainer has not said": nothing is invented for real students, nothing is refused, and the screens ask the trainer instead.
+- **A lifted comparison with `null` is false.** `endsOn > periodEndsOn` with `periodEndsOn` a `DateOnly?` is false when it is `null`, so one line checks the period and lets a link without one through.
+- **An optional request body keeps old apps working.** `AcceptTrainerRequestCommand?` in the endpoint lets an installed app still on the old page post with no body and get the 30 days; a required body would answer it 400 the morning after the release.
+- **Two locks, always in the same order.** The renewal takes the coaching lock (so the link cannot end meanwhile) and then the trainer's lock (so «ذخیره برنامه» reads the period before or after, never half). As long as no handler takes them the other way round, two requests cannot wait for each other forever (a deadlock).
+- **My notes:**
+
+## 15.7i — Leave by request (مرخصی با درخواست)
+
+- **A deadline need not be a job.** "Not answered by the start is declined" is read, not written: `LeaveRequest.StateOn(today, time)` says declined for a request still `Pending` once its session started. Nothing runs at the start, nothing can fail to run, and the row keeps what really happened (nobody answered).
+- **A request is a row of its own, the effect stays where it was.** The request lives in `leave_requests`; accepting it does what «نمی‌آیم» did (a skip, or removing a moved date), so the places, the room count and «می‌آیم» kept working unchanged.
+- **A partial unique index states "one live at a time".** `UNIQUE (member, date, times) WHERE status IN ('Pending', 'Accepted')` lets declined and cancelled requests pile up as history, but never two live ones for one place.
+- **Wrap a rule instead of changing it.** `MarkOnLeave` calls the existing `Mark` and only decides what a leave turns into: on time or late with `HadLeave`, else «مرخصی». The attendance rules themselves did not change, so their tests still hold.
+- **`with` on a record copies it with one change.** `mark with { HadLeave = true }` keeps the visit and the minutes and sets the flag, without a second constructor.
+- **Keep an old address, change what it means, on purpose.** An installed app still on the old page posts «نمی‌آیم» to `/me/sessions/leave`; now that address asks for leave, so the old button does the safe thing (a request) rather than freeing a place on its own.
+- **My notes:**

@@ -29,7 +29,7 @@ internal static class PresenceReading
         var rows = await db.Attendances.AsNoTracking()
             .Where(visit => visit.MemberId != null && memberIds.Contains(visit.MemberId.Value))
             .Where(visit => visit.CancelledAt == null && visit.CheckedInAt >= since && visit.CheckedInAt < until)
-            .Select(visit => new { MemberId = visit.MemberId!.Value, visit.CheckedInAt, visit.CheckedOutAt })
+            .Select(visit => new { MemberId = visit.MemberId!.Value, visit.CheckedInAt, visit.CheckedOutAt, AutoClosed = visit.AutoClosedAt != null })
             .ToListAsync(cancellationToken);
 
         return rows
@@ -38,29 +38,47 @@ internal static class PresenceReading
                 var checkedIn = TimeZoneInfo.ConvertTime(row.CheckedInAt, calendar.TimeZone);
                 var day = DateOnly.FromDateTime(checkedIn.DateTime);
                 TimeOnly? left = null;
+                TimeOnly? shown = null;
                 if (row.CheckedOutAt is { } outAt)
                 {
                     var checkedOut = TimeZoneInfo.ConvertTime(outAt, calendar.TimeZone);
 
                     // Closed on a later day: open for the whole of this one.
                     left = DateOnly.FromDateTime(checkedOut.DateTime) == day ? TimeOnly.FromDateTime(checkedOut.DateTime) : null;
+
+                    // The auto-checkout's midnight is no one's check-out: «خروج ثبت نشد» (15.7d).
+                    shown = row.AutoClosed ? null : TimeOnly.FromDateTime(checkedOut.DateTime);
                 }
 
-                return (Key: (row.MemberId, day), Visit: new DayVisit(TimeOnly.FromDateTime(checkedIn.DateTime), left));
+                var visit = new DayVisit(TimeOnly.FromDateTime(checkedIn.DateTime), left) { CheckedOutAt = shown, AutoClosed = row.AutoClosed };
+
+                return (Key: (row.MemberId, day), Visit: visit);
             })
             .GroupBy(row => row.Key, row => row.Visit)
             .ToDictionary(group => group.Key, group => group.ToList());
     }
 
-    /// <summary>The dates of the trainer's sessions their students left («نمی‌آیم»), from <paramref name="from"/> to <paramref name="to"/>.</summary>
+    /// <summary>The dates of the trainer's sessions their students had leave from, from <paramref name="from"/> to <paramref name="to"/>.</summary>
     public static Task<List<LeftPlace>> LeavesOfTrainerAsync(
         IAppDbContext db, Guid trainerId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
-        LeavesAsync(db, db.FixedSchedules.Where(schedule => schedule.TrainerId == trainerId), from, to, cancellationToken);
+        LeavesAsync(
+            db,
+            db.FixedSchedules.Where(schedule => schedule.TrainerId == trainerId),
+            db.LeaveRequests.Where(request => request.TrainerId == trainerId),
+            from,
+            to,
+            cancellationToken);
 
-    /// <summary>The dates the member left («نمی‌آیم»), with any trainer, from <paramref name="from"/> to <paramref name="to"/>.</summary>
+    /// <summary>The dates the member had leave from, with any trainer, from <paramref name="from"/> to <paramref name="to"/>.</summary>
     public static Task<List<LeftPlace>> LeavesOfMemberAsync(
         IAppDbContext db, Guid memberId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
-        LeavesAsync(db, db.FixedSchedules.Where(schedule => schedule.MemberId == memberId), from, to, cancellationToken);
+        LeavesAsync(
+            db,
+            db.FixedSchedules.Where(schedule => schedule.MemberId == memberId),
+            db.LeaveRequests.Where(request => request.MemberId == memberId),
+            from,
+            to,
+            cancellationToken);
 
     /// <summary>The leaves whose student is not in that session after all (put back in it by a single booking): their place decides.</summary>
     public static List<LeftPlace> NotBackIn(IEnumerable<LeftPlace> leaves, IEnumerable<BookedPlace> places)
@@ -70,9 +88,20 @@ internal static class PresenceReading
         return leaves.Where(leave => !placed.Contains((leave.MemberId, leave.Date, leave.Start, leave.End))).ToList();
     }
 
-    private static Task<List<LeftPlace>> LeavesAsync(
-        IAppDbContext db, IQueryable<FixedSchedule> schedules, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
-        db.SessionSkips.AsNoTracking()
+    /// <summary>
+    /// A leave is a date of a fixed schedule left («نمی‌آیم» before 15.7i, and every accepted
+    /// request since, which skips it), or an accepted request on a date the student had moved to,
+    /// which removed that booking and left no skip (task 15.7i). Both kinds of one date read once.
+    /// </summary>
+    private static async Task<List<LeftPlace>> LeavesAsync(
+        IAppDbContext db,
+        IQueryable<FixedSchedule> schedules,
+        IQueryable<LeaveRequest> requests,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken)
+    {
+        var skipped = await db.SessionSkips.AsNoTracking()
             .Where(skip => skip.Reason == SkipReason.Left && skip.Date >= from && skip.Date <= to)
             .Join(
                 schedules,
@@ -80,6 +109,14 @@ internal static class PresenceReading
                 schedule => schedule.Id,
                 (skip, schedule) => new LeftPlace(schedule.TrainerId, schedule.MemberId, skip.Date, skip.Start, skip.End))
             .ToListAsync(cancellationToken);
+
+        var accepted = await requests.AsNoTracking()
+            .Where(request => request.Status == LeaveRequestStatus.Accepted && request.Date >= from && request.Date <= to)
+            .Select(request => new LeftPlace(request.TrainerId, request.MemberId, request.Date, request.Start, request.End))
+            .ToListAsync(cancellationToken);
+
+        return skipped.Concat(accepted).Distinct().ToList();
+    }
 }
 
 /// <summary>A date of a student's fixed schedule they left themselves: «مرخصی», not absent.</summary>

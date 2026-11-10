@@ -9,8 +9,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Gym.Application.Bookings.ReturnToMySession;
 
 /// <summary>
-/// «می‌آیم» (BUSINESS_RULES.md §15 <i>Students in sessions</i>): the member takes back their own
-/// «نمی‌آیم» on one date, until the session starts, while the session is still there and has room.
+/// «می‌آیم» (BUSINESS_RULES.md §15 <i>Students in sessions</i>, <i>Leave by request</i>): the member
+/// takes back their own accepted leave (or a «نمی‌آیم» from before 15.7i) on one date, until the
+/// session starts, while the session is still there and has room: the place was freed meanwhile.
 /// A date moved, or taken out by the trainer, does not come back this way.
 /// </summary>
 /// <remarks>Under the trainer's row lock, so the room is counted by one change at a time.</remarks>
@@ -68,6 +69,15 @@ public sealed class ReturnToMySessionHandler(IAppDbContext db, IGymCalendar cale
         }
 
         db.SessionSkips.Remove(found.skip);
+
+        // The accepted request it came from (15.7i) is taken back with it; a «نمی‌آیم» from before
+        // 15.7i has none.
+        var accepted = await db.LeaveRequests.SingleOrDefaultAsync(
+            request => request.MemberId == memberId && request.Status == LeaveRequestStatus.Accepted
+                && request.Date == command.Date && request.Start == command.Start && request.End == command.End,
+            cancellationToken);
+        accepted?.TakeBack(today, timeOfDay);
+
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

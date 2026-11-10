@@ -60,4 +60,12 @@ public static class CoachingErrors
     public static readonly Error LinkAlreadyEnded = Error.Conflict(
         "Coaching.LinkAlreadyEnded",
         "The link has already ended.");
+
+    /// <summary>
+    /// A coaching period is <see cref="CoachingPeriod.MinDays"/> to <see cref="CoachingPeriod.MaxDays"/>
+    /// days; the days left of a link made before 15.7h, from <see cref="CoachingPeriod.MinDaysLeft"/>.
+    /// </summary>
+    public static readonly Error PeriodDaysOutOfRange = Error.Validation(
+        "Coaching.PeriodDaysOutOfRange",
+        $"A coaching period is {CoachingPeriod.MinDays} to {CoachingPeriod.MaxDays} days; the days left of an earlier link, from {CoachingPeriod.MinDaysLeft}.");
 }

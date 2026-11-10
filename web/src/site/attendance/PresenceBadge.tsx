@@ -1,34 +1,70 @@
 import { Badge } from "@/components/ui/badge";
 
-import { cameAfterLabel, formatClock, presenceLabels, presenceVariants } from "./labels";
+import {
+  formatCheckOut,
+  formatClock,
+  formatEarly,
+  formatLate,
+  presenceLabels,
+  presenceVariants,
+} from "./labels";
 import type { SessionPresence } from "./api";
 
+/** The API's whole-number fields may come as text in the generated types; the API sends numbers. */
+type Minutes = number | string | null | undefined;
+
+function minutesOf(value: Minutes): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const minutes = Number(value);
+
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : null;
+}
+
 /**
- * A student's state in one session, with the check-in that counted: «به‌موقع ۱۳:۱۰»; an absent
- * student who came after the session is «غایب» and «بعد از سانس آمد ۱۶:۰۰» under it. May wrap,
- * so it never runs out of a narrow box.
+ * A student's state in one session with the check-in that counted: «به‌موقع ۱۳:۱۰», «بعد از سانس
+ * آمد ۱۶:۰۰». Under a check-in, how early or late it was from the start («۱۰ دقیقه زودتر آمد»,
+ * «۲۵ دقیقه تأخیر») and its check-out («خروج ۱۴:۴۰», «داخل است», «خروج ثبت نشد») (15.7d), and
+ * «مرخصی داشت» for a student who had leave and came anyway (15.7i). May wrap, so it never runs out
+ * of a narrow box.
  */
 export function PresenceBadge({
   state,
   checkedInAt,
-  cameAfter,
+  checkedOutAt,
+  autoCheckedOut = false,
+  minutesEarly,
+  minutesLate,
+  hadLeave = false,
 }: {
   state: SessionPresence;
   checkedInAt?: string | null;
-  cameAfter: boolean;
+  checkedOutAt?: string | null;
+  autoCheckedOut?: boolean;
+  minutesEarly?: Minutes;
+  minutesLate?: Minutes;
+  hadLeave?: boolean;
 }) {
   const time = checkedInAt === null || checkedInAt === undefined ? null : formatClock(checkedInAt);
+  const early = minutesOf(minutesEarly);
+  const late = minutesOf(minutesLate);
+  const notes = [
+    hadLeave ? "مرخصی داشت" : null,
+    early !== null ? formatEarly(early) : null,
+    late !== null ? formatLate(late) : null,
+    time !== null ? formatCheckOut(checkedOutAt, autoCheckedOut) : null,
+  ].filter((note) => note !== null);
 
   return (
     <span className="flex flex-col items-end gap-0.5">
       <Badge variant={presenceVariants[state]} className="max-w-full whitespace-normal">
         {presenceLabels[state]}
-        {!cameAfter && time !== null && ` ${time}`}
+        {time !== null && ` ${time}`}
       </Badge>
-      {cameAfter && time !== null && (
-        <span className="text-xs text-muted-foreground">
-          {cameAfterLabel} {time}
-        </span>
+      {notes.length > 0 && (
+        <span className="text-xs text-muted-foreground">{notes.join(" · ")}</span>
       )}
     </span>
   );

@@ -2405,6 +2405,11 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **The public page's top bar has one «ورود / ثبت‌نام» button** that opens the app, since signing
     in and signing up start on the same screen there. *Decided by the developer* (1405/08/07). It
     links `pasargadgymplus.ir/app`, redirected like `/qr`, so the page never names the app's host.
+  - **A trainer's card on the public page has «انتخاب این مربی»** (15.4d, plan approved by the
+    developer 1405/08/14): it links `pasargadgymplus.ir/app/trainers`, which opens the app's
+    «انتخاب مربی» list (not the one trainer: the app names no trainer in an address). A signed-out
+    visitor signs in or signs up first and is then taken there. Only the cards of real trainers
+    have it; the empty ones keep «به‌زودی».
 - **A member's program can be seen and followed without internet**: the program last opened stays
   on the phone, and what the member marks done while offline is sent when the phone is online
   again. *Decided by the developer* (1405/08/03); *Open:* what "marking done" holds (15.11).
@@ -2567,6 +2572,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **The member may take a waiting request back** («لغو»). *Proposed by Claude, accepted.*
   - **Either side may end the link with no new trainer**: the member («پایان مربی‌گری») or the
     trainer, for one student. Both ask before doing it (the screens, 15.4b). It ends that day.
+    The trainer's button, «پایان مربی‌گری», is at the foot of the student's «برنامهٔ ثابت», not in
+    «شاگردان من» on the home, so a finger cannot hit it by mistake (*asked by the developer*,
+    1405/08/19, 15.7g).
   - **The trainer sees each student's name and phone** in «شاگردان من», and the same in the
     requests waiting for them.
   - **The trainer hears of a new request in the app and by SMS** (15.4c): its own kind,
@@ -2596,11 +2604,57 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     again. *Proposed by Claude, accepted with the plan.*
   - **When the Owner stops a trainer**, their links end that day and the requests waiting for them
     end too (*Trainers* above). The member's area shows no trainer, and they may pick another.
+  - **Each side hears of the other's answer or end in the app** (15.4d, plan approved by the
+    developer 1405/08/14, the rest decided 1405/08/19): a card with «دیدم» at the top of the home,
+    like «سانس لغو شد»; no SMS (a phone notification is not reliable from Iran for the app).
+    - The member's «خبر مربی»: the trainer accepted («{مربی} درخواست شما را پذیرفت و مربی شما
+      شد.»), declined («{مربی} درخواست شما را نپذیرفت.») or ended the link («{مربی} شما را از
+      شاگردانش برداشت.»). An acceptance whose link has ended since is no longer shown.
+    - The trainer's «خبر شاگردان»: a student ended the link («{شاگرد} مربی‌گری شما را تمام کرد.»).
+    - **Nobody is told** when another trainer takes the member over (the former trainer), nor when
+      the Owner stops a trainer (their students). *Decided by the developer, 1405/08/19, "for now".*
+    - **A card stays until «دیدم», 30 days at most** (its own day the first). *Proposed by Claude,
+      accepted by the developer 1405/08/19.* «دیدم» sees what the card showed; news that came after
+      stays.
+    - The answers and ends from before 15.4d are marked seen by its migration: the server's real
+      rows bring no old news. Those answers keep no day, since none was kept then.
+    - Wording by Claude, to be looked at by the developer with the screenshots.
   - **Everything here is in the audit log as «سیستم»** (§11), as the site's other actions.
 - **A new trainer sees the member's earlier assessments (the numbers), programs and attendance;
   earlier photos only if the member allows it.** *Proposed by Claude, accepted by the developer.*
 - **The member sees everything their trainers record about them** (programs, analyses, photos,
   numbers) **except the trainer's private notes.** *Proposed by Claude, accepted by the developer.*
+
+### The coaching period (دورهٔ مربی‌گری, 15.7h)
+*Decided by the developer*, 1405/08/19, in place of the 6-to-8-week program; the details asked on
+1405/08/19 and answered as Claude proposed them, unless marked otherwise.
+- **A period is one month by default, and the trainer types its days when accepting a request**:
+  the box starts at **30**, and takes **7 to 84** days (84 is the timetable's 12 weeks, the furthest
+  a session can be placed). It starts the day the trainer accepts.
+- **When the period is over, the sessions stop and the link stays**: the student is still in
+  «شاگردان من», but no session is placed after the period's last day. Both sides see «دوره تمام شد».
+  The member is not left without a trainer, and does not ask again.
+- **«تمدید» is always there**: the trainer types 7 to 84 more days, which start the day after the
+  last day, so no day is lost; after the end, from today. Each period is kept, so the history of
+  renewals stays. A period is not shortened; to stop, the trainer ends the coaching («پایان
+  مربی‌گری»). *Proposed by Claude, accepted.*
+- **The fixed program ends on the period's last day or before** (it replaces the 8-week default:
+  the last date is the period's by default, never past the timetable's 12 weeks). A period that is
+  over takes no program until «تمدید». A renewal does not move the program on by itself: the trainer
+  saves it again, since a later date may have no room. *Proposed by Claude, accepted.*
+- **The students who were already a trainer's on the release day** have no period: nothing is
+  invented for them, and they work as before (the program's 8 weeks) **until the trainer types the
+  days left** (*decided by the developer*, 1405/08/19, in place of giving them all 30 days). The
+  trainer is asked on the student's «برنامهٔ ثابت», and «شاگردان من» marks them «دوره را مشخص
+  کنید». The days left start today and may be as few as **1**. If the student's program runs past
+  them, the trainer is warned before saving, and the program then ends on the period's last day
+  (one that starts after it goes, and so do the dates moved to after it). *Proposed by Claude,
+  accepted.*
+- **Who sees it**: the trainer, on the student's «برنامهٔ ثابت» (the last day and the days left),
+  and in «شاگردان من» a mark only when there is something to do: «دوره را مشخص کنید», the last
+  three days («۳ روز مانده», «امروز روز آخر است»), «دوره تمام شد». The member, under the trainer's
+  name in «مربی من»: «دورهٔ مربی‌گری تا …، n روز مانده». No SMS for it. *Proposed by Claude,
+  accepted.*
 
 ### The member's own records (15.5)
 - **The member sees in the app everything the panel's profile holds about them, except the SMS
@@ -2636,8 +2690,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   reliable from Iran for the site app, a PWA: the notice is shown when the app is opened.)
 - **On time, late, absent**: a check-in up to **15 minutes** after the session's start is on time
   (*decided by the developer*, 1405/08/13, in place of 10), a later one before the session ends is
-  late, no check-in is absent. The rest is the attendance of 15.7 (*Attendance for the trainer*
-  below).
+  late, no check-in that day for it or after it is absent (a check-in after the end is «بعد از
+  سانس آمد», not absent: 1405/08/19, below). The rest is the attendance of 15.7 (*Attendance for
+  the trainer* below).
 - **The trainer's sessions, decided with 15.6a's plan** (*Decided by the developer*, 1405/08/09,
   unless marked otherwise):
   - **A weekly pattern with no end**: each day of the week has its own sessions, and the week
@@ -2673,7 +2728,8 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     only trainers now); the pattern is kept, and comes back if the Owner makes them a trainer
     again. *Proposed by Claude, accepted.*
 - **Who puts a member in a session** (*Decided by the developer*, 1405/08/09; built in 15.6b):
-  the trainer's program lasts 6 to 8 weeks, and the trainer tells the student which days and
+  the trainer's program lasts 6 to 8 weeks (since 15.7h, the coaching period: *The coaching
+  period* above), and the trainer tells the student which days and
   times to come, so **the trainer puts the student in a fixed weekly slot** (e.g. Saturday,
   Monday and Wednesday at 13:00) **with an end date**, and the student is in every one of those
   dates. **The student does not pick the plan or the slots**: they see their next sessions, and
@@ -2682,13 +2738,19 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   later.
   - *Queued, not built:* the student picking their own days and times within what the trainer
     allows (e.g. "three days a week, eight weeks"), and the trainer confirming it, as a request
-    like 15.4's. Only if it is needed, after the trainer's way has been used (ROADMAP 15.6d).
+    like 15.4's. **Wanted later** (*the developer*, 1405/08/19, in place of "only if it is
+    needed"): the student picks their own sessions from the trainer's times, and the trainer can
+    still place them too: both can. A short video showing a student how to find and pick sessions
+    waits for it (ROADMAP 15.6d).
 - **Students in sessions, decided with 15.6b's plan** (*Decided by the developer*, 1405/08/09: the
   first four asked one by one, the rest proposed by Claude and accepted as a whole):
   - **The capacity is a ceiling**, for the trainer too: a session with no room takes no one, and a
     trainer who wants more raises the session's capacity.
   - **A member leaves or moves a date until the session starts**; from its start it is fixed.
-  - **A member may take back their own «نمی‌آیم» («می‌آیم»)** until the session starts, while the
+    *Since 15.7i, leaving is a request to the trainer, by the day before (Leave by request, below);
+    moving stays free.*
+  - **A member may take back their own «نمی‌آیم» («می‌آیم»)** (since 15.7i, an accepted leave)
+    until the session starts, while the
     session is still there and has room (*decided by the developer*, 1405/08/09: a tap may be a
     mistake). The date stays in «سانس‌های من», faded, marked «نمی‌آیم». A date moved, or taken out
     by the trainer, does not come back this way. *Proposed by Claude, accepted:* «سانس‌های من»
@@ -2725,8 +2787,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     ends, from either side or by the trainer being stopped, the member's sessions after that day
     are gone; the day itself stays.
   - **One fixed program per student at a time**: one or more weekly sessions, a first date and a
-    last date. The first date is today or later; the last is 8 weeks on by default, within the
-    timetable's 12 weeks. **A change of the program applies from now** (the developer, 1405/08/09,
+    last date. The first date is today or later; the last is the coaching period's last day by
+    default and never after it (15.7h; 8 weeks on for a student from before the periods, until the
+    trainer types the days left), within the timetable's 12 weeks. **A change of the program applies from now** (the developer, 1405/08/09,
     in place of "from tomorrow"; "for now"): today's sessions that have started stay as they were,
     for attendance (15.7), and the rest of today follows the new program; a program not started
     yet is simply replaced. The trainer may also end it, from now in the same way.
@@ -2771,9 +2834,11 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     A check-in earlier than that counts too when the visit was still open at the start (the member
     came early and stayed). From the start to 15 minutes after it is on time, as above; later and
     before the end, late.
-  - **A check-in after the session ended** leaves it absent, with «بعد از سانس آمد» beside it, so
-    the trainer knows the member came to the gym that day.
-  - **Not absent**: a session the student left («نمی‌آیم», shown «مرخصی»), a session the trainer
+  - **A check-in after the session ended** is **«بعد از سانس آمد», not absent** (*decided by the
+    developer*, 1405/08/19: "absent is someone who is truly absent; someone who came very late still
+    came"; in place of 15.7's absent with «بعد از سانس آمد» beside it). It shows the check-in time,
+    has its own count (*More for the trainer* below), and is not in «غایبان امروز».
+  - **Not absent**: a session the student came to after it ended (above), a session the student left («نمی‌آیم», shown «مرخصی»), a session the trainer
     removed or whose times changed after the student was put in it (shown «لغو شد»), and a session
     not yet ended with no check-in (shown «هنوز نیامده» until it ends). A date the student moved to
     counts at its new session, the old one is not theirs any more.
@@ -2788,6 +2853,74 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     and the month's totals. Sessions with an earlier trainer show too, with that trainer's name
     (*A member and their trainer*: a new trainer sees the earlier attendance).
   - **The member does not see their monthly attendance yet**: left for later, only if asked.
+- **More for the trainer, decided with 15.7d** (*decided by the developer*, 1405/08/19, from the
+  developer's list for attendance; the points marked *proposed* were Claude's and the developer
+  took them all):
+  - **«زودتر آمد»**: a check-in before the session's start, however early, is marked «زودتر آمد»
+    **with how many minutes early** («۱۰ دقیقه زودتر آمد»; *decided by the developer*, 1405/08/19).
+    It is still on time and counts as present (the counted check-in is the one above: from 30
+    minutes before, or earlier when the visit was still open at the start).
+  - **A late student shows how many minutes late, counted from the start** («۲۵ دقیقه تأخیر» for
+    13:25 at a 13:00 session; *decided by the developer*, 1405/08/19, over counting from the end of
+    the 15 minutes). An hour or more reads «۱ ساعت و ۵ دقیقه». A check-in within the 15 minutes is
+    on time and shows no minutes.
+  - **The check-out time** shows beside the check-in, from the same visit at the desk. A visit
+    still open reads «داخل است»; one the nightly auto-checkout closed (§7) reads «خروج ثبت نشد»,
+    not a midnight time. *Proposed by Claude.*
+  - **Any earlier day**: the day page (from «سانس‌های امروز», as before) moves back a day at a time
+    or to a date picked, with no limit; a day after today does not open, since it has no
+    attendance. Only today's refreshes every minute. *Proposed by Claude.*
+  - **Counts: students, present, late, came after, absent**, at the top of the day page and in a
+    card «امروز» on the trainer's home: **both places for now**, the developer will say which to
+    remove. Each student's place in a session counts once; present is everyone who came to the
+    session (late and early included), late is those of them who came late; «بعد از سانس» has a box
+    of its own, neither present nor absent (*decided by the developer*, 1405/08/19), as in the
+    month's totals; «مرخصی» and «لغو شد» are in none, and «هنوز نیامده» only among the students.
+    *Proposed by Claude.*
+  - **Visits outside the sessions («خارج از سانس»)**: a check-in of the student that counts for none
+    of their sessions that day, with its date, check-in and check-out time. In the student's month
+    as a list of its own, and on the day page as «آمدند، بدون سانس» for the trainer's students that
+    day. *Proposed by Claude.* *Proposed by Claude while building, to confirm:* only visits from the
+    day the student became this trainer's student (the trainer sees the earlier trainers' sessions,
+    not the member's gym visits before them); a visit already shown as «بعد از سانس آمد» is in the
+    list too, since it was outside the session.
+  - **Each count opens its students** (*asked by the developer*, 1405/08/19, 15.7f): a box of the
+    home's «امروز» opens the day page on it; on the day page a box shows only its students, pressed
+    again everyone. «شاگردان» means the students it counts, so «مرخصی» and «لغو شد» are left out.
+  - **Search in «شاگردان من»** by name or phone, typed in Persian or English digits.
+  - **The waiting requests show their count**, «درخواست‌ها (۲)», and come first on the trainer's
+    home. A number on the app's icon is not possible: Chrome on Android shows one only with a
+    notification, and notifications are not reliable from Iran (above). *Proposed by Claude.*
+  - *Queued for 15.7e, not decided:* a note on a session, seen by the trainer and the students
+    (*decided by the developer*), and "extra time" outside the pattern (which of the two meanings
+    is still to ask).
+
+### Leave by request (مرخصی با درخواست, 15.7i)
+*Decided by the developer*, 1405/08/19: the student asks, the trainer accepts, then the student may
+stay away; this replaces the free «نمی‌آیم» of 15.6b. The details answered the same day; the points
+marked *proposed* were Claude's, accepted with the plan.
+- **The student asks by the day before the session** («درخواست مرخصی», asked first): not on the day
+  itself, however late the session; that day the button shows greyed out, not pressable (*asked by
+  the developer*, 1405/08/19). The place stays theirs while the request waits.
+- **A request the trainer has not answered when the session starts is declined**: the student is
+  in the session as before, and absent if they do not come.
+- **An accepted leave frees the place**: someone else may take it. A student who comes anyway is
+  counted as usual, on time or late, marked **«مرخصی داشت»** (*decided by the developer*,
+  1405/08/19, before the plan); a check-in only after the session leaves it «مرخصی».
+- **The trainer hears of it in their app**: a card «درخواست‌های مرخصی (n)» on the home, the nearest
+  session first, each with «قبول» and «رد», neither asking first. No SMS. A request whose student
+  is no longer in that session (moved, taken out, cancelled) leaves the card.
+- **The student sees the answer on the date** in «سانس‌های من»: «در انتظار تأیید مربی», «مرخصی رد
+  شد» (by the trainer or unanswered), or «مرخصی» with «می‌آیم». *Proposed by Claude.*
+- **Taking it back** (*proposed by Claude*, the developer left «می‌آیم» and moving to Claude):
+  - A request still waiting is taken back with «لغو درخواست», until the session starts.
+  - An accepted leave is taken back with **«می‌آیم»**, until the session starts, **only while the
+    session has room**, since the place was freed.
+  - A declined request may be asked again, by the day before.
+  - **Moving a date stays free**, with no request: the student does not stay away, they come to
+    another of the same trainer's sessions with room, until the session starts.
+- **The «نمی‌آیم»s saved before 15.7i stay leaves** («مرخصی»), as if accepted; nothing is refused
+  or removed.
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

@@ -12,10 +12,25 @@ namespace Gym.Application.Bookings;
 /// <param name="Removed">The trainer has since removed the session or moved its times: «لغو شد».</param>
 /// <param name="Started">It has started: it can no longer be left or moved.</param>
 /// <param name="Left">
-/// The member is out of it by their own «نمی‌آیم», and may take it back («می‌آیم»): only in the
-/// member's «سانس‌های من», where such a date is still listed until the session starts.
+/// The member is out of it by an accepted leave (or «نمی‌آیم» before 15.7i), and may take it back
+/// («می‌آیم»): only in the member's «سانس‌های من», where such a date is still listed until the
+/// session starts.
 /// </param>
-public sealed record PlaceResponse(DateOnly Date, TimeOnly Start, TimeOnly End, bool IsVip, bool Moved, bool Removed, bool Started, bool Left)
+/// <param name="Leave">
+/// The member's leave request for it (15.7i), only in «سانس‌های من»: <c>Pending</c> while the
+/// trainer has not answered, <c>Declined</c> when the trainer declined or did not answer by the
+/// start; <c>null</c> with none. An accepted one is <paramref name="Left"/>.
+/// </param>
+public sealed record PlaceResponse(
+    DateOnly Date,
+    TimeOnly Start,
+    TimeOnly End,
+    bool IsVip,
+    bool Moved,
+    bool Removed,
+    bool Started,
+    bool Left,
+    [property: JsonConverter(typeof(JsonStringEnumConverter<LeaveRequestStatus>))] LeaveRequestStatus? Leave = null)
 {
     internal static PlaceResponse From(BookedPlace place, TimetableDates timetable, DateOnly today, TimeOnly timeOfDay)
     {

@@ -1,0 +1,73 @@
+import { formatDate, toPersianDigits } from "@/lib/format";
+
+import { addDays, daysBetween } from "../timetable/labels";
+
+/*
+ * The coaching period (BUSINESS_RULES.md §15 *The coaching period*, roadmap 15.7h), as the API holds
+ * it (`CoachingPeriod`): the trainer types its days when accepting a request and at each «تمدید».
+ */
+
+/** «One month», the number the box starts at. */
+export const periodDefaultDays = 30;
+export const periodMinDays = 7;
+/** The timetable's 12 weeks: no session can be placed further on. */
+export const periodMaxDays = 84;
+/** The fewest days left of a link made before 15.7h. */
+export const periodMinDaysLeft = 1;
+/** From this many days left the trainer's list marks the student (proposed by Claude, accepted). */
+export const periodSoonDays = 3;
+
+export type PeriodState =
+  | { kind: "unset" }
+  | { kind: "over"; endsOn: string }
+  | { kind: "running"; endsOn: string; daysLeft: number };
+
+/** Where a period stands on `today`: its last day still counts, so on it one day is left. */
+export function periodState(endsOn: string | null | undefined, today: string): PeriodState {
+  if (endsOn === null || endsOn === undefined) {
+    return { kind: "unset" };
+  }
+  const daysLeft = daysBetween(today, endsOn) + 1;
+  return daysLeft <= 0 ? { kind: "over", endsOn } : { kind: "running", endsOn, daysLeft };
+}
+
+/** «دوره تا ۱۹ آذر ۱۴۰۵، ۱۲ روز مانده», or that it is over, or not given yet. */
+export function periodLine(state: PeriodState): string {
+  switch (state.kind) {
+    case "unset":
+      return "دورهٔ مربی‌گری مشخص نشده است";
+    case "over":
+      return `دورهٔ مربی‌گری ${formatDate(state.endsOn)} تمام شد`;
+    case "running":
+      return `دورهٔ مربی‌گری تا ${formatDate(state.endsOn)}، ${daysLeftText(state.daysLeft)}`;
+  }
+}
+
+export function daysLeftText(daysLeft: number): string {
+  return daysLeft === 1 ? "امروز روز آخر است" : `${toPersianDigits(daysLeft)} روز مانده`;
+}
+
+/** The short mark in «شاگردان من»: only when the trainer has something to do. */
+export function periodMark(state: PeriodState): string | null {
+  switch (state.kind) {
+    case "unset":
+      return "دوره را مشخص کنید";
+    case "over":
+      return "دوره تمام شد";
+    case "running":
+      return state.daysLeft <= periodSoonDays ? daysLeftText(state.daysLeft) : null;
+  }
+}
+
+/**
+ * The first day of the next period, as the API works it out (`TrainerLink.Renew`): the day after the
+ * last one, or today when there is none or it is over.
+ */
+export function nextPeriodStart(endsOn: string | null | undefined, today: string): string {
+  return endsOn !== null && endsOn !== undefined && endsOn >= today ? addDays(endsOn, 1) : today;
+}
+
+/** The last day of a period of `days` days from `startsOn`. */
+export function periodEnd(startsOn: string, days: number): string {
+  return addDays(startsOn, days - 1);
+}

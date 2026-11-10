@@ -59,13 +59,29 @@ test("SiteCoaching_MemberPicksTrainer_TrainerAcceptsAndSeesTheStudent", async ({
   const requests = trainerPage.getByRole("list", { name: "درخواست‌ها" });
   await expect(requests).toContainText(member.fullName);
   await requests.getByRole("button", { name: "پذیرفتن" }).click();
+  // The coaching period's days (15.7h): the 30 the box starts with.
+  await expect(requests.getByRole("textbox", { name: "دورهٔ مربی‌گری" })).toHaveValue("۳۰");
+  await requests.getByRole("button", { name: "پذیرفتن" }).click();
   await expect(trainerPage.getByRole("list", { name: "شاگردان من" })).toContainText(
     member.fullName,
   );
-  await trainerContext.close();
 
-  // The member sees it when the app is opened again.
+  // The member sees it when the app is opened again, with «خبر مربی» on top (15.4d).
   await page.reload();
-  await expect(page.getByText(trainer.fullName)).toBeVisible();
+  const news = page.getByRole("list", { name: "خبر مربی" });
+  await expect(news).toContainText(`${trainer.fullName} درخواست شما را پذیرفت و مربی شما شد.`);
+  await page.getByRole("button", { name: "دیدم" }).click();
+  await expect(news).toBeHidden();
   await expect(page.getByRole("button", { name: "پایان مربی‌گری" })).toBeVisible();
+
+  // The member ends it; the trainer hears of it in «خبر شاگردان» (15.4d).
+  await page.getByRole("button", { name: "پایان مربی‌گری" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "پایان مربی‌گری" }).click();
+  await expect(page.getByText("هنوز مربی ندارید.")).toBeVisible();
+
+  await trainerPage.reload();
+  await expect(trainerPage.getByRole("list", { name: "خبر شاگردان" })).toContainText(
+    `${member.fullName} مربی‌گری شما را تمام کرد.`,
+  );
+  await trainerContext.close();
 });

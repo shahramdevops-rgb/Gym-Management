@@ -8,10 +8,14 @@ import { siteMeQueryKey } from "../auth/api";
 export type TrainerChoice = components["schemas"]["TrainerChoiceResponse"];
 export type MyTrainer = components["schemas"]["MyTrainerResponse"];
 export type Students = components["schemas"]["StudentsResponse"];
+export type CoachingNews = components["schemas"]["CoachingNewsResponse"];
+export type CoachingNewsItem = components["schemas"]["CoachingNewsItemResponse"];
 
 export const trainerChoicesQueryKey = ["site", "coaching", "trainers"] as const;
 export const myTrainerQueryKey = ["site", "coaching", "my-trainer"] as const;
 export const studentsQueryKey = ["site", "coaching", "students"] as const;
+export const myCoachingNewsQueryKey = ["site", "coaching", "my-news"] as const;
+export const studentNewsQueryKey = ["site", "coaching", "student-news"] as const;
 
 /**
  * A refused change means the other side, the desk or the Owner changed something first: a request
@@ -118,7 +122,9 @@ export function useStudents() {
 }
 
 /** Every trainer action answers with the requests and students as they are after it. */
-function useStudentsAction(send: (id: string) => Promise<Students>) {
+function useStudentsAction<TVariables = string>(
+  send: (variables: TVariables) => Promise<Students>,
+) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -128,11 +134,15 @@ function useStudentsAction(send: (id: string) => Promise<Students>) {
   });
 }
 
-/** «پذیرفتن»: the member becomes this trainer's student, and leaves their former trainer today. */
+/**
+ * «پذیرفتن»: the member becomes this trainer's student for the days typed (roadmap 15.7h), and
+ * leaves their former trainer today.
+ */
 export function useAcceptTrainerRequest() {
-  return useStudentsAction(async (requestId) => {
+  return useStudentsAction(async ({ requestId, days }: { requestId: string; days: number }) => {
     const { data, error } = await siteApi.POST("/api/site/coaching/requests/{id}/accept", {
       params: { path: { id: requestId } },
+      body: { days },
     });
     if (error !== undefined) {
       throw error;
@@ -159,6 +169,78 @@ export function useEndStudent() {
   return useStudentsAction(async (memberId) => {
     const { data, error } = await siteApi.POST("/api/site/coaching/students/{memberId}/end", {
       params: { path: { memberId } },
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  });
+}
+
+// ---- The news each side is told of (roadmap 15.4d) ----
+
+/**
+ * «دیدم» answers with the news as it is after it, which replaces the cached one; a refused press
+ * reads it again.
+ */
+function useSeeNews(key: readonly string[], send: (ids: string[]) => Promise<CoachingNews>) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: send,
+    onSuccess: (news) => queryClient.setQueryData(key, news),
+    onError: () => void queryClient.invalidateQueries({ queryKey: key }),
+  });
+}
+
+/** «خبر مربی»: the trainer's answers and the trainer ending the link, until «دیدم». */
+export function useMyCoachingNews() {
+  return useQuery({
+    queryKey: myCoachingNewsQueryKey,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await siteApi.GET("/api/site/coaching/my-trainer/news");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/** «دیدم» on «خبر مربی»: the items the card showed, so one that came after stays. */
+export function useSeeMyCoachingNews() {
+  return useSeeNews(myCoachingNewsQueryKey, async (ids) => {
+    const { data, error } = await siteApi.POST("/api/site/coaching/my-trainer/news/seen", {
+      body: { ids },
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  });
+}
+
+/** «خبر شاگردان»: the students who ended their link, until «دیدم». */
+export function useStudentNews() {
+  return useQuery({
+    queryKey: studentNewsQueryKey,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await siteApi.GET("/api/site/coaching/students/news");
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}
+
+/** «دیدم» on «خبر شاگردان». */
+export function useSeeStudentNews() {
+  return useSeeNews(studentNewsQueryKey, async (ids) => {
+    const { data, error } = await siteApi.POST("/api/site/coaching/students/news/seen", {
+      body: { ids },
     });
     if (error !== undefined) {
       throw error;

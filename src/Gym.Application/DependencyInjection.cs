@@ -21,14 +21,17 @@ using Gym.Application.Auth.GetCurrentUser;
 using Gym.Application.Auth.Login;
 using Gym.Application.Auth.Logout;
 using Gym.Application.Auth.Refresh;
+using Gym.Application.Bookings.AnswerLeaveRequest;
+using Gym.Application.Bookings.CancelMyLeave;
 using Gym.Application.Bookings.CheckStudentSchedule;
 using Gym.Application.Bookings.EndStudentSchedule;
+using Gym.Application.Bookings.GetLeaveRequests;
 using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
 using Gym.Application.Bookings.GetStudentAttendance;
 using Gym.Application.Bookings.GetStudentSchedule;
-using Gym.Application.Bookings.GetTrainerToday;
+using Gym.Application.Bookings.GetTrainerDay;
 using Gym.Application.Bookings.LeaveMySession;
 using Gym.Application.Bookings.MoveMySession;
 using Gym.Application.Bookings.RemoveSessionStudent;
@@ -55,10 +58,15 @@ using Gym.Application.Coaching.CancelTrainerRequest;
 using Gym.Application.Coaching.DeclineTrainerRequest;
 using Gym.Application.Coaching.EndMyTrainer;
 using Gym.Application.Coaching.EndStudent;
+using Gym.Application.Coaching.GetMyCoachingNews;
 using Gym.Application.Coaching.GetMyTrainer;
+using Gym.Application.Coaching.GetStudentNews;
 using Gym.Application.Coaching.GetStudents;
 using Gym.Application.Coaching.ListTrainerChoices;
+using Gym.Application.Coaching.RenewCoachingPeriod;
 using Gym.Application.Coaching.RequestTrainer;
+using Gym.Application.Coaching.SeeMyCoachingNews;
+using Gym.Application.Coaching.SeeStudentNews;
 using Gym.Application.Expenses.CreateExpenseCategory;
 using Gym.Application.Expenses.GetExpense;
 using Gym.Application.Expenses.ListExpenseCategories;
@@ -248,6 +256,11 @@ public static class DependencyInjection
         services.AddScoped<AcceptTrainerRequestHandler>();
         services.AddScoped<DeclineTrainerRequestHandler>();
         services.AddScoped<EndStudentHandler>();
+        services.AddScoped<RenewCoachingPeriodHandler>();
+        services.AddScoped<GetMyCoachingNewsHandler>();
+        services.AddScoped<SeeMyCoachingNewsHandler>();
+        services.AddScoped<GetStudentNewsHandler>();
+        services.AddScoped<SeeStudentNewsHandler>();
 
         // The member's own records on the site (BUSINESS_RULES.md §15, task 15.5).
         services.AddScoped<GetMyDetailsHandler>();
@@ -276,6 +289,9 @@ public static class DependencyInjection
         services.AddScoped<RemoveSessionStudentHandler>();
         services.AddScoped<GetMySessionsHandler>();
         services.AddScoped<LeaveMySessionHandler>();
+        services.AddScoped<CancelMyLeaveHandler>();
+        services.AddScoped<GetLeaveRequestsHandler>();
+        services.AddScoped<AnswerLeaveRequestHandler>();
         services.AddScoped<ReturnToMySessionHandler>();
         services.AddScoped<MoveMySessionHandler>();
 
@@ -284,7 +300,7 @@ public static class DependencyInjection
         services.AddScoped<SeeMyCancellationsHandler>();
 
         // Attendance for the trainer, from the desk's check-ins (BUSINESS_RULES.md §15, task 15.7).
-        services.AddScoped<GetTrainerTodayHandler>();
+        services.AddScoped<GetTrainerDayHandler>();
         services.AddScoped<GetStudentAttendanceHandler>();
 
         services.AddScoped<CreateMemberHandler>();

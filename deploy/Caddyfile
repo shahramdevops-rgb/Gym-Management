@@ -183,8 +183,11 @@
 	# link works in development, web/vite.site.config.ts).
 	# Temporary redirects (302), on purpose: a permanent one is remembered by phones, and the
 	# destination could then never change for them.
+	# /app/trainers is a trainer card's «انتخاب این مربی» (15.4d): the app's «انتخاب مربی», reached
+	# after signing in or up when the visitor is signed out.
 	redir /qr / 302
 	redir /app https://{$SITE_DOMAIN:no-site-app}/ 302
+	redir /app/trainers https://{$SITE_DOMAIN:no-site-app}/trainers 302
 
 	root * /srv-public
 	file_server

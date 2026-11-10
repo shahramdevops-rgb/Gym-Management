@@ -98,6 +98,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<TrainerLink> TrainerLinks => Set<TrainerLink>();
 
+    public DbSet<CoachingPeriod> CoachingPeriods => Set<CoachingPeriod>();
+
     public DbSet<WeekPattern> WeekPatterns => Set<WeekPattern>();
 
     public DbSet<TimetableDay> TimetableDays => Set<TimetableDay>();
@@ -107,6 +109,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SessionSkip> SessionSkips => Set<SessionSkip>();
 
     public DbSet<SessionBooking> SessionBookings => Set<SessionBooking>();
+
+    public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
 
     public DbSet<SessionCancellation> SessionCancellations => Set<SessionCancellation>();
 

@@ -7,11 +7,15 @@ import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 
 import { AbsentTodayCard } from "../attendance/AbsentTodayCard";
+import { TodayCountsCard } from "../attendance/TodayCountsCard";
 import { useSiteLogout, useSiteMe } from "../auth/api";
 import { CancelledSessionsCard } from "../bookings/CancelledSessionsCard";
 import { MySessionsCard } from "../bookings/MySessionsCard";
+import { MyCoachingNewsCard, StudentNewsCard } from "../coaching/CoachingNewsCard";
 import { MyTrainerCard } from "../coaching/MyTrainerCard";
 import { TrainerArea } from "../coaching/TrainerArea";
+import { LeaveRequestsCard } from "../bookings/LeaveRequestsCard";
+import { TrainerRequestsCard } from "../coaching/TrainerRequestsCard";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { SiteFrame } from "../components/SiteFrame";
 import { InstallHint } from "../install/InstallHint";
@@ -71,6 +75,7 @@ export function HomePage() {
         (member.isActive ? (
           <>
             <CancelledSessionsCard />
+            <MyCoachingNewsCard />
             <MyPlanCard />
             <MyDebtCard />
             <MyTrainerCard />
@@ -86,6 +91,10 @@ export function HomePage() {
 
       {trainer !== null && (
         <>
+          <TrainerRequestsCard />
+          <LeaveRequestsCard />
+          <StudentNewsCard />
+          <TodayCountsCard />
           <AbsentTodayCard />
           <TimetableCard />
           <TrainerArea />

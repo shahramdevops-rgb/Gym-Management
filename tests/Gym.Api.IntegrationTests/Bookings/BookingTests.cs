@@ -301,16 +301,15 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
     }
 
     [Fact]
-    public async Task Leave_OneDate_IsGoneAndTheOtherWeeksStay()
+    public async Task Leave_Accepted_DateIsGoneAndTheOtherWeeksStay()
     {
         var gym = await GymAsync();
         using var set = await SetScheduleAsync(gym, gym.MemberId, gym.Tomorrow, gym.Tomorrow.AddDays(13), Slot(DayOfWeek.Saturday, 13));
 
-        using var left = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/leave", Place(gym.Saturday, 13), gym.MemberToken);
+        await LeaveAcceptedAsync(gym, gym.Saturday, 13);
         using var again = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/leave", Place(gym.Saturday, 13), gym.MemberToken);
 
-        left.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var sessions = (await left.ReadJsonAsync()).GetProperty("sessions").EnumerateArray().ToList();
+        var sessions = (await GetJsonAsync(gym.Client, MySessionsPath, gym.MemberToken)).GetProperty("sessions").EnumerateArray().ToList();
         sessions.Select(session => (session.GetProperty("date").GetString(), session.GetProperty("left").GetBoolean()))
             .ShouldBe([(Iso(gym.Saturday), true), (Iso(gym.Saturday.AddDays(7)), false)]);
         var skip = (await SkipsAsync()).ShouldHaveSingleItem();
@@ -325,7 +324,7 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
     {
         var gym = await GymAsync();
         using var set = await SetScheduleAsync(gym, gym.MemberId, gym.Tomorrow, gym.Tomorrow.AddDays(13), Slot(DayOfWeek.Saturday, 13));
-        using var left = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/leave", Place(gym.Saturday, 13), gym.MemberToken);
+        await LeaveAcceptedAsync(gym, gym.Saturday, 13);
 
         using var back = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/return", Place(gym.Saturday, 13), gym.MemberToken);
 
@@ -364,7 +363,7 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
         var gym = await GymAsync(saturdayCapacity: 1);
         var other = await AddStudentAsync(gym, OtherMemberPhone);
         using var set = await SetScheduleAsync(gym, gym.MemberId, gym.Saturday, gym.Saturday, Slot(DayOfWeek.Saturday, 13));
-        using var left = await SendJsonAsync(gym, HttpMethod.Post, $"{MySessionsPath}/leave", Place(gym.Saturday, 13), gym.MemberToken);
+        await LeaveAcceptedAsync(gym, gym.Saturday, 13);
         using var theirs = await SetScheduleAsync(gym, other, gym.Saturday, gym.Saturday, Slot(DayOfWeek.Saturday, 13));
         theirs.StatusCode.ShouldBe(HttpStatusCode.OK);
 
@@ -654,6 +653,28 @@ public sealed class BookingTests(DatabaseFixture fixture) : DatabaseTestBase(fix
         await LinkAsync(gym, await SignInAsync(gym.Client, phone));
 
         return member.Id;
+    }
+
+    /// <summary>
+    /// The member asks for leave from that date and the trainer accepts (15.7i): what «نمی‌آیم» did
+    /// alone before.
+    /// </summary>
+    private static async Task LeaveAcceptedAsync(Gym gym, DateOnly date, int hour)
+    {
+        using var asked = await SendJsonAsync(gym, HttpMethod.Post, "/api/site/me/sessions/leave", Place(date, hour), gym.MemberToken);
+        asked.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var listed = await gym.Client.SendAsync(
+            new HttpRequestMessage(HttpMethod.Get, "/api/site/coaching/leave-requests").WithBearer(gym.TrainerToken), TestContext.Current.CancellationToken);
+        listed.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var requestId = (await listed.ReadJsonAsync()).GetProperty("requests").EnumerateArray()
+            .Single(request => request.GetProperty("date").GetString() == Iso(date))
+            .GetProperty("requestId").GetGuid();
+
+        using var accepted = await gym.Client.SendAsync(
+            new HttpRequestMessage(HttpMethod.Post, $"/api/site/coaching/leave-requests/{requestId}/accept").WithBearer(gym.TrainerToken),
+            TestContext.Current.CancellationToken);
+        accepted.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     /// <summary>The member asks the trainer, and the trainer accepts.</summary>
