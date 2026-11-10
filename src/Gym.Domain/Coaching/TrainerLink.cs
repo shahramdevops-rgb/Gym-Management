@@ -14,6 +14,8 @@ namespace Gym.Domain.Coaching;
 /// </remarks>
 public sealed class TrainerLink : Entity
 {
+    private readonly List<CoachingPeriod> _periods = [];
+
     // For EF Core.
     private TrainerLink()
     {
@@ -45,10 +47,54 @@ public sealed class TrainerLink : Entity
     /// <summary>Postgres <c>xmin</c>: the second of two changes at once fails instead of overwriting.</summary>
     public uint Version { get; private set; }
 
+    /// <summary>
+    /// The coaching periods (15.7h), in the order given. Empty for a link made before 15.7h whose
+    /// trainer has not typed the days left yet. Loaded only when included.
+    /// </summary>
+    public IReadOnlyList<CoachingPeriod> Periods => _periods;
+
+    /// <summary>
+    /// The last day of the last period; <c>null</c> while the link has none (made before 15.7h).
+    /// Read only with <see cref="Periods"/> loaded.
+    /// </summary>
+    public DateOnly? PeriodEndsOn => _periods.Count == 0 ? null : _periods.Max(period => period.EndsOn);
+
     public bool IsOpen => EndedOn is null;
 
-    internal static TrainerLink Start(Guid memberId, Guid trainerId, Guid requestId, DateOnly today) =>
-        new() { MemberId = memberId, TrainerId = trainerId, RequestId = requestId, StartedOn = today };
+    /// <summary>The link starts today with its first period of <paramref name="days"/> days, already checked by the caller.</summary>
+    internal static TrainerLink Start(Guid memberId, Guid trainerId, Guid requestId, DateOnly today, int days)
+    {
+        var link = new TrainerLink { MemberId = memberId, TrainerId = trainerId, RequestId = requestId, StartedOn = today };
+        link._periods.Add(CoachingPeriod.Of(link.Id, today, days));
+
+        return link;
+    }
+
+    /// <summary>
+    /// «تمدید»: a new period of <paramref name="days"/> days right after the last one, or from today
+    /// when it is over, so no day is lost. For a link made before 15.7h, the days left from today,
+    /// as few as <see cref="CoachingPeriod.MinDaysLeft"/>. Needs <see cref="Periods"/> loaded.
+    /// </summary>
+    /// <param name="today">The gym's today.</param>
+    public Result<CoachingPeriod> Renew(int days, DateOnly today)
+    {
+        if (!IsOpen)
+        {
+            return Result.Failure<CoachingPeriod>(CoachingErrors.LinkAlreadyEnded);
+        }
+
+        var minDays = _periods.Count == 0 ? CoachingPeriod.MinDaysLeft : CoachingPeriod.MinDays;
+        if (!CoachingPeriod.IsAllowed(days, minDays))
+        {
+            return Result.Failure<CoachingPeriod>(CoachingErrors.PeriodDaysOutOfRange);
+        }
+
+        var startsOn = PeriodEndsOn is { } lastDay && lastDay >= today ? lastDay.AddDays(1) : today;
+        var period = CoachingPeriod.Of(Id, startsOn, days);
+        _periods.Add(period);
+
+        return period;
+    }
 
     /// <param name="today">The gym's today: the link ends on it.</param>
     public Result End(DateOnly today, TrainerLinkEndReason reason)

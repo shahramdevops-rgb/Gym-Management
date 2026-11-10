@@ -34,6 +34,7 @@
     "TrainerPeriod": "دورهٔ مربی‌گری",
     "TrainerRequest": "درخواست مربی",
     "TrainerLink": "مربی عضو",
+    "CoachingPeriod": "دورهٔ مربی‌گری شاگرد",
     "WeekPattern": "الگوی هفتگی مربی",
     "WeekPatternSession": "سانس الگوی هفتگی",
     "TimetableDay": "روز جداگانهٔ برنامهٔ مربی",
@@ -255,6 +256,11 @@
       "StartedOn": { "label": "شروع" },
       "EndedOn": { "label": "پایان" },
       "EndSeenAt": { "label": "زمان دیدن پایان" }
+    },
+    "CoachingPeriod": {
+      "LinkId": { "label": "مربی عضو", "format": "reference" },
+      "StartsOn": { "label": "از تاریخ" },
+      "EndsOn": { "label": "تا تاریخ" }
     },
     "WeekPattern": { "StartsOn": { "label": "از تاریخ" } },
     "WeekPatternSession": {

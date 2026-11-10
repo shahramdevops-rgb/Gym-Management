@@ -372,6 +372,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/coaching/students/{memberId}/period": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RenewCoachingPeriod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/site/coaching/students/news": {
         parameters: {
             query?: never;
@@ -2442,6 +2458,10 @@ export interface components {
             /** Format: int32 */
             daysAway: number | string;
         };
+        AcceptTrainerRequestCommand: {
+            /** Format: int32 */
+            days: null | number | string;
+        };
         AccessTokenResponse: {
             accessToken: string;
             /** Format: date-time */
@@ -3089,6 +3109,17 @@ export interface components {
             /** Format: double */
             average: number | string;
         };
+        HttpValidationProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number | string;
+            detail?: null | string;
+            instance?: null | string;
+            errors?: {
+                [key: string]: string[];
+            };
+        };
         JsonElement: unknown;
         LeaveMySessionCommand: {
             /** Format: date */
@@ -3411,6 +3442,8 @@ export interface components {
             fullName: string;
             /** Format: date */
             since: string;
+            /** Format: date */
+            periodEndsOn: null | string;
         };
         MyTrainerRequestResponse: {
             /** Format: uuid */
@@ -3979,6 +4012,10 @@ export interface components {
             /** Format: time */
             end: string;
         };
+        RenewCoachingPeriodCommand: {
+            /** Format: int32 */
+            days: number | string;
+        };
         RequestCodeCommand: {
             phoneNumber: string;
         };
@@ -4468,6 +4505,8 @@ export interface components {
             /** Format: date */
             since: string;
             isActive: boolean;
+            /** Format: date */
+            periodEndsOn: null | string;
         };
         StudentScheduleResponse: {
             /** Format: date */
@@ -4477,6 +4516,8 @@ export interface components {
             /** Format: uuid */
             memberId: string;
             fullName: string;
+            /** Format: date */
+            periodEndsOn: null | string;
             schedule: null | components["schemas"]["FixedScheduleResponse"];
             sessions: components["schemas"]["PlaceResponse"][];
         };
@@ -5759,7 +5800,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["AcceptTrainerRequestCommand"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -5768,6 +5813,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
             /** @description Unauthorized */
@@ -5906,6 +5960,77 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RenewCoachingPeriod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenewCoachingPeriodCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentScheduleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

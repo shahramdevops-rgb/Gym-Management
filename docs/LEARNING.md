@@ -2449,3 +2449,15 @@ The question that started this was whether a gym that is entirely internal — I
 - **Put a button that cannot be undone where it is hard to hit.** A list of students is pressed many times a day; ending a coaching link is rare and final, so it moved one page deeper, alone in its own card at the foot, still asking first. Distance is a second guard beside the question.
 - **Leave a page whose subject is gone.** After «پایان مربی‌گری» the student is no longer the trainer's, so `useNavigate` goes back to the home with `replace: true`: the back button does not return to a page that would only show an error.
 - **My notes:**
+
+## 15.7h — The coaching period (دورهٔ مربی‌گری)
+
+- **A history table beats a column you overwrite.** The period could have been one `ends_on` on the link, pushed later at each renewal; a row per period (`coaching_periods`) keeps who renewed when and for how long, and the last day is simply the largest `ends_on`.
+- **A child collection keeps the rule in the parent.** `TrainerLink.Periods` is loaded with the link (`Include`), and `link.Renew(days, today)` decides where the next period starts; the handler only saves. Without the collection, the "start after the last day" rule would sit in a handler.
+- **`ValueGeneratedNever` for ids made in C#.** A period added to a link that is already saved has its id set before EF Core sees it; without this line EF Core would read a set key as "already in the database" and send an UPDATE that touches no row.
+- **An exclusion constraint guards ranges, not just values.** `EXCLUDE USING gist (link_id WITH =, daterange(starts_on, ends_on, '[]') WITH &&)` refuses two periods of one link that share a day, which a unique index cannot express; EF Core cannot declare it, so it is written by hand in the migration.
+- **"No row yet" is a state, so carry old data forward.** Links made before 15.7h get no period in the migration, and `null` means "the trainer has not said": nothing is invented for real students, nothing is refused, and the screens ask the trainer instead.
+- **A lifted comparison with `null` is false.** `endsOn > periodEndsOn` with `periodEndsOn` a `DateOnly?` is false when it is `null`, so one line checks the period and lets a link without one through.
+- **An optional request body keeps old apps working.** `AcceptTrainerRequestCommand?` in the endpoint lets an installed app still on the old page post with no body and get the 30 days; a required body would answer it 400 the morning after the release.
+- **Two locks, always in the same order.** The renewal takes the coaching lock (so the link cannot end meanwhile) and then the trainer's lock (so «ذخیره برنامه» reads the period before or after, never half). As long as no handler takes them the other way round, two requests cannot wait for each other forever (a deadlock).
+- **My notes:**

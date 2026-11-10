@@ -45,6 +45,14 @@ public sealed class TrainerLinkConfiguration : IEntityTypeConfiguration<TrainerL
         // The trainer's list of students.
         builder.HasIndex(link => new { link.TrainerId, link.EndedOn });
 
+        // Links are ended, never deleted; the cascade only says a period means nothing alone.
+        builder.HasMany(link => link.Periods)
+            .WithOne()
+            .HasForeignKey(period => period.LinkId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(link => link.Periods).UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.Property(link => link.Version).IsRowVersion();
     }
 }

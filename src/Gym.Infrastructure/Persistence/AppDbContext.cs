@@ -98,6 +98,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<TrainerLink> TrainerLinks => Set<TrainerLink>();
 
+    public DbSet<CoachingPeriod> CoachingPeriods => Set<CoachingPeriod>();
+
     public DbSet<WeekPattern> WeekPatterns => Set<WeekPattern>();
 
     public DbSet<TimetableDay> TimetableDays => Set<TimetableDay>();

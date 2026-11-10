@@ -4,6 +4,7 @@ import type { components } from "@/lib/api/schema";
 
 import { siteApi } from "../api/client";
 import { siteMeQueryKey } from "../auth/api";
+import { studentsQueryKey } from "../coaching/api";
 import { bookingsQueryKey, timetableQueryKey, type DayOfWeek } from "../timetable/api";
 
 export type StudentSchedule = components["schemas"]["StudentScheduleResponse"];
@@ -53,9 +54,11 @@ const scheduleBody = ({ startsOn, endsOn, slots }: ScheduleInput) => ({
  * again, since the link may have ended or the trainer been stopped meanwhile.
  */
 
+/** `alsoChanged`: another read the change touches, outside the bookings' keys, read again too. */
 function useBookingChange<TVariables, TData>(
   send: (variables: TVariables) => Promise<TData>,
   key: readonly unknown[],
+  alsoChanged?: readonly unknown[],
 ) {
   const queryClient = useQueryClient();
 
@@ -68,6 +71,9 @@ function useBookingChange<TVariables, TData>(
         predicate: (query) => query.queryKey.join() !== key.join(),
       });
       void queryClient.invalidateQueries({ queryKey: timetableQueryKey });
+      if (alsoChanged !== undefined) {
+        void queryClient.invalidateQueries({ queryKey: alsoChanged });
+      }
     },
     onError: () => {
       void queryClient.invalidateQueries({ queryKey: bookingsQueryKey });
@@ -122,6 +128,28 @@ export function useSetStudentSchedule(memberId: string) {
     }
     return data;
   }, studentScheduleKey(memberId));
+}
+
+/**
+ * «تمدید» of the coaching period, or the days left of a student from before it (roadmap 15.7h). It
+ * answers with the student's «برنامهٔ ثابت», which the days left may have cut; «شاگردان من» shows the
+ * period too, so it is read again.
+ */
+export function useRenewCoachingPeriod(memberId: string) {
+  return useBookingChange(
+    async (days: number) => {
+      const { data, error } = await siteApi.POST("/api/site/coaching/students/{memberId}/period", {
+        params: { path: { memberId } },
+        body: { days },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+    studentScheduleKey(memberId),
+    studentsQueryKey,
+  );
 }
 
 /** «پایان برنامه»: from now; today's sessions that have started stay. */

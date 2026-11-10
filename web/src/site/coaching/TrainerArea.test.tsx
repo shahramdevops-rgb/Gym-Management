@@ -62,12 +62,20 @@ describe("TrainerArea", () => {
     expect(await screen.findByText("هنوز شاگردی ندارید.")).toBeInTheDocument();
     expect(list("درخواست‌ها").getByText("علی محمدی")).toBeInTheDocument();
     fireEvent.click(list("درخواست‌ها").getByRole("button", { name: "پذیرفتن" }));
+    // The coaching period's days (15.7h): 30 to start with.
+    expect(list("درخواست‌ها").getByRole("textbox", { name: "دورهٔ مربی‌گری" })).toHaveValue("۳۰");
+    fireEvent.click(list("درخواست‌ها").getByRole("button", { name: "پذیرفتن" }));
 
     expect(await screen.findByRole("list", { name: "شاگردان من" })).toHaveTextContent("علی محمدی");
     expect(screen.queryByRole("heading", { name: /^درخواست‌ها/ })).not.toBeInTheDocument();
     expect(
       api.requestsTo("POST", `/api/site/coaching/requests/${aliRequest.requestId}/accept`),
     ).toHaveLength(1);
+    const [sent] = api.requestsTo(
+      "POST",
+      `/api/site/coaching/requests/${aliRequest.requestId}/accept`,
+    );
+    expect(await sent!.json()).toEqual({ days: 30 });
   });
 
   it("Trainer_Decline_AsksNothing", async () => {
@@ -111,6 +119,7 @@ describe("TrainerArea", () => {
         name: "پذیرفتن",
       }),
     );
+    fireEvent.click(list("درخواست‌ها").getByRole("button", { name: "پذیرفتن" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "این درخواست دیگر در انتظار پاسخ نیست",

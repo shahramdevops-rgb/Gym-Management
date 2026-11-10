@@ -1,3 +1,4 @@
+using Gym.Application.Coaching;
 using Gym.Application.Common;
 using Gym.Application.Timetables;
 using Gym.Domain.Bookings;
@@ -27,7 +28,8 @@ internal static class FixedScheduleChange
         }
 
         var slots = command.Slots.Select(slot => new WeeklySlot(slot.Day, slot.Start, slot.End)).ToList();
-        var created = FixedSchedule.Create(trainerId, memberId, link.Value.Id, command.StartsOn, command.EndsOn, slots, today);
+        var periodEndsOn = await CoachingPeriods.EndsOnAsync(db, link.Value.Id, cancellationToken);
+        var created = FixedSchedule.Create(trainerId, memberId, link.Value.Id, command.StartsOn, command.EndsOn, slots, today, periodEndsOn);
         if (created.IsFailure)
         {
             return Result.Failure<(TrainerLink, ScheduleFit)>(created.Error);

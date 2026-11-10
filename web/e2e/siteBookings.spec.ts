@@ -67,10 +67,10 @@ async function linkThem(memberPage: Page, trainerPage: Page) {
   await expect(memberPage.getByText(/در انتظار پاسخ است/)).toBeVisible();
 
   await askForCode(trainerPage, trainer);
-  await trainerPage
-    .getByRole("list", { name: "درخواست‌ها" })
-    .getByRole("button", { name: "پذیرفتن" })
-    .click();
+  const requests = trainerPage.getByRole("list", { name: "درخواست‌ها" });
+  // «پذیرفتن», then the coaching period's 30 days as they are (15.7h).
+  await requests.getByRole("button", { name: "پذیرفتن" }).click();
+  await requests.getByRole("button", { name: "پذیرفتن" }).click();
   await expect(trainerPage.getByRole("list", { name: "شاگردان من" })).toContainText(
     member.fullName,
   );

@@ -96,6 +96,8 @@ public interface IAppDbContext
 
     DbSet<TrainerLink> TrainerLinks { get; }
 
+    DbSet<CoachingPeriod> CoachingPeriods { get; }
+
     DbSet<WeekPattern> WeekPatterns { get; }
 
     DbSet<TimetableDay> TimetableDays { get; }

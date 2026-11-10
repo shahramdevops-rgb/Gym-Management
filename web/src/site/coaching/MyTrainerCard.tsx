@@ -5,16 +5,19 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
-import { formatDate } from "@/lib/format";
+import { formatDate, gymToday } from "@/lib/format";
 
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { sitePaths } from "../paths";
 import { useCancelTrainerRequest, useEndMyTrainer, useMyTrainer } from "./api";
+import { periodLine, periodState } from "./period";
 
 /**
  * «مربی من» on an active member's home (BUSINESS_RULES.md §15 *A member and their trainer*, roadmap
  * 15.4b): the trainer now, the request waiting, both while the member changes trainer (the old one
  * stays until the new one accepts), or neither. Picking is on its own page; ending asks first.
+ * The coaching period's last day and the days left show under the trainer's name (15.7h); a link
+ * from before it shows nothing until the trainer gives one.
  */
 export function MyTrainerCard() {
   const myTrainer = useMyTrainer();
@@ -48,6 +51,11 @@ export function MyTrainerCard() {
                   <p className="text-sm text-muted-foreground">
                     از {formatDate(myTrainer.data.trainer.since)}
                   </p>
+                  {myTrainer.data.trainer.periodEndsOn !== null && (
+                    <p className="text-sm text-muted-foreground">
+                      {periodLine(periodState(myTrainer.data.trainer.periodEndsOn, gymToday()))}
+                    </p>
+                  )}
                 </div>
                 <ConfirmDialog
                   label="پایان مربی‌گری"

@@ -19,7 +19,11 @@ public sealed record MyTrainerResponse(MyTrainerLinkResponse? Trainer, MyTrainer
         var trainer = await db.TrainerLinks.AsNoTracking()
             .Where(link => link.MemberId == memberId && link.EndedOn == null)
             .Join(db.Trainers, link => link.TrainerId, trainer => trainer.Id,
-                (link, trainer) => new MyTrainerLinkResponse(trainer.Id, trainer.FullName, link.StartedOn))
+                (link, trainer) => new MyTrainerLinkResponse(
+                    trainer.Id,
+                    trainer.FullName,
+                    link.StartedOn,
+                    db.CoachingPeriods.Where(period => period.LinkId == link.Id).Max(period => (DateOnly?)period.EndsOn)))
             .SingleOrDefaultAsync(cancellationToken);
 
         var request = await db.TrainerRequests.AsNoTracking()
@@ -33,6 +37,7 @@ public sealed record MyTrainerResponse(MyTrainerLinkResponse? Trainer, MyTrainer
 }
 
 /// <param name="Since">The day the trainer accepted.</param>
-public sealed record MyTrainerLinkResponse(Guid TrainerId, string FullName, DateOnly Since);
+/// <param name="PeriodEndsOn">The coaching period's last day (15.7h); <c>null</c> while the trainer has not given one to a link made before it.</param>
+public sealed record MyTrainerLinkResponse(Guid TrainerId, string FullName, DateOnly Since, DateOnly? PeriodEndsOn);
 
 public sealed record MyTrainerRequestResponse(Guid RequestId, Guid TrainerId, string FullName, DateOnly RequestedOn);

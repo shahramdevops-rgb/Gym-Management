@@ -47,6 +47,10 @@ public sealed class FixedSchedule : Entity
     public uint Version { get; private set; }
 
     /// <param name="today">The gym's today: the schedule starts on it or later, within <see cref="TimetableRules.LastDay"/>.</param>
+    /// <param name="periodEndsOn">
+    /// The last day of the link's coaching period (15.7h): the schedule ends on it or before.
+    /// <c>null</c> for a link made before 15.7h that has no period yet.
+    /// </param>
     public static Result<FixedSchedule> Create(
         Guid trainerId,
         Guid memberId,
@@ -54,13 +58,19 @@ public sealed class FixedSchedule : Entity
         DateOnly startsOn,
         DateOnly endsOn,
         IReadOnlyCollection<WeeklySlot> slots,
-        DateOnly today)
+        DateOnly today,
+        DateOnly? periodEndsOn = null)
     {
         ArgumentNullException.ThrowIfNull(slots);
 
         if (startsOn < today || endsOn < startsOn || endsOn > TimetableRules.LastDay(today))
         {
             return Result.Failure<FixedSchedule>(BookingErrors.ScheduleDatesOutOfRange);
+        }
+
+        if (endsOn > periodEndsOn)
+        {
+            return Result.Failure<FixedSchedule>(BookingErrors.ScheduleAfterPeriod);
         }
 
         var checkedSlots = BookingRules.CheckSlots(slots);
@@ -103,6 +113,27 @@ public sealed class FixedSchedule : Entity
             EndsOn = yesterday;
         }
     }
+
+    /// <summary>
+    /// The trainer typed the days left of a link made before 15.7h, and the period ends before this
+    /// schedule does: it now ends on the period's last day. One that starts after it is removed whole
+    /// by the caller instead (<see cref="StartsAfter"/>).
+    /// </summary>
+    public void EndOnPeriodEnd(DateOnly periodEndsOn)
+    {
+        if (StartsAfter(periodEndsOn))
+        {
+            throw new InvalidOperationException("A schedule that starts after the period is removed, not ended.");
+        }
+
+        if (EndsOn > periodEndsOn)
+        {
+            EndsOn = periodEndsOn;
+        }
+    }
+
+    /// <summary>Whether its first date is after <paramref name="day"/>.</summary>
+    public bool StartsAfter(DateOnly day) => StartsOn > day;
 
     /// <summary>The weekly sessions it has on <paramref name="day"/>.</summary>
     public IEnumerable<FixedScheduleSlot> SlotsOn(DayOfWeek day) => _slots.Where(slot => slot.Day == day);

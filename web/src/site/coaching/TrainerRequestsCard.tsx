@@ -1,23 +1,29 @@
+import { useState } from "react";
+
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
-import { formatDate, toPersianDigits } from "@/lib/format";
+import { formatDate, gymToday, toPersianDigits } from "@/lib/format";
 
 import { Person } from "../components/Person";
 import { useAcceptTrainerRequest, useDeclineTrainerRequest, useStudents } from "./api";
+import { periodDefaultDays, periodMinDays } from "./period";
+import { PeriodDaysForm } from "./PeriodDaysForm";
 
 /**
  * «درخواست‌ها» (BUSINESS_RULES.md §15 *A member and their trainer*, roadmap 15.4b): the members who
  * asked for this trainer and wait for an answer, shown only when there are any. The first card of
  * the trainer's home, with the count in its title (15.7d), since the app's icon cannot show one.
- * «رد کردن» asks nothing, since the member may ask again. «شاگردان من» shows the loading and errors
- * of the list they share.
+ * «رد کردن» asks nothing, since the member may ask again. «پذیرفتن» opens the box of the coaching
+ * period's days, 30 to start with (15.7h). «شاگردان من» shows the loading and errors of the list
+ * they share.
  */
 export function TrainerRequestsCard() {
   const students = useStudents();
   const accept = useAcceptTrainerRequest();
   const decline = useDeclineTrainerRequest();
+  const [accepting, setAccepting] = useState<string | null>(null);
 
   const requests = students.data?.requests ?? [];
   const answering = accept.isPending || decline.isPending;
@@ -46,23 +52,41 @@ export function TrainerRequestsCard() {
                 phoneNumber={request.phoneNumber}
                 detail={`درخواست ${formatDate(request.requestedOn)}`}
               />
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  disabled={answering}
-                  onClick={() => accept.mutate(request.requestId)}
-                >
-                  پذیرفتن
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={answering}
-                  onClick={() => decline.mutate(request.requestId)}
-                >
-                  رد کردن
-                </Button>
-              </div>
+              {accepting === request.requestId ? (
+                <PeriodDaysForm
+                  label="دورهٔ مربی‌گری"
+                  startsOn={gymToday()}
+                  defaultDays={periodDefaultDays}
+                  minDays={periodMinDays}
+                  submitLabel="پذیرفتن"
+                  pending={accept.isPending}
+                  onSubmit={(days) =>
+                    accept.mutate(
+                      { requestId: request.requestId, days },
+                      { onSettled: () => setAccepting(null) },
+                    )
+                  }
+                  onCancel={() => setAccepting(null)}
+                />
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    disabled={answering}
+                    onClick={() => setAccepting(request.requestId)}
+                  >
+                    پذیرفتن
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={answering}
+                    onClick={() => decline.mutate(request.requestId)}
+                  >
+                    رد کردن
+                  </Button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

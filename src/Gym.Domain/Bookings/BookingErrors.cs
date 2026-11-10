@@ -10,6 +10,14 @@ public static class BookingErrors
         "Bookings.ScheduleDatesOutOfRange",
         "A fixed schedule runs from today or later to the timetable's last day, and ends on or after its start.");
 
+    /// <summary>
+    /// A fixed schedule ends on the coaching period's last day or before (15.7h); a period that is
+    /// over takes no schedule until the trainer renews it.
+    /// </summary>
+    public static readonly Error ScheduleAfterPeriod = Error.BusinessRule(
+        "Bookings.ScheduleAfterPeriod",
+        "A fixed schedule ends on the coaching period's last day or before.");
+
     public static readonly Error ScheduleWithoutSessions = Error.Validation(
         "Bookings.ScheduleWithoutSessions",
         "A fixed schedule has one weekly session at least.");

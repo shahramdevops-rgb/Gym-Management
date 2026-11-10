@@ -4870,13 +4870,30 @@ Each part on its own branch and session, in this order (proposed by Claude); 15.
       by mistake. *Proposed by Claude, accepted by the developer:* a card «پایان مربی‌گری» at the foot
       of the student's «برنامهٔ ثابت» page, asking first as before; once ended, back to the home
       (`bookings/StudentSchedulePage.tsx`)
-- [ ] **15.7h, the coaching period (دورهٔ مربی‌گری)** (backend, screens, migration). *Decided by the
-      developer:* a period is **one month** by default; **the trainer types the number of days when
-      accepting a request**; this replaces the 6-to-8-week program (the fixed schedule's 8-week
-      default). *Open, asked before its plan:* one month as 30 days; the smallest and largest
-      number of days; what happens at the end (the link ends by itself, or only the sessions stop
-      and the trainer renews); renewing; what the student sees; the links already on the server
-      (real data: carried forward, never refused)
+- [x] **15.7h, the coaching period (دورهٔ مربی‌گری)** (backend, screens, migration; built 1405/08/19
+      on `task/15.7h-coaching-period`, from 15.7g's branch). *Decided by the developer:* a period is
+      **one month** by default; **the trainer types the number of days when accepting a request**;
+      this replaces the 6-to-8-week program. *Answered 1405/08/19* (§15 *The coaching period*): 30
+      days to start with, 7 to 84; at the end the sessions stop and the link stays; «تمدید» always,
+      after the last day; the links already on the server get no period and the trainer types their
+      days left (1 to 84), the developer's own answer
+- [x] **Domain**: `CoachingPeriod` (`DefaultDays`, `MinDays`, `MaxDays`, `MinDaysLeft`),
+      `TrainerLink.Periods` and `Renew(days, today)`, `TrainerRequest.Accept(today, days = 30)`
+      (a wrong number leaves the request waiting), `FixedSchedule.Create(…, periodEndsOn)` and
+      `EndOnPeriodEnd`; errors `Coaching.PeriodDaysOutOfRange`, `Bookings.ScheduleAfterPeriod`
+- [x] **Database**: migration `AddCoachingPeriods` (`coaching_periods`: link, first and last day;
+      checks `ends_on >= starts_on` and at most 84 days; the exclusion constraint
+      `ex_coaching_periods_link_id_dates`, by hand). No row for the existing links: nothing refused
+- [x] **API**: `POST /coaching/requests/{id}/accept` takes an optional `{ days }` (none: 30, for an
+      app still on the old page); `POST /coaching/students/{memberId}/period { days }` renews, or
+      gives the days left, and cuts the old program past them (`RenewCoachingPeriodHandler`, the
+      coaching lock then the trainer's); `periodEndsOn` in «شاگردان من», «مربی من» and the student's
+      «برنامهٔ ثابت»
+- [x] **Screens**: `PeriodDaysForm` (Persian or English digits, the dates under the box) on
+      «پذیرفتن» and in the card «دورهٔ مربی‌گری» on «برنامهٔ ثابت» («تمدید»; for a student from
+      before, «روزهای باقی‌مانده» with a warning when the program is cut); the program's last date
+      is the period's by default, no new program once it is over; marks in «شاگردان من»
+      (`coaching/period.ts`); the member's line under the trainer's name
 - [ ] **15.7i, leave by request (مرخصی با درخواست)** (backend, screens, migration). *Decided by the
       developer:* the student asks, the trainer accepts, then the student may stay away; a student
       who comes anyway is counted as usual, marked «مرخصی داشت». This replaces the free «نمی‌آیم»

@@ -2625,6 +2625,37 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **The member sees everything their trainers record about them** (programs, analyses, photos,
   numbers) **except the trainer's private notes.** *Proposed by Claude, accepted by the developer.*
 
+### The coaching period (دورهٔ مربی‌گری, 15.7h)
+*Decided by the developer*, 1405/08/19, in place of the 6-to-8-week program; the details asked on
+1405/08/19 and answered as Claude proposed them, unless marked otherwise.
+- **A period is one month by default, and the trainer types its days when accepting a request**:
+  the box starts at **30**, and takes **7 to 84** days (84 is the timetable's 12 weeks, the furthest
+  a session can be placed). It starts the day the trainer accepts.
+- **When the period is over, the sessions stop and the link stays**: the student is still in
+  «شاگردان من», but no session is placed after the period's last day. Both sides see «دوره تمام شد».
+  The member is not left without a trainer, and does not ask again.
+- **«تمدید» is always there**: the trainer types 7 to 84 more days, which start the day after the
+  last day, so no day is lost; after the end, from today. Each period is kept, so the history of
+  renewals stays. A period is not shortened; to stop, the trainer ends the coaching («پایان
+  مربی‌گری»). *Proposed by Claude, accepted.*
+- **The fixed program ends on the period's last day or before** (it replaces the 8-week default:
+  the last date is the period's by default, never past the timetable's 12 weeks). A period that is
+  over takes no program until «تمدید». A renewal does not move the program on by itself: the trainer
+  saves it again, since a later date may have no room. *Proposed by Claude, accepted.*
+- **The students who were already a trainer's on the release day** have no period: nothing is
+  invented for them, and they work as before (the program's 8 weeks) **until the trainer types the
+  days left** (*decided by the developer*, 1405/08/19, in place of giving them all 30 days). The
+  trainer is asked on the student's «برنامهٔ ثابت», and «شاگردان من» marks them «دوره را مشخص
+  کنید». The days left start today and may be as few as **1**. If the student's program runs past
+  them, the trainer is warned before saving, and the program then ends on the period's last day
+  (one that starts after it goes, and so do the dates moved to after it). *Proposed by Claude,
+  accepted.*
+- **Who sees it**: the trainer, on the student's «برنامهٔ ثابت» (the last day and the days left),
+  and in «شاگردان من» a mark only when there is something to do: «دوره را مشخص کنید», the last
+  three days («۳ روز مانده», «امروز روز آخر است»), «دوره تمام شد». The member, under the trainer's
+  name in «مربی من»: «دورهٔ مربی‌گری تا …، n روز مانده». No SMS for it. *Proposed by Claude,
+  accepted.*
+
 ### The member's own records (15.5)
 - **The member sees in the app everything the panel's profile holds about them, except the SMS
   they were sent.** *Decided by the developer* (1405/08/08, 15.5): their details (name, phone,
@@ -2697,7 +2728,8 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     only trainers now); the pattern is kept, and comes back if the Owner makes them a trainer
     again. *Proposed by Claude, accepted.*
 - **Who puts a member in a session** (*Decided by the developer*, 1405/08/09; built in 15.6b):
-  the trainer's program lasts 6 to 8 weeks, and the trainer tells the student which days and
+  the trainer's program lasts 6 to 8 weeks (since 15.7h, the coaching period: *The coaching
+  period* above), and the trainer tells the student which days and
   times to come, so **the trainer puts the student in a fixed weekly slot** (e.g. Saturday,
   Monday and Wednesday at 13:00) **with an end date**, and the student is in every one of those
   dates. **The student does not pick the plan or the slots**: they see their next sessions, and
@@ -2752,8 +2784,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     ends, from either side or by the trainer being stopped, the member's sessions after that day
     are gone; the day itself stays.
   - **One fixed program per student at a time**: one or more weekly sessions, a first date and a
-    last date. The first date is today or later; the last is 8 weeks on by default, within the
-    timetable's 12 weeks. **A change of the program applies from now** (the developer, 1405/08/09,
+    last date. The first date is today or later; the last is the coaching period's last day by
+    default and never after it (15.7h; 8 weeks on for a student from before the periods, until the
+    trainer types the days left), within the timetable's 12 weeks. **A change of the program applies from now** (the developer, 1405/08/09,
     in place of "from tomorrow"; "for now"): today's sessions that have started stay as they were,
     for attendance (15.7), and the rest of today follows the new program; a program not started
     yet is simply replaced. The trainer may also end it, from now in the same way.

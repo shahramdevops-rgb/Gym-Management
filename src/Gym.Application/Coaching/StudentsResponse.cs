@@ -36,7 +36,12 @@ public sealed record StudentsResponse(IReadOnlyList<StudentRequestResponse> Requ
             .Join(db.Members, link => link.MemberId, member => member.Id, (link, member) => new { Link = link, Member = member })
             .OrderBy(pair => pair.Member.FullName)
             .Select(pair => new StudentResponse(
-                pair.Member.Id, pair.Member.FullName, pair.Member.PhoneNumber, pair.Link.StartedOn, pair.Member.IsActive))
+                pair.Member.Id,
+                pair.Member.FullName,
+                pair.Member.PhoneNumber,
+                pair.Link.StartedOn,
+                pair.Member.IsActive,
+                db.CoachingPeriods.Where(period => period.LinkId == pair.Link.Id).Max(period => (DateOnly?)period.EndsOn)))
             .ToListAsync(cancellationToken);
 
         return new StudentsResponse(requests, students);
@@ -47,4 +52,5 @@ public sealed record StudentRequestResponse(Guid RequestId, Guid MemberId, strin
 
 /// <param name="Since">The day the trainer accepted.</param>
 /// <param name="IsActive">False once the desk has deactivated the member.</param>
-public sealed record StudentResponse(Guid MemberId, string FullName, string PhoneNumber, DateOnly Since, bool IsActive);
+/// <param name="PeriodEndsOn">The coaching period's last day (15.7h); <c>null</c> for a link made before it whose days left are not typed yet.</param>
+public sealed record StudentResponse(Guid MemberId, string FullName, string PhoneNumber, DateOnly Since, bool IsActive, DateOnly? PeriodEndsOn);

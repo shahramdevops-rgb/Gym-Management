@@ -122,7 +122,9 @@ export function useStudents() {
 }
 
 /** Every trainer action answers with the requests and students as they are after it. */
-function useStudentsAction(send: (id: string) => Promise<Students>) {
+function useStudentsAction<TVariables = string>(
+  send: (variables: TVariables) => Promise<Students>,
+) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -132,11 +134,15 @@ function useStudentsAction(send: (id: string) => Promise<Students>) {
   });
 }
 
-/** «پذیرفتن»: the member becomes this trainer's student, and leaves their former trainer today. */
+/**
+ * «پذیرفتن»: the member becomes this trainer's student for the days typed (roadmap 15.7h), and
+ * leaves their former trainer today.
+ */
 export function useAcceptTrainerRequest() {
-  return useStudentsAction(async (requestId) => {
+  return useStudentsAction(async ({ requestId, days }: { requestId: string; days: number }) => {
     const { data, error } = await siteApi.POST("/api/site/coaching/requests/{id}/accept", {
       params: { path: { id: requestId } },
+      body: { days },
     });
     if (error !== undefined) {
       throw error;

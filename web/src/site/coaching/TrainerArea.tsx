@@ -4,14 +4,16 @@ import { Link } from "react-router";
 import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
-import { formatDate } from "@/lib/format";
+import { formatDate, gymToday } from "@/lib/format";
 
 import { Person } from "../components/Person";
 import { sitePaths } from "../paths";
-import { useStudents } from "./api";
+import { useStudents, type Students } from "./api";
+import { periodMark, periodState } from "./period";
 import { matchesStudent } from "./studentSearch";
 
 /**
@@ -20,7 +22,8 @@ import { matchesStudent } from "./studentSearch";
  * each member's name and phone; the phone opens the dialler, «حضور» the student's attendance
  * (15.7) and «برنامهٔ ثابت» their fixed weekly sessions (15.6b). A search box finds a student by
  * name or phone (15.7d). «پایان مربی‌گری» is no longer here but at the foot of «برنامهٔ ثابت», so a
- * finger cannot hit it by mistake (15.7g).
+ * finger cannot hit it by mistake (15.7g). A student whose coaching period needs the trainer is
+ * marked: not given yet, ending within three days, or over (15.7h).
  */
 export function TrainerArea() {
   const students = useStudents();
@@ -47,6 +50,7 @@ export function TrainerArea() {
 
   const list = students.data.students;
   const found = list.filter((student) => matchesStudent(student, query));
+  const today = gymToday();
 
   return (
     <Card accent={false} className="gap-3 shadow-raised">
@@ -79,7 +83,7 @@ export function TrainerArea() {
                     <Person
                       fullName={student.fullName}
                       phoneNumber={student.phoneNumber}
-                      detail={`از ${formatDate(student.since)}`}
+                      detail={<StudentDetail student={student} today={today} />}
                       inactive={!student.isActive}
                     />
                     <div className="flex gap-2">
@@ -108,5 +112,23 @@ export function TrainerArea() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** «از ۱ آبان», and the coaching period's mark when the trainer has something to do about it. */
+function StudentDetail({
+  student,
+  today,
+}: {
+  student: Students["students"][number];
+  today: string;
+}) {
+  const mark = periodMark(periodState(student.periodEndsOn, today));
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      از {formatDate(student.since)}
+      {mark !== null && <Badge variant="warning">{mark}</Badge>}
+    </span>
   );
 }

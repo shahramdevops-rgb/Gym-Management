@@ -60,6 +60,7 @@ using Gym.Application.Coaching.GetMyTrainer;
 using Gym.Application.Coaching.GetStudentNews;
 using Gym.Application.Coaching.GetStudents;
 using Gym.Application.Coaching.ListTrainerChoices;
+using Gym.Application.Coaching.RenewCoachingPeriod;
 using Gym.Application.Coaching.RequestTrainer;
 using Gym.Application.Coaching.SeeMyCoachingNews;
 using Gym.Application.Coaching.SeeStudentNews;
@@ -252,6 +253,7 @@ public static class DependencyInjection
         services.AddScoped<AcceptTrainerRequestHandler>();
         services.AddScoped<DeclineTrainerRequestHandler>();
         services.AddScoped<EndStudentHandler>();
+        services.AddScoped<RenewCoachingPeriodHandler>();
         services.AddScoped<GetMyCoachingNewsHandler>();
         services.AddScoped<SeeMyCoachingNewsHandler>();
         services.AddScoped<GetStudentNewsHandler>();

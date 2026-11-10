@@ -1022,6 +1022,54 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Coaching.CoachingPeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("EndsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("ends_on");
+
+                    b.Property<Guid>("LinkId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("link_id");
+
+                    b.Property<DateOnly>("StartsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("starts_on");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_coaching_periods");
+
+                    b.HasIndex("LinkId", "EndsOn")
+                        .HasDatabaseName("ix_coaching_periods_link_id_ends_on");
+
+                    b.ToTable("coaching_periods", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_coaching_periods_at_most_84_days", "ends_on - starts_on < 84");
+
+                            t.HasCheckConstraint("ck_coaching_periods_ends_on_not_before_starts_on", "ends_on >= starts_on");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Coaching.TrainerLink", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4167,6 +4215,16 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_products_product_categories_category_id");
                 });
 
+            modelBuilder.Entity("Gym.Domain.Coaching.CoachingPeriod", b =>
+                {
+                    b.HasOne("Gym.Domain.Coaching.TrainerLink", null)
+                        .WithMany("Periods")
+                        .HasForeignKey("LinkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_coaching_periods_trainer_links_link_id");
+                });
+
             modelBuilder.Entity("Gym.Domain.Coaching.TrainerLink", b =>
                 {
                     b.HasOne("Gym.Domain.Members.Member", null)
@@ -4512,6 +4570,11 @@ namespace Gym.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Gym.Domain.Cafe.CafeOrder", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Coaching.TrainerLink", b =>
+                {
+                    b.Navigation("Periods");
                 });
 
             modelBuilder.Entity("Gym.Domain.Timetables.TimetableDay", b =>

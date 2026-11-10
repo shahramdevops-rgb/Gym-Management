@@ -127,6 +127,8 @@ export const errorMessages: Record<string, string> = {
   "Coaching.NoTrainer": "در حال حاضر مربی ندارید.",
   "Coaching.StudentNotFound": "این عضو دیگر شاگرد شما نیست.",
   "Coaching.LinkAlreadyEnded": "مربی‌گری این شاگرد قبلاً تمام شده است.",
+  "Coaching.PeriodDaysOutOfRange":
+    "دورهٔ مربی‌گری باید بین ۷ تا ۸۴ روز باشد (روزهای باقی‌ماندهٔ شاگردان قبلی از ۱ روز).",
 
   // The trainer's timetable (site)
   "Timetable.CapacityOutOfRange": "ظرفیت هر سانس باید بین ۱ تا ۵۰ نفر باشد.",
@@ -145,6 +147,8 @@ export const errorMessages: Record<string, string> = {
   // Students in sessions (site, 15.6b)
   "Bookings.ScheduleDatesOutOfRange":
     "برنامه از امروز به بعد شروع می‌شود و تا آخرین روز برنامهٔ سانس‌ها (۱۲ هفته) تمام می‌شود.",
+  "Bookings.ScheduleAfterPeriod":
+    "برنامه نمی‌تواند بعد از پایان دورهٔ مربی‌گری ادامه پیدا کند. اول دوره را تمدید کنید.",
   "Bookings.ScheduleWithoutSessions": "دست‌کم یک سانس هفتگی برای برنامه انتخاب کنید.",
   "Bookings.TooManySlots": "تعداد سانس‌های هفتگی برنامه بیش از حد است.",
   "Bookings.DuplicateSlot": "یک سانس هفتگی دو بار انتخاب شده است.",

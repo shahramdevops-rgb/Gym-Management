@@ -59,6 +59,9 @@ test("SiteCoaching_MemberPicksTrainer_TrainerAcceptsAndSeesTheStudent", async ({
   const requests = trainerPage.getByRole("list", { name: "درخواست‌ها" });
   await expect(requests).toContainText(member.fullName);
   await requests.getByRole("button", { name: "پذیرفتن" }).click();
+  // The coaching period's days (15.7h): the 30 the box starts with.
+  await expect(requests.getByRole("textbox", { name: "دورهٔ مربی‌گری" })).toHaveValue("۳۰");
+  await requests.getByRole("button", { name: "پذیرفتن" }).click();
   await expect(trainerPage.getByRole("list", { name: "شاگردان من" })).toContainText(
     member.fullName,
   );
