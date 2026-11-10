@@ -183,7 +183,8 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 - Name search is partial, case-insensitive, and uses the normalized form. Phone search normalizes the input first.
 - Search and list (decided with the developer in task 2.2):
   - One search box takes a name or a phone number. Input made only of digits, `+`, spaces, dashes and brackets is a phone search; anything else is a name search.
-  - A whole phone number, in any format, finds the member with exactly that number. At least 4 digits that are not a whole number match anywhere in the stored number (leading zeros are dropped first, so `0912 123` works). Fewer digits, or a number that matches nobody, returns an empty list, not an error. *Changes in 16.1 to the last 4 digits only (§16 *Phone search*).*
+  - A whole phone number, in any format, finds the member with exactly that number. Exactly 4 digits find every member whose number ends with them, compared as typed («0567» finds a number ending in 0567). Anything else (the start or the middle of a number, any other count of digits) returns an empty list, not an error. Since 16.1 (§16 *Phone search*, decided by the developer 1405/08/19); before it, 4 or more digits matched anywhere in the number.
+  - A site user (§16 *Site users*) is never found or listed here.
   - A search needs at least 2 characters after normalization (`Members.SearchTooShort`). A blank search lists everyone.
   - The list and search include inactive members by default, so staff can find someone to reactivate or correct. An optional filter shows only active or only inactive members.
   - A second, separate filter shows only members who owe something (§5 *Member debt*: debt above zero, counted the same way as the amount on their row). It combines with the status filter and the search, so "inactive and still owing" is one list. Asked by the developer on 1405/07/07, roadmap 6.5.20.
@@ -2873,7 +2874,8 @@ roadmap Phase 16. Each line says who decided it, as in §15:
   admin.
 
 ### Site users (کاربران سایت)
-- **A site user is someone who signed up on the site and has never had a plan or a visit.** In the
+- **A site user is someone who signed up on the site and has never had a plan or a visit** (nor a
+  cafe order, below). In the
   database they are the member §15's sign-up created; what they entered when signing up (name,
   phone, birth date and anything later asked) stays on their profile. *Decided by the developer.*
 - **Site users are left out of the gym's work and counted nowhere**: not in the member list, not
@@ -2883,22 +2885,44 @@ roadmap Phase 16. Each line says who decided it, as in §15:
   screens must stay the gym's. *Decided by the developer* (1405/08/19, replacing the same day's
   "the desk's search still finds a site user, marked «کاربر سایت»", proposed by Claude).
 - **They are shown on a page of their own, «کاربران سایت»**, with what they entered on the site,
-  for reading only. *Decided by the developer* (1405/08/19). *Proposed by Claude:* the Owner and
-  Staff see it, as the member list; it has its own search (a name, the last 4 digits or a whole
-  number, as §16 *Phone search*), newest first and paged, and it is the only search that finds
-  them.
+  for reading only. *Decided by the developer* (1405/08/19). The Owner and Staff see it, as the
+  member list; it has its own search (a name, the last 4 digits or a whole number, as §16 *Phone
+  search*), newest first and paged, and it is the only search that finds them. *Proposed by
+  Claude, accepted by the developer at the start of 16.1* (1405/08/19). It shows the name, the
+  phone, the birth date and when they signed up; nothing on it can be changed.
 - **The first plan sold or the first visit checked in makes them a member like any other**, with the
   same profile; nothing is copied or entered again. *Decided by the developer.* A member the desk
-  registered is never a site user, with or without a plan. *Proposed by Claude.*
+  registered is never a site user, with or without a plan. *Proposed by Claude, accepted with
+  16.1's plan* (1405/08/19).
+- **A cafe order on their name makes them a member too**, as a plan or a visit does: someone who
+  bought at the gym's cafe has been to the gym, and may owe for it. Before 16.1 the cafe's search
+  could find a site sign-up, so such orders may already be on the server. *Decided by the
+  developer* (1405/08/19, 16.1).
+- **Once a member, never a site user again**: a plan, a visit or a cafe order that is later
+  cancelled still made them a member, and they stay in the gym's lists. *Decided by the developer*
+  (1405/08/19, 16.1). None of them is ever deleted, so this holds by itself.
+- **The trainer's lists on the site are not the gym's lists**: a site user who asks a trainer for
+  coaching shows in that trainer's requests, «شاگردان من», a session's students and today's
+  attendance, as before 16.1. "In no other list" above is about the gym's panel. *Decided by the
+  developer* (1405/08/19, 16.1).
 - **A site user who comes to the gym is brought in from the new-member form.** When the desk types
   a whole phone number that belongs to a site user, the form says «این شماره در سایت ثبت‌نام کرده
   است», shows the name and birth date they entered, and «ثبت به‌عنوان عضو» brings them in, so they
   are never registered twice (which §2's unique phone would refuse). Only that exact number finds
-  them there. *Proposed by Claude, accepted by the developer* (1405/08/19).
+  them there. *Proposed by Claude, accepted by the developer* (1405/08/19). **What they entered on
+  the site is kept**: «ثبت به‌عنوان عضو» does not take the name or birth date typed in the form, and
+  the desk corrects them afterwards on the profile like any member's. *Decided by the developer*
+  (1405/08/19, 16.1). From that moment they are a member in every list, before any plan; their
+  profile opens, where a plan is sold. Saving the form anyway with that number is refused with
+  «این شماره در سایت ثبت‌نام کرده است».
+- **Who signed up before 16.1**: the members the site's sign-up made since Release 1 (made by no
+  staff user, with a site account) are site users from 16.1 if they still have no plan and no
+  visit; the release's migration marks them and changes nothing else. *Proposed by Claude* (16.1:
+  it follows from the decided rule above, applied to the rows already there).
 
 ### Phone search (جست‌وجوی شماره)
-Decided by the developer on 1405/08/19, built in 16.1; it replaces §2's "at least 4 digits match
-anywhere in the stored number". Until 16.1 is released, §2's rule stands.
+Decided by the developer on 1405/08/19, built in 16.1; it replaced §2's "at least 4 digits match
+anywhere in the stored number" (§2 now says the same as here).
 - **Exactly 4 digits find every member whose number ends with them**: «4567» finds 0912 123 4567.
   The digits are compared as typed, so «0567» finds a number ending in 0567.
 - **A whole number, in any format, still finds exactly that member**, as today.

@@ -8,6 +8,7 @@ import {
   DoorOpen,
   Dumbbell,
   Gauge,
+  Globe,
   History,
   KeyRound,
   LockKeyhole,
@@ -66,6 +67,8 @@ export const navigation: NavigationGroup[] = [
         label: "اعضا",
         icon: Contact,
       },
+      // BUSINESS_RULES.md §16 Site users: the Owner and Staff, as the member list.
+      { to: paths.siteUsers, label: "کاربران سایت", icon: Globe },
     ],
   },
   {

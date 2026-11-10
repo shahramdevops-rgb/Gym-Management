@@ -1983,6 +1983,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(16)")
                         .HasColumnName("phone_number");
 
+                    b.Property<bool>("RegisteredAtDesk")
+                        .HasColumnType("boolean")
+                        .HasColumnName("registered_at_desk");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");

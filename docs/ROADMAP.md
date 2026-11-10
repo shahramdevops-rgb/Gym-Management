@@ -59,7 +59,8 @@ Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 ac
   step is **15.6, the trainer's timetable**. Phase 14's 14.1 to 14.3 still wait for the
   gym's trainers, links and photos; 14.4 closed with 15.3b
 - **Queued: the online shop and site users (Phase 16)**, asked by the developer on 1405/08/19
-  (2026-11-10); 16.0 done (ADR 0011 accepted 1405/08/19); next **16.1**, site users and the phone search
+  (2026-11-10); 16.0 done (ADR 0011 accepted 1405/08/19); **16.1** built 1405/08/19 on
+  `task/16.1-site-users` (site users and the phone search), not released; next 16.2
 
 ---
 
@@ -4871,25 +4872,37 @@ How it is built:
       has shop admins, who see only the shop
 
 ### 16.1 Site users and the phone search (کاربران سایت، جست‌وجو با ۴ رقم آخر)
-- [ ] Asked first: §16's proposed lines under *Site users* (who sees the page, its search)
-- [ ] A site user: signed up on the site, never a plan, never a visit (§16). **Left out of the
-      gym's work** (the developer, 1405/08/19): every query that lists, searches or counts members
-      is found and leaves them out (member list, check-in box, cafe, dashboard, reports, broadcast
-      groups, the desk panel's birthdays, …), with a test per place; the first plan or visit makes
-      them a member with nothing copied
-- [ ] The «کاربران سایت» page: read-only, what they entered on the site, its own search, newest
-      first and paged; the only place that finds them
-- [ ] The new-member form: a whole phone that belongs to a site user shows «این شماره در سایت
-      ثبت‌نام کرده است» with their name and birth date, and «ثبت به‌عنوان عضو» brings them in
-- [ ] **Phone search by the last 4 digits only** (§16 *Phone search*, asked by the developer
-      1405/08/19): exactly 4 digits match the end of the number, compared as typed (today's code
-      drops leading zeros, `ListMembersHandler`); a whole number still finds exactly that member;
-      the start, the middle or any other length finds nothing. In the member list, the
-      check-in box and the «کاربران سایت» page. §2's line is then replaced by §16's
-- [ ] Tests: integration (a site user missing from every list, search and figure but on its page,
-      brought in from
-      the new-member form, becoming a member by a plan and by a visit, the search's four cases
-      including «0567»); the screens walked in Chrome
+Built 1405/08/19 on branch `task/16.1-site-users`, not released.
+- [x] Asked first: §16's proposed lines under *Site users*. The developer chose, 1405/08/19: the
+      Owner and Staff see the page; its search takes a name, the last 4 digits or a whole number;
+      «ثبت به‌عنوان عضو» keeps what they entered on the site; a cancelled plan or visit never turns
+      a member back into a site user
+- [x] A site user: signed up on the site, never a plan, a visit or a cafe order (§16; the cafe
+      decided by the developer after the review). Only the origin is
+      stored (`members.registered_at_desk`); "never a plan, a visit or a cafe order" is worked out when asked
+      (`SiteUserRule`), so no sale or check-in has to change a flag. Left out of the member list
+      (with every filter), the check-in box and the cafe (all `ListMembersHandler`) and the
+      broadcast groups; the dashboard, the reports, the birthday SMS and the desk panel read plans
+      and visits, which a site user has none of. The first plan or visit makes them a member with
+      nothing copied
+- [x] The migration carries the server's rows forward: every member starts as registered at the
+      desk, then those made by the site's sign-up (no staff user, a site account) are marked; a
+      test runs its SQL on rows of each kind. *Before the release:* count them on the server with a
+      read-only query, and how many of them have a cafe order
+- [x] The «کاربران سایت» page (`GET /api/site-users`, in «پذیرش» after «اعضا»): read-only, name,
+      phone, birth date and sign-up time, its own search, newest first and paged
+- [x] The new-member form (the page and the member list's «ثبت این شخص»): a whole phone that
+      belongs to a site user shows «این شماره در سایت ثبت‌نام کرده است» with their name and birth
+      date, and «ثبت به‌عنوان عضو» (`POST /api/site-users/{id}/register`) brings them in and opens
+      their profile; saving the form with that number anyway is `Members.PhoneBelongsToSiteUser`
+- [x] **Phone search by the last 4 digits only**: exactly 4 digits match the end of the number as
+      typed, a whole number finds exactly that member, anything else nothing (`MemberSearch`,
+      shared by the member list, the check-in box and «کاربران سایت»). §2's line replaced by §16's
+- [x] Tests: integration (`SiteUserTests`: missing from the list with any search or filter and from
+      the broadcast, on its page, its search's cases including «0567», the form's look and
+      «ثبت به‌عنوان عضو», a member by a plan, by a cardio-only visit and for good after a
+      cancellation, the migration's SQL; `MemberQueryTests`' phone cases rewritten); frontend
+      (the page, the form's notice); the screens walked with Playwright on a throwaway stack
 
 ### 16.2 The shop admin and their panel (مدیر فروشگاه)
 - [ ] Asked first: whether the Owner sees the shop's pages, and more than one shop admin

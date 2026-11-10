@@ -20,10 +20,16 @@ public sealed class CreateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
             return Result.Failure<MemberResponse>(phone.Error);
         }
 
-        // 2. Check the rule. Inactive members count: a number stays taken after deactivation.
-        if (await db.Members.AnyAsync(member => member.PhoneNumber == phone.Value, cancellationToken))
+        // 2. Check the rule. Inactive members count: a number stays taken after deactivation. A
+        // site user's number is taken too, but the form brings them in instead (§16), so it is
+        // told apart.
+        var withPhone = db.Members.Where(member => member.PhoneNumber == phone.Value);
+        if (await withPhone.AnyAsync(cancellationToken))
         {
-            return Result.Failure<MemberResponse>(MemberErrors.PhoneAlreadyExists);
+            var isSiteUser = await withPhone.AnyAsync(SiteUserRule.IsSiteUser(db), cancellationToken);
+
+            return Result.Failure<MemberResponse>(
+                isSiteUser ? MemberErrors.PhoneBelongsToSiteUser : MemberErrors.PhoneAlreadyExists);
         }
 
         // 3. Call the domain. The birth date rules need a today, and the gym's today is the one
@@ -48,7 +54,15 @@ public sealed class CreateMemberHandler(IAppDbContext db, IPhoneNormalizer phone
         }
         catch (UniqueConstraintException exception) when (exception.ConstraintName == MemberConstraints.UniquePhone)
         {
-            return Result.Failure<MemberResponse>(MemberErrors.PhoneAlreadyExists);
+            // The same number saved meanwhile, by the desk or by a sign-up on the site: told apart
+            // as in step 2, so the form can still offer «ثبت به‌عنوان عضو».
+            db.Members.Remove(created.Value);
+            var isSiteUser = await db.Members
+                .Where(member => member.PhoneNumber == phone.Value)
+                .AnyAsync(SiteUserRule.IsSiteUser(db), cancellationToken);
+
+            return Result.Failure<MemberResponse>(
+                isSiteUser ? MemberErrors.PhoneBelongsToSiteUser : MemberErrors.PhoneAlreadyExists);
         }
 
         // 5. Map.

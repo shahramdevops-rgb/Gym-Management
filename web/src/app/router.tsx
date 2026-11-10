@@ -75,6 +75,9 @@ export const routes: RouteObject[] = [
               lazyPage(paths.editMember(":id"), () =>
                 import("@/features/members/pages/EditMemberPage").then((m) => m.EditMemberPage),
               ),
+              lazyPage(paths.siteUsers, () =>
+                import("@/features/siteUsers/pages/SiteUsersPage").then((m) => m.SiteUsersPage),
+              ),
               lazyPage(paths.attendance, () =>
                 import("@/features/attendance/pages/CurrentlyInsidePage").then(
                   (m) => m.CurrentlyInsidePage,

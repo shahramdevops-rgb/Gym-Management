@@ -55,7 +55,8 @@ public sealed class SignUpHandler(
         var member = await db.Members.SingleOrDefaultAsync(row => row.PhoneNumber == phoneNumber, cancellationToken);
         if (member is null)
         {
-            var created = Member.Create(command.FullName, phoneNumber, notes: null, birthDate, calendar.DayOf(now));
+            // A site user until the desk brings them in, or their first plan or visit (§16).
+            var created = Member.SignUpOnSite(command.FullName, phoneNumber, birthDate, calendar.DayOf(now));
             if (created.IsFailure)
             {
                 return Result.Failure<SiteSession>(created.Error);

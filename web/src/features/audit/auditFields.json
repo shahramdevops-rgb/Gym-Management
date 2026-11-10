@@ -60,6 +60,7 @@
     "Notes": { "label": "یادداشت" },
     "BirthDate": { "label": "تاریخ تولد" },
     "IsActive": { "label": "فعال" },
+    "RegisteredAtDesk": { "label": "ثبت‌شده در پذیرش" },
     "Description": { "label": "شرح" },
     "Reason": { "label": "دلیل" },
     "ReferenceNumber": { "label": "شمارهٔ پیگیری" },

@@ -13,6 +13,19 @@ public static class MemberErrors
         "Members.PhoneAlreadyExists",
         "Another member already uses that phone number.");
 
+    /// <summary>
+    /// The phone belongs to someone who signed up on the site (BUSINESS_RULES.md §16 <i>Site users</i>):
+    /// the new-member form brings them in with «ثبت به‌عنوان عضو» instead of registering them twice.
+    /// </summary>
+    public static readonly Error PhoneBelongsToSiteUser = Error.Conflict(
+        "Members.PhoneBelongsToSiteUser",
+        "That phone number signed up on the site; register that person as a member instead.");
+
+    /// <summary>No site user has that id: never one, or already a member (BUSINESS_RULES.md §16).</summary>
+    public static readonly Error SiteUserNotFound = Error.NotFound(
+        "Members.SiteUserNotFound",
+        "No site user has that id.");
+
     public static readonly Error PhoneInvalid = Error.Validation(
         "Members.PhoneInvalid",
         "The phone number is not valid.");

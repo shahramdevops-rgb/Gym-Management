@@ -214,4 +214,50 @@ public sealed class MemberTests
         member.FullName.ShouldBe("رضا احمدی");
         member.IsActive.ShouldBeFalse();
     }
+
+    [Fact]
+    public void Create_AtTheDesk_IsRegisteredAtDesk()
+    {
+        Member.Create("رضا", Phone, null, Born, Today).Value.RegisteredAtDesk.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SignUpOnSite_ValidDetails_IsAnActiveMemberNotRegisteredAtDesk()
+    {
+        var member = Member.SignUpOnSite("سارا محمدی", Phone, Born, Today).Value;
+
+        member.RegisteredAtDesk.ShouldBeFalse();
+        member.IsActive.ShouldBeTrue();
+        member.FullName.ShouldBe("سارا محمدی");
+        member.BirthDate.ShouldBe(Born);
+        member.Notes.ShouldBeNull();
+    }
+
+    [Fact]
+    public void SignUpOnSite_BirthDateInFuture_FailsAsAtTheDesk()
+    {
+        Member.SignUpOnSite("سارا", Phone, Today.AddDays(1), Today).Error.ShouldBe(MemberErrors.BirthDateInFuture);
+    }
+
+    [Fact]
+    public void RegisterAtDesk_SiteSignUp_KeepsWhatTheyEnteredAndIsRegistered()
+    {
+        var member = Member.SignUpOnSite("سارا محمدی", Phone, Born, Today).Value;
+
+        member.RegisterAtDesk();
+
+        member.RegisteredAtDesk.ShouldBeTrue();
+        member.FullName.ShouldBe("سارا محمدی");
+        member.BirthDate.ShouldBe(Born);
+    }
+
+    [Fact]
+    public void RegisterAtDesk_AlreadyRegistered_ChangesNothing()
+    {
+        var member = Member.Create("رضا", Phone, null, Born, Today).Value;
+
+        member.RegisterAtDesk();
+
+        member.RegisteredAtDesk.ShouldBeTrue();
+    }
 }

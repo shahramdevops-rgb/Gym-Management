@@ -125,6 +125,49 @@ describe("CreateMemberPage", () => {
     },
   );
 
+  it("CreateMember_ASiteUsersPhone_OffersToRegisterThemAndOpensTheProfile", async () => {
+    // BUSINESS_RULES.md §16 Site users: the whole number finds them; their details are kept.
+    const sara = {
+      id: "0199a000-0000-7000-8000-0000000000b1",
+      fullName: "سارا محمدی",
+      phoneNumber: "+989121234567",
+      birthDate: "1995-04-20",
+      signedUpAt: "2026-11-01T10:00:00Z",
+    };
+    const saraMember = { ...reza, id: sara.id, fullName: sara.fullName, notes: null };
+    const api = mockApi({
+      ...signedInHandlers(staffUser),
+      "GET /api/site-users/by-phone": () => json(200, { siteUser: sara }),
+      [`POST /api/site-users/${sara.id}/register`]: () => json(200, saraMember),
+      [`GET /api/members/${sara.id}`]: () => json(200, saraMember),
+    });
+    const { router } = renderApp("/members/new", { session: session() });
+
+    fireEvent.change(screen.getByLabelText("شماره موبایل"), { target: { value: "۰۹۱۲۱۲۳۴۵۶۷" } });
+
+    expect(await screen.findByText("این شماره در سایت ثبت‌نام کرده است")).toBeInTheDocument();
+    expect(screen.getByText("سارا محمدی")).toBeInTheDocument();
+    expect(screen.getByText("۱۳۷۴/۰۱/۳۱")).toBeInTheDocument();
+    expect(new URL(api.requestsTo("GET", "/api/site-users/by-phone")[0]!.url).search).toBe(
+      "?phoneNumber=09121234567",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "ثبت به‌عنوان عضو" }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/members/${sara.id}`));
+    expect(api.requestsTo("POST", "/api/members")).toHaveLength(0);
+  });
+
+  it("CreateMember_PartOfAPhone_DoesNotAskTheSite", () => {
+    const api = mockApi(signedInHandlers(staffUser));
+    renderApp("/members/new", { session: session() });
+
+    fireEvent.change(screen.getByLabelText("شماره موبایل"), { target: { value: "0912123" } });
+
+    expect(api.requestsTo("GET", "/api/site-users/by-phone")).toHaveLength(0);
+    expect(screen.queryByText("این شماره در سایت ثبت‌نام کرده است")).not.toBeInTheDocument();
+  });
+
   it("CreateMember_ServerFieldErrors_AppearUnderTheirFields", async () => {
     mockApi({
       ...signedInHandlers(staffUser),

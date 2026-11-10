@@ -1,15 +1,16 @@
 import { useState, type ReactNode } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
 import { BirthDateField, FormField, TextareaField } from "@/components/FormField";
 import { SaveRow, type SaveNotice } from "@/components/SaveRow";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { SiteUserNotice } from "@/features/siteUsers/components/SiteUserNotice";
 import { toneButton } from "@/lib/edges";
 import { applyServerErrors, useUnchanged, zodResolver } from "@/lib/forms";
 import { normalizeDigits, normalizePersianText } from "@/lib/normalize";
 
-import type { MemberInput } from "../api";
+import type { Member, MemberInput } from "../api";
 import { memberSchema, type MemberValues } from "../schemas";
 
 /**
@@ -19,6 +20,7 @@ import { memberSchema, type MemberValues } from "../schemas";
  */
 const codeFields = {
   "Members.PhoneAlreadyExists": "phoneNumber",
+  "Members.PhoneBelongsToSiteUser": "phoneNumber",
   "Members.PhoneInvalid": "phoneNumber",
   "Members.PhoneNotMobile": "phoneNumber",
   "Members.PhoneNotIranian": "phoneNumber",
@@ -49,6 +51,11 @@ interface MemberFormProps {
   editing?: boolean;
   /** While editing: someone else saved first (a `StaleAlert`), shown beside the button. */
   stale?: ReactNode;
+  /**
+   * Adding a member: a whole phone that signed up on the site is offered «ثبت به‌عنوان عضو»
+   * (BUSINESS_RULES.md §16 *Site users*), and this is told the member they became.
+   */
+  onSiteUserRegistered?: (member: Member) => void;
 }
 
 /** Values are normalized before they are sent, never while typing. */
@@ -72,6 +79,7 @@ export function MemberForm({
   actions,
   editing = false,
   stale,
+  onSiteUserRegistered,
 }: MemberFormProps) {
   const form = useForm<MemberValues>({
     resolver: zodResolver(memberSchema),
@@ -79,6 +87,8 @@ export function MemberForm({
   });
   const isUnchanged = useUnchanged(() => toInput(defaultValues));
   const [notice, setNotice] = useState<SaveNotice>(null);
+  // For the site user's notice under the phone (BUSINESS_RULES.md §16).
+  const phoneNumber = useWatch({ control: form.control, name: "phoneNumber" });
 
   const submit = form.handleSubmit(async (values) => {
     const input = toInput(values);
@@ -124,6 +134,9 @@ export function MemberForm({
         error={errors.phoneNumber?.message}
         {...form.register("phoneNumber")}
       />
+      {!editing && onSiteUserRegistered !== undefined && (
+        <SiteUserNotice phoneNumber={phoneNumber} onRegistered={onSiteUserRegistered} />
+      )}
       <Controller
         control={form.control}
         name="birthDate"

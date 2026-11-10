@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Application.Members;
 using Gym.Domain.Notifications;
 
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +27,10 @@ public sealed class BroadcastRecipients(IAppDbContext db)
     public async Task<List<BroadcastRecipient>> FindAsync(
         BroadcastAudience audience, DateOnly today, Guid? withoutMessageOf, CancellationToken cancellationToken)
     {
-        var members = db.Members.AsNoTracking().Where(member => member.IsActive);
+        // Site users are in no broadcast group (BUSINESS_RULES.md §16 Site users).
+        var members = db.Members.AsNoTracking()
+            .Where(member => member.IsActive)
+            .Where(SiteUserRule.IsGymMember(db));
         if (withoutMessageOf is { } broadcastId)
         {
             members = members.Where(member => !db.Notifications.Any(

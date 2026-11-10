@@ -935,9 +935,8 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
     [Theory]
     [InlineData("4567")]
     [InlineData("۴۵۶۷")]
-    [InlineData("0912 123")]
-    [InlineData("912123")]
-    public async Task ListMembers_PartOfAPhone_FindsTheMember(string search)
+    [InlineData("٤٥٦٧")]
+    public async Task ListMembers_LastFourDigits_FindsTheMember(string search)
     {
         var (client, token) = await StaffClientAsync();
         await CreateMemberAsync(client, token, "رضا", "09121234567");
@@ -948,9 +947,52 @@ public sealed class MemberQueryTests(DatabaseFixture fixture) : DatabaseTestBase
         result.Items.Single().FullName.ShouldBe("رضا");
     }
 
+    [Fact]
+    public async Task ListMembers_LastFourDigitsWithALeadingZero_ComparesThemAsTyped()
+    {
+        // BUSINESS_RULES.md §16 Phone search: «0567» is four digits, not «567» with a trunk zero.
+        var (client, token) = await StaffClientAsync();
+        await CreateMemberAsync(client, token, "رضا", "09121230567");
+        await CreateMemberAsync(client, token, "علی", "09121234567");
+
+        var result = await SearchAsync(client, token, "0567");
+
+        result.Items.Single().FullName.ShouldBe("رضا");
+    }
+
+    [Fact]
+    public async Task ListMembers_LastFourDigits_FindsEveryMemberEndingWithThem()
+    {
+        var (client, token) = await StaffClientAsync();
+        await CreateMemberAsync(client, token, "رضا", "09121234567");
+        await CreateMemberAsync(client, token, "علی", "09354564567");
+        await CreateMemberAsync(client, token, "سارا", "09124567000");
+
+        var result = await SearchAsync(client, token, "4567");
+
+        result.Items.Select(member => member.FullName).Order().ShouldBe(["رضا", "علی"]);
+    }
+
+    [Theory]
+    [InlineData("0912")]
+    [InlineData("0912 123")]
+    [InlineData("912123")]
+    [InlineData("1234")]
+    [InlineData("34567")]
+    public async Task ListMembers_StartOrMiddleOrOtherLengthOfAPhone_FindsNothing(string search)
+    {
+        // BUSINESS_RULES.md §16 Phone search: only the last 4 digits or a whole number.
+        var (client, token) = await StaffClientAsync();
+        await CreateMemberAsync(client, token, "رضا", "09121234567");
+
+        var result = await SearchAsync(client, token, search);
+
+        result.TotalCount.ShouldBe(0);
+    }
+
     [Theory]
     [InlineData("456")]
-    [InlineData("0000")]
+    [InlineData("12")]
     [InlineData("02188776655")]
     public async Task ListMembers_UnusablePhoneSearch_ReturnsAnEmptyPageNotAnError(string search)
     {

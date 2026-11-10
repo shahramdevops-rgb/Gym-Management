@@ -29,18 +29,19 @@ public sealed class SubscriptionsAtMostThirtySessionsMigrationTests(DatabaseFixt
         var connectionString = await CreateDatabaseAsync();
         await using var db = Context(connectionString);
         await db.GetService<IMigrator>().MigrateAsync(MigrationBefore, cancellationToken: TestContext.Current.CancellationToken);
-        var member = TestMembers.Seed("رضا احمدی", "+989121234567");
-        db.Members.Add(member);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        // In SQL, with that day's columns: the model has moved on since (registered_at_desk, 16.1).
+        var memberId = Guid.CreateVersion7();
         var id = Guid.CreateVersion7();
 
         await ExecuteAsync(
             connectionString,
             $"""
+            INSERT INTO members (id, full_name, normalized_full_name, phone_number, birth_date, is_active, created_at)
+            VALUES ('{memberId}', 'رضا احمدی', 'رضا احمدی', '+989121234567', '1990-06-15', true, now());
             INSERT INTO subscriptions (id, member_id, price, duration_days, total_sessions,
                                        start_date, end_date, used_sessions, total_frozen_days,
                                        cancelled_at, cancellation_reason, is_single_session, created_at)
-            VALUES ('{id}', '{member.Id}', 0, 70, 123, '2026-10-20', '2026-12-28', 0, 0,
+            VALUES ('{id}', '{memberId}', 0, 70, 123, '2026-10-20', '2026-12-28', 0, 0,
                     now(), 'اشتباه تایپی', false, now());
             """);
 

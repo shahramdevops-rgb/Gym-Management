@@ -151,6 +151,7 @@ try
     app.MapSiteBookingEndpoints();
     app.MapStaffEndpoints();
     app.MapMembersEndpoints();
+    app.MapSiteUsersEndpoints();
     app.MapPricingEndpoints();
     app.MapSubscriptionsEndpoints();
     app.MapPaymentsEndpoints();
