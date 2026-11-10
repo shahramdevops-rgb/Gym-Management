@@ -61,6 +61,10 @@ export function MySessionsPage() {
           </Link>
         </Button>
         <h1 className="text-xl font-bold">سانس‌های من</h1>
+        {/* «حضور من» (15.7j): also without a trainer now, for the sessions with an earlier one. */}
+        <Button asChild variant="secondary" size="sm" className="ms-auto">
+          <Link to={sitePaths.myAttendance}>حضور من</Link>
+        </Button>
       </div>
 
       {mine.data === undefined ? (

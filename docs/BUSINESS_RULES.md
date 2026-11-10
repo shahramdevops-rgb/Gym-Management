@@ -2923,6 +2923,18 @@ marked *proposed* were Claude's, accepted with the plan.
 - **The «نمی‌آیم»s saved before 15.7i stay leaves** («مرخصی»), as if accepted; nothing is refused
   or removed.
 
+### The member's own attendance (حضور من, 15.7j)
+*Asked with 15.7a and kept for later* (the developer, 1405/08/13); *built* 1405/08/19, Claude's
+three proposals accepted as offered.
+- **The member sees their own attendance by Jalali month**, «حضور من», from «سانس‌های من»: each of
+  their sessions up to today with its state, exactly as their trainer sees it (on time, late, came
+  after, absent, leave, «مرخصی داشت», cancelled), and the month's totals. Read only. A session with
+  a trainer other than the one now names that trainer.
+- **«خارج از سانس» is the trainer's alone**: the member sees their gym visits in «سوابق من».
+  *Proposed by Claude.*
+- **The member sees their own absences, with no SMS or alert.** *Proposed by Claude.*
+- **Only an active member** reaches it, as the rest of their area. *Proposed by Claude.*
+
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for
   each of their students. *Decided by the developer.*

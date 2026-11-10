@@ -26,6 +26,7 @@ using Gym.Application.Bookings.CancelMyLeave;
 using Gym.Application.Bookings.CheckStudentSchedule;
 using Gym.Application.Bookings.EndStudentSchedule;
 using Gym.Application.Bookings.GetLeaveRequests;
+using Gym.Application.Bookings.GetMyAttendance;
 using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
@@ -306,6 +307,7 @@ public static class DependencyInjection
         // Attendance for the trainer, from the desk's check-ins (BUSINESS_RULES.md §15, task 15.7).
         services.AddScoped<GetTrainerDayHandler>();
         services.AddScoped<GetStudentAttendanceHandler>();
+        services.AddScoped<GetMyAttendanceHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();

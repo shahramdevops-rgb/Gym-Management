@@ -2482,3 +2482,10 @@ The question that started this was whether a gym that is entirely internal — I
 - **`LIKE '%4567'` is "ends with".** The trigram index already on the phone column serves it; the four digits are compared as typed because E.164 keeps every digit after the country code.
 - **`useWatch` instead of `form.watch`.** The React Compiler cannot memoize a component that calls `watch()`; the `useWatch` hook subscribes to one field and keeps the form memoizable (the lint warning `react-hooks/incompatible-library`).
 - **My notes:**
+
+## 15.7j — «حضور من», the member's own attendance
+
+- **One reading, two doors.** The trainer's «حضور» and the member's «حضور من» call the same `AttendanceReading.ReadAsync`; each handler only checks who may ask and what it may see (a student of mine, or myself). A test compares the two answers, so they cannot drift apart later.
+- **Leave out by not asking, not by hiding.** The member's response has no `Outside` and no `MemberId` at all (`MyAttendanceResponse`), rather than the trainer's response with fields set to empty: what is not in the payload cannot leak through the browser's network tab.
+- **Extract a component when a second page needs it.** `AttendanceMonth` and `MonthNavigator` came out of the trainer's page the moment the member's page needed the same view; before that, one page with the code inline was the simpler choice.
+- **My notes:**

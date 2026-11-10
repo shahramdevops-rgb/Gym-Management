@@ -4857,9 +4857,10 @@ merged or released. Worked out from the desk's check-ins as before: no table, no
       امروز»), with its own box in the day's counts and the month's totals; early and late show
       their minutes from the start (`MinutesEarly`, `MinutesLate`: «۱۰ دقیقه زودتر آمد», «۲۵ دقیقه
       تأخیر»)
-- [ ] **15.7e, queued**: a note on a session (the trainer and the students see it), and "extra
-      time" outside the pattern (to ask: a session on one date, which exists, or a student put in
-      one date outside their fixed schedule)
+- [ ] **15.7e, queued**: a note on a session (the trainer and the students see it). "Extra time"
+      was asked on 1405/08/19: the trainer putting a student in a date outside their fixed schedule,
+      for those who work and cannot come at their time; **dropped for now** by the developer the
+      same day (not to be raised again unless asked); the note stays, to be built
 
 #### The developer's list, part two (asked 1405/08/19, after 15.7d's screenshots)
 Each part on its own branch and session, in this order (proposed by Claude); 15.7e fits anywhere.
@@ -4918,6 +4919,15 @@ Each part on its own branch and session, in this order (proposed by Claude); 15.
 - [x] **Screens**: «درخواست مرخصی» (greyed out for today), «در انتظار تأیید مربی» with «لغو درخواست»,
       «مرخصی رد شد», «مرخصی» with «می‌آیم» in «سانس‌های من»; `LeaveRequestsCard` on the trainer's
       home; «مرخصی داشت» under the badge in the day and the month; e2e asks, accepts and takes back
+
+- [x] **15.7j, «حضور من», the member's own attendance** (built 1405/08/19 on
+      `task/15.7j-my-attendance`, from `main` after the merge of 15.7i and 16.1; no migration;
+      §15 *The member's own attendance*). `AttendanceReading` (Application/Bookings) reads one
+      member's month for both sides, so the trainer's «حضور» and the member's never differ;
+      `GET /api/site/me/attendance?from&to` (`GetMyAttendanceHandler`, member only, 62 days at most,
+      no «خارج از سانس», the trainer now unnamed); `/my-attendance` (`MyAttendancePage`) from a
+      «حضور من» button in «سانس‌های من»; `AttendanceMonth` and `MonthNavigator` shared with the
+      trainer's page
 
 ### Release 3 — The monthly assessment (priority 2)
 
