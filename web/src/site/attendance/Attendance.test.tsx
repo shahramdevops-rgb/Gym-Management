@@ -396,4 +396,96 @@ describe("the trainer's attendance (15.7b, 15.7d)", () => {
     expect([asked.get("from"), asked.get("to")]).toEqual([before.from, before.to]);
     expect(screen.getByRole("button", { name: "ماه بعد" })).toBeEnabled();
   });
+
+  // ---- 15.7f: the counts open their students ----
+
+  function filterApi() {
+    return mockApi({
+      ...emptyHome,
+      "GET /api/site/me": () => json(200, trainerOnly.me),
+      "GET /api/site/coaching/today": () => json(200, today),
+      [`GET /api/site/coaching/days/${shiftDay(gymToday(), -1)}`]: () =>
+        json(200, { ...today, date: shiftDay(gymToday(), -1), isToday: false }),
+    });
+  }
+
+  const box = (name: RegExp) =>
+    within(screen.getByRole("list", { name: "جمع امروز" })).getByRole("button", { name });
+
+  it("DayPage_PressABox_ShowsOnlyItsStudentsAndAgainShowsAll", async () => {
+    filterApi();
+    renderSite("/today", { access: trainerOnly });
+    await screen.findByRole("list", { name: "جمع امروز" });
+
+    fireEvent.click(box(/با تأخیر/));
+
+    expect(box(/با تأخیر/)).toHaveAttribute("aria-pressed", "true");
+    const sessions = within(screen.getByRole("list", { name: "سانس‌های روز" }));
+    expect(sessions.getAllByRole("listitem", { name: /تا/ })).toHaveLength(1);
+    expect(sessions.getByText("ندا حسینی")).toBeInTheDocument();
+    expect(sessions.queryByText("علی محمدی")).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "آمدند، بدون سانس" })).not.toBeInTheDocument();
+
+    fireEvent.click(box(/با تأخیر/));
+
+    expect(box(/با تأخیر/)).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("listitem", { name: "۱۵:۰۰ تا ۱۶:۰۰" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "آمدند، بدون سانس" })).toBeInTheDocument();
+  });
+
+  it("DayPage_PressStudents_LeavesOutLeaveAndCancelled", async () => {
+    filterApi();
+    renderSite("/today", { access: trainerOnly });
+    await screen.findByRole("list", { name: "جمع امروز" });
+
+    fireEvent.click(box(/شاگردان/));
+
+    // The cancelled session's only student is in no count, so the session goes.
+    expect(screen.queryByRole("listitem", { name: "۱۵:۰۰ تا ۱۶:۰۰" })).not.toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "۱۷:۰۰ تا ۱۸:۰۰" })).toHaveTextContent(
+      "هنوز نیامده",
+    );
+  });
+
+  it("DayPage_BoxWithNoOne_SaysSo", async () => {
+    filterApi();
+    renderSite("/today", { access: trainerOnly });
+    await screen.findByRole("list", { name: "جمع امروز" });
+
+    fireEvent.click(box(/غایب/));
+
+    expect(screen.getByText("کسی در این دسته نیست.")).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "سانس‌های روز" })).not.toBeInTheDocument();
+  });
+
+  it("DayPage_AnotherDay_KeepsTheFilter", async () => {
+    const api = filterApi();
+    renderSite("/today?show=present", { access: trainerOnly });
+    await screen.findByRole("list", { name: "جمع امروز" });
+
+    fireEvent.click(screen.getByRole("button", { name: "روز قبل" }));
+
+    const totals = within(await screen.findByRole("list", { name: "جمع روز" }));
+    expect(totals.getByRole("button", { name: /حاضر/ })).toHaveAttribute("aria-pressed", "true");
+    expect(
+      api.requestsTo("GET", `/api/site/coaching/days/${shiftDay(gymToday(), -1)}`),
+    ).toHaveLength(1);
+  });
+
+  it("Home_CountBox_OpensTheDayPageOnItsStudents", async () => {
+    filterApi();
+    renderSite("/", { access: trainerOnly });
+
+    const totals = within(await screen.findByRole("list", { name: "جمع امروز" }));
+    fireEvent.click(totals.getByRole("link", { name: /حاضر/ }));
+
+    expect(
+      await screen.findByRole("heading", { name: "حضور امروز", level: 1 }),
+    ).toBeInTheDocument();
+    expect(box(/حاضر/)).toHaveAttribute("aria-pressed", "true");
+    const sessions = within(screen.getByRole("list", { name: "سانس‌های روز" }));
+    expect(sessions.getByText("علی محمدی")).toBeInTheDocument();
+    expect(sessions.getByText("ندا حسینی")).toBeInTheDocument();
+    expect(sessions.queryByText("رضا کریمی")).not.toBeInTheDocument();
+  });
 });

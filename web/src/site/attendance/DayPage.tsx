@@ -16,6 +16,7 @@ import { sitePaths } from "../paths";
 import { formatDayLabel, formatSessionTimes } from "../timetable/labels";
 import { VipBadge } from "../timetable/VipBadge";
 import { useTrainerDay, useTrainerToday, type DaySession, type TrainerDay } from "./api";
+import { inFilter, parseDayFilter, type DayFilter } from "./dayFilter";
 import { DayTotalsBoxes } from "./DayTotalsBoxes";
 import { formatVisit, shiftDay } from "./labels";
 import { PresenceBadge } from "./PresenceBadge";
@@ -26,7 +27,9 @@ import { PresenceBadge } from "./PresenceBadge";
  * with who is in it and whether they checked in and out at the desk, then «آمدند، بدون سانس».
  * «روز قبل» / «روز بعد» and the date box move it, with no limit back and not past today; the day
  * is in the address (`?date=`), so a reload keeps it. Only today's asks again every minute and says
- * when it last did. Only a trainer reaches it.
+ * when it last did. A count box shows only its students, pressed again everything (15.7f); the
+ * filter is in the address too (`?show=`), so the home's «امروز» opens the page on it and moving
+ * to another day keeps it. Only a trainer reaches it.
  */
 export function DayPage() {
   const me = useSiteMe();
@@ -35,6 +38,7 @@ export function DayPage() {
   const picked = params.get("date");
   const date = picked === null || picked >= today ? today : picked;
   const isToday = date === today;
+  const filter = parseDayFilter(params.get("show"));
 
   const todays = useTrainerToday({ refresh: true, enabled: isToday });
   const earlier = useTrainerDay(date, { enabled: !isToday });
@@ -44,8 +48,18 @@ export function DayPage() {
     return <Navigate to={sitePaths.home} replace />;
   }
 
+  function show(iso: string, next: DayFilter | null) {
+    setParams(
+      {
+        ...(iso >= today ? {} : { date: iso }),
+        ...(next === null ? {} : { show: next }),
+      },
+      { replace: true },
+    );
+  }
+
   function goTo(iso: string) {
-    setParams(iso >= today ? {} : { date: iso }, { replace: true });
+    show(iso, filter);
   }
 
   return (
@@ -103,7 +117,12 @@ export function DayPage() {
               {formatTime(new Date(day.dataUpdatedAt).toISOString())} است.
             </Alert>
           )}
-          <DayView day={day.data} isToday={isToday} />
+          <DayView
+            day={day.data}
+            isToday={isToday}
+            filter={filter}
+            onFilter={(next) => show(date, next === filter ? null : next)}
+          />
           {isToday && (
             <p className="text-center text-xs text-muted-foreground">
               هر دقیقه به‌روز می‌شود · آخرین بار ساعت{" "}
@@ -116,7 +135,28 @@ export function DayPage() {
   );
 }
 
-function DayView({ day, isToday }: { day: TrainerDay; isToday: boolean }) {
+function DayView({
+  day,
+  isToday,
+  filter,
+  onFilter,
+}: {
+  day: TrainerDay;
+  isToday: boolean;
+  filter: DayFilter | null;
+  onFilter: (filter: DayFilter) => void;
+}) {
+  // A filter keeps only its students, and only the sessions that have one of them.
+  const sessions =
+    filter === null
+      ? day.sessions
+      : day.sessions
+          .map((session) => ({
+            ...session,
+            students: session.students.filter((student) => inFilter(student.state, filter)),
+          }))
+          .filter((session) => session.students.length > 0);
+
   return (
     <>
       {day.sessions.length === 0 ? (
@@ -125,19 +165,28 @@ function DayView({ day, isToday }: { day: TrainerDay; isToday: boolean }) {
         </p>
       ) : (
         <>
-          <DayTotalsBoxes totals={day.totals} label={isToday ? "جمع امروز" : "جمع روز"} />
-          <ul aria-label="سانس‌های روز" className="space-y-3">
-            {day.sessions.map((session) => (
-              <SessionBox
-                key={`${session.start}-${session.end}-${session.removed}`}
-                session={session}
-              />
-            ))}
-          </ul>
+          <DayTotalsBoxes
+            totals={day.totals}
+            label={isToday ? "جمع امروز" : "جمع روز"}
+            selected={filter}
+            onSelect={onFilter}
+          />
+          {sessions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">کسی در این دسته نیست.</p>
+          ) : (
+            <ul aria-label="سانس‌های روز" className="space-y-3">
+              {sessions.map((session) => (
+                <SessionBox
+                  key={`${session.start}-${session.end}-${session.removed}`}
+                  session={session}
+                />
+              ))}
+            </ul>
+          )}
         </>
       )}
 
-      {day.outside.length > 0 && (
+      {filter === null && day.outside.length > 0 && (
         <section aria-labelledby="outside-heading" className="space-y-2">
           <h2 id="outside-heading" className="font-semibold">
             آمدند، بدون سانس

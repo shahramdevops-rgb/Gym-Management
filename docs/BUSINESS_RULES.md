@@ -2845,6 +2845,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     day the student became this trainer's student (the trainer sees the earlier trainers' sessions,
     not the member's gym visits before them); a visit already shown as «بعد از سانس آمد» is in the
     list too, since it was outside the session.
+  - **Each count opens its students** (*asked by the developer*, 1405/08/19, 15.7f): a box of the
+    home's «امروز» opens the day page on it; on the day page a box shows only its students, pressed
+    again everyone. «شاگردان» means the students it counts, so «مرخصی» and «لغو شد» are left out.
   - **Search in «شاگردان من»** by name or phone, typed in Persian or English digits.
   - **The waiting requests show their count**, «درخواست‌ها (۲)», and come first on the trainer's
     home. A number on the app's icon is not possible: Chrome on Android shows one only with a

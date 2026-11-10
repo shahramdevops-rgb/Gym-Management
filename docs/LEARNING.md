@@ -2435,3 +2435,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **A new state beats a flag on an old one.** «بعد از سانس آمد» first lived as `Absent` plus a `CameAfter` flag, so every count and card had to remember the flag; as its own `SessionPresence.CameAfter` it is simply not `Absent`, and the absent card, the counts and the badge colour follow by themselves. A new enum value is added at the end (`= 7`), so the numbers of the old ones never change.
 - **A git worktree lets two sessions share one repository.** Another session had this folder on its own branch; `git worktree add` gave 15.7d a second folder with its own branch, so neither session switched branches under the other.
 - **My notes:**
+
+## 15.7f — The counts open their students (فیلتر با جعبه‌های شمارش)
+
+- **One component, three behaviours.** `DayTotalsBoxes` draws the same boxes as plain text, as links (`linkTo`, on the home) or as toggles (`onSelect`, on the day page); the caller decides, so the counts look the same everywhere.
+- **A toggle says it is pressed.** `aria-pressed` tells a screen reader (and the tests) which box is on; the colour alone would tell only those who can see it.
+- **Filter the data, not the markup.** The page builds a filtered copy of the sessions (`inFilter` over each student's state) and draws that, so an empty session disappears and "no one" is a simple length check.
+- **The address carries the filter between pages.** The home's box links to `/today?show=late`; the day page reads `show` with `useSearchParams`, and keeps it when moving to another day, so the same idea works for a link, a reload and the back button.
+- **My notes:**

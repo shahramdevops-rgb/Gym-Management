@@ -4860,9 +4860,12 @@ merged or released. Worked out from the desk's check-ins as before: no table, no
 
 #### The developer's list, part two (asked 1405/08/19, after 15.7d's screenshots)
 Each part on its own branch and session, in this order (proposed by Claude); 15.7e fits anywhere.
-- [ ] **15.7f, the counts open their students** (screens only, no rule): a box of «امروز» on the
-      home opens the day page filtered to it; on the day page a box filters the sessions to its
-      students («شاگردان» shows all), pressed again it shows all
+- [x] **15.7f, the counts open their students** (screens only, no rule; built 1405/08/19 on
+      `task/15.7f-count-filters`, from 15.7d's branch): a box of «امروز» on the home is a link to
+      `/today?show=…`; on the day page a box is a toggle (`aria-pressed`) that keeps only its students
+      and the sessions with one of them, pressed again everything; «شاگردان» is the counted ones (no
+      «مرخصی», no «لغو شد»); «آمدند، بدون سانس» only unfiltered; «کسی در این دسته نیست.» when empty;
+      the filter stays on «روز قبل» / «روز بعد» (`inFilter`, `parseDayFilter` in `attendance/dayFilter.ts`)
 - [ ] **15.7g, «پایان» off the home** (screens only): out of «شاگردان من», so a finger cannot hit it
       by mistake. *Proposed by Claude:* at the foot of the student's «برنامهٔ ثابت» page, asking first
       as now
