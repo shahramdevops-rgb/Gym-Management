@@ -39,7 +39,7 @@ describe("TrainerArea", () => {
       "GET /api/site/coaching/students": () => json(200, { requests: [], students: [ali, neda] }),
     });
 
-    renderSite("/", { access: siteAccess(trainerOnly) });
+    renderSite("/students", { access: siteAccess(trainerOnly) });
 
     await screen.findByRole("list", { name: "شاگردان من" });
     expect(screen.queryByRole("heading", { name: /^درخواست‌ها/ })).not.toBeInTheDocument();
@@ -59,14 +59,14 @@ describe("TrainerArea", () => {
     });
     renderSite("/", { access: siteAccess(trainerOnly) });
 
-    expect(await screen.findByText("هنوز شاگردی ندارید.")).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "شاگردان من (۰)" })).toBeInTheDocument();
     expect(list("درخواست‌ها").getByText("علی محمدی")).toBeInTheDocument();
     fireEvent.click(list("درخواست‌ها").getByRole("button", { name: "پذیرفتن" }));
     // The coaching period's days (15.7h): 30 to start with.
     expect(list("درخواست‌ها").getByRole("textbox", { name: "دورهٔ مربی‌گری" })).toHaveValue("۳۰");
     fireEvent.click(list("درخواست‌ها").getByRole("button", { name: "پذیرفتن" }));
 
-    expect(await screen.findByRole("list", { name: "شاگردان من" })).toHaveTextContent("علی محمدی");
+    expect(await screen.findByRole("link", { name: "شاگردان من (۱)" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /^درخواست‌ها/ })).not.toBeInTheDocument();
     expect(
       api.requestsTo("POST", `/api/site/coaching/requests/${aliRequest.requestId}/accept`),
@@ -147,12 +147,31 @@ describe("TrainerArea", () => {
     expect(headings[0]).toBe(heading);
   });
 
-  it("Trainer_SearchByName_ShowsOnlyThoseStudents", async () => {
+  it("Home_StudentsCard_ShowsTheCountAndOpensTheList", async () => {
     mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
       "GET /api/site/coaching/students": () => json(200, { requests: [], students: [ali, neda] }),
     });
     renderSite("/", { access: siteAccess(trainerOnly) });
+
+    const card = await screen.findByRole("link", { name: "شاگردان من (۲)" });
+    expect(card).toHaveAttribute("href", "/students");
+    expect(screen.queryByRole("list", { name: "شاگردان من" })).not.toBeInTheDocument();
+
+    fireEvent.click(card);
+
+    expect(
+      await screen.findByRole("heading", { name: "شاگردان من (۲)", level: 1 }),
+    ).toBeInTheDocument();
+    expect(list("شاگردان من").getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("Trainer_SearchByName_ShowsOnlyThoseStudents", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/coaching/students": () => json(200, { requests: [], students: [ali, neda] }),
+    });
+    renderSite("/students", { access: siteAccess(trainerOnly) });
     await screen.findByRole("list", { name: "شاگردان من" });
 
     fireEvent.change(screen.getByRole("searchbox", { name: "جست‌وجوی شاگرد" }), {
@@ -169,7 +188,7 @@ describe("TrainerArea", () => {
       "GET /api/site/me": () => json(200, trainerOnly),
       "GET /api/site/coaching/students": () => json(200, { requests: [], students: [ali, neda] }),
     });
-    renderSite("/", { access: siteAccess(trainerOnly) });
+    renderSite("/students", { access: siteAccess(trainerOnly) });
     await screen.findByRole("list", { name: "شاگردان من" });
 
     fireEvent.change(screen.getByRole("searchbox", { name: "جست‌وجوی شاگرد" }), {
@@ -185,7 +204,7 @@ describe("TrainerArea", () => {
       "GET /api/site/me": () => json(200, trainerOnly),
       "GET /api/site/coaching/students": () => json(200, { requests: [], students: [ali, neda] }),
     });
-    renderSite("/", { access: siteAccess(trainerOnly) });
+    renderSite("/students", { access: siteAccess(trainerOnly) });
     await screen.findByRole("list", { name: "شاگردان من" });
 
     fireEvent.change(screen.getByRole("searchbox", { name: "جست‌وجوی شاگرد" }), {
@@ -196,12 +215,12 @@ describe("TrainerArea", () => {
     expect(screen.queryByRole("list", { name: "شاگردان من" })).not.toBeInTheDocument();
   });
 
-  it("Trainer_Home_HasNoEndButton", async () => {
+  it("Trainer_StudentsPage_HasNoEndButton", async () => {
     mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
       "GET /api/site/coaching/students": () => json(200, { requests: [], students: [ali] }),
     });
-    renderSite("/", { access: siteAccess(trainerOnly) });
+    renderSite("/students", { access: siteAccess(trainerOnly) });
 
     const students = within(await screen.findByRole("list", { name: "شاگردان من" }));
 

@@ -77,7 +77,7 @@ export function StudentSchedulePage() {
     <SiteFrame>
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="sm">
-          <Link to={sitePaths.home} aria-label="بازگشت">
+          <Link to={sitePaths.students} aria-label="بازگشت">
             <ArrowRight aria-hidden />
           </Link>
         </Button>
@@ -495,7 +495,7 @@ function EndCoachingCard({ student }: { student: StudentSchedule }) {
           onConfirm={(close) =>
             end.mutate(student.memberId, {
               onSettled: close,
-              onSuccess: () => void navigate(sitePaths.home, { replace: true }),
+              onSuccess: () => void navigate(sitePaths.students, { replace: true }),
             })
           }
         />

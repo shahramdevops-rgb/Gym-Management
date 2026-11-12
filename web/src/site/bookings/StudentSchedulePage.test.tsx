@@ -44,7 +44,7 @@ async function bodyOf(request: Request) {
 }
 
 describe("the trainer's «برنامهٔ ثابت» of a student", () => {
-  it("Home_Student_LinksToTheirFixedSchedule", async () => {
+  it("Students_Student_LinksToTheirFixedSchedule", async () => {
     mockApi({
       ...emptyHome,
       "GET /api/site/me": () => json(200, trainerOnly),
@@ -63,7 +63,7 @@ describe("the trainer's «برنامهٔ ثابت» of a student", () => {
         }),
     });
 
-    renderSite("/", { access: siteAccess(trainerOnly) });
+    renderSite("/students", { access: siteAccess(trainerOnly) });
 
     expect(await screen.findByRole("link", { name: "برنامهٔ ثابت سارا احمدی" })).toHaveAttribute(
       "href",

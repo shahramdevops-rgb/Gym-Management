@@ -44,7 +44,7 @@ export function StudentAttendancePage() {
     <SiteFrame>
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="sm">
-          <Link to={sitePaths.home} aria-label="بازگشت">
+          <Link to={sitePaths.students} aria-label="بازگشت">
             <ArrowRight aria-hidden />
           </Link>
         </Button>

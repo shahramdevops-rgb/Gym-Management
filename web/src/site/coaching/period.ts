@@ -47,7 +47,10 @@ export function daysLeftText(daysLeft: number): string {
   return daysLeft === 1 ? "امروز روز آخر است" : `${toPersianDigits(daysLeft)} روز مانده`;
 }
 
-/** The short mark in «شاگردان من»: only when the trainer has something to do. */
+/**
+ * The short mark in «شاگردان من»: only when the trainer has something to do. Days left read «۲ روز»,
+ * without «مانده», and the last one «روز آخر» (the developer, 1405/08/20: the mark stays small).
+ */
 export function periodMark(state: PeriodState): string | null {
   switch (state.kind) {
     case "unset":
@@ -55,7 +58,10 @@ export function periodMark(state: PeriodState): string | null {
     case "over":
       return "دوره تمام شد";
     case "running":
-      return state.daysLeft <= periodSoonDays ? daysLeftText(state.daysLeft) : null;
+      if (state.daysLeft > periodSoonDays) {
+        return null;
+      }
+      return state.daysLeft === 1 ? "روز آخر" : `${toPersianDigits(state.daysLeft)} روز`;
   }
 }
 

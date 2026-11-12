@@ -313,7 +313,7 @@ describe("the trainer's attendance (15.7b, 15.7d)", () => {
     expect(screen.queryByRole("heading", { name: "امروز" })).not.toBeInTheDocument();
   });
 
-  it("Home_TrainersStudent_LeadsToTheirAttendance", async () => {
+  it("Students_TrainersStudent_LeadsToTheirAttendance", async () => {
     mockApi({
       ...emptyHome,
       "GET /api/site/me": () => json(200, trainerOnly.me),
@@ -321,7 +321,7 @@ describe("the trainer's attendance (15.7b, 15.7d)", () => {
         json(200, { requests: [], students: [{ ...ali, since: "2026-10-01", isActive: true }] }),
       [`GET ${attendancePath}`]: () => json(200, month),
     });
-    renderSite("/", { access: trainerOnly });
+    renderSite("/students", { access: trainerOnly });
 
     fireEvent.click(await screen.findByRole("link", { name: "حضور علی محمدی" }));
 

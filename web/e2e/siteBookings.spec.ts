@@ -72,9 +72,7 @@ async function linkThem(memberPage: Page, trainerPage: Page) {
   // «پذیرفتن», then the coaching period's 30 days as they are (15.7h).
   await requests.getByRole("button", { name: "پذیرفتن" }).click();
   await requests.getByRole("button", { name: "پذیرفتن" }).click();
-  await expect(trainerPage.getByRole("list", { name: "شاگردان من" })).toContainText(
-    member.fullName,
-  );
+  await expect(trainerPage.getByRole("link", { name: "شاگردان من (۱)" })).toBeVisible();
 }
 
 /** Two sessions on each of `days`: 13:00 to 14:00, then 14:00 to 15:00, from tomorrow. */
@@ -112,6 +110,7 @@ test("SiteBookings_TrainerPlacesAStudent_MemberLeavesAndMovesADate", async ({ pa
 
   // The trainer: the student's «برنامهٔ ثابت», 13:00 on each of the four days.
   await trainerPage.getByRole("link", { name: "بازگشت" }).click();
+  await trainerPage.getByRole("link", { name: "شاگردان من (۱)" }).click();
   await trainerPage.getByRole("link", { name: `برنامهٔ ثابت ${member.fullName}` }).click();
   await trainerPage.getByRole("button", { name: "ساختن برنامه" }).click();
   for (const day of days) {
