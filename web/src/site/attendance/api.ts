@@ -83,3 +83,21 @@ export function useStudentAttendance(memberId: string, from: string, to: string)
     },
   });
 }
+
+const myAttendanceKey = (from: string) => [...bookingsQueryKey, "my-attendance", from] as const;
+
+/** «حضور من» (roadmap 15.7j): the member's own sessions from `from` to `to`, and the totals. */
+export function useMyAttendance(from: string, to: string) {
+  return useQuery({
+    queryKey: myAttendanceKey(from),
+    queryFn: async () => {
+      const { data, error } = await siteApi.GET("/api/site/me/attendance", {
+        params: { query: { from, to } },
+      });
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+  });
+}

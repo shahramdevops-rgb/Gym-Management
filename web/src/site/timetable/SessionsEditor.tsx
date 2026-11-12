@@ -2,6 +2,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useId } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toPersianDigits } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,8 @@ const minutes = Array.from({ length: 60 / minuteStep }, (_, step) =>
 );
 const capacities = Array.from({ length: 50 }, (_, index) => index + 1);
 const maxSessions = 20;
+/** The API's `SessionNoteText.MaxStandingLength`: the box takes no more. */
+const maxNoteLength = 100;
 
 // The site keeps its own copy of the panel's select look (FormField's), as it does its labels.
 const selectClassName = cn(
@@ -28,7 +31,8 @@ const selectClassName = cn(
 );
 
 /**
- * One day's sessions, each a small box: start, end, capacity, «VIP» and «حذف». The times are an hour
+ * One day's sessions, each a small box: start, end, capacity, «VIP», «حذف» and under them the
+ * standing note (15.7e), a line of its own. The times are an hour
  * from 07 to 22 and a minute on the quarter hour; a time past 22:00 or one before the start is the
  * box's problem, not refused while choosing. A box with a problem
  * (`sessionProblems`) turns red and says it under its own times, and a day stops at 20 sessions.
@@ -106,6 +110,16 @@ export function SessionsEditor({
               >
                 <Trash2 aria-hidden />
               </Button>
+              {/* «یادداشت ثابت» (15.7e): seen on this session every week, by the trainer and its students. */}
+              <Input
+                aria-label={`یادداشت ثابت سانس ${toPersianDigits(index + 1)}`}
+                placeholder="یادداشت ثابت (اختیاری)، مثلاً مخصوص مبتدی‌ها"
+                className="h-10 w-full text-sm"
+                maxLength={maxNoteLength}
+                value={session.note}
+                disabled={disabled}
+                onChange={(event) => change(session.key, { note: event.target.value })}
+              />
               {problem !== undefined && (
                 <p className="w-full text-sm text-destructive">{problem}</p>
               )}

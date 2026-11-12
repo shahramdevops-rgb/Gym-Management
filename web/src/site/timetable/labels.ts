@@ -106,12 +106,12 @@ export const latestEnd = "22:00";
 
 /**
  * What «افزودن سانس» puts in: right after the day's last session, as long and as full, or 08:00.
- * A normal session: VIP is the trainer's choice for each one.
+ * A normal session with no note: VIP and the standing note are the trainer's choice for each one.
  */
 export function nextSession(sessions: readonly SessionInput[]): SessionInput {
   const last = sessions.at(-1);
   if (last === undefined) {
-    return { start: "08:00", end: "09:00", capacity: 10, isVip: false };
+    return { start: "08:00", end: "09:00", capacity: 10, isVip: false, note: "" };
   }
 
   const toMinute = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
@@ -123,6 +123,6 @@ export function nextSession(sessions: readonly SessionInput[]): SessionInput {
     `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 
   return start >= end
-    ? { ...last, isVip: false }
-    : { start: asTime(start), end: asTime(end), capacity: last.capacity, isVip: false };
+    ? { ...last, isVip: false, note: "" }
+    : { start: asTime(start), end: asTime(end), capacity: last.capacity, isVip: false, note: "" };
 }

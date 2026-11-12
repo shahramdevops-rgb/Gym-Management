@@ -26,6 +26,7 @@ using Gym.Application.Bookings.CancelMyLeave;
 using Gym.Application.Bookings.CheckStudentSchedule;
 using Gym.Application.Bookings.EndStudentSchedule;
 using Gym.Application.Bookings.GetLeaveRequests;
+using Gym.Application.Bookings.GetMyAttendance;
 using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
@@ -180,7 +181,9 @@ using Gym.Application.Timetables.CheckResetTimetableDay;
 using Gym.Application.Timetables.CheckTimetableDay;
 using Gym.Application.Timetables.CheckWeekPattern;
 using Gym.Application.Timetables.GetTimetable;
+using Gym.Application.Timetables.RemoveSessionNote;
 using Gym.Application.Timetables.ResetTimetableDay;
+using Gym.Application.Timetables.SetSessionNote;
 using Gym.Application.Timetables.SetTimetableDay;
 using Gym.Application.Timetables.SetWeekPattern;
 using Gym.Application.Trainers.CreateTrainer;
@@ -291,6 +294,8 @@ public static class DependencyInjection
         services.AddScoped<EndStudentScheduleHandler>();
         services.AddScoped<GetSessionStudentsHandler>();
         services.AddScoped<RemoveSessionStudentHandler>();
+        services.AddScoped<SetSessionNoteHandler>();
+        services.AddScoped<RemoveSessionNoteHandler>();
         services.AddScoped<GetMySessionsHandler>();
         services.AddScoped<LeaveMySessionHandler>();
         services.AddScoped<CancelMyLeaveHandler>();
@@ -306,6 +311,7 @@ public static class DependencyInjection
         // Attendance for the trainer, from the desk's check-ins (BUSINESS_RULES.md §15, task 15.7).
         services.AddScoped<GetTrainerDayHandler>();
         services.AddScoped<GetStudentAttendanceHandler>();
+        services.AddScoped<GetMyAttendanceHandler>();
 
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<UpdateMemberHandler>();

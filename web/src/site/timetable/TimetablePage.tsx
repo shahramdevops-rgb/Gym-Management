@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, NotebookPen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate } from "react-router";
 
@@ -57,6 +57,7 @@ import {
   weekDays,
 } from "./labels";
 import { SessionsEditor } from "./SessionsEditor";
+import { SessionNotes } from "./SessionNotes";
 import { VipBadge } from "./VipBadge";
 import { WeekNav } from "./WeekNav";
 
@@ -160,19 +161,22 @@ function PatternCard({ timetable }: { timetable: Timetable }) {
                           <p className="text-xs text-muted-foreground">بدون سانس</p>
                         ) : (
                           sessions.map((session) => (
-                            <p key={session.start + session.end} className="text-xs">
-                              {formatSessionTimes(session)}
-                              <span className="text-muted-foreground">
-                                {" "}
-                                · {formatCapacity(session.capacity)}
-                              </span>
-                              {session.isVip && (
-                                <>
+                            <div key={session.start + session.end} className="space-y-0.5">
+                              <p className="text-xs">
+                                {formatSessionTimes(session)}
+                                <span className="text-muted-foreground">
                                   {" "}
-                                  <VipBadge />
-                                </>
-                              )}
-                            </p>
+                                  · {formatCapacity(session.capacity)}
+                                </span>
+                                {session.isVip && (
+                                  <>
+                                    {" "}
+                                    <VipBadge />
+                                  </>
+                                )}
+                              </p>
+                              <SessionNotes note={session.note} compact />
+                            </div>
                           ))
                         )}
                       </li>
@@ -432,6 +436,9 @@ function DaySessions({ day }: { day: TimetableDay }) {
         >
           {formatSessionTimes(session)} · {formatTaken(session.students, session.capacity)}
           {session.isVip && <VipBadge />}
+          {(session.note || session.dateNote) && (
+            <NotebookPen aria-label="یادداشت دارد" className="size-3 text-primary" />
+          )}
         </span>
       ))}
     </span>

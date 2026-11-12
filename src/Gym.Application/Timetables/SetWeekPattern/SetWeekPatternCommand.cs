@@ -6,9 +6,11 @@ namespace Gym.Application.Timetables.SetWeekPattern;
 public sealed record SetWeekPatternCommand(DateOnly StartsOn, IReadOnlyList<WeeklySessionItem> Sessions);
 
 /// <param name="IsVip">Left out, the session is a normal one (15.6e): a page from before VIP still saves.</param>
+/// <param name="Note">The standing note («یادداشت ثابت», 15.7e); left out or blank, none.</param>
 public sealed record WeeklySessionItem(
     [property: JsonConverter(typeof(JsonStringEnumConverter<DayOfWeek>))] DayOfWeek Day,
     TimeOnly Start,
     TimeOnly End,
     int Capacity,
-    bool IsVip = false);
+    bool IsVip = false,
+    string? Note = null);

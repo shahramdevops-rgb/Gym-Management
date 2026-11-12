@@ -8,6 +8,7 @@ import { errorMessage } from "@/lib/errors";
 import { sitePaths } from "../paths";
 import { formatDayLabel, formatSessionTimes } from "../timetable/labels";
 import { useMySessions } from "./api";
+import { SessionNotes } from "../timetable/SessionNotes";
 import { PlaceBadges } from "./PlaceBadges";
 
 /** The next dates on the home; the rest, and leaving or moving one, on «سانس‌های من». */
@@ -60,6 +61,7 @@ export function MySessionsCard() {
                     <p className="flex flex-wrap gap-1">
                       <PlaceBadges place={place} />
                     </p>
+                    <SessionNotes note={place.note} dateNote={place.dateNote} compact />
                   </li>
                 ))}
               </ul>

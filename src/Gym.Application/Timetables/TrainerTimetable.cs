@@ -34,18 +34,27 @@ internal static class TrainerTimetable
             .Where(day => day.TrainerId == trainerId && day.Date >= from && day.Date <= to)
             .ToDictionaryAsync(day => day.Date, cancellationToken);
 
-    /// <summary>Each date's sessions from <paramref name="from"/> to <paramref name="to"/>, as <see cref="TimetableRules.SessionsOn"/> works them out.</summary>
+    /// <summary>
+    /// Each date's sessions from <paramref name="from"/> to <paramref name="to"/>, as
+    /// <see cref="TimetableRules.SessionsOn"/> works them out, with the notes on single dates (15.7e).
+    /// </summary>
     public static async Task<TimetableDates> DatesAsync(IAppDbContext db, Guid trainerId, DateOnly from, DateOnly to, CancellationToken cancellationToken)
     {
         var patterns = await PatternsFromAsync(db, trainerId, from, cancellationToken);
         var changed = await ChangedDaysAsync(db, trainerId, from, to, cancellationToken);
+        var notes = await db.SessionNotes.AsNoTracking()
+            .Where(note => note.TrainerId == trainerId && note.Date >= from && note.Date <= to)
+            .ToDictionaryAsync(note => (note.Date, note.Start, note.End), note => note.Text, cancellationToken);
 
-        return new TimetableDates(patterns, changed);
+        return new TimetableDates(patterns, changed, notes);
     }
 }
 
 /// <summary>A trainer's timetable over some dates, read once: a date's sessions are then worked out in memory.</summary>
-internal sealed class TimetableDates(IReadOnlyList<WeekPattern> patterns, IReadOnlyDictionary<DateOnly, TimetableDay> changed)
+internal sealed class TimetableDates(
+    IReadOnlyList<WeekPattern> patterns,
+    IReadOnlyDictionary<DateOnly, TimetableDay> changed,
+    IReadOnlyDictionary<(DateOnly Date, TimeOnly Start, TimeOnly End), string> dateNotes)
 {
     public IReadOnlyList<WeekPattern> Patterns => patterns;
 
@@ -54,4 +63,12 @@ internal sealed class TimetableDates(IReadOnlyList<WeekPattern> patterns, IReadO
     /// <summary>The date's sessions, earliest first; the date must be in the range read.</summary>
     public IReadOnlyList<PlannedSession> SessionsOn(DateOnly date) =>
         TimetableRules.SessionsOn(date, patterns, changed.GetValueOrDefault(date));
+
+    /// <summary>
+    /// The trainer's note on <paramref name="session"/> of <paramref name="date"/> alone («یادداشت این
+    /// روز», 15.7e); <c>null</c> for none. Asked only for a session the date has: a note whose session
+    /// was removed or moved is not shown (BUSINESS_RULES.md §15 <i>Session notes</i>).
+    /// </summary>
+    public string? DateNoteOf(DateOnly date, PlannedSession session) =>
+        dateNotes.GetValueOrDefault((date, session.Start, session.End));
 }

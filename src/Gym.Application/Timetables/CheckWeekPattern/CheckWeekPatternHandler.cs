@@ -25,7 +25,7 @@ public sealed class CheckWeekPatternHandler(IAppDbContext db, IGymCalendar calen
 
         var trainerId = trainer.Value.Id;
         var today = calendar.Today();
-        var sessions = command.Sessions.Select(item => new WeeklySession(item.Day, item.Start, item.End, item.Capacity, item.IsVip)).ToList();
+        var sessions = command.Sessions.Select(item => new WeeklySession(item.Day, item.Start, item.End, item.Capacity, item.IsVip, item.Note)).ToList();
         var pattern = WeekPattern.Create(trainerId, command.StartsOn, sessions, today);
         if (pattern.IsFailure)
         {

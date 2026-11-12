@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { errorMessage } from "@/lib/errors";
 import { formatDate, gymToday } from "@/lib/format";
 
-import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ConfirmDialog, quietButtonClassName } from "../components/ConfirmDialog";
 import { sitePaths } from "../paths";
 import { useCancelTrainerRequest, useEndMyTrainer, useMyTrainer } from "./api";
 import { periodLine, periodState } from "./period";
@@ -18,6 +18,10 @@ import { periodLine, periodState } from "./period";
  * stays until the new one accepts), or neither. Picking is on its own page; ending asks first.
  * The coaching period's last day and the days left show under the trainer's name (15.7h); a link
  * from before it shows nothing until the trainer gives one.
+ *
+ * With a trainer, «تغییر مربی» and «پایان مربی‌گری» are small grey text at the card's foot (the
+ * developer, 1405/08/20: "not so much in sight"), as the trainer's «پایان» left their home (15.7g);
+ * without one, «انتخاب مربی» is the card's own button.
  */
 export function MyTrainerCard() {
   const myTrainer = useMyTrainer();
@@ -45,24 +49,16 @@ export function MyTrainerCard() {
             {myTrainer.data.trainer === null ? (
               <p className="text-sm text-muted-foreground">هنوز مربی ندارید.</p>
             ) : (
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-semibold">{myTrainer.data.trainer.fullName}</p>
+              <div>
+                <p className="font-semibold">{myTrainer.data.trainer.fullName}</p>
+                <p className="text-sm text-muted-foreground">
+                  از {formatDate(myTrainer.data.trainer.since)}
+                </p>
+                {myTrainer.data.trainer.periodEndsOn !== null && (
                   <p className="text-sm text-muted-foreground">
-                    از {formatDate(myTrainer.data.trainer.since)}
+                    {periodLine(periodState(myTrainer.data.trainer.periodEndsOn, gymToday()))}
                   </p>
-                  {myTrainer.data.trainer.periodEndsOn !== null && (
-                    <p className="text-sm text-muted-foreground">
-                      {periodLine(periodState(myTrainer.data.trainer.periodEndsOn, gymToday()))}
-                    </p>
-                  )}
-                </div>
-                <ConfirmDialog
-                  label="پایان مربی‌گری"
-                  question={`مربی‌گری ${myTrainer.data.trainer.fullName} برای شما از امروز تمام می‌شود. ادامه می‌دهید؟`}
-                  pending={end.isPending}
-                  onConfirm={(close) => end.mutate(undefined, { onSettled: close })}
-                />
+                )}
               </div>
             )}
 
@@ -86,11 +82,24 @@ export function MyTrainerCard() {
 
             {failure !== null && <Alert variant="destructive">{errorMessage(failure)}</Alert>}
 
-            <Button asChild variant="secondary" className="w-full">
-              <Link to={sitePaths.trainers}>
-                {myTrainer.data.trainer === null ? "انتخاب مربی" : "تغییر مربی"}
-              </Link>
-            </Button>
+            {myTrainer.data.trainer === null ? (
+              <Button asChild variant="secondary" className="w-full">
+                <Link to={sitePaths.trainers}>انتخاب مربی</Link>
+              </Button>
+            ) : (
+              <div className="flex flex-wrap justify-end gap-x-1 border-t pt-2">
+                <Button asChild variant="ghost" size="sm" className={quietButtonClassName}>
+                  <Link to={sitePaths.trainers}>تغییر مربی</Link>
+                </Button>
+                <ConfirmDialog
+                  quiet
+                  label="پایان مربی‌گری"
+                  question={`مربی‌گری ${myTrainer.data.trainer.fullName} برای شما از امروز تمام می‌شود. ادامه می‌دهید؟`}
+                  pending={end.isPending}
+                  onConfirm={(close) => end.mutate(undefined, { onSettled: close })}
+                />
+              </div>
+            )}
           </>
         )}
       </CardContent>

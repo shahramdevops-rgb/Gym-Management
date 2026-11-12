@@ -102,6 +102,8 @@ public interface IAppDbContext
 
     DbSet<TimetableDay> TimetableDays { get; }
 
+    DbSet<SessionNote> SessionNotes { get; }
+
     DbSet<FixedSchedule> FixedSchedules { get; }
 
     DbSet<SessionSkip> SessionSkips { get; }

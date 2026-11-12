@@ -9,6 +9,7 @@ using Gym.Application.Bookings.CancelMyLeave;
 using Gym.Application.Bookings.CheckStudentSchedule;
 using Gym.Application.Bookings.EndStudentSchedule;
 using Gym.Application.Bookings.GetLeaveRequests;
+using Gym.Application.Bookings.GetMyAttendance;
 using Gym.Application.Bookings.GetMyCancellations;
 using Gym.Application.Bookings.GetMySessions;
 using Gym.Application.Bookings.GetSessionStudents;
@@ -171,6 +172,17 @@ public static class SiteBookingEndpoints
             .WithName("MoveMySession")
             .Produces<MySessionsResponse>()
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        // «حضور من» (BUSINESS_RULES.md §15 The member's own attendance, 15.7j): read only.
+        app.MapGet($"{SitePaths.Root}/me/attendance", async (DateOnly from, DateOnly to, ClaimsPrincipal user, GetMyAttendanceHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), from, to, ct)).ToHttpResult())
+            .WithTags("Site bookings")
+            .RequireAuthorization(Policies.SiteMember)
+            .WithName("GetMyAttendance")
+            .Produces<MyAttendanceResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
 
         // «سانس لغو شد» on the home (task 15.6c): the sessions the trainer cancelled, and «دیدم».
         mine.MapGet("/cancelled", async (ClaimsPrincipal user, GetMyCancellationsHandler handler, CancellationToken ct) =>

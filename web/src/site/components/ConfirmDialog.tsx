@@ -19,7 +19,13 @@ interface ConfirmDialogProps {
   onConfirm: (close: () => void) => void;
   /** The opening button full width, as «خروج» at the foot of the home; small otherwise. */
   wide?: boolean;
+  /** The opening button as small grey text, for an action that should not catch the eye. */
+  quiet?: boolean;
 }
+
+/** A quiet button: small grey text, as «پایان مربی‌گری» on the member's «مربی من». */
+export const quietButtonClassName =
+  "h-auto px-1.5 py-1 text-xs font-normal text-muted-foreground hover:text-foreground";
 
 /**
  * A button that asks before a change that cannot be taken back (BUSINESS_RULES.md §15 *A member
@@ -33,15 +39,16 @@ export function ConfirmDialog({
   pending,
   onConfirm,
   wide = false,
+  quiet = false,
 }: ConfirmDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
       <Button
-        variant="outline"
+        variant={quiet ? "ghost" : "outline"}
         size={wide ? "default" : "sm"}
-        className={wide ? "w-full" : undefined}
+        className={wide ? "w-full" : quiet ? quietButtonClassName : undefined}
         onClick={() => setOpen(true)}
       >
         {label}

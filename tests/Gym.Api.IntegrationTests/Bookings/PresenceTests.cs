@@ -6,6 +6,7 @@ using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Api.IntegrationTests.SiteAuth;
 using Gym.Application.Bookings;
+using Gym.Application.Bookings.GetMyAttendance;
 using Gym.Application.Bookings.GetStudentAttendance;
 using Gym.Application.Bookings.GetTrainerDay;
 using Gym.Application.Common;
@@ -466,6 +467,69 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
         attendance.Outside.ShouldBeEmpty();
     }
 
+    // ---- «حضور من», the member's own (15.7j) ----
+
+    [Fact]
+    public async Task MyAttendance_TwoWeeks_SameSessionsAndTotalsAsTheTrainerSees()
+    {
+        var gym = await GymAsync();
+        await VisitAsync(gym.MemberId, At(gym.Saturday, 13, 20), checkedOutAt: At(gym.Saturday, 15, 0));
+        await VisitAsync(gym.MemberId, At(gym.Saturday.AddDays(2), 12, 45), checkedOutAt: At(gym.Saturday.AddDays(2), 14, 0));
+        await VisitAsync(gym.MemberId, At(gym.Saturday.AddDays(2), 18, 0));
+        var nextSaturday = gym.Saturday.AddDays(7);
+        var at = At(nextSaturday, 20, 0);
+
+        var mine = await MyAttendanceAsync(gym, gym.Saturday, nextSaturday.AddDays(3), at);
+        var trainers = await AttendanceAsync(gym, gym.Saturday, nextSaturday.AddDays(3), at);
+
+        mine.Sessions.ShouldBe(trainers.Sessions);
+        mine.Totals.ShouldBe(trainers.Totals);
+        mine.Totals.ShouldBe(new AttendanceTotals(OnTime: 1, Late: 1, CameAfter: 0, Absent: 1, Leave: 0, Cancelled: 0));
+        mine.Sessions.ShouldAllBe(row => row.TrainerName == null);
+        trainers.Outside.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public async Task MyAttendance_AnEarlierTrainersSession_NamesThatTrainer()
+    {
+        var gym = await GymAsync();
+        await VisitAsync(gym.MemberId, At(gym.Saturday, 13, 0));
+        await EndLinkOnAsync(gym.Saturday);
+
+        var mine = await MyAttendanceAsync(gym, gym.Saturday, gym.Saturday, At(gym.Saturday, 20, 0));
+
+        var session = mine.Sessions.ShouldHaveSingleItem();
+        (session.State, session.TrainerName).ShouldBe((SessionPresence.OnTime, "رضا محمدی"));
+    }
+
+    [Fact]
+    public async Task MyAttendance_OverTheEndpoint_IsTheMembersOwnAndRefusesATrainer()
+    {
+        var gym = await GymAsync();
+        var path = $"/api/site/me/attendance?from={Iso(gym.Saturday)}&to={Iso(gym.Saturday.AddDays(30))}";
+
+        using var asMember = await gym.Client.SendAsync(Send(HttpMethod.Get, path, gym.MemberToken), TestContext.Current.CancellationToken);
+        using var asTrainer = await gym.Client.SendAsync(Send(HttpMethod.Get, path, gym.TrainerToken), TestContext.Current.CancellationToken);
+
+        asMember.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await asMember.ReadJsonAsync();
+        body.TryGetProperty("outside", out _).ShouldBeFalse();
+        body.TryGetProperty("memberId", out _).ShouldBeFalse();
+        asTrainer.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task MyAttendance_RangeLongerThan62Days_Returns400()
+    {
+        var gym = await GymAsync();
+        var path = $"/api/site/me/attendance?from={Iso(gym.Saturday)}&to={Iso(gym.Saturday.AddDays(PresenceRules.MaxRangeDays))}";
+
+        using var response = await gym.Client.SendAsync(Send(HttpMethod.Get, path, gym.MemberToken), TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.ReadErrorCodeAsync()).ShouldBe(BookingErrors.AttendanceRangeInvalid.Code);
+    }
+
     [Fact]
     public async Task Attendance_CheckInsOutsideTheSessions_AreListedByDate()
     {
@@ -594,6 +658,30 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
 
         result.IsSuccess.ShouldBeTrue();
         return result.Value;
+    }
+
+    private async Task<MyAttendanceResponse> MyAttendanceAsync(Gym gym, DateOnly from, DateOnly to, DateTimeOffset at)
+    {
+        await using var scope = Fixture.CreateScope();
+        var handler = new GetMyAttendanceHandler(scope.ServiceProvider.GetRequiredService<IAppDbContext>(), CalendarAt(at));
+
+        var result = await handler.Handle(await MemberAccountIdAsync(), from, to, TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        return result.Value;
+    }
+
+    /// <summary>
+    /// The link ended on <paramref name="day"/> (by the member): the trainer becomes an earlier one,
+    /// named on their sessions, and that day's session stays. Written straight to the database, since
+    /// a link ends only on the real today through the API.
+    /// </summary>
+    private async Task EndLinkOnAsync(DateOnly day)
+    {
+        await using var scope = Fixture.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlAsync(
+            $"UPDATE trainer_links SET ended_on = {day}, end_reason = 'ByMember'",
+            TestContext.Current.CancellationToken);
     }
 
     private static GymCalendar CalendarAt(DateTimeOffset at) =>
@@ -777,6 +865,16 @@ public sealed class PresenceTests(DatabaseFixture fixture) : DatabaseTestBase(fi
     }
 
     /// <summary>The site account the trainer signed in with: the handlers take the account, not the trainer.</summary>
+    private async Task<Guid> MemberAccountIdAsync()
+    {
+        await using var scope = Fixture.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().SiteAccounts.AsNoTracking()
+            .Where(account => account.MemberId != null)
+            .Select(account => account.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
     private async Task<Guid> TrainerAccountIdAsync()
     {
         await using var scope = Fixture.CreateScope();

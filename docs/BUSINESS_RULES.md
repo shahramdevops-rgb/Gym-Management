@@ -2892,9 +2892,34 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   - **The waiting requests show their count**, «درخواست‌ها (۲)», and come first on the trainer's
     home. A number on the app's icon is not possible: Chrome on Android shows one only with a
     notification, and notifications are not reliable from Iran (above). *Proposed by Claude.*
-  - *Queued for 15.7e, not decided:* a note on a session, seen by the trainer and the students
-    (*decided by the developer*), and "extra time" outside the pattern (which of the two meanings
-    is still to ask).
+  - A note on a session, seen by the trainer and the students (*decided by the developer*): built
+    in 15.7e, *Session notes* below. "Extra time" (the trainer putting a student in a date outside
+    their fixed schedule, for those who work and cannot come at their time) was **dropped for now**
+    by the developer, 1405/08/19: not to be raised again unless asked.
+
+### Session notes (یادداشت سانس, 15.7e)
+*Decided by the developer*, 1405/08/20, unless marked otherwise:
+- **Two kinds of note, both written by the trainer only**; the students read them.
+  - **«یادداشت ثابت»**, on a session of the timetable (the weekly pattern, or a date changed by
+    hand), e.g. «مخصوص مبتدی‌ها»: seen every week the session is there. It is part of the session,
+    as the VIP label is: written in the same editors, carried by «کپی به روزهای دیگر», and a
+    session of today that has started keeps it too. Changing it touches no student, so it gives no
+    warning and cancels nothing (*proposed by Claude*).
+  - **«یادداشت این روز»**, on one date's session, e.g. «امروز تمرین پا است»: written from «شاگردان
+    سانس». It does not make the date "changed by hand", so later patterns still reach it
+    (*proposed by Claude*).
+- **Who sees them: every student of that session**, those with leave from that date too; the
+  trainer sees them in «تمام سانس‌های من» (a mark on the date's session), «شاگردان سانس», the day
+  of attendance (earlier days included) and a student's «برنامهٔ ثابت».
+- **Told only under the session**: in «سانس‌های من» and the home's card, under that date. No card
+  of its own, no SMS.
+- *Proposed by Claude, accepted with the plan:* a standing note is 100 characters at most, a date's
+  note 300; kept without spaces at either end, and a blank one is none. A date's note is written,
+  changed or removed («پاک کردن یادداشت», asked first) until its session ends, then stays as it
+  was. A session removed or moved to other times takes its date's note out of sight (it shows again
+  if the session comes back), and a cancelled session («لغو شد») shows none. Notes are in «گزارش
+  تغییرات» as «سیستم», as the timetable and every other change are (§11). The member's «حضور من» and the trainer's «حضور» of a month
+  show no notes.
 
 ### Leave by request (مرخصی با درخواست, 15.7i)
 *Decided by the developer*, 1405/08/19: the student asks, the trainer accepts, then the student may
@@ -2922,6 +2947,18 @@ marked *proposed* were Claude's, accepted with the plan.
     another of the same trainer's sessions with room, until the session starts.
 - **The «نمی‌آیم»s saved before 15.7i stay leaves** («مرخصی»), as if accepted; nothing is refused
   or removed.
+
+### The member's own attendance (حضور من, 15.7j)
+*Asked with 15.7a and kept for later* (the developer, 1405/08/13); *built* 1405/08/19, Claude's
+three proposals accepted as offered.
+- **The member sees their own attendance by Jalali month**, «حضور من», from «سانس‌های من»: each of
+  their sessions up to today with its state, exactly as their trainer sees it (on time, late, came
+  after, absent, leave, «مرخصی داشت», cancelled), and the month's totals. Read only. A session with
+  a trainer other than the one now names that trainer.
+- **«خارج از سانس» is the trainer's alone**: the member sees their gym visits in «سوابق من».
+  *Proposed by Claude.*
+- **The member sees their own absences, with no SMS or alert.** *Proposed by Claude.*
+- **Only an active member** reaches it, as the rest of their area. *Proposed by Claude.*
 
 ### Monthly assessment (ارزیابی ماهانه)
 - **The trainer uploads the body analysis as the device's PDF**, and records progress photos, for

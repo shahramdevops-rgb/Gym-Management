@@ -145,13 +145,27 @@ describe("the trainer's timetable", () => {
     expect(await bodyOf(sent!)).toEqual({
       startsOn: tomorrow,
       sessions: [
-        { day: "Saturday", start: "13:00:00", end: "14:00:00", capacity: 8, isVip: false },
+        {
+          day: "Saturday",
+          start: "13:00:00",
+          end: "14:00:00",
+          capacity: 8,
+          isVip: false,
+          note: null,
+        },
       ],
     });
   });
 
   it("BuildPattern_ASessionMarkedVip_SendsItAsVip", async () => {
-    const vip = { day: "Saturday", start: "08:00:00", end: "09:00:00", capacity: 10, isVip: true };
+    const vip = {
+      day: "Saturday",
+      start: "08:00:00",
+      end: "09:00:00",
+      capacity: 10,
+      isVip: true,
+      note: null,
+    };
     const api = mockApi({
       "GET /api/site/me": () => json(200, trainerOnly),
       "GET /api/site/timetable": () => json(200, timetableWith(null)),
@@ -278,7 +292,7 @@ describe("the trainer's timetable", () => {
     );
     const [sent] = api.requestsTo("PUT", "/api/site/timetable/pattern");
     const sessionsOf = (day: string) =>
-      saturdayPattern.sessions.map((session) => ({ ...session, day }));
+      saturdayPattern.sessions.map((session) => ({ ...session, day, note: null }));
     expect(await bodyOf(sent!)).toEqual({
       startsOn: tomorrow,
       sessions: [...sessionsOf("Saturday"), ...sessionsOf("Monday"), ...sessionsOf("Wednesday")],

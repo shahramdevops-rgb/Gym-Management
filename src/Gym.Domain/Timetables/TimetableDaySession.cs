@@ -21,6 +21,9 @@ public sealed class TimetableDaySession : Entity
     /// <summary>Marked VIP by the trainer: for now only a label (BUSINESS_RULES.md §15 <i>VIP sessions</i>).</summary>
     public bool IsVip { get; private set; }
 
+    /// <summary>The trainer's standing note on it, «یادداشت ثابت» (BUSINESS_RULES.md §15 <i>Session notes</i>); <c>null</c> for none.</summary>
+    public string? Note { get; private set; }
+
     internal static TimetableDaySession For(Guid dayId, PlannedSession session) => new()
     {
         DayId = dayId,
@@ -28,7 +31,8 @@ public sealed class TimetableDaySession : Entity
         End = session.End,
         Capacity = session.Capacity,
         IsVip = session.IsVip,
+        Note = session.Note,
     };
 
-    public PlannedSession ToPlanned() => new(Start, End, Capacity, IsVip);
+    public PlannedSession ToPlanned() => new(Start, End, Capacity, IsVip, Note);
 }
