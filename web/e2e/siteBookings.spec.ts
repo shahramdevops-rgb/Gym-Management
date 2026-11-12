@@ -129,7 +129,12 @@ test("SiteBookings_TrainerPlacesAStudent_MemberLeavesAndMovesADate", async ({ pa
   await expect(places).toContainText(monday!);
   await shot(trainerPage, "2-schedule");
 
-  // «شاگردان سانس» of next Monday: the student, taken out of that date only.
+  // «شاگردان سانس» of next Monday: the student, taken out of that date only. «بازگشت» leads to
+  // «شاگردان من» first, then home.
+  await trainerPage.getByRole("link", { name: "بازگشت" }).click();
+  await expect(
+    trainerPage.getByRole("heading", { name: "شاگردان من (۱)", level: 1 }),
+  ).toBeVisible();
   await trainerPage.getByRole("link", { name: "بازگشت" }).click();
   await trainerPage.getByRole("link", { name: "تمام سانس‌های من" }).click();
   await trainerPage.getByRole("button", { name: "هفتهٔ بعد" }).click();
