@@ -39,7 +39,15 @@ export interface NavigationItem {
    * (`gymRoles`): a shop admin sees only the items that name `Shop` (ADR 0011).
    */
   roles?: readonly Role[];
+  /**
+   * The first day the item's «جدید» badge is gone (`NewBadge`): one week after the release that
+   * added it. Left in place after that day; it simply shows nothing.
+   */
+  newUntil?: string;
 }
+
+/** The night of 2026-11-13 release (16.1 to 16.3): «جدید» until 1405/08/29, gone from 1405/08/30. */
+const shopRelease = "2026-11-21";
 
 /** The roles an item is shown to. */
 export function rolesOf(item: NavigationItem): readonly Role[] {
@@ -79,7 +87,7 @@ export const navigation: NavigationGroup[] = [
         icon: Contact,
       },
       // BUSINESS_RULES.md §16 Site users: the Owner and Staff, as the member list.
-      { to: paths.siteUsers, label: "کاربران سایت", icon: Globe },
+      { to: paths.siteUsers, label: "کاربران سایت", icon: Globe, newUntil: shopRelease },
     ],
   },
   {
@@ -138,18 +146,21 @@ export const navigation: NavigationGroup[] = [
         label: "کالاها",
         icon: Package,
         roles: ["Shop", "Owner"],
+        newUntil: shopRelease,
       },
       {
         to: paths.shopCategories,
         label: "دسته‌بندی‌ها",
         icon: Tags,
         roles: ["Shop", "Owner"],
+        newUntil: shopRelease,
       },
       {
         to: paths.shopContacts,
         label: "راه‌های تماس",
         icon: Store,
         roles: ["Shop", "Owner"],
+        newUntil: shopRelease,
       },
     ],
   },

@@ -5151,6 +5151,13 @@ Wanted in the release of the night of 1405/08/21 with the rest of `main` (the de
       phone before 15.7i's leave steps used it; six specs read the sign-in code from the database
       before the code screen showed, so a slow request gave an old code. On the server the `files`
       volume is created by the release itself; the new `backup.sh` arrives with it
+- [x] **The «جدید» badge** (built 1405/08/22, before the release of 16.1 to 16.3, on
+      `task/new-badge`; asked by the developer 1405/08/21): `components/NewBadge.tsx` shows «جدید»
+      until a given day, the first day it is gone, compared with the gym's today, so it vanishes by
+      itself a week after the release with no click. A menu item takes `newUntil` (`navigation.ts`);
+      «کاربران سایت», «کالاها», «دسته‌بندی‌ها» and «راه‌های تماس» carry it until 1405/08/30
+      (`2026-11-21`). Hidden from screen readers, so the links keep their names. Panel only; the
+      site app has none yet. Walked at 390 px and 1440 px with a mocked API
 
 ### 16.4 The shop on the site (ویترین)
 - [ ] Asked first: where the catalogue lives (ADR 0011 proposes the site app, with the public
