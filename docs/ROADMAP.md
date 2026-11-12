@@ -5158,6 +5158,30 @@ Wanted in the release of the night of 1405/08/21 with the rest of `main` (the de
       «کاربران سایت», «کالاها», «دسته‌بندی‌ها» and «راه‌های تماس» carry it until 1405/08/30
       (`2026-11-21`). Hidden from screen readers, so the links keep their names. Panel only; the
       site app has none yet. Walked at 390 px and 1440 px with a mocked API
+- [x] **Release 3, released 1405/08/22 (2026-11-13), 02:45, as `20261113-0245-523f053`** (previous
+      `20261105-0239-0ed5c54`): the coaching work after Release 2 (15.4d, 15.7c, d, e, f, g, h, i,
+      j and «شاگردان من» on a page of its own), 16.0 to 16.3 (site users, the shop admin and their
+      panel, categories, products and photos) and the «جدید» badge. The monthly assessment
+      (15.8/15.9) is not built and stays off the server
+  - Before: on `main` (`523f053`), `dotnet build` 0 warnings, `dotnet test` 3747 green (1411
+    domain, 2336 integration), 1484 Vitest, lint, `format:check`; `npm run e2e` 20 green after one
+    test fix (`34e0fb7`: «بازگشت» from a student's schedule now leads to «شاگردان من»);
+    `npm run screenshots` committed (`523f053`)
+  - Server before (read-only): api and postgres healthy, disk 13%, 2.9 GiB memory available; no
+    account with two roles (so `OneRolePerUser`'s unique index could be built); 6 site users by
+    16.1's rule. Eight migrations (`AddCoachingNews` to `AddShopCatalog`). `./backup.sh run` →
+    `gym-20261113-024500.dump` (2,798,585 bytes, sha256 `a37e9039…16095699`), copied to
+    `D:\gymbackups`, the hashes matching
+  - After: the new tag running, api healthy, no error in the API's log; 73 migrations applied (the
+    repository's 73); the same 6 site users by the stored `registered_at_desk`; the new `files`
+    volume created and writable by the API; from outside, the panel's `/health`, the app and the
+    public page answer 200. Rows: 403 members, 535 subscriptions, 1099 payments, 3230 attendances
+  - A rollback to `20261105-0239-0ed5c54` is **not** harmless: `members.registered_at_desk` is
+    NOT NULL without a default, so the old version could not add a member. Before a rollback:
+    `ALTER TABLE members ALTER COLUMN registered_at_desk SET DEFAULT true;` (the other migrations
+    only add tables, nullable columns and indexes, which the old version ignores)
+  - The gym PC's backup kit (`D:\gym-backup-kit`) still holds the old `pull-backup.ps1`, which
+    does not pull the files archives: refresh it on the next visit
 
 ### 16.4 The shop on the site (ویترین)
 - [ ] Asked first: where the catalogue lives (ADR 0011 proposes the site app, with the public
