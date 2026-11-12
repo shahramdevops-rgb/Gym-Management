@@ -2483,6 +2483,19 @@ The question that started this was whether a gym that is entirely internal — I
 - **`useWatch` instead of `form.watch`.** The React Compiler cannot memoize a component that calls `watch()`; the `useWatch` hook subscribes to one field and keeps the form memoizable (the lint warning `react-hooks/incompatible-library`).
 - **My notes:**
 
+## 16.2 — The shop admin and their panel (مدیر فروشگاه)
+
+- **A policy names its roles, so a new role passes nothing by default.** `OwnerOnly` and `StaffOrOwner` list their roles, so adding `Shop` opened no gym endpoint; the shop got policies of its own (`ShopAdmin` to change, `ShopOrOwner` to read). Had any policy said "any signed-in user", the new role would have walked straight in.
+- **Tighten the fallback too.** The fallback policy is what an endpoint without a policy gets. It used to admit any signed-in staff user; now it names Owner and Staff, so even a forgotten policy refuses the shop admin. Defence in depth: two independent locks for one rule.
+- **Prove a negative by walking every endpoint.** `ShopAdminTests` reads all endpoints from `EndpointDataSource` and calls each one with a shop-admin token, expecting 403. An endpoint added next year is covered without anyone remembering to add it to the test.
+- **One row, enforced by the database.** `shop_settings` is seeded by the migration and a check constraint pins the id (`id = '…'`), so a second row cannot exist even by hand; Respawn deletes it between tests, so the fixture puts it back, as it does for the SMS settings.
+- **A pattern shared by C# and SQL.** `ShopContactRules.HandlePattern` is a public constant used by the regex in the entity and by `col ~ '…'` in the check constraint, so the code and the database cannot drift apart.
+- **`Result<T>` refuses `null`.** An optional value that may be "nothing" is better kept as a plain `string?` checked before, than wrapped in `Result<string?>`, which throws on a null success.
+- **Enums as strings, one property at a time.** `[property: JsonConverter(typeof(JsonStringEnumConverter<StaffRole>))]` makes `role` travel as `"Shop"` rather than `1`, and the generated TypeScript type becomes `"Staff" | "Shop"`.
+- **Read the role from the token to avoid a flash.** The access token already carries the roles, so `GymArea` sends a shop admin to the shop before «me» answers; the unverified read is only for the screen, the API checks the signature on every request.
+- **A unique index on an Identity table.** Identity allows many roles per user; `HasIndex(r => r.UserId).IsUnique()` on `IdentityUserRole<Guid>` narrows that to one in the database, written in `AppDbContext` because Identity's tables have no configuration class of their own. An index added over existing rows fails if they break it, so the server is checked with a read-only query first.
+- **My notes:**
+
 ## 15.7j — «حضور من», the member's own attendance
 
 - **One reading, two doors.** The trainer's «حضور» and the member's «حضور من» call the same `AttendanceReading.ReadAsync`; each handler only checks who may ask and what it may see (a student of mine, or myself). A test compares the two answers, so they cannot drift apart later.
@@ -2497,4 +2510,17 @@ The question that started this was whether a gym that is entirely internal — I
 - **A check constraint mirrors the Domain's normal form.** `note = btrim(note, ...)` and `note <> ''` hold in Postgres what `Normalize` does in C#, so a hand-written UPDATE cannot store a note the app would never write.
 - **Read related data with the data it belongs to.** The date notes load inside `TrainerTimetable.DatesAsync`, so every response that already reads the timetable (four of them) gets `DateNoteOf(date, session)` without a new query in each handler.
 - **Ask the Domain first, then the database.** `SetSessionNoteHandler` lets `SessionNote` refuse an ended session or a date out of range before checking that the session exists, so the trainer hears the real reason, not "no such session".
+- **My notes:**
+
+## 16.3 — Categories, products and photos (دسته‌بندی، کالا و گالری)
+
+- **An aggregate owns its children.** Variants and photos change only through `ShopProduct` (`Update`, `AddPhoto`, `RemovePhoto`, `ReorderPhotos`), so the rules across them (how many, labels unique, positions without gaps) live in one class; EF Core reaches the lists through the private fields (`UsePropertyAccessMode(Field)`).
+- **A child with its own Guid needs `ValueGeneratedNever`.** A photo added to a product already in the database is found through the product's list; with a key EF Core thinks it generates, a set key reads as "already saved" and the insert goes out as an UPDATE that changes 0 rows.
+- **Deferred constraints.** `UNIQUE (product_id, position) DEFERRABLE INITIALLY DEFERRED` is checked at the commit, not row by row, so swapping two photos passes; EF Core cannot describe one, so the migration writes it by hand, and its violation arrives from the commit as a bare `PostgresException`, which `AppDbContext` translates like the others.
+- **Files and rows cannot share a transaction.** The file goes first and is removed if the row fails; the row is deleted first and the file after. Whatever breaks in between leaves an unused file, never a row pointing at nothing.
+- **Re-encode, don't trust.** The photo is decoded and only its pixels written again (WebP), so EXIF (the GPS position of a phone photo) cannot survive; the format is read from the bytes, not the file name, and the size from the header before any pixel is decoded, so a small file claiming a huge canvas is refused.
+- **EXIF orientation.** Phones save the pixels sideways and write "turn a quarter" in EXIF; once EXIF is gone the turn must be applied to the pixels, with a canvas transform per orientation.
+- **A package's licence can change between minor versions.** ImageSharp 3.1 was free, 3.2 stops the build without a key, and 3.1 has an advisory; SkiaSharp (MIT) replaced it. Read the licence and the advisories of the exact version.
+- **Docker named volumes copy the owner of the image's folder.** `mkdir` + `chown` to the app user before `USER` in the Dockerfile lets a non-root API write to a fresh volume.
+- **jsdom's `FormData` is not Node's.** A multipart upload cannot leave a Vitest test through Node's `Request`; the test stands one in, and the real multipart is proved by the API's tests and the browser walk.
 - **My notes:**

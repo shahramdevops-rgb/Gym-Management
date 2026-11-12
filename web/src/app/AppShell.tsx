@@ -5,7 +5,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 
 import { PageSectionContext } from "@/components/pageSection";
 import { Button } from "@/components/ui/button";
-import { hasRole, useCurrentUser, useLogout } from "@/features/auth/api";
+import { gymRoles, hasRole, useCurrentUser, useLogout, useRoles } from "@/features/auth/api";
 import { useSessionState } from "@/features/auth/session";
 import { PayablesDueAlert } from "@/features/payables/components/PayablesDueAlert";
 import { SmsCreditBadge } from "@/features/sms/components/SmsCreditBadge";
@@ -13,7 +13,7 @@ import { toneStyle } from "@/lib/tone";
 import { useIsPhone } from "@/lib/useIsPhone";
 import { cn } from "@/lib/utils";
 
-import { navigation, sectionFor, type NavigationGroup } from "./navigation";
+import { navigation, rolesOf, sectionFor, type NavigationGroup } from "./navigation";
 import { paths } from "./paths";
 import { SidebarClock } from "./SidebarClock";
 import { ThemeToggle } from "./ThemeToggle";
@@ -42,6 +42,7 @@ import { ThemeToggle } from "./ThemeToggle";
 export function AppShell() {
   const state = useSessionState();
   const user = useCurrentUser();
+  const roles = useRoles();
   const logout = useLogout();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -59,8 +60,12 @@ export function AppShell() {
     : navigation
         .map((group) => ({
           ...group,
-          items: group.items.filter(
-            (item) => item.role === undefined || hasRole(user.data, item.role),
+          // The roles come from the token until «me» answers (`useRoles`), so a shop admin never sees
+          // the gym's items (ADR 0011). With neither, what both the Owner and Staff see.
+          items: group.items.filter((item) =>
+            roles.length === 0
+              ? gymRoles.every((role) => rolesOf(item).includes(role))
+              : rolesOf(item).some((role) => roles.includes(role)),
           ),
         }))
         .filter((group) => group.items.length > 0);

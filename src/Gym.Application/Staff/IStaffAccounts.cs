@@ -8,20 +8,22 @@ namespace Gym.Application.Staff;
 /// because Application cannot see the Identity <c>User</c> (ADR 0002).
 /// </summary>
 /// <remarks>
-/// Every method treats an id that is not a Staff account, including the Owner's, as not found.
+/// Every method treats an id that is neither a Staff account nor a shop admin's (§16), including
+/// the Owner's, as not found.
 /// None of them touch refresh tokens or open transactions: the handlers do that, so the rules
 /// about sessions stay in the use cases where they can be read.
 /// </remarks>
 public interface IStaffAccounts
 {
-    /// <summary>Creates the account in the Staff role with <c>MustChangePassword = true</c>.</summary>
+    /// <summary>Creates the account in the role with <c>MustChangePassword = true</c>.</summary>
     Task<Result<StaffResponse>> CreateAsync(
         string userName,
         string fullName,
         string temporaryPassword,
+        StaffRole role,
         CancellationToken cancellationToken);
 
-    /// <summary>Staff only, ordered by full name then user name.</summary>
+    /// <summary>Staff and shop admins, ordered by full name then user name.</summary>
     Task<PagedResponse<StaffResponse>> ListAsync(int page, int pageSize, CancellationToken cancellationToken);
 
     Task<StaffResponse?> FindAsync(Guid id, CancellationToken cancellationToken);

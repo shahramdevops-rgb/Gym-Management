@@ -34,6 +34,8 @@ async function askForCode(page: Page, phone: { typed: string; stored: string }) 
   await page.goto(siteURL);
   await page.getByLabel("شماره موبایل").fill(phone.typed);
   await page.getByRole("button", { name: "دریافت کد" }).click();
+  // The code screen first: the code is read from the database only once its request has saved it.
+  await expect(page.getByLabel("کد پنج‌رقمی")).toBeVisible();
   await page.getByLabel("کد پنج‌رقمی").fill(signInCode(phone.stored));
 }
 
@@ -153,7 +155,7 @@ test("SiteBookings_TrainerPlacesAStudent_MemberLeavesAndMovesADate", async ({ pa
   await shot(trainerPage, "4-warning");
   await dialog.getByRole("button", { name: "ذخیره با این حال" }).click();
   await expect(dialog).toBeHidden();
-  await trainerPage.context().close();
+  // The trainer's phone stays open: it answers the leave request below (15.7i).
 
   // The member: the next dates on the home, then «سانس‌های من».
   await page.reload();
@@ -195,6 +197,7 @@ test("SiteBookings_TrainerPlacesAStudent_MemberLeavesAndMovesADate", async ({ pa
   await shot(trainerPage, "6a-leave-requests");
   await leaveRequests.getByRole("button", { name: "قبول" }).click();
   await expect(leaveRequests).toBeHidden();
+  await trainerPage.context().close();
 
   // A date with leave stays, faded, to take back.
   await page.reload();

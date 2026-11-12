@@ -18,6 +18,22 @@ public static class Policies
     public const string StaffOrOwner = "StaffOrOwner";
 
     /// <summary>
+    /// The online shop's work, «مدیر فروشگاه» only (ADR 0011, BUSINESS_RULES.md §16): every change
+    /// to the shop. Not the Owner, who reads the shop but does not change it (the developer,
+    /// 1405/08/20), and never Staff.
+    /// </summary>
+    public const string ShopAdmin = "ShopAdmin";
+
+    /// <summary>Reading the online shop: the shop admin, and the Owner who reads it (§16). Never Staff.</summary>
+    public const string ShopOrOwner = "ShopOrOwner";
+
+    /// <summary>
+    /// Who is signed in on the panel, «me», for the three roles by name. Only that endpoint uses it:
+    /// the panel needs it to choose the shop admin's menu (ADR 0011). Never a policy for work.
+    /// </summary>
+    public const string OwnerStaffOrShop = "OwnerStaffOrShop";
+
+    /// <summary>
     /// Any logged-in user, including one who must change their password. Only the
     /// change-password endpoint uses it.
     /// </summary>

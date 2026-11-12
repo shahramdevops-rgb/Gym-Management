@@ -44,7 +44,12 @@ function useStaffMutation<TArgs, TResult>(request: (args: TArgs) => Promise<TRes
 
 export function useCreateStaff() {
   return useStaffMutation(
-    async (body: { userName: string; fullName: string; temporaryPassword: string }) => {
+    async (body: {
+      userName: string;
+      fullName: string;
+      temporaryPassword: string;
+      role: StaffMember["role"];
+    }) => {
       const { data, error } = await api.POST("/api/staff", { body });
       if (error !== undefined) {
         throw error;

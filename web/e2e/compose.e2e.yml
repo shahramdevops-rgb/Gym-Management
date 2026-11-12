@@ -10,3 +10,10 @@ services:
         read_only: true
         bind:
           create_host_path: false
+  api:
+    environment:
+      # The login allows 10 tries a minute from one address, and the specs, which run one after
+      # another from this one machine, sign in more often than that since 16.2's shop admin spec
+      # (four sign-ins on the screen). Raised for this throwaway stack only, as the integration
+      # tests raise it; LoginRateLimitTests proves the real limit, and the server keeps 10.
+      RateLimiting__Login__PermitLimit: "100"

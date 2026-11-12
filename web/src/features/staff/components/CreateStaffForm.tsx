@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import { FormField } from "@/components/FormField";
+import { FormField, SelectField } from "@/components/FormField";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ export function CreateStaffForm() {
 
   const form = useForm<CreateStaffValues>({
     resolver: zodResolver(createStaffSchema),
-    defaultValues: { userName: "", fullName: "", temporaryPassword: "" },
+    defaultValues: { userName: "", fullName: "", temporaryPassword: "", role: "Staff" },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -30,6 +30,7 @@ export function CreateStaffForm() {
         userName: normalizeDigits(values.userName).trim(),
         fullName: normalizePersianText(values.fullName),
         temporaryPassword: normalizePassword(values.temporaryPassword),
+        role: values.role,
       });
       setCreated(staff.fullName);
       form.reset();
@@ -50,9 +51,10 @@ export function CreateStaffForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>کارمند جدید</CardTitle>
+        <CardTitle>حساب جدید</CardTitle>
         <CardDescription>
-          رمز عبور موقت را به کارمند بدهید. او در اولین ورود باید آن را تغییر دهد.
+          رمز عبور موقت را به صاحب حساب بدهید. او در اولین ورود باید آن را تغییر دهد. مدیر فروشگاه
+          فقط فروشگاه آنلاین را می‌بیند.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -68,6 +70,10 @@ export function CreateStaffForm() {
             </Alert>
           )}
 
+          <SelectField label="نقش" error={errors.role?.message} {...form.register("role")}>
+            <option value="Staff">کارمند پذیرش</option>
+            <option value="Shop">مدیر فروشگاه</option>
+          </SelectField>
           <FormField
             label="نام و نام خانوادگی"
             error={errors.fullName?.message}

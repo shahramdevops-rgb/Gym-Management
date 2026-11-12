@@ -17,6 +17,8 @@ test("SiteApp_NewPhone_SignsUpWithTheSmsCodeAndStaysSignedIn", async ({ page }) 
   await page.getByRole("button", { name: "دریافت کد" }).click();
 
   // Sent by itself at the fifth digit.
+  // The code screen first: the code is read from the database only once its request has saved it.
+  await expect(page.getByLabel("کد پنج‌رقمی")).toBeVisible();
   await page.getByLabel("کد پنج‌رقمی").fill(signInCode(phone.stored));
 
   // A phone the gym does not know yet: its name and birth date.
@@ -121,6 +123,8 @@ test("PublicPage_PickThisTrainer_OpensTheAppsTrainersAfterSigningUp", async ({ p
   await expect(page).toHaveURL(`${siteURL}/sign-in`);
   await page.getByLabel("شماره موبایل").fill(newcomer.typed);
   await page.getByRole("button", { name: "دریافت کد" }).click();
+  // The code screen first: the code is read from the database only once its request has saved it.
+  await expect(page.getByLabel("کد پنج‌رقمی")).toBeVisible();
   await page.getByLabel("کد پنج‌رقمی").fill(signInCode(newcomer.stored));
   await page.getByLabel("نام و نام خانوادگی").fill("سارا نیکو");
   await page.getByRole("combobox", { name: "روز" }).click();

@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { createBrowserRouter, Navigate, type RouteObject } from "react-router";
 
 import { PageLoading } from "@/features/auth/components/PageMessage";
+import { GymArea } from "@/features/auth/components/GymArea";
 import { RequireAuth } from "@/features/auth/components/RequireAuth";
 import { RequireRole } from "@/features/auth/components/RequireRole";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
@@ -39,6 +40,23 @@ function lazyPage(
   };
 }
 
+/** A page of the online shop (ADR 0011): the shop admin's, and the Owner's to read; never Staff's. */
+function shopPage(path: string, load: () => Promise<ComponentType>): RouteObject {
+  return {
+    path,
+    lazy: async () => {
+      const Page = await load();
+      return {
+        element: (
+          <RequireRole role={["Shop", "Owner"]}>
+            <Page />
+          </RequireRole>
+        ),
+      };
+    },
+  };
+}
+
 /**
  * Route table. Login stands alone; everything else is behind RequireAuth, and pages for one
  * role are also wrapped in RequireRole. The API enforces the same rules, so these guards are
@@ -60,41 +78,7 @@ export const routes: RouteObject[] = [
             // React Router's own screen replacing the whole app.
             errorElement: <PageError />,
             children: [
-              { path: paths.home, element: <LockersPage /> },
-              lazyPage(paths.members, () =>
-                import("@/features/members/pages/MembersPage").then((m) => m.MembersPage),
-              ),
-              lazyPage(paths.newMember, () =>
-                import("@/features/members/pages/CreateMemberPage").then((m) => m.CreateMemberPage),
-              ),
-              lazyPage(paths.member(":id"), () =>
-                import("@/features/members/pages/MemberProfilePage").then(
-                  (m) => m.MemberProfilePage,
-                ),
-              ),
-              lazyPage(paths.editMember(":id"), () =>
-                import("@/features/members/pages/EditMemberPage").then((m) => m.EditMemberPage),
-              ),
-              lazyPage(paths.siteUsers, () =>
-                import("@/features/siteUsers/pages/SiteUsersPage").then((m) => m.SiteUsersPage),
-              ),
-              lazyPage(paths.attendance, () =>
-                import("@/features/attendance/pages/CurrentlyInsidePage").then(
-                  (m) => m.CurrentlyInsidePage,
-                ),
-              ),
-              lazyPage(paths.history, () =>
-                import("@/features/history/pages/HistoryPage").then((m) => m.HistoryPage),
-              ),
-              lazyPage(paths.cafe, () =>
-                import("@/features/cafe/pages/CafeTillPage").then((m) => m.CafeTillPage),
-              ),
-              lazyPage(paths.cafeOrders, () =>
-                import("@/features/cafe/pages/CafeOrdersPage").then((m) => m.CafeOrdersPage),
-              ),
-              lazyPage(paths.cafeMenu, () =>
-                import("@/features/cafe/pages/CafeMenuPage").then((m) => m.CafeMenuPage),
-              ),
+              // Every role's: the account and the server's state.
               lazyPage(paths.status, () =>
                 import("@/features/status/pages/StatusPage").then((m) => m.StatusPage),
               ),
@@ -103,68 +87,138 @@ export const routes: RouteObject[] = [
                   (m) => m.ChangePasswordPage,
                 ),
               ),
+              // The online shop (ADR 0011, §16): the shop admin's, and the Owner's to read.
+              shopPage(paths.shopContacts, () =>
+                import("@/features/shop/pages/ShopContactsPage").then((m) => m.ShopContactsPage),
+              ),
+              shopPage(paths.shopProducts, () =>
+                import("@/features/shop/pages/ShopProductsPage").then((m) => m.ShopProductsPage),
+              ),
+              shopPage(paths.shopNewProduct, () =>
+                import("@/features/shop/pages/ShopProductPage").then((m) => m.ShopProductPage),
+              ),
+              shopPage(paths.shopProduct(":id"), () =>
+                import("@/features/shop/pages/ShopProductPage").then((m) => m.ShopProductPage),
+              ),
+              shopPage(paths.shopCategories, () =>
+                import("@/features/shop/pages/ShopCategoriesPage").then(
+                  (m) => m.ShopCategoriesPage,
+                ),
+              ),
               {
-                // Owner only, but Staff are sent to the locker map rather than refused: the phone's
-                // long-press shortcut leads here on their phones too (roadmap 13.5).
-                path: paths.todaySummary,
-                lazy: async () => {
-                  const { TodaySummaryPage } =
-                    await import("@/features/dashboard/pages/TodaySummaryPage");
-                  return {
-                    element: (
-                      <RequireRole role="Owner" otherwise={paths.home}>
-                        <TodaySummaryPage />
-                      </RequireRole>
+                // The gym's pages, which send a shop admin to the shop.
+                element: <GymArea />,
+                children: [
+                  { path: paths.home, element: <LockersPage /> },
+                  lazyPage(paths.members, () =>
+                    import("@/features/members/pages/MembersPage").then((m) => m.MembersPage),
+                  ),
+                  lazyPage(paths.newMember, () =>
+                    import("@/features/members/pages/CreateMemberPage").then(
+                      (m) => m.CreateMemberPage,
                     ),
-                  };
-                },
+                  ),
+                  lazyPage(paths.member(":id"), () =>
+                    import("@/features/members/pages/MemberProfilePage").then(
+                      (m) => m.MemberProfilePage,
+                    ),
+                  ),
+                  lazyPage(paths.editMember(":id"), () =>
+                    import("@/features/members/pages/EditMemberPage").then((m) => m.EditMemberPage),
+                  ),
+                  lazyPage(paths.siteUsers, () =>
+                    import("@/features/siteUsers/pages/SiteUsersPage").then((m) => m.SiteUsersPage),
+                  ),
+                  lazyPage(paths.attendance, () =>
+                    import("@/features/attendance/pages/CurrentlyInsidePage").then(
+                      (m) => m.CurrentlyInsidePage,
+                    ),
+                  ),
+                  lazyPage(paths.history, () =>
+                    import("@/features/history/pages/HistoryPage").then((m) => m.HistoryPage),
+                  ),
+                  lazyPage(paths.cafe, () =>
+                    import("@/features/cafe/pages/CafeTillPage").then((m) => m.CafeTillPage),
+                  ),
+                  lazyPage(paths.cafeOrders, () =>
+                    import("@/features/cafe/pages/CafeOrdersPage").then((m) => m.CafeOrdersPage),
+                  ),
+                  lazyPage(paths.cafeMenu, () =>
+                    import("@/features/cafe/pages/CafeMenuPage").then((m) => m.CafeMenuPage),
+                  ),
+                  {
+                    // Owner only, but Staff are sent to the locker map rather than refused: the phone's
+                    // long-press shortcut leads here on their phones too (roadmap 13.5).
+                    path: paths.todaySummary,
+                    lazy: async () => {
+                      const { TodaySummaryPage } =
+                        await import("@/features/dashboard/pages/TodaySummaryPage");
+                      return {
+                        element: (
+                          <RequireRole role="Owner" otherwise={paths.home}>
+                            <TodaySummaryPage />
+                          </RequireRole>
+                        ),
+                      };
+                    },
+                  },
+                  lazyPage(
+                    paths.dashboard,
+                    () =>
+                      import("@/features/dashboard/pages/DashboardPage").then(
+                        (m) => m.DashboardPage,
+                      ),
+                    true,
+                  ),
+                  lazyPage(
+                    paths.settings,
+                    () =>
+                      import("@/features/settings/pages/SettingsPage").then((m) => m.SettingsPage),
+                    true,
+                  ),
+                  lazyPage(
+                    paths.smsSettings,
+                    () =>
+                      import("@/features/sms/pages/SmsSettingsPage").then((m) => m.SmsSettingsPage),
+                    true,
+                  ),
+                  lazyPage(
+                    paths.smsMessages,
+                    () =>
+                      import("@/features/sms/pages/SmsMessagesPage").then((m) => m.SmsMessagesPage),
+                    true,
+                  ),
+                  lazyPage(
+                    paths.auditLogs,
+                    () =>
+                      import("@/features/audit/pages/AuditLogsPage").then((m) => m.AuditLogsPage),
+                    true,
+                  ),
+                  lazyPage(
+                    paths.expenses,
+                    () =>
+                      import("@/features/expenses/pages/ExpensesPage").then((m) => m.ExpensesPage),
+                    true,
+                  ),
+                  lazyPage(
+                    paths.payables,
+                    () =>
+                      import("@/features/payables/pages/PayablesPage").then((m) => m.PayablesPage),
+                    true,
+                  ),
+                  lazyPage(
+                    paths.staff,
+                    () => import("@/features/staff/pages/StaffPage").then((m) => m.StaffPage),
+                    true,
+                  ),
+                  lazyPage(
+                    paths.trainers,
+                    () =>
+                      import("@/features/trainers/pages/TrainersPage").then((m) => m.TrainersPage),
+                    true,
+                  ),
+                ],
               },
-              lazyPage(
-                paths.dashboard,
-                () =>
-                  import("@/features/dashboard/pages/DashboardPage").then((m) => m.DashboardPage),
-                true,
-              ),
-              lazyPage(
-                paths.settings,
-                () => import("@/features/settings/pages/SettingsPage").then((m) => m.SettingsPage),
-                true,
-              ),
-              lazyPage(
-                paths.smsSettings,
-                () => import("@/features/sms/pages/SmsSettingsPage").then((m) => m.SmsSettingsPage),
-                true,
-              ),
-              lazyPage(
-                paths.smsMessages,
-                () => import("@/features/sms/pages/SmsMessagesPage").then((m) => m.SmsMessagesPage),
-                true,
-              ),
-              lazyPage(
-                paths.auditLogs,
-                () => import("@/features/audit/pages/AuditLogsPage").then((m) => m.AuditLogsPage),
-                true,
-              ),
-              lazyPage(
-                paths.expenses,
-                () => import("@/features/expenses/pages/ExpensesPage").then((m) => m.ExpensesPage),
-                true,
-              ),
-              lazyPage(
-                paths.payables,
-                () => import("@/features/payables/pages/PayablesPage").then((m) => m.PayablesPage),
-                true,
-              ),
-              lazyPage(
-                paths.staff,
-                () => import("@/features/staff/pages/StaffPage").then((m) => m.StaffPage),
-                true,
-              ),
-              lazyPage(
-                paths.trainers,
-                () => import("@/features/trainers/pages/TrainersPage").then((m) => m.TrainersPage),
-                true,
-              ),
             ],
           },
         ],

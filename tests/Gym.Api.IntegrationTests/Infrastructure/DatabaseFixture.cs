@@ -1,6 +1,7 @@
 using Gym.Domain.Expenses;
 using Gym.Domain.Notifications;
 using Gym.Domain.Pricing;
+using Gym.Domain.Shop;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Persistence.Seed;
 
@@ -87,6 +88,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
         LockersAfterMigration = await ReadLockersAsync(_connection);
         PriceListsAfterMigration = await ReadPriceListsAsync(_connection);
         SmsSettingsAfterMigration = await ReadSmsSettingsAsync(_connection);
+        ShopSettingsAfterMigration = await ReadShopSettingsAsync(_connection);
     }
 
     /// <summary>
@@ -142,6 +144,9 @@ public sealed class DatabaseFixture : IAsyncLifetime
     /// <summary>The app's root services, for code that makes its own scopes (the server console).</summary>
     public IServiceProvider Services => Factory.Services;
 
+    /// <summary>Where the test host keeps uploaded files (16.3).</summary>
+    public string FilesRoot => Factory.FilesRoot;
+
     /// <summary>
     /// Empties every table before a test runs. Cheaper than a fresh container or a fresh set
     /// of migrations, which is what makes per-test isolation affordable at all.
@@ -191,6 +196,12 @@ public sealed class DatabaseFixture : IAsyncLifetime
     public IReadOnlyList<(Guid Id, bool AnyOn, int FilledFields)> SmsSettingsAfterMigration { get; private set; } = [];
 
     /// <summary>
+    /// The shop settings rows a fresh database gets from its migration (task 16.2): one, with no contact
+    /// way given (<c>FilledWays</c>).
+    /// </summary>
+    public IReadOnlyList<(Guid Id, int FilledWays)> ShopSettingsAfterMigration { get; private set; } = [];
+
+    /// <summary>
     /// Puts back the rows the migrations seed, which Respawn deleted with everything else. A
     /// test then starts from what a freshly migrated database holds, not from an emptier one that
     /// production never sees. The rows come from <see cref="ExpenseCategorySeed"/>,
@@ -203,6 +214,34 @@ public sealed class DatabaseFixture : IAsyncLifetime
         await RestoreLockersAsync(connection);
         await RestorePriceListAsync(connection);
         await RestoreSmsSettingsAsync(connection);
+        await RestoreShopSettingsAsync(connection);
+    }
+
+    /// <summary>The one shop settings row, every contact way empty, as the migration seeds it (BUSINESS_RULES.md §16).</summary>
+    private static async Task RestoreShopSettingsAsync(NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand(
+            "INSERT INTO shop_settings (id, created_at) VALUES (@id, now())", connection);
+
+        command.Parameters.AddWithValue("id", ShopSettings.TheId);
+
+        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<(Guid Id, int FilledWays)>> ReadShopSettingsAsync(NpgsqlConnection connection)
+    {
+        await using var command = new NpgsqlCommand(
+            "SELECT id, num_nonnulls(mobile_phone, landline_phone, whats_app_phone, telegram, rubika, eitaa, bale, instagram) FROM shop_settings",
+            connection);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+
+        var rows = new List<(Guid, int)>();
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            rows.Add((reader.GetGuid(0), reader.GetInt32(1)));
+        }
+
+        return rows;
     }
 
     /// <summary>The one price list, with both prices empty, as the migration seeds it (BUSINESS_RULES.md §3).</summary>

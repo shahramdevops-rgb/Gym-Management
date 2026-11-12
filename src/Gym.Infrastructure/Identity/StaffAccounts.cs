@@ -30,14 +30,18 @@ public sealed class StaffAccounts(
         string userName,
         string fullName,
         string temporaryPassword,
+        StaffRole role,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        // The seeder creates the roles only when Seed:* is configured, so do not rely on it.
-        if (!await roleManager.RoleExistsAsync(Roles.Staff))
+        var roleName = RoleName(role);
+
+        // The seeder creates the roles only when Seed:* is configured, and never the shop's, so do
+        // not rely on it.
+        if (!await roleManager.RoleExistsAsync(roleName))
         {
-            ThrowIfFailed(await roleManager.CreateAsync(new IdentityRole<Guid>(Roles.Staff)), "create the Staff role");
+            ThrowIfFailed(await roleManager.CreateAsync(new IdentityRole<Guid>(roleName)), $"create the {roleName} role");
         }
 
         var user = new User(userName, fullName);
@@ -63,7 +67,7 @@ public sealed class StaffAccounts(
                     : PasswordPolicyValidator.PolicyError(created) ?? StaffErrors.Rejected(Describe(created)));
         }
 
-        ThrowIfFailed(await userManager.AddToRoleAsync(user, Roles.Staff), "add the user to the Staff role");
+        ThrowIfFailed(await userManager.AddToRoleAsync(user, roleName), $"add the user to the {roleName} role");
 
         return await ToResponseAsync(user, cancellationToken);
     }
@@ -90,7 +94,11 @@ public sealed class StaffAccounts(
                 // device this person logs in from.
                 (user.LockoutEnd != null && user.LockoutEnd > now) ||
                     db.TrustedDevices.Any(device =>
-                        device.UserId == user.Id && device.LockedUntil > now && device.ExpiresAt > now)))
+                        device.UserId == user.Id && device.LockedUntil > now && device.ExpiresAt > now),
+                db.UserRoles.Any(link => link.UserId == user.Id &&
+                    db.Roles.Any(role => role.Id == link.RoleId && role.Name == Roles.Shop))
+                    ? StaffRole.Shop
+                    : StaffRole.Staff))
             .ToListAsync(cancellationToken);
 
         return new PagedResponse<StaffResponse>(items, page, pageSize, totalCount);
@@ -191,12 +199,22 @@ public sealed class StaffAccounts(
         return await ToResponseAsync(user, cancellationToken);
     }
 
-    /// <summary>Users in the Staff role. The Owner and any other role are invisible here.</summary>
+    /// <summary>
+    /// Users in the Staff or the Shop role. The Owner and any other role are invisible here, so no
+    /// method can deactivate or reset the Owner.
+    /// </summary>
     private IQueryable<User> StaffUsers() =>
         from user in db.Users
         where db.UserRoles.Any(link => link.UserId == user.Id &&
-            db.Roles.Any(role => role.Id == link.RoleId && role.Name == Roles.Staff))
+            db.Roles.Any(role => role.Id == link.RoleId && (role.Name == Roles.Staff || role.Name == Roles.Shop)))
         select user;
+
+    private static string RoleName(StaffRole role) => role switch
+    {
+        StaffRole.Staff => Roles.Staff,
+        StaffRole.Shop => Roles.Shop,
+        _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Not a role the Owner can give."),
+    };
 
     private Task<User?> FindStaffAsync(Guid id, CancellationToken cancellationToken) =>
         StaffUsers().SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
@@ -209,7 +227,16 @@ public sealed class StaffAccounts(
                 device => device.UserId == user.Id && device.LockedUntil > now && device.ExpiresAt > now,
                 cancellationToken);
 
-        return new StaffResponse(user.Id, user.UserName!, user.FullName, user.IsActive, user.MustChangePassword, lockedOut);
+        var isShop = await userManager.IsInRoleAsync(user, Roles.Shop);
+
+        return new StaffResponse(
+            user.Id,
+            user.UserName!,
+            user.FullName,
+            user.IsActive,
+            user.MustChangePassword,
+            lockedOut,
+            isShop ? StaffRole.Shop : StaffRole.Staff);
     }
 
     private static string Describe(IdentityResult result) =>

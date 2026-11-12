@@ -45,7 +45,12 @@
     "SessionBooking": "سانس جابه‌جاشدهٔ شاگرد",
     "SessionCancellation": "سانس لغوشدهٔ شاگرد",
     "LeaveRequest": "درخواست مرخصی شاگرد",
-    "SessionNote": "یادداشت سانس یک روز"
+    "SessionNote": "یادداشت سانس یک روز",
+    "ShopSettings": "راه‌های تماس فروشگاه",
+    "ShopCategory": "دستهٔ فروشگاه",
+    "ShopProduct": "کالای فروشگاه",
+    "ShopVariant": "مدل کالای فروشگاه",
+    "ShopPhoto": "عکس کالای فروشگاه"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -192,6 +197,14 @@
     "PayableDueSendTime": { "label": "چک و قسط: ساعت ارسال" },
     "PayableDueTemplateName": { "label": "چک و قسط: نام قالب" },
     "OwnerPhone": { "label": "موبایل مالک" },
+    "MobilePhone": { "label": "تلفن همراه فروشگاه" },
+    "LandlinePhone": { "label": "تلفن ثابت فروشگاه" },
+    "WhatsAppPhone": { "label": "واتساپ فروشگاه" },
+    "Telegram": { "label": "تلگرام فروشگاه" },
+    "Rubika": { "label": "روبیکا فروشگاه" },
+    "Eitaa": { "label": "ایتا فروشگاه" },
+    "Bale": { "label": "بله فروشگاه" },
+    "Instagram": { "label": "اینستاگرام فروشگاه" },
     "DailyReportEnabled": { "label": "گزارش روزانه: روشن" },
     "DailyReportPhone": { "label": "گزارش روزانه: موبایل" },
     "DailyReportSendTime": { "label": "گزارش روزانه: ساعت ارسال" },
@@ -328,6 +341,22 @@
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
       "Text": { "label": "یادداشت" }
+    },
+    "ShopProduct": {
+      "IsVisible": { "label": "نمایش در سایت" }
+    },
+    "ShopVariant": {
+      "ProductId": { "label": "کالا", "format": "reference" },
+      "Label": { "label": "مدل" },
+      "NormalizedLabel": { "format": "hidden" },
+      "Stock": { "label": "موجودی" },
+      "Position": { "label": "ترتیب" }
+    },
+    "ShopPhoto": {
+      "ProductId": { "label": "کالا", "format": "reference" },
+      "Position": { "label": "ترتیب" },
+      "Width": { "label": "عرض (پیکسل)" },
+      "Height": { "label": "ارتفاع (پیکسل)" }
     }
   }
 }

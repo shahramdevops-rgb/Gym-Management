@@ -22,6 +22,8 @@ export const createStaffSchema = z
       .min(1, "نام و نام خانوادگی را وارد کنید.")
       .max(200, "نام بیش از حد طولانی است."),
     temporaryPassword: newPasswordSchema(),
+    /** A staff member, or a shop admin who sees only the online shop (BUSINESS_RULES.md §16). */
+    role: z.enum(["Staff", "Shop"]),
   })
   // The user name is another field, so this rule is checked on the whole form.
   .refine((values) => !containsUserName(values.temporaryPassword, values.userName), {

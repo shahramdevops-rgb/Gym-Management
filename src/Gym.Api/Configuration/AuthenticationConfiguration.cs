@@ -68,9 +68,13 @@ public static class AuthenticationConfiguration
         // Every staff policy, the fallback included, names the staff scheme, and the site's names
         // the site scheme (ADR 0010): which key signed the token is checked by the policy itself,
         // not left to the default scheme.
+        //
+        // The fallback names the gym's two roles, so an endpoint that ever forgot its policy would
+        // still refuse the shop admin (ADR 0011), who must reach no gym endpoint at all.
         services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new AuthorizationPolicyBuilder(AuthSchemes.Staff)
                 .RequireAuthenticatedUser()
+                .RequireRole(Roles.Staff, Roles.Owner)
                 .AddRequirements(new PasswordChangedRequirement())
                 .Build())
             .AddPolicy(Policies.OwnerOnly, policy => policy
@@ -82,6 +86,21 @@ public static class AuthenticationConfiguration
                 .AddAuthenticationSchemes(AuthSchemes.Staff)
                 .RequireAuthenticatedUser()
                 .RequireRole(Roles.Staff, Roles.Owner)
+                .AddRequirements(new PasswordChangedRequirement()))
+            .AddPolicy(Policies.ShopAdmin, policy => policy
+                .AddAuthenticationSchemes(AuthSchemes.Staff)
+                .RequireAuthenticatedUser()
+                .RequireRole(Roles.Shop)
+                .AddRequirements(new PasswordChangedRequirement()))
+            .AddPolicy(Policies.ShopOrOwner, policy => policy
+                .AddAuthenticationSchemes(AuthSchemes.Staff)
+                .RequireAuthenticatedUser()
+                .RequireRole(Roles.Shop, Roles.Owner)
+                .AddRequirements(new PasswordChangedRequirement()))
+            .AddPolicy(Policies.OwnerStaffOrShop, policy => policy
+                .AddAuthenticationSchemes(AuthSchemes.Staff)
+                .RequireAuthenticatedUser()
+                .RequireRole(Roles.Owner, Roles.Staff, Roles.Shop)
                 .AddRequirements(new PasswordChangedRequirement()))
             .AddPolicy(Policies.PasswordChangeAllowed, policy => policy
                 .AddAuthenticationSchemes(AuthSchemes.Staff)

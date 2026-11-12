@@ -19,6 +19,7 @@ const reza: StaffMember = {
   isActive: true,
   mustChangePassword: true,
   isLockedOut: false,
+  role: "Staff",
 };
 
 const mina: StaffMember = {
@@ -28,6 +29,17 @@ const mina: StaffMember = {
   isActive: false,
   mustChangePassword: false,
   isLockedOut: true,
+  role: "Staff",
+};
+
+const maryam: StaffMember = {
+  id: "0199a000-0000-7000-8000-00000000000c",
+  userName: "maryam",
+  fullName: "مریم فروشگاه",
+  isActive: true,
+  mustChangePassword: false,
+  isLockedOut: false,
+  role: "Shop",
 };
 
 function page(items: StaffMember[], totalCount = items.length) {
@@ -92,7 +104,43 @@ describe("StaffPage", () => {
       userName: "reza",
       fullName: "رضا احمدی",
       temporaryPassword: "temp kettle 1234",
+      role: "Staff",
     });
+  });
+
+  it("CreateStaff_ShopAdminChosen_SendsTheShopRole", async () => {
+    const api = mockApi({
+      ...signedInHandlers(owner),
+      "GET /api/staff": () => page([]),
+      "POST /api/staff": () => json(201, maryam),
+    });
+    renderApp("/staff", { session: session() });
+    await screen.findByText("هنوز هیچ کارمندی ثبت نشده است.");
+
+    fireEvent.change(screen.getByLabelText("نام و نام خانوادگی"), {
+      target: { value: "مریم فروشگاه" },
+    });
+    fireEvent.change(screen.getByLabelText("نام کاربری"), { target: { value: "maryam" } });
+    fireEvent.change(screen.getByLabelText("رمز عبور موقت"), {
+      target: { value: "temp kettle 1234" },
+    });
+    fireEvent.change(screen.getByLabelText("نقش"), { target: { value: "Shop" } });
+    fireEvent.click(screen.getByRole("button", { name: "ساخت حساب" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("حساب «مریم فروشگاه» ساخته شد.");
+    const body = (await api.requestsTo("POST", "/api/staff")[0]!.json()) as Record<string, string>;
+    expect(body.role).toBe("Shop");
+  });
+
+  it("StaffPage_ShopAdminInTheList_IsMarkedAsShopAdmin", async () => {
+    mockApi({ ...signedInHandlers(owner), "GET /api/staff": () => page([reza, maryam]) });
+
+    renderApp("/staff", { session: session() });
+
+    const maryamRow = (await screen.findByText("مریم فروشگاه")).closest("tr")!;
+    expect(within(maryamRow).getByText("مدیر فروشگاه")).toBeInTheDocument();
+    const rezaRow = screen.getByText("رضا احمدی").closest("tr")!;
+    expect(within(rezaRow).queryByText("مدیر فروشگاه")).not.toBeInTheDocument();
   });
 
   it("CreateStaff_UserNameTaken_ShowsTheErrorUnderTheUserName", async () => {

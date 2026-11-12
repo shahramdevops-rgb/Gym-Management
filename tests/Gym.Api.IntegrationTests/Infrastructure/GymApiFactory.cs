@@ -75,6 +75,12 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
     private const string SmsProviderVariable = "Sms__Provider";
     private const string TestSmsProvider = "Fake";
 
+    // Uploaded photos go to a folder of this run's own, removed on disposal (16.3).
+    private const string FilesRootVariable = "Files__Root";
+
+    /// <summary>Where this host keeps uploaded files; a test may look inside.</summary>
+    public string FilesRoot { get; } = Path.Combine(Path.GetTempPath(), $"gym-tests-files-{Guid.NewGuid():N}");
+
     public GymApiFactory(string connectionString)
     {
         // The Testcontainers string already carries the password, so the separate
@@ -90,6 +96,7 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable(SiteSignInPermitLimitVariable, TestSitePermitLimit);
         Environment.SetEnvironmentVariable(SiteSessionPermitLimitVariable, TestSitePermitLimit);
         Environment.SetEnvironmentVariable(SmsProviderVariable, TestSmsProvider);
+        Environment.SetEnvironmentVariable(FilesRootVariable, FilesRoot);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -131,5 +138,11 @@ internal sealed class GymApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable(SiteSignInPermitLimitVariable, null);
         Environment.SetEnvironmentVariable(SiteSessionPermitLimitVariable, null);
         Environment.SetEnvironmentVariable(SmsProviderVariable, null);
+        Environment.SetEnvironmentVariable(FilesRootVariable, null);
+
+        if (Directory.Exists(FilesRoot))
+        {
+            Directory.Delete(FilesRoot, recursive: true);
+        }
     }
 }

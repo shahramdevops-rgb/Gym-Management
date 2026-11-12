@@ -60,7 +60,11 @@ Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 ac
   gym's trainers, links and photos; 14.4 closed with 15.3b
 - **Queued: the online shop and site users (Phase 16)**, asked by the developer on 1405/08/19
   (2026-11-10); 16.0 done (ADR 0011 accepted 1405/08/19); **16.1** built 1405/08/19 on
-  `task/16.1-site-users` (site users and the phone search), not released; next 16.2
+  `task/16.1-site-users` (site users and the phone search), merged, not released; **16.2** built
+  1405/08/20 on `task/16.2-shop-admin` (the shop admin and the contact ways), not released; next
+  16.3. The
+  eNamad first (1405/08/20): 16.2 to 16.4 and 16.9 make a showcase to apply with, the rest is built
+  while it is reviewed
 
 ---
 
@@ -5025,11 +5029,20 @@ How it is built:
   green tests, a `code-reviewer` pass and a short LEARNING.md entry.
 - The production server holds real data: every migration only adds, and no existing member, plan,
   visit or payment changes. Releases late at night with `./backup.sh run` first.
-- The gym has no eNamad yet (applied for meanwhile): payment is built against the gateway's test
-  environment, and the real merchant account is plugged in when the eNamad arrives, as the last
-  step before the shop opens.
+- **The eNamad is not left for the end** (the developer, 1405/08/20): it may take time, so it runs
+  beside the work. The eNamad is given only to a site whose shop is up, with products, prices,
+  details and photos, and Zarinpal gives no gateway without it. So the order is the showcase first,
+  the application next, and the rest while it is reviewed:
+  1. **For the application**: 16.2 (the shop admin), 16.3 (products and photos), 16.4 (the
+     showcase), 16.9 (the eNamad pages, brought forward from the end)
+  2. **The showcase release** (in 16.9): the shop admin enters real products, the site shows
+     them on the server with buying closed, and the Owner applies for the eNamad
+  3. **While the eNamad is reviewed**: 16.5 (cart and order), 16.6 (payment against Zarinpal's
+     test environment), 16.7 (handling and delivery), 16.8 (messages)
+  4. **The shop opens** (16.10): the eNamad arrives, the real merchant account is plugged in
+- The task numbers stay as they were; the sections below are in the order above.
 - *Open:* how the phase is released (16.1 alone first, Claude proposes, since it is useful on its
-  own; the shop as one release once payment works).
+  own; then the showcase release; then the shop once payment works).
 
 ### 16.0 The decision (docs only)
 - [x] ADR 0011, BUSINESS_RULES.md §16 and this phase written, branch `task/16-shop-plan`
@@ -5072,27 +5085,94 @@ Built 1405/08/19 on branch `task/16.1-site-users`, not released.
       (the page, the form's notice); the screens walked with Playwright on a throwaway stack
 
 ### 16.2 The shop admin and their panel (مدیر فروشگاه)
-- [ ] Asked first: whether the Owner sees the shop's pages, and more than one shop admin
-- [ ] The `Shop` role and the `ShopAdmin` policy (ADR 0011); the Owner adds a shop admin on the
-      staff page like a staff account; every existing staff endpoint refuses them (a test walks
-      them all, as `EndpointAuthorizationTests` does)
-- [ ] The panel shows a shop admin a layout of its own with the shop's pages only (empty until
-      16.3); the admin's contact ways (phone, Telegram, Rubika, …) entered there
+Built 1405/08/20 on branch `task/16.2-shop-admin`, not released.
+- [x] Asked first. The developer chose, 1405/08/20: the Owner **sees** the shop's pages but does
+      not change them; any number of shop admins; the contact ways belong to the shop (one set);
+      eight ways: mobile, landline, WhatsApp, Telegram, Rubika, Eitaa, Bale, Instagram
+- [x] The `Shop` role and three policies that name their roles: `ShopAdmin` (Shop: every change),
+      `ShopOrOwner` (reading the shop) and `OwnerStaffOrShop` («me» only, so the panel can choose
+      the shop admin's menu). The fallback policy now names Owner and Staff, so an endpoint that
+      ever forgot its policy still refuses a shop admin
+- [x] «کارمندان»: the new-account form has «نقش» (کارمند پذیرش / مدیر فروشگاه, `StaffRole` in
+      `CreateStaffCommand`, a staff member when left out); the list marks «مدیر فروشگاه»;
+      deactivate, reset and unlock work for both. The `Shop` role is created with the first such
+      account, so the server needs no step
+- [x] The contact ways: `shop_settings`, one row seeded by the migration (a check constraint keeps
+      a second out, each way's shape checked by the database too), `GET /api/shop/contacts`
+      (`ShopOrOwner`) and `PUT /api/shop/contacts` (`ShopAdmin`, `version` + `xmin`); the
+      migration only adds a table
+- [x] The panel: a shop admin's menu holds «فروشگاه آنلاین» › «راه‌های تماس» and the account's
+      items; every gym page sends them to the shop (`GymArea`, read from the access token's roles
+      first, so no gym screen flashes); the Owner's menu gains the same item, a read-only list.
+      The shop's home is the contact ways until 16.3 brings the products
+- [x] Tests: integration (`ShopAdminTests`: every gym endpoint refuses a shop-admin token, «me»,
+      the account made with each role, deactivation, Staff refused, the Owner reads but cannot
+      save, the save cleaned, each field's refusal, a stale version, the database's checks and
+      single row; `AuthorizationPolicyTests`' new cases); domain (`ShopSettingsTests`); frontend
+      (the page for each role, the redirect and menu, the staff form's role)
+- [x] **One role per account** (the developer, 1405/08/21, asked during 16.2): migration
+      `OneRolePerUser`, a unique index `ux_user_roles_user_id`; test in `ShopAdminTests`.
+      *Before the release:* a read-only query on the server shows no account with two roles
 
 ### 16.3 Categories, products and photos (دسته‌بندی، کالا و گالری)
-- [ ] Asked first: the image library (ADR 0010 and 0011), a product's fields (name, description,
-      more than one photo), and the variants' design (§16 *Products*: a price per variant or not)
-- [ ] Categories and products with **variants the shop admin defines** (size, flavour, weight, …;
-      decided by the developer 1405/08/19), each variant with its stock typed by hand (never below
-      zero, a check constraint); a product hidden or shown on the site; never deleted once sold
-- [ ] Photos uploaded, re-encoded and stored on a volume, in `backup.sh` and the restore (the
-      restore drill in docs/DEPLOYMENT.md covers files)
+Wanted in the release of the night of 1405/08/21 with the rest of `main` (the developer), if ready.
+- [x] Asked first (1405/08/21, §16 *Products*): SkiaSharp re-encodes the photos (ImageSharp first, dropped: 3.2 needs a license key); a variant is a
+      plain label with its own price and stock; categories one level; a product's name,
+      description, up to 8 photos (the first the main one), shown or hidden. Every new screen right
+      on a phone as well as the computer, like the public site (the developer)
+- [x] **16.3a, the backend** (built 1405/08/21 on `task/16.3-shop-products`, from 16.2's branch with
+      `main` merged in): `ShopCategory`, `ShopProduct` (the aggregate) with `ShopVariant` and
+      `ShopPhoto`; migration `AddShopCatalog` (four tables; checks on price, stock and positions;
+      three **deferred** unique constraints written by hand, positions and labels per product, so a
+      reorder or a label swap passes in one save; `AppDbContext` turns a unique violation at the
+      commit into `UniqueConstraintException`); `/api/shop/categories`, `/api/shop/products`,
+      `/products/{id}/photos` (multipart, one file, 10 MB), `/photos/order`, and the public
+      `/api/shop/photos/{id}/{large|small}` (cached a year). `IFileStore` (`DiskFileStore`,
+      `Files:Root`) and `IImageProcessor` (`SkiaImageProcessor`: JPEG, PNG, WebP only; 50 MP at
+      most; turned upright from EXIF, then EXIF gone; WebP 1600 and 480 px). Files written before
+      the row, removed after it. The `files` volume in `docker-compose.prod.yml`, its folder made in
+      the image for the API's user; `backup.sh` archives it with every dump (`files-*.tar.gz`, 14
+      kept) and `restore-files`; `pull-backup.ps1` pulls both (7 archives kept); DEPLOYMENT.md.
+      Tests: `ShopProductTests`, `ShopCategoryTests` (domain), `ShopCatalogTests` (integration: each
+      role, a sideways phone JPEG stored upright without its EXIF, a big PNG shrunk, a non-photo, a
+      ninth photo, the public photo, removing and reordering, the database's checks)
+- [x] **16.3b, the screens** (built 1405/08/21): «کالاها» (the shop's home now: cards with the main
+      photo whole, price or range, stock, «پنهان»; category chips), the product's page (photos first:
+      add from camera or gallery, several at once, «اصلی» / «جلوتر» / «حذف»; then the details and
+      the variants in one form, each variant a small box with `MoneyField`), «دسته‌بندی‌ها»; the
+      Owner reads all three. Walked with Playwright on a throwaway stack at 390 px and 1440 px, no
+      sideways scroll; fixed after seeing it: the `·` separator looked like a Persian zero (now
+      «،»), the photo buttons in one row of three, three cards a row at most. Vitest
+      `ShopCatalog.test.tsx`; e2e `shopAdmin.spec.ts` adds a category, a product and a photo through
+      the production images (the files volume's permissions)
+- [x] `npm run e2e` 20 green (1405/08/21), after three fixes to the tests themselves, none to the
+      app: the login limit (10 a minute) raised for the e2e stack only (`compose.e2e.yml`; 16.2's
+      spec signs in four times and the suite went past it); `siteBookings` closed the trainer's
+      phone before 15.7i's leave steps used it; six specs read the sign-in code from the database
+      before the code screen showed, so a slow request gave an old code. On the server the `files`
+      volume is created by the release itself; the new `backup.sh` arrives with it
 
 ### 16.4 The shop on the site (ویترین)
 - [ ] Asked first: where the catalogue lives (ADR 0011 proposes the site app, with the public
       page's «فروشگاه» section showing the products and linking in)
 - [ ] The catalogue by category and each product's page, open to anyone without signing in; the
       public page's placeholder shelves replaced; it still works when the API is down
+
+### 16.9 The eNamad pages and the showcase release (صفحه‌های اینماد و انتشار ویترین)
+Brought forward from the end (the developer, 1405/08/20), so the eNamad is applied for early.
+- [ ] Outside the code, for the Owner, from now on (the eNamad's terms as found 1405/08/20 on
+      Zarinpal's blog and others, to be checked on the eNamad's own site): the applicant owns the
+      domain (`pasargadgymplus.ir`'s holder at IRNIC is the same person, and the code comes to the
+      domain's registered email); a phone and an address in that person's name; their identity
+      papers; a Sheba in the same name for the gateway. (Selling food supplements: the Owner looked
+      into it, 1405/08/20, "they can be sold, there is no problem", §16 *Products*)
+- [ ] About us, contact, terms and returns on the site, with the Owner's texts. The returns page
+      follows the E-Commerce Law (article 37: at least 7 working days to withdraw, return postage on
+      the buyer; exceptions checked), §16
+- [ ] Asked first: how the showcase says buying is not open yet, and whether that is enough for the
+      eNamad's review
+- [ ] **The showcase release**: 16.2 to 16.4 and these pages on the server, the shop admin's real
+      products in, buying closed; then the Owner applies for the eNamad
 
 ### 16.5 Cart, address and order (سبد خرید و سفارش)
 - [ ] Asked first: what an address holds, and whether a courier (پیک) stays beside Tipax
@@ -5127,12 +5207,10 @@ Built 1405/08/19 on branch `task/16.1-site-users`, not released.
 - [ ] Messages under an order, on the customer's side and the shop admin's; the admin's contact ways
       shown to the customer
 
-### 16.9 The eNamad pages (صفحه‌های اینماد)
-- [ ] About us, contact, terms and returns on the site, with the Owner's texts; early, so the eNamad
-      application is not held up by them. The returns page follows the E-Commerce Law (article 37:
-      at least 7 working days to withdraw, return postage on the buyer; exceptions checked), §16
-- [ ] **The shop opens**: the real gateway, a test purchase on the server, then the public page links
-      the shop
+### 16.10 The shop opens (باز شدن فروشگاه)
+- [ ] The eNamad arrived; the real merchant account (16.6's last line) plugged in
+- [ ] **The shop opens**: a test purchase on the server, then buying is opened and the public page
+      links the shop
 
 ---
 

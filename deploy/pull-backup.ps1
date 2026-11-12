@@ -1,11 +1,16 @@
 <#
 .SYNOPSIS
-  Pulls the newest database backup from the server onto this computer and a flash drive.
+  Pulls the newest database backup and uploaded-files archive from the server onto this computer
+  and a flash drive.
 
 .DESCRIPTION
   Runs on the gym's Windows computer (Task Scheduler, see docs/DEPLOYMENT.md, "Backup and restore").
   It PULLS: this computer sits behind the gym's router, so the server cannot reach it, and the
   key it uses belongs to a read-only account that can do nothing but read the backups.
+
+  Two kinds of file come down: the database dump (gym-*.dump) and, since 16.3, the archive of
+  the uploaded files such as the shop's photos (files-*.tar.gz, same stamp as its dump). A server
+  with no files archive yet (a release before 16.3) is not an error: only the dump comes down.
 
   Exit codes, which Task Scheduler shows as "Last Run Result":
     0  the newest backup is here and on the flash drive (or no flash drive was asked for)
@@ -26,6 +31,8 @@ param(
   # Optional second copy on an attached flash drive, for example E:\GymBackups.
   [string] $FlashDir,
   [int] $KeepLocal = 30,
+  # Each files archive holds every photo, so fewer are kept.
+  [int] $KeepFilesLocal = 7,
   # The nightly job runs once a day; a newest backup older than this means it has stopped.
   [int] $MaxAgeHours = 36
 )
@@ -46,9 +53,9 @@ function Write-Log([string] $level, [string] $message) {
 # StrictHostKeyChecking=yes: connect only to a server whose key was accepted once by hand.
 $sshOptions = @('-i', $KeyFile, '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes', '-o', 'StrictHostKeyChecking=yes')
 
-function Remove-OldBackups([string] $dir, [int] $keep) {
+function Remove-OldBackups([string] $dir, [string] $filter, [int] $keep) {
   # File names carry the timestamp, so a name sort is a date sort.
-  Get-ChildItem -Path $dir -Filter 'gym-*.dump' -File |
+  Get-ChildItem -Path $dir -Filter $filter -File |
     Sort-Object Name -Descending |
     Select-Object -Skip $keep |
     ForEach-Object {
@@ -70,12 +77,19 @@ function Copy-Verified([string] $source, [string] $destinationDir, [long] $expec
   Move-Item -LiteralPath $partial -Destination $final -Force
 }
 
-try {
-  # One call: modification time (epoch seconds), size in bytes and path of the newest dump.
-  $remoteCommand = "stat -c '%Y %s %n' `$(ls -1t $RemoteDir/gym-*.dump | head -n 1)"
+# Downloads the newest server file matching $pattern unless it is already here. Returns its local
+# path, size and age in hours, or $null when the server has none and $optional is set.
+function Get-Newest([string] $pattern, [bool] $optional) {
+  # One call: modification time (epoch seconds), size in bytes and path of the newest file.
+  # "|| true" so an optional kind that does not exist yet answers with nothing, not an error.
+  $remoteCommand = "f=`$(ls -1t $RemoteDir/$pattern 2>/dev/null | head -n 1); [ -n `"`$f`" ] && stat -c '%Y %s %n' `"`$f`" || true"
   $info = & ssh @sshOptions $RemoteHost $remoteCommand
-  if ($LASTEXITCODE -ne 0 -or -not $info) {
+  if ($LASTEXITCODE -ne 0) {
     throw "could not list backups on $RemoteHost (ssh exit code $LASTEXITCODE)"
+  }
+  if (-not $info) {
+    if ($optional) { return $null }
+    throw "no $pattern on $RemoteHost"
   }
 
   $parts = ($info | Select-Object -First 1).Trim() -split ' ', 3
@@ -83,9 +97,6 @@ try {
   $remoteSize = [long] $parts[1]
   $remotePath = $parts[2]
   $name = $remotePath.Substring($remotePath.LastIndexOf('/') + 1)
-
-  $ageHours = ([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() - $remoteEpoch) / 3600
-  $stale = $ageHours -gt $MaxAgeHours
 
   $localFile = Join-Path $LocalDir $name
   if ((Test-Path -LiteralPath $localFile) -and ((Get-Item -LiteralPath $localFile).Length -eq $remoteSize)) {
@@ -104,14 +115,35 @@ try {
     Move-Item -LiteralPath $partial -Destination $localFile -Force
     Write-Log 'INFO' "saved $localFile"
   }
-  Remove-OldBackups $LocalDir $KeepLocal
+
+  return [pscustomobject] @{
+    LocalFile = $localFile
+    Size = $remoteSize
+    AgeHours = ([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() - $remoteEpoch) / 3600
+  }
+}
+
+try {
+  $dump = Get-Newest 'gym-*.dump' $false
+  Remove-OldBackups $LocalDir 'gym-*.dump' $KeepLocal
+
+  $files = Get-Newest 'files-*.tar.gz' $true
+  if ($files) {
+    Remove-OldBackups $LocalDir 'files-*.tar.gz' $KeepFilesLocal
+  } else {
+    Write-Log 'INFO' 'no files archive on the server yet (a release before 16.3); only the database came down'
+  }
 
   $flashMissing = $false
   if ($FlashDir) {
     $root = Split-Path -Qualifier $FlashDir
     if ($root -and (Test-Path -LiteralPath "$root\")) {
-      Copy-Verified $localFile $FlashDir $remoteSize
-      Remove-OldBackups $FlashDir $KeepLocal
+      Copy-Verified $dump.LocalFile $FlashDir $dump.Size
+      Remove-OldBackups $FlashDir 'gym-*.dump' $KeepLocal
+      if ($files) {
+        Copy-Verified $files.LocalFile $FlashDir $files.Size
+        Remove-OldBackups $FlashDir 'files-*.tar.gz' $KeepFilesLocal
+      }
       Write-Log 'INFO' "copied to $FlashDir"
     } else {
       $flashMissing = $true
@@ -119,8 +151,8 @@ try {
     }
   }
 
-  if ($stale) {
-    Write-Log 'ERROR' ("the newest backup on the server is {0:N0} hours old; the nightly job on the server has stopped" -f $ageHours)
+  if ($dump.AgeHours -gt $MaxAgeHours) {
+    Write-Log 'ERROR' ("the newest backup on the server is {0:N0} hours old; the nightly job on the server has stopped" -f $dump.AgeHours)
     exit 1
   }
   if ($flashMissing) { exit 2 }

@@ -59,6 +59,7 @@ Versions are pinned centrally in `Directory.Packages.props`. Ask before adding a
 | Health checks | Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore |
 | Phones | libphonenumber-csharp |
 | Jobs | Hangfire.AspNetCore, Hangfire.PostgreSql |
+| Images | SkiaSharp + SkiaSharp.NativeAssets.Linux.NoDependencies (re-encodes uploaded photos, 16.3; Infrastructure only; MIT. ImageSharp 3.2 needs a license key, 3.1 has an advisory) |
 | Tests | xunit.v3, Shouldly, NSubstitute, Microsoft.AspNetCore.Mvc.Testing, Testcontainers.PostgreSql, Respawn, Microsoft.Extensions.TimeProvider.Testing |
 
 Frontend: Vite, React, TypeScript, React Router, TanStack Query, React Hook Form, Zod, shadcn/ui, Tailwind CSS, openapi-typescript + openapi-fetch, Recharts, Vitest + Testing Library, date-fns-jalali (Jalali date math), react-multi-date-picker (Persian calendar picker, for the date filters), Vazirmatn font (self-hosted). Playwright for end-to-end tests (Phase 11).
@@ -99,7 +100,7 @@ group.MapPost("/", async (CreateMemberCommand command, CreateMemberHandler handl
     .RequireAuthorization(Policies.StaffOrOwner);
 ```
 
-Two sign-ins, never mixed (ADR 0010): staff policies (`OwnerOnly`, `StaffOrOwner`, `PasswordChangeAllowed`, the fallback) name `AuthSchemes.Staff`; the site's (`SiteAccount`) names `AuthSchemes.Site`. A new policy names its scheme too. A site endpoint reads its account from the `site_account` claim, never `sub`; `SchemeSeparationTests` calls every endpoint with the other kind of token.
+Two sign-ins, never mixed (ADR 0010): staff policies (`OwnerOnly`, `StaffOrOwner`, `ShopAdmin`, `ShopOrOwner`, `OwnerStaffOrShop`, `PasswordChangeAllowed`, the fallback) name `AuthSchemes.Staff`; the site's (`SiteAccount`) names `AuthSchemes.Site`. A new policy names its scheme too. A site endpoint reads its account from the `site_account` claim, never `sub`; `SchemeSeparationTests` calls every endpoint with the other kind of token.
 
 ### Errors
 `Error(Code, Description, ErrorType)`. Codes look like `Members.PhoneAlreadyExists`.
@@ -504,8 +505,11 @@ web/site/           The site app's page (index.html), entry (main.ts) and public
   same request (`RefreshHandler`).
 - Expired and revoked `refresh_tokens` rows are never deleted by the app yet. A cleanup job belongs with Hangfire.
 - Authorization policies live in `Gym.Api/Authorization/Policies.cs`: `OwnerOnly`, `StaffOrOwner`,
-  `PasswordChangeAllowed`. Every policy except `PasswordChangeAllowed` includes `PasswordChangedRequirement` (the forced
-  password change gate), and so does the fallback. `EndpointAuthorizationTests` fails if an endpoint declares neither a
+  `PasswordChangeAllowed`, and for the online shop (ADR 0011) `ShopAdmin` (the shop admin: every change to the shop),
+  `ShopOrOwner` (reading the shop) and `OwnerStaffOrShop` (`/api/auth/me` only). Each names its roles; the fallback
+  names Owner and Staff, so an endpoint that forgot its policy still refuses a shop admin, and `ShopAdminTests` calls
+  every gym endpoint with a shop-admin token. Every policy except `PasswordChangeAllowed` includes
+  `PasswordChangedRequirement` (the forced password change gate), and so does the fallback. `EndpointAuthorizationTests` fails if an endpoint declares neither a
   policy nor `AllowAnonymous()`.
 - Authorization failures are ProblemDetails too (`ProblemDetailsAuthorizationResultHandler`): 401 `Auth.Unauthenticated`,
   403 `Auth.PasswordChangeRequired` when the gate failed, 403 `Auth.Forbidden` otherwise.

@@ -24,6 +24,11 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
 
+# The files volume's mount point (Files__Root, 16.3), owned by the API's user. Docker copies a
+# directory's owner into a named volume the first time it mounts it there, so the API can write
+# its uploads without running as root.
+RUN mkdir -p /var/lib/gym/files && chown "$APP_UID" /var/lib/gym/files
+
 # Not root: a compromised API process should not own the container.
 USER $APP_UID
 
