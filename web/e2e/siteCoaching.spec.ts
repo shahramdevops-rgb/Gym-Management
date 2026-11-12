@@ -20,6 +20,8 @@ async function askForCode(page: Page, phone: { typed: string; stored: string }) 
   await page.goto(siteURL);
   await page.getByLabel("شماره موبایل").fill(phone.typed);
   await page.getByRole("button", { name: "دریافت کد" }).click();
+  // The code screen first: the code is read from the database only once its request has saved it.
+  await expect(page.getByLabel("کد پنج‌رقمی")).toBeVisible();
   await page.getByLabel("کد پنج‌رقمی").fill(signInCode(phone.stored));
 }
 

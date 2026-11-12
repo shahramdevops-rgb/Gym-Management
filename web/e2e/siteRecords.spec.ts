@@ -24,6 +24,8 @@ test("SiteRecords_DeskMember_SeesTheirPlanDebtHistoryAndDetails", async ({ page 
   await page.goto(siteURL);
   await page.getByLabel("شماره موبایل").fill(member.phoneNumber);
   await page.getByRole("button", { name: "دریافت کد" }).click();
+  // The code screen first: the code is read from the database only once its request has saved it.
+  await expect(page.getByLabel("کد پنج‌رقمی")).toBeVisible();
   await page.getByLabel("کد پنج‌رقمی").fill(signInCode(member.stored));
 
   // A phone already in the panel goes straight to the home (§15).

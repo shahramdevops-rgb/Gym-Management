@@ -36,6 +36,8 @@ test("SiteTimetable_TrainerBuildsAWeek_ClosesOneDateAndGivesItBack", async ({ pa
   await page.goto(siteURL);
   await page.getByLabel("شماره موبایل").fill(trainer.typed);
   await page.getByRole("button", { name: "دریافت کد" }).click();
+  // The code screen first: the code is read from the database only once its request has saved it.
+  await expect(page.getByLabel("کد پنج‌رقمی")).toBeVisible();
   await page.getByLabel("کد پنج‌رقمی").fill(signInCode(trainer.stored));
 
   await expect(page.getByText("هنوز برنامهٔ سانسی نساخته‌اید.")).toBeVisible();
