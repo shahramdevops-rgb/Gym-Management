@@ -2482,3 +2482,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **`LIKE '%4567'` is "ends with".** The trigram index already on the phone column serves it; the four digits are compared as typed because E.164 keeps every digit after the country code.
 - **`useWatch` instead of `form.watch`.** The React Compiler cannot memoize a component that calls `watch()`; the `useWatch` hook subscribes to one field and keeps the form memoizable (the lint warning `react-hooks/incompatible-library`).
 - **My notes:**
+
+## 16.2 — The shop admin and their panel (مدیر فروشگاه)
+
+- **A policy names its roles, so a new role passes nothing by default.** `OwnerOnly` and `StaffOrOwner` list their roles, so adding `Shop` opened no gym endpoint; the shop got policies of its own (`ShopAdmin` to change, `ShopOrOwner` to read). Had any policy said "any signed-in user", the new role would have walked straight in.
+- **Tighten the fallback too.** The fallback policy is what an endpoint without a policy gets. It used to admit any signed-in staff user; now it names Owner and Staff, so even a forgotten policy refuses the shop admin. Defence in depth: two independent locks for one rule.
+- **Prove a negative by walking every endpoint.** `ShopAdminTests` reads all endpoints from `EndpointDataSource` and calls each one with a shop-admin token, expecting 403. An endpoint added next year is covered without anyone remembering to add it to the test.
+- **One row, enforced by the database.** `shop_settings` is seeded by the migration and a check constraint pins the id (`id = '…'`), so a second row cannot exist even by hand; Respawn deletes it between tests, so the fixture puts it back, as it does for the SMS settings.
+- **A pattern shared by C# and SQL.** `ShopContactRules.HandlePattern` is a public constant used by the regex in the entity and by `col ~ '…'` in the check constraint, so the code and the database cannot drift apart.
+- **`Result<T>` refuses `null`.** An optional value that may be "nothing" is better kept as a plain `string?` checked before, than wrapped in `Result<string?>`, which throws on a null success.
+- **Enums as strings, one property at a time.** `[property: JsonConverter(typeof(JsonStringEnumConverter<StaffRole>))]` makes `role` travel as `"Shop"` rather than `1`, and the generated TypeScript type becomes `"Staff" | "Shop"`.
+- **Read the role from the token to avoid a flash.** The access token already carries the roles, so `GymArea` sends a shop admin to the shop before «me» answers; the unverified read is only for the screen, the API checks the signature on every request.
+- **A unique index on an Identity table.** Identity allows many roles per user; `HasIndex(r => r.UserId).IsUnique()` on `IdentityUserRole<Guid>` narrows that to one in the database, written in `AppDbContext` because Identity's tables have no configuration class of their own. An index added over existing rows fails if they break it, so the server is checked with a read-only query first.
+- **My notes:**

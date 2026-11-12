@@ -4,7 +4,10 @@ using Gym.Domain.Common;
 
 namespace Gym.Application.Staff.CreateStaff;
 
-/// <summary>The Owner creates a staff account with a temporary password (BUSINESS_RULES.md §1).</summary>
+/// <summary>
+/// The Owner creates a staff account, or a shop admin's (§16), with a temporary password
+/// (BUSINESS_RULES.md §1).
+/// </summary>
 public sealed class CreateStaffHandler(IStaffAccounts staff, IAppDbContext db)
 {
     public async Task<Result<StaffResponse>> Handle(CreateStaffCommand command, CancellationToken cancellationToken)
@@ -20,6 +23,7 @@ public sealed class CreateStaffHandler(IStaffAccounts staff, IAppDbContext db)
             command.UserName.Trim(),
             StaffNames.Clean(command.FullName),
             PersianText.NormalizeDigits(command.TemporaryPassword),
+            command.Role,
             cancellationToken);
 
         if (created.IsSuccess)

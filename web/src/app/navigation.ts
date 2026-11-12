@@ -17,12 +17,13 @@ import {
   ReceiptText,
   ScrollText,
   Settings,
+  Store,
   Users,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
 
-import type { Role } from "@/features/auth/api";
+import { gymRoles, type Role } from "@/features/auth/api";
 import type { Tone } from "@/lib/tone";
 
 import { paths } from "./paths";
@@ -31,8 +32,16 @@ export interface NavigationItem {
   to: string;
   label: string;
   icon: LucideIcon;
-  /** Shown only to this role. Items without one are for every signed-in user. */
-  role?: Role;
+  /**
+   * Shown only to these roles. Items without them are the gym's, for the Owner and Staff
+   * (`gymRoles`): a shop admin sees only the items that name `Shop` (ADR 0011).
+   */
+  roles?: readonly Role[];
+}
+
+/** The roles an item is shown to. */
+export function rolesOf(item: NavigationItem): readonly Role[] {
+  return item.roles ?? gymRoles;
 }
 
 /** A titled part of the menu. A part with nothing the user may open is not shown at all. */
@@ -84,44 +93,62 @@ export const navigation: NavigationGroup[] = [
     title: "مالی",
     tone: "violet",
     items: [
-      { to: paths.todaySummary, label: "خلاصهٔ امروز", icon: Gauge, role: "Owner" },
-      { to: paths.dashboard, label: "داشبورد", icon: ChartColumn, role: "Owner" },
-      { to: paths.expenses, label: "هزینه‌ها", icon: Wallet, role: "Owner" },
-      { to: paths.payables, label: "چک و قسط", icon: BanknoteArrowUp, role: "Owner" },
+      { to: paths.todaySummary, label: "خلاصهٔ امروز", icon: Gauge, roles: ["Owner"] },
+      { to: paths.dashboard, label: "داشبورد", icon: ChartColumn, roles: ["Owner"] },
+      { to: paths.expenses, label: "هزینه‌ها", icon: Wallet, roles: ["Owner"] },
+      { to: paths.payables, label: "چک و قسط", icon: BanknoteArrowUp, roles: ["Owner"] },
     ],
   },
   {
     title: "مدیریت",
     tone: "teal",
     items: [
-      { to: paths.staff, label: "کارمندان", icon: Users, role: "Owner" },
-      { to: paths.trainers, label: "مربیان", icon: Dumbbell, role: "Owner" },
-      { to: paths.settings, label: "تنظیمات", icon: Settings, role: "Owner" },
+      { to: paths.staff, label: "کارمندان", icon: Users, roles: ["Owner"] },
+      { to: paths.trainers, label: "مربیان", icon: Dumbbell, roles: ["Owner"] },
+      { to: paths.settings, label: "تنظیمات", icon: Settings, roles: ["Owner"] },
       {
         to: paths.smsMessages,
         label: "پیامک‌ها",
         icon: MessagesSquare,
-        role: "Owner",
+        roles: ["Owner"],
       },
       {
         to: paths.smsSettings,
         label: "تنظیمات پیامک",
         icon: MessageSquareText,
-        role: "Owner",
+        roles: ["Owner"],
       },
       {
         to: paths.auditLogs,
         label: "گزارش تغییرات",
         icon: ScrollText,
-        role: "Owner",
+        roles: ["Owner"],
+      },
+    ],
+  },
+  {
+    // The online shop (ADR 0011, §16): the shop admin's whole menu; the Owner reads it, Staff never.
+    title: "فروشگاه آنلاین",
+    tone: "pink",
+    items: [
+      {
+        to: paths.shopContacts,
+        label: "راه‌های تماس",
+        icon: Store,
+        roles: ["Shop", "Owner"],
       },
     ],
   },
   {
     title: "حساب و سیستم",
     items: [
-      { to: paths.status, label: "وضعیت سیستم", icon: Activity },
-      { to: paths.changePassword, label: "تغییر رمز عبور", icon: KeyRound },
+      { to: paths.status, label: "وضعیت سیستم", icon: Activity, roles: ["Owner", "Staff", "Shop"] },
+      {
+        to: paths.changePassword,
+        label: "تغییر رمز عبور",
+        icon: KeyRound,
+        roles: ["Owner", "Staff", "Shop"],
+      },
     ],
   },
 ];

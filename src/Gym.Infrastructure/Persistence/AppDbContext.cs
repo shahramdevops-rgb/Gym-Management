@@ -14,6 +14,7 @@ using Gym.Domain.Payables;
 using Gym.Domain.Payments;
 using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
+using Gym.Domain.Shop;
 using Gym.Domain.SiteAuth;
 using Gym.Domain.Subscriptions;
 using Gym.Domain.Timetables;
@@ -83,6 +84,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SmsSettings> SmsSettings => Set<SmsSettings>();
 
     public DbSet<SmsBroadcast> SmsBroadcasts => Set<SmsBroadcast>();
+
+    public DbSet<ShopSettings> ShopSettings => Set<ShopSettings>();
 
     public DbSet<SignInCode> SignInCodes => Set<SignInCode>();
 
@@ -315,6 +318,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     {
         modelBuilder.Entity<IdentityRole<Guid>>().ToTable("roles");
         modelBuilder.Entity<IdentityUserRole<Guid>>().ToTable("user_roles");
+
+        // One role per account (§16, 16.2): the Owner, a staff member or a shop admin, never two.
+        // Identity allows many; the code only ever adds one, and this index makes the database
+        // refuse a second as well, so a shop admin can never also hold Staff by accident.
+        modelBuilder.Entity<IdentityUserRole<Guid>>()
+            .HasIndex(r => r.UserId)
+            .IsUnique()
+            .HasDatabaseName("ux_user_roles_user_id");
+
         modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims");
         modelBuilder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");
         modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");

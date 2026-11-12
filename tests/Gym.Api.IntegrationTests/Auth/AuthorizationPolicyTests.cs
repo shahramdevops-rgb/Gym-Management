@@ -20,6 +20,8 @@ public sealed class AuthorizationPolicyTests(DatabaseFixture fixture) : Database
     private static readonly ClaimsPrincipal Staff = User(Roles.Staff, mustChangePassword: false);
     private static readonly ClaimsPrincipal OwnerWithTemporaryPassword = User(Roles.Owner, mustChangePassword: true);
     private static readonly ClaimsPrincipal StaffWithTemporaryPassword = User(Roles.Staff, mustChangePassword: true);
+    private static readonly ClaimsPrincipal ShopAdmin = User(Roles.Shop, mustChangePassword: false);
+    private static readonly ClaimsPrincipal ShopAdminWithTemporaryPassword = User(Roles.Shop, mustChangePassword: true);
     private static readonly ClaimsPrincipal NoRole = User(role: null, mustChangePassword: false);
     private static readonly ClaimsPrincipal Anonymous = new(new ClaimsIdentity());
 
@@ -28,18 +30,42 @@ public sealed class AuthorizationPolicyTests(DatabaseFixture fixture) : Database
         { Policies.OwnerOnly, nameof(Owner), true },
         { Policies.OwnerOnly, nameof(Staff), false },
         { Policies.OwnerOnly, nameof(OwnerWithTemporaryPassword), false },
+        { Policies.OwnerOnly, nameof(ShopAdmin), false },
         { Policies.OwnerOnly, nameof(NoRole), false },
         { Policies.OwnerOnly, nameof(Anonymous), false },
 
         { Policies.StaffOrOwner, nameof(Owner), true },
         { Policies.StaffOrOwner, nameof(Staff), true },
         { Policies.StaffOrOwner, nameof(StaffWithTemporaryPassword), false },
+        { Policies.StaffOrOwner, nameof(ShopAdmin), false },
         { Policies.StaffOrOwner, nameof(NoRole), false },
         { Policies.StaffOrOwner, nameof(Anonymous), false },
+
+        // The shop (ADR 0011, §16): the shop admin changes it, the Owner reads it, Staff never.
+        { Policies.ShopAdmin, nameof(ShopAdmin), true },
+        { Policies.ShopAdmin, nameof(ShopAdminWithTemporaryPassword), false },
+        { Policies.ShopAdmin, nameof(Owner), false },
+        { Policies.ShopAdmin, nameof(Staff), false },
+        { Policies.ShopAdmin, nameof(NoRole), false },
+        { Policies.ShopAdmin, nameof(Anonymous), false },
+
+        { Policies.ShopOrOwner, nameof(ShopAdmin), true },
+        { Policies.ShopOrOwner, nameof(Owner), true },
+        { Policies.ShopOrOwner, nameof(Staff), false },
+        { Policies.ShopOrOwner, nameof(ShopAdminWithTemporaryPassword), false },
+        { Policies.ShopOrOwner, nameof(NoRole), false },
+
+        { Policies.OwnerStaffOrShop, nameof(Owner), true },
+        { Policies.OwnerStaffOrShop, nameof(Staff), true },
+        { Policies.OwnerStaffOrShop, nameof(ShopAdmin), true },
+        { Policies.OwnerStaffOrShop, nameof(ShopAdminWithTemporaryPassword), false },
+        { Policies.OwnerStaffOrShop, nameof(NoRole), false },
+        { Policies.OwnerStaffOrShop, nameof(Anonymous), false },
 
         { Policies.PasswordChangeAllowed, nameof(OwnerWithTemporaryPassword), true },
         { Policies.PasswordChangeAllowed, nameof(StaffWithTemporaryPassword), true },
         { Policies.PasswordChangeAllowed, nameof(Staff), true },
+        { Policies.PasswordChangeAllowed, nameof(ShopAdminWithTemporaryPassword), true },
         { Policies.PasswordChangeAllowed, nameof(Anonymous), false },
     };
 
@@ -75,6 +101,18 @@ public sealed class AuthorizationPolicyTests(DatabaseFixture fixture) : Database
     }
 
     [Fact]
+    public async Task FallbackPolicy_ShopAdmin_IsRefused()
+    {
+        await using var scope = Fixture.CreateScope();
+        var fallback = await scope.ServiceProvider.GetRequiredService<IAuthorizationPolicyProvider>().GetFallbackPolicyAsync();
+        var authorization = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
+
+        // An endpoint that ever forgot its policy still refuses the shop admin (ADR 0011).
+        (await authorization.AuthorizeAsync(ShopAdmin, fallback.ShouldNotBeNull())).Succeeded.ShouldBeFalse();
+        (await authorization.AuthorizeAsync(Owner, fallback)).Succeeded.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task StaffOrOwner_TokenWithoutTheGateClaim_IsRefused()
     {
         var identity = new ClaimsIdentity(
@@ -100,6 +138,8 @@ public sealed class AuthorizationPolicyTests(DatabaseFixture fixture) : Database
         nameof(Staff) => Staff,
         nameof(OwnerWithTemporaryPassword) => OwnerWithTemporaryPassword,
         nameof(StaffWithTemporaryPassword) => StaffWithTemporaryPassword,
+        nameof(ShopAdmin) => ShopAdmin,
+        nameof(ShopAdminWithTemporaryPassword) => ShopAdminWithTemporaryPassword,
         nameof(NoRole) => NoRole,
         nameof(Anonymous) => Anonymous,
         _ => throw new ArgumentOutOfRangeException(nameof(name), name, "Unknown test user."),

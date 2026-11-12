@@ -152,6 +152,7 @@ try
     app.MapStaffEndpoints();
     app.MapMembersEndpoints();
     app.MapSiteUsersEndpoints();
+    app.MapShopEndpoints();
     app.MapPricingEndpoints();
     app.MapSubscriptionsEndpoints();
     app.MapPaymentsEndpoints();

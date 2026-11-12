@@ -87,6 +87,26 @@ export const staffUser: CurrentUser = {
   mustChangePassword: false,
 };
 
+/** A shop admin (ADR 0011, BUSINESS_RULES.md §16): sees only the online shop. */
+export const shopAdmin: CurrentUser = {
+  id: "0199a000-0000-7000-8000-000000000003",
+  userName: "maryam",
+  fullName: "مریم فروشگاه",
+  roles: ["Shop"],
+  mustChangePassword: false,
+};
+
+/**
+ * An access token whose payload holds these roles, as the API's does (one role is a string, several
+ * an array). Not signed: the browser only reads it.
+ */
+export function tokenWithRoles(...roles: string[]): string {
+  const encode = (value: object) =>
+    btoa(JSON.stringify(value)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const role = roles.length === 1 ? roles[0] : roles;
+  return `${encode({ alg: "none" })}.${encode({ sub: "user", role })}.signature`;
+}
+
 /**
  * The calls every signed-in page makes: who am I, and is the server healthy. The Owner's header
  * also asks for the cheques and instalments coming due (none) and the SMS credit (test mode, so

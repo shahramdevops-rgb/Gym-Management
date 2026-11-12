@@ -36,4 +36,11 @@ export const paths = {
   dashboard: "/dashboard",
   /** Who changed what and when, "گزارش تغییرات" (BUSINESS_RULES.md §11 *The audit screen*). */
   auditLogs: "/audit-logs",
+  /** The shop's contact ways, "راه‌های تماس" (BUSINESS_RULES.md §16 *The shop admin*). */
+  shopContacts: "/shop/contacts",
+  /**
+   * Where a shop admin lands, and where every gym page sends them (ADR 0011). The contact ways
+   * until 16.3 brings the products.
+   */
+  shopHome: "/shop/contacts",
 } as const;

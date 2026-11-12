@@ -161,6 +161,16 @@ Decided with the developer, 1405/07/04, task 11.6 (ADR 0004). A plain per-accoun
 | SMS: settings, history and cost, resend (§10) | ✅ | ❌ |
 | Cheques and instalments (چک و قسط): see, register, edit, mark paid, send back to pending, cancel (§9 *Cheques and instalments*) | ✅ | ❌ |
 
+The shop admin (`Shop`, §16, task 16.2) is in none of the rows above: no gym endpoint admits them,
+and the panel shows them only the shop's pages, their own account (changing their password,
+signing out) and «وضعیت سیستم» (the server's health, open to anyone). The shop's rows:
+
+| Action | Owner | Staff | Shop |
+|---|---|---|---|
+| Shop admin accounts: create, deactivate, reset the password, unlock (on «کارمندان», like staff) | ✅ | ❌ | ❌ |
+| The online shop: see its pages (the contact ways from 16.2) | ✅ | ❌ | ✅ |
+| The online shop: change it (the contact ways from 16.2) | ❌ | ❌ | ✅ |
+
 ---
 
 ## 2. Members
@@ -3005,10 +3015,24 @@ roadmap Phase 16. Each line says who decided it, as in §15:
   The role's name, `Shop` (فروشگاه): *Proposed by Claude, accepted with ADR 0011* (1405/08/19).
 - **Stock is typed by the shop admin by hand.** A sale at the counter does not change it; the shop
   admin corrects it themselves. *Decided by the developer.*
-- **The shop admin's contact ways are shown to customers**: phone, Telegram, Rubika and others they
-  enter. *Decided by the developer.* *Open:* the list of kinds, and where on the site they show.
-- *Open:* whether the Owner sees the shop's pages too, and whether there may be more than one shop
-  admin.
+- **The contact ways are shown to customers**: phone, Telegram, Rubika and others. *Decided by the
+  developer.* **They belong to the shop, one set for it, not to each shop admin**, so they stay when
+  a shop admin changes; **eight ways, each optional**: mobile, landline, WhatsApp, Telegram, Rubika,
+  Eitaa, Bale and Instagram; an empty one is not shown. *Decided by the developer at the start of
+  16.2* (1405/08/20). The mobile and WhatsApp follow §2's phone rules (an Iranian mobile, any
+  digits, kept as E.164); the landline is 11 digits with its area code (`07132345678`); a
+  messenger's id is 3 to 32 Latin letters, digits, `_` or `.`, typed with or without the `@`
+  (*Proposed by Claude*, 16.2). *Open:* where on the site they show (16.4, 16.8).
+- **The Owner sees the shop's pages but does not change them**; the shop admin alone changes the
+  shop. **There may be any number of shop admins**, each with their own user name and password.
+  *Decided by the developer at the start of 16.2* (1405/08/20).
+- **The Owner chooses the role when making an account** on «کارمندان»: a staff member or a shop
+  admin. The role never changes afterwards; another role is another account. *Proposed by Claude*
+  (16.2).
+- **One role per account, in the database too**: an account is the Owner, a staff member or a shop
+  admin, never two at once; a unique index on `user_roles(user_id)` refuses a second role.
+  *Decided by the developer* (1405/08/21). Before the release that adds it, a read-only query on
+  the server confirms no account holds two.
 
 ### Site users (کاربران سایت)
 - **A site user is someone who signed up on the site and has never had a plan or a visit** (nor a
@@ -3069,10 +3093,33 @@ anywhere in the stored number" (§2 now says the same as here).
   «کاربران سایت» page. Only that page finds a site user (*Site users* above).
 
 ### Products (کالا)
+- **Food supplements (protein, creatine, …) may be sold online.** *The Owner, 1405/08/20*, after
+  looking into it: "they can be sold, there is no problem."
 - **A product may come in variants**: size, flavour, colour, weight and anything else a gym's shop
   sells, defined by the shop admin rather than fixed in the code. *Decided by the developer.*
-- *Proposed by Claude:* each variant (for example «پروتئین وی، شکلاتی، ۲ کیلو») has its own stock,
-  and may have its own price; a product without variants is one variant.
+- **A variant is a plain label with its own price and its own stock**, for example «شکلاتی، ۲ کیلو»;
+  no grid of options (flavour × weight) built from parts. A product without variants is one
+  variant. *Decided by the developer at the start of 16.3* (1405/08/21).
+- **Categories are one level**, and each product sits in exactly one. *Decided by the developer at
+  the start of 16.3* (1405/08/21).
+- **A product has** a name, a description, up to 8 photos (the first is the main one, the order
+  chosen by the shop admin), and is shown or hidden on the site; the price and the stock are on
+  each variant. *Decided by the developer at the start of 16.3* (1405/08/21).
+- **Photos are re-encoded on upload** (ImageSharp, ADR 0010), which drops their EXIF data: a phone
+  photo can carry the place it was taken. Product photos are public (ADR 0011). *Decided by the
+  developer at the start of 16.3* (1405/08/21).
+- *Proposed by Claude* (16.3): a product has 1 to 20 variants; a label is up to 60 characters and
+  unique within its product, and may be empty only when the product has a single variant; a price
+  is above zero, in Toman like the panel's; stock is a whole number, never below zero (a check
+  constraint). A name is up to 120 characters, unique among the shop's products; a description up
+  to 2,000. A category's name is up to 40 characters and unique; a category is deleted only while
+  no product is in it.
+- *Proposed by Claude* (16.3): **a product is hidden, never deleted**, so "never deleted once sold"
+  needs no check; a variant is removed only from a product never sold (the check comes with 16.5's
+  orders). Photos can be removed and their order changed.
+- *Proposed by Claude* (16.3): a photo up to 10 MB, JPEG, PNG or WebP (an iPhone sends a gallery
+  photo as JPEG); stored as WebP at most 1600 pixels on its long side, with a 480-pixel copy for
+  lists.
 
 ### Customers
 - **A customer signs in with the site's phone and one-time code** (§15); one account serves the shop

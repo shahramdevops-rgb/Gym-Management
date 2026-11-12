@@ -65,7 +65,7 @@ export function StaffPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="کارمندان" description="حساب‌های کاربری کارمندان پذیرش." />
+      <PageHeader title="کارمندان" description="حساب‌های کارمندان پذیرش و مدیران فروشگاه آنلاین." />
 
       <CreateStaffForm />
 
@@ -113,6 +113,7 @@ export function StaffPage() {
                       </TableCell>
                       <TableCell label="وضعیت">
                         <div className="flex flex-wrap gap-1">
+                          {member.role === "Shop" && <Badge variant="outline">مدیر فروشگاه</Badge>}
                           <Badge variant={member.isActive ? "success" : "secondary"}>
                             {member.isActive ? "فعال" : "غیرفعال"}
                           </Badge>

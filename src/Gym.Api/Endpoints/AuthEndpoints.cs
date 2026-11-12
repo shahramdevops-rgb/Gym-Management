@@ -74,9 +74,11 @@ public static class AuthEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
+        // The shop admin too (ADR 0011): the panel reads their role here to show them the shop's
+        // menu only.
         group.MapGet("/me", async (GetCurrentUserHandler handler, CancellationToken ct) =>
                 (await handler.Handle(ct)).ToHttpResult())
-            .RequireAuthorization(Policies.StaffOrOwner)
+            .RequireAuthorization(Policies.OwnerStaffOrShop)
             .WithName("GetCurrentUser")
             .Produces<CurrentUserResponse>()
             .ProducesProblem(StatusCodes.Status401Unauthorized)

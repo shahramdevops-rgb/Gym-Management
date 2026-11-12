@@ -44,7 +44,8 @@
     "SessionSkip": "غیبت شاگرد از یک سانس",
     "SessionBooking": "سانس جابه‌جاشدهٔ شاگرد",
     "SessionCancellation": "سانس لغوشدهٔ شاگرد",
-    "LeaveRequest": "درخواست مرخصی شاگرد"
+    "LeaveRequest": "درخواست مرخصی شاگرد",
+    "ShopSettings": "راه‌های تماس فروشگاه"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -191,6 +192,14 @@
     "PayableDueSendTime": { "label": "چک و قسط: ساعت ارسال" },
     "PayableDueTemplateName": { "label": "چک و قسط: نام قالب" },
     "OwnerPhone": { "label": "موبایل مالک" },
+    "MobilePhone": { "label": "تلفن همراه فروشگاه" },
+    "LandlinePhone": { "label": "تلفن ثابت فروشگاه" },
+    "WhatsAppPhone": { "label": "واتساپ فروشگاه" },
+    "Telegram": { "label": "تلگرام فروشگاه" },
+    "Rubika": { "label": "روبیکا فروشگاه" },
+    "Eitaa": { "label": "ایتا فروشگاه" },
+    "Bale": { "label": "بله فروشگاه" },
+    "Instagram": { "label": "اینستاگرام فروشگاه" },
     "DailyReportEnabled": { "label": "گزارش روزانه: روشن" },
     "DailyReportPhone": { "label": "گزارش روزانه: موبایل" },
     "DailyReportSendTime": { "label": "گزارش روزانه: ساعت ارسال" },

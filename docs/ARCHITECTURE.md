@@ -99,7 +99,7 @@ group.MapPost("/", async (CreateMemberCommand command, CreateMemberHandler handl
     .RequireAuthorization(Policies.StaffOrOwner);
 ```
 
-Two sign-ins, never mixed (ADR 0010): staff policies (`OwnerOnly`, `StaffOrOwner`, `PasswordChangeAllowed`, the fallback) name `AuthSchemes.Staff`; the site's (`SiteAccount`) names `AuthSchemes.Site`. A new policy names its scheme too. A site endpoint reads its account from the `site_account` claim, never `sub`; `SchemeSeparationTests` calls every endpoint with the other kind of token.
+Two sign-ins, never mixed (ADR 0010): staff policies (`OwnerOnly`, `StaffOrOwner`, `ShopAdmin`, `ShopOrOwner`, `OwnerStaffOrShop`, `PasswordChangeAllowed`, the fallback) name `AuthSchemes.Staff`; the site's (`SiteAccount`) names `AuthSchemes.Site`. A new policy names its scheme too. A site endpoint reads its account from the `site_account` claim, never `sub`; `SchemeSeparationTests` calls every endpoint with the other kind of token.
 
 ### Errors
 `Error(Code, Description, ErrorType)`. Codes look like `Members.PhoneAlreadyExists`.
@@ -504,8 +504,11 @@ web/site/           The site app's page (index.html), entry (main.ts) and public
   same request (`RefreshHandler`).
 - Expired and revoked `refresh_tokens` rows are never deleted by the app yet. A cleanup job belongs with Hangfire.
 - Authorization policies live in `Gym.Api/Authorization/Policies.cs`: `OwnerOnly`, `StaffOrOwner`,
-  `PasswordChangeAllowed`. Every policy except `PasswordChangeAllowed` includes `PasswordChangedRequirement` (the forced
-  password change gate), and so does the fallback. `EndpointAuthorizationTests` fails if an endpoint declares neither a
+  `PasswordChangeAllowed`, and for the online shop (ADR 0011) `ShopAdmin` (the shop admin: every change to the shop),
+  `ShopOrOwner` (reading the shop) and `OwnerStaffOrShop` (`/api/auth/me` only). Each names its roles; the fallback
+  names Owner and Staff, so an endpoint that forgot its policy still refuses a shop admin, and `ShopAdminTests` calls
+  every gym endpoint with a shop-admin token. Every policy except `PasswordChangeAllowed` includes
+  `PasswordChangedRequirement` (the forced password change gate), and so does the fallback. `EndpointAuthorizationTests` fails if an endpoint declares neither a
   policy nor `AllowAnonymous()`.
 - Authorization failures are ProblemDetails too (`ProblemDetailsAuthorizationResultHandler`): 401 `Auth.Unauthenticated`,
   403 `Auth.PasswordChangeRequired` when the gate failed, 403 `Auth.Forbidden` otherwise.

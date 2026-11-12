@@ -66,6 +66,17 @@ export const errorMessages: Record<string, string> = {
   "Staff.FullNameRequired": "نام و نام خانوادگی را وارد کنید.",
   "Staff.FullNameTooLong": "نام بیش از حد طولانی است.",
   "Staff.TemporaryPasswordRequired": "رمز عبور موقت را وارد کنید.",
+  "Staff.RoleInvalid": "نقش حساب باید «کارمند» یا «مدیر فروشگاه» باشد.",
+
+  // The online shop (BUSINESS_RULES.md §16)
+  "Shop.MobilePhoneInvalid": "شمارهٔ همراه باید موبایل ایران باشد، مثل ۰۹۱۲۱۲۳۴۵۶۷.",
+  "Shop.WhatsAppPhoneInvalid": "شمارهٔ واتساپ باید موبایل ایران باشد، مثل ۰۹۱۲۱۲۳۴۵۶۷.",
+  "Shop.LandlineInvalid": "شمارهٔ ثابت را با کد شهر و ۱۱ رقم بنویسید، مثل ۰۷۱۳۲۳۴۵۶۷۸.",
+  "Shop.HandleInvalid":
+    "آیدی فقط حروف انگلیسی، رقم، _ و نقطه دارد و ۳ تا ۳۲ نویسه است؛ @ و لینک لازم نیست.",
+  "Shop.ContactInvalid": "یکی از راه‌های تماس درست نوشته نشده است.",
+  "Shop.ChangedConcurrently":
+    "راه‌های تماس را کس دیگری همین حالا ذخیره کرد. صفحه را تازه کنید و دوباره امتحان کنید.",
 
   // The server console's account commands (./server.sh unlock | set-password | rename). They
   // print in English on the server and never reach the web app today, but they are real codes,

@@ -3138,6 +3138,97 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Shop.ShopSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Bale")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("bale");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Eitaa")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("eitaa");
+
+                    b.Property<string>("Instagram")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("instagram");
+
+                    b.Property<string>("LandlinePhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("landline_phone");
+
+                    b.Property<string>("MobilePhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("mobile_phone");
+
+                    b.Property<string>("Rubika")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("rubika");
+
+                    b.Property<string>("Telegram")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("telegram");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<string>("WhatsAppPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("whats_app_phone");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shop_settings");
+
+                    b.ToTable("shop_settings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shop_settings_handles", "(telegram IS NULL OR telegram ~ '^[A-Za-z0-9_.]{3,32}$') AND (rubika IS NULL OR rubika ~ '^[A-Za-z0-9_.]{3,32}$') AND (eitaa IS NULL OR eitaa ~ '^[A-Za-z0-9_.]{3,32}$') AND (bale IS NULL OR bale ~ '^[A-Za-z0-9_.]{3,32}$') AND (instagram IS NULL OR instagram ~ '^[A-Za-z0-9_.]{3,32}$')");
+
+                            t.HasCheckConstraint("ck_shop_settings_landline", "(landline_phone IS NULL OR landline_phone ~ '^0[1-8][0-9]{9}$')");
+
+                            t.HasCheckConstraint("ck_shop_settings_mobiles", "(mobile_phone IS NULL OR mobile_phone ~ '^\\+989[0-9]{9}$') AND (whats_app_phone IS NULL OR whats_app_phone ~ '^\\+989[0-9]{9}$')");
+
+                            t.HasCheckConstraint("ck_shop_settings_single_row", "id = '5d0c7a13-8e2f-4b6a-9c41-7f3e2a9b6d18'");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("5d0c7a13-8e2f-4b6a-9c41-7f3e2a9b6d18"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.SiteAuth.SignInCode", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4097,6 +4188,10 @@ namespace Gym.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("RoleId")
                         .HasDatabaseName("ix_user_roles_role_id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_user_roles_user_id");
 
                     b.ToTable("user_roles", (string)null);
                 });

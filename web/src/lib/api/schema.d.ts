@@ -1124,6 +1124,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/shop/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetShopContacts"];
+        put: operations["UpdateShopContacts"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pricing": {
         parameters: {
             query?: never;
@@ -2897,6 +2913,7 @@ export interface components {
             userName: string;
             fullName: string;
             temporaryPassword: string;
+            role?: components["schemas"]["StaffRole"];
         };
         CreateTrainerCommand: {
             fullName: string;
@@ -4426,6 +4443,18 @@ export interface components {
             startsOn: string;
             sessions: components["schemas"]["WeeklySessionItem"][];
         };
+        ShopContactsResponse: {
+            mobilePhone: null | string;
+            landlinePhone: null | string;
+            whatsAppPhone: null | string;
+            telegram: null | string;
+            rubika: null | string;
+            eitaa: null | string;
+            bale: null | string;
+            instagram: null | string;
+            /** Format: uint32 */
+            version: number | string;
+        };
         ShopSaleItem: {
             description: string;
             /** Format: int32 */
@@ -4641,7 +4670,10 @@ export interface components {
             isActive: boolean;
             mustChangePassword: boolean;
             isLockedOut: boolean;
+            role: components["schemas"]["StaffRole"];
         };
+        /** @enum {unknown} */
+        StaffRole: "Staff" | "Shop";
         StudentAttendanceResponse: {
             /** Format: uuid */
             memberId: string;
@@ -4918,6 +4950,18 @@ export interface components {
             categoryId: string;
             /** Format: double */
             price: number | string;
+            /** Format: uint32 */
+            version: number | string;
+        };
+        UpdateShopContactsCommand: {
+            mobilePhone: null | string;
+            landlinePhone: null | string;
+            whatsAppPhone: null | string;
+            telegram: null | string;
+            rubika: null | string;
+            eitaa: null | string;
+            bale: null | string;
+            instagram: null | string;
             /** Format: uint32 */
             version: number | string;
         };
@@ -9190,6 +9234,104 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetShopContacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopContactsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateShopContacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateShopContactsCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShopContactsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

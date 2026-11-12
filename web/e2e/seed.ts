@@ -140,6 +140,14 @@ async function ownerToken(api: APIRequestContext) {
   return token;
 }
 
+/**
+ * Makes sure the Owner is past their first login, so a spec can sign in on the screen with
+ * {@link ownerPassword} whichever spec ran before it.
+ */
+export async function ensureOwnerSignedInOnce(api: APIRequestContext) {
+  await ownerToken(api);
+}
+
 /** A trainer the Owner adds in «مربیان» (15.2); the phone as typed, `09…`. */
 export async function seedTrainer(
   api: APIRequestContext,

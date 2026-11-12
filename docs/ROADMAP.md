@@ -60,7 +60,9 @@ Next: **members and trainers on the site (Phase 15):** 15.0 is done (ADR 0010 ac
   gym's trainers, links and photos; 14.4 closed with 15.3b
 - **Queued: the online shop and site users (Phase 16)**, asked by the developer on 1405/08/19
   (2026-11-10); 16.0 done (ADR 0011 accepted 1405/08/19); **16.1** built 1405/08/19 on
-  `task/16.1-site-users` (site users and the phone search), merged, not released; next 16.2. The
+  `task/16.1-site-users` (site users and the phone search), merged, not released; **16.2** built
+  1405/08/20 on `task/16.2-shop-admin` (the shop admin and the contact ways), not released; next
+  16.3. The
   eNamad first (1405/08/20): 16.2 to 16.4 and 16.9 make a showcase to apply with, the rest is built
   while it is reviewed
 
@@ -5033,21 +5035,49 @@ Built 1405/08/19 on branch `task/16.1-site-users`, not released.
       (the page, the form's notice); the screens walked with Playwright on a throwaway stack
 
 ### 16.2 The shop admin and their panel (مدیر فروشگاه)
-- [ ] Asked first: whether the Owner sees the shop's pages, and more than one shop admin
-- [ ] The `Shop` role and the `ShopAdmin` policy (ADR 0011); the Owner adds a shop admin on the
-      staff page like a staff account; every existing staff endpoint refuses them (a test walks
-      them all, as `EndpointAuthorizationTests` does)
-- [ ] The panel shows a shop admin a layout of its own with the shop's pages only (empty until
-      16.3); the admin's contact ways (phone, Telegram, Rubika, …) entered there
+Built 1405/08/20 on branch `task/16.2-shop-admin`, not released.
+- [x] Asked first. The developer chose, 1405/08/20: the Owner **sees** the shop's pages but does
+      not change them; any number of shop admins; the contact ways belong to the shop (one set);
+      eight ways: mobile, landline, WhatsApp, Telegram, Rubika, Eitaa, Bale, Instagram
+- [x] The `Shop` role and three policies that name their roles: `ShopAdmin` (Shop: every change),
+      `ShopOrOwner` (reading the shop) and `OwnerStaffOrShop` («me» only, so the panel can choose
+      the shop admin's menu). The fallback policy now names Owner and Staff, so an endpoint that
+      ever forgot its policy still refuses a shop admin
+- [x] «کارمندان»: the new-account form has «نقش» (کارمند پذیرش / مدیر فروشگاه, `StaffRole` in
+      `CreateStaffCommand`, a staff member when left out); the list marks «مدیر فروشگاه»;
+      deactivate, reset and unlock work for both. The `Shop` role is created with the first such
+      account, so the server needs no step
+- [x] The contact ways: `shop_settings`, one row seeded by the migration (a check constraint keeps
+      a second out, each way's shape checked by the database too), `GET /api/shop/contacts`
+      (`ShopOrOwner`) and `PUT /api/shop/contacts` (`ShopAdmin`, `version` + `xmin`); the
+      migration only adds a table
+- [x] The panel: a shop admin's menu holds «فروشگاه آنلاین» › «راه‌های تماس» and the account's
+      items; every gym page sends them to the shop (`GymArea`, read from the access token's roles
+      first, so no gym screen flashes); the Owner's menu gains the same item, a read-only list.
+      The shop's home is the contact ways until 16.3 brings the products
+- [x] Tests: integration (`ShopAdminTests`: every gym endpoint refuses a shop-admin token, «me»,
+      the account made with each role, deactivation, Staff refused, the Owner reads but cannot
+      save, the save cleaned, each field's refusal, a stale version, the database's checks and
+      single row; `AuthorizationPolicyTests`' new cases); domain (`ShopSettingsTests`); frontend
+      (the page for each role, the redirect and menu, the staff form's role)
+- [x] **One role per account** (the developer, 1405/08/21, asked during 16.2): migration
+      `OneRolePerUser`, a unique index `ux_user_roles_user_id`; test in `ShopAdminTests`.
+      *Before the release:* a read-only query on the server shows no account with two roles
 
 ### 16.3 Categories, products and photos (دسته‌بندی، کالا و گالری)
-- [ ] Asked first: the image library (ADR 0010 and 0011), a product's fields (name, description,
-      more than one photo), and the variants' design (§16 *Products*: a price per variant or not)
-- [ ] Categories and products with **variants the shop admin defines** (size, flavour, weight, …;
-      decided by the developer 1405/08/19), each variant with its stock typed by hand (never below
-      zero, a check constraint); a product hidden or shown on the site; never deleted once sold
-- [ ] Photos uploaded, re-encoded and stored on a volume, in `backup.sh` and the restore (the
-      restore drill in docs/DEPLOYMENT.md covers files)
+Wanted in the release of the night of 1405/08/21 with the rest of `main` (the developer), if ready.
+- [x] Asked first (1405/08/21, §16 *Products*): ImageSharp re-encodes the photos; a variant is a
+      plain label with its own price and stock; categories one level; a product's name,
+      description, up to 8 photos (the first the main one), shown or hidden. Every new screen right
+      on a phone as well as the computer, like the public site (the developer)
+- [ ] **16.3a, the backend**: file storage on a Docker volume (`IFileStore`, ADR 0010's design,
+      the shop's photos first), categories, products, variants (stock never below zero, a check
+      constraint), photos re-encoded to WebP; the shop admin changes, the Owner reads, a photo is
+      public; `backup.sh`, the restore and `pull-backup.ps1` take the files (the restore drill in
+      docs/DEPLOYMENT.md covers them)
+- [ ] **16.3b, the screens**: «دسته‌بندی‌ها» and «کالاها» in the shop admin's panel (cards on a
+      phone), the product's form with its variants and photos (camera or gallery on a phone); the
+      Owner's read-only view; walked at phone and computer width with screenshots
 
 ### 16.4 The shop on the site (ویترین)
 - [ ] Asked first: where the catalogue lives (ADR 0011 proposes the site app, with the public
@@ -5061,8 +5091,8 @@ Brought forward from the end (the developer, 1405/08/20), so the eNamad is appli
       Zarinpal's blog and others, to be checked on the eNamad's own site): the applicant owns the
       domain (`pasargadgymplus.ir`'s holder at IRNIC is the same person, and the code comes to the
       domain's registered email); a phone and an address in that person's name; their identity
-      papers; a Sheba in the same name for the gateway; whether selling food supplements needs a
-      licence of its own
+      papers; a Sheba in the same name for the gateway. (Selling food supplements: the Owner looked
+      into it, 1405/08/20, "they can be sold, there is no problem", §16 *Products*)
 - [ ] About us, contact, terms and returns on the site, with the Owner's texts. The returns page
       follows the E-Commerce Law (article 37: at least 7 working days to withdraw, return postage on
       the buyer; exceptions checked), §16

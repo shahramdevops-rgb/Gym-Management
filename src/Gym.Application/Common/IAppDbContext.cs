@@ -12,6 +12,7 @@ using Gym.Domain.Payables;
 using Gym.Domain.Payments;
 using Gym.Domain.Pricing;
 using Gym.Domain.ServiceCharges;
+using Gym.Domain.Shop;
 using Gym.Domain.SiteAuth;
 using Gym.Domain.Subscriptions;
 using Gym.Domain.Timetables;
@@ -81,6 +82,8 @@ public interface IAppDbContext
     DbSet<SmsSettings> SmsSettings { get; }
 
     DbSet<SmsBroadcast> SmsBroadcasts { get; }
+
+    DbSet<ShopSettings> ShopSettings { get; }
 
     DbSet<SignInCode> SignInCodes { get; }
 

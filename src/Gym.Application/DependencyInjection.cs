@@ -153,6 +153,8 @@ using Gym.Application.SiteAuth.SignUp;
 using Gym.Application.SiteAuth.VerifyCode;
 using Gym.Application.SiteRecords.GetMyDebt;
 using Gym.Application.SiteRecords.GetMyDetails;
+using Gym.Application.Shop.GetShopContacts;
+using Gym.Application.Shop.UpdateShopContacts;
 using Gym.Application.SiteUsers.FindSiteUserByPhone;
 using Gym.Application.SiteUsers.ListSiteUsers;
 using Gym.Application.SiteUsers.RegisterSiteUser;
@@ -317,6 +319,10 @@ public static class DependencyInjection
 
         // Site users, apart from the gym's members (BUSINESS_RULES.md §16, task 16.1).
         services.AddScoped<ListSiteUsersHandler>();
+
+        // The online shop (Phase 16, ADR 0011).
+        services.AddScoped<GetShopContactsHandler>();
+        services.AddScoped<UpdateShopContactsHandler>();
         services.AddScoped<FindSiteUserByPhoneHandler>();
         services.AddScoped<RegisterSiteUserHandler>();
 
