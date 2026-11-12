@@ -3,6 +3,7 @@ import { LogOut, Menu, X } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 
+import { NewBadge } from "@/components/NewBadge";
 import { PageSectionContext } from "@/components/pageSection";
 import { Button } from "@/components/ui/button";
 import { gymRoles, hasRole, useCurrentUser, useLogout, useRoles } from "@/features/auth/api";
@@ -245,7 +246,7 @@ function SideMenu({
               <GroupSwoosh muted={group.tone === undefined} />
             </p>
             <ul aria-labelledby={`nav-group-${index}`} className="space-y-px">
-              {group.items.map(({ to, label, icon: Icon }) => (
+              {group.items.map(({ to, label, icon: Icon, newUntil }) => (
                 <li key={to}>
                   <NavLink
                     to={to}
@@ -272,6 +273,9 @@ function SideMenu({
                           aria-hidden
                         />
                         {label}
+                        {newUntil !== undefined && (
+                          <NewBadge until={newUntil} className="ms-auto" />
+                        )}
                       </>
                     )}
                   </NavLink>

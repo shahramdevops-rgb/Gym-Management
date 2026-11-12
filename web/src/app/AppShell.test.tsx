@@ -126,6 +126,36 @@ describe("AppShell", () => {
     );
   });
 
+  it("AppShell_WeekOfTheShopRelease_MarksItsItemsJadid", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-14T08:00:00Z")); // ۲۳ آبان ۱۴۰۵
+    mockApi(signedInHandlers(owner));
+
+    renderApp("/", { session: session() });
+
+    await screen.findByText(owner.fullName);
+    const navigation = screen.getByRole("navigation", { name: "منوی اصلی" });
+    const marked = within(navigation)
+      .getAllByText("جدید")
+      .map((badge) => badge.closest("a")?.textContent?.replace("جدید", ""));
+    expect(marked).toEqual(["کاربران سایت", "کالاها", "دسته‌بندی‌ها", "راه‌های تماس"]);
+    // The link's name stays what it was: the badge is decoration.
+    expect(within(navigation).getByRole("link", { name: "کاربران سایت" })).toBeInTheDocument();
+  });
+
+  it("AppShell_AWeekAfterTheShopRelease_MarksNothing", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-21T08:00:00Z")); // ۳۰ آبان ۱۴۰۵
+    mockApi(signedInHandlers(owner));
+
+    renderApp("/", { session: session() });
+
+    await screen.findByText(owner.fullName);
+    expect(
+      within(screen.getByRole("navigation", { name: "منوی اصلی" })).queryByText("جدید"),
+    ).not.toBeInTheDocument();
+  });
+
   it("AppShell_Anyone_SeesNoPlansMenuItem", async () => {
     // BUSINESS_RULES.md §3 since task 6.5.6: there is no list of plans to set up.
     mockApi(signedInHandlers(owner));

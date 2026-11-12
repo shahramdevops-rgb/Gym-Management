@@ -2524,3 +2524,11 @@ The question that started this was whether a gym that is entirely internal — I
 - **Docker named volumes copy the owner of the image's folder.** `mkdir` + `chown` to the app user before `USER` in the Dockerfile lets a non-root API write to a fresh volume.
 - **jsdom's `FormData` is not Node's.** A multipart upload cannot leave a Vitest test through Node's `Request`; the test stands one in, and the real multipart is proved by the API's tests and the browser walk.
 - **My notes:**
+
+## The «جدید» badge (before the 16.1–16.3 release)
+
+- **Time-limited UI by a date, not a flag.** `NewBadge` compares the gym's today with a fixed "gone from" day, so it disappears a week after the release without a setting, a click or a new deploy; the leftover `newUntil` simply renders nothing.
+- **ISO dates compare as text.** `"2026-11-20" < "2026-11-21"` is true as strings, because the format is fixed-width and ordered from year to day; no `Date` object, no time-zone slip.
+- **The gym's day, not the browser's UTC.** At 00:30 in Tehran it is still the previous day in UTC; the test pins that moment to prove the badge goes at the gym's midnight.
+- **`aria-hidden` for decoration inside a link.** A screen reader would read "کاربران سایت جدید" and every test and e2e that finds the link by its name would break; the badge is a visual hint, so it stays out of the accessible name.
+- **My notes:**

@@ -207,7 +207,7 @@ web/src/
 ├── app/            Router, providers (QueryClient, DirectionProvider), layout shell
 ├── features/       One folder per feature: members/, subscriptions/, attendance/...
 │   └── members/    api.ts (queries/mutations), components/, pages/, schemas.ts (Zod)
-├── components/     Shared building blocks: PageHeader, States (LoadingState, EmptyState), StatTile, FormField, SaveRow, Pager
+├── components/     Shared building blocks: PageHeader, States (LoadingState, EmptyState), StatTile, FormField, SaveRow, Pager, NewBadge («جدید» for a week after a release; a menu item's `newUntil`)
 ├── components/ui/  shadcn/ui components (adjusted for RTL), Table among them
 ├── lib/
 │   ├── api/        Generated types (do not edit) and the openapi-fetch client
