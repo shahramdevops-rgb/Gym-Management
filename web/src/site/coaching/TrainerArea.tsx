@@ -1,134 +1,74 @@
-import { useState } from "react";
+import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router";
 
-import { LoadingState } from "@/components/States";
-import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { errorMessage } from "@/lib/errors";
-import { formatDate, gymToday } from "@/lib/format";
+import { gymToday, toPersianDigits } from "@/lib/format";
 
-import { Person } from "../components/Person";
 import { sitePaths } from "../paths";
-import { useStudents, type Students } from "./api";
+import { useStudents } from "./api";
 import { periodMark, periodState } from "./period";
-import { matchesStudent } from "./studentSearch";
 
 /**
  * «شاگردان من» on the trainer's home (BUSINESS_RULES.md §15 *A member and their trainer*, roadmap
- * 15.4b; the requests are their own card since 15.7d, `TrainerRequestsCard`). The trainer sees
- * each member's name and phone; the phone opens the dialler, «حضور» the student's attendance
- * (15.7) and «برنامهٔ ثابت» their fixed weekly sessions (15.6b). A search box finds a student by
- * name or phone (15.7d). «پایان مربی‌گری» is no longer here but at the foot of «برنامهٔ ثابت», so a
- * finger cannot hit it by mistake (15.7g). A student whose coaching period needs the trainer is
- * marked: not given yet, ending within three days, or over (15.7h).
+ * 15.4b): since 1405/08/20 a card with the count, «شاگردان من (۱۲)», that opens the list on its own
+ * page (`StudentsPage`), asked by the developer so the home stays short. Every student is counted,
+ * those whose membership is inactive too, as the list shows them. The students whose coaching
+ * period needs the trainer (15.7h: ending within three days, over, or not given) are named under
+ * it, since their marks are on the page now: «دورهٔ مینا رضایی رسیدگی می‌خواهد.», two names at
+ * most, then only how many («دورهٔ ۳ شاگرد رسیدگی می‌خواهد.»; the wording the developer's,
+ * 1405/08/20).
+ *
+ * The count comes from the same read as the waiting requests' card (`useStudents`), which the home
+ * makes anyway, so the card costs no request of its own.
  */
 export function TrainerArea() {
   const students = useStudents();
-  const [query, setQuery] = useState("");
-
-  if (students.data === undefined) {
-    return (
-      <Card accent={false} className="gap-3 shadow-raised">
-        <CardHeader>
-          <CardTitle role="heading" aria-level={2}>
-            شاگردان من
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {students.isError ? (
-            <Alert variant="destructive">{errorMessage(students.error)}</Alert>
-          ) : (
-            <LoadingState className="py-2" />
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const list = students.data.students;
-  const found = list.filter((student) => matchesStudent(student, query));
+  const list = students.data?.students;
   const today = gymToday();
+  const needing =
+    list?.filter((student) => periodMark(periodState(student.periodEndsOn, today)) !== null) ?? [];
 
   return (
-    <Card accent={false} className="gap-3 shadow-raised">
-      <CardHeader>
-        <CardTitle role="heading" aria-level={2}>
-          شاگردان من
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {list.length === 0 ? (
-          <p className="text-sm text-muted-foreground">هنوز شاگردی ندارید.</p>
-        ) : (
-          <>
-            <Input
-              type="search"
-              aria-label="جست‌وجوی شاگرد"
-              placeholder="نام یا شماره"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            {found.length === 0 ? (
-              <p className="text-sm text-muted-foreground">شاگردی با این نام یا شماره پیدا نشد.</p>
-            ) : (
-              <ul aria-label="شاگردان من" className="divide-y">
-                {found.map((student) => (
-                  <li
-                    key={student.memberId}
-                    className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
-                  >
-                    <Person
-                      fullName={student.fullName}
-                      phoneNumber={student.phoneNumber}
-                      detail={<StudentDetail student={student} today={today} />}
-                      inactive={!student.isActive}
-                    />
-                    <div className="flex gap-2">
-                      <Button asChild variant="secondary" size="sm">
-                        <Link
-                          to={sitePaths.studentAttendance(student.memberId)}
-                          aria-label={`حضور ${student.fullName}`}
-                        >
-                          حضور
-                        </Link>
-                      </Button>
-                      <Button asChild variant="secondary" size="sm">
-                        <Link
-                          to={sitePaths.student(student.memberId)}
-                          aria-label={`برنامهٔ ثابت ${student.fullName}`}
-                        >
-                          برنامهٔ ثابت
-                        </Link>
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+    <Link
+      to={sitePaths.students}
+      aria-label={
+        list === undefined ? "شاگردان من" : `شاگردان من (${toPersianDigits(list.length)})`
+      }
+      className="block rounded-xl focus-visible:ring-[3px] focus-visible:ring-ring/30 focus-visible:outline-none"
+    >
+      <Card accent={false} className="gap-1 shadow-raised transition-colors hover:bg-muted/40">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle role="heading" aria-level={2}>
+            شاگردان من
+            {list !== undefined && (
+              <span className="font-normal text-muted-foreground">
+                {" "}
+                ({toPersianDigits(list.length)})
+              </span>
             )}
-          </>
+          </CardTitle>
+          <ChevronLeft aria-hidden className="size-5 text-muted-foreground" />
+        </CardHeader>
+        {needing.length > 0 && (
+          <CardContent>
+            <p className="text-sm text-warning-ink">
+              {needingText(needing.map((s) => s.fullName))}
+            </p>
+          </CardContent>
         )}
-      </CardContent>
-    </Card>
+      </Card>
+    </Link>
   );
 }
 
-/** «از ۱ آبان», and the coaching period's mark when the trainer has something to do about it. */
-function StudentDetail({
-  student,
-  today,
-}: {
-  student: Students["students"][number];
-  today: string;
-}) {
-  const mark = periodMark(periodState(student.periodEndsOn, today));
+/** Two names at most, then only how many: a long line of names would push the card down. */
+function needingText(names: readonly string[]): string {
+  const who =
+    names.length === 1
+      ? names[0]
+      : names.length === 2
+        ? `${names[0]} و ${names[1]}`
+        : `${toPersianDigits(names.length)} شاگرد`;
 
-  return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      از {formatDate(student.since)}
-      {mark !== null && <Badge variant="warning">{mark}</Badge>}
-    </span>
-  );
+  return `دورهٔ ${who} رسیدگی می‌خواهد.`;
 }

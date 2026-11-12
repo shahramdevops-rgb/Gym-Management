@@ -62,9 +62,12 @@ test("SiteCoaching_MemberPicksTrainer_TrainerAcceptsAndSeesTheStudent", async ({
   // The coaching period's days (15.7h): the 30 the box starts with.
   await expect(requests.getByRole("textbox", { name: "دورهٔ مربی‌گری" })).toHaveValue("۳۰");
   await requests.getByRole("button", { name: "پذیرفتن" }).click();
+  await expect(trainerPage.getByRole("link", { name: "شاگردان من (۱)" })).toBeVisible();
+  await trainerPage.getByRole("link", { name: "شاگردان من (۱)" }).click();
   await expect(trainerPage.getByRole("list", { name: "شاگردان من" })).toContainText(
     member.fullName,
   );
+  await trainerPage.getByRole("link", { name: "بازگشت" }).click();
 
   // The member sees it when the app is opened again, with «خبر مربی» on top (15.4d).
   await page.reload();

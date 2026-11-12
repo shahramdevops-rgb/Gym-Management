@@ -103,6 +103,27 @@ describe("the coaching period", () => {
     expect(api.requestsTo("POST", acceptPath)).toHaveLength(0);
   });
 
+  it.each([
+    [["مینا رضایی"], "دورهٔ مینا رضایی رسیدگی می‌خواهد."],
+    [["مینا رضایی", "سارا احمدی"], "دورهٔ مینا رضایی و سارا احمدی رسیدگی می‌خواهد."],
+  ])("Home_FewPeriodsNeedTheTrainer_NamesThem %#", async (names, sentence) => {
+    const now = gymToday();
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      "GET /api/site/coaching/students": () =>
+        json(200, {
+          requests: [],
+          students: [
+            ...names.map((fullName) => studentRow({ fullName, periodEndsOn: addDays(now, 1) })),
+            studentRow({ fullName: "ت دور", periodEndsOn: addDays(now, 20) }),
+          ],
+        }),
+    });
+    renderSite("/", { access: siteAccess(trainerOnly) });
+
+    expect(await screen.findByText(sentence)).toBeInTheDocument();
+  });
+
   it("Students_PeriodNeedsTheTrainer_Marked", async () => {
     const now = gymToday();
     mockApi({
@@ -120,13 +141,18 @@ describe("the coaching period", () => {
     });
     renderSite("/", { access: siteAccess(trainerOnly) });
 
+    // The home's card counts them; the marks are on «شاگردان من».
+    expect(await screen.findByText("دورهٔ ۳ شاگرد رسیدگی می‌خواهد.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("link", { name: "شاگردان من (۴)" }));
+
     const rows = within(await screen.findByRole("list", { name: "شاگردان من" })).getAllByRole(
       "listitem",
     );
     expect(rows[0]).toHaveTextContent("دوره را مشخص کنید");
-    expect(rows[1]).toHaveTextContent("۲ روز مانده");
+    expect(rows[1]).toHaveTextContent("۲ روز");
+    expect(rows[1]).not.toHaveTextContent("مانده");
     expect(rows[2]).toHaveTextContent("دوره تمام شد");
-    expect(rows[3]).not.toHaveTextContent(/روز مانده|دوره/);
+    expect(rows[3]).not.toHaveTextContent(/روز|دوره/);
   });
 
   it("MyTrainer_WithAPeriod_ShowsItsLastDayAndTheDaysLeft", async () => {

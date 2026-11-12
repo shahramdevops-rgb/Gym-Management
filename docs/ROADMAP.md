@@ -4902,6 +4902,18 @@ Each part on its own branch and session, in this order (proposed by Claude); 15.
     text at the card's foot (`ConfirmDialog`'s `quiet`); not removed, since §15 lets the member end
     the link and change trainer. «انتخاب مربی», with no trainer, stays the card's button
     (`coaching/MyTrainerCard.tsx`)
+  - **«شاگردان من» a page of its own** (asked by the developer 1405/08/20, so the home stays short
+    and the list comes only when opened): on the trainer's home a card «شاگردان من (۱۲)», every
+    student counted (inactive ones too, as the list shows them), with «دورهٔ مینا رضایی رسیدگی
+    می‌خواهد.» when a period needs the trainer (ending within three days, over, or not given;
+    two names at most, then «دورهٔ ۳ شاگرد رسیدگی می‌خواهد.», the developer's wording), since
+    15.7h's marks are on the page now. It opens
+    `/students` (`coaching/StudentsPage.tsx`, a lazy page of 3 kB: search, «حضور» and «برنامه»,
+    the short name of «برنامهٔ ثابت», always on the student's line; the period's mark «۲ روز»,
+    without «مانده», and «روز آخر», all the developer's, 1405/08/20);
+    a student's «برنامهٔ ثابت» and «حضور» go back to it, and ending the coaching lands on it. The
+    count comes from the same read as the requests' card, which the home makes anyway, so the data
+    sent is the same as before
 - [x] **15.7h, the coaching period (دورهٔ مربی‌گری)** (backend, screens, migration; built 1405/08/19
       on `task/15.7h-coaching-period`, from 15.7g's branch). *Decided by the developer:* a period is
       **one month** by default; **the trainer types the number of days when accepting a request**;
