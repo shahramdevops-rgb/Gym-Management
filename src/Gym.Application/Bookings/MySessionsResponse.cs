@@ -99,7 +99,7 @@ public sealed record MySessionsResponse(
             .Where(skip => !mine.Any(place => place.Date == skip.Date && place.Start == skip.Start && place.End == skip.End))
             .Select(skip => (Skip: skip, Session: timetable.SessionsOn(skip.Date).FirstOrDefault(session => session.Start == skip.Start && session.End == skip.End)))
             .Where(left => left.Session is not null)
-            .Select(left => PlaceResponse.LeftBy(left.Skip, left.Session!))
+            .Select(left => PlaceResponse.LeftBy(left.Skip, left.Session!, timetable))
             .ToList();
     }
 

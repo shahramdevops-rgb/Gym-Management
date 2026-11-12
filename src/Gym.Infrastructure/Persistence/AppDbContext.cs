@@ -107,6 +107,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<TimetableDay> TimetableDays => Set<TimetableDay>();
 
+    public DbSet<SessionNote> SessionNotes => Set<SessionNote>();
+
     public DbSet<FixedSchedule> FixedSchedules => Set<FixedSchedule>();
 
     public DbSet<SessionSkip> SessionSkips => Set<SessionSkip>();

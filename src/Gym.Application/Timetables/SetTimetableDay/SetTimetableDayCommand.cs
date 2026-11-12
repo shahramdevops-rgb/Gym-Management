@@ -4,4 +4,5 @@ namespace Gym.Application.Timetables.SetTimetableDay;
 public sealed record SetTimetableDayCommand(IReadOnlyList<SessionItem> Sessions);
 
 /// <param name="IsVip">Left out, the session is a normal one (15.6e): a page from before VIP still saves.</param>
-public sealed record SessionItem(TimeOnly Start, TimeOnly End, int Capacity, bool IsVip = false);
+/// <param name="Note">The standing note («یادداشت ثابت», 15.7e); left out or blank, none.</param>
+public sealed record SessionItem(TimeOnly Start, TimeOnly End, int Capacity, bool IsVip = false, string? Note = null);

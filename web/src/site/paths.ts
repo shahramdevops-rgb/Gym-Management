@@ -17,6 +17,8 @@ export const sitePaths = {
   /** The trainer's «حضور» of one student, by Jalali month (15.7). */
   studentAttendance: (memberId: string) => `/students/${memberId}/attendance`,
   studentAttendancePattern: "/students/:memberId/attendance",
+  /** The member's «حضور من», by Jalali month (15.7j). */
+  myAttendance: "/my-attendance",
 } as const;
 
 /**

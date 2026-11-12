@@ -21,6 +21,8 @@ namespace Gym.Application.Bookings;
 /// trainer has not answered, <c>Declined</c> when the trainer declined or did not answer by the
 /// start; <c>null</c> with none. An accepted one is <paramref name="Left"/>.
 /// </param>
+/// <param name="Note">The session's standing note (15.7e); never once it is removed.</param>
+/// <param name="DateNote">The trainer's note on this date's session alone (15.7e); never once it is removed.</param>
 public sealed record PlaceResponse(
     DateOnly Date,
     TimeOnly Start,
@@ -30,7 +32,9 @@ public sealed record PlaceResponse(
     bool Removed,
     bool Started,
     bool Left,
-    [property: JsonConverter(typeof(JsonStringEnumConverter<LeaveRequestStatus>))] LeaveRequestStatus? Leave = null)
+    [property: JsonConverter(typeof(JsonStringEnumConverter<LeaveRequestStatus>))] LeaveRequestStatus? Leave = null,
+    string? Note = null,
+    string? DateNote = null)
 {
     internal static PlaceResponse From(BookedPlace place, TimetableDates timetable, DateOnly today, TimeOnly timeOfDay)
     {
@@ -44,12 +48,27 @@ public sealed record PlaceResponse(
             place.IsMoved,
             Removed: session is null,
             BookingRules.HasStarted(place.Date, place.Start, today, timeOfDay),
-            Left: false);
+            Left: false,
+            Note: session?.Note,
+            DateNote: session is null ? null : timetable.DateNoteOf(place.Date, session));
     }
 
-    /// <summary>A date the member left, its <paramref name="session"/> still there and not started.</summary>
-    internal static PlaceResponse LeftBy(SessionSkip skip, PlannedSession session) =>
-        new(skip.Date, skip.Start, skip.End, session.IsVip, Moved: false, Removed: false, Started: false, Left: true);
+    /// <summary>
+    /// A date the member left, its <paramref name="session"/> still there and not started. The notes
+    /// show on it too: every student of the session sees them, those on leave included (15.7e).
+    /// </summary>
+    internal static PlaceResponse LeftBy(SessionSkip skip, PlannedSession session, TimetableDates timetable) =>
+        new(
+            skip.Date,
+            skip.Start,
+            skip.End,
+            session.IsVip,
+            Moved: false,
+            Removed: false,
+            Started: false,
+            Left: true,
+            Note: session.Note,
+            DateNote: timetable.DateNoteOf(skip.Date, session));
 }
 
 /// <summary>A student's «برنامهٔ ثابت»: the weekly sessions, from <paramref name="StartsOn"/> to <paramref name="EndsOn"/>.</summary>

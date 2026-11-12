@@ -36,7 +36,7 @@ public sealed class SetWeekPatternHandler(IAppDbContext db, IGymCalendar calenda
         await db.LockTrainerAsync(trainerId, cancellationToken);
 
         var today = calendar.Today();
-        var sessions = command.Sessions.Select(item => new WeeklySession(item.Day, item.Start, item.End, item.Capacity, item.IsVip)).ToList();
+        var sessions = command.Sessions.Select(item => new WeeklySession(item.Day, item.Start, item.End, item.Capacity, item.IsVip, item.Note)).ToList();
         var created = WeekPattern.Create(trainerId, command.StartsOn, sessions, today);
         if (created.IsFailure)
         {

@@ -255,6 +255,72 @@ public sealed class TimetableRulesTests
         Should.Throw<ArgumentException>(() => TimetableRules.SessionsOn(Today.AddDays(1), [], changed));
     }
 
+    // ---- The standing note (15.7e) ----
+
+    [Fact]
+    public void PlannedSession_NoteWithSpaces_IsKeptTrimmed()
+    {
+        new PlannedSession(new TimeOnly(13, 0), new TimeOnly(14, 0), 5, Note: "  مخصوص مبتدی‌ها \n").Note.ShouldBe("مخصوص مبتدی‌ها");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void PlannedSession_BlankNote_IsNone(string? note)
+    {
+        var session = new PlannedSession(new TimeOnly(13, 0), new TimeOnly(14, 0), 5, Note: note);
+
+        session.Note.ShouldBeNull();
+        session.ShouldBe(Session(13, 0, 14, 0));
+    }
+
+    [Fact]
+    public void CheckDay_NoteAtTheLimit_Succeeds()
+    {
+        TimetableRules.CheckDay([Noted(new string('ن', SessionNoteText.MaxStandingLength))]).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void CheckDay_NoteOverTheLimit_FailsWithNoteTooLong()
+    {
+        TimetableRules.CheckDay([Noted(new string('ن', SessionNoteText.MaxStandingLength + 1))]).Error.ShouldBe(TimetableErrors.NoteTooLong);
+    }
+
+    [Fact]
+    public void CheckWeek_NoteOverTheLimit_FailsWithNoteTooLong()
+    {
+        var weekly = new WeeklySession(DayOfWeek.Saturday, new TimeOnly(13, 0), new TimeOnly(14, 0), 5, Note: new string('ن', SessionNoteText.MaxStandingLength + 1));
+
+        TimetableRules.CheckWeek([weekly]).Error.ShouldBe(TimetableErrors.NoteTooLong);
+    }
+
+    [Fact]
+    public void CheckChange_TodayChangingAStartedSessionsNote_FailsWithSessionStarted()
+    {
+        TimetableRules.CheckChange(Today, [Session(11, 0, 13, 0)], [Noted("حوله بیاورید", 11, 13)], Today, Noon)
+            .Error.ShouldBe(TimetableErrors.SessionStarted);
+    }
+
+    [Fact]
+    public void CheckChange_TodayNotingALaterSession_Succeeds()
+    {
+        TimetableRules.CheckChange(Today, [Session(15, 0, 16, 0)], [Noted("حوله بیاورید", 15, 16)], Today, Noon).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SessionsOn_ANotedSessionOfThePatternOrOfAChangedDay_KeepsItsNote()
+    {
+        var saturday = new DateOnly(2026, 10, 31);
+        var noted = new WeeklySession(DayOfWeek.Saturday, new TimeOnly(13, 0), new TimeOnly(14, 0), 5, Note: "مخصوص مبتدی‌ها");
+        var pattern = Pattern(Today.AddDays(1), noted, Weekly(DayOfWeek.Saturday, 17));
+        var changed = TimetableDay.Create(TrainerId, saturday, [], [Noted("فقط بانوان", 19, 20)], Today, Noon).Value;
+
+        TimetableRules.SessionsOn(saturday.AddDays(7), [pattern], changedDay: null)
+            .Select(session => session.Note).ShouldBe(["مخصوص مبتدی‌ها", null]);
+        TimetableRules.SessionsOn(saturday, [pattern], changed).Single().Note.ShouldBe("فقط بانوان");
+    }
+
     // ---- Helpers ----
 
     internal static PlannedSession Session(int startHour, int startMinute, int endHour, int endMinute, int capacity = 5) =>
@@ -263,6 +329,9 @@ public sealed class TimetableRulesTests
     /// <summary>An hour from <paramref name="startHour"/>, for 5.</summary>
     internal static WeeklySession Weekly(DayOfWeek day, int startHour) =>
         new(day, new TimeOnly(startHour, 0), new TimeOnly(startHour + 1, 0), 5);
+
+    private static PlannedSession Noted(string note, int startHour = 13, int endHour = 14) =>
+        new(new TimeOnly(startHour, 0), new TimeOnly(endHour, 0), 5, Note: note);
 
     private static WeekPattern Pattern(DateOnly startsOn, params WeeklySession[] sessions) =>
         WeekPattern.Create(TrainerId, startsOn, sessions, Today).Value;

@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/me/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMyAttendance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -622,6 +638,38 @@ export interface paths {
         get: operations["CheckResetTimetableDay"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/timetable/days/{date}/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SetSessionNote"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/timetable/days/{date}/note/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RemoveSessionNote"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2980,6 +3028,8 @@ export interface components {
             /** Format: time */
             end: string;
             isVip: boolean;
+            note: null | string;
+            dateNote: null | string;
             removed: boolean;
             started: boolean;
             ended: boolean;
@@ -3508,6 +3558,14 @@ export interface components {
             toStart: string;
             /** Format: time */
             toEnd: string;
+        };
+        MyAttendanceResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            sessions: components["schemas"]["AttendanceItem"][];
+            totals: components["schemas"]["AttendanceTotals"];
         };
         MyCafeOrderResponse: {
             /** Format: uuid */
@@ -4066,6 +4124,8 @@ export interface components {
             started: boolean;
             left: boolean;
             leave?: null | components["schemas"]["LeaveRequestStatus"];
+            note?: null | string;
+            dateNote?: null | string;
         };
         PlanSummary: {
             /** Format: int32 */
@@ -4173,6 +4233,12 @@ export interface components {
             amount: number | string;
             method: components["schemas"]["PaymentMethod"];
             referenceNumber: null | string;
+        };
+        RemoveSessionNoteCommand: {
+            /** Format: time */
+            start: string;
+            /** Format: time */
+            end: string;
         };
         RemoveSessionStudentCommand: {
             /** Format: uuid */
@@ -4343,6 +4409,7 @@ export interface components {
             capacity: number | string;
             /** @default false */
             isVip: boolean;
+            note?: null | string;
         };
         /** @enum {unknown} */
         SessionPresence: "NotYet" | "OnTime" | "Late" | "Absent" | "Leave" | "Cancelled" | "CameAfter";
@@ -4354,8 +4421,10 @@ export interface components {
             /** Format: int32 */
             capacity: number | string;
             isVip: boolean;
+            note: null | string;
             /** Format: int32 */
             students: number | string;
+            dateNote: null | string;
         };
         SessionStudentResponse: {
             /** Format: uuid */
@@ -4372,14 +4441,24 @@ export interface components {
             /** Format: int32 */
             capacity: null | number | string;
             isVip: boolean;
+            note: null | string;
+            dateNote: null | string;
             removed: boolean;
             started: boolean;
+            ended: boolean;
             students: components["schemas"]["SessionStudentResponse"][];
         };
         SessionStudentsResponse: {
             /** Format: date */
             date: string;
             sessions: components["schemas"]["SessionStudentsItem"][];
+        };
+        SetSessionNoteCommand: {
+            /** Format: time */
+            start: string;
+            /** Format: time */
+            end: string;
+            text: null | string;
         };
         SetStudentScheduleCommand: {
             /** Format: date */
@@ -5018,6 +5097,7 @@ export interface components {
             capacity: number | string;
             /** @default false */
             isVip: boolean;
+            note?: null | string;
         };
         WeeklySessionResponse: {
             day: components["schemas"]["DayOfWeek"];
@@ -5028,6 +5108,7 @@ export interface components {
             /** Format: int32 */
             capacity: number | string;
             isVip: boolean;
+            note: null | string;
         };
         WeeklySlotItem: {
             day: components["schemas"]["DayOfWeek"];
@@ -5131,6 +5212,56 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMyAttendance: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyAttendanceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7132,6 +7263,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TimetableImpactResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetSessionNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetSessionNoteCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStudentsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveSessionNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveSessionNoteCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStudentsResponse"];
                 };
             };
             /** @description Unauthorized */

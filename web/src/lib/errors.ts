@@ -154,6 +154,11 @@ export const errorMessages: Record<string, string> = {
   "Timetable.DayOutOfRange": "فقط روزهای امروز تا ۱۲ هفتهٔ آینده را می‌توان تغییر داد.",
   "Timetable.SessionStarted": "سانسی که شروع شده را نمی‌توان تغییر داد یا حذف کرد.",
   "Timetable.SessionInThePast": "سانس تازه نمی‌تواند در ساعتی که گذشته شروع شود.",
+  "Timetable.NoteTooLong": "یادداشت ثابت سانس حداکثر ۱۰۰ حرف است.",
+  "Timetable.DateNoteTooLong": "یادداشت این روز حداکثر ۳۰۰ حرف است.",
+  "Timetable.NoteEmpty": "یادداشت خالی است.",
+  "Timetable.NoteSessionEnded": "این سانس تمام شده و یادداشتش دیگر تغییر نمی‌کند.",
+  "Timetable.NoteNotFound": "این سانس در این روز یادداشتی ندارد.",
 
   // Students in sessions (site, 15.6b)
   "Bookings.ScheduleDatesOutOfRange":

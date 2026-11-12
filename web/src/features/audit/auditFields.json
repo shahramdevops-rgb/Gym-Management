@@ -45,6 +45,7 @@
     "SessionBooking": "سانس جابه‌جاشدهٔ شاگرد",
     "SessionCancellation": "سانس لغوشدهٔ شاگرد",
     "LeaveRequest": "درخواست مرخصی شاگرد",
+    "SessionNote": "یادداشت سانس یک روز",
     "ShopSettings": "راه‌های تماس فروشگاه"
   },
   "fields": {
@@ -280,7 +281,8 @@
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
       "Capacity": { "label": "ظرفیت" },
-      "IsVip": { "label": "VIP" }
+      "IsVip": { "label": "VIP" },
+      "Note": { "label": "یادداشت ثابت" }
     },
     "TimetableDay": { "Date": { "label": "تاریخ" } },
     "TimetableDaySession": {
@@ -288,7 +290,8 @@
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
       "Capacity": { "label": "ظرفیت" },
-      "IsVip": { "label": "VIP" }
+      "IsVip": { "label": "VIP" },
+      "Note": { "label": "یادداشت ثابت" }
     },
     "FixedSchedule": {
       "LinkId": { "label": "مربی عضو", "format": "reference" },
@@ -328,6 +331,12 @@
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
       "SeenAt": { "label": "زمان دیدن" }
+    },
+    "SessionNote": {
+      "Date": { "label": "تاریخ" },
+      "Start": { "label": "شروع" },
+      "End": { "label": "پایان" },
+      "Text": { "label": "یادداشت" }
     }
   }
 }

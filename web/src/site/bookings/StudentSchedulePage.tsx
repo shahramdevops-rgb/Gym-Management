@@ -45,6 +45,7 @@ import {
   type SlotInput,
   type StudentSchedule,
 } from "./api";
+import { SessionNotes } from "../timetable/SessionNotes";
 import { PlaceBadges } from "./PlaceBadges";
 import { PlacesByWeek } from "./PlacesByWeek";
 
@@ -525,6 +526,7 @@ function PlacesCard({ student }: { student: StudentSchedule }) {
                   <p className="flex flex-wrap gap-1">
                     <PlaceBadges place={place} />
                   </p>
+                  <SessionNotes note={place.note} dateNote={place.dateNote} compact />
                 </li>
               ))}
             </ul>

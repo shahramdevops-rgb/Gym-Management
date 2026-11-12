@@ -32,6 +32,7 @@ import {
   type Opening,
   type Place,
 } from "./api";
+import { SessionNotes } from "../timetable/SessionNotes";
 import { PlaceBadges } from "./PlaceBadges";
 import { PlacesByWeek } from "./PlacesByWeek";
 
@@ -61,6 +62,10 @@ export function MySessionsPage() {
           </Link>
         </Button>
         <h1 className="text-xl font-bold">سانس‌های من</h1>
+        {/* «حضور من» (15.7j): also without a trainer now, for the sessions with an earlier one. */}
+        <Button asChild variant="secondary" size="sm" className="ms-auto">
+          <Link to={sitePaths.myAttendance}>حضور من</Link>
+        </Button>
       </div>
 
       {mine.data === undefined ? (
@@ -232,6 +237,7 @@ function DatesCard({ mine }: { mine: MySessions }) {
                         </div>
                       )
                     )}
+                    <SessionNotes note={place.note} dateNote={place.dateNote} className="w-full" />
                   </li>
                 );
               })}

@@ -200,6 +200,37 @@ export function useRemoveSessionStudent(date: string) {
   }, sessionStudentsKey(date));
 }
 
+/**
+ * «یادداشت این روز» (roadmap 15.7e): the note on one session of the date, written or changed. The
+ * timetable and every student's dates are read again, since they show it too.
+ */
+export function useSetSessionNote(date: string) {
+  return useBookingChange(async (note: { start: string; end: string; text: string }) => {
+    const { data, error } = await siteApi.PUT("/api/site/timetable/days/{date}/note", {
+      params: { path: { date } },
+      body: note,
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  }, sessionStudentsKey(date));
+}
+
+/** «پاک کردن یادداشت»: the note on one session of the date goes. */
+export function useRemoveSessionNote(date: string) {
+  return useBookingChange(async (session: { start: string; end: string }) => {
+    const { data, error } = await siteApi.POST("/api/site/timetable/days/{date}/note/remove", {
+      params: { path: { date } },
+      body: session,
+    });
+    if (error !== undefined) {
+      throw error;
+    }
+    return data;
+  }, sessionStudentsKey(date));
+}
+
 // ---- The member: «سانس‌های من» ----
 
 export function useMySessions() {
