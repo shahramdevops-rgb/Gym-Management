@@ -5158,7 +5158,7 @@ Wanted in the release of the night of 1405/08/21 with the rest of `main` (the de
       «کاربران سایت», «کالاها», «دسته‌بندی‌ها» and «راه‌های تماس» carry it until 1405/08/30
       (`2026-11-21`). Hidden from screen readers, so the links keep their names. Panel only; the
       site app has none yet. Walked at 390 px and 1440 px with a mocked API
-- [x] **Release 3, released 1405/08/22 (2026-11-13), 02:45, as `20261113-0245-523f053`** (previous
+- [x] **The coaching and shop release, released 1405/08/22 (2026-11-13), 02:45, as `20261113-0245-523f053`** (previous
       `20261105-0239-0ed5c54`): the coaching work after Release 2 (15.4d, 15.7c, d, e, f, g, h, i,
       j and «شاگردان من» on a page of its own), 16.0 to 16.3 (site users, the shop admin and their
       panel, categories, products and photos) and the «جدید» badge. The monthly assessment
