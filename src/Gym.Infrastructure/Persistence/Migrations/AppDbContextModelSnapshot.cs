@@ -3138,6 +3138,185 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Shop.ShopCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shop_categories");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ux_shop_categories_normalized_name");
+
+                    b.ToTable("shop_categories", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shop_categories_name_not_blank", "btrim(name) <> ''");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.Shop.ShopPhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shop_photos");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("ix_shop_photos_product_id");
+
+                    b.ToTable("shop_photos", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shop_photos_position_range", "position BETWEEN 0 AND 7");
+
+                            t.HasCheckConstraint("ck_shop_photos_size_positive", "width > 0 AND height > 0");
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.Shop.ShopProduct", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_visible");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shop_products");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_shop_products_category_id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ux_shop_products_normalized_name");
+
+                    b.ToTable("shop_products", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shop_products_description_not_blank", "description IS NULL OR btrim(description) <> ''");
+
+                            t.HasCheckConstraint("ck_shop_products_name_not_blank", "btrim(name) <> ''");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Shop.ShopSettings", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3226,6 +3405,76 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         {
                             Id = new Guid("5d0c7a13-8e2f-4b6a-9c41-7f3e2a9b6d18"),
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        });
+                });
+
+            modelBuilder.Entity("Gym.Domain.Shop.ShopVariant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("label");
+
+                    b.Property<string>("NormalizedLabel")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("normalized_label");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("price");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<int>("Stock")
+                        .HasColumnType("integer")
+                        .HasColumnName("stock");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shop_variants");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("ix_shop_variants_product_id");
+
+                    b.ToTable("shop_variants", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shop_variants_label_trimmed", "label = btrim(label)");
+
+                            t.HasCheckConstraint("ck_shop_variants_position_range", "position BETWEEN 0 AND 19");
+
+                            t.HasCheckConstraint("ck_shop_variants_price_positive", "price > 0");
+
+                            t.HasCheckConstraint("ck_shop_variants_stock_range", "stock BETWEEN 0 AND 999999");
                         });
                 });
 
@@ -4716,6 +4965,36 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_service_charges_asp_net_users_voided_by_user_id");
                 });
 
+            modelBuilder.Entity("Gym.Domain.Shop.ShopPhoto", b =>
+                {
+                    b.HasOne("Gym.Domain.Shop.ShopProduct", null)
+                        .WithMany("Photos")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_shop_photos_shop_products_product_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Shop.ShopProduct", b =>
+                {
+                    b.HasOne("Gym.Domain.Shop.ShopCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_shop_products_shop_categories_category_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Shop.ShopVariant", b =>
+                {
+                    b.HasOne("Gym.Domain.Shop.ShopProduct", null)
+                        .WithMany("Variants")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_shop_variants_shop_products_product_id");
+                });
+
             modelBuilder.Entity("Gym.Domain.SiteAuth.SiteAccount", b =>
                 {
                     b.HasOne("Gym.Domain.Members.Member", null)
@@ -4887,6 +5166,13 @@ namespace Gym.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Gym.Domain.Coaching.TrainerLink", b =>
                 {
                     b.Navigation("Periods");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Shop.ShopProduct", b =>
+                {
+                    b.Navigation("Photos");
+
+                    b.Navigation("Variants");
                 });
 
             modelBuilder.Entity("Gym.Domain.Timetables.TimetableDay", b =>

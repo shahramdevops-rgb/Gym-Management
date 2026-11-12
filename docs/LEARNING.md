@@ -2511,3 +2511,16 @@ The question that started this was whether a gym that is entirely internal — I
 - **Read related data with the data it belongs to.** The date notes load inside `TrainerTimetable.DatesAsync`, so every response that already reads the timetable (four of them) gets `DateNoteOf(date, session)` without a new query in each handler.
 - **Ask the Domain first, then the database.** `SetSessionNoteHandler` lets `SessionNote` refuse an ended session or a date out of range before checking that the session exists, so the trainer hears the real reason, not "no such session".
 - **My notes:**
+
+## 16.3 — Categories, products and photos (دسته‌بندی، کالا و گالری)
+
+- **An aggregate owns its children.** Variants and photos change only through `ShopProduct` (`Update`, `AddPhoto`, `RemovePhoto`, `ReorderPhotos`), so the rules across them (how many, labels unique, positions without gaps) live in one class; EF Core reaches the lists through the private fields (`UsePropertyAccessMode(Field)`).
+- **A child with its own Guid needs `ValueGeneratedNever`.** A photo added to a product already in the database is found through the product's list; with a key EF Core thinks it generates, a set key reads as "already saved" and the insert goes out as an UPDATE that changes 0 rows.
+- **Deferred constraints.** `UNIQUE (product_id, position) DEFERRABLE INITIALLY DEFERRED` is checked at the commit, not row by row, so swapping two photos passes; EF Core cannot describe one, so the migration writes it by hand, and its violation arrives from the commit as a bare `PostgresException`, which `AppDbContext` translates like the others.
+- **Files and rows cannot share a transaction.** The file goes first and is removed if the row fails; the row is deleted first and the file after. Whatever breaks in between leaves an unused file, never a row pointing at nothing.
+- **Re-encode, don't trust.** The photo is decoded and only its pixels written again (WebP), so EXIF (the GPS position of a phone photo) cannot survive; the format is read from the bytes, not the file name, and the size from the header before any pixel is decoded, so a small file claiming a huge canvas is refused.
+- **EXIF orientation.** Phones save the pixels sideways and write "turn a quarter" in EXIF; once EXIF is gone the turn must be applied to the pixels, with a canvas transform per orientation.
+- **A package's licence can change between minor versions.** ImageSharp 3.1 was free, 3.2 stops the build without a key, and 3.1 has an advisory; SkiaSharp (MIT) replaced it. Read the licence and the advisories of the exact version.
+- **Docker named volumes copy the owner of the image's folder.** `mkdir` + `chown` to the app user before `USER` in the Dockerfile lets a non-root API write to a fresh volume.
+- **jsdom's `FormData` is not Node's.** A multipart upload cannot leave a Vitest test through Node's `Request`; the test stands one in, and the real multipart is proved by the API's tests and the browser walk.
+- **My notes:**

@@ -155,7 +155,19 @@ using Gym.Application.SiteAuth.VerifyCode;
 using Gym.Application.SiteRecords.GetMyDebt;
 using Gym.Application.SiteRecords.GetMyDetails;
 using Gym.Application.Shop.GetShopContacts;
+using Gym.Application.Shop.AddShopPhoto;
+using Gym.Application.Shop.CreateShopCategory;
+using Gym.Application.Shop.CreateShopProduct;
+using Gym.Application.Shop.DeleteShopCategory;
+using Gym.Application.Shop.GetShopPhoto;
+using Gym.Application.Shop.GetShopProduct;
+using Gym.Application.Shop.ListShopCategories;
+using Gym.Application.Shop.ListShopProducts;
+using Gym.Application.Shop.RemoveShopPhoto;
+using Gym.Application.Shop.RenameShopCategory;
+using Gym.Application.Shop.ReorderShopPhotos;
 using Gym.Application.Shop.UpdateShopContacts;
+using Gym.Application.Shop.UpdateShopProduct;
 using Gym.Application.SiteUsers.FindSiteUserByPhone;
 using Gym.Application.SiteUsers.ListSiteUsers;
 using Gym.Application.SiteUsers.RegisterSiteUser;
@@ -329,6 +341,18 @@ public static class DependencyInjection
         // The online shop (Phase 16, ADR 0011).
         services.AddScoped<GetShopContactsHandler>();
         services.AddScoped<UpdateShopContactsHandler>();
+        services.AddScoped<ListShopCategoriesHandler>();
+        services.AddScoped<CreateShopCategoryHandler>();
+        services.AddScoped<RenameShopCategoryHandler>();
+        services.AddScoped<DeleteShopCategoryHandler>();
+        services.AddScoped<ListShopProductsHandler>();
+        services.AddScoped<GetShopProductHandler>();
+        services.AddScoped<CreateShopProductHandler>();
+        services.AddScoped<UpdateShopProductHandler>();
+        services.AddScoped<AddShopPhotoHandler>();
+        services.AddScoped<RemoveShopPhotoHandler>();
+        services.AddScoped<ReorderShopPhotosHandler>();
+        services.AddScoped<GetShopPhotoHandler>();
         services.AddScoped<FindSiteUserByPhoneHandler>();
         services.AddScoped<RegisterSiteUserHandler>();
 

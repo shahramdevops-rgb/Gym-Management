@@ -1,5 +1,6 @@
 using Gym.Application.Accounts;
 using Gym.Application.Common;
+using Gym.Application.Common.Files;
 using Gym.Application.Common.Security;
 using Gym.Application.Common.Sms;
 using Gym.Application.Staff;
@@ -7,6 +8,7 @@ using Gym.Domain.Auth;
 using Gym.Domain.Notifications;
 using Gym.Infrastructure.Attendances;
 using Gym.Infrastructure.Calendar;
+using Gym.Infrastructure.Files;
 using Gym.Infrastructure.Identity;
 using Gym.Infrastructure.Jobs;
 using Gym.Infrastructure.Persistence;
@@ -21,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 using Npgsql;
@@ -125,6 +128,17 @@ public static class DependencyInjection
         // Stateless: libphonenumber's metadata is loaded once and shared.
         services.AddOptions<PhoneOptions>().Bind(configuration.GetSection(PhoneOptions.SectionName));
         services.AddSingleton<IPhoneNormalizer, LibPhoneNumberNormalizer>();
+
+        // Uploaded photos (16.3, ADR 0010): files on disk under Files:Root, re-encoded by SkiaSharp.
+        // A missing root stops the app at startup instead of failing the first upload.
+        services.AddOptions<FileStoreOptions>()
+            .Bind(configuration.GetSection(FileStoreOptions.SectionName))
+            .PostConfigure<IHostEnvironment>((files, environment) =>
+                files.Root = string.IsNullOrWhiteSpace(files.Root) ? files.Root : Path.Combine(environment.ContentRootPath, files.Root))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<FileStoreOptions>, FileStoreOptionsValidator>();
+        services.AddSingleton<IFileStore, DiskFileStore>();
+        services.AddSingleton<IImageProcessor, SkiaImageProcessor>();
 
         // Bound from the section passed in rather than with BindConfiguration, which needs
         // IConfiguration in the container. The section is a live view, so values added to the

@@ -32,4 +32,10 @@
     <PackageReference Include="Hangfire.PostgreSql" />
   </ItemGroup>
 
+  <!-- Re-encodes uploaded photos (Files/SkiaImageProcessor). -->
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
+  </ItemGroup>
+
 </Project>

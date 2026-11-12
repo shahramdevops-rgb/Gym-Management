@@ -87,6 +87,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<ShopSettings> ShopSettings => Set<ShopSettings>();
 
+    public DbSet<ShopCategory> ShopCategories => Set<ShopCategory>();
+
+    public DbSet<ShopProduct> ShopProducts => Set<ShopProduct>();
+
+    public DbSet<ShopPhoto> ShopPhotos => Set<ShopPhoto>();
+
     public DbSet<SignInCode> SignInCodes => Set<SignInCode>();
 
     public DbSet<SignInCodeSend> SignInCodeSends => Set<SignInCodeSend>();
@@ -284,6 +290,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             // in a DbUpdateException. A handler that commits its own transaction (task 4.3)
             // meets it at CommitAsync instead and must translate it there.
             throw new ExclusionConstraintException(exclusion.ConstraintName ?? string.Empty, exclusion);
+        }
+        catch (PostgresException unique) when (unique.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            // The same for a deferred unique constraint: the shop's positions and labels
+            // (migration AddShopCatalog) are checked at COMMIT, so a reorder may pass through a
+            // moment where two rows share a position.
+            throw new UniqueConstraintException(
+                unique.ConstraintName ?? string.Empty,
+                new DbUpdateException($"Unique constraint {unique.ConstraintName} was violated.", unique));
         }
     }
 

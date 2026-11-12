@@ -37,6 +37,9 @@ x-api-environment: &api-environment
   Sms__Provider: ${SMS_PROVIDER:-Fake}
   Sms__Kavenegar__ApiKey: ${SMS_KAVENEGAR_API_KEY:-}
   Sms__Kavenegar__Sender: ${SMS_KAVENEGAR_SENDER:-}
+  # Uploaded photos (16.3, ADR 0010): the files volume, mounted on the api service below and
+  # archived with every dump by deploy/backup.sh. A fixed path, not a setting in .env.
+  Files__Root: /var/lib/gym/files
 
 services:
   postgres:
@@ -84,6 +87,8 @@ services:
         condition: service_healthy
     environment: *api-environment
     mem_limit: ${API_MEM_LIMIT:-512m}
+    volumes:
+      - files:/var/lib/gym/files
     healthcheck:
       # The aspnet image ships neither curl nor wget, so this is a hand-written HTTP request
       # over bash's /dev/tcp. /health reports the database and pending migrations, so
@@ -168,5 +173,7 @@ networks:
 
 volumes:
   postgres-data:
+  # Uploaded files (the shop's photos); in the backups beside the database.
+  files:
   caddy-data:
   caddy-config:

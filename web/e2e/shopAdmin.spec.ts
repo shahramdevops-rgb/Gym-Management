@@ -6,8 +6,8 @@ import { owner } from "./stack";
 /**
  * The shop admin, «مدیر فروشگاه» (task 16.2, ADR 0011), in a real browser against the production
  * stack: the Owner makes the account on «کارمندان», the shop admin changes the temporary password,
- * lands on the shop, fills its contact ways and cannot open a gym page; the Owner then reads the
- * ways and cannot change them.
+ * lands on the shop, fills its contact ways, cannot open a gym page, and adds a category, a product
+ * and a photo (16.3); the Owner then reads the ways and cannot change them.
  *
  * `SHOP_SCREENSHOTS` set to a folder also saves each screen there, to look at after a change.
  */
@@ -67,14 +67,16 @@ test("ShopAdmin_MadeByTheOwner_SeesOnlyTheShopAndTheOwnerReadsIt", async ({ page
   await page.getByLabel("تکرار رمز عبور جدید").fill(shopAdmin.password);
   await page.getByRole("button", { name: "ذخیرهٔ رمز عبور" }).click();
 
-  // Then the shop: its contact ways, and a menu with nothing of the gym's. The panel goes home after
-  // the change, and home sends a shop admin to the shop.
+  // Then the shop: its products (the shop's home since 16.3), and a menu with nothing of the gym's.
+  // The panel goes home after the change, and home sends a shop admin to the shop.
   await expect(page).not.toHaveURL(/\/change-password$/);
-  await expect(page.getByRole("heading", { name: "راه‌های تماس فروشگاه" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "کالاهای فروشگاه" })).toBeVisible();
   const menu = page.getByRole("navigation", { name: "منوی اصلی" });
   await expect(menu.getByRole("link", { name: "راه‌های تماس" })).toBeVisible();
   await expect(menu.getByRole("link", { name: "اعضا" })).toHaveCount(0);
   await shot(page, "3-shop-admin-empty");
+
+  await page.goto("/shop/contacts");
 
   await page.getByLabel("تلفن همراه").fill("۰۹۱۲۱۲۳۴۵۶۷");
   await page.getByLabel("تلفن ثابت").fill("۰۷۱۳۲۳۴۵۶۷۸");
@@ -86,8 +88,32 @@ test("ShopAdmin_MadeByTheOwner_SeesOnlyTheShopAndTheOwnerReadsIt", async ({ page
 
   // A gym page typed into the address bar sends them back to the shop.
   await page.goto("/members");
-  await expect(page.getByRole("heading", { name: "راه‌های تماس فروشگاه" })).toBeVisible();
-  await expect(page).toHaveURL(/\/shop\/contacts$/);
+  await expect(page.getByRole("heading", { name: "کالاهای فروشگاه" })).toBeVisible();
+  await expect(page).toHaveURL(/\/shop\/products$/);
+
+  // A category and a product, then a photo through the real stack: the API re-encodes it and writes
+  // it to the files volume, which only works if the image gave the API's user that folder (16.3).
+  await page.goto("/shop/categories");
+  await page.getByLabel("دستهٔ تازه").fill("مکمل");
+  await page.getByRole("button", { name: "افزودن" }).click();
+  await expect(page.getByText("دستهٔ «مکمل» اضافه شد.")).toBeVisible();
+  await page.goto("/shop/products/new");
+  await page.getByLabel("نام کالا").fill("پروتئین وی");
+  await page.getByLabel("دسته").selectOption({ label: "مکمل" });
+  await page.getByLabel("قیمت (تومان)").fill("۱۲۵۰۰۰۰");
+  await page.getByLabel("موجودی").fill("۶");
+  await page.getByRole("button", { name: "ذخیره و افزودن عکس" }).click();
+  await expect(page.getByText("کالا ذخیره شد. حالا عکس‌هایش را اضافه کنید.")).toBeVisible();
+  await page.getByLabel("افزودن عکس").setInputFiles("public-site/img/shop-protein.webp");
+  const photo = page.getByAltText("عکس ۱ از پروتئین وی");
+  await expect(photo).toBeVisible();
+  // The file itself, from the volume, as anyone may read it: a WebP, not a broken image.
+  const source = await photo.getAttribute("src");
+  const file = await page.request.get(source!);
+  expect(file.status()).toBe(200);
+  expect(file.headers()["content-type"]).toBe("image/webp");
+  expect((await file.body()).subarray(8, 12).toString("ascii")).toBe("WEBP");
+  await shot(page, "5-shop-admin-product");
   await signOut(page);
 
   // The Owner reads the ways and has nothing to save.
@@ -96,5 +122,5 @@ test("ShopAdmin_MadeByTheOwner_SeesOnlyTheShopAndTheOwnerReadsIt", async ({ page
   await expect(page.getByText("این‌ها را فقط مدیر فروشگاه تغییر می‌دهد.")).toBeVisible();
   await expect(page.getByText("pasargad_gym")).toBeVisible();
   await expect(page.getByRole("button", { name: "ذخیره" })).toHaveCount(0);
-  await shot(page, "5-owner-reads");
+  await shot(page, "6-owner-reads");
 });

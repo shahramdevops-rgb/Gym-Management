@@ -14,10 +14,12 @@ import {
   LockKeyhole,
   MessageSquareText,
   MessagesSquare,
+  Package,
   ReceiptText,
   ScrollText,
   Settings,
   Store,
+  Tags,
   Users,
   Wallet,
   type LucideIcon,
@@ -131,6 +133,18 @@ export const navigation: NavigationGroup[] = [
     title: "فروشگاه آنلاین",
     tone: "pink",
     items: [
+      {
+        to: paths.shopProducts,
+        label: "کالاها",
+        icon: Package,
+        roles: ["Shop", "Owner"],
+      },
+      {
+        to: paths.shopCategories,
+        label: "دسته‌بندی‌ها",
+        icon: Tags,
+        roles: ["Shop", "Owner"],
+      },
       {
         to: paths.shopContacts,
         label: "راه‌های تماس",

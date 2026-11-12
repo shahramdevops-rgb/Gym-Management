@@ -5104,18 +5104,41 @@ Built 1405/08/20 on branch `task/16.2-shop-admin`, not released.
 
 ### 16.3 Categories, products and photos (دسته‌بندی، کالا و گالری)
 Wanted in the release of the night of 1405/08/21 with the rest of `main` (the developer), if ready.
-- [x] Asked first (1405/08/21, §16 *Products*): ImageSharp re-encodes the photos; a variant is a
+- [x] Asked first (1405/08/21, §16 *Products*): SkiaSharp re-encodes the photos (ImageSharp first, dropped: 3.2 needs a license key); a variant is a
       plain label with its own price and stock; categories one level; a product's name,
       description, up to 8 photos (the first the main one), shown or hidden. Every new screen right
       on a phone as well as the computer, like the public site (the developer)
-- [ ] **16.3a, the backend**: file storage on a Docker volume (`IFileStore`, ADR 0010's design,
-      the shop's photos first), categories, products, variants (stock never below zero, a check
-      constraint), photos re-encoded to WebP; the shop admin changes, the Owner reads, a photo is
-      public; `backup.sh`, the restore and `pull-backup.ps1` take the files (the restore drill in
-      docs/DEPLOYMENT.md covers them)
-- [ ] **16.3b, the screens**: «دسته‌بندی‌ها» and «کالاها» in the shop admin's panel (cards on a
-      phone), the product's form with its variants and photos (camera or gallery on a phone); the
-      Owner's read-only view; walked at phone and computer width with screenshots
+- [x] **16.3a, the backend** (built 1405/08/21 on `task/16.3-shop-products`, from 16.2's branch with
+      `main` merged in): `ShopCategory`, `ShopProduct` (the aggregate) with `ShopVariant` and
+      `ShopPhoto`; migration `AddShopCatalog` (four tables; checks on price, stock and positions;
+      three **deferred** unique constraints written by hand, positions and labels per product, so a
+      reorder or a label swap passes in one save; `AppDbContext` turns a unique violation at the
+      commit into `UniqueConstraintException`); `/api/shop/categories`, `/api/shop/products`,
+      `/products/{id}/photos` (multipart, one file, 10 MB), `/photos/order`, and the public
+      `/api/shop/photos/{id}/{large|small}` (cached a year). `IFileStore` (`DiskFileStore`,
+      `Files:Root`) and `IImageProcessor` (`SkiaImageProcessor`: JPEG, PNG, WebP only; 50 MP at
+      most; turned upright from EXIF, then EXIF gone; WebP 1600 and 480 px). Files written before
+      the row, removed after it. The `files` volume in `docker-compose.prod.yml`, its folder made in
+      the image for the API's user; `backup.sh` archives it with every dump (`files-*.tar.gz`, 14
+      kept) and `restore-files`; `pull-backup.ps1` pulls both (7 archives kept); DEPLOYMENT.md.
+      Tests: `ShopProductTests`, `ShopCategoryTests` (domain), `ShopCatalogTests` (integration: each
+      role, a sideways phone JPEG stored upright without its EXIF, a big PNG shrunk, a non-photo, a
+      ninth photo, the public photo, removing and reordering, the database's checks)
+- [x] **16.3b, the screens** (built 1405/08/21): «کالاها» (the shop's home now: cards with the main
+      photo whole, price or range, stock, «پنهان»; category chips), the product's page (photos first:
+      add from camera or gallery, several at once, «اصلی» / «جلوتر» / «حذف»; then the details and
+      the variants in one form, each variant a small box with `MoneyField`), «دسته‌بندی‌ها»; the
+      Owner reads all three. Walked with Playwright on a throwaway stack at 390 px and 1440 px, no
+      sideways scroll; fixed after seeing it: the `·` separator looked like a Persian zero (now
+      «،»), the photo buttons in one row of three, three cards a row at most. Vitest
+      `ShopCatalog.test.tsx`; e2e `shopAdmin.spec.ts` adds a category, a product and a photo through
+      the production images (the files volume's permissions)
+- [x] `npm run e2e` 20 green (1405/08/21), after three fixes to the tests themselves, none to the
+      app: the login limit (10 a minute) raised for the e2e stack only (`compose.e2e.yml`; 16.2's
+      spec signs in four times and the suite went past it); `siteBookings` closed the trainer's
+      phone before 15.7i's leave steps used it; six specs read the sign-in code from the database
+      before the code screen showed, so a slow request gave an old code. On the server the `files`
+      volume is created by the release itself; the new `backup.sh` arrives with it
 
 ### 16.4 The shop on the site (ویترین)
 - [ ] Asked first: where the catalogue lives (ADR 0011 proposes the site app, with the public

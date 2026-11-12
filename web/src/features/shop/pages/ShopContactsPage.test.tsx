@@ -129,18 +129,20 @@ describe("ShopContactsPage", () => {
   it("GymPage_ShopAdmin_IsSentToTheShopWithItsMenuOnly", async () => {
     const api = mockApi({
       ...signedInHandlers(shopAdmin),
-      "GET /api/shop/contacts": () => json(200, empty),
+      "GET /api/shop/products": () => json(200, []),
+      "GET /api/shop/categories": () => json(200, []),
     });
 
     renderApp("/members", { session: shopSession() });
 
-    expect(
-      await screen.findByRole("heading", { name: "راه‌های تماس فروشگاه" }),
-    ).toBeInTheDocument();
+    // The shop's home since 16.3 is its products.
+    expect(await screen.findByRole("heading", { name: "کالاهای فروشگاه" })).toBeInTheDocument();
     expect(api.requestsTo("GET", "/api/members")).toHaveLength(0);
 
     const menu = screen.getAllByRole("navigation")[0]!;
-    expect(await within(menu).findByRole("link", { name: "راه‌های تماس" })).toBeInTheDocument();
+    expect(await within(menu).findByRole("link", { name: "کالاها" })).toBeInTheDocument();
+    expect(within(menu).getByRole("link", { name: "دسته‌بندی‌ها" })).toBeInTheDocument();
+    expect(within(menu).getByRole("link", { name: "راه‌های تماس" })).toBeInTheDocument();
     expect(within(menu).getByRole("link", { name: "تغییر رمز عبور" })).toBeInTheDocument();
     expect(within(menu).queryByRole("link", { name: "اعضا" })).not.toBeInTheDocument();
     expect(within(menu).queryByRole("link", { name: "ورود با کمد" })).not.toBeInTheDocument();

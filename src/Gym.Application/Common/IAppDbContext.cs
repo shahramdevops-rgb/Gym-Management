@@ -85,6 +85,13 @@ public interface IAppDbContext
 
     DbSet<ShopSettings> ShopSettings { get; }
 
+    DbSet<ShopCategory> ShopCategories { get; }
+
+    DbSet<ShopProduct> ShopProducts { get; }
+
+    /// <summary>For reading a photo by its id; photos change only through <see cref="ShopProduct"/>.</summary>
+    DbSet<ShopPhoto> ShopPhotos { get; }
+
     DbSet<SignInCode> SignInCodes { get; }
 
     DbSet<SignInCodeSend> SignInCodeSends { get; }

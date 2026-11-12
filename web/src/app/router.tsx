@@ -40,6 +40,23 @@ function lazyPage(
   };
 }
 
+/** A page of the online shop (ADR 0011): the shop admin's, and the Owner's to read; never Staff's. */
+function shopPage(path: string, load: () => Promise<ComponentType>): RouteObject {
+  return {
+    path,
+    lazy: async () => {
+      const Page = await load();
+      return {
+        element: (
+          <RequireRole role={["Shop", "Owner"]}>
+            <Page />
+          </RequireRole>
+        ),
+      };
+    },
+  };
+}
+
 /**
  * Route table. Login stands alone; everything else is behind RequireAuth, and pages for one
  * role are also wrapped in RequireRole. The API enforces the same rules, so these guards are
@@ -70,21 +87,24 @@ export const routes: RouteObject[] = [
                   (m) => m.ChangePasswordPage,
                 ),
               ),
-              {
-                // The online shop (ADR 0011, §16): the shop admin's, and the Owner's to read.
-                path: paths.shopContacts,
-                lazy: async () => {
-                  const { ShopContactsPage } =
-                    await import("@/features/shop/pages/ShopContactsPage");
-                  return {
-                    element: (
-                      <RequireRole role={["Shop", "Owner"]}>
-                        <ShopContactsPage />
-                      </RequireRole>
-                    ),
-                  };
-                },
-              },
+              // The online shop (ADR 0011, §16): the shop admin's, and the Owner's to read.
+              shopPage(paths.shopContacts, () =>
+                import("@/features/shop/pages/ShopContactsPage").then((m) => m.ShopContactsPage),
+              ),
+              shopPage(paths.shopProducts, () =>
+                import("@/features/shop/pages/ShopProductsPage").then((m) => m.ShopProductsPage),
+              ),
+              shopPage(paths.shopNewProduct, () =>
+                import("@/features/shop/pages/ShopProductPage").then((m) => m.ShopProductPage),
+              ),
+              shopPage(paths.shopProduct(":id"), () =>
+                import("@/features/shop/pages/ShopProductPage").then((m) => m.ShopProductPage),
+              ),
+              shopPage(paths.shopCategories, () =>
+                import("@/features/shop/pages/ShopCategoriesPage").then(
+                  (m) => m.ShopCategoriesPage,
+                ),
+              ),
               {
                 // The gym's pages, which send a shop admin to the shop.
                 element: <GymArea />,

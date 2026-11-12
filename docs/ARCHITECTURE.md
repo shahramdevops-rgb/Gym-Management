@@ -59,6 +59,7 @@ Versions are pinned centrally in `Directory.Packages.props`. Ask before adding a
 | Health checks | Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore |
 | Phones | libphonenumber-csharp |
 | Jobs | Hangfire.AspNetCore, Hangfire.PostgreSql |
+| Images | SkiaSharp + SkiaSharp.NativeAssets.Linux.NoDependencies (re-encodes uploaded photos, 16.3; Infrastructure only; MIT. ImageSharp 3.2 needs a license key, 3.1 has an advisory) |
 | Tests | xunit.v3, Shouldly, NSubstitute, Microsoft.AspNetCore.Mvc.Testing, Testcontainers.PostgreSql, Respawn, Microsoft.Extensions.TimeProvider.Testing |
 
 Frontend: Vite, React, TypeScript, React Router, TanStack Query, React Hook Form, Zod, shadcn/ui, Tailwind CSS, openapi-typescript + openapi-fetch, Recharts, Vitest + Testing Library, date-fns-jalali (Jalali date math), react-multi-date-picker (Persian calendar picker, for the date filters), Vazirmatn font (self-hosted). Playwright for end-to-end tests (Phase 11).

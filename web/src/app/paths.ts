@@ -38,9 +38,12 @@ export const paths = {
   auditLogs: "/audit-logs",
   /** The shop's contact ways, "راه‌های تماس" (BUSINESS_RULES.md §16 *The shop admin*). */
   shopContacts: "/shop/contacts",
-  /**
-   * Where a shop admin lands, and where every gym page sends them (ADR 0011). The contact ways
-   * until 16.3 brings the products.
-   */
-  shopHome: "/shop/contacts",
+  /** The shop's products, "کالاها" (§16 *Products*, 16.3). */
+  shopProducts: "/shop/products",
+  shopNewProduct: "/shop/products/new",
+  shopProduct: (id: string) => `/shop/products/${id}`,
+  /** The shop's categories, "دسته‌بندی‌ها" (§16 *Products*: one level). */
+  shopCategories: "/shop/categories",
+  /** Where a shop admin lands, and where every gym page sends them (ADR 0011): the products. */
+  shopHome: "/shop/products",
 } as const;

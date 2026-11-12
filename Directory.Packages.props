@@ -65,6 +65,18 @@
     <PackageVersion Include="libphonenumber-csharp" Version="9.0.39" />
   </ItemGroup>
 
+  <!--
+    Re-encodes uploaded photos (16.3, ADR 0010): decodes JPEG, PNG or WebP, drops EXIF, resizes
+    and writes WebP. Skia, the engine Chrome and Android draw images with; MIT, no license key.
+    The Linux native library without dependencies runs in the Debian runtime image as is.
+    ImageSharp was weighed first: 3.2 needs a license key at build time and 3.1 carries an
+    advisory (the developer, 1405/08/21). Gym.Infrastructure only, behind IImageProcessor.
+  -->
+  <ItemGroup Label="Images">
+    <PackageVersion Include="SkiaSharp" Version="3.119.4" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.4" />
+  </ItemGroup>
+
   <!-- AddDbContextCheck<T>(): the /health endpoint verifies the database, not just the process. -->
   <ItemGroup Label="Diagnostics">
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />

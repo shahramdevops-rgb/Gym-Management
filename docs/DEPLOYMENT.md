@@ -169,6 +169,14 @@ and consider BitLocker To Go on it.
 The database dump does not contain `/opt/gym/.env` (database password, token signing key). The
 Owner keeps one copy of that file, **not** on the flash drive with the dumps.
 
+Since 16.3 the same run also archives the **uploaded files** (the shop's product photos), which
+live on the `files` Docker volume, not in the database: `files-YYYYmmdd-HHMMSS.tar.gz`, the same
+stamp as its dump, the newest 14 kept on the server and 7 on the gym's computer (each archive holds
+every photo). A dump and the archive of the same stamp belong together: restore both, or photos and
+their rows will not match. The archive is taken by a throwaway container of the API image, so it
+works with the API stopped. The pull script brings both down; a server without archives yet (a
+release before 16.3) is fine, only the dump comes down.
+
 ### One-time setup on the server
 
 Both scripts arrive with every release (`deploy/release.sh` copies them to `/opt/gym`).
@@ -233,6 +241,9 @@ Do this once, before you need it. A dump is only a backup if it has been restore
 
 # B. Replace the live database with a dump (the app is stopped while it runs).
 ./backup.sh restore gym-20260924-030001.dump --yes
+
+# C. Replace the uploaded files with the archive of the same night (the API is stopped meanwhile).
+./backup.sh restore-files files-20260924-030001.tar.gz --yes
 ```
 
 `restore` first saves the current database as `backups/pre-restore-*.dump`, stops the API and
@@ -240,11 +251,15 @@ Caddy, recreates the database from the dump, applies any migrations the dump doe
 (`efbundle`), and starts everything again. Users, members, payments and the audit log all come
 back as they were in the dump; anything after the dump's time is lost.
 
+`restore-files` first archives the current files as `backups/pre-restore-files-*.tar.gz`, stops
+the API, empties the files volume, unpacks the archive into it and starts the API again. Check a
+files archive without touching anything with `tar -tzf files-….tar.gz | head`.
+
 ### If the whole server is lost
 
 Provision a new one ([SERVER-SETUP.md](SERVER-SETUP.md)), put `.env` back, run
 `deploy/release.sh <user@host> --with-postgres` from the development machine, then restore the
-newest dump as in B.
+newest dump as in B and the files archive of the same night as in C.
 
 ## Record: the go-live wipe
 

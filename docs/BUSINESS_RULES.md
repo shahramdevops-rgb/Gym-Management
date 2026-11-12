@@ -3142,7 +3142,7 @@ anywhere in the stored number" (§2 now says the same as here).
 - **A product has** a name, a description, up to 8 photos (the first is the main one, the order
   chosen by the shop admin), and is shown or hidden on the site; the price and the stock are on
   each variant. *Decided by the developer at the start of 16.3* (1405/08/21).
-- **Photos are re-encoded on upload** (ImageSharp, ADR 0010), which drops their EXIF data: a phone
+- **Photos are re-encoded on upload** (SkiaSharp, ADR 0010; the developer chose ImageSharp, then SkiaSharp when ImageSharp 3.2 turned out to need a license key), which drops their EXIF data: a phone
   photo can carry the place it was taken. Product photos are public (ADR 0011). *Decided by the
   developer at the start of 16.3* (1405/08/21).
 - *Proposed by Claude* (16.3): a product has 1 to 20 variants; a label is up to 60 characters and

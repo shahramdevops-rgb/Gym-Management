@@ -46,7 +46,11 @@
     "SessionCancellation": "سانس لغوشدهٔ شاگرد",
     "LeaveRequest": "درخواست مرخصی شاگرد",
     "SessionNote": "یادداشت سانس یک روز",
-    "ShopSettings": "راه‌های تماس فروشگاه"
+    "ShopSettings": "راه‌های تماس فروشگاه",
+    "ShopCategory": "دستهٔ فروشگاه",
+    "ShopProduct": "کالای فروشگاه",
+    "ShopVariant": "مدل کالای فروشگاه",
+    "ShopPhoto": "عکس کالای فروشگاه"
   },
   "fields": {
     "Id": { "format": "hidden" },
@@ -337,6 +341,22 @@
       "Start": { "label": "شروع" },
       "End": { "label": "پایان" },
       "Text": { "label": "یادداشت" }
+    },
+    "ShopProduct": {
+      "IsVisible": { "label": "نمایش در سایت" }
+    },
+    "ShopVariant": {
+      "ProductId": { "label": "کالا", "format": "reference" },
+      "Label": { "label": "مدل" },
+      "NormalizedLabel": { "format": "hidden" },
+      "Stock": { "label": "موجودی" },
+      "Position": { "label": "ترتیب" }
+    },
+    "ShopPhoto": {
+      "ProductId": { "label": "کالا", "format": "reference" },
+      "Position": { "label": "ترتیب" },
+      "Width": { "label": "عرض (پیکسل)" },
+      "Height": { "label": "ارتفاع (پیکسل)" }
     }
   }
 }

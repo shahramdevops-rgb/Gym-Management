@@ -144,6 +144,9 @@ public sealed class DatabaseFixture : IAsyncLifetime
     /// <summary>The app's root services, for code that makes its own scopes (the server console).</summary>
     public IServiceProvider Services => Factory.Services;
 
+    /// <summary>Where the test host keeps uploaded files (16.3).</summary>
+    public string FilesRoot => Factory.FilesRoot;
+
     /// <summary>
     /// Empties every table before a test runs. Cheaper than a fresh container or a fresh set
     /// of migrations, which is what makes per-test isolation affordable at all.
