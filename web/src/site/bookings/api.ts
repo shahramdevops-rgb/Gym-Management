@@ -155,6 +155,28 @@ export function useRenewCoachingPeriod(memberId: string) {
   );
 }
 
+/**
+ * «ویرایش دوره» (15.7k): the days left of a running period, from today, earlier or later. Answers
+ * with the student's «برنامهٔ ثابت», which an earlier last day may have cut; «شاگردان من» shows the
+ * period too, so it is read again.
+ */
+export function useSetCoachingDaysLeft(memberId: string) {
+  return useBookingChange(
+    async (daysLeft: number) => {
+      const { data, error } = await siteApi.POST(
+        "/api/site/coaching/students/{memberId}/period/days-left",
+        { params: { path: { memberId } }, body: { daysLeft } },
+      );
+      if (error !== undefined) {
+        throw error;
+      }
+      return data;
+    },
+    studentScheduleKey(memberId),
+    studentsQueryKey,
+  );
+}
+
 /** «پایان برنامه»: from now; today's sessions that have started stay. */
 export function useEndStudentSchedule(memberId: string) {
   return useBookingChange(async () => {

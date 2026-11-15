@@ -173,6 +173,8 @@ export const errorMessages: Record<string, string> = {
   "Coaching.LinkAlreadyEnded": "مربی‌گری این شاگرد قبلاً تمام شده است.",
   "Coaching.PeriodDaysOutOfRange":
     "دورهٔ مربی‌گری باید بین ۷ تا ۸۴ روز باشد (روزهای باقی‌ماندهٔ شاگردان قبلی از ۱ روز).",
+  "Coaching.PeriodNotRunning":
+    "این دوره در جریان نیست و ویرایش نمی‌شود؛ اگر تمام شده، آن را تمدید کنید.",
 
   // The trainer's timetable (site)
   "Timetable.CapacityOutOfRange": "ظرفیت هر سانس باید بین ۱ تا ۵۰ نفر باشد.",

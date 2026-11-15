@@ -17,6 +17,7 @@ using Gym.Application.Coaching.GetStudents;
 using Gym.Application.Coaching.ListTrainerChoices;
 using Gym.Application.Coaching.RenewCoachingPeriod;
 using Gym.Application.Coaching.RequestTrainer;
+using Gym.Application.Coaching.SetCoachingDaysLeft;
 using Gym.Application.Coaching.SeeMyCoachingNews;
 using Gym.Application.Coaching.SeeStudentNews;
 
@@ -129,6 +130,16 @@ public static class SiteCoachingEndpoints
                 Guid memberId, ClaimsPrincipal user, RenewCoachingPeriodCommand command, RenewCoachingPeriodHandler handler, CancellationToken ct) =>
                 (await handler.Handle(SiteUser.AccountId(user), memberId, command, ct)).ToHttpResult())
             .WithName("RenewCoachingPeriod")
+            .Produces<StudentScheduleResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        // «ویرایش دوره» (15.7k): the days left of a running period, earlier or later.
+        trainer.MapPost("/students/{memberId:guid}/period/days-left", async (
+                Guid memberId, ClaimsPrincipal user, SetCoachingDaysLeftCommand command, SetCoachingDaysLeftHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), memberId, command, ct)).ToHttpResult())
+            .WithName("SetCoachingDaysLeft")
             .Produces<StudentScheduleResponse>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound)

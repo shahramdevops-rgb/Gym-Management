@@ -7,6 +7,7 @@ using Gym.Api.IntegrationTests.Auth;
 using Gym.Api.IntegrationTests.Infrastructure;
 using Gym.Api.IntegrationTests.SiteAuth;
 using Gym.Application.Common;
+using Gym.Domain.Audit;
 using Gym.Domain.Bookings;
 using Gym.Domain.Coaching;
 using Gym.Domain.Members;
@@ -130,6 +131,141 @@ public sealed class CoachingPeriodTests(DatabaseFixture fixture) : DatabaseTestB
         using var renewed = await RenewAsync(gym, 30, gym.MemberToken);
 
         renewed.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    // ---- «ویرایش دوره»: the days left, earlier or later (15.7k) ----
+
+    [Fact]
+    public async Task SetDaysLeft_AfterRenewalsByMistake_RemovesThemAndCutsTheScheduleAndTheDatesAfter()
+    {
+        var gym = await LinkedGymAsync(days: 30);
+        var today = Today();
+        using (var renewed = await RenewAsync(gym, 30))
+        {
+            renewed.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        await AddOldSessionsAsync(gym, today);
+
+        using var set = await SetDaysLeftAsync(gym, 3);
+
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await set.ReadJsonAsync()).GetProperty("periodEndsOn").GetString().ShouldBe(Iso(today.AddDays(2)));
+        var period = (await PeriodsAsync()).ShouldHaveSingleItem();
+        (period.StartsOn, period.EndsOn).ShouldBe((today, today.AddDays(2)));
+
+        // As for the days left of a student from before: the schedule in force ends on the new last
+        // day, the later one is gone, and so is the date moved to after it.
+        (await SchedulesAsync()).ShouldHaveSingleItem().EndsOn.ShouldBe(today.AddDays(2));
+        (await BookingsAsync()).ShouldHaveSingleItem().Date.ShouldBe(today.AddDays(1));
+    }
+
+    [Fact]
+    public async Task SetDaysLeft_PastThePeriods84Days_SavedAsTwoPeriods()
+    {
+        var gym = await LinkedGymAsync(days: 30);
+        await MovePeriodStartAsync(daysBack: 20);
+        var today = Today();
+
+        using var set = await SetDaysLeftAsync(gym, CoachingPeriod.MaxDays);
+
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await set.ReadJsonAsync()).GetProperty("periodEndsOn").GetString().ShouldBe(Iso(today.AddDays(CoachingPeriod.MaxDays - 1)));
+        var periods = (await PeriodsAsync()).OrderBy(period => period.StartsOn).ToList();
+        periods.Count.ShouldBe(2);
+        periods[1].StartsOn.ShouldBe(periods[0].EndsOn.AddDays(1));
+    }
+
+    [Fact]
+    public async Task SetDaysLeft_More_CutsNothing()
+    {
+        var gym = await LinkedGymAsync(days: 30);
+        using (var saved = await SetScheduleAsync(gym, Today().AddDays(1), Today().AddDays(20)))
+        {
+            saved.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        using var set = await SetDaysLeftAsync(gym, 60);
+
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await SchedulesAsync()).ShouldHaveSingleItem().EndsOn.ShouldBe(Today().AddDays(20));
+    }
+
+    [Fact]
+    public async Task SetDaysLeft_PeriodOver_Returns409()
+    {
+        var gym = await LinkedGymAsync(days: 30);
+        await MovePeriodStartAsync(daysBack: 40);
+
+        using var set = await SetDaysLeftAsync(gym, 10);
+
+        set.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await set.ReadErrorCodeAsync()).ShouldBe(CoachingErrors.PeriodNotRunning.Code);
+    }
+
+    [Fact]
+    public async Task SetDaysLeft_LinkWithoutPeriod_Returns409()
+    {
+        var gym = await LinkedGymAsync(days: 30);
+        await RemovePeriodsAsync();
+
+        using var set = await SetDaysLeftAsync(gym, 10);
+
+        set.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await set.ReadErrorCodeAsync()).ShouldBe(CoachingErrors.PeriodNotRunning.Code);
+    }
+
+    [Fact]
+    public async Task SetDaysLeft_OutOfRange_Returns400AndChangesNothing()
+    {
+        var gym = await LinkedGymAsync(days: 30);
+
+        using var set = await SetDaysLeftAsync(gym, CoachingPeriod.MaxDays + 1);
+
+        set.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await set.ReadErrorCodeAsync()).ShouldBe(CoachingErrors.PeriodDaysOutOfRange.Code);
+        (await PeriodsAsync()).ShouldHaveSingleItem().EndsOn.ShouldBe(Today().AddDays(29));
+    }
+
+    [Fact]
+    public async Task SetDaysLeft_NotTheTrainersStudent_Returns404()
+    {
+        var gym = await GymAsync();
+
+        using var set = await SetDaysLeftAsync(gym, 10);
+
+        set.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await set.ReadErrorCodeAsync()).ShouldBe(CoachingErrors.StudentNotFound.Code);
+    }
+
+    [Fact]
+    public async Task SetDaysLeft_AsTheMember_Returns403()
+    {
+        var gym = await LinkedGymAsync(days: 30);
+
+        using var set = await SetDaysLeftAsync(gym, 10, gym.MemberToken);
+
+        set.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task SetDaysLeft_Shortened_WrittenToTheAuditLog()
+    {
+        var gym = await LinkedGymAsync(days: 30);
+        using (var renewed = await RenewAsync(gym, 30))
+        {
+            renewed.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        using var set = await SetDaysLeftAsync(gym, 10);
+
+        set.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await using var scope = Fixture.CreateScope();
+        var rows = await scope.ServiceProvider.GetRequiredService<AppDbContext>().AuditLogs.AsNoTracking()
+            .Where(row => row.EntityType == nameof(CoachingPeriod))
+            .ToListAsync(TestContext.Current.CancellationToken);
+        rows.ShouldContain(row => row.Action == AuditAction.Delete);
+        rows.ShouldContain(row => row.Action == AuditAction.Update);
     }
 
     // ---- The fixed schedule inside the period ----
@@ -316,6 +452,18 @@ public sealed class CoachingPeriodTests(DatabaseFixture fixture) : DatabaseTestB
 
     private static Task<HttpResponseMessage> RenewAsync(Gym gym, int days, string? token = null) =>
         SendJsonAsync(gym, HttpMethod.Post, $"{StudentsPath}/{gym.MemberId}/period", new { days }, token);
+
+    private static Task<HttpResponseMessage> SetDaysLeftAsync(Gym gym, int daysLeft, string? token = null) =>
+        SendJsonAsync(gym, HttpMethod.Post, $"{StudentsPath}/{gym.MemberId}/period/days-left", new { daysLeft }, token);
+
+    /// <summary>Moves the link's only period <paramref name="daysBack"/> days back, as if accepted then.</summary>
+    private async Task MovePeriodStartAsync(int daysBack)
+    {
+        await using var scope = Fixture.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlAsync(
+            $"UPDATE coaching_periods SET starts_on = starts_on - {daysBack}, ends_on = ends_on - {daysBack}",
+            TestContext.Current.CancellationToken);
+    }
 
     private static Task<HttpResponseMessage> SetScheduleAsync(Gym gym, DateOnly startsOn, DateOnly endsOn) =>
         SendJsonAsync(gym, HttpMethod.Put, $"{StudentsPath}/{gym.MemberId}/schedule", new

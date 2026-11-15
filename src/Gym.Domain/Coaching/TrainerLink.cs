@@ -96,6 +96,69 @@ public sealed class TrainerLink : Entity
         return period;
     }
 
+    /// <summary>
+    /// «ویرایش دوره» (15.7k): the coaching's last day becomes today + <paramref name="daysLeft"/> − 1,
+    /// earlier or later than now, so the trainer can always correct a mistake (BUSINESS_RULES.md §15
+    /// <i>The coaching period</i>). Only while it runs: a link with no period, or one that is over,
+    /// fails. Needs <see cref="Periods"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Earlier:</b> the periods that start after the new last day go, and the one it falls in ends
+    /// on it. The new last day is today or later, so no day already past changes.
+    /// </para>
+    /// <para>
+    /// <b>Later:</b> the last period runs on to the new last day, up to its own <see
+    /// cref="CoachingPeriod.MaxDays"/>; the days past that are a new period right after it, which the
+    /// table's check (at most 84 days a period) allows. It starts after today, so one is enough.
+    /// </para>
+    /// </remarks>
+    /// <param name="today">The gym's today.</param>
+    public Result SetDaysLeft(int daysLeft, DateOnly today)
+    {
+        if (!IsOpen)
+        {
+            return Result.Failure(CoachingErrors.LinkAlreadyEnded);
+        }
+
+        if (PeriodEndsOn is not { } lastDay || lastDay < today)
+        {
+            return Result.Failure(CoachingErrors.PeriodNotRunning);
+        }
+
+        if (!CoachingPeriod.IsAllowed(daysLeft, CoachingPeriod.MinDaysLeft))
+        {
+            return Result.Failure(CoachingErrors.PeriodDaysOutOfRange);
+        }
+
+        var newLastDay = today.AddDays(daysLeft - 1);
+        if (newLastDay < lastDay)
+        {
+            // A period taken out of the list is an orphan, which EF Core deletes on save.
+            _periods.RemoveAll(period => period.StartsOn > newLastDay);
+            foreach (var period in _periods.Where(period => period.EndsOn > newLastDay))
+            {
+                period.EndOn(newLastDay);
+            }
+        }
+        else if (newLastDay > lastDay)
+        {
+            var last = _periods.MaxBy(period => period.EndsOn)!;
+            if (newLastDay <= last.LatestEnd)
+            {
+                last.EndOn(newLastDay);
+            }
+            else
+            {
+                last.EndOn(last.LatestEnd);
+                var startsOn = last.LatestEnd.AddDays(1);
+                _periods.Add(CoachingPeriod.Of(Id, startsOn, newLastDay.DayNumber - startsOn.DayNumber + 1));
+            }
+        }
+
+        return Result.Success();
+    }
+
     /// <param name="today">The gym's today: the link ends on it.</param>
     public Result End(DateOnly today, TrainerLinkEndReason reason)
     {

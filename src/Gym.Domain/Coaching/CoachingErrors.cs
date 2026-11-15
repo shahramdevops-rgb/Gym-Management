@@ -62,6 +62,14 @@ public static class CoachingErrors
         "The link has already ended.");
 
     /// <summary>
+    /// «ویرایش دوره» only while the coaching runs (15.7k): a link with no period types its days left
+    /// instead, and a period that is over is renewed.
+    /// </summary>
+    public static readonly Error PeriodNotRunning = Error.Conflict(
+        "Coaching.PeriodNotRunning",
+        "The coaching period is not running: it was never given, or it is over.");
+
+    /// <summary>
     /// A coaching period is <see cref="CoachingPeriod.MinDays"/> to <see cref="CoachingPeriod.MaxDays"/>
     /// days; the days left of a link made before 15.7h, from <see cref="CoachingPeriod.MinDaysLeft"/>.
     /// </summary>

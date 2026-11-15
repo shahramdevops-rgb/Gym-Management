@@ -143,6 +143,144 @@ public sealed class CoachingPeriodTests
         link.PeriodEndsOn.ShouldBeNull();
     }
 
+    // ---- «ویرایش دوره»: the days left, earlier or later (15.7k) ----
+
+    [Fact]
+    public void SetDaysLeft_FewerInsideOnePeriod_EndsItOnTheNewLastDay()
+    {
+        var link = Pending().Accept(AcceptedOn).Value;
+        var today = AcceptedOn.AddDays(5);
+
+        link.SetDaysLeft(10, today).IsSuccess.ShouldBeTrue();
+
+        var period = link.Periods.ShouldHaveSingleItem();
+        (period.StartsOn, period.EndsOn).ShouldBe((AcceptedOn, today.AddDays(9)));
+    }
+
+    [Fact]
+    public void SetDaysLeft_RenewedThreeTimesByMistake_RemovesTheLaterPeriods()
+    {
+        // The real case (1405/08/24): 30 days, then three renewals of 30 the trainer did not mean.
+        var link = Pending().Accept(AcceptedOn).Value;
+        var today = AcceptedOn.AddDays(2);
+        link.Renew(30, today);
+        link.Renew(30, today);
+        link.Renew(30, today);
+
+        link.SetDaysLeft(28, today).IsSuccess.ShouldBeTrue();
+
+        var period = link.Periods.ShouldHaveSingleItem();
+        (period.StartsOn, period.EndsOn).ShouldBe((AcceptedOn, AcceptedOn.AddDays(29)));
+    }
+
+    [Fact]
+    public void SetDaysLeft_LastDayInsideARenewal_KeepsTheEarlierAndEndsThatOne()
+    {
+        var link = Pending().Accept(AcceptedOn).Value;
+        link.Renew(30, AcceptedOn);
+        link.Renew(30, AcceptedOn);
+
+        link.SetDaysLeft(40, AcceptedOn).IsSuccess.ShouldBeTrue();
+
+        var periods = link.Periods.OrderBy(period => period.StartsOn).ToList();
+        periods.Count.ShouldBe(2);
+        periods[0].EndsOn.ShouldBe(AcceptedOn.AddDays(29));
+        (periods[1].StartsOn, periods[1].EndsOn).ShouldBe((AcceptedOn.AddDays(30), AcceptedOn.AddDays(39)));
+    }
+
+    [Fact]
+    public void SetDaysLeft_OneDay_EndsToday()
+    {
+        var link = Pending().Accept(AcceptedOn).Value;
+        var today = AcceptedOn.AddDays(3);
+
+        link.SetDaysLeft(CoachingPeriod.MinDaysLeft, today).IsSuccess.ShouldBeTrue();
+
+        link.PeriodEndsOn.ShouldBe(today);
+    }
+
+    [Fact]
+    public void SetDaysLeft_More_TheLastPeriodRunsOn()
+    {
+        var link = Pending().Accept(AcceptedOn).Value;
+
+        link.SetDaysLeft(50, AcceptedOn).IsSuccess.ShouldBeTrue();
+
+        var period = link.Periods.ShouldHaveSingleItem();
+        (period.StartsOn, period.EndsOn).ShouldBe((AcceptedOn, AcceptedOn.AddDays(49)));
+    }
+
+    [Fact]
+    public void SetDaysLeft_MorePastThe84DaysOfThePeriod_TheRestIsANewPeriodRightAfter()
+    {
+        var link = Pending().Accept(AcceptedOn).Value;
+        var today = AcceptedOn.AddDays(20);
+
+        link.SetDaysLeft(CoachingPeriod.MaxDays, today).IsSuccess.ShouldBeTrue();
+
+        var periods = link.Periods.OrderBy(period => period.StartsOn).ToList();
+        periods.Count.ShouldBe(2);
+        (periods[0].StartsOn, periods[0].EndsOn).ShouldBe((AcceptedOn, AcceptedOn.AddDays(CoachingPeriod.MaxDays - 1)));
+        periods[1].StartsOn.ShouldBe(AcceptedOn.AddDays(CoachingPeriod.MaxDays));
+        periods[1].EndsOn.ShouldBe(today.AddDays(CoachingPeriod.MaxDays - 1));
+        periods.ShouldAllBe(period => period.Days <= CoachingPeriod.MaxDays);
+    }
+
+    [Fact]
+    public void SetDaysLeft_SameDaysLeft_ChangesNothing()
+    {
+        var link = Pending().Accept(AcceptedOn).Value;
+
+        link.SetDaysLeft(30, AcceptedOn).IsSuccess.ShouldBeTrue();
+
+        link.Periods.ShouldHaveSingleItem().EndsOn.ShouldBe(AcceptedOn.AddDays(29));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(CoachingPeriod.MaxDays + 1)]
+    public void SetDaysLeft_OutOfRange_FailsAndChangesNothing(int daysLeft)
+    {
+        var link = Pending().Accept(AcceptedOn).Value;
+
+        link.SetDaysLeft(daysLeft, AcceptedOn).Error.ShouldBe(CoachingErrors.PeriodDaysOutOfRange);
+
+        link.PeriodEndsOn.ShouldBe(AcceptedOn.AddDays(29));
+    }
+
+    [Fact]
+    public void SetDaysLeft_PeriodOver_FailsWithPeriodNotRunning()
+    {
+        var link = Pending().Accept(AcceptedOn, 10).Value;
+
+        link.SetDaysLeft(5, AcceptedOn.AddDays(10)).Error.ShouldBe(CoachingErrors.PeriodNotRunning);
+    }
+
+    [Fact]
+    public void SetDaysLeft_OnTheLastDay_Allowed()
+    {
+        var link = Pending().Accept(AcceptedOn, 10).Value;
+
+        link.SetDaysLeft(5, AcceptedOn.AddDays(9)).IsSuccess.ShouldBeTrue();
+
+        link.PeriodEndsOn.ShouldBe(AcceptedOn.AddDays(13));
+    }
+
+    [Fact]
+    public void SetDaysLeft_LinkWithoutPeriod_FailsWithPeriodNotRunning()
+    {
+        WithoutPeriod().SetDaysLeft(5, AcceptedOn).Error.ShouldBe(CoachingErrors.PeriodNotRunning);
+    }
+
+    [Fact]
+    public void SetDaysLeft_LinkEnded_FailsWithLinkAlreadyEnded()
+    {
+        var link = Pending().Accept(AcceptedOn).Value;
+        link.End(AcceptedOn.AddDays(5), TrainerLinkEndReason.ByTrainer);
+
+        link.SetDaysLeft(5, AcceptedOn.AddDays(5)).Error.ShouldBe(CoachingErrors.LinkAlreadyEnded);
+    }
+
     // ---- The fixed schedule inside the period ----
 
     [Fact]

@@ -4973,6 +4973,38 @@ Each part on its own branch and session, in this order (proposed by Claude); 15.
       «حضور من» button in «سانس‌های من»; `AttendanceMonth` and `MonthNavigator` shared with the
       trainer's page
 
+#### The developer's list, part three: the period and attendance (asked 1405/08/24)
+A trainer renewed one student's period several times by mistake (a real screenshot) and could not
+undo it. Rules settled the same day (§15 *The coaching period*, *Timetable and attendance*). Each
+on its own branch and session, in this order (proposed by Claude, accepted):
+- [x] **15.7k, «ویرایش دوره» and asking before «تمدید»** (built 1405/08/24 on
+      `task/15.7k-edit-period`; no migration): the trainer types the days left (1 to 84 from today)
+      while the coaching runs; later periods left out go, the one the last day falls in ends on it;
+      shortening cuts the fixed program as the days left of a student from before do, warned first;
+      the past never changes; audit log; «بله، تمدید» / «بله، ثبت» before saving. Fixes the real
+      case by the trainer's own hand
+  - **Domain**: `TrainerLink.SetDaysLeft(daysLeft, today)` (later than the period's 84 days: the
+    rest is a new period right after it), `CoachingPeriod.EndOn`, error `Coaching.PeriodNotRunning`
+  - **API**: `POST /coaching/students/{memberId}/period/days-left { daysLeft }`
+    (`SetCoachingDaysLeftHandler`, the coaching lock then the trainer's); the cut shared with
+    «تمدید» as `CoachingPeriods.CutAfterAsync`
+  - **Screens**: «ویرایش دوره» beside «تمدید» while the period runs (`PeriodDaysForm`, the days left
+    to start with, the cut warned); `PeriodQuestion` before both (`bookings/StudentSchedulePage.tsx`)
+- [ ] **15.7l, «شاگردان من»: active and inactive** (screens; maybe the API's list): a closed part
+      «غیرفعال (n)» under the active students; search in both; the home's count and «رسیدگی
+      می‌خواهد» active only
+- [ ] **15.7m, the new on-time window** (domain, screens): 15 minutes before to 5 after is on time;
+      earlier «زودتر از موعد» with minutes from the start; later «تأخیر» from the start; earlier
+      days by the same rule (`PresenceRules`)
+- [ ] **15.7n, the SMS of the period's last days (پیامک پایان دوره)** (backend, panel, migration):
+      a new member kind with its *N* (3 to 14, 7 to start, off at first), once per link and last
+      day, the text in `SmsText` and `docs/sms-texts.md`; the trainer's mark in «شاگردان من» from the
+      same *N* (in place of 3 days)
+- [ ] **15.7o, «درخواست تمدید»** (backend, screens, migration): the member asks in «مربی من» from
+      *N* days left and after the end; one waiting per link, «لغو درخواست»; the trainer answers in
+      «درخواست‌ها» with «تمدید» (days box, asked first) or «رد کردن»; a «تمدید» on «برنامهٔ ثابت»
+      answers it; ending the coaching closes it
+
 ### Release 3 — The monthly assessment (priority 2)
 
 #### 15.8 File storage

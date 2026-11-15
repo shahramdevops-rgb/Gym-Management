@@ -2532,3 +2532,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **The gym's day, not the browser's UTC.** At 00:30 in Tehran it is still the previous day in UTC; the test pins that moment to prove the badge goes at the gym's midnight.
 - **`aria-hidden` for decoration inside a link.** A screen reader would read "کاربران سایت جدید" and every test and e2e that finds the link by its name would break; the badge is a visual hint, so it stays out of the accessible name.
 - **My notes:**
+
+## 15.7k — «ویرایش دوره» and asking before «تمدید»
+
+- **Removing a child from the aggregate's list deletes it.** `CoachingPeriod.LinkId` is a required foreign key, so a period taken out of `TrainerLink._periods` is an orphan, and EF Core turns it into a DELETE on save. The rule lives in `TrainerLink.SetDaysLeft`; the handler never calls `Remove` itself.
+- **Respect a check constraint by splitting, not by loosening it.** A period is at most 84 days (`ck_coaching_periods_at_most_84_days`). Moving the last day later than that writes the rest as a new period right after it, so the table's rule stays as strict as before and the history still reads as periods.
+- **One helper, two callers.** Cutting the fixed program after a last day moved from `RenewCoachingPeriodHandler` to `CoachingPeriods.CutAfterAsync`, because «ویرایش» that ends the coaching earlier needs exactly the same cut. Two copies would drift apart.
+- **The audit log comes free with the change tracker.** `AuditLogInterceptor` writes a row for every insert, update and delete in the same save, so "the change is in the audit log" needed no new code, only a test proving the period rows are there.
+- **A confirmation that follows a form is a controlled dialog.** The site's `ConfirmDialog` opens from its own button and says yes in red, for things that cannot be undone. Here the question opens after the days are typed (`asking` state), so a small `PeriodQuestion` takes `open` from the page and says yes in the plain colour.
+- **Playwright route patterns can catch your own source files.** In the Vite dev server the sources are served from `/@fs/.../src/site/api/...`, so a `**/api/**` mock answered the app's own modules. Matching `url.pathname.startsWith("/api/")` mocks only the API.
+- **My notes:**
