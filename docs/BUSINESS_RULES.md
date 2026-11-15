@@ -1347,7 +1347,10 @@ one is paid, records the expense itself.
   included, and every pending one past its date (red, until the Owner marks it). It names the
   nearest one and how many days are left («امروز», «فردا», «۳ روز دیگر», «۲ روز گذشته»), with the
   count of the others; opening it lists them all. Nothing is shown when there are none. The
-  dashboard's 7-day list stays as it is.
+  dashboard's 7-day list stays as it is. On a phone (below 1024px) only the bell in its colour and
+  the count of the others, small like the SMS credit beside it; the words are read out to a screen
+  reader and are in the list it opens (asked by the developer, 1405/08/24: an instalment's longer
+  words pushed the days out of the box and under the credit).
 - Owner only, reading included (§1).
 
 ---
@@ -1828,7 +1831,8 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   the header is the warning (an SMS to two numbers was considered and dropped by the developer).
 
   On a phone (below 1024px, Phase 13.1) the box shows only its coloured icon, the same colours and
-  flash, so the cheques alert beside it keeps its words; the amount is read out to a screen reader
+  flash (the cheques alert beside it kept its words until 1405/08/24, when it became an icon too,
+  §9); the amount is read out to a screen reader
   and is on «تنظیمات پیامک», which the box opens (1405/08/01, when the new look met the SMS
   release; the developer may ask for the amount back).
 - **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand, and a sent one that

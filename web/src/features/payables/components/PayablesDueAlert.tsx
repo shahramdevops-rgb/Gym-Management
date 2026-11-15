@@ -24,7 +24,7 @@ function toneOf(daysLeft: number) {
 }
 
 /** How far a payment is, as a small pill in its tone. */
-function DaysLeftChip({ daysLeft }: { daysLeft: number }) {
+function DaysLeftChip({ daysLeft, className }: { daysLeft: number; className?: string }) {
   return (
     <span
       className={cn(
@@ -32,6 +32,7 @@ function DaysLeftChip({ daysLeft }: { daysLeft: number }) {
         toneOf(daysLeft) === "overdue"
           ? "bg-destructive/15 text-destructive"
           : "bg-(--tone-yellow)/15 text-(--tone-yellow)",
+        className,
       )}
     >
       {daysLeftText(daysLeft)}
@@ -68,7 +69,7 @@ export function PayablesDueAlert() {
           // Edged like the banner and a locker door (13.2h, asked by the developer): a faint frame
           // and a thick start edge, yellow while close (apart from «فروش بوفه»'s orange, asked by the
           // developer in 13.2i), red once past its date.
-          "inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-lg border border-s-[3px] bg-card px-3 text-sm",
+          "inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-lg border border-s-[3px] bg-card px-3 text-sm max-lg:px-2.5",
           "transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
           tone === "overdue"
             ? "border-destructive/40 border-s-destructive"
@@ -91,11 +92,14 @@ export function PayablesDueAlert() {
           />
         </span>
         <span className="sr-only">چک و قسط نزدیک سررسید:</span>
-        <span className="shrink-0 font-medium">{kindText(nearest)}</span>
-        <span className="hidden min-w-0 truncate text-muted-foreground sm:inline">
+        {/* On a phone only the bell and the «+n» count, small like the SMS credit beside it (asked by
+            the developer, 1405/08/24): the words pushed the chip out of the box and under the
+            credit. They stay for a screen reader, and the dialog lists everything. */}
+        <span className="shrink-0 font-medium max-lg:sr-only">{kindText(nearest)}</span>
+        <span className="hidden min-w-0 truncate text-muted-foreground lg:inline">
           {nearest.payee}
         </span>
-        <DaysLeftChip daysLeft={nearest.daysLeft} />
+        <DaysLeftChip daysLeft={nearest.daysLeft} className="max-lg:sr-only" />
         {others > 0 && (
           <span
             className="shrink-0 rounded-full bg-foreground/10 px-1.5 py-0.5 text-xs font-medium"
