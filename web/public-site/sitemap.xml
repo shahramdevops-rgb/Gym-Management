@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- One page today. robots.txt points here; the www and .com names redirect to this address. -->
+<!-- The gym's page and the shop's showcase (roadmap 16.4), whose products are found from it.
+     robots.txt points here; the www and .com names redirect to this address. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://pasargadgymplus.ir/</loc>
+  </url>
+  <url>
+    <loc>https://pasargadgymplus.ir/shop/</loc>
   </url>
 </urlset>

@@ -161,6 +161,9 @@ using Gym.Application.Shop.CreateShopProduct;
 using Gym.Application.Shop.DeleteShopCategory;
 using Gym.Application.Shop.GetShopPhoto;
 using Gym.Application.Shop.GetShopProduct;
+using Gym.Application.Shop.GetShowcase;
+using Gym.Application.Shop.GetShowcasePhoto;
+using Gym.Application.Shop.GetShowcaseProduct;
 using Gym.Application.Shop.ListShopCategories;
 using Gym.Application.Shop.ListShopProducts;
 using Gym.Application.Shop.RemoveShopPhoto;
@@ -353,6 +356,9 @@ public static class DependencyInjection
         services.AddScoped<RemoveShopPhotoHandler>();
         services.AddScoped<ReorderShopPhotosHandler>();
         services.AddScoped<GetShopPhotoHandler>();
+        services.AddScoped<GetShowcaseHandler>();
+        services.AddScoped<GetShowcaseProductHandler>();
+        services.AddScoped<GetShowcasePhotoHandler>();
         services.AddScoped<FindSiteUserByPhoneHandler>();
         services.AddScoped<RegisterSiteUserHandler>();
 

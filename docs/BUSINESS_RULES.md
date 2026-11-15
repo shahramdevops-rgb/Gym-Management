@@ -3029,9 +3029,10 @@ roadmap Phase 16. Each line says who decided it, as in §15:
   refunds apart).
 - **Buyers from anywhere in Iran**, who pay online on the site; the goods go by Tipax. *Decided by
   the developer.* *Open:* whether a courier (پیک) inside the city stays as a second way.
-- **On the gym's site**, not on a separate shop site. *Decided by the developer.* Where on the site
-  (the site app, with the public page's «فروشگاه» section showing the products): *Proposed by
-  Claude* (ADR 0011), confirmed with 16.4.
+- **On the gym's site**, not on a separate shop site. *Decided by the developer.* **On the main
+  domain, `pasargadgymplus.ir`, where the public page's «فروشگاه» section is**, not in the app
+  (`app.pasargadgymplus.ir`): *decided by the developer at the start of 16.4* (1405/08/24),
+  replacing Claude's earlier proposal of the site app (ADR 0011). See *The showcase* below.
 - **The payment gateway is in the name of whoever the eNamad is taken for.** The gym has no eNamad
   yet; it is applied for meanwhile, and everything is built against the gateway's test environment
   until it arrives. *Decided by the developer.* **The gateway is Zarinpal.** *Decided by the
@@ -3059,7 +3060,8 @@ roadmap Phase 16. Each line says who decided it, as in §15:
   16.2* (1405/08/20). The mobile and WhatsApp follow §2's phone rules (an Iranian mobile, any
   digits, kept as E.164); the landline is 11 digits with its area code (`07132345678`); a
   messenger's id is 3 to 32 Latin letters, digits, `_` or `.`, typed with or without the `@`
-  (*Proposed by Claude*, 16.2). *Open:* where on the site they show (16.4, 16.8).
+  (*Proposed by Claude*, 16.2). On the showcase they show at the foot of the shop's page and of
+  each product's page (*The showcase* below, 16.4); under an order: *Open* (16.8).
 - **The Owner sees the shop's pages but does not change them**; the shop admin alone changes the
   shop. **There may be any number of shop admins**, each with their own user name and password.
   *Decided by the developer at the start of 16.2* (1405/08/20).
@@ -3157,6 +3159,48 @@ anywhere in the stored number" (§2 now says the same as here).
 - *Proposed by Claude* (16.3): a photo up to 10 MB, JPEG, PNG or WebP (an iPhone sends a gallery
   photo as JPEG); stored as WebP at most 1600 pixels on its long side, with a 480-pixel copy for
   lists.
+
+### The showcase (ویترین)
+Decided with the developer at the start of 16.4 (1405/08/24): each line was proposed by Claude and
+accepted ("all the proposals"), except the two the developer said themselves, marked so.
+- **The shop is on the gym's main domain**, `pasargadgymplus.ir`: the public page's «فروشگاه»
+  section shows the products, and the whole shop and each product's page are under
+  `pasargadgymplus.ir/shop/`. *Decided by the developer* ("definitely on the main domain, exactly
+  where the shop is now"). Why it matters: the eNamad is given to a domain, and the payment
+  gateway must start and end a payment on the domain it is registered for (Shaparak's rule, as
+  Zarinpal's guide says; whether a sub-domain counts was not found, so the main domain is the one
+  that is safe either way); and the app's address is closed to search engines, the main domain is
+  not.
+- **On the public page the «فروشگاه» section comes before «امکانات»**, right after the opening.
+  *Decided by the developer* (1405/08/24). Whether the section stays on the page or the shop is
+  only its own page: *Open*, the developer chooses after seeing both.
+- **Anyone sees the showcase without signing in**: the products, their prices, photos and
+  descriptions. Nothing can be bought on it yet (16.5, 16.6), and it has no buy button; how it
+  says so is 16.9's question.
+- **Only shown products are on it.** A hidden product is nowhere on the site, its photos included,
+  and its own address answers as a product that does not exist. A category with no shown product
+  is not listed. Newest first. (The panel's photo address still serves a hidden product's photos,
+  for the shop admin's list; a browser that kept a photo before its product was hidden may go on
+  showing its own copy.)
+- **A product with nothing in stock is still shown, marked «ناموجود»**; so is each variant on the
+  product's page. **The number in stock is never shown or sent**: a customer learns only "in stock
+  or not".
+- **A card shows one price**: the product's price, or «از …» with the lowest when its variants
+  differ; the product's page lists every variant with its own price.
+- **The shop's contact ways are at the foot of the shop's page and of each product's page**, each
+  one a link (a call, or the messenger's page); an empty one is not shown. Until buying opens,
+  this is how a customer orders.
+- **The public page's «فروشگاه» section shows the newest six products** (photo, name, price) and
+  «همهٔ کالاها», which opens the shop. If the API does not answer, or the shop has nothing shown,
+  the section keeps its six placeholder shelves, so the page never depends on the API.
+- **The showcase's requests are limited to 600 a minute per IP address**, the list, a product's
+  page and the photos counted together (the photos are kept by the browser for a year, so a
+  second visit asks for none). It is there to stop a flood: a carrier puts many phones behind one
+  address, and one first visit asks for a photo per product.
+- **Of the API, the main domain reaches only the showcase** (`/api/site/shop`): no sign-in of
+  either kind and nothing of the panel's is reachable from the gym's public address. A path with
+  an encoded slash or backslash (`%2F`, `%5C`) is refused on every host, since Caddy and the API
+  would read it as two different paths (found in 16.4's review).
 
 ### Customers
 - **A customer signs in with the site's phone and one-time code** (§15); one account serves the shop

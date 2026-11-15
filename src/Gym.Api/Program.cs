@@ -87,6 +87,10 @@ try
     // later middleware.
     app.UseMiddleware<CorrelationIdMiddleware>();
 
+    // Before routing and before anything that reads the path: a path with an encoded slash would
+    // reach the API somewhere else than the reverse proxy believed it allowed (16.4's review).
+    app.UseMiddleware<EncodedSlashMiddleware>();
+
     // Outside the exception handler, so the line records the status the client actually got
     // (task 11.3). Inside it, the request log saw the raw exception and wrote "500" at Error even
     // for a request the browser had cancelled, which the exception handler answers with 499. A
@@ -153,6 +157,7 @@ try
     app.MapMembersEndpoints();
     app.MapSiteUsersEndpoints();
     app.MapShopEndpoints();
+    app.MapSiteShopEndpoints();
     app.MapPricingEndpoints();
     app.MapSubscriptionsEndpoints();
     app.MapPaymentsEndpoints();

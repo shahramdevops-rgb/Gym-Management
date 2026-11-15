@@ -13,7 +13,12 @@ import { defineConfig, type Plugin } from "vite";
 // and none of the panel's pages (src/site/boundary.test.ts). Its tests run with the panel's, from
 // vite.config.ts.
 //
-//   npm run dev:site      http://localhost:5174
+// The same build holds a second page, the shop's showcase (roadmap 16.4): site/shop/index.html,
+// code in src/site/shop/, served on the gym's public host under /shop/.
+//
+//   npm run dev:site      http://localhost:5174          the app
+//                         http://localhost:5174/shop/    the shop's showcase
+//                         http://localhost:5174/public-site/   the gym's public page
 //   npm run build         builds the panel, then this
 const apiOrigin = "http://localhost:5134";
 
@@ -137,9 +142,33 @@ function publicSitePreview(): Plugin {
   };
 }
 
+const shopPrefix = "/shop/";
+
+/**
+ * In development only, every address of the shop (/shop/product/…) answers with the shop's page
+ * (site/shop/index.html), whose router reads the address; on the server Caddy does the same for
+ * the gym's public host. Without this, Vite's own fallback would answer with the app's page.
+ */
+function shopPageFallback(): Plugin {
+  return {
+    name: "gym-shop-page-fallback",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((request, _response, next) => {
+        const [path = "", query] = (request.url ?? "").split("?");
+        // A page, not a file: the shop's own modules (/shop/main.ts) have an extension.
+        if (path.startsWith(shopPrefix) && extname(path) === "") {
+          request.url = `${shopPrefix}index.html${query === undefined ? "" : `?${query}`}`;
+        }
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
   root: fileURLToPath(new URL("./site", import.meta.url)),
-  plugins: [react(), tailwindcss(), siteServiceWorker(), publicSitePreview()],
+  plugins: [react(), tailwindcss(), siteServiceWorker(), publicSitePreview(), shopPageFallback()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -148,6 +177,15 @@ export default defineConfig({
   build: {
     outDir: fileURLToPath(new URL("./dist-site", import.meta.url)),
     emptyOutDir: true,
+    // Two pages from one build (roadmap 16.4): the app (index.html, on its own host) and the
+    // shop's showcase (shop/index.html, on the gym's public host under /shop/). They share the
+    // hashed files in assets/, which Caddy serves on both hosts.
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL("./site/index.html", import.meta.url)),
+        shop: fileURLToPath(new URL("./site/shop/index.html", import.meta.url)),
+      },
+    },
   },
   server: {
     // Beside the panel's 5173, so both run at once. One origin with the API, as on the server:

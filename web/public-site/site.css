@@ -2120,6 +2120,118 @@ main > section[id] {
   }
 }
 
+/* The online shop's own products (roadmap 16.4), in place of the shelves once site.js has them:
+   the newest six, each a link to its page under /shop/. A phone swipes along one row, a computer
+   sees the six side by side. A product's photo is shown whole and in its own colours, not through
+   the page's grade: it is what someone buys. */
+
+.shop__grid[hidden],
+.shop__goods[hidden],
+.shop__more[hidden] {
+  display: none;
+}
+
+.shop__goods {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min(58%, 14rem);
+  gap: 0.75rem;
+  margin: 2.5rem 0 0;
+  padding: 0 var(--gutter);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.shop__goods::-webkit-scrollbar {
+  display: none;
+}
+
+.good {
+  scroll-snap-align: start;
+}
+
+.good a {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  background: var(--stone-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow 0.3s;
+}
+
+.good__photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  background: var(--stone-3);
+}
+
+.good__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* A product without a photo yet: the gym's logo, faint */
+.good__photo .logo {
+  width: 2.5rem;
+  opacity: 0.35;
+}
+
+.good__out {
+  position: absolute;
+  inset-block-start: 0.5rem;
+  inset-inline-start: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  background: rgb(13 14 17 / 0.85);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.good__text {
+  display: grid;
+  align-content: start;
+  gap: 0.15rem;
+  padding: 0.7rem 0.9rem 0.9rem;
+}
+
+.good__name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.good__price {
+  color: var(--bronze);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.good.is-out img {
+  opacity: 0.6;
+}
+
+.good.is-out .good__price {
+  color: var(--muted);
+}
+
+.shop__more {
+  margin-block-start: 1.5rem;
+}
+
+@media (hover: hover) {
+  .good a:hover {
+    box-shadow: inset 0 0 0 1px var(--bronze);
+  }
+}
+
 /* ---------- Hours (the first box of the contact section) ---------- */
 
 .hours__card {
@@ -2621,6 +2733,15 @@ main > section[id] {
     grid-auto-flow: row dense;
     grid-template-columns: repeat(4, 1fr);
     grid-auto-rows: 14rem;
+    width: min(100% - var(--gutter) * 2, 72rem);
+    margin-inline: auto;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .shop__goods {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(6, 1fr);
     width: min(100% - var(--gutter) * 2, 72rem);
     margin-inline: auto;
     padding: 0;

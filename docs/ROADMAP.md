@@ -5184,10 +5184,62 @@ Wanted in the release of the night of 1405/08/21 with the rest of `main` (the de
     does not pull the files archives: refresh it on the next visit
 
 ### 16.4 The shop on the site (ویترین)
-- [ ] Asked first: where the catalogue lives (ADR 0011 proposes the site app, with the public
-      page's «فروشگاه» section showing the products and linking in)
-- [ ] The catalogue by category and each product's page, open to anyone without signing in; the
-      public page's placeholder shelves replaced; it still works when the API is down
+Built 1405/08/24 (2026-11-15) on branch `task/16.4-shop-showcase` (from `main`), not released.
+- [x] Asked first (1405/08/24). The developer: **on the main domain**, "exactly where the shop is
+      now" (the public page's «فروشگاه» section), not in the site app as ADR 0011 first proposed;
+      and the section **above «امکانات»**. Claude's reason for the main domain, found the same
+      day: Zarinpal's guide (Shaparak's rule) wants a payment's first page and its return on the
+      domain the gateway is registered for, and nothing found says a sub-domain counts; the app's
+      host is also closed to search engines. The rest accepted as proposed: a product out of stock
+      is shown with «ناموجود» and the number in stock is never sent; the contact ways at the foot
+      of the shop's page and of each product's; the section shows the newest six and «همهٔ
+      کالاها», with the old shelves when the API does not answer (§16 *The showcase*)
+- [x] **The backend**: `GET /api/site/shop/showcase` (the shown products newest first, the
+      categories that hold one, the contact ways), `GET /api/site/shop/products/{id}` (a hidden
+      one is a 404, as an unknown one) and `GET /api/site/shop/photos/{id}/{size}` (the photos of
+      16.3 at an address the public host reaches). Anonymous and read-only, in
+      `SiteShopEndpoints`, with a rate limit of their own (`site-shop`, 600 a minute per address,
+      `RateLimiting:SiteShop`). Responses of their own (`ShowcaseResponses.cs`): no stock number,
+      no version, no "hidden". No table and no migration
+- [x] **The shop's pages** on `pasargadgymplus.ir/shop/`: the showcase (cards two a row on a
+      phone, four on a computer; category chips that are links) and a product's page (the photos
+      whole, the variants as small boxes with price and موجود / ناموجود, the description, the
+      contact ways). A second page of the site build (`web/site/shop/index.html`,
+      `web/src/site/shop/`), with no session and no token, wearing the public page's dark stone
+      (`shop.css` overrides the colour tokens only)
+- [x] **The public page**: «فروشگاه» moved above «امکانات» and numbered ۰۲; `site.js` puts the
+      newest six products in place of the six shelves and shows «همهٔ کالاها»; without an answer
+      the shelves stay. The menu follows the page's order; `sitemap.xml` names `/shop/`
+- [x] **Caddy**: the public host proxies `/api/site/shop/*` only (under the app's host name, since
+      the API's `AllowedHosts` holds two hosts), answers the rest of `/api` with 404, serves
+      `/assets/*` and every address under `/shop/` from the site build, and the app's host sends
+      `/shop` to the public one. `docker-compose.prod.yml` unchanged: no new setting on the server
+- [x] Tests: integration (`ShopShowcaseTests`: newest first without signing in, hidden and
+      unknown products, a category with nothing shown, out of stock, no stock number or version in
+      the JSON, the contact ways, the photo, a staff token changes nothing, the rate limit for
+      photos too; `PublicHostShopTests`: the Caddyfile proxies the shop's path only, the page
+      fallback, the app host's redirect, the shop is not closed to search engines); Vitest
+      (`Showcase.test.tsx`, 11); e2e `shopAdmin.spec.ts` gains the showcase on the public host
+      through the production images (the section, `/shop/`, a chip, a product's page and its
+      photo from the files volume, a product's address opened afresh, the API paths that are not
+      there, no sideways scroll at 390 px)
+- [x] **After the `code-reviewer`** (1405/08/24): (1) a path with an encoded slash
+      (`/api/site/shop/a%2fb%2fc/../../../auth/login`) passed Caddy's shop rule and reached the
+      staff login on the API, on every host (already so on `main` between the panel's and the
+      app's hosts): `EncodedSlashMiddleware` refuses `%2F` and `%5C` in the path with 400
+      `General.InvalidPath`; (2) a product address cut short asked the API and showed «برای ادامه
+      وارد شوید»: not an id is «این کالا پیدا نشد» without a request; (3) a hidden product's photos
+      were still served on the main domain: the site's photo address serves shown products only
+      (`GetShowcasePhotoHandler`), the panel's still serves all; the photo has its own response
+      record; the photo buttons' labels in Persian digits. Tests: `EncodedSlashMiddlewareTests`,
+      two in `ShopShowcaseTests` (a hidden product's photo, any token answers as none), a Vitest
+      case, and in the e2e raw requests through Caddy, the photo's year-long caching on the public
+      host, and the public page keeping its shelves when the API does not answer
+- [ ] *Open, for the developer after seeing both:* the section stays on the public page (as
+      built), or the shop is only its own page and the page keeps a link
+- [ ] *For the release:* nothing to check on the server first (no migration, no new setting); the
+      shop admin's real products appear on the public page as soon as it is out, so the showcase
+      release of 16.9 decides when
 
 ### 16.9 The eNamad pages and the showcase release (صفحه‌های اینماد و انتشار ویترین)
 Brought forward from the end (the developer, 1405/08/20), so the eNamad is applied for early.

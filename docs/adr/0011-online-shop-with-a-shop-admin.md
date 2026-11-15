@@ -47,10 +47,21 @@ and customers on the site side.**
   plan or a visit is a **site user** (§16 *Site users*): left out of every list, search and figure
   of the gym's, and shown only on a page of their own, «کاربران سایت». The shop admin sees of a
   customer only what an order needs.
-- **Where the customer's shop lives** (proposed, confirmed with 16.4's plan): the catalogue, cart,
-  checkout and «my orders» in the site app, which already has the customer's sign-in; the public
-  page's «فروشگاه» section shows the products and links into it. The public page keeps working
-  while the API is down: if the products cannot be fetched it shows the section without them.
+- **Where the customer's shop lives: on the gym's main domain** (decided by the developer at the
+  start of 16.4, 2026-11-15, replacing this ADR's first proposal, the site app). The public
+  page's «فروشگاه» section shows the products, and the shop's own pages are under
+  `pasargadgymplus.ir/shop/`. They are a second page of the site app's build (`web/site/shop`,
+  code in `web/src/site/shop`), served by Caddy on the public host, which hands the API one path
+  only, `/api/site/shop` (anonymous, read-only, rate limited). The public page keeps working
+  while the API is down: if the products cannot be fetched its section keeps its placeholder
+  shelves.
+  - Why not the app's host: the eNamad is given to a domain and the payment gateway must start and
+    end a payment on the domain it is registered for; the main domain is safe whether or not a
+    sub-domain would have counted. The app's host is also closed to search engines.
+  - What it costs: the gym's public address is no longer "static files, no API": it reaches one
+    read-only path. And the customer's sign-in for buying (16.5) has to work on the main domain,
+    where no site session exists today (the app's refresh cookie belongs to its own host); how is
+    16.5's first question.
 - **Payment behind an Application interface** (`IPaymentGateway`), implemented in Infrastructure
   for Zarinpal (chosen by the developer), against its sandbox until the eNamad and the real merchant account exist. A payment is
   verified by the server with the gateway, never trusted from the browser's return; each payment
@@ -86,6 +97,9 @@ and customers on the site side.**
 - Online payment adds an outside party: a callback endpoint open to the internet, amounts in the
   gateway's unit (Rial) against the system's, and a way to find payments the gateway took but the
   system never confirmed.
+- The public host's Caddy block must never proxy more of `/api` than the shop's path: a wider
+  rule would put the staff's login on the gym's public address. `PublicHostShopTests` checks the
+  Caddyfile.
 - The eNamad needs pages the site does not have yet (about, contact, terms, returns), and the
   gateway goes in the name of whoever the eNamad is taken for.
 - File storage, its disk space and its backup are needed from 16.3 (ADR 0010 planned them for

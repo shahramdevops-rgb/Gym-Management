@@ -21,6 +21,8 @@ export const errorMessages: Record<string, string> = {
   "General.ValidationFailed": "لطفاً خطاهای فرم را برطرف کنید.",
   "General.Unexpected": "خطای غیرمنتظره‌ای رخ داد.",
   "General.TooManyRequests": "تعداد تلاش‌ها زیاد است. کمی بعد دوباره امتحان کنید.",
+  // No screen sends such an address; a hand-made one is refused (EncodedSlashMiddleware).
+  "General.InvalidPath": "این نشانی معتبر نیست.",
 
   // Login and session
   "Auth.InvalidCredentials": "نام کاربری یا رمز عبور اشتباه است.",

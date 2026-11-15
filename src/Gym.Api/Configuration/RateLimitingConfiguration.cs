@@ -73,10 +73,25 @@ public sealed class SiteSessionRateLimitOptions : PerAddressRateLimitOptions
 }
 
 /// <summary>
+/// The <c>RateLimiting:SiteShop</c> configuration section: the shop's showcase on the gym's public
+/// site (BUSINESS_RULES.md §16 <i>The showcase</i>), its two reads and its photos together, 600 a
+/// minute per IP. Generous for the same reason as <see cref="SiteCodeRateLimitOptions"/>: a carrier
+/// puts many phones behind one address, and one first visit to the shop asks for a photo per
+/// product. It is there to stop a flood, not a crowd.
+/// </summary>
+public sealed class SiteShopRateLimitOptions : PerAddressRateLimitOptions
+{
+    public const string SectionName = "RateLimiting:SiteShop";
+
+    public override int PermitLimit { get; set; } = 600;
+}
+
+/// <summary>
 /// Per-IP rate limiting for the endpoints a stranger can reach (BUSINESS_RULES.md §1): 10 login
 /// attempts per minute, and 60 refreshes and logouts per minute; and the site's code requests, 20
 /// per 10 minutes, its sign-ins and sign-ups, 30 per 10 minutes, and its refreshes and logouts, 60 a
-/// minute (§15), each in a bucket of its own so the site's traffic never uses up the staff's.
+/// minute (§15), each in a bucket of its own so the site's traffic never uses up the staff's; and
+/// the shop's showcase, 600 a minute (§16), in a bucket of its own too.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -106,6 +121,8 @@ public static class RateLimitingConfiguration
 
     public const string SiteSessionPolicy = "site-session";
 
+    public const string SiteShopPolicy = "site-shop";
+
     public static IServiceCollection AddApiRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -121,6 +138,8 @@ public static class RateLimitingConfiguration
             .Bind(configuration.GetSection(SiteSignInRateLimitOptions.SectionName));
         services.AddOptions<SiteSessionRateLimitOptions>()
             .Bind(configuration.GetSection(SiteSessionRateLimitOptions.SectionName));
+        services.AddOptions<SiteShopRateLimitOptions>()
+            .Bind(configuration.GetSection(SiteShopRateLimitOptions.SectionName));
 
         services.AddRateLimiter(options =>
         {
@@ -129,6 +148,7 @@ public static class RateLimitingConfiguration
             options.AddPolicy(SiteCodePolicy, PerAddress<SiteCodeRateLimitOptions>);
             options.AddPolicy(SiteSignInPolicy, PerAddress<SiteSignInRateLimitOptions>);
             options.AddPolicy(SiteSessionPolicy, PerAddress<SiteSessionRateLimitOptions>);
+            options.AddPolicy(SiteShopPolicy, PerAddress<SiteShopRateLimitOptions>);
 
             options.OnRejected = WriteTooManyRequestsAsync;
         });

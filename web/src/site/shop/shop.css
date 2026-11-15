@@ -1,0 +1,36 @@
+/* The shop's showcase wears the gym's public page, not the app (roadmap 16.4): it lives on the
+   same address, one click from that page's «فروشگاه», so it keeps its "stone and steel": dark
+   stone, bronze light (web/public-site/site.css, whose colours these are). One theme on purpose,
+   as there: the page's <html> carries `dark shop` from the first byte (site/shop/index.html).
+
+   Only the tokens change. Every shared component (the alert, the states) reads them, so nothing
+   is restyled; `.dark` (src/index.css) still gives the tokens not named here. */
+:root.shop {
+  color-scheme: dark;
+  /* The public page's corners are cut, not round: nearly square here. */
+  --radius: 0.25rem;
+  --background: #0d0e11;
+  --foreground: #f2efe9;
+  --card: #15171c;
+  --card-foreground: #f2efe9;
+  --primary: #c89b57;
+  --primary-foreground: #0d0e11;
+  --secondary: #1f222a;
+  --secondary-foreground: #f2efe9;
+  --muted: #1f222a;
+  --muted-foreground: #9a968f;
+  --accent: #1f222a;
+  --accent-foreground: #f2efe9;
+  --destructive: #e25b38;
+  --border: #2a2d35;
+  --input: #2a2d35;
+  --ring: #c89b57;
+}
+
+/* Samsung Internet's dark mode leaves a page alone only when its stylesheet answers
+   prefers-color-scheme: dark (src/site/site.css). The page is already dark. */
+@media (prefers-color-scheme: dark) {
+  :root.shop {
+    color-scheme: dark;
+  }
+}

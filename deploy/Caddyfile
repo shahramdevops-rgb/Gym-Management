@@ -5,14 +5,15 @@
 #
 #   {$DOMAIN}           panel.example.ir   the staff's application, and nothing else
 #   {$SITE_DOMAIN}      app.example.ir     the members' and trainers' app (roadmap 15.3, ADR 0010)
-#   {$PUBLIC_DOMAIN}    example.ir         the gym's public page: static files, no API
+#   {$PUBLIC_DOMAIN}    example.ir         the gym's public page (static files) and the shop's
+#                                          showcase under /shop/, with the one API path it reads
 #   www.{$PUBLIC_DOMAIN}                   redirects to the public page
 #   {$REDIRECT_DOMAIN}  example.com        redirects to the public page
 #   www.{$REDIRECT_DOMAIN}                 redirects to the public page
 #
 # The panel is on its own host rather than a path under the public one. The refresh cookie is
 # scoped to a single host, so this keeps it off the public page entirely; the panel can be given
-# its own rate limits or an allowlist without touching the public site; the public site is static
+# its own rate limits or an allowlist without touching the public site; the public page is static
 # files that keep serving while the API is down; and only the panel is told not to be indexed.
 # That is separation, not security — the login rate limit, lockout, fail2ban and the firewall are
 # what actually protect the application.
@@ -125,6 +126,13 @@
 		respond 404
 	}
 
+	# The shop's showcase (roadmap 16.4) is built with the app (dist-site/shop) but lives on the
+	# gym's public host, the address the eNamad and the payment gateway are registered for. Here
+	# it would be a second address for the same pages, so it is sent there. Temporary, as the
+	# public host's own redirects are.
+	@shop path /shop /shop/*
+	redir @shop https://{$PUBLIC_DOMAIN:no-public-site}{uri} 302
+
 	# As on the panel: forever for a hashed name, a 404 for one that is not there.
 	handle /assets/* {
 		root * /srv-site
@@ -147,9 +155,12 @@
 	}
 }
 
-# The gym's public face. Static files (the page, its stylesheet, one script, the font and the
-# photos), served without touching the API, so a release or a database outage never takes the
-# gym's website down with it.
+# The gym's public face. The page itself is static files (the page, its stylesheet, one script,
+# the font and the photos), served without touching the API, so a release or a database outage
+# never takes the gym's website down with it.
+# Since roadmap 16.4 the shop's showcase lives here too, under /shop/ (BUSINESS_RULES.md §16 "The
+# showcase"): this is the domain the eNamad and the payment gateway are registered for. It reads
+# one path of the API, /api/site/shop, and nothing else of the API is reachable from this host.
 # Unset (local smoke tests) it falls back to a single-label name, which keeps Caddy on its
 # internal CA instead of asking Let's Encrypt for an unobtainable certificate.
 {$PUBLIC_DOMAIN:no-public-site} {
@@ -160,19 +171,13 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		# Only the site's own files may load. Its one script is a file (site.js), never inline,
-		# so script-src needs no 'unsafe-inline'. Nothing is fetched from another host.
+		# Only the site's own files may load. Its scripts are files (site.js, the shop's bundle),
+		# never inline, so script-src needs no 'unsafe-inline'. Nothing is fetched from another
+		# host: the shop's products and their photos come from this host's own /api/site/shop.
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		-Server
 	}
-
-	# Every file, the photos too: a browser asks before it reuses its copy (a 304 costs nothing),
-	# so a release is seen at once. Until 2026-10-16 the photos had no Cache-Control, a browser
-	# guessed hours of freshness, and phones kept showing the old slides under the same names.
-	# web/Dockerfile also gives each file's address its content's fingerprint (?v=), which reaches
-	# copies a browser already holds.
-	header Cache-Control "no-cache"
 
 	# The address printed under the gym's one QR code, on the desk's poster and the business card
 	# (roadmap 15.3b). Since 2026-11-03 it leads to this page, not the app: the card goes to people
@@ -188,9 +193,53 @@
 	redir /qr / 302
 	redir /app https://{$SITE_DOMAIN:no-site-app}/ 302
 	redir /app/trainers https://{$SITE_DOMAIN:no-site-app}/trainers 302
+	# The shop's pages are under /shop/, where its router's base is.
+	redir /shop /shop/ 302
 
-	root * /srv-public
-	file_server
+	# The shop's showcase and its photos: the one path of the API this host reaches. Anonymous and
+	# read-only, with its own rate limit (SiteShopEndpoints). The API answers to the panel's and
+	# the app's hosts only (AllowedHosts, docker-compose.prod.yml), so the request goes on under
+	# the app's name, where every /api/site path already lives; the visitor's address still
+	# reaches the API for the rate limit (X-Forwarded-For, which Caddy sets itself).
+	handle /api/site/shop/* {
+		reverse_proxy api:8080 {
+			header_up Host {$SITE_DOMAIN:no-site-app}
+		}
+	}
+
+	# Nothing else of the API: not the staff's, not the app's sign-in.
+	handle /api/* {
+		respond 404
+	}
+
+	# The shop's hashed files, built with the app's (web/dist-site/assets). Forever for a hashed
+	# name, a 404 for one that is not there, as on the other two hosts.
+	handle /assets/* {
+		root * /srv-site
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# The shop's page (web/dist-site/shop/index.html). Its router reads the address, so every
+	# address under /shop/ is that page; it names hashed files, so a browser asks again each time.
+	handle /shop/* {
+		root * /srv-site
+		header Cache-Control "no-cache"
+		try_files {path} /shop/index.html
+		file_server
+	}
+
+	# The public page. Every file, the photos too: a browser asks before it reuses its copy (a 304
+	# costs nothing), so a release is seen at once. Until 2026-10-16 the photos had no
+	# Cache-Control, a browser guessed hours of freshness, and phones kept showing the old slides
+	# under the same names. web/Dockerfile also gives each file's address its content's fingerprint
+	# (?v=), which reaches copies a browser already holds. Set here rather than for the whole
+	# host: a product photo from the API brings its own year-long Cache-Control.
+	handle {
+		root * /srv-public
+		header Cache-Control "no-cache"
+		file_server
+	}
 }
 
 # www and the second domain are not second homes: they point at the public page. A visitor who

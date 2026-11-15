@@ -2525,6 +2525,21 @@ The question that started this was whether a gym that is entirely internal — I
 - **jsdom's `FormData` is not Node's.** A multipart upload cannot leave a Vitest test through Node's `Request`; the test stands one in, and the real multipart is proved by the API's tests and the browser walk.
 - **My notes:**
 
+## 16.4 — The shop on the site (ویترین)
+
+- **A public read gets its own response shape.** `ShowcaseProductItem` has `InStock`, not the stock number, and no `Version` or `IsVisible`. Reusing the shop admin's record and "not showing" a field in the page would still send it to every visitor; what a stranger may know is decided by what the record holds, and a test reads the raw JSON to prove it.
+- **Filter in the query, and answer a hidden thing like a missing one.** `Where(p => p.IsVisible)` runs in Postgres, so a hidden product never leaves the server; its page returns the same 404 as an unknown id, so the difference tells nothing.
+- **Anonymous endpoints need a rate limit, sized for the real crowd.** `AllowAnonymous()` means anyone can call it as fast as the network allows. The limit is per address, and one mobile carrier address can be many phones, so it is generous (600 a minute): it stops a flood, not visitors.
+- **A reverse proxy decides what of the API a host can reach.** In Caddy the public host has `handle /api/site/shop/*` (proxied) and `handle /api/*` (404): Caddy picks the more specific path, so nothing else of the API exists on that address. The API itself is one process; the hosts are views of it.
+- **`AllowedHosts` and `header_up Host`.** ASP.NET Core refuses a request whose `Host` is not in `AllowedHosts` (400). Rather than add a third host on the server, Caddy sends the shop's requests on under the app's name; the visitor's address still arrives in `X-Forwarded-For`.
+- **One Vite build, two pages (multi-page app).** `rollupOptions.input` with two HTML files gives `index.html` and `shop/index.html` sharing one `assets/` folder; each page loads only its own chunks. A router `basename` (`/shop`) lets the routes be written from `/`.
+- **A single-page app needs a fallback for deep links.** `/shop/product/123` is not a file; the server must answer it with the page (`try_files {path} /shop/index.html` in Caddy, a small middleware in Vite's dev server), and the page's script must be named from the root (`/shop/main.ts`), not beside the address.
+- **Theme by tokens, not by restyling.** The shop wears the public page's dark stone by overriding the CSS variables under `:root.shop`; `Alert`, `LoadingState` and every `bg-card` follow without a change.
+- **Progressive enhancement.** The public page works with no API: the six shelves are in the HTML, and `site.js` swaps in the real products only when the answer arrives. Names go in with `textContent`, never `innerHTML`, because the shop admin types them.
+- **Two parsers, one path: request smuggling by normalisation.** A reverse proxy and the server behind it must agree on what a path means. Caddy decodes `%2F` before matching and Kestrel does not, so one address can be "allowed" to the proxy and "forbidden" to the rule it was meant to enforce. The fix is to refuse what the two would read differently (an encoded slash), not to add more rules in the proxy. A browser never sends such a path, so only a raw request can test it.
+- **A captured `fetch`.** `createClient` keeps the `fetch` it saw when the module loaded, so a test that stubs `fetch` later is not called; `fetch: (request) => fetch(request)` looks it up at each call.
+- **My notes:**
+
 ## The «جدید» badge (before the 16.1–16.3 release)
 
 - **Time-limited UI by a date, not a flag.** `NewBadge` compares the gym's today with a fixed "gone from" day, so it disappears a week after the release without a setting, a click or a new deploy; the leftover `newUntil` simply renders nothing.
