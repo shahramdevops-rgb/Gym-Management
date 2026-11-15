@@ -1833,6 +1833,22 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   flash, so the cheques alert beside it keeps its words; the amount is read out to a screen reader
   and is on «تنظیمات پیامک», which the box opens (1405/08/01, when the new look met the SMS
   release; the developer may ask for the amount back).
+- **The server reminder (شارژ سرور)** (decided with the developer, 1405/08/24, task 13.6): the
+  server is paid every month, outside the panel, and nothing can ask the provider how long is
+  left, so the panel reminds by the calendar alone. Decided by the developer:
+  - the payment is due on the **1st of every Jalali month**;
+  - the Owner sees a box in the header, beside the SMS credit, from **five days before** that 1st;
+  - it stays until the Owner presses it and confirms «شارژ کردم», which hides it until the next
+    month's five days. It never goes away by itself: when the 1st comes and nobody confirmed, it
+    stays and says the server is not paid;
+  - **no SMS**: the header is the reminder, as for the SMS credit;
+  - **on a phone** (below 1024px) only its coloured icon, small like the SMS credit's, so nothing
+    else in the header moves or breaks (asked by the developer the same day).
+
+  Still to settle at the start of 13.6 (Claude's proposals, not decided): orange while days are
+  left, red and blinking from the 1st; the words («۵ روز تا شارژ سرور», «سرور شارژ نشده»); the
+  confirmation kept in the database with who and when, so Staff never see it and a second browser
+  agrees.
 - **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand, and a sent one that
   **Kavenegar cancelled** (`13`: it never reached the phone and its cost was given back; decided
   with the developer, 1405/08/01, task 10.16). A delivered, not delivered or blocked one cannot be

@@ -3956,6 +3956,16 @@ Closed 2026-10-25: 2728 backend tests (965 domain, 1763 integration; 5 new) and 
 migration; one new endpoint, read only, so a rollback to `20261025-0344-23fdcdd` is safe.
 `npm run e2e` and `npm run screenshots` are left for the release night.
 
+### 13.6 The server reminder (یادآور شارژ سرور)
+Asked by the developer on 1405/08/24 (2026-11-15): the server is paid at the start of every Jalali
+month, and the Owner should see it coming, like the SMS credit in the header. Rules:
+BUSINESS_RULES.md §10 *The server reminder*. Not started; a task of its own, in its own session.
+- [ ] Settle the open points in the rule (colours, words, phone, where the confirmation is kept)
+- [ ] The header box for the Owner, from five days before the 1st, until «شارژ کردم» is confirmed
+- [ ] On a phone only the small coloured icon, like the SMS credit; the header measured before and
+      after at ~390px so nothing else moves (asked by the developer)
+- [ ] Tests, and the box shown to the developer at a phone's width and on a computer
+
 ---
 
 ## Phase 14 — The public site (سایت اصلی)
