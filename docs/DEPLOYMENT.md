@@ -88,7 +88,7 @@ image serves six names, and which is which comes from `/opt/gym/.env`:
 |---|---|
 | `DOMAIN` | the staff's application, and nothing else. Also the API's `AllowedHosts` |
 | `SITE_DOMAIN` | the members' and trainers' app (`web/dist-site`) and only the API's `/api/site`; the API's second `AllowedHosts` (roadmap 15.3b) |
-| `PUBLIC_DOMAIN` | the gym's public page: static files from `web/public-site`, no API |
+| `PUBLIC_DOMAIN` | the gym's public page (static files from `web/public-site`) and the shop's showcase under `/shop/` (16.4), which reads one API path, `/api/site/shop` |
 | `www.$PUBLIC_DOMAIN` | redirects to the public page |
 | `REDIRECT_DOMAIN` | redirects to the public page |
 | `www.$REDIRECT_DOMAIN` | redirects to the public page (since 15.3b) |

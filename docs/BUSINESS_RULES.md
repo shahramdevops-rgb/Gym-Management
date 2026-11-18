@@ -3029,9 +3029,10 @@ roadmap Phase 16. Each line says who decided it, as in §15:
   refunds apart).
 - **Buyers from anywhere in Iran**, who pay online on the site; the goods go by Tipax. *Decided by
   the developer.* *Open:* whether a courier (پیک) inside the city stays as a second way.
-- **On the gym's site**, not on a separate shop site. *Decided by the developer.* Where on the site
-  (the site app, with the public page's «فروشگاه» section showing the products): *Proposed by
-  Claude* (ADR 0011), confirmed with 16.4.
+- **On the gym's site**, not on a separate shop site. *Decided by the developer.* **On the main
+  domain, `pasargadgymplus.ir`, where the public page's «فروشگاه» section is**, not in the app
+  (`app.pasargadgymplus.ir`): *decided by the developer at the start of 16.4* (1405/08/24),
+  replacing Claude's earlier proposal of the site app (ADR 0011). See *The showcase* below.
 - **The payment gateway is in the name of whoever the eNamad is taken for.** The gym has no eNamad
   yet; it is applied for meanwhile, and everything is built against the gateway's test environment
   until it arrives. *Decided by the developer.* **The gateway is Zarinpal.** *Decided by the
@@ -3059,7 +3060,8 @@ roadmap Phase 16. Each line says who decided it, as in §15:
   16.2* (1405/08/20). The mobile and WhatsApp follow §2's phone rules (an Iranian mobile, any
   digits, kept as E.164); the landline is 11 digits with its area code (`07132345678`); a
   messenger's id is 3 to 32 Latin letters, digits, `_` or `.`, typed with or without the `@`
-  (*Proposed by Claude*, 16.2). *Open:* where on the site they show (16.4, 16.8).
+  (*Proposed by Claude*, 16.2). On the showcase they show at the foot of the shop's page and of
+  each product's page (*The showcase* below, 16.4); under an order: *Open* (16.8).
 - **The Owner sees the shop's pages but does not change them**; the shop admin alone changes the
   shop. **There may be any number of shop admins**, each with their own user name and password.
   *Decided by the developer at the start of 16.2* (1405/08/20).
@@ -3158,6 +3160,49 @@ anywhere in the stored number" (§2 now says the same as here).
   photo as JPEG); stored as WebP at most 1600 pixels on its long side, with a 480-pixel copy for
   lists.
 
+### The showcase (ویترین)
+Decided with the developer at the start of 16.4 (1405/08/24): each line was proposed by Claude and
+accepted ("all the proposals"), except the two the developer said themselves, marked so.
+- **The shop is on the gym's main domain**, `pasargadgymplus.ir`: the public page's «فروشگاه»
+  section shows the products, and the whole shop and each product's page are under
+  `pasargadgymplus.ir/shop/`. *Decided by the developer* ("definitely on the main domain, exactly
+  where the shop is now"). Why it matters: the eNamad is given to a domain, and the payment
+  gateway must start and end a payment on the domain it is registered for (Shaparak's rule, as
+  Zarinpal's guide says; whether a sub-domain counts was not found, so the main domain is the one
+  that is safe either way); and the app's address is closed to search engines, the main domain is
+  not.
+- **On the public page the «فروشگاه» section is the first one, right after the opening**, above
+  «پاسارگاد» and «امکانات», and numbered ۰۱. *Decided by the developer* (above «امکانات» 1405/08/24;
+  first of all 1405/08/27). **The section stays on the page** and leads to the shop's own page
+  (1405/08/27, settling the question left open on 1405/08/24).
+- **Anyone sees the showcase without signing in**: the products, their prices, photos and
+  descriptions. Nothing can be bought on it yet (16.5, 16.6), and it has no buy button; how it
+  says so is 16.9's question.
+- **Only shown products are on it.** A hidden product is nowhere on the site, its photos included,
+  and its own address answers as a product that does not exist. A category with no shown product
+  is not listed. Newest first. (The panel's photo address still serves a hidden product's photos,
+  for the shop admin's list; a browser that kept a photo before its product was hidden may go on
+  showing its own copy.)
+- **A product with nothing in stock is still shown, marked «ناموجود»**; so is each variant on the
+  product's page. **The number in stock is never shown or sent**: a customer learns only "in stock
+  or not".
+- **A card shows one price**: the product's price, or «از …» with the lowest when its variants
+  differ; the product's page lists every variant with its own price.
+- **The shop's contact ways are at the foot of the shop's page and of each product's page**, each
+  one a link (a call, or the messenger's page); an empty one is not shown. Until buying opens,
+  this is how a customer orders.
+- **The public page's «فروشگاه» section shows the newest six products** (photo, name, price) and
+  «همهٔ کالاها», which opens the shop. If the API does not answer, or the shop has nothing shown,
+  the section keeps its six placeholder shelves, so the page never depends on the API.
+- **The showcase's requests are limited to 600 a minute per IP address**, the list, a product's
+  page and the photos counted together (the photos are kept by the browser for a year, so a
+  second visit asks for none). It is there to stop a flood: a carrier puts many phones behind one
+  address, and one first visit asks for a photo per product.
+- **Of the API, the main domain reaches only the showcase** (`/api/site/shop`): no sign-in of
+  either kind and nothing of the panel's is reachable from the gym's public address. A path with
+  an encoded slash or backslash (`%2F`, `%5C`) is refused on every host, since Caddy and the API
+  would read it as two different paths (found in 16.4's review).
+
 ### Customers
 - **A customer signs in with the site's phone and one-time code** (§15); one account serves the shop
   and the gym, and a buyer who never comes to the gym stays a site user. *Proposed by Claude,
@@ -3197,4 +3242,55 @@ anywhere in the stored number" (§2 now says the same as here).
 - What the eNamad asks, as found 1405/08/20 on Zarinpal's blog and others, to be checked on the
   eNamad's own site: a site whose shop is up, with products, prices, details and photos; an
   applicant who owns the domain (confirmed by a code sent to the domain's registered email), with a
-  phone in their own name; contact details and an address on the site; HTTPS.
+  phone in their own name; contact details and an address on the site; HTTPS. Found again
+  1405/08/27 (Zarinpal's blog and others, not the eNamad's own site): the contact page and the
+  foot of the site carry the full address with its postal code, a landline and a working email,
+  the same as the applicant's documents (a difference is a common reason for refusal); the
+  eNamad calls that landline and reads out a code; a privacy page is often named among the pages.
+- **The contact details are the applicant's documents'** (the developer, 1405/08/27, from the
+  form they filled for the SMS line): the address «کرمانشاه، کارمندان، خیابان ۱۸ متری پاسارگاد،
+  کوچه دبیرستان فلسطین، طبقه همکف», postal code ۶۷۱۵۷۶۵۸۶۱, the landline ۰۸۳ ۳۴۲۴ ۵۰۳۱, the mobile
+  ۰۹۹۳ ۹۳۸ ۶۷۸۷ (the one the page already had) and the email javad.persiangulf@gmail.com, under the
+  name «باشگاه پاسارگاد پلاس». *Decided by the developer.*
+  - **That address is the site's address everywhere**: it replaces «کارمندان، خیابان عصر انقلاب،
+    ۱۸ متری فرهنگیان» on the public page's «ساعت کاری و نشانی» and in what search engines read.
+    The Neshan and Balad links stay as they are (the same place). *Decided by the developer.*
+    The 3D map's street names («عصر انقلاب», «۱۸ متری فرهنگیان») stay too: the developer confirmed
+    the papers' street is the same one (1405/08/27).
+  - **Nothing else of the applicant's is on the site**: no person's name, national code, birth date
+    or anything else from that form.
+- **The contact page («تماس با ما») is a page of its own**, `pasargadgymplus.ir/contact/`: the
+  name, the address and postal code, the landline, the mobile, the email, Instagram, the hours and
+  the two route buttons. A static page like the public page, so it keeps serving while the
+  application is down; **no form**: a form means keeping messages and fighting spam, and the
+  eNamad asks for none; a customer's messages come with orders (16.8). *Proposed by Claude.*
+- **A privacy page («حریم خصوصی»)**, `pasargadgymplus.ir/privacy/`, joins the four pages. *Decided
+  by the developer* (1405/08/27). Its text is proposed by Claude from what the system really keeps
+  and the Owner approves it before it is released. The Owner approved the first text on
+  1405/08/27.
+- **The foot of every page of the main domain** (the public page, these pages and the shop's pages)
+  carries the address with its postal code, the landline and the email, and the links to the pages
+  that exist. *Proposed by Claude.*
+- **Returns («بازگشت کالا»)**, decided by the developer on 1405/08/27 from Claude's proposals:
+  - **7 working days from delivery to withdraw without a reason** (article 37's minimum); the
+    buyer tells the shop through its contact ways (until 16.8's messages) and pays the postage back.
+  - **Opened food and personal-care goods are not taken back**: a supplement, a protein or a
+    perfume whose seal is broken or that was used, since it cannot be sold again. Anything else
+    (wear, shoes, accessories) is taken back unused, with its tag and its own packaging.
+  - **A damaged, broken or wrong item is the shop's cost**: the shop pays the postage both ways
+    and sends the right item or refunds in full; the buyer pays the postage only for a change of
+    mind.
+  - **The money goes back within 7 working days of the returned goods reaching the shop.**
+- **Delivery, for the terms page («قوانین»)**, decided by the developer on 1405/08/27:
+  - **An order is sent within 2 working days of its payment.**
+  - **In Kermanshah by courier (پیک), elsewhere by Tipax; the buyer pays either at the door**
+    (پس‌کرایه, as decided for Tipax on 1405/08/19); the site charges the goods only.
+  - **The system takes it into account** (the developer, 1405/08/27): an order whose delivery
+    address is in Kermanshah goes by courier, any other by Tipax, chosen by the address's city, not
+    by the buyer; the order, the shop admin's list and the page before payment say which (16.5, 16.7).
+- **Until buying opens, the shop says so in one line** under its title and on each product's page:
+  «خرید آنلاین به‌زودی باز می‌شود؛ تا آن موقع برای سفارش از راه‌های تماس پایین صفحه با ما در
+  ارتباط باشید.» *Decided by the developer* (1405/08/27, Claude's proposal). It goes when 16.5/16.6
+  open buying.
+- **The about, terms and returns texts are Claude's drafts from the rules above and the public
+  page's facts; approved by the Owner 1405/08/28**, as the privacy page was.

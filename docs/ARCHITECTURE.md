@@ -238,6 +238,20 @@ web/site/           The site app's page (index.html), entry (main.ts) and public
   as «My Gym» (`site/public/manifest.webmanifest`) and has a hand-written service worker: `site/sw.js` is a
   template that `vite.site.config.ts` fills with the build's hashed file names (the list is the version), registered
   in builds only (`src/site/serviceWorker.ts`); it never handles `/api`. The panel still has none (13.4).
+- **The shop's showcase is a second page of the site build (roadmap 16.4, ADR 0011).** `site/shop/index.html` +
+  `src/site/shop/` are a second input of `vite.site.config.ts` (a multi-page build: `dist-site/index.html` and
+  `dist-site/shop/index.html` share `dist-site/assets/`). It is served on the gym's **public** host under `/shop/`,
+  not on the app's: Caddy answers every address under `/shop/` with that page (its router's base is `/shop`), serves
+  `/assets/*` from `dist-site` there too, and sends `/shop` on the app's host to the public one. In development it is
+  `http://localhost:5174/shop/` (the `gym-shop-page-fallback` plugin does Caddy's part). It has no session, no
+  service worker and no token: its client (`src/site/shop/api.ts`) is a plain `openapi-fetch` client, and the only
+  API path the public host proxies is `/api/site/shop/*` (`SiteShopEndpoints`: anonymous, read-only, the
+  `site-shop` rate limit). Caddy sends those requests on under the app's host name (`header_up Host`), because the
+  API's `AllowedHosts` holds the panel's and the app's hosts only. It always wears the public page's dark stone: its
+  `<html>` carries `dark shop` and `src/site/shop/shop.css` only overrides the colour tokens, so the shared
+  components need no restyling. The public page's «فروشگاه» section (`public-site/site.js`, `shop()`) asks the same
+  endpoint and falls back to its static shelves. A client made with `createClient` keeps the `fetch` it saw when the
+  file loaded; pass `fetch: (request) => fetch(request)` or a test's `mockApi` never sees its calls.
 
 - One visual language (roadmap 13.2): a page starts with `PageHeader` (its one `h2`, a line under it, its buttons);
   a list is the shared `Table` (`components/ui/table.tsx`, never a hand-styled `<table>`); a list loading is
@@ -475,6 +489,13 @@ web/site/           The site app's page (index.html), entry (main.ts) and public
   missing. It must run under Windows PowerShell 5.1, the version on the gym's computer: no `&&`, no `?:`.
 - `cygpath`, `stat -c` and `chmod` behave differently under Git Bash on NTFS. The bash scripts are for the Linux
   server; a rehearsal on Windows runs them through Git Bash with the same caveats noted above for `server.sh`.
+- **Caddy and Kestrel read an encoded slash differently.** Caddy matches a path decoded and cleaned of `..`, and
+  forwards it as sent; Kestrel keeps `%2F` encoded and then removes `..` segments. So
+  `/api/site/shop/a%2fb%2fc/../../../auth/login` is the shop's path to Caddy and the staff login to the API, and a
+  host's `handle /api/site/shop/*` would not keep it to the shop. `EncodedSlashMiddleware` (right after the
+  correlation id) answers 400 `General.InvalidPath` to any path whose raw target holds `%2F` or `%5C`; the query
+  string is not looked at. Browsers and Playwright's `request` clean the path before sending, so the e2e proves it
+  with a raw `node:https` request (`rawStatus` in `shopAdmin.spec.ts`).
 - The integration test host raises both rate limits (`RateLimiting__Login__PermitLimit` and
   `RateLimiting__Session__PermitLimit`, the second for refresh and logout), because every test client shares one
   address. A test that needs different settings uses `DatabaseFixture.CreateClient(settings)`,

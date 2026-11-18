@@ -2525,10 +2525,36 @@ The question that started this was whether a gym that is entirely internal — I
 - **jsdom's `FormData` is not Node's.** A multipart upload cannot leave a Vitest test through Node's `Request`; the test stands one in, and the real multipart is proved by the API's tests and the browser walk.
 - **My notes:**
 
+## 16.4 — The shop on the site (ویترین)
+
+- **A public read gets its own response shape.** `ShowcaseProductItem` has `InStock`, not the stock number, and no `Version` or `IsVisible`. Reusing the shop admin's record and "not showing" a field in the page would still send it to every visitor; what a stranger may know is decided by what the record holds, and a test reads the raw JSON to prove it.
+- **Filter in the query, and answer a hidden thing like a missing one.** `Where(p => p.IsVisible)` runs in Postgres, so a hidden product never leaves the server; its page returns the same 404 as an unknown id, so the difference tells nothing.
+- **Anonymous endpoints need a rate limit, sized for the real crowd.** `AllowAnonymous()` means anyone can call it as fast as the network allows. The limit is per address, and one mobile carrier address can be many phones, so it is generous (600 a minute): it stops a flood, not visitors.
+- **A reverse proxy decides what of the API a host can reach.** In Caddy the public host has `handle /api/site/shop/*` (proxied) and `handle /api/*` (404): Caddy picks the more specific path, so nothing else of the API exists on that address. The API itself is one process; the hosts are views of it.
+- **`AllowedHosts` and `header_up Host`.** ASP.NET Core refuses a request whose `Host` is not in `AllowedHosts` (400). Rather than add a third host on the server, Caddy sends the shop's requests on under the app's name; the visitor's address still arrives in `X-Forwarded-For`.
+- **One Vite build, two pages (multi-page app).** `rollupOptions.input` with two HTML files gives `index.html` and `shop/index.html` sharing one `assets/` folder; each page loads only its own chunks. A router `basename` (`/shop`) lets the routes be written from `/`.
+- **A single-page app needs a fallback for deep links.** `/shop/product/123` is not a file; the server must answer it with the page (`try_files {path} /shop/index.html` in Caddy, a small middleware in Vite's dev server), and the page's script must be named from the root (`/shop/main.ts`), not beside the address.
+- **Theme by tokens, not by restyling.** The shop wears the public page's dark stone by overriding the CSS variables under `:root.shop`; `Alert`, `LoadingState` and every `bg-card` follow without a change.
+- **Progressive enhancement.** The public page works with no API: the six shelves are in the HTML, and `site.js` swaps in the real products only when the answer arrives. Names go in with `textContent`, never `innerHTML`, because the shop admin types them.
+- **Two parsers, one path: request smuggling by normalisation.** A reverse proxy and the server behind it must agree on what a path means. Caddy decodes `%2F` before matching and Kestrel does not, so one address can be "allowed" to the proxy and "forbidden" to the rule it was meant to enforce. The fix is to refuse what the two would read differently (an encoded slash), not to add more rules in the proxy. A browser never sends such a path, so only a raw request can test it.
+- **A captured `fetch`.** `createClient` keeps the `fetch` it saw when the module loaded, so a test that stubs `fetch` later is not called; `fetch: (request) => fetch(request)` looks it up at each call.
+- **My notes:**
+
 ## The «جدید» badge (before the 16.1–16.3 release)
 
 - **Time-limited UI by a date, not a flag.** `NewBadge` compares the gym's today with a fixed "gone from" day, so it disappears a week after the release without a setting, a click or a new deploy; the leftover `newUntil` simply renders nothing.
 - **ISO dates compare as text.** `"2026-11-20" < "2026-11-21"` is true as strings, because the format is fixed-width and ordered from year to day; no `Date` object, no time-zone slip.
 - **The gym's day, not the browser's UTC.** At 00:30 in Tehran it is still the previous day in UTC; the test pins that moment to prove the badge goes at the gym's midnight.
 - **`aria-hidden` for decoration inside a link.** A screen reader would read "کاربران سایت جدید" and every test and e2e that finds the link by its name would break; the badge is a visual hint, so it stays out of the accessible name.
+- **My notes:**
+
+## 16.9 The eNamad pages (in progress)
+
+- **A static page next to a static page.** `contact/index.html` and `privacy/index.html` are plain files in `web/public-site`; Caddy's `file_server` answers a folder's address with its `index.html` and redirects `/contact` to `/contact/` by itself. No route, no build, and they keep serving while the API is down.
+- **Relative links that work in two places.** The pages name `../site.css` and `../contact/`, so the same files open at `/contact/` on the server and at `/public-site/contact/` in development; an absolute `/site.css` would break the second.
+- **Cache-busting by content fingerprint.** The Dockerfile appends `?v=<sha256 prefix>` to every file a page names; a new page has its own spelling of those names (`../site.css`), so the `sed` needs a second pattern, and the e2e checks the fingerprint is there.
+- **Facts that must match a document live in one place per medium, and say so.** The eNamad compares the site's address, postal code, landline and email with the applicant's papers; each copy (the public page, the two pages, the shop's React footer) carries a comment that it changes only with those papers, and a test pins the values.
+- **A privacy page is a claim about the code.** Each line says only what the system really does (what the sign-up keeps, who sees an order, the one cookie of the app), so a future change to any of those means a change to the page.
+- **One template, many static pages.** The three later pages were made from the privacy page by a throwaway script that swapped the title, the canonical address, the comment and the `<main>`; with no build step for the public site, that keeps the bar and the foot identical without adding a templating tool to maintain.
+- **Write a promise only if the system keeps it.** The first draft of the terms said "the photos are of the item itself" and "stock is updated daily": nothing in the code guarantees either (the shop admin types both), so they came out. Legal pages are read as commitments.
 - **My notes:**

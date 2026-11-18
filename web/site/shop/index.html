@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- The shop's showcase (roadmap 16.4, BUSINESS_RULES.md §16): the second page of the site build,
+     served on the gym's public address under /shop/ (deploy/Caddyfile), not on the app's. Unlike
+     the app's page it is meant to be found, so it has no robots tag. It wears the public page's dark
+     stone, always (src/site/shop/shop.css), so the class is written here, before anything is
+     drawn, and no theme script is needed. -->
+<html lang="fa" dir="rtl" class="dark shop">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>فروشگاه | باشگاه پاسارگاد پلاس</title>
+    <meta
+      name="description"
+      content="فروشگاه باشگاه پاسارگاد پلاس: مکمل، پوشاک و لوازم ورزشی با قیمت و عکس."
+    />
+    <!-- The public page's own icon, bundled from its folder: one file for both pages. -->
+    <link rel="icon" href="../../public-site/img/favicon.png" type="image/png" />
+    <meta name="theme-color" content="#0d0e11" />
+    <!-- Dark of its own, so a browser's dark mode (Samsung Internet) leaves the colours alone. -->
+    <meta name="color-scheme" content="dark" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- From the root, not beside the page: a product's address is deeper (/shop/product/…). -->
+    <script type="module" src="/shop/main.ts"></script>
+  </body>
+</html>

@@ -19,7 +19,8 @@ public sealed partial class ContentSecurityPolicyTests
 {
     private const string CaddyfilePath = "deploy/Caddyfile";
 
-    public static TheoryData<string> Pages => ["web/index.html", "web/site/index.html"];
+    // The shop's page (16.4) is served under the public host's policy, which is as strict.
+    public static TheoryData<string> Pages => ["web/index.html", "web/site/index.html", "web/site/shop/index.html"];
 
     [Fact]
     public void PanelPolicy_ScriptSource_IsTheFirstPartyOnly() =>

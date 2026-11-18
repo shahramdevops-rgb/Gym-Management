@@ -4,6 +4,8 @@ Gym management system with two front doors:
 - The panel, for 1 Owner, a few Staff and the shop admin (Phase 16, ADR 0011: the `Shop` role sees only the online shop): no public access, no self-registration, never a member's or a trainer's login.
 - The site app (`app.pasargadgymplus.ir`, Phase 15, ADR 0010): members and trainers sign in with their phone and a one-time SMS code. Rules: docs/BUSINESS_RULES.md §15.
 
+The online shop's showcase (16.4, ADR 0011) is on neither: it is open to anyone on the main domain, `pasargadgymplus.ir/shop/` and the public page's «فروشگاه» section, which reach only `/api/site/shop` of the API. Rules: docs/BUSINESS_RULES.md §16.
+
 ## Where things are
 - Roadmap and task status: docs/ROADMAP.md
 - Business rules (source of truth): docs/BUSINESS_RULES.md. Read the relevant section before touching Domain or Application code.
@@ -24,7 +26,7 @@ Gym management system with two front doors:
 - Release to the server (from Git Bash, key-based ssh): `deploy/release.sh <user@host> [--with-postgres]`; on the server: `./server.sh rollback`
 - Accounts on the server (any user, the Owner included): `./server.sh unlock <user> | set-password <user> | rename <user> <new-user>`; locally: `dotnet run --project src/Gym.Api -- admin unlock <user>`
 - Backups: on the server `./backup.sh run | restore <file> --yes | restore-files <file> --yes | restore-scratch <file>` (the dump and, since 16.3, the uploaded files); on the gym PC `deploy/pull-backup.ps1` (docs/DEPLOYMENT.md, "Backup and restore")
-- Frontend (inside web/): `npm run dev` (the panel), `npm run dev:site` (the site app, :5174; the public page at :5174/public-site/, its «ورود / ثبت‌نام» opens the app), `npm run build` (both), `npm run lint`, `npm test`, `npm run format` (CI runs `npm run format:check`; run it before every frontend commit)
+- Frontend (inside web/): `npm run dev` (the panel), `npm run dev:site` (the site app, :5174; the public page at :5174/public-site/, its «ورود / ثبت‌نام» opens the app; the shop's showcase at :5174/shop/; the eNamad's pages at :5174/public-site/contact/ and /privacy/), `npm run build` (both), `npm run lint`, `npm test`, `npm run format` (CI runs `npm run format:check`; run it before every frontend commit)
 - End-to-end (inside web/, before a release): `npm run e2e` builds the production images, runs them on https://localhost with an empty database (compose project `gym-e2e`), tests the front desk in the installed Chrome, and removes the stack. Needs Docker and free ports 80 and 443
 - Screenshots (inside web/, before every release): `npm run screenshots` runs the same throwaway stack as `npm run e2e`, fills it with `admin seed-demo` and saves the README's pictures to `docs/screenshots/` (light and dark). Commit the new images with the release
 - Demo data in an empty local database: `dotnet run --project src/Gym.Api -- admin seed-demo` (needs the Owner seeded first; refuses a database that holds anything; never on the server)

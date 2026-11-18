@@ -2120,6 +2120,118 @@ main > section[id] {
   }
 }
 
+/* The online shop's own products (roadmap 16.4), in place of the shelves once site.js has them:
+   the newest six, each a link to its page under /shop/. A phone swipes along one row, a computer
+   sees the six side by side. A product's photo is shown whole and in its own colours, not through
+   the page's grade: it is what someone buys. */
+
+.shop__grid[hidden],
+.shop__goods[hidden],
+.shop__more[hidden] {
+  display: none;
+}
+
+.shop__goods {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min(58%, 14rem);
+  gap: 0.75rem;
+  margin: 2.5rem 0 0;
+  padding: 0 var(--gutter);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.shop__goods::-webkit-scrollbar {
+  display: none;
+}
+
+.good {
+  scroll-snap-align: start;
+}
+
+.good a {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  background: var(--stone-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow 0.3s;
+}
+
+.good__photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  background: var(--stone-3);
+}
+
+.good__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* A product without a photo yet: the gym's logo, faint */
+.good__photo .logo {
+  width: 2.5rem;
+  opacity: 0.35;
+}
+
+.good__out {
+  position: absolute;
+  inset-block-start: 0.5rem;
+  inset-inline-start: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  background: rgb(13 14 17 / 0.85);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.good__text {
+  display: grid;
+  align-content: start;
+  gap: 0.15rem;
+  padding: 0.7rem 0.9rem 0.9rem;
+}
+
+.good__name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.good__price {
+  color: var(--bronze);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.good.is-out img {
+  opacity: 0.6;
+}
+
+.good.is-out .good__price {
+  color: var(--muted);
+}
+
+.shop__more {
+  margin-block-start: 1.5rem;
+}
+
+@media (hover: hover) {
+  .good a:hover {
+    box-shadow: inset 0 0 0 1px var(--bronze);
+  }
+}
+
 /* ---------- Hours (the first box of the contact section) ---------- */
 
 .hours__card {
@@ -2472,6 +2584,137 @@ main > section[id] {
   color: var(--bronze);
 }
 
+/* The eNamad's details at the foot of every page (roadmap 16.9): the pages, then the address,
+   the postal code, the landline and the email. */
+.footer__info {
+  display: grid;
+  gap: 1rem;
+  padding-block: 1.75rem 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 2;
+}
+
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.footer__address {
+  font-style: normal;
+}
+
+.footer__links a:hover,
+.footer__address a:hover {
+  color: var(--bronze);
+}
+
+/* ---------- Pages of their own: «تماس با ما», «حریم خصوصی» (roadmap 16.9) ----------
+   The public page's stone, bar and foot; their own content under the fixed bar. */
+
+.page {
+  padding-block: calc(4.25rem + env(safe-area-inset-top) + clamp(2.5rem, 8vw, 4.5rem))
+    clamp(3.5rem, 10vw, 6rem);
+}
+
+.page__title {
+  max-width: 22ch;
+  margin-block-start: 0.75rem;
+  font-size: clamp(1.75rem, 7.4vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.page__lead {
+  max-width: 52ch;
+  margin-block-start: 0.75rem;
+  color: var(--muted);
+  line-height: 1.9;
+}
+
+.page__columns {
+  display: grid;
+  gap: 2rem;
+  margin-block-start: 2rem;
+}
+
+.page__list {
+  margin-block-start: 0;
+}
+
+/* A long address goes to a second line under its name, not squeezed beside it. */
+.page__list > div {
+  flex-wrap: wrap;
+}
+
+.page__list dd {
+  overflow-wrap: anywhere;
+}
+
+.page__side {
+  display: grid;
+  align-content: start;
+  gap: 1.5rem;
+}
+
+.page__label {
+  color: var(--bronze);
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-block-end: 0.75rem;
+}
+
+@media (min-width: 900px) {
+  .page__columns {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 3.5rem;
+  }
+}
+
+/* Reading text: the privacy page. */
+.prose {
+  max-width: 46rem;
+  margin-block-start: 2.5rem;
+  line-height: 2.1;
+}
+
+.prose h2 {
+  margin-block: 2.25rem 0.5rem;
+  color: var(--bronze);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.prose ul {
+  display: grid;
+  gap: 0.4rem;
+  padding-inline-start: 1.25rem;
+  list-style: disc;
+}
+
+.prose li::marker {
+  color: var(--bronze-lo);
+}
+
+.prose p {
+  color: var(--text);
+}
+
+.prose a {
+  color: var(--bronze);
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+.prose .prose__date {
+  margin-block-start: 2.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 /* ---------- The phone's bar ---------- */
 
 .dock {
@@ -2621,6 +2864,15 @@ main > section[id] {
     grid-auto-flow: row dense;
     grid-template-columns: repeat(4, 1fr);
     grid-auto-rows: 14rem;
+    width: min(100% - var(--gutter) * 2, 72rem);
+    margin-inline: auto;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .shop__goods {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(6, 1fr);
     width: min(100% - var(--gutter) * 2, 72rem);
     margin-inline: auto;
     padding: 0;

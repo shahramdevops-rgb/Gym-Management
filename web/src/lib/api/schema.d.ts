@@ -1316,6 +1316,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/shop/showcase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetShowcase"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/shop/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetShowcaseProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/site/shop/photos/{photoId}/{size}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetShowcasePhoto"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pricing": {
         parameters: {
             query?: never;
@@ -4756,6 +4804,68 @@ export interface components {
             price: number | string;
             /** Format: int32 */
             stock: number | string;
+        };
+        ShowcaseCategory: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        ShowcaseContacts: {
+            mobilePhone: null | string;
+            landlinePhone: null | string;
+            whatsAppPhone: null | string;
+            telegram: null | string;
+            rubika: null | string;
+            eitaa: null | string;
+            bale: null | string;
+            instagram: null | string;
+        };
+        ShowcasePhoto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            width: number | string;
+            /** Format: int32 */
+            height: number | string;
+        };
+        ShowcaseProductItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: uuid */
+            mainPhotoId: null | string;
+            /** Format: double */
+            minPrice: number | string;
+            /** Format: double */
+            maxPrice: number | string;
+            inStock: boolean;
+        };
+        ShowcaseProductResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            /** Format: uuid */
+            categoryId: string;
+            categoryName: string;
+            variants: components["schemas"]["ShowcaseVariant"][];
+            photos: components["schemas"]["ShowcasePhoto"][];
+            contacts: components["schemas"]["ShowcaseContacts"];
+        };
+        ShowcaseResponse: {
+            categories: components["schemas"]["ShowcaseCategory"][];
+            products: components["schemas"]["ShowcaseProductItem"][];
+            contacts: components["schemas"]["ShowcaseContacts"];
+        };
+        ShowcaseVariant: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** Format: double */
+            price: number | string;
+            inStock: boolean;
         };
         SignInCodeSmsResponse: {
             /** Format: int32 */
@@ -10552,6 +10662,114 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetShowcase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShowcaseResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetShowcaseProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShowcaseProductResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetShowcasePhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                photoId: string;
+                size: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

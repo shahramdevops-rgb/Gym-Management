@@ -17,4 +17,10 @@ public static class ApiErrorCodes
 
     /// <summary>Something unexpected broke. The body carries no detail beyond the correlation id.</summary>
     public const string Unexpected = "General.Unexpected";
+
+    /// <summary>
+    /// The address carried an encoded slash or backslash in its path (400). No page of the
+    /// frontend ever sends one: see <see cref="Middleware.EncodedSlashMiddleware"/>.
+    /// </summary>
+    public const string InvalidPath = "General.InvalidPath";
 }

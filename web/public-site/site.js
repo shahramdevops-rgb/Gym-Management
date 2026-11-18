@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   manifesto();
   features();
   slots();
+  shop();
   tour();
   coaches();
   galleryCounter();
@@ -532,6 +533,71 @@ function slots() {
     { threshold: 0.6 },
   );
   numbers.forEach((number) => observer.observe(number));
+}
+
+// ---------- The shop's newest products ----------
+// The one thing on this page that comes from the API (roadmap 16.4): the online shop's newest six
+// products take the place of the six shelves, each a link to its page under /shop/. The page does
+// not wait for them and does not need them: with the API down, or the shop empty, the shelves stay.
+// Names are written as text, never as HTML: they are typed by the shop admin.
+
+const toman = (amount) => `${Number(amount).toLocaleString("fa-IR")} تومان`;
+
+function shop() {
+  const section = document.querySelector("[data-shop]");
+  const goods = section?.querySelector("[data-shop-goods]");
+  if (!goods || !window.fetch) return;
+
+  function element(tag, className, text) {
+    const node = document.createElement(tag);
+    node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function good(product) {
+    const item = element("li", product.inStock ? "good" : "good is-out");
+    const link = document.createElement("a");
+    link.href = `/shop/product/${encodeURIComponent(product.id)}`;
+
+    const photo = element("div", "good__photo");
+    if (product.mainPhotoId) {
+      const img = document.createElement("img");
+      img.src = `/api/site/shop/photos/${encodeURIComponent(product.mainPhotoId)}/small`;
+      img.alt = "";
+      img.loading = "lazy";
+      photo.append(img);
+    } else {
+      const logo = element("span", "logo");
+      logo.setAttribute("aria-hidden", "true");
+      photo.append(logo);
+    }
+    if (!product.inStock) photo.append(element("span", "good__out", "ناموجود"));
+
+    // The lowest price, with «از» when the product's variants differ; its page lists them all.
+    const price = Number(product.minPrice) === Number(product.maxPrice) ? "" : "از ";
+    const text = element("div", "good__text");
+    text.append(
+      element("h3", "good__name", product.name),
+      element("p", "good__price", price + toman(product.minPrice)),
+    );
+
+    link.append(photo, text);
+    item.append(link);
+    return item;
+  }
+
+  fetch("/api/site/shop/showcase", { headers: { Accept: "application/json" } })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((showcase) => {
+      const products = Array.isArray(showcase?.products) ? showcase.products.slice(0, 6) : [];
+      if (!products.length) return;
+      goods.append(...products.map(good));
+      section.querySelector("[data-shop-shelves]").hidden = true;
+      goods.hidden = false;
+      section.querySelector("[data-shop-more]").hidden = false;
+    })
+    .catch(() => {}); // No answer: the shelves stay.
 }
 
 // ---------- The hall as a walk, driven by the scroll ----------
