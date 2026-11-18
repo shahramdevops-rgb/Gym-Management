@@ -3242,4 +3242,32 @@ accepted ("all the proposals"), except the two the developer said themselves, ma
 - What the eNamad asks, as found 1405/08/20 on Zarinpal's blog and others, to be checked on the
   eNamad's own site: a site whose shop is up, with products, prices, details and photos; an
   applicant who owns the domain (confirmed by a code sent to the domain's registered email), with a
-  phone in their own name; contact details and an address on the site; HTTPS.
+  phone in their own name; contact details and an address on the site; HTTPS. Found again
+  1405/08/27 (Zarinpal's blog and others, not the eNamad's own site): the contact page and the
+  foot of the site carry the full address with its postal code, a landline and a working email,
+  the same as the applicant's documents (a difference is a common reason for refusal); the
+  eNamad calls that landline and reads out a code; a privacy page is often named among the pages.
+- **The contact details are the applicant's documents'** (the developer, 1405/08/27, from the
+  form they filled for the SMS line): the address «کرمانشاه، کارمندان، خیابان ۱۸ متری پاسارگاد،
+  کوچه دبیرستان فلسطین، طبقه همکف», postal code ۶۷۱۵۷۶۵۸۶۱, the landline ۰۸۳ ۳۴۲۴ ۵۰۳۱, the mobile
+  ۰۹۹۳ ۹۳۸ ۶۷۸۷ (the one the page already had) and the email javad.persiangulf@gmail.com, under the
+  name «باشگاه پاسارگاد پلاس». *Decided by the developer.*
+  - **That address is the site's address everywhere**: it replaces «کارمندان، خیابان عصر انقلاب،
+    ۱۸ متری فرهنگیان» on the public page's «ساعت کاری و نشانی» and in what search engines read.
+    The Neshan and Balad links stay as they are (the same place). *Decided by the developer.*
+    The 3D map's street names («عصر انقلاب», «۱۸ متری فرهنگیان») stay too: the developer confirmed
+    the papers' street is the same one (1405/08/27).
+  - **Nothing else of the applicant's is on the site**: no person's name, national code, birth date
+    or anything else from that form.
+- **The contact page («تماس با ما») is a page of its own**, `pasargadgymplus.ir/contact/`: the
+  name, the address and postal code, the landline, the mobile, the email, Instagram, the hours and
+  the two route buttons. A static page like the public page, so it keeps serving while the
+  application is down; **no form**: a form means keeping messages and fighting spam, and the
+  eNamad asks for none; a customer's messages come with orders (16.8). *Proposed by Claude.*
+- **A privacy page («حریم خصوصی»)**, `pasargadgymplus.ir/privacy/`, joins the four pages. *Decided
+  by the developer* (1405/08/27). Its text is proposed by Claude from what the system really keeps
+  and the Owner approves it before it is released. The Owner approved the first text on
+  1405/08/27.
+- **The foot of every page of the main domain** (the public page, these pages and the shop's pages)
+  carries the address with its postal code, the landline and the email, and the links to the pages
+  that exist. *Proposed by Claude.*

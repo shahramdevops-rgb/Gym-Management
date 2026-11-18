@@ -5253,6 +5253,16 @@ Brought forward from the end (the developer, 1405/08/20), so the eNamad is appli
 - [ ] About us, contact, terms and returns on the site, with the Owner's texts. The returns page
       follows the E-Commerce Law (article 37: at least 7 working days to withdraw, return postage on
       the buyer; exceptions checked), §16
+  - [x] **Contact** (`/contact/`), started 1405/08/27 (2026-11-18) on branch
+        `task/16.9-enamad-pages` (from 16.4's branch, to be released with it): the applicant's
+        address, postal code, landline, mobile and email (§16 *Pages the eNamad needs*); the new
+        address on the public page too; the foot of every page of the main domain
+  - [x] **Privacy** (`/privacy/`), added by the developer 1405/08/27; Claude's text, the Owner
+        approves it. Both pages built 1405/08/27 (static files in `web/public-site`, the foot
+        on the public page and the shop, `sitemap.xml`, the fingerprints in `web/Dockerfile`, a
+        Vitest case and an e2e through the production images); the Owner approved the privacy
+        text the same day
+  - [ ] About us, terms, returns
 - [ ] Asked first: how the showcase says buying is not open yet, and whether that is enough for the
       eNamad's review
 - [ ] **The showcase release**: 16.2 to 16.4 and these pages on the server, the shop admin's real

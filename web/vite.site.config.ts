@@ -116,8 +116,15 @@ function publicSitePreview(): Plugin {
           return;
         }
 
-        const relative = decodeURIComponent(path.slice(publicSitePrefix.length)) || "index.html";
-        const file = normalize(join(publicSiteRoot, relative));
+        // A folder's address is its index.html (the pages of their own, contact/ and privacy/,
+        // roadmap 16.9), as Caddy's file_server answers on the server.
+        const relative = decodeURIComponent(path.slice(publicSitePrefix.length));
+        const file = normalize(
+          join(
+            publicSiteRoot,
+            relative === "" || relative.endsWith("/") ? `${relative}index.html` : relative,
+          ),
+        );
         // Nothing outside the folder, whatever the address says.
         if (!file.startsWith(publicSiteRoot + sep)) {
           response.writeHead(404).end();

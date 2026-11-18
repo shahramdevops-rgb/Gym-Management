@@ -47,6 +47,50 @@ export function ShopFrame({ children }: { children: ReactNode }) {
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-10 px-5 py-8 sm:py-12">
         {children}
       </main>
+
+      <ShopFooter />
     </div>
+  );
+}
+
+const footerLink = "font-semibold text-foreground transition-colors hover:text-primary";
+
+/**
+ * The foot of every page of the main domain (roadmap 16.9, BUSINESS_RULES.md §16 "Pages the eNamad
+ * needs"): the site's pages, then the address with its postal code, the landline and the email,
+ * the same as the public page's foot (web/public-site). They are the eNamad applicant's documents':
+ * change them only together with those papers, and on every page at once.
+ */
+function ShopFooter() {
+  return (
+    <footer className="border-t">
+      <div className="mx-auto grid w-full max-w-6xl gap-3 px-5 py-6 text-sm leading-loose text-muted-foreground">
+        <nav aria-label="صفحه‌های سایت" className="flex flex-wrap gap-x-6 gap-y-1">
+          <Link to={shopPaths.showcase} className={footerLink}>
+            فروشگاه
+          </Link>
+          <a href={`${gymPageAddress}contact/`} className={footerLink}>
+            تماس با ما
+          </a>
+          <a href={`${gymPageAddress}privacy/`} className={footerLink}>
+            حریم خصوصی
+          </a>
+        </nav>
+        <address className="not-italic">
+          کرمانشاه، کارمندان، خیابان ۱۸ متری پاسارگاد، کوچه دبیرستان فلسطین، طبقه همکف · کدپستی
+          ۶۷۱۵۷۶۵۸۶۱
+          <br />
+          تلفن{" "}
+          <a href="tel:+988334245031" dir="ltr" className="hover:text-primary">
+            ۰۸۳ ۳۴۲۴ ۵۰۳۱
+          </a>{" "}
+          · ایمیل{" "}
+          <a href="mailto:javad.persiangulf@gmail.com" dir="ltr" className="hover:text-primary">
+            javad.persiangulf@gmail.com
+          </a>
+        </address>
+        <p>© ۱۴۰۵ باشگاه پاسارگاد پلاس</p>
+      </div>
+    </footer>
   );
 }

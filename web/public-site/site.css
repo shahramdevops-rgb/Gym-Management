@@ -2584,6 +2584,137 @@ main > section[id] {
   color: var(--bronze);
 }
 
+/* The eNamad's details at the foot of every page (roadmap 16.9): the pages, then the address,
+   the postal code, the landline and the email. */
+.footer__info {
+  display: grid;
+  gap: 1rem;
+  padding-block: 1.75rem 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 2;
+}
+
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.footer__address {
+  font-style: normal;
+}
+
+.footer__links a:hover,
+.footer__address a:hover {
+  color: var(--bronze);
+}
+
+/* ---------- Pages of their own: «تماس با ما», «حریم خصوصی» (roadmap 16.9) ----------
+   The public page's stone, bar and foot; their own content under the fixed bar. */
+
+.page {
+  padding-block: calc(4.25rem + env(safe-area-inset-top) + clamp(2.5rem, 8vw, 4.5rem))
+    clamp(3.5rem, 10vw, 6rem);
+}
+
+.page__title {
+  max-width: 22ch;
+  margin-block-start: 0.75rem;
+  font-size: clamp(1.75rem, 7.4vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.page__lead {
+  max-width: 52ch;
+  margin-block-start: 0.75rem;
+  color: var(--muted);
+  line-height: 1.9;
+}
+
+.page__columns {
+  display: grid;
+  gap: 2rem;
+  margin-block-start: 2rem;
+}
+
+.page__list {
+  margin-block-start: 0;
+}
+
+/* A long address goes to a second line under its name, not squeezed beside it. */
+.page__list > div {
+  flex-wrap: wrap;
+}
+
+.page__list dd {
+  overflow-wrap: anywhere;
+}
+
+.page__side {
+  display: grid;
+  align-content: start;
+  gap: 1.5rem;
+}
+
+.page__label {
+  color: var(--bronze);
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-block-end: 0.75rem;
+}
+
+@media (min-width: 900px) {
+  .page__columns {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 3.5rem;
+  }
+}
+
+/* Reading text: the privacy page. */
+.prose {
+  max-width: 46rem;
+  margin-block-start: 2.5rem;
+  line-height: 2.1;
+}
+
+.prose h2 {
+  margin-block: 2.25rem 0.5rem;
+  color: var(--bronze);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.prose ul {
+  display: grid;
+  gap: 0.4rem;
+  padding-inline-start: 1.25rem;
+  list-style: disc;
+}
+
+.prose li::marker {
+  color: var(--bronze-lo);
+}
+
+.prose p {
+  color: var(--text);
+}
+
+.prose a {
+  color: var(--bronze);
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+.prose .prose__date {
+  margin-block-start: 2.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 /* ---------- The phone's bar ---------- */
 
 .dock {

@@ -161,6 +161,32 @@ describe("the shop's showcase", () => {
     expect(ways[1]).toHaveAttribute("target", "_blank");
   });
 
+  it("Shop_TheFoot_HasTheEnamadDetailsAndThePages", async () => {
+    mockApi({ "GET /api/site/shop/showcase": () => json(200, showcase) });
+
+    renderShop();
+
+    const foot = within(await screen.findByRole("contentinfo"));
+    // Tests run as development, where the public page is served under /public-site/.
+    expect(foot.getByRole("link", { name: "تماس با ما" })).toHaveAttribute(
+      "href",
+      "/public-site/contact/",
+    );
+    expect(foot.getByRole("link", { name: "حریم خصوصی" })).toHaveAttribute(
+      "href",
+      "/public-site/privacy/",
+    );
+    expect(foot.getByText(/کدپستی ۶۷۱۵۷۶۵۸۶۱/)).toBeInTheDocument();
+    expect(foot.getByRole("link", { name: "۰۸۳ ۳۴۲۴ ۵۰۳۱" })).toHaveAttribute(
+      "href",
+      "tel:+988334245031",
+    );
+    expect(foot.getByRole("link", { name: "javad.persiangulf@gmail.com" })).toHaveAttribute(
+      "href",
+      "mailto:javad.persiangulf@gmail.com",
+    );
+  });
+
   it("Showcase_NothingToShow_SaysSoWithoutChips", async () => {
     mockApi({
       "GET /api/site/shop/showcase": () =>

@@ -356,3 +356,37 @@ test("Showcase_TheApiDoesNotAnswer_ThePublicPageKeepsItsShelves", async ({ page 
   await expect(section.getByRole("list", { name: "تازه‌های فروشگاه" })).toBeHidden();
   await expect(section.getByRole("link", { name: "همهٔ کالاها" })).toBeHidden();
 });
+
+test("EnamadPages_OnThePublicAddress_OpenFromTheFootOfEveryPage", async ({ page }) => {
+  // The eNamad's contact and privacy pages (16.9): static files on the public host, reached from
+  // the foot of the gym's page and of the shop's, which carry the applicant's details too.
+  await page.goto(publicURL);
+  const foot = page.getByRole("contentinfo");
+  await expect(foot).toContainText("کدپستی ۶۷۱۵۷۶۵۸۶۱");
+  await foot.getByRole("link", { name: "تماس با ما" }).click();
+  await expect(page).toHaveURL(`${publicURL}/contact/`);
+  await expect(page.getByRole("heading", { level: 1, name: "باشگاه پاسارگاد پلاس" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "۰۸۳ ۳۴۲۴ ۵۰۳۱" })).toHaveAttribute(
+    "href",
+    "tel:+988334245031",
+  );
+  // The page's own files one folder up, with their fingerprint (web/Dockerfile), and styled.
+  await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute(
+    "href",
+    /^\.\.\/site\.css\?v=[0-9a-f]{10}$/,
+  );
+  await expect(page.locator("footer .footer__links")).toHaveCSS("display", "flex");
+
+  await page.getByRole("contentinfo").getByRole("link", { name: "حریم خصوصی" }).click();
+  await expect(page).toHaveURL(`${publicURL}/privacy/`);
+  await expect(page.getByRole("heading", { level: 1, name: "اطلاعات شما نزد ما" })).toBeVisible();
+
+  // The address without its slash is the same page, as a folder is.
+  await page.goto(`${publicURL}/contact`);
+  await expect(page).toHaveURL(`${publicURL}/contact/`);
+
+  // The shop's foot leads to the same pages on the same host.
+  await page.goto(`${publicURL}/shop/`);
+  await page.getByRole("contentinfo").getByRole("link", { name: "تماس با ما" }).click();
+  await expect(page).toHaveURL(`${publicURL}/contact/`);
+});

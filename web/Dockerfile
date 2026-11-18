@@ -29,8 +29,10 @@ COPY web/public-site /srv-public
 # (./img/slide-1.webp → ./img/slide-1.webp?v=b45d33dca8). A changed file has a new address, so a
 # browser fetches it even when it holds an old copy; an unchanged one keeps its address and its
 # cached copy. The source page names the plain files, so it still opens straight from the folder.
+# The pages of their own (roadmap 16.9: contact/, privacy/) name the same files one folder up.
 RUN cd /srv-public \
     && for f in site.css site.js img/*; do \
          v="$(sha256sum "$f" | cut -c1-10)"; \
          sed -i "s#\"\./$f\"#\"./$f?v=$v\"#g" index.html; \
+         sed -i "s#\"\.\./$f\"#\"../$f?v=$v\"#g" contact/index.html privacy/index.html; \
        done
