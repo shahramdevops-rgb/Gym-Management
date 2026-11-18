@@ -3125,10 +3125,14 @@ roadmap Phase 16. Each line says who decided it, as in §15:
   yet; it is applied for meanwhile, and everything is built against the gateway's test environment
   until it arrives. *Decided by the developer.* **The gateway is Zarinpal.** *Decided by the
   developer* (1405/08/19).
+- **The eNamad is taken in the name of the gym's manager (مدیر مجموعه)**, the person who already
+  holds `pasargadgymplus.ir` at IRNIC, so the domain needs no transfer; the gateway and its Sheba
+  go in the same name. *Decided by the developer* (1405/08/28).
 - **The eNamad is applied for as soon as the showcase is up, not at the end.** The site goes to the
   server with real products and buying closed, the Owner applies, and the cart, payment and
   delivery are built while the eNamad is reviewed; buying opens once it arrives. *Decided by the
-  developer* (1405/08/20). *Open:* how the showcase says buying is not open yet.
+  developer* (1405/08/20). How the showcase says buying is not open yet: one line under the
+  shop's title and on each product's page (*Pages the eNamad needs*, settled 1405/08/27).
 - **The shop's SMS go through the gym's Kavenegar account**, as every other SMS. *Decided by the
   developer.* Their texts stay in the code (`SmsText`), as every kind's do except the broadcast.
 

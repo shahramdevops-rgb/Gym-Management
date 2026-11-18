@@ -5292,7 +5292,10 @@ Brought forward from the end (the developer, 1405/08/20), so the eNamad is appli
       domain's registered email); a phone and an address in that person's name; their identity
       papers; a Sheba in the same name for the gateway. (Selling food supplements: the Owner looked
       into it, 1405/08/20, "they can be sold, there is no problem", §16 *Products*)
-- [ ] About us, contact, terms and returns on the site, with the Owner's texts. The returns page
+      The applicant is the gym's manager (مدیر مجموعه), who already holds the domain (the
+      developer, 1405/08/28, §16). The account on enamad.ir (through «دولت من») and the identity
+      steps can start before the release; the domain is entered once the real products are in
+- [x] About us, contact, terms and returns on the site, with the Owner's texts. The returns page
       follows the E-Commerce Law (article 37: at least 7 working days to withdraw, return postage on
       the buyer; exceptions checked), §16
   - [x] **Contact** (`/contact/`), started 1405/08/27 (2026-11-18) on branch
