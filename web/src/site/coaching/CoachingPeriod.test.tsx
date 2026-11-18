@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 
 import { gymToday } from "@/lib/format";
-import { json, mockApi } from "@/test/mockApi";
+import { json, mockApi, problem } from "@/test/mockApi";
 
 import { emptyTimetable, renderSite, siteAccess, trainer } from "../test/renderSite";
 import { addDays } from "../timetable/labels";
@@ -17,6 +17,7 @@ const requestId = "0199a000-0000-7000-8000-000000000301";
 const acceptPath = `/api/site/coaching/requests/${requestId}/accept`;
 const schedulePath = `/api/site/coaching/students/${memberId}/schedule`;
 const periodPath = `/api/site/coaching/students/${memberId}/period`;
+const daysLeftPath = `${periodPath}/days-left`;
 
 // The schedule page reads its today from the API: a Saturday, 1405/08/19.
 const today = "2026-11-10";
@@ -191,9 +192,100 @@ describe("the coaching period", () => {
     expect(period.getByText("از ۱۴۰۵/۰۸/۳۰ تا ۱۴۰۵/۰۹/۲۹")).toBeInTheDocument();
     fireEvent.click(period.getByRole("button", { name: "تمدید" }));
 
+    // Asked first (15.7k): nothing is sent before «بله، تمدید».
+    const question = await screen.findByRole("dialog");
+    expect(question).toHaveTextContent("دورهٔ مربی‌گری سارا احمدی تا ۱۴۰۵/۰۹/۲۹ تمدید شود؟");
+    expect(api.requestsTo("POST", periodPath)).toHaveLength(0);
+    fireEvent.click(within(question).getByRole("button", { name: "بله، تمدید" }));
+
     expect(await period.findByText(/^دورهٔ مربی‌گری تا ۱۴۰۵\/۰۹\/۲۹/)).toBeInTheDocument();
     const [sent] = api.requestsTo("POST", periodPath);
     expect(await sent!.json()).toEqual({ days: 30 });
+  });
+
+  it("Schedule_RenewThenCancelTheQuestion_SendsNothing", async () => {
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      [`GET ${schedulePath}`]: () => json(200, student("2026-11-20")),
+    });
+    renderSite(`/students/${memberId}`, { access: siteAccess(trainerOnly) });
+
+    const period = await card("دورهٔ مربی‌گری");
+    fireEvent.click(period.getByRole("button", { name: "تمدید" }));
+    fireEvent.click(period.getByRole("button", { name: "تمدید" }));
+    fireEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "انصراف" }),
+    );
+
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.requestsTo("POST", periodPath)).toHaveLength(0);
+    // The box stays, with the days typed, to change or cancel.
+    expect(period.getByRole("textbox", { name: "تمدید" })).toHaveValue("۳۰");
+  });
+
+  it("Schedule_EditFewerDays_WarnsOfTheCutAsksAndSendsTheDaysLeft", async () => {
+    const schedule = {
+      startsOn: "2026-11-01",
+      endsOn: "2026-12-25",
+      slots: [{ day: "Saturday", start: "13:00:00", end: "14:00:00" }],
+    };
+    const api = mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      // Renewed by mistake: the period runs to 1405/11/26.
+      [`GET ${schedulePath}`]: () => json(200, student("2027-02-14", schedule)),
+      [`POST ${daysLeftPath}`]: () =>
+        json(200, student("2026-12-09", { ...schedule, endsOn: "2026-12-09" })),
+    });
+    renderSite(`/students/${memberId}`, { access: siteAccess(trainerOnly) });
+
+    const period = await card("دورهٔ مربی‌گری");
+    fireEvent.click(period.getByRole("button", { name: "ویرایش دوره" }));
+    const box = period.getByRole("textbox", { name: "روزهای باقی‌مانده" });
+    // Starts at the days left now, today counted.
+    expect(box).toHaveValue("۹۷");
+    fireEvent.change(box, { target: { value: "30" } });
+    expect(period.getByText("از ۱۴۰۵/۰۸/۱۹ تا ۱۴۰۵/۰۹/۱۸")).toBeInTheDocument();
+    expect(period.getByText(/با این دوره .* تمام می‌شود/)).toHaveTextContent("۱۴۰۵/۰۹/۱۸");
+    fireEvent.click(period.getByRole("button", { name: "ثبت" }));
+
+    const question = await screen.findByRole("dialog");
+    expect(question).toHaveTextContent("روز آخر دورهٔ سارا احمدی ۱۴۰۵/۰۹/۱۸ شود؟");
+    fireEvent.click(within(question).getByRole("button", { name: "بله، ثبت" }));
+
+    expect(await period.findByText(/^دورهٔ مربی‌گری تا ۱۴۰۵\/۰۹\/۱۸/)).toBeInTheDocument();
+    const [sent] = api.requestsTo("POST", daysLeftPath);
+    expect(await sent!.json()).toEqual({ daysLeft: 30 });
+    expect(api.requestsTo("POST", periodPath)).toHaveLength(0);
+  });
+
+  it("Schedule_EditRefused_ShowsTheError", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      [`GET ${schedulePath}`]: () => json(200, student("2026-11-20")),
+      [`POST ${daysLeftPath}`]: () => problem(409, "Coaching.PeriodNotRunning"),
+    });
+    renderSite(`/students/${memberId}`, { access: siteAccess(trainerOnly) });
+
+    const period = await card("دورهٔ مربی‌گری");
+    fireEvent.click(period.getByRole("button", { name: "ویرایش دوره" }));
+    fireEvent.click(period.getByRole("button", { name: "ثبت" }));
+    fireEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "بله، ثبت" }),
+    );
+
+    expect(await period.findByText(/در جریان نیست و ویرایش نمی‌شود/)).toBeInTheDocument();
+  });
+
+  it("Schedule_PeriodOver_OnlyRenewNoEdit", async () => {
+    mockApi({
+      "GET /api/site/me": () => json(200, trainerOnly),
+      [`GET ${schedulePath}`]: () => json(200, student("2026-11-05")),
+    });
+    renderSite(`/students/${memberId}`, { access: siteAccess(trainerOnly) });
+
+    const period = await card("دورهٔ مربی‌گری");
+    expect(period.getByRole("button", { name: "تمدید" })).toBeInTheDocument();
+    expect(period.queryByRole("button", { name: "ویرایش دوره" })).not.toBeInTheDocument();
   });
 
   it("Schedule_StudentFromBefore_AsksTheDaysLeftAndWarnsOfTheCut", async () => {

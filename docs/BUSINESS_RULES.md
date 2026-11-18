@@ -1717,7 +1717,9 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   «علی») and sample figures, and how many SMS parts it takes. It is built by the same code as the real
   messages, so the page cannot show a wording the members do not get. The kinds are grouped by who
   receives them: the members, the Owner, the broadcast, and the trainers («پیامک به مربیان», with
-  the one kind of §15, 15.4c).
+  the one kind of §15, 15.4c). The coaching period's last days (§15 *The coaching period*) goes to
+  the student, so it is with the members' kinds, with its *N* (3 to 14 days); its sample trainer is
+  «علی شریفی‌پور» (the developer, 1405/08/24).
 - **The broadcast is one card on this page** (*The broadcast*): its switch, and writing and sending
   one, with the message drawn as it is typed. It has no page, tab or menu item of its own, and no
   list of the broadcasts sent: their messages are on «پیامک‌ها». Only the latest, while it is
@@ -1835,6 +1837,22 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   §9); the amount is read out to a screen reader
   and is on «تنظیمات پیامک», which the box opens (1405/08/01, when the new look met the SMS
   release; the developer may ask for the amount back).
+- **The server reminder (شارژ سرور)** (decided with the developer, 1405/08/24, task 13.6): the
+  server is paid every month, outside the panel, and nothing can ask the provider how long is
+  left, so the panel reminds by the calendar alone. Decided by the developer:
+  - the payment is due on the **1st of every Jalali month**;
+  - the Owner sees a box in the header, beside the SMS credit, from **five days before** that 1st;
+  - it stays until the Owner presses it and confirms «شارژ کردم», which hides it until the next
+    month's five days. It never goes away by itself: when the 1st comes and nobody confirmed, it
+    stays and says the server is not paid;
+  - **no SMS**: the header is the reminder, as for the SMS credit;
+  - **on a phone** (below 1024px) only its coloured icon, small like the SMS credit's, so nothing
+    else in the header moves or breaks (asked by the developer the same day).
+
+  Still to settle at the start of 13.6 (Claude's proposals, not decided): orange while days are
+  left, red and blinking from the 1st; the words («۵ روز تا شارژ سرور», «سرور شارژ نشده»); the
+  confirmation kept in the database with who and when, so Staff never see it and a second browser
+  agrees.
 - **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand, and a sent one that
   **Kavenegar cancelled** (`13`: it never reached the phone and its cost was given back; decided
   with the developer, 1405/08/01, task 10.16). A delivered, not delivered or blocked one cannot be
@@ -2651,8 +2669,57 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   The member is not left without a trainer, and does not ask again.
 - **«تمدید» is always there**: the trainer types 7 to 84 more days, which start the day after the
   last day, so no day is lost; after the end, from today. Each period is kept, so the history of
-  renewals stays. A period is not shortened; to stop, the trainer ends the coaching («پایان
-  مربی‌گری»). *Proposed by Claude, accepted.*
+  renewals stays. *Proposed by Claude, accepted.*
+- **«ویرایش دوره»: the trainer can always correct the last day** (*decided by the developer*,
+  1405/08/24, after a trainer renewed one student several times by mistake; in place of "a period
+  is not shortened"). The details were Claude's, accepted the same day:
+  - **While the coaching runs**, beside «تمدید», the trainer types the days left, as for a student
+    from before the periods: **1 to 84**, from today, the dates shown under the box. The last day
+    may move either way: earlier (today at the earliest) or later (84 days from today at the
+    latest, the timetable's reach). A period that is over has no «ویرایش»: «تمدید» starts a new one.
+  - **The days already past never change**, so the attendance on them stays true. Later periods
+    the new last day leaves out go; the one it falls in ends on it.
+  - **Shortening cuts the fixed program** as the days left of a student from before do: it ends on
+    the new last day, one that starts after it goes, and so do the dates moved to after it. The
+    trainer is warned before saving.
+  - **The student is not told** (no SMS, no notice); their «مربی من» shows the new days left. The
+    change is in the audit log (§11), as the trainer's other changes are.
+  - **To stop altogether** the trainer still ends the coaching («پایان مربی‌گری»).
+- **The trainer is asked before every «تمدید» and «ویرایش»** (*decided by the developer*,
+  1405/08/24, so a slip of the finger is caught): «دورهٔ مربی‌گری {نام شاگرد} تا {تاریخ} تمدید
+  شود؟» with «بله، تمدید» and «انصراف»; for «ویرایش», «روز آخر دورهٔ {نام شاگرد} {تاریخ} شود؟»
+  with «بله، ثبت». «پذیرفتن» a request asks nothing more: a wrong number is fixed with «ویرایش».
+- **The member may ask for a renewal (درخواست تمدید)** (*decided by the developer*, 1405/08/24;
+  the details proposed by Claude and accepted the same day):
+  - **In «مربی من»**, a button «درخواست تمدید» from the day the period has the SMS settings' *N*
+    days left (*The period's last days* below) and after it is over, while the link lasts. A link
+    with no period (from before the periods) has none.
+  - **One request waiting at a time per link**; the member may take it back («لغو درخواست»). It
+    reads «درخواست تمدید در انتظار پاسخ مربی».
+  - **The trainer sees it in «درخواست‌ها»** on their home, beside the requests to be a trainer, in
+    the app only (no SMS to the trainer). «تمدید» opens the box of days (30 to start with, 7 to 84)
+    and asks before saving, as above; «رد کردن» declines it, and the member reads «درخواست تمدید
+    رد شد» until they ask again. A «تمدید» the trainer makes on «برنامهٔ ثابت» answers a waiting
+    request too.
+  - **No money in the app**: the member pays as before, to the trainer or at the desk.
+  - **Ending the coaching closes a waiting request.**
+- **The period's last days (پیامک پایان دوره)** (*decided by the developer*, 1405/08/24, in place
+  of "no SMS for it"; the details proposed by Claude and accepted):
+  - **One SMS to the student** when the coaching has **at most *N* days left** (its last day counts
+    as one, as in the app), from the daily run at the time chosen on the settings page, like the
+    other daily kinds (§10).
+  - ***N* is set on «تنظیمات پیامک»**, **3 to 14**, **7** to start with; the kind has its own switch,
+    off at first like every kind (§10).
+  - **Once per last day**: a «تمدید» or a «ویرایش» that moves the last day gives the new last day
+    its own SMS when it comes near. The database holds it (one row per link and last day).
+  - **None for**: a coaching already renewed past *N* days, a link with no period, an ended
+    coaching, a deactivated member, a period that is over, and a last period of *N* days or fewer
+    (it would come in its first days). A missed run sends it the next day, with the real days left.
+  - **What it says** (written by Claude, accepted by the developer 1405/08/24): «{name} عزیز، {days}
+    روز تا پایان دورهٔ مربی‌گری‌ات با مربی {نام کامل مربی} مونده. برای ادامه، از اپ باشگاه
+    درخواست تمدید بده.» then «باشگاه پاسارگاد» and «لغو11» on their own lines. *{name}* is the
+    member's first name (§10), *{days}* the real days left.
+  - **No SMS to the trainer**: they see the mark in «شاگردان من» from the same day (below).
 - **The fixed program ends on the period's last day or before** (it replaces the 8-week default:
   the last date is the period's by default, never past the timetable's 12 weeks). A period that is
   over takes no program until «تمدید». A renewal does not move the program on by itself: the trainer
@@ -2667,9 +2734,20 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
   accepted.*
 - **Who sees it**: the trainer, on the student's «برنامهٔ ثابت» (the last day and the days left),
   and in «شاگردان من» a mark only when there is something to do: «دوره را مشخص کنید», the last
-  three days («۳ روز مانده», «امروز روز آخر است»), «دوره تمام شد». The member, under the trainer's
-  name in «مربی من»: «دورهٔ مربی‌گری تا …، n روز مانده». No SMS for it. *Proposed by Claude,
-  accepted.*
+  *N* days, the SMS settings' number above (*decided by the developer*, 1405/08/24, in place of
+  three days, so the trainer sees it the day the student gets the SMS; «۷ روز», «روز آخر»),
+  «دوره تمام شد». The member, under the trainer's name in «مربی من»: «دورهٔ مربی‌گری تا …، n روز
+  مانده». *Proposed by Claude, accepted.*
+- **«شاگردان من» in two parts: active and inactive** (*decided by the developer*, 1405/08/24, so
+  the trainer's list does not fill up):
+  - **Active**: the coaching runs, or the student is from before the periods («دوره را مشخص کنید»).
+  - **Inactive («غیرفعال»)**: the period is over and was not renewed. Still the trainer's student
+    (the link stays, as above), with «دوره تمام شد».
+  - **The page shows the active ones; below them a closed part «غیرفعال (n)»** opens on a tap, no
+    tab (*proposed by Claude*). The search looks in both. A «تمدید» brings the student back to the
+    active ones.
+  - **On the home**, the card «شاگردان من (n)» counts the active ones only, and «رسیدگی می‌خواهد»
+    names only active students (ending within *N* days, or no period given). *Proposed by Claude.*
 
 ### The member's own records (15.5)
 - **The member sees in the app everything the panel's profile holds about them, except the SMS
@@ -2703,9 +2781,12 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **The trainer cancelling a session tells the students who had it that day**, by SMS and by a
   notice in the app. *Decided by the developer.* (A phone notification outside the app is not
   reliable from Iran for the site app, a PWA: the notice is shown when the app is opened.)
-- **On time, late, absent**: a check-in up to **15 minutes** after the session's start is on time
-  (*decided by the developer*, 1405/08/13, in place of 10), a later one before the session ends is
-  late, no check-in that day for it or after it is absent (a check-in after the end is «بعد از
+- **Early, on time, late, absent** (*decided by the developer*, 1405/08/24, in place of "up to 15
+  minutes after the start", itself in place of 10 on 1405/08/13): a check-in from **15 minutes
+  before** the session's start **to 5 minutes after** it is on time (13:00 session: 12:45 to
+  13:05); an earlier one is **«زودتر از موعد»**; a later one before the session ends is late. All
+  three count as present: only how the student came differs. No check-in that day for it or after
+  it is absent (a check-in after the end is «بعد از
   سانس آمد», not absent: 1405/08/19, below). The rest is the attendance of 15.7 (*Attendance for
   the trainer* below).
 - **The trainer's sessions, decided with 15.6a's plan** (*Decided by the developer*, 1405/08/09,
@@ -2847,8 +2928,9 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     table holds it, so a check-in cancelled at the desk changes it at once.
   - **Which check-in counts for a session**: one from **30 minutes before its start** to its end.
     A check-in earlier than that counts too when the visit was still open at the start (the member
-    came early and stayed). From the start to 15 minutes after it is on time, as above; later and
-    before the end, late.
+    came early and stayed). Before 15 minutes ahead of the start is «زودتر از موعد», from then to
+    5 minutes after the start on time, later and before the end late, as above (1405/08/24). Since
+    nothing is stored, the earlier days show by the same rule too (*decided by the developer*).
   - **A check-in after the session ended** is **«بعد از سانس آمد», not absent** (*decided by the
     developer*, 1405/08/19: "absent is someone who is truly absent; someone who came very late still
     came"; in place of 15.7's absent with «بعد از سانس آمد» beside it). It shows the check-in time,
@@ -2871,14 +2953,16 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
 - **More for the trainer, decided with 15.7d** (*decided by the developer*, 1405/08/19, from the
   developer's list for attendance; the points marked *proposed* were Claude's and the developer
   took them all):
-  - **«زودتر آمد»**: a check-in before the session's start, however early, is marked «زودتر آمد»
-    **with how many minutes early** («۱۰ دقیقه زودتر آمد»; *decided by the developer*, 1405/08/19).
-    It is still on time and counts as present (the counted check-in is the one above: from 30
-    minutes before, or earlier when the visit was still open at the start).
-  - **A late student shows how many minutes late, counted from the start** («۲۵ دقیقه تأخیر» for
-    13:25 at a 13:00 session; *decided by the developer*, 1405/08/19, over counting from the end of
-    the 15 minutes). An hour or more reads «۱ ساعت و ۵ دقیقه». A check-in within the 15 minutes is
-    on time and shows no minutes.
+  - **«زودتر از موعد»**: a check-in more than 15 minutes before the session's start is marked
+    «زودتر از موعد» **with how many minutes early, counted from the start** («۳۰ دقیقه زودتر از
+    موعد» for 12:30 at a 13:00 session; *decided by the developer*, 1405/08/24, in place of
+    1405/08/19's «زودتر آمد» for any check-in before the start). It counts as present (the counted
+    check-in is the one above: from 30 minutes before, or earlier when the visit was still open at
+    the start).
+  - **A late student shows how many minutes late, counted from the start** («۸ دقیقه تأخیر» for
+    13:08 at a 13:00 session; *decided by the developer*, 1405/08/19, over counting from the end of
+    the on-time minutes, kept 1405/08/24). An hour or more reads «۱ ساعت و ۵ دقیقه». A check-in
+    from 15 minutes before to 5 minutes after the start is on time and shows no minutes.
   - **The check-out time** shows beside the check-in, from the same visit at the desk. A visit
     still open reads «داخل است»; one the nightly auto-checkout closed (§7) reads «خروج ثبت نشد»,
     not a midnight time. *Proposed by Claude.*

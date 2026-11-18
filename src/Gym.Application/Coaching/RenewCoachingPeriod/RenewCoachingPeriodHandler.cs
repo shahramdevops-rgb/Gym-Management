@@ -63,36 +63,12 @@ public sealed class RenewCoachingPeriodHandler(IAppDbContext db, IGymCalendar ca
 
         if (daysLeft)
         {
-            await CutAfterAsync(link.Id, period.Value.EndsOn, cancellationToken);
+            await CoachingPeriods.CutAfterAsync(db, link.Id, period.Value.EndsOn, cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         return await StudentScheduleResponse.ForAsync(db, link, today, calendar.TimeOfDay(), cancellationToken);
-    }
-
-    /// <summary>Nothing of the link's sessions is left after <paramref name="lastDay"/>. The caller saves.</summary>
-    private async Task CutAfterAsync(Guid linkId, DateOnly lastDay, CancellationToken cancellationToken)
-    {
-        var schedules = await db.FixedSchedules
-            .Where(schedule => schedule.LinkId == linkId && schedule.EndsOn > lastDay)
-            .ToListAsync(cancellationToken);
-        foreach (var schedule in schedules)
-        {
-            if (schedule.StartsAfter(lastDay))
-            {
-                db.FixedSchedules.Remove(schedule);
-            }
-            else
-            {
-                schedule.EndOnPeriodEnd(lastDay);
-            }
-        }
-
-        var moved = await db.SessionBookings
-            .Where(booking => booking.LinkId == linkId && booking.Date > lastDay)
-            .ToListAsync(cancellationToken);
-        db.SessionBookings.RemoveRange(moved);
     }
 }

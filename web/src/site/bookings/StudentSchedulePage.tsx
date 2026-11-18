@@ -7,6 +7,13 @@ import { LoadingState } from "@/components/States";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { errorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 
@@ -39,6 +46,7 @@ import {
   useCheckStudentSchedule,
   useEndStudentSchedule,
   useRenewCoachingPeriod,
+  useSetCoachingDaysLeft,
   useSetStudentSchedule,
   useStudentSchedule,
   type SessionDate,
@@ -414,19 +422,34 @@ function ScheduleForm({
  * and the days left, and «تمدید», which adds the days typed after the last day so none is lost. A
  * student from before it has none: the trainer types the days left from today, as few as one, and
  * is warned when that cuts the fixed schedule.
+ *
+ * «ویرایش دوره» (15.7k) corrects the last day of a running period, earlier or later, as the days
+ * left from today; an earlier one warns of the cut the same way. «تمدید» and «ویرایش» both ask
+ * before saving, so a slip of the finger is caught (the developer, 1405/08/24, after a trainer
+ * renewed a student three times by mistake).
  */
 function PeriodCard({ student }: { student: StudentSchedule }) {
-  const [renewing, setRenewing] = useState(false);
+  const [mode, setMode] = useState<"renew" | "edit" | null>(null);
+  /** The days typed, waiting for «بله»; `null` while nothing is asked. */
+  const [asking, setAsking] = useState<number | null>(null);
   const renew = useRenewCoachingPeriod(student.memberId);
+  const setDaysLeft = useSetCoachingDaysLeft(student.memberId);
   const state = periodState(student.periodEndsOn, student.today);
   const unset = state.kind === "unset";
   const scheduleEndsOn = student.schedule?.endsOn ?? null;
+  const renewStartsOn = nextPeriodStart(student.periodEndsOn, student.today);
+  const error = renew.error ?? setDaysLeft.error;
 
   const cutNote = (days: number) => {
     const endsOn = periodEnd(student.today, days);
     return scheduleEndsOn !== null && scheduleEndsOn > endsOn
       ? `برنامهٔ ثابت او تا ${formatDate(scheduleEndsOn)} است و با این دوره ${formatDate(endsOn)} تمام می‌شود.`
       : null;
+  };
+
+  const done = () => {
+    setAsking(null);
+    setMode(null);
   };
 
   return (
@@ -442,26 +465,135 @@ function PeriodCard({ student }: { student: StudentSchedule }) {
             ? "این شاگرد پیش از دوره‌ها شاگرد شما شده است. چند روز از مربی‌گری او مانده؟"
             : periodLine(state)}
         </p>
-        {renew.isError && <Alert variant="destructive">{errorMessage(renew.error)}</Alert>}
-        {renewing || unset ? (
+        {error !== null && <Alert variant="destructive">{errorMessage(error)}</Alert>}
+        {unset ? (
           <PeriodDaysForm
-            label={unset ? "روزهای باقی‌مانده" : "تمدید"}
-            startsOn={nextPeriodStart(student.periodEndsOn, student.today)}
-            defaultDays={unset ? null : periodDefaultDays}
-            minDays={unset ? periodMinDaysLeft : periodMinDays}
-            submitLabel={unset ? "ثبت" : "تمدید"}
+            label="روزهای باقی‌مانده"
+            startsOn={student.today}
+            defaultDays={null}
+            minDays={periodMinDaysLeft}
+            submitLabel="ثبت"
             pending={renew.isPending}
-            note={unset ? cutNote : undefined}
-            onSubmit={(days) => renew.mutate(days, { onSuccess: () => setRenewing(false) })}
-            onCancel={unset ? undefined : () => setRenewing(false)}
+            note={cutNote}
+            onSubmit={(days) => renew.mutate(days)}
+          />
+        ) : mode === "renew" ? (
+          <PeriodDaysForm
+            label="تمدید"
+            startsOn={renewStartsOn}
+            defaultDays={periodDefaultDays}
+            minDays={periodMinDays}
+            submitLabel="تمدید"
+            pending={renew.isPending}
+            onSubmit={setAsking}
+            onCancel={() => setMode(null)}
+          />
+        ) : mode === "edit" && state.kind === "running" ? (
+          <PeriodDaysForm
+            label="روزهای باقی‌مانده"
+            startsOn={student.today}
+            defaultDays={state.daysLeft}
+            minDays={periodMinDaysLeft}
+            submitLabel="ثبت"
+            pending={setDaysLeft.isPending}
+            note={cutNote}
+            onSubmit={setAsking}
+            onCancel={() => setMode(null)}
           />
         ) : (
-          <Button variant="secondary" className="w-full" onClick={() => setRenewing(true)}>
-            تمدید
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => {
+                renew.reset();
+                setDaysLeft.reset();
+                setMode("renew");
+              }}
+            >
+              تمدید
+            </Button>
+            {state.kind === "running" && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  renew.reset();
+                  setDaysLeft.reset();
+                  setMode("edit");
+                }}
+              >
+                ویرایش دوره
+              </Button>
+            )}
+          </div>
+        )}
+        {asking !== null && mode === "renew" && (
+          <PeriodQuestion
+            title="تمدید دوره"
+            question={`دورهٔ مربی‌گری ${student.fullName} تا ${formatDate(periodEnd(renewStartsOn, asking))} تمدید شود؟`}
+            confirmLabel="بله، تمدید"
+            pending={renew.isPending}
+            onConfirm={() =>
+              renew.mutate(asking, { onSuccess: done, onError: () => setAsking(null) })
+            }
+            onCancel={() => setAsking(null)}
+          />
+        )}
+        {asking !== null && mode === "edit" && (
+          <PeriodQuestion
+            title="ویرایش دوره"
+            question={`روز آخر دورهٔ ${student.fullName} ${formatDate(periodEnd(student.today, asking))} شود؟`}
+            confirmLabel="بله، ثبت"
+            pending={setDaysLeft.isPending}
+            onConfirm={() =>
+              setDaysLeft.mutate(asking, { onSuccess: done, onError: () => setAsking(null) })
+            }
+            onCancel={() => setAsking(null)}
+          />
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * The question before «تمدید» and «ویرایش دوره», shown once the days are typed. Not the site's
+ * `ConfirmDialog`: that opens from its own button and says «yes» in red, for changes that cannot be
+ * taken back; this one follows a form and says «yes» in the plain colour.
+ */
+function PeriodQuestion({
+  title,
+  question,
+  confirmLabel,
+  pending,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  question: string;
+  confirmLabel: string;
+  pending: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Dialog open onOpenChange={(open) => !open && !pending && onCancel()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{question}</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={pending} onClick={onConfirm}>
+            {pending ? "در حال ثبت…" : confirmLabel}
+          </Button>
+          <Button variant="outline" disabled={pending} onClick={onCancel}>
+            انصراف
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

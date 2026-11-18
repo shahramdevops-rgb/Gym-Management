@@ -5,7 +5,8 @@ namespace Gym.Domain.Coaching;
 /// <summary>
 /// A stretch of days a trainer coaches a student (دورهٔ مربی‌گری, BUSINESS_RULES.md §15 <i>The
 /// coaching period</i>): the first one is typed when the trainer accepts the request, and each
-/// «تمدید» adds another after it. Kept, never changed, so the history of renewals stays.
+/// «تمدید» adds another after it, so the history of renewals stays. «ویرایش دوره» (15.7k) may end one
+/// earlier or later, or remove one that starts after the new last day; never a day already past.
 /// </summary>
 /// <remarks>
 /// <b>The link outlives it.</b> When the last period is over the student stays the trainer's, but no
@@ -51,4 +52,10 @@ public sealed class CoachingPeriod : Entity
         new() { LinkId = linkId, StartsOn = startsOn, EndsOn = startsOn.AddDays(days - 1) };
 
     internal static bool IsAllowed(int days, int minDays) => days >= minDays && days <= MaxDays;
+
+    /// <summary>The furthest this period's last day may go: <see cref="MaxDays"/> days from its first.</summary>
+    internal DateOnly LatestEnd => StartsOn.AddDays(MaxDays - 1);
+
+    /// <summary>«ویرایش دوره»: the period ends on <paramref name="lastDay"/>, already checked by the link.</summary>
+    internal void EndOn(DateOnly lastDay) => EndsOn = lastDay;
 }
