@@ -3171,9 +3171,10 @@ accepted ("all the proposals"), except the two the developer said themselves, ma
   Zarinpal's guide says; whether a sub-domain counts was not found, so the main domain is the one
   that is safe either way); and the app's address is closed to search engines, the main domain is
   not.
-- **On the public page the «فروشگاه» section comes before «امکانات»**, right after the opening.
-  *Decided by the developer* (1405/08/24). Whether the section stays on the page or the shop is
-  only its own page: *Open*, the developer chooses after seeing both.
+- **On the public page the «فروشگاه» section is the first one, right after the opening**, above
+  «پاسارگاد» and «امکانات», and numbered ۰۱. *Decided by the developer* (above «امکانات» 1405/08/24;
+  first of all 1405/08/27). **The section stays on the page** and leads to the shop's own page
+  (1405/08/27, settling the question left open on 1405/08/24).
 - **Anyone sees the showcase without signing in**: the products, their prices, photos and
   descriptions. Nothing can be bought on it yet (16.5, 16.6), and it has no buy button; how it
   says so is 16.9's question.

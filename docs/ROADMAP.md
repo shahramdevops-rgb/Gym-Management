@@ -5207,7 +5207,8 @@ Built 1405/08/24 (2026-11-15) on branch `task/16.4-shop-showcase` (from `main`),
       contact ways). A second page of the site build (`web/site/shop/index.html`,
       `web/src/site/shop/`), with no session and no token, wearing the public page's dark stone
       (`shop.css` overrides the colour tokens only)
-- [x] **The public page**: «فروشگاه» moved above «امکانات» and numbered ۰۲; `site.js` puts the
+- [x] **The public page**: «فروشگاه» moved above «امکانات» and numbered ۰۲, then (1405/08/27) first of all, right after
+      the opening, numbered ۰۱, and kept on the page (the developer); `site.js` puts the
       newest six products in place of the six shelves and shows «همهٔ کالاها»; without an answer
       the shelves stay. The menu follows the page's order; `sitemap.xml` names `/shop/`
 - [x] **Caddy**: the public host proxies `/api/site/shop/*` only (under the app's host name, since
@@ -5235,8 +5236,8 @@ Built 1405/08/24 (2026-11-15) on branch `task/16.4-shop-showcase` (from `main`),
       two in `ShopShowcaseTests` (a hidden product's photo, any token answers as none), a Vitest
       case, and in the e2e raw requests through Caddy, the photo's year-long caching on the public
       host, and the public page keeping its shelves when the API does not answer
-- [ ] *Open, for the developer after seeing both:* the section stays on the public page (as
-      built), or the shop is only its own page and the page keeps a link
+- [x] *Settled by the developer (1405/08/27):* the section stays on the public page, first of all,
+      and leads to the shop's own page
 - [ ] *For the release:* nothing to check on the server first (no migration, no new setting); the
       shop admin's real products appear on the public page as soon as it is out, so the showcase
       release of 16.9 decides when

@@ -251,10 +251,97 @@
         </div>
       </div>
 
+      <!--
+        The shop (roadmap 16.4, BUSINESS_RULES.md §16 "The showcase"): the online shop's newest
+        products, with their prices, each leading to its page under /shop/. Right after the opening
+        since 2026-11-18, above «پاسارگاد» (the developer). site.js asks the API for them (/api/site/shop/showcase,
+        the one path of the API this host reaches, deploy/Caddyfile) and puts them in
+        [data-shop-goods]. Until they arrive, and whenever the API does not answer or the shop
+        holds nothing, the six shelves below stay: the gym's own categories on Unsplash
+        placeholders without a brand on them: shop-protein 4CzpHxVzTFA, shop-creatine
+        -Tu9jm9tpLo, shop-supplements UTPZnnEVW4E, shop-bands IZOAOjvwhaM, shop-wear xPJYL0l5Ii8,
+        shop-perfume zvqq7CG8BwY.
+      -->
+      <section class="shop" id="shop" aria-labelledby="shop-title" data-shop>
+        <div class="section-head wrap" data-reveal>
+          <p class="eyebrow"><span class="eyebrow__num">۰۱</span> فروشگاه</p>
+          <h2 id="shop-title">هرچه برای تمرین لازم داری، همین‌جا.</h2>
+          <p class="shop__lead">در سالن اصلی، کنار درب ورودی.</p>
+        </div>
+
+        <ul class="shop__grid" data-reveal data-shop-shelves>
+          <li class="shelf shelf--big">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-protein.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۱</span>
+              <h3 class="shelf__name">پروتئین</h3>
+            </div>
+          </li>
+          <li class="shelf">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-creatine.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۲</span>
+              <h3 class="shelf__name">کراتین</h3>
+            </div>
+          </li>
+          <li class="shelf">
+            <figure class="photo shelf__photo">
+              <img
+                src="./img/shop-supplements.webp"
+                alt=""
+                loading="lazy"
+                width="1200"
+                height="900"
+              />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۳</span>
+              <h3 class="shelf__name">مکمل</h3>
+            </div>
+          </li>
+          <li class="shelf shelf--wide">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-bands.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۴</span>
+              <h3 class="shelf__name">شیکر و کش</h3>
+            </div>
+          </li>
+          <li class="shelf shelf--wide">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-wear.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۵</span>
+              <h3 class="shelf__name">لباس ورزشی</h3>
+            </div>
+          </li>
+          <li class="shelf shelf--wide">
+            <figure class="photo shelf__photo">
+              <img src="./img/shop-perfume.webp" alt="" loading="lazy" width="1200" height="900" />
+            </figure>
+            <div class="shelf__text">
+              <span class="shelf__num">۰۶</span>
+              <h3 class="shelf__name">عطر</h3>
+            </div>
+          </li>
+        </ul>
+
+        <ul class="shop__goods" aria-label="تازه‌های فروشگاه" data-shop-goods hidden></ul>
+        <p class="shop__more wrap" data-shop-more hidden>
+          <a class="btn btn--ghost" href="/shop/">همهٔ کالاها</a>
+        </p>
+      </section>
+
       <!-- One line, and the numbers cast on barbell plates that roll in and settle -->
       <section class="intro wrap" aria-labelledby="intro-title">
         <p class="eyebrow" id="intro-title" data-reveal>
-          <span class="eyebrow__num">۰۱</span> پاسارگاد
+          <span class="eyebrow__num">۰۲</span> پاسارگاد
         </p>
 
         <p class="manifesto" data-manifesto>
@@ -329,93 +416,6 @@
             <dd>بخش ورزشی و رفاهی، زیر یک سقف</dd>
           </div>
         </dl>
-      </section>
-
-      <!--
-        The shop (roadmap 16.4, BUSINESS_RULES.md §16 "The showcase"): the online shop's newest
-        products, with their prices, each leading to its page under /shop/. Above the facilities
-        since 2026-11-15 (the developer). site.js asks the API for them (/api/site/shop/showcase,
-        the one path of the API this host reaches, deploy/Caddyfile) and puts them in
-        [data-shop-goods]. Until they arrive, and whenever the API does not answer or the shop
-        holds nothing, the six shelves below stay: the gym's own categories on Unsplash
-        placeholders without a brand on them: shop-protein 4CzpHxVzTFA, shop-creatine
-        -Tu9jm9tpLo, shop-supplements UTPZnnEVW4E, shop-bands IZOAOjvwhaM, shop-wear xPJYL0l5Ii8,
-        shop-perfume zvqq7CG8BwY.
-      -->
-      <section class="shop" id="shop" aria-labelledby="shop-title" data-shop>
-        <div class="section-head wrap" data-reveal>
-          <p class="eyebrow"><span class="eyebrow__num">۰۲</span> فروشگاه</p>
-          <h2 id="shop-title">هرچه برای تمرین لازم داری، همین‌جا.</h2>
-          <p class="shop__lead">در سالن اصلی، کنار درب ورودی.</p>
-        </div>
-
-        <ul class="shop__grid" data-reveal data-shop-shelves>
-          <li class="shelf shelf--big">
-            <figure class="photo shelf__photo">
-              <img src="./img/shop-protein.webp" alt="" loading="lazy" width="1200" height="900" />
-            </figure>
-            <div class="shelf__text">
-              <span class="shelf__num">۰۱</span>
-              <h3 class="shelf__name">پروتئین</h3>
-            </div>
-          </li>
-          <li class="shelf">
-            <figure class="photo shelf__photo">
-              <img src="./img/shop-creatine.webp" alt="" loading="lazy" width="1200" height="900" />
-            </figure>
-            <div class="shelf__text">
-              <span class="shelf__num">۰۲</span>
-              <h3 class="shelf__name">کراتین</h3>
-            </div>
-          </li>
-          <li class="shelf">
-            <figure class="photo shelf__photo">
-              <img
-                src="./img/shop-supplements.webp"
-                alt=""
-                loading="lazy"
-                width="1200"
-                height="900"
-              />
-            </figure>
-            <div class="shelf__text">
-              <span class="shelf__num">۰۳</span>
-              <h3 class="shelf__name">مکمل</h3>
-            </div>
-          </li>
-          <li class="shelf shelf--wide">
-            <figure class="photo shelf__photo">
-              <img src="./img/shop-bands.webp" alt="" loading="lazy" width="1200" height="900" />
-            </figure>
-            <div class="shelf__text">
-              <span class="shelf__num">۰۴</span>
-              <h3 class="shelf__name">شیکر و کش</h3>
-            </div>
-          </li>
-          <li class="shelf shelf--wide">
-            <figure class="photo shelf__photo">
-              <img src="./img/shop-wear.webp" alt="" loading="lazy" width="1200" height="900" />
-            </figure>
-            <div class="shelf__text">
-              <span class="shelf__num">۰۵</span>
-              <h3 class="shelf__name">لباس ورزشی</h3>
-            </div>
-          </li>
-          <li class="shelf shelf--wide">
-            <figure class="photo shelf__photo">
-              <img src="./img/shop-perfume.webp" alt="" loading="lazy" width="1200" height="900" />
-            </figure>
-            <div class="shelf__text">
-              <span class="shelf__num">۰۶</span>
-              <h3 class="shelf__name">عطر</h3>
-            </div>
-          </li>
-        </ul>
-
-        <ul class="shop__goods" aria-label="تازه‌های فروشگاه" data-shop-goods hidden></ul>
-        <p class="shop__more wrap" data-shop-more hidden>
-          <a class="btn btn--ghost" href="/shop/">همهٔ کالاها</a>
-        </p>
       </section>
 
       <!--
