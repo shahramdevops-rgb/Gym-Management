@@ -5262,14 +5262,20 @@ Brought forward from the end (the developer, 1405/08/20), so the eNamad is appli
         on the public page and the shop, `sitemap.xml`, the fingerprints in `web/Dockerfile`, a
         Vitest case and an e2e through the production images); the Owner approved the privacy
         text the same day
-  - [ ] About us, terms, returns
-- [ ] Asked first: how the showcase says buying is not open yet, and whether that is enough for the
-      eNamad's review
+  - [x] **About us** (`/about/`), **terms** (`/terms/`), **returns** (`/returns/`), built
+        1405/08/27 from the rules decided that day (§16: returns, delivery, the courier in
+        Kermanshah); Claude's drafts, approved by the Owner 1405/08/28. Every foot lists all five
+        pages
+- [x] Asked first: how the showcase says buying is not open yet. Settled 1405/08/27: one line
+      under the shop's title and on each product's page (§16), built. Whether that is enough for the
+      eNamad's review is seen when the Owner applies
 - [ ] **The showcase release**: 16.2 to 16.4 and these pages on the server, the shop admin's real
       products in, buying closed; then the Owner applies for the eNamad
 
 ### 16.5 Cart, address and order (سبد خرید و سفارش)
-- [ ] Asked first: what an address holds, and whether a courier (پیک) stays beside Tipax
+- [ ] Asked first: what an address holds. (Settled 1405/08/27: the courier stays; an address in
+      Kermanshah goes by courier, any other by Tipax, chosen by the address's city, the buyer paying
+      either at the door, §16)
 - [ ] A signed-in customer's cart (product variants), delivery address, and the order, unpaid until
       16.6; the Tipax fee is paid by the buyer on delivery (پس‌کرایه, decided 1405/08/19), and the
       checkout says so before payment

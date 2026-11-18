@@ -2548,11 +2548,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **`aria-hidden` for decoration inside a link.** A screen reader would read "کاربران سایت جدید" and every test and e2e that finds the link by its name would break; the badge is a visual hint, so it stays out of the accessible name.
 - **My notes:**
 
-## 16.9 The eNamad pages: contact and privacy (in progress)
+## 16.9 The eNamad pages (in progress)
 
 - **A static page next to a static page.** `contact/index.html` and `privacy/index.html` are plain files in `web/public-site`; Caddy's `file_server` answers a folder's address with its `index.html` and redirects `/contact` to `/contact/` by itself. No route, no build, and they keep serving while the API is down.
 - **Relative links that work in two places.** The pages name `../site.css` and `../contact/`, so the same files open at `/contact/` on the server and at `/public-site/contact/` in development; an absolute `/site.css` would break the second.
 - **Cache-busting by content fingerprint.** The Dockerfile appends `?v=<sha256 prefix>` to every file a page names; a new page has its own spelling of those names (`../site.css`), so the `sed` needs a second pattern, and the e2e checks the fingerprint is there.
 - **Facts that must match a document live in one place per medium, and say so.** The eNamad compares the site's address, postal code, landline and email with the applicant's papers; each copy (the public page, the two pages, the shop's React footer) carries a comment that it changes only with those papers, and a test pins the values.
 - **A privacy page is a claim about the code.** Each line says only what the system really does (what the sign-up keeps, who sees an order, the one cookie of the app), so a future change to any of those means a change to the page.
+- **One template, many static pages.** The three later pages were made from the privacy page by a throwaway script that swapped the title, the canonical address, the comment and the `<main>`; with no build step for the public site, that keeps the bar and the foot identical without adding a templating tool to maintain.
+- **Write a promise only if the system keeps it.** The first draft of the terms said "the photos are of the item itself" and "stock is updated daily": nothing in the code guarantees either (the shop admin types both), so they came out. Legal pages are read as commitments.
 - **My notes:**

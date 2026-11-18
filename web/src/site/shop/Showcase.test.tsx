@@ -168,14 +168,19 @@ describe("the shop's showcase", () => {
 
     const foot = within(await screen.findByRole("contentinfo"));
     // Tests run as development, where the public page is served under /public-site/.
-    expect(foot.getByRole("link", { name: "تماس با ما" })).toHaveAttribute(
-      "href",
-      "/public-site/contact/",
+    const pages = within(foot.getByRole("navigation", { name: "صفحه‌های سایت" })).getAllByRole(
+      "link",
     );
-    expect(foot.getByRole("link", { name: "حریم خصوصی" })).toHaveAttribute(
-      "href",
-      "/public-site/privacy/",
-    );
+    expect(pages.map((link) => link.textContent)).toEqual([
+      "فروشگاه",
+      "دربارهٔ ما",
+      "تماس با ما",
+      "قوانین",
+      "بازگشت کالا",
+      "حریم خصوصی",
+    ]);
+    expect(pages[2]).toHaveAttribute("href", "/public-site/contact/");
+    expect(pages[4]).toHaveAttribute("href", "/public-site/returns/");
     expect(foot.getByText(/کدپستی ۶۷۱۵۷۶۵۸۶۱/)).toBeInTheDocument();
     expect(foot.getByRole("link", { name: "۰۸۳ ۳۴۲۴ ۵۰۳۱" })).toHaveAttribute(
       "href",
@@ -185,6 +190,23 @@ describe("the shop's showcase", () => {
       "href",
       "mailto:javad.persiangulf@gmail.com",
     );
+  });
+
+  it("Shop_BeforeBuyingOpens_SaysSoOnTheShowcaseAndAProductsPage", async () => {
+    mockApi({
+      "GET /api/site/shop/showcase": () => json(200, showcase),
+      [`GET /api/site/shop/products/${creatine}`]: () => json(200, creatinePage),
+    });
+    const soon = /خرید آنلاین به‌زودی باز می‌شود/;
+
+    const router = renderShop();
+    expect(await screen.findByRole("note")).toHaveTextContent(soon);
+
+    await router.navigate(`/product/${creatine}`);
+    await screen.findByRole("heading", { level: 1, name: "کراتین" });
+    expect(screen.getByRole("note")).toHaveTextContent(soon);
+    // No way to buy on the page yet.
+    expect(screen.queryByRole("button", { name: /خرید|سبد/ })).not.toBeInTheDocument();
   });
 
   it("Showcase_NothingToShow_SaysSoWithoutChips", async () => {

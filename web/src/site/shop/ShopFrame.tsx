@@ -55,6 +55,15 @@ export function ShopFrame({ children }: { children: ReactNode }) {
 
 const footerLink = "font-semibold text-foreground transition-colors hover:text-primary";
 
+/** The eNamad's pages beside the public page (web/public-site), in the order of its foot. */
+const sitePages = [
+  { folder: "about", label: "دربارهٔ ما" },
+  { folder: "contact", label: "تماس با ما" },
+  { folder: "terms", label: "قوانین" },
+  { folder: "returns", label: "بازگشت کالا" },
+  { folder: "privacy", label: "حریم خصوصی" },
+] as const;
+
 /**
  * The foot of every page of the main domain (roadmap 16.9, BUSINESS_RULES.md §16 "Pages the eNamad
  * needs"): the site's pages, then the address with its postal code, the landline and the email,
@@ -69,12 +78,15 @@ function ShopFooter() {
           <Link to={shopPaths.showcase} className={footerLink}>
             فروشگاه
           </Link>
-          <a href={`${gymPageAddress}contact/`} className={footerLink}>
-            تماس با ما
-          </a>
-          <a href={`${gymPageAddress}privacy/`} className={footerLink}>
-            حریم خصوصی
-          </a>
+          {sitePages.map((sitePage) => (
+            <a
+              key={sitePage.folder}
+              href={`${gymPageAddress}${sitePage.folder}/`}
+              className={footerLink}
+            >
+              {sitePage.label}
+            </a>
+          ))}
         </nav>
         <address className="not-italic">
           کرمانشاه، کارمندان، خیابان ۱۸ متری پاسارگاد، کوچه دبیرستان فلسطین، طبقه همکف · کدپستی

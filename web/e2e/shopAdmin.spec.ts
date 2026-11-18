@@ -358,7 +358,7 @@ test("Showcase_TheApiDoesNotAnswer_ThePublicPageKeepsItsShelves", async ({ page 
 });
 
 test("EnamadPages_OnThePublicAddress_OpenFromTheFootOfEveryPage", async ({ page }) => {
-  // The eNamad's contact and privacy pages (16.9): static files on the public host, reached from
+  // The eNamad's pages (16.9): static files on the public host, reached from
   // the foot of the gym's page and of the shop's, which carry the applicant's details too.
   await page.goto(publicURL);
   const foot = page.getByRole("contentinfo");
@@ -377,9 +377,21 @@ test("EnamadPages_OnThePublicAddress_OpenFromTheFootOfEveryPage", async ({ page 
   );
   await expect(page.locator("footer .footer__links")).toHaveCSS("display", "flex");
 
-  await page.getByRole("contentinfo").getByRole("link", { name: "حریم خصوصی" }).click();
-  await expect(page).toHaveURL(`${publicURL}/privacy/`);
-  await expect(page.getByRole("heading", { level: 1, name: "اطلاعات شما نزد ما" })).toBeVisible();
+  // Every other page, each from the foot of the one before.
+  for (const [link, folder, heading] of [
+    ["دربارهٔ ما", "about", "باشگاه پاسارگاد پلاس"],
+    ["قوانین", "terms", "قوانین خرید از فروشگاه"],
+    ["بازگشت کالا", "returns", "پس دادن کالا و برگشت پول"],
+    ["حریم خصوصی", "privacy", "اطلاعات شما نزد ما"],
+  ] as const) {
+    await page.getByRole("contentinfo").getByRole("link", { name: link }).click();
+    await expect(page).toHaveURL(`${publicURL}/${folder}/`);
+    await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
+    await expect(page.locator('link[rel="stylesheet"]')).toHaveAttribute(
+      "href",
+      /^\.\.\/site\.css\?v=[0-9a-f]{10}$/,
+    );
+  }
 
   // The address without its slash is the same page, as a folder is.
   await page.goto(`${publicURL}/contact`);
@@ -387,6 +399,7 @@ test("EnamadPages_OnThePublicAddress_OpenFromTheFootOfEveryPage", async ({ page 
 
   // The shop's foot leads to the same pages on the same host.
   await page.goto(`${publicURL}/shop/`);
+  await expect(page.getByRole("note")).toContainText("خرید آنلاین به‌زودی باز می‌شود");
   await page.getByRole("contentinfo").getByRole("link", { name: "تماس با ما" }).click();
   await expect(page).toHaveURL(`${publicURL}/contact/`);
 });

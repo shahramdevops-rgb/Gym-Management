@@ -13,6 +13,7 @@ import {
   type ShowcaseCategory,
   type ShowcaseProductItem,
 } from "./api";
+import { BuyingSoon } from "./BuyingSoon";
 import { ContactWays } from "./ContactWays";
 import { shopPaths } from "./paths";
 import { cardPrice } from "./price";
@@ -48,6 +49,8 @@ export function ShowcasePage() {
           هرچه برای تمرین لازم داری، همین‌جا.
         </h1>
       </div>
+
+      <BuyingSoon />
 
       {showcase.isPending && <LoadingState />}
       {showcase.isError && <Alert variant="destructive">{errorMessage(showcase.error)}</Alert>}

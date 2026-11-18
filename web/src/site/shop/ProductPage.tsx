@@ -15,6 +15,7 @@ import {
   type ShowcaseProduct,
   type ShowcaseVariant,
 } from "./api";
+import { BuyingSoon } from "./BuyingSoon";
 import { ContactWays } from "./ContactWays";
 import { shopPaths } from "./paths";
 import { ShopFrame } from "./ShopFrame";
@@ -57,6 +58,8 @@ export function ProductPage() {
 
       {product.isSuccess && (
         <>
+          <BuyingSoon />
+
           <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
             {/* Remounted for another product, so its first photo is the one shown. */}
             <Photos key={product.data.id} product={product.data} />

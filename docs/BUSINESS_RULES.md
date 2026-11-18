@@ -3271,3 +3271,26 @@ accepted ("all the proposals"), except the two the developer said themselves, ma
 - **The foot of every page of the main domain** (the public page, these pages and the shop's pages)
   carries the address with its postal code, the landline and the email, and the links to the pages
   that exist. *Proposed by Claude.*
+- **Returns («بازگشت کالا»)**, decided by the developer on 1405/08/27 from Claude's proposals:
+  - **7 working days from delivery to withdraw without a reason** (article 37's minimum); the
+    buyer tells the shop through its contact ways (until 16.8's messages) and pays the postage back.
+  - **Opened food and personal-care goods are not taken back**: a supplement, a protein or a
+    perfume whose seal is broken or that was used, since it cannot be sold again. Anything else
+    (wear, shoes, accessories) is taken back unused, with its tag and its own packaging.
+  - **A damaged, broken or wrong item is the shop's cost**: the shop pays the postage both ways
+    and sends the right item or refunds in full; the buyer pays the postage only for a change of
+    mind.
+  - **The money goes back within 7 working days of the returned goods reaching the shop.**
+- **Delivery, for the terms page («قوانین»)**, decided by the developer on 1405/08/27:
+  - **An order is sent within 2 working days of its payment.**
+  - **In Kermanshah by courier (پیک), elsewhere by Tipax; the buyer pays either at the door**
+    (پس‌کرایه, as decided for Tipax on 1405/08/19); the site charges the goods only.
+  - **The system takes it into account** (the developer, 1405/08/27): an order whose delivery
+    address is in Kermanshah goes by courier, any other by Tipax, chosen by the address's city, not
+    by the buyer; the order, the shop admin's list and the page before payment say which (16.5, 16.7).
+- **Until buying opens, the shop says so in one line** under its title and on each product's page:
+  «خرید آنلاین به‌زودی باز می‌شود؛ تا آن موقع برای سفارش از راه‌های تماس پایین صفحه با ما در
+  ارتباط باشید.» *Decided by the developer* (1405/08/27, Claude's proposal). It goes when 16.5/16.6
+  open buying.
+- **The about, terms and returns texts are Claude's drafts from the rules above and the public
+  page's facts; approved by the Owner 1405/08/28**, as the privacy page was.
