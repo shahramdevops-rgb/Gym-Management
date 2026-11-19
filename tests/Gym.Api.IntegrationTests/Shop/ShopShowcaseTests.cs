@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 using Gym.Api.Configuration;
 using Gym.Api.IntegrationTests.Auth;
@@ -105,7 +106,7 @@ public sealed class ShopShowcaseTests(DatabaseFixture fixture) : DatabaseTestBas
 
         foreach (var json in new[] { list, one })
         {
-            json.ShouldNotContain("37");
+            ValuesIn(json).ShouldNotContain("37");
             json.ShouldNotContain("\"stock\"", Case.Insensitive);
             json.ShouldNotContain("totalStock", Case.Insensitive);
             json.ShouldNotContain("isVisible", Case.Insensitive);
@@ -345,6 +346,44 @@ public sealed class ShopShowcaseTests(DatabaseFixture fixture) : DatabaseTestBas
         using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         return (await response.Content.ReadFromJsonAsync<T>(TestContext.Current.CancellationToken)).ShouldNotBeNull();
+    }
+
+    /// <summary>
+    /// Every number and text value in a JSON answer, however deep, each as its text. Searching the
+    /// whole answer for the stock's digits would also match the hex digits of an id
+    /// (…-7a37-…) now and then, so the values are read one by one instead.
+    /// </summary>
+    private static List<string> ValuesIn(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        var values = new List<string>();
+        Collect(document.RootElement);
+        return values;
+
+        void Collect(JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.Object:
+                    foreach (var property in element.EnumerateObject())
+                    {
+                        Collect(property.Value);
+                    }
+                    break;
+                case JsonValueKind.Array:
+                    foreach (var item in element.EnumerateArray())
+                    {
+                        Collect(item);
+                    }
+                    break;
+                case JsonValueKind.Number:
+                    values.Add(element.GetRawText());
+                    break;
+                case JsonValueKind.String:
+                    values.Add(element.GetString()!);
+                    break;
+            }
+        }
     }
 
     private static Task<HttpResponseMessage> SendAsync(HttpClient client, string token, HttpMethod method, string path, object? body = null)
