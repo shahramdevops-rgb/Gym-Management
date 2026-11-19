@@ -1001,7 +1001,7 @@ describe("SmsSettingsPage", () => {
   it("SmsSettingsPage_CoachingPeriodEnding_IsMarkedNewUntilItsDay", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
-      vi.setSystemTime(new Date("2026-11-25T08:00:00Z"));
+      vi.setSystemTime(new Date("2026-11-27T08:00:00Z")); // ۶ آذر ۱۴۰۵, the last day shown
       ownerWith(empty);
       const { unmount } = renderApp("/sms-settings", { session: session() });
 
@@ -1011,7 +1011,7 @@ describe("SmsSettingsPage", () => {
       expect(group("پیامک غیبت").queryByText("جدید")).not.toBeInTheDocument();
       unmount();
 
-      vi.setSystemTime(new Date("2026-12-03T08:00:00Z"));
+      vi.setSystemTime(new Date("2026-11-28T08:00:00Z")); // ۷ آذر ۱۴۰۵, gone
       renderApp("/sms-settings", { session: session() });
 
       await screen.findByRole("group", { name: "پایان دورهٔ مربی‌گری" });

@@ -84,10 +84,10 @@ interface KindText {
 }
 
 /**
- * «جدید» on the coaching period's card (task 15.7n) until this day. TO SET AT RELEASE: one week after
- * the release day, as `navigation.ts` does.
+ * «جدید» on the coaching period's card (task 15.7n): the night of the 2026-11-20 release, shown until
+ * 1405/09/06 and gone from 1405/09/07, a week, as `navigation.ts` does.
  */
-const periodEndingNewUntil = "2026-12-03";
+const periodEndingNewUntil = "2026-11-28";
 
 /** Each kind's words on the page (BUSINESS_RULES.md §10 *The four kinds*; the texts in docs/sms-texts.md). */
 const kindText: Record<SmsKind, KindText> = {
