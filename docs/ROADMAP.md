@@ -5087,6 +5087,33 @@ on its own branch and session, in this order (proposed by Claude, accepted):
     count, details, «تمدید» asked first, cancelling the question, a period over, declining, a
     refusal), e2e (the coaching spec accepts with 7 days, asks and renews); walked at 390 px and
     1440 px with a mocked API
+- [x] **Released 1405/08/29 (2026-11-20), 01:57, as `20261120-0157-6c8876c`** (previous
+      `20261119-1307-cd3178e`), late at night: 15.7l, 15.7m, 15.7n and 15.7o, merged into `main`
+      as `cd183b6`. Left out on purpose (the developer): 6.5.39, the free plan for a guest, on its
+      own branch. The monthly assessment (15.8/15.9) stays off the server
+  - Before: on `task/15.7o-renewal-requests`, `dotnet test` 3915 green with no warnings, 1526
+    Vitest, lint, `format:check`; `npm run e2e` 23 green after one test fix (`2a132f5`: the
+    renewal case read the member's days before the server had answered, see LEARNING.md 15.7o);
+    on `main`, the tree the same as the tested branch, plus `periodEndingNewUntil` set to
+    2026-11-28 (`2966ff6`: «جدید» on the SMS card until 1405/09/06), `npm run build`, and
+    `npm run screenshots` committed (`6c8876c`)
+  - Migrations: `AddCoachingPeriodSms` (three `sms_settings` columns with defaults that pass their
+    checks; `ck_notifications_event_matches_kind` and `ck_notifications_kind` the same clauses as
+    before plus the new kind; the link check holds for every old row, whose new columns are empty)
+    and `AddRenewalRequests` (a new table). No read-only query needed: no existing row can fail
+  - Server before (read-only): api and postgres healthy, disk 16%, 2.8 GiB memory available.
+    Rows: 441 members, 620 subscriptions, 1327 payments, 4174 attendances, 35 trainer links, 35
+    coaching periods, 1114 notifications. `./backup.sh run` → `gym-20261120-015209.dump`
+    (3,490,868 bytes, sha256 `ac2d0597…e34ca1`) and `files-20261120-015209.tar.gz` (113 bytes),
+    both copied to `D:\gymbackups`, the hashes matching. The developer ran `release.sh` through
+    a new ssh-agent, so the key's passphrase was typed once
+  - After: the new tag running, api healthy, no `ERR`/`FTL` in the API's log since the start;
+    from outside, the panel's `/health` (`Healthy`), the panel, the app, the public page,
+    `/shop/`, `/contact/` and `sitemap.xml` answer 200. Rows the same as before, and
+    `renewal_requests` there and empty
+  - A rollback to `20261119-1307-cd3178e` is harmless while «پایان دورهٔ مربی‌گری» stays off in
+    «تنظیمات پیامک» (it starts off): the old version ignores the new columns and table, but could
+    not read a `CoachingPeriodEnding` row in the SMS history once one is sent
 
 ### Release 3 — The monthly assessment (priority 2)
 
