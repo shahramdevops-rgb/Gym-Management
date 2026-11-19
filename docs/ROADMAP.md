@@ -5115,6 +5115,69 @@ on its own branch and session, in this order (proposed by Claude, accepted):
     «تنظیمات پیامک» (it starts off): the old version ignores the new columns and table, but could
     not read a `CoachingPeriodEnding` row in the SMS history once one is sent
 
+#### The developer's list, part four (asked 1405/08/29, after the release above)
+Asked right after the 2026-11-20 release; the plan written that night, to be built in a session of
+its own. The developer answered three questions and changed the third answer (below).
+- [ ] **15.7p, the inactive students' card, the student's profile, and every visit in the month**
+      (on its own branch from `main`). Expected: screens, plus a small change to the student's
+      attendance read; no migration
+  - **Decided by the developer** (1405/08/29), to write into BUSINESS_RULES.md §15 first:
+    1. **«شاگردان غیرفعال (n)» is a card of its own on the trainer's home, right under «شاگردان
+       من»**, opening its own page with its own search. «شاگردان من» lists the active students
+       only. Replaces 15.7l's closed part «غیرفعال (n)» on the page (§15 *«شاگردان من» in two
+       parts*). *Claude's proposal, to show the developer:* the card is not shown while there is
+       no inactive student, as «درخواست‌ها» is not
+    2. **A student's name opens their profile**, a new page: name, phone (opens the dialler),
+       «از …», the coaching period with its days left and its mark («رو به اتمام», «تمام شده»,
+       not given), and «حضور» and «برنامهٔ ثابت». Only what the trainer sees today: nothing of the
+       member's plan or debt. The name opens it in «شاگردان من», «شاگردان غیرفعال» and the day
+       page; the rows keep their «حضور» and «برنامه» buttons
+    3. **The student's month lists every day they came** (replacing 15.7d's list «خارج از سانس» at
+       the foot of the page, which goes):
+       - each session with its state, as now; «بعد از سانس آمد» stays on its session and is not
+         repeated
+       - a visit on a day they had a session, that counts for none of it (came at 10:00 for an
+         18:00 session, or the session was cancelled): its own row, **«خارج از سانس»**
+       - a visit on a day with no session of theirs: its own row, **«روز دیگر», in purple**
+       - in date and time order with the sessions
+  - **Proposed by Claude, to show the developer on screenshots:**
+    - The month's boxes count «خارج از سانس» and «روز دیگر» too. Nine boxes, so three a row in
+      place of 15.7m's four: «زودتر از موعد، به‌موقع، تأخیر», then «بعد از سانس، خارج از سانس،
+      روز دیگر», then «غایب، مرخصی، لغو شد»
+    - The member's «حضور من» does not change: neither row kind nor their boxes (§15: «خارج از
+      سانس» is the trainer's alone)
+    - The day page keeps «آمدند، بدون سانس»: a page of one day has no "other day"
+  - **API** (`AttendanceReading`, `/coaching/students/{id}/attendance`): each `OutsideVisit`
+    gets its kind, `SessionDay` («خارج از سانس») or `OtherDay` («روز دیگر»), decided on the
+    server from the student's sessions that date (any state, cancelled and leave included); a
+    visit already shown on a session as «بعد از سانس آمد» is left out of the list, so the screen
+    only draws it (15.7o's lesson: the server decides). `AttendanceTotals` gains the two counts
+    (0 for the member, who gets no outside visits). Regenerate the types (`npm run gen:api`)
+  - **Screens**:
+    - `TrainerArea.tsx`: the second card; `StudentsPage.tsx` active only, without `StudentParts`'
+      closed part; a new `InactiveStudentsPage` (lazy, like the other pages, 15.7c) with the
+      same rows and search (`studentSearch.ts`)
+    - `paths.ts`: `/students/inactive` and `/students/:memberId/profile` (a static segment
+      outranks `:memberId` in React Router; add both to the Caddy and Vite fallbacks if they
+      need it); a new `StudentProfilePage` from `useStudents` (no new endpoint), a student no
+      longer in the list sends the trainer back to «شاگردان من»
+    - `Person` gets a link for the name where it is a student (both lists, `DayPage.tsx`'s two
+      uses), keeping the phone's own dialler link
+    - `AttendanceMonth.tsx`: one list of sessions and visits by date and time; a visit row with
+      the day, «ورود … خروج …» and its badge; the `outside-heading` section removed; the boxes
+      three a row. A purple token `--other-day` (light and dark, as `--early` in 15.7m) and a
+      Badge variant `otherDay`; «خارج از سانس» in a neutral badge
+  - **Tests**: integration (the kinds: a day with a session, a cancelled day, a day with none, a
+    «بعد از سانس آمد» visit not repeated, from the link's start only, the totals; the member's
+    read unchanged); Vitest (the card shown, counted and hidden; the inactive page and its
+    search; «شاگردان من» active only; the profile's lines and links, a missing student; the
+    names as links; the month's three row kinds in order, the nine boxes for the trainer and
+    seven for the member); e2e still green (the coaching spec opens «شاگردان من»)
+  - **Shown to the developer**, who cannot open these pages (they are no trainer): made-up data,
+    then screenshots of the home with both cards, the inactive page, a profile, and a month with
+    every row kind, at 390 px and 1440 px, light and dark; Playwright over `npm run dev:site` with
+    a mocked API, or a scratch database with a seeded trainer, students and visits (dropped after)
+
 ### Release 3 — The monthly assessment (priority 2)
 
 #### 15.8 File storage
