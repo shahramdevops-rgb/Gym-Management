@@ -5224,6 +5224,32 @@ Wanted in the release of the night of 1405/08/21 with the rest of `main` (the de
     only add tables, nullable columns and indexes, which the old version ignores)
   - The gym PC's backup kit (`D:\gym-backup-kit`) still holds the old `pull-backup.ps1`, which
     does not pull the files archives: refresh it on the next visit
+- [x] **The showcase release, released 1405/08/28 (2026-11-19), 13:07, as
+      `20261119-1307-cd3178e`** (previous `20261113-0245-523f053`), by day at the developer's
+      choice: 16.4 (the showcase on the main domain, its section first on the public page), 16.9's
+      five pages (about, contact, terms, returns, privacy, every foot listing them, the «خرید آنلاین
+      به‌زودی» line), 15.7k (editing the coaching period, asking before «تمدید») and the payables
+      alert as an icon on a phone. Left out on purpose (developer): 6.5.39, the free plan for a
+      guest, on its own branch. The monthly assessment (15.8/15.9) stays off the server
+  - Before: on `main` (`cd3178e`), `dotnet build` 0 warnings, `dotnet test` 3798 green after one
+    test fix (`cd3178e`: the showcase test searched the whole answer for the stock's digits and
+    failed when an id's hex held them), 1502 Vitest, lint, `format:check`, `npm run build`;
+    `npm run e2e` 23 green; `npm run screenshots` committed (`b3baddf`)
+  - Server before (read-only): api and postgres healthy, disk 15%, 2.8 GiB memory available. No
+    migration in this release. `./backup.sh run` → `gym-20261119-130441.dump` (3,412,332 bytes,
+    sha256 `fe3fe9b3…327afb`) and `files-20261119-130441.tar.gz` (111 bytes: no photo yet), both
+    copied to `D:\gymbackups`, the hashes matching
+  - The copy stalled once (the connection reset at 255 KB); the archive was sent again by hand
+    with `scp` (hashes matching), then the bundle and scripts, then `./server.sh release`
+  - After: the new tag running, api healthy, no `ERR`/`FTL` in the API's log; from outside, the
+    panel's `/health`, the panel, the app, the public page, `/shop/`, the five pages and
+    `sitemap.xml` answer 200, `/contact` and `/shop` redirect to their folders, the app's `/shop/`
+    to the main domain, and the main domain's other API paths (`/api/auth/login`,
+    `/api/site/auth/me`, an encoded `%2F`) answer 404; every page walked at 390 px with no
+    horizontal scroll and no script error. Rows: 432 members, 605 subscriptions, 1283 payments,
+    4080 attendances, 0 shop products
+  - A rollback to `20261113-0245-523f053` is harmless: no migration
+  - Next: the shop admin enters the real products, then the gym manager applies for the eNamad
 
 ### 16.4 The shop on the site (ویترین)
 Built 1405/08/24 (2026-11-15) on branch `task/16.4-shop-showcase` (from `main`), not released.
