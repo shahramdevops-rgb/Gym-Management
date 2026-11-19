@@ -1,6 +1,5 @@
 using Gym.Application.Common;
 using Gym.Domain.Coaching;
-using Gym.Domain.Notifications;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -21,8 +20,15 @@ namespace Gym.Application.Coaching;
 /// settings' number for the coaching period's last days (§15 <i>The coaching period</i>, task 15.7n),
 /// whether that SMS is on or off, so the trainer sees it the day the student gets the SMS.
 /// </param>
+/// <param name="RenewalRequests">
+/// The students' «درخواست تمدید» waiting for the trainer (15.7o), shown in «درخواست‌ها» beside the
+/// requests to be a trainer; a deactivated member's is left out, as theirs are.
+/// </param>
 public sealed record StudentsResponse(
-    IReadOnlyList<StudentRequestResponse> Requests, IReadOnlyList<StudentResponse> Students, int PeriodSoonDays)
+    IReadOnlyList<StudentRequestResponse> Requests,
+    IReadOnlyList<RenewalRequestResponse> RenewalRequests,
+    IReadOnlyList<StudentResponse> Students,
+    int PeriodSoonDays)
 {
     public static async Task<StudentsResponse> ForAsync(IAppDbContext db, Guid trainerId, CancellationToken cancellationToken)
     {
@@ -38,6 +44,23 @@ public sealed record StudentsResponse(
                 pair.Request.Id, pair.Member.Id, pair.Member.FullName, pair.Member.PhoneNumber, pair.Request.RequestedOn))
             .ToListAsync(cancellationToken);
 
+        var renewals = await db.RenewalRequests.AsNoTracking()
+            .Where(request => request.Status == RenewalRequestStatus.Pending)
+            .Join(db.TrainerLinks.Where(link => link.TrainerId == trainerId && link.EndedOn == null),
+                request => request.LinkId, link => link.Id, (request, link) => new { Request = request, Link = link })
+            .Join(db.Members.Where(member => member.IsActive), pair => pair.Link.MemberId, member => member.Id,
+                (pair, member) => new { pair.Request, pair.Link, Member = member })
+            .OrderBy(row => row.Request.CreatedAt)
+            .Select(row => new RenewalRequestResponse(
+                row.Request.Id,
+                row.Member.Id,
+                row.Member.FullName,
+                row.Member.PhoneNumber,
+                row.Request.RequestedOn,
+                db.CoachingPeriods.Where(period => period.LinkId == row.Link.Id).Max(period => (DateOnly?)period.EndsOn)
+                    ?? row.Request.PeriodEndsOn))
+            .ToListAsync(cancellationToken);
+
         var students = await db.TrainerLinks.AsNoTracking()
             .Where(link => link.TrainerId == trainerId && link.EndedOn == null)
             .Join(db.Members, link => link.MemberId, member => member.Id, (link, member) => new { Link = link, Member = member })
@@ -51,16 +74,17 @@ public sealed record StudentsResponse(
                 db.CoachingPeriods.Where(period => period.LinkId == pair.Link.Id).Max(period => (DateOnly?)period.EndsOn)))
             .ToListAsync(cancellationToken);
 
-        var periodSoonDays = await db.SmsSettings.AsNoTracking()
-            .Where(settings => settings.Id == SmsSettings.TheId)
-            .Select(settings => settings.CoachingPeriodEndingDays)
-            .SingleAsync(cancellationToken);
+        var periodSoonDays = await CoachingPeriods.SoonDaysAsync(db, cancellationToken);
 
-        return new StudentsResponse(requests, students, periodSoonDays);
+        return new StudentsResponse(requests, renewals, students, periodSoonDays);
     }
 }
 
 public sealed record StudentRequestResponse(Guid RequestId, Guid MemberId, string FullName, string PhoneNumber, DateOnly RequestedOn);
+
+/// <param name="PeriodEndsOn">The coaching's last day now: the next period starts the day after it, or today once it is over.</param>
+public sealed record RenewalRequestResponse(
+    Guid RequestId, Guid MemberId, string FullName, string PhoneNumber, DateOnly RequestedOn, DateOnly PeriodEndsOn);
 
 /// <param name="Since">The day the trainer accepted.</param>
 /// <param name="IsActive">False once the desk has deactivated the member.</param>

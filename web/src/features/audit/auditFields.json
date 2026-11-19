@@ -35,6 +35,7 @@
     "TrainerRequest": "درخواست مربی",
     "TrainerLink": "مربی عضو",
     "CoachingPeriod": "دورهٔ مربی‌گری شاگرد",
+    "RenewalRequest": "درخواست تمدید شاگرد",
     "WeekPattern": "الگوی هفتگی مربی",
     "WeekPatternSession": "سانس الگوی هفتگی",
     "TimetableDay": "روز جداگانهٔ برنامهٔ مربی",
@@ -282,6 +283,12 @@
       "LinkId": { "label": "مربی عضو", "format": "reference" },
       "StartsOn": { "label": "از تاریخ" },
       "EndsOn": { "label": "تا تاریخ" }
+    },
+    "RenewalRequest": {
+      "LinkId": { "label": "مربی عضو", "format": "reference" },
+      "PeriodEndsOn": { "label": "روز آخر دوره هنگام درخواست" },
+      "Status": { "label": "وضعیت", "format": "renewalRequestStatus" },
+      "AnsweredOn": { "label": "روز پاسخ مربی" }
     },
     "WeekPattern": { "StartsOn": { "label": "از تاریخ" } },
     "WeekPatternSession": {

@@ -61,8 +61,10 @@ test("SiteCoaching_MemberPicksTrainer_TrainerAcceptsAndSeesTheStudent", async ({
   const requests = trainerPage.getByRole("list", { name: "درخواست‌ها" });
   await expect(requests).toContainText(member.fullName);
   await requests.getByRole("button", { name: "پذیرفتن" }).click();
-  // The coaching period's days (15.7h): the 30 the box starts with.
+  // The coaching period's days (15.7h): the 30 the box starts with. Seven are typed, so the
+  // member is in the period's last days at once and may ask for a renewal below (15.7o).
   await expect(requests.getByRole("textbox", { name: "دورهٔ مربی‌گری" })).toHaveValue("۳۰");
+  await requests.getByRole("textbox", { name: "دورهٔ مربی‌گری" }).fill("7");
   await requests.getByRole("button", { name: "پذیرفتن" }).click();
   await expect(trainerPage.getByRole("link", { name: "شاگردان من (۱)" })).toBeVisible();
   await trainerPage.getByRole("link", { name: "شاگردان من (۱)" }).click();
@@ -78,6 +80,22 @@ test("SiteCoaching_MemberPicksTrainer_TrainerAcceptsAndSeesTheStudent", async ({
   await page.getByRole("button", { name: "دیدم" }).click();
   await expect(news).toBeHidden();
   await expect(page.getByRole("button", { name: "پایان مربی‌گری" })).toBeVisible();
+
+  // «درخواست تمدید» (15.7o): seven days left, so the member may ask; the trainer renews it from
+  // «درخواست‌ها», asked first, and the member sees the new days left.
+  await page.getByRole("button", { name: "درخواست تمدید" }).click();
+  await expect(page.getByText("درخواست تمدید در انتظار پاسخ مربی")).toBeVisible();
+  await trainerPage.reload();
+  await expect(requests).toContainText("درخواست تمدید، دوره تا");
+  await requests.getByRole("button", { name: "تمدید" }).click();
+  await expect(requests.getByRole("textbox", { name: "تمدید" })).toHaveValue("۳۰");
+  await requests.getByRole("button", { name: "تمدید" }).click();
+  await trainerPage.getByRole("dialog").getByRole("button", { name: "بله، تمدید" }).click();
+  await expect(trainerPage.getByRole("heading", { name: /^درخواست‌ها/ })).toBeHidden();
+  await page.reload();
+  await expect(page.getByText(/^دورهٔ مربی‌گری تا /)).toContainText("۳۷ روز مانده");
+  await expect(page.getByText("درخواست تمدید در انتظار پاسخ مربی")).toBeHidden();
+  await expect(page.getByRole("button", { name: "درخواست تمدید" })).toBeHidden();
 
   // The member ends it; the trainer hears of it in «خبر شاگردان» (15.4d).
   await page.getByRole("button", { name: "پایان مربی‌گری" }).click();

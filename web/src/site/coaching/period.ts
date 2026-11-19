@@ -96,3 +96,11 @@ export function nextPeriodStart(endsOn: string | null | undefined, today: string
 export function periodEnd(startsOn: string, days: number): string {
   return addDays(startsOn, days - 1);
 }
+
+/**
+ * The question before «تمدید» (the developer's wording, 1405/08/24), on «برنامهٔ ثابت» and on a
+ * student's «درخواست تمدید» (15.7o): «دورهٔ مربی‌گری مینا رضایی تا ۱۹ آذر ۱۴۰۵ تمدید شود؟».
+ */
+export function renewQuestion(fullName: string, lastDay: string): string {
+  return `دورهٔ مربی‌گری ${fullName} تا ${formatDate(lastDay)} تمدید شود؟`;
+}

@@ -1841,22 +1841,6 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   §9); the amount is read out to a screen reader
   and is on «تنظیمات پیامک», which the box opens (1405/08/01, when the new look met the SMS
   release; the developer may ask for the amount back).
-- **The server reminder (شارژ سرور)** (decided with the developer, 1405/08/24, task 13.6): the
-  server is paid every month, outside the panel, and nothing can ask the provider how long is
-  left, so the panel reminds by the calendar alone. Decided by the developer:
-  - the payment is due on the **1st of every Jalali month**;
-  - the Owner sees a box in the header, beside the SMS credit, from **five days before** that 1st;
-  - it stays until the Owner presses it and confirms «شارژ کردم», which hides it until the next
-    month's five days. It never goes away by itself: when the 1st comes and nobody confirmed, it
-    stays and says the server is not paid;
-  - **no SMS**: the header is the reminder, as for the SMS credit;
-  - **on a phone** (below 1024px) only its coloured icon, small like the SMS credit's, so nothing
-    else in the header moves or breaks (asked by the developer the same day).
-
-  Still to settle at the start of 13.6 (Claude's proposals, not decided): orange while days are
-  left, red and blinking from the 1st; the words («۵ روز تا شارژ سرور», «سرور شارژ نشده»); the
-  confirmation kept in the database with who and when, so Staff never see it and a second browser
-  agrees.
 - **Resend:** the Owner can resend a `Failed` or `Unknown` message by hand, and a sent one that
   **Kavenegar cancelled** (`13`: it never reached the phone and its cost was given back; decided
   with the developer, 1405/08/01, task 10.16). A delivered, not delivered or blocked one cannot be
@@ -2706,7 +2690,24 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     رد شد» until they ask again. A «تمدید» the trainer makes on «برنامهٔ ثابت» answers a waiting
     request too.
   - **No money in the app**: the member pays as before, to the trainer or at the desk.
-  - **Ending the coaching closes a waiting request.**
+  - **Ending the coaching closes a waiting request**, however it ends: the member or the trainer
+    ends it, another trainer takes the member over, or the Owner stops the trainer.
+  - **Decided with 15.7o's plan** (1405/08/28; *proposed by Claude, accepted by the developer*):
+    - **«درخواست تمدید رد شد» shows only while the last day is the one asked about**: a «تمدید» or a
+      «ویرایش» that moves the last day afterwards hides it, as it hides the button once more than
+      *N* days are left.
+    - **A «ویرایش دوره» that moves the last day later answers a waiting request**, as a «تمدید»
+      does; one that moves it earlier leaves the request waiting for the trainer's answer.
+    - **A member the desk deactivates**: their waiting request is left out of «درخواست‌ها» and
+      cannot be answered there until the desk activates them again, as a request to be a trainer
+      (*A member and their trainer*); they cannot ask meanwhile, their area being shut. A «تمدید»
+      on «برنامهٔ ثابت» still answers it.
+    - **Asking needs no confirmation and has no daily limit**: it costs no SMS, and it can be taken
+      back. «رد کردن» asks nothing either, since the member may ask again.
+    - **The member is not told of a renewal by a card**: the waiting line goes, and «مربی من» shows
+      the new days left.
+    - The request is kept, never deleted, with the last day it was asked about; everything here is
+      in the audit log as «سیستم» (§11), as the site's other actions.
 - **The period's last days (پیامک پایان دوره)** (*decided by the developer*, 1405/08/24, in place
   of "no SMS for it"; the details proposed by Claude and accepted):
   - **One SMS to the student** when the coaching has **at most *N* days left** (its last day counts

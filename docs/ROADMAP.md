@@ -3956,16 +3956,6 @@ Closed 2026-10-25: 2728 backend tests (965 domain, 1763 integration; 5 new) and 
 migration; one new endpoint, read only, so a rollback to `20261025-0344-23fdcdd` is safe.
 `npm run e2e` and `npm run screenshots` are left for the release night.
 
-### 13.6 The server reminder (یادآور شارژ سرور)
-Asked by the developer on 1405/08/24 (2026-11-15): the server is paid at the start of every Jalali
-month, and the Owner should see it coming, like the SMS credit in the header. Rules:
-BUSINESS_RULES.md §10 *The server reminder*. Not started; a task of its own, in its own session.
-- [ ] Settle the open points in the rule (colours, words, phone, where the confirmation is kept)
-- [ ] The header box for the Owner, from five days before the 1st, until «شارژ کردم» is confirmed
-- [ ] On a phone only the small coloured icon, like the SMS credit; the header measured before and
-      after at ~390px so nothing else moves (asked by the developer)
-- [ ] Tests, and the box shown to the developer at a phone's width and on a computer
-
 ---
 
 ## Phase 14 — The public site (سایت اصلی)
@@ -5059,10 +5049,44 @@ on its own branch and session, in this order (proposed by Claude, accepted):
     new last day, none for ended/deactivated/unset/over/short/renewed, the kind off, the unique
     index and the checks; the settings endpoint; the samples; `periodSoonDays` on the list), Vitest
     (the card, its save and refusals, the badge's week, the site's mark at 7 and 10)
-- [ ] **15.7o, «درخواست تمدید»** (backend, screens, migration): the member asks in «مربی من» from
-      *N* days left and after the end; one waiting per link, «لغو درخواست»; the trainer answers in
-      «درخواست‌ها» with «تمدید» (days box, asked first) or «رد کردن»; a «تمدید» on «برنامهٔ ثابت»
-      answers it; ending the coaching closes it
+- [x] **15.7o, «درخواست تمدید»** (built 1405/08/28 on `task/15.7o-renewal-requests`, from 15.7n's
+      branch; backend, screens, migration): the member asks in «مربی من» from *N* days left and
+      after the end; one waiting per link, «لغو درخواست»; the trainer answers in «درخواست‌ها» with
+      «تمدید» (days box, asked first) or «رد کردن»; a «تمدید» on «برنامهٔ ثابت» answers it; ending
+      the coaching closes it. The developer took Claude's five proposals with the plan (§15 *The
+      coaching period*, *Decided with 15.7o's plan*): the decline shows only while the last day is
+      the one asked about; a later «ویرایش» answers it, an earlier one does not; a deactivated
+      member's request is left out of «درخواست‌ها»; no confirmation and no daily limit for asking;
+      no card for the member when renewed. Released with 15.7n (its SMS points here)
+  - **Domain**: `RenewalRequest` (`Create(link, today, soonDays)`, `CanAsk`, `Renew`, `Decline`,
+    `Cancel`, `CloseForEndedLink`, `ShowsDecline`; the last day asked about kept as
+    `PeriodEndsOn`), `RenewalRequestStatus`; errors `Coaching.RenewalNotYet`, `NoRenewalRequest`,
+    `RenewalRequestNotFound`, `RenewalNoLongerPending`
+  - **Database**: migration `AddRenewalRequests` (adds only: `renewal_requests` with the partial
+    unique index `ux_renewal_requests_one_pending_per_link`, an index on link and creation, checks
+    on the status, «the answer has a day» and «not answered before asked»)
+  - **Application/API**: `POST /my-trainer/renewal-request` and `.../cancel` (member);
+    `POST /coaching/renewal-requests/{id}/accept { days }` and `.../decline` (trainer, the accept
+    renews as «تمدید» does, under the coaching lock then the trainer's); «مربی من» carries `renewal`
+    and `canAskRenewal`, the trainer's list `renewalRequests`; `RenewalRequests` (Application/Coaching)
+    answers a waiting one from «تمدید» and a later «ویرایش», and closes it at each of the four ends
+    of a link (the member, the trainer, a new trainer, the Owner stopping the trainer);
+    `CoachingPeriods.SoonDaysAsync` shared with the trainer's mark; audit labels; types regenerated
+  - **Screens**: «درخواست تمدید», «درخواست تمدید در انتظار پاسخ مربی» with «لغو درخواست» and
+    «درخواست تمدید رد شد» in «مربی من» (`RenewalPart`); the renewals under the requests in
+    `TrainerRequestsCard`, counted in its title, «درخواست تمدید، دوره تا …» or «… تمام شد», «تمدید»
+    with the days box from the day after the last day and the question, «رد کردن» at once;
+    `PeriodQuestion` and `renewQuestion` moved out of «برنامهٔ ثابت» to share them
+  - **Tests**: domain (the window's edges, the settings' number, no period, an ended link, after a
+    renewal, the answers and the decline's showing), integration (`RenewalRequestTests`, 35: asking,
+    twice, too early, after the end, no period, no trainer, the trainer's token, the audit log;
+    cancelling; «تمدید» before and after the end, the days out of range, taken back meanwhile,
+    another trainer's; declining, asking again, the decline hidden by a moved last day; «تمدید» on
+    the page and «ویرایش» later, earlier and the same; the four ends; a deactivated member; the
+    index and the checks), Vitest (12: the member's three states and the refusal, the trainer's
+    count, details, «تمدید» asked first, cancelling the question, a period over, declining, a
+    refusal), e2e (the coaching spec accepts with 7 days, asks and renews); walked at 390 px and
+    1440 px with a mocked API
 
 ### Release 3 — The monthly assessment (priority 2)
 

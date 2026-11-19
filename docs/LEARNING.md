@@ -2596,3 +2596,13 @@ The question that started this was whether a gym that is entirely internal — I
 - **Count what the message costs.** The accepted text is 137 characters, three SMS parts; a test pins the parts so a wording change that adds a fourth cannot pass unnoticed.
 - **Forwarded flags.** With Microsoft.Testing.Platform, `dotnet test -nologo` passes `-nologo` to the test app, which refuses it and reports "Zero tests ran": not a code problem, a flag in the wrong place.
 - **My notes:**
+
+## 15.7o — «درخواست تمدید»
+
+- **Keep the context a later rule needs.** A decline is shown "while the last day is the one asked about", so the request stores `PeriodEndsOn` when it is made. Without it, the screen could not tell a decline about this period from one about a period the trainer has since renewed or edited.
+- **One request per link, held by the database.** `ux_renewal_requests_one_pending_per_link` is a partial unique index (`WHERE status = 'Pending'`): many old requests per link, never two waiting. The handler also checks under the coaching lock, so a double press returns the one already there instead of an error.
+- **Find every door before you lock it.** "Ending the coaching closes the request" meant listing every place a link ends (`TrainerLink.End` is called in four handlers) and closing it in each, through one helper (`RenewalRequests.CloseForEndedLinksAsync`), with one integration test per door.
+- **The server decides what the screen offers.** «مربی من» sends `canAskRenewal` and `renewal` worked out by the domain's `RenewalRequest.CanAsk` and `ShowsDecline`, the same code that refuses a request asked too early. The screen only draws them, so the button and the rule cannot disagree.
+- **Enums are numbers in JSON unless you say otherwise.** The first test read `"renewal": 1`. This project turns an enum into its name per property (`[property: JsonConverter(typeof(JsonStringEnumConverter<T>))]`), so the generated TypeScript type is `"Pending" | "Declined" | …` and not a bare number.
+- **A file of components exports only components.** ESLint's `react-refresh/only-export-components` refused `renewQuestion` beside `PeriodQuestion`, since Vite's fast refresh reloads such a file as a whole. The text helper went to `period.ts` with the other period functions.
+- **My notes:**

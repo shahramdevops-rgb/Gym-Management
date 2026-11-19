@@ -5,8 +5,11 @@ using Gym.Api.Common;
 using Gym.Api.Filters;
 using Gym.Application.Bookings;
 using Gym.Application.Coaching;
+using Gym.Application.Coaching.AcceptRenewalRequest;
 using Gym.Application.Coaching.AcceptTrainerRequest;
+using Gym.Application.Coaching.CancelRenewalRequest;
 using Gym.Application.Coaching.CancelTrainerRequest;
+using Gym.Application.Coaching.DeclineRenewalRequest;
 using Gym.Application.Coaching.DeclineTrainerRequest;
 using Gym.Application.Coaching.EndMyTrainer;
 using Gym.Application.Coaching.EndStudent;
@@ -16,6 +19,7 @@ using Gym.Application.Coaching.GetStudentNews;
 using Gym.Application.Coaching.GetStudents;
 using Gym.Application.Coaching.ListTrainerChoices;
 using Gym.Application.Coaching.RenewCoachingPeriod;
+using Gym.Application.Coaching.RequestRenewal;
 using Gym.Application.Coaching.RequestTrainer;
 using Gym.Application.Coaching.SetCoachingDaysLeft;
 using Gym.Application.Coaching.SeeMyCoachingNews;
@@ -79,6 +83,22 @@ public static class SiteCoachingEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        // «درخواست تمدید» (15.7o): asked from the period's last days, taken back with «لغو درخواست».
+        member.MapPost("/my-trainer/renewal-request", async (ClaimsPrincipal user, RequestRenewalHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
+            .WithName("RequestRenewal")
+            .Produces<MyTrainerResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+
+        member.MapPost("/my-trainer/renewal-request/cancel", async (ClaimsPrincipal user, CancelRenewalRequestHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
+            .WithName("CancelRenewalRequest")
+            .Produces<MyTrainerResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         member.MapGet("/my-trainer/news", async (ClaimsPrincipal user, GetMyCoachingNewsHandler handler, CancellationToken ct) =>
                 (await handler.Handle(SiteUser.AccountId(user), ct)).ToHttpResult())
             .WithName("GetMyCoachingNews")
@@ -116,6 +136,23 @@ public static class SiteCoachingEndpoints
         trainer.MapPost("/requests/{id:guid}/decline", async (Guid id, ClaimsPrincipal user, DeclineTrainerRequestHandler handler, CancellationToken ct) =>
                 (await handler.Handle(SiteUser.AccountId(user), id, ct)).ToHttpResult())
             .WithName("DeclineTrainerRequest")
+            .Produces<StudentsResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        // A student's «درخواست تمدید» (15.7o): «تمدید» with the days typed, or «رد کردن».
+        trainer.MapPost("/renewal-requests/{id:guid}/accept", async (
+                Guid id, ClaimsPrincipal user, AcceptRenewalRequestCommand command, AcceptRenewalRequestHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), id, command, ct)).ToHttpResult())
+            .WithName("AcceptRenewalRequest")
+            .Produces<StudentsResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        trainer.MapPost("/renewal-requests/{id:guid}/decline", async (Guid id, ClaimsPrincipal user, DeclineRenewalRequestHandler handler, CancellationToken ct) =>
+                (await handler.Handle(SiteUser.AccountId(user), id, ct)).ToHttpResult())
+            .WithName("DeclineRenewalRequest")
             .Produces<StudentsResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);

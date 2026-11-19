@@ -1,4 +1,5 @@
 using Gym.Application.Common;
+using Gym.Domain.Notifications;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,16 @@ namespace Gym.Application.Coaching;
 /// <summary>Reading a link's coaching period (BUSINESS_RULES.md §15 <i>The coaching period</i>, 15.7h).</summary>
 internal static class CoachingPeriods
 {
+    /// <summary>
+    /// The period's last days, the SMS settings' number for them (15.7n), on or off: from then the
+    /// trainer's list marks the student and the student may ask for a renewal (15.7o).
+    /// </summary>
+    public static Task<int> SoonDaysAsync(IAppDbContext db, CancellationToken cancellationToken) =>
+        db.SmsSettings.AsNoTracking()
+            .Where(settings => settings.Id == SmsSettings.TheId)
+            .Select(settings => settings.CoachingPeriodEndingDays)
+            .SingleAsync(cancellationToken);
+
     /// <summary>The last day of the link's last period; <c>null</c> for a link made before 15.7h that has none yet.</summary>
     public static Task<DateOnly?> EndsOnAsync(IAppDbContext db, Guid linkId, CancellationToken cancellationToken) =>
         db.CoachingPeriods

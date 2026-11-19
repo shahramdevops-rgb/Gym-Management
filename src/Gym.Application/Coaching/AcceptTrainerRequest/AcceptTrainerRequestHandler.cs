@@ -63,6 +63,7 @@ public sealed class AcceptTrainerRequestHandler(IAppDbContext db, IGymCalendar c
         if (earlier is not null)
         {
             earlier.End(today, TrainerLinkEndReason.NewTrainer);
+            await RenewalRequests.CloseForEndedLinksAsync(db, [earlier.Id], cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
         }
 

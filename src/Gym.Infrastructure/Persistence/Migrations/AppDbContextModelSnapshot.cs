@@ -1163,6 +1163,78 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Gym.Domain.Coaching.RenewalRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly?>("AnsweredOn")
+                        .HasColumnType("date")
+                        .HasColumnName("answered_on");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("LinkId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("link_id");
+
+                    b.Property<DateOnly>("PeriodEndsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("period_ends_on");
+
+                    b.Property<DateOnly>("RequestedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("requested_on");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_renewal_requests");
+
+                    b.HasIndex("LinkId", "CreatedAt")
+                        .HasDatabaseName("ix_renewal_requests_link_id_created_at");
+
+                    b.HasIndex(new[] { "LinkId" }, "OnePendingRenewal")
+                        .IsUnique()
+                        .HasDatabaseName("ux_renewal_requests_one_pending_per_link")
+                        .HasFilter("status = 'Pending'");
+
+                    b.ToTable("renewal_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_renewal_requests_answered_on_not_before_requested_on", "answered_on IS NULL OR answered_on >= requested_on");
+
+                            t.HasCheckConstraint("ck_renewal_requests_answered_on_with_answer", "(answered_on IS NOT NULL) = (status IN ('Renewed', 'Declined'))");
+
+                            t.HasCheckConstraint("ck_renewal_requests_status", "status IN ('Pending', 'Renewed', 'Declined', 'Cancelled', 'LinkEnded')");
+                        });
+                });
+
             modelBuilder.Entity("Gym.Domain.Coaching.TrainerLink", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4807,6 +4879,16 @@ namespace Gym.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_coaching_periods_trainer_links_link_id");
+                });
+
+            modelBuilder.Entity("Gym.Domain.Coaching.RenewalRequest", b =>
+                {
+                    b.HasOne("Gym.Domain.Coaching.TrainerLink", null)
+                        .WithMany()
+                        .HasForeignKey("LinkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_renewal_requests_trainer_links_link_id");
                 });
 
             modelBuilder.Entity("Gym.Domain.Coaching.TrainerLink", b =>

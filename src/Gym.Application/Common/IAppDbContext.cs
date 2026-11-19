@@ -108,6 +108,8 @@ public interface IAppDbContext
 
     DbSet<CoachingPeriod> CoachingPeriods { get; }
 
+    DbSet<RenewalRequest> RenewalRequests { get; }
+
     DbSet<WeekPattern> WeekPatterns { get; }
 
     DbSet<TimetableDay> TimetableDays { get; }

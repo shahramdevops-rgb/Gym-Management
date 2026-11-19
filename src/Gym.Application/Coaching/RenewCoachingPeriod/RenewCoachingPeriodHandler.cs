@@ -20,6 +20,9 @@ namespace Gym.Application.Coaching.RenewCoachingPeriod;
 /// after a period. A renewal only adds days, so it cuts nothing.
 /// </para>
 /// <para>
+/// <b>It answers the student's «درخواست تمدید»</b> waiting (15.7o), as «تمدید» from «درخواست‌ها» does.
+/// </para>
+/// <para>
 /// Under the coaching lock, so the link cannot end meanwhile, then the trainer's lock, as a schedule
 /// change, so «ذخیره برنامه» reads the period before or after this, never half of it. No handler takes
 /// the two the other way round.
@@ -65,6 +68,9 @@ public sealed class RenewCoachingPeriodHandler(IAppDbContext db, IGymCalendar ca
         {
             await CoachingPeriods.CutAfterAsync(db, link.Id, period.Value.EndsOn, cancellationToken);
         }
+
+        // A «تمدید» here answers the student's «درخواست تمدید» too (15.7o).
+        await RenewalRequests.AnswerWaitingAsync(db, link.Id, today, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

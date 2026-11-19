@@ -9,7 +9,14 @@ import { formatDate, gymToday } from "@/lib/format";
 
 import { ConfirmDialog, quietButtonClassName } from "../components/ConfirmDialog";
 import { sitePaths } from "../paths";
-import { useCancelTrainerRequest, useEndMyTrainer, useMyTrainer } from "./api";
+import {
+  useCancelRenewalRequest,
+  useCancelTrainerRequest,
+  useEndMyTrainer,
+  useMyTrainer,
+  useRequestRenewal,
+  type MyTrainer,
+} from "./api";
 import { periodLine, periodState } from "./period";
 
 /**
@@ -22,13 +29,19 @@ import { periodLine, periodState } from "./period";
  * With a trainer, «تغییر مربی» and «پایان مربی‌گری» are small grey text at the card's foot (the
  * developer, 1405/08/20: "not so much in sight"), as the trainer's «پایان» left their home (15.7g);
  * without one, «انتخاب مربی» is the card's own button.
+ *
+ * «درخواست تمدید» (15.7o) sits under the period's line: the button from the period's last days and
+ * after it is over, the request waiting with «لغو درخواست», or the trainer's decline while the
+ * coaching still ends on the day asked about (`RenewalPart`).
  */
 export function MyTrainerCard() {
   const myTrainer = useMyTrainer();
   const cancel = useCancelTrainerRequest();
   const end = useEndMyTrainer();
+  const askRenewal = useRequestRenewal();
+  const cancelRenewal = useCancelRenewalRequest();
 
-  const failure = cancel.error ?? end.error;
+  const failure = cancel.error ?? end.error ?? askRenewal.error ?? cancelRenewal.error;
 
   return (
     <Card accent={false} className="gap-3 shadow-raised">
@@ -60,6 +73,21 @@ export function MyTrainerCard() {
                   </p>
                 )}
               </div>
+            )}
+
+            {myTrainer.data.trainer !== null && (
+              <RenewalPart
+                trainer={myTrainer.data.trainer}
+                pending={askRenewal.isPending || cancelRenewal.isPending}
+                onAsk={() => {
+                  cancelRenewal.reset();
+                  askRenewal.mutate(undefined);
+                }}
+                onCancel={() => {
+                  askRenewal.reset();
+                  cancelRenewal.mutate(undefined);
+                }}
+              />
             )}
 
             {myTrainer.data.request !== null && (
@@ -104,5 +132,51 @@ export function MyTrainerCard() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * «درخواست تمدید» (BUSINESS_RULES.md §15 *The coaching period*, roadmap 15.7o). The API says what
+ * shows: `renewal` (waiting, or declined while the last day is the one asked about) and
+ * `canAskRenewal` (the period's last days or after it is over, nothing waiting). Asking asks nothing
+ * first: it costs no SMS and can be taken back.
+ */
+function RenewalPart({
+  trainer,
+  pending,
+  onAsk,
+  onCancel,
+}: {
+  trainer: NonNullable<MyTrainer["trainer"]>;
+  pending: boolean;
+  onAsk: () => void;
+  onCancel: () => void;
+}) {
+  if (trainer.renewal === "Pending") {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed p-3">
+        <p className="text-sm">درخواست تمدید در انتظار پاسخ مربی</p>
+        <Button variant="outline" size="sm" disabled={pending} onClick={onCancel}>
+          لغو درخواست
+        </Button>
+      </div>
+    );
+  }
+
+  if (!trainer.canAskRenewal && trainer.renewal !== "Declined") {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2">
+      {trainer.renewal === "Declined" && (
+        <p className="text-sm text-warning-ink">درخواست تمدید رد شد</p>
+      )}
+      {trainer.canAskRenewal && (
+        <Button variant="secondary" className="w-full" disabled={pending} onClick={onAsk}>
+          درخواست تمدید
+        </Button>
+      )}
+    </div>
   );
 }
