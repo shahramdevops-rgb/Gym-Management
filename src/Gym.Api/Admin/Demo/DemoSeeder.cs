@@ -625,6 +625,7 @@ public sealed class DemoSeeder
             Broadcast: new BroadcastSettings(true),
             TrainerRequest: new TrainerRequestSettings(true),
             SessionCancelled: new SessionCancelledSettings(true),
+            CoachingPeriodEnding: new SmsKindSettings(true, SmsSettings.DefaultCoachingPeriodEndingDays, new TimeOnly(12, 0)),
             Version: version);
 
         await MustAsync<UpdateSmsSettingsHandler, SmsSettingsResponse>(

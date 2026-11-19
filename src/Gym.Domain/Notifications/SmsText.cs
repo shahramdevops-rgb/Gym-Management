@@ -339,6 +339,26 @@ public static class SmsText
             : $"{FirstName(memberFullName)} عزیز، {session} و {Number(others)} سانس دیگر لغو شد؛ همه را در اپ «باشگاه من» ببینید.");
     }
 
+    /// <summary>
+    /// The line above the opt-out in the coaching period's SMS (task 15.7n): the student reads who
+    /// sends it, since the message speaks of a trainer, not of the gym.
+    /// </summary>
+    public const string GymSignature = "باشگاه پاسارگاد";
+
+    /// <summary>
+    /// To the student whose coaching period has a few days left (task 15.7n, BUSINESS_RULES.md §15
+    /// <i>The coaching period</i>): the real days left and the trainer's name, and where to ask for a
+    /// renewal (written by Claude, accepted by the developer 1405/08/24).
+    /// </summary>
+    /// <param name="daysLeft">The coaching's days left, its last day counting as one; not the settings' number.</param>
+    public static string ForCoachingPeriodEnding(string memberFullName, string trainerFullName, int daysLeft)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(daysLeft);
+
+        return WithOptOut(
+            $"{FirstName(memberFullName)} عزیز، {Number(daysLeft)} روز تا پایان دورهٔ مربی‌گری‌ات با مربی {Fit(trainerFullName, MaxTrainerNameWords)} مونده. برای ادامه، از اپ باشگاه درخواست تمدید بده.\n{GymSignature}");
+    }
+
     /// <summary><c>2026-11-07</c> → <c>شنبه</c>.</summary>
     public static string DayName(DateOnly date) => DayNames[(int)date.DayOfWeek];
 

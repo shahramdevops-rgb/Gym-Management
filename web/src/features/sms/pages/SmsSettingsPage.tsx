@@ -3,6 +3,7 @@ import { Controller, useForm, useWatch, type UseFormReturn } from "react-hook-fo
 import { useLocation } from "react-router";
 
 import { FormField, MoneyField, SelectField } from "@/components/FormField";
+import { NewBadge } from "@/components/NewBadge";
 import { PageHeader } from "@/components/PageHeader";
 import { SaveRow, StaleAlert, type SaveNotice } from "@/components/SaveRow";
 import { LoadingState } from "@/components/States";
@@ -78,7 +79,15 @@ interface KindText {
   /** The numbers the server accepts, shown inside the empty box. */
   range: string;
   hint?: string;
+  /** The first day its «جدید» badge is gone (`NewBadge`), for a kind the last release added. */
+  newUntil?: string;
 }
+
+/**
+ * «جدید» on the coaching period's card (task 15.7n) until this day. TO SET AT RELEASE: one week after
+ * the release day, as `navigation.ts` does.
+ */
+const periodEndingNewUntil = "2026-12-03";
 
 /** Each kind's words on the page (BUSINESS_RULES.md §10 *The four kinds*; the texts in docs/sms-texts.md). */
 const kindText: Record<SmsKind, KindText> = {
@@ -110,6 +119,15 @@ const kindText: Record<SmsKind, KindText> = {
       "به عضو فعالی که پلن قابل‌استفاده دارد (نه فریز، نه تک‌جلسه) و این تعداد روز نیامده؛ اگر از شروع پلن نیامده، از روز شروع شمرده می‌شود. در هر غیبت یک بار؛ بعد از آمدن دوباره، غیبت بعدی پیامک خودش را دارد.",
     thresholdLabel: "چند روز نیامده",
     range: "۷ تا ۶۰",
+  },
+  coachingPeriodEnding: {
+    title: "پایان دورهٔ مربی‌گری",
+    description:
+      "به شاگردی که تا پایان دورهٔ مربی‌گری‌اش این تعداد روز یا کمتر مانده (روز آخر هم یک روز است). برای هر روز آخر یک بار؛ اگر مربی تمدید یا ویرایش کند، روز آخر تازه پیامک خودش را دارد.",
+    thresholdLabel: "چند روز مانده",
+    range: "۳ تا ۱۴",
+    hint: "مربی هم از همین روز در «شاگردان من» علامت می‌بیند، حتی وقتی این پیامک خاموش است. دوره‌ای که خودش این تعداد روز یا کوتاه‌تر است پیامک نمی‌گیرد.",
+    newUntil: periodEndingNewUntil,
   },
 };
 
@@ -286,6 +304,8 @@ function SmsSettingsForm({ current, notice, onNotice, onStale, stale }: SmsSetti
         <DebtReminderFieldset form={form} />
         <KindFieldset kind="absence" form={form} />
         <WelcomeBackFieldset form={form} delayMinutes={current.welcomeBack.delayMinutes} />
+        {/* §10: it goes to the student, so it is with the members' kinds (task 15.7n). */}
+        <KindFieldset kind="coachingPeriodEnding" form={form} />
       </KindSection>
 
       {/* Two boxes and one: side by side on a wide screen, so neither leaves a row half empty. */}
@@ -391,6 +411,8 @@ interface KindCardProps {
   /** The message as it reaches the phone; the broadcast draws its own, as the Owner types. */
   preview?: ReactNode;
   id?: string;
+  /** A «جدید» badge beside the title, for a kind the last release added. */
+  badge?: ReactNode;
 }
 
 /**
@@ -398,8 +420,13 @@ interface KindCardProps {
  * and its message at the foot, so the boxes of a row line up. A fieldset named by its title, so the
  * fields inside are announced as this kind's.
  */
-function KindCard({ title, toggle, description, children, preview, id }: KindCardProps) {
+function KindCard({ title, toggle, description, children, preview, id, badge }: KindCardProps) {
   const titleId = useId();
+  const heading = (
+    <h4 id={titleId} className="font-semibold">
+      {title}
+    </h4>
+  );
 
   return (
     <fieldset
@@ -408,9 +435,15 @@ function KindCard({ title, toggle, description, children, preview, id }: KindCar
       className="flex min-w-0 scroll-mt-4 flex-col gap-4 rounded-xl border bg-card p-4 shadow-card tone-strip max-lg:p-3"
     >
       <div className="flex items-center justify-between gap-3">
-        <h4 id={titleId} className="font-semibold">
-          {title}
-        </h4>
+        {/* Only a card with a badge gets the extra box, so the others stay exactly as they were. */}
+        {badge === undefined ? (
+          heading
+        ) : (
+          <div className="flex items-center gap-2">
+            {heading}
+            {badge}
+          </div>
+        )}
         {toggle}
       </div>
       <p className="text-sm text-muted-foreground">{description}</p>
@@ -504,6 +537,7 @@ function KindFieldset({ kind, form, children }: KindFieldsetProps) {
     <KindCard
       title={text.title}
       description={text.description}
+      badge={text.newUntil === undefined ? undefined : <NewBadge until={text.newUntil} />}
       preview={<SamplePreview kind={kind} />}
       toggle={
         <Controller

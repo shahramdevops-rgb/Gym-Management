@@ -517,6 +517,32 @@ public sealed class SmsTextTests
             .ShouldBeLessThanOrEqualTo(2);
     }
 
+    [Fact]
+    public void ForCoachingPeriodEnding_IsTheAgreedTextWithTheGymOnItsOwnLine()
+    {
+        SmsText.ForCoachingPeriodEnding("سید علی رضایی", "علی شریفی‌پور", daysLeft: 7)
+            .ShouldBe("علی عزیز، ۷ روز تا پایان دورهٔ مربی‌گری‌ات با مربی علی شریفی‌پور مونده. برای ادامه، از اپ باشگاه درخواست تمدید بده."
+                + "\nباشگاه پاسارگاد" + OptOutLine);
+    }
+
+    [Fact]
+    public void ForCoachingPeriodEnding_RealDaysLeft_InPersianDigits()
+    {
+        SmsText.ForCoachingPeriodEnding("علی رضایی", "مهدی نوری", daysLeft: 12).ShouldContain("علی عزیز، ۱۲ روز تا پایان");
+    }
+
+    [Fact]
+    public void ForCoachingPeriodEnding_LongTrainerName_KeepsItsFirstThreeWords()
+    {
+        SmsText.ForCoachingPeriodEnding("علی رضایی", LongName, daysLeft: 3).ShouldContain("با مربی سید محمد حسین مونده.");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void ForCoachingPeriodEnding_NoDaysLeft_Throws(int daysLeft) =>
+        Should.Throw<ArgumentOutOfRangeException>(() => SmsText.ForCoachingPeriodEnding("علی رضایی", "مهدی نوری", daysLeft));
+
     [Theory]
     [InlineData(2026, 11, 7, "شنبه")]
     [InlineData(2026, 11, 10, "سه‌شنبه")]

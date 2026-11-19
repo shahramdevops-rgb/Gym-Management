@@ -44,6 +44,7 @@ const empty: SmsSettings = {
   broadcast: { enabled: false },
   trainerRequest: { enabled: false, morningSendTime: "10:00:00" },
   sessionCancelled: { enabled: false, openingSendTime: "08:00:00", daysAhead: 7 },
+  coachingPeriodEnding: { enabled: false, threshold: 7, sendTime: null },
   version: 1,
 };
 
@@ -75,6 +76,7 @@ const filled: SmsSettings = {
   broadcast: { enabled: true },
   trainerRequest: { enabled: false, morningSendTime: "10:00:00" },
   sessionCancelled: { enabled: false, openingSendTime: "08:00:00", daysAhead: 7 },
+  coachingPeriodEnding: { enabled: false, threshold: 7, sendTime: null },
   version: 5,
 };
 
@@ -117,6 +119,10 @@ const samples: SmsSamples = {
     sample("علی عزیز، سانس چهارشنبه ۰۸/۱۳ ساعت ۱۸:۳۰ شما با مربی مهدی نوری لغو شد.\nلغو11", 2),
     sample("علی عزیز، … و ۵ سانس دیگر لغو شد؛ همه را در اپ «باشگاه من» ببینید.\nلغو11", 2),
   ],
+  coachingPeriodEnding: sample(
+    "علی عزیز، ۷ روز تا پایان دورهٔ مربی‌گری‌ات با مربی علی شریفی‌پور مونده. برای ادامه، از اپ باشگاه درخواست تمدید بده.\nباشگاه پاسارگاد\nلغو11",
+    3,
+  ),
 };
 
 /** The phone-like preview inside one kind's card. */
@@ -309,6 +315,8 @@ describe("SmsSettingsPage", () => {
       "چک و قسط",
       "یادآوری بدهی",
       "پیامک غیبت",
+      // Its days start at 7 (task 15.7n), but it has no time yet.
+      "پایان دورهٔ مربی‌گری",
     ]) {
       expect(switchOf(name)).not.toBeChecked();
       expect(switchOf(name)).toBeDisabled();
@@ -316,7 +324,7 @@ describe("SmsSettingsPage", () => {
     }
     expect(
       screen.getAllByText("برای روشن کردن، اول همهٔ خانه‌های این بخش را پر کنید."),
-    ).toHaveLength(6);
+    ).toHaveLength(7);
   });
 
   it("SmsSettingsPage_KindFilled_UnlocksItsSwitch", async () => {
@@ -447,6 +455,7 @@ describe("SmsSettingsPage", () => {
       broadcast: { enabled: false },
       trainerRequest: { enabled: false },
       sessionCancelled: { enabled: false },
+      coachingPeriodEnding: { enabled: false, threshold: 7, sendTime: null },
       version: empty.version,
     });
   });
@@ -931,6 +940,85 @@ describe("SmsSettingsPage", () => {
 
     await waitFor(() => expect(switchOf("پیامک غیبت")).toBeChecked());
     expect(group("پیامک غیبت").getByLabelText(/^چند روز/)).toHaveValue("۱۴");
+  });
+
+  // ---- The coaching period's last days (task 15.7n) ----
+
+  it("SmsSettingsPage_CoachingPeriodEnding_IsWithTheMembersKindsStartingAtSevenDays", async () => {
+    ownerWith(empty);
+    renderApp("/sms-settings", { session: session() });
+
+    const members = within(await screen.findByRole("region", { name: "پیامک به اعضا" }));
+    const card = within(members.getByRole("group", { name: "پایان دورهٔ مربی‌گری" }));
+    expect(card.getByLabelText(/^چند روز/)).toHaveValue("۷");
+    expect(card.getByText(/مربی هم از همین روز در «شاگردان من» علامت می‌بیند/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(previewOf("پایان دورهٔ مربی‌گری")).toHaveTextContent("با مربی علی شریفی‌پور مونده."),
+    );
+  });
+
+  it("SmsSettingsPage_CoachingPeriodEndingFilledAndOn_SendsItsDaysAndTime", async () => {
+    const api = ownerWith(empty, {
+      "PUT /api/sms/settings": () => json(200, { ...filled, version: 2 }),
+    });
+    renderApp("/sms-settings", { session: session() });
+    await screen.findByRole("group", { name: "پایان دورهٔ مربی‌گری" });
+
+    // Its days are already there, so only the time is missing before it can be turned on.
+    expect(switchOf("پایان دورهٔ مربی‌گری")).toBeDisabled();
+    fillKind("پایان دورهٔ مربی‌گری", "۱۰", "12");
+    fireEvent.click(switchOf("پایان دورهٔ مربی‌گری"));
+    fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+    expect(await screen.findByText("تغییرها ثبت شد.")).toBeInTheDocument();
+    const body = await api.requestsTo("PUT", "/api/sms/settings")[0]!.clone().json();
+    expect(body.coachingPeriodEnding).toEqual({
+      enabled: true,
+      threshold: 10,
+      sendTime: "12:00:00",
+    });
+  });
+
+  it.each(["", "۲", "15"])(
+    "SmsSettingsPage_CoachingPeriodEndingDaysEmptyOrOutOfRange_IsRefusedBeforeAnythingIsSent (%s)",
+    async (days) => {
+      const api = ownerWith(empty);
+      renderApp("/sms-settings", { session: session() });
+      await screen.findByRole("group", { name: "پایان دورهٔ مربی‌گری" });
+
+      fireEvent.change(group("پایان دورهٔ مربی‌گری").getByLabelText(/^چند روز/), {
+        target: { value: days },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "ذخیره" }));
+
+      expect(
+        await group("پایان دورهٔ مربی‌گری").findByText("تعداد روز باید از ۳ تا ۱۴ باشد."),
+      ).toBeInTheDocument();
+      expect(api.requestsTo("PUT", "/api/sms/settings")).toHaveLength(0);
+    },
+  );
+
+  it("SmsSettingsPage_CoachingPeriodEnding_IsMarkedNewUntilItsDay", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-11-25T08:00:00Z"));
+      ownerWith(empty);
+      const { unmount } = renderApp("/sms-settings", { session: session() });
+
+      await screen.findByRole("group", { name: "پایان دورهٔ مربی‌گری" });
+      expect(group("پایان دورهٔ مربی‌گری").getByText("جدید")).toBeInTheDocument();
+      // Only the new kind: the absence SMS has been there for a while.
+      expect(group("پیامک غیبت").queryByText("جدید")).not.toBeInTheDocument();
+      unmount();
+
+      vi.setSystemTime(new Date("2026-12-03T08:00:00Z"));
+      renderApp("/sms-settings", { session: session() });
+
+      await screen.findByRole("group", { name: "پایان دورهٔ مربی‌گری" });
+      expect(group("پایان دورهٔ مربی‌گری").queryByText("جدید")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("SmsSettingsPage_DebtReminderSaved_ShowsItOnWithItsAmount", async () => {

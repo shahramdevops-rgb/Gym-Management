@@ -14,8 +14,16 @@ export const periodMinDays = 7;
 export const periodMaxDays = 84;
 /** The fewest days left of a link made before 15.7h. */
 export const periodMinDaysLeft = 1;
-/** From this many days left the trainer's list marks the student (proposed by Claude, accepted). */
-export const periodSoonDays = 3;
+
+/**
+ * From how many days left the trainer's list marks a student: the API's `periodSoonDays`, the SMS
+ * settings' number for the coaching period's last days (BUSINESS_RULES.md §15 *The coaching period*,
+ * roadmap 15.7n, in place of the 3 days of 15.7h), so the trainer sees it the day the student gets
+ * the SMS, on or off.
+ */
+export function soonDaysOf(students: { periodSoonDays: number | string }): number {
+  return Number(students.periodSoonDays);
+}
 
 export type PeriodState =
   | { kind: "unset" }
@@ -59,16 +67,17 @@ export function daysLeftText(daysLeft: number): string {
 
 /**
  * The short mark in «شاگردان من»: only when the trainer has something to do. Days left read «۲ روز»,
- * without «مانده», and the last one «روز آخر» (the developer, 1405/08/20: the mark stays small).
+ * without «مانده», and the last one «روز آخر» (the developer, 1405/08/20: the mark stays small),
+ * from `soonDays` days left (`soonDaysOf`).
  */
-export function periodMark(state: PeriodState): string | null {
+export function periodMark(state: PeriodState, soonDays: number): string | null {
   switch (state.kind) {
     case "unset":
       return "دوره را مشخص کنید";
     case "over":
       return "دوره تمام شد";
     case "running":
-      if (state.daysLeft > periodSoonDays) {
+      if (state.daysLeft > soonDays) {
         return null;
       }
       return state.daysLeft === 1 ? "روز آخر" : `${toPersianDigits(state.daysLeft)} روز`;

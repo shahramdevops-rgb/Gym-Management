@@ -2585,3 +2585,14 @@ The question that started this was whether a gym that is entirely internal — I
 - **Two constants for two edges.** `OnTimeBeforeMinutes` and `OnTimeAfterMinutes` say which side of the start each number is on, where one `OnTimeMinutes` could only ever describe one side.
 - **Test the edges, including seconds.** 12:44 vs 12:45 and 13:05 vs 13:06 pin the window; 13:05:40 proves whole minutes are compared, as the desk shows them.
 - **My notes:**
+
+## 15.7n — The SMS of the period's last days (پیامک پایان دوره)
+
+- **Name the event, and let a unique index keep it once.** "Once per last day" is the pair (trainer link, last day) in two new columns of `notifications`, with a partial unique index on it for this kind only. A «تمدید» or «ویرایش» makes a new pair, so the new last day earns its own SMS with no flag to reset; a second run, or two at once, cannot pay twice because the database refuses the row.
+- **Postgres cuts identifiers at 63 characters.** The first index name was 65, so Postgres stored a shortened one and the test that checked the constraint's name failed. Keep constraint names short, and test them by name: that is how the cut was caught.
+- **A column added to a table that already has rows needs a value for them.** `coaching_period_ending_days` is `NOT NULL`, so the migration's `AddColumn` gives it a default. EF scaffolded `0`, which breaks the 3–14 check; it was hand-edited to `7`, the number the developer chose, so the server's one row is valid at every step.
+- **One exception, written where the rule is.** Every SMS number starts empty, except this one, which the trainer's mark reads even when the SMS is off. `CheckThreshold` refuses an empty number for this kind only, so the entity, the validator and the page all say the same thing from one line.
+- **The query narrows, the domain decides.** The run asks Postgres for open links whose latest period ends in the window (a `let` with `FirstOrDefault` becomes a lateral join); `SmsAudience.CoachingDaysLeftToText` then applies the rule (the last period longer than *N*) and gives the real days left, unit tested without a database.
+- **Count what the message costs.** The accepted text is 137 characters, three SMS parts; a test pins the parts so a wording change that adds a fourth cannot pass unnoticed.
+- **Forwarded flags.** With Microsoft.Testing.Platform, `dotnet test -nologo` passes `-nologo` to the test app, which refuses it and reports "Zero tests ran": not a code problem, a flag in the wrong place.
+- **My notes:**

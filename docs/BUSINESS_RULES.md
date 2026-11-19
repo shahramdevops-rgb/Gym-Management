@@ -1703,6 +1703,7 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   | Absence | on/off, days away, send time | 7–60 days |
   | Welcome back | on/off | half an hour after the check-in, 08:00 until midnight |
   | Broadcast | on/off | sent at once from its own page, 08:00–22:00 |
+  | Coaching period's last days (§15, 15.7n) | on/off, days left, send time | 3–14 days; never empty, 7 to start with |
 
   Every send time is between **08:00 and 22:00** (Asia/Tehran), both included, on a quarter hour
   (:00, :15, :30, :45), chosen as an hour and a minute (decided with the developer, 1405/07/14,
@@ -1719,7 +1720,10 @@ Decided with the developer on 1405/07/14 (2026-10-06), task 10.3.
   receives them: the members, the Owner, the broadcast, and the trainers («پیامک به مربیان», with
   the one kind of §15, 15.4c). The coaching period's last days (§15 *The coaching period*) goes to
   the student, so it is with the members' kinds, with its *N* (3 to 14 days); its sample trainer is
-  «علی شریفی‌پور» (the developer, 1405/08/24).
+  «علی شریفی‌پور» (the developer, 1405/08/24). Its *N* is **the one number that is never empty**,
+  so it is not "empty until the Owner decides" like the others: the trainer's mark in «شاگردان من»
+  reads it whether the SMS is on or off (*proposed by Claude with 15.7n's plan, accepted by the
+  developer 1405/08/28*). The page says so under it.
 - **The broadcast is one card on this page** (*The broadcast*): its switch, and writing and sending
   one, with the message drawn as it is typed. It has no page, tab or menu item of its own, and no
   list of the broadcasts sent: their messages are on «پیامک‌ها». Only the latest, while it is
@@ -2720,6 +2724,11 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     درخواست تمدید بده.» then «باشگاه پاسارگاد» and «لغو11» on their own lines. *{name}* is the
     member's first name (§10), *{days}* the real days left.
   - **No SMS to the trainer**: they see the mark in «شاگردان من» from the same day (below).
+  - **Built with 15.7n** (1405/08/28; *proposed by Claude with the plan, accepted by the developer*):
+    *N* is never empty (§10 *SMS settings*); the trainer's name keeps its first 3 words, as in the
+    cancelled session's SMS, so a long name cannot make it longer still (the text is already three
+    SMS parts, `docs/sms-texts.md`); "the last period" is the link's period that ends latest. The text points to «درخواست تمدید», which comes with 15.7o, so
+    15.7n is released with 15.7o, or the Owner leaves the kind off until then (it starts off).
 - **The fixed program ends on the period's last day or before** (it replaces the 8-week default:
   the last date is the period's by default, never past the timetable's 12 weeks). A period that is
   over takes no program until «تمدید». A renewal does not move the program on by itself: the trainer
@@ -2753,8 +2762,8 @@ roadmap Phase 15. The panel stays for the staff only (§1). Each line says who d
     search finds someone among the inactive ones, the closed part opens by itself, so a match is
     never hidden; with no active student the page says «شاگرد فعالی ندارید.» above the closed part.
     A deactivated member (§2) stays in the part their period puts them in, with the «غیرفعال» of
-    their membership beside the name as before. Until 15.7n, «ending within *N* days» is the 3 days
-    of 15.7h.
+    their membership beside the name as before. Since 15.7n, «ending within *N* days» is the SMS
+    settings' *N*, sent with the list (`periodSoonDays`), in place of the 3 days of 15.7h.
 
 ### The member's own records (15.5)
 - **The member sees in the app everything the panel's profile holds about them, except the SMS

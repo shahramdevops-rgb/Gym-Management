@@ -1,3 +1,4 @@
+using Gym.Domain.Coaching;
 using Gym.Domain.Common;
 using Gym.Domain.Expenses;
 using Gym.Domain.Notifications;
@@ -499,6 +500,47 @@ public sealed class SmsAudienceTests
             .ShouldBeTrue();
     }
 
+    // ---- The coaching period's last days (task 15.7n) ----
+
+    [Theory]
+    [InlineData(8, null)]
+    [InlineData(7, 7)]
+    [InlineData(3, 3)]
+    [InlineData(1, 1)]
+    public void CoachingDaysLeftToText_WithinTheLastDays_GivesTheRealDaysLeft(int daysLeft, int? expected)
+    {
+        // A 30-day period whose last day, counted as one, leaves daysLeft days.
+        var period = PeriodEndingIn(daysLeft, days: 30);
+
+        SmsAudience.CoachingDaysLeftToText(period, Today, daysBefore: 7).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void CoachingDaysLeftToText_LastDayWasYesterday_IsNull()
+    {
+        SmsAudience.CoachingDaysLeftToText(PeriodEndingIn(daysLeft: 0, days: 30), Today, daysBefore: 7).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(7, null)]
+    [InlineData(8, 7)]
+    public void CoachingDaysLeftToText_LastPeriodOfTheDaysOrFewer_IsNull(int days, int? expected)
+    {
+        // Its last day leaves 7 days: a 7-day period began today, an 8-day one yesterday.
+        var period = CoachingPeriod.Of(Guid.NewGuid(), Today.AddDays(7 - days), days);
+
+        SmsAudience.CoachingDaysLeftToText(period, Today, daysBefore: 7).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void CoachingDaysLeftToText_ShortRenewalStartingTomorrow_IsNull()
+    {
+        // A 10-day renewal from tomorrow: 11 days left today, within 14, but the period is shorter than 14.
+        var renewal = CoachingPeriod.Of(Guid.NewGuid(), Today.AddDays(1), 10);
+
+        SmsAudience.CoachingDaysLeftToText(renewal, Today, daysBefore: 14).ShouldBeNull();
+    }
+
     // ---- The absence SMS (task 10.12) ----
 
     [Theory]
@@ -762,6 +804,10 @@ public sealed class SmsAudienceTests
 
         return subscription;
     }
+
+    /// <summary>A period of <paramref name="days"/> days whose last day leaves <paramref name="daysLeft"/> days, today counted.</summary>
+    private static CoachingPeriod PeriodEndingIn(int daysLeft, int days) =>
+        CoachingPeriod.Of(Guid.NewGuid(), Today.AddDays(daysLeft - days), days);
 
     private static DateOnly BornOn(int jalaliMonth, int jalaliDay) => JalaliCalendar.ToDate(1370, jalaliMonth, jalaliDay);
 

@@ -18,6 +18,8 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
     private const int PhoneMaxLength = 13;
 
     // The kinds' column prefixes, as snake_case names them.
+    // The coaching period's last days (task 15.7n) has checks of its own, so the older ones stay as
+    // the server holds them.
     private static readonly string[] Kinds = ["subscription_expiring", "low_sessions", "birthday", "payable_due", "debt_reminder", "absence"];
 
     // «جلسات رو به اتمام»'s rows by the plan's size (task 10.17), as their columns name them.
@@ -72,6 +74,18 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
                     + " AND low_sessions_small_plan_max IS NOT NULL AND low_sessions_medium_plan_max IS NOT NULL"));
             table.HasCheckConstraint("ck_sms_settings_birthday_on_means_filled", OnMeansFilled("birthday", "birthday_days_before"));
             table.HasCheckConstraint("ck_sms_settings_absence_on_means_filled", OnMeansFilled("absence", "absence_days_away"));
+
+            // The coaching period's last days (task 15.7n): its number is never empty, since the
+            // trainer's mark reads it, so on means only that the time is there.
+            var (periodMin, periodMax) = SmsSettings.ThresholdRange(NotificationKind.CoachingPeriodEnding);
+            table.HasCheckConstraint(
+                "ck_sms_settings_coaching_period_ending_days",
+                $"coaching_period_ending_days BETWEEN {periodMin} AND {periodMax}");
+            table.HasCheckConstraint(
+                "ck_sms_settings_coaching_period_ending_send_time", SendTime("coaching_period_ending_send_time"));
+            table.HasCheckConstraint(
+                "ck_sms_settings_coaching_period_ending_on_means_filled",
+                "NOT coaching_period_ending_enabled OR coaching_period_ending_send_time IS NOT NULL");
             table.HasCheckConstraint(
                 "ck_sms_settings_payable_due_on_means_filled",
                 OnMeansFilled("payable_due", "payable_due_days_before", "owner_phone IS NOT NULL"));
@@ -122,6 +136,8 @@ public sealed class SmsSettingsConfiguration : IEntityTypeConfiguration<SmsSetti
             BroadcastEnabled = false,
             TrainerRequestEnabled = false,
             SessionCancelledEnabled = false,
+            CoachingPeriodEndingEnabled = false,
+            CoachingPeriodEndingDays = SmsSettings.DefaultCoachingPeriodEndingDays,
         });
     }
 

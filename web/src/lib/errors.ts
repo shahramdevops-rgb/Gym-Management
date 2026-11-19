@@ -265,6 +265,7 @@ export const errorMessages: Record<string, string> = {
   "Sms.PayableDueDaysOutOfRange": "تعداد روز باید از ۰ تا ۳۰ باشد (۰ یعنی خود روز سررسید).",
   "Sms.DebtReminderDaysOutOfRange": "تعداد روز باید از ۱ تا ۹۰ باشد.",
   "Sms.AbsenceDaysOutOfRange": "تعداد روز باید از ۷ تا ۶۰ باشد.",
+  "Sms.CoachingPeriodEndingDaysOutOfRange": "تعداد روز باید از ۳ تا ۱۴ باشد.",
   "Sms.DebtReminderMinAmountOutOfRange":
     "حداقل مبلغ باید ۱٬۰۰۰ تومان یا بیشتر باشد، با حداکثر دو رقم اعشار.",
   "Sms.SendTimeOutOfRange": "ساعت ارسال باید بین ۸:۰۰ و ۲۲:۰۰ و روی ربع ساعت باشد.",

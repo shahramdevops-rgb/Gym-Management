@@ -5026,10 +5026,39 @@ on its own branch and session, in this order (proposed by Claude, accepted):
   - **Tests**: the domain's edges (12:44 early, 12:45 and 13:05 on time, 13:05:40 still on time,
     13:06 late, an early visit still open at the start, leave and early), the integration cases
     moved to the new window, Vitest for the badge, the «حاضر» box and the seven boxes
-- [ ] **15.7n, the SMS of the period's last days (پیامک پایان دوره)** (backend, panel, migration):
-      a new member kind with its *N* (3 to 14, 7 to start, off at first), once per link and last
-      day, the text in `SmsText` and `docs/sms-texts.md`; the trainer's mark in «شاگردان من» from the
-      same *N* (in place of 3 days)
+- [x] **15.7n, the SMS of the period's last days (پیامک پایان دوره)** (built 1405/08/28 on
+      `task/15.7n-period-end-sms`, from 15.7m's branch; backend, panel, site, migration): a new
+      member kind with its *N* (3 to 14, 7 to start, off at first), once per link and last day, the
+      text in `SmsText` and `docs/sms-texts.md`; the trainer's mark in «شاگردان من» from the same *N*
+      (in place of 3 days). The developer took Claude's three proposals: *N* never empty, the
+      trainer's name cut at 3 words, released with 15.7o (or left off until then). **At release**:
+      set `periodEndingNewUntil` (`SmsSettingsPage.tsx`) to a week after the release day
+  - **Domain**: `NotificationKind.CoachingPeriodEnding`; `Notification.ForCoachingPeriodEnding`
+    with `TrainerLinkId` and `PeriodEndsOn`; `SmsSettings.CoachingPeriodEnding{Enabled,Days,SendTime}`
+    (`DefaultCoachingPeriodEndingDays` 7, `CheckThreshold` refuses an empty number for this kind
+    only), error `Sms.CoachingPeriodEndingDaysOutOfRange`; `SmsAudience.CoachingDaysLeftToText`
+    (1 to *N* days left, the last period longer than *N*); `SmsText.ForCoachingPeriodEnding` with
+    `GymSignature` on its own line (three SMS parts, pointed out to the developer)
+  - **Database**: migration `AddCoachingPeriodSms` (adds only: three `sms_settings` columns, the
+    days `NOT NULL` from 7 with a 3–14 check and "on means a time"; `notifications.trainer_link_id`
+    with a foreign key and `period_ends_on`; the partial unique index
+    `ix_notifications_one_period_ending_per_link_and_last_day`; the kind in the two kind checks and
+    `ck_notifications_link_only_for_coaching_period_ending`)
+  - **Application/API**: `CoachingPeriodEndingCandidate` in the daily run (an open link of an
+    active member, its latest period ending within the window, no SMS yet for that last day); the
+    settings' response, command and validator carry `coachingPeriodEnding`; the samples too, with
+    «علی شریفی‌پور»; `StudentsResponse.PeriodSoonDays` (types regenerated)
+  - **Panel**: the card «پایان دورهٔ مربی‌گری» among the members' kinds, its days, time, the note
+    that the trainer's mark follows it, its sample, and «جدید» for a week (`KindCard`'s `badge`, only
+    on that card); the kind's label on «پیامک‌ها»; the audit labels
+  - **Site**: `periodMark(state, soonDays)` and `soonDaysOf` (`coaching/period.ts`) in place of
+    `periodSoonDays = 3`, in «شاگردان من» and the home's «رسیدگی می‌خواهد»
+  - **Tests**: domain (the window's edges, the short last period, a renewal starting tomorrow,
+    the text, the settings' 3–14 and empty), integration (`CoachingPeriodEndingTests`: once per last
+    day, a missed run's real days, the last day, the settings' number, a renewal's and an edit's
+    new last day, none for ended/deactivated/unset/over/short/renewed, the kind off, the unique
+    index and the checks; the settings endpoint; the samples; `periodSoonDays` on the list), Vitest
+    (the card, its save and refusals, the badge's week, the site's mark at 7 and 10)
 - [ ] **15.7o, «درخواست تمدید»** (backend, screens, migration): the member asks in «مربی من» from
       *N* days left and after the end; one waiting per link, «لغو درخواست»; the trainer answers in
       «درخواست‌ها» with «تمدید» (days box, asked first) or «رد کردن»; a «تمدید» on «برنامهٔ ثابت»

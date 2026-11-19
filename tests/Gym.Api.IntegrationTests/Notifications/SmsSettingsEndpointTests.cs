@@ -64,6 +64,9 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
 
     private static readonly object AbsenceOff = Off;
 
+    /// <summary>The coaching period's last days as it starts (task 15.7n): off, but its 7 days are never empty.</summary>
+    private static readonly object PeriodEndingAtStart = new { enabled = false, threshold = 7, sendTime = (string?)null };
+
     // ---- The seeded row ----
 
     [Fact]
@@ -182,6 +185,9 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         settings.Broadcast.ShouldBe(new BroadcastSettings(false));
         settings.TrainerRequest.ShouldBe(new TrainerRequestSettingsResponse(false, new TimeOnly(10, 0)));
         settings.SessionCancelled.ShouldBe(new SessionCancelledSettingsResponse(false, new TimeOnly(8, 0), 7));
+
+        // Task 15.7n: the one number that starts filled, since the trainer's mark reads it.
+        settings.CoachingPeriodEnding.ShouldBe(new SmsKindSettings(false, 7, null));
     }
 
     [Fact]
@@ -267,6 +273,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
             sessionCancelled = SessionCancelledOff,
+            coachingPeriodEnding = PeriodEndingAtStart,
             version = read.Version,
         });
 
@@ -367,6 +374,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
             sessionCancelled = SessionCancelledOff,
+            coachingPeriodEnding = PeriodEndingAtStart,
             version = read.Version,
         });
 
@@ -448,6 +456,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
             sessionCancelled = SessionCancelledOff,
+            coachingPeriodEnding = PeriodEndingAtStart,
             version = read.Version,
         });
 
@@ -509,6 +518,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
             sessionCancelled = SessionCancelledOff,
+            coachingPeriodEnding = PeriodEndingAtStart,
             version = read.Version,
         });
 
@@ -629,6 +639,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             absence = AbsenceOff,
             broadcast = BroadcastOff,
             sessionCancelled = SessionCancelledOff,
+            coachingPeriodEnding = PeriodEndingAtStart,
             version = read.Version,
         });
 
@@ -672,10 +683,85 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             absence = AbsenceOff,
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
+            coachingPeriodEnding = PeriodEndingAtStart,
             version = read.Version,
         });
 
         await ShouldHaveFieldErrorAsync(response, "sessionCancelled", "Sms.SettingsIncomplete");
+    }
+
+    // ---- The coaching period's last days (task 15.7n) ----
+
+    [Fact]
+    public async Task Update_CoachingPeriodEndingOn_IsSavedAndScheduled()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var schedule = RecordingSchedule();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, enabled: true, coachingPeriodEnding: Kind(true, 10, "12:00:00")));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await GetOkAsync(client, token)).CoachingPeriodEnding.ShouldBe(new SmsKindSettings(true, 10, new TimeOnly(12, 0)));
+        schedule.Applied[^1].For(NotificationKind.CoachingPeriodEnding).SendTime.ShouldBe(new TimeOnly(12, 0));
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(15)]
+    [InlineData(null)]
+    public async Task Update_CoachingPeriodEndingDaysOutOfRangeOrEmpty_Returns400UnderItsNumber(int? days)
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, coachingPeriodEnding: Kind(false, days, null)));
+
+        await ShouldHaveFieldErrorAsync(response, "coachingPeriodEnding.threshold", "Sms.CoachingPeriodEndingDaysOutOfRange");
+        (await GetOkAsync(client, token)).CoachingPeriodEnding.Threshold.ShouldBe(7);
+    }
+
+    [Fact]
+    public async Task Update_CoachingPeriodEndingOnWithNoTime_Returns400UnderTheSwitch()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var before = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, Body(
+            before.Version, coachingPeriodEnding: Kind(true, 7, null)));
+
+        await ShouldHaveFieldErrorAsync(response, "coachingPeriodEnding.enabled", "Sms.SettingsIncomplete");
+    }
+
+    [Fact]
+    public async Task Update_CoachingPeriodEndingLeftOut_Returns400SettingsIncomplete()
+    {
+        var (client, token, _) = await OwnerClientAsync();
+        var read = await GetOkAsync(client, token);
+
+        using var response = await UpdateAsync(client, token, new
+        {
+            enabled = false,
+            subscriptionExpiring = Off,
+            lowSessions = LowSessionsOff,
+            birthday = Off,
+            payableDue = Off,
+            ownerPhone = (string?)null,
+            dailyReport = ReportOff,
+            subscriptionReceipt = ReceiptOff,
+            welcome = WelcomeOff,
+            welcomeBack = WelcomeBackOff,
+            debtReminder = DebtReminderOff,
+            absence = AbsenceOff,
+            broadcast = BroadcastOff,
+            trainerRequest = TrainerRequestOff,
+            sessionCancelled = SessionCancelledOff,
+            version = read.Version,
+        });
+
+        await ShouldHaveFieldErrorAsync(response, "coachingPeriodEnding", "Sms.SettingsIncomplete");
     }
 
     // ---- The daily report (task 10.7) ----
@@ -745,6 +831,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
             sessionCancelled = SessionCancelledOff,
+            coachingPeriodEnding = PeriodEndingAtStart,
             version = read.Version,
         });
 
@@ -942,6 +1029,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             broadcast = BroadcastOff,
             trainerRequest = TrainerRequestOff,
             sessionCancelled = SessionCancelledOff,
+            coachingPeriodEnding = PeriodEndingAtStart,
             version = read.Version,
         });
 
@@ -1054,7 +1142,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         object? absence = null,
         object? broadcast = null,
         object? trainerRequest = null,
-        object? sessionCancelled = null) =>
+        object? sessionCancelled = null,
+        object? coachingPeriodEnding = null) =>
         new
         {
             enabled,
@@ -1072,6 +1161,7 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
             broadcast = broadcast ?? BroadcastOff,
             trainerRequest = trainerRequest ?? TrainerRequestOff,
             sessionCancelled = sessionCancelled ?? SessionCancelledOff,
+            coachingPeriodEnding = coachingPeriodEnding ?? PeriodEndingAtStart,
             version,
         };
 
@@ -1099,7 +1189,8 @@ public sealed class SmsSettingsEndpointTests(DatabaseFixture fixture) : Database
         debtReminder: new { enabled = true, daysAfter = 30, sendTime = "11:00:00", minAmount = 200_000m },
         absence: Kind(true, 14, "11:30:00"),
         trainerRequest: new { enabled = true },
-        sessionCancelled: new { enabled = true });
+        sessionCancelled: new { enabled = true },
+        coachingPeriodEnding: Kind(true, 7, "12:00:00"));
 
     private async Task<(HttpClient Client, string Token)> StaffClientAsync()
     {

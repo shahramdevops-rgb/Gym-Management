@@ -84,6 +84,26 @@ public sealed class CoachingPeriodTests(DatabaseFixture fixture) : DatabaseTestB
         (await db.TrainerLinks.AnyAsync(TestContext.Current.CancellationToken)).ShouldBeFalse();
     }
 
+    // ---- The trainer's mark (15.7n) ----
+
+    [Fact]
+    public async Task Students_PeriodSoonDays_IsTheSmsSettingsNumberWhetherTheSmsIsOnOrOff()
+    {
+        var gym = await LinkedGymAsync(days: 30);
+
+        var before = await GetJsonAsync(gym.Client, StudentsPath, gym.TrainerToken);
+        await using (var scope = Fixture.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.ExecuteSqlRawAsync(
+                "UPDATE sms_settings SET coaching_period_ending_days = 10", TestContext.Current.CancellationToken);
+        }
+
+        var after = await GetJsonAsync(gym.Client, StudentsPath, gym.TrainerToken);
+
+        before.GetProperty("periodSoonDays").GetInt32().ShouldBe(7);
+        after.GetProperty("periodSoonDays").GetInt32().ShouldBe(10);
+    }
+
     // ---- Renewing ----
 
     [Fact]

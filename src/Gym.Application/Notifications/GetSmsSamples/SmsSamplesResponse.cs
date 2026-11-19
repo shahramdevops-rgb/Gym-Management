@@ -10,7 +10,8 @@ public sealed record SmsSample(string Text, int Parts);
 /// (BUSINESS_RULES.md §10 <i>SMS settings</i>). The broadcast is not here: the Owner writes it.
 /// The welcome back has its six texts, in the order a member gets them (task 10.20). The trainer's
 /// SMS (task 15.4c) names a sample trainer and member; the cancelled session's (task 15.6c) has its
-/// two texts, one session and several.
+/// two texts, one session and several. The coaching period's (task 15.7n) has 7 days left, the
+/// number the settings start at.
 /// </summary>
 public sealed record SmsSamplesResponse(
     SmsSample SubscriptionExpiring,
@@ -24,4 +25,5 @@ public sealed record SmsSamplesResponse(
     SmsSample DebtReminder,
     SmsSample Absence,
     SmsSample TrainerRequest,
-    IReadOnlyList<SmsSample> SessionCancelled);
+    IReadOnlyList<SmsSample> SessionCancelled,
+    SmsSample CoachingPeriodEnding);

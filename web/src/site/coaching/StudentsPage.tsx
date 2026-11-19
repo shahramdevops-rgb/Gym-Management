@@ -17,7 +17,7 @@ import { Person } from "../components/Person";
 import { SiteFrame } from "../components/SiteFrame";
 import { sitePaths } from "../paths";
 import { useStudents, type Students } from "./api";
-import { isActiveStudent, periodMark, periodState } from "./period";
+import { isActiveStudent, periodMark, periodState, soonDaysOf } from "./period";
 import { matchesStudent } from "./studentSearch";
 
 type Student = Students["students"][number];
@@ -29,8 +29,8 @@ type Student = Students["students"][number];
  * attendance (15.7) and «برنامه» their «برنامهٔ ثابت», the fixed weekly sessions (15.6b; the
  * button's short name, the developer's, 1405/08/20). A search box finds a
  * student by name or phone (15.7d). «پایان مربی‌گری» is at the foot of «برنامهٔ ثابت» (15.7g). A
- * student whose coaching period needs the trainer is marked: not given yet, ending within three
- * days, or over (15.7h).
+ * student whose coaching period needs the trainer is marked: not given yet, ending within the SMS
+ * settings' days for the period's last days (15.7n, three days before it), or over (15.7h).
  *
  * In two parts since 15.7l (BUSINESS_RULES.md §15 *«شاگردان من» in two parts*, so the list does not
  * fill up): the active students, and under them a closed part «غیرفعال (n)», those whose period is
@@ -47,6 +47,7 @@ export function StudentsPage() {
   }
 
   const list = students.data?.students;
+  const soonDays = students.data === undefined ? 0 : soonDaysOf(students.data);
   const today = gymToday();
   const active = list?.filter((student) => isActiveStudent(student.periodEndsOn, today));
 
@@ -75,7 +76,13 @@ export function StudentsPage() {
             {list.length === 0 ? (
               <p className="text-sm text-muted-foreground">هنوز شاگردی ندارید.</p>
             ) : (
-              <StudentParts students={list} today={today} query={query} onQuery={setQuery} />
+              <StudentParts
+                students={list}
+                today={today}
+                soonDays={soonDays}
+                query={query}
+                onQuery={setQuery}
+              />
             )}
           </CardContent>
         </Card>
@@ -87,11 +94,13 @@ export function StudentsPage() {
 function StudentParts({
   students,
   today,
+  soonDays,
   query,
   onQuery,
 }: {
   students: Students["students"];
   today: string;
+  soonDays: number;
   query: string;
   onQuery: (query: string) => void;
 }) {
@@ -118,7 +127,7 @@ function StudentParts({
       {found.length === 0 ? (
         <p className="text-sm text-muted-foreground">شاگردی با این نام یا شماره پیدا نشد.</p>
       ) : active.length > 0 ? (
-        <StudentRows label="شاگردان من" students={active} today={today} />
+        <StudentRows label="شاگردان من" students={active} today={today} soonDays={soonDays} />
       ) : (
         !searching && <p className="text-sm text-muted-foreground">شاگرد فعالی ندارید.</p>
       )}
@@ -140,7 +149,12 @@ function StudentParts({
           </button>
           {showInactive && (
             <div id="inactive-students" className="pt-3">
-              <StudentRows label="شاگردان غیرفعال" students={inactive} today={today} />
+              <StudentRows
+                label="شاگردان غیرفعال"
+                students={inactive}
+                today={today}
+                soonDays={soonDays}
+              />
             </div>
           )}
         </div>
@@ -153,10 +167,12 @@ function StudentRows({
   label,
   students,
   today,
+  soonDays,
 }: {
   label: string;
   students: Student[];
   today: string;
+  soonDays: number;
 }) {
   return (
     <ul aria-label={label} className="divide-y">
@@ -171,7 +187,7 @@ function StudentRows({
             <Person
               fullName={student.fullName}
               phoneNumber={student.phoneNumber}
-              detail={<StudentDetail student={student} today={today} />}
+              detail={<StudentDetail student={student} today={today} soonDays={soonDays} />}
               inactive={!student.isActive}
             />
           </div>
@@ -200,8 +216,16 @@ function StudentRows({
 }
 
 /** «از ۱ آبان», and the coaching period's mark when the trainer has something to do about it. */
-function StudentDetail({ student, today }: { student: Student; today: string }) {
-  const mark = periodMark(periodState(student.periodEndsOn, today));
+function StudentDetail({
+  student,
+  today,
+  soonDays,
+}: {
+  student: Student;
+  today: string;
+  soonDays: number;
+}) {
+  const mark = periodMark(periodState(student.periodEndsOn, today), soonDays);
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2">

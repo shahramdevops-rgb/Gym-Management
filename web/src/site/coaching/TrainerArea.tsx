@@ -6,7 +6,7 @@ import { gymToday, toPersianDigits } from "@/lib/format";
 
 import { sitePaths } from "../paths";
 import { useStudents } from "./api";
-import { isActiveStudent, periodMark, periodState } from "./period";
+import { isActiveStudent, periodMark, periodState, soonDaysOf } from "./period";
 
 /**
  * «شاگردان من» on the trainer's home (BUSINESS_RULES.md §15 *A member and their trainer*, roadmap
@@ -15,7 +15,8 @@ import { isActiveStudent, periodMark, periodState } from "./period";
  * active students only (§15 *«شاگردان من» in two parts*: the coaching runs, or the student is from
  * before the periods), those whose membership is inactive too; one whose period is over is in the
  * page's closed part «غیرفعال». The active students whose coaching period needs the trainer (ending
- * within three days, or not given) are named under it, since their marks are on the page:
+ * within the SMS settings' days, 15.7n, or not given) are named under it, since their marks are on
+ * the page:
  * «دورهٔ مینا رضایی رسیدگی می‌خواهد.», two names at most, then only how many («دورهٔ ۳ شاگرد رسیدگی
  * می‌خواهد.»; the wording the developer's, 1405/08/20).
  *
@@ -28,9 +29,11 @@ export function TrainerArea() {
   const active = students.data?.students.filter((student) =>
     isActiveStudent(student.periodEndsOn, today),
   );
+  const soonDays = students.data === undefined ? 0 : soonDaysOf(students.data);
   const needing =
-    active?.filter((student) => periodMark(periodState(student.periodEndsOn, today)) !== null) ??
-    [];
+    active?.filter(
+      (student) => periodMark(periodState(student.periodEndsOn, today), soonDays) !== null,
+    ) ?? [];
 
   return (
     <Link

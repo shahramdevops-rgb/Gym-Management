@@ -10,12 +10,17 @@ namespace Gym.Domain.Notifications;
 /// sessions left (<see cref="NotificationKind.LowSessions"/>), days before the birthday
 /// (<see cref="NotificationKind.Birthday"/>) or days before the cheque's or instalment's date
 /// (<see cref="NotificationKind.PayableDue"/>), or days since the oldest unpaid sale
-/// (<see cref="NotificationKind.DebtReminder"/>), or days away (<see cref="NotificationKind.Absence"/>). The ranges are in <see cref="SmsSettings.ThresholdRange"/>.
+/// (<see cref="NotificationKind.DebtReminder"/>), or days away (<see cref="NotificationKind.Absence"/>),
+/// or days left of the coaching period (<see cref="NotificationKind.CoachingPeriodEnding"/>, never
+/// empty). The ranges are in <see cref="SmsSettings.ThresholdRange"/>.
 /// </param>
 /// <param name="SendTime">The gym's local time the day's run starts at.</param>
 public sealed record SmsKindSettings(bool Enabled, int? Threshold, TimeOnly? SendTime)
 {
-    /// <summary>Everything empty and off: how every kind starts (§10).</summary>
+    /// <summary>
+    /// Everything empty and off: how every kind starts (§10), but the coaching period's last days,
+    /// which starts at <see cref="SmsSettings.DefaultCoachingPeriodEndingDays"/>.
+    /// </summary>
     public static readonly SmsKindSettings Off = new(Enabled: false, Threshold: null, SendTime: null);
 
     /// <summary>The number and the time are both there. A method, so it is not sent as JSON.</summary>

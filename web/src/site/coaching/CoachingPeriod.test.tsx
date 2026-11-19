@@ -114,6 +114,7 @@ describe("the coaching period", () => {
       "GET /api/site/coaching/students": () =>
         json(200, {
           requests: [],
+          periodSoonDays: 7,
           students: [
             ...names.map((fullName) => studentRow({ fullName, periodEndsOn: addDays(now, 1) })),
             studentRow({ fullName: "ت دور", periodEndsOn: addDays(now, 20) }),
@@ -132,6 +133,7 @@ describe("the coaching period", () => {
       "GET /api/site/coaching/students": () =>
         json(200, {
           requests: [],
+          periodSoonDays: 7,
           students: [
             studentRow({ fullName: "الف قدیمی", periodEndsOn: null }),
             studentRow({ fullName: "ب دو روز", periodEndsOn: addDays(now, 1) }),
@@ -164,6 +166,41 @@ describe("the coaching period", () => {
     ).toHaveTextContent("دوره تمام شد");
   });
 
+  it.each([
+    [7, ["۷ روز", null]],
+    [10, ["۷ روز", "۸ روز"]],
+  ])(
+    "Students_MarkFrom%sDaysLeft_FollowsTheSmsSettingsNumber",
+    async (periodSoonDays, expected) => {
+      // 15.7n: the days the student's SMS goes from, sent by the API, in place of the 3 days of 15.7h.
+      const now = gymToday();
+      mockApi({
+        "GET /api/site/me": () => json(200, trainerOnly),
+        "GET /api/site/coaching/students": () =>
+          json(200, {
+            requests: [],
+            periodSoonDays,
+            students: [
+              studentRow({ fullName: "الف هفت", periodEndsOn: addDays(now, 6) }),
+              studentRow({ fullName: "ب هشت", periodEndsOn: addDays(now, 7) }),
+            ],
+          }),
+      });
+      renderSite("/students", { access: siteAccess(trainerOnly) });
+
+      const rows = within(await screen.findByRole("list", { name: "شاگردان من" })).getAllByRole(
+        "listitem",
+      );
+      expected.forEach((mark, index) => {
+        if (mark === null) {
+          expect(rows[index]).not.toHaveTextContent(/روز/);
+        } else {
+          expect(rows[index]).toHaveTextContent(mark);
+        }
+      });
+    },
+  );
+
   it("Students_PeriodOver_InTheClosedInactivePartThatOpensOnATap", async () => {
     const now = gymToday();
     mockApi({
@@ -171,6 +208,7 @@ describe("the coaching period", () => {
       "GET /api/site/coaching/students": () =>
         json(200, {
           requests: [],
+          periodSoonDays: 7,
           students: [
             studentRow({ fullName: "سارا فعال", periodEndsOn: addDays(now, 20) }),
             // Its last day is today: still running, so still active.
@@ -214,6 +252,7 @@ describe("the coaching period", () => {
       "GET /api/site/coaching/students": () =>
         json(200, {
           requests: [],
+          periodSoonDays: 7,
           students: [
             studentRow({ fullName: "سارا فعال", periodEndsOn: addDays(now, 20) }),
             studentRow({ fullName: "مینا تمام", periodEndsOn: addDays(now, -3) }),
@@ -246,6 +285,7 @@ describe("the coaching period", () => {
       "GET /api/site/coaching/students": () =>
         json(200, {
           requests: [],
+          periodSoonDays: 7,
           students: [studentRow({ fullName: "مینا تمام", periodEndsOn: addDays(now, -3) })],
         }),
     });

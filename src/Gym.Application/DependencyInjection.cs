@@ -470,6 +470,7 @@ public static class DependencyInjection
         services.AddScoped<DailyReportCandidate>();
         services.AddScoped<DebtReminderCandidate>();
         services.AddScoped<AbsenceCandidate>();
+        services.AddScoped<CoachingPeriodEndingCandidate>();
         services.AddScoped<SubscriptionReceipts>();
         services.AddScoped<SendSubscriptionReceiptHandler>();
         services.AddScoped<Welcomes>();

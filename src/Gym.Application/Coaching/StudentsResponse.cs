@@ -1,5 +1,6 @@
 using Gym.Application.Common;
 using Gym.Domain.Coaching;
+using Gym.Domain.Notifications;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +16,13 @@ namespace Gym.Application.Coaching;
 /// it cannot be accepted meanwhile. A student the desk deactivated stays, marked
 /// <see cref="StudentResponse.IsActive"/> false, since the link outlives it.
 /// </remarks>
-public sealed record StudentsResponse(IReadOnlyList<StudentRequestResponse> Requests, IReadOnlyList<StudentResponse> Students)
+/// <param name="PeriodSoonDays">
+/// From this many days left «شاگردان من» marks a student, the last day counting as one: the SMS
+/// settings' number for the coaching period's last days (§15 <i>The coaching period</i>, task 15.7n),
+/// whether that SMS is on or off, so the trainer sees it the day the student gets the SMS.
+/// </param>
+public sealed record StudentsResponse(
+    IReadOnlyList<StudentRequestResponse> Requests, IReadOnlyList<StudentResponse> Students, int PeriodSoonDays)
 {
     public static async Task<StudentsResponse> ForAsync(IAppDbContext db, Guid trainerId, CancellationToken cancellationToken)
     {
@@ -44,7 +51,12 @@ public sealed record StudentsResponse(IReadOnlyList<StudentRequestResponse> Requ
                 db.CoachingPeriods.Where(period => period.LinkId == pair.Link.Id).Max(period => (DateOnly?)period.EndsOn)))
             .ToListAsync(cancellationToken);
 
-        return new StudentsResponse(requests, students);
+        var periodSoonDays = await db.SmsSettings.AsNoTracking()
+            .Where(settings => settings.Id == SmsSettings.TheId)
+            .Select(settings => settings.CoachingPeriodEndingDays)
+            .SingleAsync(cancellationToken);
+
+        return new StudentsResponse(requests, students, periodSoonDays);
     }
 }
 

@@ -541,7 +541,7 @@ public sealed class SessionCancellationTests(DatabaseFixture fixture) : Database
             absence: SmsKindSettings.Off,
             broadcastEnabled: false,
             trainerRequestEnabled: false,
-            sessionCancelledEnabled: sessionCancelled).IsSuccess.ShouldBeTrue();
+            sessionCancelledEnabled: sessionCancelled, coachingPeriodEnding: SmsSettings.CoachingPeriodEndingAtStart).IsSuccess.ShouldBeTrue();
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

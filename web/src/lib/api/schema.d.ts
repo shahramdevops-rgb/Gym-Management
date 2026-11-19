@@ -3929,7 +3929,7 @@ export interface components {
             signInCodeLimitReached: boolean;
         };
         /** @enum {unknown} */
-        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast" | "WelcomeBack" | "TrainerRequest" | "SessionCancelled";
+        NotificationKind: "SubscriptionExpiring" | "LowSessions" | "Birthday" | "PayableDue" | "DailyReport" | "SubscriptionReceipt" | "Welcome" | "DebtReminder" | "Absence" | "Broadcast" | "WelcomeBack" | "TrainerRequest" | "SessionCancelled" | "CoachingPeriodEnding";
         /** @enum {unknown} */
         NotificationStatus: "Pending" | "Sent" | "Failed" | "Unknown";
         OldDebtResponse: {
@@ -5069,6 +5069,7 @@ export interface components {
             absence: components["schemas"]["SmsSample"];
             trainerRequest: components["schemas"]["SmsSample"];
             sessionCancelled: components["schemas"]["SmsSample"][];
+            coachingPeriodEnding: components["schemas"]["SmsSample"];
         };
         SmsSettingsResponse: {
             enabled: boolean;
@@ -5086,6 +5087,7 @@ export interface components {
             broadcast: components["schemas"]["BroadcastSettings"];
             trainerRequest: components["schemas"]["TrainerRequestSettingsResponse"];
             sessionCancelled: components["schemas"]["SessionCancelledSettingsResponse"];
+            coachingPeriodEnding: components["schemas"]["SmsKindSettings"];
             /** Format: uint32 */
             version: number | string;
         };
@@ -5149,6 +5151,8 @@ export interface components {
         StudentsResponse: {
             requests: components["schemas"]["StudentRequestResponse"][];
             students: components["schemas"]["StudentResponse"][];
+            /** Format: int32 */
+            periodSoonDays: number | string;
         };
         StudentToRescheduleResponse: {
             /** Format: uuid */
@@ -5418,6 +5422,7 @@ export interface components {
             broadcast: components["schemas"]["BroadcastSettings"];
             trainerRequest: components["schemas"]["TrainerRequestSettings"];
             sessionCancelled: components["schemas"]["SessionCancelledSettings"];
+            coachingPeriodEnding: components["schemas"]["SmsKindSettings"];
             /** Format: uint32 */
             version: number | string;
         };
