@@ -91,6 +91,9 @@ test("SiteCoaching_MemberPicksTrainer_TrainerAcceptsAndSeesTheStudent", async ({
   await expect(requests.getByRole("textbox", { name: "تمدید" })).toHaveValue("۳۰");
   await requests.getByRole("button", { name: "تمدید" }).click();
   await trainerPage.getByRole("dialog").getByRole("button", { name: "بله، تمدید" }).click();
+  // The question closes only once the answer is back. While it is open the page behind it is
+  // hidden from the accessibility tree, so the heading alone would read as gone too early.
+  await expect(trainerPage.getByRole("dialog")).toBeHidden();
   await expect(trainerPage.getByRole("heading", { name: /^درخواست‌ها/ })).toBeHidden();
   await page.reload();
   await expect(page.getByText(/^دورهٔ مربی‌گری تا /)).toContainText("۳۷ روز مانده");
